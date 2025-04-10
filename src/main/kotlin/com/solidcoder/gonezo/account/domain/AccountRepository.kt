@@ -1,5 +1,7 @@
 package com.solidcoder.gonezo.account.domain
 
+import com.solidcoder.gonezo.infrastructure.mapper.AccountEntityMapper
+import com.solidcoder.gonezo.infrastructure.repository.JpaAccountRepository
 import java.util.*
 import org.springframework.stereotype.Repository
 
@@ -9,12 +11,19 @@ interface AccountRepository {
 }
 
 @Repository
-class AccountRepositoryV1 : AccountRepository {
+class AccountRepositoryV1(
+    private val jpa: JpaAccountRepository,
+    private val accountEntityMapper: AccountEntityMapper
+) : AccountRepository {
+
     override fun findById(accountId: UUID): Account? {
-        TODO("Not yet implemented")
+        return jpa.findById(accountId)
+            .map(accountEntityMapper::toDomain)
+            .orElse(null)
     }
 
     override fun save(account: Account) {
-        TODO("Not yet implemented")
+        val entity = accountEntityMapper.toEntity(account)
+        jpa.save(entity)
     }
 }
