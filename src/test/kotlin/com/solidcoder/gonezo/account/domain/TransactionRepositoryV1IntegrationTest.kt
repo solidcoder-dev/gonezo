@@ -1,7 +1,6 @@
 package com.solidcoder.gonezo.account.domain
 
 import com.solidcoder.gonezo.infrastructure.mapper.TransactionMapperV1
-import com.solidcoder.gonezo.infrastructure.repository.JpaTransactionRepository
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.util.*
@@ -18,10 +17,7 @@ import org.springframework.context.annotation.Import
 class TransactionRepositoryV1IntegrationTest {
 
     @Autowired
-    lateinit var transactionRepository: TransactionRepository
-
-    @Autowired
-    lateinit var jpa: JpaTransactionRepository
+    private lateinit var transactionRepository: TransactionRepository
 
     private val accountId = UUID.randomUUID()
 
