@@ -3,6 +3,7 @@ package com.solidcoder.gonezo.infrastructure.repository
 import com.solidcoder.gonezo.infrastructure.persistence.TransactionEntity
 import com.solidcoder.gonezo.infrastructure.projection.TransactionView
 import java.util.*
+import java.util.stream.Stream
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
@@ -31,4 +32,8 @@ interface JpaTransactionRepository : JpaRepository<TransactionEntity, UUID> {
         nativeQuery = true
     )
     fun findAllByAccountId(accountId: UUID, pageable: Pageable): Page<TransactionView>
+
+
+    @Query("SELECT t FROM TransactionEntity t WHERE t.accountId = :accountId")
+    fun findStreamByAccountId(accountId: UUID): Stream<TransactionEntity>
 }

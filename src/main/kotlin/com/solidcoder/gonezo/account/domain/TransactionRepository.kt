@@ -3,12 +3,14 @@ package com.solidcoder.gonezo.account.domain
 import com.solidcoder.gonezo.infrastructure.mapper.TransactionMapper
 import com.solidcoder.gonezo.infrastructure.repository.JpaTransactionRepository
 import java.util.*
+import java.util.stream.Stream
 import org.springframework.stereotype.Repository
 
 interface TransactionRepository {
     fun save(transaction: Transaction)
     fun delete(transactionId: UUID)
     fun findByAccountId(accountId: UUID): List<Transaction>
+    fun streamByAccountId(accountId: UUID): Stream<Transaction>
 }
 
 @Repository
@@ -28,5 +30,9 @@ class TransactionRepositoryV1(
         return jpaTransactionRepository.findByAccountId(accountId).map {
             mapper.toDomain(it)
         }
+    }
+
+    override fun streamByAccountId(accountId: UUID): Stream<Transaction> {
+        return jpaTransactionRepository.findStreamByAccountId(accountId).map(mapper::toDomain)
     }
 }
