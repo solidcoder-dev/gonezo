@@ -14,7 +14,7 @@ interface ReadOnlyTransactionRepository {
 
 @Repository
 class ReadOnlyTransactionRepositoryV1(
-    private val jpaTransactionProjectionRepository: JpaTransactionProjectionRepository
+    private val jpaTransactionProjectionRepository: JpaTransactionRepository
 ) : ReadOnlyTransactionRepository {
     override fun findAllByAccountId(accountId: UUID, pageRequest: PageRequest): PageResult<TransactionView> {
         val pageable = SpringPageRequest.of(pageRequest.page, pageRequest.size)

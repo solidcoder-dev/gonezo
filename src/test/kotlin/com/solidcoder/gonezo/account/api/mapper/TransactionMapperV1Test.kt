@@ -9,7 +9,7 @@ import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
-class TransactionDtoMapperV1Test {
+class TransactionMapperV1Test {
 
     private val mapper = TransactionDtoMapperV1()
 
