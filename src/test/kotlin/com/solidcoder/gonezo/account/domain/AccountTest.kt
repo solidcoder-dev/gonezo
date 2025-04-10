@@ -4,6 +4,7 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.util.*
 import kotlin.test.assertFailsWith
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 
@@ -35,6 +36,21 @@ class AccountTest {
 
         assertFailsWith<IllegalArgumentException> {
             account.validateTransaction(transaction)
+        }
+    }
+
+    @Test
+    fun `should create a valid account`() {
+        val account = Account(name = "Personal Account", currency = eur)
+
+        assertEquals("Personal Account", account.name)
+        assertEquals(eur, account.currency)
+    }
+
+    @Test
+    fun `should fail if account name is blank`() {
+        assertFailsWith<IllegalArgumentException> {
+            Account(name = "   ", currency = eur)
         }
     }
 }
