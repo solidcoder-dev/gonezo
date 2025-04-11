@@ -2,12 +2,13 @@ package com.solidcoder.gonezo.account.application.command
 
 
 import com.solidcoder.gonezo.account.domain.Account
-import com.solidcoder.gonezo.account.domain.AccountRepository
+import com.solidcoder.gonezo.account.domain.AccountName
+import com.solidcoder.gonezo.account.domain.repository.AccountRepository
 import com.solidcoder.gonezo.account.domain.Amount
 import com.solidcoder.gonezo.account.domain.Transaction
 import com.solidcoder.gonezo.account.domain.TransactionType
 import com.solidcoder.gonezo.account.domain.Currency
-import com.solidcoder.gonezo.account.domain.TransactionRepository
+import com.solidcoder.gonezo.account.domain.repository.TransactionRepository
 import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
@@ -27,7 +28,7 @@ class AddTransactionImplTest {
     private lateinit var handler: AddTransaction
 
     private val accountId = UUID.randomUUID()
-    private val account = Account(accountId, "Main", Currency("EUR"))
+    private val account = Account(accountId, AccountName.unsafe("Main"), Currency("EUR"))
 
     private val transaction = Transaction(
         accountId = accountId,

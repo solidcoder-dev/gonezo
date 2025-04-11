@@ -13,7 +13,7 @@ class AccountDtoMapperV1 : AccountDtoMapper {
     override fun toCreatedDto(account: Account): AccountCreatedDto =
         AccountCreatedDto(
             id = account.id,
-            name = account.name,
+            name = account.name.value,
             currency = account.currency.code
         )
 }

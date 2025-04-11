@@ -1,10 +1,10 @@
 package com.solidcoder.gonezo.account.application.query
 
 import com.solidcoder.gonezo.account.application.exception.AccountNotFoundException
-import com.solidcoder.gonezo.account.domain.AccountRepository
 import com.solidcoder.gonezo.account.domain.Balance
 import com.solidcoder.gonezo.account.domain.Transaction
-import com.solidcoder.gonezo.account.domain.TransactionRepository
+import com.solidcoder.gonezo.account.domain.repository.AccountRepository
+import com.solidcoder.gonezo.account.domain.repository.TransactionRepository
 import java.math.BigDecimal
 import java.util.*
 import org.springframework.stereotype.Service

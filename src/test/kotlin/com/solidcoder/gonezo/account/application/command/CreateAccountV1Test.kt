@@ -1,45 +1,67 @@
 package com.solidcoder.gonezo.account.application.command
 
-import com.solidcoder.gonezo.account.api.dto.AccountCreatedDto
-import com.solidcoder.gonezo.account.api.mapper.AccountDtoMapper
+import arrow.core.Either
 import com.solidcoder.gonezo.account.domain.Account
-import com.solidcoder.gonezo.account.domain.AccountRepository
+import com.solidcoder.gonezo.account.domain.AccountName
+import com.solidcoder.gonezo.account.domain.AccountValidationError
 import com.solidcoder.gonezo.account.domain.Currency
-import io.mockk.*
-import java.util.*
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import com.solidcoder.gonezo.account.domain.repository.AccountRepository
+import com.solidcoder.gonezo.account.domain.service.AccountFactory
+import io.mockk.Runs
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.verify
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 class CreateAccountV1Test {
 
-    private val repository = mockk<AccountRepository>()
-    private val mapper = mockk<AccountDtoMapper>()
-
-    private lateinit var useCase: CreateAccount
+    private lateinit var accountRepository: AccountRepository
+    private lateinit var accountFactory: AccountFactory
+    private lateinit var createAccount: CreateAccountV1
 
     @BeforeEach
-    fun setup() {
-        useCase = CreateAccountV1(repository, mapper)
+    fun setUp() {
+        accountRepository = mockk(relaxed = true)
+        accountFactory = mockk()
+        createAccount = CreateAccountV1(accountRepository, accountFactory)
     }
 
     @Test
-    fun `should create and persist account with given name and currency`() {
-        val name = "My Account"
-        val currency = Currency("EUR")
+    fun `should return Success and save account when factory returns valid account`() {
+        // Given
+        val accountName = AccountName.unsafe("Test Account")
+        val currency = Currency("USD")
+        val account = Account(name = accountName, currency = currency)
 
-        val slot = slot<Account>()
-        every { repository.save(capture(slot)) } just Runs
+        every { accountFactory.create("Test Account", "USD") } returns Either.Right(account)
+        every { accountRepository.save(account) } just Runs
 
-        val expectedDto = AccountCreatedDto(UUID.randomUUID(), name, currency.code)
-        every { mapper.toCreatedDto(any()) } returns expectedDto
+        // When
+        val result = createAccount.handle("Test Account", "USD")
 
-        val result = useCase.handle(name, currency)
+        // Then
+        assertTrue(result is CreateAccountResult.Success)
+        assertEquals(account, (result as CreateAccountResult.Success).account)
+        verify(exactly = 1) { accountRepository.save(account) }
+    }
 
-        verify(exactly = 1) { repository.save(any()) }
+    @Test
+    fun `should return ValidationFailed when account name is invalid`() {
+        // Given
+        val error = AccountValidationError("Account name cannot be blank")
 
-        assertEquals(expectedDto, result)
-        assertTrue(result.id.toString().isNotEmpty())
+        every { accountFactory.create("", "USD") } returns Either.Left(error)
+
+        // When
+        val result = createAccount.handle("", "USD")
+
+        // Then
+        assertTrue(result is CreateAccountResult.ValidationFailed)
+        assertEquals("Account name cannot be blank", (result as CreateAccountResult.ValidationFailed).reason)
+        verify(exactly = 0) { accountRepository.save(any()) }
     }
 }

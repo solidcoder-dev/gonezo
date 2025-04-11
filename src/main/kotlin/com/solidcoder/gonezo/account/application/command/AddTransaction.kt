@@ -1,8 +1,8 @@
 package com.solidcoder.gonezo.account.application.command
 
-import com.solidcoder.gonezo.account.domain.AccountRepository
+import com.solidcoder.gonezo.account.domain.repository.AccountRepository
 import com.solidcoder.gonezo.account.domain.Transaction
-import com.solidcoder.gonezo.account.domain.TransactionRepository
+import com.solidcoder.gonezo.account.domain.repository.TransactionRepository
 import java.util.*
 import org.springframework.stereotype.Service
 

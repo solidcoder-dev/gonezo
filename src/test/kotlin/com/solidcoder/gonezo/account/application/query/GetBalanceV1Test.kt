@@ -2,11 +2,12 @@ package com.solidcoder.gonezo.account.application.query
 
 import com.solidcoder.gonezo.account.application.exception.AccountNotFoundException
 import com.solidcoder.gonezo.account.domain.Account
-import com.solidcoder.gonezo.account.domain.AccountRepository
+import com.solidcoder.gonezo.account.domain.AccountName
+import com.solidcoder.gonezo.account.domain.repository.AccountRepository
 import com.solidcoder.gonezo.account.domain.Amount
 import com.solidcoder.gonezo.account.domain.Currency
 import com.solidcoder.gonezo.account.domain.Transaction
-import com.solidcoder.gonezo.account.domain.TransactionRepository
+import com.solidcoder.gonezo.account.domain.repository.TransactionRepository
 import com.solidcoder.gonezo.account.domain.TransactionType.EXPENSE
 import com.solidcoder.gonezo.account.domain.TransactionType.INCOME
 import io.mockk.every
@@ -27,7 +28,7 @@ class GetBalanceV1Test {
     @Test
     fun `should return correct balance for income and expenses`() {
         val accountId = UUID.randomUUID()
-        val account = Account(accountId, "anAccount", Currency("EUR"))
+        val account = Account(accountId, AccountName.unsafe("anAccount"), Currency("EUR"))
         val currency = Currency("EUR")
 
         val txs = listOf(

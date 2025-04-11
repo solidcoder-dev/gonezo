@@ -1,19 +1,37 @@
 package com.solidcoder.gonezo.account.domain
 
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
 import java.util.*
 
 class Account(
     val id: UUID = UUID.randomUUID(),
-    val name: String,
+    val name: AccountName,
     val currency: Currency
 ) {
-    init {
-        require(name.isNotBlank()) { "Account name must not be blank" }
-    }
-
     fun validateTransaction(transaction: Transaction) {
         require(transaction.amount.currency == currency) {
             "Transaction currency (${transaction.amount.currency.code}) does not match account currency"
         }
     }
 }
+
+@JvmInline
+value class AccountName private constructor(val value: String) {
+    companion object {
+        fun create(raw: String): Either<AccountValidationError, AccountName> {
+            return if (raw.isNotBlank()) {
+                AccountName(raw.trim()).right()
+            } else {
+                AccountValidationError("Account name cannot be blank").left()
+            }
+        }
+
+        // Used by mappers only — trusted boundary
+        fun unsafe(raw: String): AccountName = AccountName(raw)
+    }
+}
+
+data class AccountValidationError(val reason: String)
+

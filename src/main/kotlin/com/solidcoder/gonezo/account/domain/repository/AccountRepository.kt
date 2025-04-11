@@ -1,5 +1,6 @@
-package com.solidcoder.gonezo.account.domain
+package com.solidcoder.gonezo.account.domain.repository
 
+import com.solidcoder.gonezo.account.domain.Account
 import com.solidcoder.gonezo.infrastructure.mapper.AccountEntityMapper
 import com.solidcoder.gonezo.infrastructure.repository.JpaAccountRepository
 import java.util.*

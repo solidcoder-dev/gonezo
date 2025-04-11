@@ -1,5 +1,7 @@
 package com.solidcoder.gonezo.account.domain
 
+import com.solidcoder.gonezo.account.domain.repository.AccountRepository
+import com.solidcoder.gonezo.account.domain.repository.AccountRepositoryV1
 import com.solidcoder.gonezo.infrastructure.mapper.AccountEntityMapperV1
 import java.util.*
 import kotlin.test.assertEquals
@@ -21,7 +23,7 @@ class AccountRepositoryV1IntegrationTest {
 
     @Test
     fun `should save and retrieve account`() {
-        val account = Account(name = "Test Account", currency = Currency("EUR"))
+        val account = Account(name = AccountName.unsafe("Test Account"), currency = Currency("EUR"))
         repository.save(account)
 
         val found = repository.findById(account.id)

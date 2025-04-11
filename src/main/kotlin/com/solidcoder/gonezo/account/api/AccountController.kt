@@ -1,11 +1,11 @@
 package com.solidcoder.gonezo.account.api
 
-import com.solidcoder.gonezo.account.api.dto.AccountCreatedDto
 import com.solidcoder.gonezo.account.api.dto.BalanceDto
 import com.solidcoder.gonezo.account.api.dto.CreateAccountDto
+import com.solidcoder.gonezo.account.api.mapper.AccountDtoMapper
 import com.solidcoder.gonezo.account.application.command.CreateAccount
+import com.solidcoder.gonezo.account.application.command.CreateAccountResult
 import com.solidcoder.gonezo.account.application.query.GetBalance
-import com.solidcoder.gonezo.account.domain.Currency
 import java.util.*
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -21,13 +21,18 @@ import org.springframework.web.bind.annotation.RestController
 class AccountController(
     private val getBalance: GetBalance,
     private val createAccount: CreateAccount,
+    private val accountMapper: AccountDtoMapper
 ) {
 
     @PostMapping
-    fun createAccount(@RequestBody dto: CreateAccountDto): ResponseEntity<AccountCreatedDto> {
-        val currency = Currency(dto.currency)
-        val result = createAccount.handle(dto.name, currency)
-        return ResponseEntity.status(HttpStatus.CREATED).body(result)
+    fun createAccount(@RequestBody dto: CreateAccountDto): ResponseEntity<Any> {
+        return when (val result = createAccount.handle(dto.name, dto.currency)) {
+            is CreateAccountResult.Success ->
+                ResponseEntity.status(HttpStatus.CREATED).body(accountMapper.toCreatedDto(result.account))
+
+            is CreateAccountResult.ValidationFailed ->
+                ResponseEntity.badRequest().body(mapOf("error" to result.reason))
+        }
     }
 
     @GetMapping("/{id}/balance")

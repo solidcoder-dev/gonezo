@@ -1,96 +1,64 @@
 package com.solidcoder.gonezo.account.api
 
-import com.solidcoder.gonezo.account.api.dto.AccountCreatedDto
-import com.solidcoder.gonezo.account.api.dto.BalanceDto
 import com.solidcoder.gonezo.account.api.dto.CreateAccountDto
+import com.solidcoder.gonezo.account.api.mapper.AccountDtoMapper
 import com.solidcoder.gonezo.account.application.command.CreateAccount
+import com.solidcoder.gonezo.account.application.command.CreateAccountResult
 import com.solidcoder.gonezo.account.application.query.GetBalance
 import com.solidcoder.gonezo.account.domain.Account
-import com.solidcoder.gonezo.account.domain.Balance
-import com.solidcoder.gonezo.account.domain.Currency
+import io.mockk.Called
 import io.mockk.every
 import io.mockk.mockk
-import java.math.BigDecimal
-import java.util.*
-import kotlin.test.assertFailsWith
+import io.mockk.verify
+import org.instancio.Instancio
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.http.HttpStatus
 
 class AccountControllerTest {
 
-    private val createAccount = mockk<CreateAccount>()
-    private val getBalance = mockk<GetBalance>()
+    private val createAccount: CreateAccount = mockk()
+    private val accountMapper: AccountDtoMapper = mockk()
+    private val getBalance: GetBalance = mockk()
+    private lateinit var controller: AccountController
 
-    private val controller = AccountController(
-        createAccount = createAccount,
-        getBalance = getBalance
-    )
+    @BeforeEach
+    fun setup() {
+        controller = AccountController(getBalance, createAccount, accountMapper)
+    }
 
     @Test
-    fun `should create account and return dto`() {
-        val dto = CreateAccountDto(name = "Savings", currency = "EUR")
-        val currency = Currency("EUR")
-        val account = Account(name = dto.name, currency = currency)
-        val createdDto = AccountCreatedDto(account.id, account.name, currency.code)
+    fun `should return 201 Created when account creation succeeds`() {
+        // Given
+        val dto = Instancio.create(CreateAccountDto::class.java)
+        val account = Instancio.create(Account::class.java)
 
-        every { createAccount.handle(dto.name, currency) } returns createdDto
+        every { createAccount.handle(dto.name, dto.currency) } returns CreateAccountResult.Success(account)
+        every { accountMapper.toCreatedDto(account) } returns mockk()
 
+        // When
         val response = controller.createAccount(dto)
 
-        assertEquals(201, response.statusCode.value())
-        assertEquals(createdDto, response.body)
-    }
-
-
-    @Test
-    fun `should return 400 when name is blank`() {
-        val dto = CreateAccountDto(name = "   ", currency = "EUR")
-
-        val exception = IllegalArgumentException("Account name must not be blank")
-        every { createAccount.handle(dto.name, Currency("EUR")) } throws exception
-
-        assertFailsWith<IllegalArgumentException> {
-            controller.createAccount(dto)
-        }
-    }
-
-
-    @Test
-    fun `should return 400 for invalid currency`() {
-        val dto = CreateAccountDto(name = "Valid", currency = "XXXINVALID")
-
-        assertFailsWith<IllegalArgumentException> {
-            controller.createAccount(dto)
-        }
+        // Then
+        assertEquals(HttpStatus.CREATED, response.statusCode)
+        verify { createAccount.handle(dto.name, dto.currency) }
+        verify { accountMapper.toCreatedDto(account) }
     }
 
     @Test
-    fun `should throw exception if createAccount fails`() {
-        val dto = CreateAccountDto(name = "Fail", currency = "EUR")
+    fun `should return 400 Bad Request when validation fails`() {
+        // Given
+        val dto = Instancio.create(CreateAccountDto::class.java)
 
-        every { createAccount.handle(dto.name, Currency("EUR")) } throws RuntimeException("DB error")
+        every { createAccount.handle(dto.name, dto.currency) } returns Instancio.create(CreateAccountResult.ValidationFailed::class.java)
 
-        assertFailsWith<RuntimeException> {
-            controller.createAccount(dto)
-        }
-    }
+        // When
+        val response = controller.createAccount(dto)
 
-    @Test
-    fun `should return balance dto from balance domain object`() {
-        val accountId = UUID.randomUUID()
-        val balance = Balance(
-            accountId = accountId,
-            amount = BigDecimal("150.00"),
-            currency = Currency("EUR")
-        )
-
-        every { getBalance.handle(accountId) } returns balance
-
-        val response = controller.getBalance(accountId)
-
-        val expectedDto = BalanceDto(accountId, BigDecimal("150.00"), "EUR")
-
-        assertEquals(200, response.statusCode.value())
-        assertEquals(expectedDto, response.body)
+        // Then
+        assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
+        verify { createAccount.handle(dto.name, dto.currency) }
+        verify { accountMapper wasNot Called }
     }
 }

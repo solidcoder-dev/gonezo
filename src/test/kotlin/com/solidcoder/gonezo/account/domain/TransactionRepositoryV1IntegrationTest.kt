@@ -1,5 +1,7 @@
 package com.solidcoder.gonezo.account.domain
 
+import com.solidcoder.gonezo.account.domain.repository.TransactionRepository
+import com.solidcoder.gonezo.account.domain.repository.TransactionRepositoryV1
 import com.solidcoder.gonezo.infrastructure.mapper.TransactionMapperV1
 import java.math.BigDecimal
 import java.time.LocalDate

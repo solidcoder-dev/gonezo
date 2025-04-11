@@ -32,6 +32,7 @@ dependencies {
 	implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.jetbrains.kotlin:kotlin-reflect'
+	implementation("io.arrow-kt:arrow-core:1.2.0")
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.projectlombok:lombok'
@@ -43,6 +44,7 @@ dependencies {
 	testImplementation 'io.mockk:mockk:1.13.8'
 	testImplementation 'org.assertj:assertj-core:3.24.2'
 	testImplementation 'com.h2database:h2'
+	testImplementation 'org.instancio:instancio-core:3.4.0'
 }
 
 kotlin {
