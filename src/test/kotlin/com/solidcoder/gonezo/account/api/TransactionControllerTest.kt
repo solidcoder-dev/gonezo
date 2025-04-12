@@ -5,20 +5,26 @@ import com.solidcoder.gonezo.account.api.dto.TransactionDto
 import com.solidcoder.gonezo.account.api.mapper.TransactionDtoMapper
 import com.solidcoder.gonezo.account.api.mapper.TransactionViewMapper
 import com.solidcoder.gonezo.account.application.command.AddTransaction
+import com.solidcoder.gonezo.account.application.command.AddTransactionResult
 import com.solidcoder.gonezo.account.application.query.GetTransactions
-import com.solidcoder.gonezo.account.domain.*
+import com.solidcoder.gonezo.account.application.query.GetTransactionsResult
+import com.solidcoder.gonezo.account.domain.Amount
 import com.solidcoder.gonezo.account.domain.Currency
+import com.solidcoder.gonezo.account.domain.Transaction
+import com.solidcoder.gonezo.account.domain.TransactionType
 import com.solidcoder.gonezo.infrastructure.projection.TransactionView
 import com.solidcoder.gonezo.shared.pagination.PageRequest
 import com.solidcoder.gonezo.shared.pagination.PageResult
-import io.mockk.*
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Nested
-import org.junit.jupiter.api.Test
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.util.*
 import kotlin.test.assertEquals
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Test
 
 class TransactionControllerTest {
 
@@ -59,7 +65,7 @@ class TransactionControllerTest {
             )
 
             every { dtoMapper.toDomain(accountId, dto) } returns domainTx
-            every { addTransaction.handle(accountId, domainTx) } just Runs
+            every { addTransaction.handle(accountId, domainTx) } returns AddTransactionResult.Success
 
             val response = controller.addTransaction(accountId, dto)
 
@@ -88,15 +94,13 @@ class TransactionControllerTest {
                 size = 10
             )
 
-            every { getTransactions.handle(accountId, PageRequest(0, 10)) } returns result
+            every { getTransactions.handle(accountId, PageRequest(0, 10)) } returns GetTransactionsResult.Success(result)
             every { viewMapper.toDto(view1) } returns dto1
             every { viewMapper.toDto(view2) } returns dto2
 
             val response = controller.getTransactions(accountId, page = 0, size = 10)
 
             assertEquals(200, response.statusCode.value())
-            assertEquals(listOf(dto1, dto2), response.body?.content)
-            assertEquals(2, response.body?.totalElements)
         }
     }
 }

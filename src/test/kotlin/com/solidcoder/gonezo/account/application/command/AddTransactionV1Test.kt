@@ -3,23 +3,23 @@ package com.solidcoder.gonezo.account.application.command
 
 import com.solidcoder.gonezo.account.domain.Account
 import com.solidcoder.gonezo.account.domain.AccountName
-import com.solidcoder.gonezo.account.domain.repository.AccountRepository
 import com.solidcoder.gonezo.account.domain.Amount
+import com.solidcoder.gonezo.account.domain.Currency
 import com.solidcoder.gonezo.account.domain.Transaction
 import com.solidcoder.gonezo.account.domain.TransactionType
-import com.solidcoder.gonezo.account.domain.Currency
+import com.solidcoder.gonezo.account.domain.repository.AccountRepository
 import com.solidcoder.gonezo.account.domain.repository.TransactionRepository
 import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.verify
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.util.*
-import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 class AddTransactionImplTest {
 
@@ -59,10 +59,9 @@ class AddTransactionImplTest {
     fun `should throw if account not found`() {
         every { accountRepository.findById(accountId) } returns null
 
-        assertFailsWith<IllegalArgumentException> {
-            handler.handle(accountId, transaction)
-        }
+        val result = handler.handle(accountId, transaction)
 
+        assertIs<AddTransactionResult.AccountNotFound>(result)
         verify(exactly = 0) { transactionRepository.save(any()) }
     }
 
@@ -71,10 +70,9 @@ class AddTransactionImplTest {
         val invalidTx = transaction.copy(amount = Amount(BigDecimal("50.00"), Currency("USD")))
         every { accountRepository.findById(accountId) } returns account
 
-        assertFailsWith<IllegalArgumentException> {
-            handler.handle(accountId, invalidTx)
-        }
+        val result = handler.handle(accountId, invalidTx)
 
+        assertIs<AddTransactionResult.ValidationFailed>(result)
         verify(exactly = 0) { transactionRepository.save(any()) }
     }
 }

@@ -10,10 +10,10 @@ class Account(
     val name: AccountName,
     val currency: Currency
 ) {
-    fun validateTransaction(transaction: Transaction) {
-        require(transaction.amount.currency == currency) {
-            "Transaction currency (${transaction.amount.currency.code}) does not match account currency"
-        }
+    fun validateTransaction(transaction: Transaction): Either<AccountValidationError, Unit> {
+        return if (transaction.amount.currency == currency) {
+            Unit.right()
+        } else AccountValidationError("Transaction currency (${transaction.amount.currency.code}) does not match account currency").left()
     }
 }
 

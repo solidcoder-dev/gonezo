@@ -1,6 +1,7 @@
 package com.solidcoder.gonezo.account.api
 
 import com.solidcoder.gonezo.account.api.dto.CreateAccountDto
+import com.solidcoder.gonezo.account.api.dto.ErrorDto
 import com.solidcoder.gonezo.account.api.mapper.AccountDtoMapper
 import com.solidcoder.gonezo.account.api.mapper.BalanceDtoMapper
 import com.solidcoder.gonezo.account.application.command.CreateAccount
@@ -33,7 +34,7 @@ class AccountController(
                 ResponseEntity.status(HttpStatus.CREATED).body(accountMapper.toCreatedDto(result.account))
 
             is CreateAccountResult.ValidationFailed ->
-                ResponseEntity.badRequest().body(mapOf("error" to result.reason))
+                ResponseEntity.badRequest().body(ErrorDto(result.reason))
         }
     }
 
@@ -44,7 +45,7 @@ class AccountController(
                 ResponseEntity.ok(balanceDtoMapper.toBalanceDto(result.balance))
 
             is GetBalanceResult.NonExistentAccount ->
-                ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "Account ${result.accountId} does not exist"))
+                ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorDto("Account ${result.accountId} does not exist"))
         }
     }
 }
