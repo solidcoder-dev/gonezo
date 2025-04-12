@@ -10,9 +10,13 @@ import java.util.*
 import org.springframework.stereotype.Service
 
 interface GetBalance {
-    fun handle(accountId: UUID): Balance
+    fun handle(accountId: UUID): GetBalanceResult
 }
 
+sealed class GetBalanceResult {
+    data class Success(val balance: Balance) : GetBalanceResult()
+    data class NonExistentAccount(val accountId: UUID) : GetBalanceResult()
+}
 
 @Service
 class GetBalanceV1(
@@ -21,18 +25,20 @@ class GetBalanceV1(
 ) : GetBalance {
 
     @Throws(AccountNotFoundException::class)
-    override fun handle(accountId: UUID): Balance {
+    override fun handle(accountId: UUID): GetBalanceResult {
         val account = accountRepository.findById(accountId)
-            ?: throw AccountNotFoundException(accountId)
+            ?: return GetBalanceResult.NonExistentAccount(accountId)
 
         transactionRepository.streamByAccountId(accountId).use { stream ->
             val amount = stream.map(Transaction::asSignedAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
 
-            return Balance(
-                accountId = account.id,
-                amount = amount,
-                currency = account.currency
+            return GetBalanceResult.Success(
+                balance = Balance(
+                    accountId = account.id,
+                    amount = amount,
+                    currency = account.currency
+                )
             )
         }
     }
