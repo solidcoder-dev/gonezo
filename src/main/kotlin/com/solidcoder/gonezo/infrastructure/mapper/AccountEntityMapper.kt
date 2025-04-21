@@ -16,6 +16,7 @@ class AccountEntityMapperV1 : AccountEntityMapper {
     override fun toEntity(account: Account): AccountEntity =
         AccountEntity(
             id = account.id,
+            holderId = account.holderId,
             name = account.name.value,
             currency = account.currency.code
         )
@@ -23,6 +24,7 @@ class AccountEntityMapperV1 : AccountEntityMapper {
     override fun toDomain(entity: AccountEntity): Account =
         Account(
             id = entity.id,
+            holderId = entity.holderId,
             name = AccountName.unsafe(entity.name),
             currency = Currency(entity.currency)
         )

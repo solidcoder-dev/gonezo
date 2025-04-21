@@ -7,6 +7,7 @@ import java.util.*
 
 class Account(
     val id: UUID = UUID.randomUUID(),
+    val holderId: UUID,
     val name: AccountName,
     val currency: Currency
 ) {

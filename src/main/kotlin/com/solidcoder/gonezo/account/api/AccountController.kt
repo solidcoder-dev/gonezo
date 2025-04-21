@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/accounts")
+@RequestMapping("/holders/{holderId}/accounts")
 class AccountController(
     private val getBalance: GetBalance,
     private val createAccount: CreateAccount,
@@ -28,19 +28,29 @@ class AccountController(
 ) {
 
     @PostMapping
-    fun createAccount(@RequestBody dto: CreateAccountDto): ResponseEntity<Any> {
-        return when (val result = createAccount.handle(dto.name, dto.currency)) {
+    fun createAccount(
+        @PathVariable holderId: UUID,
+        @RequestBody dto: CreateAccountDto
+    ): ResponseEntity<Any> {
+        return when (val result = createAccount.handle(holderId, dto.name, dto.currency)) {
             is CreateAccountResult.Success ->
                 ResponseEntity.status(HttpStatus.CREATED).body(accountMapper.toCreatedDto(result.account))
 
             is CreateAccountResult.ValidationFailed ->
                 ResponseEntity.badRequest().body(ErrorDto(result.reason))
+
+            is CreateAccountResult.NonExistentAccountHolder ->
+                ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorDto("Account Holder ${result.holderId} does not exist"))
+
         }
     }
 
-    @GetMapping("/{id}/balance")
-    fun getBalance(@PathVariable id: UUID): ResponseEntity<Any> {
-        return when (val result = getBalance.handle(id)) {
+    @GetMapping("/{accountId}/balance")
+    fun getBalance(
+        @PathVariable holderId: UUID,
+        @PathVariable accountId: UUID
+    ): ResponseEntity<Any> {
+        return when (val result = getBalance.handle(accountId)) {
             is GetBalanceResult.Success ->
                 ResponseEntity.ok(balanceDtoMapper.toBalanceDto(result.balance))
 

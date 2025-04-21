@@ -14,6 +14,9 @@ class AccountEntity(
     val id: UUID,
 
     @Column(nullable = false)
+    val holderId: UUID,
+
+    @Column(nullable = false)
     val name: String,
 
     @Column(nullable = false, length = 3)
