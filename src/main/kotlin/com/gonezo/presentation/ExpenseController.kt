@@ -33,6 +33,7 @@ class ExpenseController(
         merchant = request.merchant,
         categoryId = request.categoryId,
         recurring = request.recurring,
+        reservationId = request.reservationId,
       ),
     )
 
@@ -54,4 +55,5 @@ data class PostExpenseRequest(
   val merchant: String?,
   val categoryId: UUID?,
   val recurring: Boolean = false,
+  val reservationId: UUID? = null,
 )

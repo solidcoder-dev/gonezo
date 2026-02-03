@@ -2,6 +2,8 @@ package com.gonezo.application.services
 
 import com.gonezo.application.PostExpenseCommand
 import com.gonezo.application.PostExpenseUC
+import com.gonezo.application.SettleReservationFromTxCommand
+import com.gonezo.application.SettleReservationFromTxUC
 import com.gonezo.domain.cashledger.ports.TransactionRepository
 import com.gonezo.domain.cashledger.services.LedgerPostingService
 import org.springframework.stereotype.Service
@@ -12,6 +14,7 @@ import java.util.UUID
 class PostExpenseService(
   private val ledgerPostingService: LedgerPostingService,
   private val transactionRepository: TransactionRepository,
+  private val settleReservationFromTxUC: SettleReservationFromTxUC,
 ) : PostExpenseUC {
 
   @Transactional
@@ -27,6 +30,16 @@ class PostExpenseService(
     )
 
     transactionRepository.save(transaction)
+
+    command.reservationId?.let { reservationId ->
+      settleReservationFromTxUC.execute(
+        SettleReservationFromTxCommand(
+          reservationId = reservationId,
+          transactionId = transaction.id,
+        ),
+      )
+    }
+
     return transaction.id
   }
 }

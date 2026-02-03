@@ -12,6 +12,7 @@ data class PostExpenseCommand(
   val merchant: String?,
   val categoryId: UUID?,
   val recurring: Boolean,
+  val reservationId: UUID?,
 )
 
 interface PostExpenseUC {
