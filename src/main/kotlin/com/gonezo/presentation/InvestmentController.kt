@@ -2,6 +2,8 @@ package com.gonezo.presentation
 
 import com.gonezo.application.ExecuteInvestmentCommand
 import com.gonezo.application.ExecuteInvestmentUC
+import com.gonezo.application.RecordInvestmentReturnCommand
+import com.gonezo.application.RecordInvestmentReturnUC
 import com.gonezo.domain.shared.Money
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
@@ -20,6 +22,7 @@ import java.util.UUID
 @RequestMapping("/investments")
 class InvestmentController(
   private val executeInvestmentUC: ExecuteInvestmentUC,
+  private val recordInvestmentReturnUC: RecordInvestmentReturnUC,
 ) {
 
   @PostMapping("/execute")
@@ -40,6 +43,20 @@ class InvestmentController(
     )
 
     return ResponseEntity.status(HttpStatus.CREATED).body(ExecuteInvestmentResponse(id))
+  }
+
+  @PostMapping("/returns")
+  fun recordReturn(@Valid @RequestBody request: RecordInvestmentReturnRequest): ResponseEntity<RecordInvestmentReturnResponse> {
+    val id = recordInvestmentReturnUC.execute(
+      RecordInvestmentReturnCommand(
+        containerId = request.containerId,
+        date = request.date,
+        amount = Money(request.amount, request.currency),
+        note = request.note,
+      ),
+    )
+
+    return ResponseEntity.status(HttpStatus.CREATED).body(RecordInvestmentReturnResponse(id))
   }
 }
 
@@ -63,5 +80,21 @@ data class ExecuteInvestmentRequest(
 )
 
 data class ExecuteInvestmentResponse(
+  val id: UUID,
+)
+
+data class RecordInvestmentReturnRequest(
+  @field:NotNull
+  val containerId: UUID,
+  @field:NotNull
+  val date: LocalDate,
+  @field:NotNull
+  val amount: BigDecimal,
+  @field:NotBlank
+  val currency: String,
+  val note: String?,
+)
+
+data class RecordInvestmentReturnResponse(
   val id: UUID,
 )
