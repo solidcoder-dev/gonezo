@@ -5,23 +5,26 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.web.client.TestRestTemplate
+import org.springframework.boot.test.web.server.LocalServerPort
+import com.gonezo.api.ApiApplication
 import org.springframework.core.io.ResourceLoader
 import org.springframework.http.HttpStatus
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
+import org.springframework.web.client.RestClient
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.util.UUID
+import org.flywaydb.core.Flyway
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes = [ApiApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 class CreateAccountE2ETest {
 
-  @Autowired
-  private lateinit var restTemplate: TestRestTemplate
+  @LocalServerPort
+  private var port: Int = 0
 
   @Autowired
   private lateinit var jdbcTemplate: JdbcTemplate
@@ -29,8 +32,12 @@ class CreateAccountE2ETest {
   @Autowired
   private lateinit var resourceLoader: ResourceLoader
 
+  @Autowired
+  private lateinit var flyway: Flyway
+
   @BeforeEach
   fun setup() {
+    flyway.migrate()
     val resource = resourceLoader.getResource("classpath:sql/create_account_setup.sql")
     val sql = resource.inputStream.bufferedReader().readText()
     jdbcTemplate.execute(sql)
@@ -38,6 +45,8 @@ class CreateAccountE2ETest {
 
   @Test
   fun `creates account and persists it`() {
+    val restClient = RestClient.create("http://localhost:$port")
+
     val request = CreateAccountRequest(
       userId = UUID.randomUUID(),
       name = "Primary Checking",
@@ -45,7 +54,11 @@ class CreateAccountE2ETest {
       currency = "USD",
     )
 
-    val response = restTemplate.postForEntity("/accounts", request, CreateAccountResponse::class.java)
+    val response = restClient.post()
+      .uri("/accounts")
+      .body(request)
+      .retrieve()
+      .toEntity(CreateAccountResponse::class.java)
 
     assertThat(response.statusCode).isEqualTo(HttpStatus.CREATED)
     val accountId = response.body!!.id
