@@ -6,6 +6,7 @@ data class CreateBudgetPeriodCommand(
   val planId: UUID,
   val year: Int,
   val month: Int,
+  val currency: String,
 )
 
 interface CreateBudgetPeriodUC {
