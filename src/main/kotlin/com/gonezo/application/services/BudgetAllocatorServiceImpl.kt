@@ -6,6 +6,7 @@ import com.gonezo.domain.budgeting.Category
 import com.gonezo.domain.budgeting.CategoryBalance
 import com.gonezo.domain.budgeting.services.BudgetAllocatorService
 import com.gonezo.domain.shared.Money
+import com.gonezo.application.PolicyViolationException
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -30,6 +31,7 @@ class BudgetAllocatorServiceImpl : BudgetAllocatorService {
         .setScale(2, RoundingMode.HALF_UP)
 
       val allocated = Money(allocatedAmount, currency)
+      enforceNegativePolicies(category.allowNegative, category.maxDebtAmount, allocatedAmount)
 
       CategoryBalance(
         id = UUID.randomUUID(),
@@ -42,6 +44,23 @@ class BudgetAllocatorServiceImpl : BudgetAllocatorService {
         reserved = zero,
         safeToSpend = allocated,
       )
+    }
+  }
+
+  private fun enforceNegativePolicies(
+    allowNegative: Boolean,
+    maxDebtAmount: Money?,
+    availableAmount: BigDecimal,
+  ) {
+    if (!allowNegative && availableAmount < BigDecimal.ZERO) {
+      throw PolicyViolationException("Category balance cannot go negative.")
+    }
+
+    if (maxDebtAmount != null) {
+      val limit = maxDebtAmount.amount.negate()
+      if (availableAmount < limit) {
+        throw PolicyViolationException("Category balance exceeded max debt.")
+      }
     }
   }
 }
