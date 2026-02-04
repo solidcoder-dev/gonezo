@@ -23,3 +23,23 @@ insert into budget_periods (
 
 insert into categories (id, budget_plan_id, name, type, allow_negative, max_debt_amount, max_debt_currency)
 values ('ffffffff-ffff-ffff-ffff-ffffffffffff', 'dddddddd-dddd-dddd-dddd-dddddddddddd', 'Investments', 'sinking_fund', false, null, null);
+
+insert into category_balances (
+  id, budget_period_id, category_id,
+  opening_balance_amount, opening_balance_currency,
+  allocated_amount, allocated_currency,
+  spent_amount, spent_currency,
+  available_amount, available_currency,
+  reserved_amount, reserved_currency,
+  safe_to_spend_amount, safe_to_spend_currency
+) values (
+  '99999999-9999-9999-9999-999999999999',
+  'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
+  'ffffffff-ffff-ffff-ffff-ffffffffffff',
+  0.00, 'USD',
+  300.00, 'USD',
+  0.00, 'USD',
+  300.00, 'USD',
+  0.00, 'USD',
+  300.00, 'USD'
+);
