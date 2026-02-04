@@ -16,6 +16,17 @@ class JdbcCategoryRepository(
   private val jdbcTemplate: NamedParameterJdbcTemplate,
 ) : CategoryRepository {
 
+  override fun get(id: UUID): Category {
+    val sql = """
+      select id, budget_plan_id, name, type, allow_negative, max_debt_amount, max_debt_currency
+      from categories
+      where id = :id
+    """.trimIndent()
+
+    val params = MapSqlParameterSource("id", id)
+    return jdbcTemplate.queryForObject(sql, params, categoryRowMapper())!!
+  }
+
   override fun listByPlan(planId: UUID): List<Category> {
     val sql = """
       select id, budget_plan_id, name, type, allow_negative, max_debt_amount, max_debt_currency

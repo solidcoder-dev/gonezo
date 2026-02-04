@@ -5,5 +5,6 @@ import java.util.UUID
 
 interface CategoryBalanceRepository {
   fun save(balance: CategoryBalance)
+  fun findByPeriodAndCategory(periodId: UUID, categoryId: UUID): CategoryBalance?
   fun listByPeriod(periodId: UUID): List<CategoryBalance>
 }

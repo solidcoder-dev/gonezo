@@ -15,6 +15,7 @@ class PostExpenseService(
   private val ledgerPostingService: LedgerPostingService,
   private val transactionRepository: TransactionRepository,
   private val settleReservationFromTxUC: SettleReservationFromTxUC,
+  private val categoryBalanceUpdaterService: CategoryBalanceUpdaterService,
 ) : PostExpenseUC {
 
   @Transactional
@@ -30,6 +31,14 @@ class PostExpenseService(
     )
 
     transactionRepository.save(transaction)
+
+    transaction.categoryId?.let { categoryId ->
+      categoryBalanceUpdaterService.applyExpense(
+        categoryId = categoryId,
+        effectiveDate = transaction.effectiveDate,
+        amount = transaction.amount,
+      )
+    }
 
     command.reservationId?.let { reservationId ->
       settleReservationFromTxUC.execute(

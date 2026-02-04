@@ -35,6 +35,19 @@ class JdbcCategoryBalanceRepository(
         :reserved_amount, :reserved_currency,
         :safe_to_spend_amount, :safe_to_spend_currency
       )
+      on conflict (id) do update set
+        opening_balance_amount = excluded.opening_balance_amount,
+        opening_balance_currency = excluded.opening_balance_currency,
+        allocated_amount = excluded.allocated_amount,
+        allocated_currency = excluded.allocated_currency,
+        spent_amount = excluded.spent_amount,
+        spent_currency = excluded.spent_currency,
+        available_amount = excluded.available_amount,
+        available_currency = excluded.available_currency,
+        reserved_amount = excluded.reserved_amount,
+        reserved_currency = excluded.reserved_currency,
+        safe_to_spend_amount = excluded.safe_to_spend_amount,
+        safe_to_spend_currency = excluded.safe_to_spend_currency
     """.trimIndent()
 
     val params = MapSqlParameterSource()
@@ -55,6 +68,27 @@ class JdbcCategoryBalanceRepository(
       .addValue("safe_to_spend_currency", balance.safeToSpend.currency)
 
     jdbcTemplate.update(sql, params)
+  }
+
+  override fun findByPeriodAndCategory(periodId: UUID, categoryId: UUID): CategoryBalance? {
+    val sql = """
+      select id, budget_period_id, category_id,
+        opening_balance_amount, opening_balance_currency,
+        allocated_amount, allocated_currency,
+        spent_amount, spent_currency,
+        available_amount, available_currency,
+        reserved_amount, reserved_currency,
+        safe_to_spend_amount, safe_to_spend_currency
+      from category_balances
+      where budget_period_id = :period_id and category_id = :category_id
+      limit 1
+    """.trimIndent()
+
+    val params = MapSqlParameterSource()
+      .addValue("period_id", periodId)
+      .addValue("category_id", categoryId)
+
+    return jdbcTemplate.query(sql, params, balanceRowMapper()).firstOrNull()
   }
 
   override fun listByPeriod(periodId: UUID): List<CategoryBalance> {
