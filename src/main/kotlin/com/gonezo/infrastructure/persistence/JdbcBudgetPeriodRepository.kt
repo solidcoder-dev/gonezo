@@ -73,6 +73,26 @@ class JdbcBudgetPeriodRepository(
     jdbcTemplate.update(sql, params)
   }
 
+  override fun updateTotals(id: UUID, incomeTotal: Money, remainder: Money) {
+    val sql = """
+      update budget_periods
+      set income_total_amount = :income_total_amount,
+          income_total_currency = :income_total_currency,
+          remainder_amount = :remainder_amount,
+          remainder_currency = :remainder_currency
+      where id = :id
+    """.trimIndent()
+
+    val params = MapSqlParameterSource()
+      .addValue("id", id)
+      .addValue("income_total_amount", incomeTotal.amount)
+      .addValue("income_total_currency", incomeTotal.currency)
+      .addValue("remainder_amount", remainder.amount)
+      .addValue("remainder_currency", remainder.currency)
+
+    jdbcTemplate.update(sql, params)
+  }
+
   private fun periodRowMapper(): RowMapper<BudgetPeriod> = RowMapper { rs: ResultSet, _ ->
     BudgetPeriod(
       id = UUID.fromString(rs.getString("id")),

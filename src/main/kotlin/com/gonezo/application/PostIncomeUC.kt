@@ -5,6 +5,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 data class PostIncomeCommand(
+  val budgetPlanId: UUID,
   val accountId: UUID,
   val postedDate: LocalDate,
   val effectiveDate: LocalDate,

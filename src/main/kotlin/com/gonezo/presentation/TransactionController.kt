@@ -26,6 +26,7 @@ class TransactionController(
   fun postIncome(@Valid @RequestBody request: PostIncomeRequest): ResponseEntity<CreateTransactionResponse> {
     val id = postIncomeUC.execute(
       PostIncomeCommand(
+        budgetPlanId = request.budgetPlanId,
         accountId = request.accountId,
         postedDate = request.postedDate,
         effectiveDate = request.effectiveDate,
@@ -41,6 +42,8 @@ class TransactionController(
 }
 
 data class PostIncomeRequest(
+  @field:NotNull
+  val budgetPlanId: UUID,
   @field:NotNull
   val accountId: UUID,
   @field:NotNull

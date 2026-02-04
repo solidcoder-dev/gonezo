@@ -50,13 +50,14 @@ class PostIncomeE2ETest {
     val restClient = RestClient.create("http://localhost:$port")
 
     val request = PostIncomeRequest(
+      budgetPlanId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
       accountId = UUID.fromString("11111111-1111-1111-1111-111111111111"),
       postedDate = LocalDate.of(2026, 2, 1),
       effectiveDate = LocalDate.of(2026, 2, 1),
       amount = BigDecimal("125.50"),
       currency = "USD",
       merchant = "Acme Payroll",
-      categoryId = null,
+      categoryId = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc"),
       recurring = true,
     )
 
@@ -82,8 +83,22 @@ class PostIncomeE2ETest {
     assertThat(row["currency"]).isEqualTo(request.currency)
     assertThat(row["type"]).isEqualTo("income")
     assertThat(row["merchant"]).isEqualTo(request.merchant)
-    assertThat(row["category_id"]).isNull()
+    assertThat(row["category_id"].toString()).isEqualTo(request.categoryId.toString())
     assertThat(row["recurring"]).isEqualTo(true)
+
+    val periodRow = jdbcTemplate.queryForMap(
+      "select income_total_amount, remainder_amount from budget_periods where id = ?",
+      UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+    )
+    assertThat(periodRow["income_total_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("225.50"))
+    assertThat(periodRow["remainder_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("150.50"))
+
+    val balanceRow = jdbcTemplate.queryForMap(
+      "select available_amount, safe_to_spend_amount from category_balances where id = ?",
+      UUID.fromString("dddddddd-dddd-dddd-dddd-dddddddddddd"),
+    )
+    assertThat(balanceRow["available_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("135.50"))
+    assertThat(balanceRow["safe_to_spend_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("135.50"))
   }
 
   companion object {

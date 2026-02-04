@@ -12,6 +12,8 @@ import java.util.UUID
 class PostIncomeService(
   private val ledgerPostingService: LedgerPostingService,
   private val transactionRepository: TransactionRepository,
+  private val categoryBalanceUpdaterService: CategoryBalanceUpdaterService,
+  private val budgetPeriodTotalsService: BudgetPeriodTotalsService,
 ) : PostIncomeUC {
 
   @Transactional
@@ -27,6 +29,20 @@ class PostIncomeService(
     )
 
     transactionRepository.save(transaction)
+
+    budgetPeriodTotalsService.applyIncome(
+      planId = command.budgetPlanId,
+      effectiveDate = transaction.effectiveDate,
+      amount = transaction.amount,
+    )
+
+    transaction.categoryId?.let { categoryId ->
+      categoryBalanceUpdaterService.applyIncome(
+        categoryId = categoryId,
+        effectiveDate = transaction.effectiveDate,
+        amount = transaction.amount,
+      )
+    }
     return transaction.id
   }
 }
