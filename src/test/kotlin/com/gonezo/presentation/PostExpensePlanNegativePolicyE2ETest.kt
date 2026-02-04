@@ -9,10 +9,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.core.io.ResourceLoader
-import org.springframework.http.HttpStatus
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
+import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.RestClient
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
@@ -23,7 +23,7 @@ import java.util.UUID
 
 @SpringBootTest(classes = [ApiApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
-class PostExpenseBudgetLinkE2ETest {
+class PostExpensePlanNegativePolicyE2ETest {
 
   @LocalServerPort
   private var port: Int = 0
@@ -40,46 +40,44 @@ class PostExpenseBudgetLinkE2ETest {
   @BeforeEach
   fun setup() {
     flyway.migrate()
-    val resource = resourceLoader.getResource("classpath:sql/post_expense_budget_link_setup.sql")
+    val resource = resourceLoader.getResource("classpath:sql/post_expense_plan_negative_policy_setup.sql")
     val sql = resource.inputStream.bufferedReader().readText()
     jdbcTemplate.execute(sql)
   }
 
   @Test
-  fun `creates budget link for categorized expense`() {
+  fun `rejects expense when plan disallows negative balances`() {
     val restClient = RestClient.create("http://localhost:$port")
 
     val request = PostExpenseRequest(
       accountId = UUID.fromString("11111111-1111-1111-1111-111111111111"),
-      postedDate = LocalDate.of(2026, 2, 10),
-      effectiveDate = LocalDate.of(2026, 2, 10),
-      amount = BigDecimal("20.00"),
+      postedDate = LocalDate.of(2026, 2, 2),
+      effectiveDate = LocalDate.of(2026, 2, 2),
+      amount = BigDecimal("25.00"),
       currency = "USD",
-      merchant = "Grocer",
+      merchant = "Market",
       categoryId = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc"),
       recurring = false,
       reservationId = null,
     )
 
-    val response = restClient.post()
-      .uri("/transactions/expense")
-      .body(request)
-      .retrieve()
-      .toEntity(CreateTransactionResponse::class.java)
+    val exception = org.junit.jupiter.api.assertThrows<HttpClientErrorException> {
+      restClient.post()
+        .uri("/transactions/expense")
+        .body(request)
+        .retrieve()
+        .toEntity(CreateTransactionResponse::class.java)
+    }
 
-    assertThat(response.statusCode).isEqualTo(HttpStatus.CREATED)
-
-    val count = jdbcTemplate.queryForObject(
-      "select count(*) from budget_links",
-      Int::class.java,
-    )
-    assertThat(count).isEqualTo(1)
+    assertThat(exception.statusCode.value()).isEqualTo(422)
 
     val row = jdbcTemplate.queryForMap(
-      "select linked_type, budget_impact_amount from budget_links",
+      "select spent_amount, available_amount from category_balances where id = ?",
+      UUID.fromString("dddddddd-dddd-dddd-dddd-dddddddddddd"),
     )
-    assertThat(row["linked_type"]).isEqualTo("transaction")
-    assertThat(row["budget_impact_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("20.00"))
+
+    assertThat(row["spent_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("0.00"))
+    assertThat(row["available_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("10.00"))
   }
 
   companion object {

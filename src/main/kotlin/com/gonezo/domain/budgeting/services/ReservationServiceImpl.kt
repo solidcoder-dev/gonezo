@@ -1,17 +1,14 @@
-package com.gonezo.application.services
+package com.gonezo.domain.budgeting.services
 
 import com.gonezo.domain.budgeting.BudgetPeriod
 import com.gonezo.domain.budgeting.BudgetReservation
 import com.gonezo.domain.budgeting.RecurringPattern
 import com.gonezo.domain.budgeting.ReservationStatus
-import com.gonezo.domain.budgeting.services.ReservationService
 import com.gonezo.domain.shared.Money
-import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.util.UUID
 
-@Service
 class ReservationServiceImpl : ReservationService {
 
   override fun createReservations(

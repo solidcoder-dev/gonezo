@@ -1,14 +1,11 @@
-package com.gonezo.application.services
+package com.gonezo.domain.cashledger.services
 
 import com.gonezo.domain.cashledger.Transaction
 import com.gonezo.domain.cashledger.TransactionType
-import com.gonezo.domain.cashledger.services.LedgerPostingService
 import com.gonezo.domain.shared.Money
-import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.util.UUID
 
-@Service
 class LedgerPostingServiceImpl : LedgerPostingService {
 
   override fun postIncome(

@@ -1,11 +1,13 @@
 package com.gonezo.application.services
 
+import com.gonezo.domain.budgeting.NegativePolicy
 import com.gonezo.domain.budgeting.ports.BudgetPeriodRepository
+import com.gonezo.domain.budgeting.ports.BudgetPlanRepository
 import com.gonezo.domain.budgeting.ports.CategoryBalanceRepository
 import com.gonezo.domain.budgeting.ports.CategoryRepository
 import com.gonezo.domain.shared.Money
 import com.gonezo.domain.shared.YearMonth
-import com.gonezo.application.PolicyViolationException
+import com.gonezo.domain.shared.PolicyViolationException
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -14,6 +16,7 @@ import java.util.UUID
 @Service
 class CategoryBalanceUpdaterService(
   private val categoryRepository: CategoryRepository,
+  private val budgetPlanRepository: BudgetPlanRepository,
   private val budgetPeriodRepository: BudgetPeriodRepository,
   private val categoryBalanceRepository: CategoryBalanceRepository,
 ) {
@@ -46,7 +49,8 @@ class CategoryBalanceUpdaterService(
       .subtract(newSpent)
     val newSafeToSpend = newAvailable.subtract(current.reserved.amount)
 
-    enforceNegativePolicies(category.allowNegative, category.maxDebtAmount, newAvailable)
+    val plan = budgetPlanRepository.get(category.budgetPlanId)
+    enforceNegativePolicies(plan.negativePolicy, category.allowNegative, category.maxDebtAmount, newAvailable)
 
     val updated = current.copy(
       spent = Money(newSpent, amount.currency),
@@ -91,19 +95,25 @@ class CategoryBalanceUpdaterService(
   }
 
   private fun enforceNegativePolicies(
+    negativePolicy: NegativePolicy,
     allowNegative: Boolean,
     maxDebtAmount: Money?,
     availableAmount: BigDecimal,
   ) {
-    if (!allowNegative && availableAmount < BigDecimal.ZERO) {
+    if (availableAmount >= BigDecimal.ZERO) return
+
+    if (negativePolicy == NegativePolicy.DISALLOW) {
+      throw PolicyViolationException("Budget plan disallows negative balances.")
+    }
+
+    if (!allowNegative) {
       throw PolicyViolationException("Category balance cannot go negative.")
     }
 
-    if (maxDebtAmount != null) {
-      val limit = maxDebtAmount.amount.negate()
-      if (availableAmount < limit) {
-        throw PolicyViolationException("Category balance exceeded max debt.")
-      }
+    val maxDebt = maxDebtAmount ?: throw PolicyViolationException("Category balance exceeded max debt.")
+    val limit = maxDebt.amount.negate()
+    if (availableAmount < limit) {
+      throw PolicyViolationException("Category balance exceeded max debt.")
     }
   }
 }

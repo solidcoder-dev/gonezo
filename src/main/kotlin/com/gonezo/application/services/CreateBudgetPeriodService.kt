@@ -27,6 +27,7 @@ class CreateBudgetPeriodService(
   @Transactional
   override fun execute(command: CreateBudgetPeriodCommand): UUID {
     val plan = budgetPlanRepository.get(command.planId)
+    plan.requireMonthlyPeriod()
     val zero = Money(BigDecimal.ZERO, command.currency)
 
     val period = BudgetPeriod(

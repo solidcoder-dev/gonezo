@@ -3,9 +3,14 @@ package com.gonezo.application.services
 import com.gonezo.application.PostIncomeCommand
 import com.gonezo.application.PostIncomeUC
 import com.gonezo.application.events.DomainEventPublisher
+import com.gonezo.domain.budgeting.BudgetLinkType
+import com.gonezo.domain.budgeting.ports.BudgetLinkRepository
+import com.gonezo.domain.budgeting.ports.BudgetPeriodRepository
+import com.gonezo.domain.budgeting.services.BudgetLinkService
 import com.gonezo.domain.cashledger.events.TransactionPosted
 import com.gonezo.domain.cashledger.ports.TransactionRepository
 import com.gonezo.domain.cashledger.services.LedgerPostingService
+import com.gonezo.domain.shared.YearMonth
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -16,6 +21,9 @@ class PostIncomeService(
   private val transactionRepository: TransactionRepository,
   private val categoryBalanceUpdaterService: CategoryBalanceUpdaterService,
   private val budgetPeriodTotalsService: BudgetPeriodTotalsService,
+  private val budgetPeriodRepository: BudgetPeriodRepository,
+  private val budgetLinkService: BudgetLinkService,
+  private val budgetLinkRepository: BudgetLinkRepository,
   private val budgetAttributionService: BudgetAttributionService,
   private val domainEventPublisher: DomainEventPublisher,
 ) : PostIncomeUC {
@@ -53,6 +61,19 @@ class PostIncomeService(
         effectiveDate = attributionDate,
         amount = transaction.amount,
       )
+
+      val period = budgetPeriodRepository.getByYearMonth(
+        command.budgetPlanId,
+        YearMonth(attributionDate.year, attributionDate.monthValue),
+      )
+      val link = budgetLinkService.createLink(
+        budgetPeriodId = period.id,
+        categoryId = categoryId,
+        linkedType = BudgetLinkType.TRANSACTION,
+        linkedId = transaction.id,
+        budgetImpactAmount = transaction.amount,
+      )
+      budgetLinkRepository.save(link)
     }
     return transaction.id
   }

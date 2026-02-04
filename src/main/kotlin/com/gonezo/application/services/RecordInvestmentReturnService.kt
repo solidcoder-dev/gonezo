@@ -37,7 +37,7 @@ class RecordInvestmentReturnService(
     )
 
     investmentTransactionRepository.save(transaction)
-    domainEventPublisher.publish(InvestmentReturnRecorded(transaction.id, transaction.containerId))
+    domainEventPublisher.publish(InvestmentReturnRecorded(transaction.id))
     return transaction.id
   }
 }

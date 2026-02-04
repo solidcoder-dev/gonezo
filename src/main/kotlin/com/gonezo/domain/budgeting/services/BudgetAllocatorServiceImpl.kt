@@ -1,25 +1,28 @@
-package com.gonezo.application.services
+package com.gonezo.domain.budgeting.services
 
 import com.gonezo.domain.budgeting.AllocationRule
+import com.gonezo.domain.budgeting.BudgetPlan
 import com.gonezo.domain.budgeting.BudgetPeriod
 import com.gonezo.domain.budgeting.Category
 import com.gonezo.domain.budgeting.CategoryBalance
-import com.gonezo.domain.budgeting.services.BudgetAllocatorService
+import com.gonezo.domain.budgeting.NegativePolicy
+import com.gonezo.domain.budgeting.ports.BudgetPlanRepository
 import com.gonezo.domain.shared.Money
-import com.gonezo.application.PolicyViolationException
-import org.springframework.stereotype.Service
+import com.gonezo.domain.shared.PolicyViolationException
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.UUID
 
-@Service
-class BudgetAllocatorServiceImpl : BudgetAllocatorService {
+class BudgetAllocatorServiceImpl(
+  private val budgetPlanRepository: BudgetPlanRepository,
+) : BudgetAllocatorService {
 
   override fun allocate(
     period: BudgetPeriod,
     rules: List<AllocationRule>,
     categories: List<Category>,
   ): List<CategoryBalance> {
+    val plan = budgetPlanRepository.get(period.budgetPlanId)
     val categoryMap = categories.associateBy { it.id }
     val currency = period.remainder.currency
     val zero = Money(BigDecimal.ZERO.setScale(2), currency)
@@ -31,7 +34,7 @@ class BudgetAllocatorServiceImpl : BudgetAllocatorService {
         .setScale(2, RoundingMode.HALF_UP)
 
       val allocated = Money(allocatedAmount, currency)
-      enforceNegativePolicies(category.allowNegative, category.maxDebtAmount, allocatedAmount)
+      enforceNegativePolicies(plan, category, allocatedAmount)
 
       CategoryBalance(
         id = UUID.randomUUID(),
@@ -48,19 +51,25 @@ class BudgetAllocatorServiceImpl : BudgetAllocatorService {
   }
 
   private fun enforceNegativePolicies(
-    allowNegative: Boolean,
-    maxDebtAmount: Money?,
+    plan: BudgetPlan,
+    category: Category,
     availableAmount: BigDecimal,
   ) {
-    if (!allowNegative && availableAmount < BigDecimal.ZERO) {
+    if (availableAmount >= BigDecimal.ZERO) return
+
+    if (plan.negativePolicy == NegativePolicy.DISALLOW) {
+      throw PolicyViolationException("Budget plan disallows negative balances.")
+    }
+
+    if (!category.allowNegative) {
       throw PolicyViolationException("Category balance cannot go negative.")
     }
 
-    if (maxDebtAmount != null) {
-      val limit = maxDebtAmount.amount.negate()
-      if (availableAmount < limit) {
-        throw PolicyViolationException("Category balance exceeded max debt.")
-      }
+    val maxDebtAmount = category.maxDebtAmount
+      ?: throw PolicyViolationException("Category balance exceeded max debt.")
+    val limit = maxDebtAmount.amount.negate()
+    if (availableAmount < limit) {
+      throw PolicyViolationException("Category balance exceeded max debt.")
     }
   }
 }

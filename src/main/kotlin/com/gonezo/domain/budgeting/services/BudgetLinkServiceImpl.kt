@@ -1,13 +1,10 @@
-package com.gonezo.application.services
+package com.gonezo.domain.budgeting.services
 
 import com.gonezo.domain.budgeting.BudgetLink
 import com.gonezo.domain.budgeting.BudgetLinkType
-import com.gonezo.domain.budgeting.services.BudgetLinkService
 import com.gonezo.domain.shared.Money
-import org.springframework.stereotype.Service
 import java.util.UUID
 
-@Service
 class BudgetLinkServiceImpl : BudgetLinkService {
 
   override fun createLink(

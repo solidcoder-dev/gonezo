@@ -1,4 +1,4 @@
-package com.gonezo.application.services
+package com.gonezo.domain.budgeting.services
 
 import com.gonezo.domain.budgeting.BudgetPeriod
 import com.gonezo.domain.budgeting.BudgetReservation
@@ -6,10 +6,7 @@ import com.gonezo.domain.budgeting.ProrationType
 import com.gonezo.domain.budgeting.RecurringCadence
 import com.gonezo.domain.budgeting.ReservationStatus
 import com.gonezo.domain.budgeting.ports.RecurringPatternRepository
-import com.gonezo.domain.budgeting.services.PeriodClosingService
-import org.springframework.stereotype.Service
 
-@Service
 class PeriodClosingServiceImpl(
   private val recurringPatternRepository: RecurringPatternRepository,
 ) : PeriodClosingService {

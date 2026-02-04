@@ -2,7 +2,6 @@ package com.gonezo.domain.budgeting
 
 enum class BudgetPlanPeriod(val value: String) {
   MONTHLY("monthly"),
-  YEARLY("yearly"),
   ;
 
   companion object {

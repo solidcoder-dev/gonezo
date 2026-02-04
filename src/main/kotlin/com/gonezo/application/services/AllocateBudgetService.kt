@@ -9,7 +9,7 @@ import com.gonezo.domain.budgeting.ports.BudgetPeriodRepository
 import com.gonezo.domain.budgeting.ports.CategoryBalanceRepository
 import com.gonezo.domain.budgeting.ports.CategoryRepository
 import com.gonezo.domain.budgeting.services.BudgetAllocatorService
-import com.gonezo.application.PolicyViolationException
+import com.gonezo.domain.shared.PolicyViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal

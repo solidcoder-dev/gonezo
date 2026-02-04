@@ -4,5 +4,4 @@ import java.util.UUID
 
 data class InvestmentReturnRecorded(
   val investmentTransactionId: UUID,
-  val containerId: UUID,
 )
