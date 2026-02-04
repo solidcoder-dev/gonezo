@@ -19,8 +19,7 @@ class ExecuteInvestmentService(
   private val investmentExecutionService: InvestmentExecutionService,
   private val investmentTransactionRepository: InvestmentTransactionRepository,
   private val financialContainerRepository: FinancialContainerRepository,
-  private val budgetLinkService: BudgetLinkService,
-  private val budgetLinkRepository: BudgetLinkRepository,
+  private val budgetLinkImpactService: BudgetLinkImpactService,
 ) : ExecuteInvestmentUC {
 
   @Transactional
@@ -47,14 +46,13 @@ class ExecuteInvestmentService(
     if (budgetPeriodId != null && categoryId != null) {
       val total = executed.amount.amount.add(executed.fees?.amount ?: BigDecimal.ZERO)
       val budgetImpact = Money(total, executed.amount.currency)
-      val link = budgetLinkService.createLink(
+      budgetLinkImpactService.applyLink(
         budgetPeriodId = budgetPeriodId,
         categoryId = categoryId,
-        linkedType = "investment_transaction",
         linkedId = executed.id,
         budgetImpactAmount = budgetImpact,
+        effectiveDate = executed.date,
       )
-      budgetLinkRepository.save(link)
     }
 
     return executed.id

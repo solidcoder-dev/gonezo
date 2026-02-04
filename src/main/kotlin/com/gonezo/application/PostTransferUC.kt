@@ -10,6 +10,8 @@ data class PostTransferCommand(
   val postedDate: LocalDate,
   val effectiveDate: LocalDate,
   val amount: Money,
+  val fromCategoryId: UUID?,
+  val toCategoryId: UUID?,
 )
 
 interface PostTransferUC {

@@ -12,6 +12,8 @@ import java.util.UUID
 class PostTransferService(
   private val ledgerPostingService: LedgerPostingService,
   private val transactionRepository: TransactionRepository,
+  private val transferBudgetImpactService: TransferBudgetImpactService,
+  private val categoryBalanceUpdaterService: CategoryBalanceUpdaterService,
 ) : PostTransferUC {
 
   @Transactional
@@ -25,6 +27,14 @@ class PostTransferService(
     )
 
     transactions.forEach { transactionRepository.save(it) }
+
+    transferBudgetImpactService.applyTransfer(
+      fromCategoryId = command.fromCategoryId,
+      toCategoryId = command.toCategoryId,
+      effectiveDate = command.effectiveDate,
+      amount = command.amount,
+      categoryBalanceUpdaterService = categoryBalanceUpdaterService,
+    )
     return transactions.map { it.id }
   }
 }

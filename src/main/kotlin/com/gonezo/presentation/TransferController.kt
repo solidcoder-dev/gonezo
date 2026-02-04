@@ -30,6 +30,8 @@ class TransferController(
         postedDate = request.postedDate,
         effectiveDate = request.effectiveDate,
         amount = Money(request.amount, request.currency),
+        fromCategoryId = request.fromCategoryId,
+        toCategoryId = request.toCategoryId,
       ),
     )
 
@@ -50,6 +52,8 @@ data class PostTransferRequest(
   val amount: BigDecimal,
   @field:NotNull
   val currency: String,
+  val fromCategoryId: UUID? = null,
+  val toCategoryId: UUID? = null,
 )
 
 data class TransferResponse(
