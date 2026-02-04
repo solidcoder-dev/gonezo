@@ -5,6 +5,7 @@ import com.gonezo.domain.budgeting.ports.CategoryBalanceRepository
 import com.gonezo.domain.budgeting.ports.CategoryRepository
 import com.gonezo.domain.shared.Money
 import com.gonezo.domain.shared.YearMonth
+import com.gonezo.application.PolicyViolationException
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -44,6 +45,8 @@ class CategoryBalanceUpdaterService(
       .add(current.allocated.amount)
       .subtract(newSpent)
     val newSafeToSpend = newAvailable.subtract(current.reserved.amount)
+
+    enforceNegativePolicies(category.allowNegative, category.maxDebtAmount, newAvailable)
 
     val updated = current.copy(
       spent = Money(newSpent, amount.currency),
@@ -85,5 +88,22 @@ class CategoryBalanceUpdaterService(
     )
 
     categoryBalanceRepository.save(updated)
+  }
+
+  private fun enforceNegativePolicies(
+    allowNegative: Boolean,
+    maxDebtAmount: Money?,
+    availableAmount: BigDecimal,
+  ) {
+    if (!allowNegative && availableAmount < BigDecimal.ZERO) {
+      throw PolicyViolationException("Category balance cannot go negative.")
+    }
+
+    if (maxDebtAmount != null) {
+      val limit = maxDebtAmount.amount.negate()
+      if (availableAmount < limit) {
+        throw PolicyViolationException("Category balance exceeded max debt.")
+      }
+    }
   }
 }
