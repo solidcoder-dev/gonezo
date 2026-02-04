@@ -5,8 +5,8 @@ import java.util.UUID
 data class BudgetPlan(
   val id: UUID,
   val userId: UUID,
-  val period: String,
-  val negativePolicy: String,
-  val reservationPolicy: String,
-  val effectiveDatingPolicy: String,
+  val period: BudgetPlanPeriod,
+  val negativePolicy: NegativePolicy,
+  val reservationPolicy: ReservationPolicy,
+  val effectiveDatingPolicy: EffectiveDatingPolicy,
 )

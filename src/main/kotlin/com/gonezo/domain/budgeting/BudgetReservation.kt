@@ -10,7 +10,7 @@ data class BudgetReservation(
   val patternId: UUID,
   val categoryId: UUID,
   val amount: Money,
-  val status: String,
+  val status: ReservationStatus,
   val expectedEffectiveDate: LocalDate,
   val linkedTransactionId: UUID?,
 )

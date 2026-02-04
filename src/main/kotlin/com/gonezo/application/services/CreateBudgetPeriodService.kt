@@ -45,7 +45,7 @@ class CreateBudgetPeriodService(
       ),
     )
 
-    if (plan.reservationPolicy == "reserve_start_of_period") {
+    if (plan.reservationPolicy == com.gonezo.domain.budgeting.ReservationPolicy.RESERVE_START_OF_PERIOD) {
       createPeriodReservationsUC.execute(CreatePeriodReservationsCommand(period.id))
     }
     return period.id

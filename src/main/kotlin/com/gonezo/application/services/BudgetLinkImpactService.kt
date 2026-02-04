@@ -2,6 +2,7 @@ package com.gonezo.application.services
 
 import com.gonezo.domain.budgeting.ports.BudgetLinkRepository
 import com.gonezo.domain.budgeting.services.BudgetLinkService
+import com.gonezo.domain.budgeting.BudgetLinkType
 import com.gonezo.domain.shared.Money
 import org.springframework.stereotype.Service
 import java.util.UUID
@@ -23,7 +24,7 @@ class BudgetLinkImpactService(
     val link = budgetLinkService.createLink(
       budgetPeriodId = budgetPeriodId,
       categoryId = categoryId,
-      linkedType = "investment_transaction",
+      linkedType = BudgetLinkType.INVESTMENT_TRANSACTION,
       linkedId = linkedId,
       budgetImpactAmount = budgetImpactAmount,
     )

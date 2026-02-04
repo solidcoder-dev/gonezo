@@ -7,7 +7,7 @@ data class BudgetLink(
   val id: UUID,
   val budgetPeriodId: UUID,
   val categoryId: UUID,
-  val linkedType: String,
+  val linkedType: BudgetLinkType,
   val linkedId: UUID,
   val budgetImpactAmount: Money,
 )

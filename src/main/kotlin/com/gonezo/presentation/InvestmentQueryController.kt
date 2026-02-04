@@ -22,7 +22,7 @@ class InvestmentQueryController(
         id = tx.id,
         containerId = tx.containerId,
         date = tx.date,
-        type = tx.type,
+        type = tx.type.value,
         assetId = tx.assetId,
         quantity = tx.quantity,
         amount = tx.amount.amount,

@@ -1,6 +1,7 @@
 package com.gonezo.infrastructure.persistence
 
 import com.gonezo.domain.cashledger.Transaction
+import com.gonezo.domain.cashledger.TransactionType
 import com.gonezo.domain.cashledger.ports.TransactionRepository
 import com.gonezo.domain.shared.Money
 import org.springframework.jdbc.core.RowMapper
@@ -33,7 +34,7 @@ class JdbcTransactionRepository(
       .addValue("effective_date", transaction.effectiveDate)
       .addValue("amount", transaction.amount.amount)
       .addValue("currency", transaction.amount.currency)
-      .addValue("type", transaction.type)
+      .addValue("type", transaction.type.value)
       .addValue("merchant", transaction.merchant)
       .addValue("category_id", transaction.categoryId)
       .addValue("recurring", transaction.recurring)
@@ -62,7 +63,7 @@ class JdbcTransactionRepository(
         amount = rs.getObject("amount", BigDecimal::class.java),
         currency = rs.getString("currency"),
       ),
-      type = rs.getString("type"),
+      type = TransactionType.from(rs.getString("type")),
       merchant = rs.getString("merchant"),
       categoryId = rs.getString("category_id")?.let(UUID::fromString),
       recurring = rs.getBoolean("recurring"),

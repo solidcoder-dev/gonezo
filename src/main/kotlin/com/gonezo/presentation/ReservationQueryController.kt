@@ -25,7 +25,7 @@ class ReservationQueryController(
         categoryId = res.categoryId,
         amount = res.amount.amount,
         currency = res.amount.currency,
-        status = res.status,
+        status = res.status.value,
         expectedEffectiveDate = res.expectedEffectiveDate,
         linkedTransactionId = res.linkedTransactionId,
       )

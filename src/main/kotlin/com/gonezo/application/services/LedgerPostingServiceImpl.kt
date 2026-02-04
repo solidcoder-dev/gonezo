@@ -1,6 +1,7 @@
 package com.gonezo.application.services
 
 import com.gonezo.domain.cashledger.Transaction
+import com.gonezo.domain.cashledger.TransactionType
 import com.gonezo.domain.cashledger.services.LedgerPostingService
 import com.gonezo.domain.shared.Money
 import org.springframework.stereotype.Service
@@ -25,7 +26,7 @@ class LedgerPostingServiceImpl : LedgerPostingService {
       postedDate = postedDate,
       effectiveDate = effectiveDate,
       amount = amount,
-      type = "income",
+      type = TransactionType.INCOME,
       merchant = merchant,
       categoryId = categoryId,
       recurring = recurring,
@@ -47,7 +48,7 @@ class LedgerPostingServiceImpl : LedgerPostingService {
       postedDate = postedDate,
       effectiveDate = effectiveDate,
       amount = amount,
-      type = "expense",
+      type = TransactionType.EXPENSE,
       merchant = merchant,
       categoryId = categoryId,
       recurring = recurring,
@@ -67,7 +68,7 @@ class LedgerPostingServiceImpl : LedgerPostingService {
       postedDate = postedDate,
       effectiveDate = effectiveDate,
       amount = amount,
-      type = "transfer",
+      type = TransactionType.TRANSFER,
       merchant = null,
       categoryId = null,
       recurring = false,
@@ -79,7 +80,7 @@ class LedgerPostingServiceImpl : LedgerPostingService {
       postedDate = postedDate,
       effectiveDate = effectiveDate,
       amount = amount,
-      type = "transfer",
+      type = TransactionType.TRANSFER,
       merchant = null,
       categoryId = null,
       recurring = false,

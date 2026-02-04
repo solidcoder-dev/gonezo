@@ -4,6 +4,7 @@ import com.gonezo.application.RecordInvestmentReturnCommand
 import com.gonezo.application.RecordInvestmentReturnUC
 import com.gonezo.application.events.DomainEventPublisher
 import com.gonezo.domain.investments.InvestmentTransaction
+import com.gonezo.domain.investments.InvestmentTransactionType
 import com.gonezo.domain.investments.events.InvestmentReturnRecorded
 import com.gonezo.domain.investments.ports.FinancialContainerRepository
 import com.gonezo.domain.investments.ports.InvestmentTransactionRepository
@@ -26,7 +27,7 @@ class RecordInvestmentReturnService(
       id = UUID.randomUUID(),
       containerId = command.containerId,
       date = command.date,
-      type = "dividend",
+      type = InvestmentTransactionType.DIVIDEND,
       assetId = null,
       quantity = null,
       amount = command.amount,

@@ -26,7 +26,7 @@ class JdbcBudgetLinkRepository(
       .addValue("id", link.id)
       .addValue("budget_period_id", link.budgetPeriodId)
       .addValue("category_id", link.categoryId)
-      .addValue("linked_type", link.linkedType)
+      .addValue("linked_type", link.linkedType.value)
       .addValue("linked_id", link.linkedId)
       .addValue("budget_impact_amount", link.budgetImpactAmount.amount)
       .addValue("budget_impact_currency", link.budgetImpactAmount.currency)

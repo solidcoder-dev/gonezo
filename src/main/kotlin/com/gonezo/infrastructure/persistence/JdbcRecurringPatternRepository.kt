@@ -1,5 +1,7 @@
 package com.gonezo.infrastructure.persistence
 
+import com.gonezo.domain.budgeting.ProrationType
+import com.gonezo.domain.budgeting.RecurringCadence
 import com.gonezo.domain.budgeting.RecurringPattern
 import com.gonezo.domain.budgeting.ports.RecurringPatternRepository
 import com.gonezo.domain.shared.Money
@@ -50,7 +52,7 @@ class JdbcRecurringPatternRepository(
       .addValue("budget_plan_id", pattern.budgetPlanId)
       .addValue("category_id", pattern.categoryId)
       .addValue("name", pattern.name)
-      .addValue("cadence", pattern.cadence)
+      .addValue("cadence", pattern.cadence.value)
       .addValue("expected_amount", pattern.expectedAmount.amount)
       .addValue("expected_currency", pattern.expectedAmount.currency)
       .addValue("tolerance_amount", pattern.tolerance.amount)
@@ -58,7 +60,7 @@ class JdbcRecurringPatternRepository(
       .addValue("merchant_matcher", pattern.merchantMatcher)
       .addValue("billing_day", pattern.billingDay)
       .addValue("billing_month", pattern.billingMonth)
-      .addValue("proration", pattern.proration)
+      .addValue("proration", pattern.proration?.value)
       .addValue("active", pattern.active)
 
     jdbcTemplate.update(sql, params)
@@ -70,7 +72,7 @@ class JdbcRecurringPatternRepository(
       budgetPlanId = UUID.fromString(rs.getString("budget_plan_id")),
       categoryId = UUID.fromString(rs.getString("category_id")),
       name = rs.getString("name"),
-      cadence = rs.getString("cadence"),
+      cadence = RecurringCadence.from(rs.getString("cadence")),
       expectedAmount = Money(
         amount = rs.getObject("expected_amount", BigDecimal::class.java),
         currency = rs.getString("expected_currency"),
@@ -82,7 +84,7 @@ class JdbcRecurringPatternRepository(
       merchantMatcher = rs.getString("merchant_matcher"),
       billingDay = rs.getObject("billing_day")?.let { (it as Number).toInt() },
       billingMonth = rs.getObject("billing_month")?.let { (it as Number).toInt() },
-      proration = rs.getString("proration"),
+      proration = ProrationType.from(rs.getString("proration")),
       active = rs.getBoolean("active"),
     )
   }

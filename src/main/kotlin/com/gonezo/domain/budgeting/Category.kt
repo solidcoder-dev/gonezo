@@ -7,7 +7,7 @@ data class Category(
   val id: UUID,
   val budgetPlanId: UUID,
   val name: String,
-  val type: String,
+  val type: CategoryType,
   val allowNegative: Boolean,
   val maxDebtAmount: Money?,
 )

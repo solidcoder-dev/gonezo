@@ -10,7 +10,7 @@ data class Transaction(
   val postedDate: LocalDate,
   val effectiveDate: LocalDate,
   val amount: Money,
-  val type: String,
+  val type: TransactionType,
   val merchant: String?,
   val categoryId: UUID?,
   val recurring: Boolean,

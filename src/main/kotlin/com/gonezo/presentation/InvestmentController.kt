@@ -4,12 +4,14 @@ import com.gonezo.application.ExecuteInvestmentCommand
 import com.gonezo.application.ExecuteInvestmentUC
 import com.gonezo.application.RecordInvestmentReturnCommand
 import com.gonezo.application.RecordInvestmentReturnUC
+import com.gonezo.domain.investments.InvestmentTransactionType
 import com.gonezo.domain.shared.Money
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -27,11 +29,17 @@ class InvestmentController(
 
   @PostMapping("/execute")
   fun execute(@Valid @RequestBody request: ExecuteInvestmentRequest): ResponseEntity<ExecuteInvestmentResponse> {
+    val txType = try {
+      InvestmentTransactionType.from(request.type)
+    } catch (ex: IllegalArgumentException) {
+      throw ResponseStatusException(HttpStatus.BAD_REQUEST, ex.message)
+    }
+
     val id = executeInvestmentUC.execute(
       ExecuteInvestmentCommand(
         containerId = request.containerId,
         date = request.date,
-        type = request.type,
+        type = txType,
         assetId = request.assetId,
         quantity = request.quantity,
         amount = Money(request.amount, request.currency),

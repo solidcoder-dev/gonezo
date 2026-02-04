@@ -1,6 +1,7 @@
 package com.gonezo.infrastructure.persistence
 
 import com.gonezo.domain.investments.InvestmentTransaction
+import com.gonezo.domain.investments.InvestmentTransactionType
 import com.gonezo.domain.investments.ports.InvestmentTransactionRepository
 import com.gonezo.domain.shared.Money
 import org.springframework.jdbc.core.RowMapper
@@ -32,7 +33,7 @@ class JdbcInvestmentTransactionRepository(
       .addValue("id", transaction.id)
       .addValue("container_id", transaction.containerId)
       .addValue("date", transaction.date)
-      .addValue("type", transaction.type)
+      .addValue("type", transaction.type.value)
       .addValue("asset_id", transaction.assetId)
       .addValue("quantity", transaction.quantity)
       .addValue("amount", transaction.amount.amount)
@@ -68,7 +69,7 @@ class JdbcInvestmentTransactionRepository(
       id = UUID.fromString(rs.getString("id")),
       containerId = UUID.fromString(rs.getString("container_id")),
       date = rs.getObject("date", LocalDate::class.java),
-      type = rs.getString("type"),
+      type = InvestmentTransactionType.from(rs.getString("type")),
       assetId = rs.getString("asset_id")?.let(UUID::fromString),
       quantity = rs.getObject("quantity", BigDecimal::class.java),
       amount = Money(

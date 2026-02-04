@@ -3,6 +3,7 @@ package com.gonezo.application.services
 import com.gonezo.domain.budgeting.BudgetPeriod
 import com.gonezo.domain.budgeting.BudgetReservation
 import com.gonezo.domain.budgeting.RecurringPattern
+import com.gonezo.domain.budgeting.ReservationStatus
 import com.gonezo.domain.budgeting.services.ReservationService
 import com.gonezo.domain.shared.Money
 import org.springframework.stereotype.Service
@@ -30,7 +31,7 @@ class ReservationServiceImpl : ReservationService {
         patternId = pattern.id,
         categoryId = pattern.categoryId,
         amount = Money(pattern.expectedAmount.amount, pattern.expectedAmount.currency),
-        status = "active",
+        status = ReservationStatus.ACTIVE,
         expectedEffectiveDate = expectedDate,
         linkedTransactionId = null,
       )
@@ -41,10 +42,10 @@ class ReservationServiceImpl : ReservationService {
     reservation: BudgetReservation,
     transactionId: UUID,
   ): BudgetReservation {
-    if (reservation.status == "settled") return reservation
+    if (reservation.status == ReservationStatus.SETTLED) return reservation
 
     return reservation.copy(
-      status = "settled",
+      status = ReservationStatus.SETTLED,
       linkedTransactionId = transactionId,
     )
   }

@@ -8,7 +8,7 @@ import java.util.UUID
 data class ExecuteInvestmentCommand(
   val containerId: UUID,
   val date: LocalDate,
-  val type: String,
+  val type: com.gonezo.domain.investments.InvestmentTransactionType,
   val assetId: UUID?,
   val quantity: BigDecimal?,
   val amount: Money,

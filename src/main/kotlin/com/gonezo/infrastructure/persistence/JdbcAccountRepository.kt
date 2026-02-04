@@ -1,6 +1,7 @@
 package com.gonezo.infrastructure.persistence
 
 import com.gonezo.domain.cashledger.Account
+import com.gonezo.domain.cashledger.AccountType
 import com.gonezo.domain.cashledger.ports.AccountRepository
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
@@ -35,7 +36,7 @@ class JdbcAccountRepository(
       .addValue("id", account.id)
       .addValue("user_id", account.userId)
       .addValue("name", account.name)
-      .addValue("type", account.type)
+      .addValue("type", account.type.value)
       .addValue("currency", account.currency)
 
     jdbcTemplate.update(sql, params)
@@ -46,7 +47,7 @@ class JdbcAccountRepository(
       id = UUID.fromString(rs.getString("id")),
       userId = UUID.fromString(rs.getString("user_id")),
       name = rs.getString("name"),
-      type = rs.getString("type"),
+      type = AccountType.from(rs.getString("type")),
       currency = rs.getString("currency"),
     )
   }

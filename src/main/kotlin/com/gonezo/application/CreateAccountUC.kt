@@ -5,7 +5,7 @@ import java.util.UUID
 data class CreateAccountCommand(
   val userId: UUID,
   val name: String,
-  val type: String,
+  val type: com.gonezo.domain.cashledger.AccountType,
   val currency: String,
 )
 

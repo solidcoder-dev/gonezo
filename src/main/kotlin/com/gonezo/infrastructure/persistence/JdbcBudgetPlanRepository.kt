@@ -1,6 +1,10 @@
 package com.gonezo.infrastructure.persistence
 
 import com.gonezo.domain.budgeting.BudgetPlan
+import com.gonezo.domain.budgeting.BudgetPlanPeriod
+import com.gonezo.domain.budgeting.EffectiveDatingPolicy
+import com.gonezo.domain.budgeting.NegativePolicy
+import com.gonezo.domain.budgeting.ReservationPolicy
 import com.gonezo.domain.budgeting.ports.BudgetPlanRepository
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
@@ -34,10 +38,10 @@ class JdbcBudgetPlanRepository(
     val params = MapSqlParameterSource()
       .addValue("id", plan.id)
       .addValue("user_id", plan.userId)
-      .addValue("period", plan.period)
-      .addValue("negative_policy", plan.negativePolicy)
-      .addValue("reservation_policy", plan.reservationPolicy)
-      .addValue("effective_dating_policy", plan.effectiveDatingPolicy)
+      .addValue("period", plan.period.value)
+      .addValue("negative_policy", plan.negativePolicy.value)
+      .addValue("reservation_policy", plan.reservationPolicy.value)
+      .addValue("effective_dating_policy", plan.effectiveDatingPolicy.value)
 
     jdbcTemplate.update(sql, params)
   }
@@ -46,10 +50,10 @@ class JdbcBudgetPlanRepository(
     BudgetPlan(
       id = UUID.fromString(rs.getString("id")),
       userId = UUID.fromString(rs.getString("user_id")),
-      period = rs.getString("period"),
-      negativePolicy = rs.getString("negative_policy"),
-      reservationPolicy = rs.getString("reservation_policy"),
-      effectiveDatingPolicy = rs.getString("effective_dating_policy"),
+      period = BudgetPlanPeriod.from(rs.getString("period")),
+      negativePolicy = NegativePolicy.from(rs.getString("negative_policy")),
+      reservationPolicy = ReservationPolicy.from(rs.getString("reservation_policy")),
+      effectiveDatingPolicy = EffectiveDatingPolicy.from(rs.getString("effective_dating_policy")),
     )
   }
 }

@@ -12,6 +12,10 @@ class BudgetAttributionService(
 
   fun resolveDate(planId: UUID, postedDate: LocalDate, effectiveDate: LocalDate): LocalDate {
     val plan = budgetPlanRepository.get(planId)
-    return if (plan.effectiveDatingPolicy == "use_posted_date") postedDate else effectiveDate
+    return if (plan.effectiveDatingPolicy == com.gonezo.domain.budgeting.EffectiveDatingPolicy.USE_POSTED_DATE) {
+      postedDate
+    } else {
+      effectiveDate
+    }
   }
 }

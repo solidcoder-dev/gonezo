@@ -1,6 +1,7 @@
 package com.gonezo.infrastructure.persistence
 
 import com.gonezo.domain.budgeting.Category
+import com.gonezo.domain.budgeting.CategoryType
 import com.gonezo.domain.budgeting.ports.CategoryRepository
 import com.gonezo.domain.shared.Money
 import org.springframework.jdbc.core.RowMapper
@@ -46,7 +47,7 @@ class JdbcCategoryRepository(
       id = UUID.fromString(rs.getString("id")),
       budgetPlanId = UUID.fromString(rs.getString("budget_plan_id")),
       name = rs.getString("name"),
-      type = rs.getString("type"),
+      type = CategoryType.from(rs.getString("type")),
       allowNegative = rs.getBoolean("allow_negative"),
       maxDebtAmount = if (maxDebtAmount != null && maxDebtCurrency != null) {
         Money(maxDebtAmount, maxDebtCurrency)

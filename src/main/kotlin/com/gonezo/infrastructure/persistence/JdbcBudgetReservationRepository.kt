@@ -1,6 +1,7 @@
 package com.gonezo.infrastructure.persistence
 
 import com.gonezo.domain.budgeting.BudgetReservation
+import com.gonezo.domain.budgeting.ReservationStatus
 import com.gonezo.domain.budgeting.ports.BudgetReservationRepository
 import com.gonezo.domain.shared.Money
 import org.springframework.jdbc.core.RowMapper
@@ -47,10 +48,12 @@ class JdbcBudgetReservationRepository(
     val sql = """
       select id, budget_period_id, pattern_id, category_id, amount, currency, status, expected_effective_date, linked_transaction_id
       from budget_reservations
-      where budget_period_id = :period_id and status = 'active'
+      where budget_period_id = :period_id and status = :status
     """.trimIndent()
 
-    val params = MapSqlParameterSource("period_id", periodId)
+    val params = MapSqlParameterSource()
+      .addValue("period_id", periodId)
+      .addValue("status", ReservationStatus.ACTIVE.value)
     return jdbcTemplate.query(sql, params, reservationRowMapper())
   }
 
@@ -73,7 +76,7 @@ class JdbcBudgetReservationRepository(
       .addValue("category_id", reservation.categoryId)
       .addValue("amount", reservation.amount.amount)
       .addValue("currency", reservation.amount.currency)
-      .addValue("status", reservation.status)
+      .addValue("status", reservation.status.value)
       .addValue("expected_effective_date", reservation.expectedEffectiveDate)
       .addValue("linked_transaction_id", reservation.linkedTransactionId)
 
@@ -90,7 +93,7 @@ class JdbcBudgetReservationRepository(
         amount = rs.getObject("amount", BigDecimal::class.java),
         currency = rs.getString("currency"),
       ),
-      status = rs.getString("status"),
+      status = ReservationStatus.from(rs.getString("status")),
       expectedEffectiveDate = rs.getObject("expected_effective_date", LocalDate::class.java),
       linkedTransactionId = rs.getString("linked_transaction_id")?.let(UUID::fromString),
     )

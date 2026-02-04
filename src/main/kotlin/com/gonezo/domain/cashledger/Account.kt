@@ -6,6 +6,6 @@ data class Account(
   val id: UUID,
   val userId: UUID,
   val name: String,
-  val type: String,
+  val type: AccountType,
   val currency: String,
 )

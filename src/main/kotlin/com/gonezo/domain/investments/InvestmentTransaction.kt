@@ -9,7 +9,7 @@ data class InvestmentTransaction(
   val id: UUID,
   val containerId: UUID,
   val date: LocalDate,
-  val type: String,
+  val type: InvestmentTransactionType,
   val assetId: UUID?,
   val quantity: BigDecimal?,
   val amount: Money,
