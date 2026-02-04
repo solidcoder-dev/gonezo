@@ -21,6 +21,26 @@ insert into budget_periods (
 insert into categories (id, budget_plan_id, name, type, allow_negative, max_debt_amount, max_debt_currency)
 values ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Utilities', 'spending', false, null, null);
 
+insert into category_balances (
+  id, budget_period_id, category_id,
+  opening_balance_amount, opening_balance_currency,
+  allocated_amount, allocated_currency,
+  spent_amount, spent_currency,
+  available_amount, available_currency,
+  reserved_amount, reserved_currency,
+  safe_to_spend_amount, safe_to_spend_currency
+) values (
+  '99999999-9999-9999-9999-999999999999',
+  'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+  'cccccccc-cccc-cccc-cccc-cccccccccccc',
+  0.00, 'USD',
+  100.00, 'USD',
+  0.00, 'USD',
+  100.00, 'USD',
+  50.00, 'USD',
+  50.00, 'USD'
+);
+
 insert into recurring_patterns (
   id, budget_plan_id, category_id, name, cadence,
   expected_amount, expected_currency, tolerance_amount, tolerance_currency,

@@ -37,8 +37,8 @@ insert into category_balances (
   100.00, 'USD',
   0.00, 'USD',
   100.00, 'USD',
-  0.00, 'USD',
-  100.00, 'USD'
+  25.00, 'USD',
+  75.00, 'USD'
 );
 
 insert into recurring_patterns (

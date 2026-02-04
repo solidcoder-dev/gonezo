@@ -30,6 +30,34 @@ insert into recurring_patterns (
   'Electric', 'monthly',
   50.00, 'USD', 5.00, 'USD',
   'electric', 10, null, null, true
+),
+(
+  '22222222-2222-2222-2222-222222222222',
+  'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+  'dddddddd-dddd-dddd-dddd-dddddddddddd',
+  'Water', 'monthly',
+  25.00, 'USD', 5.00, 'USD',
+  'water', 5, null, null, true
+);
+
+insert into category_balances (
+  id, budget_period_id, category_id,
+  opening_balance_amount, opening_balance_currency,
+  allocated_amount, allocated_currency,
+  spent_amount, spent_currency,
+  available_amount, available_currency,
+  reserved_amount, reserved_currency,
+  safe_to_spend_amount, safe_to_spend_currency
+) values (
+  '99999999-9999-9999-9999-999999999999',
+  'cccccccc-cccc-cccc-cccc-cccccccccccc',
+  'dddddddd-dddd-dddd-dddd-dddddddddddd',
+  0.00, 'USD',
+  100.00, 'USD',
+  0.00, 'USD',
+  100.00, 'USD',
+  50.00, 'USD',
+  50.00, 'USD'
 );
 
 insert into budget_reservations (
@@ -45,7 +73,7 @@ insert into budget_reservations (
   (
     'ffffffff-ffff-ffff-ffff-ffffffffffff',
     'cccccccc-cccc-cccc-cccc-cccccccccccc',
-    '11111111-1111-1111-1111-111111111111',
+    '22222222-2222-2222-2222-222222222222',
     'dddddddd-dddd-dddd-dddd-dddddddddddd',
     25.00, 'USD', 'settled', '2026-02-05', '99999999-9999-9999-9999-999999999999'
   );

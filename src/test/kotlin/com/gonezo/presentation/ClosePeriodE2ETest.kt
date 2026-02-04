@@ -65,6 +65,13 @@ class ClosePeriodE2ETest {
 
     assertThat(byId["eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"]!!["status"]).isEqualTo("cancelled")
     assertThat(byId["ffffffff-ffff-ffff-ffff-ffffffffffff"]!!["status"]).isEqualTo("settled")
+
+    val balanceRow = jdbcTemplate.queryForMap(
+      "select reserved_amount, safe_to_spend_amount from category_balances where id = ?",
+      UUID.fromString("99999999-9999-9999-9999-999999999999"),
+    )
+    assertThat(balanceRow["reserved_amount"].toString()).isEqualTo("0.00")
+    assertThat(balanceRow["safe_to_spend_amount"].toString()).isEqualTo("100.00")
   }
 
   companion object {

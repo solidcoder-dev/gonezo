@@ -29,6 +29,14 @@ insert into recurring_patterns (
   'Electric', 'monthly',
   50.00, 'USD', 5.00, 'USD',
   'electric', 10, null, null, true
+),
+(
+  '22222222-2222-2222-2222-222222222222',
+  'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+  'dddddddd-dddd-dddd-dddd-dddddddddddd',
+  'Water', 'monthly',
+  25.00, 'USD', 5.00, 'USD',
+  'water', 5, null, null, true
 );
 
 insert into budget_reservations (
@@ -44,7 +52,7 @@ insert into budget_reservations (
   (
     'ffffffff-ffff-ffff-ffff-ffffffffffff',
     'cccccccc-cccc-cccc-cccc-cccccccccccc',
-    '11111111-1111-1111-1111-111111111111',
+    '22222222-2222-2222-2222-222222222222',
     'dddddddd-dddd-dddd-dddd-dddddddddddd',
     25.00, 'USD', 'settled', '2026-02-05', '99999999-9999-9999-9999-999999999999'
   );

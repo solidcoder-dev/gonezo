@@ -21,7 +21,7 @@ import java.util.UUID
 
 @SpringBootTest(classes = [ApiApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
-class SettleReservationE2ETest {
+class CreatePeriodReservationsBalanceE2ETest {
 
   @LocalServerPort
   private var port: Int = 0
@@ -38,39 +38,36 @@ class SettleReservationE2ETest {
   @BeforeEach
   fun setup() {
     flyway.migrate()
-    val resource = resourceLoader.getResource("classpath:sql/settle_reservation_setup.sql")
+    val resource = resourceLoader.getResource("classpath:sql/create_period_reservations_balance_setup.sql")
     val sql = resource.inputStream.bufferedReader().readText()
     jdbcTemplate.execute(sql)
   }
 
   @Test
-  fun `settles reservation and links transaction`() {
+  fun `creates reservations and updates reserved balances`() {
     val restClient = RestClient.create("http://localhost:$port")
-    val reservationId = UUID.fromString("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
-    val transactionId = UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff")
+    val periodId = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc")
 
     val response = restClient.post()
-      .uri("/reservations/$reservationId/settle")
-      .body(SettleReservationRequest(transactionId))
+      .uri("/budget-periods/$periodId/reservations")
       .retrieve()
       .toBodilessEntity()
 
-    assertThat(response.statusCode).isEqualTo(HttpStatus.NO_CONTENT)
+    assertThat(response.statusCode).isEqualTo(HttpStatus.ACCEPTED)
 
-    val row = jdbcTemplate.queryForMap(
-      "select status, linked_transaction_id from budget_reservations where id = ?",
-      reservationId,
-    )
-
-    assertThat(row["status"]).isEqualTo("settled")
-    assertThat(row["linked_transaction_id"].toString()).isEqualTo(transactionId.toString())
-
-    val balanceRow = jdbcTemplate.queryForMap(
+    val utilitiesRow = jdbcTemplate.queryForMap(
       "select reserved_amount, safe_to_spend_amount from category_balances where id = ?",
       UUID.fromString("99999999-9999-9999-9999-999999999999"),
     )
-    assertThat(balanceRow["reserved_amount"].toString()).isEqualTo("0.00")
-    assertThat(balanceRow["safe_to_spend_amount"].toString()).isEqualTo("100.00")
+    val subscriptionsRow = jdbcTemplate.queryForMap(
+      "select reserved_amount, safe_to_spend_amount from category_balances where id = ?",
+      UUID.fromString("aaaaaaaa-1111-1111-1111-aaaaaaaaaaaa"),
+    )
+
+    assertThat(utilitiesRow["reserved_amount"].toString()).isEqualTo("50.00")
+    assertThat(utilitiesRow["safe_to_spend_amount"].toString()).isEqualTo("50.00")
+    assertThat(subscriptionsRow["reserved_amount"].toString()).isEqualTo("15.00")
+    assertThat(subscriptionsRow["safe_to_spend_amount"].toString()).isEqualTo("35.00")
   }
 
   companion object {
