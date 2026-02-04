@@ -2,6 +2,8 @@ package com.gonezo.application.services
 
 import com.gonezo.application.CreateBudgetPeriodCommand
 import com.gonezo.application.CreateBudgetPeriodUC
+import com.gonezo.application.CreatePeriodReservationsCommand
+import com.gonezo.application.CreatePeriodReservationsUC
 import com.gonezo.domain.budgeting.BudgetPeriod
 import com.gonezo.domain.budgeting.ports.BudgetPeriodRepository
 import com.gonezo.domain.budgeting.ports.BudgetPlanRepository
@@ -16,6 +18,7 @@ import java.util.UUID
 class CreateBudgetPeriodService(
   private val budgetPlanRepository: BudgetPlanRepository,
   private val budgetPeriodRepository: BudgetPeriodRepository,
+  private val createPeriodReservationsUC: CreatePeriodReservationsUC,
 ) : CreateBudgetPeriodUC {
 
   @Transactional
@@ -32,6 +35,10 @@ class CreateBudgetPeriodService(
     )
 
     budgetPeriodRepository.save(period)
+
+    if (plan.reservationPolicy == "reserve_start_of_period") {
+      createPeriodReservationsUC.execute(CreatePeriodReservationsCommand(period.id))
+    }
     return period.id
   }
 }

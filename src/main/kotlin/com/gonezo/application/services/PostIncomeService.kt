@@ -14,6 +14,7 @@ class PostIncomeService(
   private val transactionRepository: TransactionRepository,
   private val categoryBalanceUpdaterService: CategoryBalanceUpdaterService,
   private val budgetPeriodTotalsService: BudgetPeriodTotalsService,
+  private val budgetAttributionService: BudgetAttributionService,
 ) : PostIncomeUC {
 
   @Transactional
@@ -30,16 +31,22 @@ class PostIncomeService(
 
     transactionRepository.save(transaction)
 
+    val attributionDate = budgetAttributionService.resolveDate(
+      planId = command.budgetPlanId,
+      postedDate = transaction.postedDate,
+      effectiveDate = transaction.effectiveDate,
+    )
+
     budgetPeriodTotalsService.applyIncome(
       planId = command.budgetPlanId,
-      effectiveDate = transaction.effectiveDate,
+      effectiveDate = attributionDate,
       amount = transaction.amount,
     )
 
     transaction.categoryId?.let { categoryId ->
       categoryBalanceUpdaterService.applyIncome(
         categoryId = categoryId,
-        effectiveDate = transaction.effectiveDate,
+        effectiveDate = attributionDate,
         amount = transaction.amount,
       )
     }
