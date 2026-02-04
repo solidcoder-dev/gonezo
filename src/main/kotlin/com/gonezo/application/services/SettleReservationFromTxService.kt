@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional
 class SettleReservationFromTxService(
   private val reservationService: ReservationService,
   private val reservationRepository: BudgetReservationRepository,
+  private val reservationBalanceService: ReservationBalanceService,
 ) : SettleReservationFromTxUC {
 
   @Transactional
@@ -18,5 +19,9 @@ class SettleReservationFromTxService(
     val reservation = reservationRepository.get(command.reservationId)
     val settled = reservationService.settleReservation(reservation, command.transactionId)
     reservationRepository.save(settled)
+
+    if (reservation.status != settled.status) {
+      reservationBalanceService.applyReservationSettled(reservation)
+    }
   }
 }

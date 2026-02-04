@@ -13,6 +13,7 @@ class ClosePeriodService(
   private val periodClosingService: PeriodClosingService,
   private val budgetReservationRepository: BudgetReservationRepository,
   private val budgetPeriodRepository: BudgetPeriodRepository,
+  private val reservationBalanceService: ReservationBalanceService,
 ) : ClosePeriodUC {
 
   @Transactional
@@ -21,6 +22,14 @@ class ClosePeriodService(
     val activeReservations = budgetReservationRepository.listActiveByPeriod(command.periodId)
 
     val updated = periodClosingService.close(period, activeReservations)
-    updated.forEach { budgetReservationRepository.save(it) }
+    updated.forEach { reservation ->
+      if (reservation.status == "cancelled") {
+        val original = activeReservations.firstOrNull { it.id == reservation.id }
+        if (original != null) {
+          reservationBalanceService.applyReservationCancelled(original)
+        }
+      }
+      budgetReservationRepository.save(reservation)
+    }
   }
 }

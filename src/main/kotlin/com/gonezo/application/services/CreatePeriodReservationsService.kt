@@ -15,6 +15,7 @@ class CreatePeriodReservationsService(
   private val recurringPatternRepository: RecurringPatternRepository,
   private val budgetReservationRepository: BudgetReservationRepository,
   private val budgetPeriodRepository: BudgetPeriodRepository,
+  private val reservationBalanceService: ReservationBalanceService,
 ) : CreatePeriodReservationsUC {
 
   @Transactional
@@ -31,6 +32,7 @@ class CreatePeriodReservationsService(
 
       if (existing == null) {
         budgetReservationRepository.save(reservation)
+        reservationBalanceService.applyReservationCreated(reservation)
       }
     }
   }
