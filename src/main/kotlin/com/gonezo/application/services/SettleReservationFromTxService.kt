@@ -2,6 +2,8 @@ package com.gonezo.application.services
 
 import com.gonezo.application.SettleReservationFromTxCommand
 import com.gonezo.application.SettleReservationFromTxUC
+import com.gonezo.application.events.DomainEventPublisher
+import com.gonezo.domain.budgeting.events.ReservationSettled
 import com.gonezo.domain.budgeting.ports.BudgetReservationRepository
 import com.gonezo.domain.budgeting.services.ReservationService
 import org.springframework.stereotype.Service
@@ -12,6 +14,7 @@ class SettleReservationFromTxService(
   private val reservationService: ReservationService,
   private val reservationRepository: BudgetReservationRepository,
   private val reservationBalanceService: ReservationBalanceService,
+  private val domainEventPublisher: DomainEventPublisher,
 ) : SettleReservationFromTxUC {
 
   @Transactional
@@ -22,6 +25,7 @@ class SettleReservationFromTxService(
 
     if (reservation.status != settled.status) {
       reservationBalanceService.applyReservationSettled(reservation)
+      domainEventPublisher.publish(ReservationSettled(reservation.id, command.transactionId))
     }
   }
 }

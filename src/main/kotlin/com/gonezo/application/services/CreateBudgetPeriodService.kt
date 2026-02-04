@@ -4,7 +4,9 @@ import com.gonezo.application.CreateBudgetPeriodCommand
 import com.gonezo.application.CreateBudgetPeriodUC
 import com.gonezo.application.CreatePeriodReservationsCommand
 import com.gonezo.application.CreatePeriodReservationsUC
+import com.gonezo.application.events.DomainEventPublisher
 import com.gonezo.domain.budgeting.BudgetPeriod
+import com.gonezo.domain.budgeting.events.BudgetPeriodCreated
 import com.gonezo.domain.budgeting.ports.BudgetPeriodRepository
 import com.gonezo.domain.budgeting.ports.BudgetPlanRepository
 import com.gonezo.domain.shared.Money
@@ -19,6 +21,7 @@ class CreateBudgetPeriodService(
   private val budgetPlanRepository: BudgetPlanRepository,
   private val budgetPeriodRepository: BudgetPeriodRepository,
   private val createPeriodReservationsUC: CreatePeriodReservationsUC,
+  private val domainEventPublisher: DomainEventPublisher,
 ) : CreateBudgetPeriodUC {
 
   @Transactional
@@ -35,6 +38,12 @@ class CreateBudgetPeriodService(
     )
 
     budgetPeriodRepository.save(period)
+    domainEventPublisher.publish(
+      BudgetPeriodCreated(
+        budgetPeriodId = period.id,
+        yearMonth = period.yearMonth,
+      ),
+    )
 
     if (plan.reservationPolicy == "reserve_start_of_period") {
       createPeriodReservationsUC.execute(CreatePeriodReservationsCommand(period.id))

@@ -2,9 +2,12 @@ package com.gonezo.application.services
 
 import com.gonezo.application.PostTransferCommand
 import com.gonezo.application.PostTransferUC
+import com.gonezo.application.events.DomainEventPublisher
 import com.gonezo.domain.budgeting.ports.CategoryRepository
 import com.gonezo.domain.cashledger.ports.TransactionRepository
 import com.gonezo.domain.cashledger.services.LedgerPostingService
+import com.gonezo.domain.cashledger.events.TransactionPosted
+import com.gonezo.domain.cashledger.events.TransferPosted
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -17,6 +20,7 @@ class PostTransferService(
   private val categoryBalanceUpdaterService: CategoryBalanceUpdaterService,
   private val categoryRepository: CategoryRepository,
   private val budgetAttributionService: BudgetAttributionService,
+  private val domainEventPublisher: DomainEventPublisher,
 ) : PostTransferUC {
 
   @Transactional
@@ -29,7 +33,11 @@ class PostTransferService(
       amount = command.amount,
     )
 
-    transactions.forEach { transactionRepository.save(it) }
+    transactions.forEach {
+      transactionRepository.save(it)
+      domainEventPublisher.publish(TransactionPosted(it.id, it.accountId))
+    }
+    domainEventPublisher.publish(TransferPosted(UUID.randomUUID()))
 
     val fromDate = command.fromCategoryId?.let { categoryId ->
       val planId = categoryRepository.get(categoryId).budgetPlanId

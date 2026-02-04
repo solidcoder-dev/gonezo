@@ -2,6 +2,8 @@ package com.gonezo.application.services
 
 import com.gonezo.application.AllocateBudgetCommand
 import com.gonezo.application.AllocateBudgetUC
+import com.gonezo.application.events.DomainEventPublisher
+import com.gonezo.domain.budgeting.events.BudgetAllocated
 import com.gonezo.domain.budgeting.ports.AllocationRuleRepository
 import com.gonezo.domain.budgeting.ports.BudgetPeriodRepository
 import com.gonezo.domain.budgeting.ports.CategoryBalanceRepository
@@ -19,6 +21,7 @@ class AllocateBudgetService(
   private val budgetPeriodRepository: BudgetPeriodRepository,
   private val categoryRepository: CategoryRepository,
   private val categoryBalanceRepository: CategoryBalanceRepository,
+  private val domainEventPublisher: DomainEventPublisher,
 ) : AllocateBudgetUC {
 
   @Transactional
@@ -34,5 +37,6 @@ class AllocateBudgetService(
 
     val balances = budgetAllocatorService.allocate(period, rules, categories)
     balances.forEach { categoryBalanceRepository.save(it) }
+    domainEventPublisher.publish(BudgetAllocated(period.id))
   }
 }

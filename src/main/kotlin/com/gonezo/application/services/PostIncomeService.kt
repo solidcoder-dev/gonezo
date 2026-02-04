@@ -2,6 +2,8 @@ package com.gonezo.application.services
 
 import com.gonezo.application.PostIncomeCommand
 import com.gonezo.application.PostIncomeUC
+import com.gonezo.application.events.DomainEventPublisher
+import com.gonezo.domain.cashledger.events.TransactionPosted
 import com.gonezo.domain.cashledger.ports.TransactionRepository
 import com.gonezo.domain.cashledger.services.LedgerPostingService
 import org.springframework.stereotype.Service
@@ -15,6 +17,7 @@ class PostIncomeService(
   private val categoryBalanceUpdaterService: CategoryBalanceUpdaterService,
   private val budgetPeriodTotalsService: BudgetPeriodTotalsService,
   private val budgetAttributionService: BudgetAttributionService,
+  private val domainEventPublisher: DomainEventPublisher,
 ) : PostIncomeUC {
 
   @Transactional
@@ -30,6 +33,7 @@ class PostIncomeService(
     )
 
     transactionRepository.save(transaction)
+    domainEventPublisher.publish(TransactionPosted(transaction.id, transaction.accountId))
 
     val attributionDate = budgetAttributionService.resolveDate(
       planId = command.budgetPlanId,

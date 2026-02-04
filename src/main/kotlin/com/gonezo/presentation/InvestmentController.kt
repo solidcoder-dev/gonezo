@@ -36,6 +36,7 @@ class InvestmentController(
         quantity = request.quantity,
         amount = Money(request.amount, request.currency),
         fees = request.feesAmount?.let { Money(it, request.currency) },
+        taxes = request.taxesAmount?.let { Money(it, request.currency) },
         note = request.note,
         budgetPeriodId = request.budgetPeriodId,
         categoryId = request.categoryId,
@@ -74,6 +75,7 @@ data class ExecuteInvestmentRequest(
   @field:NotBlank
   val currency: String,
   val feesAmount: BigDecimal?,
+  val taxesAmount: BigDecimal? = null,
   val note: String?,
   val budgetPeriodId: UUID?,
   val categoryId: UUID?,

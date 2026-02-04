@@ -21,10 +21,10 @@ class JdbcInvestmentTransactionRepository(
     val sql = """
       insert into investment_transactions (
         id, container_id, date, type, asset_id, quantity,
-        amount, currency, fees_amount, fees_currency, note
+        amount, currency, fees_amount, fees_currency, taxes_amount, taxes_currency, note
       ) values (
         :id, :container_id, :date, :type, :asset_id, :quantity,
-        :amount, :currency, :fees_amount, :fees_currency, :note
+        :amount, :currency, :fees_amount, :fees_currency, :taxes_amount, :taxes_currency, :note
       )
     """.trimIndent()
 
@@ -39,6 +39,8 @@ class JdbcInvestmentTransactionRepository(
       .addValue("currency", transaction.amount.currency)
       .addValue("fees_amount", transaction.fees?.amount)
       .addValue("fees_currency", transaction.fees?.currency)
+      .addValue("taxes_amount", transaction.taxes?.amount)
+      .addValue("taxes_currency", transaction.taxes?.currency)
       .addValue("note", transaction.note)
 
     jdbcTemplate.update(sql, params)
@@ -47,7 +49,7 @@ class JdbcInvestmentTransactionRepository(
   override fun listByContainer(containerId: UUID): List<InvestmentTransaction> {
     val sql = """
       select id, container_id, date, type, asset_id, quantity,
-        amount, currency, fees_amount, fees_currency, note
+        amount, currency, fees_amount, fees_currency, taxes_amount, taxes_currency, note
       from investment_transactions
       where container_id = :container_id
     """.trimIndent()
@@ -59,6 +61,8 @@ class JdbcInvestmentTransactionRepository(
   private fun transactionRowMapper(): RowMapper<InvestmentTransaction> = RowMapper { rs: ResultSet, _ ->
     val feesAmount = rs.getObject("fees_amount", BigDecimal::class.java)
     val feesCurrency = rs.getString("fees_currency")
+    val taxesAmount = rs.getObject("taxes_amount", BigDecimal::class.java)
+    val taxesCurrency = rs.getString("taxes_currency")
 
     InvestmentTransaction(
       id = UUID.fromString(rs.getString("id")),
@@ -72,6 +76,7 @@ class JdbcInvestmentTransactionRepository(
         currency = rs.getString("currency"),
       ),
       fees = if (feesAmount != null && feesCurrency != null) Money(feesAmount, feesCurrency) else null,
+      taxes = if (taxesAmount != null && taxesCurrency != null) Money(taxesAmount, taxesCurrency) else null,
       note = rs.getString("note"),
     )
   }

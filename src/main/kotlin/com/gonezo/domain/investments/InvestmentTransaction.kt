@@ -14,5 +14,6 @@ data class InvestmentTransaction(
   val quantity: BigDecimal?,
   val amount: Money,
   val fees: Money?,
+  val taxes: Money?,
   val note: String?,
 )

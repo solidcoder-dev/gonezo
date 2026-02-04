@@ -2,8 +2,10 @@ package com.gonezo.application.services
 
 import com.gonezo.application.ExecuteInvestmentCommand
 import com.gonezo.application.ExecuteInvestmentUC
+import com.gonezo.application.events.DomainEventPublisher
 import com.gonezo.domain.budgeting.ports.BudgetLinkRepository
 import com.gonezo.domain.budgeting.services.BudgetLinkService
+import com.gonezo.domain.investments.events.InvestmentExecuted
 import com.gonezo.domain.investments.InvestmentTransaction
 import com.gonezo.domain.investments.ports.FinancialContainerRepository
 import com.gonezo.domain.investments.ports.InvestmentTransactionRepository
@@ -20,6 +22,7 @@ class ExecuteInvestmentService(
   private val investmentTransactionRepository: InvestmentTransactionRepository,
   private val financialContainerRepository: FinancialContainerRepository,
   private val budgetLinkImpactService: BudgetLinkImpactService,
+  private val domainEventPublisher: DomainEventPublisher,
 ) : ExecuteInvestmentUC {
 
   @Transactional
@@ -35,16 +38,20 @@ class ExecuteInvestmentService(
       quantity = command.quantity,
       amount = command.amount,
       fees = command.fees,
+      taxes = command.taxes,
       note = command.note,
     )
 
     val executed = investmentExecutionService.execute(transaction)
     investmentTransactionRepository.save(executed)
+    domainEventPublisher.publish(InvestmentExecuted(executed.id, executed.containerId))
 
     val budgetPeriodId = command.budgetPeriodId
     val categoryId = command.categoryId
     if (budgetPeriodId != null && categoryId != null) {
-      val total = executed.amount.amount.add(executed.fees?.amount ?: BigDecimal.ZERO)
+      val total = executed.amount.amount
+        .add(executed.fees?.amount ?: BigDecimal.ZERO)
+        .add(executed.taxes?.amount ?: BigDecimal.ZERO)
       val budgetImpact = Money(total, executed.amount.currency)
       budgetLinkImpactService.applyLink(
         budgetPeriodId = budgetPeriodId,

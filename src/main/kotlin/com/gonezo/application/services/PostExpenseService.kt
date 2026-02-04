@@ -4,8 +4,10 @@ import com.gonezo.application.PostExpenseCommand
 import com.gonezo.application.PostExpenseUC
 import com.gonezo.application.SettleReservationFromTxCommand
 import com.gonezo.application.SettleReservationFromTxUC
+import com.gonezo.application.events.DomainEventPublisher
 import com.gonezo.domain.cashledger.ports.TransactionRepository
 import com.gonezo.domain.cashledger.services.LedgerPostingService
+import com.gonezo.domain.cashledger.events.TransactionPosted
 import com.gonezo.domain.budgeting.ports.CategoryRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -20,6 +22,7 @@ class PostExpenseService(
   private val categoryRepository: CategoryRepository,
   private val budgetAttributionService: BudgetAttributionService,
   private val reservationMatchingService: ReservationMatchingService,
+  private val domainEventPublisher: DomainEventPublisher,
 ) : PostExpenseUC {
 
   @Transactional
@@ -35,6 +38,7 @@ class PostExpenseService(
     )
 
     transactionRepository.save(transaction)
+    domainEventPublisher.publish(TransactionPosted(transaction.id, transaction.accountId))
 
     val categoryId = transaction.categoryId
     val planId = categoryId?.let { categoryRepository.get(it).budgetPlanId }

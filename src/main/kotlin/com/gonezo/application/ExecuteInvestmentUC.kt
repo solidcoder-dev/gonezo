@@ -13,6 +13,7 @@ data class ExecuteInvestmentCommand(
   val quantity: BigDecimal?,
   val amount: Money,
   val fees: Money?,
+  val taxes: Money?,
   val note: String?,
   val budgetPeriodId: UUID?,
   val categoryId: UUID?,
