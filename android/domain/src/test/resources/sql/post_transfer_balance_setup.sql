@@ -1,4 +1,4 @@
-truncate table budget_links, budget_reservations, recurring_patterns, category_balances, allocation_rules, categories, budget_periods, budget_plans, transactions, accounts;
+delete from budget_links, budget_reservations, recurring_patterns, category_balances, allocation_rules, categories, budget_periods, budget_plans, transactions, accounts;
 
 insert into accounts (id, user_id, name, type, currency)
 values

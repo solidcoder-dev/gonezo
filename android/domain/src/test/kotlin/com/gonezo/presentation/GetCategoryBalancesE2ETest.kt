@@ -1,89 +1,26 @@
 package com.gonezo.presentation
 
-import com.gonezo.api.ApiApplication
+import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat
-import org.flywaydb.core.Flyway
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.web.server.LocalServerPort
-import org.springframework.core.io.ResourceLoader
-import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
-import org.springframework.web.client.RestClient
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.math.BigDecimal
 import java.util.UUID
 
-@SpringBootTest(classes = [ApiApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
-class GetCategoryBalancesE2ETest {
+class GetCategoryBalancesE2ETest : SqliteE2ETest() {
 
-  @LocalServerPort
-  private var port: Int = 0
-
-  @Autowired
-  private lateinit var jdbcTemplate: JdbcTemplate
-
-  @Autowired
-  private lateinit var resourceLoader: ResourceLoader
-
-  @Autowired
-  private lateinit var flyway: Flyway
-
-  @BeforeEach
-  fun setup() {
-    flyway.migrate()
-    val resource = resourceLoader.getResource("classpath:sql/get_category_balances_setup.sql")
-    val sql = resource.inputStream.bufferedReader().readText()
-    jdbcTemplate.execute(sql)
-  }
+  override fun sqlResources() = listOf("sql/get_category_balances_setup.sql")
 
   @Test
   fun `returns category balances for period`() {
-    val restClient = RestClient.create("http://localhost:$port")
     val periodId = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc")
 
-    val response = restClient.get()
-      .uri("/budget-periods/$periodId/balances")
-      .retrieve()
-      .toEntity(Array<CategoryBalanceResponse>::class.java)
+    val balances = app.categoryBalanceRepository.listByPeriod(periodId)
 
-    val body = response.body!!.toList()
-    val rows = jdbcTemplate.queryForList(
-      "select id, allocated_amount, available_amount from category_balances where budget_period_id = ?",
-      periodId,
-    )
+    assertThat(balances).hasSize(1)
+    val balance = balances.first()
 
-    assertThat(body).hasSize(rows.size)
-    val byId = body.associateBy { it.id.toString() }
-
-    rows.forEach { row ->
-      val id = row["id"].toString()
-      val fromResponse = byId.getValue(id)
-      assertThat(fromResponse.allocatedAmount).isEqualByComparingTo(row["allocated_amount"] as BigDecimal)
-      assertThat(fromResponse.availableAmount).isEqualByComparingTo(row["available_amount"] as BigDecimal)
-    }
-  }
-
-  companion object {
-    @Container
-    private val postgres = PostgreSQLContainer("postgres:16").apply {
-      withDatabaseName("gonezo")
-      withUsername("gonezo")
-      withPassword("gonezo")
-    }
-
-    @JvmStatic
-    @DynamicPropertySource
-    fun registerProperties(registry: DynamicPropertyRegistry) {
-      registry.add("spring.datasource.url", postgres::getJdbcUrl)
-      registry.add("spring.datasource.username", postgres::getUsername)
-      registry.add("spring.datasource.password", postgres::getPassword)
-    }
+    assertThat(balance.id.toString()).isEqualTo("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+    assertThat(balance.allocated.amount).isEqualByComparingTo(BigDecimal("50.00"))
+    assertThat(balance.available.amount).isEqualByComparingTo(BigDecimal("40.00"))
   }
 }

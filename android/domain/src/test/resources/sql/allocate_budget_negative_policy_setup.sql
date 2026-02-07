@@ -1,4 +1,4 @@
-truncate table category_balances, allocation_rules, categories, budget_periods, budget_plans cascade;
+delete from category_balances, allocation_rules, categories, budget_periods, budget_plans;
 
 insert into budget_plans (id, user_id, period, negative_policy, reservation_policy, effective_dating_policy)
 values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'monthly', 'allow_with_max_debt', 'reserve_start_of_period', 'use_effective_date');

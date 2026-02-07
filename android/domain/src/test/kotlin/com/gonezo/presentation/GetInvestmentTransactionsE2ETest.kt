@@ -1,89 +1,25 @@
 package com.gonezo.presentation
 
-import com.gonezo.api.ApiApplication
+import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat
-import org.flywaydb.core.Flyway
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.web.server.LocalServerPort
-import org.springframework.core.io.ResourceLoader
-import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
-import org.springframework.web.client.RestClient
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
-import java.math.BigDecimal
 import java.util.UUID
 
-@SpringBootTest(classes = [ApiApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
-class GetInvestmentTransactionsE2ETest {
+class GetInvestmentTransactionsE2ETest : SqliteE2ETest() {
 
-  @LocalServerPort
-  private var port: Int = 0
-
-  @Autowired
-  private lateinit var jdbcTemplate: JdbcTemplate
-
-  @Autowired
-  private lateinit var resourceLoader: ResourceLoader
-
-  @Autowired
-  private lateinit var flyway: Flyway
-
-  @BeforeEach
-  fun setup() {
-    flyway.migrate()
-    val resource = resourceLoader.getResource("classpath:sql/get_investment_transactions_setup.sql")
-    val sql = resource.inputStream.bufferedReader().readText()
-    jdbcTemplate.execute(sql)
-  }
+  override fun sqlResources() = listOf("sql/get_investment_transactions_setup.sql")
 
   @Test
   fun `returns investment transactions for container`() {
-    val restClient = RestClient.create("http://localhost:$port")
     val containerId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
-    val response = restClient.get()
-      .uri("/investments/containers/$containerId/transactions")
-      .retrieve()
-      .toEntity(Array<InvestmentTransactionResponse>::class.java)
+    val transactions = app.investmentTransactionRepository.listByContainer(containerId)
 
-    val body = response.body!!.toList()
-    val rows = jdbcTemplate.queryForList(
-      "select id, amount, currency from investment_transactions where container_id = ?",
-      containerId,
+    assertThat(transactions).hasSize(2)
+    val ids = transactions.map { it.id.toString() }.toSet()
+    assertThat(ids).containsExactlyInAnyOrder(
+      "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
     )
-
-    assertThat(body).hasSize(rows.size)
-    val byId = body.associateBy { it.id.toString() }
-
-    rows.forEach { row ->
-      val id = row["id"].toString()
-      val fromResponse = byId.getValue(id)
-      assertThat(fromResponse.amount).isEqualByComparingTo(row["amount"] as BigDecimal)
-      assertThat(fromResponse.currency).isEqualTo(row["currency"])
-    }
-  }
-
-  companion object {
-    @Container
-    private val postgres = PostgreSQLContainer("postgres:16").apply {
-      withDatabaseName("gonezo")
-      withUsername("gonezo")
-      withPassword("gonezo")
-    }
-
-    @JvmStatic
-    @DynamicPropertySource
-    fun registerProperties(registry: DynamicPropertyRegistry) {
-      registry.add("spring.datasource.url", postgres::getJdbcUrl)
-      registry.add("spring.datasource.username", postgres::getUsername)
-      registry.add("spring.datasource.password", postgres::getPassword)
-    }
   }
 }

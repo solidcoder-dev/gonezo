@@ -1,6 +1,6 @@
 create table if not exists budget_plans (
-  id uuid primary key,
-  user_id uuid not null,
+  id text primary key,
+  user_id text not null,
   period text not null,
   negative_policy text not null,
   reservation_policy text not null,
@@ -8,8 +8,8 @@ create table if not exists budget_plans (
 );
 
 create table if not exists budget_periods (
-  id uuid primary key,
-  budget_plan_id uuid not null references budget_plans(id),
+  id text primary key,
+  budget_plan_id text not null references budget_plans(id),
   year int not null,
   month int not null,
   income_total_amount numeric(18, 2) not null,

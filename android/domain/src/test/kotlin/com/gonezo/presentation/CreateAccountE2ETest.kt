@@ -1,91 +1,36 @@
 package com.gonezo.presentation
 
+import com.gonezo.application.CreateAccountCommand
+import com.gonezo.domain.cashledger.AccountType
+import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.web.server.LocalServerPort
-import com.gonezo.api.ApiApplication
-import org.springframework.core.io.ResourceLoader
-import org.springframework.http.HttpStatus
-import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
-import org.springframework.web.client.RestClient
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.util.UUID
-import org.flywaydb.core.Flyway
 
-@SpringBootTest(classes = [ApiApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
-class CreateAccountE2ETest {
+class CreateAccountE2ETest : SqliteE2ETest() {
 
-  @LocalServerPort
-  private var port: Int = 0
-
-  @Autowired
-  private lateinit var jdbcTemplate: JdbcTemplate
-
-  @Autowired
-  private lateinit var resourceLoader: ResourceLoader
-
-  @Autowired
-  private lateinit var flyway: Flyway
-
-  @BeforeEach
-  fun setup() {
-    flyway.migrate()
-    val resource = resourceLoader.getResource("classpath:sql/create_account_setup.sql")
-    val sql = resource.inputStream.bufferedReader().readText()
-    jdbcTemplate.execute(sql)
-  }
+  override fun sqlResources() = listOf("sql/create_account_setup.sql")
 
   @Test
   fun `creates account and persists it`() {
-    val restClient = RestClient.create("http://localhost:$port")
-
-    val request = CreateAccountRequest(
+    val command = CreateAccountCommand(
       userId = UUID.randomUUID(),
       name = "Primary Checking",
-      type = "bank",
+      type = AccountType.BANK,
       currency = "USD",
     )
 
-    val response = restClient.post()
-      .uri("/accounts")
-      .body(request)
-      .retrieve()
-      .toEntity(CreateAccountResponse::class.java)
+    val accountId = app.createAccountUC.execute(command)
 
-    assertThat(response.statusCode).isEqualTo(HttpStatus.CREATED)
-    val accountId = response.body!!.id
-
-    val row = jdbcTemplate.queryForMap("select id, user_id, name, type, currency from accounts where id = ?", accountId)
+    val row = db.jdbcTemplate.queryForMap(
+      "select id, user_id, name, type, currency from accounts where id = ?",
+      accountId.toString(),
+    )
 
     assertThat(row["id"].toString()).isEqualTo(accountId.toString())
-    assertThat(row["user_id"].toString()).isEqualTo(request.userId.toString())
-    assertThat(row["name"]).isEqualTo(request.name)
-    assertThat(row["type"]).isEqualTo(request.type)
-    assertThat(row["currency"]).isEqualTo(request.currency)
-  }
-
-  companion object {
-    @Container
-    private val postgres = PostgreSQLContainer("postgres:16").apply {
-      withDatabaseName("gonezo")
-      withUsername("gonezo")
-      withPassword("gonezo")
-    }
-
-    @JvmStatic
-    @DynamicPropertySource
-    fun registerProperties(registry: DynamicPropertyRegistry) {
-      registry.add("spring.datasource.url", postgres::getJdbcUrl)
-      registry.add("spring.datasource.username", postgres::getUsername)
-      registry.add("spring.datasource.password", postgres::getPassword)
-    }
+    assertThat(row["user_id"].toString()).isEqualTo(command.userId.toString())
+    assertThat(row["name"]).isEqualTo(command.name)
+    assertThat(row["type"]).isEqualTo(command.type.value)
+    assertThat(row["currency"]).isEqualTo(command.currency)
   }
 }

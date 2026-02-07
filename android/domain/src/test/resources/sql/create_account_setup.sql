@@ -1,1 +1,1 @@
-truncate table transactions, accounts;
+delete from transactions, accounts;

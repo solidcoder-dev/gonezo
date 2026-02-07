@@ -1,6 +1,6 @@
 create table if not exists categories (
-  id uuid primary key,
-  budget_plan_id uuid not null references budget_plans(id),
+  id text primary key,
+  budget_plan_id text not null references budget_plans(id),
   name text not null,
   type text not null,
   allow_negative boolean not null,
@@ -9,16 +9,16 @@ create table if not exists categories (
 );
 
 create table if not exists allocation_rules (
-  id uuid primary key,
-  budget_plan_id uuid not null references budget_plans(id),
-  category_id uuid not null references categories(id),
+  id text primary key,
+  budget_plan_id text not null references budget_plans(id),
+  category_id text not null references categories(id),
   percent_of_remainder numeric(8, 6) not null
 );
 
 create table if not exists category_balances (
-  id uuid primary key,
-  budget_period_id uuid not null references budget_periods(id),
-  category_id uuid not null references categories(id),
+  id text primary key,
+  budget_period_id text not null references budget_periods(id),
+  category_id text not null references categories(id),
   opening_balance_amount numeric(18, 2) not null,
   opening_balance_currency text not null,
   allocated_amount numeric(18, 2) not null,

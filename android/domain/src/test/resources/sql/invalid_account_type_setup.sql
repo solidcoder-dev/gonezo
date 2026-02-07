@@ -1,1 +1,1 @@
-truncate table accounts cascade;
+delete from accounts;

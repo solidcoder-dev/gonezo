@@ -1,105 +1,47 @@
 package com.gonezo.presentation
 
-import com.gonezo.api.ApiApplication
+import com.gonezo.application.PostExpenseCommand
+import com.gonezo.domain.shared.Money
+import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat
-import org.flywaydb.core.Flyway
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.web.server.LocalServerPort
-import org.springframework.core.io.ResourceLoader
-import org.springframework.http.HttpStatus
-import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
-import org.springframework.web.client.RestClient
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.util.UUID
 
-@SpringBootTest(classes = [ApiApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
-class PostExpenseE2ETest {
+class PostExpenseE2ETest : SqliteE2ETest() {
 
-  @LocalServerPort
-  private var port: Int = 0
-
-  @Autowired
-  private lateinit var jdbcTemplate: JdbcTemplate
-
-  @Autowired
-  private lateinit var resourceLoader: ResourceLoader
-
-  @Autowired
-  private lateinit var flyway: Flyway
-
-  @BeforeEach
-  fun setup() {
-    flyway.migrate()
-    val resource = resourceLoader.getResource("classpath:sql/post_expense_setup.sql")
-    val sql = resource.inputStream.bufferedReader().readText()
-    jdbcTemplate.execute(sql)
-  }
+  override fun sqlResources() = listOf("sql/post_expense_setup.sql")
 
   @Test
   fun `posts expense and persists transaction`() {
-    val restClient = RestClient.create("http://localhost:$port")
-
-    val request = PostExpenseRequest(
+    val command = PostExpenseCommand(
       accountId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
       postedDate = LocalDate.of(2026, 2, 2),
       effectiveDate = LocalDate.of(2026, 2, 2),
-      amount = BigDecimal("42.75"),
-      currency = "USD",
+      amount = Money(BigDecimal("42.75"), "USD"),
       merchant = "Corner Store",
       categoryId = null,
       recurring = false,
+      reservationId = null,
     )
 
-    val response = restClient.post()
-      .uri("/transactions/expense")
-      .body(request)
-      .retrieve()
-      .toEntity(CreateTransactionResponse::class.java)
+    val transactionId = app.postExpenseUC.execute(command)
 
-    assertThat(response.statusCode).isEqualTo(HttpStatus.CREATED)
-    val transactionId = response.body!!.id
-
-    val row = jdbcTemplate.queryForMap(
+    val row = db.jdbcTemplate.queryForMap(
       "select id, account_id, posted_date, effective_date, amount, currency, type, merchant, category_id, recurring from transactions where id = ?",
-      transactionId,
+      transactionId.toString(),
     )
 
     assertThat(row["id"].toString()).isEqualTo(transactionId.toString())
-    assertThat(row["account_id"].toString()).isEqualTo(request.accountId.toString())
-    assertThat(row["posted_date"].toString()).isEqualTo(request.postedDate.toString())
-    assertThat(row["effective_date"].toString()).isEqualTo(request.effectiveDate.toString())
-    assertThat((row["amount"] as BigDecimal)).isEqualTo(request.amount)
-    assertThat(row["currency"]).isEqualTo(request.currency)
+    assertThat(row["account_id"].toString()).isEqualTo(command.accountId.toString())
+    assertThat(row["posted_date"].toString()).isEqualTo(command.postedDate.toString())
+    assertThat(row["effective_date"].toString()).isEqualTo(command.effectiveDate.toString())
+    assertThat(row["amount"] as BigDecimal).isEqualTo(command.amount.amount)
+    assertThat(row["currency"]).isEqualTo(command.amount.currency)
     assertThat(row["type"]).isEqualTo("expense")
-    assertThat(row["merchant"]).isEqualTo(request.merchant)
+    assertThat(row["merchant"]).isEqualTo(command.merchant)
     assertThat(row["category_id"]).isNull()
-    assertThat(row["recurring"]).isEqualTo(false)
-  }
-
-  companion object {
-    @Container
-    private val postgres = PostgreSQLContainer("postgres:16").apply {
-      withDatabaseName("gonezo")
-      withUsername("gonezo")
-      withPassword("gonezo")
-    }
-
-    @JvmStatic
-    @DynamicPropertySource
-    fun registerProperties(registry: DynamicPropertyRegistry) {
-      registry.add("spring.datasource.url", postgres::getJdbcUrl)
-      registry.add("spring.datasource.username", postgres::getUsername)
-      registry.add("spring.datasource.password", postgres::getPassword)
-    }
+    assertThat(row["recurring"]).isEqualTo(0)
   }
 }

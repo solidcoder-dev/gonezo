@@ -1,4 +1,4 @@
-truncate table transactions, accounts;
+delete from transactions, accounts;
 
 insert into accounts (id, user_id, name, type, currency)
 values
