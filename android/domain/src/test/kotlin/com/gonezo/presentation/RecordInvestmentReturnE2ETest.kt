@@ -33,7 +33,7 @@ class RecordInvestmentReturnE2ETest : SqliteE2ETest() {
     assertThat(row["container_id"].toString()).isEqualTo(command.containerId.toString())
     assertThat(row["date"].toString()).isEqualTo(command.date.toString())
     assertThat(row["type"]).isEqualTo("dividend")
-    assertThat(row["amount"] as BigDecimal).isEqualByComparingTo(command.amount.amount)
+    assertThat(com.gonezo.testing.decimal(row["amount"])).isEqualByComparingTo(command.amount.amount)
     assertThat(row["currency"]).isEqualTo("USD")
     assertThat(row["note"]).isEqualTo(command.note)
   }

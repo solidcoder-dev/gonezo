@@ -38,6 +38,6 @@ class PostExpenseBudgetLinkE2ETest : SqliteE2ETest() {
       "select linked_type, budget_impact_amount from budget_links",
     )
     assertThat(row["linked_type"]).isEqualTo("transaction")
-    assertThat(row["budget_impact_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("20.00"))
+    assertThat(com.gonezo.testing.decimal(row["budget_impact_amount"])).isEqualByComparingTo(BigDecimal("20.00"))
   }
 }

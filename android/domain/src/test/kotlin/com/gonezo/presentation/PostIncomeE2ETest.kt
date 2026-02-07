@@ -37,7 +37,7 @@ class PostIncomeE2ETest : SqliteE2ETest() {
     assertThat(row["account_id"].toString()).isEqualTo(command.accountId.toString())
     assertThat(row["posted_date"].toString()).isEqualTo(command.postedDate.toString())
     assertThat(row["effective_date"].toString()).isEqualTo(command.effectiveDate.toString())
-    assertThat(row["amount"] as BigDecimal).isEqualTo(command.amount.amount)
+    assertThat(com.gonezo.testing.decimal(row["amount"])).isEqualByComparingTo(command.amount.amount)
     assertThat(row["currency"]).isEqualTo(command.amount.currency)
     assertThat(row["type"]).isEqualTo("income")
     assertThat(row["merchant"]).isEqualTo(command.merchant)
@@ -48,14 +48,14 @@ class PostIncomeE2ETest : SqliteE2ETest() {
       "select income_total_amount, remainder_amount from budget_periods where id = ?",
       "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
     )
-    assertThat(periodRow["income_total_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("225.50"))
-    assertThat(periodRow["remainder_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("150.50"))
+    assertThat(com.gonezo.testing.decimal(periodRow["income_total_amount"])).isEqualByComparingTo(BigDecimal("225.50"))
+    assertThat(com.gonezo.testing.decimal(periodRow["remainder_amount"])).isEqualByComparingTo(BigDecimal("150.50"))
 
     val balanceRow = db.jdbcTemplate.queryForMap(
       "select available_amount, safe_to_spend_amount from category_balances where id = ?",
       "dddddddd-dddd-dddd-dddd-dddddddddddd",
     )
-    assertThat(balanceRow["available_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("135.50"))
-    assertThat(balanceRow["safe_to_spend_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("135.50"))
+    assertThat(com.gonezo.testing.decimal(balanceRow["available_amount"])).isEqualByComparingTo(BigDecimal("135.50"))
+    assertThat(com.gonezo.testing.decimal(balanceRow["safe_to_spend_amount"])).isEqualByComparingTo(BigDecimal("135.50"))
   }
 }

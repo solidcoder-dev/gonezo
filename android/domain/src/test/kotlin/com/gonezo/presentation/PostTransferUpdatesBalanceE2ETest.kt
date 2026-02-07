@@ -36,7 +36,7 @@ class PostTransferUpdatesBalanceE2ETest : SqliteE2ETest() {
       "ffffffff-ffff-ffff-ffff-ffffffffffff",
     )
 
-    assertThat(fromRow["available_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("80.00"))
-    assertThat(toRow["available_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("20.00"))
+    assertThat(com.gonezo.testing.decimal(fromRow["available_amount"])).isEqualByComparingTo(BigDecimal("80.00"))
+    assertThat(com.gonezo.testing.decimal(toRow["available_amount"])).isEqualByComparingTo(BigDecimal("20.00"))
   }
 }

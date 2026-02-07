@@ -83,32 +83,32 @@ class TestApp(private val db: TestDatabase) {
   private val domainEventPublisher: DomainEventPublisher = NoopDomainEventPublisher()
   private val reservationBalanceService = ReservationBalanceService(categoryBalanceRepository)
   private val reservationMatchingService = ReservationMatchingService(
-    budgetReservationRepository,
     budgetPeriodRepository,
-    categoryRepository,
+    budgetReservationRepository,
+    recurringPatternRepository,
   )
   private val budgetAttributionService = BudgetAttributionService(budgetPlanRepository)
   private val categoryBalanceUpdaterService = CategoryBalanceUpdaterService(
-    categoryBalanceRepository,
-    budgetPeriodRepository,
     categoryRepository,
-  )
-  private val budgetLinkImpactService = BudgetLinkImpactService(budgetLinkRepository)
-  private val budgetPeriodTotalsService = BudgetPeriodTotalsService(budgetPeriodRepository, categoryBalanceRepository)
-  private val transferBudgetImpactService = TransferBudgetImpactService(
-    budgetLinkRepository,
     budgetPlanRepository,
-    categoryBalanceRepository,
     budgetPeriodRepository,
+    categoryBalanceRepository,
   )
+  private val budgetLinkImpactService = BudgetLinkImpactService(
+    budgetLinkService,
+    budgetLinkRepository,
+    categoryBalanceUpdaterService,
+  )
+  private val budgetPeriodTotalsService = BudgetPeriodTotalsService(budgetPeriodRepository)
+  private val transferBudgetImpactService = TransferBudgetImpactService()
 
-  private val settleReservationFromTxUC: SettleReservationFromTxUC = SettleReservationFromTxService(
+  val settleReservationFromTxUC: SettleReservationFromTxUC = SettleReservationFromTxService(
+    reservationService,
     budgetReservationRepository,
-    transactionRepository,
     reservationBalanceService,
     domainEventPublisher,
   )
-  private val createPeriodReservationsUC: CreatePeriodReservationsUC = CreatePeriodReservationsService(
+  val createPeriodReservationsUC: CreatePeriodReservationsUC = CreatePeriodReservationsService(
     reservationService,
     recurringPatternRepository,
     budgetReservationRepository,
@@ -126,8 +126,9 @@ class TestApp(private val db: TestDatabase) {
   )
   val allocateBudgetUC: AllocateBudgetUC = AllocateBudgetService(
     budgetAllocatorService,
-    budgetPlanRepository,
+    allocationRuleRepository,
     budgetPeriodRepository,
+    categoryRepository,
     categoryBalanceRepository,
     domainEventPublisher,
   )
@@ -147,37 +148,44 @@ class TestApp(private val db: TestDatabase) {
   val postIncomeUC: PostIncomeUC = PostIncomeService(
     ledgerPostingService,
     transactionRepository,
+    categoryBalanceUpdaterService,
+    budgetPeriodTotalsService,
+    budgetPeriodRepository,
+    budgetLinkService,
+    budgetLinkRepository,
+    budgetAttributionService,
     domainEventPublisher,
   )
   val postTransferUC: PostTransferUC = PostTransferService(
     ledgerPostingService,
     transactionRepository,
+    transferBudgetImpactService,
+    categoryBalanceUpdaterService,
+    categoryRepository,
+    budgetAttributionService,
     domainEventPublisher,
   )
   val executeInvestmentUC: ExecuteInvestmentUC = ExecuteInvestmentService(
     investmentExecutionService,
-    financialContainerRepository,
-    assetRepository,
     investmentTransactionRepository,
+    financialContainerRepository,
+    budgetLinkImpactService,
     domainEventPublisher,
   )
   val recordInvestmentReturnUC: RecordInvestmentReturnUC = RecordInvestmentReturnService(
-    investmentExecutionService,
     financialContainerRepository,
-    assetRepository,
     investmentTransactionRepository,
     domainEventPublisher,
   )
   val closePeriodUC: ClosePeriodUC = ClosePeriodService(
     periodClosingService,
-    budgetPeriodRepository,
-    recurringPatternRepository,
     budgetReservationRepository,
-    categoryBalanceRepository,
+    budgetPeriodRepository,
+    reservationBalanceService,
     domainEventPublisher,
   )
 
-  val budgetPeriodTotalsService = budgetPeriodTotalsService
+  val budgetPeriodTotals = budgetPeriodTotalsService
   val budgetLinkImpact = budgetLinkImpactService
   val transferBudgetImpact = transferBudgetImpactService
   val categoryBalanceUpdater = categoryBalanceUpdaterService

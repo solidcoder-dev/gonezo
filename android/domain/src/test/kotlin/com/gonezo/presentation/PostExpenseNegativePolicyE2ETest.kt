@@ -39,7 +39,7 @@ class PostExpenseNegativePolicyE2ETest : SqliteE2ETest() {
       "dddddddd-dddd-dddd-dddd-dddddddddddd",
     )
 
-    assertThat(row["spent_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("0.00"))
-    assertThat(row["available_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("10.00"))
+    assertThat(com.gonezo.testing.decimal(row["spent_amount"])).isEqualByComparingTo(BigDecimal("0.00"))
+    assertThat(com.gonezo.testing.decimal(row["available_amount"])).isEqualByComparingTo(BigDecimal("10.00"))
   }
 }

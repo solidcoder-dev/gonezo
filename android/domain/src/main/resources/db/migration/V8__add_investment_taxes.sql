@@ -1,3 +1,5 @@
 alter table investment_transactions
-  add column if not exists taxes_amount numeric(18, 2),
-  add column if not exists taxes_currency text;
+  add column taxes_amount numeric(18, 2);
+
+alter table investment_transactions
+  add column taxes_currency text;

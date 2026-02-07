@@ -2,8 +2,10 @@ package com.gonezo.presentation
 
 import com.gonezo.application.CreatePeriodReservationsCommand
 import com.gonezo.testing.SqliteE2ETest
+import com.gonezo.testing.decimal
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import java.math.BigDecimal
 import java.util.UUID
 
 class CreatePeriodReservationsE2ETest : SqliteE2ETest() {
@@ -27,8 +29,8 @@ class CreatePeriodReservationsE2ETest : SqliteE2ETest() {
     val electric = byPattern["11111111-1111-1111-1111-111111111111"]!!
     val stream = byPattern["22222222-2222-2222-2222-222222222222"]!!
 
-    assertThat(electric["amount"].toString()).isEqualTo("50.00")
-    assertThat(stream["amount"].toString()).isEqualTo("15.00")
+    assertThat(decimal(electric["amount"])).isEqualByComparingTo(BigDecimal("50.00"))
+    assertThat(decimal(stream["amount"])).isEqualByComparingTo(BigDecimal("15.00"))
     assertThat(electric["currency"]).isEqualTo("USD")
     assertThat(stream["currency"]).isEqualTo("USD")
     assertThat(electric["status"]).isEqualTo("active")

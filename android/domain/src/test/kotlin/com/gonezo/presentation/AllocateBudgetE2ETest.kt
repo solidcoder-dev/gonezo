@@ -28,14 +28,14 @@ class AllocateBudgetE2ETest : SqliteE2ETest() {
     val groceries = byCategory["dddddddd-dddd-dddd-dddd-dddddddddddd"]!!
     val rent = byCategory["eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"]!!
 
-    assertThat(groceries["allocated_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("60.00"))
-    assertThat(rent["allocated_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("40.00"))
+    assertThat(com.gonezo.testing.decimal(groceries["allocated_amount"])).isEqualByComparingTo(BigDecimal("60.00"))
+    assertThat(com.gonezo.testing.decimal(rent["allocated_amount"])).isEqualByComparingTo(BigDecimal("40.00"))
 
     listOf(groceries, rent).forEach { row ->
       assertThat(row["allocated_currency"]).isEqualTo("USD")
-      assertThat(row["available_amount"] as BigDecimal).isEqualByComparingTo(row["allocated_amount"] as BigDecimal)
-      assertThat(row["reserved_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal.ZERO)
-      assertThat(row["safe_to_spend_amount"] as BigDecimal).isEqualByComparingTo(row["allocated_amount"] as BigDecimal)
+      assertThat(com.gonezo.testing.decimal(row["available_amount"])).isEqualByComparingTo(com.gonezo.testing.decimal(row["allocated_amount"]))
+      assertThat(com.gonezo.testing.decimal(row["reserved_amount"])).isEqualByComparingTo(BigDecimal.ZERO)
+      assertThat(com.gonezo.testing.decimal(row["safe_to_spend_amount"])).isEqualByComparingTo(com.gonezo.testing.decimal(row["allocated_amount"]))
     }
   }
 }

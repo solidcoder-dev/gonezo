@@ -3,6 +3,7 @@ package com.gonezo.presentation
 import com.gonezo.application.PostExpenseCommand
 import com.gonezo.domain.shared.Money
 import com.gonezo.testing.SqliteE2ETest
+import com.gonezo.testing.decimal
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
@@ -39,7 +40,7 @@ class PostExpenseNoReservationMatchE2ETest : SqliteE2ETest() {
       "select reserved_amount, safe_to_spend_amount from category_balances where id = ?",
       "dddddddd-dddd-dddd-dddd-dddddddddddd",
     )
-    assertThat(balanceRow["reserved_amount"].toString()).isEqualTo("50.00")
-    assertThat(balanceRow["safe_to_spend_amount"].toString()).isEqualTo("30.00")
+    assertThat(decimal(balanceRow["reserved_amount"])).isEqualByComparingTo(BigDecimal("50.00"))
+    assertThat(decimal(balanceRow["safe_to_spend_amount"])).isEqualByComparingTo(BigDecimal("30.00"))
   }
 }

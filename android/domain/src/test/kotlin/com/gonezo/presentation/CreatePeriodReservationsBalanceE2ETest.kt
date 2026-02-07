@@ -2,8 +2,10 @@ package com.gonezo.presentation
 
 import com.gonezo.application.CreatePeriodReservationsCommand
 import com.gonezo.testing.SqliteE2ETest
+import com.gonezo.testing.decimal
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import java.math.BigDecimal
 import java.util.UUID
 
 class CreatePeriodReservationsBalanceE2ETest : SqliteE2ETest() {
@@ -25,9 +27,9 @@ class CreatePeriodReservationsBalanceE2ETest : SqliteE2ETest() {
       "aaaaaaaa-1111-1111-1111-aaaaaaaaaaaa",
     )
 
-    assertThat(utilitiesRow["reserved_amount"].toString()).isEqualTo("50.00")
-    assertThat(utilitiesRow["safe_to_spend_amount"].toString()).isEqualTo("50.00")
-    assertThat(subscriptionsRow["reserved_amount"].toString()).isEqualTo("15.00")
-    assertThat(subscriptionsRow["safe_to_spend_amount"].toString()).isEqualTo("35.00")
+    assertThat(decimal(utilitiesRow["reserved_amount"])).isEqualByComparingTo(BigDecimal("50.00"))
+    assertThat(decimal(utilitiesRow["safe_to_spend_amount"])).isEqualByComparingTo(BigDecimal("50.00"))
+    assertThat(decimal(subscriptionsRow["reserved_amount"])).isEqualByComparingTo(BigDecimal("15.00"))
+    assertThat(decimal(subscriptionsRow["safe_to_spend_amount"])).isEqualByComparingTo(BigDecimal("35.00"))
   }
 }

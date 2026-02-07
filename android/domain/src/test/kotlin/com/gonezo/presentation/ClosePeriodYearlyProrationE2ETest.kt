@@ -2,8 +2,10 @@ package com.gonezo.presentation
 
 import com.gonezo.application.ClosePeriodCommand
 import com.gonezo.testing.SqliteE2ETest
+import com.gonezo.testing.decimal
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import java.math.BigDecimal
 import java.util.UUID
 
 class ClosePeriodYearlyProrationE2ETest : SqliteE2ETest() {
@@ -26,7 +28,7 @@ class ClosePeriodYearlyProrationE2ETest : SqliteE2ETest() {
       "select reserved_amount, safe_to_spend_amount from category_balances where id = ?",
       "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
     )
-    assertThat(balanceRow["reserved_amount"].toString()).isEqualTo("120.00")
-    assertThat(balanceRow["safe_to_spend_amount"].toString()).isEqualTo("380.00")
+    assertThat(decimal(balanceRow["reserved_amount"])).isEqualByComparingTo(BigDecimal("120.00"))
+    assertThat(decimal(balanceRow["safe_to_spend_amount"])).isEqualByComparingTo(BigDecimal("380.00"))
   }
 }

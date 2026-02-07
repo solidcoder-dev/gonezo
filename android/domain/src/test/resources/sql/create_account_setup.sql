@@ -1,1 +1,2 @@
-delete from transactions, accounts;
+delete from transactions;
+delete from accounts;

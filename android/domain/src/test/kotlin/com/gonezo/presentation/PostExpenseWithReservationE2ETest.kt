@@ -38,7 +38,7 @@ class PostExpenseWithReservationE2ETest : SqliteE2ETest() {
     assertThat(txRow["account_id"].toString()).isEqualTo(command.accountId.toString())
     assertThat(txRow["posted_date"].toString()).isEqualTo(command.postedDate.toString())
     assertThat(txRow["effective_date"].toString()).isEqualTo(command.effectiveDate.toString())
-    assertThat(txRow["amount"] as BigDecimal).isEqualByComparingTo(command.amount.amount)
+    assertThat(com.gonezo.testing.decimal(txRow["amount"])).isEqualByComparingTo(command.amount.amount)
     assertThat(txRow["currency"]).isEqualTo(command.amount.currency)
     assertThat(txRow["type"]).isEqualTo("expense")
     assertThat(txRow["merchant"]).isEqualTo(command.merchant)
@@ -56,8 +56,8 @@ class PostExpenseWithReservationE2ETest : SqliteE2ETest() {
       "select spent_amount, available_amount, safe_to_spend_amount from category_balances where id = ?",
       "dddddddd-dddd-dddd-dddd-dddddddddddd",
     )
-    assertThat(balanceRow["spent_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("25.00"))
-    assertThat(balanceRow["available_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("75.00"))
-    assertThat(balanceRow["safe_to_spend_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("75.00"))
+    assertThat(com.gonezo.testing.decimal(balanceRow["spent_amount"])).isEqualByComparingTo(BigDecimal("25.00"))
+    assertThat(com.gonezo.testing.decimal(balanceRow["available_amount"])).isEqualByComparingTo(BigDecimal("75.00"))
+    assertThat(com.gonezo.testing.decimal(balanceRow["safe_to_spend_amount"])).isEqualByComparingTo(BigDecimal("75.00"))
   }
 }

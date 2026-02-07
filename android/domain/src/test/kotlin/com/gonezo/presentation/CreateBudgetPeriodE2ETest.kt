@@ -31,9 +31,9 @@ class CreateBudgetPeriodE2ETest : SqliteE2ETest() {
     assertThat(row["budget_plan_id"].toString()).isEqualTo(command.planId.toString())
     assertThat(row["year"]).isEqualTo(command.year)
     assertThat(row["month"]).isEqualTo(command.month)
-    assertThat(row["income_total_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal.ZERO)
+    assertThat(com.gonezo.testing.decimal(row["income_total_amount"])).isEqualByComparingTo(BigDecimal.ZERO)
     assertThat(row["income_total_currency"]).isEqualTo(command.currency)
-    assertThat(row["remainder_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal.ZERO)
+    assertThat(com.gonezo.testing.decimal(row["remainder_amount"])).isEqualByComparingTo(BigDecimal.ZERO)
     assertThat(row["remainder_currency"]).isEqualTo(command.currency)
   }
 }

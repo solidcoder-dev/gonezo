@@ -36,20 +36,20 @@ class ExecuteInvestmentTaxesImpactE2ETest : SqliteE2ETest() {
       "select budget_impact_amount from budget_links where linked_id = ?",
       investmentId.toString(),
     )
-    assertThat(linkRow["budget_impact_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("105.50"))
+    assertThat(com.gonezo.testing.decimal(linkRow["budget_impact_amount"])).isEqualByComparingTo(BigDecimal("105.50"))
 
     val balanceRow = db.jdbcTemplate.queryForMap(
       "select available_amount, safe_to_spend_amount from category_balances where id = ?",
       "ffffffff-ffff-ffff-ffff-ffffffffffff",
     )
-    assertThat(balanceRow["available_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("94.50"))
-    assertThat(balanceRow["safe_to_spend_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("94.50"))
+    assertThat(com.gonezo.testing.decimal(balanceRow["available_amount"])).isEqualByComparingTo(BigDecimal("94.50"))
+    assertThat(com.gonezo.testing.decimal(balanceRow["safe_to_spend_amount"])).isEqualByComparingTo(BigDecimal("94.50"))
 
     val txRow = db.jdbcTemplate.queryForMap(
       "select taxes_amount, taxes_currency from investment_transactions where id = ?",
       investmentId.toString(),
     )
-    assertThat(txRow["taxes_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("3.50"))
+    assertThat(com.gonezo.testing.decimal(txRow["taxes_amount"])).isEqualByComparingTo(BigDecimal("3.50"))
     assertThat(txRow["taxes_currency"]).isEqualTo("USD")
   }
 }

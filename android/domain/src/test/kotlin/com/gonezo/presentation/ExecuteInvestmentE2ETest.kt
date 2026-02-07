@@ -42,10 +42,10 @@ class ExecuteInvestmentE2ETest : SqliteE2ETest() {
     assertThat(txRow["date"].toString()).isEqualTo(command.date.toString())
     assertThat(txRow["type"]).isEqualTo("buy")
     assertThat(txRow["asset_id"].toString()).isEqualTo(command.assetId.toString())
-    assertThat(txRow["quantity"] as BigDecimal).isEqualByComparingTo(command.quantity)
-    assertThat(txRow["amount"] as BigDecimal).isEqualByComparingTo(command.amount.amount)
+    assertThat(com.gonezo.testing.decimal(txRow["quantity"])).isEqualByComparingTo(command.quantity)
+    assertThat(com.gonezo.testing.decimal(txRow["amount"])).isEqualByComparingTo(command.amount.amount)
     assertThat(txRow["currency"]).isEqualTo("USD")
-    assertThat(txRow["fees_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("1.50"))
+    assertThat(com.gonezo.testing.decimal(txRow["fees_amount"])).isEqualByComparingTo(BigDecimal("1.50"))
     assertThat(txRow["fees_currency"]).isEqualTo("USD")
     assertThat(txRow["note"]).isEqualTo(command.note)
 
@@ -58,7 +58,7 @@ class ExecuteInvestmentE2ETest : SqliteE2ETest() {
     assertThat(linkRow["category_id"].toString()).isEqualTo(command.categoryId.toString())
     assertThat(linkRow["linked_type"]).isEqualTo("investment_transaction")
     assertThat(linkRow["linked_id"].toString()).isEqualTo(investmentId.toString())
-    assertThat(linkRow["budget_impact_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("251.50"))
+    assertThat(com.gonezo.testing.decimal(linkRow["budget_impact_amount"])).isEqualByComparingTo(BigDecimal("251.50"))
     assertThat(linkRow["budget_impact_currency"]).isEqualTo("USD")
   }
 }

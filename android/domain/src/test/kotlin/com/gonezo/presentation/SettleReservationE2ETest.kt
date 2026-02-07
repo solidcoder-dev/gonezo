@@ -2,8 +2,10 @@ package com.gonezo.presentation
 
 import com.gonezo.application.SettleReservationFromTxCommand
 import com.gonezo.testing.SqliteE2ETest
+import com.gonezo.testing.decimal
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import java.math.BigDecimal
 import java.util.UUID
 
 class SettleReservationE2ETest : SqliteE2ETest() {
@@ -34,7 +36,7 @@ class SettleReservationE2ETest : SqliteE2ETest() {
       "select reserved_amount, safe_to_spend_amount from category_balances where id = ?",
       "99999999-9999-9999-9999-999999999999",
     )
-    assertThat(balanceRow["reserved_amount"].toString()).isEqualTo("0.00")
-    assertThat(balanceRow["safe_to_spend_amount"].toString()).isEqualTo("100.00")
+    assertThat(decimal(balanceRow["reserved_amount"])).isEqualByComparingTo(BigDecimal("0.00"))
+    assertThat(decimal(balanceRow["safe_to_spend_amount"])).isEqualByComparingTo(BigDecimal("100.00"))
   }
 }

@@ -19,6 +19,6 @@ class GetBudgetLinksE2ETest : SqliteE2ETest() {
     val row = rows.first()
     assertThat(row["id"].toString()).isEqualTo("11111111-2222-3333-4444-555555555555")
     assertThat(row["budget_period_id"].toString()).isEqualTo("dddddddd-dddd-dddd-dddd-dddddddddddd")
-    assertThat(row["budget_impact_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("102.00"))
+    assertThat(com.gonezo.testing.decimal(row["budget_impact_amount"])).isEqualByComparingTo(BigDecimal("102.00"))
   }
 }

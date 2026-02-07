@@ -1,4 +1,5 @@
-delete from transactions, accounts;
+delete from transactions;
+delete from accounts;
 
 insert into accounts (id, user_id, name, type, currency)
 values

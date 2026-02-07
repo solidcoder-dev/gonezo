@@ -46,7 +46,7 @@ class PostTransferE2ETest : SqliteE2ETest() {
     rows.forEach { row ->
       assertThat(row["posted_date"].toString()).isEqualTo(command.postedDate.toString())
       assertThat(row["effective_date"].toString()).isEqualTo(command.effectiveDate.toString())
-      assertThat(row["amount"] as BigDecimal).isEqualTo(command.amount.amount)
+      assertThat(com.gonezo.testing.decimal(row["amount"])).isEqualByComparingTo(command.amount.amount)
       assertThat(row["currency"]).isEqualTo(command.amount.currency)
       assertThat(row["type"]).isEqualTo("transfer")
       assertThat(row["merchant"]).isNull()

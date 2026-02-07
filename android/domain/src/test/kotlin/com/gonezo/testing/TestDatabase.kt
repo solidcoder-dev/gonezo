@@ -19,6 +19,7 @@ class TestDatabase {
   private val flyway = Flyway.configure()
     .dataSource(dataSource)
     .locations("classpath:db/migration")
+    .cleanDisabled(false)
     .load()
 
   fun migrate() {

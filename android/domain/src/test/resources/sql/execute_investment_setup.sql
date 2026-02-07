@@ -1,4 +1,14 @@
-delete from budget_links, investment_transactions, assets, financial_containers, category_balances, budget_reservations, recurring_patterns, allocation_rules, categories, budget_periods, budget_plans;
+delete from budget_links;
+delete from investment_transactions;
+delete from assets;
+delete from financial_containers;
+delete from category_balances;
+delete from budget_reservations;
+delete from recurring_patterns;
+delete from allocation_rules;
+delete from categories;
+delete from budget_periods;
+delete from budget_plans;
 
 insert into financial_containers (id, user_id, name, container_type, currency)
 values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Brokerage', 'broker', 'USD');

@@ -37,7 +37,7 @@ class PostExpenseE2ETest : SqliteE2ETest() {
     assertThat(row["account_id"].toString()).isEqualTo(command.accountId.toString())
     assertThat(row["posted_date"].toString()).isEqualTo(command.postedDate.toString())
     assertThat(row["effective_date"].toString()).isEqualTo(command.effectiveDate.toString())
-    assertThat(row["amount"] as BigDecimal).isEqualTo(command.amount.amount)
+    assertThat(com.gonezo.testing.decimal(row["amount"])).isEqualByComparingTo(command.amount.amount)
     assertThat(row["currency"]).isEqualTo(command.amount.currency)
     assertThat(row["type"]).isEqualTo("expense")
     assertThat(row["merchant"]).isEqualTo(command.merchant)

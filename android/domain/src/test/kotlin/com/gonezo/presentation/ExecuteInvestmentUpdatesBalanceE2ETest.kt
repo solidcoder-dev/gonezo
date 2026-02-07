@@ -37,7 +37,7 @@ class ExecuteInvestmentUpdatesBalanceE2ETest : SqliteE2ETest() {
       "ffffffff-ffff-ffff-ffff-ffffffffffff",
     )
 
-    assertThat(row["available_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("148.00"))
-    assertThat(row["safe_to_spend_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("148.00"))
+    assertThat(com.gonezo.testing.decimal(row["available_amount"])).isEqualByComparingTo(BigDecimal("148.00"))
+    assertThat(com.gonezo.testing.decimal(row["safe_to_spend_amount"])).isEqualByComparingTo(BigDecimal("148.00"))
   }
 }
