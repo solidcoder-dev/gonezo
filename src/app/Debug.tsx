@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { CoreAdapterWeb } from '../data/coreAdapterWeb';
+import { CoreAdapter } from '../data/coreAdapter';
 
-const core = new CoreAdapterWeb();
+const core = new CoreAdapter();
 
 export function Debug() {
   const [message, setMessage] = useState('');
@@ -15,7 +15,7 @@ export function Debug() {
   return (
     <section className="card">
       <h1>Debug</h1>
-      <p>Web adapter call (placeholder for native plugin).</p>
+      <p>Calls CorePlugin on native, web adapter in browser.</p>
       <div className="row">
         <input
           value={message}
