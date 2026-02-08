@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core';
-import type { CorePort, CoreResult } from '../domain/corePort';
+import type { CorePort, CoreResult, CreateAccountInput, CreateAccountResult } from '../domain/corePort';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from '../native/corePlugin';
 
@@ -12,5 +12,13 @@ export class CoreAdapter implements CorePort {
     }
 
     return this.web.doThing(input);
+  }
+
+  async createAccount(input: CreateAccountInput): Promise<CreateAccountResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.createAccount(input);
+    }
+
+    return this.web.createAccount(input);
   }
 }

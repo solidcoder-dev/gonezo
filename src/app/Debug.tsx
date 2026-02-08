@@ -8,6 +8,8 @@ export function Debug() {
   const [message, setMessage] = useState('');
   const [result, setResult] = useState('');
   const [error, setError] = useState('');
+  const [accountName, setAccountName] = useState('Main account');
+  const [accountResult, setAccountResult] = useState('');
 
   async function handleCall() {
     setError('');
@@ -16,6 +18,17 @@ export function Debug() {
       setResult(`${res.status}: ${res.message}`);
     } catch (err) {
       setResult('');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
+  async function handleCreateAccount() {
+    setError('');
+    try {
+      const res = await core.createAccount({ name: accountName });
+      setAccountResult(`created: ${res.id}`);
+    } catch (err) {
+      setAccountResult('');
       setError(err instanceof Error ? err.message : 'Unknown error');
     }
   }
@@ -38,6 +51,17 @@ export function Debug() {
         </button>
       </div>
       {result ? <pre className="result">{result}</pre> : null}
+      <div className="row">
+        <input
+          value={accountName}
+          onChange={(event) => setAccountName(event.target.value)}
+          placeholder="account name"
+        />
+        <button type="button" onClick={handleCreateAccount}>
+          Create account
+        </button>
+      </div>
+      {accountResult ? <pre className="result">{accountResult}</pre> : null}
       {error ? <pre className="result error">{error}</pre> : null}
     </section>
   );

@@ -10,4 +10,11 @@ public class CorePlugin: CAPPlugin {
             "message": "ios stub ok: \(input)"
         ])
     }
+
+    @objc func createAccount(_ call: CAPPluginCall) {
+        let id = UUID().uuidString
+        call.resolve([
+            "id": id
+        ])
+    }
 }
