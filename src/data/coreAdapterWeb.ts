@@ -8,7 +8,7 @@ export class CoreAdapterWeb implements CorePort {
     };
   }
 
-  async createAccount(input: CreateAccountInput): Promise<CreateAccountResult> {
+  async createAccount(_input: CreateAccountInput): Promise<CreateAccountResult> {
     const id = crypto.randomUUID();
     return { id };
   }
