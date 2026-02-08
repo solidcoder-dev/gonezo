@@ -12,10 +12,11 @@ public class CorePlugin extends Plugin {
   @PluginMethod
   public void doThing(PluginCall call) {
     String input = call.getString("input", "");
+    String message = com.gonezo.application.CorePing.doThing(input);
 
     JSObject result = new JSObject();
     result.put("status", "ok");
-    result.put("message", "android stub ok: " + input);
+    result.put("message", message);
 
     call.resolve(result);
   }
