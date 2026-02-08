@@ -75,3 +75,8 @@ button {
   padding: 12px;
   border-radius: 10px;
 }
+
+.result.error {
+  background: #f8e6e6;
+  color: #7a1d1d;
+}
