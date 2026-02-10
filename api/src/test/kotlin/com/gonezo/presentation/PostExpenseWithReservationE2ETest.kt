@@ -1,0 +1,121 @@
+package com.gonezo.presentation
+
+import com.gonezo.api.ApiApplication
+import org.assertj.core.api.Assertions.assertThat
+import org.flywaydb.core.Flyway
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.web.server.LocalServerPort
+import org.springframework.core.io.ResourceLoader
+import org.springframework.http.HttpStatus
+import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
+import org.springframework.web.client.RestClient
+import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
+import java.math.BigDecimal
+import java.time.LocalDate
+import java.util.UUID
+
+@SpringBootTest(classes = [ApiApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Testcontainers
+class PostExpenseWithReservationE2ETest {
+
+  @LocalServerPort
+  private var port: Int = 0
+
+  @Autowired
+  private lateinit var jdbcTemplate: JdbcTemplate
+
+  @Autowired
+  private lateinit var resourceLoader: ResourceLoader
+
+  @Autowired
+  private lateinit var flyway: Flyway
+
+  @BeforeEach
+  fun setup() {
+    flyway.migrate()
+    val resource = resourceLoader.getResource("classpath:sql/post_expense_with_reservation_setup.sql")
+    val sql = resource.inputStream.bufferedReader().readText()
+    jdbcTemplate.execute(sql)
+  }
+
+  @Test
+  fun `posts expense and settles reservation`() {
+    val restClient = RestClient.create("http://localhost:$port")
+    val reservationId = UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff")
+
+    val request = PostExpenseRequest(
+      accountId = UUID.fromString("11111111-1111-1111-1111-111111111111"),
+      postedDate = LocalDate.of(2026, 2, 10),
+      effectiveDate = LocalDate.of(2026, 2, 10),
+      amount = BigDecimal("25.00"),
+      currency = "USD",
+      merchant = "Electric Co",
+      categoryId = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc"),
+      recurring = false,
+      reservationId = reservationId,
+    )
+
+    val response = restClient.post()
+      .uri("/transactions/expense")
+      .body(request)
+      .retrieve()
+      .toEntity(CreateTransactionResponse::class.java)
+
+    assertThat(response.statusCode).isEqualTo(HttpStatus.CREATED)
+    val transactionId = response.body!!.id
+
+    val txRow = jdbcTemplate.queryForMap(
+      "select account_id, posted_date, effective_date, amount, currency, type, merchant, category_id, recurring from transactions where id = ?",
+      transactionId,
+    )
+
+    assertThat(txRow["account_id"].toString()).isEqualTo(request.accountId.toString())
+    assertThat(txRow["posted_date"].toString()).isEqualTo(request.postedDate.toString())
+    assertThat(txRow["effective_date"].toString()).isEqualTo(request.effectiveDate.toString())
+    assertThat(txRow["amount"] as BigDecimal).isEqualByComparingTo(request.amount)
+    assertThat(txRow["currency"]).isEqualTo(request.currency)
+    assertThat(txRow["type"]).isEqualTo("expense")
+    assertThat(txRow["merchant"]).isEqualTo(request.merchant)
+    assertThat(txRow["category_id"].toString()).isEqualTo(request.categoryId.toString())
+    assertThat(txRow["recurring"]).isEqualTo(false)
+
+    val reservationRow = jdbcTemplate.queryForMap(
+      "select status, linked_transaction_id from budget_reservations where id = ?",
+      reservationId,
+    )
+    assertThat(reservationRow["status"]).isEqualTo("settled")
+    assertThat(reservationRow["linked_transaction_id"].toString()).isEqualTo(transactionId.toString())
+
+    val balanceRow = jdbcTemplate.queryForMap(
+      "select spent_amount, available_amount, safe_to_spend_amount from category_balances where id = ?",
+      UUID.fromString("dddddddd-dddd-dddd-dddd-dddddddddddd"),
+    )
+    assertThat(balanceRow["spent_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("25.00"))
+    assertThat(balanceRow["available_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("75.00"))
+    assertThat(balanceRow["safe_to_spend_amount"] as BigDecimal).isEqualByComparingTo(BigDecimal("75.00"))
+  }
+
+  companion object {
+    @Container
+    private val postgres = PostgreSQLContainer("postgres:16").apply {
+      withDatabaseName("gonezo")
+      withUsername("gonezo")
+      withPassword("gonezo")
+    }
+
+    @JvmStatic
+    @DynamicPropertySource
+    fun registerProperties(registry: DynamicPropertyRegistry) {
+      registry.add("spring.datasource.url", postgres::getJdbcUrl)
+      registry.add("spring.datasource.username", postgres::getUsername)
+      registry.add("spring.datasource.password", postgres::getPassword)
+    }
+  }
+}
