@@ -1,0 +1,42 @@
+package com.gonezo.presentation
+
+import com.gonezo.application.SettleReservationFromTxCommand
+import com.gonezo.testing.SqliteE2ETest
+import com.gonezo.testing.decimal
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+import java.math.BigDecimal
+import java.util.UUID
+
+class SettleReservationE2ETest : SqliteE2ETest() {
+
+  override fun sqlResources() = listOf("sql/settle_reservation_setup.sql")
+
+  @Test
+  fun `settles reservation and links transaction`() {
+    val reservationId = UUID.fromString("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+    val transactionId = UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff")
+
+    app.settleReservationFromTxUC.execute(
+      SettleReservationFromTxCommand(
+        reservationId = reservationId,
+        transactionId = transactionId,
+      )
+    )
+
+    val row = db.jdbcTemplate.queryForMap(
+      "select status, linked_transaction_id from budget_reservations where id = ?",
+      reservationId.toString(),
+    )
+
+    assertThat(row["status"]).isEqualTo("settled")
+    assertThat(row["linked_transaction_id"].toString()).isEqualTo(transactionId.toString())
+
+    val balanceRow = db.jdbcTemplate.queryForMap(
+      "select reserved_amount, safe_to_spend_amount from category_balances where id = ?",
+      "99999999-9999-9999-9999-999999999999",
+    )
+    assertThat(decimal(balanceRow["reserved_amount"])).isEqualByComparingTo(BigDecimal("0.00"))
+    assertThat(decimal(balanceRow["safe_to_spend_amount"])).isEqualByComparingTo(BigDecimal("100.00"))
+  }
+}

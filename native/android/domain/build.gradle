@@ -1,0 +1,46 @@
+plugins {
+  id 'org.jetbrains.kotlin.jvm' version '2.3.0'
+}
+
+group = 'com.gonezo'
+version = '0.1.0-SNAPSHOT'
+
+def javaVersion = JavaVersion.VERSION_17
+
+java {
+  sourceCompatibility = javaVersion
+  targetCompatibility = javaVersion
+}
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+  compileOnly 'org.springframework:spring-context:6.2.3'
+  compileOnly 'org.springframework:spring-jdbc:6.2.3'
+  compileOnly 'org.springframework:spring-tx:6.2.3'
+  compileOnly 'org.flywaydb:flyway-core:11.20.2'
+  compileOnly 'org.xerial:sqlite-jdbc:3.47.0.0'
+
+  testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+  testImplementation 'org.assertj:assertj-core:3.26.3'
+  testImplementation 'org.springframework:spring-context:6.2.3'
+  testImplementation 'org.springframework:spring-jdbc:6.2.3'
+  testImplementation 'org.springframework:spring-tx:6.2.3'
+  testImplementation 'org.flywaydb:flyway-core:11.20.2'
+  testImplementation 'org.xerial:sqlite-jdbc:3.47.0.0'
+  testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.4'
+}
+
+kotlin {
+  compilerOptions {
+    jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    freeCompilerArgs.addAll(['-Xjsr305=strict'])
+  }
+}
+
+tasks.withType(Test).configureEach {
+  useJUnitPlatform()
+}
