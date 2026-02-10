@@ -1,0 +1,458 @@
+@startuml
+skinparam classAttributeIconSize 0
+hide empty methods
+hide circle
+
+' ==========================================================
+' SHARED KERNEL
+' ==========================================================
+package SharedKernel {
+
+  class Money <<ValueObject>> {
+    amount: Decimal
+    currency: String
+  }
+
+  class Percent <<ValueObject>> {
+    value: Decimal ' 0..1
+  }
+
+  class YearMonth <<ValueObject>> {
+    year: int
+    month: int
+  }
+}
+
+' ==========================================================
+' BOUNDED CONTEXT: Budgeting
+' ==========================================================
+package Budgeting {
+
+  class BudgetPlan <<AggregateRoot>> {
+    id: UUID
+    userId: UUID
+    period: String ' monthly
+    negativePolicy: String ' allow_with_max_debt / disallow
+    reservationPolicy: String ' reserve_start_of_period
+    effectiveDatingPolicy: String ' use_effective_date
+  }
+
+  class BudgetPeriod <<AggregateRoot>> {
+    id: UUID
+    budgetPlanId: UUID
+    yearMonth: YearMonth
+    incomeTotal: Money
+    remainder: Money
+  }
+
+  class Category {
+    id: UUID
+    budgetPlanId: UUID
+    name: String
+    type: String ' spending | sinking_fund | savings_goal
+    allowNegative: Boolean
+    maxDebtAmount: Money?
+  }
+
+  class AllocationRule {
+    id: UUID
+    budgetPlanId: UUID
+    categoryId: UUID
+    percentOfRemainder: Percent
+  }
+
+  class CategoryBalance {
+    id: UUID
+    budgetPeriodId: UUID
+    categoryId: UUID
+    openingBalance: Money
+    allocated: Money
+    spent: Money
+    available: Money
+    reserved: Money
+    safeToSpend: Money
+  }
+
+  class RecurringPattern {
+    id: UUID
+    budgetPlanId: UUID
+    categoryId: UUID
+    name: String
+    cadence: String ' monthly | yearly
+    expectedAmount: Money
+    tolerance: Money
+    merchantMatcher: String ' contains/regex/rules
+    billingDay: int?
+    billingMonth: int?
+    proration: String? ' none | monthly (for yearly)
+    active: Boolean
+  }
+
+  class BudgetReservation {
+    id: UUID
+    budgetPeriodId: UUID
+    patternId: UUID
+    categoryId: UUID
+    amount: Money
+    status: String ' active | settled | cancelled
+    expectedEffectiveDate: Date
+    linkedTransactionId: UUID?
+  }
+
+  class BudgetLink {
+    id: UUID
+    budgetPeriodId: UUID
+    categoryId: UUID
+    linkedType: String ' transaction | investment_transaction
+    linkedId: UUID
+    budgetImpactAmount: Money
+  }
+
+  ' ---------- Repositories (Ports) ----------
+  interface BudgetPlanRepository <<Repository>> {
+    +get(id: UUID): BudgetPlan
+    +save(plan: BudgetPlan)
+  }
+
+  interface BudgetPeriodRepository <<Repository>> {
+    +get(id: UUID): BudgetPeriod
+    +getByYearMonth(planId: UUID, ym: YearMonth): BudgetPeriod
+    +save(period: BudgetPeriod)
+  }
+
+  interface CategoryRepository <<Repository>> {
+    +listByPlan(planId: UUID): List<Category>
+  }
+
+  interface AllocationRuleRepository <<Repository>> {
+    +listByPlan(planId: UUID): List<AllocationRule>
+  }
+
+  interface RecurringPatternRepository <<Repository>> {
+    +listActiveByPlan(planId: UUID): List<RecurringPattern>
+    +save(pattern: RecurringPattern)
+  }
+
+  interface BudgetReservationRepository <<Repository>> {
+    +findByPeriodAndPattern(periodId: UUID, patternId: UUID): BudgetReservation
+    +listActiveByPeriod(periodId: UUID): List<BudgetReservation>
+    +save(res: BudgetReservation)
+  }
+
+  interface BudgetLinkRepository <<Repository>> {
+    +save(link: BudgetLink)
+  }
+
+  ' ---------- Domain Services ----------
+  class BudgetAllocatorService <<DomainService>>
+  class ReservationService <<DomainService>>
+  class PeriodClosingService <<DomainService>>
+  class BudgetLinkService <<DomainService>>
+
+  ' ---------- Domain Events ----------
+  class BudgetPeriodCreated <<DomainEvent>> {
+    budgetPeriodId: UUID
+    yearMonth: YearMonth
+  }
+
+  class BudgetAllocated <<DomainEvent>> {
+    budgetPeriodId: UUID
+  }
+
+  class ReservationCreated <<DomainEvent>> {
+    reservationId: UUID
+  }
+
+  class ReservationSettled <<DomainEvent>> {
+    reservationId: UUID
+    transactionId: UUID
+  }
+
+  class ReservationCancelled <<DomainEvent>> {
+    reservationId: UUID
+  }
+
+  class CategoryWentNegative <<DomainEvent>> {
+    budgetPeriodId: UUID
+    categoryId: UUID
+    available: Money
+  }
+
+  class PeriodClosed <<DomainEvent>> {
+    budgetPeriodId: UUID
+  }
+}
+
+' ==========================================================
+' BOUNDED CONTEXT: CashLedger
+' ==========================================================
+package CashLedger {
+
+  class Account <<AggregateRoot>> {
+    id: UUID
+    userId: UUID
+    name: String
+    type: String ' bank | cash | card
+    currency: String
+  }
+
+  class Transaction {
+    id: UUID
+    accountId: UUID
+    postedDate: Date
+    effectiveDate: Date
+    amount: Money
+    type: String ' income | expense | transfer
+    merchant: String?
+    categoryId: UUID?
+    recurring: Boolean
+  }
+
+  interface AccountRepository <<Repository>> {
+    +get(id: UUID): Account
+    +save(account: Account)
+  }
+
+  interface TransactionRepository <<Repository>> {
+    +save(tx: Transaction)
+    +listByAccount(accountId: UUID): List<Transaction>
+  }
+
+  class LedgerPostingService <<DomainService>>
+
+  class AccountCreated <<DomainEvent>> {
+    accountId: UUID
+  }
+
+  class TransactionPosted <<DomainEvent>> {
+    transactionId: UUID
+    accountId: UUID
+  }
+
+  class TransferPosted <<DomainEvent>> {
+    transferGroupId: UUID
+  }
+}
+
+' ==========================================================
+' BOUNDED CONTEXT: Investments
+' ==========================================================
+package Investments {
+
+  class FinancialContainer <<AggregateRoot>> {
+    id: UUID
+    userId: UUID
+    name: String
+    containerType: String ' savings_account | broker | property | other
+    currency: String
+  }
+
+  class Asset {
+    id: UUID
+    symbolOrName: String
+    assetType: String ' stock | etf | fund | bond | crypto | real_estate | other
+    currency: String
+  }
+
+  class InvestmentTransaction {
+    id: UUID
+    containerId: UUID
+    date: Date
+    type: String ' deposit | withdrawal | buy | sell | dividend | interest | fee
+    assetId: UUID?
+    quantity: Decimal?
+    amount: Money
+    fees: Money?
+    note: String?
+  }
+
+  interface FinancialContainerRepository <<Repository>> {
+    +get(id: UUID): FinancialContainer
+  }
+
+  interface AssetRepository <<Repository>> {
+    +get(id: UUID): Asset
+  }
+
+  interface InvestmentTransactionRepository <<Repository>> {
+    +save(itx: InvestmentTransaction)
+    +listByContainer(containerId: UUID): List<InvestmentTransaction>
+  }
+
+  class InvestmentExecutionService <<DomainService>>
+
+  class InvestmentExecuted <<DomainEvent>> {
+    investmentTransactionId: UUID
+    containerId: UUID
+  }
+
+  class InvestmentReturnRecorded <<DomainEvent>> {
+    investmentTransactionId: UUID
+  }
+}
+
+' ==========================================================
+' APPLICATION LAYER (Use Cases / Application Services)
+' ==========================================================
+package Application {
+
+  ' --- Ledger operations ---
+  class CreateAccountUC <<ApplicationService>>
+  class PostIncomeUC <<ApplicationService>>
+  class PostExpenseUC <<ApplicationService>>
+  class PostTransferUC <<ApplicationService>>
+
+  ' --- Budgeting operations ---
+  class CreateBudgetPeriodUC <<ApplicationService>>
+  class AllocateBudgetUC <<ApplicationService>>
+  class CreatePeriodReservationsUC <<ApplicationService>>
+  class SettleReservationFromTxUC <<ApplicationService>>
+  class ClosePeriodUC <<ApplicationService>>
+
+  ' --- Investments operations ---
+  class ExecuteInvestmentUC <<ApplicationService>>
+  class RecordInvestmentReturnUC <<ApplicationService>>
+}
+
+' ==========================================================
+' RELATIONSHIPS (within contexts)
+' ==========================================================
+Budgeting.BudgetPlan "1" -- "*" Budgeting.Category
+Budgeting.BudgetPlan "1" -- "*" Budgeting.AllocationRule
+Budgeting.BudgetPlan "1" -- "*" Budgeting.BudgetPeriod
+Budgeting.BudgetPlan "1" -- "*" Budgeting.RecurringPattern
+
+Budgeting.BudgetPeriod "1" -- "*" Budgeting.CategoryBalance
+Budgeting.BudgetPeriod "1" -- "*" Budgeting.BudgetReservation
+Budgeting.BudgetPeriod "1" -- "*" Budgeting.BudgetLink
+
+Budgeting.AllocationRule "*" --> "1" Budgeting.Category
+Budgeting.RecurringPattern "1" -- "*" Budgeting.BudgetReservation
+Budgeting.Category "1" -- "*" Budgeting.CategoryBalance
+Budgeting.Category "1" -- "*" Budgeting.BudgetReservation
+Budgeting.Category "1" -- "*" Budgeting.BudgetLink
+
+CashLedger.Account "1" -- "*" CashLedger.Transaction
+
+Investments.FinancialContainer "1" -- "*" Investments.InvestmentTransaction
+Investments.InvestmentTransaction "*" --> "0..1" Investments.Asset
+
+' ==========================================================
+' CROSS-CONTEXT REFERENCES (by ID; dotted dependencies)
+' ==========================================================
+Budgeting.BudgetReservation ..> CashLedger.Transaction : linkedTransactionId
+Budgeting.BudgetLink ..> CashLedger.Transaction : linkedType=transaction
+Budgeting.BudgetLink ..> Investments.InvestmentTransaction : linkedType=investment_transaction
+
+CashLedger.Transaction ..> Budgeting.Category : categoryId (UUID)
+
+' ==========================================================
+' USE CASE LINKS (DDD orchestration)
+' ==========================================================
+Application.CreateAccountUC ..> CashLedger.AccountRepository
+Application.CreateAccountUC ..> CashLedger.AccountCreated
+
+Application.PostIncomeUC ..> CashLedger.LedgerPostingService
+Application.PostIncomeUC ..> CashLedger.TransactionRepository
+Application.PostIncomeUC ..> CashLedger.TransactionPosted
+
+Application.PostExpenseUC ..> CashLedger.LedgerPostingService
+Application.PostExpenseUC ..> CashLedger.TransactionRepository
+Application.PostExpenseUC ..> CashLedger.TransactionPosted
+Application.PostExpenseUC ..> Application.SettleReservationFromTxUC
+
+Application.PostTransferUC ..> CashLedger.LedgerPostingService
+Application.PostTransferUC ..> CashLedger.TransactionRepository
+Application.PostTransferUC ..> CashLedger.TransferPosted
+
+Application.CreateBudgetPeriodUC ..> Budgeting.BudgetPlanRepository
+Application.CreateBudgetPeriodUC ..> Budgeting.BudgetPeriodRepository
+Application.CreateBudgetPeriodUC ..> Budgeting.BudgetPeriodCreated
+
+Application.AllocateBudgetUC ..> Budgeting.BudgetAllocatorService
+Application.AllocateBudgetUC ..> Budgeting.AllocationRuleRepository
+Application.AllocateBudgetUC ..> Budgeting.BudgetPeriodRepository
+Application.AllocateBudgetUC ..> Budgeting.BudgetAllocated
+
+Application.CreatePeriodReservationsUC ..> Budgeting.ReservationService
+Application.CreatePeriodReservationsUC ..> Budgeting.RecurringPatternRepository
+Application.CreatePeriodReservationsUC ..> Budgeting.BudgetReservationRepository
+Application.CreatePeriodReservationsUC ..> Budgeting.ReservationCreated
+
+Application.SettleReservationFromTxUC ..> Budgeting.ReservationService
+Application.SettleReservationFromTxUC ..> Budgeting.BudgetReservationRepository
+Application.SettleReservationFromTxUC ..> Budgeting.ReservationSettled
+Application.SettleReservationFromTxUC ..> Budgeting.CategoryWentNegative
+
+Application.ClosePeriodUC ..> Budgeting.PeriodClosingService
+Application.ClosePeriodUC ..> Budgeting.BudgetReservationRepository
+Application.ClosePeriodUC ..> Budgeting.BudgetPeriodRepository
+Application.ClosePeriodUC ..> Budgeting.ReservationCancelled
+Application.ClosePeriodUC ..> Budgeting.PeriodClosed
+
+Application.ExecuteInvestmentUC ..> Investments.InvestmentExecutionService
+Application.ExecuteInvestmentUC ..> Investments.InvestmentTransactionRepository
+Application.ExecuteInvestmentUC ..> Investments.FinancialContainerRepository
+Application.ExecuteInvestmentUC ..> Budgeting.BudgetLinkService
+Application.ExecuteInvestmentUC ..> Budgeting.BudgetLinkRepository
+Application.ExecuteInvestmentUC ..> Investments.InvestmentExecuted
+Application.ExecuteInvestmentUC ..> Budgeting.CategoryWentNegative
+
+Application.RecordInvestmentReturnUC ..> Investments.InvestmentTransactionRepository
+Application.RecordInvestmentReturnUC ..> Investments.InvestmentReturnRecorded
+
+' ==========================================================
+' INVARIANTS / DOMAIN RULES (notes)
+' ==========================================================
+note right of Budgeting.BudgetPlan
+INVARIANTS
+- Sum(AllocationRule.percentOfRemainder) == 1.0 per plan.
+- reservationPolicy: create reservations at period start.
+- effectiveDatingPolicy: budget attribution uses effectiveDate.
+end note
+
+note right of Budgeting.CategoryBalance
+INVARIANTS
+- available = openingBalance + allocated - spent
+- reserved = sum(active BudgetReservation.amount for (period, category))
+- safeToSpend = available - reserved
+NEGATIVE GUARDS
+- if Category.allowNegative=false => available >= 0
+- if Category.maxDebtAmount set => available >= -maxDebtAmount (alert/block per policy)
+end note
+
+note right of Budgeting.BudgetReservation
+RULES
+- Idempotent per (budgetPeriodId, patternId): at most one reservation.
+- Reservation is NOT a real expense; it only reduces safeToSpend.
+SETTLEMENT
+- When matching posted tx exists:
+  status -> settled, linkedTransactionId set.
+- No double count: tx affects spent; reservation affects reserved/safeToSpend.
+CLOSING
+- Monthly: active without linked tx at close -> cancelled.
+- Yearly + proration: reservations accumulate until billing month then settle.
+end note
+
+note right of CashLedger.Transaction
+RULES
+- Always recorded (reality first).
+- postedDate = bank date; effectiveDate = budgeting date.
+- If categoryId present => contributes to CategoryBalance.spent in BudgetPeriod(effectiveDate).
+- Transfers typically have no categoryId.
+end note
+
+note right of Budgeting.BudgetLink
+RULES
+- Bridge for uncategorized moves (investments/transfers if needed).
+- Must not duplicate categorized Transaction impact (either categoryId OR BudgetLink).
+- Investment acquisition impact = price + fees (+ taxes).
+end note
+
+note right of Investments.InvestmentTransaction
+RULES
+- Holdings/value are derived from InvestmentTransactions.
+- Fees can be separate or embedded; budget impact uses total cost.
+end note
+
+@enduml

@@ -1,0 +1,30 @@
+@startuml
+hide footbox
+
+actor User
+participant UI
+database "Local Storage" as Cache
+participant API
+database "Database" as DB
+
+== Online Read ==
+User -> UI : Open screen
+UI -> API : GET data
+API -> DB : Query
+DB --> API : Data
+API --> UI : Data
+UI -> Cache : Store data
+
+== Offline Write ==
+User -> UI : Create/update
+UI -> Cache : Save change (queued)
+UI --> User : Show pending status
+
+== Reconnect Sync ==
+UI -> API : Send queued change
+API -> DB : Persist change
+DB --> API : OK
+API --> UI : OK + updated data
+UI -> Cache : Update local data
+UI --> User : Clear pending
+@enduml

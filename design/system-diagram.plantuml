@@ -1,0 +1,26 @@
+@startuml
+skinparam componentStyle rectangle
+skinparam shadowing false
+hide stereotypes
+
+actor User
+
+package "Gonezo" {
+  package "Client App" {
+    component UI
+    database "Local Storage" as CacheDb
+  }
+
+  package "Backend" {
+    component API
+    database "Database" as MainDb
+  }
+
+  UI --> API : read/write
+  UI --> CacheDb : offline use
+  API --> MainDb
+}
+
+User --> UI
+
+@enduml
