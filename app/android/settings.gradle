@@ -1,0 +1,7 @@
+include ':app'
+include ':capacitor-cordova-android-plugins'
+project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
+include ':domain'
+project(':domain').projectDir = new File('../../native/android/domain')
+
+apply from: 'capacitor.settings.gradle'
