@@ -17,6 +17,11 @@ import type {
   GetBudgetPeriodResult,
   GetBudgetLinksInput,
   GetBudgetLinksResult,
+  ListAccountsResult,
+  GetAccountSummaryInput,
+  GetAccountSummaryResult,
+  ListExpensesInput,
+  ListExpensesResult,
   CreatePeriodReservationsInput,
   CoreResult,
   CreateBudgetPeriodInput,
@@ -49,6 +54,9 @@ export interface CorePlugin {
   getInvestmentTransactions(options: GetInvestmentTransactionsInput): Promise<GetInvestmentTransactionsResult>;
   getBudgetPeriod(options: GetBudgetPeriodInput): Promise<GetBudgetPeriodResult>;
   getBudgetLinks(options: GetBudgetLinksInput): Promise<GetBudgetLinksResult>;
+  listAccounts(): Promise<ListAccountsResult>;
+  getAccountSummary(options: GetAccountSummaryInput): Promise<GetAccountSummaryResult>;
+  listExpenses(options: ListExpensesInput): Promise<ListExpensesResult>;
 }
 
 export const CorePlugin = registerPlugin<CorePlugin>('CorePlugin', {

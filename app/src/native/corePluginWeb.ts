@@ -17,6 +17,11 @@ import type {
   GetBudgetPeriodResult,
   GetBudgetLinksInput,
   GetBudgetLinksResult,
+  ListAccountsResult,
+  GetAccountSummaryInput,
+  GetAccountSummaryResult,
+  ListExpensesInput,
+  ListExpensesResult,
   CreatePeriodReservationsInput,
   CoreResult,
   CreateBudgetPeriodInput,
@@ -102,5 +107,17 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async getBudgetLinks(options: GetBudgetLinksInput): Promise<GetBudgetLinksResult> {
     return this.core.getBudgetLinks(options);
+  }
+
+  async listAccounts(): Promise<ListAccountsResult> {
+    return this.core.listAccounts();
+  }
+
+  async getAccountSummary(options: GetAccountSummaryInput): Promise<GetAccountSummaryResult> {
+    return this.core.getAccountSummary(options);
+  }
+
+  async listExpenses(options: ListExpensesInput): Promise<ListExpensesResult> {
+    return this.core.listExpenses(options);
   }
 }

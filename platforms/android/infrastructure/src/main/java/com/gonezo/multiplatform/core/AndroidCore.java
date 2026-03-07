@@ -63,7 +63,10 @@ import com.gonezo.domain.budgeting.services.PeriodClosingService;
 import com.gonezo.domain.budgeting.services.PeriodClosingServiceImpl;
 import com.gonezo.domain.budgeting.services.ReservationService;
 import com.gonezo.domain.budgeting.services.ReservationServiceImpl;
+import com.gonezo.domain.cashledger.Account;
 import com.gonezo.domain.cashledger.AccountType;
+import com.gonezo.domain.cashledger.Transaction;
+import com.gonezo.domain.cashledger.TransactionType;
 import com.gonezo.domain.cashledger.services.LedgerPostingService;
 import com.gonezo.domain.cashledger.services.LedgerPostingServiceImpl;
 import com.gonezo.domain.investments.Asset;
@@ -95,6 +98,8 @@ public final class AndroidCore {
   private final PostExpenseUC postExpenseUC;
   private final PostTransferUC postTransferUC;
   private final PostIncomeUC postIncomeUC;
+  private final AndroidAccountRepository accountRepository;
+  private final AndroidTransactionRepository transactionRepository;
   private final AndroidBudgetPeriodRepository budgetPeriodRepository;
   private final AndroidBudgetReservationRepository budgetReservationRepository;
   private final AndroidCategoryBalanceRepository categoryBalanceRepository;
@@ -225,6 +230,8 @@ public final class AndroidCore {
       categoryBalanceRepository,
       eventPublisher
     );
+    this.accountRepository = accountRepository;
+    this.transactionRepository = transactionRepository;
     this.budgetPeriodRepository = budgetPeriodRepository;
     this.budgetReservationRepository = budgetReservationRepository;
     this.categoryBalanceRepository = categoryBalanceRepository;
@@ -494,6 +501,43 @@ public final class AndroidCore {
       .toList();
   }
 
+  public java.util.List<AccountView> listAccounts() {
+    return accountRepository.listAll().stream()
+      .map(AndroidCore::toAccountView)
+      .toList();
+  }
+
+  public AccountSummaryView getAccountSummary(String accountId) {
+    UUID resolvedAccountId = UUID.fromString(requireText(accountId, "accountId is required"));
+    Account account = accountRepository.get(resolvedAccountId);
+    BigDecimal net = BigDecimal.ZERO;
+    for (Transaction tx : transactionRepository.listByAccount(resolvedAccountId)) {
+      if (tx.getType() == TransactionType.INCOME) {
+        net = net.add(tx.getAmount().getAmount());
+      } else if (tx.getType() == TransactionType.EXPENSE) {
+        net = net.subtract(tx.getAmount().getAmount());
+      }
+    }
+
+    return new AccountSummaryView(
+      account.getId().toString(),
+      account.getName(),
+      account.getType().getValue(),
+      account.getCurrency(),
+      net.toPlainString()
+    );
+  }
+
+  public java.util.List<ExpenseView> listExpenses(String accountId, Integer limit) {
+    UUID resolvedAccountId = UUID.fromString(requireText(accountId, "accountId is required"));
+    int resolvedLimit = limit == null || limit <= 0 ? 10 : limit;
+    return transactionRepository.listByAccount(resolvedAccountId).stream()
+      .filter((tx) -> tx.getType() == TransactionType.EXPENSE)
+      .limit(resolvedLimit)
+      .map(AndroidCore::toExpenseView)
+      .toList();
+  }
+
   private static String requireText(String value, String message) {
     if (value == null || value.trim().isEmpty()) {
       throw new IllegalArgumentException(message);
@@ -577,6 +621,25 @@ public final class AndroidCore {
     );
   }
 
+  private static AccountView toAccountView(Account account) {
+    return new AccountView(
+      account.getId().toString(),
+      account.getName(),
+      account.getType().getValue(),
+      account.getCurrency()
+    );
+  }
+
+  private static ExpenseView toExpenseView(Transaction tx) {
+    return new ExpenseView(
+      tx.getId().toString(),
+      tx.getPostedDate().toString(),
+      tx.getMerchant(),
+      tx.getAmount().getAmount().toPlainString(),
+      tx.getAmount().getCurrency()
+    );
+  }
+
   public record CategoryBalanceView(
     String categoryId,
     String availableAmount,
@@ -629,6 +692,29 @@ public final class AndroidCore {
     String linkedId,
     String budgetImpactAmount,
     String budgetImpactCurrency
+  ) {}
+
+  public record AccountView(
+    String id,
+    String name,
+    String type,
+    String currency
+  ) {}
+
+  public record AccountSummaryView(
+    String accountId,
+    String name,
+    String type,
+    String currency,
+    String netAmount
+  ) {}
+
+  public record ExpenseView(
+    String id,
+    String postedDate,
+    String merchant,
+    String amount,
+    String currency
   ) {}
 
   private static void ensureDemoBudgetData(

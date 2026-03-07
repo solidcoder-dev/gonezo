@@ -210,6 +210,46 @@ export type GetBudgetLinksResult = {
   items: BudgetLinkItem[];
 };
 
+export type AccountItem = {
+  id: string;
+  name: string;
+  type: string;
+  currency: string;
+};
+
+export type ListAccountsResult = {
+  items: AccountItem[];
+};
+
+export type GetAccountSummaryInput = {
+  accountId: string;
+};
+
+export type GetAccountSummaryResult = {
+  accountId: string;
+  name: string;
+  type: string;
+  currency: string;
+  netAmount: string;
+};
+
+export type ListExpensesInput = {
+  accountId: string;
+  limit?: number;
+};
+
+export type ExpenseItem = {
+  id: string;
+  postedDate: string;
+  merchant?: string;
+  amount: string;
+  currency: string;
+};
+
+export type ListExpensesResult = {
+  items: ExpenseItem[];
+};
+
 export interface CorePort {
   doThing(input: string): Promise<CoreResult>;
   createAccount(input: CreateAccountInput): Promise<CreateAccountResult>;
@@ -228,4 +268,7 @@ export interface CorePort {
   getInvestmentTransactions(input: GetInvestmentTransactionsInput): Promise<GetInvestmentTransactionsResult>;
   getBudgetPeriod(input: GetBudgetPeriodInput): Promise<GetBudgetPeriodResult>;
   getBudgetLinks(input: GetBudgetLinksInput): Promise<GetBudgetLinksResult>;
+  listAccounts(): Promise<ListAccountsResult>;
+  getAccountSummary(input: GetAccountSummaryInput): Promise<GetAccountSummaryResult>;
+  listExpenses(input: ListExpensesInput): Promise<ListExpensesResult>;
 }

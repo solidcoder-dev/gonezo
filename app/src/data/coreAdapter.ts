@@ -19,6 +19,11 @@ import type {
   GetBudgetPeriodResult,
   GetBudgetLinksInput,
   GetBudgetLinksResult,
+  ListAccountsResult,
+  GetAccountSummaryInput,
+  GetAccountSummaryResult,
+  ListExpensesInput,
+  ListExpensesResult,
   CreatePeriodReservationsInput,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
@@ -175,5 +180,29 @@ export class CoreAdapter implements CorePort {
     }
 
     return this.web.getBudgetLinks(input);
+  }
+
+  async listAccounts(): Promise<ListAccountsResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.listAccounts();
+    }
+
+    return this.web.listAccounts();
+  }
+
+  async getAccountSummary(input: GetAccountSummaryInput): Promise<GetAccountSummaryResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.getAccountSummary(input);
+    }
+
+    return this.web.getAccountSummary(input);
+  }
+
+  async listExpenses(input: ListExpensesInput): Promise<ListExpensesResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.listExpenses(input);
+    }
+
+    return this.web.listExpenses(input);
   }
 }

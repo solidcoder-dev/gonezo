@@ -6,6 +6,8 @@ import android.database.sqlite.SQLiteDatabase;
 import com.gonezo.domain.cashledger.Account;
 import com.gonezo.domain.cashledger.AccountType;
 import com.gonezo.domain.cashledger.ports.AccountRepository;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 final class AndroidAccountRepository implements AccountRepository {
@@ -56,6 +58,34 @@ final class AndroidAccountRepository implements AccountRepository {
     long result = database.insertWithOnConflict("accounts", null, values, SQLiteDatabase.CONFLICT_ABORT);
     if (result == -1) {
       throw new IllegalStateException("Failed to insert account: " + account.getId());
+    }
+  }
+
+  List<Account> listAll() {
+    SQLiteDatabase database = db.getReadableDatabase();
+    Cursor cursor = database.query(
+      "accounts",
+      new String[] {"id", "user_id", "name", "type", "currency"},
+      null,
+      null,
+      null,
+      null,
+      "name asc, id asc"
+    );
+
+    try {
+      List<Account> accounts = new ArrayList<>();
+      while (cursor.moveToNext()) {
+        UUID id = UUID.fromString(cursor.getString(0));
+        UUID userId = UUID.fromString(cursor.getString(1));
+        String name = cursor.getString(2);
+        AccountType type = AccountType.Companion.from(cursor.getString(3));
+        String currency = cursor.getString(4);
+        accounts.add(new Account(id, userId, name, type, currency));
+      }
+      return accounts;
+    } finally {
+      cursor.close();
     }
   }
 }
