@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
-  private static final int DB_VERSION = 4;
+  private static final int DB_VERSION = 5;
 
   CoreDatabase(Context context) {
     super(context, DB_NAME, null, DB_VERSION);
@@ -111,6 +111,38 @@ final class CoreDatabase extends SQLiteOpenHelper {
         "safe_to_spend_amount text not null," +
         "safe_to_spend_currency text not null," +
         "unique (budget_period_id, category_id)" +
+      ");"
+    );
+    db.execSQL(
+      "create table if not exists recurring_patterns (" +
+        "id text primary key," +
+        "budget_plan_id text not null," +
+        "category_id text not null," +
+        "name text not null," +
+        "cadence text not null," +
+        "expected_amount text not null," +
+        "expected_currency text not null," +
+        "tolerance_amount text not null," +
+        "tolerance_currency text not null," +
+        "merchant_matcher text not null," +
+        "billing_day integer," +
+        "billing_month integer," +
+        "proration text," +
+        "active integer not null" +
+      ");"
+    );
+    db.execSQL(
+      "create table if not exists budget_reservations (" +
+        "id text primary key," +
+        "budget_period_id text not null," +
+        "pattern_id text not null," +
+        "category_id text not null," +
+        "amount text not null," +
+        "currency text not null," +
+        "status text not null," +
+        "expected_effective_date text not null," +
+        "linked_transaction_id text," +
+        "unique (budget_period_id, pattern_id)" +
       ");"
     );
   }

@@ -5,6 +5,7 @@ import type {
   AllocateBudgetInput,
   GetCategoryBalancesInput,
   GetCategoryBalancesResult,
+  CreatePeriodReservationsInput,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
   CreateAccountInput,
@@ -85,5 +86,14 @@ export class CoreAdapter implements CorePort {
     }
 
     return this.web.getCategoryBalances(input);
+  }
+
+  async createPeriodReservations(input: CreatePeriodReservationsInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.createPeriodReservations(input);
+      return;
+    }
+
+    await this.web.createPeriodReservations(input);
   }
 }

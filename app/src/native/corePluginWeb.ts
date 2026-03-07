@@ -3,6 +3,7 @@ import type {
   AllocateBudgetInput,
   GetCategoryBalancesInput,
   GetCategoryBalancesResult,
+  CreatePeriodReservationsInput,
   CoreResult,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
@@ -51,5 +52,9 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async getCategoryBalances(options: GetCategoryBalancesInput): Promise<GetCategoryBalancesResult> {
     return this.core.getCategoryBalances(options);
+  }
+
+  async createPeriodReservations(options: CreatePeriodReservationsInput): Promise<void> {
+    return this.core.createPeriodReservations(options);
   }
 }

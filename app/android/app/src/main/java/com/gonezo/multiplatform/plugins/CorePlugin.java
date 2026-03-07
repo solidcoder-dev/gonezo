@@ -193,4 +193,17 @@ public class CorePlugin extends Plugin {
       call.reject(ex.getMessage());
     }
   }
+
+  @PluginMethod
+  public void createPeriodReservations(PluginCall call) {
+    String periodId = call.getString("periodId");
+
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      core.createPeriodReservations(periodId);
+      call.resolve();
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
 }

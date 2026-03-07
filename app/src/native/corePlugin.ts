@@ -3,6 +3,7 @@ import type {
   AllocateBudgetInput,
   GetCategoryBalancesInput,
   GetCategoryBalancesResult,
+  CreatePeriodReservationsInput,
   CoreResult,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
@@ -25,6 +26,7 @@ export interface CorePlugin {
   createBudgetPeriod(options: CreateBudgetPeriodInput): Promise<CreateBudgetPeriodResult>;
   allocateBudget(options: AllocateBudgetInput): Promise<void>;
   getCategoryBalances(options: GetCategoryBalancesInput): Promise<GetCategoryBalancesResult>;
+  createPeriodReservations(options: CreatePeriodReservationsInput): Promise<void>;
 }
 
 export const CorePlugin = registerPlugin<CorePlugin>('CorePlugin', {

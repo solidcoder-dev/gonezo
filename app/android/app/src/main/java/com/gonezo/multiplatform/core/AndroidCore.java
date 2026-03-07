@@ -9,6 +9,8 @@ import com.gonezo.application.AllocateBudgetCommand;
 import com.gonezo.application.AllocateBudgetUC;
 import com.gonezo.application.PostExpenseCommand;
 import com.gonezo.application.PostExpenseUC;
+import com.gonezo.application.CreatePeriodReservationsCommand;
+import com.gonezo.application.CreatePeriodReservationsUC;
 import com.gonezo.application.PostIncomeCommand;
 import com.gonezo.application.PostIncomeUC;
 import com.gonezo.application.PostTransferCommand;
@@ -19,9 +21,11 @@ import com.gonezo.application.services.BudgetPeriodTotalsService;
 import com.gonezo.application.services.CategoryBalanceUpdaterService;
 import com.gonezo.application.services.AllocateBudgetService;
 import com.gonezo.application.services.CreateBudgetPeriodService;
+import com.gonezo.application.services.CreatePeriodReservationsService;
 import com.gonezo.application.services.PostExpenseService;
 import com.gonezo.application.services.PostIncomeService;
 import com.gonezo.application.services.PostTransferService;
+import com.gonezo.application.services.ReservationBalanceService;
 import com.gonezo.application.services.ReservationMatchingService;
 import com.gonezo.application.services.TransferBudgetImpactService;
 import com.gonezo.domain.budgeting.BudgetPeriod;
@@ -33,11 +37,16 @@ import com.gonezo.domain.budgeting.AllocationRule;
 import com.gonezo.domain.budgeting.CategoryBalance;
 import com.gonezo.domain.budgeting.EffectiveDatingPolicy;
 import com.gonezo.domain.budgeting.NegativePolicy;
+import com.gonezo.domain.budgeting.ProrationType;
+import com.gonezo.domain.budgeting.RecurringCadence;
+import com.gonezo.domain.budgeting.RecurringPattern;
 import com.gonezo.domain.budgeting.ReservationPolicy;
 import com.gonezo.domain.budgeting.services.BudgetAllocatorService;
 import com.gonezo.domain.budgeting.services.BudgetAllocatorServiceImpl;
 import com.gonezo.domain.budgeting.services.BudgetLinkService;
 import com.gonezo.domain.budgeting.services.BudgetLinkServiceImpl;
+import com.gonezo.domain.budgeting.services.ReservationService;
+import com.gonezo.domain.budgeting.services.ReservationServiceImpl;
 import com.gonezo.domain.cashledger.AccountType;
 import com.gonezo.domain.cashledger.services.LedgerPostingService;
 import com.gonezo.domain.cashledger.services.LedgerPostingServiceImpl;
@@ -56,6 +65,7 @@ public final class AndroidCore {
 
   private final CreateAccountUC createAccountUC;
   private final CreateBudgetPeriodUC createBudgetPeriodUC;
+  private final CreatePeriodReservationsUC createPeriodReservationsUC;
   private final AllocateBudgetUC allocateBudgetUC;
   private final PostExpenseUC postExpenseUC;
   private final PostTransferUC postTransferUC;
@@ -71,13 +81,14 @@ public final class AndroidCore {
     AndroidCategoryRepository categoryRepository = new AndroidCategoryRepository(database);
     AndroidAllocationRuleRepository allocationRuleRepository = new AndroidAllocationRuleRepository(database);
     AndroidCategoryBalanceRepository categoryBalanceRepository = new AndroidCategoryBalanceRepository(database);
+    AndroidRecurringPatternRepository recurringPatternRepository = new AndroidRecurringPatternRepository(database);
+    AndroidBudgetReservationRepository budgetReservationRepository = new AndroidBudgetReservationRepository(database);
     NoopDomainEventPublisher eventPublisher = new NoopDomainEventPublisher();
     LedgerPostingService ledgerPostingService = new LedgerPostingServiceImpl();
     BudgetAllocatorService budgetAllocatorService = new BudgetAllocatorServiceImpl(budgetPlanRepository);
+    ReservationService reservationService = new ReservationServiceImpl();
 
     var budgetLinkRepository = AndroidBudgetingStubs.budgetLinkRepository();
-    var budgetReservationRepository = AndroidBudgetingStubs.budgetReservationRepository();
-    var recurringPatternRepository = AndroidBudgetingStubs.recurringPatternRepository();
 
     CategoryBalanceUpdaterService categoryBalanceUpdaterService = new CategoryBalanceUpdaterService(
       categoryRepository,
@@ -87,6 +98,7 @@ public final class AndroidCore {
     );
     BudgetAttributionService budgetAttributionService = new BudgetAttributionService(budgetPlanRepository);
     BudgetPeriodTotalsService budgetPeriodTotalsService = new BudgetPeriodTotalsService(budgetPeriodRepository);
+    ReservationBalanceService reservationBalanceService = new ReservationBalanceService(categoryBalanceRepository);
     ReservationMatchingService reservationMatchingService = new ReservationMatchingService(
       budgetPeriodRepository,
       budgetReservationRepository,
@@ -129,10 +141,18 @@ public final class AndroidCore {
       budgetAttributionService,
       eventPublisher
     );
+    this.createPeriodReservationsUC = new CreatePeriodReservationsService(
+      reservationService,
+      recurringPatternRepository,
+      budgetReservationRepository,
+      budgetPeriodRepository,
+      reservationBalanceService,
+      eventPublisher
+    );
     this.createBudgetPeriodUC = new CreateBudgetPeriodService(
       budgetPlanRepository,
       budgetPeriodRepository,
-      AndroidBudgetingStubs.createPeriodReservationsUC(),
+      createPeriodReservationsUC,
       eventPublisher
     );
     this.allocateBudgetUC = new AllocateBudgetService(
@@ -149,7 +169,8 @@ public final class AndroidCore {
       budgetPlanRepository,
       budgetPeriodRepository,
       categoryRepository,
-      allocationRuleRepository
+      allocationRuleRepository,
+      recurringPatternRepository
     );
   }
 
@@ -289,6 +310,11 @@ public final class AndroidCore {
     allocateBudgetUC.execute(new AllocateBudgetCommand(resolvedPeriodId));
   }
 
+  public void createPeriodReservations(String periodId) {
+    UUID resolvedPeriodId = UUID.fromString(requireText(periodId, "periodId is required"));
+    createPeriodReservationsUC.execute(new CreatePeriodReservationsCommand(resolvedPeriodId));
+  }
+
   public java.util.List<CategoryBalanceView> getCategoryBalances(String periodId) {
     UUID resolvedPeriodId = UUID.fromString(requireText(periodId, "periodId is required"));
     return categoryBalanceRepository.listByPeriod(resolvedPeriodId).stream()
@@ -343,7 +369,8 @@ public final class AndroidCore {
     AndroidBudgetPlanRepository budgetPlanRepository,
     AndroidBudgetPeriodRepository budgetPeriodRepository,
     AndroidCategoryRepository categoryRepository,
-    AndroidAllocationRuleRepository allocationRuleRepository
+    AndroidAllocationRuleRepository allocationRuleRepository,
+    AndroidRecurringPatternRepository recurringPatternRepository
   ) {
     try {
       budgetPlanRepository.get(DEMO_BUDGET_PLAN_ID);
@@ -420,6 +447,25 @@ public final class AndroidCore {
           DEMO_BUDGET_PLAN_ID,
           funCategoryId,
           new Percent(new BigDecimal("0.30"))
+        )
+      );
+    }
+
+    if (recurringPatternRepository.listActiveByPlan(DEMO_BUDGET_PLAN_ID).isEmpty()) {
+      recurringPatternRepository.save(
+        new RecurringPattern(
+          UUID.fromString("abababab-abab-abab-abab-abababababab"),
+          DEMO_BUDGET_PLAN_ID,
+          essentialsCategoryId,
+          "Electric Bill",
+          RecurringCadence.MONTHLY,
+          new Money(new BigDecimal("50.00"), "USD"),
+          new Money(new BigDecimal("5.00"), "USD"),
+          "Electric",
+          10,
+          null,
+          ProrationType.NONE,
+          true
         )
       );
     }

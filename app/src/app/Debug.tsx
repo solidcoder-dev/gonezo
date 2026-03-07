@@ -16,6 +16,7 @@ export function Debug() {
   const [periodResult, setPeriodResult] = useState('');
   const [allocateResult, setAllocateResult] = useState('');
   const [balancesResult, setBalancesResult] = useState('');
+  const [reservationResult, setReservationResult] = useState('');
 
   async function handleCall() {
     setError('');
@@ -136,6 +137,19 @@ export function Debug() {
     }
   }
 
+  async function handleCreatePeriodReservations() {
+    setError('');
+    try {
+      await core.createPeriodReservations({
+        periodId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+      });
+      setReservationResult('period reservations created');
+    } catch (err) {
+      setReservationResult('');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
   return (
     <section className="card">
       <h1>Debug</h1>
@@ -201,6 +215,12 @@ export function Debug() {
         </button>
       </div>
       {balancesResult ? <pre className="result">{balancesResult}</pre> : null}
+      <div className="row">
+        <button type="button" onClick={handleCreatePeriodReservations}>
+          Create period reservations
+        </button>
+      </div>
+      {reservationResult ? <pre className="result">{reservationResult}</pre> : null}
       {error ? <pre className="result error">{error}</pre> : null}
     </section>
   );

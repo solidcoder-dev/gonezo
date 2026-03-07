@@ -91,6 +91,10 @@ export type GetCategoryBalancesResult = {
   items: CategoryBalanceItem[];
 };
 
+export type CreatePeriodReservationsInput = {
+  periodId: string;
+};
+
 export interface CorePort {
   doThing(input: string): Promise<CoreResult>;
   createAccount(input: CreateAccountInput): Promise<CreateAccountResult>;
@@ -100,4 +104,5 @@ export interface CorePort {
   createBudgetPeriod(input: CreateBudgetPeriodInput): Promise<CreateBudgetPeriodResult>;
   allocateBudget(input: AllocateBudgetInput): Promise<void>;
   getCategoryBalances(input: GetCategoryBalancesInput): Promise<GetCategoryBalancesResult>;
+  createPeriodReservations(input: CreatePeriodReservationsInput): Promise<void>;
 }
