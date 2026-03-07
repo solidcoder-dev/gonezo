@@ -16,6 +16,14 @@ repositories {
   mavenCentral()
 }
 
+sourceSets {
+  main {
+    kotlin {
+      srcDirs += ['../../../core/domain/src/main/kotlin']
+    }
+  }
+}
+
 dependencies {
   implementation 'org.jetbrains.kotlin:kotlin-stdlib'
   compileOnly 'org.springframework:spring-context:6.2.3'
