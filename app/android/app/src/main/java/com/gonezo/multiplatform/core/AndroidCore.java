@@ -5,6 +5,8 @@ import com.gonezo.application.CreateAccountCommand;
 import com.gonezo.application.CreateAccountUC;
 import com.gonezo.application.CreateBudgetPeriodCommand;
 import com.gonezo.application.CreateBudgetPeriodUC;
+import com.gonezo.application.AllocateBudgetCommand;
+import com.gonezo.application.AllocateBudgetUC;
 import com.gonezo.application.PostExpenseCommand;
 import com.gonezo.application.PostExpenseUC;
 import com.gonezo.application.PostIncomeCommand;
@@ -15,6 +17,7 @@ import com.gonezo.application.services.CreateAccountService;
 import com.gonezo.application.services.BudgetAttributionService;
 import com.gonezo.application.services.BudgetPeriodTotalsService;
 import com.gonezo.application.services.CategoryBalanceUpdaterService;
+import com.gonezo.application.services.AllocateBudgetService;
 import com.gonezo.application.services.CreateBudgetPeriodService;
 import com.gonezo.application.services.PostExpenseService;
 import com.gonezo.application.services.PostIncomeService;
@@ -24,15 +27,21 @@ import com.gonezo.application.services.TransferBudgetImpactService;
 import com.gonezo.domain.budgeting.BudgetPeriod;
 import com.gonezo.domain.budgeting.BudgetPlan;
 import com.gonezo.domain.budgeting.BudgetPlanPeriod;
+import com.gonezo.domain.budgeting.Category;
+import com.gonezo.domain.budgeting.CategoryType;
+import com.gonezo.domain.budgeting.AllocationRule;
 import com.gonezo.domain.budgeting.EffectiveDatingPolicy;
 import com.gonezo.domain.budgeting.NegativePolicy;
 import com.gonezo.domain.budgeting.ReservationPolicy;
+import com.gonezo.domain.budgeting.services.BudgetAllocatorService;
+import com.gonezo.domain.budgeting.services.BudgetAllocatorServiceImpl;
 import com.gonezo.domain.budgeting.services.BudgetLinkService;
 import com.gonezo.domain.budgeting.services.BudgetLinkServiceImpl;
 import com.gonezo.domain.cashledger.AccountType;
 import com.gonezo.domain.cashledger.services.LedgerPostingService;
 import com.gonezo.domain.cashledger.services.LedgerPostingServiceImpl;
 import com.gonezo.domain.shared.Money;
+import com.gonezo.domain.shared.Percent;
 import com.gonezo.domain.shared.YearMonth;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -46,6 +55,7 @@ public final class AndroidCore {
 
   private final CreateAccountUC createAccountUC;
   private final CreateBudgetPeriodUC createBudgetPeriodUC;
+  private final AllocateBudgetUC allocateBudgetUC;
   private final PostExpenseUC postExpenseUC;
   private final PostTransferUC postTransferUC;
   private final PostIncomeUC postIncomeUC;
@@ -56,11 +66,13 @@ public final class AndroidCore {
     AndroidTransactionRepository transactionRepository = new AndroidTransactionRepository(database);
     AndroidBudgetPlanRepository budgetPlanRepository = new AndroidBudgetPlanRepository(database);
     AndroidBudgetPeriodRepository budgetPeriodRepository = new AndroidBudgetPeriodRepository(database);
+    AndroidCategoryRepository categoryRepository = new AndroidCategoryRepository(database);
+    AndroidAllocationRuleRepository allocationRuleRepository = new AndroidAllocationRuleRepository(database);
+    AndroidCategoryBalanceRepository categoryBalanceRepository = new AndroidCategoryBalanceRepository(database);
     NoopDomainEventPublisher eventPublisher = new NoopDomainEventPublisher();
     LedgerPostingService ledgerPostingService = new LedgerPostingServiceImpl();
+    BudgetAllocatorService budgetAllocatorService = new BudgetAllocatorServiceImpl(budgetPlanRepository);
 
-    var categoryRepository = AndroidBudgetingStubs.categoryRepository();
-    var categoryBalanceRepository = AndroidBudgetingStubs.categoryBalanceRepository();
     var budgetLinkRepository = AndroidBudgetingStubs.budgetLinkRepository();
     var budgetReservationRepository = AndroidBudgetingStubs.budgetReservationRepository();
     var recurringPatternRepository = AndroidBudgetingStubs.recurringPatternRepository();
@@ -121,8 +133,21 @@ public final class AndroidCore {
       AndroidBudgetingStubs.createPeriodReservationsUC(),
       eventPublisher
     );
+    this.allocateBudgetUC = new AllocateBudgetService(
+      budgetAllocatorService,
+      allocationRuleRepository,
+      budgetPeriodRepository,
+      categoryRepository,
+      categoryBalanceRepository,
+      eventPublisher
+    );
 
-    ensureDemoBudgetData(budgetPlanRepository, budgetPeriodRepository);
+    ensureDemoBudgetData(
+      budgetPlanRepository,
+      budgetPeriodRepository,
+      categoryRepository,
+      allocationRuleRepository
+    );
   }
 
   public static synchronized AndroidCore getInstance(Context context) {
@@ -256,6 +281,11 @@ public final class AndroidCore {
     return createBudgetPeriodUC.execute(command);
   }
 
+  public void allocateBudget(String periodId) {
+    UUID resolvedPeriodId = UUID.fromString(requireText(periodId, "periodId is required"));
+    allocateBudgetUC.execute(new AllocateBudgetCommand(resolvedPeriodId));
+  }
+
   private static String requireText(String value, String message) {
     if (value == null || value.trim().isEmpty()) {
       throw new IllegalArgumentException(message);
@@ -285,7 +315,9 @@ public final class AndroidCore {
 
   private static void ensureDemoBudgetData(
     AndroidBudgetPlanRepository budgetPlanRepository,
-    AndroidBudgetPeriodRepository budgetPeriodRepository
+    AndroidBudgetPeriodRepository budgetPeriodRepository,
+    AndroidCategoryRepository categoryRepository,
+    AndroidAllocationRuleRepository allocationRuleRepository
   ) {
     try {
       budgetPlanRepository.get(DEMO_BUDGET_PLAN_ID);
@@ -313,6 +345,57 @@ public final class AndroidCore {
         zeroUsd
       );
       budgetPeriodRepository.save(demoPeriod);
+    }
+
+    UUID essentialsCategoryId = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
+    UUID funCategoryId = UUID.fromString("dddddddd-dddd-dddd-dddd-dddddddddddd");
+
+    try {
+      categoryRepository.get(essentialsCategoryId);
+    } catch (IllegalStateException ignored) {
+      categoryRepository.save(
+        new Category(
+          essentialsCategoryId,
+          DEMO_BUDGET_PLAN_ID,
+          "Essentials",
+          CategoryType.SPENDING,
+          false,
+          null
+        )
+      );
+    }
+    try {
+      categoryRepository.get(funCategoryId);
+    } catch (IllegalStateException ignored) {
+      categoryRepository.save(
+        new Category(
+          funCategoryId,
+          DEMO_BUDGET_PLAN_ID,
+          "Fun",
+          CategoryType.SPENDING,
+          false,
+          null
+        )
+      );
+    }
+
+    if (allocationRuleRepository.listByPlan(DEMO_BUDGET_PLAN_ID).isEmpty()) {
+      allocationRuleRepository.save(
+        new AllocationRule(
+          UUID.fromString("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"),
+          DEMO_BUDGET_PLAN_ID,
+          essentialsCategoryId,
+          new Percent(new BigDecimal("0.70"))
+        )
+      );
+      allocationRuleRepository.save(
+        new AllocationRule(
+          UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff"),
+          DEMO_BUDGET_PLAN_ID,
+          funCategoryId,
+          new Percent(new BigDecimal("0.30"))
+        )
+      );
     }
   }
 }

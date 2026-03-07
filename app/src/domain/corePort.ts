@@ -72,6 +72,10 @@ export type CreateBudgetPeriodResult = {
   id: string;
 };
 
+export type AllocateBudgetInput = {
+  periodId: string;
+};
+
 export interface CorePort {
   doThing(input: string): Promise<CoreResult>;
   createAccount(input: CreateAccountInput): Promise<CreateAccountResult>;
@@ -79,4 +83,5 @@ export interface CorePort {
   postTransfer(input: PostTransferInput): Promise<PostTransferResult>;
   postIncome(input: PostIncomeInput): Promise<PostIncomeResult>;
   createBudgetPeriod(input: CreateBudgetPeriodInput): Promise<CreateBudgetPeriodResult>;
+  allocateBudget(input: AllocateBudgetInput): Promise<void>;
 }

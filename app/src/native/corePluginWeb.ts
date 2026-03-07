@@ -1,5 +1,6 @@
 import { WebPlugin } from '@capacitor/core';
 import type {
+  AllocateBudgetInput,
   CoreResult,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
@@ -40,5 +41,9 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async createBudgetPeriod(options: CreateBudgetPeriodInput): Promise<CreateBudgetPeriodResult> {
     return this.core.createBudgetPeriod(options);
+  }
+
+  async allocateBudget(options: AllocateBudgetInput): Promise<void> {
+    return this.core.allocateBudget(options);
   }
 }

@@ -14,6 +14,7 @@ export function Debug() {
   const [transferResult, setTransferResult] = useState('');
   const [incomeResult, setIncomeResult] = useState('');
   const [periodResult, setPeriodResult] = useState('');
+  const [allocateResult, setAllocateResult] = useState('');
 
   async function handleCall() {
     setError('');
@@ -108,6 +109,19 @@ export function Debug() {
     }
   }
 
+  async function handleAllocateBudget() {
+    setError('');
+    try {
+      await core.allocateBudget({
+        periodId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+      });
+      setAllocateResult('budget allocated');
+    } catch (err) {
+      setAllocateResult('');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
   return (
     <section className="card">
       <h1>Debug</h1>
@@ -161,6 +175,12 @@ export function Debug() {
         </button>
       </div>
       {periodResult ? <pre className="result">{periodResult}</pre> : null}
+      <div className="row">
+        <button type="button" onClick={handleAllocateBudget}>
+          Allocate budget
+        </button>
+      </div>
+      {allocateResult ? <pre className="result">{allocateResult}</pre> : null}
       {error ? <pre className="result error">{error}</pre> : null}
     </section>
   );

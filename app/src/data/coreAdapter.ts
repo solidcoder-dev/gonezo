@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import type {
   CorePort,
   CoreResult,
+  AllocateBudgetInput,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
   CreateAccountInput,
@@ -65,5 +66,14 @@ export class CoreAdapter implements CorePort {
     }
 
     return this.web.createBudgetPeriod(input);
+  }
+
+  async allocateBudget(input: AllocateBudgetInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.allocateBudget(input);
+      return;
+    }
+
+    await this.web.allocateBudget(input);
   }
 }

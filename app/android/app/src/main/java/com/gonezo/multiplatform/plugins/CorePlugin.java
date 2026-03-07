@@ -154,4 +154,17 @@ public class CorePlugin extends Plugin {
       call.reject(ex.getMessage());
     }
   }
+
+  @PluginMethod
+  public void allocateBudget(PluginCall call) {
+    String periodId = call.getString("periodId");
+
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      core.allocateBudget(periodId);
+      call.resolve();
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
 }
