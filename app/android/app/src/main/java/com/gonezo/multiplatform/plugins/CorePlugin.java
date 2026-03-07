@@ -251,4 +251,17 @@ public class CorePlugin extends Plugin {
       call.reject(ex.getMessage());
     }
   }
+
+  @PluginMethod
+  public void closePeriod(PluginCall call) {
+    String periodId = call.getString("periodId");
+
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      core.closePeriod(periodId);
+      call.resolve();
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
 }

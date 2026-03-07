@@ -120,6 +120,10 @@ export type SettleReservationInput = {
   transactionId: string;
 };
 
+export type ClosePeriodInput = {
+  periodId: string;
+};
+
 export interface CorePort {
   doThing(input: string): Promise<CoreResult>;
   createAccount(input: CreateAccountInput): Promise<CreateAccountResult>;
@@ -132,4 +136,5 @@ export interface CorePort {
   createPeriodReservations(input: CreatePeriodReservationsInput): Promise<void>;
   getPeriodReservations(input: GetPeriodReservationsInput): Promise<GetPeriodReservationsResult>;
   settleReservation(input: SettleReservationInput): Promise<void>;
+  closePeriod(input: ClosePeriodInput): Promise<void>;
 }

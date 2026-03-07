@@ -11,6 +11,8 @@ import com.gonezo.application.PostExpenseCommand;
 import com.gonezo.application.PostExpenseUC;
 import com.gonezo.application.CreatePeriodReservationsCommand;
 import com.gonezo.application.CreatePeriodReservationsUC;
+import com.gonezo.application.ClosePeriodCommand;
+import com.gonezo.application.ClosePeriodUC;
 import com.gonezo.application.SettleReservationFromTxCommand;
 import com.gonezo.application.SettleReservationFromTxUC;
 import com.gonezo.application.PostIncomeCommand;
@@ -22,6 +24,7 @@ import com.gonezo.application.services.BudgetAttributionService;
 import com.gonezo.application.services.BudgetPeriodTotalsService;
 import com.gonezo.application.services.CategoryBalanceUpdaterService;
 import com.gonezo.application.services.AllocateBudgetService;
+import com.gonezo.application.services.ClosePeriodService;
 import com.gonezo.application.services.CreateBudgetPeriodService;
 import com.gonezo.application.services.CreatePeriodReservationsService;
 import com.gonezo.application.services.PostExpenseService;
@@ -49,6 +52,8 @@ import com.gonezo.domain.budgeting.services.BudgetAllocatorService;
 import com.gonezo.domain.budgeting.services.BudgetAllocatorServiceImpl;
 import com.gonezo.domain.budgeting.services.BudgetLinkService;
 import com.gonezo.domain.budgeting.services.BudgetLinkServiceImpl;
+import com.gonezo.domain.budgeting.services.PeriodClosingService;
+import com.gonezo.domain.budgeting.services.PeriodClosingServiceImpl;
 import com.gonezo.domain.budgeting.services.ReservationService;
 import com.gonezo.domain.budgeting.services.ReservationServiceImpl;
 import com.gonezo.domain.cashledger.AccountType;
@@ -71,6 +76,7 @@ public final class AndroidCore {
   private final CreateBudgetPeriodUC createBudgetPeriodUC;
   private final CreatePeriodReservationsUC createPeriodReservationsUC;
   private final SettleReservationFromTxUC settleReservationFromTxUC;
+  private final ClosePeriodUC closePeriodUC;
   private final AllocateBudgetUC allocateBudgetUC;
   private final PostExpenseUC postExpenseUC;
   private final PostTransferUC postTransferUC;
@@ -93,6 +99,7 @@ public final class AndroidCore {
     NoopDomainEventPublisher eventPublisher = new NoopDomainEventPublisher();
     LedgerPostingService ledgerPostingService = new LedgerPostingServiceImpl();
     BudgetAllocatorService budgetAllocatorService = new BudgetAllocatorServiceImpl(budgetPlanRepository);
+    PeriodClosingService periodClosingService = new PeriodClosingServiceImpl(recurringPatternRepository);
     ReservationService reservationService = new ReservationServiceImpl();
 
     CategoryBalanceUpdaterService categoryBalanceUpdaterService = new CategoryBalanceUpdaterService(
@@ -164,6 +171,13 @@ public final class AndroidCore {
       budgetPlanRepository,
       budgetPeriodRepository,
       createPeriodReservationsUC,
+      eventPublisher
+    );
+    this.closePeriodUC = new ClosePeriodService(
+      periodClosingService,
+      budgetReservationRepository,
+      budgetPeriodRepository,
+      reservationBalanceService,
       eventPublisher
     );
     this.allocateBudgetUC = new AllocateBudgetService(
@@ -331,6 +345,11 @@ public final class AndroidCore {
     UUID resolvedReservationId = UUID.fromString(requireText(reservationId, "reservationId is required"));
     UUID resolvedTransactionId = UUID.fromString(requireText(transactionId, "transactionId is required"));
     settleReservationFromTxUC.execute(new SettleReservationFromTxCommand(resolvedReservationId, resolvedTransactionId));
+  }
+
+  public void closePeriod(String periodId) {
+    UUID resolvedPeriodId = UUID.fromString(requireText(periodId, "periodId is required"));
+    closePeriodUC.execute(new ClosePeriodCommand(resolvedPeriodId));
   }
 
   public java.util.List<CategoryBalanceView> getCategoryBalances(String periodId) {

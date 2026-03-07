@@ -7,6 +7,7 @@ import type {
   GetPeriodReservationsInput,
   GetPeriodReservationsResult,
   SettleReservationInput,
+  ClosePeriodInput,
   CreatePeriodReservationsInput,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
@@ -69,6 +70,10 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async settleReservation(_input: SettleReservationInput): Promise<void> {
+    return;
+  }
+
+  async closePeriod(_input: ClosePeriodInput): Promise<void> {
     return;
   }
 }

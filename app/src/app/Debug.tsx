@@ -18,6 +18,7 @@ export function Debug() {
   const [balancesResult, setBalancesResult] = useState('');
   const [reservationResult, setReservationResult] = useState('');
   const [reservationsResult, setReservationsResult] = useState('');
+  const [closePeriodResult, setClosePeriodResult] = useState('');
 
   async function handleCall() {
     setError('');
@@ -187,6 +188,19 @@ export function Debug() {
     }
   }
 
+  async function handleClosePeriod() {
+    setError('');
+    try {
+      await core.closePeriod({
+        periodId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+      });
+      setClosePeriodResult('period closed');
+    } catch (err) {
+      setClosePeriodResult('');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
   return (
     <section className="card">
       <h1>Debug</h1>
@@ -269,6 +283,12 @@ export function Debug() {
           Settle first reservation
         </button>
       </div>
+      <div className="row">
+        <button type="button" onClick={handleClosePeriod}>
+          Close period
+        </button>
+      </div>
+      {closePeriodResult ? <pre className="result">{closePeriodResult}</pre> : null}
       {error ? <pre className="result error">{error}</pre> : null}
     </section>
   );

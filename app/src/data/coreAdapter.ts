@@ -8,6 +8,7 @@ import type {
   GetPeriodReservationsInput,
   GetPeriodReservationsResult,
   SettleReservationInput,
+  ClosePeriodInput,
   CreatePeriodReservationsInput,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
@@ -115,5 +116,14 @@ export class CoreAdapter implements CorePort {
     }
 
     await this.web.settleReservation(input);
+  }
+
+  async closePeriod(input: ClosePeriodInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.closePeriod(input);
+      return;
+    }
+
+    await this.web.closePeriod(input);
   }
 }
