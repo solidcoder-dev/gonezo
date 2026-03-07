@@ -1,6 +1,8 @@
 import { WebPlugin } from '@capacitor/core';
 import type {
   CoreResult,
+  CreateBudgetPeriodInput,
+  CreateBudgetPeriodResult,
   CreateAccountInput,
   CreateAccountResult,
   PostExpenseInput,
@@ -34,5 +36,9 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async postIncome(options: PostIncomeInput): Promise<PostIncomeResult> {
     return this.core.postIncome(options);
+  }
+
+  async createBudgetPeriod(options: CreateBudgetPeriodInput): Promise<CreateBudgetPeriodResult> {
+    return this.core.createBudgetPeriod(options);
   }
 }

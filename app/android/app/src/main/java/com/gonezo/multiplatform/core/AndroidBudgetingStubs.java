@@ -2,6 +2,8 @@ package com.gonezo.multiplatform.core;
 
 import com.gonezo.application.SettleReservationFromTxCommand;
 import com.gonezo.application.SettleReservationFromTxUC;
+import com.gonezo.application.CreatePeriodReservationsCommand;
+import com.gonezo.application.CreatePeriodReservationsUC;
 import com.gonezo.domain.budgeting.BudgetLink;
 import com.gonezo.domain.budgeting.BudgetPeriod;
 import com.gonezo.domain.budgeting.BudgetPlan;
@@ -147,6 +149,15 @@ final class AndroidBudgetingStubs {
       @Override
       public void execute(SettleReservationFromTxCommand command) {
         throw notMigrated("reservation settlement");
+      }
+    };
+  }
+
+  static CreatePeriodReservationsUC createPeriodReservationsUC() {
+    return new CreatePeriodReservationsUC() {
+      @Override
+      public void execute(CreatePeriodReservationsCommand command) {
+        throw notMigrated("period reservations creation");
       }
     };
   }

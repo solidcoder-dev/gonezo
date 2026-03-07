@@ -13,6 +13,7 @@ export function Debug() {
   const [expenseResult, setExpenseResult] = useState('');
   const [transferResult, setTransferResult] = useState('');
   const [incomeResult, setIncomeResult] = useState('');
+  const [periodResult, setPeriodResult] = useState('');
 
   async function handleCall() {
     setError('');
@@ -91,6 +92,22 @@ export function Debug() {
     }
   }
 
+  async function handleCreateBudgetPeriod() {
+    setError('');
+    try {
+      const res = await core.createBudgetPeriod({
+        planId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        year: 2026,
+        month: 4,
+        currency: 'USD',
+      });
+      setPeriodResult(`budget period created: ${res.id}`);
+    } catch (err) {
+      setPeriodResult('');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
   return (
     <section className="card">
       <h1>Debug</h1>
@@ -138,6 +155,12 @@ export function Debug() {
         </button>
       </div>
       {incomeResult ? <pre className="result">{incomeResult}</pre> : null}
+      <div className="row">
+        <button type="button" onClick={handleCreateBudgetPeriod}>
+          Create budget period
+        </button>
+      </div>
+      {periodResult ? <pre className="result">{periodResult}</pre> : null}
       {error ? <pre className="result error">{error}</pre> : null}
     </section>
   );

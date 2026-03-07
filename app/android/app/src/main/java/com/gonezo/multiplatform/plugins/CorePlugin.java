@@ -136,4 +136,22 @@ public class CorePlugin extends Plugin {
       call.reject(ex.getMessage());
     }
   }
+
+  @PluginMethod
+  public void createBudgetPeriod(PluginCall call) {
+    String planId = call.getString("planId");
+    Integer year = call.getInt("year");
+    Integer month = call.getInt("month");
+    String currency = call.getString("currency");
+
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      String id = core.createBudgetPeriod(planId, year, month, currency).toString();
+      JSObject result = new JSObject();
+      result.put("id", id);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
 }

@@ -61,10 +61,22 @@ export type PostIncomeResult = {
   id: string;
 };
 
+export type CreateBudgetPeriodInput = {
+  planId: string;
+  year: number;
+  month: number;
+  currency: string;
+};
+
+export type CreateBudgetPeriodResult = {
+  id: string;
+};
+
 export interface CorePort {
   doThing(input: string): Promise<CoreResult>;
   createAccount(input: CreateAccountInput): Promise<CreateAccountResult>;
   postExpense(input: PostExpenseInput): Promise<PostExpenseResult>;
   postTransfer(input: PostTransferInput): Promise<PostTransferResult>;
   postIncome(input: PostIncomeInput): Promise<PostIncomeResult>;
+  createBudgetPeriod(input: CreateBudgetPeriodInput): Promise<CreateBudgetPeriodResult>;
 }

@@ -1,6 +1,8 @@
 import type {
   CorePort,
   CoreResult,
+  CreateBudgetPeriodInput,
+  CreateBudgetPeriodResult,
   CreateAccountInput,
   CreateAccountResult,
   PostExpenseInput,
@@ -34,6 +36,11 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async postIncome(_input: PostIncomeInput): Promise<PostIncomeResult> {
+    const id = crypto.randomUUID();
+    return { id };
+  }
+
+  async createBudgetPeriod(_input: CreateBudgetPeriodInput): Promise<CreateBudgetPeriodResult> {
     const id = crypto.randomUUID();
     return { id };
   }

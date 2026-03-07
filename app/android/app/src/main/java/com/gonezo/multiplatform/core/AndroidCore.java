@@ -3,6 +3,8 @@ package com.gonezo.multiplatform.core;
 import android.content.Context;
 import com.gonezo.application.CreateAccountCommand;
 import com.gonezo.application.CreateAccountUC;
+import com.gonezo.application.CreateBudgetPeriodCommand;
+import com.gonezo.application.CreateBudgetPeriodUC;
 import com.gonezo.application.PostExpenseCommand;
 import com.gonezo.application.PostExpenseUC;
 import com.gonezo.application.PostIncomeCommand;
@@ -13,6 +15,7 @@ import com.gonezo.application.services.CreateAccountService;
 import com.gonezo.application.services.BudgetAttributionService;
 import com.gonezo.application.services.BudgetPeriodTotalsService;
 import com.gonezo.application.services.CategoryBalanceUpdaterService;
+import com.gonezo.application.services.CreateBudgetPeriodService;
 import com.gonezo.application.services.PostExpenseService;
 import com.gonezo.application.services.PostIncomeService;
 import com.gonezo.application.services.PostTransferService;
@@ -42,6 +45,7 @@ public final class AndroidCore {
   private static AndroidCore instance;
 
   private final CreateAccountUC createAccountUC;
+  private final CreateBudgetPeriodUC createBudgetPeriodUC;
   private final PostExpenseUC postExpenseUC;
   private final PostTransferUC postTransferUC;
   private final PostIncomeUC postIncomeUC;
@@ -109,6 +113,12 @@ public final class AndroidCore {
       budgetLinkService,
       budgetLinkRepository,
       budgetAttributionService,
+      eventPublisher
+    );
+    this.createBudgetPeriodUC = new CreateBudgetPeriodService(
+      budgetPlanRepository,
+      budgetPeriodRepository,
+      AndroidBudgetingStubs.createPeriodReservationsUC(),
       eventPublisher
     );
 
@@ -231,6 +241,21 @@ public final class AndroidCore {
     return postIncomeUC.execute(command);
   }
 
+  public UUID createBudgetPeriod(String planId, Integer year, Integer month, String currency) {
+    UUID resolvedPlanId = UUID.fromString(requireText(planId, "planId is required"));
+    int resolvedYear = requireInt(year, "year is required");
+    int resolvedMonth = requireInt(month, "month is required");
+    String resolvedCurrency = requireText(currency, "currency is required");
+
+    CreateBudgetPeriodCommand command = new CreateBudgetPeriodCommand(
+      resolvedPlanId,
+      resolvedYear,
+      resolvedMonth,
+      resolvedCurrency
+    );
+    return createBudgetPeriodUC.execute(command);
+  }
+
   private static String requireText(String value, String message) {
     if (value == null || value.trim().isEmpty()) {
       throw new IllegalArgumentException(message);
@@ -249,6 +274,13 @@ public final class AndroidCore {
   private static UUID parseNullableUuid(String value) {
     String normalized = blankToNull(value);
     return normalized == null ? null : UUID.fromString(normalized);
+  }
+
+  private static int requireInt(Integer value, String message) {
+    if (value == null) {
+      throw new IllegalArgumentException(message);
+    }
+    return value;
   }
 
   private static void ensureDemoBudgetData(
