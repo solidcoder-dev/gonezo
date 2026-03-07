@@ -4,6 +4,7 @@ import { CoreAdapter } from '../data/coreAdapter';
 import type { AccountItem, ExpenseItem } from '../domain/corePort';
 
 const core = new CoreAdapter();
+const DEFAULT_BUDGET_PLAN_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -11,6 +12,10 @@ function todayIso(): string {
 
 export function Accounts() {
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [creatingAccount, setCreatingAccount] = useState(false);
+  const [postingExpense, setPostingExpense] = useState(false);
+  const [postingIncome, setPostingIncome] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [accounts, setAccounts] = useState<AccountItem[]>([]);
@@ -25,6 +30,9 @@ export function Accounts() {
   const [expenseAmount, setExpenseAmount] = useState('');
   const [expenseDate, setExpenseDate] = useState(todayIso());
   const [expenseMerchant, setExpenseMerchant] = useState('');
+  const [incomeAmount, setIncomeAmount] = useState('');
+  const [incomeDate, setIncomeDate] = useState(todayIso());
+  const [incomeSource, setIncomeSource] = useState('');
 
   const selectedAccount = useMemo(
     () => accounts.find((account) => account.id === selectedAccountId),
@@ -88,6 +96,7 @@ export function Accounts() {
     setError('');
     setSuccess('');
     setSelectedAccountId(accountId);
+    setRefreshing(true);
     try {
       const summary = await core.getAccountSummary({ accountId });
       setNetAmount(summary.netAmount);
@@ -95,6 +104,8 @@ export function Accounts() {
       setExpenses(expenseResult.items);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -110,6 +121,7 @@ export function Accounts() {
     }
 
     try {
+      setCreatingAccount(true);
       const created = await core.createAccount({
         name,
         type: newAccountType,
@@ -119,6 +131,8 @@ export function Accounts() {
       setSuccess('Account created. You can now post expenses.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setCreatingAccount(false);
     }
   }
 
@@ -144,6 +158,7 @@ export function Accounts() {
     }
 
     try {
+      setPostingExpense(true);
       const result = await core.postExpense({
         accountId: selectedAccount.id,
         postedDate: expenseDate,
@@ -159,6 +174,52 @@ export function Accounts() {
       setSuccess(`Expense posted: ${result.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setPostingExpense(false);
+    }
+  }
+
+  async function handlePostIncome(event: FormEvent) {
+    event.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!selectedAccount) {
+      setError('Select an account first.');
+      return;
+    }
+
+    const amount = incomeAmount.trim();
+    if (!amount || Number.isNaN(Number(amount)) || Number(amount) <= 0) {
+      setError('Enter a valid income amount greater than 0.');
+      return;
+    }
+
+    if (!incomeDate) {
+      setError('Date is required.');
+      return;
+    }
+
+    try {
+      setPostingIncome(true);
+      const result = await core.postIncome({
+        budgetPlanId: DEFAULT_BUDGET_PLAN_ID,
+        accountId: selectedAccount.id,
+        postedDate: incomeDate,
+        effectiveDate: incomeDate,
+        amount,
+        currency: selectedAccount.currency,
+        merchant: incomeSource.trim() || undefined,
+      });
+
+      setIncomeAmount('');
+      setIncomeSource('');
+      await refreshAccounts(selectedAccount.id);
+      setSuccess(`Income posted: ${result.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setPostingIncome(false);
     }
   }
 
@@ -176,40 +237,62 @@ export function Accounts() {
       <h1>Accounts</h1>
       <p>Account summary and expense history in one place.</p>
 
-      {error ? <pre className="result error">{error}</pre> : null}
-      {success ? <pre className="result">{success}</pre> : null}
+      {error ? (
+        <div className="banner error" role="alert">
+          {error}
+        </div>
+      ) : null}
+      {success ? (
+        <div className="banner success" role="status" aria-live="polite">
+          {success}
+        </div>
+      ) : null}
 
       {accounts.length === 0 ? (
-        <form className="stack" onSubmit={handleCreateFirstAccount}>
+        <form className="stack" onSubmit={handleCreateFirstAccount} aria-busy={creatingAccount}>
           <h2>Create your first account</h2>
+          <label htmlFor="new-account-name">Account name</label>
           <input
+            id="new-account-name"
             value={newAccountName}
             onChange={(event) => setNewAccountName(event.target.value)}
             placeholder="Account name"
+            autoComplete="off"
           />
-          <select value={newAccountType} onChange={(event) => setNewAccountType(event.target.value)}>
+          <label htmlFor="new-account-type">Account type</label>
+          <select
+            id="new-account-type"
+            value={newAccountType}
+            onChange={(event) => setNewAccountType(event.target.value)}
+          >
             <option value="cash">Cash</option>
             <option value="bank">Bank</option>
             <option value="card">Card</option>
             <option value="investment">Investment</option>
             <option value="other">Other</option>
           </select>
+          <label htmlFor="new-account-currency">Currency</label>
           <input
+            id="new-account-currency"
             value={newAccountCurrency}
             onChange={(event) => setNewAccountCurrency(event.target.value.toUpperCase())}
-            placeholder="Currency (e.g. USD)"
+            placeholder="USD"
             maxLength={3}
+            autoCapitalize="characters"
           />
-          <button type="submit">Create account</button>
+          <button type="submit" disabled={creatingAccount}>
+            {creatingAccount ? 'Creating account...' : 'Create account'}
+          </button>
         </form>
       ) : (
         <>
-          <div className="stack">
+          <div className="stack" aria-busy={refreshing}>
             <label htmlFor="account-picker">Account</label>
             <select
               id="account-picker"
               value={selectedAccountId}
               onChange={(event) => handleSelectAccount(event.target.value)}
+              disabled={refreshing || postingExpense || postingIncome}
             >
               {accounts.map((account) => (
                 <option key={account.id} value={account.id}>
@@ -220,43 +303,96 @@ export function Accounts() {
           </div>
 
           {selectedAccount ? (
-            <div className="result" style={{ marginTop: 12 }}>
-              <strong>{selectedAccount.name}</strong>
-              <div>
-                Net amount (income-expense): {netAmount} {selectedAccount.currency}
+            <section className="summary-card">
+              <h2>{selectedAccount.name}</h2>
+              <p className="summary-label">Net balance</p>
+              <div className="summary-amount">
+                {netAmount} {selectedAccount.currency}
               </div>
-            </div>
+            </section>
           ) : null}
 
-          <form className="stack" onSubmit={handlePostExpense} style={{ marginTop: 16 }}>
-            <h2>Add expense</h2>
+          <form className="stack section-gap" onSubmit={handlePostIncome} aria-busy={postingIncome}>
+            <h2>Add income</h2>
+            <label htmlFor="income-amount">Amount</label>
             <input
+              id="income-amount"
+              value={incomeAmount}
+              onChange={(event) => setIncomeAmount(event.target.value)}
+              placeholder="0.00"
+              inputMode="decimal"
+              disabled={postingIncome || refreshing || postingExpense}
+            />
+            <label htmlFor="income-date">Date</label>
+            <input
+              id="income-date"
+              type="date"
+              value={incomeDate}
+              onChange={(event) => setIncomeDate(event.target.value)}
+              disabled={postingIncome || refreshing || postingExpense}
+            />
+            <label htmlFor="income-source">Source</label>
+            <input
+              id="income-source"
+              value={incomeSource}
+              onChange={(event) => setIncomeSource(event.target.value)}
+              placeholder="Salary (optional)"
+              disabled={postingIncome || refreshing || postingExpense}
+            />
+            <button type="submit" disabled={postingIncome || refreshing || postingExpense}>
+              {postingIncome ? 'Posting income...' : 'Post income'}
+            </button>
+          </form>
+
+          <form className="stack section-gap" onSubmit={handlePostExpense} aria-busy={postingExpense}>
+            <h2>Add expense</h2>
+            <label htmlFor="expense-amount">Amount</label>
+            <input
+              id="expense-amount"
               value={expenseAmount}
               onChange={(event) => setExpenseAmount(event.target.value)}
-              placeholder="Amount"
+              placeholder="0.00"
               inputMode="decimal"
+              disabled={postingExpense || refreshing || postingIncome}
             />
-            <input type="date" value={expenseDate} onChange={(event) => setExpenseDate(event.target.value)} />
+            <label htmlFor="expense-date">Date</label>
             <input
+              id="expense-date"
+              type="date"
+              value={expenseDate}
+              onChange={(event) => setExpenseDate(event.target.value)}
+              disabled={postingExpense || refreshing || postingIncome}
+            />
+            <label htmlFor="expense-merchant">Merchant</label>
+            <input
+              id="expense-merchant"
               value={expenseMerchant}
               onChange={(event) => setExpenseMerchant(event.target.value)}
               placeholder="Merchant (optional)"
+              disabled={postingExpense || refreshing || postingIncome}
             />
-            <button type="submit">Post expense</button>
+            <button type="submit" disabled={postingExpense || refreshing || postingIncome}>
+              {postingExpense ? 'Posting expense...' : 'Post expense'}
+            </button>
           </form>
 
-          <div className="stack" style={{ marginTop: 16 }}>
+          <div className="stack section-gap">
             <h2>Recent expenses</h2>
+            <p>Income updates your balance, but only expenses are listed below.</p>
             {expenses.length === 0 ? <p>No expenses yet.</p> : null}
-            {expenses.map((expense) => (
-              <div key={expense.id} className="action-link" style={{ display: 'grid', gap: 4 }}>
-                <strong>
-                  {expense.amount} {expense.currency}
-                </strong>
-                <span>{expense.postedDate}</span>
-                <span>{expense.merchant || 'No merchant'}</span>
-              </div>
-            ))}
+            <ul className="expense-list" aria-label="Recent expenses">
+              {expenses.map((expense) => (
+                <li key={expense.id} className="expense-item">
+                  <div className="expense-top-row">
+                    <strong>
+                      {expense.amount} {expense.currency}
+                    </strong>
+                    <span>{expense.postedDate}</span>
+                  </div>
+                  <span>{expense.merchant || 'No merchant'}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </>
       )}
