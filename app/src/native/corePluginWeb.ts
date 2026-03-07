@@ -13,6 +13,10 @@ import type {
   RecordInvestmentReturnResult,
   GetInvestmentTransactionsInput,
   GetInvestmentTransactionsResult,
+  GetBudgetPeriodInput,
+  GetBudgetPeriodResult,
+  GetBudgetLinksInput,
+  GetBudgetLinksResult,
   CreatePeriodReservationsInput,
   CoreResult,
   CreateBudgetPeriodInput,
@@ -90,5 +94,13 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async getInvestmentTransactions(options: GetInvestmentTransactionsInput): Promise<GetInvestmentTransactionsResult> {
     return this.core.getInvestmentTransactions(options);
+  }
+
+  async getBudgetPeriod(options: GetBudgetPeriodInput): Promise<GetBudgetPeriodResult> {
+    return this.core.getBudgetPeriod(options);
+  }
+
+  async getBudgetLinks(options: GetBudgetLinksInput): Promise<GetBudgetLinksResult> {
+    return this.core.getBudgetLinks(options);
   }
 }

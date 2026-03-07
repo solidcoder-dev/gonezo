@@ -361,4 +361,55 @@ public class CorePlugin extends Plugin {
       call.reject(ex.getMessage());
     }
   }
+
+  @PluginMethod
+  public void getBudgetPeriod(PluginCall call) {
+    String periodId = call.getString("periodId");
+
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      AndroidCore.BudgetPeriodView period = core.getBudgetPeriod(periodId);
+      JSObject result = new JSObject();
+      result.put("id", period.id());
+      result.put("budgetPlanId", period.budgetPlanId());
+      result.put("year", period.year());
+      result.put("month", period.month());
+      result.put("incomeTotalAmount", period.incomeTotalAmount());
+      result.put("incomeTotalCurrency", period.incomeTotalCurrency());
+      result.put("remainderAmount", period.remainderAmount());
+      result.put("remainderCurrency", period.remainderCurrency());
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void getBudgetLinks(PluginCall call) {
+    String periodId = call.getString("periodId");
+
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      java.util.List<AndroidCore.BudgetLinkView> links = core.getBudgetLinks(periodId);
+
+      org.json.JSONArray items = new org.json.JSONArray();
+      for (AndroidCore.BudgetLinkView link : links) {
+        JSObject item = new JSObject();
+        item.put("id", link.id());
+        item.put("budgetPeriodId", link.budgetPeriodId());
+        item.put("categoryId", link.categoryId());
+        item.put("linkedType", link.linkedType());
+        item.put("linkedId", link.linkedId());
+        item.put("budgetImpactAmount", link.budgetImpactAmount());
+        item.put("budgetImpactCurrency", link.budgetImpactCurrency());
+        items.put(item);
+      }
+
+      JSObject result = new JSObject();
+      result.put("items", items);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
 }

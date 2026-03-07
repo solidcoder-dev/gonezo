@@ -14,6 +14,10 @@ import type {
   RecordInvestmentReturnResult,
   GetInvestmentTransactionsInput,
   GetInvestmentTransactionsResult,
+  GetBudgetPeriodInput,
+  GetBudgetPeriodResult,
+  GetBudgetLinksInput,
+  GetBudgetLinksResult,
   CreatePeriodReservationsInput,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
@@ -92,6 +96,23 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async getInvestmentTransactions(_input: GetInvestmentTransactionsInput): Promise<GetInvestmentTransactionsResult> {
+    return { items: [] };
+  }
+
+  async getBudgetPeriod(_input: GetBudgetPeriodInput): Promise<GetBudgetPeriodResult> {
+    return {
+      id: crypto.randomUUID(),
+      budgetPlanId: crypto.randomUUID(),
+      year: 2026,
+      month: 1,
+      incomeTotalAmount: '0.00',
+      incomeTotalCurrency: 'USD',
+      remainderAmount: '0.00',
+      remainderCurrency: 'USD',
+    };
+  }
+
+  async getBudgetLinks(_input: GetBudgetLinksInput): Promise<GetBudgetLinksResult> {
     return { items: [] };
   }
 }

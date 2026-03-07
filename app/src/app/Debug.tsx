@@ -22,6 +22,8 @@ export function Debug() {
   const [investmentResult, setInvestmentResult] = useState('');
   const [investmentReturnResult, setInvestmentReturnResult] = useState('');
   const [investmentTransactionsResult, setInvestmentTransactionsResult] = useState('');
+  const [budgetPeriodResult, setBudgetPeriodResult] = useState('');
+  const [budgetLinksResult, setBudgetLinksResult] = useState('');
 
   async function handleCall() {
     setError('');
@@ -258,6 +260,32 @@ export function Debug() {
     }
   }
 
+  async function handleGetBudgetPeriod() {
+    setError('');
+    try {
+      const res = await core.getBudgetPeriod({
+        periodId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+      });
+      setBudgetPeriodResult(JSON.stringify(res, null, 2));
+    } catch (err) {
+      setBudgetPeriodResult('');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
+  async function handleGetBudgetLinks() {
+    setError('');
+    try {
+      const res = await core.getBudgetLinks({
+        periodId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+      });
+      setBudgetLinksResult(JSON.stringify(res.items, null, 2));
+    } catch (err) {
+      setBudgetLinksResult('');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
   return (
     <section className="card">
       <h1>Debug</h1>
@@ -364,6 +392,18 @@ export function Debug() {
         </button>
       </div>
       {investmentTransactionsResult ? <pre className="result">{investmentTransactionsResult}</pre> : null}
+      <div className="row">
+        <button type="button" onClick={handleGetBudgetPeriod}>
+          Get budget period
+        </button>
+      </div>
+      {budgetPeriodResult ? <pre className="result">{budgetPeriodResult}</pre> : null}
+      <div className="row">
+        <button type="button" onClick={handleGetBudgetLinks}>
+          Get budget links
+        </button>
+      </div>
+      {budgetLinksResult ? <pre className="result">{budgetLinksResult}</pre> : null}
       {error ? <pre className="result error">{error}</pre> : null}
     </section>
   );

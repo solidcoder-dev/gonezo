@@ -15,6 +15,10 @@ import type {
   RecordInvestmentReturnResult,
   GetInvestmentTransactionsInput,
   GetInvestmentTransactionsResult,
+  GetBudgetPeriodInput,
+  GetBudgetPeriodResult,
+  GetBudgetLinksInput,
+  GetBudgetLinksResult,
   CreatePeriodReservationsInput,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
@@ -155,5 +159,21 @@ export class CoreAdapter implements CorePort {
     }
 
     return this.web.getInvestmentTransactions(input);
+  }
+
+  async getBudgetPeriod(input: GetBudgetPeriodInput): Promise<GetBudgetPeriodResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.getBudgetPeriod(input);
+    }
+
+    return this.web.getBudgetPeriod(input);
+  }
+
+  async getBudgetLinks(input: GetBudgetLinksInput): Promise<GetBudgetLinksResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.getBudgetLinks(input);
+    }
+
+    return this.web.getBudgetLinks(input);
   }
 }

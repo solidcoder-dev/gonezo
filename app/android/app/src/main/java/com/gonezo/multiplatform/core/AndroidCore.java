@@ -95,8 +95,10 @@ public final class AndroidCore {
   private final PostExpenseUC postExpenseUC;
   private final PostTransferUC postTransferUC;
   private final PostIncomeUC postIncomeUC;
+  private final AndroidBudgetPeriodRepository budgetPeriodRepository;
   private final AndroidBudgetReservationRepository budgetReservationRepository;
   private final AndroidCategoryBalanceRepository categoryBalanceRepository;
+  private final AndroidBudgetLinkRepository budgetLinkRepository;
   private final AndroidInvestmentTransactionRepository investmentTransactionRepository;
 
   private AndroidCore(Context context) {
@@ -223,8 +225,10 @@ public final class AndroidCore {
       categoryBalanceRepository,
       eventPublisher
     );
+    this.budgetPeriodRepository = budgetPeriodRepository;
     this.budgetReservationRepository = budgetReservationRepository;
     this.categoryBalanceRepository = categoryBalanceRepository;
+    this.budgetLinkRepository = budgetLinkRepository;
     this.investmentTransactionRepository = investmentTransactionRepository;
 
     ensureDemoBudgetData(
@@ -468,6 +472,28 @@ public final class AndroidCore {
       .toList();
   }
 
+  public BudgetPeriodView getBudgetPeriod(String periodId) {
+    UUID resolvedPeriodId = UUID.fromString(requireText(periodId, "periodId is required"));
+    BudgetPeriod period = budgetPeriodRepository.get(resolvedPeriodId);
+    return new BudgetPeriodView(
+      period.getId().toString(),
+      period.getBudgetPlanId().toString(),
+      period.getYearMonth().getYear(),
+      period.getYearMonth().getMonth(),
+      period.getIncomeTotal().getAmount().toPlainString(),
+      period.getIncomeTotal().getCurrency(),
+      period.getRemainder().getAmount().toPlainString(),
+      period.getRemainder().getCurrency()
+    );
+  }
+
+  public java.util.List<BudgetLinkView> getBudgetLinks(String periodId) {
+    UUID resolvedPeriodId = UUID.fromString(requireText(periodId, "periodId is required"));
+    return budgetLinkRepository.listByPeriod(resolvedPeriodId).stream()
+      .map(AndroidCore::toBudgetLinkView)
+      .toList();
+  }
+
   private static String requireText(String value, String message) {
     if (value == null || value.trim().isEmpty()) {
       throw new IllegalArgumentException(message);
@@ -539,6 +565,18 @@ public final class AndroidCore {
     );
   }
 
+  private static BudgetLinkView toBudgetLinkView(com.gonezo.domain.budgeting.BudgetLink link) {
+    return new BudgetLinkView(
+      link.getId().toString(),
+      link.getBudgetPeriodId().toString(),
+      link.getCategoryId().toString(),
+      link.getLinkedType().getValue(),
+      link.getLinkedId().toString(),
+      link.getBudgetImpactAmount().getAmount().toPlainString(),
+      link.getBudgetImpactAmount().getCurrency()
+    );
+  }
+
   public record CategoryBalanceView(
     String categoryId,
     String availableAmount,
@@ -570,6 +608,27 @@ public final class AndroidCore {
     String feesAmount,
     String taxesAmount,
     String note
+  ) {}
+
+  public record BudgetPeriodView(
+    String id,
+    String budgetPlanId,
+    int year,
+    int month,
+    String incomeTotalAmount,
+    String incomeTotalCurrency,
+    String remainderAmount,
+    String remainderCurrency
+  ) {}
+
+  public record BudgetLinkView(
+    String id,
+    String budgetPeriodId,
+    String categoryId,
+    String linkedType,
+    String linkedId,
+    String budgetImpactAmount,
+    String budgetImpactCurrency
   ) {}
 
   private static void ensureDemoBudgetData(

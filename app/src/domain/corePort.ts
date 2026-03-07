@@ -177,6 +177,39 @@ export type GetInvestmentTransactionsResult = {
   items: InvestmentTransactionItem[];
 };
 
+export type GetBudgetPeriodInput = {
+  periodId: string;
+};
+
+export type GetBudgetPeriodResult = {
+  id: string;
+  budgetPlanId: string;
+  year: number;
+  month: number;
+  incomeTotalAmount: string;
+  incomeTotalCurrency: string;
+  remainderAmount: string;
+  remainderCurrency: string;
+};
+
+export type GetBudgetLinksInput = {
+  periodId: string;
+};
+
+export type BudgetLinkItem = {
+  id: string;
+  budgetPeriodId: string;
+  categoryId: string;
+  linkedType: string;
+  linkedId: string;
+  budgetImpactAmount: string;
+  budgetImpactCurrency: string;
+};
+
+export type GetBudgetLinksResult = {
+  items: BudgetLinkItem[];
+};
+
 export interface CorePort {
   doThing(input: string): Promise<CoreResult>;
   createAccount(input: CreateAccountInput): Promise<CreateAccountResult>;
@@ -193,4 +226,6 @@ export interface CorePort {
   executeInvestment(input: ExecuteInvestmentInput): Promise<ExecuteInvestmentResult>;
   recordInvestmentReturn(input: RecordInvestmentReturnInput): Promise<RecordInvestmentReturnResult>;
   getInvestmentTransactions(input: GetInvestmentTransactionsInput): Promise<GetInvestmentTransactionsResult>;
+  getBudgetPeriod(input: GetBudgetPeriodInput): Promise<GetBudgetPeriodResult>;
+  getBudgetLinks(input: GetBudgetLinksInput): Promise<GetBudgetLinksResult>;
 }
