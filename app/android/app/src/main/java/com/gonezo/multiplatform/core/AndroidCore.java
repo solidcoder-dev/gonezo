@@ -5,11 +5,15 @@ import com.gonezo.application.CreateAccountCommand;
 import com.gonezo.application.CreateAccountUC;
 import com.gonezo.application.PostExpenseCommand;
 import com.gonezo.application.PostExpenseUC;
+import com.gonezo.application.PostTransferCommand;
+import com.gonezo.application.PostTransferUC;
 import com.gonezo.application.services.CreateAccountService;
 import com.gonezo.application.services.BudgetAttributionService;
 import com.gonezo.application.services.CategoryBalanceUpdaterService;
 import com.gonezo.application.services.PostExpenseService;
+import com.gonezo.application.services.PostTransferService;
 import com.gonezo.application.services.ReservationMatchingService;
+import com.gonezo.application.services.TransferBudgetImpactService;
 import com.gonezo.domain.budgeting.services.BudgetLinkService;
 import com.gonezo.domain.budgeting.services.BudgetLinkServiceImpl;
 import com.gonezo.domain.cashledger.AccountType;
@@ -25,6 +29,7 @@ public final class AndroidCore {
 
   private final CreateAccountUC createAccountUC;
   private final PostExpenseUC postExpenseUC;
+  private final PostTransferUC postTransferUC;
 
   private AndroidCore(Context context) {
     CoreDatabase database = new CoreDatabase(context.getApplicationContext());
@@ -53,6 +58,7 @@ public final class AndroidCore {
       budgetReservationRepository,
       recurringPatternRepository
     );
+    TransferBudgetImpactService transferBudgetImpactService = new TransferBudgetImpactService();
     BudgetLinkService budgetLinkService = new BudgetLinkServiceImpl();
 
     this.createAccountUC = new CreateAccountService(accountRepository, eventPublisher);
@@ -67,6 +73,15 @@ public final class AndroidCore {
       budgetLinkRepository,
       budgetAttributionService,
       reservationMatchingService,
+      eventPublisher
+    );
+    this.postTransferUC = new PostTransferService(
+      ledgerPostingService,
+      transactionRepository,
+      transferBudgetImpactService,
+      categoryBalanceUpdaterService,
+      categoryRepository,
+      budgetAttributionService,
       eventPublisher
     );
   }
@@ -124,6 +139,35 @@ public final class AndroidCore {
       resolvedReservationId
     );
     return postExpenseUC.execute(command);
+  }
+
+  public java.util.List<UUID> postTransfer(
+    String fromAccountId,
+    String toAccountId,
+    String postedDate,
+    String effectiveDate,
+    String amount,
+    String currency,
+    String fromCategoryId,
+    String toCategoryId
+  ) {
+    UUID resolvedFromAccountId = UUID.fromString(requireText(fromAccountId, "fromAccountId is required"));
+    UUID resolvedToAccountId = UUID.fromString(requireText(toAccountId, "toAccountId is required"));
+    LocalDate resolvedPostedDate = LocalDate.parse(requireText(postedDate, "postedDate is required"));
+    LocalDate resolvedEffectiveDate = LocalDate.parse(requireText(effectiveDate, "effectiveDate is required"));
+    BigDecimal resolvedAmount = new BigDecimal(requireText(amount, "amount is required"));
+    String resolvedCurrency = requireText(currency, "currency is required").trim();
+
+    PostTransferCommand command = new PostTransferCommand(
+      resolvedFromAccountId,
+      resolvedToAccountId,
+      resolvedPostedDate,
+      resolvedEffectiveDate,
+      new Money(resolvedAmount, resolvedCurrency),
+      parseNullableUuid(fromCategoryId),
+      parseNullableUuid(toCategoryId)
+    );
+    return postTransferUC.execute(command);
   }
 
   private static String requireText(String value, String message) {

@@ -72,4 +72,35 @@ public class CorePlugin extends Plugin {
       call.reject(ex.getMessage());
     }
   }
+
+  @PluginMethod
+  public void postTransfer(PluginCall call) {
+    String fromAccountId = call.getString("fromAccountId");
+    String toAccountId = call.getString("toAccountId");
+    String postedDate = call.getString("postedDate");
+    String effectiveDate = call.getString("effectiveDate");
+    String amount = call.getString("amount");
+    String currency = call.getString("currency");
+    String fromCategoryId = call.getString("fromCategoryId");
+    String toCategoryId = call.getString("toCategoryId");
+
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      java.util.List<java.util.UUID> ids = core.postTransfer(
+        fromAccountId,
+        toAccountId,
+        postedDate,
+        effectiveDate,
+        amount,
+        currency,
+        fromCategoryId,
+        toCategoryId
+      );
+      JSObject result = new JSObject();
+      result.put("ids", new org.json.JSONArray(ids.stream().map(java.util.UUID::toString).toList()));
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
 }

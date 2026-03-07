@@ -5,6 +5,8 @@ import type {
   CreateAccountResult,
   PostExpenseInput,
   PostExpenseResult,
+  PostTransferInput,
+  PostTransferResult,
 } from '../domain/corePort';
 
 export class CoreAdapterWeb implements CorePort {
@@ -23,5 +25,9 @@ export class CoreAdapterWeb implements CorePort {
   async postExpense(_input: PostExpenseInput): Promise<PostExpenseResult> {
     const id = crypto.randomUUID();
     return { id };
+  }
+
+  async postTransfer(_input: PostTransferInput): Promise<PostTransferResult> {
+    return { ids: [crypto.randomUUID(), crypto.randomUUID()] };
   }
 }

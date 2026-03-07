@@ -5,6 +5,8 @@ import type {
   CreateAccountResult,
   PostExpenseInput,
   PostExpenseResult,
+  PostTransferInput,
+  PostTransferResult,
 } from '../domain/corePort';
 import { CoreAdapterWeb } from '../data/coreAdapterWeb';
 import type { CorePlugin } from './corePlugin';
@@ -22,5 +24,9 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async postExpense(options: PostExpenseInput): Promise<PostExpenseResult> {
     return this.core.postExpense(options);
+  }
+
+  async postTransfer(options: PostTransferInput): Promise<PostTransferResult> {
+    return this.core.postTransfer(options);
   }
 }

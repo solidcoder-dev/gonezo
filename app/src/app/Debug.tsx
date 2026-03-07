@@ -11,6 +11,7 @@ export function Debug() {
   const [accountName, setAccountName] = useState('Main account');
   const [accountResult, setAccountResult] = useState('');
   const [expenseResult, setExpenseResult] = useState('');
+  const [transferResult, setTransferResult] = useState('');
 
   async function handleCall() {
     setError('');
@@ -52,6 +53,24 @@ export function Debug() {
     }
   }
 
+  async function handlePostTransfer() {
+    setError('');
+    try {
+      const res = await core.postTransfer({
+        fromAccountId: '11111111-1111-1111-1111-111111111111',
+        toAccountId: '22222222-2222-2222-2222-222222222222',
+        postedDate: '2026-03-07',
+        effectiveDate: '2026-03-07',
+        amount: '5.00',
+        currency: 'USD',
+      });
+      setTransferResult(`transfer created: ${res.ids.join(',')}`);
+    } catch (err) {
+      setTransferResult('');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
   return (
     <section className="card">
       <h1>Debug</h1>
@@ -87,6 +106,12 @@ export function Debug() {
         </button>
       </div>
       {expenseResult ? <pre className="result">{expenseResult}</pre> : null}
+      <div className="row">
+        <button type="button" onClick={handlePostTransfer}>
+          Post transfer
+        </button>
+      </div>
+      {transferResult ? <pre className="result">{transferResult}</pre> : null}
       {error ? <pre className="result error">{error}</pre> : null}
     </section>
   );
