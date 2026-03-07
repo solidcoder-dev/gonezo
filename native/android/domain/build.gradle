@@ -20,6 +20,7 @@ sourceSets {
   main {
     kotlin {
       srcDirs += ['../../../core/domain/src/main/kotlin']
+      srcDirs += ['../../../core/application/src/main/kotlin']
     }
   }
 }
