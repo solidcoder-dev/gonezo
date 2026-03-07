@@ -11,6 +11,8 @@ import com.gonezo.application.PostExpenseCommand;
 import com.gonezo.application.PostExpenseUC;
 import com.gonezo.application.CreatePeriodReservationsCommand;
 import com.gonezo.application.CreatePeriodReservationsUC;
+import com.gonezo.application.SettleReservationFromTxCommand;
+import com.gonezo.application.SettleReservationFromTxUC;
 import com.gonezo.application.PostIncomeCommand;
 import com.gonezo.application.PostIncomeUC;
 import com.gonezo.application.PostTransferCommand;
@@ -27,6 +29,7 @@ import com.gonezo.application.services.PostIncomeService;
 import com.gonezo.application.services.PostTransferService;
 import com.gonezo.application.services.ReservationBalanceService;
 import com.gonezo.application.services.ReservationMatchingService;
+import com.gonezo.application.services.SettleReservationFromTxService;
 import com.gonezo.application.services.TransferBudgetImpactService;
 import com.gonezo.domain.budgeting.BudgetPeriod;
 import com.gonezo.domain.budgeting.BudgetPlan;
@@ -34,6 +37,7 @@ import com.gonezo.domain.budgeting.BudgetPlanPeriod;
 import com.gonezo.domain.budgeting.Category;
 import com.gonezo.domain.budgeting.CategoryType;
 import com.gonezo.domain.budgeting.AllocationRule;
+import com.gonezo.domain.budgeting.BudgetReservation;
 import com.gonezo.domain.budgeting.CategoryBalance;
 import com.gonezo.domain.budgeting.EffectiveDatingPolicy;
 import com.gonezo.domain.budgeting.NegativePolicy;
@@ -66,10 +70,12 @@ public final class AndroidCore {
   private final CreateAccountUC createAccountUC;
   private final CreateBudgetPeriodUC createBudgetPeriodUC;
   private final CreatePeriodReservationsUC createPeriodReservationsUC;
+  private final SettleReservationFromTxUC settleReservationFromTxUC;
   private final AllocateBudgetUC allocateBudgetUC;
   private final PostExpenseUC postExpenseUC;
   private final PostTransferUC postTransferUC;
   private final PostIncomeUC postIncomeUC;
+  private final AndroidBudgetReservationRepository budgetReservationRepository;
   private final AndroidCategoryBalanceRepository categoryBalanceRepository;
 
   private AndroidCore(Context context) {
@@ -106,12 +112,18 @@ public final class AndroidCore {
     );
     TransferBudgetImpactService transferBudgetImpactService = new TransferBudgetImpactService();
     BudgetLinkService budgetLinkService = new BudgetLinkServiceImpl();
+    this.settleReservationFromTxUC = new SettleReservationFromTxService(
+      reservationService,
+      budgetReservationRepository,
+      reservationBalanceService,
+      eventPublisher
+    );
 
     this.createAccountUC = new CreateAccountService(accountRepository, eventPublisher);
     this.postExpenseUC = new PostExpenseService(
       ledgerPostingService,
       transactionRepository,
-      AndroidBudgetingStubs.settleReservationFromTxUC(),
+      settleReservationFromTxUC,
       categoryBalanceUpdaterService,
       categoryRepository,
       budgetPeriodRepository,
@@ -163,6 +175,7 @@ public final class AndroidCore {
       categoryBalanceRepository,
       eventPublisher
     );
+    this.budgetReservationRepository = budgetReservationRepository;
     this.categoryBalanceRepository = categoryBalanceRepository;
 
     ensureDemoBudgetData(
@@ -315,10 +328,23 @@ public final class AndroidCore {
     createPeriodReservationsUC.execute(new CreatePeriodReservationsCommand(resolvedPeriodId));
   }
 
+  public void settleReservation(String reservationId, String transactionId) {
+    UUID resolvedReservationId = UUID.fromString(requireText(reservationId, "reservationId is required"));
+    UUID resolvedTransactionId = UUID.fromString(requireText(transactionId, "transactionId is required"));
+    settleReservationFromTxUC.execute(new SettleReservationFromTxCommand(resolvedReservationId, resolvedTransactionId));
+  }
+
   public java.util.List<CategoryBalanceView> getCategoryBalances(String periodId) {
     UUID resolvedPeriodId = UUID.fromString(requireText(periodId, "periodId is required"));
     return categoryBalanceRepository.listByPeriod(resolvedPeriodId).stream()
       .map(AndroidCore::toBalanceView)
+      .toList();
+  }
+
+  public java.util.List<ReservationView> getPeriodReservations(String periodId) {
+    UUID resolvedPeriodId = UUID.fromString(requireText(periodId, "periodId is required"));
+    return budgetReservationRepository.listActiveByPeriod(resolvedPeriodId).stream()
+      .map(AndroidCore::toReservationView)
       .toList();
   }
 
@@ -358,11 +384,37 @@ public final class AndroidCore {
     );
   }
 
+  private static ReservationView toReservationView(BudgetReservation reservation) {
+    return new ReservationView(
+      reservation.getId().toString(),
+      reservation.getBudgetPeriodId().toString(),
+      reservation.getPatternId().toString(),
+      reservation.getCategoryId().toString(),
+      reservation.getAmount().getAmount().toPlainString(),
+      reservation.getAmount().getCurrency(),
+      reservation.getStatus().getValue(),
+      reservation.getExpectedEffectiveDate().toString(),
+      reservation.getLinkedTransactionId() == null ? null : reservation.getLinkedTransactionId().toString()
+    );
+  }
+
   public record CategoryBalanceView(
     String categoryId,
     String availableAmount,
     String currency,
     String safeToSpendAmount
+  ) {}
+
+  public record ReservationView(
+    String id,
+    String budgetPeriodId,
+    String patternId,
+    String categoryId,
+    String amount,
+    String currency,
+    String status,
+    String expectedEffectiveDate,
+    String linkedTransactionId
   ) {}
 
   private static void ensureDemoBudgetData(

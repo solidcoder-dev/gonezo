@@ -95,6 +95,31 @@ export type CreatePeriodReservationsInput = {
   periodId: string;
 };
 
+export type GetPeriodReservationsInput = {
+  periodId: string;
+};
+
+export type ReservationItem = {
+  id: string;
+  budgetPeriodId: string;
+  patternId: string;
+  categoryId: string;
+  amount: string;
+  currency: string;
+  status: string;
+  expectedEffectiveDate: string;
+  linkedTransactionId?: string;
+};
+
+export type GetPeriodReservationsResult = {
+  items: ReservationItem[];
+};
+
+export type SettleReservationInput = {
+  reservationId: string;
+  transactionId: string;
+};
+
 export interface CorePort {
   doThing(input: string): Promise<CoreResult>;
   createAccount(input: CreateAccountInput): Promise<CreateAccountResult>;
@@ -105,4 +130,6 @@ export interface CorePort {
   allocateBudget(input: AllocateBudgetInput): Promise<void>;
   getCategoryBalances(input: GetCategoryBalancesInput): Promise<GetCategoryBalancesResult>;
   createPeriodReservations(input: CreatePeriodReservationsInput): Promise<void>;
+  getPeriodReservations(input: GetPeriodReservationsInput): Promise<GetPeriodReservationsResult>;
+  settleReservation(input: SettleReservationInput): Promise<void>;
 }

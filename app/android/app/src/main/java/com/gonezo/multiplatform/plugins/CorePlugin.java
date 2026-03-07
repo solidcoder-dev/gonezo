@@ -206,4 +206,49 @@ public class CorePlugin extends Plugin {
       call.reject(ex.getMessage());
     }
   }
+
+  @PluginMethod
+  public void getPeriodReservations(PluginCall call) {
+    String periodId = call.getString("periodId");
+
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      java.util.List<AndroidCore.ReservationView> reservations = core.getPeriodReservations(periodId);
+
+      org.json.JSONArray items = new org.json.JSONArray();
+      for (AndroidCore.ReservationView reservation : reservations) {
+        JSObject item = new JSObject();
+        item.put("id", reservation.id());
+        item.put("budgetPeriodId", reservation.budgetPeriodId());
+        item.put("patternId", reservation.patternId());
+        item.put("categoryId", reservation.categoryId());
+        item.put("amount", reservation.amount());
+        item.put("currency", reservation.currency());
+        item.put("status", reservation.status());
+        item.put("expectedEffectiveDate", reservation.expectedEffectiveDate());
+        item.put("linkedTransactionId", reservation.linkedTransactionId());
+        items.put(item);
+      }
+
+      JSObject result = new JSObject();
+      result.put("items", items);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void settleReservation(PluginCall call) {
+    String reservationId = call.getString("reservationId");
+    String transactionId = call.getString("transactionId");
+
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      core.settleReservation(reservationId, transactionId);
+      call.resolve();
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
 }

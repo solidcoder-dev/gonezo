@@ -5,6 +5,9 @@ import type {
   AllocateBudgetInput,
   GetCategoryBalancesInput,
   GetCategoryBalancesResult,
+  GetPeriodReservationsInput,
+  GetPeriodReservationsResult,
+  SettleReservationInput,
   CreatePeriodReservationsInput,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
@@ -95,5 +98,22 @@ export class CoreAdapter implements CorePort {
     }
 
     await this.web.createPeriodReservations(input);
+  }
+
+  async getPeriodReservations(input: GetPeriodReservationsInput): Promise<GetPeriodReservationsResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.getPeriodReservations(input);
+    }
+
+    return this.web.getPeriodReservations(input);
+  }
+
+  async settleReservation(input: SettleReservationInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.settleReservation(input);
+      return;
+    }
+
+    await this.web.settleReservation(input);
   }
 }

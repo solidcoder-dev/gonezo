@@ -4,6 +4,9 @@ import type {
   AllocateBudgetInput,
   GetCategoryBalancesInput,
   GetCategoryBalancesResult,
+  GetPeriodReservationsInput,
+  GetPeriodReservationsResult,
+  SettleReservationInput,
   CreatePeriodReservationsInput,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
@@ -58,6 +61,14 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async createPeriodReservations(_input: CreatePeriodReservationsInput): Promise<void> {
+    return;
+  }
+
+  async getPeriodReservations(_input: GetPeriodReservationsInput): Promise<GetPeriodReservationsResult> {
+    return { items: [] };
+  }
+
+  async settleReservation(_input: SettleReservationInput): Promise<void> {
     return;
   }
 }

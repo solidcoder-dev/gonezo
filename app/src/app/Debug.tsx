@@ -17,6 +17,7 @@ export function Debug() {
   const [allocateResult, setAllocateResult] = useState('');
   const [balancesResult, setBalancesResult] = useState('');
   const [reservationResult, setReservationResult] = useState('');
+  const [reservationsResult, setReservationsResult] = useState('');
 
   async function handleCall() {
     setError('');
@@ -150,6 +151,41 @@ export function Debug() {
     }
   }
 
+  async function handleGetPeriodReservations() {
+    setError('');
+    try {
+      const res = await core.getPeriodReservations({
+        periodId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+      });
+      setReservationsResult(JSON.stringify(res.items, null, 2));
+    } catch (err) {
+      setReservationsResult('');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
+  async function handleSettleFirstReservation() {
+    setError('');
+    try {
+      const res = await core.getPeriodReservations({
+        periodId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+      });
+      const first = res.items[0];
+      if (!first) {
+        setReservationResult('no reservation to settle');
+        return;
+      }
+      await core.settleReservation({
+        reservationId: first.id,
+        transactionId: crypto.randomUUID(),
+      });
+      setReservationResult(`reservation settled: ${first.id}`);
+    } catch (err) {
+      setReservationResult('');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
   return (
     <section className="card">
       <h1>Debug</h1>
@@ -221,6 +257,17 @@ export function Debug() {
         </button>
       </div>
       {reservationResult ? <pre className="result">{reservationResult}</pre> : null}
+      <div className="row">
+        <button type="button" onClick={handleGetPeriodReservations}>
+          Get period reservations
+        </button>
+      </div>
+      {reservationsResult ? <pre className="result">{reservationsResult}</pre> : null}
+      <div className="row">
+        <button type="button" onClick={handleSettleFirstReservation}>
+          Settle first reservation
+        </button>
+      </div>
       {error ? <pre className="result error">{error}</pre> : null}
     </section>
   );
