@@ -4,9 +4,9 @@ Run this checklist after each migration step.
 
 ## Build and tests
 
-1. `cd app && npm run build`
-2. `cd app/android && ./gradlew :app:assembleDebug`
-3. `cd app/android && ./gradlew :domain:test`
+1. `cd core && ./gradlew checkLayerBoundaries test`
+2. `cd app && npm run build`
+3. `cd app/android && ./gradlew :infrastructure:test :app:assembleDebug`
 
 ## Runtime flows (Android emulator)
 
