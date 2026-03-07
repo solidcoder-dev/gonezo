@@ -7,6 +7,8 @@ import type {
   GetPeriodReservationsResult,
   SettleReservationInput,
   ClosePeriodInput,
+  ExecuteInvestmentInput,
+  ExecuteInvestmentResult,
   CreatePeriodReservationsInput,
   CoreResult,
   CreateBudgetPeriodInput,
@@ -34,6 +36,7 @@ export interface CorePlugin {
   getPeriodReservations(options: GetPeriodReservationsInput): Promise<GetPeriodReservationsResult>;
   settleReservation(options: SettleReservationInput): Promise<void>;
   closePeriod(options: ClosePeriodInput): Promise<void>;
+  executeInvestment(options: ExecuteInvestmentInput): Promise<ExecuteInvestmentResult>;
 }
 
 export const CorePlugin = registerPlugin<CorePlugin>('CorePlugin', {

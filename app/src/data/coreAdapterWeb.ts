@@ -8,6 +8,8 @@ import type {
   GetPeriodReservationsResult,
   SettleReservationInput,
   ClosePeriodInput,
+  ExecuteInvestmentInput,
+  ExecuteInvestmentResult,
   CreatePeriodReservationsInput,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
@@ -75,5 +77,9 @@ export class CoreAdapterWeb implements CorePort {
 
   async closePeriod(_input: ClosePeriodInput): Promise<void> {
     return;
+  }
+
+  async executeInvestment(_input: ExecuteInvestmentInput): Promise<ExecuteInvestmentResult> {
+    return { id: crypto.randomUUID() };
   }
 }

@@ -7,6 +7,8 @@ import type {
   GetPeriodReservationsResult,
   SettleReservationInput,
   ClosePeriodInput,
+  ExecuteInvestmentInput,
+  ExecuteInvestmentResult,
   CreatePeriodReservationsInput,
   CoreResult,
   CreateBudgetPeriodInput,
@@ -72,5 +74,9 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async closePeriod(options: ClosePeriodInput): Promise<void> {
     return this.core.closePeriod(options);
+  }
+
+  async executeInvestment(options: ExecuteInvestmentInput): Promise<ExecuteInvestmentResult> {
+    return this.core.executeInvestment(options);
   }
 }

@@ -264,4 +264,43 @@ public class CorePlugin extends Plugin {
       call.reject(ex.getMessage());
     }
   }
+
+  @PluginMethod
+  public void executeInvestment(PluginCall call) {
+    String containerId = call.getString("containerId");
+    String date = call.getString("date");
+    String type = call.getString("type");
+    String assetId = call.getString("assetId");
+    String quantity = call.getString("quantity");
+    String amount = call.getString("amount");
+    String currency = call.getString("currency");
+    String feesAmount = call.getString("feesAmount");
+    String taxesAmount = call.getString("taxesAmount");
+    String note = call.getString("note");
+    String budgetPeriodId = call.getString("budgetPeriodId");
+    String categoryId = call.getString("categoryId");
+
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      String id = core.executeInvestment(
+        containerId,
+        date,
+        type,
+        assetId,
+        quantity,
+        amount,
+        currency,
+        feesAmount,
+        taxesAmount,
+        note,
+        budgetPeriodId,
+        categoryId
+      ).toString();
+      JSObject result = new JSObject();
+      result.put("id", id);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
 }

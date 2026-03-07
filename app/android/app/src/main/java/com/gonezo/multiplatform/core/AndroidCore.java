@@ -13,6 +13,8 @@ import com.gonezo.application.CreatePeriodReservationsCommand;
 import com.gonezo.application.CreatePeriodReservationsUC;
 import com.gonezo.application.ClosePeriodCommand;
 import com.gonezo.application.ClosePeriodUC;
+import com.gonezo.application.ExecuteInvestmentCommand;
+import com.gonezo.application.ExecuteInvestmentUC;
 import com.gonezo.application.SettleReservationFromTxCommand;
 import com.gonezo.application.SettleReservationFromTxUC;
 import com.gonezo.application.PostIncomeCommand;
@@ -21,12 +23,14 @@ import com.gonezo.application.PostTransferCommand;
 import com.gonezo.application.PostTransferUC;
 import com.gonezo.application.services.CreateAccountService;
 import com.gonezo.application.services.BudgetAttributionService;
+import com.gonezo.application.services.BudgetLinkImpactService;
 import com.gonezo.application.services.BudgetPeriodTotalsService;
 import com.gonezo.application.services.CategoryBalanceUpdaterService;
 import com.gonezo.application.services.AllocateBudgetService;
 import com.gonezo.application.services.ClosePeriodService;
 import com.gonezo.application.services.CreateBudgetPeriodService;
 import com.gonezo.application.services.CreatePeriodReservationsService;
+import com.gonezo.application.services.ExecuteInvestmentService;
 import com.gonezo.application.services.PostExpenseService;
 import com.gonezo.application.services.PostIncomeService;
 import com.gonezo.application.services.PostTransferService;
@@ -59,6 +63,11 @@ import com.gonezo.domain.budgeting.services.ReservationServiceImpl;
 import com.gonezo.domain.cashledger.AccountType;
 import com.gonezo.domain.cashledger.services.LedgerPostingService;
 import com.gonezo.domain.cashledger.services.LedgerPostingServiceImpl;
+import com.gonezo.domain.investments.Asset;
+import com.gonezo.domain.investments.FinancialContainer;
+import com.gonezo.domain.investments.InvestmentTransactionType;
+import com.gonezo.domain.investments.services.InvestmentExecutionService;
+import com.gonezo.domain.investments.services.InvestmentExecutionServiceImpl;
 import com.gonezo.domain.shared.Money;
 import com.gonezo.domain.shared.Percent;
 import com.gonezo.domain.shared.YearMonth;
@@ -77,6 +86,7 @@ public final class AndroidCore {
   private final CreatePeriodReservationsUC createPeriodReservationsUC;
   private final SettleReservationFromTxUC settleReservationFromTxUC;
   private final ClosePeriodUC closePeriodUC;
+  private final ExecuteInvestmentUC executeInvestmentUC;
   private final AllocateBudgetUC allocateBudgetUC;
   private final PostExpenseUC postExpenseUC;
   private final PostTransferUC postTransferUC;
@@ -94,12 +104,16 @@ public final class AndroidCore {
     AndroidAllocationRuleRepository allocationRuleRepository = new AndroidAllocationRuleRepository(database);
     AndroidCategoryBalanceRepository categoryBalanceRepository = new AndroidCategoryBalanceRepository(database);
     AndroidBudgetLinkRepository budgetLinkRepository = new AndroidBudgetLinkRepository(database);
+    AndroidFinancialContainerRepository financialContainerRepository = new AndroidFinancialContainerRepository(database);
+    AndroidAssetRepository assetRepository = new AndroidAssetRepository(database);
+    AndroidInvestmentTransactionRepository investmentTransactionRepository = new AndroidInvestmentTransactionRepository(database);
     AndroidRecurringPatternRepository recurringPatternRepository = new AndroidRecurringPatternRepository(database);
     AndroidBudgetReservationRepository budgetReservationRepository = new AndroidBudgetReservationRepository(database);
     NoopDomainEventPublisher eventPublisher = new NoopDomainEventPublisher();
     LedgerPostingService ledgerPostingService = new LedgerPostingServiceImpl();
     BudgetAllocatorService budgetAllocatorService = new BudgetAllocatorServiceImpl(budgetPlanRepository);
     PeriodClosingService periodClosingService = new PeriodClosingServiceImpl(recurringPatternRepository);
+    InvestmentExecutionService investmentExecutionService = new InvestmentExecutionServiceImpl();
     ReservationService reservationService = new ReservationServiceImpl();
 
     CategoryBalanceUpdaterService categoryBalanceUpdaterService = new CategoryBalanceUpdaterService(
@@ -180,6 +194,17 @@ public final class AndroidCore {
       reservationBalanceService,
       eventPublisher
     );
+    this.executeInvestmentUC = new ExecuteInvestmentService(
+      investmentExecutionService,
+      investmentTransactionRepository,
+      financialContainerRepository,
+      new BudgetLinkImpactService(
+        budgetLinkService,
+        budgetLinkRepository,
+        categoryBalanceUpdaterService
+      ),
+      eventPublisher
+    );
     this.allocateBudgetUC = new AllocateBudgetService(
       budgetAllocatorService,
       allocationRuleRepository,
@@ -196,7 +221,9 @@ public final class AndroidCore {
       budgetPeriodRepository,
       categoryRepository,
       allocationRuleRepository,
-      recurringPatternRepository
+      recurringPatternRepository,
+      financialContainerRepository,
+      assetRepository
     );
   }
 
@@ -352,6 +379,42 @@ public final class AndroidCore {
     closePeriodUC.execute(new ClosePeriodCommand(resolvedPeriodId));
   }
 
+  public UUID executeInvestment(
+    String containerId,
+    String date,
+    String type,
+    String assetId,
+    String quantity,
+    String amount,
+    String currency,
+    String feesAmount,
+    String taxesAmount,
+    String note,
+    String budgetPeriodId,
+    String categoryId
+  ) {
+    UUID resolvedContainerId = UUID.fromString(requireText(containerId, "containerId is required"));
+    LocalDate resolvedDate = LocalDate.parse(requireText(date, "date is required"));
+    InvestmentTransactionType resolvedType = InvestmentTransactionType.Companion.from(requireText(type, "type is required"));
+    BigDecimal resolvedAmount = new BigDecimal(requireText(amount, "amount is required"));
+    String resolvedCurrency = requireText(currency, "currency is required");
+
+    ExecuteInvestmentCommand command = new ExecuteInvestmentCommand(
+      resolvedContainerId,
+      resolvedDate,
+      resolvedType,
+      parseNullableUuid(assetId),
+      parseNullableDecimal(quantity),
+      new Money(resolvedAmount, resolvedCurrency),
+      parseNullableDecimal(feesAmount) == null ? null : new Money(parseNullableDecimal(feesAmount), resolvedCurrency),
+      parseNullableDecimal(taxesAmount) == null ? null : new Money(parseNullableDecimal(taxesAmount), resolvedCurrency),
+      blankToNull(note),
+      parseNullableUuid(budgetPeriodId),
+      parseNullableUuid(categoryId)
+    );
+    return executeInvestmentUC.execute(command);
+  }
+
   public java.util.List<CategoryBalanceView> getCategoryBalances(String periodId) {
     UUID resolvedPeriodId = UUID.fromString(requireText(periodId, "periodId is required"));
     return categoryBalanceRepository.listByPeriod(resolvedPeriodId).stream()
@@ -391,6 +454,11 @@ public final class AndroidCore {
       throw new IllegalArgumentException(message);
     }
     return value;
+  }
+
+  private static BigDecimal parseNullableDecimal(String value) {
+    String normalized = blankToNull(value);
+    return normalized == null ? null : new BigDecimal(normalized);
   }
 
   private static CategoryBalanceView toBalanceView(CategoryBalance balance) {
@@ -440,7 +508,9 @@ public final class AndroidCore {
     AndroidBudgetPeriodRepository budgetPeriodRepository,
     AndroidCategoryRepository categoryRepository,
     AndroidAllocationRuleRepository allocationRuleRepository,
-    AndroidRecurringPatternRepository recurringPatternRepository
+    AndroidRecurringPatternRepository recurringPatternRepository,
+    AndroidFinancialContainerRepository financialContainerRepository,
+    AndroidAssetRepository assetRepository
   ) {
     try {
       budgetPlanRepository.get(DEMO_BUDGET_PLAN_ID);
@@ -536,6 +606,35 @@ public final class AndroidCore {
           null,
           ProrationType.NONE,
           true
+        )
+      );
+    }
+
+    UUID demoContainerId = UUID.fromString("99999999-9999-9999-9999-999999999999");
+    try {
+      financialContainerRepository.get(demoContainerId);
+    } catch (IllegalStateException ignored) {
+      financialContainerRepository.save(
+        new FinancialContainer(
+          demoContainerId,
+          UUID.fromString("00000000-0000-0000-0000-000000000001"),
+          "Debug Broker",
+          "broker",
+          "USD"
+        )
+      );
+    }
+
+    UUID demoAssetId = UUID.fromString("88888888-8888-8888-8888-888888888888");
+    try {
+      assetRepository.get(demoAssetId);
+    } catch (IllegalStateException ignored) {
+      assetRepository.save(
+        new Asset(
+          demoAssetId,
+          "DEBUG",
+          "stock",
+          "USD"
         )
       );
     }

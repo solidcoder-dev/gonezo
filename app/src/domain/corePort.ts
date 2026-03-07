@@ -124,6 +124,25 @@ export type ClosePeriodInput = {
   periodId: string;
 };
 
+export type ExecuteInvestmentInput = {
+  containerId: string;
+  date: string;
+  type: string;
+  assetId?: string;
+  quantity?: string;
+  amount: string;
+  currency: string;
+  feesAmount?: string;
+  taxesAmount?: string;
+  note?: string;
+  budgetPeriodId?: string;
+  categoryId?: string;
+};
+
+export type ExecuteInvestmentResult = {
+  id: string;
+};
+
 export interface CorePort {
   doThing(input: string): Promise<CoreResult>;
   createAccount(input: CreateAccountInput): Promise<CreateAccountResult>;
@@ -137,4 +156,5 @@ export interface CorePort {
   getPeriodReservations(input: GetPeriodReservationsInput): Promise<GetPeriodReservationsResult>;
   settleReservation(input: SettleReservationInput): Promise<void>;
   closePeriod(input: ClosePeriodInput): Promise<void>;
+  executeInvestment(input: ExecuteInvestmentInput): Promise<ExecuteInvestmentResult>;
 }

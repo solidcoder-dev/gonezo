@@ -19,6 +19,7 @@ export function Debug() {
   const [reservationResult, setReservationResult] = useState('');
   const [reservationsResult, setReservationsResult] = useState('');
   const [closePeriodResult, setClosePeriodResult] = useState('');
+  const [investmentResult, setInvestmentResult] = useState('');
 
   async function handleCall() {
     setError('');
@@ -201,6 +202,30 @@ export function Debug() {
     }
   }
 
+  async function handleExecuteInvestment() {
+    setError('');
+    try {
+      const res = await core.executeInvestment({
+        containerId: '99999999-9999-9999-9999-999999999999',
+        date: '2026-03-07',
+        type: 'buy',
+        assetId: '88888888-8888-8888-8888-888888888888',
+        quantity: '1.0',
+        amount: '100.00',
+        currency: 'USD',
+        feesAmount: '1.00',
+        taxesAmount: '0.50',
+        note: 'Debug investment',
+        budgetPeriodId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        categoryId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+      });
+      setInvestmentResult(`investment executed: ${res.id}`);
+    } catch (err) {
+      setInvestmentResult('');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
   return (
     <section className="card">
       <h1>Debug</h1>
@@ -289,6 +314,12 @@ export function Debug() {
         </button>
       </div>
       {closePeriodResult ? <pre className="result">{closePeriodResult}</pre> : null}
+      <div className="row">
+        <button type="button" onClick={handleExecuteInvestment}>
+          Execute investment
+        </button>
+      </div>
+      {investmentResult ? <pre className="result">{investmentResult}</pre> : null}
       {error ? <pre className="result error">{error}</pre> : null}
     </section>
   );
