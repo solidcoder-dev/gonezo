@@ -412,4 +412,75 @@ public class CorePlugin extends Plugin {
       call.reject(ex.getMessage());
     }
   }
+
+  @PluginMethod
+  public void listAccounts(PluginCall call) {
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      java.util.List<AndroidCore.AccountView> accounts = core.listAccounts();
+
+      org.json.JSONArray items = new org.json.JSONArray();
+      for (AndroidCore.AccountView account : accounts) {
+        JSObject item = new JSObject();
+        item.put("id", account.id());
+        item.put("name", account.name());
+        item.put("type", account.type());
+        item.put("currency", account.currency());
+        items.put(item);
+      }
+
+      JSObject result = new JSObject();
+      result.put("items", items);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void getAccountSummary(PluginCall call) {
+    String accountId = call.getString("accountId");
+
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      AndroidCore.AccountSummaryView summary = core.getAccountSummary(accountId);
+      JSObject result = new JSObject();
+      result.put("accountId", summary.accountId());
+      result.put("name", summary.name());
+      result.put("type", summary.type());
+      result.put("currency", summary.currency());
+      result.put("netAmount", summary.netAmount());
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void listExpenses(PluginCall call) {
+    String accountId = call.getString("accountId");
+    Integer limit = call.getInt("limit");
+
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      java.util.List<AndroidCore.ExpenseView> expenses = core.listExpenses(accountId, limit);
+
+      org.json.JSONArray items = new org.json.JSONArray();
+      for (AndroidCore.ExpenseView expense : expenses) {
+        JSObject item = new JSObject();
+        item.put("id", expense.id());
+        item.put("postedDate", expense.postedDate());
+        item.put("merchant", expense.merchant());
+        item.put("amount", expense.amount());
+        item.put("currency", expense.currency());
+        items.put(item);
+      }
+
+      JSObject result = new JSObject();
+      result.put("items", items);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
 }
