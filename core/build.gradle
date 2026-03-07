@@ -6,3 +6,35 @@ allprojects {
     mavenCentral()
   }
 }
+
+tasks.register('checkLayerBoundaries') {
+  group = 'verification'
+  description = 'Fails when forbidden framework/platform imports leak into inner layers.'
+
+  doLast {
+    def domainForbidden = [
+      ~/org\.springframework\./,
+      ~/com\.getcapacitor\./,
+      ~/android\./
+    ]
+    def applicationForbidden = [
+      ~/org\.springframework\./,
+      ~/com\.getcapacitor\./,
+      ~/android\./
+    ]
+
+    def checkForbidden = { String layer, FileTree files, List patterns ->
+      files.each { file ->
+        def text = file.getText('UTF-8')
+        patterns.each { pattern ->
+          if (text =~ pattern) {
+            throw new GradleException("Forbidden dependency in ${layer}: ${file} matches ${pattern}")
+          }
+        }
+      }
+    }
+
+    checkForbidden('core/domain', fileTree('domain/src/main/kotlin') { include '**/*.kt' }, domainForbidden)
+    checkForbidden('core/application', fileTree('application/src/main/kotlin') { include '**/*.kt' }, applicationForbidden)
+  }
+}
