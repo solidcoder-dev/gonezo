@@ -2,6 +2,10 @@ include ':app'
 include ':capacitor-cordova-android-plugins'
 project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
 include ':domain'
-project(':domain').projectDir = new File('../../native/android/domain')
+project(':domain').projectDir = new File('../../core/domain')
+include ':application'
+project(':application').projectDir = new File('../../core/application')
+include ':infrastructure'
+project(':infrastructure').projectDir = new File('../../core/infrastructure')
 
 apply from: 'capacitor.settings.gradle'

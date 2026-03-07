@@ -1,32 +1,8 @@
-plugins {
-  id 'org.jetbrains.kotlin.jvm' version '2.3.0' apply false
-}
-
 allprojects {
   group = 'com.gonezo'
   version = '0.1.0-SNAPSHOT'
 
   repositories {
     mavenCentral()
-  }
-}
-
-subprojects {
-  apply plugin: 'org.jetbrains.kotlin.jvm'
-
-  java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
-  }
-
-  kotlin {
-    compilerOptions {
-      jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
-      freeCompilerArgs.addAll(['-Xjsr305=strict'])
-    }
-  }
-
-  tasks.withType(Test).configureEach {
-    useJUnitPlatform()
   }
 }
