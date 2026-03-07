@@ -45,9 +45,26 @@ export type PostTransferResult = {
   ids: string[];
 };
 
+export type PostIncomeInput = {
+  budgetPlanId: string;
+  accountId: string;
+  postedDate: string;
+  effectiveDate: string;
+  amount: string;
+  currency: string;
+  merchant?: string;
+  categoryId?: string;
+  recurring?: boolean;
+};
+
+export type PostIncomeResult = {
+  id: string;
+};
+
 export interface CorePort {
   doThing(input: string): Promise<CoreResult>;
   createAccount(input: CreateAccountInput): Promise<CreateAccountResult>;
   postExpense(input: PostExpenseInput): Promise<PostExpenseResult>;
   postTransfer(input: PostTransferInput): Promise<PostTransferResult>;
+  postIncome(input: PostIncomeInput): Promise<PostIncomeResult>;
 }

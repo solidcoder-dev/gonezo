@@ -6,6 +6,8 @@ import type {
   CreateAccountResult,
   PostExpenseInput,
   PostExpenseResult,
+  PostIncomeInput,
+  PostIncomeResult,
   PostTransferInput,
   PostTransferResult,
 } from '../domain/corePort';
@@ -45,5 +47,13 @@ export class CoreAdapter implements CorePort {
     }
 
     return this.web.postTransfer(input);
+  }
+
+  async postIncome(input: PostIncomeInput): Promise<PostIncomeResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.postIncome(input);
+    }
+
+    return this.web.postIncome(input);
   }
 }

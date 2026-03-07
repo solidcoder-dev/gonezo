@@ -5,42 +5,57 @@ import com.gonezo.application.CreateAccountCommand;
 import com.gonezo.application.CreateAccountUC;
 import com.gonezo.application.PostExpenseCommand;
 import com.gonezo.application.PostExpenseUC;
+import com.gonezo.application.PostIncomeCommand;
+import com.gonezo.application.PostIncomeUC;
 import com.gonezo.application.PostTransferCommand;
 import com.gonezo.application.PostTransferUC;
 import com.gonezo.application.services.CreateAccountService;
 import com.gonezo.application.services.BudgetAttributionService;
+import com.gonezo.application.services.BudgetPeriodTotalsService;
 import com.gonezo.application.services.CategoryBalanceUpdaterService;
 import com.gonezo.application.services.PostExpenseService;
+import com.gonezo.application.services.PostIncomeService;
 import com.gonezo.application.services.PostTransferService;
 import com.gonezo.application.services.ReservationMatchingService;
 import com.gonezo.application.services.TransferBudgetImpactService;
+import com.gonezo.domain.budgeting.BudgetPeriod;
+import com.gonezo.domain.budgeting.BudgetPlan;
+import com.gonezo.domain.budgeting.BudgetPlanPeriod;
+import com.gonezo.domain.budgeting.EffectiveDatingPolicy;
+import com.gonezo.domain.budgeting.NegativePolicy;
+import com.gonezo.domain.budgeting.ReservationPolicy;
 import com.gonezo.domain.budgeting.services.BudgetLinkService;
 import com.gonezo.domain.budgeting.services.BudgetLinkServiceImpl;
 import com.gonezo.domain.cashledger.AccountType;
 import com.gonezo.domain.cashledger.services.LedgerPostingService;
 import com.gonezo.domain.cashledger.services.LedgerPostingServiceImpl;
 import com.gonezo.domain.shared.Money;
+import com.gonezo.domain.shared.YearMonth;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
 public final class AndroidCore {
+  public static final UUID DEMO_BUDGET_PLAN_ID = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+  private static final UUID DEMO_BUDGET_PERIOD_ID = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+
   private static AndroidCore instance;
 
   private final CreateAccountUC createAccountUC;
   private final PostExpenseUC postExpenseUC;
   private final PostTransferUC postTransferUC;
+  private final PostIncomeUC postIncomeUC;
 
   private AndroidCore(Context context) {
     CoreDatabase database = new CoreDatabase(context.getApplicationContext());
     AndroidAccountRepository accountRepository = new AndroidAccountRepository(database);
     AndroidTransactionRepository transactionRepository = new AndroidTransactionRepository(database);
+    AndroidBudgetPlanRepository budgetPlanRepository = new AndroidBudgetPlanRepository(database);
+    AndroidBudgetPeriodRepository budgetPeriodRepository = new AndroidBudgetPeriodRepository(database);
     NoopDomainEventPublisher eventPublisher = new NoopDomainEventPublisher();
     LedgerPostingService ledgerPostingService = new LedgerPostingServiceImpl();
 
     var categoryRepository = AndroidBudgetingStubs.categoryRepository();
-    var budgetPlanRepository = AndroidBudgetingStubs.budgetPlanRepository();
-    var budgetPeriodRepository = AndroidBudgetingStubs.budgetPeriodRepository();
     var categoryBalanceRepository = AndroidBudgetingStubs.categoryBalanceRepository();
     var budgetLinkRepository = AndroidBudgetingStubs.budgetLinkRepository();
     var budgetReservationRepository = AndroidBudgetingStubs.budgetReservationRepository();
@@ -53,6 +68,7 @@ public final class AndroidCore {
       categoryBalanceRepository
     );
     BudgetAttributionService budgetAttributionService = new BudgetAttributionService(budgetPlanRepository);
+    BudgetPeriodTotalsService budgetPeriodTotalsService = new BudgetPeriodTotalsService(budgetPeriodRepository);
     ReservationMatchingService reservationMatchingService = new ReservationMatchingService(
       budgetPeriodRepository,
       budgetReservationRepository,
@@ -84,6 +100,19 @@ public final class AndroidCore {
       budgetAttributionService,
       eventPublisher
     );
+    this.postIncomeUC = new PostIncomeService(
+      ledgerPostingService,
+      transactionRepository,
+      categoryBalanceUpdaterService,
+      budgetPeriodTotalsService,
+      budgetPeriodRepository,
+      budgetLinkService,
+      budgetLinkRepository,
+      budgetAttributionService,
+      eventPublisher
+    );
+
+    ensureDemoBudgetData(budgetPlanRepository, budgetPeriodRepository);
   }
 
   public static synchronized AndroidCore getInstance(Context context) {
@@ -170,6 +199,38 @@ public final class AndroidCore {
     return postTransferUC.execute(command);
   }
 
+  public UUID postIncome(
+    String budgetPlanId,
+    String accountId,
+    String postedDate,
+    String effectiveDate,
+    String amount,
+    String currency,
+    String merchant,
+    String categoryId,
+    Boolean recurring
+  ) {
+    UUID resolvedBudgetPlanId = UUID.fromString(requireText(budgetPlanId, "budgetPlanId is required"));
+    UUID resolvedAccountId = UUID.fromString(requireText(accountId, "accountId is required"));
+    LocalDate resolvedPostedDate = LocalDate.parse(requireText(postedDate, "postedDate is required"));
+    LocalDate resolvedEffectiveDate = LocalDate.parse(requireText(effectiveDate, "effectiveDate is required"));
+    BigDecimal resolvedAmount = new BigDecimal(requireText(amount, "amount is required"));
+    String resolvedCurrency = requireText(currency, "currency is required").trim();
+    boolean resolvedRecurring = recurring != null && recurring;
+
+    PostIncomeCommand command = new PostIncomeCommand(
+      resolvedBudgetPlanId,
+      resolvedAccountId,
+      resolvedPostedDate,
+      resolvedEffectiveDate,
+      new Money(resolvedAmount, resolvedCurrency),
+      blankToNull(merchant),
+      parseNullableUuid(categoryId),
+      resolvedRecurring
+    );
+    return postIncomeUC.execute(command);
+  }
+
   private static String requireText(String value, String message) {
     if (value == null || value.trim().isEmpty()) {
       throw new IllegalArgumentException(message);
@@ -188,5 +249,38 @@ public final class AndroidCore {
   private static UUID parseNullableUuid(String value) {
     String normalized = blankToNull(value);
     return normalized == null ? null : UUID.fromString(normalized);
+  }
+
+  private static void ensureDemoBudgetData(
+    AndroidBudgetPlanRepository budgetPlanRepository,
+    AndroidBudgetPeriodRepository budgetPeriodRepository
+  ) {
+    try {
+      budgetPlanRepository.get(DEMO_BUDGET_PLAN_ID);
+    } catch (IllegalStateException ignored) {
+      BudgetPlan demoPlan = new BudgetPlan(
+        DEMO_BUDGET_PLAN_ID,
+        UUID.fromString("00000000-0000-0000-0000-000000000001"),
+        BudgetPlanPeriod.MONTHLY,
+        NegativePolicy.ALLOW_WITH_MAX_DEBT,
+        ReservationPolicy.MANUAL,
+        EffectiveDatingPolicy.USE_EFFECTIVE_DATE
+      );
+      budgetPlanRepository.save(demoPlan);
+    }
+
+    try {
+      budgetPeriodRepository.getByYearMonth(DEMO_BUDGET_PLAN_ID, new YearMonth(2026, 3));
+    } catch (IllegalStateException ignored) {
+      Money zeroUsd = new Money(BigDecimal.ZERO, "USD");
+      BudgetPeriod demoPeriod = new BudgetPeriod(
+        DEMO_BUDGET_PERIOD_ID,
+        DEMO_BUDGET_PLAN_ID,
+        new YearMonth(2026, 3),
+        zeroUsd,
+        zeroUsd
+      );
+      budgetPeriodRepository.save(demoPeriod);
+    }
   }
 }

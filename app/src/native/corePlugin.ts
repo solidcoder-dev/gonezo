@@ -5,6 +5,8 @@ import type {
   CreateAccountResult,
   PostExpenseInput,
   PostExpenseResult,
+  PostIncomeInput,
+  PostIncomeResult,
   PostTransferInput,
   PostTransferResult,
 } from '../domain/corePort';
@@ -14,6 +16,7 @@ export interface CorePlugin {
   createAccount(options: CreateAccountInput): Promise<CreateAccountResult>;
   postExpense(options: PostExpenseInput): Promise<PostExpenseResult>;
   postTransfer(options: PostTransferInput): Promise<PostTransferResult>;
+  postIncome(options: PostIncomeInput): Promise<PostIncomeResult>;
 }
 
 export const CorePlugin = registerPlugin<CorePlugin>('CorePlugin', {

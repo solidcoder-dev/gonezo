@@ -12,6 +12,7 @@ export function Debug() {
   const [accountResult, setAccountResult] = useState('');
   const [expenseResult, setExpenseResult] = useState('');
   const [transferResult, setTransferResult] = useState('');
+  const [incomeResult, setIncomeResult] = useState('');
 
   async function handleCall() {
     setError('');
@@ -71,6 +72,25 @@ export function Debug() {
     }
   }
 
+  async function handlePostIncome() {
+    setError('');
+    try {
+      const res = await core.postIncome({
+        budgetPlanId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        accountId: '11111111-1111-1111-1111-111111111111',
+        postedDate: '2026-03-07',
+        effectiveDate: '2026-03-07',
+        amount: '100.00',
+        currency: 'USD',
+        merchant: 'Debug Payroll',
+      });
+      setIncomeResult(`income created: ${res.id}`);
+    } catch (err) {
+      setIncomeResult('');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
   return (
     <section className="card">
       <h1>Debug</h1>
@@ -112,6 +132,12 @@ export function Debug() {
         </button>
       </div>
       {transferResult ? <pre className="result">{transferResult}</pre> : null}
+      <div className="row">
+        <button type="button" onClick={handlePostIncome}>
+          Post income
+        </button>
+      </div>
+      {incomeResult ? <pre className="result">{incomeResult}</pre> : null}
       {error ? <pre className="result error">{error}</pre> : null}
     </section>
   );

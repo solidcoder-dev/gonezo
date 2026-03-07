@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
-  private static final int DB_VERSION = 2;
+  private static final int DB_VERSION = 3;
 
   CoreDatabase(Context context) {
     super(context, DB_NAME, null, DB_VERSION);
@@ -49,6 +49,29 @@ final class CoreDatabase extends SQLiteOpenHelper {
         "merchant text," +
         "category_id text," +
         "recurring integer not null" +
+      ");"
+    );
+    db.execSQL(
+      "create table if not exists budget_plans (" +
+        "id text primary key," +
+        "user_id text not null," +
+        "period text not null," +
+        "negative_policy text not null," +
+        "reservation_policy text not null," +
+        "effective_dating_policy text not null" +
+      ");"
+    );
+    db.execSQL(
+      "create table if not exists budget_periods (" +
+        "id text primary key," +
+        "budget_plan_id text not null," +
+        "year integer not null," +
+        "month integer not null," +
+        "income_total_amount text not null," +
+        "income_total_currency text not null," +
+        "remainder_amount text not null," +
+        "remainder_currency text not null," +
+        "unique (budget_plan_id, year, month)" +
       ");"
     );
   }

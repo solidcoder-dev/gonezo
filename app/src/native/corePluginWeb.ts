@@ -5,6 +5,8 @@ import type {
   CreateAccountResult,
   PostExpenseInput,
   PostExpenseResult,
+  PostIncomeInput,
+  PostIncomeResult,
   PostTransferInput,
   PostTransferResult,
 } from '../domain/corePort';
@@ -28,5 +30,9 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async postTransfer(options: PostTransferInput): Promise<PostTransferResult> {
     return this.core.postTransfer(options);
+  }
+
+  async postIncome(options: PostIncomeInput): Promise<PostIncomeResult> {
+    return this.core.postIncome(options);
   }
 }
