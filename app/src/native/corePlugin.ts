@@ -1,6 +1,8 @@
 import { registerPlugin } from '@capacitor/core';
 import type {
   AllocateBudgetInput,
+  GetCategoryBalancesInput,
+  GetCategoryBalancesResult,
   CoreResult,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
@@ -22,6 +24,7 @@ export interface CorePlugin {
   postIncome(options: PostIncomeInput): Promise<PostIncomeResult>;
   createBudgetPeriod(options: CreateBudgetPeriodInput): Promise<CreateBudgetPeriodResult>;
   allocateBudget(options: AllocateBudgetInput): Promise<void>;
+  getCategoryBalances(options: GetCategoryBalancesInput): Promise<GetCategoryBalancesResult>;
 }
 
 export const CorePlugin = registerPlugin<CorePlugin>('CorePlugin', {

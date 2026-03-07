@@ -3,6 +3,8 @@ import type {
   CorePort,
   CoreResult,
   AllocateBudgetInput,
+  GetCategoryBalancesInput,
+  GetCategoryBalancesResult,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
   CreateAccountInput,
@@ -75,5 +77,13 @@ export class CoreAdapter implements CorePort {
     }
 
     await this.web.allocateBudget(input);
+  }
+
+  async getCategoryBalances(input: GetCategoryBalancesInput): Promise<GetCategoryBalancesResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.getCategoryBalances(input);
+    }
+
+    return this.web.getCategoryBalances(input);
   }
 }

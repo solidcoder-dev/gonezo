@@ -2,6 +2,8 @@ import type {
   CorePort,
   CoreResult,
   AllocateBudgetInput,
+  GetCategoryBalancesInput,
+  GetCategoryBalancesResult,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
   CreateAccountInput,
@@ -48,5 +50,9 @@ export class CoreAdapterWeb implements CorePort {
 
   async allocateBudget(_input: AllocateBudgetInput): Promise<void> {
     return;
+  }
+
+  async getCategoryBalances(_input: GetCategoryBalancesInput): Promise<GetCategoryBalancesResult> {
+    return { items: [] };
   }
 }

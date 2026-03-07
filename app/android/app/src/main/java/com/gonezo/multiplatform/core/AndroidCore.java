@@ -30,6 +30,7 @@ import com.gonezo.domain.budgeting.BudgetPlanPeriod;
 import com.gonezo.domain.budgeting.Category;
 import com.gonezo.domain.budgeting.CategoryType;
 import com.gonezo.domain.budgeting.AllocationRule;
+import com.gonezo.domain.budgeting.CategoryBalance;
 import com.gonezo.domain.budgeting.EffectiveDatingPolicy;
 import com.gonezo.domain.budgeting.NegativePolicy;
 import com.gonezo.domain.budgeting.ReservationPolicy;
@@ -59,6 +60,7 @@ public final class AndroidCore {
   private final PostExpenseUC postExpenseUC;
   private final PostTransferUC postTransferUC;
   private final PostIncomeUC postIncomeUC;
+  private final AndroidCategoryBalanceRepository categoryBalanceRepository;
 
   private AndroidCore(Context context) {
     CoreDatabase database = new CoreDatabase(context.getApplicationContext());
@@ -141,6 +143,7 @@ public final class AndroidCore {
       categoryBalanceRepository,
       eventPublisher
     );
+    this.categoryBalanceRepository = categoryBalanceRepository;
 
     ensureDemoBudgetData(
       budgetPlanRepository,
@@ -286,6 +289,13 @@ public final class AndroidCore {
     allocateBudgetUC.execute(new AllocateBudgetCommand(resolvedPeriodId));
   }
 
+  public java.util.List<CategoryBalanceView> getCategoryBalances(String periodId) {
+    UUID resolvedPeriodId = UUID.fromString(requireText(periodId, "periodId is required"));
+    return categoryBalanceRepository.listByPeriod(resolvedPeriodId).stream()
+      .map(AndroidCore::toBalanceView)
+      .toList();
+  }
+
   private static String requireText(String value, String message) {
     if (value == null || value.trim().isEmpty()) {
       throw new IllegalArgumentException(message);
@@ -312,6 +322,22 @@ public final class AndroidCore {
     }
     return value;
   }
+
+  private static CategoryBalanceView toBalanceView(CategoryBalance balance) {
+    return new CategoryBalanceView(
+      balance.getCategoryId().toString(),
+      balance.getAvailable().getAmount().toPlainString(),
+      balance.getAvailable().getCurrency(),
+      balance.getSafeToSpend().getAmount().toPlainString()
+    );
+  }
+
+  public record CategoryBalanceView(
+    String categoryId,
+    String availableAmount,
+    String currency,
+    String safeToSpendAmount
+  ) {}
 
   private static void ensureDemoBudgetData(
     AndroidBudgetPlanRepository budgetPlanRepository,

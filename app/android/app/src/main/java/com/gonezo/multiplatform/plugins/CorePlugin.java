@@ -167,4 +167,30 @@ public class CorePlugin extends Plugin {
       call.reject(ex.getMessage());
     }
   }
+
+  @PluginMethod
+  public void getCategoryBalances(PluginCall call) {
+    String periodId = call.getString("periodId");
+
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      java.util.List<AndroidCore.CategoryBalanceView> balances = core.getCategoryBalances(periodId);
+
+      org.json.JSONArray items = new org.json.JSONArray();
+      for (AndroidCore.CategoryBalanceView balance : balances) {
+        JSObject item = new JSObject();
+        item.put("categoryId", balance.categoryId());
+        item.put("availableAmount", balance.availableAmount());
+        item.put("currency", balance.currency());
+        item.put("safeToSpendAmount", balance.safeToSpendAmount());
+        items.put(item);
+      }
+
+      JSObject result = new JSObject();
+      result.put("items", items);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
 }

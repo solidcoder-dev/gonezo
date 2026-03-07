@@ -15,6 +15,7 @@ export function Debug() {
   const [incomeResult, setIncomeResult] = useState('');
   const [periodResult, setPeriodResult] = useState('');
   const [allocateResult, setAllocateResult] = useState('');
+  const [balancesResult, setBalancesResult] = useState('');
 
   async function handleCall() {
     setError('');
@@ -122,6 +123,19 @@ export function Debug() {
     }
   }
 
+  async function handleGetCategoryBalances() {
+    setError('');
+    try {
+      const res = await core.getCategoryBalances({
+        periodId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+      });
+      setBalancesResult(JSON.stringify(res.items, null, 2));
+    } catch (err) {
+      setBalancesResult('');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
   return (
     <section className="card">
       <h1>Debug</h1>
@@ -181,6 +195,12 @@ export function Debug() {
         </button>
       </div>
       {allocateResult ? <pre className="result">{allocateResult}</pre> : null}
+      <div className="row">
+        <button type="button" onClick={handleGetCategoryBalances}>
+          Get category balances
+        </button>
+      </div>
+      {balancesResult ? <pre className="result">{balancesResult}</pre> : null}
       {error ? <pre className="result error">{error}</pre> : null}
     </section>
   );

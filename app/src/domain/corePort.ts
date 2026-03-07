@@ -76,6 +76,21 @@ export type AllocateBudgetInput = {
   periodId: string;
 };
 
+export type GetCategoryBalancesInput = {
+  periodId: string;
+};
+
+export type CategoryBalanceItem = {
+  categoryId: string;
+  availableAmount: string;
+  currency: string;
+  safeToSpendAmount: string;
+};
+
+export type GetCategoryBalancesResult = {
+  items: CategoryBalanceItem[];
+};
+
 export interface CorePort {
   doThing(input: string): Promise<CoreResult>;
   createAccount(input: CreateAccountInput): Promise<CreateAccountResult>;
@@ -84,4 +99,5 @@ export interface CorePort {
   postIncome(input: PostIncomeInput): Promise<PostIncomeResult>;
   createBudgetPeriod(input: CreateBudgetPeriodInput): Promise<CreateBudgetPeriodResult>;
   allocateBudget(input: AllocateBudgetInput): Promise<void>;
+  getCategoryBalances(input: GetCategoryBalancesInput): Promise<GetCategoryBalancesResult>;
 }
