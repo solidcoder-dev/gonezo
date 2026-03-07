@@ -1,19 +1,14 @@
 package com.gonezo.application.services
-
 import com.gonezo.domain.budgeting.ports.BudgetLinkRepository
 import com.gonezo.domain.budgeting.services.BudgetLinkService
 import com.gonezo.domain.budgeting.BudgetLinkType
 import com.gonezo.domain.shared.Money
-import org.springframework.stereotype.Service
 import java.util.UUID
-
-@Service
 class BudgetLinkImpactService(
   private val budgetLinkService: BudgetLinkService,
   private val budgetLinkRepository: BudgetLinkRepository,
   private val categoryBalanceUpdaterService: CategoryBalanceUpdaterService,
 ) {
-
   fun applyLink(
     budgetPeriodId: UUID,
     categoryId: UUID,
@@ -28,9 +23,7 @@ class BudgetLinkImpactService(
       linkedId = linkedId,
       budgetImpactAmount = budgetImpactAmount,
     )
-
     budgetLinkRepository.save(link)
-
     categoryBalanceUpdaterService.applyExpense(
       categoryId = categoryId,
       effectiveDate = effectiveDate,

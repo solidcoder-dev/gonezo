@@ -1,5 +1,4 @@
 package com.gonezo.application.services
-
 import com.gonezo.application.ExecuteInvestmentCommand
 import com.gonezo.application.ExecuteInvestmentUC
 import com.gonezo.application.events.DomainEventPublisher
@@ -11,12 +10,8 @@ import com.gonezo.domain.investments.ports.FinancialContainerRepository
 import com.gonezo.domain.investments.ports.InvestmentTransactionRepository
 import com.gonezo.domain.investments.services.InvestmentExecutionService
 import com.gonezo.domain.shared.Money
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.util.UUID
-
-@Service
 class ExecuteInvestmentService(
   private val investmentExecutionService: InvestmentExecutionService,
   private val investmentTransactionRepository: InvestmentTransactionRepository,
@@ -24,11 +19,8 @@ class ExecuteInvestmentService(
   private val budgetLinkImpactService: BudgetLinkImpactService,
   private val domainEventPublisher: DomainEventPublisher,
 ) : ExecuteInvestmentUC {
-
-  @Transactional
   override fun execute(command: ExecuteInvestmentCommand): UUID {
     financialContainerRepository.get(command.containerId)
-
     val transaction = InvestmentTransaction(
       id = UUID.randomUUID(),
       containerId = command.containerId,
@@ -41,11 +33,9 @@ class ExecuteInvestmentService(
       taxes = command.taxes,
       note = command.note,
     )
-
     val executed = investmentExecutionService.execute(transaction)
     investmentTransactionRepository.save(executed)
     domainEventPublisher.publish(InvestmentExecuted(executed.id, executed.containerId))
-
     val budgetPeriodId = command.budgetPeriodId
     val categoryId = command.categoryId
     if (budgetPeriodId != null && categoryId != null) {
@@ -61,7 +51,6 @@ class ExecuteInvestmentService(
         effectiveDate = executed.date,
       )
     }
-
     return executed.id
   }
 }

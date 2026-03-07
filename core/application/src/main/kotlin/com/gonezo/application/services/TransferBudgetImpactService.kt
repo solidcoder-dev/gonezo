@@ -1,12 +1,7 @@
 package com.gonezo.application.services
-
 import com.gonezo.domain.shared.Money
-import org.springframework.stereotype.Service
 import java.util.UUID
-
-@Service
 class TransferBudgetImpactService {
-
   fun applyTransfer(
     fromCategoryId: UUID?,
     toCategoryId: UUID?,
@@ -23,7 +18,6 @@ class TransferBudgetImpactService {
         amount = amount,
       )
     }
-
     toCategoryId?.let { categoryId ->
       val date = requireNotNull(toEffectiveDate) { "toEffectiveDate is required when toCategoryId is provided." }
       categoryBalanceUpdaterService.applyIncome(

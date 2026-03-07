@@ -1,5 +1,4 @@
 package com.gonezo.application.services
-
 import com.gonezo.application.PostIncomeCommand
 import com.gonezo.application.PostIncomeUC
 import com.gonezo.application.events.DomainEventPublisher
@@ -11,11 +10,7 @@ import com.gonezo.domain.cashledger.events.TransactionPosted
 import com.gonezo.domain.cashledger.ports.TransactionRepository
 import com.gonezo.domain.cashledger.services.LedgerPostingService
 import com.gonezo.domain.shared.YearMonth
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
-
-@Service
 class PostIncomeService(
   private val ledgerPostingService: LedgerPostingService,
   private val transactionRepository: TransactionRepository,
@@ -27,8 +22,6 @@ class PostIncomeService(
   private val budgetAttributionService: BudgetAttributionService,
   private val domainEventPublisher: DomainEventPublisher,
 ) : PostIncomeUC {
-
-  @Transactional
   override fun execute(command: PostIncomeCommand): UUID {
     val transaction = ledgerPostingService.postIncome(
       accountId = command.accountId,
@@ -39,29 +32,24 @@ class PostIncomeService(
       categoryId = command.categoryId,
       recurring = command.recurring,
     )
-
     transactionRepository.save(transaction)
     domainEventPublisher.publish(TransactionPosted(transaction.id, transaction.accountId))
-
     val attributionDate = budgetAttributionService.resolveDate(
       planId = command.budgetPlanId,
       postedDate = transaction.postedDate,
       effectiveDate = transaction.effectiveDate,
     )
-
     budgetPeriodTotalsService.applyIncome(
       planId = command.budgetPlanId,
       effectiveDate = attributionDate,
       amount = transaction.amount,
     )
-
     transaction.categoryId?.let { categoryId ->
       categoryBalanceUpdaterService.applyIncome(
         categoryId = categoryId,
         effectiveDate = attributionDate,
         amount = transaction.amount,
       )
-
       val period = budgetPeriodRepository.getByYearMonth(
         command.budgetPlanId,
         YearMonth(attributionDate.year, attributionDate.monthValue),

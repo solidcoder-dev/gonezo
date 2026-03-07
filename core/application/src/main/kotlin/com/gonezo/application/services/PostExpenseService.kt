@@ -1,5 +1,4 @@
 package com.gonezo.application.services
-
 import com.gonezo.application.PostExpenseCommand
 import com.gonezo.application.PostExpenseUC
 import com.gonezo.application.SettleReservationFromTxCommand
@@ -14,11 +13,7 @@ import com.gonezo.domain.cashledger.events.TransactionPosted
 import com.gonezo.domain.budgeting.ports.CategoryRepository
 import com.gonezo.domain.budgeting.services.BudgetLinkService
 import com.gonezo.domain.shared.YearMonth
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
-
-@Service
 class PostExpenseService(
   private val ledgerPostingService: LedgerPostingService,
   private val transactionRepository: TransactionRepository,
@@ -32,8 +27,6 @@ class PostExpenseService(
   private val reservationMatchingService: ReservationMatchingService,
   private val domainEventPublisher: DomainEventPublisher,
 ) : PostExpenseUC {
-
-  @Transactional
   override fun execute(command: PostExpenseCommand): UUID {
     val transaction = ledgerPostingService.postExpense(
       accountId = command.accountId,
@@ -44,10 +37,8 @@ class PostExpenseService(
       categoryId = command.categoryId,
       recurring = command.recurring,
     )
-
     transactionRepository.save(transaction)
     domainEventPublisher.publish(TransactionPosted(transaction.id, transaction.accountId))
-
     val categoryId = transaction.categoryId
     val planId = categoryId?.let { categoryRepository.get(it).budgetPlanId }
     val attributionDate = if (planId != null) {
@@ -59,7 +50,6 @@ class PostExpenseService(
     } else {
       transaction.effectiveDate
     }
-
     categoryId?.let {
       categoryBalanceUpdaterService.applyExpense(
         categoryId = it,
@@ -67,7 +57,6 @@ class PostExpenseService(
         amount = transaction.amount,
       )
     }
-
     if (categoryId != null && planId != null) {
       val period = budgetPeriodRepository.getByYearMonth(
         planId,
@@ -82,7 +71,6 @@ class PostExpenseService(
       )
       budgetLinkRepository.save(link)
     }
-
     val reservationId = command.reservationId ?: run {
       if (planId == null) {
         null
@@ -96,7 +84,6 @@ class PostExpenseService(
         )?.id
       }
     }
-
     reservationId?.let {
       settleReservationFromTxUC.execute(
         SettleReservationFromTxCommand(
@@ -105,7 +92,6 @@ class PostExpenseService(
         ),
       )
     }
-
     return transaction.id
   }
 }
