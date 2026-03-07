@@ -39,4 +39,37 @@ public class CorePlugin extends Plugin {
       call.reject(ex.getMessage());
     }
   }
+
+  @PluginMethod
+  public void postExpense(PluginCall call) {
+    String accountId = call.getString("accountId");
+    String postedDate = call.getString("postedDate");
+    String effectiveDate = call.getString("effectiveDate");
+    String amount = call.getString("amount");
+    String currency = call.getString("currency");
+    String merchant = call.getString("merchant");
+    String categoryId = call.getString("categoryId");
+    Boolean recurring = call.getBoolean("recurring");
+    String reservationId = call.getString("reservationId");
+
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      String id = core.postExpense(
+        accountId,
+        postedDate,
+        effectiveDate,
+        amount,
+        currency,
+        merchant,
+        categoryId,
+        recurring,
+        reservationId
+      ).toString();
+      JSObject result = new JSObject();
+      result.put("id", id);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
 }

@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
-  private static final int DB_VERSION = 1;
+  private static final int DB_VERSION = 2;
 
   CoreDatabase(Context context) {
     super(context, DB_NAME, null, DB_VERSION);
@@ -19,6 +19,15 @@ final class CoreDatabase extends SQLiteOpenHelper {
 
   @Override
   public void onCreate(SQLiteDatabase db) {
+    createTables(db);
+  }
+
+  @Override
+  public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+    createTables(db);
+  }
+
+  private static void createTables(SQLiteDatabase db) {
     db.execSQL(
       "create table if not exists accounts (" +
         "id text primary key," +
@@ -28,10 +37,19 @@ final class CoreDatabase extends SQLiteOpenHelper {
         "currency text not null" +
       ");"
     );
-  }
-
-  @Override
-  public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-    // No-op for now. We'll add migrations once schema evolves.
+    db.execSQL(
+      "create table if not exists transactions (" +
+        "id text primary key," +
+        "account_id text not null," +
+        "posted_date text not null," +
+        "effective_date text not null," +
+        "amount text not null," +
+        "currency text not null," +
+        "type text not null," +
+        "merchant text," +
+        "category_id text," +
+        "recurring integer not null" +
+      ");"
+    );
   }
 }

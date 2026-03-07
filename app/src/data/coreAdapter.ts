@@ -1,5 +1,12 @@
 import { Capacitor } from '@capacitor/core';
-import type { CorePort, CoreResult, CreateAccountInput, CreateAccountResult } from '../domain/corePort';
+import type {
+  CorePort,
+  CoreResult,
+  CreateAccountInput,
+  CreateAccountResult,
+  PostExpenseInput,
+  PostExpenseResult,
+} from '../domain/corePort';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from '../native/corePlugin';
 
@@ -20,5 +27,13 @@ export class CoreAdapter implements CorePort {
     }
 
     return this.web.createAccount(input);
+  }
+
+  async postExpense(input: PostExpenseInput): Promise<PostExpenseResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.postExpense(input);
+    }
+
+    return this.web.postExpense(input);
   }
 }

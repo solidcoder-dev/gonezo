@@ -10,6 +10,7 @@ export function Debug() {
   const [error, setError] = useState('');
   const [accountName, setAccountName] = useState('Main account');
   const [accountResult, setAccountResult] = useState('');
+  const [expenseResult, setExpenseResult] = useState('');
 
   async function handleCall() {
     setError('');
@@ -29,6 +30,24 @@ export function Debug() {
       setAccountResult(`created: ${res.id}`);
     } catch (err) {
       setAccountResult('');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
+  async function handlePostExpense() {
+    setError('');
+    try {
+      const res = await core.postExpense({
+        accountId: '11111111-1111-1111-1111-111111111111',
+        postedDate: '2026-03-07',
+        effectiveDate: '2026-03-07',
+        amount: '10.00',
+        currency: 'USD',
+        merchant: 'Debug Merchant',
+      });
+      setExpenseResult(`expense created: ${res.id}`);
+    } catch (err) {
+      setExpenseResult('');
       setError(err instanceof Error ? err.message : 'Unknown error');
     }
   }
@@ -62,6 +81,12 @@ export function Debug() {
         </button>
       </div>
       {accountResult ? <pre className="result">{accountResult}</pre> : null}
+      <div className="row">
+        <button type="button" onClick={handlePostExpense}>
+          Post expense
+        </button>
+      </div>
+      {expenseResult ? <pre className="result">{expenseResult}</pre> : null}
       {error ? <pre className="result error">{error}</pre> : null}
     </section>
   );
