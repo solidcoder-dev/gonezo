@@ -35,4 +35,4 @@ Status legend:
 ## Notes
 
 - Scope is migration of business capabilities used by the app runtime path, preserving DDD layering.
-- Spring `api/` module still exists in repository as reference and test harness; runtime migration target is Capacitor + native Android core/plugin.
+- Spring `api/` module has been removed from this repository; runtime is now Capacitor + native Android core/plugin only.
