@@ -48,9 +48,10 @@ export function Debug() {
         accountId: '11111111-1111-1111-1111-111111111111',
         postedDate: '2026-03-07',
         effectiveDate: '2026-03-07',
-        amount: '10.00',
+        amount: '50.00',
         currency: 'USD',
-        merchant: 'Debug Merchant',
+        merchant: 'Electric Co',
+        categoryId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
       });
       setExpenseResult(`expense created: ${res.id}`);
     } catch (err) {

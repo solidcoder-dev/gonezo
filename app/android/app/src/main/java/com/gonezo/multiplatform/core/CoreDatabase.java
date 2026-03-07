@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
-  private static final int DB_VERSION = 5;
+  private static final int DB_VERSION = 6;
 
   CoreDatabase(Context context) {
     super(context, DB_NAME, null, DB_VERSION);
@@ -143,6 +143,17 @@ final class CoreDatabase extends SQLiteOpenHelper {
         "expected_effective_date text not null," +
         "linked_transaction_id text," +
         "unique (budget_period_id, pattern_id)" +
+      ");"
+    );
+    db.execSQL(
+      "create table if not exists budget_links (" +
+        "id text primary key," +
+        "budget_period_id text not null," +
+        "category_id text not null," +
+        "linked_type text not null," +
+        "linked_id text not null," +
+        "budget_impact_amount text not null," +
+        "budget_impact_currency text not null" +
       ");"
     );
   }

@@ -87,14 +87,13 @@ public final class AndroidCore {
     AndroidCategoryRepository categoryRepository = new AndroidCategoryRepository(database);
     AndroidAllocationRuleRepository allocationRuleRepository = new AndroidAllocationRuleRepository(database);
     AndroidCategoryBalanceRepository categoryBalanceRepository = new AndroidCategoryBalanceRepository(database);
+    AndroidBudgetLinkRepository budgetLinkRepository = new AndroidBudgetLinkRepository(database);
     AndroidRecurringPatternRepository recurringPatternRepository = new AndroidRecurringPatternRepository(database);
     AndroidBudgetReservationRepository budgetReservationRepository = new AndroidBudgetReservationRepository(database);
     NoopDomainEventPublisher eventPublisher = new NoopDomainEventPublisher();
     LedgerPostingService ledgerPostingService = new LedgerPostingServiceImpl();
     BudgetAllocatorService budgetAllocatorService = new BudgetAllocatorServiceImpl(budgetPlanRepository);
     ReservationService reservationService = new ReservationServiceImpl();
-
-    var budgetLinkRepository = AndroidBudgetingStubs.budgetLinkRepository();
 
     CategoryBalanceUpdaterService categoryBalanceUpdaterService = new CategoryBalanceUpdaterService(
       categoryRepository,
