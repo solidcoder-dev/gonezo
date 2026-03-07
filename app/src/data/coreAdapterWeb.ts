@@ -10,6 +10,10 @@ import type {
   ClosePeriodInput,
   ExecuteInvestmentInput,
   ExecuteInvestmentResult,
+  RecordInvestmentReturnInput,
+  RecordInvestmentReturnResult,
+  GetInvestmentTransactionsInput,
+  GetInvestmentTransactionsResult,
   CreatePeriodReservationsInput,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
@@ -81,5 +85,13 @@ export class CoreAdapterWeb implements CorePort {
 
   async executeInvestment(_input: ExecuteInvestmentInput): Promise<ExecuteInvestmentResult> {
     return { id: crypto.randomUUID() };
+  }
+
+  async recordInvestmentReturn(_input: RecordInvestmentReturnInput): Promise<RecordInvestmentReturnResult> {
+    return { id: crypto.randomUUID() };
+  }
+
+  async getInvestmentTransactions(_input: GetInvestmentTransactionsInput): Promise<GetInvestmentTransactionsResult> {
+    return { items: [] };
   }
 }

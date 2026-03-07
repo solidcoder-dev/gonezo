@@ -143,6 +143,40 @@ export type ExecuteInvestmentResult = {
   id: string;
 };
 
+export type RecordInvestmentReturnInput = {
+  containerId: string;
+  date: string;
+  amount: string;
+  currency: string;
+  note?: string;
+};
+
+export type RecordInvestmentReturnResult = {
+  id: string;
+};
+
+export type GetInvestmentTransactionsInput = {
+  containerId: string;
+};
+
+export type InvestmentTransactionItem = {
+  id: string;
+  containerId: string;
+  date: string;
+  type: string;
+  assetId?: string;
+  quantity?: string;
+  amount: string;
+  currency: string;
+  feesAmount?: string;
+  taxesAmount?: string;
+  note?: string;
+};
+
+export type GetInvestmentTransactionsResult = {
+  items: InvestmentTransactionItem[];
+};
+
 export interface CorePort {
   doThing(input: string): Promise<CoreResult>;
   createAccount(input: CreateAccountInput): Promise<CreateAccountResult>;
@@ -157,4 +191,6 @@ export interface CorePort {
   settleReservation(input: SettleReservationInput): Promise<void>;
   closePeriod(input: ClosePeriodInput): Promise<void>;
   executeInvestment(input: ExecuteInvestmentInput): Promise<ExecuteInvestmentResult>;
+  recordInvestmentReturn(input: RecordInvestmentReturnInput): Promise<RecordInvestmentReturnResult>;
+  getInvestmentTransactions(input: GetInvestmentTransactionsInput): Promise<GetInvestmentTransactionsResult>;
 }

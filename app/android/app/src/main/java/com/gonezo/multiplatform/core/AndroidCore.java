@@ -15,6 +15,8 @@ import com.gonezo.application.ClosePeriodCommand;
 import com.gonezo.application.ClosePeriodUC;
 import com.gonezo.application.ExecuteInvestmentCommand;
 import com.gonezo.application.ExecuteInvestmentUC;
+import com.gonezo.application.RecordInvestmentReturnCommand;
+import com.gonezo.application.RecordInvestmentReturnUC;
 import com.gonezo.application.SettleReservationFromTxCommand;
 import com.gonezo.application.SettleReservationFromTxUC;
 import com.gonezo.application.PostIncomeCommand;
@@ -31,6 +33,7 @@ import com.gonezo.application.services.ClosePeriodService;
 import com.gonezo.application.services.CreateBudgetPeriodService;
 import com.gonezo.application.services.CreatePeriodReservationsService;
 import com.gonezo.application.services.ExecuteInvestmentService;
+import com.gonezo.application.services.RecordInvestmentReturnService;
 import com.gonezo.application.services.PostExpenseService;
 import com.gonezo.application.services.PostIncomeService;
 import com.gonezo.application.services.PostTransferService;
@@ -87,12 +90,14 @@ public final class AndroidCore {
   private final SettleReservationFromTxUC settleReservationFromTxUC;
   private final ClosePeriodUC closePeriodUC;
   private final ExecuteInvestmentUC executeInvestmentUC;
+  private final RecordInvestmentReturnUC recordInvestmentReturnUC;
   private final AllocateBudgetUC allocateBudgetUC;
   private final PostExpenseUC postExpenseUC;
   private final PostTransferUC postTransferUC;
   private final PostIncomeUC postIncomeUC;
   private final AndroidBudgetReservationRepository budgetReservationRepository;
   private final AndroidCategoryBalanceRepository categoryBalanceRepository;
+  private final AndroidInvestmentTransactionRepository investmentTransactionRepository;
 
   private AndroidCore(Context context) {
     CoreDatabase database = new CoreDatabase(context.getApplicationContext());
@@ -205,6 +210,11 @@ public final class AndroidCore {
       ),
       eventPublisher
     );
+    this.recordInvestmentReturnUC = new RecordInvestmentReturnService(
+      financialContainerRepository,
+      investmentTransactionRepository,
+      eventPublisher
+    );
     this.allocateBudgetUC = new AllocateBudgetService(
       budgetAllocatorService,
       allocationRuleRepository,
@@ -215,6 +225,7 @@ public final class AndroidCore {
     );
     this.budgetReservationRepository = budgetReservationRepository;
     this.categoryBalanceRepository = categoryBalanceRepository;
+    this.investmentTransactionRepository = investmentTransactionRepository;
 
     ensureDemoBudgetData(
       budgetPlanRepository,
@@ -415,6 +426,27 @@ public final class AndroidCore {
     return executeInvestmentUC.execute(command);
   }
 
+  public UUID recordInvestmentReturn(
+    String containerId,
+    String date,
+    String amount,
+    String currency,
+    String note
+  ) {
+    UUID resolvedContainerId = UUID.fromString(requireText(containerId, "containerId is required"));
+    LocalDate resolvedDate = LocalDate.parse(requireText(date, "date is required"));
+    BigDecimal resolvedAmount = new BigDecimal(requireText(amount, "amount is required"));
+    String resolvedCurrency = requireText(currency, "currency is required");
+
+    RecordInvestmentReturnCommand command = new RecordInvestmentReturnCommand(
+      resolvedContainerId,
+      resolvedDate,
+      new Money(resolvedAmount, resolvedCurrency),
+      blankToNull(note)
+    );
+    return recordInvestmentReturnUC.execute(command);
+  }
+
   public java.util.List<CategoryBalanceView> getCategoryBalances(String periodId) {
     UUID resolvedPeriodId = UUID.fromString(requireText(periodId, "periodId is required"));
     return categoryBalanceRepository.listByPeriod(resolvedPeriodId).stream()
@@ -426,6 +458,13 @@ public final class AndroidCore {
     UUID resolvedPeriodId = UUID.fromString(requireText(periodId, "periodId is required"));
     return budgetReservationRepository.listActiveByPeriod(resolvedPeriodId).stream()
       .map(AndroidCore::toReservationView)
+      .toList();
+  }
+
+  public java.util.List<InvestmentTransactionView> getInvestmentTransactions(String containerId) {
+    UUID resolvedContainerId = UUID.fromString(requireText(containerId, "containerId is required"));
+    return investmentTransactionRepository.listByContainer(resolvedContainerId).stream()
+      .map(AndroidCore::toInvestmentTransactionView)
       .toList();
   }
 
@@ -484,6 +523,22 @@ public final class AndroidCore {
     );
   }
 
+  private static InvestmentTransactionView toInvestmentTransactionView(com.gonezo.domain.investments.InvestmentTransaction tx) {
+    return new InvestmentTransactionView(
+      tx.getId().toString(),
+      tx.getContainerId().toString(),
+      tx.getDate().toString(),
+      tx.getType().getValue(),
+      tx.getAssetId() == null ? null : tx.getAssetId().toString(),
+      tx.getQuantity() == null ? null : tx.getQuantity().toPlainString(),
+      tx.getAmount().getAmount().toPlainString(),
+      tx.getAmount().getCurrency(),
+      tx.getFees() == null ? null : tx.getFees().getAmount().toPlainString(),
+      tx.getTaxes() == null ? null : tx.getTaxes().getAmount().toPlainString(),
+      tx.getNote()
+    );
+  }
+
   public record CategoryBalanceView(
     String categoryId,
     String availableAmount,
@@ -501,6 +556,20 @@ public final class AndroidCore {
     String status,
     String expectedEffectiveDate,
     String linkedTransactionId
+  ) {}
+
+  public record InvestmentTransactionView(
+    String id,
+    String containerId,
+    String date,
+    String type,
+    String assetId,
+    String quantity,
+    String amount,
+    String currency,
+    String feesAmount,
+    String taxesAmount,
+    String note
   ) {}
 
   private static void ensureDemoBudgetData(

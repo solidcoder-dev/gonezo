@@ -20,6 +20,8 @@ export function Debug() {
   const [reservationsResult, setReservationsResult] = useState('');
   const [closePeriodResult, setClosePeriodResult] = useState('');
   const [investmentResult, setInvestmentResult] = useState('');
+  const [investmentReturnResult, setInvestmentReturnResult] = useState('');
+  const [investmentTransactionsResult, setInvestmentTransactionsResult] = useState('');
 
   async function handleCall() {
     setError('');
@@ -226,6 +228,36 @@ export function Debug() {
     }
   }
 
+  async function handleRecordInvestmentReturn() {
+    setError('');
+    try {
+      const res = await core.recordInvestmentReturn({
+        containerId: '99999999-9999-9999-9999-999999999999',
+        date: '2026-03-07',
+        amount: '2.50',
+        currency: 'USD',
+        note: 'Debug return',
+      });
+      setInvestmentReturnResult(`return recorded: ${res.id}`);
+    } catch (err) {
+      setInvestmentReturnResult('');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
+  async function handleGetInvestmentTransactions() {
+    setError('');
+    try {
+      const res = await core.getInvestmentTransactions({
+        containerId: '99999999-9999-9999-9999-999999999999',
+      });
+      setInvestmentTransactionsResult(JSON.stringify(res.items, null, 2));
+    } catch (err) {
+      setInvestmentTransactionsResult('');
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }
+
   return (
     <section className="card">
       <h1>Debug</h1>
@@ -320,6 +352,18 @@ export function Debug() {
         </button>
       </div>
       {investmentResult ? <pre className="result">{investmentResult}</pre> : null}
+      <div className="row">
+        <button type="button" onClick={handleRecordInvestmentReturn}>
+          Record investment return
+        </button>
+      </div>
+      {investmentReturnResult ? <pre className="result">{investmentReturnResult}</pre> : null}
+      <div className="row">
+        <button type="button" onClick={handleGetInvestmentTransactions}>
+          Get investment transactions
+        </button>
+      </div>
+      {investmentTransactionsResult ? <pre className="result">{investmentTransactionsResult}</pre> : null}
       {error ? <pre className="result error">{error}</pre> : null}
     </section>
   );

@@ -303,4 +303,62 @@ public class CorePlugin extends Plugin {
       call.reject(ex.getMessage());
     }
   }
+
+  @PluginMethod
+  public void recordInvestmentReturn(PluginCall call) {
+    String containerId = call.getString("containerId");
+    String date = call.getString("date");
+    String amount = call.getString("amount");
+    String currency = call.getString("currency");
+    String note = call.getString("note");
+
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      String id = core.recordInvestmentReturn(
+        containerId,
+        date,
+        amount,
+        currency,
+        note
+      ).toString();
+      JSObject result = new JSObject();
+      result.put("id", id);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void getInvestmentTransactions(PluginCall call) {
+    String containerId = call.getString("containerId");
+
+    try {
+      AndroidCore core = AndroidCore.getInstance(getContext());
+      java.util.List<AndroidCore.InvestmentTransactionView> transactions = core.getInvestmentTransactions(containerId);
+
+      org.json.JSONArray items = new org.json.JSONArray();
+      for (AndroidCore.InvestmentTransactionView tx : transactions) {
+        JSObject item = new JSObject();
+        item.put("id", tx.id());
+        item.put("containerId", tx.containerId());
+        item.put("date", tx.date());
+        item.put("type", tx.type());
+        item.put("assetId", tx.assetId());
+        item.put("quantity", tx.quantity());
+        item.put("amount", tx.amount());
+        item.put("currency", tx.currency());
+        item.put("feesAmount", tx.feesAmount());
+        item.put("taxesAmount", tx.taxesAmount());
+        item.put("note", tx.note());
+        items.put(item);
+      }
+
+      JSObject result = new JSObject();
+      result.put("items", items);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
 }

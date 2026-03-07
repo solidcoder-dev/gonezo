@@ -9,6 +9,10 @@ import type {
   ClosePeriodInput,
   ExecuteInvestmentInput,
   ExecuteInvestmentResult,
+  RecordInvestmentReturnInput,
+  RecordInvestmentReturnResult,
+  GetInvestmentTransactionsInput,
+  GetInvestmentTransactionsResult,
   CreatePeriodReservationsInput,
   CoreResult,
   CreateBudgetPeriodInput,
@@ -78,5 +82,13 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async executeInvestment(options: ExecuteInvestmentInput): Promise<ExecuteInvestmentResult> {
     return this.core.executeInvestment(options);
+  }
+
+  async recordInvestmentReturn(options: RecordInvestmentReturnInput): Promise<RecordInvestmentReturnResult> {
+    return this.core.recordInvestmentReturn(options);
+  }
+
+  async getInvestmentTransactions(options: GetInvestmentTransactionsInput): Promise<GetInvestmentTransactionsResult> {
+    return this.core.getInvestmentTransactions(options);
   }
 }
