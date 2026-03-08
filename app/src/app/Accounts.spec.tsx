@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Accounts } from './Accounts';
 import type { AccountsCorePort } from './accounts/useAccountsPageModel';
 
@@ -39,7 +39,11 @@ function makeCore(expenseCount = 0): AccountsCorePort {
 }
 
 describe('Accounts UX', () => {
-  it('renders a single transaction composer and chip-based account switcher', async () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('renders custom amount control and no direct main amount input', async () => {
     const core = makeCore();
 
     render(
@@ -49,12 +53,12 @@ describe('Accounts UX', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Add transaction' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Add income' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Add expense' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
-
-    const accountTab = screen.getByRole('tab', { name: 'Main (USD)' });
-    expect(accountTab).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: 'Increase amount' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Decrease amount' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Edit amount' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Amount value')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Current amount'));
+    expect(screen.getByLabelText('Amount value')).toBeInTheDocument();
   });
 
   it('shows only 3 recent expenses and indicates hidden transactions', async () => {
@@ -84,7 +88,7 @@ describe('Accounts UX', () => {
 
     await screen.findByRole('heading', { name: 'Add transaction' });
 
-    fireEvent.click(screen.getByRole('button', { name: '+10' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Increase amount' }));
     fireEvent.click(screen.getByRole('button', { name: 'Today' }));
     fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
 
@@ -117,7 +121,7 @@ describe('Accounts UX', () => {
     expect(await screen.findByText('Enter a valid amount greater than 0.')).toBeInTheDocument();
   });
 
-  it('supports advanced amount tools with step size and rolling plus post again', async () => {
+  it('supports step settings, inline precise edit, and post again', async () => {
     const core = makeCore();
 
     render(
@@ -129,15 +133,13 @@ describe('Accounts UX', () => {
     await screen.findByRole('heading', { name: 'Add transaction' });
     fireEvent.click(screen.getByRole('radio', { name: 'Expense' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Adjust amount' }));
-    fireEvent.click(screen.getByRole('button', { name: '0.50' }));
-    fireEvent.click(screen.getByRole('button', { name: '+ Step' }));
-    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.3' } });
-    fireEvent.blur(screen.getByLabelText('Amount'));
-    expect(screen.getByLabelText('Amount')).toHaveValue('12.30');
+    fireEvent.click(screen.getByRole('button', { name: 'More steps' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Step 0.50' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Increase amount' }));
 
-    fireEvent.change(screen.getByLabelText('Roll amount'), { target: { value: '1' } });
-    expect(screen.getByLabelText('Amount')).toHaveValue('12.80');
+    fireEvent.click(screen.getByLabelText('Current amount'));
+    fireEvent.change(screen.getByLabelText('Amount value'), { target: { value: '12.3' } });
+    fireEvent.blur(screen.getByLabelText('Amount value'));
 
     fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
     await waitFor(() => {

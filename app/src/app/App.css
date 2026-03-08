@@ -99,12 +99,29 @@
   border: 1px solid #c9c9c0;
 }
 
-input[type='range'] {
-  width: 100%;
+.amount-spinner {
+  display: grid;
+  grid-template-rows: 30px minmax(0, 1fr) 30px;
+  gap: 4px;
+  align-items: center;
+  max-width: 220px;
 }
 
-.compact-stack {
-  margin-top: 6px;
+.spinner-btn {
+  padding: 6px 0;
+  font-size: 0.86rem;
+  line-height: 1;
+}
+
+.amount-display {
+  border: 1px solid #c9c9c0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-width: 0;
+  text-align: center;
+  font-weight: 700;
+  user-select: none;
+  touch-action: none;
 }
 
 input {

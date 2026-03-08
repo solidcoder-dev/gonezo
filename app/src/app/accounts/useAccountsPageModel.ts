@@ -94,8 +94,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [lastTransactionAmount, setLastTransactionAmount] = useState('');
   const [transactionDate, setTransactionDate] = useState(todayIso());
   const [counterparty, setCounterparty] = useState('');
-  const [showAdvancedAmountControls, setShowAdvancedAmountControls] = useState(false);
-  const [stepSize, setStepSize] = useState('0.50');
+  const [showStepSettings, setShowStepSettings] = useState(false);
+  const [stepSize, setStepSize] = useState('0.10');
   const [lastSubmittedTransaction, setLastSubmittedTransaction] = useState<LastSubmittedTransaction | null>(null);
 
   const selectedAccount = useMemo(
@@ -250,6 +250,11 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     applyAmountDelta(units * step);
   }
 
+  function setTransactionAmountValue(value: string) {
+    setTransactionAmount(value);
+    setFieldErrors((previous) => ({ ...previous, amount: undefined }));
+  }
+
   function formatAmount() {
     if (!transactionAmount.trim()) {
       return;
@@ -279,6 +284,10 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   function setYesterday() {
     setTransactionDate(yesterdayIso());
     setFieldErrors((previous) => ({ ...previous, date: undefined }));
+  }
+
+  function setStepSizeValue(value: string) {
+    setStepSize(value);
   }
 
   async function postTransaction(data: LastSubmittedTransaction, announce = true) {
@@ -402,22 +411,21 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     transactionDate,
     counterparty,
     lastTransactionAmount,
-    showAdvancedAmountControls,
+    showStepSettings,
     stepSize,
     canPostAgain: Boolean(lastSubmittedTransaction),
     setNewAccountName,
     setNewAccountCurrency,
-    setTransactionAmount,
+    setTransactionAmount: setTransactionAmountValue,
     setTransactionDate,
     setCounterparty,
     selectTransactionType,
-    setStepSize,
+    setStepSize: setStepSizeValue,
     formatAmount,
     openCreateAccountForm: () => setShowCreateAccountForm(true),
     closeCreateAccountForm: () => setShowCreateAccountForm(false),
     expandHistory: () => setHistoryExpanded(true),
-    toggleAdvancedAmountControls: () => setShowAdvancedAmountControls((previous) => !previous),
-    applyAmountDelta,
+    toggleStepSettings: () => setShowStepSettings((previous) => !previous),
     applyStepUnits,
     useLastAmount,
     setToday,

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { TransactionType } from '../accounts/useAccountsPageModel';
 
 type Props = {
@@ -13,18 +14,17 @@ type Props = {
   hasLastAmount: boolean;
   accountLabel: string;
   accountCurrency: string;
-  showAdvancedAmountControls: boolean;
+  showStepSettings: boolean;
   stepSize: string;
   onChangeType: (value: TransactionType) => void;
-  onChangeAmount: (value: string) => void;
-  onBlurAmount: () => void;
+  onSetAmount: (value: string) => void;
+  onFormatAmount: () => void;
   onChangeDate: (value: string) => void;
   onChangeCounterparty: (value: string) => void;
-  onQuickAmount: (delta: number) => void;
   onUseLastAmount: () => void;
   onToday: () => void;
   onYesterday: () => void;
-  onToggleAdvancedAmountControls: () => void;
+  onToggleStepSettings: () => void;
   onChangeStepSize: (value: string) => void;
   onRollUnits: (units: number) => void;
   onSubmit: (event: FormEvent) => Promise<void> | void;
@@ -41,24 +41,91 @@ export function TransactionComposer({
   hasLastAmount,
   accountLabel,
   accountCurrency,
-  showAdvancedAmountControls,
+  showStepSettings,
   stepSize,
   onChangeType,
-  onChangeAmount,
-  onBlurAmount,
+  onSetAmount,
+  onFormatAmount,
   onChangeDate,
   onChangeCounterparty,
-  onQuickAmount,
   onUseLastAmount,
   onToday,
   onYesterday,
-  onToggleAdvancedAmountControls,
+  onToggleStepSettings,
   onChangeStepSize,
   onRollUnits,
   onSubmit,
 }: Props) {
   const submitText = disabled ? 'Posting transaction...' : 'Post transaction';
-  const [rollValue, setRollValue] = useState(0);
+  const [isEditingAmount, setIsEditingAmount] = useState(false);
+
+  const dragRef = useRef({
+    active: false,
+    locked: false,
+    startX: 0,
+    startY: 0,
+    lastY: 0,
+  });
+
+  function onRollStart(event: ReactPointerEvent<HTMLDivElement>) {
+    if (disabled) {
+      return;
+    }
+    event.preventDefault();
+
+    dragRef.current = {
+      active: true,
+      locked: false,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastY: event.clientY,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function onRollMove(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!dragRef.current.active) {
+      return;
+    }
+    event.preventDefault();
+
+    const dx = event.clientX - dragRef.current.startX;
+    const dy = event.clientY - dragRef.current.startY;
+    const lockThreshold = 8;
+
+    if (!dragRef.current.locked) {
+      if (Math.abs(dx) < lockThreshold && Math.abs(dy) < lockThreshold) {
+        return;
+      }
+      if (Math.abs(dy) <= Math.abs(dx)) {
+        return;
+      }
+      dragRef.current.locked = true;
+    }
+
+    event.preventDefault();
+    const stepThreshold = 18;
+    const deltaY = event.clientY - dragRef.current.lastY;
+    const units = Math.trunc(deltaY / stepThreshold);
+    if (units !== 0) {
+      onRollUnits(-units);
+      dragRef.current.lastY += units * stepThreshold;
+    }
+  }
+
+  function onRollEnd(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!dragRef.current.active) {
+      return;
+    }
+    dragRef.current.active = false;
+    dragRef.current.locked = false;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  }
+
+  function finishAmountEditing() {
+    onFormatAmount();
+    setIsEditingAmount(false);
+  }
 
   return (
     <form className="stack section-gap" onSubmit={onSubmit} aria-busy={disabled}>
@@ -88,82 +155,97 @@ export function TransactionComposer({
         </button>
       </div>
 
-      <div className="quick-row" aria-label="Quick amount actions">
-        <button type="button" className="chip" disabled={disabled} onClick={() => onQuickAmount(10)}>
-          +10
+      <div className="amount-spinner" aria-label="Amount spinner">
+        <button
+          type="button"
+          className="spinner-btn"
+          aria-label="Increase amount"
+          disabled={disabled}
+          onClick={() => onRollUnits(1)}
+        >
+          ▲
         </button>
-        <button type="button" className="chip" disabled={disabled} onClick={() => onQuickAmount(20)}>
-          +20
+        {isEditingAmount ? (
+          <input
+            aria-label="Amount value"
+            value={amount}
+            onChange={(event) => onSetAmount(event.target.value)}
+            onBlur={finishAmountEditing}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                finishAmountEditing();
+              }
+            }}
+            inputMode="decimal"
+            autoFocus
+          />
+        ) : (
+          <div
+            className="amount-display"
+            aria-label="Current amount"
+            role="slider"
+            aria-valuemin={-5}
+            aria-valuemax={5}
+            aria-valuenow={0}
+            onPointerDown={onRollStart}
+            onPointerMove={onRollMove}
+            onPointerUp={onRollEnd}
+            onPointerCancel={onRollEnd}
+            onClick={() => setIsEditingAmount(true)}
+          >
+            {amount || '0.00'}
+          </div>
+        )}
+        <button
+          type="button"
+          className="spinner-btn"
+          aria-label="Decrease amount"
+          disabled={disabled}
+          onClick={() => onRollUnits(-1)}
+        >
+          ▼
         </button>
-        <button type="button" className="chip" disabled={disabled} onClick={() => onQuickAmount(50)}>
-          +50
-        </button>
-        <button type="button" className="chip" disabled={disabled || !hasLastAmount} onClick={onUseLastAmount}>
+      </div>
+      {amountError ? <p className="field-error">{amountError}</p> : null}
+
+      <div className="quick-row" aria-label="Amount helpers">
+        <button type="button" className="text-button" disabled={disabled || !hasLastAmount} onClick={onUseLastAmount}>
           Use last amount
+        </button>
+        <button type="button" className="text-button" disabled={disabled} onClick={onToggleStepSettings}>
+          {showStepSettings ? 'Hide more steps' : 'More steps'}
         </button>
       </div>
 
-      <button type="button" className="text-button" disabled={disabled} onClick={onToggleAdvancedAmountControls}>
-        {showAdvancedAmountControls ? 'Hide amount tools' : 'Adjust amount'}
-      </button>
-
-      {showAdvancedAmountControls ? (
-        <div className="stack compact-stack" aria-label="Advanced amount controls">
-          <div className="quick-row" aria-label="Step size">
-            {['0.10', '0.50', '1.00', '5.00'].map((value) => (
-              <button
-                key={value}
-                type="button"
-                className={stepSize === value ? 'chip active' : 'chip'}
-                disabled={disabled}
-                onClick={() => onChangeStepSize(value)}
-              >
-                {value}
-              </button>
-            ))}
-          </div>
-          <div className="quick-row" aria-label="Step controls">
-            <button type="button" className="chip" disabled={disabled} onClick={() => onRollUnits(-1)}>
-              - Step
-            </button>
-            <button type="button" className="chip" disabled={disabled} onClick={() => onRollUnits(1)}>
-              + Step
-            </button>
-          </div>
-          <label htmlFor="roll-amount">Roll amount</label>
-          <input
-            id="roll-amount"
-            type="range"
-            min={-5}
-            max={5}
-            step={1}
-            value={rollValue}
-            onChange={(event) => {
-              const next = Number(event.target.value);
-              const delta = next - rollValue;
-              if (delta !== 0) {
-                onRollUnits(delta);
-              }
-              setRollValue(next);
-            }}
-            onMouseUp={() => setRollValue(0)}
-            onTouchEnd={() => setRollValue(0)}
+      <div className="quick-row" aria-label="Step size">
+        {['0.01', '0.10', '1.00'].map((value) => (
+          <button
+            key={value}
+            type="button"
+            className={stepSize === value ? 'chip active' : 'chip'}
             disabled={disabled}
-            aria-label="Roll amount"
-          />
+            onClick={() => onChangeStepSize(value)}
+          >
+            Step {value}
+          </button>
+        ))}
+      </div>
+
+      {showStepSettings ? (
+        <div className="quick-row" aria-label="More step size">
+          {['0.50', '5.00'].map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={stepSize === value ? 'chip active' : 'chip'}
+              disabled={disabled}
+              onClick={() => onChangeStepSize(value)}
+            >
+              Step {value}
+            </button>
+          ))}
         </div>
       ) : null}
-
-      <input
-        aria-label="Amount"
-        value={amount}
-        onChange={(event) => onChangeAmount(event.target.value)}
-        onBlur={onBlurAmount}
-        placeholder="Amount"
-        inputMode="decimal"
-        disabled={disabled}
-      />
-      {amountError ? <p className="field-error">{amountError}</p> : null}
 
       <div className="quick-row" aria-label="Quick date actions">
         <button type="button" className="chip" disabled={disabled} onClick={onToday}>
