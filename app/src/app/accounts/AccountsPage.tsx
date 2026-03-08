@@ -14,7 +14,6 @@ export function AccountsPage({ core }: Props) {
   if (model.loading) {
     return (
       <section className="card">
-        <h1>Accounts</h1>
         <p>Loading accounts...</p>
       </section>
     );
@@ -22,9 +21,6 @@ export function AccountsPage({ core }: Props) {
 
   return (
     <section className="card">
-      <h1>Accounts</h1>
-      <p>Summary and quick transaction entry.</p>
-
       {model.error ? (
         <div className="banner error" role="alert">
           {model.error}

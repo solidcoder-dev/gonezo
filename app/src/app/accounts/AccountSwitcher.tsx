@@ -12,7 +12,6 @@ export function AccountSwitcher({ accounts, selectedAccountId, disabled, onSelec
   return (
     <section className="stack section-gap" aria-busy={disabled}>
       <div className="inline-header">
-        <h2>Accounts</h2>
         <button type="button" className="text-button" onClick={onAddAccount} disabled={disabled}>
           + New account
         </button>
