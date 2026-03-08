@@ -81,6 +81,20 @@
   flex-wrap: wrap;
 }
 
+.date-inline-row {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.step-inline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .inline-header {
   display: flex;
   align-items: center;
@@ -101,15 +115,17 @@
 
 .amount-spinner {
   display: grid;
-  grid-template-rows: 30px minmax(0, 1fr) 30px;
-  gap: 4px;
+  grid-template-rows: 26px minmax(0, 1fr) 26px;
+  gap: 3px;
   align-items: center;
-  max-width: 220px;
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
 }
 
 .spinner-btn {
-  padding: 6px 0;
-  font-size: 0.86rem;
+  padding: 4px 0;
+  font-size: 0.8rem;
   line-height: 1;
 }
 

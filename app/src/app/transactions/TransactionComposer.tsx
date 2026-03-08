@@ -11,7 +11,6 @@ type Props = {
   amountError?: string;
   dateError?: string;
   disabled: boolean;
-  hasLastAmount: boolean;
   accountLabel: string;
   accountCurrency: string;
   showStepSettings: boolean;
@@ -21,7 +20,6 @@ type Props = {
   onFormatAmount: () => void;
   onChangeDate: (value: string) => void;
   onChangeCounterparty: (value: string) => void;
-  onUseLastAmount: () => void;
   onToday: () => void;
   onYesterday: () => void;
   onToggleStepSettings: () => void;
@@ -38,7 +36,6 @@ export function TransactionComposer({
   amountError,
   dateError,
   disabled,
-  hasLastAmount,
   accountLabel,
   accountCurrency,
   showStepSettings,
@@ -48,7 +45,6 @@ export function TransactionComposer({
   onFormatAmount,
   onChangeDate,
   onChangeCounterparty,
-  onUseLastAmount,
   onToday,
   onYesterday,
   onToggleStepSettings,
@@ -58,6 +54,8 @@ export function TransactionComposer({
 }: Props) {
   const submitText = disabled ? 'Posting transaction...' : 'Post transaction';
   const [isEditingAmount, setIsEditingAmount] = useState(false);
+  const numericAmount = Number(amount);
+  const amountValueForAria = Number.isFinite(numericAmount) && numericAmount > 0 ? numericAmount : 0.01;
 
   const dragRef = useRef({
     active: false,
@@ -159,7 +157,7 @@ export function TransactionComposer({
         <button
           type="button"
           className="spinner-btn"
-          aria-label="Increase amount"
+          aria-label="Increase amount by current step"
           disabled={disabled}
           onClick={() => onRollUnits(1)}
         >
@@ -168,6 +166,9 @@ export function TransactionComposer({
         {isEditingAmount ? (
           <input
             aria-label="Amount value"
+            type="number"
+            min="0.01"
+            step="0.01"
             value={amount}
             onChange={(event) => onSetAmount(event.target.value)}
             onBlur={finishAmountEditing}
@@ -184,9 +185,9 @@ export function TransactionComposer({
             className="amount-display"
             aria-label="Current amount"
             role="slider"
-            aria-valuemin={-5}
+            aria-valuemin={0.01}
             aria-valuemax={5}
-            aria-valuenow={0}
+            aria-valuenow={amountValueForAria}
             onPointerDown={onRollStart}
             onPointerMove={onRollMove}
             onPointerUp={onRollEnd}
@@ -199,7 +200,7 @@ export function TransactionComposer({
         <button
           type="button"
           className="spinner-btn"
-          aria-label="Decrease amount"
+          aria-label="Decrease amount by current step"
           disabled={disabled}
           onClick={() => onRollUnits(-1)}
         >
@@ -208,32 +209,9 @@ export function TransactionComposer({
       </div>
       {amountError ? <p className="field-error">{amountError}</p> : null}
 
-      <div className="quick-row" aria-label="Amount helpers">
-        <button type="button" className="text-button" disabled={disabled || !hasLastAmount} onClick={onUseLastAmount}>
-          Use last amount
-        </button>
-        <button type="button" className="text-button" disabled={disabled} onClick={onToggleStepSettings}>
-          {showStepSettings ? 'Hide more steps' : 'More steps'}
-        </button>
-      </div>
-
-      <div className="quick-row" aria-label="Step size">
-        {['0.01', '0.10', '1.00'].map((value) => (
-          <button
-            key={value}
-            type="button"
-            className={stepSize === value ? 'chip active' : 'chip'}
-            disabled={disabled}
-            onClick={() => onChangeStepSize(value)}
-          >
-            Step {value}
-          </button>
-        ))}
-      </div>
-
-      {showStepSettings ? (
-        <div className="quick-row" aria-label="More step size">
-          {['0.50', '5.00'].map((value) => (
+      <div className="step-inline-row" aria-label="Step size">
+        <div className="quick-row">
+          {['0.01', '0.10', '1.00', '5.00'].map((value) => (
             <button
               key={value}
               type="button"
@@ -241,30 +219,53 @@ export function TransactionComposer({
               disabled={disabled}
               onClick={() => onChangeStepSize(value)}
             >
-              Step {value}
+              {value}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="text-button"
+          aria-label="Toggle more steps"
+          disabled={disabled}
+          onClick={onToggleStepSettings}
+        >
+          {showStepSettings ? '−' : '+'}
+        </button>
+      </div>
+
+      {showStepSettings ? (
+        <div className="quick-row" aria-label="More step size">
+          {['0.05', '0.25', '0.50', '2.00', '10.00'].map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={stepSize === value ? 'chip active' : 'chip'}
+              disabled={disabled}
+              onClick={() => onChangeStepSize(value)}
+            >
+              {value}
             </button>
           ))}
         </div>
       ) : null}
 
-      <div className="quick-row" aria-label="Quick date actions">
+      <div className="date-inline-row" aria-label="Quick date actions">
         <button type="button" className="chip" disabled={disabled} onClick={onToday}>
           Today
         </button>
         <button type="button" className="chip" disabled={disabled} onClick={onYesterday}>
           Yesterday
         </button>
+        <input
+          aria-label="Date"
+          type="date"
+          value={date}
+          onChange={(event) => onChangeDate(event.target.value)}
+          disabled={disabled}
+        />
       </div>
-
-      <input
-        aria-label="Date"
-        type="date"
-        value={date}
-        onChange={(event) => onChangeDate(event.target.value)}
-        disabled={disabled}
-      />
       {dateError ? <p className="field-error">{dateError}</p> : null}
-
       <input
         aria-label="Source or merchant"
         value={counterparty}

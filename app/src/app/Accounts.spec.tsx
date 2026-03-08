@@ -53,9 +53,12 @@ describe('Accounts UX', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Add transaction' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Increase amount' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Decrease amount' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Increase amount by current step' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Decrease amount by current step' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '0.01' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '0.10' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit amount' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Use last amount' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Amount value')).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Current amount'));
     expect(screen.getByLabelText('Amount value')).toBeInTheDocument();
@@ -88,7 +91,7 @@ describe('Accounts UX', () => {
 
     await screen.findByRole('heading', { name: 'Add transaction' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Increase amount' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Increase amount by current step' }));
     fireEvent.click(screen.getByRole('button', { name: 'Today' }));
     fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
 
@@ -98,7 +101,7 @@ describe('Accounts UX', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Expense posted');
 
     fireEvent.click(screen.getByRole('radio', { name: 'Income' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Use last amount' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Increase amount by current step' }));
     fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
 
     await waitFor(() => {
@@ -121,6 +124,31 @@ describe('Accounts UX', () => {
     expect(await screen.findByText('Enter a valid amount greater than 0.')).toBeInTheDocument();
   });
 
+  it('normalizes negative amount input to positive', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { name: 'Add transaction' });
+    fireEvent.click(screen.getByLabelText('Current amount'));
+    fireEvent.change(screen.getByLabelText('Amount value'), { target: { value: '-3' } });
+    fireEvent.blur(screen.getByLabelText('Amount value'));
+    fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
+
+    await waitFor(() => {
+      expect(core.postExpense).toHaveBeenCalledTimes(1);
+    });
+    expect(core.postExpense).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: '3.00',
+      })
+    );
+  });
+
   it('supports step settings, inline precise edit, and post again', async () => {
     const core = makeCore();
 
@@ -133,9 +161,9 @@ describe('Accounts UX', () => {
     await screen.findByRole('heading', { name: 'Add transaction' });
     fireEvent.click(screen.getByRole('radio', { name: 'Expense' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'More steps' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Step 0.50' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Increase amount' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle more steps' }));
+    fireEvent.click(screen.getByRole('button', { name: '0.50' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Increase amount by current step' }));
 
     fireEvent.click(screen.getByLabelText('Current amount'));
     fireEvent.change(screen.getByLabelText('Amount value'), { target: { value: '12.3' } });

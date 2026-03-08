@@ -119,7 +119,6 @@ export function AccountsPage({ core }: Props) {
             amountError={model.fieldErrors.amount}
             dateError={model.fieldErrors.date}
             disabled={model.postingTransaction || model.refreshing}
-            hasLastAmount={Boolean(model.lastTransactionAmount)}
             accountLabel={model.selectedAccount?.name ?? 'Unknown account'}
             accountCurrency={model.selectedAccount?.currency ?? '---'}
             showStepSettings={model.showStepSettings}
@@ -129,7 +128,6 @@ export function AccountsPage({ core }: Props) {
             onFormatAmount={model.formatAmount}
             onChangeDate={model.setTransactionDate}
             onChangeCounterparty={model.setCounterparty}
-            onUseLastAmount={model.useLastAmount}
             onToday={model.setToday}
             onYesterday={model.setYesterday}
             onToggleStepSettings={model.toggleStepSettings}

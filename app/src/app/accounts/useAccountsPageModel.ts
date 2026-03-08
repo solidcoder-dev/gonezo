@@ -4,6 +4,7 @@ import type { AccountItem, ExpenseItem } from '../../domain/corePort';
 
 const DEFAULT_BUDGET_PLAN_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const LAST_TYPE_KEY = 'gonezo:last-transaction-type';
+const MIN_AMOUNT = 0.01;
 
 type FieldErrors = {
   amount?: string;
@@ -91,7 +92,6 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
   const [transactionType, setTransactionType] = useState<TransactionType>(readLastType());
   const [transactionAmount, setTransactionAmount] = useState('');
-  const [lastTransactionAmount, setLastTransactionAmount] = useState('');
   const [transactionDate, setTransactionDate] = useState(todayIso());
   const [counterparty, setCounterparty] = useState('');
   const [showStepSettings, setShowStepSettings] = useState(false);
@@ -238,7 +238,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   function applyAmountDelta(delta: number) {
     const current = Number(transactionAmount || '0');
     const next = Number.isNaN(current) ? delta : current + delta;
-    setTransactionAmount(next.toFixed(2));
+    setTransactionAmount(Math.max(MIN_AMOUNT, next).toFixed(2));
     setFieldErrors((previous) => ({ ...previous, amount: undefined }));
   }
 
@@ -251,7 +251,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   }
 
   function setTransactionAmountValue(value: string) {
-    setTransactionAmount(value);
+    const cleaned = value.replace('-', '');
+    setTransactionAmount(cleaned);
     setFieldErrors((previous) => ({ ...previous, amount: undefined }));
   }
 
@@ -265,15 +266,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       return;
     }
 
-    setTransactionAmount(numeric.toFixed(2));
-  }
-
-  function useLastAmount() {
-    if (!lastTransactionAmount) {
-      return;
-    }
-    setTransactionAmount(lastTransactionAmount);
-    setFieldErrors((previous) => ({ ...previous, amount: undefined }));
+    setTransactionAmount(Math.max(MIN_AMOUNT, numeric).toFixed(2));
   }
 
   function setToday() {
@@ -359,7 +352,6 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
       await postTransaction(payload);
       setLastSubmittedTransaction(payload);
-      setLastTransactionAmount(amount);
       setTransactionAmount('');
       setCounterparty('');
       await refreshAccounts(selectedAccount.id);
@@ -410,7 +402,6 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     transactionAmount,
     transactionDate,
     counterparty,
-    lastTransactionAmount,
     showStepSettings,
     stepSize,
     canPostAgain: Boolean(lastSubmittedTransaction),
@@ -427,7 +418,6 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     expandHistory: () => setHistoryExpanded(true),
     toggleStepSettings: () => setShowStepSettings((previous) => !previous),
     applyStepUnits,
-    useLastAmount,
     setToday,
     setYesterday,
     postAgain,
