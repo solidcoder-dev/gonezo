@@ -68,6 +68,9 @@ describe('Accounts UX', () => {
 
     expect(await screen.findByText('+2 more transactions')).toBeInTheDocument();
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
+
+    fireEvent.click(screen.getByRole('button', { name: 'View all' }));
+    expect(screen.getAllByRole('listitem')).toHaveLength(5);
   });
 
   it('submits expense by default and income when toggled', async () => {
@@ -81,19 +84,36 @@ describe('Accounts UX', () => {
 
     await screen.findByRole('heading', { name: 'Add transaction' });
 
-    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.34' } });
+    fireEvent.click(screen.getByRole('button', { name: '+10' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Today' }));
     fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
 
     await waitFor(() => {
       expect(core.postExpense).toHaveBeenCalledTimes(1);
     });
+    expect(await screen.findByRole('status')).toHaveTextContent('Expense posted');
 
     fireEvent.click(screen.getByRole('radio', { name: 'Income' }));
-    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '88.00' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Use last amount' }));
     fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
 
     await waitFor(() => {
       expect(core.postIncome).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('shows inline validation for empty amount', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { name: 'Add transaction' });
+    fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
+
+    expect(await screen.findByText('Enter a valid amount greater than 0.')).toBeInTheDocument();
   });
 });

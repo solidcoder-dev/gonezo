@@ -5,12 +5,19 @@ type Props = {
   selectedAccountId: string;
   disabled: boolean;
   onSelect: (accountId: string) => void;
+  onAddAccount: () => void;
 };
 
-export function AccountSwitcher({ accounts, selectedAccountId, disabled, onSelect }: Props) {
+export function AccountSwitcher({ accounts, selectedAccountId, disabled, onSelect, onAddAccount }: Props) {
   return (
     <section className="stack section-gap" aria-busy={disabled}>
-      <h2>Accounts</h2>
+      <div className="inline-header">
+        <h2>Accounts</h2>
+        <button type="button" className="text-button" onClick={onAddAccount} disabled={disabled}>
+          + New account
+        </button>
+      </div>
+
       <div className="chip-row" role="tablist" aria-label="Account picker">
         {accounts.map((account) => (
           <button

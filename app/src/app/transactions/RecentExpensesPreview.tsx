@@ -3,9 +3,11 @@ import type { ExpenseItem } from '../../domain/corePort';
 type Props = {
   items: ExpenseItem[];
   hiddenCount: number;
+  expanded: boolean;
+  onViewAll: () => void;
 };
 
-export function RecentExpensesPreview({ items, hiddenCount }: Props) {
+export function RecentExpensesPreview({ items, hiddenCount, expanded, onViewAll }: Props) {
   return (
     <section className="stack section-gap">
       <h2>Recent expenses</h2>
@@ -25,7 +27,16 @@ export function RecentExpensesPreview({ items, hiddenCount }: Props) {
           ))}
         </ul>
       ) : null}
-      {hiddenCount > 0 ? <p className="hint">+{hiddenCount} more transactions</p> : null}
+      {hiddenCount > 0 ? (
+        <div className="inline-header">
+          <p className="hint">+{hiddenCount} more transactions</p>
+          {!expanded ? (
+            <button type="button" className="text-button" onClick={onViewAll}>
+              View all
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }
