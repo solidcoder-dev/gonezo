@@ -116,4 +116,37 @@ describe('Accounts UX', () => {
 
     expect(await screen.findByText('Enter a valid amount greater than 0.')).toBeInTheDocument();
   });
+
+  it('supports advanced amount tools with step size and rolling plus post again', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { name: 'Add transaction' });
+    fireEvent.click(screen.getByRole('radio', { name: 'Expense' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Adjust amount' }));
+    fireEvent.click(screen.getByRole('button', { name: '0.50' }));
+    fireEvent.click(screen.getByRole('button', { name: '+ Step' }));
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.3' } });
+    fireEvent.blur(screen.getByLabelText('Amount'));
+    expect(screen.getByLabelText('Amount')).toHaveValue('12.30');
+
+    fireEvent.change(screen.getByLabelText('Roll amount'), { target: { value: '1' } });
+    expect(screen.getByLabelText('Amount')).toHaveValue('12.80');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
+    await waitFor(() => {
+      expect(core.postExpense).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Post again' }));
+    await waitFor(() => {
+      expect(core.postExpense).toHaveBeenCalledTimes(2);
+    });
+  });
 });

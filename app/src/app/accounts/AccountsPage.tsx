@@ -28,7 +28,15 @@ export function AccountsPage({ core }: Props) {
       ) : null}
       {model.toastMessage ? (
         <div className="toast" role="status" aria-live="polite">
-          {model.toastMessage}
+          <span>{model.toastMessage}</span>
+          {model.canPostAgain ? (
+            <button type="button" className="text-button" onClick={model.postAgain}>
+              Post again
+            </button>
+          ) : null}
+          <button type="button" className="text-button" onClick={model.clearToast}>
+            Dismiss
+          </button>
         </div>
       ) : null}
 
@@ -114,14 +122,20 @@ export function AccountsPage({ core }: Props) {
             hasLastAmount={Boolean(model.lastTransactionAmount)}
             accountLabel={model.selectedAccount?.name ?? 'Unknown account'}
             accountCurrency={model.selectedAccount?.currency ?? '---'}
-            onChangeType={model.setTransactionType}
+            showAdvancedAmountControls={model.showAdvancedAmountControls}
+            stepSize={model.stepSize}
+            onChangeType={model.selectTransactionType}
             onChangeAmount={model.setTransactionAmount}
+            onBlurAmount={model.formatAmount}
             onChangeDate={model.setTransactionDate}
             onChangeCounterparty={model.setCounterparty}
             onQuickAmount={model.applyAmountDelta}
             onUseLastAmount={model.useLastAmount}
             onToday={model.setToday}
             onYesterday={model.setYesterday}
+            onToggleAdvancedAmountControls={model.toggleAdvancedAmountControls}
+            onChangeStepSize={model.setStepSize}
+            onRollUnits={model.applyStepUnits}
             onSubmit={model.submitTransaction}
           />
 

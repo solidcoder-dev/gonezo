@@ -3,10 +3,20 @@ import type { FormEvent } from 'react';
 import type { AccountItem, ExpenseItem } from '../../domain/corePort';
 
 const DEFAULT_BUDGET_PLAN_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+const LAST_TYPE_KEY = 'gonezo:last-transaction-type';
 
 type FieldErrors = {
   amount?: string;
   date?: string;
+};
+
+type LastSubmittedTransaction = {
+  type: TransactionType;
+  accountId: string;
+  amount: string;
+  date: string;
+  currency: string;
+  counterparty?: string;
 };
 
 export type AccountsCorePort = {
@@ -41,6 +51,15 @@ export type AccountsCorePort = {
 
 export type TransactionType = 'expense' | 'income';
 
+function readLastType(): TransactionType {
+  if (typeof window === 'undefined') {
+    return 'expense';
+  }
+
+  const saved = window.localStorage.getItem(LAST_TYPE_KEY);
+  return saved === 'income' ? 'income' : 'expense';
+}
+
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -70,11 +89,14 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [newAccountName, setNewAccountName] = useState('Main account');
   const [newAccountCurrency, setNewAccountCurrency] = useState('USD');
 
-  const [transactionType, setTransactionType] = useState<TransactionType>('expense');
+  const [transactionType, setTransactionType] = useState<TransactionType>(readLastType());
   const [transactionAmount, setTransactionAmount] = useState('');
   const [lastTransactionAmount, setLastTransactionAmount] = useState('');
   const [transactionDate, setTransactionDate] = useState(todayIso());
   const [counterparty, setCounterparty] = useState('');
+  const [showAdvancedAmountControls, setShowAdvancedAmountControls] = useState(false);
+  const [stepSize, setStepSize] = useState('0.50');
+  const [lastSubmittedTransaction, setLastSubmittedTransaction] = useState<LastSubmittedTransaction | null>(null);
 
   const selectedAccount = useMemo(
     () => accounts.find((account) => account.id === selectedAccountId),
@@ -153,6 +175,13 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function selectTransactionType(value: TransactionType) {
+    setTransactionType(value);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(LAST_TYPE_KEY, value);
+    }
+  }
+
   async function selectAccount(accountId: string) {
     setError('');
     setToastMessage('');
@@ -213,6 +242,27 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setFieldErrors((previous) => ({ ...previous, amount: undefined }));
   }
 
+  function applyStepUnits(units: number) {
+    const step = Number(stepSize);
+    if (Number.isNaN(step) || step <= 0) {
+      return;
+    }
+    applyAmountDelta(units * step);
+  }
+
+  function formatAmount() {
+    if (!transactionAmount.trim()) {
+      return;
+    }
+
+    const numeric = Number(transactionAmount);
+    if (Number.isNaN(numeric)) {
+      return;
+    }
+
+    setTransactionAmount(numeric.toFixed(2));
+  }
+
   function useLastAmount() {
     if (!lastTransactionAmount) {
       return;
@@ -229,6 +279,36 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   function setYesterday() {
     setTransactionDate(yesterdayIso());
     setFieldErrors((previous) => ({ ...previous, date: undefined }));
+  }
+
+  async function postTransaction(data: LastSubmittedTransaction, announce = true) {
+    if (data.type === 'expense') {
+      const result = await core.postExpense({
+        accountId: data.accountId,
+        postedDate: data.date,
+        effectiveDate: data.date,
+        amount: data.amount,
+        currency: data.currency,
+        merchant: data.counterparty,
+      });
+      if (announce) {
+        setToastMessage(`Expense posted: ${result.id}`);
+      }
+      return;
+    }
+
+    const result = await core.postIncome({
+      budgetPlanId: DEFAULT_BUDGET_PLAN_ID,
+      accountId: data.accountId,
+      postedDate: data.date,
+      effectiveDate: data.date,
+      amount: data.amount,
+      currency: data.currency,
+      merchant: data.counterparty,
+    });
+    if (announce) {
+      setToastMessage(`Income posted: ${result.id}`);
+    }
   }
 
   async function submitTransaction(event: FormEvent) {
@@ -259,33 +339,39 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
     setPostingTransaction(true);
     try {
-      if (transactionType === 'expense') {
-        const result = await core.postExpense({
-          accountId: selectedAccount.id,
-          postedDate: transactionDate,
-          effectiveDate: transactionDate,
-          amount,
-          currency: selectedAccount.currency,
-          merchant: counterparty.trim() || undefined,
-        });
-        setToastMessage(`Expense posted: ${result.id}`);
-      } else {
-        const result = await core.postIncome({
-          budgetPlanId: DEFAULT_BUDGET_PLAN_ID,
-          accountId: selectedAccount.id,
-          postedDate: transactionDate,
-          effectiveDate: transactionDate,
-          amount,
-          currency: selectedAccount.currency,
-          merchant: counterparty.trim() || undefined,
-        });
-        setToastMessage(`Income posted: ${result.id}`);
-      }
+      const payload: LastSubmittedTransaction = {
+        type: transactionType,
+        accountId: selectedAccount.id,
+        amount,
+        date: transactionDate,
+        currency: selectedAccount.currency,
+        counterparty: counterparty.trim() || undefined,
+      };
 
+      await postTransaction(payload);
+      setLastSubmittedTransaction(payload);
       setLastTransactionAmount(amount);
       setTransactionAmount('');
       setCounterparty('');
       await refreshAccounts(selectedAccount.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setPostingTransaction(false);
+    }
+  }
+
+  async function postAgain() {
+    if (!lastSubmittedTransaction || postingTransaction) {
+      return;
+    }
+
+    setError('');
+    setPostingTransaction(true);
+    try {
+      await postTransaction(lastSubmittedTransaction, false);
+      setToastMessage('Posted again.');
+      await refreshAccounts(lastSubmittedTransaction.accountId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -316,19 +402,28 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     transactionDate,
     counterparty,
     lastTransactionAmount,
+    showAdvancedAmountControls,
+    stepSize,
+    canPostAgain: Boolean(lastSubmittedTransaction),
     setNewAccountName,
     setNewAccountCurrency,
-    setTransactionType,
     setTransactionAmount,
     setTransactionDate,
     setCounterparty,
+    selectTransactionType,
+    setStepSize,
+    formatAmount,
     openCreateAccountForm: () => setShowCreateAccountForm(true),
     closeCreateAccountForm: () => setShowCreateAccountForm(false),
     expandHistory: () => setHistoryExpanded(true),
+    toggleAdvancedAmountControls: () => setShowAdvancedAmountControls((previous) => !previous),
     applyAmountDelta,
+    applyStepUnits,
     useLastAmount,
     setToday,
     setYesterday,
+    postAgain,
+    clearToast: () => setToastMessage(''),
     submitCreateAccount,
     selectAccount,
     submitTransaction,
