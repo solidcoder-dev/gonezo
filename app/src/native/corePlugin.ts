@@ -22,6 +22,11 @@ import type {
   GetAccountSummaryResult,
   ListExpensesInput,
   ListExpensesResult,
+  ListTransactionsInput,
+  ListTransactionsResult,
+  UpdateTransactionInput,
+  UpdateTransactionResult,
+  DeleteTransactionInput,
   CreatePeriodReservationsInput,
   CoreResult,
   CreateBudgetPeriodInput,
@@ -57,6 +62,9 @@ export interface CorePlugin {
   listAccounts(): Promise<ListAccountsResult>;
   getAccountSummary(options: GetAccountSummaryInput): Promise<GetAccountSummaryResult>;
   listExpenses(options: ListExpensesInput): Promise<ListExpensesResult>;
+  listTransactions(options: ListTransactionsInput): Promise<ListTransactionsResult>;
+  updateTransaction(options: UpdateTransactionInput): Promise<UpdateTransactionResult>;
+  deleteTransaction(options: DeleteTransactionInput): Promise<void>;
 }
 
 export const CorePlugin = registerPlugin<CorePlugin>('CorePlugin', {

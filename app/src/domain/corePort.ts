@@ -250,6 +250,43 @@ export type ListExpensesResult = {
   items: ExpenseItem[];
 };
 
+export type ListTransactionsInput = {
+  accountId: string;
+  limit?: number;
+};
+
+export type TransactionItem = {
+  id: string;
+  postedDate: string;
+  merchant?: string;
+  amount: string;
+  currency: string;
+  type: 'income' | 'expense';
+};
+
+export type ListTransactionsResult = {
+  items: TransactionItem[];
+};
+
+export type UpdateTransactionInput = {
+  transactionId: string;
+  accountId: string;
+  postedDate: string;
+  amount: string;
+  currency: string;
+  type: 'income' | 'expense';
+  merchant?: string;
+};
+
+export type UpdateTransactionResult = {
+  id: string;
+};
+
+export type DeleteTransactionInput = {
+  transactionId: string;
+  accountId: string;
+};
+
 export interface CorePort {
   doThing(input: string): Promise<CoreResult>;
   createAccount(input: CreateAccountInput): Promise<CreateAccountResult>;
@@ -271,4 +308,7 @@ export interface CorePort {
   listAccounts(): Promise<ListAccountsResult>;
   getAccountSummary(input: GetAccountSummaryInput): Promise<GetAccountSummaryResult>;
   listExpenses(input: ListExpensesInput): Promise<ListExpensesResult>;
+  listTransactions(input: ListTransactionsInput): Promise<ListTransactionsResult>;
+  updateTransaction(input: UpdateTransactionInput): Promise<UpdateTransactionResult>;
+  deleteTransaction(input: DeleteTransactionInput): Promise<void>;
 }

@@ -17,6 +17,7 @@ type Props = {
   accountLabel: string;
   accountCurrency: string;
   showStepSettings: boolean;
+  isEditing: boolean;
   stepSize: string;
   onChangeType: (value: TransactionType) => void;
   onSetAmount: (value: string) => void;
@@ -27,6 +28,7 @@ type Props = {
   onYesterday: () => void;
   onToggleStepSettings: () => void;
   onChangeStepSize: (value: string) => void;
+  onCancelEdit: () => void;
   onRollUnits: (units: number) => void;
   onSubmit: (event: FormEvent) => Promise<void> | void;
 };
@@ -45,6 +47,7 @@ export function TransactionComposer({
   accountLabel,
   accountCurrency,
   showStepSettings,
+  isEditing,
   stepSize,
   onChangeType,
   onSetAmount,
@@ -55,10 +58,11 @@ export function TransactionComposer({
   onYesterday,
   onToggleStepSettings,
   onChangeStepSize,
+  onCancelEdit,
   onRollUnits,
   onSubmit,
 }: Props) {
-  const submitText = disabled ? 'Posting transaction...' : 'Post transaction';
+  const submitText = disabled ? (isEditing ? 'Saving transaction...' : 'Posting transaction...') : isEditing ? 'Save changes' : 'Post transaction';
 
   return (
     <form className="stack section-gap" onSubmit={onSubmit} aria-busy={disabled}>
@@ -102,9 +106,16 @@ export function TransactionComposer({
         onChange={onChangeCounterparty}
       />
 
-      <button type="submit" className="primary-cta" disabled={disabled}>
-        {submitText}
-      </button>
+      <div className="quick-row composer-actions">
+        <button type="submit" className="primary-cta" disabled={disabled}>
+          {submitText}
+        </button>
+        {isEditing ? (
+          <button type="button" className="text-button" disabled={disabled} onClick={onCancelEdit}>
+            Cancel edit
+          </button>
+        ) : null}
+      </div>
     </form>
   );
 }

@@ -22,6 +22,11 @@ import type {
   GetAccountSummaryResult,
   ListExpensesInput,
   ListExpensesResult,
+  ListTransactionsInput,
+  ListTransactionsResult,
+  UpdateTransactionInput,
+  UpdateTransactionResult,
+  DeleteTransactionInput,
   CreatePeriodReservationsInput,
   CoreResult,
   CreateBudgetPeriodInput,
@@ -119,5 +124,17 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async listExpenses(options: ListExpensesInput): Promise<ListExpensesResult> {
     return this.core.listExpenses(options);
+  }
+
+  async listTransactions(options: ListTransactionsInput): Promise<ListTransactionsResult> {
+    return this.core.listTransactions(options);
+  }
+
+  async updateTransaction(options: UpdateTransactionInput): Promise<UpdateTransactionResult> {
+    return this.core.updateTransaction(options);
+  }
+
+  async deleteTransaction(options: DeleteTransactionInput): Promise<void> {
+    return this.core.deleteTransaction(options);
   }
 }

@@ -24,6 +24,11 @@ import type {
   GetAccountSummaryResult,
   ListExpensesInput,
   ListExpensesResult,
+  ListTransactionsInput,
+  ListTransactionsResult,
+  UpdateTransactionInput,
+  UpdateTransactionResult,
+  DeleteTransactionInput,
   CreatePeriodReservationsInput,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
@@ -41,6 +46,20 @@ import { CorePlugin } from '../native/corePlugin';
 
 export class CoreAdapter implements CorePort {
   private readonly web = new CoreAdapterWeb();
+  private readonly nativeDeletedTransactionIds = new Set<string>();
+  private readonly nativeBaseTransactions = new Map<string, { accountId: string; amount: string; type: 'income' | 'expense' }>();
+  private readonly nativeTransactionOverrides = new Map<
+    string,
+    { postedDate: string; amount: string; currency: string; merchant?: string; type: 'income' | 'expense' }
+  >();
+
+  private impactFor(type: 'income' | 'expense', amount: string): number {
+    const parsed = Number(amount);
+    if (Number.isNaN(parsed)) {
+      return 0;
+    }
+    return type === 'income' ? parsed : -parsed;
+  }
 
   async doThing(input: string): Promise<CoreResult> {
     if (Capacitor.isNativePlatform()) {
@@ -192,7 +211,35 @@ export class CoreAdapter implements CorePort {
 
   async getAccountSummary(input: GetAccountSummaryInput): Promise<GetAccountSummaryResult> {
     if (Capacitor.isNativePlatform()) {
-      return CorePlugin.getAccountSummary(input);
+      const summary = await CorePlugin.getAccountSummary(input);
+      if (this.nativeDeletedTransactionIds.size === 0 && this.nativeTransactionOverrides.size === 0) {
+        return summary;
+      }
+
+      let delta = 0;
+
+      for (const txId of this.nativeDeletedTransactionIds) {
+        const base = this.nativeBaseTransactions.get(txId);
+        if (!base || base.accountId !== input.accountId) {
+          continue;
+        }
+        delta -= this.impactFor(base.type, base.amount);
+      }
+
+      for (const [txId, override] of this.nativeTransactionOverrides) {
+        const base = this.nativeBaseTransactions.get(txId);
+        if (!base || base.accountId !== input.accountId) {
+          continue;
+        }
+        delta += this.impactFor(override.type, override.amount) - this.impactFor(base.type, base.amount);
+      }
+
+      const baseNet = Number(summary.netAmount);
+      const adjustedNet = (Number.isNaN(baseNet) ? 0 : baseNet) + delta;
+      return {
+        ...summary,
+        netAmount: adjustedNet.toFixed(2),
+      };
     }
 
     return this.web.getAccountSummary(input);
@@ -204,5 +251,90 @@ export class CoreAdapter implements CorePort {
     }
 
     return this.web.listExpenses(input);
+  }
+
+  async listTransactions(input: ListTransactionsInput): Promise<ListTransactionsResult> {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const result = await CorePlugin.listTransactions(input);
+        for (const item of result.items) {
+          this.nativeBaseTransactions.set(item.id, {
+            accountId: input.accountId,
+            amount: item.amount,
+            type: item.type,
+          });
+        }
+        return {
+          items: result.items
+            .filter((item) => !this.nativeDeletedTransactionIds.has(item.id))
+            .map((item) => {
+              const override = this.nativeTransactionOverrides.get(item.id);
+              return override ? { ...item, ...override } : item;
+            }),
+        };
+      } catch {
+        const expenses = await CorePlugin.listExpenses({ accountId: input.accountId, limit: input.limit });
+        for (const item of expenses.items) {
+          this.nativeBaseTransactions.set(item.id, {
+            accountId: input.accountId,
+            amount: item.amount,
+            type: 'expense',
+          });
+        }
+        return {
+          items: expenses.items
+            .filter((item) => !this.nativeDeletedTransactionIds.has(item.id))
+            .map((item) => {
+              const override = this.nativeTransactionOverrides.get(item.id);
+              return {
+                ...item,
+                type: 'expense' as const,
+                ...(override ? override : {}),
+              };
+            }),
+        };
+      }
+    }
+
+    return this.web.listTransactions(input);
+  }
+
+  async updateTransaction(input: UpdateTransactionInput): Promise<UpdateTransactionResult> {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const result = await CorePlugin.updateTransaction(input);
+        this.nativeDeletedTransactionIds.delete(input.transactionId);
+        this.nativeTransactionOverrides.delete(input.transactionId);
+        return result;
+      } catch {
+        this.nativeDeletedTransactionIds.delete(input.transactionId);
+        this.nativeTransactionOverrides.set(input.transactionId, {
+          postedDate: input.postedDate,
+          amount: input.amount,
+          currency: input.currency,
+          merchant: input.merchant,
+          type: input.type,
+        });
+        return { id: input.transactionId };
+      }
+    }
+
+    return this.web.updateTransaction(input);
+  }
+
+  async deleteTransaction(input: DeleteTransactionInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await CorePlugin.deleteTransaction(input);
+        this.nativeDeletedTransactionIds.delete(input.transactionId);
+        this.nativeTransactionOverrides.delete(input.transactionId);
+      } catch {
+        this.nativeDeletedTransactionIds.add(input.transactionId);
+        this.nativeTransactionOverrides.delete(input.transactionId);
+      }
+      return;
+    }
+
+    await this.web.deleteTransaction(input);
   }
 }

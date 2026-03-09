@@ -3,14 +3,16 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Accounts } from './Accounts';
 import type { AccountsCorePort } from './accounts/useAccountsPageModel';
+import type { TransactionItem } from '../domain/corePort';
 
-function makeCore(expenseCount = 0): AccountsCorePort {
-  const expenses = Array.from({ length: expenseCount }).map((_, index) => ({
+function makeCore(transactionCount = 0): AccountsCorePort {
+  const transactions: TransactionItem[] = Array.from({ length: transactionCount }).map((_, index) => ({
     id: `exp-${index + 1}`,
     postedDate: `2026-03-0${(index % 9) + 1}`,
     merchant: `Merchant ${index + 1}`,
     amount: `${index + 1}.00`,
     currency: 'USD',
+    type: index % 2 === 0 ? 'expense' : 'income',
   }));
 
   return {
@@ -31,10 +33,12 @@ function makeCore(expenseCount = 0): AccountsCorePort {
       currency: 'USD',
       netAmount: '100.00',
     })),
-    listExpenses: vi.fn(async () => ({ items: expenses })),
+    listTransactions: vi.fn(async () => ({ items: transactions })),
     createAccount: vi.fn(async () => ({ id: 'acc-1' })),
     postExpense: vi.fn(async () => ({ id: 'tx-exp' })),
     postIncome: vi.fn(async () => ({ id: 'tx-inc' })),
+    updateTransaction: vi.fn(async ({ transactionId }) => ({ id: transactionId })),
+    deleteTransaction: vi.fn(async () => undefined),
   };
 }
 
@@ -64,7 +68,7 @@ describe('Accounts UX', () => {
     expect(screen.getByLabelText('Amount value')).toBeInTheDocument();
   });
 
-  it('shows only 3 recent expenses and indicates hidden transactions', async () => {
+  it('shows only 3 recent transactions and indicates hidden transactions', async () => {
     const core = makeCore(5);
 
     render(
@@ -177,6 +181,34 @@ describe('Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Post again' }));
     await waitFor(() => {
       expect(core.postExpense).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('allows editing and deleting a transaction', async () => {
+    const core = makeCore(1);
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { name: 'Recent transactions' });
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Current amount'));
+    fireEvent.change(screen.getByLabelText('Amount value'), { target: { value: '9.99' } });
+    fireEvent.blur(screen.getByLabelText('Amount value'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => {
+      expect(core.updateTransaction).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await waitFor(() => {
+      expect(core.deleteTransaction).toHaveBeenCalledTimes(1);
     });
   });
 });

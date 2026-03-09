@@ -247,6 +247,31 @@ button:disabled {
   align-items: baseline;
 }
 
+.tx-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tx-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.tx-badge.income {
+  background: #e8f7ec;
+  color: #176434;
+}
+
+.tx-badge.expense {
+  background: #f9ebeb;
+  color: #8a2020;
+}
+
 .hint {
   margin: 0;
   color: #575752;
@@ -262,6 +287,15 @@ button:disabled {
 .primary-cta {
   position: sticky;
   bottom: 12px;
+  width: 100%;
+}
+
+.composer-actions {
+  align-items: stretch;
+}
+
+.composer-actions .primary-cta {
+  flex: 1;
 }
 
 @media (min-width: 900px) {

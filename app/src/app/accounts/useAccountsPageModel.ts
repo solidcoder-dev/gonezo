@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { AccountItem, ExpenseItem } from '../../domain/corePort';
+import type { AccountItem, TransactionItem } from '../../domain/corePort';
 
 const DEFAULT_BUDGET_PLAN_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const LAST_TYPE_KEY = 'gonezo:last-transaction-type';
@@ -12,6 +12,7 @@ type FieldErrors = {
 };
 
 type LastSubmittedTransaction = {
+  id?: string;
   type: TransactionType;
   accountId: string;
   amount: string;
@@ -29,7 +30,7 @@ export type AccountsCorePort = {
     currency: string;
     netAmount: string;
   }>;
-  listExpenses(input: { accountId: string; limit?: number }): Promise<{ items: ExpenseItem[] }>;
+  listTransactions(input: { accountId: string; limit?: number }): Promise<{ items: TransactionItem[] }>;
   createAccount(input: { name: string; type?: string; currency?: string }): Promise<{ id: string }>;
   postExpense(input: {
     accountId: string;
@@ -48,6 +49,16 @@ export type AccountsCorePort = {
     currency: string;
     merchant?: string;
   }): Promise<{ id: string }>;
+  updateTransaction(input: {
+    transactionId: string;
+    accountId: string;
+    postedDate: string;
+    amount: string;
+    currency: string;
+    type: TransactionType;
+    merchant?: string;
+  }): Promise<{ id: string }>;
+  deleteTransaction(input: { transactionId: string; accountId: string }): Promise<void>;
 };
 
 export type TransactionType = 'expense' | 'income';
@@ -83,7 +94,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [accounts, setAccounts] = useState<AccountItem[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState('');
   const [netAmount, setNetAmount] = useState('0.00');
-  const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
+  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [historyExpanded, setHistoryExpanded] = useState(false);
 
   const [showCreateAccountForm, setShowCreateAccountForm] = useState(false);
@@ -97,17 +108,18 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [showStepSettings, setShowStepSettings] = useState(false);
   const [stepSize, setStepSize] = useState('0.10');
   const [lastSubmittedTransaction, setLastSubmittedTransaction] = useState<LastSubmittedTransaction | null>(null);
+  const [editingTransactionId, setEditingTransactionId] = useState('');
 
   const selectedAccount = useMemo(
     () => accounts.find((account) => account.id === selectedAccountId),
     [accounts, selectedAccountId]
   );
 
-  const visibleExpenses = useMemo(
-    () => (historyExpanded ? expenses : expenses.slice(0, 3)),
-    [expenses, historyExpanded]
+  const visibleTransactions = useMemo(
+    () => (historyExpanded ? transactions : transactions.slice(0, 3)),
+    [transactions, historyExpanded]
   );
-  const hiddenExpensesCount = Math.max(0, expenses.length - visibleExpenses.length);
+  const hiddenTransactionsCount = Math.max(0, transactions.length - visibleTransactions.length);
 
   useEffect(() => {
     if (!toastMessage) {
@@ -128,7 +140,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     if (accountResult.items.length === 0) {
       setSelectedAccountId('');
       setNetAmount('0.00');
-      setExpenses([]);
+      setTransactions([]);
       return;
     }
 
@@ -144,8 +156,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     const summary = await core.getAccountSummary({ accountId: nextSelectedId });
     setNetAmount(summary.netAmount);
 
-    const expenseResult = await core.listExpenses({ accountId: nextSelectedId, limit: 10 });
-    setExpenses(expenseResult.items);
+    const transactionResult = await core.listTransactions({ accountId: nextSelectedId, limit: 20 });
+    setTransactions(transactionResult.items);
   }
 
   useEffect(() => {
@@ -191,8 +203,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     try {
       const summary = await core.getAccountSummary({ accountId });
       setNetAmount(summary.netAmount);
-      const expenseResult = await core.listExpenses({ accountId, limit: 10 });
-      setExpenses(expenseResult.items);
+      const transactionResult = await core.listTransactions({ accountId, limit: 20 });
+      setTransactions(transactionResult.items);
       setHistoryExpanded(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -350,10 +362,24 @@ export function useAccountsPageModel(core: AccountsCorePort) {
         counterparty: counterparty.trim() || undefined,
       };
 
-      await postTransaction(payload);
-      setLastSubmittedTransaction(payload);
+      if (editingTransactionId) {
+        const result = await core.updateTransaction({
+          transactionId: editingTransactionId,
+          accountId: payload.accountId,
+          postedDate: payload.date,
+          amount: payload.amount,
+          currency: payload.currency,
+          type: payload.type,
+          merchant: payload.counterparty,
+        });
+        setToastMessage(`Transaction updated: ${result.id}`);
+      } else {
+        await postTransaction(payload);
+        setLastSubmittedTransaction(payload);
+      }
       setTransactionAmount('');
       setCounterparty('');
+      setEditingTransactionId('');
       await refreshAccounts(selectedAccount.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -380,6 +406,46 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     }
   }
 
+  function editTransaction(transaction: TransactionItem) {
+    setEditingTransactionId(transaction.id);
+    setTransactionType(transaction.type);
+    setTransactionAmount(transaction.amount);
+    setTransactionDate(transaction.postedDate);
+    setCounterparty(transaction.merchant ?? '');
+    setFieldErrors({});
+    setToastMessage('');
+  }
+
+  async function removeTransaction(transactionId: string) {
+    if (!selectedAccount) {
+      return;
+    }
+    setError('');
+    setToastMessage('');
+    setPostingTransaction(true);
+    try {
+      await core.deleteTransaction({ transactionId, accountId: selectedAccount.id });
+      if (editingTransactionId === transactionId) {
+        setEditingTransactionId('');
+        setTransactionAmount('');
+        setCounterparty('');
+      }
+      setToastMessage('Transaction deleted.');
+      await refreshAccounts(selectedAccount.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setPostingTransaction(false);
+    }
+  }
+
+  function cancelEditingTransaction() {
+    setEditingTransactionId('');
+    setTransactionAmount('');
+    setCounterparty('');
+    setFieldErrors({});
+  }
+
   return {
     loading,
     refreshing,
@@ -392,8 +458,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     selectedAccountId,
     selectedAccount,
     netAmount,
-    visibleExpenses,
-    hiddenExpensesCount,
+    visibleTransactions,
+    hiddenTransactionsCount,
     historyExpanded,
     showCreateAccountForm,
     newAccountName,
@@ -404,6 +470,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     counterparty,
     showStepSettings,
     stepSize,
+    editingTransactionId,
     canPostAgain: Boolean(lastSubmittedTransaction),
     setNewAccountName,
     setNewAccountCurrency,
@@ -421,6 +488,9 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setToday,
     setYesterday,
     postAgain,
+    editTransaction,
+    removeTransaction,
+    cancelEditingTransaction,
     clearToast: () => setToastMessage(''),
     submitCreateAccount,
     selectAccount,

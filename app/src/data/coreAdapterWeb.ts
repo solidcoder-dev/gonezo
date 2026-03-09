@@ -23,6 +23,11 @@ import type {
   GetAccountSummaryResult,
   ListExpensesInput,
   ListExpensesResult,
+  ListTransactionsInput,
+  ListTransactionsResult,
+  UpdateTransactionInput,
+  UpdateTransactionResult,
+  DeleteTransactionInput,
   CreatePeriodReservationsInput,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
@@ -240,5 +245,52 @@ export class CoreAdapterWeb implements CorePort {
       }));
 
     return { items };
+  }
+
+  async listTransactions(input: ListTransactionsInput): Promise<ListTransactionsResult> {
+    const limit = input.limit ?? 10;
+    const items = CoreAdapterWeb.transactions
+      .filter(
+        (tx): tx is MemoryTx & { type: 'income' | 'expense' } =>
+          tx.accountId === input.accountId && (tx.type === 'expense' || tx.type === 'income')
+      )
+      .sort((a, b) => b.postedDate.localeCompare(a.postedDate))
+      .slice(0, limit)
+      .map((tx) => ({
+        id: tx.id,
+        postedDate: tx.postedDate,
+        merchant: tx.merchant,
+        amount: tx.amount,
+        currency: tx.currency,
+        type: tx.type,
+      }));
+
+    return { items };
+  }
+
+  async updateTransaction(input: UpdateTransactionInput): Promise<UpdateTransactionResult> {
+    const index = CoreAdapterWeb.transactions.findIndex(
+      (tx) => tx.id === input.transactionId && tx.accountId === input.accountId
+    );
+    if (index < 0) {
+      throw new Error('Transaction not found');
+    }
+
+    CoreAdapterWeb.transactions[index] = {
+      ...CoreAdapterWeb.transactions[index],
+      postedDate: input.postedDate,
+      amount: input.amount,
+      currency: input.currency,
+      type: input.type,
+      merchant: input.merchant,
+    };
+
+    return { id: input.transactionId };
+  }
+
+  async deleteTransaction(input: DeleteTransactionInput): Promise<void> {
+    CoreAdapterWeb.transactions = CoreAdapterWeb.transactions.filter(
+      (tx) => !(tx.id === input.transactionId && tx.accountId === input.accountId)
+    );
   }
 }

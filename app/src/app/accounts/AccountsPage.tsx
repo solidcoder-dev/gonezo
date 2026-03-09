@@ -2,7 +2,7 @@ import type { AccountsCorePort } from './useAccountsPageModel';
 import { AccountSwitcher } from './AccountSwitcher';
 import { useAccountsPageModel } from './useAccountsPageModel';
 import { TransactionComposer } from '../transactions/TransactionComposer';
-import { RecentExpensesPreview } from '../transactions/RecentExpensesPreview';
+import { RecentTransactions } from '../transactions/RecentTransactions';
 
 type Props = {
   core: AccountsCorePort;
@@ -122,6 +122,7 @@ export function AccountsPage({ core }: Props) {
             accountLabel={model.selectedAccount?.name ?? 'Unknown account'}
             accountCurrency={model.selectedAccount?.currency ?? '---'}
             showStepSettings={model.showStepSettings}
+            isEditing={Boolean(model.editingTransactionId)}
             stepSize={model.stepSize}
             onChangeType={model.selectTransactionType}
             onSetAmount={model.setTransactionAmount}
@@ -132,15 +133,19 @@ export function AccountsPage({ core }: Props) {
             onYesterday={model.setYesterday}
             onToggleStepSettings={model.toggleStepSettings}
             onChangeStepSize={model.setStepSize}
+            onCancelEdit={model.cancelEditingTransaction}
             onRollUnits={model.applyStepUnits}
             onSubmit={model.submitTransaction}
           />
 
-          <RecentExpensesPreview
-            items={model.visibleExpenses}
-            hiddenCount={model.hiddenExpensesCount}
+          <RecentTransactions
+            items={model.visibleTransactions}
+            hiddenCount={model.hiddenTransactionsCount}
             expanded={model.historyExpanded}
+            disabled={model.postingTransaction || model.refreshing}
             onViewAll={model.expandHistory}
+            onEdit={model.editTransaction}
+            onDelete={model.removeTransaction}
           />
         </>
       )}
