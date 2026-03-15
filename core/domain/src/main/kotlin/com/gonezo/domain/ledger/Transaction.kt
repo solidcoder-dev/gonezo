@@ -20,6 +20,10 @@ data class Transaction(
   init {
     require(amount.amount > BigDecimal.ZERO) { "transaction amount must be > 0" }
     require(amount.currency.isNotBlank()) { "transaction currency is required" }
+    if (type == TransactionType.TRANSFER_OUT || type == TransactionType.TRANSFER_IN) {
+      require(linkedTransactionId != null) { "linked transaction id is required for transfers" }
+      require(items.isEmpty()) { "transfers cannot contain items" }
+    }
     require(items.all { it.amount.currency == amount.currency }) { "all items must match transaction currency" }
     if (status == TransactionStatus.DRAFT) {
       require(itemsTotal() <= amount.amount) { "draft items cannot exceed transaction amount" }
@@ -60,6 +64,8 @@ data class Transaction(
     return when (type) {
       TransactionType.INCOME -> amount.amount
       TransactionType.EXPENSE -> amount.amount.negate()
+      TransactionType.TRANSFER_IN -> amount.amount
+      TransactionType.TRANSFER_OUT -> amount.amount.negate()
       TransactionType.TRANSFER -> BigDecimal.ZERO
     }
   }
@@ -131,6 +137,48 @@ data class Transaction(
       status = TransactionStatus.DRAFT,
       items = emptyList(),
       linkedTransactionId = null,
+    )
+
+    fun recordTransferOut(
+      id: TransactionId,
+      accountId: AccountId,
+      amount: Money,
+      occurredAt: Instant,
+      description: String?,
+      linkedTransactionId: TransactionId,
+    ): Transaction = create(
+      id = id,
+      accountId = accountId,
+      type = TransactionType.TRANSFER_OUT,
+      amount = amount,
+      occurredAt = occurredAt,
+      description = description,
+      merchant = null,
+      categoryId = null,
+      status = TransactionStatus.POSTED,
+      items = emptyList(),
+      linkedTransactionId = linkedTransactionId,
+    )
+
+    fun recordTransferIn(
+      id: TransactionId,
+      accountId: AccountId,
+      amount: Money,
+      occurredAt: Instant,
+      description: String?,
+      linkedTransactionId: TransactionId,
+    ): Transaction = create(
+      id = id,
+      accountId = accountId,
+      type = TransactionType.TRANSFER_IN,
+      amount = amount,
+      occurredAt = occurredAt,
+      description = description,
+      merchant = null,
+      categoryId = null,
+      status = TransactionStatus.POSTED,
+      items = emptyList(),
+      linkedTransactionId = linkedTransactionId,
     )
 
     private fun create(

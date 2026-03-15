@@ -102,4 +102,36 @@ class TransactionAggregateTest {
     val voided = posted.void()
     assertThat(voided.status).isEqualTo(TransactionStatus.VOIDED)
   }
+
+  @Test
+  fun `records linked transfer out and in with opposite signed amounts`() {
+    val fromAccountId = AccountId.random()
+    val toAccountId = AccountId.random()
+    val transferInId = TransactionId.random()
+    val transferOutId = TransactionId.random()
+
+    val out = Transaction.recordTransferOut(
+      id = transferOutId,
+      accountId = fromAccountId,
+      amount = Money(BigDecimal("50.00"), "USD"),
+      occurredAt = Instant.parse("2026-03-15T09:00:00Z"),
+      description = "Move to savings",
+      linkedTransactionId = transferInId,
+    )
+    val incoming = Transaction.recordTransferIn(
+      id = transferInId,
+      accountId = toAccountId,
+      amount = Money(BigDecimal("50.00"), "USD"),
+      occurredAt = Instant.parse("2026-03-15T09:00:00Z"),
+      description = "Move from wallet",
+      linkedTransactionId = transferOutId,
+    )
+
+    assertThat(out.type).isEqualTo(TransactionType.TRANSFER_OUT)
+    assertThat(incoming.type).isEqualTo(TransactionType.TRANSFER_IN)
+    assertThat(out.linkedTransactionId).isEqualTo(transferInId)
+    assertThat(incoming.linkedTransactionId).isEqualTo(transferOutId)
+    assertThat(out.signedAmount()).isEqualByComparingTo(BigDecimal("-50.00"))
+    assertThat(incoming.signedAmount()).isEqualByComparingTo(BigDecimal("50.00"))
+  }
 }

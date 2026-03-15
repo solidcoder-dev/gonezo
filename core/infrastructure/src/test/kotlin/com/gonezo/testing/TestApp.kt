@@ -11,6 +11,7 @@ import com.gonezo.application.ledger.OpenLedgerAccountUC
 import com.gonezo.application.ledger.PostLedgerDraftTransactionUC
 import com.gonezo.application.ledger.RecordLedgerExpenseUC
 import com.gonezo.application.ledger.RecordLedgerIncomeUC
+import com.gonezo.application.ledger.RecordLedgerTransferUC
 import com.gonezo.application.ledger.RemoveLedgerTransactionItemUC
 import com.gonezo.application.ledger.VoidLedgerTransactionUC
 import com.gonezo.application.services.ledger.AddLedgerTransactionItemService
@@ -23,6 +24,7 @@ import com.gonezo.application.services.ledger.OpenLedgerAccountService
 import com.gonezo.application.services.ledger.PostLedgerDraftTransactionService
 import com.gonezo.application.services.ledger.RecordLedgerExpenseService
 import com.gonezo.application.services.ledger.RecordLedgerIncomeService
+import com.gonezo.application.services.ledger.RecordLedgerTransferService
 import com.gonezo.application.services.ledger.RemoveLedgerTransactionItemService
 import com.gonezo.application.services.ledger.VoidLedgerTransactionService
 import com.gonezo.infrastructure.persistence.JdbcLedgerAccountRepository
@@ -47,6 +49,11 @@ class TestApp(private val db: TestDatabase) {
     domainEventPublisher,
   )
   val ledgerRecordExpenseUC: RecordLedgerExpenseUC = RecordLedgerExpenseService(
+    ledgerAccountRepository,
+    ledgerTransactionRepository,
+    domainEventPublisher,
+  )
+  val ledgerRecordTransferUC: RecordLedgerTransferUC = RecordLedgerTransferService(
     ledgerAccountRepository,
     ledgerTransactionRepository,
     domainEventPublisher,

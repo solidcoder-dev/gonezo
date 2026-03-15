@@ -48,4 +48,33 @@ class BalanceCalculatorTest {
     assertThat(balance.amount).isEqualByComparingTo(BigDecimal("1120.00"))
     assertThat(balance.currency).isEqualTo("USD")
   }
+
+  @Test
+  fun `applies transfer out as negative and transfer in as positive`() {
+    val source = AccountId.random()
+    val target = AccountId.random()
+    val transferInId = TransactionId.random()
+    val transferOut = Transaction.recordTransferOut(
+      id = TransactionId.random(),
+      accountId = source,
+      amount = Money(BigDecimal("25.00"), "USD"),
+      occurredAt = Instant.parse("2026-03-15T10:00:00Z"),
+      description = "to target",
+      linkedTransactionId = transferInId,
+    )
+    val transferIn = Transaction.recordTransferIn(
+      id = transferInId,
+      accountId = target,
+      amount = Money(BigDecimal("25.00"), "USD"),
+      occurredAt = Instant.parse("2026-03-15T10:00:00Z"),
+      description = "from source",
+      linkedTransactionId = transferOut.id,
+    )
+
+    val sourceBalance = calculator.calculate(currency = "USD", transactions = listOf(transferOut))
+    val targetBalance = calculator.calculate(currency = "USD", transactions = listOf(transferIn))
+
+    assertThat(sourceBalance.amount).isEqualByComparingTo(BigDecimal("-25.00"))
+    assertThat(targetBalance.amount).isEqualByComparingTo(BigDecimal("25.00"))
+  }
 }

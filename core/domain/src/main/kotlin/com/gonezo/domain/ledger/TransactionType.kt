@@ -3,6 +3,8 @@ package com.gonezo.domain.ledger
 enum class TransactionType(val value: String) {
   INCOME("income"),
   EXPENSE("expense"),
+  TRANSFER_OUT("transfer_out"),
+  TRANSFER_IN("transfer_in"),
   TRANSFER("transfer"),
   ;
 
