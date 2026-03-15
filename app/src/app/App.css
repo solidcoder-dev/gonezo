@@ -24,6 +24,12 @@
   box-sizing: border-box;
 }
 
+.page-title {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: 0.01em;
+}
+
 .stack {
   display: grid;
   gap: 10px;
@@ -228,6 +234,7 @@ input {
   padding: 10px 12px;
   border: 1px solid #c9c9c0;
   border-radius: 10px;
+  min-height: 44px;
 }
 
 select {
@@ -236,6 +243,7 @@ select {
   border: 1px solid #c9c9c0;
   border-radius: 10px;
   background: #fff;
+  min-height: 44px;
 }
 
 button {
@@ -245,10 +253,18 @@ button {
   background: #1d1d1b;
   color: #fff;
   font-weight: 600;
+  min-height: 44px;
 }
 
 button:disabled {
   opacity: 0.6;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid #3f6be3;
+  outline-offset: 2px;
 }
 
 .banner {

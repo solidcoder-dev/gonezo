@@ -1,4 +1,5 @@
 import type { LedgerTransactionListItem } from '../../domain/corePort';
+import { formatCurrencyAmount, formatIsoDate } from '../formatting';
 
 export type RecentTransactionsProps = {
   items: LedgerTransactionListItem[];
@@ -37,6 +38,14 @@ export function RecentTransactions({
     return type === 'income' || type === 'transfer_in' ? 'tx-badge income' : 'tx-badge expense';
   }
 
+  function txAmount(amount: string, currency: string): string {
+    const numeric = Number(amount);
+    if (Number.isNaN(numeric)) {
+      return `${amount} ${currency}`;
+    }
+    return formatCurrencyAmount(Math.abs(numeric).toString(), currency);
+  }
+
   return (
     <section className="stack section-gap">
       <h2>Recent transactions</h2>
@@ -52,10 +61,10 @@ export function RecentTransactions({
                   </span>
                   <strong>
                     {txSign(transaction.type)}
-                    {transaction.amount} {transaction.currency}
+                    {txAmount(transaction.amount, transaction.currency)}
                   </strong>
                 </div>
-                <span>{transaction.occurredAt}</span>
+                <time dateTime={transaction.occurredAt}>{formatIsoDate(transaction.occurredAt)}</time>
               </div>
               <span>{transaction.merchant || transaction.description || 'No description'}</span>
               {transaction.status !== 'posted' ? <span className="hint">Status: {transaction.status}</span> : null}

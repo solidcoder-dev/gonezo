@@ -161,9 +161,11 @@ export function TransactionComposer({
                 value={amount}
                 onChange={(event) => onSetAmount(event.target.value)}
                 inputMode="decimal"
+                aria-invalid={Boolean(amountError)}
+                aria-describedby={amountError ? 'composer-amount-error' : undefined}
               />
             </label>
-            {amountError ? <p className="field-error">{amountError}</p> : null}
+            {amountError ? <p id="composer-amount-error" className="field-error">{amountError}</p> : null}
 
             <div className="inline-header">
               <span className="hint">Need more fields?</span>
@@ -176,9 +178,16 @@ export function TransactionComposer({
               <>
                 <label className="stack">
                   Date
-                  <input aria-label="Date" type="date" value={date} onChange={(event) => onSetDate(event.target.value)} />
+                  <input
+                    aria-label="Date"
+                    type="date"
+                    value={date}
+                    onChange={(event) => onSetDate(event.target.value)}
+                    aria-invalid={Boolean(dateError)}
+                    aria-describedby={dateError ? 'composer-date-error' : undefined}
+                  />
                 </label>
-                {dateError ? <p className="field-error">{dateError}</p> : null}
+                {dateError ? <p id="composer-date-error" className="field-error">{dateError}</p> : null}
                 <label className="stack">
                   {mode === 'expense' ? 'Merchant (optional)' : mode === 'income' ? 'Source (optional)' : 'Note (optional)'}
                   <input
@@ -234,6 +243,8 @@ export function TransactionComposer({
                         value={expenseItemName}
                         onChange={(event) => onSetExpenseItemName(event.target.value)}
                         placeholder="Item name"
+                        aria-invalid={Boolean(expenseItemNameError)}
+                        aria-describedby={expenseItemNameError ? 'composer-item-name-error' : undefined}
                       />
                       <input
                         aria-label="Item amount"
@@ -244,10 +255,12 @@ export function TransactionComposer({
                         onChange={(event) => onSetExpenseItemAmount(event.target.value)}
                         placeholder="Amount"
                         inputMode="decimal"
+                        aria-invalid={Boolean(expenseItemAmountError)}
+                        aria-describedby={expenseItemAmountError ? 'composer-item-amount-error' : undefined}
                       />
                     </div>
-                    {expenseItemNameError ? <p className="field-error">{expenseItemNameError}</p> : null}
-                    {expenseItemAmountError ? <p className="field-error">{expenseItemAmountError}</p> : null}
+                    {expenseItemNameError ? <p id="composer-item-name-error" className="field-error">{expenseItemNameError}</p> : null}
+                    {expenseItemAmountError ? <p id="composer-item-amount-error" className="field-error">{expenseItemAmountError}</p> : null}
                     <div className="quick-row">
                       <button type="button" className="text-button" onClick={onAddExpenseItem}>
                         Add item
