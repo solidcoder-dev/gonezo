@@ -53,6 +53,9 @@ import com.gonezo.domain.ledger.services.BalanceCalculator;
 import com.gonezo.domain.shared.Money;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
 
@@ -107,7 +110,7 @@ public final class AndroidLedgerCore {
     String trimmedName = requireText(name, "name is required");
     String resolvedType = blankToNull(type) == null ? "cash" : type.trim();
     String resolvedCurrency = blankToNull(currency) == null ? "USD" : currency.trim().toUpperCase();
-    Instant resolvedCreatedAt = blankToNull(createdAt) == null ? Instant.now() : Instant.parse(createdAt);
+    Instant resolvedCreatedAt = blankToNull(createdAt) == null ? Instant.now() : parseInstantOrDate(createdAt, "createdAt");
 
     OpenLedgerAccountCommand command = new OpenLedgerAccountCommand(
       trimmedName,
@@ -131,7 +134,7 @@ public final class AndroidLedgerCore {
     archiveAccountUC.execute(
       new ArchiveLedgerAccountCommand(
         new AccountId(UUID.fromString(requireText(accountId, "accountId is required"))),
-        blankToNull(archivedAt) == null ? Instant.now() : Instant.parse(archivedAt)
+        blankToNull(archivedAt) == null ? Instant.now() : parseInstantOrDate(archivedAt, "archivedAt")
       )
     );
   }
@@ -162,7 +165,7 @@ public final class AndroidLedgerCore {
     RecordLedgerExpenseCommand command = new RecordLedgerExpenseCommand(
       new AccountId(UUID.fromString(requireText(accountId, "accountId is required"))),
       new Money(new BigDecimal(requireText(amount, "amount is required")), requireText(currency, "currency is required").toUpperCase()),
-      Instant.parse(requireText(occurredAt, "occurredAt is required")),
+      parseInstantOrDate(occurredAt, "occurredAt"),
       blankToNull(description),
       blankToNull(merchant),
       parseNullableCategoryId(categoryId)
@@ -174,7 +177,7 @@ public final class AndroidLedgerCore {
     RecordLedgerIncomeCommand command = new RecordLedgerIncomeCommand(
       new AccountId(UUID.fromString(requireText(accountId, "accountId is required"))),
       new Money(new BigDecimal(requireText(amount, "amount is required")), requireText(currency, "currency is required").toUpperCase()),
-      Instant.parse(requireText(occurredAt, "occurredAt is required")),
+      parseInstantOrDate(occurredAt, "occurredAt"),
       blankToNull(description),
       blankToNull(merchant),
       parseNullableCategoryId(categoryId)
@@ -187,7 +190,7 @@ public final class AndroidLedgerCore {
       new AccountId(UUID.fromString(requireText(fromAccountId, "fromAccountId is required"))),
       new AccountId(UUID.fromString(requireText(toAccountId, "toAccountId is required"))),
       new Money(new BigDecimal(requireText(amount, "amount is required")), requireText(currency, "currency is required").toUpperCase()),
-      Instant.parse(requireText(occurredAt, "occurredAt is required")),
+      parseInstantOrDate(occurredAt, "occurredAt"),
       blankToNull(description)
     );
     RecordLedgerTransferResult result = recordTransferUC.execute(command);
@@ -198,7 +201,7 @@ public final class AndroidLedgerCore {
     CreateLedgerExpenseDraftCommand command = new CreateLedgerExpenseDraftCommand(
       new AccountId(UUID.fromString(requireText(accountId, "accountId is required"))),
       new Money(new BigDecimal(requireText(amount, "amount is required")), requireText(currency, "currency is required").toUpperCase()),
-      Instant.parse(requireText(occurredAt, "occurredAt is required")),
+      parseInstantOrDate(occurredAt, "occurredAt"),
       blankToNull(description),
       blankToNull(merchant),
       parseNullableCategoryId(categoryId)
@@ -311,6 +314,19 @@ public final class AndroidLedgerCore {
     }
     String trimmed = value.trim();
     return trimmed.isEmpty() ? null : trimmed;
+  }
+
+  private static Instant parseInstantOrDate(String value, String fieldName) {
+    String normalized = requireText(value, fieldName + " is required");
+    try {
+      return Instant.parse(normalized);
+    } catch (DateTimeParseException ignored) {
+      try {
+        return LocalDate.parse(normalized).atStartOfDay().toInstant(ZoneOffset.UTC);
+      } catch (DateTimeParseException ex) {
+        throw new IllegalArgumentException(fieldName + " must be ISO-8601 instant or yyyy-MM-dd");
+      }
+    }
   }
 
   public record LedgerAccountView(
