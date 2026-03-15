@@ -172,6 +172,31 @@ describe('Accounts UX', () => {
     });
   });
 
+  it('closes the composer after expense save even when refresh fails', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Current account');
+    vi.mocked(core.ledgerListAccounts).mockRejectedValueOnce(new Error('refresh failed'));
+    await openMode('Expense');
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save expense' }));
+
+    await waitFor(() => {
+      expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
+    });
+    expect(await screen.findByRole('alert')).toHaveTextContent('refresh failed');
+  });
+
   it('allows voiding a transaction', async () => {
     const core = makeCore(1);
 

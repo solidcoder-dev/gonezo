@@ -438,6 +438,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
     setPostingTransaction(true);
     try {
+      let recorded = false;
       if (composerMode === 'expense') {
         if (!expenseDetailed) {
           const result = await core.ledgerRecordExpense({
@@ -449,6 +450,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
             merchant: transactionNote.trim() || undefined,
           });
           setToastMessage(`Expense recorded: ${result.id}`);
+          recorded = true;
         } else {
           const draft = await core.ledgerCreateExpenseDraft({
             accountId: selectedAccount.id,
@@ -468,6 +470,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
           }
           await core.ledgerPostDraftTransaction({ transactionId: draft.id });
           setToastMessage(`Expense recorded: ${draft.id}`);
+          recorded = true;
         }
       }
 
@@ -481,6 +484,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
           merchant: transactionNote.trim() || undefined,
         });
         setToastMessage(`Income recorded: ${result.id}`);
+        recorded = true;
       }
 
       if (composerMode === 'transfer') {
@@ -493,11 +497,14 @@ export function useAccountsPageModel(core: AccountsCorePort) {
           description: transactionNote.trim() || undefined,
         });
         setToastMessage(`Transfer recorded: ${result.transferOutId}`);
+        recorded = true;
       }
 
-      await refreshAccounts(selectedAccount.id);
-      setComposerOpen(false);
-      resetComposerState();
+      if (recorded) {
+        setComposerOpen(false);
+        resetComposerState();
+        await refreshAccounts(selectedAccount.id);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
