@@ -2,23 +2,18 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { LedgerAccountItem, LedgerTransactionListItem } from '../../domain/corePort';
 
-const LAST_TYPE_KEY = 'gonezo:last-transaction-type';
-const MIN_AMOUNT = 0.01;
-
 type FieldErrors = {
   amount?: string;
   date?: string;
 };
 
-type LastSubmittedTransaction = {
-  id?: string;
-  type: TransactionType;
-  accountId: string;
-  toAccountId?: string;
+type ComposerMode = 'picker' | 'expense' | 'income' | 'transfer';
+export type TransactionType = Exclude<ComposerMode, 'picker'>;
+
+type ExpenseItemDraft = {
+  id: string;
+  name: string;
   amount: string;
-  date: string;
-  currency: string;
-  counterparty?: string;
 };
 
 export type AccountsCorePort = {
@@ -67,31 +62,32 @@ export type AccountsCorePort = {
     currency: string;
     description?: string;
   }): Promise<{ transferOutId: string; transferInId: string }>;
+  ledgerCreateExpenseDraft(input: {
+    accountId: string;
+    occurredAt: string;
+    amount: string;
+    currency: string;
+    description?: string;
+    merchant?: string;
+  }): Promise<{ id: string }>;
+  ledgerAddTransactionItem(input: {
+    transactionId: string;
+    name: string;
+    amount: string;
+    currency: string;
+    note?: string;
+  }): Promise<void>;
+  ledgerPostDraftTransaction(input: { transactionId: string }): Promise<void>;
   ledgerVoidTransaction(input: { transactionId: string }): Promise<void>;
 };
-
-export type TransactionType = 'expense' | 'income' | 'transfer';
-
-function readLastType(): TransactionType {
-  if (typeof window === 'undefined') {
-    return 'expense';
-  }
-
-  const saved = window.localStorage.getItem(LAST_TYPE_KEY);
-  if (saved === 'income' || saved === 'transfer') {
-    return saved;
-  }
-  return 'expense';
-}
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function yesterdayIso(): string {
-  const now = new Date();
-  now.setDate(now.getDate() - 1);
-  return now.toISOString().slice(0, 10);
+function parseAmount(value: string): number {
+  const parsed = Number(value.trim());
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 export function useAccountsPageModel(core: AccountsCorePort) {
@@ -115,23 +111,41 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [newAccountCurrency, setNewAccountCurrency] = useState('USD');
   const [newAccountOpeningBalance, setNewAccountOpeningBalance] = useState('');
 
-  const [transactionType, setTransactionType] = useState<TransactionType>(readLastType());
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerMode, setComposerMode] = useState<ComposerMode>('picker');
+  const [composerAdvancedOpen, setComposerAdvancedOpen] = useState(false);
   const [transactionAmount, setTransactionAmount] = useState('');
   const [transactionDate, setTransactionDate] = useState(todayIso());
-  const [counterparty, setCounterparty] = useState('');
-  const [showStepSettings, setShowStepSettings] = useState(false);
-  const [stepSize, setStepSize] = useState('0.10');
+  const [transactionNote, setTransactionNote] = useState('');
   const [transferToAccountId, setTransferToAccountId] = useState('');
-  const [lastSubmittedTransaction, setLastSubmittedTransaction] = useState<LastSubmittedTransaction | null>(null);
+
+  const [expenseDetailed, setExpenseDetailed] = useState(false);
+  const [expenseItemName, setExpenseItemName] = useState('');
+  const [expenseItemAmount, setExpenseItemAmount] = useState('');
+  const [expenseItems, setExpenseItems] = useState<ExpenseItemDraft[]>([]);
 
   const selectedAccount = useMemo(
     () => accounts.find((account) => account.id === selectedAccountId),
     [accounts, selectedAccountId],
   );
+
   const transferTargetOptions = useMemo(
     () => accounts.filter((account) => account.id !== selectedAccountId),
     [accounts, selectedAccountId],
   );
+
+  const expenseAssigned = useMemo(
+    () => expenseItems.reduce((acc, item) => acc + parseAmount(item.amount), 0),
+    [expenseItems],
+  );
+
+  const expenseRemaining = useMemo(() => {
+    const total = parseAmount(transactionAmount);
+    if (total <= 0) {
+      return '0.00';
+    }
+    return (Math.round((total - expenseAssigned) * 100) / 100).toFixed(2);
+  }, [transactionAmount, expenseAssigned]);
 
   const visibleTransactions = useMemo(
     () => (historyExpanded ? transactions : transactions.slice(0, 3)),
@@ -150,6 +164,19 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
     return () => window.clearTimeout(timer);
   }, [toastMessage]);
+
+  function resetComposerState() {
+    setComposerMode('picker');
+    setComposerAdvancedOpen(false);
+    setTransactionAmount('');
+    setTransactionDate(todayIso());
+    setTransactionNote('');
+    setExpenseDetailed(false);
+    setExpenseItemName('');
+    setExpenseItemAmount('');
+    setExpenseItems([]);
+    setFieldErrors({});
+  }
 
   async function refreshAccounts(preferredAccountId?: string) {
     const accountResult = await core.ledgerListAccounts();
@@ -171,6 +198,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
           : accountResult.items[0].id;
 
     setSelectedAccountId(nextSelectedId);
+
     const fallbackTransferTarget =
       accountResult.items.find((item) => item.id === transferToAccountId && item.id !== nextSelectedId)?.id
       ?? accountResult.items.find((item) => item.id !== nextSelectedId)?.id
@@ -220,22 +248,11 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function selectTransactionType(value: TransactionType) {
-    setTransactionType(value);
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(LAST_TYPE_KEY, value);
-    }
-  }
-
   async function selectAccount(accountId: string) {
     setError('');
     setToastMessage('');
     setSelectedAccountId(accountId);
-    const nextTarget =
-      transferToAccountId && transferToAccountId !== accountId && accounts.some((item) => item.id === transferToAccountId)
-        ? transferToAccountId
-        : accounts.find((item) => item.id !== accountId)?.id ?? '';
-    setTransferToAccountId(nextTarget);
+    setComposerOpen(false);
     setRefreshing(true);
 
     try {
@@ -244,6 +261,11 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       const transactionResult = await core.ledgerListTransactions({ accountId, limit: 20, includeVoided: true });
       setTransactions(transactionResult.items);
       setHistoryExpanded(false);
+      const nextTarget =
+        transferToAccountId && transferToAccountId !== accountId && accounts.some((item) => item.id === transferToAccountId)
+          ? transferToAccountId
+          : accounts.find((item) => item.id !== accountId)?.id ?? '';
+      setTransferToAccountId(nextTarget);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -293,100 +315,78 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     }
   }
 
-  function applyAmountDelta(delta: number) {
-    const current = Number(transactionAmount || '0');
-    const next = Number.isNaN(current) ? delta : current + delta;
-    setTransactionAmount(Math.max(MIN_AMOUNT, next).toFixed(2));
-    setFieldErrors((previous) => ({ ...previous, amount: undefined }));
-  }
-
-  function applyStepUnits(units: number) {
-    const step = Number(stepSize);
-    if (Number.isNaN(step) || step <= 0) {
+  function openTransactionComposer() {
+    if (!selectedAccount) {
+      setError('Select an account first.');
       return;
     }
-    applyAmountDelta(units * step);
+    setError('');
+    setComposerOpen(true);
+    resetComposerState();
+  }
+
+  function closeTransactionComposer() {
+    setComposerOpen(false);
+    resetComposerState();
+  }
+
+  function selectComposerMode(mode: Exclude<ComposerMode, 'picker'>) {
+    setComposerMode(mode);
+    setComposerAdvancedOpen(false);
   }
 
   function setTransactionAmountValue(value: string) {
-    const cleaned = value.replace('-', '');
-    setTransactionAmount(cleaned);
+    setTransactionAmount(value.replace('-', ''));
     setFieldErrors((previous) => ({ ...previous, amount: undefined }));
   }
 
-  function formatAmount() {
-    if (!transactionAmount.trim()) {
+  function addExpenseItem() {
+    const name = expenseItemName.trim();
+    const amount = parseAmount(expenseItemAmount);
+
+    if (!name) {
+      setError('Item name is required.');
+      return;
+    }
+    if (amount <= 0) {
+      setError('Item amount must be greater than 0.');
       return;
     }
 
-    const numeric = Number(transactionAmount);
-    if (Number.isNaN(numeric)) {
+    setError('');
+    setExpenseItems((previous) => [
+      ...previous,
+      {
+        id: crypto.randomUUID(),
+        name,
+        amount: amount.toFixed(2),
+      },
+    ]);
+    setExpenseItemName('');
+    setExpenseItemAmount('');
+  }
+
+  function removeExpenseItem(itemId: string) {
+    setExpenseItems((previous) => previous.filter((item) => item.id !== itemId));
+  }
+
+  function assignRemaining() {
+    const remaining = parseAmount(expenseRemaining);
+    if (remaining <= 0) {
       return;
     }
 
-    setTransactionAmount(Math.max(MIN_AMOUNT, numeric).toFixed(2));
-  }
-
-  function setToday() {
-    setTransactionDate(todayIso());
-    setFieldErrors((previous) => ({ ...previous, date: undefined }));
-  }
-
-  function setYesterday() {
-    setTransactionDate(yesterdayIso());
-    setFieldErrors((previous) => ({ ...previous, date: undefined }));
-  }
-
-  function setStepSizeValue(value: string) {
-    setStepSize(value);
-  }
-
-  async function postTransaction(data: LastSubmittedTransaction, announce = true) {
-    if (data.type === 'transfer') {
-      const toAccountId = data.toAccountId;
-      if (!toAccountId) {
-        throw new Error('Destination account is required for transfers.');
-      }
-      const result = await core.ledgerRecordTransfer({
-        fromAccountId: data.accountId,
-        toAccountId,
-        occurredAt: data.date,
-        amount: data.amount,
-        currency: data.currency,
-        description: data.counterparty,
-      });
-      if (announce) {
-        setToastMessage(`Transfer recorded: ${result.transferOutId}`);
-      }
-      return;
-    }
-
-    if (data.type === 'expense') {
-      const result = await core.ledgerRecordExpense({
-        accountId: data.accountId,
-        occurredAt: data.date,
-        amount: data.amount,
-        currency: data.currency,
-        description: data.counterparty,
-        merchant: data.counterparty,
-      });
-      if (announce) {
-        setToastMessage(`Expense recorded: ${result.id}`);
-      }
-      return;
-    }
-
-    const result = await core.ledgerRecordIncome({
-      accountId: data.accountId,
-      occurredAt: data.date,
-      amount: data.amount,
-      currency: data.currency,
-      description: data.counterparty,
-      merchant: data.counterparty,
-    });
-    if (announce) {
-      setToastMessage(`Income recorded: ${result.id}`);
-    }
+    const fallbackName = `Item ${expenseItems.length + 1}`;
+    setExpenseItems((previous) => [
+      ...previous,
+      {
+        id: crypto.randomUUID(),
+        name: expenseItemName.trim() || fallbackName,
+        amount: remaining.toFixed(2),
+      },
+    ]);
+    setExpenseItemName('');
+    setExpenseItemAmount('');
   }
 
   async function submitTransaction(event: FormEvent) {
@@ -415,46 +415,89 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       return;
     }
 
-    if (transactionType === 'transfer' && !transferToAccountId) {
+    if (composerMode === 'transfer' && !transferToAccountId) {
       setError('Select a destination account for transfer.');
       return;
     }
 
-    setPostingTransaction(true);
-    try {
-      const payload: LastSubmittedTransaction = {
-        type: transactionType,
-        accountId: selectedAccount.id,
-        toAccountId: transactionType === 'transfer' ? transferToAccountId : undefined,
-        amount,
-        date: transactionDate,
-        currency: selectedAccount.currency,
-        counterparty: counterparty.trim() || undefined,
-      };
-
-      await postTransaction(payload);
-      setLastSubmittedTransaction(payload);
-      setTransactionAmount('');
-      setCounterparty('');
-      await refreshAccounts(selectedAccount.id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setPostingTransaction(false);
-    }
-  }
-
-  async function postAgain() {
-    if (!lastSubmittedTransaction || postingTransaction) {
+    if (composerMode === 'transfer' && transferToAccountId === selectedAccount.id) {
+      setError('Source and destination accounts must be different.');
       return;
     }
 
-    setError('');
+    if (composerMode === 'expense' && expenseDetailed) {
+      if (expenseItems.length === 0) {
+        setError('Add at least one item.');
+        return;
+      }
+      if (parseAmount(expenseRemaining) !== 0) {
+        setError('Items must match the total amount before publishing.');
+        return;
+      }
+    }
+
     setPostingTransaction(true);
     try {
-      await postTransaction(lastSubmittedTransaction, false);
-      setToastMessage('Posted again.');
-      await refreshAccounts(lastSubmittedTransaction.accountId);
+      if (composerMode === 'expense') {
+        if (!expenseDetailed) {
+          const result = await core.ledgerRecordExpense({
+            accountId: selectedAccount.id,
+            occurredAt: transactionDate,
+            amount,
+            currency: selectedAccount.currency,
+            description: transactionNote.trim() || undefined,
+            merchant: transactionNote.trim() || undefined,
+          });
+          setToastMessage(`Expense recorded: ${result.id}`);
+        } else {
+          const draft = await core.ledgerCreateExpenseDraft({
+            accountId: selectedAccount.id,
+            occurredAt: transactionDate,
+            amount,
+            currency: selectedAccount.currency,
+            description: transactionNote.trim() || undefined,
+            merchant: transactionNote.trim() || undefined,
+          });
+          for (const item of expenseItems) {
+            await core.ledgerAddTransactionItem({
+              transactionId: draft.id,
+              name: item.name,
+              amount: item.amount,
+              currency: selectedAccount.currency,
+            });
+          }
+          await core.ledgerPostDraftTransaction({ transactionId: draft.id });
+          setToastMessage(`Expense recorded: ${draft.id}`);
+        }
+      }
+
+      if (composerMode === 'income') {
+        const result = await core.ledgerRecordIncome({
+          accountId: selectedAccount.id,
+          occurredAt: transactionDate,
+          amount,
+          currency: selectedAccount.currency,
+          description: transactionNote.trim() || undefined,
+          merchant: transactionNote.trim() || undefined,
+        });
+        setToastMessage(`Income recorded: ${result.id}`);
+      }
+
+      if (composerMode === 'transfer') {
+        const result = await core.ledgerRecordTransfer({
+          fromAccountId: selectedAccount.id,
+          toAccountId: transferToAccountId,
+          occurredAt: transactionDate,
+          amount,
+          currency: selectedAccount.currency,
+          description: transactionNote.trim() || undefined,
+        });
+        setToastMessage(`Transfer recorded: ${result.transferOutId}`);
+      }
+
+      await refreshAccounts(selectedAccount.id);
+      setComposerOpen(false);
+      resetComposerState();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -500,37 +543,45 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     newAccountName,
     newAccountCurrency,
     newAccountOpeningBalance,
-    transactionType,
+    composerOpen,
+    composerMode,
+    composerAdvancedOpen,
     transactionAmount,
     transactionDate,
-    counterparty,
-    showStepSettings,
-    stepSize,
+    transactionNote,
     transferToAccountId,
     transferTargetOptions,
-    canPostAgain: Boolean(lastSubmittedTransaction),
+    expenseDetailed,
+    expenseItemName,
+    expenseItemAmount,
+    expenseItems,
+    expenseRemaining,
     setNewAccountName,
     setNewAccountCurrency,
     setNewAccountOpeningBalance,
     setTransactionAmount: setTransactionAmountValue,
     setTransactionDate,
-    setCounterparty,
-    selectTransactionType,
-    setStepSize: setStepSizeValue,
+    setTransactionNote,
     setTransferToAccountId,
-    formatAmount,
+    setExpenseDetailed,
+    setExpenseItemName,
+    setExpenseItemAmount,
+    clearToast: () => setToastMessage(''),
     openCreateAccountForm: () => setShowCreateAccountForm(true),
     closeCreateAccountForm: () => setShowCreateAccountForm(false),
     expandHistory: () => setHistoryExpanded(true),
-    toggleStepSettings: () => setShowStepSettings((previous) => !previous),
-    applyStepUnits,
-    setToday,
-    setYesterday,
-    postAgain,
-    voidTransaction,
-    clearToast: () => setToastMessage(''),
+    openTransactionComposer,
+    closeTransactionComposer,
+    selectComposerMode,
+    toggleComposerAdvanced: () => setComposerAdvancedOpen((previous) => !previous),
+    addExpenseItem,
+    removeExpenseItem,
+    assignRemaining,
     submitCreateAccount,
     selectAccount,
     submitTransaction,
+    voidTransaction,
+    canPostAgain: false,
+    postAgain: () => undefined,
   };
 }

@@ -138,32 +138,36 @@ export function AccountsPage({ core }: Props) {
           ) : null}
 
           <TransactionComposer
-            transactionType={model.transactionType}
+            open={model.composerOpen}
+            mode={model.composerMode}
+            onOpen={model.openTransactionComposer}
+            onClose={model.closeTransactionComposer}
+            onSelectMode={model.selectComposerMode}
+            onToggleAdvanced={model.toggleComposerAdvanced}
+            advancedOpen={model.composerAdvancedOpen}
             amount={model.transactionAmount}
             date={model.transactionDate}
-            counterparty={model.counterparty}
+            note={model.transactionNote}
             transferTargetAccountId={model.transferToAccountId}
             transferTargetOptions={model.transferTargetOptions}
+            expenseDetailed={model.expenseDetailed}
+            expenseItems={model.expenseItems}
+            expenseItemName={model.expenseItemName}
+            expenseItemAmount={model.expenseItemAmount}
+            expenseRemaining={model.expenseRemaining}
+            onToggleExpenseDetailed={() => model.setExpenseDetailed(!model.expenseDetailed)}
+            onSetExpenseItemName={model.setExpenseItemName}
+            onSetExpenseItemAmount={model.setExpenseItemAmount}
+            onAddExpenseItem={model.addExpenseItem}
+            onRemoveExpenseItem={model.removeExpenseItem}
+            onAssignRemaining={model.assignRemaining}
             amountError={model.fieldErrors.amount}
             dateError={model.fieldErrors.date}
             disabled={model.postingTransaction || model.refreshing}
-            accountLabel={model.selectedAccount?.name ?? 'Unknown account'}
-            accountCurrency={model.selectedAccount?.currency ?? '---'}
-            showStepSettings={model.showStepSettings}
-            isEditing={false}
-            stepSize={model.stepSize}
-            onChangeType={model.selectTransactionType}
             onSetAmount={model.setTransactionAmount}
-            onFormatAmount={model.formatAmount}
-            onChangeDate={model.setTransactionDate}
-            onChangeCounterparty={model.setCounterparty}
-            onChangeTransferTarget={model.setTransferToAccountId}
-            onToday={model.setToday}
-            onYesterday={model.setYesterday}
-            onToggleStepSettings={model.toggleStepSettings}
-            onChangeStepSize={model.setStepSize}
-            onCancelEdit={() => undefined}
-            onRollUnits={model.applyStepUnits}
+            onSetDate={model.setTransactionDate}
+            onSetNote={model.setTransactionNote}
+            onSetTransferTarget={model.setTransferToAccountId}
             onSubmit={model.submitTransaction}
           />
 

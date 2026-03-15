@@ -1,146 +1,268 @@
+import { useEffect, useMemo, useRef } from 'react';
 import type { FormEvent } from 'react';
-import type { TransactionType } from '../accounts/useAccountsPageModel';
-import { AmountSpinnerInput } from './components/AmountSpinnerInput';
-import { CounterpartyField } from './components/CounterpartyField';
-import { QuickDateSelector } from './components/QuickDateSelector';
-import { StepSelector } from './components/StepSelector';
-import { TransactionTypeToggle } from './components/TransactionTypeToggle';
+
+export type ComposerMode = 'picker' | 'expense' | 'income' | 'transfer';
+
+export type ComposerExpenseItem = {
+  id: string;
+  name: string;
+  amount: string;
+};
 
 type Props = {
-  transactionType: TransactionType;
+  open: boolean;
+  mode: ComposerMode;
+  disabled: boolean;
   amount: string;
   date: string;
-  counterparty: string;
+  note: string;
+  advancedOpen: boolean;
   transferTargetAccountId: string;
   transferTargetOptions: Array<{ id: string; name: string; currency: string }>;
+  expenseDetailed: boolean;
+  expenseItems: ComposerExpenseItem[];
+  expenseItemName: string;
+  expenseItemAmount: string;
+  expenseRemaining: string;
   amountError?: string;
   dateError?: string;
-  disabled: boolean;
-  accountLabel: string;
-  accountCurrency: string;
-  showStepSettings: boolean;
-  isEditing: boolean;
-  stepSize: string;
-  onChangeType: (value: TransactionType) => void;
+  onOpen: () => void;
+  onClose: () => void;
+  onSelectMode: (mode: Exclude<ComposerMode, 'picker'>) => void;
+  onToggleAdvanced: () => void;
   onSetAmount: (value: string) => void;
-  onFormatAmount: () => void;
-  onChangeDate: (value: string) => void;
-  onChangeCounterparty: (value: string) => void;
-  onChangeTransferTarget: (value: string) => void;
-  onToday: () => void;
-  onYesterday: () => void;
-  onToggleStepSettings: () => void;
-  onChangeStepSize: (value: string) => void;
-  onCancelEdit: () => void;
-  onRollUnits: (units: number) => void;
+  onSetDate: (value: string) => void;
+  onSetNote: (value: string) => void;
+  onSetTransferTarget: (value: string) => void;
+  onToggleExpenseDetailed: () => void;
+  onSetExpenseItemName: (value: string) => void;
+  onSetExpenseItemAmount: (value: string) => void;
+  onAddExpenseItem: () => void;
+  onRemoveExpenseItem: (itemId: string) => void;
+  onAssignRemaining: () => void;
   onSubmit: (event: FormEvent) => Promise<void> | void;
 };
 
-const DEFAULT_VISIBLE_STEPS = ['0.01', '0.10', '1.00', '5.00'];
-const DEFAULT_MORE_STEPS = ['0.05', '0.25', '0.50', '2.00', '10.00'];
+function titleForMode(mode: ComposerMode): string {
+  if (mode === 'expense') return 'New expense';
+  if (mode === 'income') return 'New income';
+  if (mode === 'transfer') return 'New transfer';
+  return 'Add movement';
+}
 
 export function TransactionComposer({
-  transactionType,
+  open,
+  mode,
+  disabled,
   amount,
   date,
-  counterparty,
+  note,
+  advancedOpen,
   transferTargetAccountId,
   transferTargetOptions,
+  expenseDetailed,
+  expenseItems,
+  expenseItemName,
+  expenseItemAmount,
+  expenseRemaining,
   amountError,
   dateError,
-  disabled,
-  accountLabel,
-  accountCurrency,
-  showStepSettings,
-  isEditing,
-  stepSize,
-  onChangeType,
+  onOpen,
+  onClose,
+  onSelectMode,
+  onToggleAdvanced,
   onSetAmount,
-  onFormatAmount,
-  onChangeDate,
-  onChangeCounterparty,
-  onChangeTransferTarget,
-  onToday,
-  onYesterday,
-  onToggleStepSettings,
-  onChangeStepSize,
-  onCancelEdit,
-  onRollUnits,
+  onSetDate,
+  onSetNote,
+  onSetTransferTarget,
+  onToggleExpenseDetailed,
+  onSetExpenseItemName,
+  onSetExpenseItemAmount,
+  onAddExpenseItem,
+  onRemoveExpenseItem,
+  onAssignRemaining,
   onSubmit,
 }: Props) {
-  const submitText = disabled ? (isEditing ? 'Saving transaction...' : 'Posting transaction...') : isEditing ? 'Save changes' : 'Post transaction';
+  const amountInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (open && mode !== 'picker') {
+      const timer = window.setTimeout(() => {
+        amountInputRef.current?.focus();
+        amountInputRef.current?.select();
+      }, 20);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [open, mode]);
+
+  const submitLabel = useMemo(() => {
+    if (mode === 'expense') return expenseDetailed ? 'Publish expense' : 'Save expense';
+    if (mode === 'income') return 'Save income';
+    if (mode === 'transfer') return 'Save transfer';
+    return 'Continue';
+  }, [mode, expenseDetailed]);
+
+  if (!open) {
+    return (
+      <button type="button" className="fab-button" onClick={onOpen} aria-label="Add movement">
+        + Movement
+      </button>
+    );
+  }
 
   return (
-    <form className="stack section-gap" onSubmit={onSubmit} aria-busy={disabled}>
-      <h2>Add transaction</h2>
-      <p className="hint">Posting to {accountLabel} in {accountCurrency}</p>
-
-      <TransactionTypeToggle value={transactionType} disabled={disabled} onChange={onChangeType} />
-
-      <AmountSpinnerInput
-        amount={amount}
-        disabled={disabled}
-        onRollUnits={onRollUnits}
-        onSetAmount={onSetAmount}
-        onFormatAmount={onFormatAmount}
-      />
-      {amountError ? <p className="field-error">{amountError}</p> : null}
-
-      <StepSelector
-        disabled={disabled}
-        stepSize={stepSize}
-        showMore={showStepSettings}
-        visibleSteps={DEFAULT_VISIBLE_STEPS}
-        moreSteps={DEFAULT_MORE_STEPS}
-        onToggleMore={onToggleStepSettings}
-        onChangeStepSize={onChangeStepSize}
-      />
-
-      <QuickDateSelector
-        date={date}
-        disabled={disabled}
-        onToday={onToday}
-        onYesterday={onYesterday}
-        onChangeDate={onChangeDate}
-      />
-      {dateError ? <p className="field-error">{dateError}</p> : null}
-
-      <CounterpartyField
-        transactionType={transactionType}
-        value={counterparty}
-        disabled={disabled}
-        onChange={onChangeCounterparty}
-      />
-
-      {transactionType === 'transfer' ? (
-        <label className="stack">
-          Destination account
-          <select
-            aria-label="Destination account"
-            value={transferTargetAccountId}
-            onChange={(event) => onChangeTransferTarget(event.target.value)}
-            disabled={disabled || transferTargetOptions.length === 0}
-          >
-            <option value="">Select account</option>
-            {transferTargetOptions.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name} ({account.currency})
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
-
-      <div className="quick-row composer-actions">
-        <button type="submit" className="primary-cta" disabled={disabled}>
-          {submitText}
-        </button>
-        {isEditing ? (
-          <button type="button" className="text-button" disabled={disabled} onClick={onCancelEdit}>
-            Cancel edit
+    <div className="sheet-backdrop" role="presentation" onClick={onClose}>
+      <section className="sheet-panel composer-sheet" role="dialog" aria-modal="true" aria-label="Transaction composer" onClick={(event) => event.stopPropagation()}>
+        <div className="inline-header">
+          <h3>{titleForMode(mode)}</h3>
+          <button type="button" className="text-button icon-button" onClick={onClose} aria-label="Close transaction composer">
+            ×
           </button>
-        ) : null}
-      </div>
-    </form>
+        </div>
+
+        {mode === 'picker' ? (
+          <div className="stack">
+            <button type="button" onClick={() => onSelectMode('expense')}>
+              Expense
+            </button>
+            <button type="button" onClick={() => onSelectMode('income')}>
+              Income
+            </button>
+            <button type="button" onClick={() => onSelectMode('transfer')}>
+              Transfer
+            </button>
+          </div>
+        ) : (
+          <form className="stack" onSubmit={onSubmit} aria-busy={disabled}>
+            <label className="stack">
+              Amount
+              <input
+                ref={amountInputRef}
+                aria-label="Amount"
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={amount}
+                onChange={(event) => onSetAmount(event.target.value)}
+                inputMode="decimal"
+              />
+            </label>
+            {amountError ? <p className="field-error">{amountError}</p> : null}
+
+            <div className="inline-header">
+              <span className="hint">Need more fields?</span>
+              <button type="button" className="text-button icon-button" onClick={onToggleAdvanced} aria-label="Toggle advanced options">
+                ⋯
+              </button>
+            </div>
+
+            {advancedOpen ? (
+              <>
+                <label className="stack">
+                  Date
+                  <input aria-label="Date" type="date" value={date} onChange={(event) => onSetDate(event.target.value)} />
+                </label>
+                {dateError ? <p className="field-error">{dateError}</p> : null}
+                <label className="stack">
+                  {mode === 'expense' ? 'Merchant (optional)' : mode === 'income' ? 'Source (optional)' : 'Note (optional)'}
+                  <input
+                    aria-label="Note"
+                    value={note}
+                    onChange={(event) => onSetNote(event.target.value)}
+                    placeholder={mode === 'expense' ? 'Merchant' : mode === 'income' ? 'Source' : 'Note'}
+                  />
+                </label>
+              </>
+            ) : null}
+
+            {mode === 'transfer' ? (
+              <label className="stack">
+                Destination account
+                <select
+                  aria-label="Destination account"
+                  value={transferTargetAccountId}
+                  onChange={(event) => onSetTransferTarget(event.target.value)}
+                >
+                  <option value="">Select account</option>
+                  {transferTargetOptions.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name} ({account.currency})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
+            {mode === 'expense' ? (
+              <div className="stack">
+                <label className="inline-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={expenseDetailed}
+                    onChange={onToggleExpenseDetailed}
+                  />
+                  Split into items
+                </label>
+
+                {expenseDetailed ? (
+                  <div className="stack item-editor">
+                    <div className="inline-header">
+                      <strong>Items</strong>
+                      <span className={expenseRemaining === '0.00' ? 'hint success' : 'hint'}>
+                        Remaining: {expenseRemaining}
+                      </span>
+                    </div>
+                    <div className="quick-row">
+                      <input
+                        aria-label="Item name"
+                        value={expenseItemName}
+                        onChange={(event) => onSetExpenseItemName(event.target.value)}
+                        placeholder="Item name"
+                      />
+                      <input
+                        aria-label="Item amount"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={expenseItemAmount}
+                        onChange={(event) => onSetExpenseItemAmount(event.target.value)}
+                        placeholder="Amount"
+                        inputMode="decimal"
+                      />
+                    </div>
+                    <div className="quick-row">
+                      <button type="button" className="text-button" onClick={onAddExpenseItem}>
+                        Add item
+                      </button>
+                      <button type="button" className="text-button" onClick={onAssignRemaining}>
+                        Assign remaining
+                      </button>
+                    </div>
+                    <ul className="expense-list" aria-label="Expense items">
+                      {expenseItems.map((item) => (
+                        <li key={item.id} className="expense-item">
+                          <div className="inline-header">
+                            <strong>{item.name}</strong>
+                            <span>{item.amount}</span>
+                          </div>
+                          <button type="button" className="text-button" onClick={() => onRemoveExpenseItem(item.id)}>
+                            Remove
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            <button type="submit" className="primary-cta" disabled={disabled}>
+              {submitLabel}
+            </button>
+          </form>
+        )}
+      </section>
+    </div>
   );
 }
