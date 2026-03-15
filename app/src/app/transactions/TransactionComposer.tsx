@@ -11,6 +11,8 @@ type Props = {
   amount: string;
   date: string;
   counterparty: string;
+  transferTargetAccountId: string;
+  transferTargetOptions: Array<{ id: string; name: string; currency: string }>;
   amountError?: string;
   dateError?: string;
   disabled: boolean;
@@ -24,6 +26,7 @@ type Props = {
   onFormatAmount: () => void;
   onChangeDate: (value: string) => void;
   onChangeCounterparty: (value: string) => void;
+  onChangeTransferTarget: (value: string) => void;
   onToday: () => void;
   onYesterday: () => void;
   onToggleStepSettings: () => void;
@@ -41,6 +44,8 @@ export function TransactionComposer({
   amount,
   date,
   counterparty,
+  transferTargetAccountId,
+  transferTargetOptions,
   amountError,
   dateError,
   disabled,
@@ -54,6 +59,7 @@ export function TransactionComposer({
   onFormatAmount,
   onChangeDate,
   onChangeCounterparty,
+  onChangeTransferTarget,
   onToday,
   onYesterday,
   onToggleStepSettings,
@@ -105,6 +111,25 @@ export function TransactionComposer({
         disabled={disabled}
         onChange={onChangeCounterparty}
       />
+
+      {transactionType === 'transfer' ? (
+        <label className="stack">
+          Destination account
+          <select
+            aria-label="Destination account"
+            value={transferTargetAccountId}
+            onChange={(event) => onChangeTransferTarget(event.target.value)}
+            disabled={disabled || transferTargetOptions.length === 0}
+          >
+            <option value="">Select account</option>
+            {transferTargetOptions.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.name} ({account.currency})
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
       <div className="quick-row composer-actions">
         <button type="submit" className="primary-cta" disabled={disabled}>

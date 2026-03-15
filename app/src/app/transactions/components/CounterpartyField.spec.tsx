@@ -14,4 +14,13 @@ describe('CounterpartyField', () => {
     fireEvent.change(input, { target: { value: 'Store A' } });
     expect(onChange).toHaveBeenCalledWith('Store A');
   });
+
+  it('renders note placeholder for transfer', () => {
+    const onChange = vi.fn();
+
+    render(<CounterpartyField transactionType="transfer" value="" disabled={false} onChange={onChange} />);
+
+    const input = screen.getByLabelText('Source or merchant');
+    expect(input).toHaveAttribute('placeholder', 'Note (optional)');
+  });
 });

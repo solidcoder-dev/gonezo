@@ -51,6 +51,8 @@ public class CorePlugin: CAPPlugin {
             let type = tx["type"] as? String ?? "expense"
             if type == "income" { net += amount }
             if type == "expense" { net -= amount }
+            if type == "transfer_in" { net += amount }
+            if type == "transfer_out" { net -= amount }
         }
 
         call.resolve([
@@ -68,6 +70,61 @@ public class CorePlugin: CAPPlugin {
 
     @objc func ledgerRecordIncome(_ call: CAPPluginCall) {
         createPostedTx(call, type: "income")
+    }
+
+    @objc func ledgerRecordTransfer(_ call: CAPPluginCall) {
+        let fromAccountId = call.getString("fromAccountId") ?? ""
+        let toAccountId = call.getString("toAccountId") ?? ""
+        if fromAccountId.isEmpty || toAccountId.isEmpty {
+            call.reject("fromAccountId and toAccountId are required")
+            return
+        }
+        if fromAccountId == toAccountId {
+            call.reject("source and destination accounts must be different")
+            return
+        }
+
+        let amount = call.getString("amount") ?? "0"
+        let currency = (call.getString("currency") ?? "USD").uppercased()
+        let occurredAt = call.getString("occurredAt") ?? ""
+        let description = call.getString("description")
+
+        let outId = UUID().uuidString
+        let inId = UUID().uuidString
+
+        transactions.append([
+            "id": outId,
+            "accountId": fromAccountId,
+            "type": "transfer_out",
+            "status": "posted",
+            "amount": amount,
+            "currency": currency,
+            "occurredAt": occurredAt,
+            "description": description as Any,
+            "merchant": NSNull(),
+            "categoryId": NSNull(),
+            "linkedTransactionId": inId,
+            "items": []
+        ])
+        transactions.append([
+            "id": inId,
+            "accountId": toAccountId,
+            "type": "transfer_in",
+            "status": "posted",
+            "amount": amount,
+            "currency": currency,
+            "occurredAt": occurredAt,
+            "description": description as Any,
+            "merchant": NSNull(),
+            "categoryId": NSNull(),
+            "linkedTransactionId": outId,
+            "items": []
+        ])
+
+        call.resolve([
+            "transferOutId": outId,
+            "transferInId": inId
+        ])
     }
 
     @objc func ledgerCreateExpenseDraft(_ call: CAPPluginCall) {
@@ -105,6 +162,10 @@ public class CorePlugin: CAPPlugin {
         if let txId = call.getString("transactionId"),
            let index = transactions.firstIndex(where: { ($0["id"] as? String) == txId }) {
             transactions[index]["status"] = "voided"
+            if let linked = transactions[index]["linkedTransactionId"] as? String,
+               let linkedIndex = transactions.firstIndex(where: { ($0["id"] as? String) == linked }) {
+                transactions[linkedIndex]["status"] = "voided"
+            }
         }
         call.resolve()
     }

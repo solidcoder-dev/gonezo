@@ -14,6 +14,7 @@ type LastSubmittedTransaction = {
   id?: string;
   type: TransactionType;
   accountId: string;
+  toAccountId?: string;
   amount: string;
   date: string;
   currency: string;
@@ -56,10 +57,18 @@ export type AccountsCorePort = {
     description?: string;
     merchant?: string;
   }): Promise<{ id: string }>;
+  ledgerRecordTransfer(input: {
+    fromAccountId: string;
+    toAccountId: string;
+    occurredAt: string;
+    amount: string;
+    currency: string;
+    description?: string;
+  }): Promise<{ transferOutId: string; transferInId: string }>;
   ledgerVoidTransaction(input: { transactionId: string }): Promise<void>;
 };
 
-export type TransactionType = 'expense' | 'income';
+export type TransactionType = 'expense' | 'income' | 'transfer';
 
 function readLastType(): TransactionType {
   if (typeof window === 'undefined') {
@@ -67,7 +76,10 @@ function readLastType(): TransactionType {
   }
 
   const saved = window.localStorage.getItem(LAST_TYPE_KEY);
-  return saved === 'income' ? 'income' : 'expense';
+  if (saved === 'income' || saved === 'transfer') {
+    return saved;
+  }
+  return 'expense';
 }
 
 function todayIso(): string {
@@ -105,10 +117,15 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [counterparty, setCounterparty] = useState('');
   const [showStepSettings, setShowStepSettings] = useState(false);
   const [stepSize, setStepSize] = useState('0.10');
+  const [transferToAccountId, setTransferToAccountId] = useState('');
   const [lastSubmittedTransaction, setLastSubmittedTransaction] = useState<LastSubmittedTransaction | null>(null);
 
   const selectedAccount = useMemo(
     () => accounts.find((account) => account.id === selectedAccountId),
+    [accounts, selectedAccountId],
+  );
+  const transferTargetOptions = useMemo(
+    () => accounts.filter((account) => account.id !== selectedAccountId),
     [accounts, selectedAccountId],
   );
 
@@ -136,6 +153,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
     if (accountResult.items.length === 0) {
       setSelectedAccountId('');
+      setTransferToAccountId('');
       setBalanceAmount('0.00');
       setTransactions([]);
       return;
@@ -149,6 +167,11 @@ export function useAccountsPageModel(core: AccountsCorePort) {
           : accountResult.items[0].id;
 
     setSelectedAccountId(nextSelectedId);
+    const fallbackTransferTarget =
+      accountResult.items.find((item) => item.id === transferToAccountId && item.id !== nextSelectedId)?.id
+      ?? accountResult.items.find((item) => item.id !== nextSelectedId)?.id
+      ?? '';
+    setTransferToAccountId(fallbackTransferTarget);
 
     const summary = await core.ledgerGetAccountSummary({ accountId: nextSelectedId });
     setBalanceAmount(summary.balanceAmount);
@@ -199,6 +222,11 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setError('');
     setToastMessage('');
     setSelectedAccountId(accountId);
+    const nextTarget =
+      transferToAccountId && transferToAccountId !== accountId && accounts.some((item) => item.id === transferToAccountId)
+        ? transferToAccountId
+        : accounts.find((item) => item.id !== accountId)?.id ?? '';
+    setTransferToAccountId(nextTarget);
     setRefreshing(true);
 
     try {
@@ -297,6 +325,25 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   }
 
   async function postTransaction(data: LastSubmittedTransaction, announce = true) {
+    if (data.type === 'transfer') {
+      const toAccountId = data.toAccountId;
+      if (!toAccountId) {
+        throw new Error('Destination account is required for transfers.');
+      }
+      const result = await core.ledgerRecordTransfer({
+        fromAccountId: data.accountId,
+        toAccountId,
+        occurredAt: data.date,
+        amount: data.amount,
+        currency: data.currency,
+        description: data.counterparty,
+      });
+      if (announce) {
+        setToastMessage(`Transfer recorded: ${result.transferOutId}`);
+      }
+      return;
+    }
+
     if (data.type === 'expense') {
       const result = await core.ledgerRecordExpense({
         accountId: data.accountId,
@@ -351,11 +398,17 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       return;
     }
 
+    if (transactionType === 'transfer' && !transferToAccountId) {
+      setError('Select a destination account for transfer.');
+      return;
+    }
+
     setPostingTransaction(true);
     try {
       const payload: LastSubmittedTransaction = {
         type: transactionType,
         accountId: selectedAccount.id,
+        toAccountId: transactionType === 'transfer' ? transferToAccountId : undefined,
         amount,
         date: transactionDate,
         currency: selectedAccount.currency,
@@ -434,6 +487,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     counterparty,
     showStepSettings,
     stepSize,
+    transferToAccountId,
+    transferTargetOptions,
     canPostAgain: Boolean(lastSubmittedTransaction),
     setNewAccountName,
     setNewAccountCurrency,
@@ -442,6 +497,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setCounterparty,
     selectTransactionType,
     setStepSize: setStepSizeValue,
+    setTransferToAccountId,
     formatAmount,
     openCreateAccountForm: () => setShowCreateAccountForm(true),
     closeCreateAccountForm: () => setShowCreateAccountForm(false),

@@ -13,6 +13,8 @@ import type {
   LedgerRecordExpenseResult,
   LedgerRecordIncomeInput,
   LedgerRecordIncomeResult,
+  LedgerRecordTransferInput,
+  LedgerRecordTransferResult,
   LedgerCreateExpenseDraftInput,
   LedgerCreateExpenseDraftResult,
   LedgerAddTransactionItemInput,
@@ -83,6 +85,13 @@ export class CoreAdapter implements CorePort {
       return CorePlugin.ledgerRecordIncome(input);
     }
     return this.web.ledgerRecordIncome(input);
+  }
+
+  async ledgerRecordTransfer(input: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.ledgerRecordTransfer(input);
+    }
+    return this.web.ledgerRecordTransfer(input);
   }
 
   async ledgerCreateExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult> {

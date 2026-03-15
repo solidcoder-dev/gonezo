@@ -10,8 +10,12 @@ describe('TransactionTypeToggle', () => {
 
     expect(screen.getByRole('radio', { name: 'Expense' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByRole('radio', { name: 'Income' })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('radio', { name: 'Transfer' })).toHaveAttribute('aria-checked', 'false');
 
     fireEvent.click(screen.getByRole('radio', { name: 'Income' }));
     expect(onChange).toHaveBeenCalledWith('income');
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Transfer' }));
+    expect(onChange).toHaveBeenCalledWith('transfer');
   });
 });

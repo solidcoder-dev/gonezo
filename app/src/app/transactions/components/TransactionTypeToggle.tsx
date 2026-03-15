@@ -29,6 +29,16 @@ export function TransactionTypeToggle({ value, disabled, onChange }: Transaction
       >
         Income
       </button>
+      <button
+        type="button"
+        role="radio"
+        aria-checked={value === 'transfer'}
+        className={value === 'transfer' ? 'segment active' : 'segment'}
+        disabled={disabled}
+        onClick={() => onChange('transfer')}
+      >
+        Transfer
+      </button>
     </div>
   );
 }

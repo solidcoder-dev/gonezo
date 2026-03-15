@@ -17,6 +17,24 @@ export function RecentTransactions({
   onViewAll,
   onVoid,
 }: RecentTransactionsProps) {
+  function txLabel(type: LedgerTransactionListItem['type']): string {
+    if (type === 'income') return 'Income';
+    if (type === 'expense') return 'Expense';
+    if (type === 'transfer_in') return 'Transfer in';
+    if (type === 'transfer_out') return 'Transfer out';
+    return 'Transfer';
+  }
+
+  function txSign(type: LedgerTransactionListItem['type']): string {
+    if (type === 'income' || type === 'transfer_in') return '+';
+    if (type === 'expense' || type === 'transfer_out') return '-';
+    return '';
+  }
+
+  function txBadgeClass(type: LedgerTransactionListItem['type']): string {
+    return type === 'income' || type === 'transfer_in' ? 'tx-badge income' : 'tx-badge expense';
+  }
+
   return (
     <section className="stack section-gap">
       <h2>Recent transactions</h2>
@@ -27,11 +45,11 @@ export function RecentTransactions({
             <li key={transaction.id} className="expense-item">
               <div className="expense-top-row">
                 <div className="tx-head">
-                  <span className={transaction.type === 'income' ? 'tx-badge income' : 'tx-badge expense'}>
-                    {transaction.type === 'income' ? 'Income' : transaction.type === 'expense' ? 'Expense' : 'Transfer'}
+                  <span className={txBadgeClass(transaction.type)}>
+                    {txLabel(transaction.type)}
                   </span>
                   <strong>
-                    {transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : ''}
+                    {txSign(transaction.type)}
                     {transaction.amount} {transaction.currency}
                   </strong>
                 </div>

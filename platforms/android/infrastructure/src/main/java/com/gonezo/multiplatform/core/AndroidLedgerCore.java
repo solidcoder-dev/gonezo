@@ -21,6 +21,9 @@ import com.gonezo.application.ledger.RecordLedgerExpenseCommand;
 import com.gonezo.application.ledger.RecordLedgerExpenseUC;
 import com.gonezo.application.ledger.RecordLedgerIncomeCommand;
 import com.gonezo.application.ledger.RecordLedgerIncomeUC;
+import com.gonezo.application.ledger.RecordLedgerTransferCommand;
+import com.gonezo.application.ledger.RecordLedgerTransferResult;
+import com.gonezo.application.ledger.RecordLedgerTransferUC;
 import com.gonezo.application.ledger.RenameLedgerAccountCommand;
 import com.gonezo.application.ledger.RenameLedgerAccountUC;
 import com.gonezo.application.ledger.VoidLedgerTransactionCommand;
@@ -35,6 +38,7 @@ import com.gonezo.application.services.ledger.OpenLedgerAccountService;
 import com.gonezo.application.services.ledger.PostLedgerDraftTransactionService;
 import com.gonezo.application.services.ledger.RecordLedgerExpenseService;
 import com.gonezo.application.services.ledger.RecordLedgerIncomeService;
+import com.gonezo.application.services.ledger.RecordLedgerTransferService;
 import com.gonezo.application.services.ledger.RenameLedgerAccountService;
 import com.gonezo.application.services.ledger.VoidLedgerTransactionService;
 import com.gonezo.domain.ledger.Account;
@@ -61,6 +65,7 @@ public final class AndroidLedgerCore {
   private final ListLedgerAccountsUC listAccountsUC;
   private final RecordLedgerIncomeUC recordIncomeUC;
   private final RecordLedgerExpenseUC recordExpenseUC;
+  private final RecordLedgerTransferUC recordTransferUC;
   private final CreateLedgerExpenseDraftUC createExpenseDraftUC;
   private final AddLedgerTransactionItemUC addTransactionItemUC;
   private final PostLedgerDraftTransactionUC postDraftTransactionUC;
@@ -81,6 +86,7 @@ public final class AndroidLedgerCore {
     this.listAccountsUC = new ListLedgerAccountsService(accountRepository);
     this.recordIncomeUC = new RecordLedgerIncomeService(accountRepository, transactionRepository, eventPublisher);
     this.recordExpenseUC = new RecordLedgerExpenseService(accountRepository, transactionRepository, eventPublisher);
+    this.recordTransferUC = new RecordLedgerTransferService(accountRepository, transactionRepository, eventPublisher);
     this.createExpenseDraftUC = new CreateLedgerExpenseDraftService(accountRepository, transactionRepository);
     this.addTransactionItemUC = new AddLedgerTransactionItemService(transactionRepository, eventPublisher);
     this.postDraftTransactionUC = new PostLedgerDraftTransactionService(transactionRepository, eventPublisher);
@@ -174,6 +180,18 @@ public final class AndroidLedgerCore {
       parseNullableCategoryId(categoryId)
     );
     return recordIncomeUC.execute(command).getValue();
+  }
+
+  public LedgerTransferResultView recordTransfer(String fromAccountId, String toAccountId, String occurredAt, String amount, String currency, String description) {
+    RecordLedgerTransferCommand command = new RecordLedgerTransferCommand(
+      new AccountId(UUID.fromString(requireText(fromAccountId, "fromAccountId is required"))),
+      new AccountId(UUID.fromString(requireText(toAccountId, "toAccountId is required"))),
+      new Money(new BigDecimal(requireText(amount, "amount is required")), requireText(currency, "currency is required").toUpperCase()),
+      Instant.parse(requireText(occurredAt, "occurredAt is required")),
+      blankToNull(description)
+    );
+    RecordLedgerTransferResult result = recordTransferUC.execute(command);
+    return new LedgerTransferResultView(result.getTransferOutId().toString(), result.getTransferInId().toString());
   }
 
   public UUID createExpenseDraft(String accountId, String occurredAt, String amount, String currency, String description, String merchant, String categoryId) {
@@ -332,5 +350,10 @@ public final class AndroidLedgerCore {
     String merchant,
     String categoryId,
     List<LedgerTransactionItemView> items
+  ) {}
+
+  public record LedgerTransferResultView(
+    String transferOutId,
+    String transferInId
   ) {}
 }

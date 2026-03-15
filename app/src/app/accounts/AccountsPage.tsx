@@ -116,6 +116,8 @@ export function AccountsPage({ core }: Props) {
             amount={model.transactionAmount}
             date={model.transactionDate}
             counterparty={model.counterparty}
+            transferTargetAccountId={model.transferToAccountId}
+            transferTargetOptions={model.transferTargetOptions}
             amountError={model.fieldErrors.amount}
             dateError={model.fieldErrors.date}
             disabled={model.postingTransaction || model.refreshing}
@@ -129,6 +131,7 @@ export function AccountsPage({ core }: Props) {
             onFormatAmount={model.formatAmount}
             onChangeDate={model.setTransactionDate}
             onChangeCounterparty={model.setCounterparty}
+            onChangeTransferTarget={model.setTransferToAccountId}
             onToday={model.setToday}
             onYesterday={model.setYesterday}
             onToggleStepSettings={model.toggleStepSettings}

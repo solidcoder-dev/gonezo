@@ -76,6 +76,20 @@ export type LedgerRecordIncomeResult = {
   id: string;
 };
 
+export type LedgerRecordTransferInput = {
+  fromAccountId: string;
+  toAccountId: string;
+  occurredAt: string;
+  amount: string;
+  currency: string;
+  description?: string;
+};
+
+export type LedgerRecordTransferResult = {
+  transferOutId: string;
+  transferInId: string;
+};
+
 export type LedgerCreateExpenseDraftInput = {
   accountId: string;
   occurredAt: string;
@@ -129,7 +143,7 @@ export type LedgerTransactionBreakdownItem = {
 export type LedgerTransactionListItem = {
   id: string;
   accountId: string;
-  type: 'income' | 'expense' | 'transfer';
+  type: 'income' | 'expense' | 'transfer' | 'transfer_out' | 'transfer_in';
   status: 'draft' | 'posted' | 'voided';
   amount: string;
   currency: string;
@@ -153,6 +167,7 @@ export interface CorePort {
   ledgerGetAccountSummary(input: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult>;
   ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult>;
   ledgerRecordIncome(input: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult>;
+  ledgerRecordTransfer(input: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult>;
   ledgerCreateExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult>;
   ledgerAddTransactionItem(input: LedgerAddTransactionItemInput): Promise<void>;
   ledgerPostDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void>;

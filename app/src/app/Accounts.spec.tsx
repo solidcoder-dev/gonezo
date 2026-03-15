@@ -29,6 +29,13 @@ function makeCore(transactionCount = 0): AccountsCorePort {
           currency: 'USD',
           status: 'active',
         },
+        {
+          id: 'acc-2',
+          name: 'Savings',
+          type: 'savings',
+          currency: 'USD',
+          status: 'active',
+        },
       ],
     })),
     ledgerGetAccountSummary: vi.fn(async () => ({
@@ -42,6 +49,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     ledgerOpenAccount: vi.fn(async () => ({ id: 'acc-1' })),
     ledgerRecordExpense: vi.fn(async () => ({ id: 'tx-exp' })),
     ledgerRecordIncome: vi.fn(async () => ({ id: 'tx-inc' })),
+    ledgerRecordTransfer: vi.fn(async () => ({ transferOutId: 'tx-tr-out', transferInId: 'tx-tr-in' })),
     ledgerVoidTransaction: vi.fn(async () => undefined),
   };
 }
@@ -114,6 +122,15 @@ describe('Accounts UX', () => {
 
     await waitFor(() => {
       expect(core.ledgerRecordIncome).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Transfer' }));
+    fireEvent.change(screen.getByLabelText('Destination account'), { target: { value: 'acc-2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Increase amount by current step' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
+
+    await waitFor(() => {
+      expect(core.ledgerRecordTransfer).toHaveBeenCalledTimes(1);
     });
   });
 

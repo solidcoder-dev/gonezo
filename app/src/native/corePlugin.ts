@@ -12,6 +12,8 @@ import type {
   LedgerRecordExpenseResult,
   LedgerRecordIncomeInput,
   LedgerRecordIncomeResult,
+  LedgerRecordTransferInput,
+  LedgerRecordTransferResult,
   LedgerCreateExpenseDraftInput,
   LedgerCreateExpenseDraftResult,
   LedgerAddTransactionItemInput,
@@ -30,6 +32,7 @@ export interface CorePlugin {
   ledgerGetAccountSummary(options: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult>;
   ledgerRecordExpense(options: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult>;
   ledgerRecordIncome(options: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult>;
+  ledgerRecordTransfer(options: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult>;
   ledgerCreateExpenseDraft(options: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult>;
   ledgerAddTransactionItem(options: LedgerAddTransactionItemInput): Promise<void>;
   ledgerPostDraftTransaction(options: LedgerPostDraftTransactionInput): Promise<void>;

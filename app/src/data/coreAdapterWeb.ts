@@ -12,6 +12,8 @@ import type {
   LedgerRecordExpenseResult,
   LedgerRecordIncomeInput,
   LedgerRecordIncomeResult,
+  LedgerRecordTransferInput,
+  LedgerRecordTransferResult,
   LedgerCreateExpenseDraftInput,
   LedgerCreateExpenseDraftResult,
   LedgerAddTransactionItemInput,
@@ -43,7 +45,7 @@ type MemoryLedgerTransactionItem = {
 type MemoryLedgerTransaction = {
   id: string;
   accountId: string;
-  type: 'income' | 'expense' | 'transfer';
+  type: 'income' | 'expense' | 'transfer' | 'transfer_out' | 'transfer_in';
   status: 'draft' | 'posted' | 'voided';
   amount: string;
   currency: string;
@@ -51,6 +53,7 @@ type MemoryLedgerTransaction = {
   description?: string;
   merchant?: string;
   categoryId?: string;
+  linkedTransactionId?: string;
   items: MemoryLedgerTransactionItem[];
 };
 
@@ -90,6 +93,12 @@ export class CoreAdapterWeb implements CorePort {
         net += amount;
       }
       if (tx.type === 'expense') {
+        net -= amount;
+      }
+      if (tx.type === 'transfer_in') {
+        net += amount;
+      }
+      if (tx.type === 'transfer_out') {
         net -= amount;
       }
     }
@@ -198,6 +207,50 @@ export class CoreAdapterWeb implements CorePort {
     return { id };
   }
 
+  async ledgerRecordTransfer(input: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult> {
+    const fromAccount = this.accountOrThrow(input.fromAccountId);
+    const toAccount = this.accountOrThrow(input.toAccountId);
+    if (fromAccount.id === toAccount.id) {
+      throw new Error('source and destination accounts must be different');
+    }
+    this.ensureAccountCanPost(fromAccount, input.currency);
+    this.ensureAccountCanPost(toAccount, input.currency);
+
+    const transferOutId = crypto.randomUUID();
+    const transferInId = crypto.randomUUID();
+    const currency = input.currency.toUpperCase();
+
+    CoreAdapterWeb.ledgerTransactions.push({
+      id: transferOutId,
+      accountId: fromAccount.id,
+      type: 'transfer_out',
+      status: 'posted',
+      amount: input.amount,
+      currency,
+      occurredAt: input.occurredAt,
+      description: input.description,
+      linkedTransactionId: transferInId,
+      items: [],
+    });
+    CoreAdapterWeb.ledgerTransactions.push({
+      id: transferInId,
+      accountId: toAccount.id,
+      type: 'transfer_in',
+      status: 'posted',
+      amount: input.amount,
+      currency,
+      occurredAt: input.occurredAt,
+      description: input.description,
+      linkedTransactionId: transferOutId,
+      items: [],
+    });
+
+    return {
+      transferOutId,
+      transferInId,
+    };
+  }
+
   async ledgerCreateExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult> {
     const account = this.accountOrThrow(input.accountId);
     this.ensureAccountCanPost(account, input.currency);
@@ -265,6 +318,12 @@ export class CoreAdapterWeb implements CorePort {
       throw new Error('Only posted transactions can be voided');
     }
     tx.status = 'voided';
+    if (tx.linkedTransactionId) {
+      const linked = CoreAdapterWeb.ledgerTransactions.find((item) => item.id === tx.linkedTransactionId);
+      if (linked?.status === 'posted') {
+        linked.status = 'voided';
+      }
+    }
   }
 
   async ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult> {
