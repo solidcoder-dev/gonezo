@@ -27,6 +27,24 @@ import type {
   UpdateTransactionInput,
   UpdateTransactionResult,
   DeleteTransactionInput,
+  LedgerOpenAccountInput,
+  LedgerOpenAccountResult,
+  LedgerRenameAccountInput,
+  LedgerArchiveAccountInput,
+  LedgerListAccountsResult,
+  LedgerGetAccountSummaryInput,
+  LedgerGetAccountSummaryResult,
+  LedgerRecordExpenseInput,
+  LedgerRecordExpenseResult,
+  LedgerRecordIncomeInput,
+  LedgerRecordIncomeResult,
+  LedgerCreateExpenseDraftInput,
+  LedgerCreateExpenseDraftResult,
+  LedgerAddTransactionItemInput,
+  LedgerPostDraftTransactionInput,
+  LedgerVoidTransactionInput,
+  LedgerListTransactionsInput,
+  LedgerListTransactionsResult,
   CreatePeriodReservationsInput,
   CoreResult,
   CreateBudgetPeriodInput,
@@ -65,6 +83,18 @@ export interface CorePlugin {
   listTransactions(options: ListTransactionsInput): Promise<ListTransactionsResult>;
   updateTransaction(options: UpdateTransactionInput): Promise<UpdateTransactionResult>;
   deleteTransaction(options: DeleteTransactionInput): Promise<void>;
+  ledgerOpenAccount(options: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult>;
+  ledgerRenameAccount(options: LedgerRenameAccountInput): Promise<void>;
+  ledgerArchiveAccount(options: LedgerArchiveAccountInput): Promise<void>;
+  ledgerListAccounts(): Promise<LedgerListAccountsResult>;
+  ledgerGetAccountSummary(options: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult>;
+  ledgerRecordExpense(options: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult>;
+  ledgerRecordIncome(options: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult>;
+  ledgerCreateExpenseDraft(options: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult>;
+  ledgerAddTransactionItem(options: LedgerAddTransactionItemInput): Promise<void>;
+  ledgerPostDraftTransaction(options: LedgerPostDraftTransactionInput): Promise<void>;
+  ledgerVoidTransaction(options: LedgerVoidTransactionInput): Promise<void>;
+  ledgerListTransactions(options: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult>;
 }
 
 export const CorePlugin = registerPlugin<CorePlugin>('CorePlugin', {

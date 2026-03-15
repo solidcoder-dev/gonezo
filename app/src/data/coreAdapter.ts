@@ -29,6 +29,24 @@ import type {
   UpdateTransactionInput,
   UpdateTransactionResult,
   DeleteTransactionInput,
+  LedgerOpenAccountInput,
+  LedgerOpenAccountResult,
+  LedgerRenameAccountInput,
+  LedgerArchiveAccountInput,
+  LedgerListAccountsResult,
+  LedgerGetAccountSummaryInput,
+  LedgerGetAccountSummaryResult,
+  LedgerRecordExpenseInput,
+  LedgerRecordExpenseResult,
+  LedgerRecordIncomeInput,
+  LedgerRecordIncomeResult,
+  LedgerCreateExpenseDraftInput,
+  LedgerCreateExpenseDraftResult,
+  LedgerAddTransactionItemInput,
+  LedgerPostDraftTransactionInput,
+  LedgerVoidTransactionInput,
+  LedgerListTransactionsInput,
+  LedgerListTransactionsResult,
   CreatePeriodReservationsInput,
   CreateBudgetPeriodInput,
   CreateBudgetPeriodResult,
@@ -336,5 +354,94 @@ export class CoreAdapter implements CorePort {
     }
 
     await this.web.deleteTransaction(input);
+  }
+
+  async ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.ledgerOpenAccount(input);
+    }
+    return this.web.ledgerOpenAccount(input);
+  }
+
+  async ledgerRenameAccount(input: LedgerRenameAccountInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.ledgerRenameAccount(input);
+      return;
+    }
+    await this.web.ledgerRenameAccount(input);
+  }
+
+  async ledgerArchiveAccount(input: LedgerArchiveAccountInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.ledgerArchiveAccount(input);
+      return;
+    }
+    await this.web.ledgerArchiveAccount(input);
+  }
+
+  async ledgerListAccounts(): Promise<LedgerListAccountsResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.ledgerListAccounts();
+    }
+    return this.web.ledgerListAccounts();
+  }
+
+  async ledgerGetAccountSummary(input: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.ledgerGetAccountSummary(input);
+    }
+    return this.web.ledgerGetAccountSummary(input);
+  }
+
+  async ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.ledgerRecordExpense(input);
+    }
+    return this.web.ledgerRecordExpense(input);
+  }
+
+  async ledgerRecordIncome(input: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.ledgerRecordIncome(input);
+    }
+    return this.web.ledgerRecordIncome(input);
+  }
+
+  async ledgerCreateExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.ledgerCreateExpenseDraft(input);
+    }
+    return this.web.ledgerCreateExpenseDraft(input);
+  }
+
+  async ledgerAddTransactionItem(input: LedgerAddTransactionItemInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.ledgerAddTransactionItem(input);
+      return;
+    }
+    await this.web.ledgerAddTransactionItem(input);
+  }
+
+  async ledgerPostDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.ledgerPostDraftTransaction(input);
+      return;
+    }
+    await this.web.ledgerPostDraftTransaction(input);
+  }
+
+  async ledgerVoidTransaction(input: LedgerVoidTransactionInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.ledgerVoidTransaction(input);
+      return;
+    }
+    await this.web.ledgerVoidTransaction(input);
+  }
+
+  async ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.ledgerListTransactions(input);
+    }
+    return this.web.ledgerListTransactions(input);
   }
 }

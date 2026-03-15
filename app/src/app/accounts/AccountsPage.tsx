@@ -106,7 +106,7 @@ export function AccountsPage({ core }: Props) {
               <h2>{model.selectedAccount.name}</h2>
               <p className="summary-label">Net balance</p>
               <div className="summary-amount">
-                {model.netAmount} {model.selectedAccount.currency}
+                {model.balanceAmount} {model.selectedAccount.currency}
               </div>
             </section>
           ) : null}
@@ -122,7 +122,7 @@ export function AccountsPage({ core }: Props) {
             accountLabel={model.selectedAccount?.name ?? 'Unknown account'}
             accountCurrency={model.selectedAccount?.currency ?? '---'}
             showStepSettings={model.showStepSettings}
-            isEditing={Boolean(model.editingTransactionId)}
+            isEditing={false}
             stepSize={model.stepSize}
             onChangeType={model.selectTransactionType}
             onSetAmount={model.setTransactionAmount}
@@ -133,7 +133,7 @@ export function AccountsPage({ core }: Props) {
             onYesterday={model.setYesterday}
             onToggleStepSettings={model.toggleStepSettings}
             onChangeStepSize={model.setStepSize}
-            onCancelEdit={model.cancelEditingTransaction}
+            onCancelEdit={() => undefined}
             onRollUnits={model.applyStepUnits}
             onSubmit={model.submitTransaction}
           />
@@ -144,8 +144,7 @@ export function AccountsPage({ core }: Props) {
             expanded={model.historyExpanded}
             disabled={model.postingTransaction || model.refreshing}
             onViewAll={model.expandHistory}
-            onEdit={model.editTransaction}
-            onDelete={model.removeTransaction}
+            onVoid={model.voidTransaction}
           />
         </>
       )}

@@ -1,13 +1,12 @@
-import type { TransactionItem } from '../../domain/corePort';
+import type { LedgerTransactionListItem } from '../../domain/corePort';
 
 export type RecentTransactionsProps = {
-  items: TransactionItem[];
+  items: LedgerTransactionListItem[];
   hiddenCount: number;
   expanded: boolean;
   disabled: boolean;
   onViewAll: () => void;
-  onEdit: (item: TransactionItem) => void;
-  onDelete: (transactionId: string) => void;
+  onVoid: (transactionId: string) => void;
 };
 
 export function RecentTransactions({
@@ -16,8 +15,7 @@ export function RecentTransactions({
   expanded,
   disabled,
   onViewAll,
-  onEdit,
-  onDelete,
+  onVoid,
 }: RecentTransactionsProps) {
   return (
     <section className="stack section-gap">
@@ -30,28 +28,23 @@ export function RecentTransactions({
               <div className="expense-top-row">
                 <div className="tx-head">
                   <span className={transaction.type === 'income' ? 'tx-badge income' : 'tx-badge expense'}>
-                    {transaction.type === 'income' ? 'Income' : 'Expense'}
+                    {transaction.type === 'income' ? 'Income' : transaction.type === 'expense' ? 'Expense' : 'Transfer'}
                   </span>
                   <strong>
-                    {transaction.type === 'income' ? '+' : '-'}
+                    {transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : ''}
                     {transaction.amount} {transaction.currency}
                   </strong>
                 </div>
-                <span>{transaction.postedDate}</span>
+                <span>{transaction.occurredAt}</span>
               </div>
-              <span>{transaction.merchant || 'No merchant/source'}</span>
+              <span>{transaction.merchant || transaction.description || 'No description'}</span>
+              {transaction.status !== 'posted' ? <span className="hint">Status: {transaction.status}</span> : null}
               <div className="quick-row">
-                <button type="button" className="text-button" disabled={disabled} onClick={() => onEdit(transaction)}>
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className="text-button"
-                  disabled={disabled}
-                  onClick={() => onDelete(transaction.id)}
-                >
-                  Delete
-                </button>
+                {transaction.status === 'posted' ? (
+                  <button type="button" className="text-button" disabled={disabled} onClick={() => onVoid(transaction.id)}>
+                    Void
+                  </button>
+                ) : null}
               </div>
             </li>
           ))}

@@ -3,42 +3,46 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Accounts } from './Accounts';
 import type { AccountsCorePort } from './accounts/useAccountsPageModel';
-import type { TransactionItem } from '../domain/corePort';
+import type { LedgerTransactionListItem } from '../domain/corePort';
 
 function makeCore(transactionCount = 0): AccountsCorePort {
-  const transactions: TransactionItem[] = Array.from({ length: transactionCount }).map((_, index) => ({
-    id: `exp-${index + 1}`,
-    postedDate: `2026-03-0${(index % 9) + 1}`,
+  const transactions: LedgerTransactionListItem[] = Array.from({ length: transactionCount }).map((_, index) => ({
+    id: `tx-${index + 1}`,
+    accountId: 'acc-1',
+    occurredAt: `2026-03-0${(index % 9) + 1}`,
+    description: `Description ${index + 1}`,
     merchant: `Merchant ${index + 1}`,
     amount: `${index + 1}.00`,
     currency: 'USD',
     type: index % 2 === 0 ? 'expense' : 'income',
+    status: 'posted',
+    items: [],
   }));
 
   return {
-    listAccounts: vi.fn(async () => ({
+    ledgerListAccounts: vi.fn(async () => ({
       items: [
         {
           id: 'acc-1',
           name: 'Main',
           type: 'cash',
           currency: 'USD',
+          status: 'active',
         },
       ],
     })),
-    getAccountSummary: vi.fn(async () => ({
+    ledgerGetAccountSummary: vi.fn(async () => ({
       accountId: 'acc-1',
       name: 'Main',
       type: 'cash',
       currency: 'USD',
-      netAmount: '100.00',
+      balanceAmount: '100.00',
     })),
-    listTransactions: vi.fn(async () => ({ items: transactions })),
-    createAccount: vi.fn(async () => ({ id: 'acc-1' })),
-    postExpense: vi.fn(async () => ({ id: 'tx-exp' })),
-    postIncome: vi.fn(async () => ({ id: 'tx-inc' })),
-    updateTransaction: vi.fn(async ({ transactionId }) => ({ id: transactionId })),
-    deleteTransaction: vi.fn(async () => undefined),
+    ledgerListTransactions: vi.fn(async () => ({ items: transactions })),
+    ledgerOpenAccount: vi.fn(async () => ({ id: 'acc-1' })),
+    ledgerRecordExpense: vi.fn(async () => ({ id: 'tx-exp' })),
+    ledgerRecordIncome: vi.fn(async () => ({ id: 'tx-inc' })),
+    ledgerVoidTransaction: vi.fn(async () => undefined),
   };
 }
 
@@ -100,16 +104,16 @@ describe('Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
 
     await waitFor(() => {
-      expect(core.postExpense).toHaveBeenCalledTimes(1);
+      expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
     });
-    expect(await screen.findByRole('status')).toHaveTextContent('Expense posted');
+    expect(await screen.findByRole('status')).toHaveTextContent('Expense recorded');
 
     fireEvent.click(screen.getByRole('radio', { name: 'Income' }));
     fireEvent.click(screen.getByRole('button', { name: 'Increase amount by current step' }));
     fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
 
     await waitFor(() => {
-      expect(core.postIncome).toHaveBeenCalledTimes(1);
+      expect(core.ledgerRecordIncome).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -144,16 +148,16 @@ describe('Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
 
     await waitFor(() => {
-      expect(core.postExpense).toHaveBeenCalledTimes(1);
+      expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
     });
-    expect(core.postExpense).toHaveBeenCalledWith(
+    expect(core.ledgerRecordExpense).toHaveBeenCalledWith(
       expect.objectContaining({
         amount: '3.00',
       })
     );
   });
 
-  it('supports step settings, inline precise edit, and post again', async () => {
+  it('supports step settings and post again', async () => {
     const core = makeCore();
 
     render(
@@ -169,22 +173,18 @@ describe('Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: '0.50' }));
     fireEvent.click(screen.getByRole('button', { name: 'Increase amount by current step' }));
 
-    fireEvent.click(screen.getByLabelText('Current amount'));
-    fireEvent.change(screen.getByLabelText('Amount value'), { target: { value: '12.3' } });
-    fireEvent.blur(screen.getByLabelText('Amount value'));
-
     fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
     await waitFor(() => {
-      expect(core.postExpense).toHaveBeenCalledTimes(1);
+      expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Post again' }));
     await waitFor(() => {
-      expect(core.postExpense).toHaveBeenCalledTimes(2);
+      expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(2);
     });
   });
 
-  it('allows editing and deleting a transaction', async () => {
+  it('allows voiding a transaction', async () => {
     const core = makeCore(1);
 
     render(
@@ -194,21 +194,10 @@ describe('Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Recent transactions' });
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-
-    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText('Current amount'));
-    fireEvent.change(screen.getByLabelText('Amount value'), { target: { value: '9.99' } });
-    fireEvent.blur(screen.getByLabelText('Amount value'));
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Void' }));
 
     await waitFor(() => {
-      expect(core.updateTransaction).toHaveBeenCalledTimes(1);
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
-    await waitFor(() => {
-      expect(core.deleteTransaction).toHaveBeenCalledTimes(1);
+      expect(core.ledgerVoidTransaction).toHaveBeenCalledTimes(1);
     });
   });
 });

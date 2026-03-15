@@ -39,30 +39,100 @@ import type {
   PostIncomeResult,
   PostTransferInput,
   PostTransferResult,
+  LedgerOpenAccountInput,
+  LedgerOpenAccountResult,
+  LedgerRenameAccountInput,
+  LedgerArchiveAccountInput,
+  LedgerListAccountsResult,
+  LedgerGetAccountSummaryInput,
+  LedgerGetAccountSummaryResult,
+  LedgerRecordExpenseInput,
+  LedgerRecordExpenseResult,
+  LedgerRecordIncomeInput,
+  LedgerRecordIncomeResult,
+  LedgerCreateExpenseDraftInput,
+  LedgerCreateExpenseDraftResult,
+  LedgerAddTransactionItemInput,
+  LedgerPostDraftTransactionInput,
+  LedgerVoidTransactionInput,
+  LedgerListTransactionsInput,
+  LedgerListTransactionsResult,
 } from '../domain/corePort';
 
-type MemoryAccount = {
+type MemoryLedgerAccount = {
   id: string;
-  userId: string;
   name: string;
   type: string;
   currency: string;
+  status: 'active' | 'archived';
+  createdAt: string;
+  archivedAt?: string;
 };
 
-type MemoryTx = {
+type MemoryLedgerTransactionItem = {
   id: string;
-  accountId: string;
-  postedDate: string;
+  name: string;
   amount: string;
   currency: string;
+  categoryId?: string;
+  note?: string;
+};
+
+type MemoryLedgerTransaction = {
+  id: string;
+  accountId: string;
   type: 'income' | 'expense' | 'transfer';
+  status: 'draft' | 'posted' | 'voided';
+  amount: string;
+  currency: string;
+  occurredAt: string;
+  description?: string;
   merchant?: string;
+  categoryId?: string;
+  items: MemoryLedgerTransactionItem[];
 };
 
 export class CoreAdapterWeb implements CorePort {
-  private static accounts: MemoryAccount[] = [];
+  private static ledgerAccounts: MemoryLedgerAccount[] = [];
 
-  private static transactions: MemoryTx[] = [];
+  private static ledgerTransactions: MemoryLedgerTransaction[] = [];
+
+  private accountOrThrow(accountId: string): MemoryLedgerAccount {
+    const account = CoreAdapterWeb.ledgerAccounts.find((item) => item.id === accountId);
+    if (!account) {
+      throw new Error('Account not found');
+    }
+    return account;
+  }
+
+  private ensureAccountCanPost(account: MemoryLedgerAccount, currency: string) {
+    if (account.status !== 'active') {
+      throw new Error('Archived accounts cannot accept transactions');
+    }
+    if (account.currency !== currency.toUpperCase()) {
+      throw new Error(`Transaction currency must match account currency (${account.currency})`);
+    }
+  }
+
+  private netForAccount(accountId: string): number {
+    let net = 0;
+    for (const tx of CoreAdapterWeb.ledgerTransactions) {
+      if (tx.accountId !== accountId || tx.status !== 'posted') {
+        continue;
+      }
+      const amount = Number(tx.amount);
+      if (Number.isNaN(amount)) {
+        continue;
+      }
+      if (tx.type === 'income') {
+        net += amount;
+      }
+      if (tx.type === 'expense') {
+        net -= amount;
+      }
+    }
+    return net;
+  }
 
   async doThing(input: string): Promise<CoreResult> {
     return {
@@ -71,68 +141,259 @@ export class CoreAdapterWeb implements CorePort {
     };
   }
 
-  async createAccount(input: CreateAccountInput): Promise<CreateAccountResult> {
+  async ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {
     const id = crypto.randomUUID();
-    CoreAdapterWeb.accounts.push({
+    const name = input.name.trim();
+    if (!name) {
+      throw new Error('name is required');
+    }
+    CoreAdapterWeb.ledgerAccounts.push({
       id,
-      userId: input.userId ?? crypto.randomUUID(),
-      name: input.name,
-      type: input.type ?? 'cash',
-      currency: input.currency ?? 'USD',
+      name,
+      type: (input.type ?? 'cash').toLowerCase(),
+      currency: (input.currency ?? 'USD').toUpperCase(),
+      status: 'active',
+      createdAt: input.createdAt ?? new Date().toISOString(),
     });
     return { id };
   }
 
-  async postExpense(input: PostExpenseInput): Promise<PostExpenseResult> {
+  async ledgerRenameAccount(input: LedgerRenameAccountInput): Promise<void> {
+    const account = this.accountOrThrow(input.accountId);
+    const name = input.name.trim();
+    if (!name) {
+      throw new Error('name is required');
+    }
+    account.name = name;
+  }
+
+  async ledgerArchiveAccount(input: LedgerArchiveAccountInput): Promise<void> {
+    const account = this.accountOrThrow(input.accountId);
+    account.status = 'archived';
+    account.archivedAt = input.archivedAt ?? new Date().toISOString();
+  }
+
+  async ledgerListAccounts(): Promise<LedgerListAccountsResult> {
+    return {
+      items: CoreAdapterWeb.ledgerAccounts.map((account) => ({
+        id: account.id,
+        name: account.name,
+        type: account.type,
+        currency: account.currency,
+        status: account.status,
+      })),
+    };
+  }
+
+  async ledgerGetAccountSummary(input: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult> {
+    const account = this.accountOrThrow(input.accountId);
+    return {
+      accountId: account.id,
+      name: account.name,
+      type: account.type,
+      currency: account.currency,
+      balanceAmount: this.netForAccount(account.id).toFixed(2),
+    };
+  }
+
+  async ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {
+    const account = this.accountOrThrow(input.accountId);
+    this.ensureAccountCanPost(account, input.currency);
     const id = crypto.randomUUID();
-    CoreAdapterWeb.transactions.push({
+    CoreAdapterWeb.ledgerTransactions.push({
       id,
       accountId: input.accountId,
-      postedDate: input.postedDate,
-      amount: input.amount,
-      currency: input.currency,
       type: 'expense',
+      status: 'posted',
+      amount: input.amount,
+      currency: input.currency.toUpperCase(),
+      occurredAt: input.occurredAt,
+      description: input.description,
       merchant: input.merchant,
+      categoryId: input.categoryId,
+      items: [],
     });
     return { id };
+  }
+
+  async ledgerRecordIncome(input: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult> {
+    const account = this.accountOrThrow(input.accountId);
+    this.ensureAccountCanPost(account, input.currency);
+    const id = crypto.randomUUID();
+    CoreAdapterWeb.ledgerTransactions.push({
+      id,
+      accountId: input.accountId,
+      type: 'income',
+      status: 'posted',
+      amount: input.amount,
+      currency: input.currency.toUpperCase(),
+      occurredAt: input.occurredAt,
+      description: input.description,
+      merchant: input.merchant,
+      categoryId: input.categoryId,
+      items: [],
+    });
+    return { id };
+  }
+
+  async ledgerCreateExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult> {
+    const account = this.accountOrThrow(input.accountId);
+    this.ensureAccountCanPost(account, input.currency);
+    const id = crypto.randomUUID();
+    CoreAdapterWeb.ledgerTransactions.push({
+      id,
+      accountId: input.accountId,
+      type: 'expense',
+      status: 'draft',
+      amount: input.amount,
+      currency: input.currency.toUpperCase(),
+      occurredAt: input.occurredAt,
+      description: input.description,
+      merchant: input.merchant,
+      categoryId: input.categoryId,
+      items: [],
+    });
+    return { id };
+  }
+
+  async ledgerAddTransactionItem(input: LedgerAddTransactionItemInput): Promise<void> {
+    const tx = CoreAdapterWeb.ledgerTransactions.find((item) => item.id === input.transactionId);
+    if (!tx) {
+      throw new Error('Transaction not found');
+    }
+    if (tx.status !== 'draft') {
+      throw new Error('Items can only be modified in draft status');
+    }
+    if (tx.currency !== input.currency.toUpperCase()) {
+      throw new Error('Item currency must match transaction currency');
+    }
+    tx.items.push({
+      id: crypto.randomUUID(),
+      name: input.name,
+      amount: input.amount,
+      currency: input.currency.toUpperCase(),
+      categoryId: input.categoryId,
+      note: input.note,
+    });
+  }
+
+  async ledgerPostDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void> {
+    const tx = CoreAdapterWeb.ledgerTransactions.find((item) => item.id === input.transactionId);
+    if (!tx) {
+      throw new Error('Transaction not found');
+    }
+    if (tx.status !== 'draft') {
+      throw new Error('Only draft transactions can be posted');
+    }
+    if (tx.items.length > 0) {
+      const total = tx.items.reduce((acc, item) => acc + Number(item.amount), 0);
+      if (Number(tx.amount).toFixed(2) !== total.toFixed(2)) {
+        throw new Error('sum(items) must match transaction amount');
+      }
+    }
+    tx.status = 'posted';
+  }
+
+  async ledgerVoidTransaction(input: LedgerVoidTransactionInput): Promise<void> {
+    const tx = CoreAdapterWeb.ledgerTransactions.find((item) => item.id === input.transactionId);
+    if (!tx) {
+      throw new Error('Transaction not found');
+    }
+    if (tx.status !== 'posted') {
+      throw new Error('Only posted transactions can be voided');
+    }
+    tx.status = 'voided';
+  }
+
+  async ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult> {
+    const limit = input.limit ?? 20;
+    const includeVoided = input.includeVoided === true;
+    const items = CoreAdapterWeb.ledgerTransactions
+      .filter((tx) => tx.accountId === input.accountId)
+      .filter((tx) => includeVoided || tx.status !== 'voided')
+      .filter((tx) => !input.fromDate || tx.occurredAt >= input.fromDate)
+      .filter((tx) => !input.toDate || tx.occurredAt <= input.toDate)
+      .filter((tx) => !input.categoryId || tx.categoryId === input.categoryId)
+      .filter((tx) => !input.merchant || tx.merchant?.toLowerCase() === input.merchant.toLowerCase())
+      .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
+      .slice(0, limit)
+      .map((tx) => ({
+        id: tx.id,
+        accountId: tx.accountId,
+        type: tx.type,
+        status: tx.status,
+        amount: tx.amount,
+        currency: tx.currency,
+        occurredAt: tx.occurredAt,
+        description: tx.description,
+        merchant: tx.merchant,
+        categoryId: tx.categoryId,
+        items: tx.items.map((item) => ({ ...item })),
+      }));
+
+    return { items };
+  }
+
+  async createAccount(input: CreateAccountInput): Promise<CreateAccountResult> {
+    return this.ledgerOpenAccount({
+      name: input.name,
+      type: input.type,
+      currency: input.currency,
+    });
+  }
+
+  async postExpense(input: PostExpenseInput): Promise<PostExpenseResult> {
+    return this.ledgerRecordExpense({
+      accountId: input.accountId,
+      occurredAt: input.effectiveDate,
+      amount: input.amount,
+      currency: input.currency,
+      description: input.merchant,
+      merchant: input.merchant,
+      categoryId: input.categoryId,
+    });
   }
 
   async postTransfer(input: PostTransferInput): Promise<PostTransferResult> {
     const outId = crypto.randomUUID();
     const inId = crypto.randomUUID();
-    CoreAdapterWeb.transactions.push({
+    CoreAdapterWeb.ledgerTransactions.push({
       id: outId,
       accountId: input.fromAccountId,
-      postedDate: input.postedDate,
+      type: 'transfer',
+      status: 'posted',
       amount: input.amount,
       currency: input.currency,
-      type: 'transfer',
+      occurredAt: input.effectiveDate,
+      description: 'Transfer out',
       merchant: 'Transfer out',
+      items: [],
     });
-    CoreAdapterWeb.transactions.push({
+    CoreAdapterWeb.ledgerTransactions.push({
       id: inId,
       accountId: input.toAccountId,
-      postedDate: input.postedDate,
+      type: 'transfer',
+      status: 'posted',
       amount: input.amount,
       currency: input.currency,
-      type: 'transfer',
+      occurredAt: input.effectiveDate,
+      description: 'Transfer in',
       merchant: 'Transfer in',
+      items: [],
     });
     return { ids: [outId, inId] };
   }
 
   async postIncome(input: PostIncomeInput): Promise<PostIncomeResult> {
-    const id = crypto.randomUUID();
-    CoreAdapterWeb.transactions.push({
-      id,
+    return this.ledgerRecordIncome({
       accountId: input.accountId,
-      postedDate: input.postedDate,
+      occurredAt: input.effectiveDate,
       amount: input.amount,
       currency: input.currency,
-      type: 'income',
+      description: input.merchant,
       merchant: input.merchant,
+      categoryId: input.categoryId,
     });
-    return { id };
   }
 
   async createBudgetPeriod(_input: CreateBudgetPeriodInput): Promise<CreateBudgetPeriodResult> {
@@ -194,8 +455,9 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async listAccounts(): Promise<ListAccountsResult> {
+    const result = await this.ledgerListAccounts();
     return {
-      items: CoreAdapterWeb.accounts.map((account) => ({
+      items: result.items.map((account) => ({
         id: account.id,
         name: account.name,
         type: account.type,
@@ -205,92 +467,67 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async getAccountSummary(input: GetAccountSummaryInput): Promise<GetAccountSummaryResult> {
-    const account = CoreAdapterWeb.accounts.find((item) => item.id === input.accountId);
-    if (!account) {
-      throw new Error('Account not found');
-    }
-
-    let net = 0;
-    for (const tx of CoreAdapterWeb.transactions.filter((item) => item.accountId === input.accountId)) {
-      const amount = Number(tx.amount);
-      if (tx.type === 'income') {
-        net += amount;
-      }
-      if (tx.type === 'expense') {
-        net -= amount;
-      }
-    }
-
+    const summary = await this.ledgerGetAccountSummary({ accountId: input.accountId });
     return {
-      accountId: account.id,
-      name: account.name,
-      type: account.type,
-      currency: account.currency,
-      netAmount: net.toFixed(2),
+      accountId: summary.accountId,
+      name: summary.name,
+      type: summary.type,
+      currency: summary.currency,
+      netAmount: summary.balanceAmount,
     };
   }
 
   async listExpenses(input: ListExpensesInput): Promise<ListExpensesResult> {
-    const limit = input.limit ?? 10;
-    const items = CoreAdapterWeb.transactions
-      .filter((tx) => tx.accountId === input.accountId && tx.type === 'expense')
-      .sort((a, b) => b.postedDate.localeCompare(a.postedDate))
-      .slice(0, limit)
-      .map((tx) => ({
-        id: tx.id,
-        postedDate: tx.postedDate,
-        merchant: tx.merchant,
-        amount: tx.amount,
-        currency: tx.currency,
-      }));
-
-    return { items };
+    const txs = await this.ledgerListTransactions({ accountId: input.accountId, limit: input.limit });
+    return {
+      items: txs.items
+        .filter((tx) => tx.type === 'expense')
+        .map((tx) => ({
+          id: tx.id,
+          postedDate: tx.occurredAt,
+          merchant: tx.merchant,
+          amount: tx.amount,
+          currency: tx.currency,
+        })),
+    };
   }
 
   async listTransactions(input: ListTransactionsInput): Promise<ListTransactionsResult> {
-    const limit = input.limit ?? 10;
-    const items = CoreAdapterWeb.transactions
-      .filter(
-        (tx): tx is MemoryTx & { type: 'income' | 'expense' } =>
-          tx.accountId === input.accountId && (tx.type === 'expense' || tx.type === 'income')
-      )
-      .sort((a, b) => b.postedDate.localeCompare(a.postedDate))
-      .slice(0, limit)
-      .map((tx) => ({
-        id: tx.id,
-        postedDate: tx.postedDate,
-        merchant: tx.merchant,
-        amount: tx.amount,
-        currency: tx.currency,
-        type: tx.type,
-      }));
-
-    return { items };
+    const txs = await this.ledgerListTransactions({ accountId: input.accountId, limit: input.limit });
+    return {
+      items: txs.items
+        .filter((tx): tx is typeof tx & { type: 'income' | 'expense' } => tx.type === 'income' || tx.type === 'expense')
+        .map((tx) => ({
+          id: tx.id,
+          postedDate: tx.occurredAt,
+          merchant: tx.merchant,
+          amount: tx.amount,
+          currency: tx.currency,
+          type: tx.type,
+        })),
+    };
   }
 
   async updateTransaction(input: UpdateTransactionInput): Promise<UpdateTransactionResult> {
-    const index = CoreAdapterWeb.transactions.findIndex(
-      (tx) => tx.id === input.transactionId && tx.accountId === input.accountId
+    const tx = CoreAdapterWeb.ledgerTransactions.find(
+      (item) => item.id === input.transactionId && item.accountId === input.accountId,
     );
-    if (index < 0) {
+    if (!tx) {
       throw new Error('Transaction not found');
     }
-
-    CoreAdapterWeb.transactions[index] = {
-      ...CoreAdapterWeb.transactions[index],
-      postedDate: input.postedDate,
-      amount: input.amount,
-      currency: input.currency,
-      type: input.type,
-      merchant: input.merchant,
-    };
-
+    if (tx.status !== 'posted') {
+      throw new Error('Only posted transactions can be updated');
+    }
+    tx.occurredAt = input.postedDate;
+    tx.amount = input.amount;
+    tx.currency = input.currency.toUpperCase();
+    tx.type = input.type;
+    tx.merchant = input.merchant;
+    tx.description = input.merchant;
     return { id: input.transactionId };
   }
 
   async deleteTransaction(input: DeleteTransactionInput): Promise<void> {
-    CoreAdapterWeb.transactions = CoreAdapterWeb.transactions.filter(
-      (tx) => !(tx.id === input.transactionId && tx.accountId === input.accountId)
-    );
+    await this.ledgerVoidTransaction({ transactionId: input.transactionId });
   }
 }

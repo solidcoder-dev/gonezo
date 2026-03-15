@@ -27,6 +27,24 @@ import type {
   UpdateTransactionInput,
   UpdateTransactionResult,
   DeleteTransactionInput,
+  LedgerOpenAccountInput,
+  LedgerOpenAccountResult,
+  LedgerRenameAccountInput,
+  LedgerArchiveAccountInput,
+  LedgerListAccountsResult,
+  LedgerGetAccountSummaryInput,
+  LedgerGetAccountSummaryResult,
+  LedgerRecordExpenseInput,
+  LedgerRecordExpenseResult,
+  LedgerRecordIncomeInput,
+  LedgerRecordIncomeResult,
+  LedgerCreateExpenseDraftInput,
+  LedgerCreateExpenseDraftResult,
+  LedgerAddTransactionItemInput,
+  LedgerPostDraftTransactionInput,
+  LedgerVoidTransactionInput,
+  LedgerListTransactionsInput,
+  LedgerListTransactionsResult,
   CreatePeriodReservationsInput,
   CoreResult,
   CreateBudgetPeriodInput,
@@ -136,5 +154,53 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async deleteTransaction(options: DeleteTransactionInput): Promise<void> {
     return this.core.deleteTransaction(options);
+  }
+
+  async ledgerOpenAccount(options: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {
+    return this.core.ledgerOpenAccount(options);
+  }
+
+  async ledgerRenameAccount(options: LedgerRenameAccountInput): Promise<void> {
+    return this.core.ledgerRenameAccount(options);
+  }
+
+  async ledgerArchiveAccount(options: LedgerArchiveAccountInput): Promise<void> {
+    return this.core.ledgerArchiveAccount(options);
+  }
+
+  async ledgerListAccounts(): Promise<LedgerListAccountsResult> {
+    return this.core.ledgerListAccounts();
+  }
+
+  async ledgerGetAccountSummary(options: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult> {
+    return this.core.ledgerGetAccountSummary(options);
+  }
+
+  async ledgerRecordExpense(options: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {
+    return this.core.ledgerRecordExpense(options);
+  }
+
+  async ledgerRecordIncome(options: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult> {
+    return this.core.ledgerRecordIncome(options);
+  }
+
+  async ledgerCreateExpenseDraft(options: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult> {
+    return this.core.ledgerCreateExpenseDraft(options);
+  }
+
+  async ledgerAddTransactionItem(options: LedgerAddTransactionItemInput): Promise<void> {
+    return this.core.ledgerAddTransactionItem(options);
+  }
+
+  async ledgerPostDraftTransaction(options: LedgerPostDraftTransactionInput): Promise<void> {
+    return this.core.ledgerPostDraftTransaction(options);
+  }
+
+  async ledgerVoidTransaction(options: LedgerVoidTransactionInput): Promise<void> {
+    return this.core.ledgerVoidTransaction(options);
+  }
+
+  async ledgerListTransactions(options: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult> {
+    return this.core.ledgerListTransactions(options);
   }
 }
