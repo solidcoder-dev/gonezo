@@ -28,7 +28,7 @@ data class Transaction(
     if (status == TransactionStatus.DRAFT) {
       require(itemsTotal() <= amount.amount) { "draft items cannot exceed transaction amount" }
     } else if (items.isNotEmpty()) {
-      require(itemsTotal() == amount.amount) { "sum(items) must match transaction amount" }
+      require(itemsTotal().compareTo(amount.amount) == 0) { "sum(items) must match transaction amount" }
     }
   }
 
@@ -47,7 +47,7 @@ data class Transaction(
   fun post(): Transaction {
     require(status == TransactionStatus.DRAFT) { "only draft transactions can be posted" }
     if (items.isNotEmpty()) {
-      check(itemsTotal() == amount.amount) { "sum(items) must match transaction amount before posting" }
+      check(itemsTotal().compareTo(amount.amount) == 0) { "sum(items) must match transaction amount before posting" }
     }
     return copy(status = TransactionStatus.POSTED)
   }

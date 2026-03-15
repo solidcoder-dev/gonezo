@@ -88,6 +88,40 @@ class TransactionAggregateTest {
   }
 
   @Test
+  fun `posts draft when total matches even with different decimal scales`() {
+    val draft = Transaction.createExpenseDraft(
+      id = TransactionId.random(),
+      accountId = AccountId.random(),
+      amount = Money(BigDecimal("80"), "USD"),
+      occurredAt = Instant.parse("2026-03-15T09:00:00Z"),
+      description = "Groceries",
+      merchant = "Store",
+      categoryId = null,
+    )
+      .addItem(
+        TransactionItem.create(
+          id = TransactionItemId.random(),
+          name = "A",
+          amount = Money(BigDecimal("50.00"), "USD"),
+          categoryId = null,
+          note = null,
+        ),
+      )
+      .addItem(
+        TransactionItem.create(
+          id = TransactionItemId.random(),
+          name = "B",
+          amount = Money(BigDecimal("30.00"), "USD"),
+          categoryId = null,
+          note = null,
+        ),
+      )
+
+    val posted = draft.post()
+    assertThat(posted.status).isEqualTo(TransactionStatus.POSTED)
+  }
+
+  @Test
   fun `voids posted transaction`() {
     val posted = Transaction.recordExpense(
       id = TransactionId.random(),
