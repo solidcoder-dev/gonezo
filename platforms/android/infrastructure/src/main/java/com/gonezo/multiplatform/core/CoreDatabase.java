@@ -6,7 +6,8 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
-  private static final int DB_VERSION = 1;
+  // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
+  private static final int DB_VERSION = 8;
 
   CoreDatabase(Context context) {
     super(context, DB_NAME, null, DB_VERSION);
@@ -24,6 +25,12 @@ final class CoreDatabase extends SQLiteOpenHelper {
 
   @Override
   public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+    dropTables(db);
+    createTables(db);
+  }
+
+  @Override
+  public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
     dropTables(db);
     createTables(db);
   }
