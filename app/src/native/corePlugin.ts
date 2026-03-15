@@ -3,6 +3,7 @@ import type {
   CoreResult,
   LedgerOpenAccountInput,
   LedgerOpenAccountResult,
+  LedgerListSupportedCurrenciesResult,
   LedgerRenameAccountInput,
   LedgerArchiveAccountInput,
   LedgerListAccountsResult,
@@ -26,6 +27,7 @@ import type {
 export interface CorePlugin {
   doThing(options: { input: string }): Promise<CoreResult>;
   ledgerOpenAccount(options: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult>;
+  ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult>;
   ledgerRenameAccount(options: LedgerRenameAccountInput): Promise<void>;
   ledgerArchiveAccount(options: LedgerArchiveAccountInput): Promise<void>;
   ledgerListAccounts(): Promise<LedgerListAccountsResult>;

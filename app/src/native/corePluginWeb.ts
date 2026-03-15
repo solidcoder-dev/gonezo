@@ -3,6 +3,7 @@ import type {
   CoreResult,
   LedgerOpenAccountInput,
   LedgerOpenAccountResult,
+  LedgerListSupportedCurrenciesResult,
   LedgerRenameAccountInput,
   LedgerArchiveAccountInput,
   LedgerListAccountsResult,
@@ -34,6 +35,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async ledgerOpenAccount(options: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {
     return this.core.ledgerOpenAccount(options);
+  }
+
+  async ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult> {
+    return this.core.ledgerListSupportedCurrencies();
   }
 
   async ledgerRenameAccount(options: LedgerRenameAccountInput): Promise<void> {

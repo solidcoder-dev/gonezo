@@ -25,12 +25,30 @@ public class CorePlugin extends Plugin {
     String type = call.getString("type");
     String currency = call.getString("currency");
     String createdAt = call.getString("createdAt");
+    String openingBalanceAmount = call.getString("openingBalanceAmount");
 
     try {
       AndroidLedgerCore core = AndroidLedgerCore.getInstance(getContext());
-      String id = core.openAccount(name, type, currency, createdAt).toString();
+      String id = core.openAccount(name, type, currency, createdAt, openingBalanceAmount).toString();
       JSObject result = new JSObject();
       result.put("id", id);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void ledgerListSupportedCurrencies(PluginCall call) {
+    try {
+      AndroidLedgerCore core = AndroidLedgerCore.getInstance(getContext());
+      java.util.List<String> currencies = core.listSupportedCurrencies();
+      org.json.JSONArray items = new org.json.JSONArray();
+      for (String currency : currencies) {
+        items.put(currency);
+      }
+      JSObject result = new JSObject();
+      result.put("items", items);
       call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());

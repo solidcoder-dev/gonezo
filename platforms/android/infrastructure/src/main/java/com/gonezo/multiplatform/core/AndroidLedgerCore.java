@@ -44,6 +44,7 @@ import com.gonezo.application.services.ledger.VoidLedgerTransactionService;
 import com.gonezo.domain.ledger.Account;
 import com.gonezo.domain.ledger.AccountId;
 import com.gonezo.domain.ledger.CategoryId;
+import com.gonezo.domain.ledger.CurrencyCode;
 import com.gonezo.domain.ledger.DateRange;
 import com.gonezo.domain.ledger.Transaction;
 import com.gonezo.domain.ledger.TransactionId;
@@ -83,7 +84,7 @@ public final class AndroidLedgerCore {
     AndroidLedgerTransactionRepository transactionRepository = new AndroidLedgerTransactionRepository(database);
     DomainEventPublisher eventPublisher = new NoopDomainEventPublisher();
 
-    this.openAccountUC = new OpenLedgerAccountService(accountRepository, eventPublisher);
+    this.openAccountUC = new OpenLedgerAccountService(accountRepository, transactionRepository, eventPublisher);
     this.renameAccountUC = new RenameLedgerAccountService(accountRepository);
     this.archiveAccountUC = new ArchiveLedgerAccountService(accountRepository, eventPublisher);
     this.listAccountsUC = new ListLedgerAccountsService(accountRepository);
@@ -106,19 +107,29 @@ public final class AndroidLedgerCore {
     return instance;
   }
 
-  public UUID openAccount(String name, String type, String currency, String createdAt) {
+  public UUID openAccount(String name, String type, String currency, String createdAt, String openingBalanceAmount) {
     String trimmedName = requireText(name, "name is required");
     String resolvedType = blankToNull(type) == null ? "cash" : type.trim();
     String resolvedCurrency = blankToNull(currency) == null ? "USD" : currency.trim().toUpperCase();
     Instant resolvedCreatedAt = blankToNull(createdAt) == null ? Instant.now() : parseInstantOrDate(createdAt, "createdAt");
+    BigDecimal resolvedOpeningBalance = blankToNull(openingBalanceAmount) == null
+      ? null
+      : new BigDecimal(openingBalanceAmount.trim());
 
     OpenLedgerAccountCommand command = new OpenLedgerAccountCommand(
       trimmedName,
       com.gonezo.domain.ledger.AccountType.Companion.from(resolvedType),
-      resolvedCurrency,
-      resolvedCreatedAt
+      CurrencyCode.Companion.from(resolvedCurrency),
+      resolvedCreatedAt,
+      resolvedOpeningBalance
     );
     return openAccountUC.execute(command).getValue();
+  }
+
+  public List<String> listSupportedCurrencies() {
+    return CurrencyCode.Companion.supported().stream()
+      .map(CurrencyCode::getValue)
+      .toList();
   }
 
   public void renameAccount(String accountId, String name) {

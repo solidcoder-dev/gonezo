@@ -3,6 +3,7 @@ import Capacitor
 
 @objc(CorePlugin)
 public class CorePlugin: CAPPlugin {
+    private let supportedCurrencies = ["AUD", "BRL", "CAD", "CHF", "EUR", "GBP", "JPY", "MXN", "NZD", "USD"]
     private var accounts: [[String: Any]] = []
     private var transactions: [[String: Any]] = []
 
@@ -23,6 +24,22 @@ public class CorePlugin: CAPPlugin {
         }
         let type = (call.getString("type") ?? "cash").lowercased()
         let currency = (call.getString("currency") ?? "USD").uppercased()
+        if !supportedCurrencies.contains(currency) {
+            call.reject("unsupported currency code: \(currency)")
+            return
+        }
+        let createdAt = call.getString("createdAt") ?? ISO8601DateFormatter().string(from: Date())
+        let openingBalanceRaw = (call.getString("openingBalanceAmount") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let openingBalanceAmount: Double?
+        if openingBalanceRaw.isEmpty {
+            openingBalanceAmount = nil
+        } else {
+            guard let parsed = Double(openingBalanceRaw) else {
+                call.reject("opening balance must be a valid number")
+                return
+            }
+            openingBalanceAmount = parsed
+        }
         accounts.append([
             "id": id,
             "name": name,
@@ -30,7 +47,28 @@ public class CorePlugin: CAPPlugin {
             "currency": currency,
             "status": "active"
         ])
+
+        if let openingBalanceAmount, openingBalanceAmount != 0 {
+            let txId = UUID().uuidString
+            transactions.append([
+                "id": txId,
+                "accountId": id,
+                "type": openingBalanceAmount > 0 ? "income" : "expense",
+                "status": "posted",
+                "amount": String(format: "%.2f", abs(openingBalanceAmount)),
+                "currency": currency,
+                "occurredAt": createdAt,
+                "description": "Opening balance",
+                "merchant": NSNull(),
+                "categoryId": NSNull(),
+                "items": []
+            ])
+        }
         call.resolve(["id": id])
+    }
+
+    @objc func ledgerListSupportedCurrencies(_ call: CAPPluginCall) {
+        call.resolve(["items": supportedCurrencies])
     }
 
     @objc func ledgerListAccounts(_ call: CAPPluginCall) {

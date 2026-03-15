@@ -22,6 +22,7 @@ type LastSubmittedTransaction = {
 };
 
 export type AccountsCorePort = {
+  ledgerListSupportedCurrencies(): Promise<{ items: string[] }>;
   ledgerListAccounts(): Promise<{ items: LedgerAccountItem[] }>;
   ledgerGetAccountSummary(input: { accountId: string }): Promise<{
     accountId: string;
@@ -38,8 +39,9 @@ export type AccountsCorePort = {
   ledgerOpenAccount(input: {
     name: string;
     type?: string;
-    currency?: string;
+    currency: string;
     createdAt?: string;
+    openingBalanceAmount?: string;
   }): Promise<{ id: string }>;
   ledgerRecordExpense(input: {
     accountId: string;
@@ -101,6 +103,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [toastMessage, setToastMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
+  const [supportedCurrencies, setSupportedCurrencies] = useState<string[]>([]);
   const [accounts, setAccounts] = useState<LedgerAccountItem[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState('');
   const [balanceAmount, setBalanceAmount] = useState('0.00');
@@ -110,6 +113,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [showCreateAccountForm, setShowCreateAccountForm] = useState(false);
   const [newAccountName, setNewAccountName] = useState('Main account');
   const [newAccountCurrency, setNewAccountCurrency] = useState('USD');
+  const [newAccountOpeningBalance, setNewAccountOpeningBalance] = useState('');
 
   const [transactionType, setTransactionType] = useState<TransactionType>(readLastType());
   const [transactionAmount, setTransactionAmount] = useState('');
@@ -191,6 +195,11 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       setLoading(true);
       setError('');
       try {
+        const currencies = await core.ledgerListSupportedCurrencies();
+        setSupportedCurrencies(currencies.items);
+        if (currencies.items.length > 0 && !currencies.items.includes(newAccountCurrency)) {
+          setNewAccountCurrency(currencies.items[0]);
+        }
         await refreshAccounts();
       } catch (err) {
         if (!cancelled) {
@@ -254,8 +263,14 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     }
 
     const currency = newAccountCurrency.trim().toUpperCase();
-    if (currency.length !== 3) {
-      setError('Currency must have 3 letters.');
+    if (!supportedCurrencies.includes(currency)) {
+      setError('Select a supported currency.');
+      return;
+    }
+
+    const openingBalanceRaw = newAccountOpeningBalance.trim();
+    if (openingBalanceRaw && Number.isNaN(Number(openingBalanceRaw))) {
+      setError('Opening balance must be a valid number.');
       return;
     }
 
@@ -265,9 +280,11 @@ export function useAccountsPageModel(core: AccountsCorePort) {
         name,
         type: 'cash',
         currency,
+        openingBalanceAmount: openingBalanceRaw || undefined,
       });
       await refreshAccounts(created.id);
       setShowCreateAccountForm(false);
+      setNewAccountOpeningBalance('');
       setToastMessage('Account created.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -472,6 +489,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     toastMessage,
     fieldErrors,
     accounts,
+    supportedCurrencies,
     selectedAccountId,
     selectedAccount,
     balanceAmount,
@@ -481,6 +499,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     showCreateAccountForm,
     newAccountName,
     newAccountCurrency,
+    newAccountOpeningBalance,
     transactionType,
     transactionAmount,
     transactionDate,
@@ -492,6 +511,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     canPostAgain: Boolean(lastSubmittedTransaction),
     setNewAccountName,
     setNewAccountCurrency,
+    setNewAccountOpeningBalance,
     setTransactionAmount: setTransactionAmountValue,
     setTransactionDate,
     setCounterparty,

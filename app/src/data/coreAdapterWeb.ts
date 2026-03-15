@@ -3,6 +3,7 @@ import type {
   CoreResult,
   LedgerOpenAccountInput,
   LedgerOpenAccountResult,
+  LedgerListSupportedCurrenciesResult,
   LedgerRenameAccountInput,
   LedgerArchiveAccountInput,
   LedgerListAccountsResult,
@@ -58,6 +59,8 @@ type MemoryLedgerTransaction = {
 };
 
 export class CoreAdapterWeb implements CorePort {
+  private static readonly supportedCurrencies = ['AUD', 'BRL', 'CAD', 'CHF', 'EUR', 'GBP', 'JPY', 'MXN', 'NZD', 'USD'];
+
   private static ledgerAccounts: MemoryLedgerAccount[] = [];
 
   private static ledgerTransactions: MemoryLedgerTransaction[] = [];
@@ -118,15 +121,42 @@ export class CoreAdapterWeb implements CorePort {
     if (!name) {
       throw new Error('name is required');
     }
+    const currency = input.currency.toUpperCase();
+    if (!CoreAdapterWeb.supportedCurrencies.includes(currency)) {
+      throw new Error(`unsupported currency code: ${currency}`);
+    }
+    const openingBalanceRaw = input.openingBalanceAmount?.trim();
+    const openingBalance = openingBalanceRaw ? Number(openingBalanceRaw) : 0;
+    if (Number.isNaN(openingBalance)) {
+      throw new Error('opening balance must be a valid number');
+    }
+
     CoreAdapterWeb.ledgerAccounts.push({
       id,
       name,
       type: (input.type ?? 'cash').toLowerCase(),
-      currency: (input.currency ?? 'USD').toUpperCase(),
+      currency,
       status: 'active',
       createdAt: input.createdAt ?? new Date().toISOString(),
     });
+    if (openingBalance !== 0) {
+      CoreAdapterWeb.ledgerTransactions.push({
+        id: crypto.randomUUID(),
+        accountId: id,
+        type: openingBalance > 0 ? 'income' : 'expense',
+        status: 'posted',
+        amount: Math.abs(openingBalance).toFixed(2),
+        currency,
+        occurredAt: input.createdAt ?? new Date().toISOString(),
+        description: 'Opening balance',
+        items: [],
+      });
+    }
     return { id };
+  }
+
+  async ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult> {
+    return { items: [...CoreAdapterWeb.supportedCurrencies] };
   }
 
   async ledgerRenameAccount(input: LedgerRenameAccountInput): Promise<void> {

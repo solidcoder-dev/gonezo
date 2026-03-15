@@ -20,6 +20,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
   }));
 
   return {
+    ledgerListSupportedCurrencies: vi.fn(async () => ({ items: ['EUR', 'USD'] })),
     ledgerListAccounts: vi.fn(async () => ({
       items: [
         {

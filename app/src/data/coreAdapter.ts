@@ -4,6 +4,7 @@ import type {
   CoreResult,
   LedgerOpenAccountInput,
   LedgerOpenAccountResult,
+  LedgerListSupportedCurrenciesResult,
   LedgerRenameAccountInput,
   LedgerArchiveAccountInput,
   LedgerListAccountsResult,
@@ -41,6 +42,13 @@ export class CoreAdapter implements CorePort {
       return CorePlugin.ledgerOpenAccount(input);
     }
     return this.web.ledgerOpenAccount(input);
+  }
+
+  async ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.ledgerListSupportedCurrencies();
+    }
+    return this.web.ledgerListSupportedCurrencies();
   }
 
   async ledgerRenameAccount(input: LedgerRenameAccountInput): Promise<void> {

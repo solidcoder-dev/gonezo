@@ -6,8 +6,9 @@ export type CoreResult = {
 export type LedgerOpenAccountInput = {
   name: string;
   type?: string;
-  currency?: string;
+  currency: string;
   createdAt?: string;
+  openingBalanceAmount?: string;
 };
 
 export type LedgerOpenAccountResult = {
@@ -34,6 +35,10 @@ export type LedgerAccountItem = {
 
 export type LedgerListAccountsResult = {
   items: LedgerAccountItem[];
+};
+
+export type LedgerListSupportedCurrenciesResult = {
+  items: string[];
 };
 
 export type LedgerGetAccountSummaryInput = {
@@ -161,6 +166,7 @@ export type LedgerListTransactionsResult = {
 export interface CorePort {
   doThing(input: string): Promise<CoreResult>;
   ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult>;
+  ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult>;
   ledgerRenameAccount(input: LedgerRenameAccountInput): Promise<void>;
   ledgerArchiveAccount(input: LedgerArchiveAccountInput): Promise<void>;
   ledgerListAccounts(): Promise<LedgerListAccountsResult>;

@@ -51,13 +51,26 @@ export function AccountsPage({ core }: Props) {
             autoComplete="off"
           />
           <input
-            aria-label="Currency"
-            value={model.newAccountCurrency}
-            onChange={(event) => model.setNewAccountCurrency(event.target.value.toUpperCase())}
-            placeholder="Currency (USD)"
-            maxLength={3}
-            autoCapitalize="characters"
+            aria-label="Opening balance"
+            value={model.newAccountOpeningBalance}
+            onChange={(event) => model.setNewAccountOpeningBalance(event.target.value)}
+            placeholder="Opening balance (optional)"
+            inputMode="decimal"
           />
+          <label className="stack">
+            Currency
+            <select
+              aria-label="Currency"
+              value={model.newAccountCurrency}
+              onChange={(event) => model.setNewAccountCurrency(event.target.value)}
+            >
+              {model.supportedCurrencies.map((currency) => (
+                <option key={currency} value={currency}>
+                  {currency}
+                </option>
+              ))}
+            </select>
+          </label>
           <button type="submit" disabled={model.creatingAccount}>
             {model.creatingAccount ? 'Creating account...' : 'Create account'}
           </button>
@@ -83,13 +96,26 @@ export function AccountsPage({ core }: Props) {
                 autoComplete="off"
               />
               <input
-                aria-label="Currency"
-                value={model.newAccountCurrency}
-                onChange={(event) => model.setNewAccountCurrency(event.target.value.toUpperCase())}
-                placeholder="Currency (USD)"
-                maxLength={3}
-                autoCapitalize="characters"
+                aria-label="Opening balance"
+                value={model.newAccountOpeningBalance}
+                onChange={(event) => model.setNewAccountOpeningBalance(event.target.value)}
+                placeholder="Opening balance (optional)"
+                inputMode="decimal"
               />
+              <label className="stack">
+                Currency
+                <select
+                  aria-label="Currency"
+                  value={model.newAccountCurrency}
+                  onChange={(event) => model.setNewAccountCurrency(event.target.value)}
+                >
+                  {model.supportedCurrencies.map((currency) => (
+                    <option key={currency} value={currency}>
+                      {currency}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <div className="quick-row">
                 <button type="submit" disabled={model.creatingAccount}>
                   {model.creatingAccount ? 'Creating account...' : 'Create account'}
