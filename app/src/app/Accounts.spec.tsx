@@ -51,8 +51,16 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     ledgerRecordExpense: vi.fn(async () => ({ id: 'tx-exp' })),
     ledgerRecordIncome: vi.fn(async () => ({ id: 'tx-inc' })),
     ledgerRecordTransfer: vi.fn(async () => ({ transferOutId: 'tx-tr-out', transferInId: 'tx-tr-in' })),
+    ledgerCreateExpenseDraft: vi.fn(async () => ({ id: 'tx-draft' })),
+    ledgerAddTransactionItem: vi.fn(async () => undefined),
+    ledgerPostDraftTransaction: vi.fn(async () => undefined),
     ledgerVoidTransaction: vi.fn(async () => undefined),
   };
+}
+
+async function openMode(mode: 'Expense' | 'Income' | 'Transfer') {
+  fireEvent.click(screen.getByRole('button', { name: 'Add movement' }));
+  fireEvent.click(await screen.findByRole('button', { name: mode }));
 }
 
 describe('Accounts UX', () => {
@@ -60,7 +68,7 @@ describe('Accounts UX', () => {
     window.localStorage.clear();
   });
 
-  it('renders custom amount control and no direct main amount input', async () => {
+  it('uses account list icon instead of horizontal tab row', async () => {
     const core = makeCore();
 
     render(
@@ -69,35 +77,12 @@ describe('Accounts UX', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole('heading', { name: 'Add transaction' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Increase amount by current step' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Decrease amount by current step' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '0.01' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '0.10' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Edit amount' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Use last amount' })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Amount value')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText('Current amount'));
-    expect(screen.getByLabelText('Amount value')).toBeInTheDocument();
+    expect(await screen.findByText('Current account')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View accounts' })).toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   });
 
-  it('shows only 3 recent transactions and indicates hidden transactions', async () => {
-    const core = makeCore(5);
-
-    render(
-      <MemoryRouter>
-        <Accounts core={core} />
-      </MemoryRouter>
-    );
-
-    expect(await screen.findByText('+2 more transactions')).toBeInTheDocument();
-    expect(screen.getAllByRole('listitem')).toHaveLength(3);
-
-    fireEvent.click(screen.getByRole('button', { name: 'View all' }));
-    expect(screen.getAllByRole('listitem')).toHaveLength(5);
-  });
-
-  it('submits expense by default and income when toggled', async () => {
+  it('records quick expense from dedicated expense flow', async () => {
     const core = makeCore();
 
     render(
@@ -106,36 +91,59 @@ describe('Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Add transaction' });
+    await screen.findByText('Current account');
+    await openMode('Expense');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Increase amount by current step' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Today' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save expense' }));
 
     await waitFor(() => {
       expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
     });
-    expect(await screen.findByRole('status')).toHaveTextContent('Expense recorded');
+  });
 
-    fireEvent.click(screen.getByRole('radio', { name: 'Income' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Increase amount by current step' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
+  it('records income from dedicated income flow', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Current account');
+    await openMode('Income');
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save income' }));
 
     await waitFor(() => {
       expect(core.ledgerRecordIncome).toHaveBeenCalledTimes(1);
     });
+  });
 
-    fireEvent.click(screen.getByRole('radio', { name: 'Transfer' }));
+  it('records transfer from dedicated transfer flow', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Current account');
+    await openMode('Transfer');
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '5' } });
     fireEvent.change(screen.getByLabelText('Destination account'), { target: { value: 'acc-2' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Increase amount by current step' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save transfer' }));
 
     await waitFor(() => {
       expect(core.ledgerRecordTransfer).toHaveBeenCalledTimes(1);
     });
   });
 
-  it('shows inline validation for empty amount', async () => {
+  it('supports detailed expense with items using draft flow', async () => {
     const core = makeCore();
 
     render(
@@ -144,61 +152,23 @@ describe('Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Add transaction' });
-    fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
+    await screen.findByText('Current account');
+    await openMode('Expense');
 
-    expect(await screen.findByText('Enter a valid amount greater than 0.')).toBeInTheDocument();
-  });
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
+    fireEvent.click(screen.getByRole('checkbox'));
 
-  it('normalizes negative amount input to positive', async () => {
-    const core = makeCore();
+    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Groceries' } });
+    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Assign remaining' }));
 
-    render(
-      <MemoryRouter>
-        <Accounts core={core} />
-      </MemoryRouter>
-    );
-
-    await screen.findByRole('heading', { name: 'Add transaction' });
-    fireEvent.click(screen.getByLabelText('Current amount'));
-    fireEvent.change(screen.getByLabelText('Amount value'), { target: { value: '-3' } });
-    fireEvent.blur(screen.getByLabelText('Amount value'));
-    fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Publish expense' }));
 
     await waitFor(() => {
-      expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
-    });
-    expect(core.ledgerRecordExpense).toHaveBeenCalledWith(
-      expect.objectContaining({
-        amount: '3.00',
-      })
-    );
-  });
-
-  it('supports step settings and post again', async () => {
-    const core = makeCore();
-
-    render(
-      <MemoryRouter>
-        <Accounts core={core} />
-      </MemoryRouter>
-    );
-
-    await screen.findByRole('heading', { name: 'Add transaction' });
-    fireEvent.click(screen.getByRole('radio', { name: 'Expense' }));
-
-    fireEvent.click(screen.getByRole('button', { name: 'Toggle more steps' }));
-    fireEvent.click(screen.getByRole('button', { name: '0.50' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Increase amount by current step' }));
-
-    fireEvent.click(screen.getByRole('button', { name: 'Post transaction' }));
-    await waitFor(() => {
-      expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Post again' }));
-    await waitFor(() => {
-      expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(2);
+      expect(core.ledgerCreateExpenseDraft).toHaveBeenCalledTimes(1);
+      expect(core.ledgerAddTransactionItem).toHaveBeenCalledTimes(2);
+      expect(core.ledgerPostDraftTransaction).toHaveBeenCalledTimes(1);
     });
   });
 
