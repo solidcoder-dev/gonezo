@@ -1,0 +1,105 @@
+package com.gonezo.domain.ledger
+
+import com.gonezo.domain.shared.Money
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.junit.jupiter.api.Test
+import java.math.BigDecimal
+import java.time.Instant
+
+class TransactionAggregateTest {
+
+  @Test
+  fun `records posted expense`() {
+    val tx = Transaction.recordExpense(
+      id = TransactionId.random(),
+      accountId = AccountId.random(),
+      amount = Money(BigDecimal("80.00"), "USD"),
+      occurredAt = Instant.parse("2026-03-15T09:00:00Z"),
+      description = "Supermercado",
+      merchant = "Mercadona",
+      categoryId = null,
+    )
+
+    assertThat(tx.type).isEqualTo(TransactionType.EXPENSE)
+    assertThat(tx.status).isEqualTo(TransactionStatus.POSTED)
+    assertThat(tx.items).isEmpty()
+  }
+
+  @Test
+  fun `rejects non positive amounts`() {
+    assertThatThrownBy {
+      Transaction.recordIncome(
+        id = TransactionId.random(),
+        accountId = AccountId.random(),
+        amount = Money(BigDecimal.ZERO, "USD"),
+        occurredAt = Instant.parse("2026-03-15T09:00:00Z"),
+        description = "Salary",
+        merchant = null,
+        categoryId = null,
+      )
+    }.isInstanceOf(IllegalArgumentException::class.java)
+  }
+
+  @Test
+  fun `draft with items can be posted only when total matches`() {
+    val draft = Transaction.createExpenseDraft(
+      id = TransactionId.random(),
+      accountId = AccountId.random(),
+      amount = Money(BigDecimal("80.00"), "USD"),
+      occurredAt = Instant.parse("2026-03-15T09:00:00Z"),
+      description = "Mercadona",
+      merchant = "Mercadona",
+      categoryId = null,
+    )
+      .addItem(
+        TransactionItem.create(
+          id = TransactionItemId.random(),
+          name = "Comida",
+          amount = Money(BigDecimal("50.00"), "USD"),
+          categoryId = null,
+          note = null,
+        ),
+      )
+      .addItem(
+        TransactionItem.create(
+          id = TransactionItemId.random(),
+          name = "Limpieza",
+          amount = Money(BigDecimal("20.00"), "USD"),
+          categoryId = null,
+          note = null,
+        ),
+      )
+
+    assertThatThrownBy { draft.post() }.isInstanceOf(IllegalStateException::class.java)
+
+    val posted = draft.addItem(
+      TransactionItem.create(
+        id = TransactionItemId.random(),
+        name = "Farmacia",
+        amount = Money(BigDecimal("10.00"), "USD"),
+        categoryId = null,
+        note = null,
+      ),
+    ).post()
+
+    assertThat(posted.status).isEqualTo(TransactionStatus.POSTED)
+    assertThat(posted.items).hasSize(3)
+  }
+
+  @Test
+  fun `voids posted transaction`() {
+    val posted = Transaction.recordExpense(
+      id = TransactionId.random(),
+      accountId = AccountId.random(),
+      amount = Money(BigDecimal("19.90"), "USD"),
+      occurredAt = Instant.parse("2026-03-15T09:00:00Z"),
+      description = "Lunch",
+      merchant = "Cafe",
+      categoryId = null,
+    )
+
+    val voided = posted.void()
+    assertThat(voided.status).isEqualTo(TransactionStatus.VOIDED)
+  }
+}
