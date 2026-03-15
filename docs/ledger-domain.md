@@ -80,6 +80,7 @@ Comandos:
 
 - `RecordLedgerIncome`
 - `RecordLedgerExpense`
+- `RecordLedgerTransfer`
 - `CreateLedgerExpenseDraft`
 - `AddLedgerTransactionItem`
 - `RemoveLedgerTransactionItem`
@@ -156,6 +157,9 @@ Fuera de Ledger:
 
 ## Estado de transferencias
 
-MVP operativo en `income` y `expense`.
+Transferencias operativas con doble transaccion enlazada:
 
-`transfer` queda modelado en tipo pero su flujo de doble transaccion enlazada se mantiene como fase posterior.
+- `transfer_out` en cuenta origen
+- `transfer_in` en cuenta destino
+- ambas con `linkedTransactionId` reciproco
+- al anular una, se anula su transaccion enlazada
