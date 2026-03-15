@@ -1,7 +1,7 @@
-import type { AccountItem } from '../../domain/corePort';
+import type { LedgerAccountItem } from '../../domain/corePort';
 
 type Props = {
-  accounts: AccountItem[];
+  accounts: LedgerAccountItem[];
   selectedAccountId: string;
   disabled: boolean;
   onSelect: (accountId: string) => void;
