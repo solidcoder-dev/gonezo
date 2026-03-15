@@ -42,6 +42,7 @@ Reglas:
 
 - `name` obligatorio
 - `currency` obligatoria
+- `currency` solo puede ser una moneda soportada por backend
 - cuenta archivada no acepta nuevas transacciones
 
 Comandos:
@@ -49,6 +50,7 @@ Comandos:
 - `OpenLedgerAccount`
 - `RenameLedgerAccount`
 - `ArchiveLedgerAccount`
+- `ListLedgerSupportedCurrencies`
 
 ### Transaction
 
@@ -163,3 +165,9 @@ Transferencias operativas con doble transaccion enlazada:
 - `transfer_in` en cuenta destino
 - ambas con `linkedTransactionId` reciproco
 - al anular una, se anula su transaccion enlazada
+
+## Apertura con balance inicial
+
+`OpenLedgerAccount` permite `openingBalanceAmount` opcional.
+
+No se guarda saldo mutable en `Account`: si se informa balance inicial, se crea una transaccion `income` o `expense` con descripcion `Opening balance`.
