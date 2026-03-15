@@ -120,14 +120,6 @@ export function AccountsPage({ core }: Props) {
             </form>
           ) : null}
 
-          {model.selectedAccount ? (
-            <section className="summary-card section-gap">
-              <h2>{model.selectedAccount.name}</h2>
-              <p className="summary-label">Net balance</p>
-              <div className="summary-amount">{formatCurrencyAmount(model.balanceAmount, model.selectedAccount.currency)}</div>
-            </section>
-          ) : null}
-
           <section className="section-gap">
             <AccountSwitcher
               accounts={model.accounts}
@@ -137,6 +129,14 @@ export function AccountsPage({ core }: Props) {
               onAddAccount={model.openCreateAccountForm}
             />
           </section>
+
+          {model.selectedAccount ? (
+            <section className="summary-card section-gap">
+              <h2>{model.selectedAccount.name}</h2>
+              <p className="summary-label">Net balance</p>
+              <div className="summary-amount">{formatCurrencyAmount(model.balanceAmount, model.selectedAccount.currency)}</div>
+            </section>
+          ) : null}
 
           <TransactionComposer
             open={model.composerOpen}
