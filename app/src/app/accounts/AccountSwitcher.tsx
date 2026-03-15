@@ -28,12 +28,12 @@ export function AccountSwitcher({ accounts, selectedAccountId, disabled, onSelec
         <div className="quick-row">
           <button
             type="button"
-            className="text-button icon-button"
+            className="text-button"
             onClick={() => setShowAccounts(true)}
             disabled={disabled}
             aria-label="View accounts"
           >
-            ⋯
+            View accounts
           </button>
           <button type="button" className="text-button" onClick={onAddAccount} disabled={disabled}>
             + New account

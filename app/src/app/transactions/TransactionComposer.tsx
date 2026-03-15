@@ -152,8 +152,8 @@ export function TransactionComposer({
 
             <div className="inline-header">
               <span className="hint">Need more fields?</span>
-              <button type="button" className="text-button icon-button" onClick={onToggleAdvanced} aria-label="Toggle advanced options">
-                ⋯
+              <button type="button" className="text-button" onClick={onToggleAdvanced} aria-label="Toggle advanced options">
+                {advancedOpen ? 'Hide options' : 'More options'}
               </button>
             </div>
 
