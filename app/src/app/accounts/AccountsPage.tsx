@@ -122,20 +122,21 @@ export function AccountsPage({ core }: Props) {
 
           {model.selectedAccount ? (
             <section className="summary-card section-gap">
-              <div className="inline-header">
-                <h2>{model.selectedAccount.name}</h2>
-                <AccountSwitcher
-                  accounts={model.accounts}
-                  selectedAccountId={model.selectedAccountId}
-                  disabled={model.refreshing || model.postingTransaction}
-                  onSelect={model.selectAccount}
-                  onAddAccount={model.openCreateAccountForm}
-                />
-              </div>
+              <h2>{model.selectedAccount.name}</h2>
               <p className="summary-label">Net balance</p>
               <div className="summary-amount">{formatCurrencyAmount(model.balanceAmount, model.selectedAccount.currency)}</div>
             </section>
           ) : null}
+
+          <section className="section-gap">
+            <AccountSwitcher
+              accounts={model.accounts}
+              selectedAccountId={model.selectedAccountId}
+              disabled={model.refreshing || model.postingTransaction}
+              onSelect={model.selectAccount}
+              onAddAccount={model.openCreateAccountForm}
+            />
+          </section>
 
           <TransactionComposer
             open={model.composerOpen}
