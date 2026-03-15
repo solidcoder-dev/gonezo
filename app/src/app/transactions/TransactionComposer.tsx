@@ -24,6 +24,10 @@ type Props = {
   expenseItemName: string;
   expenseItemAmount: string;
   expenseRemaining: string;
+  currencyCode?: string;
+  expenseItemNameError?: string;
+  expenseItemAmountError?: string;
+  expenseSplitError?: string;
   amountError?: string;
   dateError?: string;
   onOpen: () => void;
@@ -65,6 +69,10 @@ export function TransactionComposer({
   expenseItemName,
   expenseItemAmount,
   expenseRemaining,
+  currencyCode,
+  expenseItemNameError,
+  expenseItemAmountError,
+  expenseSplitError,
   amountError,
   dateError,
   onOpen,
@@ -102,6 +110,13 @@ export function TransactionComposer({
     if (mode === 'transfer') return 'Save transfer';
     return 'Continue';
   }, [mode, expenseDetailed]);
+
+  const splitReady = useMemo(() => {
+    if (mode !== 'expense' || !expenseDetailed) {
+      return true;
+    }
+    return expenseItems.length > 0 && Number(expenseRemaining) === 0;
+  }, [expenseDetailed, expenseItems.length, expenseRemaining, mode]);
 
   if (!open) {
     return (
@@ -210,7 +225,7 @@ export function TransactionComposer({
                     <div className="inline-header">
                       <strong>Items</strong>
                       <span className={expenseRemaining === '0.00' ? 'hint success' : 'hint'}>
-                        Remaining: {expenseRemaining}
+                        Remaining: {expenseRemaining} {currencyCode ?? ''}
                       </span>
                     </div>
                     <div className="quick-row">
@@ -231,6 +246,8 @@ export function TransactionComposer({
                         inputMode="decimal"
                       />
                     </div>
+                    {expenseItemNameError ? <p className="field-error">{expenseItemNameError}</p> : null}
+                    {expenseItemAmountError ? <p className="field-error">{expenseItemAmountError}</p> : null}
                     <div className="quick-row">
                       <button type="button" className="text-button" onClick={onAddExpenseItem}>
                         Add item
@@ -252,12 +269,17 @@ export function TransactionComposer({
                         </li>
                       ))}
                     </ul>
+                    {expenseSplitError ? (
+                      <p className="field-error">{expenseSplitError}</p>
+                    ) : (
+                      <p className="hint">Publish becomes available when Remaining is 0.00.</p>
+                    )}
                   </div>
                 ) : null}
               </div>
             ) : null}
 
-            <button type="submit" className="primary-cta" disabled={disabled}>
+            <button type="submit" className="primary-cta" disabled={disabled || !splitReady}>
               {submitLabel}
             </button>
           </form>

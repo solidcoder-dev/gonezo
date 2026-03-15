@@ -5,6 +5,9 @@ import type { LedgerAccountItem, LedgerTransactionListItem } from '../../domain/
 type FieldErrors = {
   amount?: string;
   date?: string;
+  expenseItemName?: string;
+  expenseItemAmount?: string;
+  expenseSplit?: string;
 };
 
 type ComposerMode = 'picker' | 'expense' | 'income' | 'transfer';
@@ -337,23 +340,55 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
   function setTransactionAmountValue(value: string) {
     setTransactionAmount(value.replace('-', ''));
-    setFieldErrors((previous) => ({ ...previous, amount: undefined }));
+    setFieldErrors((previous) => ({ ...previous, amount: undefined, expenseSplit: undefined }));
+  }
+
+  function setExpenseDetailedValue(value: boolean) {
+    setExpenseDetailed(value);
+    if (!value) {
+      setFieldErrors((previous) => ({
+        ...previous,
+        expenseItemName: undefined,
+        expenseItemAmount: undefined,
+        expenseSplit: undefined,
+      }));
+    }
+  }
+
+  function setExpenseItemNameValue(value: string) {
+    setExpenseItemName(value);
+    setFieldErrors((previous) => ({ ...previous, expenseItemName: undefined }));
+  }
+
+  function setExpenseItemAmountValue(value: string) {
+    setExpenseItemAmount(value);
+    setFieldErrors((previous) => ({ ...previous, expenseItemAmount: undefined }));
   }
 
   function addExpenseItem() {
     const name = expenseItemName.trim();
     const amount = parseAmount(expenseItemAmount);
 
+    const nextErrors: FieldErrors = {};
     if (!name) {
-      setError('Item name is required.');
-      return;
+      nextErrors.expenseItemName = 'Item name is required.';
     }
     if (amount <= 0) {
-      setError('Item amount must be greater than 0.');
+      nextErrors.expenseItemAmount = 'Item amount must be greater than 0.';
+    }
+
+    if (nextErrors.expenseItemName || nextErrors.expenseItemAmount) {
+      setFieldErrors((previous) => ({ ...previous, ...nextErrors }));
       return;
     }
 
     setError('');
+    setFieldErrors((previous) => ({
+      ...previous,
+      expenseItemName: undefined,
+      expenseItemAmount: undefined,
+      expenseSplit: undefined,
+    }));
     setExpenseItems((previous) => [
       ...previous,
       {
@@ -387,6 +422,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     ]);
     setExpenseItemName('');
     setExpenseItemAmount('');
+    setFieldErrors((previous) => ({ ...previous, expenseSplit: undefined }));
   }
 
   async function submitTransaction(event: FormEvent) {
@@ -410,11 +446,6 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       nextErrors.date = 'Date is required.';
     }
 
-    if (nextErrors.amount || nextErrors.date) {
-      setFieldErrors(nextErrors);
-      return;
-    }
-
     if (composerMode === 'transfer' && !transferToAccountId) {
       setError('Select a destination account for transfer.');
       return;
@@ -427,13 +458,22 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
     if (composerMode === 'expense' && expenseDetailed) {
       if (expenseItems.length === 0) {
-        setError('Add at least one item.');
-        return;
+        nextErrors.expenseSplit = 'Add at least one item before publishing.';
       }
       if (parseAmount(expenseRemaining) !== 0) {
-        setError('Items must match the total amount before publishing.');
-        return;
+        nextErrors.expenseSplit = 'Items must match the total amount before publishing.';
       }
+    }
+
+    if (
+      nextErrors.amount
+      || nextErrors.date
+      || nextErrors.expenseItemName
+      || nextErrors.expenseItemAmount
+      || nextErrors.expenseSplit
+    ) {
+      setFieldErrors(nextErrors);
+      return;
     }
 
     setPostingTransaction(true);
@@ -563,6 +603,9 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     expenseItemAmount,
     expenseItems,
     expenseRemaining,
+    expenseItemNameError: fieldErrors.expenseItemName,
+    expenseItemAmountError: fieldErrors.expenseItemAmount,
+    expenseSplitError: fieldErrors.expenseSplit,
     setNewAccountName,
     setNewAccountCurrency,
     setNewAccountOpeningBalance,
@@ -570,9 +613,9 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setTransactionDate,
     setTransactionNote,
     setTransferToAccountId,
-    setExpenseDetailed,
-    setExpenseItemName,
-    setExpenseItemAmount,
+    setExpenseDetailed: setExpenseDetailedValue,
+    setExpenseItemName: setExpenseItemNameValue,
+    setExpenseItemAmount: setExpenseItemAmountValue,
     clearToast: () => setToastMessage(''),
     openCreateAccountForm: () => setShowCreateAccountForm(true),
     closeCreateAccountForm: () => setShowCreateAccountForm(false),

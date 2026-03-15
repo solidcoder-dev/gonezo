@@ -172,6 +172,33 @@ describe('Accounts UX', () => {
     });
   });
 
+  it('keeps detailed expense publish disabled until split reaches zero', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Current account');
+    await openMode('Expense');
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+
+    const publishButton = screen.getByRole('button', { name: 'Publish expense' });
+    expect(publishButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Groceries' } });
+    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    expect(publishButton).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Assign remaining' }));
+    expect(publishButton).toBeEnabled();
+  });
+
   it('closes the composer after expense save even when refresh fails', async () => {
     const core = makeCore();
 

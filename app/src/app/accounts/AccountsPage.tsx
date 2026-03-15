@@ -155,6 +155,10 @@ export function AccountsPage({ core }: Props) {
             expenseItemName={model.expenseItemName}
             expenseItemAmount={model.expenseItemAmount}
             expenseRemaining={model.expenseRemaining}
+            currencyCode={model.selectedAccount?.currency}
+            expenseItemNameError={model.expenseItemNameError}
+            expenseItemAmountError={model.expenseItemAmountError}
+            expenseSplitError={model.expenseSplitError}
             onToggleExpenseDetailed={() => model.setExpenseDetailed(!model.expenseDetailed)}
             onSetExpenseItemName={model.setExpenseItemName}
             onSetExpenseItemAmount={model.setExpenseItemAmount}
