@@ -4,17 +4,20 @@ import com.gonezo.domain.ledger.Account
 import com.gonezo.domain.ledger.AccountId
 import com.gonezo.domain.ledger.AccountType
 import com.gonezo.domain.ledger.CategoryId
+import com.gonezo.domain.ledger.CurrencyCode
 import com.gonezo.domain.ledger.DateRange
 import com.gonezo.domain.ledger.Transaction
 import com.gonezo.domain.ledger.TransactionId
 import com.gonezo.domain.shared.Money
+import java.math.BigDecimal
 import java.time.Instant
 
 data class OpenLedgerAccountCommand(
   val name: String,
   val type: AccountType,
-  val currency: String,
+  val currency: CurrencyCode,
   val createdAt: Instant,
+  val openingBalanceAmount: BigDecimal? = null,
 )
 
 interface OpenLedgerAccountUC {
@@ -41,6 +44,10 @@ interface ArchiveLedgerAccountUC {
 
 interface ListLedgerAccountsUC {
   fun execute(): List<Account>
+}
+
+interface ListLedgerSupportedCurrenciesUC {
+  fun execute(): List<CurrencyCode>
 }
 
 data class RecordLedgerIncomeCommand(

@@ -5,6 +5,7 @@ import com.gonezo.application.ledger.OpenLedgerAccountCommand
 import com.gonezo.application.ledger.RecordLedgerTransferCommand
 import com.gonezo.application.ledger.VoidLedgerTransactionCommand
 import com.gonezo.domain.ledger.AccountType
+import com.gonezo.domain.ledger.CurrencyCode
 import com.gonezo.domain.shared.Money
 import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat
@@ -20,7 +21,7 @@ class RecordLedgerTransferE2ETest : SqliteE2ETest() {
       OpenLedgerAccountCommand(
         name = "Wallet",
         type = AccountType.CASH,
-        currency = "USD",
+        currency = CurrencyCode.from("USD"),
         createdAt = Instant.parse("2026-03-15T10:00:00Z"),
       ),
     )
@@ -28,7 +29,7 @@ class RecordLedgerTransferE2ETest : SqliteE2ETest() {
       OpenLedgerAccountCommand(
         name = "Savings",
         type = AccountType.SAVINGS,
-        currency = "USD",
+        currency = CurrencyCode.from("USD"),
         createdAt = Instant.parse("2026-03-15T10:01:00Z"),
       ),
     )

@@ -5,6 +5,7 @@ import com.gonezo.application.ledger.CreateLedgerExpenseDraftCommand
 import com.gonezo.application.ledger.OpenLedgerAccountCommand
 import com.gonezo.application.ledger.PostLedgerDraftTransactionCommand
 import com.gonezo.domain.ledger.AccountType
+import com.gonezo.domain.ledger.CurrencyCode
 import com.gonezo.domain.shared.Money
 import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat
@@ -20,7 +21,7 @@ class LedgerDraftItemsE2ETest : SqliteE2ETest() {
       OpenLedgerAccountCommand(
         name = "Bank",
         type = AccountType.BANK,
-        currency = "EUR",
+        currency = CurrencyCode.from("EUR"),
         createdAt = Instant.parse("2026-03-15T10:00:00Z"),
       ),
     )

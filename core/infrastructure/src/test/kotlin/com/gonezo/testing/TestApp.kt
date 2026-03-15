@@ -40,6 +40,7 @@ class TestApp(private val db: TestDatabase) {
 
   val ledgerOpenAccountUC: OpenLedgerAccountUC = OpenLedgerAccountService(
     ledgerAccountRepository,
+    ledgerTransactionRepository,
     domainEventPublisher,
   )
   val ledgerListAccountsUC: ListLedgerAccountsUC = ListLedgerAccountsService(ledgerAccountRepository)

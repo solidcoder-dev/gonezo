@@ -12,6 +12,7 @@ import com.gonezo.application.ledger.GetLedgerAccountBalanceUC
 import com.gonezo.application.ledger.GetLedgerTransactionQuery
 import com.gonezo.application.ledger.GetLedgerTransactionUC
 import com.gonezo.application.ledger.ListLedgerAccountsUC
+import com.gonezo.application.ledger.ListLedgerSupportedCurrenciesUC
 import com.gonezo.application.ledger.ListLedgerTransactionsQuery
 import com.gonezo.application.ledger.ListLedgerTransactionsUC
 import com.gonezo.application.ledger.OpenLedgerAccountCommand
@@ -48,9 +49,11 @@ import com.gonezo.domain.ledger.ports.LedgerAccountRepository
 import com.gonezo.domain.ledger.ports.LedgerTransactionRepository
 import com.gonezo.domain.ledger.services.BalanceCalculator
 import com.gonezo.domain.shared.Money
+import java.math.BigDecimal
 
 class OpenLedgerAccountService(
   private val accountRepository: LedgerAccountRepository,
+  private val transactionRepository: LedgerTransactionRepository,
   private val domainEventPublisher: DomainEventPublisher,
 ) : OpenLedgerAccountUC {
   override fun execute(command: OpenLedgerAccountCommand): AccountId {
@@ -58,11 +61,39 @@ class OpenLedgerAccountService(
       id = AccountId.random(),
       name = command.name,
       type = command.type,
-      currency = CurrencyCode.from(command.currency),
+      currency = command.currency,
       createdAt = command.createdAt,
     )
     accountRepository.save(account)
     domainEventPublisher.publish(AccountOpened(account.id))
+
+    val openingAmount = command.openingBalanceAmount
+    if (openingAmount != null && openingAmount.compareTo(BigDecimal.ZERO) != 0) {
+      val openingTx = if (openingAmount.compareTo(BigDecimal.ZERO) > 0) {
+        Transaction.recordIncome(
+          id = TransactionId.random(),
+          accountId = account.id,
+          amount = Money(openingAmount, account.currency.value),
+          occurredAt = command.createdAt,
+          description = "Opening balance",
+          merchant = null,
+          categoryId = null,
+        )
+      } else {
+        Transaction.recordExpense(
+          id = TransactionId.random(),
+          accountId = account.id,
+          amount = Money(openingAmount.abs(), account.currency.value),
+          occurredAt = command.createdAt,
+          description = "Opening balance",
+          merchant = null,
+          categoryId = null,
+        )
+      }
+      transactionRepository.save(openingTx)
+      domainEventPublisher.publish(TransactionRecorded(openingTx.id, openingTx.accountId))
+    }
+
     return account.id
   }
 }
@@ -91,6 +122,10 @@ class ListLedgerAccountsService(
   private val accountRepository: LedgerAccountRepository,
 ) : ListLedgerAccountsUC {
   override fun execute(): List<Account> = accountRepository.listAll()
+}
+
+class ListLedgerSupportedCurrenciesService : ListLedgerSupportedCurrenciesUC {
+  override fun execute(): List<CurrencyCode> = CurrencyCode.supported()
 }
 
 class RecordLedgerIncomeService(
