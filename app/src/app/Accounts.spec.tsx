@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Accounts } from './Accounts';
 import type { AccountsCorePort } from './accounts/useAccountsPageModel';
 import type { LedgerTransactionListItem } from '../domain/corePort';
@@ -68,7 +68,11 @@ describe('Accounts UX', () => {
     window.localStorage.clear();
   });
 
-  it('uses account list icon instead of horizontal tab row', async () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('uses account picker button instead of horizontal tab row', async () => {
     const core = makeCore();
 
     render(
@@ -224,7 +228,7 @@ describe('Accounts UX', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('refresh failed');
   });
 
-  it('allows voiding a transaction', async () => {
+  it('voids a transaction after undo window expires', async () => {
     const core = makeCore(1);
 
     render(
@@ -234,10 +238,30 @@ describe('Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Recent transactions' });
+    vi.useFakeTimers();
+    fireEvent.click(screen.getByRole('button', { name: 'Void' }));
+    expect(core.ledgerVoidTransaction).toHaveBeenCalledTimes(0);
+    await vi.advanceTimersByTimeAsync(5000);
+    await Promise.resolve();
+    expect(core.ledgerVoidTransaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows undo before a void is committed', async () => {
+    const core = makeCore(1);
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { name: 'Recent transactions' });
+    vi.useFakeTimers();
     fireEvent.click(screen.getByRole('button', { name: 'Void' }));
 
-    await waitFor(() => {
-      expect(core.ledgerVoidTransaction).toHaveBeenCalledTimes(1);
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Void canceled.');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(core.ledgerVoidTransaction).toHaveBeenCalledTimes(0);
   });
 });

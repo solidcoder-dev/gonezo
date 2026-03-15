@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { LedgerAccountItem, LedgerTransactionListItem } from '../../domain/corePort';
 
@@ -93,6 +93,8 @@ function parseAmount(value: string): number {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+const VOID_COMMIT_DELAY_MS = 5000;
+
 export function useAccountsPageModel(core: AccountsCorePort) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -100,7 +102,11 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [postingTransaction, setPostingTransaction] = useState(false);
   const [error, setError] = useState('');
   const [toastMessage, setToastMessage] = useState('');
+  const [toastActionLabel, setToastActionLabel] = useState('');
+  const [toastAction, setToastAction] = useState<(() => void) | null>(null);
+  const [pendingVoidTransactionId, setPendingVoidTransactionId] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const pendingVoidTimerRef = useRef<number | null>(null);
 
   const [supportedCurrencies, setSupportedCurrencies] = useState<string[]>([]);
   const [accounts, setAccounts] = useState<LedgerAccountItem[]>([]);
@@ -163,10 +169,45 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
     const timer = window.setTimeout(() => {
       setToastMessage('');
-    }, 2400);
+      setToastActionLabel('');
+      setToastAction(null);
+    }, pendingVoidTransactionId ? VOID_COMMIT_DELAY_MS + 400 : 2400);
 
     return () => window.clearTimeout(timer);
-  }, [toastMessage]);
+  }, [toastMessage, pendingVoidTransactionId]);
+
+  useEffect(() => () => {
+    if (pendingVoidTimerRef.current != null) {
+      window.clearTimeout(pendingVoidTimerRef.current);
+    }
+  }, []);
+
+  function clearPendingVoidTimer() {
+    if (pendingVoidTimerRef.current != null) {
+      window.clearTimeout(pendingVoidTimerRef.current);
+      pendingVoidTimerRef.current = null;
+    }
+  }
+
+  function clearToastState() {
+    setToastMessage('');
+    setToastActionLabel('');
+    setToastAction(null);
+  }
+
+  function showToast(message: string) {
+    setToastMessage(message);
+    setToastActionLabel('');
+    setToastAction(null);
+  }
+
+  function cancelPendingVoid(message: string) {
+    clearPendingVoidTimer();
+    setPendingVoidTransactionId('');
+    setToastActionLabel('');
+    setToastAction(null);
+    setToastMessage(message);
+  }
 
   function resetComposerState() {
     setComposerMode('picker');
@@ -253,7 +294,11 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
   async function selectAccount(accountId: string) {
     setError('');
-    setToastMessage('');
+    if (pendingVoidTransactionId) {
+      cancelPendingVoid('Pending void canceled.');
+    } else {
+      clearToastState();
+    }
     setSelectedAccountId(accountId);
     setComposerOpen(false);
     setRefreshing(true);
@@ -279,7 +324,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   async function submitCreateAccount(event: FormEvent) {
     event.preventDefault();
     setError('');
-    setToastMessage('');
+    clearToastState();
 
     const name = newAccountName.trim();
     if (!name) {
@@ -310,7 +355,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       await refreshAccounts(created.id);
       setShowCreateAccountForm(false);
       setNewAccountOpeningBalance('');
-      setToastMessage('Account created.');
+      showToast('Account created.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -428,7 +473,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   async function submitTransaction(event: FormEvent) {
     event.preventDefault();
     setError('');
-    setToastMessage('');
+    clearToastState();
     setFieldErrors({});
 
     if (!selectedAccount) {
@@ -489,7 +534,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
             description: transactionNote.trim() || undefined,
             merchant: transactionNote.trim() || undefined,
           });
-          setToastMessage(`Expense recorded: ${result.id}`);
+          showToast(`Expense recorded: ${result.id}`);
           recorded = true;
         } else {
           const draft = await core.ledgerCreateExpenseDraft({
@@ -509,7 +554,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
             });
           }
           await core.ledgerPostDraftTransaction({ transactionId: draft.id });
-          setToastMessage(`Expense recorded: ${draft.id}`);
+          showToast(`Expense recorded: ${draft.id}`);
           recorded = true;
         }
       }
@@ -523,7 +568,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
           description: transactionNote.trim() || undefined,
           merchant: transactionNote.trim() || undefined,
         });
-        setToastMessage(`Income recorded: ${result.id}`);
+        showToast(`Income recorded: ${result.id}`);
         recorded = true;
       }
 
@@ -536,7 +581,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
           currency: selectedAccount.currency,
           description: transactionNote.trim() || undefined,
         });
-        setToastMessage(`Transfer recorded: ${result.transferOutId}`);
+        showToast(`Transfer recorded: ${result.transferOutId}`);
         recorded = true;
       }
 
@@ -552,22 +597,39 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     }
   }
 
-  async function voidTransaction(transactionId: string) {
-    if (!selectedAccount) {
-      return;
-    }
-    setError('');
-    setToastMessage('');
+  async function executeVoidTransaction(transactionId: string, accountId: string) {
     setPostingTransaction(true);
     try {
       await core.ledgerVoidTransaction({ transactionId });
-      setToastMessage('Transaction voided.');
-      await refreshAccounts(selectedAccount.id);
+      showToast('Transaction voided.');
+      await refreshAccounts(accountId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setPostingTransaction(false);
+      setPendingVoidTransactionId('');
+      setToastActionLabel('');
+      setToastAction(null);
+      clearPendingVoidTimer();
     }
+  }
+
+  function voidTransaction(transactionId: string) {
+    if (!selectedAccount) {
+      return;
+    }
+    setError('');
+    clearPendingVoidTimer();
+    setPendingVoidTransactionId(transactionId);
+    setToastMessage('Transaction will be voided in 5 seconds.');
+    setToastActionLabel('Undo');
+    setToastAction(() => () => cancelPendingVoid('Void canceled.'));
+
+    const accountId = selectedAccount.id;
+    pendingVoidTimerRef.current = window.setTimeout(() => {
+      pendingVoidTimerRef.current = null;
+      void executeVoidTransaction(transactionId, accountId);
+    }, VOID_COMMIT_DELAY_MS);
   }
 
   return {
@@ -577,6 +639,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     postingTransaction,
     error,
     toastMessage,
+    toastActionLabel,
+    pendingVoidTransactionId,
     fieldErrors,
     accounts,
     supportedCurrencies,
@@ -616,7 +680,14 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setExpenseDetailed: setExpenseDetailedValue,
     setExpenseItemName: setExpenseItemNameValue,
     setExpenseItemAmount: setExpenseItemAmountValue,
-    clearToast: () => setToastMessage(''),
+    clearToast: () => {
+      if (pendingVoidTransactionId) {
+        cancelPendingVoid('Void canceled.');
+      } else {
+        clearToastState();
+      }
+    },
+    runToastAction: () => toastAction?.(),
     openCreateAccountForm: () => setShowCreateAccountForm(true),
     closeCreateAccountForm: () => setShowCreateAccountForm(false),
     expandHistory: () => setHistoryExpanded(true),
@@ -631,7 +702,5 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     selectAccount,
     submitTransaction,
     voidTransaction,
-    canPostAgain: false,
-    postAgain: () => undefined,
   };
 }

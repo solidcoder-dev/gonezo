@@ -5,6 +5,7 @@ export type RecentTransactionsProps = {
   hiddenCount: number;
   expanded: boolean;
   disabled: boolean;
+  pendingVoidTransactionId?: string;
   onViewAll: () => void;
   onVoid: (transactionId: string) => void;
 };
@@ -14,6 +15,7 @@ export function RecentTransactions({
   hiddenCount,
   expanded,
   disabled,
+  pendingVoidTransactionId,
   onViewAll,
   onVoid,
 }: RecentTransactionsProps) {
@@ -59,8 +61,13 @@ export function RecentTransactions({
               {transaction.status !== 'posted' ? <span className="hint">Status: {transaction.status}</span> : null}
               <div className="quick-row">
                 {transaction.status === 'posted' ? (
-                  <button type="button" className="text-button" disabled={disabled} onClick={() => onVoid(transaction.id)}>
-                    Void
+                  <button
+                    type="button"
+                    className="text-button"
+                    disabled={disabled || pendingVoidTransactionId === transaction.id}
+                    onClick={() => onVoid(transaction.id)}
+                  >
+                    {pendingVoidTransactionId === transaction.id ? 'Pending void…' : 'Void'}
                   </button>
                 ) : null}
               </div>

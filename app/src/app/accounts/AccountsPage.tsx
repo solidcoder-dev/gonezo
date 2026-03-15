@@ -29,9 +29,9 @@ export function AccountsPage({ core }: Props) {
       {model.toastMessage ? (
         <div className="toast" role="status" aria-live="polite">
           <span>{model.toastMessage}</span>
-          {model.canPostAgain ? (
-            <button type="button" className="text-button" onClick={model.postAgain}>
-              Post again
+          {model.toastActionLabel ? (
+            <button type="button" className="text-button" onClick={model.runToastAction}>
+              {model.toastActionLabel}
             </button>
           ) : null}
           <button type="button" className="text-button" onClick={model.clearToast}>
@@ -180,6 +180,7 @@ export function AccountsPage({ core }: Props) {
             hiddenCount={model.hiddenTransactionsCount}
             expanded={model.historyExpanded}
             disabled={model.postingTransaction || model.refreshing}
+            pendingVoidTransactionId={model.pendingVoidTransactionId}
             onViewAll={model.expandHistory}
             onVoid={model.voidTransaction}
           />
