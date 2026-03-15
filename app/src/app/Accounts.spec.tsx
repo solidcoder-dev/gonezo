@@ -72,7 +72,7 @@ describe('Accounts UX', () => {
     vi.useRealTimers();
   });
 
-  it('uses account picker button instead of horizontal tab row', async () => {
+  it('shows switch account action inline with account summary', async () => {
     const core = makeCore();
 
     render(
@@ -81,8 +81,8 @@ describe('Accounts UX', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText('Current account')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'View accounts' })).toBeInTheDocument();
+    expect(await screen.findByText('Net balance')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Switch account' })).toBeInTheDocument();
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   });
 
@@ -95,7 +95,7 @@ describe('Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByText('Current account');
+    await screen.findByText('Net balance');
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
@@ -115,7 +115,7 @@ describe('Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByText('Current account');
+    await screen.findByText('Net balance');
     await openMode('Income');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '30' } });
@@ -135,7 +135,7 @@ describe('Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByText('Current account');
+    await screen.findByText('Net balance');
     await openMode('Transfer');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '5' } });
@@ -156,7 +156,7 @@ describe('Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByText('Current account');
+    await screen.findByText('Net balance');
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
@@ -185,7 +185,7 @@ describe('Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByText('Current account');
+    await screen.findByText('Net balance');
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
@@ -212,7 +212,7 @@ describe('Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByText('Current account');
+    await screen.findByText('Net balance');
     vi.mocked(core.ledgerListAccounts).mockRejectedValueOnce(new Error('refresh failed'));
     await openMode('Expense');
 
@@ -263,5 +263,31 @@ describe('Accounts UX', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Void canceled.');
     await vi.advanceTimersByTimeAsync(5000);
     expect(core.ledgerVoidTransaction).toHaveBeenCalledTimes(0);
+  });
+
+  it('shows See all only when there are more than three transactions', async () => {
+    const coreWithMoreThanThree = makeCore(5);
+
+    render(
+      <MemoryRouter>
+        <Accounts core={coreWithMoreThanThree} />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { name: 'Recent transactions' });
+    expect(screen.getByRole('button', { name: 'See all' })).toBeInTheDocument();
+  });
+
+  it('hides See all when there are three or fewer transactions', async () => {
+    const coreWithThree = makeCore(3);
+
+    render(
+      <MemoryRouter>
+        <Accounts core={coreWithThree} />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { name: 'Recent transactions' });
+    expect(screen.queryByRole('button', { name: 'See all' })).not.toBeInTheDocument();
   });
 });

@@ -24,12 +24,6 @@
   box-sizing: border-box;
 }
 
-.page-title {
-  margin: 0;
-  font-size: 1.4rem;
-  letter-spacing: 0.01em;
-}
-
 .stack {
   display: grid;
   gap: 10px;
@@ -136,6 +130,11 @@
 .account-identity {
   margin-top: 0;
   gap: 2px;
+}
+
+.account-actions {
+  margin-top: 0;
+  justify-content: flex-end;
 }
 
 .account-choice {
@@ -323,6 +322,10 @@ select:focus-visible {
   font-weight: 700;
 }
 
+.transactions-section {
+  padding-bottom: 92px;
+}
+
 .expense-list {
   list-style: none;
   margin: 0;
@@ -403,5 +406,9 @@ select:focus-visible {
 
   .fab-button {
     right: calc((100vw - 900px) / 2 + 16px);
+  }
+
+  .transactions-section {
+    padding-bottom: 24px;
   }
 }

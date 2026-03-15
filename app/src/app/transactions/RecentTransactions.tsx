@@ -47,8 +47,15 @@ export function RecentTransactions({
   }
 
   return (
-    <section className="stack section-gap">
-      <h2>Recent transactions</h2>
+    <section className="stack section-gap transactions-section">
+      <div className="inline-header">
+        <h2>Recent transactions</h2>
+        {hiddenCount > 0 && !expanded ? (
+          <button type="button" className="text-button" onClick={onViewAll}>
+            See all
+          </button>
+        ) : null}
+      </div>
       {items.length === 0 ? <p>No transactions yet.</p> : null}
       {items.length > 0 ? (
         <ul className="expense-list" aria-label="Recent transactions">
@@ -84,14 +91,9 @@ export function RecentTransactions({
           ))}
         </ul>
       ) : null}
-      {hiddenCount > 0 ? (
+      {hiddenCount > 0 && !expanded ? (
         <div className="inline-header">
           <p className="hint">+{hiddenCount} more transactions</p>
-          {!expanded ? (
-            <button type="button" className="text-button" onClick={onViewAll}>
-              View all
-            </button>
-          ) : null}
         </div>
       ) : null}
     </section>

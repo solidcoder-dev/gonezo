@@ -22,7 +22,6 @@ export function AccountsPage({ core }: Props) {
 
   return (
     <section className="card">
-      <h1 className="page-title">Ledger</h1>
       {model.error ? (
         <div className="banner error" role="alert">
           {model.error}
@@ -79,14 +78,6 @@ export function AccountsPage({ core }: Props) {
         </form>
       ) : (
         <>
-          <AccountSwitcher
-            accounts={model.accounts}
-            selectedAccountId={model.selectedAccountId}
-            disabled={model.refreshing || model.postingTransaction}
-            onSelect={model.selectAccount}
-            onAddAccount={model.openCreateAccountForm}
-          />
-
           {model.showCreateAccountForm ? (
             <form className="stack" onSubmit={model.submitCreateAccount} aria-busy={model.creatingAccount}>
               <h3>Add account</h3>
@@ -131,7 +122,16 @@ export function AccountsPage({ core }: Props) {
 
           {model.selectedAccount ? (
             <section className="summary-card section-gap">
-              <h2>{model.selectedAccount.name}</h2>
+              <div className="inline-header">
+                <h2>{model.selectedAccount.name}</h2>
+                <AccountSwitcher
+                  accounts={model.accounts}
+                  selectedAccountId={model.selectedAccountId}
+                  disabled={model.refreshing || model.postingTransaction}
+                  onSelect={model.selectAccount}
+                  onAddAccount={model.openCreateAccountForm}
+                />
+              </div>
               <p className="summary-label">Net balance</p>
               <div className="summary-amount">{formatCurrencyAmount(model.balanceAmount, model.selectedAccount.currency)}</div>
             </section>

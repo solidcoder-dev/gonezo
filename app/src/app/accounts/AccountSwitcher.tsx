@@ -1,5 +1,5 @@
 import type { LedgerAccountItem } from '../../domain/corePort';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 type Props = {
   accounts: LedgerAccountItem[];
@@ -11,35 +11,21 @@ type Props = {
 
 export function AccountSwitcher({ accounts, selectedAccountId, disabled, onSelect, onAddAccount }: Props) {
   const [showAccounts, setShowAccounts] = useState(false);
-  const selectedAccount = useMemo(
-    () => accounts.find((account) => account.id === selectedAccountId),
-    [accounts, selectedAccountId],
-  );
 
   return (
-    <section className="stack section-gap" aria-busy={disabled}>
-      <div className="inline-header">
-        <div className="stack account-identity">
-          <span className="hint">Current account</span>
-          <strong>
-            {selectedAccount ? `${selectedAccount.name} (${selectedAccount.currency})` : 'No account selected'}
-          </strong>
-        </div>
-        <div className="quick-row">
-          <button
-            type="button"
-            className="text-button"
-            onClick={() => setShowAccounts(true)}
-            disabled={disabled}
-            aria-label="View accounts"
-          >
-            View accounts
-          </button>
-          <button type="button" className="text-button" onClick={onAddAccount} disabled={disabled}>
-            + New account
-          </button>
-        </div>
-      </div>
+    <div className="quick-row account-actions" aria-busy={disabled}>
+      <button
+        type="button"
+        className="text-button"
+        onClick={() => setShowAccounts(true)}
+        disabled={disabled}
+        aria-label="Switch account"
+      >
+        Switch account
+      </button>
+      <button type="button" className="text-button" onClick={onAddAccount} disabled={disabled}>
+        Add account
+      </button>
 
       {showAccounts ? (
         <div className="sheet-backdrop" role="presentation" onClick={() => setShowAccounts(false)}>
@@ -69,6 +55,6 @@ export function AccountSwitcher({ accounts, selectedAccountId, disabled, onSelec
           </div>
         </div>
       ) : null}
-    </section>
+    </div>
   );
 }
