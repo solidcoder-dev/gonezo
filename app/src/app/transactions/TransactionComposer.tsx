@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { FormEvent } from 'react';
+import { CategoryComboboxField } from './components/CategoryComboboxField';
 
 export type ComposerMode = 'picker' | 'expense' | 'income' | 'transfer';
 
@@ -16,9 +17,8 @@ type Props = {
   amount: string;
   date: string;
   note: string;
-  categoryId: string;
+  categoryInput: string;
   categoryOptions: Array<{ id: string; name: string }>;
-  newCategoryName: string;
   advancedOpen: boolean;
   transferTargetAccountId: string;
   transferTargetOptions: Array<{ id: string; name: string; currency: string }>;
@@ -33,8 +33,6 @@ type Props = {
   expenseSplitError?: string;
   amountError?: string;
   dateError?: string;
-  categoryError?: string;
-  newCategoryError?: string;
   onOpen: () => void;
   onClose: () => void;
   onSelectMode: (mode: Exclude<ComposerMode, 'picker'>) => void;
@@ -42,8 +40,7 @@ type Props = {
   onSetAmount: (value: string) => void;
   onSetDate: (value: string) => void;
   onSetNote: (value: string) => void;
-  onSetCategoryId: (value: string) => void;
-  onSetNewCategoryName: (value: string) => void;
+  onSetCategoryInput: (value: string) => void;
   onSetTransferTarget: (value: string) => void;
   onToggleExpenseDetailed: () => void;
   onSetExpenseItemName: (value: string) => void;
@@ -68,9 +65,8 @@ export function TransactionComposer({
   amount,
   date,
   note,
-  categoryId,
+  categoryInput,
   categoryOptions,
-  newCategoryName,
   advancedOpen,
   transferTargetAccountId,
   transferTargetOptions,
@@ -85,8 +81,6 @@ export function TransactionComposer({
   expenseSplitError,
   amountError,
   dateError,
-  categoryError,
-  newCategoryError,
   onOpen,
   onClose,
   onSelectMode,
@@ -94,8 +88,7 @@ export function TransactionComposer({
   onSetAmount,
   onSetDate,
   onSetNote,
-  onSetCategoryId,
-  onSetNewCategoryName,
+  onSetCategoryInput,
   onSetTransferTarget,
   onToggleExpenseDetailed,
   onSetExpenseItemName,
@@ -211,46 +204,14 @@ export function TransactionComposer({
                     placeholder={mode === 'expense' ? 'Merchant' : mode === 'income' ? 'Source' : 'Note'}
                   />
                 </label>
-              </>
-            ) : null}
 
-            {mode === 'expense' || mode === 'income' ? (
-              <>
-                <label className="stack">
-                  Category
-                  <select
-                    aria-label="Category"
-                    value={categoryId}
-                    onChange={(event) => onSetCategoryId(event.target.value)}
-                    aria-invalid={Boolean(categoryError)}
-                    aria-describedby={categoryError ? 'composer-category-error' : undefined}
-                  >
-                    <option value="">No category</option>
-                    {categoryOptions.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                    <option value="__new__">Create new category...</option>
-                  </select>
-                </label>
-                {categoryError ? <p id="composer-category-error" className="field-error">{categoryError}</p> : null}
-
-                {categoryId === '__new__' ? (
-                  <>
-                    <label className="stack">
-                      New category
-                      <input
-                        aria-label="New category"
-                        value={newCategoryName}
-                        onChange={(event) => onSetNewCategoryName(event.target.value)}
-                        placeholder="Category name"
-                        aria-invalid={Boolean(newCategoryError)}
-                        aria-describedby={newCategoryError ? 'composer-new-category-error' : undefined}
-                      />
-                    </label>
-                    {newCategoryError ? <p id="composer-new-category-error" className="field-error">{newCategoryError}</p> : null}
-                  </>
+                {mode === 'expense' || mode === 'income' ? (
+                  <CategoryComboboxField
+                    value={categoryInput}
+                    options={categoryOptions}
+                    disabled={disabled}
+                    onChange={onSetCategoryInput}
+                  />
                 ) : null}
               </>
             ) : null}

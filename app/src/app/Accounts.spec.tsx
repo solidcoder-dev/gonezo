@@ -125,9 +125,11 @@ describe('Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openMode('Expense');
+    expect(screen.queryByLabelText('Category')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle advanced options' }));
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
-    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'cat-food' } });
+    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'Food' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save expense' }));
 
     await waitFor(() => {
@@ -154,10 +156,10 @@ describe('Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openMode('Expense');
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle advanced options' }));
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '35' } });
-    fireEvent.change(screen.getByLabelText('Category'), { target: { value: '__new__' } });
-    fireEvent.change(screen.getByLabelText('New category'), { target: { value: 'Dining out' } });
+    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'Dining out' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save expense' }));
 
     await waitFor(() => {

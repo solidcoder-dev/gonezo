@@ -5,8 +5,6 @@ import type { LedgerAccountItem, LedgerTransactionListItem, TaxonomyCategoryItem
 type FieldErrors = {
   amount?: string;
   date?: string;
-  category?: string;
-  newCategory?: string;
   expenseItemName?: string;
   expenseItemAmount?: string;
   expenseSplit?: string;
@@ -148,10 +146,9 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [transactionAmount, setTransactionAmount] = useState('');
   const [transactionDate, setTransactionDate] = useState(todayIso());
   const [transactionNote, setTransactionNote] = useState('');
+  const [transactionCategoryInput, setTransactionCategoryInput] = useState('');
   const [transferToAccountId, setTransferToAccountId] = useState('');
   const [categories, setCategories] = useState<TaxonomyCategoryItem[]>([]);
-  const [transactionCategoryId, setTransactionCategoryId] = useState('');
-  const [newCategoryName, setNewCategoryName] = useState('');
 
   const [expenseDetailed, setExpenseDetailed] = useState(false);
   const [expenseItemName, setExpenseItemName] = useState('');
@@ -247,8 +244,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setTransactionAmount('');
     setTransactionDate(todayIso());
     setTransactionNote('');
-    setTransactionCategoryId('');
-    setNewCategoryName('');
+    setTransactionCategoryInput('');
     setExpenseDetailed(false);
     setExpenseItemName('');
     setExpenseItemAmount('');
@@ -417,9 +413,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   function selectComposerMode(mode: Exclude<ComposerMode, 'picker'>) {
     setComposerMode(mode);
     setComposerAdvancedOpen(false);
-    setTransactionCategoryId('');
-    setNewCategoryName('');
-    setFieldErrors((previous) => ({ ...previous, category: undefined, newCategory: undefined }));
+    setTransactionCategoryInput('');
   }
 
   function setTransactionAmountValue(value: string) {
@@ -449,17 +443,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setFieldErrors((previous) => ({ ...previous, expenseItemAmount: undefined }));
   }
 
-  function setTransactionCategoryIdValue(value: string) {
-    setTransactionCategoryId(value);
-    if (value !== '__new__') {
-      setNewCategoryName('');
-    }
-    setFieldErrors((previous) => ({ ...previous, category: undefined, newCategory: undefined }));
-  }
-
-  function setNewCategoryNameValue(value: string) {
-    setNewCategoryName(value);
-    setFieldErrors((previous) => ({ ...previous, newCategory: undefined }));
+  function setTransactionCategoryInputValue(value: string) {
+    setTransactionCategoryInput(value);
   }
 
   function addExpenseItem() {
@@ -523,21 +508,18 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   }
 
   async function resolveCategorySelection(type: TaxonomyCategoryAppliesTo): Promise<string | undefined> {
-    if (!transactionCategoryId) {
+    const rawInput = transactionCategoryInput.trim();
+    if (!rawInput) {
       return undefined;
     }
 
-    if (transactionCategoryId !== '__new__') {
-      return transactionCategoryId;
-    }
-
-    const categoryName = newCategoryName.trim();
-    if (!categoryName) {
-      throw new Error('Category name is required.');
+    const existing = categoryOptions.find((category) => category.name.trim().toLowerCase() === rawInput.toLowerCase());
+    if (existing) {
+      return existing.id;
     }
 
     const created = await core.taxonomyCreateCategory({
-      name: categoryName,
+      name: rawInput,
       appliesTo: type,
     });
 
@@ -546,7 +528,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
         ...previous,
         {
           id: created.id,
-          name: categoryName,
+          name: rawInput,
           appliesTo: type,
           status: 'active',
         } as TaxonomyCategoryItem,
@@ -554,8 +536,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       next.sort((a, b) => a.name.localeCompare(b.name));
       return next;
     });
-    setTransactionCategoryId(created.id);
-    setNewCategoryName('');
+    setTransactionCategoryInput(rawInput);
     return created.id;
   }
 
@@ -617,17 +598,12 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       }
     }
 
-    if ((composerMode === 'expense' || composerMode === 'income') && transactionCategoryId === '__new__' && !newCategoryName.trim()) {
-      nextErrors.newCategory = 'Category name is required.';
-    }
-
     if (
       nextErrors.amount
       || nextErrors.date
       || nextErrors.expenseItemName
       || nextErrors.expenseItemAmount
       || nextErrors.expenseSplit
-      || nextErrors.newCategory
     ) {
       setFieldErrors(nextErrors);
       return;
@@ -777,8 +753,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     transactionAmount,
     transactionDate,
     transactionNote,
-    transactionCategoryId,
-    newCategoryName,
+    transactionCategoryInput,
     categoryOptions,
     transferToAccountId,
     transferTargetOptions,
@@ -790,16 +765,13 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     expenseItemNameError: fieldErrors.expenseItemName,
     expenseItemAmountError: fieldErrors.expenseItemAmount,
     expenseSplitError: fieldErrors.expenseSplit,
-    categoryError: fieldErrors.category,
-    newCategoryError: fieldErrors.newCategory,
     setNewAccountName,
     setNewAccountCurrency,
     setNewAccountOpeningBalance,
     setTransactionAmount: setTransactionAmountValue,
     setTransactionDate,
     setTransactionNote,
-    setTransactionCategoryId: setTransactionCategoryIdValue,
-    setNewCategoryName: setNewCategoryNameValue,
+    setTransactionCategoryInput: setTransactionCategoryInputValue,
     setTransferToAccountId,
     setExpenseDetailed: setExpenseDetailedValue,
     setExpenseItemName: setExpenseItemNameValue,
