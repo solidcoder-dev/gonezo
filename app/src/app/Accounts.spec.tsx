@@ -121,6 +121,32 @@ describe('Accounts UX', () => {
     });
   });
 
+  it('uses current time when submitting a date-only transaction', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Expense');
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle advanced options' }));
+
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-03-10' } });
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save expense' }));
+
+    await waitFor(() => {
+      expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
+    });
+
+    const [firstCall] = vi.mocked(core.ledgerRecordExpense).mock.calls;
+    expect(firstCall?.[0].occurredAt.startsWith('2026-03-10T')).toBe(true);
+    expect(firstCall?.[0].occurredAt.endsWith('Z')).toBe(true);
+  });
+
   it('categorizes quick expense with an existing category', async () => {
     const core = makeCore();
     const view = render(

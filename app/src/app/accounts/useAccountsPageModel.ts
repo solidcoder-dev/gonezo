@@ -130,6 +130,35 @@ function parseAmount(value: string): number {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+function resolveOccurredAt(dateInput: string): string {
+  const raw = dateInput.trim();
+  if (!raw) {
+    return new Date().toISOString();
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const [year, month, day] = raw.split('-').map((value) => Number(value));
+    const now = new Date();
+    const localDateTime = new Date(
+      year,
+      month - 1,
+      day,
+      now.getHours(),
+      now.getMinutes(),
+      now.getSeconds(),
+      now.getMilliseconds(),
+    );
+    return localDateTime.toISOString();
+  }
+
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString();
+  }
+
+  return new Date().toISOString();
+}
+
 const VOID_COMMIT_DELAY_MS = 5000;
 
 export function useAccountsPageModel(core: AccountsCorePort) {
@@ -688,6 +717,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
     setPostingTransaction(true);
     try {
+      const occurredAt = resolveOccurredAt(transactionDate);
       const tagNames = parseTransactionTags();
       let recorded = false;
       if (composerMode === 'expense') {
@@ -695,7 +725,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
         if (!expenseDetailed) {
           const result = await core.ledgerRecordExpense({
             accountId: selectedAccount.id,
-            occurredAt: transactionDate,
+            occurredAt,
             amount,
             currency: selectedAccount.currency,
             description: transactionNote.trim() || undefined,
@@ -708,7 +738,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
         } else {
           const draft = await core.ledgerCreateExpenseDraft({
             accountId: selectedAccount.id,
-            occurredAt: transactionDate,
+            occurredAt,
             amount,
             currency: selectedAccount.currency,
             description: transactionNote.trim() || undefined,
@@ -734,7 +764,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
         const categoryId = await resolveCategorySelection('income');
         const result = await core.ledgerRecordIncome({
           accountId: selectedAccount.id,
-          occurredAt: transactionDate,
+          occurredAt,
           amount,
           currency: selectedAccount.currency,
           description: transactionNote.trim() || undefined,
@@ -750,7 +780,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
         const result = await core.ledgerRecordTransfer({
           fromAccountId: selectedAccount.id,
           toAccountId: transferToAccountId,
-          occurredAt: transactionDate,
+          occurredAt,
           amount,
           currency: selectedAccount.currency,
           description: transactionNote.trim() || undefined,

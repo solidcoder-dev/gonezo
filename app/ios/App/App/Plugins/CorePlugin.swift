@@ -213,7 +213,19 @@ public class CorePlugin: CAPPlugin {
 
     @objc func ledgerListTransactions(_ call: CAPPluginCall) {
         let accountId = call.getString("accountId") ?? ""
-        let items = transactions.filter { ($0["accountId"] as? String) == accountId }
+        let items = transactions
+            .filter { ($0["accountId"] as? String) == accountId }
+            .sorted { lhs, rhs in
+                let leftOccurredAt = (lhs["occurredAt"] as? String) ?? ""
+                let rightOccurredAt = (rhs["occurredAt"] as? String) ?? ""
+                if leftOccurredAt != rightOccurredAt {
+                    return leftOccurredAt > rightOccurredAt
+                }
+
+                let leftId = (lhs["id"] as? String) ?? ""
+                let rightId = (rhs["id"] as? String) ?? ""
+                return leftId > rightId
+            }
         call.resolve(["items": items])
     }
 
