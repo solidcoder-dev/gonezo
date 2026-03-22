@@ -3,7 +3,6 @@ package com.gonezo.application.ledger
 import com.gonezo.domain.ledger.Account
 import com.gonezo.domain.ledger.AccountId
 import com.gonezo.domain.ledger.AccountType
-import com.gonezo.domain.ledger.CategoryId
 import com.gonezo.domain.ledger.CurrencyCode
 import com.gonezo.domain.ledger.DateRange
 import com.gonezo.domain.ledger.Transaction
@@ -56,7 +55,6 @@ data class RecordLedgerIncomeCommand(
   val occurredAt: Instant,
   val description: String?,
   val merchant: String?,
-  val categoryId: CategoryId?,
 )
 
 interface RecordLedgerIncomeUC {
@@ -69,7 +67,6 @@ data class RecordLedgerExpenseCommand(
   val occurredAt: Instant,
   val description: String?,
   val merchant: String?,
-  val categoryId: CategoryId?,
 )
 
 interface RecordLedgerExpenseUC {
@@ -99,7 +96,6 @@ data class CreateLedgerExpenseDraftCommand(
   val occurredAt: Instant,
   val description: String?,
   val merchant: String?,
-  val categoryId: CategoryId?,
 )
 
 interface CreateLedgerExpenseDraftUC {
@@ -110,7 +106,6 @@ data class AddLedgerTransactionItemCommand(
   val transactionId: TransactionId,
   val name: String,
   val amount: Money,
-  val categoryId: CategoryId?,
   val note: String?,
 )
 
@@ -155,7 +150,6 @@ data class ListLedgerTransactionsQuery(
   val accountId: AccountId,
   val limit: Int? = null,
   val range: DateRange? = null,
-  val categoryId: CategoryId? = null,
   val merchant: String? = null,
 )
 

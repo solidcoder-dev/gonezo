@@ -33,7 +33,6 @@ class LedgerDraftItemsE2ETest : SqliteE2ETest() {
         occurredAt = Instant.parse("2026-03-15T11:00:00Z"),
         description = "Ticket",
         merchant = "Mercadona",
-        categoryId = null,
       ),
     )
 
@@ -42,7 +41,6 @@ class LedgerDraftItemsE2ETest : SqliteE2ETest() {
         transactionId = txId,
         name = "Comida",
         amount = Money(BigDecimal("50.00"), "EUR"),
-        categoryId = null,
         note = null,
       ),
     )
@@ -51,7 +49,6 @@ class LedgerDraftItemsE2ETest : SqliteE2ETest() {
         transactionId = txId,
         name = "Limpieza",
         amount = Money(BigDecimal("20.00"), "EUR"),
-        categoryId = null,
         note = null,
       ),
     )
@@ -60,7 +57,6 @@ class LedgerDraftItemsE2ETest : SqliteE2ETest() {
         transactionId = txId,
         name = "Farmacia",
         amount = Money(BigDecimal("10.00"), "EUR"),
-        categoryId = null,
         note = null,
       ),
     )

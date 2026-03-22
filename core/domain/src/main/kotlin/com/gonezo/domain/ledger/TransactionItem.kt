@@ -7,7 +7,6 @@ data class TransactionItem(
   val id: TransactionItemId,
   val name: String,
   val amount: Money,
-  val categoryId: CategoryId?,
   val note: String?,
 ) {
   init {
@@ -21,13 +20,11 @@ data class TransactionItem(
       id: TransactionItemId,
       name: String,
       amount: Money,
-      categoryId: CategoryId?,
       note: String?,
     ): TransactionItem = TransactionItem(
       id = id,
       name = name.trim(),
       amount = amount,
-      categoryId = categoryId,
       note = note?.trim()?.ifBlank { null },
     )
   }

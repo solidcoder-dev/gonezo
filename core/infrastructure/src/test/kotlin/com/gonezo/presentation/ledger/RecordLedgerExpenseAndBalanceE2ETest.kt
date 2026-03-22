@@ -33,7 +33,6 @@ class RecordLedgerExpenseAndBalanceE2ETest : SqliteE2ETest() {
         occurredAt = Instant.parse("2026-03-01T09:00:00Z"),
         description = "Salary",
         merchant = "Payroll",
-        categoryId = null,
       ),
     )
 
@@ -44,7 +43,6 @@ class RecordLedgerExpenseAndBalanceE2ETest : SqliteE2ETest() {
         occurredAt = Instant.parse("2026-03-15T11:00:00Z"),
         description = "Supermarket",
         merchant = "Mercadona",
-        categoryId = null,
       ),
     )
 

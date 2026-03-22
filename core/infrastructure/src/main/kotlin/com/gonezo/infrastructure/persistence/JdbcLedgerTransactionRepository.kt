@@ -1,7 +1,6 @@
 package com.gonezo.infrastructure.persistence
 
 import com.gonezo.domain.ledger.AccountId
-import com.gonezo.domain.ledger.CategoryId
 import com.gonezo.domain.ledger.DateRange
 import com.gonezo.domain.ledger.Transaction
 import com.gonezo.domain.ledger.TransactionId
@@ -26,9 +25,9 @@ class JdbcLedgerTransactionRepository(
   override fun save(transaction: Transaction) {
     val upsertTransaction = """
       insert into ledger_transactions (
-        id, account_id, type, amount, currency, occurred_at, description, merchant, category_id, status, linked_transaction_id
+        id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id
       ) values (
-        :id, :account_id, :type, :amount, :currency, :occurred_at, :description, :merchant, :category_id, :status, :linked_transaction_id
+        :id, :account_id, :type, :amount, :currency, :occurred_at, :description, :merchant, :status, :linked_transaction_id
       )
       on conflict(id) do update set
         account_id = excluded.account_id,
@@ -38,7 +37,6 @@ class JdbcLedgerTransactionRepository(
         occurred_at = excluded.occurred_at,
         description = excluded.description,
         merchant = excluded.merchant,
-        category_id = excluded.category_id,
         status = excluded.status,
         linked_transaction_id = excluded.linked_transaction_id
     """.trimIndent()
@@ -52,7 +50,6 @@ class JdbcLedgerTransactionRepository(
       .addValue("occurred_at", transaction.occurredAt.toString())
       .addValue("description", transaction.description)
       .addValue("merchant", transaction.merchant)
-      .addValue("category_id", transaction.categoryId?.toString())
       .addValue("status", transaction.status.value)
       .addValue("linked_transaction_id", transaction.linkedTransactionId?.toString())
 
@@ -63,9 +60,9 @@ class JdbcLedgerTransactionRepository(
 
     val insertItem = """
       insert into ledger_transaction_items (
-        id, transaction_id, name, amount, currency, category_id, note
+        id, transaction_id, name, amount, currency, note
       ) values (
-        :id, :transaction_id, :name, :amount, :currency, :category_id, :note
+        :id, :transaction_id, :name, :amount, :currency, :note
       )
     """.trimIndent()
     transaction.items.forEach { item ->
@@ -75,7 +72,6 @@ class JdbcLedgerTransactionRepository(
         .addValue("name", item.name)
         .addValue("amount", item.amount.amount)
         .addValue("currency", item.amount.currency)
-        .addValue("category_id", item.categoryId?.toString())
         .addValue("note", item.note)
       jdbcTemplate.update(insertItem, itemParams)
     }
@@ -83,7 +79,7 @@ class JdbcLedgerTransactionRepository(
 
   override fun findById(id: TransactionId): Transaction? {
     val sql = """
-      select id, account_id, type, amount, currency, occurred_at, description, merchant, category_id, status, linked_transaction_id
+      select id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id
       from ledger_transactions
       where id = :id
     """.trimIndent()
@@ -95,7 +91,7 @@ class JdbcLedgerTransactionRepository(
     val sql = buildString {
       append(
         """
-      select id, account_id, type, amount, currency, occurred_at, description, merchant, category_id, status, linked_transaction_id
+      select id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id
       from ledger_transactions
       where account_id = :account_id
       order by occurred_at desc, id desc
@@ -112,7 +108,7 @@ class JdbcLedgerTransactionRepository(
 
   override fun findByAccountAndPeriod(accountId: AccountId, range: DateRange): List<Transaction> {
     val sql = """
-      select id, account_id, type, amount, currency, occurred_at, description, merchant, category_id, status, linked_transaction_id
+      select id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id
       from ledger_transactions
       where account_id = :account_id
         and occurred_at >= :from_date
@@ -126,23 +122,9 @@ class JdbcLedgerTransactionRepository(
     return jdbcTemplate.query(sql, params, transactionRowMapper()).map(::hydrateItems)
   }
 
-  override fun findByAccountAndCategory(accountId: AccountId, categoryId: CategoryId): List<Transaction> {
-    val sql = """
-      select id, account_id, type, amount, currency, occurred_at, description, merchant, category_id, status, linked_transaction_id
-      from ledger_transactions
-      where account_id = :account_id
-        and category_id = :category_id
-      order by occurred_at desc, id desc
-    """.trimIndent()
-    val params = MapSqlParameterSource()
-      .addValue("account_id", accountId.toString())
-      .addValue("category_id", categoryId.toString())
-    return jdbcTemplate.query(sql, params, transactionRowMapper()).map(::hydrateItems)
-  }
-
   override fun findByAccountAndMerchant(accountId: AccountId, merchant: String): List<Transaction> {
     val sql = """
-      select id, account_id, type, amount, currency, occurred_at, description, merchant, category_id, status, linked_transaction_id
+      select id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id
       from ledger_transactions
       where account_id = :account_id
         and lower(merchant) = lower(:merchant)
@@ -156,7 +138,7 @@ class JdbcLedgerTransactionRepository(
 
   private fun hydrateItems(transaction: Transaction): Transaction {
     val sql = """
-      select id, transaction_id, name, amount, currency, category_id, note
+      select id, transaction_id, name, amount, currency, note
       from ledger_transaction_items
       where transaction_id = :transaction_id
       order by id asc
@@ -178,7 +160,6 @@ class JdbcLedgerTransactionRepository(
       occurredAt = Instant.parse(rs.getString("occurred_at")),
       description = rs.getString("description"),
       merchant = rs.getString("merchant"),
-      categoryId = rs.getString("category_id")?.let(CategoryId::from),
       status = TransactionStatus.from(rs.getString("status")),
       items = emptyList(),
       linkedTransactionId = rs.getString("linked_transaction_id")?.let(TransactionId::from),
@@ -193,7 +174,6 @@ class JdbcLedgerTransactionRepository(
         amount = rs.getObject("amount", BigDecimal::class.java),
         currency = rs.getString("currency"),
       ),
-      categoryId = rs.getString("category_id")?.let(CategoryId::from),
       note = rs.getString("note"),
     )
   }

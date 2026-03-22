@@ -33,7 +33,6 @@ class VoidLedgerTransactionE2ETest : SqliteE2ETest() {
         occurredAt = Instant.parse("2026-03-15T11:00:00Z"),
         description = "Snacks",
         merchant = "Store",
-        categoryId = null,
       ),
     )
 

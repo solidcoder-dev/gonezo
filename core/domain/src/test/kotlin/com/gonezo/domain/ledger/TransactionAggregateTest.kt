@@ -18,7 +18,6 @@ class TransactionAggregateTest {
       occurredAt = Instant.parse("2026-03-15T09:00:00Z"),
       description = "Supermercado",
       merchant = "Mercadona",
-      categoryId = null,
     )
 
     assertThat(tx.type).isEqualTo(TransactionType.EXPENSE)
@@ -36,7 +35,6 @@ class TransactionAggregateTest {
         occurredAt = Instant.parse("2026-03-15T09:00:00Z"),
         description = "Salary",
         merchant = null,
-        categoryId = null,
       )
     }.isInstanceOf(IllegalArgumentException::class.java)
   }
@@ -50,14 +48,12 @@ class TransactionAggregateTest {
       occurredAt = Instant.parse("2026-03-15T09:00:00Z"),
       description = "Mercadona",
       merchant = "Mercadona",
-      categoryId = null,
     )
       .addItem(
         TransactionItem.create(
           id = TransactionItemId.random(),
           name = "Comida",
           amount = Money(BigDecimal("50.00"), "USD"),
-          categoryId = null,
           note = null,
         ),
       )
@@ -66,7 +62,6 @@ class TransactionAggregateTest {
           id = TransactionItemId.random(),
           name = "Limpieza",
           amount = Money(BigDecimal("20.00"), "USD"),
-          categoryId = null,
           note = null,
         ),
       )
@@ -78,7 +73,6 @@ class TransactionAggregateTest {
         id = TransactionItemId.random(),
         name = "Farmacia",
         amount = Money(BigDecimal("10.00"), "USD"),
-        categoryId = null,
         note = null,
       ),
     ).post()
@@ -96,14 +90,12 @@ class TransactionAggregateTest {
       occurredAt = Instant.parse("2026-03-15T09:00:00Z"),
       description = "Groceries",
       merchant = "Store",
-      categoryId = null,
     )
       .addItem(
         TransactionItem.create(
           id = TransactionItemId.random(),
           name = "A",
           amount = Money(BigDecimal("50.00"), "USD"),
-          categoryId = null,
           note = null,
         ),
       )
@@ -112,7 +104,6 @@ class TransactionAggregateTest {
           id = TransactionItemId.random(),
           name = "B",
           amount = Money(BigDecimal("30.00"), "USD"),
-          categoryId = null,
           note = null,
         ),
       )
@@ -130,7 +121,6 @@ class TransactionAggregateTest {
       occurredAt = Instant.parse("2026-03-15T09:00:00Z"),
       description = "Lunch",
       merchant = "Cafe",
-      categoryId = null,
     )
 
     val voided = posted.void()

@@ -23,7 +23,6 @@ class BalanceCalculatorTest {
       occurredAt = Instant.parse("2026-03-01T10:00:00Z"),
       description = "Salary",
       merchant = null,
-      categoryId = null,
     )
     val expense = Transaction.recordExpense(
       id = TransactionId.random(),
@@ -32,7 +31,6 @@ class BalanceCalculatorTest {
       occurredAt = Instant.parse("2026-03-15T10:00:00Z"),
       description = "Supermarket",
       merchant = null,
-      categoryId = null,
     )
     val voidedExpense = Transaction.recordExpense(
       id = TransactionId.random(),
@@ -41,7 +39,6 @@ class BalanceCalculatorTest {
       occurredAt = Instant.parse("2026-03-10T10:00:00Z"),
       description = "Void me",
       merchant = null,
-      categoryId = null,
     ).void()
 
     val balance = calculator.calculate(currency = "USD", transactions = listOf(income, expense, voidedExpense))

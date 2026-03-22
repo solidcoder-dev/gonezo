@@ -77,7 +77,6 @@ class OpenLedgerAccountService(
           occurredAt = command.createdAt,
           description = "Opening balance",
           merchant = null,
-          categoryId = null,
         )
       } else {
         Transaction.recordExpense(
@@ -87,7 +86,6 @@ class OpenLedgerAccountService(
           occurredAt = command.createdAt,
           description = "Opening balance",
           merchant = null,
-          categoryId = null,
         )
       }
       transactionRepository.save(openingTx)
@@ -144,7 +142,6 @@ class RecordLedgerIncomeService(
       occurredAt = command.occurredAt,
       description = command.description,
       merchant = command.merchant,
-      categoryId = command.categoryId,
     )
     transactionRepository.save(transaction)
     domainEventPublisher.publish(TransactionRecorded(transaction.id, transaction.accountId))
@@ -168,7 +165,6 @@ class RecordLedgerExpenseService(
       occurredAt = command.occurredAt,
       description = command.description,
       merchant = command.merchant,
-      categoryId = command.categoryId,
     )
     transactionRepository.save(transaction)
     domainEventPublisher.publish(TransactionRecorded(transaction.id, transaction.accountId))
@@ -245,7 +241,6 @@ class CreateLedgerExpenseDraftService(
       occurredAt = command.occurredAt,
       description = command.description,
       merchant = command.merchant,
-      categoryId = command.categoryId,
     )
     transactionRepository.save(transaction)
     return transaction.id
@@ -262,7 +257,6 @@ class AddLedgerTransactionItemService(
       id = TransactionItemId.random(),
       name = command.name,
       amount = Money(command.amount.amount, command.amount.currency.uppercase()),
-      categoryId = command.categoryId,
       note = command.note,
     )
     val updated = transaction.addItem(item)
@@ -329,14 +323,12 @@ class ListLedgerTransactionsService(
   override fun execute(query: ListLedgerTransactionsQuery): List<Transaction> {
     val transactions = when {
       query.range != null -> transactionRepository.findByAccountAndPeriod(query.accountId, query.range)
-      query.categoryId != null -> transactionRepository.findByAccountAndCategory(query.accountId, query.categoryId)
       !query.merchant.isNullOrBlank() -> transactionRepository.findByAccountAndMerchant(query.accountId, query.merchant)
       else -> transactionRepository.findByAccount(query.accountId, query.limit)
     }
 
     return transactions
       .filter { tx -> query.range == null || (!tx.occurredAt.isBefore(query.range.from) && !tx.occurredAt.isAfter(query.range.to)) }
-      .filter { tx -> query.categoryId == null || tx.categoryId == query.categoryId }
       .filter { tx -> query.merchant.isNullOrBlank() || tx.merchant.equals(query.merchant, ignoreCase = true) }
       .sortedByDescending { it.occurredAt }
       .let { list -> query.limit?.let { list.take(it) } ?: list }
