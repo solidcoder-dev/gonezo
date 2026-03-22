@@ -11,6 +11,12 @@ enum class CategorizationStatus(val value: String) {
   FAILED("failed"),
   NONE("none"),
   ;
+
+  companion object {
+    fun from(value: String): CategorizationStatus =
+      entries.firstOrNull { it.value.equals(value, ignoreCase = true) }
+        ?: throw IllegalArgumentException("Unsupported categorization status: $value")
+  }
 }
 
 data class TxCategorizationState(
