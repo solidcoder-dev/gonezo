@@ -6,6 +6,7 @@ public class CorePlugin: CAPPlugin {
     private let supportedCurrencies = ["AUD", "BRL", "CAD", "CHF", "EUR", "GBP", "JPY", "MXN", "NZD", "USD"]
     private var accounts: [[String: Any]] = []
     private var transactions: [[String: Any]] = []
+    private var taxonomyCategories: [[String: Any]] = []
 
     @objc func doThing(_ call: CAPPluginCall) {
         let input = call.getString("input") ?? ""
@@ -212,6 +213,116 @@ public class CorePlugin: CAPPlugin {
         let accountId = call.getString("accountId") ?? ""
         let items = transactions.filter { ($0["accountId"] as? String) == accountId }
         call.resolve(["items": items])
+    }
+
+    @objc func taxonomyListCategories(_ call: CAPPluginCall) {
+        let appliesTo = call.getString("appliesTo")?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let includeArchived = call.getBool("includeArchived") ?? false
+        let items = taxonomyCategories.filter { category in
+            let status = (category["status"] as? String ?? "active").lowercased()
+            let categoryAppliesTo = (category["appliesTo"] as? String ?? "").lowercased()
+            if !includeArchived && status == "archived" {
+                return false
+            }
+            if let appliesTo, !appliesTo.isEmpty && categoryAppliesTo != appliesTo {
+                return false
+            }
+            return true
+        }
+        call.resolve(["items": items])
+    }
+
+    @objc func taxonomyCreateCategory(_ call: CAPPluginCall) {
+        let name = (call.getString("name") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let appliesTo = (call.getString("appliesTo") ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if name.isEmpty {
+            call.reject("Category name is required")
+            return
+        }
+        if appliesTo != "expense" && appliesTo != "income" {
+            call.reject("appliesTo must be expense or income")
+            return
+        }
+
+        let normalizedName = name.lowercased()
+        let duplicated = taxonomyCategories.contains { category in
+            let existingName = (category["name"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let existingAppliesTo = (category["appliesTo"] as? String ?? "").lowercased()
+            return existingName == normalizedName && existingAppliesTo == appliesTo
+        }
+        if duplicated {
+            call.reject("Category already exists for \(appliesTo): \(name)")
+            return
+        }
+
+        let id = UUID().uuidString
+        taxonomyCategories.append([
+            "id": id,
+            "name": name,
+            "appliesTo": appliesTo,
+            "status": "active"
+        ])
+        call.resolve(["id": id])
+    }
+
+    @objc func orchestrationCategorizeTransaction(_ call: CAPPluginCall) {
+        let transactionId = (call.getString("transactionId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let transactionType = (call.getString("transactionType") ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let categoryId = (call.getString("categoryId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if transactionId.isEmpty {
+            call.reject("transactionId is required")
+            return
+        }
+        if transactionType != "expense" && transactionType != "income" {
+            call.reject("Only income/expense transactions can be categorized")
+            return
+        }
+
+        if categoryId.isEmpty {
+            call.resolve(["status": "none"])
+            return
+        }
+
+        guard let category = taxonomyCategories.first(where: { ($0["id"] as? String) == categoryId }) else {
+            call.resolve([
+                "status": "failed",
+                "categoryId": categoryId,
+                "errorCode": "CATEGORY_NOT_FOUND",
+                "errorMessage": "Category not found: \(categoryId)"
+            ])
+            return
+        }
+
+        let categoryStatus = (category["status"] as? String ?? "active").lowercased()
+        let categoryAppliesTo = (category["appliesTo"] as? String ?? "").lowercased()
+        if categoryStatus != "active" {
+            call.resolve([
+                "status": "failed",
+                "categoryId": categoryId,
+                "errorCode": "CATEGORY_ARCHIVED",
+                "errorMessage": "Archived categories cannot be assigned"
+            ])
+            return
+        }
+        if categoryAppliesTo != transactionType {
+            call.resolve([
+                "status": "failed",
+                "categoryId": categoryId,
+                "errorCode": "CATEGORY_APPLIES_TO_MISMATCH",
+                "errorMessage": "Category applies to \(categoryAppliesTo), got \(transactionType)"
+            ])
+            return
+        }
+
+        if let txIndex = transactions.firstIndex(where: { ($0["id"] as? String) == transactionId }) {
+            transactions[txIndex]["categoryId"] = categoryId
+        }
+
+        call.resolve([
+            "status": "assigned",
+            "categoryId": categoryId
+        ])
     }
 
     @objc func ledgerRenameAccount(_ call: CAPPluginCall) { call.resolve() }
