@@ -3,6 +3,8 @@ package com.gonezo.taxonomy.application
 import com.gonezo.taxonomy.domain.Category
 import com.gonezo.taxonomy.domain.CategoryAppliesTo
 import com.gonezo.taxonomy.domain.CategoryId
+import com.gonezo.taxonomy.domain.Tag
+import com.gonezo.taxonomy.domain.TagId
 import java.time.Instant
 import java.util.UUID
 
@@ -37,4 +39,27 @@ data class UnassignCategoryFromTransactionCommand(
 
 interface UnassignCategoryFromTransactionUC {
   fun execute(command: UnassignCategoryFromTransactionCommand)
+}
+
+data class CreateTagCommand(
+  val name: String,
+  val createdAt: Instant,
+)
+
+interface CreateTagUC {
+  fun execute(command: CreateTagCommand): TagId
+}
+
+interface ListTagsUC {
+  fun execute(): List<Tag>
+}
+
+data class ReplaceTransactionTagsCommand(
+  val transactionId: UUID,
+  val tagIds: List<TagId>,
+  val assignedAt: Instant,
+)
+
+interface ReplaceTransactionTagsUC {
+  fun execute(command: ReplaceTransactionTagsCommand)
 }

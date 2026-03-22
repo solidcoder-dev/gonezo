@@ -4,15 +4,25 @@ import com.gonezo.taxonomy.application.AssignCategoryToTransactionCommand
 import com.gonezo.taxonomy.application.AssignCategoryToTransactionUC
 import com.gonezo.taxonomy.application.CreateCategoryCommand
 import com.gonezo.taxonomy.application.CreateCategoryUC
+import com.gonezo.taxonomy.application.CreateTagCommand
+import com.gonezo.taxonomy.application.CreateTagUC
 import com.gonezo.taxonomy.application.ListCategoriesUC
+import com.gonezo.taxonomy.application.ListTagsUC
+import com.gonezo.taxonomy.application.ReplaceTransactionTagsCommand
+import com.gonezo.taxonomy.application.ReplaceTransactionTagsUC
 import com.gonezo.taxonomy.application.UnassignCategoryFromTransactionCommand
 import com.gonezo.taxonomy.application.UnassignCategoryFromTransactionUC
 import com.gonezo.taxonomy.domain.Category
 import com.gonezo.taxonomy.domain.CategoryAppliesTo
 import com.gonezo.taxonomy.domain.CategoryId
+import com.gonezo.taxonomy.domain.Tag
+import com.gonezo.taxonomy.domain.TagId
 import com.gonezo.taxonomy.domain.TransactionCategoryAssignment
+import com.gonezo.taxonomy.domain.TransactionTagAssignment
 import com.gonezo.taxonomy.domain.ports.CategoryRepository
+import com.gonezo.taxonomy.domain.ports.TagRepository
 import com.gonezo.taxonomy.domain.ports.TransactionCategoryAssignmentRepository
+import com.gonezo.taxonomy.domain.ports.TransactionTagAssignmentRepository
 
 class CreateCategoryService(
   private val categoryRepository: CategoryRepository,
@@ -72,5 +82,52 @@ class UnassignCategoryFromTransactionService(
 ) : UnassignCategoryFromTransactionUC {
   override fun execute(command: UnassignCategoryFromTransactionCommand) {
     assignmentRepository.deleteByTransactionId(command.transactionId)
+  }
+}
+
+class CreateTagService(
+  private val tagRepository: TagRepository,
+) : CreateTagUC {
+  override fun execute(command: CreateTagCommand): TagId {
+    val normalizedName = command.name.trim()
+    val existing = tagRepository.findByNormalizedName(normalizedName)
+    require(existing == null) { "Tag already exists: $normalizedName" }
+    val tag = Tag.create(
+      id = TagId.random(),
+      name = normalizedName,
+      createdAt = command.createdAt,
+    )
+    tagRepository.save(tag)
+    return tag.id
+  }
+}
+
+class ListTagsService(
+  private val tagRepository: TagRepository,
+) : ListTagsUC {
+  override fun execute(): List<Tag> = tagRepository.listAll()
+}
+
+class ReplaceTransactionTagsService(
+  private val tagRepository: TagRepository,
+  private val assignmentRepository: TransactionTagAssignmentRepository,
+) : ReplaceTransactionTagsUC {
+  override fun execute(command: ReplaceTransactionTagsCommand) {
+    val uniqueTagIds = command.tagIds.distinct()
+    val tagsById = tagRepository.findByIds(uniqueTagIds)
+    require(tagsById.size == uniqueTagIds.size) {
+      val missing = uniqueTagIds.filterNot(tagsById::containsKey)
+      "Tags not found: ${missing.joinToString(",")}"
+    }
+    tagsById.values.forEach { it.ensureCanAssign() }
+
+    val assignments = uniqueTagIds.map { tagId ->
+      TransactionTagAssignment.assign(
+        transactionId = command.transactionId,
+        tagId = tagId,
+        assignedAt = command.assignedAt,
+      )
+    }
+    assignmentRepository.replaceByTransactionId(command.transactionId, assignments)
   }
 }
