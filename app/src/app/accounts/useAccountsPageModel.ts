@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { LedgerAccountItem, LedgerTransactionListItem } from '../../domain/corePort';
+import type { LedgerAccountItem, LedgerTransactionListItem, TaxonomyCategoryItem } from '../../domain/corePort';
 
 type FieldErrors = {
   amount?: string;
   date?: string;
+  category?: string;
+  newCategory?: string;
   expenseItemName?: string;
   expenseItemAmount?: string;
   expenseSplit?: string;
@@ -18,6 +20,8 @@ type ExpenseItemDraft = {
   name: string;
   amount: string;
 };
+
+type TaxonomyCategoryAppliesTo = 'income' | 'expense';
 
 export type AccountsCorePort = {
   ledgerListSupportedCurrencies(): Promise<{ items: string[] }>;
@@ -82,6 +86,24 @@ export type AccountsCorePort = {
   }): Promise<void>;
   ledgerPostDraftTransaction(input: { transactionId: string }): Promise<void>;
   ledgerVoidTransaction(input: { transactionId: string }): Promise<void>;
+  taxonomyListCategories(input?: {
+    appliesTo?: TaxonomyCategoryAppliesTo;
+    includeArchived?: boolean;
+  }): Promise<{ items: TaxonomyCategoryItem[] }>;
+  taxonomyCreateCategory(input: {
+    name: string;
+    appliesTo: TaxonomyCategoryAppliesTo;
+  }): Promise<{ id: string }>;
+  orchestrationCategorizeTransaction(input: {
+    transactionId: string;
+    transactionType: TaxonomyCategoryAppliesTo;
+    categoryId?: string;
+  }): Promise<{
+    status: 'assigned' | 'failed' | 'none';
+    categoryId?: string;
+    errorCode?: string;
+    errorMessage?: string;
+  }>;
 };
 
 function todayIso(): string {
@@ -127,6 +149,9 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [transactionDate, setTransactionDate] = useState(todayIso());
   const [transactionNote, setTransactionNote] = useState('');
   const [transferToAccountId, setTransferToAccountId] = useState('');
+  const [categories, setCategories] = useState<TaxonomyCategoryItem[]>([]);
+  const [transactionCategoryId, setTransactionCategoryId] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   const [expenseDetailed, setExpenseDetailed] = useState(false);
   const [expenseItemName, setExpenseItemName] = useState('');
@@ -142,6 +167,13 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     () => accounts.filter((account) => account.id !== selectedAccountId),
     [accounts, selectedAccountId],
   );
+
+  const categoryOptions = useMemo(() => {
+    if (composerMode !== 'expense' && composerMode !== 'income') {
+      return [];
+    }
+    return categories.filter((category) => category.appliesTo === composerMode && category.status === 'active');
+  }, [categories, composerMode]);
 
   const expenseAssigned = useMemo(
     () => expenseItems.reduce((acc, item) => acc + parseAmount(item.amount), 0),
@@ -215,6 +247,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setTransactionAmount('');
     setTransactionDate(todayIso());
     setTransactionNote('');
+    setTransactionCategoryId('');
+    setNewCategoryName('');
     setExpenseDetailed(false);
     setExpenseItemName('');
     setExpenseItemAmount('');
@@ -272,6 +306,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
         if (currencies.items.length > 0 && !currencies.items.includes(newAccountCurrency)) {
           setNewAccountCurrency(currencies.items[0]);
         }
+        const taxonomy = await core.taxonomyListCategories({ includeArchived: false });
+        setCategories(taxonomy.items);
         await refreshAccounts();
       } catch (err) {
         if (!cancelled) {
@@ -381,6 +417,9 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   function selectComposerMode(mode: Exclude<ComposerMode, 'picker'>) {
     setComposerMode(mode);
     setComposerAdvancedOpen(false);
+    setTransactionCategoryId('');
+    setNewCategoryName('');
+    setFieldErrors((previous) => ({ ...previous, category: undefined, newCategory: undefined }));
   }
 
   function setTransactionAmountValue(value: string) {
@@ -408,6 +447,19 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   function setExpenseItemAmountValue(value: string) {
     setExpenseItemAmount(value);
     setFieldErrors((previous) => ({ ...previous, expenseItemAmount: undefined }));
+  }
+
+  function setTransactionCategoryIdValue(value: string) {
+    setTransactionCategoryId(value);
+    if (value !== '__new__') {
+      setNewCategoryName('');
+    }
+    setFieldErrors((previous) => ({ ...previous, category: undefined, newCategory: undefined }));
+  }
+
+  function setNewCategoryNameValue(value: string) {
+    setNewCategoryName(value);
+    setFieldErrors((previous) => ({ ...previous, newCategory: undefined }));
   }
 
   function addExpenseItem() {
@@ -470,6 +522,61 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setFieldErrors((previous) => ({ ...previous, expenseSplit: undefined }));
   }
 
+  async function resolveCategorySelection(type: TaxonomyCategoryAppliesTo): Promise<string | undefined> {
+    if (!transactionCategoryId) {
+      return undefined;
+    }
+
+    if (transactionCategoryId !== '__new__') {
+      return transactionCategoryId;
+    }
+
+    const categoryName = newCategoryName.trim();
+    if (!categoryName) {
+      throw new Error('Category name is required.');
+    }
+
+    const created = await core.taxonomyCreateCategory({
+      name: categoryName,
+      appliesTo: type,
+    });
+
+    setCategories((previous) => {
+      const next = [
+        ...previous,
+        {
+          id: created.id,
+          name: categoryName,
+          appliesTo: type,
+          status: 'active',
+        } as TaxonomyCategoryItem,
+      ];
+      next.sort((a, b) => a.name.localeCompare(b.name));
+      return next;
+    });
+    setTransactionCategoryId(created.id);
+    setNewCategoryName('');
+    return created.id;
+  }
+
+  async function categorizeTransaction(
+    transactionId: string,
+    transactionType: TaxonomyCategoryAppliesTo,
+    categoryId?: string,
+  ) {
+    if (!categoryId) {
+      return;
+    }
+    const result = await core.orchestrationCategorizeTransaction({
+      transactionId,
+      transactionType,
+      categoryId,
+    });
+    if (result.status === 'failed') {
+      throw new Error(result.errorCode ?? result.errorMessage ?? 'Categorization failed');
+    }
+  }
+
   async function submitTransaction(event: FormEvent) {
     event.preventDefault();
     setError('');
@@ -510,12 +617,17 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       }
     }
 
+    if ((composerMode === 'expense' || composerMode === 'income') && transactionCategoryId === '__new__' && !newCategoryName.trim()) {
+      nextErrors.newCategory = 'Category name is required.';
+    }
+
     if (
       nextErrors.amount
       || nextErrors.date
       || nextErrors.expenseItemName
       || nextErrors.expenseItemAmount
       || nextErrors.expenseSplit
+      || nextErrors.newCategory
     ) {
       setFieldErrors(nextErrors);
       return;
@@ -525,6 +637,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     try {
       let recorded = false;
       if (composerMode === 'expense') {
+        const categoryId = await resolveCategorySelection('expense');
         if (!expenseDetailed) {
           const result = await core.ledgerRecordExpense({
             accountId: selectedAccount.id,
@@ -534,6 +647,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
             description: transactionNote.trim() || undefined,
             merchant: transactionNote.trim() || undefined,
           });
+          await categorizeTransaction(result.id, 'expense', categoryId);
           showToast(`Expense recorded: ${result.id}`);
           recorded = true;
         } else {
@@ -554,12 +668,14 @@ export function useAccountsPageModel(core: AccountsCorePort) {
             });
           }
           await core.ledgerPostDraftTransaction({ transactionId: draft.id });
+          await categorizeTransaction(draft.id, 'expense', categoryId);
           showToast(`Expense recorded: ${draft.id}`);
           recorded = true;
         }
       }
 
       if (composerMode === 'income') {
+        const categoryId = await resolveCategorySelection('income');
         const result = await core.ledgerRecordIncome({
           accountId: selectedAccount.id,
           occurredAt: transactionDate,
@@ -568,6 +684,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
           description: transactionNote.trim() || undefined,
           merchant: transactionNote.trim() || undefined,
         });
+        await categorizeTransaction(result.id, 'income', categoryId);
         showToast(`Income recorded: ${result.id}`);
         recorded = true;
       }
@@ -660,6 +777,9 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     transactionAmount,
     transactionDate,
     transactionNote,
+    transactionCategoryId,
+    newCategoryName,
+    categoryOptions,
     transferToAccountId,
     transferTargetOptions,
     expenseDetailed,
@@ -670,12 +790,16 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     expenseItemNameError: fieldErrors.expenseItemName,
     expenseItemAmountError: fieldErrors.expenseItemAmount,
     expenseSplitError: fieldErrors.expenseSplit,
+    categoryError: fieldErrors.category,
+    newCategoryError: fieldErrors.newCategory,
     setNewAccountName,
     setNewAccountCurrency,
     setNewAccountOpeningBalance,
     setTransactionAmount: setTransactionAmountValue,
     setTransactionDate,
     setTransactionNote,
+    setTransactionCategoryId: setTransactionCategoryIdValue,
+    setNewCategoryName: setNewCategoryNameValue,
     setTransferToAccountId,
     setExpenseDetailed: setExpenseDetailedValue,
     setExpenseItemName: setExpenseItemNameValue,

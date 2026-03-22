@@ -163,6 +163,48 @@ export type LedgerListTransactionsResult = {
   items: LedgerTransactionListItem[];
 };
 
+export type TaxonomyCategoryAppliesTo = 'income' | 'expense';
+
+export type TaxonomyCategoryStatus = 'active' | 'archived';
+
+export type TaxonomyCategoryItem = {
+  id: string;
+  name: string;
+  appliesTo: TaxonomyCategoryAppliesTo;
+  status: TaxonomyCategoryStatus;
+};
+
+export type TaxonomyListCategoriesInput = {
+  appliesTo?: TaxonomyCategoryAppliesTo;
+  includeArchived?: boolean;
+};
+
+export type TaxonomyListCategoriesResult = {
+  items: TaxonomyCategoryItem[];
+};
+
+export type TaxonomyCreateCategoryInput = {
+  name: string;
+  appliesTo: TaxonomyCategoryAppliesTo;
+};
+
+export type TaxonomyCreateCategoryResult = {
+  id: string;
+};
+
+export type OrchestrationCategorizeTransactionInput = {
+  transactionId: string;
+  transactionType: TaxonomyCategoryAppliesTo;
+  categoryId?: string;
+};
+
+export type OrchestrationCategorizeTransactionResult = {
+  status: 'assigned' | 'failed' | 'none';
+  categoryId?: string;
+  errorCode?: string;
+  errorMessage?: string;
+};
+
 export interface CorePort {
   doThing(input: string): Promise<CoreResult>;
   ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult>;
@@ -179,4 +221,9 @@ export interface CorePort {
   ledgerPostDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void>;
   ledgerVoidTransaction(input: LedgerVoidTransactionInput): Promise<void>;
   ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult>;
+  taxonomyListCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult>;
+  taxonomyCreateCategory(input: TaxonomyCreateCategoryInput): Promise<TaxonomyCreateCategoryResult>;
+  orchestrationCategorizeTransaction(
+    input: OrchestrationCategorizeTransactionInput,
+  ): Promise<OrchestrationCategorizeTransactionResult>;
 }

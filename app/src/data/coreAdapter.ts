@@ -23,6 +23,12 @@ import type {
   LedgerVoidTransactionInput,
   LedgerListTransactionsInput,
   LedgerListTransactionsResult,
+  TaxonomyListCategoriesInput,
+  TaxonomyListCategoriesResult,
+  TaxonomyCreateCategoryInput,
+  TaxonomyCreateCategoryResult,
+  OrchestrationCategorizeTransactionInput,
+  OrchestrationCategorizeTransactionResult,
 } from '../domain/corePort';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from '../native/corePlugin';
@@ -138,5 +144,28 @@ export class CoreAdapter implements CorePort {
       return CorePlugin.ledgerListTransactions(input);
     }
     return this.web.ledgerListTransactions(input);
+  }
+
+  async taxonomyListCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.taxonomyListCategories(input ?? {});
+    }
+    return this.web.taxonomyListCategories(input);
+  }
+
+  async taxonomyCreateCategory(input: TaxonomyCreateCategoryInput): Promise<TaxonomyCreateCategoryResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.taxonomyCreateCategory(input);
+    }
+    return this.web.taxonomyCreateCategory(input);
+  }
+
+  async orchestrationCategorizeTransaction(
+    input: OrchestrationCategorizeTransactionInput,
+  ): Promise<OrchestrationCategorizeTransactionResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.orchestrationCategorizeTransaction(input);
+    }
+    return this.web.orchestrationCategorizeTransaction(input);
   }
 }

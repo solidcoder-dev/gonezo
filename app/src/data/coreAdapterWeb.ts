@@ -22,6 +22,12 @@ import type {
   LedgerVoidTransactionInput,
   LedgerListTransactionsInput,
   LedgerListTransactionsResult,
+  TaxonomyListCategoriesInput,
+  TaxonomyListCategoriesResult,
+  TaxonomyCreateCategoryInput,
+  TaxonomyCreateCategoryResult,
+  OrchestrationCategorizeTransactionInput,
+  OrchestrationCategorizeTransactionResult,
 } from '../domain/corePort';
 
 type MemoryLedgerAccount = {
@@ -58,6 +64,16 @@ type MemoryLedgerTransaction = {
   items: MemoryLedgerTransactionItem[];
 };
 
+type MemoryTaxonomyCategory = {
+  id: string;
+  name: string;
+  normalizedName: string;
+  appliesTo: 'income' | 'expense';
+  status: 'active' | 'archived';
+  createdAt: string;
+  archivedAt?: string;
+};
+
 export class CoreAdapterWeb implements CorePort {
   private static readonly supportedCurrencies = ['AUD', 'BRL', 'CAD', 'CHF', 'EUR', 'GBP', 'JPY', 'MXN', 'NZD', 'USD'];
 
@@ -65,12 +81,26 @@ export class CoreAdapterWeb implements CorePort {
 
   private static ledgerTransactions: MemoryLedgerTransaction[] = [];
 
+  private static taxonomyCategories: MemoryTaxonomyCategory[] = [];
+
   private accountOrThrow(accountId: string): MemoryLedgerAccount {
     const account = CoreAdapterWeb.ledgerAccounts.find((item) => item.id === accountId);
     if (!account) {
       throw new Error('Account not found');
     }
     return account;
+  }
+
+  private transactionOrThrow(transactionId: string): MemoryLedgerTransaction {
+    const transaction = CoreAdapterWeb.ledgerTransactions.find((item) => item.id === transactionId);
+    if (!transaction) {
+      throw new Error('Transaction not found');
+    }
+    return transaction;
+  }
+
+  private normalizeCategoryName(name: string): string {
+    return name.trim().toLowerCase();
   }
 
   private ensureAccountCanPost(account: MemoryLedgerAccount, currency: string) {
@@ -383,5 +413,94 @@ export class CoreAdapterWeb implements CorePort {
       }));
 
     return { items };
+  }
+
+  async taxonomyListCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult> {
+    const includeArchived = input?.includeArchived === true;
+    const items = CoreAdapterWeb.taxonomyCategories
+      .filter((category) => includeArchived || category.status !== 'archived')
+      .filter((category) => !input?.appliesTo || category.appliesTo === input.appliesTo)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((category) => ({
+        id: category.id,
+        name: category.name,
+        appliesTo: category.appliesTo,
+        status: category.status,
+      }));
+
+    return { items };
+  }
+
+  async taxonomyCreateCategory(input: TaxonomyCreateCategoryInput): Promise<TaxonomyCreateCategoryResult> {
+    const name = input.name.trim();
+    if (!name) {
+      throw new Error('Category name is required');
+    }
+    const normalizedName = this.normalizeCategoryName(name);
+    const appliesTo = input.appliesTo;
+    const existing = CoreAdapterWeb.taxonomyCategories.find(
+      (category) => category.normalizedName === normalizedName && category.appliesTo === appliesTo,
+    );
+    if (existing) {
+      throw new Error(`Category already exists for ${appliesTo}: ${name}`);
+    }
+
+    const id = crypto.randomUUID();
+    CoreAdapterWeb.taxonomyCategories.push({
+      id,
+      name,
+      normalizedName,
+      appliesTo,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+    });
+    return { id };
+  }
+
+  async orchestrationCategorizeTransaction(
+    input: OrchestrationCategorizeTransactionInput,
+  ): Promise<OrchestrationCategorizeTransactionResult> {
+    const transaction = this.transactionOrThrow(input.transactionId);
+    const normalizedType = input.transactionType.trim().toLowerCase();
+    if (transaction.type !== normalizedType) {
+      throw new Error(`Transaction ${transaction.id} type mismatch: expected ${transaction.type}, got ${normalizedType}`);
+    }
+    if (normalizedType !== 'expense' && normalizedType !== 'income') {
+      throw new Error('Only income/expense transactions can be categorized');
+    }
+
+    if (!input.categoryId) {
+      transaction.categoryId = undefined;
+      return { status: 'none' };
+    }
+
+    const category = CoreAdapterWeb.taxonomyCategories.find((item) => item.id === input.categoryId);
+    if (!category) {
+      return {
+        status: 'failed',
+        categoryId: input.categoryId,
+        errorCode: 'CATEGORY_NOT_FOUND',
+        errorMessage: `Category not found: ${input.categoryId}`,
+      };
+    }
+    if (category.status !== 'active') {
+      return {
+        status: 'failed',
+        categoryId: input.categoryId,
+        errorCode: 'CATEGORY_ARCHIVED',
+        errorMessage: 'Archived categories cannot be assigned',
+      };
+    }
+    if (category.appliesTo !== normalizedType) {
+      return {
+        status: 'failed',
+        categoryId: input.categoryId,
+        errorCode: 'CATEGORY_APPLIES_TO_MISMATCH',
+        errorMessage: `Category applies to ${category.appliesTo}, got ${normalizedType}`,
+      };
+    }
+
+    transaction.categoryId = category.id;
+    return { status: 'assigned', categoryId: category.id };
   }
 }

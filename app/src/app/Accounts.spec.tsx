@@ -55,6 +55,14 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     ledgerAddTransactionItem: vi.fn(async () => undefined),
     ledgerPostDraftTransaction: vi.fn(async () => undefined),
     ledgerVoidTransaction: vi.fn(async () => undefined),
+    taxonomyListCategories: vi.fn(async () => ({
+      items: [
+        { id: 'cat-food', name: 'Food', appliesTo: 'expense' as const, status: 'active' as const },
+        { id: 'cat-salary', name: 'Salary', appliesTo: 'income' as const, status: 'active' as const },
+      ],
+    })),
+    taxonomyCreateCategory: vi.fn(async () => ({ id: 'cat-created' })),
+    orchestrationCategorizeTransaction: vi.fn(async () => ({ status: 'assigned' as const })),
   };
 }
 
@@ -103,6 +111,68 @@ describe('Accounts UX', () => {
 
     await waitFor(() => {
       expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('categorizes quick expense with an existing category', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Expense');
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
+    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'cat-food' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save expense' }));
+
+    await waitFor(() => {
+      expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
+      expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledTimes(1);
+    });
+    expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledWith({
+      transactionId: 'tx-exp',
+      transactionType: 'expense',
+      categoryId: 'cat-food',
+    });
+  });
+
+  it('creates and uses a new category when expense selects create option', async () => {
+    const core = makeCore();
+    vi.mocked(core.taxonomyListCategories).mockResolvedValueOnce({ items: [] });
+    vi.mocked(core.taxonomyCreateCategory).mockResolvedValueOnce({ id: 'cat-new-expense' });
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Expense');
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '35' } });
+    fireEvent.change(screen.getByLabelText('Category'), { target: { value: '__new__' } });
+    fireEvent.change(screen.getByLabelText('New category'), { target: { value: 'Dining out' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save expense' }));
+
+    await waitFor(() => {
+      expect(core.taxonomyCreateCategory).toHaveBeenCalledTimes(1);
+      expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledTimes(1);
+    });
+
+    expect(core.taxonomyCreateCategory).toHaveBeenCalledWith({
+      name: 'Dining out',
+      appliesTo: 'expense',
+    });
+    expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledWith({
+      transactionId: 'tx-exp',
+      transactionType: 'expense',
+      categoryId: 'cat-new-expense',
     });
   });
 

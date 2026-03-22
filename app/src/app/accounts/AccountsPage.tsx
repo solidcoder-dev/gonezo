@@ -149,6 +149,9 @@ export function AccountsPage({ core }: Props) {
             amount={model.transactionAmount}
             date={model.transactionDate}
             note={model.transactionNote}
+            categoryId={model.transactionCategoryId}
+            categoryOptions={model.categoryOptions}
+            newCategoryName={model.newCategoryName}
             transferTargetAccountId={model.transferToAccountId}
             transferTargetOptions={model.transferTargetOptions}
             expenseDetailed={model.expenseDetailed}
@@ -160,6 +163,8 @@ export function AccountsPage({ core }: Props) {
             expenseItemNameError={model.expenseItemNameError}
             expenseItemAmountError={model.expenseItemAmountError}
             expenseSplitError={model.expenseSplitError}
+            categoryError={model.categoryError}
+            newCategoryError={model.newCategoryError}
             onToggleExpenseDetailed={() => model.setExpenseDetailed(!model.expenseDetailed)}
             onSetExpenseItemName={model.setExpenseItemName}
             onSetExpenseItemAmount={model.setExpenseItemAmount}
@@ -172,6 +177,8 @@ export function AccountsPage({ core }: Props) {
             onSetAmount={model.setTransactionAmount}
             onSetDate={model.setTransactionDate}
             onSetNote={model.setTransactionNote}
+            onSetCategoryId={model.setTransactionCategoryId}
+            onSetNewCategoryName={model.setNewCategoryName}
             onSetTransferTarget={model.setTransferToAccountId}
             onSubmit={model.submitTransaction}
           />

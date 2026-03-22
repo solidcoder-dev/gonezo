@@ -22,6 +22,12 @@ import type {
   LedgerVoidTransactionInput,
   LedgerListTransactionsInput,
   LedgerListTransactionsResult,
+  TaxonomyListCategoriesInput,
+  TaxonomyListCategoriesResult,
+  TaxonomyCreateCategoryInput,
+  TaxonomyCreateCategoryResult,
+  OrchestrationCategorizeTransactionInput,
+  OrchestrationCategorizeTransactionResult,
 } from '../domain/corePort';
 import { CoreAdapterWeb } from '../data/coreAdapterWeb';
 import type { CorePlugin } from './corePlugin';
@@ -87,5 +93,19 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async ledgerListTransactions(options: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult> {
     return this.core.ledgerListTransactions(options);
+  }
+
+  async taxonomyListCategories(options?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult> {
+    return this.core.taxonomyListCategories(options);
+  }
+
+  async taxonomyCreateCategory(options: TaxonomyCreateCategoryInput): Promise<TaxonomyCreateCategoryResult> {
+    return this.core.taxonomyCreateCategory(options);
+  }
+
+  async orchestrationCategorizeTransaction(
+    options: OrchestrationCategorizeTransactionInput,
+  ): Promise<OrchestrationCategorizeTransactionResult> {
+    return this.core.orchestrationCategorizeTransaction(options);
   }
 }
