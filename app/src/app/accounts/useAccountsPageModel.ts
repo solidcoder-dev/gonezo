@@ -471,6 +471,14 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setError('');
     setComposerOpen(true);
     resetComposerState();
+    void (async () => {
+      try {
+        const taxonomy = await core.taxonomyListCategories({ includeArchived: false });
+        setCategories(taxonomy.items);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      }
+    })();
   }
 
   function closeTransactionComposer() {

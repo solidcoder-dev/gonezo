@@ -212,6 +212,30 @@ describe('Accounts UX', () => {
     });
   });
 
+  it('refreshes categories from backend when opening transaction composer', async () => {
+    const core = makeCore();
+    vi.mocked(core.taxonomyListCategories)
+      .mockResolvedValueOnce({ items: [] })
+      .mockResolvedValueOnce({
+        items: [{ id: 'cat-travel', name: 'Travel', appliesTo: 'expense' as const, status: 'active' as const }],
+      });
+
+    const view = render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Expense');
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle advanced options' }));
+
+    await waitFor(() => {
+      expect(core.taxonomyListCategories).toHaveBeenCalledTimes(2);
+    });
+    expect(view.container.querySelector('datalist option[value="Travel"]')).not.toBeNull();
+  });
+
   it('records income from dedicated income flow', async () => {
     const core = makeCore();
 
