@@ -1,8 +1,8 @@
-package com.gonezo.infrastructure.persistence
+package com.gonezo.taxonomy.infrastructure.persistence
 
-import com.gonezo.domain.taxonomy.CategoryId
-import com.gonezo.domain.taxonomy.TransactionCategoryAssignment
-import com.gonezo.domain.taxonomy.ports.TransactionCategoryAssignmentRepository
+import com.gonezo.taxonomy.domain.CategoryId
+import com.gonezo.taxonomy.domain.TransactionCategoryAssignment
+import com.gonezo.taxonomy.domain.ports.TransactionCategoryAssignmentRepository
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate

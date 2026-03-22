@@ -1,7 +1,7 @@
-package com.gonezo.domain.ledger.events
+package com.gonezo.ledger.domain.events
 
-import com.gonezo.domain.ledger.AccountId
-import com.gonezo.domain.ledger.TransactionId
+import com.gonezo.ledger.domain.AccountId
+import com.gonezo.ledger.domain.TransactionId
 
 data class TransactionRecorded(
   val transactionId: TransactionId,

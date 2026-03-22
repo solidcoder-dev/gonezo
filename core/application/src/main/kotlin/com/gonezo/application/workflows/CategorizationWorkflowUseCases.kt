@@ -1,6 +1,6 @@
-package com.gonezo.application.workflows
+package com.gonezo.application.orchestration
 
-import com.gonezo.domain.taxonomy.CategoryId
+import com.gonezo.taxonomy.domain.CategoryId
 import java.time.Instant
 import java.util.UUID
 

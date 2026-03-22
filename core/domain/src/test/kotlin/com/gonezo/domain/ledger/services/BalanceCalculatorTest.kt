@@ -1,8 +1,8 @@
-package com.gonezo.domain.ledger.services
+package com.gonezo.ledger.domain.services
 
-import com.gonezo.domain.ledger.AccountId
-import com.gonezo.domain.ledger.Transaction
-import com.gonezo.domain.ledger.TransactionId
+import com.gonezo.ledger.domain.AccountId
+import com.gonezo.ledger.domain.Transaction
+import com.gonezo.ledger.domain.TransactionId
 import com.gonezo.domain.shared.Money
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test

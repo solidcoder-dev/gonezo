@@ -1,6 +1,6 @@
-package com.gonezo.domain.taxonomy.ports
+package com.gonezo.taxonomy.domain.ports
 
-import com.gonezo.domain.taxonomy.TransactionCategoryAssignment
+import com.gonezo.taxonomy.domain.TransactionCategoryAssignment
 import java.util.UUID
 
 interface TransactionCategoryAssignmentRepository {

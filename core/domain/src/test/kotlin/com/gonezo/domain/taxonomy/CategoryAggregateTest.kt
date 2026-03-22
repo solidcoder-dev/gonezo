@@ -1,4 +1,4 @@
-package com.gonezo.domain.taxonomy
+package com.gonezo.taxonomy.domain
 
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy

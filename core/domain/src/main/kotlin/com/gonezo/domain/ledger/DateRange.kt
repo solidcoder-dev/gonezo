@@ -1,4 +1,4 @@
-package com.gonezo.domain.ledger
+package com.gonezo.ledger.domain
 
 import java.time.Instant
 

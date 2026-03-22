@@ -1,4 +1,4 @@
-package com.gonezo.domain.taxonomy
+package com.gonezo.taxonomy.domain
 
 enum class CategoryAppliesTo(val value: String) {
   INCOME("income"),

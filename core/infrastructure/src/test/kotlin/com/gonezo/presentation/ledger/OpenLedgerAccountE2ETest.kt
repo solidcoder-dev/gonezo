@@ -1,9 +1,9 @@
 package com.gonezo.presentation.ledger
 
-import com.gonezo.application.ledger.GetLedgerAccountBalanceQuery
-import com.gonezo.application.ledger.OpenLedgerAccountCommand
-import com.gonezo.domain.ledger.AccountType
-import com.gonezo.domain.ledger.CurrencyCode
+import com.gonezo.ledger.application.GetLedgerAccountBalanceQuery
+import com.gonezo.ledger.application.OpenLedgerAccountCommand
+import com.gonezo.ledger.domain.AccountType
+import com.gonezo.ledger.domain.CurrencyCode
 import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test

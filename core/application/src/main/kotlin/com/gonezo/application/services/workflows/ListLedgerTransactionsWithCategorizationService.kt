@@ -1,15 +1,15 @@
-package com.gonezo.application.services.workflows
+package com.gonezo.application.query
 
-import com.gonezo.application.workflows.CategorizationStatus
-import com.gonezo.application.workflows.CategorizationView
-import com.gonezo.application.workflows.CategorizedCategoryView
-import com.gonezo.application.workflows.CategorizedLedgerTransactionView
-import com.gonezo.application.workflows.GetCategorizedLedgerTransactionListQuery
-import com.gonezo.application.workflows.GetCategorizedLedgerTransactionListUC
-import com.gonezo.application.workflows.TxCategorizationStateRepository
-import com.gonezo.domain.ledger.ports.LedgerTransactionRepository
-import com.gonezo.domain.taxonomy.ports.CategoryRepository
-import com.gonezo.domain.taxonomy.ports.TransactionCategoryAssignmentRepository
+import com.gonezo.application.orchestration.CategorizationStatus
+import com.gonezo.application.query.CategorizationView
+import com.gonezo.application.query.CategorizedCategoryView
+import com.gonezo.application.query.CategorizedLedgerTransactionView
+import com.gonezo.application.query.GetCategorizedLedgerTransactionListQuery
+import com.gonezo.application.query.GetCategorizedLedgerTransactionListUC
+import com.gonezo.application.orchestration.TxCategorizationStateRepository
+import com.gonezo.ledger.domain.ports.LedgerTransactionRepository
+import com.gonezo.taxonomy.domain.ports.CategoryRepository
+import com.gonezo.taxonomy.domain.ports.TransactionCategoryAssignmentRepository
 
 class ListLedgerTransactionsWithCategorizationService(
   private val transactionRepository: LedgerTransactionRepository,

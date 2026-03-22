@@ -1,9 +1,10 @@
-package com.gonezo.application.workflows
+package com.gonezo.application.query
 
-import com.gonezo.domain.ledger.AccountId
-import com.gonezo.domain.ledger.DateRange
-import com.gonezo.domain.ledger.Transaction
-import com.gonezo.domain.taxonomy.CategoryId
+import com.gonezo.application.orchestration.CategorizationStatus
+import com.gonezo.ledger.domain.AccountId
+import com.gonezo.ledger.domain.DateRange
+import com.gonezo.ledger.domain.Transaction
+import com.gonezo.taxonomy.domain.CategoryId
 
 data class GetCategorizedLedgerTransactionListQuery(
   val accountId: AccountId,

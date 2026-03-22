@@ -1,6 +1,6 @@
-package com.gonezo.domain.ledger.events
+package com.gonezo.ledger.domain.events
 
-import com.gonezo.domain.ledger.AccountId
+import com.gonezo.ledger.domain.AccountId
 
 data class AccountArchived(
   val accountId: AccountId,

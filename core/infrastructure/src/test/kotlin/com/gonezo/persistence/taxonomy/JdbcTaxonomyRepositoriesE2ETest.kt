@@ -1,11 +1,11 @@
 package com.gonezo.persistence.taxonomy
 
-import com.gonezo.domain.taxonomy.Category
-import com.gonezo.domain.taxonomy.CategoryAppliesTo
-import com.gonezo.domain.taxonomy.CategoryId
-import com.gonezo.domain.taxonomy.TransactionCategoryAssignment
-import com.gonezo.infrastructure.persistence.JdbcTaxonomyCategoryRepository
-import com.gonezo.infrastructure.persistence.JdbcTaxonomyTransactionCategoryAssignmentRepository
+import com.gonezo.taxonomy.domain.Category
+import com.gonezo.taxonomy.domain.CategoryAppliesTo
+import com.gonezo.taxonomy.domain.CategoryId
+import com.gonezo.taxonomy.domain.TransactionCategoryAssignment
+import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyCategoryRepository
+import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTransactionCategoryAssignmentRepository
 import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test

@@ -1,9 +1,9 @@
 package com.gonezo.infrastructure.persistence
 
-import com.gonezo.application.workflows.CategorizationStatus
-import com.gonezo.application.workflows.TxCategorizationState
-import com.gonezo.application.workflows.TxCategorizationStateRepository
-import com.gonezo.domain.taxonomy.CategoryId
+import com.gonezo.application.orchestration.CategorizationStatus
+import com.gonezo.application.orchestration.TxCategorizationState
+import com.gonezo.application.orchestration.TxCategorizationStateRepository
+import com.gonezo.taxonomy.domain.CategoryId
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate

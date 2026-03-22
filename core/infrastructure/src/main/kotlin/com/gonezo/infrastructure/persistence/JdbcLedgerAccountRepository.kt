@@ -1,11 +1,11 @@
-package com.gonezo.infrastructure.persistence
+package com.gonezo.ledger.infrastructure.persistence
 
-import com.gonezo.domain.ledger.Account
-import com.gonezo.domain.ledger.AccountId
-import com.gonezo.domain.ledger.AccountStatus
-import com.gonezo.domain.ledger.AccountType
-import com.gonezo.domain.ledger.CurrencyCode
-import com.gonezo.domain.ledger.ports.LedgerAccountRepository
+import com.gonezo.ledger.domain.Account
+import com.gonezo.ledger.domain.AccountId
+import com.gonezo.ledger.domain.AccountStatus
+import com.gonezo.ledger.domain.AccountType
+import com.gonezo.ledger.domain.CurrencyCode
+import com.gonezo.ledger.domain.ports.LedgerAccountRepository
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate

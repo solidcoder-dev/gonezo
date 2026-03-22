@@ -1,4 +1,4 @@
-package com.gonezo.domain.ledger
+package com.gonezo.ledger.domain
 
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy

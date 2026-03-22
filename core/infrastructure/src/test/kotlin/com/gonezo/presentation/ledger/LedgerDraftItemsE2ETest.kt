@@ -1,11 +1,11 @@
 package com.gonezo.presentation.ledger
 
-import com.gonezo.application.ledger.AddLedgerTransactionItemCommand
-import com.gonezo.application.ledger.CreateLedgerExpenseDraftCommand
-import com.gonezo.application.ledger.OpenLedgerAccountCommand
-import com.gonezo.application.ledger.PostLedgerDraftTransactionCommand
-import com.gonezo.domain.ledger.AccountType
-import com.gonezo.domain.ledger.CurrencyCode
+import com.gonezo.ledger.application.AddLedgerTransactionItemCommand
+import com.gonezo.ledger.application.CreateLedgerExpenseDraftCommand
+import com.gonezo.ledger.application.OpenLedgerAccountCommand
+import com.gonezo.ledger.application.PostLedgerDraftTransactionCommand
+import com.gonezo.ledger.domain.AccountType
+import com.gonezo.ledger.domain.CurrencyCode
 import com.gonezo.domain.shared.Money
 import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat

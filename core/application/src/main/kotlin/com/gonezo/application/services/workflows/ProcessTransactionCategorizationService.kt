@@ -1,12 +1,12 @@
-package com.gonezo.application.services.workflows
+package com.gonezo.application.orchestration
 
-import com.gonezo.application.taxonomy.AssignCategoryToTransactionCommand
-import com.gonezo.application.taxonomy.AssignCategoryToTransactionUC
-import com.gonezo.application.workflows.CategorizationStatus
-import com.gonezo.application.workflows.ProcessTransactionCategorizationCommand
-import com.gonezo.application.workflows.ProcessTransactionCategorizationUC
-import com.gonezo.application.workflows.TxCategorizationState
-import com.gonezo.application.workflows.TxCategorizationStateRepository
+import com.gonezo.taxonomy.application.AssignCategoryToTransactionCommand
+import com.gonezo.taxonomy.application.AssignCategoryToTransactionUC
+import com.gonezo.application.orchestration.CategorizationStatus
+import com.gonezo.application.orchestration.ProcessTransactionCategorizationCommand
+import com.gonezo.application.orchestration.ProcessTransactionCategorizationUC
+import com.gonezo.application.orchestration.TxCategorizationState
+import com.gonezo.application.orchestration.TxCategorizationStateRepository
 
 class ProcessTransactionCategorizationService(
   private val taxonomyAssignCategoryUC: AssignCategoryToTransactionUC,

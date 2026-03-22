@@ -1,10 +1,10 @@
-package com.gonezo.infrastructure.persistence
+package com.gonezo.taxonomy.infrastructure.persistence
 
-import com.gonezo.domain.taxonomy.Category
-import com.gonezo.domain.taxonomy.CategoryAppliesTo
-import com.gonezo.domain.taxonomy.CategoryId
-import com.gonezo.domain.taxonomy.CategoryStatus
-import com.gonezo.domain.taxonomy.ports.CategoryRepository
+import com.gonezo.taxonomy.domain.Category
+import com.gonezo.taxonomy.domain.CategoryAppliesTo
+import com.gonezo.taxonomy.domain.CategoryId
+import com.gonezo.taxonomy.domain.CategoryStatus
+import com.gonezo.taxonomy.domain.ports.CategoryRepository
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate

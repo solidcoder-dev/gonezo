@@ -1,7 +1,7 @@
-package com.gonezo.domain.ledger.ports
+package com.gonezo.ledger.domain.ports
 
-import com.gonezo.domain.ledger.Account
-import com.gonezo.domain.ledger.AccountId
+import com.gonezo.ledger.domain.Account
+import com.gonezo.ledger.domain.AccountId
 
 interface LedgerAccountRepository {
   fun save(account: Account)

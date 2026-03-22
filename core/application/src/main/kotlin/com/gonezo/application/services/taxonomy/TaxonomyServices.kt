@@ -1,18 +1,18 @@
-package com.gonezo.application.services.taxonomy
+package com.gonezo.taxonomy.application
 
-import com.gonezo.application.taxonomy.AssignCategoryToTransactionCommand
-import com.gonezo.application.taxonomy.AssignCategoryToTransactionUC
-import com.gonezo.application.taxonomy.CreateCategoryCommand
-import com.gonezo.application.taxonomy.CreateCategoryUC
-import com.gonezo.application.taxonomy.ListCategoriesUC
-import com.gonezo.application.taxonomy.UnassignCategoryFromTransactionCommand
-import com.gonezo.application.taxonomy.UnassignCategoryFromTransactionUC
-import com.gonezo.domain.taxonomy.Category
-import com.gonezo.domain.taxonomy.CategoryAppliesTo
-import com.gonezo.domain.taxonomy.CategoryId
-import com.gonezo.domain.taxonomy.TransactionCategoryAssignment
-import com.gonezo.domain.taxonomy.ports.CategoryRepository
-import com.gonezo.domain.taxonomy.ports.TransactionCategoryAssignmentRepository
+import com.gonezo.taxonomy.application.AssignCategoryToTransactionCommand
+import com.gonezo.taxonomy.application.AssignCategoryToTransactionUC
+import com.gonezo.taxonomy.application.CreateCategoryCommand
+import com.gonezo.taxonomy.application.CreateCategoryUC
+import com.gonezo.taxonomy.application.ListCategoriesUC
+import com.gonezo.taxonomy.application.UnassignCategoryFromTransactionCommand
+import com.gonezo.taxonomy.application.UnassignCategoryFromTransactionUC
+import com.gonezo.taxonomy.domain.Category
+import com.gonezo.taxonomy.domain.CategoryAppliesTo
+import com.gonezo.taxonomy.domain.CategoryId
+import com.gonezo.taxonomy.domain.TransactionCategoryAssignment
+import com.gonezo.taxonomy.domain.ports.CategoryRepository
+import com.gonezo.taxonomy.domain.ports.TransactionCategoryAssignmentRepository
 
 class CreateCategoryService(
   private val categoryRepository: CategoryRepository,

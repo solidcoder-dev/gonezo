@@ -1,9 +1,9 @@
-package com.gonezo.domain.ledger.ports
+package com.gonezo.ledger.domain.ports
 
-import com.gonezo.domain.ledger.AccountId
-import com.gonezo.domain.ledger.DateRange
-import com.gonezo.domain.ledger.Transaction
-import com.gonezo.domain.ledger.TransactionId
+import com.gonezo.ledger.domain.AccountId
+import com.gonezo.ledger.domain.DateRange
+import com.gonezo.ledger.domain.Transaction
+import com.gonezo.ledger.domain.TransactionId
 
 interface LedgerTransactionRepository {
   fun save(transaction: Transaction)

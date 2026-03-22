@@ -1,8 +1,8 @@
-package com.gonezo.domain.taxonomy.ports
+package com.gonezo.taxonomy.domain.ports
 
-import com.gonezo.domain.taxonomy.Category
-import com.gonezo.domain.taxonomy.CategoryAppliesTo
-import com.gonezo.domain.taxonomy.CategoryId
+import com.gonezo.taxonomy.domain.Category
+import com.gonezo.taxonomy.domain.CategoryAppliesTo
+import com.gonezo.taxonomy.domain.CategoryId
 
 interface CategoryRepository {
   fun save(category: Category)

@@ -2,55 +2,54 @@ package com.gonezo.multiplatform.core;
 
 import android.content.Context;
 import com.gonezo.application.events.DomainEventPublisher;
-import com.gonezo.application.ledger.AddLedgerTransactionItemCommand;
-import com.gonezo.application.ledger.AddLedgerTransactionItemUC;
-import com.gonezo.application.ledger.ArchiveLedgerAccountCommand;
-import com.gonezo.application.ledger.ArchiveLedgerAccountUC;
-import com.gonezo.application.ledger.CreateLedgerExpenseDraftCommand;
-import com.gonezo.application.ledger.CreateLedgerExpenseDraftUC;
-import com.gonezo.application.ledger.GetLedgerAccountBalanceQuery;
-import com.gonezo.application.ledger.GetLedgerAccountBalanceUC;
-import com.gonezo.application.ledger.ListLedgerAccountsUC;
-import com.gonezo.application.ledger.ListLedgerTransactionsQuery;
-import com.gonezo.application.ledger.ListLedgerTransactionsUC;
-import com.gonezo.application.ledger.OpenLedgerAccountCommand;
-import com.gonezo.application.ledger.OpenLedgerAccountUC;
-import com.gonezo.application.ledger.PostLedgerDraftTransactionCommand;
-import com.gonezo.application.ledger.PostLedgerDraftTransactionUC;
-import com.gonezo.application.ledger.RecordLedgerExpenseCommand;
-import com.gonezo.application.ledger.RecordLedgerExpenseUC;
-import com.gonezo.application.ledger.RecordLedgerIncomeCommand;
-import com.gonezo.application.ledger.RecordLedgerIncomeUC;
-import com.gonezo.application.ledger.RecordLedgerTransferCommand;
-import com.gonezo.application.ledger.RecordLedgerTransferResult;
-import com.gonezo.application.ledger.RecordLedgerTransferUC;
-import com.gonezo.application.ledger.RenameLedgerAccountCommand;
-import com.gonezo.application.ledger.RenameLedgerAccountUC;
-import com.gonezo.application.ledger.VoidLedgerTransactionCommand;
-import com.gonezo.application.ledger.VoidLedgerTransactionUC;
-import com.gonezo.application.services.ledger.AddLedgerTransactionItemService;
-import com.gonezo.application.services.ledger.ArchiveLedgerAccountService;
-import com.gonezo.application.services.ledger.CreateLedgerExpenseDraftService;
-import com.gonezo.application.services.ledger.GetLedgerAccountBalanceService;
-import com.gonezo.application.services.ledger.ListLedgerAccountsService;
-import com.gonezo.application.services.ledger.ListLedgerTransactionsService;
-import com.gonezo.application.services.ledger.OpenLedgerAccountService;
-import com.gonezo.application.services.ledger.PostLedgerDraftTransactionService;
-import com.gonezo.application.services.ledger.RecordLedgerExpenseService;
-import com.gonezo.application.services.ledger.RecordLedgerIncomeService;
-import com.gonezo.application.services.ledger.RecordLedgerTransferService;
-import com.gonezo.application.services.ledger.RenameLedgerAccountService;
-import com.gonezo.application.services.ledger.VoidLedgerTransactionService;
-import com.gonezo.domain.ledger.Account;
-import com.gonezo.domain.ledger.AccountId;
-import com.gonezo.domain.ledger.CategoryId;
-import com.gonezo.domain.ledger.CurrencyCode;
-import com.gonezo.domain.ledger.DateRange;
-import com.gonezo.domain.ledger.Transaction;
-import com.gonezo.domain.ledger.TransactionId;
-import com.gonezo.domain.ledger.TransactionItem;
-import com.gonezo.domain.ledger.TransactionStatus;
-import com.gonezo.domain.ledger.services.BalanceCalculator;
+import com.gonezo.ledger.application.AddLedgerTransactionItemCommand;
+import com.gonezo.ledger.application.AddLedgerTransactionItemUC;
+import com.gonezo.ledger.application.ArchiveLedgerAccountCommand;
+import com.gonezo.ledger.application.ArchiveLedgerAccountUC;
+import com.gonezo.ledger.application.CreateLedgerExpenseDraftCommand;
+import com.gonezo.ledger.application.CreateLedgerExpenseDraftUC;
+import com.gonezo.ledger.application.GetLedgerAccountBalanceQuery;
+import com.gonezo.ledger.application.GetLedgerAccountBalanceUC;
+import com.gonezo.ledger.application.ListLedgerAccountsUC;
+import com.gonezo.ledger.application.ListLedgerTransactionsQuery;
+import com.gonezo.ledger.application.ListLedgerTransactionsUC;
+import com.gonezo.ledger.application.OpenLedgerAccountCommand;
+import com.gonezo.ledger.application.OpenLedgerAccountUC;
+import com.gonezo.ledger.application.PostLedgerDraftTransactionCommand;
+import com.gonezo.ledger.application.PostLedgerDraftTransactionUC;
+import com.gonezo.ledger.application.RecordLedgerExpenseCommand;
+import com.gonezo.ledger.application.RecordLedgerExpenseUC;
+import com.gonezo.ledger.application.RecordLedgerIncomeCommand;
+import com.gonezo.ledger.application.RecordLedgerIncomeUC;
+import com.gonezo.ledger.application.RecordLedgerTransferCommand;
+import com.gonezo.ledger.application.RecordLedgerTransferResult;
+import com.gonezo.ledger.application.RecordLedgerTransferUC;
+import com.gonezo.ledger.application.RenameLedgerAccountCommand;
+import com.gonezo.ledger.application.RenameLedgerAccountUC;
+import com.gonezo.ledger.application.VoidLedgerTransactionCommand;
+import com.gonezo.ledger.application.VoidLedgerTransactionUC;
+import com.gonezo.ledger.application.AddLedgerTransactionItemService;
+import com.gonezo.ledger.application.ArchiveLedgerAccountService;
+import com.gonezo.ledger.application.CreateLedgerExpenseDraftService;
+import com.gonezo.ledger.application.GetLedgerAccountBalanceService;
+import com.gonezo.ledger.application.ListLedgerAccountsService;
+import com.gonezo.ledger.application.ListLedgerTransactionsService;
+import com.gonezo.ledger.application.OpenLedgerAccountService;
+import com.gonezo.ledger.application.PostLedgerDraftTransactionService;
+import com.gonezo.ledger.application.RecordLedgerExpenseService;
+import com.gonezo.ledger.application.RecordLedgerIncomeService;
+import com.gonezo.ledger.application.RecordLedgerTransferService;
+import com.gonezo.ledger.application.RenameLedgerAccountService;
+import com.gonezo.ledger.application.VoidLedgerTransactionService;
+import com.gonezo.ledger.domain.Account;
+import com.gonezo.ledger.domain.AccountId;
+import com.gonezo.ledger.domain.CurrencyCode;
+import com.gonezo.ledger.domain.DateRange;
+import com.gonezo.ledger.domain.Transaction;
+import com.gonezo.ledger.domain.TransactionId;
+import com.gonezo.ledger.domain.TransactionItem;
+import com.gonezo.ledger.domain.TransactionStatus;
+import com.gonezo.ledger.domain.services.BalanceCalculator;
 import com.gonezo.domain.shared.Money;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -118,7 +117,7 @@ public final class AndroidLedgerCore {
 
     OpenLedgerAccountCommand command = new OpenLedgerAccountCommand(
       trimmedName,
-      com.gonezo.domain.ledger.AccountType.Companion.from(resolvedType),
+      com.gonezo.ledger.domain.AccountType.Companion.from(resolvedType),
       CurrencyCode.Companion.from(resolvedCurrency),
       resolvedCreatedAt,
       resolvedOpeningBalance
@@ -178,8 +177,7 @@ public final class AndroidLedgerCore {
       new Money(new BigDecimal(requireText(amount, "amount is required")), requireText(currency, "currency is required").toUpperCase()),
       parseInstantOrDate(occurredAt, "occurredAt"),
       blankToNull(description),
-      blankToNull(merchant),
-      parseNullableCategoryId(categoryId)
+      blankToNull(merchant)
     );
     return recordExpenseUC.execute(command).getValue();
   }
@@ -190,8 +188,7 @@ public final class AndroidLedgerCore {
       new Money(new BigDecimal(requireText(amount, "amount is required")), requireText(currency, "currency is required").toUpperCase()),
       parseInstantOrDate(occurredAt, "occurredAt"),
       blankToNull(description),
-      blankToNull(merchant),
-      parseNullableCategoryId(categoryId)
+      blankToNull(merchant)
     );
     return recordIncomeUC.execute(command).getValue();
   }
@@ -214,8 +211,7 @@ public final class AndroidLedgerCore {
       new Money(new BigDecimal(requireText(amount, "amount is required")), requireText(currency, "currency is required").toUpperCase()),
       parseInstantOrDate(occurredAt, "occurredAt"),
       blankToNull(description),
-      blankToNull(merchant),
-      parseNullableCategoryId(categoryId)
+      blankToNull(merchant)
     );
     return createExpenseDraftUC.execute(command).getValue();
   }
@@ -226,7 +222,6 @@ public final class AndroidLedgerCore {
         new TransactionId(UUID.fromString(requireText(transactionId, "transactionId is required"))),
         requireText(name, "name is required"),
         new Money(new BigDecimal(requireText(amount, "amount is required")), requireText(currency, "currency is required").toUpperCase()),
-        parseNullableCategoryId(categoryId),
         blankToNull(note)
       )
     );
@@ -261,7 +256,6 @@ public final class AndroidLedgerCore {
       new AccountId(UUID.fromString(requireText(accountId, "accountId is required"))),
       limit,
       range,
-      parseNullableCategoryId(categoryId),
       blankToNull(merchant)
     );
     boolean resolvedIncludeVoided = includeVoided != null && includeVoided;
@@ -288,7 +282,7 @@ public final class AndroidLedgerCore {
         item.getName(),
         item.getAmount().getAmount().toPlainString(),
         item.getAmount().getCurrency(),
-        item.getCategoryId() == null ? null : item.getCategoryId().toString(),
+        null,
         item.getNote()
       ))
       .toList();
@@ -302,14 +296,9 @@ public final class AndroidLedgerCore {
       tx.getOccurredAt().toString(),
       tx.getDescription(),
       tx.getMerchant(),
-      tx.getCategoryId() == null ? null : tx.getCategoryId().toString(),
+      null,
       items
     );
-  }
-
-  private static CategoryId parseNullableCategoryId(String value) {
-    String normalized = blankToNull(value);
-    return normalized == null ? null : new CategoryId(UUID.fromString(normalized));
   }
 
   private static String requireText(String value, String message) {

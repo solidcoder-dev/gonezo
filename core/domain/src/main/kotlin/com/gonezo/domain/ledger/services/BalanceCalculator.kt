@@ -1,6 +1,6 @@
-package com.gonezo.domain.ledger.services
+package com.gonezo.ledger.domain.services
 
-import com.gonezo.domain.ledger.Transaction
+import com.gonezo.ledger.domain.Transaction
 import com.gonezo.domain.shared.Money
 import java.math.BigDecimal
 

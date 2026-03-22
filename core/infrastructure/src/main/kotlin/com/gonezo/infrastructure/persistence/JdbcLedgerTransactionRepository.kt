@@ -1,14 +1,14 @@
-package com.gonezo.infrastructure.persistence
+package com.gonezo.ledger.infrastructure.persistence
 
-import com.gonezo.domain.ledger.AccountId
-import com.gonezo.domain.ledger.DateRange
-import com.gonezo.domain.ledger.Transaction
-import com.gonezo.domain.ledger.TransactionId
-import com.gonezo.domain.ledger.TransactionItem
-import com.gonezo.domain.ledger.TransactionItemId
-import com.gonezo.domain.ledger.TransactionStatus
-import com.gonezo.domain.ledger.TransactionType
-import com.gonezo.domain.ledger.ports.LedgerTransactionRepository
+import com.gonezo.ledger.domain.AccountId
+import com.gonezo.ledger.domain.DateRange
+import com.gonezo.ledger.domain.Transaction
+import com.gonezo.ledger.domain.TransactionId
+import com.gonezo.ledger.domain.TransactionItem
+import com.gonezo.ledger.domain.TransactionItemId
+import com.gonezo.ledger.domain.TransactionStatus
+import com.gonezo.ledger.domain.TransactionType
+import com.gonezo.ledger.domain.ports.LedgerTransactionRepository
 import com.gonezo.domain.shared.Money
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource

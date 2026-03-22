@@ -1,12 +1,12 @@
-package com.gonezo.application.ledger
+package com.gonezo.ledger.application
 
-import com.gonezo.domain.ledger.Account
-import com.gonezo.domain.ledger.AccountId
-import com.gonezo.domain.ledger.AccountType
-import com.gonezo.domain.ledger.CurrencyCode
-import com.gonezo.domain.ledger.DateRange
-import com.gonezo.domain.ledger.Transaction
-import com.gonezo.domain.ledger.TransactionId
+import com.gonezo.ledger.domain.Account
+import com.gonezo.ledger.domain.AccountId
+import com.gonezo.ledger.domain.AccountType
+import com.gonezo.ledger.domain.CurrencyCode
+import com.gonezo.ledger.domain.DateRange
+import com.gonezo.ledger.domain.Transaction
+import com.gonezo.ledger.domain.TransactionId
 import com.gonezo.domain.shared.Money
 import java.math.BigDecimal
 import java.time.Instant
@@ -115,7 +115,7 @@ interface AddLedgerTransactionItemUC {
 
 data class RemoveLedgerTransactionItemCommand(
   val transactionId: TransactionId,
-  val itemId: com.gonezo.domain.ledger.TransactionItemId,
+  val itemId: com.gonezo.ledger.domain.TransactionItemId,
 )
 
 interface RemoveLedgerTransactionItemUC {

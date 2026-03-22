@@ -1,7 +1,17 @@
 # Core Modules
 
-Target DDD modules:
+Current package structure:
 
-- `domain`: pure domain model and ports.
-- `application`: use-case orchestration.
-- `infrastructure`: adapters implementing ports.
+- `com.gonezo.ledger.domain|application|infrastructure`
+- `com.gonezo.taxonomy.domain|application|infrastructure`
+- `com.gonezo.application.query`
+- `com.gonezo.application.orchestration`
+- `com.gonezo.infrastructure` (technical infrastructure)
+
+Layer intent:
+
+- `ledger/*`: financial core, independent.
+- `taxonomy/*`: classification core, independent.
+- `application/query`: composed read models across modules.
+- `application/orchestration`: coordination workflows and retries.
+- `infrastructure/*`: adapters, persistence, scheduler/event plumbing.

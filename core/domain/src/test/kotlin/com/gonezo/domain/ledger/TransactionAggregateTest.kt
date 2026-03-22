@@ -1,4 +1,4 @@
-package com.gonezo.domain.ledger
+package com.gonezo.ledger.domain
 
 import com.gonezo.domain.shared.Money
 import org.assertj.core.api.Assertions.assertThat

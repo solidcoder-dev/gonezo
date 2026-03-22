@@ -1,8 +1,8 @@
 package com.gonezo.persistence.workflows
 
-import com.gonezo.application.workflows.CategorizationStatus
-import com.gonezo.application.workflows.TxCategorizationState
-import com.gonezo.domain.taxonomy.CategoryId
+import com.gonezo.application.orchestration.CategorizationStatus
+import com.gonezo.application.orchestration.TxCategorizationState
+import com.gonezo.taxonomy.domain.CategoryId
 import com.gonezo.infrastructure.persistence.JdbcTxCategorizationStateRepository
 import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat

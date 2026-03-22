@@ -3,16 +3,15 @@ package com.gonezo.multiplatform.core;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import com.gonezo.domain.ledger.AccountId;
-import com.gonezo.domain.ledger.CategoryId;
-import com.gonezo.domain.ledger.DateRange;
-import com.gonezo.domain.ledger.Transaction;
-import com.gonezo.domain.ledger.TransactionId;
-import com.gonezo.domain.ledger.TransactionItem;
-import com.gonezo.domain.ledger.TransactionItemId;
-import com.gonezo.domain.ledger.TransactionStatus;
-import com.gonezo.domain.ledger.TransactionType;
-import com.gonezo.domain.ledger.ports.LedgerTransactionRepository;
+import com.gonezo.ledger.domain.AccountId;
+import com.gonezo.ledger.domain.DateRange;
+import com.gonezo.ledger.domain.Transaction;
+import com.gonezo.ledger.domain.TransactionId;
+import com.gonezo.ledger.domain.TransactionItem;
+import com.gonezo.ledger.domain.TransactionItemId;
+import com.gonezo.ledger.domain.TransactionStatus;
+import com.gonezo.ledger.domain.TransactionType;
+import com.gonezo.ledger.domain.ports.LedgerTransactionRepository;
 import com.gonezo.domain.shared.Money;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -40,11 +39,6 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
     tx.put("occurred_at", transaction.getOccurredAt().toString());
     tx.put("description", transaction.getDescription());
     tx.put("merchant", transaction.getMerchant());
-    if (transaction.getCategoryId() == null) {
-      tx.putNull("category_id");
-    } else {
-      tx.put("category_id", transaction.getCategoryId().toString());
-    }
     tx.put("status", transaction.getStatus().getValue());
     if (transaction.getLinkedTransactionId() == null) {
       tx.putNull("linked_transaction_id");
@@ -65,11 +59,6 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
       row.put("name", item.getName());
       row.put("amount", item.getAmount().getAmount().toPlainString());
       row.put("currency", item.getAmount().getCurrency());
-      if (item.getCategoryId() == null) {
-        row.putNull("category_id");
-      } else {
-        row.put("category_id", item.getCategoryId().toString());
-      }
       row.put("note", item.getNote());
       long itemResult = database.insertWithOnConflict("ledger_transaction_items", null, row, SQLiteDatabase.CONFLICT_REPLACE);
       if (itemResult == -1) {
@@ -83,7 +72,7 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
     SQLiteDatabase database = db.getReadableDatabase();
     Cursor cursor = database.query(
       "ledger_transactions",
-      new String[] {"id", "account_id", "type", "amount", "currency", "occurred_at", "description", "merchant", "category_id", "status", "linked_transaction_id"},
+      new String[] {"id", "account_id", "type", "amount", "currency", "occurred_at", "description", "merchant", "status", "linked_transaction_id"},
       "id = ?",
       new String[] {id.toString()},
       null,
@@ -107,7 +96,7 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
     SQLiteDatabase database = db.getReadableDatabase();
     Cursor cursor = database.query(
       "ledger_transactions",
-      new String[] {"id", "account_id", "type", "amount", "currency", "occurred_at", "description", "merchant", "category_id", "status", "linked_transaction_id"},
+      new String[] {"id", "account_id", "type", "amount", "currency", "occurred_at", "description", "merchant", "status", "linked_transaction_id"},
       "account_id = ?",
       new String[] {accountId.toString()},
       null,
@@ -123,24 +112,9 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
     SQLiteDatabase database = db.getReadableDatabase();
     Cursor cursor = database.query(
       "ledger_transactions",
-      new String[] {"id", "account_id", "type", "amount", "currency", "occurred_at", "description", "merchant", "category_id", "status", "linked_transaction_id"},
+      new String[] {"id", "account_id", "type", "amount", "currency", "occurred_at", "description", "merchant", "status", "linked_transaction_id"},
       "account_id = ? and occurred_at >= ? and occurred_at <= ?",
       new String[] {accountId.toString(), range.getFrom().toString(), range.getTo().toString()},
-      null,
-      null,
-      "occurred_at desc, id desc"
-    );
-    return mapTransactions(cursor, database);
-  }
-
-  @Override
-  public List<Transaction> findByAccountAndCategory(AccountId accountId, CategoryId categoryId) {
-    SQLiteDatabase database = db.getReadableDatabase();
-    Cursor cursor = database.query(
-      "ledger_transactions",
-      new String[] {"id", "account_id", "type", "amount", "currency", "occurred_at", "description", "merchant", "category_id", "status", "linked_transaction_id"},
-      "account_id = ? and category_id = ?",
-      new String[] {accountId.toString(), categoryId.toString()},
       null,
       null,
       "occurred_at desc, id desc"
@@ -153,7 +127,7 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
     SQLiteDatabase database = db.getReadableDatabase();
     Cursor cursor = database.query(
       "ledger_transactions",
-      new String[] {"id", "account_id", "type", "amount", "currency", "occurred_at", "description", "merchant", "category_id", "status", "linked_transaction_id"},
+      new String[] {"id", "account_id", "type", "amount", "currency", "occurred_at", "description", "merchant", "status", "linked_transaction_id"},
       "account_id = ? and lower(merchant) = lower(?)",
       new String[] {accountId.toString(), merchant.trim()},
       null,
@@ -183,10 +157,8 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
     Instant occurredAt = Instant.parse(cursor.getString(5));
     String description = cursor.getString(6);
     String merchant = cursor.getString(7);
-    String categoryIdRaw = cursor.getString(8);
-    CategoryId categoryId = categoryIdRaw == null ? null : new CategoryId(UUID.fromString(categoryIdRaw));
-    TransactionStatus status = TransactionStatus.Companion.from(cursor.getString(9));
-    String linkedRaw = cursor.getString(10);
+    TransactionStatus status = TransactionStatus.Companion.from(cursor.getString(8));
+    String linkedRaw = cursor.getString(9);
     TransactionId linkedId = linkedRaw == null ? null : new TransactionId(UUID.fromString(linkedRaw));
     List<TransactionItem> items = loadItems(database, id);
     return new Transaction(
@@ -197,7 +169,6 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
       occurredAt,
       description,
       merchant,
-      categoryId,
       status,
       items,
       linkedId
@@ -207,7 +178,7 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
   private static List<TransactionItem> loadItems(SQLiteDatabase database, TransactionId transactionId) {
     Cursor cursor = database.query(
       "ledger_transaction_items",
-      new String[] {"id", "name", "amount", "currency", "category_id", "note"},
+      new String[] {"id", "name", "amount", "currency", "note"},
       "transaction_id = ?",
       new String[] {transactionId.toString()},
       null,
@@ -220,10 +191,8 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
         TransactionItemId id = new TransactionItemId(UUID.fromString(cursor.getString(0)));
         String name = cursor.getString(1);
         Money amount = new Money(new BigDecimal(cursor.getString(2)), cursor.getString(3));
-        String categoryIdRaw = cursor.getString(4);
-        CategoryId categoryId = categoryIdRaw == null ? null : new CategoryId(UUID.fromString(categoryIdRaw));
-        String note = cursor.getString(5);
-        items.add(new TransactionItem(id, name, amount, categoryId, note));
+        String note = cursor.getString(4);
+        items.add(new TransactionItem(id, name, amount, note));
       }
       return items;
     } finally {
