@@ -2,7 +2,7 @@
 
 ## Proposito
 
-Gestionar categorias de clasificacion para transacciones de Ledger sin acoplarse al agregado financiero.
+Gestionar clasificacion para transacciones de Ledger sin acoplarse al agregado financiero.
 
 Taxonomy no crea transacciones ni recalcula balances.
 
@@ -14,7 +14,9 @@ Lenguaje ubicuo:
 
 - `Category`
 - `CategoryAssignment`
-- `AppliesTo`
+- `Tag`
+- `TagAssignment`
+- `AppliesTo` (solo categorias)
 
 ## Aggregate Roots
 
@@ -42,6 +44,29 @@ Comandos:
 - `ArchiveCategory`
 - `ListCategories`
 
+### Tag
+
+Campos:
+
+- `id: TagId`
+- `name: String`
+- `status: TagStatus` (`active | archived`)
+- `createdAt: Instant`
+- `archivedAt: Instant?`
+
+Reglas:
+
+- nombre obligatorio
+- nombre unico global (normalizado)
+- solo tags activos se pueden asignar
+
+Comandos:
+
+- `CreateTag`
+- `RenameTag`
+- `ArchiveTag`
+- `ListTags`
+
 ### CategoryAssignment
 
 Campos:
@@ -54,7 +79,7 @@ Reglas:
 
 - una transaccion tiene como maximo una categoria activa
 - reasignar reemplaza la asignacion anterior
-- transferencias no son categorizables
+- solo `income` y `expense` son categorizables
 
 Comandos:
 
@@ -62,11 +87,32 @@ Comandos:
 - `UnassignCategoryFromTransaction`
 - `GetAssignmentsByTransactionIds`
 
+### TagAssignment
+
+Campos:
+
+- `transactionId: TransactionId`
+- `tagId: TagId`
+- `assignedAt: Instant`
+
+Reglas:
+
+- una transaccion puede tener N tags
+- reemplazar tags elimina los anteriores y deja la nueva lista
+- transferencias si aceptan tags (contexto transversal)
+
+Comandos:
+
+- `ReplaceTransactionTags`
+- `GetTagsByTransactionIds`
+
 ## Repositorios (domain ports)
 
 - `CategoryRepository`
+- `TagRepository`
 - `TransactionCategoryAssignmentRepository`
-- `TransactionReferencePort` (consulta minima a Ledger para validar tipo/estado de transaccion)
+- `TransactionTagAssignmentRepository`
+- `TransactionReferencePort` (consulta minima a Ledger para validar tipo/estado si aplica)
 
 ## Eventos de dominio
 
@@ -74,13 +120,16 @@ Comandos:
 - `CategoryArchived`
 - `CategoryAssignedToTransaction`
 - `CategoryUnassignedFromTransaction`
+- `TagCreated`
+- `TagArchived`
+- `TransactionTagsReplaced`
 
 ## Limites del contexto
 
 Dentro de Taxonomy:
 
-- catalogo de categorias
-- reglas de asignacion categoria-transaccion
+- catalogo de categorias y tags
+- reglas de asignacion categoria/tags por transaccion
 
 Fuera de Taxonomy:
 

@@ -149,7 +149,7 @@ Dentro de Ledger:
 Fuera de Ledger:
 
 - budgeting
-- taxonomy/categorias
+- taxonomy (categorias/tags)
 - deudas/personas
 - settlements
 - analitica avanzada
@@ -171,11 +171,12 @@ No se guarda saldo mutable en `Account`: si se informa balance inicial, se crea 
 
 ## Integracion con Taxonomy
 
-Ledger no persiste clasificacion por categoria.
+Ledger no persiste clasificacion por categoria ni tags.
 
-Si una UI recibe `categoryId` al registrar una transaccion:
+Si una UI recibe clasificacion al registrar una transaccion:
 
 1. primero se registra el hecho en Ledger
-2. despues un workflow tecnico intenta asignar categoria en Taxonomy
+2. despues un workflow tecnico intenta asignar categoria en Taxonomy (si aplica)
+3. orquestacion aplica tags en Taxonomy sobre la `transactionId` resultante
 
-Si la categoria no existe o no aplica, la transaccion permanece valida en Ledger.
+Si categoria o tags fallan, la transaccion permanece valida en Ledger.

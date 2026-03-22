@@ -15,7 +15,7 @@ package "Gonezo" {
     component "API / Workflows" as API
     component "Ledger Application" as LedgerApp
     component "Taxonomy Application" as TaxonomyApp
-    component "Categorization Worker" as Worker
+    component "Classification Worker" as Worker
     database "Main Database" as MainDb
   }
 
@@ -23,8 +23,8 @@ package "Gonezo" {
   UI --> CacheDb : offline use
   API --> LedgerApp
   API --> TaxonomyApp
-  API --> MainDb : workflow state (pending/failed/assigned)
-  Worker --> TaxonomyApp : retry assignment
+  API --> MainDb : workflow state (category/tag status)
+  Worker --> TaxonomyApp : retry category / apply tags
   Worker --> MainDb : update workflow state
   LedgerApp --> MainDb : ledger tables
   TaxonomyApp --> MainDb : taxonomy tables

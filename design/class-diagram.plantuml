@@ -251,14 +251,37 @@ package Taxonomy {
     assignedAt: DateTime
   }
 
+  class Tag <<AggregateRoot>> {
+    id: UUID
+    name: String
+    status: String ' active | archived
+  }
+
+  class TransactionTagAssignment {
+    transactionId: UUID
+    tagId: UUID
+    assignedAt: DateTime
+  }
+
   interface CategoryRepository <<Repository>> {
     +save(category: Category)
     +listActive(): List<Category>
   }
 
+  interface TagRepository <<Repository>> {
+    +save(tag: Tag)
+    +listActive(): List<Tag>
+    +findByNormalizedName(name: String): Tag
+  }
+
   interface TransactionCategoryAssignmentRepository <<Repository>> {
     +upsert(assignment: TransactionCategoryAssignment)
     +findByTransactionId(transactionId: UUID): TransactionCategoryAssignment
+  }
+
+  interface TransactionTagAssignmentRepository <<Repository>> {
+    +replaceByTransactionId(transactionId: UUID, assignments: List<TransactionTagAssignment>)
+    +findByTransactionId(transactionId: UUID): List<TransactionTagAssignment>
   }
 
   class CategoryCreated <<DomainEvent>> {
@@ -268,6 +291,14 @@ package Taxonomy {
   class CategoryAssignedToTransaction <<DomainEvent>> {
     transactionId: UUID
     categoryId: UUID
+  }
+
+  class TagCreated <<DomainEvent>> {
+    tagId: UUID
+  }
+
+  class TransactionTagsReplaced <<DomainEvent>> {
+    transactionId: UUID
   }
 }
 
@@ -404,6 +435,8 @@ Budgeting.BudgetLink ..> Investments.InvestmentTransaction : linkedType=investme
 
 Taxonomy.TransactionCategoryAssignment ..> CashLedger.Transaction : transactionId
 Taxonomy.TransactionCategoryAssignment ..> Taxonomy.Category : categoryId
+Taxonomy.TransactionTagAssignment ..> CashLedger.Transaction : transactionId
+Taxonomy.TransactionTagAssignment ..> Taxonomy.Tag : tagId
 
 ' ==========================================================
 ' USE CASE LINKS (DDD orchestration)
@@ -505,6 +538,13 @@ RULES
 - One category per transaction (replace on reassignment).
 - Only active categories can be assigned.
 - Transfer transactions are not categorizable.
+end note
+
+note right of Taxonomy.TransactionTagAssignment
+RULES
+- A transaction can have many tags.
+- Replace operation overwrites the full tag set.
+- Missing tags can be created by orchestration before assignment.
 end note
 
 note right of WorkflowTechnical.TxCategorizationState

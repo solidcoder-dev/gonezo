@@ -17,14 +17,15 @@ API --> UI : Data
 UI -> Cache : Store data
 
 == Offline Write ==
-User -> UI : Create expense/income (+category)
+User -> UI : Create expense/income/transfer (+category +tags)
 UI -> Cache : Save command (queued)
-UI --> User : Show pending categorization
+UI --> User : Show pending classification
 
 == Reconnect Sync ==
 UI -> API : Send queued command
 API -> DB : Persist ledger transaction
 API -> DB : Upsert workflow status = pending
+API -> API : Apply tags (create missing + replace assignments)
 DB --> API : OK
 
 Worker -> DB : Fetch pending categorizations
@@ -33,7 +34,7 @@ API -> DB : Save assignment
 API -> DB : Update workflow status = assigned/failed
 DB --> API : OK
 
-API --> UI : Return tx + categorization status
+API --> UI : Return tx + classification status
 UI -> Cache : Update local data
 UI --> User : Clear pending queue
 
