@@ -32,7 +32,7 @@ export function CategoryComboboxField({ value, options, disabled, onChange }: Pr
           <option key={category.id} value={category.name} />
         ))}
       </datalist>
-      <span className="hint">Select existing or type a new category</span>
+      <span className="hint">Suggestions include all categories</span>
     </label>
   );
 }

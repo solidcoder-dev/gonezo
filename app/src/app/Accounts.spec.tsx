@@ -116,8 +116,7 @@ describe('Accounts UX', () => {
 
   it('categorizes quick expense with an existing category', async () => {
     const core = makeCore();
-
-    render(
+    const view = render(
       <MemoryRouter>
         <Accounts core={core} />
       </MemoryRouter>
@@ -127,6 +126,8 @@ describe('Accounts UX', () => {
     await openMode('Expense');
     expect(screen.queryByLabelText('Category')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Toggle advanced options' }));
+    expect(view.container.querySelector('datalist option[value="Food"]')).not.toBeNull();
+    expect(view.container.querySelector('datalist option[value="Salary"]')).not.toBeNull();
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
     fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'Food' } });

@@ -169,7 +169,17 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     if (composerMode !== 'expense' && composerMode !== 'income') {
       return [];
     }
-    return categories.filter((category) => category.appliesTo === composerMode && category.status === 'active');
+    const currentType = composerMode;
+    return categories
+      .filter((category) => category.status === 'active')
+      .sort((a, b) => {
+        const aWeight = a.appliesTo === currentType ? 0 : 1;
+        const bWeight = b.appliesTo === currentType ? 0 : 1;
+        if (aWeight !== bWeight) {
+          return aWeight - bWeight;
+        }
+        return a.name.localeCompare(b.name);
+      });
   }, [categories, composerMode]);
 
   const expenseAssigned = useMemo(
@@ -513,7 +523,12 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       return undefined;
     }
 
-    const existing = categoryOptions.find((category) => category.name.trim().toLowerCase() === rawInput.toLowerCase());
+    const existing = categories.find(
+      (category) =>
+        category.status === 'active'
+        && category.appliesTo === type
+        && category.name.trim().toLowerCase() === rawInput.toLowerCase(),
+    );
     if (existing) {
       return existing.id;
     }
