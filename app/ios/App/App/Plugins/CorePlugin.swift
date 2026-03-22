@@ -7,6 +7,8 @@ public class CorePlugin: CAPPlugin {
     private var accounts: [[String: Any]] = []
     private var transactions: [[String: Any]] = []
     private var taxonomyCategories: [[String: Any]] = []
+    private var taxonomyTags: [[String: Any]] = []
+    private var transactionTagsByTransactionId: [String: [String]] = [:]
 
     @objc func doThing(_ call: CAPPluginCall) {
         let input = call.getString("input") ?? ""
@@ -265,6 +267,21 @@ public class CorePlugin: CAPPlugin {
         call.resolve(["id": id])
     }
 
+    @objc func taxonomyListTags(_ call: CAPPluginCall) {
+        let includeArchived = call.getBool("includeArchived") ?? false
+        let items = taxonomyTags.filter { tag in
+            let status = (tag["status"] as? String ?? "active").lowercased()
+            return includeArchived || status != "archived"
+        }.map { tag in
+            [
+                "id": tag["id"] as Any,
+                "name": tag["name"] as Any,
+                "status": tag["status"] as Any
+            ]
+        }
+        call.resolve(["items": items])
+    }
+
     @objc func orchestrationCategorizeTransaction(_ call: CAPPluginCall) {
         let transactionId = (call.getString("transactionId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let transactionType = (call.getString("transactionType") ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -322,6 +339,71 @@ public class CorePlugin: CAPPlugin {
         call.resolve([
             "status": "assigned",
             "categoryId": categoryId
+        ])
+    }
+
+    @objc func orchestrationApplyTransactionTags(_ call: CAPPluginCall) {
+        let transactionId = (call.getString("transactionId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if transactionId.isEmpty {
+            call.reject("transactionId is required")
+            return
+        }
+
+        let rawTagValues = call.getArray("tagNames") ?? []
+        var uniqueByNormalizedName: [String: String] = [:]
+        for value in rawTagValues {
+            guard let rawTag = value as? String else { continue }
+            let trimmed = rawTag.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty {
+                continue
+            }
+            let normalized = trimmed.lowercased()
+            if uniqueByNormalizedName[normalized] == nil {
+                uniqueByNormalizedName[normalized] = trimmed
+            }
+        }
+
+        if uniqueByNormalizedName.isEmpty {
+            transactionTagsByTransactionId[transactionId] = []
+            call.resolve(["status": "none"])
+            return
+        }
+
+        var resolvedTagIds: [String] = []
+        for (normalizedName, rawName) in uniqueByNormalizedName {
+            if let existingIndex = taxonomyTags.firstIndex(where: {
+                (($0["normalizedName"] as? String) ?? "") == normalizedName
+            }) {
+                let status = (taxonomyTags[existingIndex]["status"] as? String ?? "active").lowercased()
+                if status != "active" {
+                    call.resolve([
+                        "status": "failed",
+                        "errorCode": "TAG_ARCHIVED",
+                        "errorMessage": "Tag is archived: \((taxonomyTags[existingIndex]["name"] as? String) ?? normalizedName)"
+                    ])
+                    return
+                }
+
+                if let existingId = taxonomyTags[existingIndex]["id"] as? String {
+                    resolvedTagIds.append(existingId)
+                }
+                continue
+            }
+
+            let id = UUID().uuidString
+            taxonomyTags.append([
+                "id": id,
+                "name": rawName,
+                "normalizedName": normalizedName,
+                "status": "active"
+            ])
+            resolvedTagIds.append(id)
+        }
+
+        transactionTagsByTransactionId[transactionId] = resolvedTagIds
+        call.resolve([
+            "status": "assigned",
+            "tagIds": resolvedTagIds
         ])
     }
 

@@ -10,6 +10,8 @@ import com.gonezo.multiplatform.core.AndroidLedgerCore;
 @CapacitorPlugin(name = "CorePlugin")
 public class CorePlugin extends Plugin {
   private final java.util.List<JSObject> taxonomyCategories = new java.util.ArrayList<>();
+  private final java.util.List<JSObject> taxonomyTags = new java.util.ArrayList<>();
+  private final java.util.Map<String, java.util.List<String>> transactionTagsByTransactionId = new java.util.HashMap<>();
 
   @PluginMethod
   public void doThing(PluginCall call) {
@@ -392,6 +394,33 @@ public class CorePlugin extends Plugin {
   }
 
   @PluginMethod
+  public void taxonomyListTags(PluginCall call) {
+    Boolean includeArchived = call.getBoolean("includeArchived");
+    boolean resolvedIncludeArchived = includeArchived != null && includeArchived;
+
+    try {
+      org.json.JSONArray items = new org.json.JSONArray();
+      for (JSObject tag : taxonomyTags) {
+        String tagStatus = tag.getString("status", "active");
+        if (!resolvedIncludeArchived && "archived".equalsIgnoreCase(tagStatus)) {
+          continue;
+        }
+        JSObject item = new JSObject();
+        item.put("id", tag.getString("id"));
+        item.put("name", tag.getString("name"));
+        item.put("status", tagStatus);
+        items.put(item);
+      }
+
+      JSObject result = new JSObject();
+      result.put("items", items);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
   public void orchestrationCategorizeTransaction(PluginCall call) {
     String transactionId = call.getString("transactionId");
     String transactionType = call.getString("transactionType");
@@ -456,6 +485,91 @@ public class CorePlugin extends Plugin {
 
       result.put("status", "assigned");
       result.put("categoryId", categoryId);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void orchestrationApplyTransactionTags(PluginCall call) {
+    String transactionId = call.getString("transactionId");
+    org.json.JSONArray tagNames = call.getArray("tagNames");
+    if (transactionId == null || transactionId.trim().isEmpty()) {
+      call.reject("transactionId is required");
+      return;
+    }
+
+    try {
+      java.util.LinkedHashMap<String, String> uniqueByNormalizedName = new java.util.LinkedHashMap<>();
+      if (tagNames != null) {
+        for (int i = 0; i < tagNames.length(); i++) {
+          String rawTag = tagNames.optString(i, "").trim();
+          if (rawTag.isEmpty()) {
+            continue;
+          }
+          String normalizedTag = rawTag.toLowerCase();
+          if (!uniqueByNormalizedName.containsKey(normalizedTag)) {
+            uniqueByNormalizedName.put(normalizedTag, rawTag);
+          }
+        }
+      }
+
+      if (uniqueByNormalizedName.isEmpty()) {
+        transactionTagsByTransactionId.put(transactionId, new java.util.ArrayList<>());
+        JSObject result = new JSObject();
+        result.put("status", "none");
+        call.resolve(result);
+        return;
+      }
+
+      org.json.JSONArray resolvedTagIds = new org.json.JSONArray();
+      java.util.List<String> storedTagIds = new java.util.ArrayList<>();
+      for (java.util.Map.Entry<String, String> entry : uniqueByNormalizedName.entrySet()) {
+        String normalizedTagName = entry.getKey();
+        String rawTagName = entry.getValue();
+
+        JSObject existingTag = null;
+        for (JSObject tag : taxonomyTags) {
+          if (normalizedTagName.equals(tag.getString("normalizedName", ""))) {
+            existingTag = tag;
+            break;
+          }
+        }
+
+        if (existingTag != null) {
+          String tagStatus = existingTag.getString("status", "active");
+          if (!"active".equalsIgnoreCase(tagStatus)) {
+            JSObject failed = new JSObject();
+            failed.put("status", "failed");
+            failed.put("errorCode", "TAG_ARCHIVED");
+            failed.put("errorMessage", "Tag is archived: " + existingTag.getString("name"));
+            call.resolve(failed);
+            return;
+          }
+
+          String existingTagId = existingTag.getString("id");
+          resolvedTagIds.put(existingTagId);
+          storedTagIds.add(existingTagId);
+          continue;
+        }
+
+        JSObject createdTag = new JSObject();
+        String createdTagId = java.util.UUID.randomUUID().toString();
+        createdTag.put("id", createdTagId);
+        createdTag.put("name", rawTagName);
+        createdTag.put("normalizedName", normalizedTagName);
+        createdTag.put("status", "active");
+        taxonomyTags.add(createdTag);
+
+        resolvedTagIds.put(createdTagId);
+        storedTagIds.add(createdTagId);
+      }
+
+      transactionTagsByTransactionId.put(transactionId, storedTagIds);
+      JSObject result = new JSObject();
+      result.put("status", "assigned");
+      result.put("tagIds", resolvedTagIds);
       call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());
