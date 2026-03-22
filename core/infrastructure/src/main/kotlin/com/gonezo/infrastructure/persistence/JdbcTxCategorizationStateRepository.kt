@@ -57,6 +57,19 @@ class JdbcTxCategorizationStateRepository(
     return jdbcTemplate.query(sql, MapSqlParameterSource("transaction_id", transactionId.toString()), rowMapper()).firstOrNull()
   }
 
+  override fun findByTransactionIds(transactionIds: Collection<UUID>): Map<UUID, TxCategorizationState> {
+    if (transactionIds.isEmpty()) {
+      return emptyMap()
+    }
+    val sql = """
+      select transaction_id, requested_category_id, status, error_code, error_message, attempts, next_attempt_at, updated_at, created_at
+      from workflow_tx_categorization
+      where transaction_id in (:transaction_ids)
+    """.trimIndent()
+    val params = MapSqlParameterSource("transaction_ids", transactionIds.map(UUID::toString))
+    return jdbcTemplate.query(sql, params, rowMapper()).associateBy { it.transactionId }
+  }
+
   override fun findPending(now: Instant, limit: Int): List<TxCategorizationState> {
     val sql = """
       select transaction_id, requested_category_id, status, error_code, error_message, attempts, next_attempt_at, updated_at, created_at

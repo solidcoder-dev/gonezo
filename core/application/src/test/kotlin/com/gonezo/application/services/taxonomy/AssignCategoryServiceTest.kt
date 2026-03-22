@@ -105,6 +105,9 @@ private class InMemoryCategoryRepository(
 
   override fun findById(id: CategoryId): Category? = categories.firstOrNull { it.id == id }
 
+  override fun findByIds(ids: Collection<CategoryId>): Map<CategoryId, Category> =
+    ids.mapNotNull { id -> categories.firstOrNull { it.id == id }?.let { id to it } }.toMap()
+
   override fun findByNormalizedNameAndAppliesTo(name: String, appliesTo: CategoryAppliesTo): Category? =
     categories.firstOrNull { it.name.equals(name.trim(), ignoreCase = true) && it.appliesTo == appliesTo }
 

@@ -115,6 +115,9 @@ private class InMemoryTxCategorizationStateRepository : TxCategorizationStateRep
 
   override fun findByTransactionId(transactionId: UUID): TxCategorizationState? = states[transactionId]
 
+  override fun findByTransactionIds(transactionIds: Collection<UUID>): Map<UUID, TxCategorizationState> =
+    transactionIds.mapNotNull { id -> states[id]?.let { id to it } }.toMap()
+
   override fun findPending(now: Instant, limit: Int): List<TxCategorizationState> =
     states.values
       .filter { it.status == CategorizationStatus.PENDING }

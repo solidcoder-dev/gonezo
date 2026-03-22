@@ -50,6 +50,19 @@ class JdbcTaxonomyCategoryRepository(
     return jdbcTemplate.query(sql, MapSqlParameterSource("id", id.toString()), rowMapper()).firstOrNull()
   }
 
+  override fun findByIds(ids: Collection<CategoryId>): Map<CategoryId, Category> {
+    if (ids.isEmpty()) {
+      return emptyMap()
+    }
+    val sql = """
+      select id, name, applies_to, status, created_at, archived_at
+      from taxonomy_categories
+      where id in (:ids)
+    """.trimIndent()
+    val params = MapSqlParameterSource("ids", ids.map(CategoryId::toString))
+    return jdbcTemplate.query(sql, params, rowMapper()).associateBy { it.id }
+  }
+
   override fun findByNormalizedNameAndAppliesTo(name: String, appliesTo: CategoryAppliesTo): Category? {
     val sql = """
       select id, name, applies_to, status, created_at, archived_at

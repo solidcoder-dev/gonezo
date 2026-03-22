@@ -36,6 +36,8 @@ interface TxCategorizationStateRepository {
 
   fun findByTransactionId(transactionId: UUID): TxCategorizationState?
 
+  fun findByTransactionIds(transactionIds: Collection<UUID>): Map<UUID, TxCategorizationState>
+
   fun findPending(now: Instant, limit: Int): List<TxCategorizationState>
 }
 

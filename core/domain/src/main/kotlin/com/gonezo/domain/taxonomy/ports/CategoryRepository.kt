@@ -9,6 +9,8 @@ interface CategoryRepository {
 
   fun findById(id: CategoryId): Category?
 
+  fun findByIds(ids: Collection<CategoryId>): Map<CategoryId, Category>
+
   fun findByNormalizedNameAndAppliesTo(name: String, appliesTo: CategoryAppliesTo): Category?
 
   fun listAll(): List<Category>
