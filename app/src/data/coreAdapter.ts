@@ -27,8 +27,12 @@ import type {
   TaxonomyListCategoriesResult,
   TaxonomyCreateCategoryInput,
   TaxonomyCreateCategoryResult,
+  TaxonomyListTagsInput,
+  TaxonomyListTagsResult,
   OrchestrationCategorizeTransactionInput,
   OrchestrationCategorizeTransactionResult,
+  OrchestrationApplyTransactionTagsInput,
+  OrchestrationApplyTransactionTagsResult,
 } from '../domain/corePort';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from '../native/corePlugin';
@@ -160,6 +164,13 @@ export class CoreAdapter implements CorePort {
     return this.web.taxonomyCreateCategory(input);
   }
 
+  async taxonomyListTags(input?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.taxonomyListTags(input ?? {});
+    }
+    return this.web.taxonomyListTags(input);
+  }
+
   async orchestrationCategorizeTransaction(
     input: OrchestrationCategorizeTransactionInput,
   ): Promise<OrchestrationCategorizeTransactionResult> {
@@ -167,5 +178,14 @@ export class CoreAdapter implements CorePort {
       return CorePlugin.orchestrationCategorizeTransaction(input);
     }
     return this.web.orchestrationCategorizeTransaction(input);
+  }
+
+  async orchestrationApplyTransactionTags(
+    input: OrchestrationApplyTransactionTagsInput,
+  ): Promise<OrchestrationApplyTransactionTagsResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.orchestrationApplyTransactionTags(input);
+    }
+    return this.web.orchestrationApplyTransactionTags(input);
   }
 }

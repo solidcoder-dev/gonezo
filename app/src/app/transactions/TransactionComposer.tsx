@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { CategoryComboboxField } from './components/CategoryComboboxField';
+import { TagComboboxField } from './components/TagComboboxField';
 
 export type ComposerMode = 'picker' | 'expense' | 'income' | 'transfer';
 
@@ -19,6 +20,8 @@ type Props = {
   note: string;
   categoryInput: string;
   categoryOptions: Array<{ id: string; name: string }>;
+  tagInput: string;
+  tagOptions: Array<{ id: string; name: string }>;
   advancedOpen: boolean;
   transferTargetAccountId: string;
   transferTargetOptions: Array<{ id: string; name: string; currency: string }>;
@@ -41,6 +44,7 @@ type Props = {
   onSetDate: (value: string) => void;
   onSetNote: (value: string) => void;
   onSetCategoryInput: (value: string) => void;
+  onSetTagInput: (value: string) => void;
   onSetTransferTarget: (value: string) => void;
   onToggleExpenseDetailed: () => void;
   onSetExpenseItemName: (value: string) => void;
@@ -67,6 +71,8 @@ export function TransactionComposer({
   note,
   categoryInput,
   categoryOptions,
+  tagInput,
+  tagOptions,
   advancedOpen,
   transferTargetAccountId,
   transferTargetOptions,
@@ -89,6 +95,7 @@ export function TransactionComposer({
   onSetDate,
   onSetNote,
   onSetCategoryInput,
+  onSetTagInput,
   onSetTransferTarget,
   onToggleExpenseDetailed,
   onSetExpenseItemName,
@@ -213,6 +220,13 @@ export function TransactionComposer({
                     onChange={onSetCategoryInput}
                   />
                 ) : null}
+
+                <TagComboboxField
+                  value={tagInput}
+                  options={tagOptions}
+                  disabled={disabled}
+                  onChange={onSetTagInput}
+                />
               </>
             ) : null}
 

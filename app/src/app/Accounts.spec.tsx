@@ -62,7 +62,14 @@ function makeCore(transactionCount = 0): AccountsCorePort {
       ],
     })),
     taxonomyCreateCategory: vi.fn(async () => ({ id: 'cat-created' })),
+    taxonomyListTags: vi.fn(async () => ({
+      items: [
+        { id: 'tag-home', name: 'home', status: 'active' as const },
+        { id: 'tag-london', name: 'london', status: 'active' as const },
+      ],
+    })),
     orchestrationCategorizeTransaction: vi.fn(async () => ({ status: 'assigned' as const })),
+    orchestrationApplyTransactionTags: vi.fn(async () => ({ status: 'assigned' as const })),
   };
 }
 
@@ -196,6 +203,83 @@ describe('Accounts UX', () => {
 
     await waitFor(() => {
       expect(core.ledgerRecordIncome).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('shows tags input only in advanced options', async () => {
+    const core = makeCore();
+    const view = render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Expense');
+    expect(screen.queryByLabelText('Tags')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle advanced options' }));
+    expect(screen.getByLabelText('Tags')).toBeInTheDocument();
+    expect(view.container.querySelector('datalist option[value="home"]')).not.toBeNull();
+    expect(view.container.querySelector('datalist option[value="london"]')).not.toBeNull();
+  });
+
+  it('applies tags when saving expense with typed tags', async () => {
+    const core = makeCore();
+    vi.mocked(core.taxonomyListTags).mockResolvedValueOnce({
+      items: [{ id: 'tag-london', name: 'london', status: 'active' as const }],
+    });
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Expense');
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle advanced options' }));
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '20' } });
+    fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'london, trip-2026, london' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save expense' }));
+
+    await waitFor(() => {
+      expect(core.orchestrationApplyTransactionTags).toHaveBeenCalledTimes(1);
+    });
+    expect(core.orchestrationApplyTransactionTags).toHaveBeenCalledWith({
+      transactionId: 'tx-exp',
+      tagNames: ['london', 'trip-2026'],
+    });
+  });
+
+  it('applies tags to both transfer sides', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Transfer');
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle advanced options' }));
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
+    fireEvent.change(screen.getByLabelText('Destination account'), { target: { value: 'acc-2' } });
+    fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'trip, shared' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save transfer' }));
+
+    await waitFor(() => {
+      expect(core.orchestrationApplyTransactionTags).toHaveBeenCalledTimes(2);
+    });
+    expect(core.orchestrationApplyTransactionTags).toHaveBeenNthCalledWith(1, {
+      transactionId: 'tx-tr-out',
+      tagNames: ['trip', 'shared'],
+    });
+    expect(core.orchestrationApplyTransactionTags).toHaveBeenNthCalledWith(2, {
+      transactionId: 'tx-tr-in',
+      tagNames: ['trip', 'shared'],
     });
   });
 

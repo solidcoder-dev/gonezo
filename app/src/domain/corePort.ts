@@ -192,6 +192,22 @@ export type TaxonomyCreateCategoryResult = {
   id: string;
 };
 
+export type TaxonomyTagStatus = 'active' | 'archived';
+
+export type TaxonomyTagItem = {
+  id: string;
+  name: string;
+  status: TaxonomyTagStatus;
+};
+
+export type TaxonomyListTagsInput = {
+  includeArchived?: boolean;
+};
+
+export type TaxonomyListTagsResult = {
+  items: TaxonomyTagItem[];
+};
+
 export type OrchestrationCategorizeTransactionInput = {
   transactionId: string;
   transactionType: TaxonomyCategoryAppliesTo;
@@ -201,6 +217,18 @@ export type OrchestrationCategorizeTransactionInput = {
 export type OrchestrationCategorizeTransactionResult = {
   status: 'assigned' | 'failed' | 'none';
   categoryId?: string;
+  errorCode?: string;
+  errorMessage?: string;
+};
+
+export type OrchestrationApplyTransactionTagsInput = {
+  transactionId: string;
+  tagNames: string[];
+};
+
+export type OrchestrationApplyTransactionTagsResult = {
+  status: 'assigned' | 'failed' | 'none';
+  tagIds?: string[];
   errorCode?: string;
   errorMessage?: string;
 };
@@ -223,7 +251,11 @@ export interface CorePort {
   ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult>;
   taxonomyListCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult>;
   taxonomyCreateCategory(input: TaxonomyCreateCategoryInput): Promise<TaxonomyCreateCategoryResult>;
+  taxonomyListTags(input?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult>;
   orchestrationCategorizeTransaction(
     input: OrchestrationCategorizeTransactionInput,
   ): Promise<OrchestrationCategorizeTransactionResult>;
+  orchestrationApplyTransactionTags(
+    input: OrchestrationApplyTransactionTagsInput,
+  ): Promise<OrchestrationApplyTransactionTagsResult>;
 }

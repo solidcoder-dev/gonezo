@@ -26,8 +26,12 @@ import type {
   TaxonomyListCategoriesResult,
   TaxonomyCreateCategoryInput,
   TaxonomyCreateCategoryResult,
+  TaxonomyListTagsInput,
+  TaxonomyListTagsResult,
   OrchestrationCategorizeTransactionInput,
   OrchestrationCategorizeTransactionResult,
+  OrchestrationApplyTransactionTagsInput,
+  OrchestrationApplyTransactionTagsResult,
 } from '../domain/corePort';
 
 export interface CorePlugin {
@@ -48,9 +52,13 @@ export interface CorePlugin {
   ledgerListTransactions(options: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult>;
   taxonomyListCategories(options?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult>;
   taxonomyCreateCategory(options: TaxonomyCreateCategoryInput): Promise<TaxonomyCreateCategoryResult>;
+  taxonomyListTags(options?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult>;
   orchestrationCategorizeTransaction(
     options: OrchestrationCategorizeTransactionInput,
   ): Promise<OrchestrationCategorizeTransactionResult>;
+  orchestrationApplyTransactionTags(
+    options: OrchestrationApplyTransactionTagsInput,
+  ): Promise<OrchestrationApplyTransactionTagsResult>;
 }
 
 export const CorePlugin = registerPlugin<CorePlugin>('CorePlugin', {

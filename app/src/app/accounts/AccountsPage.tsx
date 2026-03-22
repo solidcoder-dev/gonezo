@@ -151,6 +151,8 @@ export function AccountsPage({ core }: Props) {
             note={model.transactionNote}
             categoryInput={model.transactionCategoryInput}
             categoryOptions={model.categoryOptions}
+            tagInput={model.transactionTagInput}
+            tagOptions={model.tagOptions}
             transferTargetAccountId={model.transferToAccountId}
             transferTargetOptions={model.transferTargetOptions}
             expenseDetailed={model.expenseDetailed}
@@ -175,6 +177,7 @@ export function AccountsPage({ core }: Props) {
             onSetDate={model.setTransactionDate}
             onSetNote={model.setTransactionNote}
             onSetCategoryInput={model.setTransactionCategoryInput}
+            onSetTagInput={model.setTransactionTagInput}
             onSetTransferTarget={model.setTransferToAccountId}
             onSubmit={model.submitTransaction}
           />

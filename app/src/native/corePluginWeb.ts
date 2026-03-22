@@ -26,8 +26,12 @@ import type {
   TaxonomyListCategoriesResult,
   TaxonomyCreateCategoryInput,
   TaxonomyCreateCategoryResult,
+  TaxonomyListTagsInput,
+  TaxonomyListTagsResult,
   OrchestrationCategorizeTransactionInput,
   OrchestrationCategorizeTransactionResult,
+  OrchestrationApplyTransactionTagsInput,
+  OrchestrationApplyTransactionTagsResult,
 } from '../domain/corePort';
 import { CoreAdapterWeb } from '../data/coreAdapterWeb';
 import type { CorePlugin } from './corePlugin';
@@ -103,9 +107,19 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
     return this.core.taxonomyCreateCategory(options);
   }
 
+  async taxonomyListTags(options?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult> {
+    return this.core.taxonomyListTags(options);
+  }
+
   async orchestrationCategorizeTransaction(
     options: OrchestrationCategorizeTransactionInput,
   ): Promise<OrchestrationCategorizeTransactionResult> {
     return this.core.orchestrationCategorizeTransaction(options);
+  }
+
+  async orchestrationApplyTransactionTags(
+    options: OrchestrationApplyTransactionTagsInput,
+  ): Promise<OrchestrationApplyTransactionTagsResult> {
+    return this.core.orchestrationApplyTransactionTags(options);
   }
 }

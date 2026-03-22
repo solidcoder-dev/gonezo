@@ -26,8 +26,12 @@ import type {
   TaxonomyListCategoriesResult,
   TaxonomyCreateCategoryInput,
   TaxonomyCreateCategoryResult,
+  TaxonomyListTagsInput,
+  TaxonomyListTagsResult,
   OrchestrationCategorizeTransactionInput,
   OrchestrationCategorizeTransactionResult,
+  OrchestrationApplyTransactionTagsInput,
+  OrchestrationApplyTransactionTagsResult,
 } from '../domain/corePort';
 
 type MemoryLedgerAccount = {
@@ -74,6 +78,15 @@ type MemoryTaxonomyCategory = {
   archivedAt?: string;
 };
 
+type MemoryTaxonomyTag = {
+  id: string;
+  name: string;
+  normalizedName: string;
+  status: 'active' | 'archived';
+  createdAt: string;
+  archivedAt?: string;
+};
+
 export class CoreAdapterWeb implements CorePort {
   private static readonly supportedCurrencies = ['AUD', 'BRL', 'CAD', 'CHF', 'EUR', 'GBP', 'JPY', 'MXN', 'NZD', 'USD'];
 
@@ -82,6 +95,10 @@ export class CoreAdapterWeb implements CorePort {
   private static ledgerTransactions: MemoryLedgerTransaction[] = [];
 
   private static taxonomyCategories: MemoryTaxonomyCategory[] = [];
+
+  private static taxonomyTags: MemoryTaxonomyTag[] = [];
+
+  private static taxonomyTransactionTags: Map<string, string[]> = new Map();
 
   private accountOrThrow(accountId: string): MemoryLedgerAccount {
     const account = CoreAdapterWeb.ledgerAccounts.find((item) => item.id === accountId);
@@ -100,6 +117,10 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   private normalizeCategoryName(name: string): string {
+    return name.trim().toLowerCase();
+  }
+
+  private normalizeTagName(name: string): string {
     return name.trim().toLowerCase();
   }
 
@@ -457,6 +478,20 @@ export class CoreAdapterWeb implements CorePort {
     return { id };
   }
 
+  async taxonomyListTags(input?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult> {
+    const includeArchived = input?.includeArchived === true;
+    const items = CoreAdapterWeb.taxonomyTags
+      .filter((tag) => includeArchived || tag.status !== 'archived')
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((tag) => ({
+        id: tag.id,
+        name: tag.name,
+        status: tag.status,
+      }));
+
+    return { items };
+  }
+
   async orchestrationCategorizeTransaction(
     input: OrchestrationCategorizeTransactionInput,
   ): Promise<OrchestrationCategorizeTransactionResult> {
@@ -502,5 +537,60 @@ export class CoreAdapterWeb implements CorePort {
 
     transaction.categoryId = category.id;
     return { status: 'assigned', categoryId: category.id };
+  }
+
+  async orchestrationApplyTransactionTags(
+    input: OrchestrationApplyTransactionTagsInput,
+  ): Promise<OrchestrationApplyTransactionTagsResult> {
+    this.transactionOrThrow(input.transactionId);
+
+    const uniqueByNormalizedName = new Map<string, string>();
+    for (const rawName of input.tagNames) {
+      const name = rawName.trim();
+      if (!name) {
+        continue;
+      }
+      const normalizedName = this.normalizeTagName(name);
+      if (!uniqueByNormalizedName.has(normalizedName)) {
+        uniqueByNormalizedName.set(normalizedName, name);
+      }
+    }
+
+    if (uniqueByNormalizedName.size === 0) {
+      CoreAdapterWeb.taxonomyTransactionTags.set(input.transactionId, []);
+      return { status: 'none' };
+    }
+
+    const tagIds: string[] = [];
+    for (const [normalizedName, originalName] of uniqueByNormalizedName) {
+      const existing = CoreAdapterWeb.taxonomyTags.find((tag) => tag.normalizedName === normalizedName);
+      if (existing) {
+        if (existing.status !== 'active') {
+          return {
+            status: 'failed',
+            errorCode: 'TAG_ARCHIVED',
+            errorMessage: `Tag is archived: ${existing.name}`,
+          };
+        }
+        tagIds.push(existing.id);
+        continue;
+      }
+
+      const id = crypto.randomUUID();
+      CoreAdapterWeb.taxonomyTags.push({
+        id,
+        name: originalName,
+        normalizedName,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      });
+      tagIds.push(id);
+    }
+
+    CoreAdapterWeb.taxonomyTransactionTags.set(input.transactionId, tagIds);
+    return {
+      status: 'assigned',
+      tagIds: [...tagIds],
+    };
   }
 }

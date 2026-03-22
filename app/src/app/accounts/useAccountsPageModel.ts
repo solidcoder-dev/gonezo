@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { LedgerAccountItem, LedgerTransactionListItem, TaxonomyCategoryItem } from '../../domain/corePort';
+import type {
+  LedgerAccountItem,
+  LedgerTransactionListItem,
+  TaxonomyCategoryItem,
+  TaxonomyTagItem,
+} from '../../domain/corePort';
 
 type FieldErrors = {
   amount?: string;
@@ -92,6 +97,9 @@ export type AccountsCorePort = {
     name: string;
     appliesTo: TaxonomyCategoryAppliesTo;
   }): Promise<{ id: string }>;
+  taxonomyListTags(input?: {
+    includeArchived?: boolean;
+  }): Promise<{ items: TaxonomyTagItem[] }>;
   orchestrationCategorizeTransaction(input: {
     transactionId: string;
     transactionType: TaxonomyCategoryAppliesTo;
@@ -99,6 +107,15 @@ export type AccountsCorePort = {
   }): Promise<{
     status: 'assigned' | 'failed' | 'none';
     categoryId?: string;
+    errorCode?: string;
+    errorMessage?: string;
+  }>;
+  orchestrationApplyTransactionTags(input: {
+    transactionId: string;
+    tagNames: string[];
+  }): Promise<{
+    status: 'assigned' | 'failed' | 'none';
+    tagIds?: string[];
     errorCode?: string;
     errorMessage?: string;
   }>;
@@ -147,8 +164,10 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [transactionDate, setTransactionDate] = useState(todayIso());
   const [transactionNote, setTransactionNote] = useState('');
   const [transactionCategoryInput, setTransactionCategoryInput] = useState('');
+  const [transactionTagInput, setTransactionTagInput] = useState('');
   const [transferToAccountId, setTransferToAccountId] = useState('');
   const [categories, setCategories] = useState<TaxonomyCategoryItem[]>([]);
+  const [tags, setTags] = useState<TaxonomyTagItem[]>([]);
 
   const [expenseDetailed, setExpenseDetailed] = useState(false);
   const [expenseItemName, setExpenseItemName] = useState('');
@@ -181,6 +200,13 @@ export function useAccountsPageModel(core: AccountsCorePort) {
         return a.name.localeCompare(b.name);
       });
   }, [categories, composerMode]);
+
+  const tagOptions = useMemo(
+    () => tags
+      .filter((tag) => tag.status === 'active')
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    [tags],
+  );
 
   const expenseAssigned = useMemo(
     () => expenseItems.reduce((acc, item) => acc + parseAmount(item.amount), 0),
@@ -255,6 +281,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setTransactionDate(todayIso());
     setTransactionNote('');
     setTransactionCategoryInput('');
+    setTransactionTagInput('');
     setExpenseDetailed(false);
     setExpenseItemName('');
     setExpenseItemAmount('');
@@ -314,6 +341,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
         }
         const taxonomy = await core.taxonomyListCategories({ includeArchived: false });
         setCategories(taxonomy.items);
+        const taxonomyTags = await core.taxonomyListTags({ includeArchived: false });
+        setTags(taxonomyTags.items);
         await refreshAccounts();
       } catch (err) {
         if (!cancelled) {
@@ -424,6 +453,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setComposerMode(mode);
     setComposerAdvancedOpen(false);
     setTransactionCategoryInput('');
+    setTransactionTagInput('');
   }
 
   function setTransactionAmountValue(value: string) {
@@ -455,6 +485,10 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
   function setTransactionCategoryInputValue(value: string) {
     setTransactionCategoryInput(value);
+  }
+
+  function setTransactionTagInputValue(value: string) {
+    setTransactionTagInput(value);
   }
 
   function addExpenseItem() {
@@ -573,6 +607,34 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     }
   }
 
+  function parseTransactionTags(): string[] {
+    const uniqueByNormalizedName = new Map<string, string>();
+    for (const rawTag of transactionTagInput.split(',')) {
+      const tag = rawTag.trim();
+      if (!tag) {
+        continue;
+      }
+      const normalized = tag.toLowerCase();
+      if (!uniqueByNormalizedName.has(normalized)) {
+        uniqueByNormalizedName.set(normalized, tag);
+      }
+    }
+    return [...uniqueByNormalizedName.values()];
+  }
+
+  async function applyTransactionTags(transactionId: string, tagNames: string[]) {
+    if (tagNames.length === 0) {
+      return;
+    }
+    const result = await core.orchestrationApplyTransactionTags({
+      transactionId,
+      tagNames,
+    });
+    if (result.status === 'failed') {
+      throw new Error(result.errorCode ?? result.errorMessage ?? 'Tag assignment failed');
+    }
+  }
+
   async function submitTransaction(event: FormEvent) {
     event.preventDefault();
     setError('');
@@ -626,6 +688,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
     setPostingTransaction(true);
     try {
+      const tagNames = parseTransactionTags();
       let recorded = false;
       if (composerMode === 'expense') {
         const categoryId = await resolveCategorySelection('expense');
@@ -639,6 +702,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
             merchant: transactionNote.trim() || undefined,
           });
           await categorizeTransaction(result.id, 'expense', categoryId);
+          await applyTransactionTags(result.id, tagNames);
           showToast(`Expense recorded: ${result.id}`);
           recorded = true;
         } else {
@@ -660,6 +724,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
           }
           await core.ledgerPostDraftTransaction({ transactionId: draft.id });
           await categorizeTransaction(draft.id, 'expense', categoryId);
+          await applyTransactionTags(draft.id, tagNames);
           showToast(`Expense recorded: ${draft.id}`);
           recorded = true;
         }
@@ -676,6 +741,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
           merchant: transactionNote.trim() || undefined,
         });
         await categorizeTransaction(result.id, 'income', categoryId);
+        await applyTransactionTags(result.id, tagNames);
         showToast(`Income recorded: ${result.id}`);
         recorded = true;
       }
@@ -689,6 +755,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
           currency: selectedAccount.currency,
           description: transactionNote.trim() || undefined,
         });
+        await applyTransactionTags(result.transferOutId, tagNames);
+        await applyTransactionTags(result.transferInId, tagNames);
         showToast(`Transfer recorded: ${result.transferOutId}`);
         recorded = true;
       }
@@ -769,7 +837,9 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     transactionDate,
     transactionNote,
     transactionCategoryInput,
+    transactionTagInput,
     categoryOptions,
+    tagOptions,
     transferToAccountId,
     transferTargetOptions,
     expenseDetailed,
@@ -787,6 +857,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setTransactionDate,
     setTransactionNote,
     setTransactionCategoryInput: setTransactionCategoryInputValue,
+    setTransactionTagInput: setTransactionTagInputValue,
     setTransferToAccountId,
     setExpenseDetailed: setExpenseDetailedValue,
     setExpenseItemName: setExpenseItemNameValue,
