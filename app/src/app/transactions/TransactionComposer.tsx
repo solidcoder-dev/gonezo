@@ -163,7 +163,7 @@ export function TransactionComposer({
             </button>
           </div>
         ) : (
-          <form className="stack" onSubmit={onSubmit} aria-busy={disabled}>
+          <form className="stack composer-form" onSubmit={onSubmit} aria-busy={disabled}>
             <label className="stack">
               Amount
               <input
