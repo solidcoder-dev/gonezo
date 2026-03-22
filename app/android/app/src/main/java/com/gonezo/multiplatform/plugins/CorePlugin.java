@@ -6,10 +6,10 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.gonezo.multiplatform.core.AndroidLedgerCore;
+import com.gonezo.multiplatform.core.AndroidTaxonomyCore;
 
 @CapacitorPlugin(name = "CorePlugin")
 public class CorePlugin extends Plugin {
-  private final java.util.List<JSObject> taxonomyCategories = new java.util.ArrayList<>();
   private final java.util.List<JSObject> taxonomyTags = new java.util.ArrayList<>();
   private final java.util.Map<String, java.util.List<String>> transactionTagsByTransactionId = new java.util.HashMap<>();
 
@@ -327,24 +327,17 @@ public class CorePlugin extends Plugin {
   public void taxonomyListCategories(PluginCall call) {
     String appliesTo = call.getString("appliesTo");
     Boolean includeArchived = call.getBoolean("includeArchived");
-    boolean resolvedIncludeArchived = includeArchived != null && includeArchived;
 
     try {
+      AndroidTaxonomyCore core = AndroidTaxonomyCore.getInstance(getContext());
+      java.util.List<AndroidTaxonomyCore.TaxonomyCategoryView> categories = core.listCategories(appliesTo, includeArchived);
       org.json.JSONArray items = new org.json.JSONArray();
-      for (JSObject category : taxonomyCategories) {
-        String categoryStatus = category.getString("status", "active");
-        String categoryAppliesTo = category.getString("appliesTo");
-        if (!resolvedIncludeArchived && "archived".equalsIgnoreCase(categoryStatus)) {
-          continue;
-        }
-        if (appliesTo != null && !appliesTo.trim().isEmpty() && categoryAppliesTo != null && !categoryAppliesTo.equalsIgnoreCase(appliesTo)) {
-          continue;
-        }
+      for (AndroidTaxonomyCore.TaxonomyCategoryView category : categories) {
         JSObject item = new JSObject();
-        item.put("id", category.getString("id"));
-        item.put("name", category.getString("name"));
-        item.put("appliesTo", categoryAppliesTo);
-        item.put("status", categoryStatus);
+        item.put("id", category.id());
+        item.put("name", category.name());
+        item.put("appliesTo", category.appliesTo());
+        item.put("status", category.status());
         items.put(item);
       }
 
@@ -358,39 +351,17 @@ public class CorePlugin extends Plugin {
 
   @PluginMethod
   public void taxonomyCreateCategory(PluginCall call) {
-    String rawName = call.getString("name");
-    String rawAppliesTo = call.getString("appliesTo");
-    String name = rawName == null ? "" : rawName.trim();
-    String appliesTo = rawAppliesTo == null ? "" : rawAppliesTo.trim().toLowerCase();
-    if (name.isEmpty()) {
-      call.reject("Category name is required");
-      return;
+    String name = call.getString("name");
+    String appliesTo = call.getString("appliesTo");
+    try {
+      AndroidTaxonomyCore core = AndroidTaxonomyCore.getInstance(getContext());
+      String id = core.createCategory(name, appliesTo).toString();
+      JSObject result = new JSObject();
+      result.put("id", id);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
     }
-    if (!"expense".equals(appliesTo) && !"income".equals(appliesTo)) {
-      call.reject("appliesTo must be expense or income");
-      return;
-    }
-
-    String normalizedName = name.toLowerCase();
-    for (JSObject category : taxonomyCategories) {
-      String existingName = category.getString("name", "").trim().toLowerCase();
-      String existingAppliesTo = category.getString("appliesTo", "").trim().toLowerCase();
-      if (existingName.equals(normalizedName) && existingAppliesTo.equals(appliesTo)) {
-        call.reject("Category already exists for " + appliesTo + ": " + name);
-        return;
-      }
-    }
-
-    JSObject created = new JSObject();
-    created.put("id", java.util.UUID.randomUUID().toString());
-    created.put("name", name);
-    created.put("appliesTo", appliesTo);
-    created.put("status", "active");
-    taxonomyCategories.add(created);
-
-    JSObject result = new JSObject();
-    result.put("id", created.getString("id"));
-    call.resolve(result);
   }
 
   @PluginMethod
@@ -425,66 +396,25 @@ public class CorePlugin extends Plugin {
     String transactionId = call.getString("transactionId");
     String transactionType = call.getString("transactionType");
     String categoryId = call.getString("categoryId");
-    if (transactionId == null || transactionId.trim().isEmpty()) {
-      call.reject("transactionId is required");
-      return;
-    }
-    if (transactionType == null || transactionType.trim().isEmpty()) {
-      call.reject("transactionType is required");
-      return;
-    }
-
-    String normalizedType = transactionType.trim().toLowerCase();
-    if (!"expense".equals(normalizedType) && !"income".equals(normalizedType)) {
-      call.reject("Only income/expense transactions can be categorized");
-      return;
-    }
-
     try {
+      AndroidTaxonomyCore core = AndroidTaxonomyCore.getInstance(getContext());
+      AndroidTaxonomyCore.TaxonomyCategorizationResultView categorization = core.categorizeTransaction(
+        transactionId,
+        transactionType,
+        categoryId
+      );
+
       JSObject result = new JSObject();
-      if (categoryId == null || categoryId.trim().isEmpty()) {
-        result.put("status", "none");
-        call.resolve(result);
-        return;
+      result.put("status", categorization.status());
+      if (categorization.categoryId() != null) {
+        result.put("categoryId", categorization.categoryId());
       }
-
-      JSObject category = null;
-      for (JSObject item : taxonomyCategories) {
-        if (categoryId.equals(item.getString("id"))) {
-          category = item;
-          break;
-        }
+      if (categorization.errorCode() != null) {
+        result.put("errorCode", categorization.errorCode());
       }
-      if (category == null) {
-        result.put("status", "failed");
-        result.put("categoryId", categoryId);
-        result.put("errorCode", "CATEGORY_NOT_FOUND");
-        result.put("errorMessage", "Category not found: " + categoryId);
-        call.resolve(result);
-        return;
+      if (categorization.errorMessage() != null) {
+        result.put("errorMessage", categorization.errorMessage());
       }
-
-      String categoryStatus = category.getString("status", "active");
-      String categoryAppliesTo = category.getString("appliesTo", "").trim().toLowerCase();
-      if (!"active".equalsIgnoreCase(categoryStatus)) {
-        result.put("status", "failed");
-        result.put("categoryId", categoryId);
-        result.put("errorCode", "CATEGORY_ARCHIVED");
-        result.put("errorMessage", "Archived categories cannot be assigned");
-        call.resolve(result);
-        return;
-      }
-      if (!normalizedType.equals(categoryAppliesTo)) {
-        result.put("status", "failed");
-        result.put("categoryId", categoryId);
-        result.put("errorCode", "CATEGORY_APPLIES_TO_MISMATCH");
-        result.put("errorMessage", "Category applies to " + categoryAppliesTo + ", got " + normalizedType);
-        call.resolve(result);
-        return;
-      }
-
-      result.put("status", "assigned");
-      result.put("categoryId", categoryId);
       call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());
