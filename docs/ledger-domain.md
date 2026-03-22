@@ -9,7 +9,7 @@ Registrar hechos economicos reales en cuentas:
 - cuando
 - en que cuenta
 
-Ledger no modela deudas, reparto entre personas, settlements ni presupuestos.
+Ledger no modela deudas, reparto entre personas, settlements, presupuestos ni taxonomias de clasificacion.
 
 ## Bounded Context
 
@@ -63,7 +63,6 @@ Campos:
 - `occurredAt: Instant`
 - `description: String?`
 - `merchant: String?`
-- `categoryId: CategoryId?`
 - `status: TransactionStatus` (`draft | posted | voided`)
 - `items: List<TransactionItem>`
 - `linkedTransactionId: TransactionId?`
@@ -98,7 +97,6 @@ Campos:
 - `id: TransactionItemId`
 - `name: String`
 - `amount: Money`
-- `categoryId: CategoryId?`
 - `note: String?`
 
 Reglas:
@@ -113,7 +111,6 @@ Reglas:
 - `AccountId`
 - `TransactionId`
 - `TransactionItemId`
-- `CategoryId`
 - `CurrencyCode`
 
 ## Repositorios (domain ports)
@@ -138,7 +135,6 @@ Reglas:
 - listar cuentas
 - listar transacciones por cuenta
 - listar por rango de fechas
-- listar por categoria
 - listar por merchant
 - obtener saldo actual por cuenta
 
@@ -153,6 +149,7 @@ Dentro de Ledger:
 Fuera de Ledger:
 
 - budgeting
+- taxonomy/categorias
 - deudas/personas
 - settlements
 - analitica avanzada
@@ -171,3 +168,14 @@ Transferencias operativas con doble transaccion enlazada:
 `OpenLedgerAccount` permite `openingBalanceAmount` opcional.
 
 No se guarda saldo mutable en `Account`: si se informa balance inicial, se crea una transaccion `income` o `expense` con descripcion `Opening balance`.
+
+## Integracion con Taxonomy
+
+Ledger no persiste clasificacion por categoria.
+
+Si una UI recibe `categoryId` al registrar una transaccion:
+
+1. primero se registra el hecho en Ledger
+2. despues un workflow tecnico intenta asignar categoria en Taxonomy
+
+Si la categoria no existe o no aplica, la transaccion permanece valida en Ledger.

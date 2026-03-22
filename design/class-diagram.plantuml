@@ -204,7 +204,6 @@ package CashLedger {
     amount: Money
     type: String ' income | expense | transfer
     merchant: String?
-    categoryId: UUID?
     recurring: Boolean
   }
 
@@ -231,6 +230,65 @@ package CashLedger {
 
   class TransferPosted <<DomainEvent>> {
     transferGroupId: UUID
+  }
+}
+
+' ==========================================================
+' BOUNDED CONTEXT: Taxonomy
+' ==========================================================
+package Taxonomy {
+
+  class Category <<AggregateRoot>> {
+    id: UUID
+    name: String
+    appliesTo: String ' income | expense
+    status: String ' active | archived
+  }
+
+  class TransactionCategoryAssignment {
+    transactionId: UUID
+    categoryId: UUID
+    assignedAt: DateTime
+  }
+
+  interface CategoryRepository <<Repository>> {
+    +save(category: Category)
+    +listActive(): List<Category>
+  }
+
+  interface TransactionCategoryAssignmentRepository <<Repository>> {
+    +upsert(assignment: TransactionCategoryAssignment)
+    +findByTransactionId(transactionId: UUID): TransactionCategoryAssignment
+  }
+
+  class CategoryCreated <<DomainEvent>> {
+    categoryId: UUID
+  }
+
+  class CategoryAssignedToTransaction <<DomainEvent>> {
+    transactionId: UUID
+    categoryId: UUID
+  }
+}
+
+' ==========================================================
+' TECHNICAL WORKFLOW: Categorization
+' ==========================================================
+package WorkflowTechnical {
+
+  class TxCategorizationState {
+    transactionId: UUID
+    requestedCategoryId: UUID?
+    status: String ' pending | processing | assigned | failed | none
+    errorCode: String?
+    attempts: int
+    nextAttemptAt: DateTime?
+    updatedAt: DateTime
+  }
+
+  interface TxCategorizationStateRepository <<Repository>> {
+    +save(state: TxCategorizationState)
+    +findPending(now: DateTime): List<TxCategorizationState>
   }
 }
 
@@ -344,7 +402,8 @@ Budgeting.BudgetReservation ..> CashLedger.Transaction : linkedTransactionId
 Budgeting.BudgetLink ..> CashLedger.Transaction : linkedType=transaction
 Budgeting.BudgetLink ..> Investments.InvestmentTransaction : linkedType=investment_transaction
 
-CashLedger.Transaction ..> Budgeting.Category : categoryId (UUID)
+Taxonomy.TransactionCategoryAssignment ..> CashLedger.Transaction : transactionId
+Taxonomy.TransactionCategoryAssignment ..> Taxonomy.Category : categoryId
 
 ' ==========================================================
 ' USE CASE LINKS (DDD orchestration)
@@ -438,8 +497,20 @@ note right of CashLedger.Transaction
 RULES
 - Always recorded (reality first).
 - postedDate = bank date; effectiveDate = budgeting date.
-- If categoryId present => contributes to CategoryBalance.spent in BudgetPeriod(effectiveDate).
-- Transfers typically have no categoryId.
+- Classification fields are out of Ledger; only financial facts live here.
+end note
+
+note right of Taxonomy.TransactionCategoryAssignment
+RULES
+- One category per transaction (replace on reassignment).
+- Only active categories can be assigned.
+- Transfer transactions are not categorizable.
+end note
+
+note right of WorkflowTechnical.TxCategorizationState
+TECHNICAL STATE
+- Does not own business truth for category.
+- Tracks retries and failures when ledger write succeeded but taxonomy assignment failed.
 end note
 
 note right of Budgeting.BudgetLink

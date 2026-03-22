@@ -12,13 +12,22 @@ package "Gonezo" {
   }
 
   package "Backend" {
-    component API
-    database "Database" as MainDb
+    component "API / Workflows" as API
+    component "Ledger Application" as LedgerApp
+    component "Taxonomy Application" as TaxonomyApp
+    component "Categorization Worker" as Worker
+    database "Main Database" as MainDb
   }
 
   UI --> API : read/write
   UI --> CacheDb : offline use
-  API --> MainDb
+  API --> LedgerApp
+  API --> TaxonomyApp
+  API --> MainDb : workflow state (pending/failed/assigned)
+  Worker --> TaxonomyApp : retry assignment
+  Worker --> MainDb : update workflow state
+  LedgerApp --> MainDb : ledger tables
+  TaxonomyApp --> MainDb : taxonomy tables
 }
 
 User --> UI

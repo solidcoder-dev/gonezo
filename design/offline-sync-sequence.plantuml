@@ -5,26 +5,36 @@ actor User
 participant UI
 database "Local Storage" as Cache
 participant API
+participant "Categorization Worker" as Worker
 database "Database" as DB
 
 == Online Read ==
 User -> UI : Open screen
 UI -> API : GET data
-API -> DB : Query
+API -> DB : Query ledger + taxonomy + workflow status
 DB --> API : Data
 API --> UI : Data
 UI -> Cache : Store data
 
 == Offline Write ==
-User -> UI : Create/update
-UI -> Cache : Save change (queued)
-UI --> User : Show pending status
+User -> UI : Create expense/income (+category)
+UI -> Cache : Save command (queued)
+UI --> User : Show pending categorization
 
 == Reconnect Sync ==
-UI -> API : Send queued change
-API -> DB : Persist change
+UI -> API : Send queued command
+API -> DB : Persist ledger transaction
+API -> DB : Upsert workflow status = pending
 DB --> API : OK
-API --> UI : OK + updated data
+
+Worker -> DB : Fetch pending categorizations
+Worker -> API : Assign category in taxonomy
+API -> DB : Save assignment
+API -> DB : Update workflow status = assigned/failed
+DB --> API : OK
+
+API --> UI : Return tx + categorization status
 UI -> Cache : Update local data
-UI --> User : Clear pending
+UI --> User : Clear pending queue
+
 @enduml
