@@ -7,6 +7,8 @@ import com.gonezo.ledger.application.ArchiveLedgerAccountCommand
 import com.gonezo.ledger.application.ArchiveLedgerAccountUC
 import com.gonezo.ledger.application.CreateLedgerExpenseDraftCommand
 import com.gonezo.ledger.application.CreateLedgerExpenseDraftUC
+import com.gonezo.ledger.application.DeleteLedgerAccountCommand
+import com.gonezo.ledger.application.DeleteLedgerAccountUC
 import com.gonezo.ledger.application.GetLedgerAccountBalanceQuery
 import com.gonezo.ledger.application.GetLedgerAccountBalanceUC
 import com.gonezo.ledger.application.GetLedgerTransactionQuery
@@ -113,6 +115,15 @@ class ArchiveLedgerAccountService(
     val account = requireAccount(accountRepository, command.accountId)
     accountRepository.save(account.archive(command.archivedAt))
     domainEventPublisher.publish(AccountArchived(command.accountId))
+  }
+}
+
+class DeleteLedgerAccountService(
+  private val accountRepository: LedgerAccountRepository,
+) : DeleteLedgerAccountUC {
+  override fun execute(command: DeleteLedgerAccountCommand) {
+    requireAccount(accountRepository, command.accountId)
+    accountRepository.deleteById(command.accountId)
   }
 }
 

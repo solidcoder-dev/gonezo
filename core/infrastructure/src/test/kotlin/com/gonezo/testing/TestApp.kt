@@ -3,6 +3,7 @@ package com.gonezo.testing
 import com.gonezo.application.events.DomainEventPublisher
 import com.gonezo.ledger.application.AddLedgerTransactionItemUC
 import com.gonezo.ledger.application.CreateLedgerExpenseDraftUC
+import com.gonezo.ledger.application.DeleteLedgerAccountUC
 import com.gonezo.ledger.application.GetLedgerAccountBalanceUC
 import com.gonezo.ledger.application.GetLedgerTransactionUC
 import com.gonezo.ledger.application.ListLedgerAccountsUC
@@ -16,6 +17,7 @@ import com.gonezo.ledger.application.RemoveLedgerTransactionItemUC
 import com.gonezo.ledger.application.VoidLedgerTransactionUC
 import com.gonezo.ledger.application.AddLedgerTransactionItemService
 import com.gonezo.ledger.application.CreateLedgerExpenseDraftService
+import com.gonezo.ledger.application.DeleteLedgerAccountService
 import com.gonezo.ledger.application.GetLedgerAccountBalanceService
 import com.gonezo.ledger.application.GetLedgerTransactionService
 import com.gonezo.ledger.application.ListLedgerAccountsService
@@ -44,6 +46,7 @@ class TestApp(private val db: TestDatabase) {
     domainEventPublisher,
   )
   val ledgerListAccountsUC: ListLedgerAccountsUC = ListLedgerAccountsService(ledgerAccountRepository)
+  val ledgerDeleteAccountUC: DeleteLedgerAccountUC = DeleteLedgerAccountService(ledgerAccountRepository)
   val ledgerRecordIncomeUC: RecordLedgerIncomeUC = RecordLedgerIncomeService(
     ledgerAccountRepository,
     ledgerTransactionRepository,

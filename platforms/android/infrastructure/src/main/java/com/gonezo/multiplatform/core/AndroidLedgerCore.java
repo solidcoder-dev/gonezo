@@ -8,6 +8,8 @@ import com.gonezo.ledger.application.ArchiveLedgerAccountCommand;
 import com.gonezo.ledger.application.ArchiveLedgerAccountUC;
 import com.gonezo.ledger.application.CreateLedgerExpenseDraftCommand;
 import com.gonezo.ledger.application.CreateLedgerExpenseDraftUC;
+import com.gonezo.ledger.application.DeleteLedgerAccountCommand;
+import com.gonezo.ledger.application.DeleteLedgerAccountUC;
 import com.gonezo.ledger.application.GetLedgerAccountBalanceQuery;
 import com.gonezo.ledger.application.GetLedgerAccountBalanceUC;
 import com.gonezo.ledger.application.ListLedgerAccountsUC;
@@ -31,6 +33,7 @@ import com.gonezo.ledger.application.VoidLedgerTransactionUC;
 import com.gonezo.ledger.application.AddLedgerTransactionItemService;
 import com.gonezo.ledger.application.ArchiveLedgerAccountService;
 import com.gonezo.ledger.application.CreateLedgerExpenseDraftService;
+import com.gonezo.ledger.application.DeleteLedgerAccountService;
 import com.gonezo.ledger.application.GetLedgerAccountBalanceService;
 import com.gonezo.ledger.application.ListLedgerAccountsService;
 import com.gonezo.ledger.application.ListLedgerTransactionsService;
@@ -65,6 +68,7 @@ public final class AndroidLedgerCore {
   private final OpenLedgerAccountUC openAccountUC;
   private final RenameLedgerAccountUC renameAccountUC;
   private final ArchiveLedgerAccountUC archiveAccountUC;
+  private final DeleteLedgerAccountUC deleteAccountUC;
   private final ListLedgerAccountsUC listAccountsUC;
   private final RecordLedgerIncomeUC recordIncomeUC;
   private final RecordLedgerExpenseUC recordExpenseUC;
@@ -87,6 +91,7 @@ public final class AndroidLedgerCore {
     this.openAccountUC = new OpenLedgerAccountService(accountRepository, transactionRepository, eventPublisher);
     this.renameAccountUC = new RenameLedgerAccountService(accountRepository);
     this.archiveAccountUC = new ArchiveLedgerAccountService(accountRepository, eventPublisher);
+    this.deleteAccountUC = new DeleteLedgerAccountService(accountRepository);
     this.listAccountsUC = new ListLedgerAccountsService(accountRepository);
     this.recordIncomeUC = new RecordLedgerIncomeService(accountRepository, transactionRepository, eventPublisher);
     this.recordExpenseUC = new RecordLedgerExpenseService(accountRepository, transactionRepository, eventPublisher);
@@ -147,6 +152,14 @@ public final class AndroidLedgerCore {
       new ArchiveLedgerAccountCommand(
         new AccountId(UUID.fromString(requireText(accountId, "accountId is required"))),
         blankToNull(archivedAt) == null ? Instant.now() : parseInstantOrDate(archivedAt, "archivedAt")
+      )
+    );
+  }
+
+  public void deleteAccount(String accountId) {
+    deleteAccountUC.execute(
+      new DeleteLedgerAccountCommand(
+        new AccountId(UUID.fromString(requireText(accountId, "accountId is required")))
       )
     );
   }

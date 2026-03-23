@@ -104,6 +104,31 @@ public class CorePlugin extends Plugin {
   }
 
   @PluginMethod
+  public void ledgerDeleteAccount(PluginCall call) {
+    String accountId = call.getString("accountId");
+
+    try {
+      AndroidLedgerCore core = AndroidLedgerCore.getInstance(getContext());
+      java.util.List<AndroidLedgerCore.LedgerTransactionView> existingTransactions = core.listTransactions(
+        accountId,
+        null,
+        null,
+        null,
+        null,
+        null,
+        true
+      );
+      core.deleteAccount(accountId);
+      for (AndroidLedgerCore.LedgerTransactionView transaction : existingTransactions) {
+        transactionTagsByTransactionId.remove(transaction.id());
+      }
+      call.resolve();
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
   public void ledgerListAccounts(PluginCall call) {
     try {
       AndroidLedgerCore core = AndroidLedgerCore.getInstance(getContext());

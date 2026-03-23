@@ -10,5 +10,7 @@ interface LedgerAccountRepository {
 
   fun exists(id: AccountId): Boolean
 
+  fun deleteById(id: AccountId)
+
   fun listAll(): List<Account>
 }

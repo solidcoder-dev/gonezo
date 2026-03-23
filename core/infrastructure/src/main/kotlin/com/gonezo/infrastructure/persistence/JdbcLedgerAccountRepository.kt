@@ -58,6 +58,43 @@ class JdbcLedgerAccountRepository(
     return count > 0
   }
 
+  override fun deleteById(id: AccountId) {
+    val transactionIds = jdbcTemplate.queryForList(
+      """
+      select id
+      from ledger_transactions
+      where account_id = :account_id
+      """.trimIndent(),
+      MapSqlParameterSource("account_id", id.toString()),
+      String::class.java,
+    )
+
+    if (transactionIds.isNotEmpty()) {
+      val byTxParams = MapSqlParameterSource("transaction_ids", transactionIds)
+      jdbcTemplate.update(
+        "delete from taxonomy_transaction_assignments where transaction_id in (:transaction_ids)",
+        byTxParams,
+      )
+      jdbcTemplate.update(
+        "delete from taxonomy_transaction_tag_assignments where transaction_id in (:transaction_ids)",
+        byTxParams,
+      )
+      jdbcTemplate.update(
+        "delete from workflow_tx_categorization where transaction_id in (:transaction_ids)",
+        byTxParams,
+      )
+    }
+
+    jdbcTemplate.update(
+      "delete from ledger_transactions where account_id = :account_id",
+      MapSqlParameterSource("account_id", id.toString()),
+    )
+    jdbcTemplate.update(
+      "delete from ledger_accounts where id = :id",
+      MapSqlParameterSource("id", id.toString()),
+    )
+  }
+
   override fun listAll(): List<Account> {
     val sql = """
       select id, name, type, currency, status, created_at, archived_at

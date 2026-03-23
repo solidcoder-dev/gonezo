@@ -84,6 +84,47 @@ final class AndroidLedgerAccountRepository implements LedgerAccountRepository {
   }
 
   @Override
+  public void deleteById(AccountId id) {
+    SQLiteDatabase database = db.getWritableDatabase();
+    String accountId = id.toString();
+
+    java.util.List<String> transactionIds = new java.util.ArrayList<>();
+    Cursor cursor = database.query(
+      "ledger_transactions",
+      new String[] {"id"},
+      "account_id = ?",
+      new String[] {accountId},
+      null,
+      null,
+      null
+    );
+
+    try {
+      while (cursor.moveToNext()) {
+        transactionIds.add(cursor.getString(0));
+      }
+    } finally {
+      cursor.close();
+    }
+
+    database.beginTransaction();
+    try {
+      if (!transactionIds.isEmpty()) {
+        String placeholders = placeholders(transactionIds.size());
+        String[] txArgs = transactionIds.toArray(new String[0]);
+        database.delete("taxonomy_transaction_assignments", "transaction_id in (" + placeholders + ")", txArgs);
+        database.delete("mobills_import_fingerprints", "transaction_id in (" + placeholders + ")", txArgs);
+      }
+
+      database.delete("ledger_transactions", "account_id = ?", new String[] {accountId});
+      database.delete("ledger_accounts", "id = ?", new String[] {accountId});
+      database.setTransactionSuccessful();
+    } finally {
+      database.endTransaction();
+    }
+  }
+
+  @Override
   public List<Account> listAll() {
     SQLiteDatabase database = db.getReadableDatabase();
     Cursor cursor = database.query(
@@ -116,5 +157,16 @@ final class AndroidLedgerAccountRepository implements LedgerAccountRepository {
     String archivedAtRaw = cursor.getString(6);
     Instant archivedAt = archivedAtRaw == null ? null : Instant.parse(archivedAtRaw);
     return new Account(id, name, type, currency, status, createdAt, archivedAt);
+  }
+
+  private static String placeholders(int count) {
+    StringBuilder builder = new StringBuilder();
+    for (int index = 0; index < count; index++) {
+      if (index > 0) {
+        builder.append(",");
+      }
+      builder.append("?");
+    }
+    return builder.toString();
   }
 }

@@ -41,6 +41,14 @@ interface ArchiveLedgerAccountUC {
   fun execute(command: ArchiveLedgerAccountCommand)
 }
 
+data class DeleteLedgerAccountCommand(
+  val accountId: AccountId,
+)
+
+interface DeleteLedgerAccountUC {
+  fun execute(command: DeleteLedgerAccountCommand)
+}
+
 interface ListLedgerAccountsUC {
   fun execute(): List<Account>
 }
