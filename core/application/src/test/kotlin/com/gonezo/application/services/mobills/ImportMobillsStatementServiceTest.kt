@@ -405,6 +405,115 @@ class ImportMobillsStatementServiceTest {
     assertThat(result.failedCount).isEqualTo(1)
     assertThat(result.rows.single().errorCode).isEqualTo("TAG_AUTOCREATE_DISABLED")
   }
+
+  @Test
+  fun `includes parser issues as failed rows and still imports valid rows`() {
+    val account = Account.open(
+      id = AccountId.random(),
+      name = "Wallet",
+      type = AccountType.CASH,
+      currency = CurrencyCode.from("EUR"),
+      createdAt = Instant.parse("2026-03-20T10:00:00Z"),
+    )
+    val service = ImportMobillsStatementService(
+      listAccountsUC = StubListLedgerAccountsUC(listOf(account)),
+      openAccountUC = RecordingOpenLedgerAccountUC(),
+      recordExpenseUC = RecordingRecordExpenseUC(),
+      recordIncomeUC = RecordingRecordIncomeUC(),
+      listCategoriesUC = StubListCategoriesUC(),
+      categorizeLedgerTransactionUC = RecordingCategorizeLedgerTransactionUC(),
+      applyTransactionTagsUC = RecordingApplyTransactionTagsUC(),
+    )
+
+    val result = service.execute(
+      ImportMobillsStatementCommand(
+        rows = listOf(
+          ImportMobillsRow(
+            sourceLine = 3,
+            accountName = "Wallet",
+            occurredAt = Instant.parse("2026-03-21T10:00:00Z"),
+            value = BigDecimal("-12.50"),
+            currency = "EUR",
+            description = "Lunch",
+            merchant = "Cafe",
+            category = null,
+            tags = emptyList(),
+          ),
+        ),
+        parseIssues = listOf(
+          ImportMobillsParseIssue(
+            lineNumber = 2,
+            code = "INVALID_DATE",
+            message = "Cannot parse date",
+          ),
+        ),
+        requestedAt = Instant.parse("2026-03-22T12:00:00Z"),
+      ),
+    )
+
+    assertThat(result.totalRows).isEqualTo(2)
+    assertThat(result.failedCount).isEqualTo(1)
+    assertThat(result.importedCount).isEqualTo(1)
+    assertThat(result.rows.map { it.sourceLine }).containsExactly(2, 3)
+    assertThat(result.rows.first().errorCode).isEqualTo("INVALID_DATE")
+    assertThat(result.rows.last().status).isEqualTo(ImportMobillsRowStatus.IMPORTED)
+  }
+
+  @Test
+  fun `continues importing next rows when one row fails`() {
+    val account = Account.open(
+      id = AccountId.random(),
+      name = "Wallet",
+      type = AccountType.CASH,
+      currency = CurrencyCode.from("EUR"),
+      createdAt = Instant.parse("2026-03-20T10:00:00Z"),
+    )
+    val service = ImportMobillsStatementService(
+      listAccountsUC = StubListLedgerAccountsUC(listOf(account)),
+      openAccountUC = RecordingOpenLedgerAccountUC(),
+      recordExpenseUC = RecordingRecordExpenseUC(),
+      recordIncomeUC = RecordingRecordIncomeUC(),
+      listCategoriesUC = StubListCategoriesUC(),
+      categorizeLedgerTransactionUC = RecordingCategorizeLedgerTransactionUC(),
+      applyTransactionTagsUC = RecordingApplyTransactionTagsUC(),
+    )
+
+    val result = service.execute(
+      ImportMobillsStatementCommand(
+        rows = listOf(
+          ImportMobillsRow(
+            sourceLine = 2,
+            accountName = "Wallet",
+            occurredAt = Instant.parse("2026-03-21T10:00:00Z"),
+            value = BigDecimal("-12.50"),
+            currency = "ZZZ",
+            description = "Lunch",
+            merchant = "Cafe",
+            category = null,
+            tags = emptyList(),
+          ),
+          ImportMobillsRow(
+            sourceLine = 3,
+            accountName = "Wallet",
+            occurredAt = Instant.parse("2026-03-22T10:00:00Z"),
+            value = BigDecimal("100.00"),
+            currency = "EUR",
+            description = "Refund",
+            merchant = "Cafe",
+            category = null,
+            tags = emptyList(),
+          ),
+        ),
+        requestedAt = Instant.parse("2026-03-22T12:00:00Z"),
+      ),
+    )
+
+    assertThat(result.totalRows).isEqualTo(2)
+    assertThat(result.failedCount).isEqualTo(1)
+    assertThat(result.importedCount).isEqualTo(1)
+    assertThat(result.rows.map { it.status })
+      .containsExactly(ImportMobillsRowStatus.FAILED, ImportMobillsRowStatus.IMPORTED)
+  }
 }
 
 private class StubListLedgerAccountsUC(
