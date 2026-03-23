@@ -383,6 +383,12 @@ export function AccountsPage({ core }: Props) {
                 </p>
                 <p>{model.importResult.failedCount} failed</p>
                 <p>{model.importResult.skippedCount} skipped</p>
+                {model.importResult.importedCount > 0 && model.accounts.length === 0 ? (
+                  <p className="hint">
+                    Import reported successful rows, but no accounts are visible. Reopen the app and re-check account list.
+                    If this persists, share the failed-line examples below.
+                  </p>
+                ) : null}
                 {importFailureSummary.length > 0 ? (
                   <>
                     <p>Failure reasons</p>
