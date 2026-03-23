@@ -247,7 +247,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [importFile, setImportFileState] = useState<File | null>(null);
   const [importError, setImportError] = useState('');
   const [importResult, setImportResult] = useState<MobillsImportResult | null>(null);
-  const [importCreateMissingAccounts, setImportCreateMissingAccounts] = useState(false);
+  const [importCreateMissingAccounts, setImportCreateMissingAccounts] = useState(true);
   const [importCreateMissingCategories, setImportCreateMissingCategories] = useState(true);
   const [importCreateMissingTags, setImportCreateMissingTags] = useState(true);
   const [importDefaultAccountType, setImportDefaultAccountType] = useState<MobillsAccountType>('cash');

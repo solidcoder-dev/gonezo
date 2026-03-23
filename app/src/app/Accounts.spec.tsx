@@ -281,7 +281,6 @@ describe('Accounts UX', () => {
     );
     fireEvent.change(fileInput, { target: { files: [file] } });
 
-    fireEvent.click(screen.getByLabelText('Create missing accounts'));
     fireEvent.click(screen.getByLabelText('Create missing categories'));
     fireEvent.click(screen.getByLabelText('Create missing tags'));
     fireEvent.click(screen.getByRole('button', { name: 'Import file' }));
