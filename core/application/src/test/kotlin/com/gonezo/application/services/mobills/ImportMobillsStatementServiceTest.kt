@@ -94,6 +94,149 @@ class ImportMobillsStatementServiceTest {
     assertThat(result.skippedCount).isEqualTo(0)
     assertThat(result.rows.map { it.status }).containsExactly(ImportMobillsRowStatus.IMPORTED, ImportMobillsRowStatus.IMPORTED)
   }
+
+  @Test
+  fun `fails row when account does not exist and account autocreate is disabled`() {
+    val listAccountsUC = StubListLedgerAccountsUC(emptyList())
+    val openAccountUC = RecordingOpenLedgerAccountUC()
+    val recordExpenseUC = RecordingRecordExpenseUC()
+    val recordIncomeUC = RecordingRecordIncomeUC()
+    val categorizeUC = RecordingCategorizeLedgerTransactionUC()
+    val applyTagsUC = RecordingApplyTransactionTagsUC()
+    val service = ImportMobillsStatementService(
+      listAccountsUC = listAccountsUC,
+      openAccountUC = openAccountUC,
+      recordExpenseUC = recordExpenseUC,
+      recordIncomeUC = recordIncomeUC,
+      categorizeLedgerTransactionUC = categorizeUC,
+      applyTransactionTagsUC = applyTagsUC,
+    )
+
+    val result = service.execute(
+      ImportMobillsStatementCommand(
+        rows = listOf(
+          ImportMobillsRow(
+            sourceLine = 7,
+            accountName = "Unknown",
+            occurredAt = Instant.parse("2026-03-24T10:00:00Z"),
+            value = BigDecimal("-10.00"),
+            currency = "EUR",
+            description = "Lunch",
+            merchant = "Cafe",
+            category = null,
+            tags = emptyList(),
+          ),
+        ),
+        policy = ImportMobillsPolicy(createMissingAccounts = false),
+        requestedAt = Instant.parse("2026-03-24T12:00:00Z"),
+      ),
+    )
+
+    assertThat(openAccountUC.calls).isEmpty()
+    assertThat(recordExpenseUC.calls).isEmpty()
+    assertThat(recordIncomeUC.calls).isEmpty()
+    assertThat(result.importedCount).isEqualTo(0)
+    assertThat(result.failedCount).isEqualTo(1)
+    assertThat(result.rows.single().errorCode).isEqualTo("ACCOUNT_NOT_FOUND_UNKNOWN_EUR")
+  }
+
+  @Test
+  fun `creates missing account when policy enables account autocreate`() {
+    val listAccountsUC = StubListLedgerAccountsUC(emptyList())
+    val openAccountUC = RecordingOpenLedgerAccountUC(AccountId.random())
+    val recordExpenseUC = RecordingRecordExpenseUC()
+    val recordIncomeUC = RecordingRecordIncomeUC()
+    val categorizeUC = RecordingCategorizeLedgerTransactionUC()
+    val applyTagsUC = RecordingApplyTransactionTagsUC()
+    val service = ImportMobillsStatementService(
+      listAccountsUC = listAccountsUC,
+      openAccountUC = openAccountUC,
+      recordExpenseUC = recordExpenseUC,
+      recordIncomeUC = recordIncomeUC,
+      categorizeLedgerTransactionUC = categorizeUC,
+      applyTransactionTagsUC = applyTagsUC,
+    )
+
+    val result = service.execute(
+      ImportMobillsStatementCommand(
+        rows = listOf(
+          ImportMobillsRow(
+            sourceLine = 10,
+            accountName = "Travel Card",
+            occurredAt = Instant.parse("2026-03-24T10:00:00Z"),
+            value = BigDecimal("-42.00"),
+            currency = "EUR",
+            description = "Taxi",
+            merchant = "Cabify",
+            category = null,
+            tags = emptyList(),
+          ),
+        ),
+        policy = ImportMobillsPolicy(createMissingAccounts = true),
+        requestedAt = Instant.parse("2026-03-24T12:00:00Z"),
+      ),
+    )
+
+    assertThat(openAccountUC.calls).hasSize(1)
+    assertThat(openAccountUC.calls.single().name).isEqualTo("Travel Card")
+    assertThat(recordExpenseUC.calls).hasSize(1)
+    assertThat(result.importedCount).isEqualTo(1)
+    assertThat(result.failedCount).isEqualTo(0)
+  }
+
+  @Test
+  fun `reuses same auto created account for multiple rows`() {
+    val listAccountsUC = StubListLedgerAccountsUC(emptyList())
+    val openAccountUC = RecordingOpenLedgerAccountUC(AccountId.random())
+    val recordExpenseUC = RecordingRecordExpenseUC()
+    val recordIncomeUC = RecordingRecordIncomeUC()
+    val categorizeUC = RecordingCategorizeLedgerTransactionUC()
+    val applyTagsUC = RecordingApplyTransactionTagsUC()
+    val service = ImportMobillsStatementService(
+      listAccountsUC = listAccountsUC,
+      openAccountUC = openAccountUC,
+      recordExpenseUC = recordExpenseUC,
+      recordIncomeUC = recordIncomeUC,
+      categorizeLedgerTransactionUC = categorizeUC,
+      applyTransactionTagsUC = applyTagsUC,
+    )
+
+    service.execute(
+      ImportMobillsStatementCommand(
+        rows = listOf(
+          ImportMobillsRow(
+            sourceLine = 2,
+            accountName = "Pocket",
+            occurredAt = Instant.parse("2026-03-24T08:00:00Z"),
+            value = BigDecimal("-5.00"),
+            currency = "EUR",
+            description = "Coffee",
+            merchant = "Bar",
+            category = null,
+            tags = emptyList(),
+          ),
+          ImportMobillsRow(
+            sourceLine = 3,
+            accountName = "Pocket",
+            occurredAt = Instant.parse("2026-03-24T09:00:00Z"),
+            value = BigDecimal("20.00"),
+            currency = "EUR",
+            description = "Refund",
+            merchant = "Bar",
+            category = null,
+            tags = emptyList(),
+          ),
+        ),
+        policy = ImportMobillsPolicy(createMissingAccounts = true),
+        requestedAt = Instant.parse("2026-03-24T12:00:00Z"),
+      ),
+    )
+
+    assertThat(openAccountUC.calls).hasSize(1)
+    assertThat(recordExpenseUC.calls).hasSize(1)
+    assertThat(recordIncomeUC.calls).hasSize(1)
+    assertThat(recordExpenseUC.calls.single().accountId).isEqualTo(recordIncomeUC.calls.single().accountId)
+  }
 }
 
 private class StubListLedgerAccountsUC(
@@ -103,11 +246,16 @@ private class StubListLedgerAccountsUC(
 }
 
 private class RecordingOpenLedgerAccountUC : OpenLedgerAccountUC {
+  private val generatedAccountId: AccountId
   val calls = mutableListOf<com.gonezo.ledger.application.OpenLedgerAccountCommand>()
+
+  constructor(generatedAccountId: AccountId = AccountId.random()) {
+    this.generatedAccountId = generatedAccountId
+  }
 
   override fun execute(command: com.gonezo.ledger.application.OpenLedgerAccountCommand): AccountId {
     calls += command
-    return AccountId.random()
+    return generatedAccountId
   }
 }
 
@@ -156,4 +304,3 @@ private class RecordingApplyTransactionTagsUC : ApplyTransactionTagsUC {
     return ApplyTransactionTagsResult(emptyList<TagId>())
   }
 }
-
