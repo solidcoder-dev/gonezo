@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Importar exportes Mobills (TSV UTF-16) sin mezclar dominios:
+Importar exportes Mobills (TSV/CSV, UTF-16/UTF-8) sin mezclar dominios:
 
 - `ledger` solo registra dinero (cuentas + transacciones)
 - `taxonomy` solo clasifica (categorias + tags)
@@ -17,7 +17,7 @@ Importar exportes Mobills (TSV UTF-16) sin mezclar dominios:
 
 ## Flujo
 
-1. `MobillsTsvParser` (infra) lee bytes UTF-16 y parsea TSV.
+1. `MobillsTsvParser` (infra) lee bytes UTF-16/UTF-8, detecta delimitador (`tab` o `,`) y parsea filas.
 2. Parser normaliza filas (`value`, `category`, `tags`) y genera `issues` tecnicos por linea.
 3. `MobillsImportCoordinator` (infra) transforma parse result al comando de aplicación.
 4. `ImportMobillsStatementService` (orchestración) coordina:
@@ -32,7 +32,7 @@ Importar exportes Mobills (TSV UTF-16) sin mezclar dominios:
 Desde la pantalla de cuentas:
 
 1. Usuario abre `Import` / `Import from Mobills`.
-2. Selecciona archivo TSV.
+2. Selecciona archivo TSV o CSV.
 3. Configura policy:
    - `createMissingAccounts`
    - `createMissingCategories`

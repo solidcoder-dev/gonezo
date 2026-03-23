@@ -227,11 +227,11 @@ export function AccountsPage({ core }: Props) {
 
             <form className="stack" onSubmit={model.submitMobillsImport} aria-busy={model.importingMobills}>
               <label className="stack">
-                Mobills TSV file
+                Mobills file (TSV/CSV)
                 <input
-                  aria-label="Mobills TSV file"
+                  aria-label="Mobills file (TSV/CSV)"
                   type="file"
-                  accept=".tsv,.txt,text/tab-separated-values"
+                  accept=".csv,text/csv,.tsv,.txt,text/tab-separated-values"
                   onChange={(event) => model.setImportFile(event.target.files?.[0] ?? null)}
                 />
               </label>

@@ -562,7 +562,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setImportResult(null);
 
     if (!importFile) {
-      setImportError('Select a Mobills TSV file first.');
+      setImportError('Select a Mobills TSV/CSV file first.');
       return;
     }
 

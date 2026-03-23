@@ -154,6 +154,22 @@ describe('Accounts UX', () => {
     });
   });
 
+  it('allows csv files in the mobills picker', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+
+    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
+    expect(fileInput).toHaveAttribute('accept', expect.stringContaining('.csv'));
+  });
+
   it('imports a mobills file and shows the summary', async () => {
     const core = makeCore();
     vi.mocked(core.mobillsImport).mockResolvedValueOnce({
@@ -176,7 +192,7 @@ describe('Accounts UX', () => {
     await screen.findByText('Net balance');
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
 
-    const fileInput = await screen.findByLabelText('Mobills TSV file');
+    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
     const file = new File(
       ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
       'mobills.tsv',
@@ -204,7 +220,7 @@ describe('Accounts UX', () => {
     await screen.findByText('Net balance');
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
 
-    const fileInput = await screen.findByLabelText('Mobills TSV file');
+    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
     const file = new File(
       ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
       'mobills.tsv',
@@ -246,7 +262,7 @@ describe('Accounts UX', () => {
     await screen.findByText('Net balance');
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
 
-    const fileInput = await screen.findByLabelText('Mobills TSV file');
+    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
     const file = new File(
       ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
       'mobills.tsv',
