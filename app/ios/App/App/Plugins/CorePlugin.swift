@@ -294,6 +294,16 @@ public class CorePlugin: CAPPlugin {
         call.resolve(["items": items])
     }
 
+    @objc func mobillsImport(_ call: CAPPluginCall) {
+        let fileBase64 = (call.getString("fileBase64") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if fileBase64.isEmpty {
+            call.reject("fileBase64 is required")
+            return
+        }
+
+        call.reject("mobillsImport is not implemented on iOS yet")
+    }
+
     @objc func orchestrationCategorizeTransaction(_ call: CAPPluginCall) {
         let transactionId = (call.getString("transactionId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let transactionType = (call.getString("transactionType") ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
