@@ -11,8 +11,18 @@ final class MobillsDelimitedParser {
 
   static char detectDelimiter(String headerLine) {
     int tabs = countDelimiterOutsideQuotes(headerLine, '\t');
+    int semicolons = countDelimiterOutsideQuotes(headerLine, ';');
     int commas = countDelimiterOutsideQuotes(headerLine, ',');
-    return tabs >= commas ? '\t' : ',';
+    char bestDelimiter = '\t';
+    int bestCount = tabs;
+    if (semicolons > bestCount) {
+      bestDelimiter = ';';
+      bestCount = semicolons;
+    }
+    if (commas > bestCount) {
+      bestDelimiter = ',';
+    }
+    return bestDelimiter;
   }
 
   static List<String> splitDelimited(String line, char delimiter) {

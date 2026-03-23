@@ -16,6 +16,12 @@ public class MobillsDelimitedParserTest {
   }
 
   @Test
+  public void detectsSemicolonDelimiterForMobillsHeader() {
+    char delimiter = MobillsDelimitedParser.detectDelimiter("\"Date\";\"Description\";\"Value\";\"Account\"");
+    assertEquals(';', delimiter);
+  }
+
+  @Test
   public void detectsTabDelimiterForTsvHeader() {
     char delimiter = MobillsDelimitedParser.detectDelimiter("date\taccount\tvalue\tcurrency");
     assertEquals('\t', delimiter);
@@ -36,5 +42,18 @@ public class MobillsDelimitedParserTest {
     List<String> cells = MobillsDelimitedParser.splitDelimited("a,b,", ',');
     assertEquals(3, cells.size());
     assertTrue(cells.get(2).isEmpty());
+  }
+
+  @Test
+  public void splitsSemicolonCsvWithQuotedValues() {
+    List<String> cells = MobillsDelimitedParser.splitDelimited(
+      "\"31/07/2018\";\"Pollo y papas\";\"-8.30\";\"Billetera\";\"Alimentación\";\"\";\"trip;london\"",
+      ';'
+    );
+
+    assertEquals(
+      Arrays.asList("31/07/2018", "Pollo y papas", "-8.30", "Billetera", "Alimentación", "", "trip;london"),
+      cells
+    );
   }
 }
