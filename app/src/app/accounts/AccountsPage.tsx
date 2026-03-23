@@ -75,6 +75,9 @@ export function AccountsPage({ core }: Props) {
           <button type="submit" disabled={model.creatingAccount}>
             {model.creatingAccount ? 'Creating account...' : 'Create account'}
           </button>
+          <button type="button" className="text-button" onClick={model.openImportSheet}>
+            Import from Mobills
+          </button>
         </form>
       ) : (
         <>
@@ -127,6 +130,7 @@ export function AccountsPage({ core }: Props) {
               disabled={model.refreshing || model.postingTransaction}
               onSelect={model.selectAccount}
               onAddAccount={model.openCreateAccountForm}
+              onImport={model.openImportSheet}
             />
           </section>
 
@@ -193,6 +197,31 @@ export function AccountsPage({ core }: Props) {
           />
         </>
       )}
+
+      {model.importSheetOpen ? (
+        <div className="sheet-backdrop" role="presentation" onClick={model.closeImportSheet}>
+          <section
+            className="sheet-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Import from Mobills"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="inline-header">
+              <h3>Import from Mobills</h3>
+              <button
+                type="button"
+                className="text-button icon-button"
+                aria-label="Close import sheet"
+                onClick={model.closeImportSheet}
+              >
+                ×
+              </button>
+            </div>
+            <p className="hint">Import flow setup in progress.</p>
+          </section>
+        </div>
+      ) : null}
     </section>
   );
 }

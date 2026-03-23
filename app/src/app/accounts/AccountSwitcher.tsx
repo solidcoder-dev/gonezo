@@ -7,9 +7,10 @@ type Props = {
   disabled: boolean;
   onSelect: (accountId: string) => void;
   onAddAccount: () => void;
+  onImport: () => void;
 };
 
-export function AccountSwitcher({ accounts, selectedAccountId, disabled, onSelect, onAddAccount }: Props) {
+export function AccountSwitcher({ accounts, selectedAccountId, disabled, onSelect, onAddAccount, onImport }: Props) {
   const [showAccounts, setShowAccounts] = useState(false);
 
   return (
@@ -25,6 +26,9 @@ export function AccountSwitcher({ accounts, selectedAccountId, disabled, onSelec
       </button>
       <button type="button" className="text-button" onClick={onAddAccount} disabled={disabled}>
         Add account
+      </button>
+      <button type="button" className="text-button" onClick={onImport} disabled={disabled}>
+        Import
       </button>
 
       {showAccounts ? (

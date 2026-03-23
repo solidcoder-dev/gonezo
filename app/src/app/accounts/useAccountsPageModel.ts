@@ -182,6 +182,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [historyExpanded, setHistoryExpanded] = useState(false);
 
   const [showCreateAccountForm, setShowCreateAccountForm] = useState(false);
+  const [importSheetOpen, setImportSheetOpen] = useState(false);
   const [newAccountName, setNewAccountName] = useState('Main account');
   const [newAccountCurrency, setNewAccountCurrency] = useState('USD');
   const [newAccountOpeningBalance, setNewAccountOpeningBalance] = useState('');
@@ -865,6 +866,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     hiddenTransactionsCount,
     historyExpanded,
     showCreateAccountForm,
+    importSheetOpen,
     newAccountName,
     newAccountCurrency,
     newAccountOpeningBalance,
@@ -910,6 +912,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     runToastAction: () => toastAction?.(),
     openCreateAccountForm: () => setShowCreateAccountForm(true),
     closeCreateAccountForm: () => setShowCreateAccountForm(false),
+    openImportSheet: () => setImportSheetOpen(true),
+    closeImportSheet: () => setImportSheetOpen(false),
     expandHistory: () => setHistoryExpanded(true),
     openTransactionComposer,
     closeTransactionComposer,

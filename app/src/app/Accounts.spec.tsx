@@ -68,6 +68,13 @@ function makeCore(transactionCount = 0): AccountsCorePort {
         { id: 'tag-london', name: 'london', status: 'active' as const },
       ],
     })),
+    mobillsImport: vi.fn(async () => ({
+      totalRows: 0,
+      importedCount: 0,
+      failedCount: 0,
+      skippedCount: 0,
+      rows: [],
+    })),
     orchestrationCategorizeTransaction: vi.fn(async () => ({ status: 'assigned' as const })),
     orchestrationApplyTransactionTags: vi.fn(async () => ({ status: 'assigned' as const })),
   };
@@ -99,6 +106,52 @@ describe('Accounts UX', () => {
     expect(await screen.findByText('Net balance')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Switch account' })).toBeInTheDocument();
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+  });
+
+  it('shows import action in account controls when accounts exist', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    expect(screen.getByRole('button', { name: 'Import' })).toBeInTheDocument();
+  });
+
+  it('shows import action in empty state when no accounts exist', async () => {
+    const core = makeCore();
+    vi.mocked(core.ledgerListAccounts).mockResolvedValueOnce({ items: [] });
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { name: 'Create your first account' });
+    expect(screen.getByRole('button', { name: 'Import from Mobills' })).toBeInTheDocument();
+  });
+
+  it('opens and closes the mobills import sheet', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    expect(await screen.findByRole('dialog', { name: 'Import from Mobills' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close import sheet' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Import from Mobills' })).not.toBeInTheDocument();
+    });
   });
 
   it('records quick expense from dedicated expense flow', async () => {
