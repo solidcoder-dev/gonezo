@@ -29,6 +29,8 @@ import type {
   TaxonomyCreateCategoryResult,
   TaxonomyListTagsInput,
   TaxonomyListTagsResult,
+  MobillsImportInput,
+  MobillsImportResult,
   OrchestrationCategorizeTransactionInput,
   OrchestrationCategorizeTransactionResult,
   OrchestrationApplyTransactionTagsInput,
@@ -169,6 +171,13 @@ export class CoreAdapter implements CorePort {
       return CorePlugin.taxonomyListTags(input ?? {});
     }
     return this.web.taxonomyListTags(input);
+  }
+
+  async mobillsImport(input: MobillsImportInput): Promise<MobillsImportResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.mobillsImport(input);
+    }
+    return this.web.mobillsImport(input);
   }
 
   async orchestrationCategorizeTransaction(

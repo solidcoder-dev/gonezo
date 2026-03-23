@@ -28,6 +28,9 @@ import type {
   TaxonomyCreateCategoryResult,
   TaxonomyListTagsInput,
   TaxonomyListTagsResult,
+  MobillsImportInput,
+  MobillsImportResult,
+  MobillsImportRowResult,
   OrchestrationCategorizeTransactionInput,
   OrchestrationCategorizeTransactionResult,
   OrchestrationApplyTransactionTagsInput,
@@ -157,6 +160,89 @@ export class CoreAdapterWeb implements CorePort {
       }
     }
     return net;
+  }
+
+  private decodeBase64ToText(fileBase64: string): string {
+    let binary: string;
+    try {
+      binary = globalThis.atob(fileBase64);
+    } catch {
+      throw new Error('Invalid import file payload');
+    }
+
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    const utf16 = new TextDecoder('utf-16').decode(bytes).replace(/\uFEFF/g, '');
+    if (utf16.includes('\t') || utf16.includes('\n')) {
+      return utf16;
+    }
+    return new TextDecoder().decode(bytes).replace(/\uFEFF/g, '');
+  }
+
+  private splitTsv(line: string): string[] {
+    const cells: string[] = [];
+    let start = 0;
+    while (true) {
+      const tabIndex = line.indexOf('\t', start);
+      if (tabIndex < 0) {
+        cells.push(line.slice(start));
+        return cells;
+      }
+      cells.push(line.slice(start, tabIndex));
+      start = tabIndex + 1;
+    }
+  }
+
+  private normalizeHeaderName(value: string): string {
+    return value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+  }
+
+  private findHeaderIndex(headers: string[], aliases: string[]): number {
+    const normalizedAliases = aliases.map((alias) => this.normalizeHeaderName(alias));
+    return headers.findIndex((header) => normalizedAliases.includes(this.normalizeHeaderName(header)));
+  }
+
+  private parseMobillsValue(value: string): number | null {
+    const normalized = value
+      .trim()
+      .replace(/\s/g, '')
+      .replace(/\u00A0/g, '')
+      .replace(/[€$£]/g, '')
+      .replace(/\.(?=\d{3}(?:\D|$))/g, '')
+      .replace(',', '.');
+    if (!normalized) {
+      return null;
+    }
+    const parsed = Number(normalized);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  private parseMobillsDate(rawValue: string): string | null {
+    const value = rawValue.trim();
+    if (!value) {
+      return null;
+    }
+
+    const direct = new Date(value);
+    if (!Number.isNaN(direct.getTime())) {
+      return direct.toISOString();
+    }
+
+    const dateParts = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!dateParts) {
+      return null;
+    }
+
+    const day = Number(dateParts[1]);
+    const month = Number(dateParts[2]) - 1;
+    const year = Number(dateParts[3]);
+    const parsed = new Date(Date.UTC(year, month, day, 12, 0, 0));
+    if (Number.isNaN(parsed.getTime())) {
+      return null;
+    }
+    return parsed.toISOString();
   }
 
   async doThing(input: string): Promise<CoreResult> {
@@ -490,6 +576,210 @@ export class CoreAdapterWeb implements CorePort {
       }));
 
     return { items };
+  }
+
+  async mobillsImport(input: MobillsImportInput): Promise<MobillsImportResult> {
+    const policy = {
+      createMissingAccounts: input.policy?.createMissingAccounts === true,
+      createMissingCategories: input.policy?.createMissingCategories !== false,
+      createMissingTags: input.policy?.createMissingTags !== false,
+      defaultAccountType: input.policy?.defaultAccountType ?? 'cash',
+    };
+
+    const content = this.decodeBase64ToText(input.fileBase64);
+    const lines = content
+      .split(/\r?\n/)
+      .filter((line) => line.trim().length > 0);
+
+    if (lines.length === 0) {
+      return {
+        totalRows: 0,
+        importedCount: 0,
+        failedCount: 0,
+        skippedCount: 0,
+        rows: [],
+      };
+    }
+
+    const header = this.splitTsv(lines[0]);
+    const dateIndex = this.findHeaderIndex(header, ['date', 'fecha']);
+    const accountIndex = this.findHeaderIndex(header, ['account', 'cuenta']);
+    const valueIndex = this.findHeaderIndex(header, ['value', 'amount', 'valor', 'importe']);
+    if (dateIndex < 0 || accountIndex < 0 || valueIndex < 0) {
+      throw new Error('Missing required columns: date/account/value');
+    }
+    const currencyIndex = this.findHeaderIndex(header, ['currency', 'moneda']);
+    const descriptionIndex = this.findHeaderIndex(header, ['description', 'descripcion', 'concept', 'note']);
+    const merchantIndex = this.findHeaderIndex(header, ['merchant', 'counterparty', 'store', 'payee', 'comercio']);
+    const categoryIndex = this.findHeaderIndex(header, ['category', 'categoria']);
+    const tagsIndex = this.findHeaderIndex(header, ['tags', 'etiquetas', 'tag']);
+
+    const rows: MobillsImportRowResult[] = [];
+    for (let index = 1; index < lines.length; index += 1) {
+      const sourceLine = index + 1;
+      const cells = this.splitTsv(lines[index]);
+      const accountName = (cells[accountIndex] ?? '').trim();
+      const occurredAt = this.parseMobillsDate(cells[dateIndex] ?? '');
+      const rawValue = this.parseMobillsValue(cells[valueIndex] ?? '');
+
+      if (!accountName) {
+        rows.push({
+          sourceLine,
+          status: 'failed',
+          errorCode: 'MISSING_ACCOUNT',
+          errorMessage: `Account is required at line ${sourceLine}`,
+        });
+        continue;
+      }
+      if (!occurredAt) {
+        rows.push({
+          sourceLine,
+          status: 'failed',
+          errorCode: 'INVALID_DATE',
+          errorMessage: `Cannot parse date at line ${sourceLine}`,
+        });
+        continue;
+      }
+      if (rawValue == null) {
+        rows.push({
+          sourceLine,
+          status: 'failed',
+          errorCode: 'INVALID_VALUE',
+          errorMessage: `Cannot parse value at line ${sourceLine}`,
+        });
+        continue;
+      }
+      if (rawValue === 0) {
+        rows.push({
+          sourceLine,
+          status: 'failed',
+          errorCode: 'ZERO_VALUE',
+          errorMessage: `Value cannot be zero at line ${sourceLine}`,
+        });
+        continue;
+      }
+
+      const currency = (cells[currencyIndex] ?? '').trim().toUpperCase() || 'EUR';
+      const description = (cells[descriptionIndex] ?? '').trim() || undefined;
+      const merchant = (cells[merchantIndex] ?? '').trim() || undefined;
+      const categoryName = (cells[categoryIndex] ?? '').trim();
+      const tagNames = (cells[tagsIndex] ?? '')
+        .split(/[|,;]/)
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0);
+
+      try {
+        let account = CoreAdapterWeb.ledgerAccounts.find(
+          (item) => item.name.toLowerCase() === accountName.toLowerCase() && item.currency === currency,
+        );
+        if (!account) {
+          if (!policy.createMissingAccounts) {
+            throw new Error(`ACCOUNT_NOT_FOUND:${accountName}:${currency}`);
+          }
+          const opened = await this.ledgerOpenAccount({
+            name: accountName,
+            type: policy.defaultAccountType,
+            currency,
+          });
+          account = CoreAdapterWeb.ledgerAccounts.find((item) => item.id === opened.id);
+        }
+        if (!account) {
+          throw new Error(`Account not found: ${accountName}`);
+        }
+
+        const amount = Math.abs(rawValue).toFixed(2);
+        const transactionId = rawValue < 0
+          ? (await this.ledgerRecordExpense({
+            accountId: account.id,
+            occurredAt,
+            amount,
+            currency,
+            description,
+            merchant,
+          })).id
+          : (await this.ledgerRecordIncome({
+            accountId: account.id,
+            occurredAt,
+            amount,
+            currency,
+            description,
+            merchant,
+          })).id;
+
+        if (categoryName) {
+          const transactionType = rawValue < 0 ? 'expense' : 'income';
+          let category = CoreAdapterWeb.taxonomyCategories.find(
+            (item) =>
+              item.status === 'active'
+              && item.appliesTo === transactionType
+              && item.normalizedName === this.normalizeCategoryName(categoryName),
+          );
+          if (!category) {
+            if (!policy.createMissingCategories) {
+              throw new Error('CATEGORY_AUTOCREATE_DISABLED');
+            }
+            const created = await this.taxonomyCreateCategory({
+              name: categoryName,
+              appliesTo: transactionType,
+            });
+            category = CoreAdapterWeb.taxonomyCategories.find((item) => item.id === created.id);
+          }
+          if (!category) {
+            throw new Error(`Category not found: ${categoryName}`);
+          }
+          const categorized = await this.orchestrationCategorizeTransaction({
+            transactionId,
+            transactionType,
+            categoryId: category.id,
+          });
+          if (categorized.status === 'failed') {
+            throw new Error(categorized.errorCode ?? categorized.errorMessage ?? 'Categorization failed');
+          }
+        }
+
+        if (tagNames.length > 0) {
+          if (!policy.createMissingTags) {
+            throw new Error('TAG_AUTOCREATE_DISABLED');
+          }
+          const tagging = await this.orchestrationApplyTransactionTags({
+            transactionId,
+            tagNames,
+          });
+          if (tagging.status === 'failed') {
+            throw new Error(tagging.errorCode ?? tagging.errorMessage ?? 'Tag assignment failed');
+          }
+        }
+
+        rows.push({
+          sourceLine,
+          status: 'imported',
+          transactionId,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Import failed';
+        rows.push({
+          sourceLine,
+          status: 'failed',
+          errorCode: message
+            .trim()
+            .toUpperCase()
+            .replace(/[^A-Z0-9]+/g, '_')
+            .replace(/^_+|_+$/g, ''),
+          errorMessage: message,
+        });
+      }
+    }
+
+    const importedCount = rows.filter((row) => row.status === 'imported').length;
+    const failedCount = rows.filter((row) => row.status === 'failed').length;
+    const skippedCount = rows.filter((row) => row.status === 'skipped').length;
+    return {
+      totalRows: rows.length,
+      importedCount,
+      failedCount,
+      skippedCount,
+      rows,
+    };
   }
 
   async orchestrationCategorizeTransaction(

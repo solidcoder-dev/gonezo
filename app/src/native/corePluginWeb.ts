@@ -28,6 +28,8 @@ import type {
   TaxonomyCreateCategoryResult,
   TaxonomyListTagsInput,
   TaxonomyListTagsResult,
+  MobillsImportInput,
+  MobillsImportResult,
   OrchestrationCategorizeTransactionInput,
   OrchestrationCategorizeTransactionResult,
   OrchestrationApplyTransactionTagsInput,
@@ -109,6 +111,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async taxonomyListTags(options?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult> {
     return this.core.taxonomyListTags(options);
+  }
+
+  async mobillsImport(options: MobillsImportInput): Promise<MobillsImportResult> {
+    return this.core.mobillsImport(options);
   }
 
   async orchestrationCategorizeTransaction(

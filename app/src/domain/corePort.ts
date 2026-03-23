@@ -208,6 +208,34 @@ export type TaxonomyListTagsResult = {
   items: TaxonomyTagItem[];
 };
 
+export type MobillsImportPolicy = {
+  createMissingAccounts?: boolean;
+  createMissingCategories?: boolean;
+  createMissingTags?: boolean;
+  defaultAccountType?: 'cash' | 'checking' | 'savings' | 'credit';
+};
+
+export type MobillsImportInput = {
+  fileBase64: string;
+  policy?: MobillsImportPolicy;
+};
+
+export type MobillsImportRowResult = {
+  sourceLine: number;
+  status: 'imported' | 'failed' | 'skipped';
+  transactionId?: string;
+  errorCode?: string;
+  errorMessage?: string;
+};
+
+export type MobillsImportResult = {
+  totalRows: number;
+  importedCount: number;
+  failedCount: number;
+  skippedCount: number;
+  rows: MobillsImportRowResult[];
+};
+
 export type OrchestrationCategorizeTransactionInput = {
   transactionId: string;
   transactionType: TaxonomyCategoryAppliesTo;
@@ -252,6 +280,7 @@ export interface CorePort {
   taxonomyListCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult>;
   taxonomyCreateCategory(input: TaxonomyCreateCategoryInput): Promise<TaxonomyCreateCategoryResult>;
   taxonomyListTags(input?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult>;
+  mobillsImport(input: MobillsImportInput): Promise<MobillsImportResult>;
   orchestrationCategorizeTransaction(
     input: OrchestrationCategorizeTransactionInput,
   ): Promise<OrchestrationCategorizeTransactionResult>;

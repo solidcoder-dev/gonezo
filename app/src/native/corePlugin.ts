@@ -28,6 +28,8 @@ import type {
   TaxonomyCreateCategoryResult,
   TaxonomyListTagsInput,
   TaxonomyListTagsResult,
+  MobillsImportInput,
+  MobillsImportResult,
   OrchestrationCategorizeTransactionInput,
   OrchestrationCategorizeTransactionResult,
   OrchestrationApplyTransactionTagsInput,
@@ -53,6 +55,7 @@ export interface CorePlugin {
   taxonomyListCategories(options?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult>;
   taxonomyCreateCategory(options: TaxonomyCreateCategoryInput): Promise<TaxonomyCreateCategoryResult>;
   taxonomyListTags(options?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult>;
+  mobillsImport(options: MobillsImportInput): Promise<MobillsImportResult>;
   orchestrationCategorizeTransaction(
     options: OrchestrationCategorizeTransactionInput,
   ): Promise<OrchestrationCategorizeTransactionResult>;
