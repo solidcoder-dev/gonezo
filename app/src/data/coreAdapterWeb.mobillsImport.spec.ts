@@ -38,4 +38,30 @@ describe('CoreAdapterWeb mobillsImport', () => {
     const accounts = await core.ledgerListAccounts();
     expect(accounts.items.some((account) => account.name === 'Cash, Wallet')).toBe(true);
   });
+
+  it('imports semicolon-separated csv with quoted headers and values', async () => {
+    const core = new CoreAdapterWeb();
+    const csv = [
+      '"Date";"Description";"Value";"Account";"Category";"Subcategory";"Tags"',
+      '"31/07/2018";"Limpiar coche";"-1.10";"Billetera";"Transporte";"";""',
+      '"31/07/2018";"Pollo y papas";"-8.30";"Billetera";"Alimentación";"";"trip;london"',
+    ].join('\r\n');
+
+    const result = await core.mobillsImport({
+      fileBase64: toUtf16Base64(csv),
+      policy: {
+        createMissingAccounts: true,
+        createMissingCategories: true,
+        createMissingTags: true,
+        defaultAccountType: 'cash',
+      },
+    });
+
+    expect(result.totalRows).toBe(2);
+    expect(result.importedCount).toBe(2);
+    expect(result.failedCount).toBe(0);
+
+    const accounts = await core.ledgerListAccounts();
+    expect(accounts.items.some((account) => account.name === 'Billetera')).toBe(true);
+  });
 });

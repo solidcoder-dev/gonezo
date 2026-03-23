@@ -178,13 +178,28 @@ export class CoreAdapterWeb implements CorePort {
     return new TextDecoder().decode(bytes).replace(/\uFEFF/g, '');
   }
 
-  private detectDelimiter(headerLine: string): '\t' | ',' {
+  private detectDelimiter(headerLine: string): '\t' | ',' | ';' {
     const tabs = this.countDelimiterOutsideQuotes(headerLine, '\t');
     const commas = this.countDelimiterOutsideQuotes(headerLine, ',');
-    return tabs >= commas ? '\t' : ',';
+    const semicolons = this.countDelimiterOutsideQuotes(headerLine, ';');
+
+    const candidates: Array<{ delimiter: '\t' | ',' | ';'; count: number }> = [
+      { delimiter: '\t', count: tabs },
+      { delimiter: ';', count: semicolons },
+      { delimiter: ',', count: commas },
+    ];
+
+    let best = candidates[0];
+    for (const candidate of candidates) {
+      if (candidate.count > best.count) {
+        best = candidate;
+      }
+    }
+
+    return best.delimiter;
   }
 
-  private countDelimiterOutsideQuotes(line: string, delimiter: '\t' | ','): number {
+  private countDelimiterOutsideQuotes(line: string, delimiter: '\t' | ',' | ';'): number {
     let inQuotes = false;
     let count = 0;
 
@@ -207,7 +222,7 @@ export class CoreAdapterWeb implements CorePort {
     return count;
   }
 
-  private splitDelimited(line: string, delimiter: '\t' | ','): string[] {
+  private splitDelimited(line: string, delimiter: '\t' | ',' | ';'): string[] {
     const cells: string[] = [];
     let current = '';
     let inQuotes = false;
