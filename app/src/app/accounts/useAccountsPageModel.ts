@@ -25,6 +25,30 @@ type ExpenseItemDraft = {
 };
 
 type TaxonomyCategoryAppliesTo = 'income' | 'expense';
+type MobillsAccountType = 'cash' | 'checking' | 'savings' | 'credit';
+
+type MobillsImportPolicyInput = {
+  createMissingAccounts?: boolean;
+  createMissingCategories?: boolean;
+  createMissingTags?: boolean;
+  defaultAccountType?: MobillsAccountType;
+};
+
+type MobillsImportRowResult = {
+  sourceLine: number;
+  status: 'imported' | 'failed' | 'skipped';
+  transactionId?: string;
+  errorCode?: string;
+  errorMessage?: string;
+};
+
+type MobillsImportResult = {
+  totalRows: number;
+  importedCount: number;
+  failedCount: number;
+  skippedCount: number;
+  rows: MobillsImportRowResult[];
+};
 
 export type AccountsCorePort = {
   ledgerListSupportedCurrencies(): Promise<{ items: string[] }>;
@@ -100,6 +124,10 @@ export type AccountsCorePort = {
   taxonomyListTags(input?: {
     includeArchived?: boolean;
   }): Promise<{ items: TaxonomyTagItem[] }>;
+  mobillsImport(input: {
+    fileBase64: string;
+    policy?: MobillsImportPolicyInput;
+  }): Promise<MobillsImportResult>;
   orchestrationCategorizeTransaction(input: {
     transactionId: string;
     transactionType: TaxonomyCategoryAppliesTo;
@@ -159,6 +187,37 @@ function resolveOccurredAt(dateInput: string): string {
   return new Date().toISOString();
 }
 
+function arrayBufferToBase64(value: ArrayBuffer): string {
+  const bytes = new Uint8Array(value);
+  const chunkSize = 0x8000;
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    const chunk = bytes.subarray(index, index + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return globalThis.btoa(binary);
+}
+
+async function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
+  const maybeArrayBuffer = (file as File & { arrayBuffer?: () => Promise<ArrayBuffer> }).arrayBuffer;
+  if (typeof maybeArrayBuffer === 'function') {
+    return maybeArrayBuffer.call(file);
+  }
+
+  return new Promise<ArrayBuffer>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Cannot read selected file.'));
+    reader.onload = () => {
+      if (reader.result instanceof ArrayBuffer) {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error('Cannot read selected file.'));
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 const VOID_COMMIT_DELAY_MS = 5000;
 
 export function useAccountsPageModel(core: AccountsCorePort) {
@@ -183,6 +242,15 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
   const [showCreateAccountForm, setShowCreateAccountForm] = useState(false);
   const [importSheetOpen, setImportSheetOpen] = useState(false);
+  const [importingMobills, setImportingMobills] = useState(false);
+  const [importFileName, setImportFileName] = useState('');
+  const [importFile, setImportFileState] = useState<File | null>(null);
+  const [importError, setImportError] = useState('');
+  const [importResult, setImportResult] = useState<MobillsImportResult | null>(null);
+  const [importCreateMissingAccounts, setImportCreateMissingAccounts] = useState(false);
+  const [importCreateMissingCategories, setImportCreateMissingCategories] = useState(true);
+  const [importCreateMissingTags, setImportCreateMissingTags] = useState(true);
+  const [importDefaultAccountType, setImportDefaultAccountType] = useState<MobillsAccountType>('cash');
   const [newAccountName, setNewAccountName] = useState('Main account');
   const [newAccountCurrency, setNewAccountCurrency] = useState('USD');
   const [newAccountOpeningBalance, setNewAccountOpeningBalance] = useState('');
@@ -461,6 +529,63 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setCreatingAccount(false);
+    }
+  }
+
+  function openImportSheet() {
+    setImportError('');
+    setImportResult(null);
+    setImportSheetOpen(true);
+  }
+
+  function closeImportSheet() {
+    setImportSheetOpen(false);
+    setImportError('');
+  }
+
+  function setImportFile(file: File | null) {
+    if (!file) {
+      setImportFileState(null);
+      setImportFileName('');
+      return;
+    }
+
+    setImportError('');
+    setImportResult(null);
+    setImportFileState(file);
+    setImportFileName(file.name);
+  }
+
+  async function submitMobillsImport(event: FormEvent) {
+    event.preventDefault();
+    setImportError('');
+    setImportResult(null);
+
+    if (!importFile) {
+      setImportError('Select a Mobills TSV file first.');
+      return;
+    }
+
+    setImportingMobills(true);
+    try {
+      const fileBuffer = await readFileAsArrayBuffer(importFile);
+      const fileBase64 = arrayBufferToBase64(fileBuffer);
+      const result = await core.mobillsImport({
+        fileBase64,
+        policy: {
+          createMissingAccounts: importCreateMissingAccounts,
+          createMissingCategories: importCreateMissingCategories,
+          createMissingTags: importCreateMissingTags,
+          defaultAccountType: importDefaultAccountType,
+        },
+      });
+      setImportResult(result);
+      await refreshAccounts(selectedAccountId || undefined);
+      showToast(`Imported ${result.importedCount} / ${result.totalRows} rows.`);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Import failed.');
+    } finally {
+      setImportingMobills(false);
     }
   }
 
@@ -867,6 +992,14 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     historyExpanded,
     showCreateAccountForm,
     importSheetOpen,
+    importingMobills,
+    importFileName,
+    importError,
+    importResult,
+    importCreateMissingAccounts,
+    importCreateMissingCategories,
+    importCreateMissingTags,
+    importDefaultAccountType,
     newAccountName,
     newAccountCurrency,
     newAccountOpeningBalance,
@@ -912,8 +1045,14 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     runToastAction: () => toastAction?.(),
     openCreateAccountForm: () => setShowCreateAccountForm(true),
     closeCreateAccountForm: () => setShowCreateAccountForm(false),
-    openImportSheet: () => setImportSheetOpen(true),
-    closeImportSheet: () => setImportSheetOpen(false),
+    setImportCreateMissingAccounts,
+    setImportCreateMissingCategories,
+    setImportCreateMissingTags,
+    setImportDefaultAccountType,
+    setImportFile,
+    openImportSheet,
+    closeImportSheet,
+    submitMobillsImport,
     expandHistory: () => setHistoryExpanded(true),
     openTransactionComposer,
     closeTransactionComposer,

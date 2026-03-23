@@ -218,7 +218,80 @@ export function AccountsPage({ core }: Props) {
                 ×
               </button>
             </div>
-            <p className="hint">Import flow setup in progress.</p>
+
+            {model.importError ? (
+              <div className="banner error" role="alert">
+                {model.importError}
+              </div>
+            ) : null}
+
+            <form className="stack" onSubmit={model.submitMobillsImport} aria-busy={model.importingMobills}>
+              <label className="stack">
+                Mobills TSV file
+                <input
+                  aria-label="Mobills TSV file"
+                  type="file"
+                  accept=".tsv,.txt,text/tab-separated-values"
+                  onChange={(event) => model.setImportFile(event.target.files?.[0] ?? null)}
+                />
+              </label>
+              {model.importFileName ? <p className="hint">Selected: {model.importFileName}</p> : null}
+
+              <label className="inline-checkbox">
+                <input
+                  type="checkbox"
+                  checked={model.importCreateMissingAccounts}
+                  onChange={(event) => model.setImportCreateMissingAccounts(event.target.checked)}
+                />
+                Create missing accounts
+              </label>
+              <label className="inline-checkbox">
+                <input
+                  type="checkbox"
+                  checked={model.importCreateMissingCategories}
+                  onChange={(event) => model.setImportCreateMissingCategories(event.target.checked)}
+                />
+                Create missing categories
+              </label>
+              <label className="inline-checkbox">
+                <input
+                  type="checkbox"
+                  checked={model.importCreateMissingTags}
+                  onChange={(event) => model.setImportCreateMissingTags(event.target.checked)}
+                />
+                Create missing tags
+              </label>
+
+              <label className="stack">
+                Account type for auto-created accounts
+                <select
+                  aria-label="Account type for auto-created accounts"
+                  value={model.importDefaultAccountType}
+                  onChange={(event) =>
+                    model.setImportDefaultAccountType(event.target.value as 'cash' | 'checking' | 'savings' | 'credit')
+                  }
+                >
+                  <option value="cash">cash</option>
+                  <option value="checking">checking</option>
+                  <option value="savings">savings</option>
+                  <option value="credit">credit</option>
+                </select>
+              </label>
+
+              <button type="submit" disabled={model.importingMobills}>
+                {model.importingMobills ? 'Importing...' : 'Import file'}
+              </button>
+            </form>
+
+            {model.importResult ? (
+              <section className="stack section-gap" aria-label="Import summary">
+                <p>
+                  Imported {model.importResult.importedCount} / {model.importResult.totalRows} rows
+                </p>
+                <p>{model.importResult.failedCount} failed</p>
+                <p>{model.importResult.skippedCount} skipped</p>
+              </section>
+            ) : null}
           </section>
         </div>
       ) : null}

@@ -154,6 +154,111 @@ describe('Accounts UX', () => {
     });
   });
 
+  it('imports a mobills file and shows the summary', async () => {
+    const core = makeCore();
+    vi.mocked(core.mobillsImport).mockResolvedValueOnce({
+      totalRows: 4,
+      importedCount: 3,
+      failedCount: 1,
+      skippedCount: 0,
+      rows: [
+        { sourceLine: 2, status: 'imported', transactionId: 'tx-1' },
+        { sourceLine: 3, status: 'failed', errorCode: 'INVALID_VALUE', errorMessage: 'Cannot parse value' },
+      ],
+    });
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+
+    const fileInput = await screen.findByLabelText('Mobills TSV file');
+    const file = new File(
+      ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
+      'mobills.tsv',
+      { type: 'text/tab-separated-values' },
+    );
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Import file' }));
+
+    await waitFor(() => {
+      expect(core.mobillsImport).toHaveBeenCalledTimes(1);
+    });
+    expect(await screen.findByText('Imported 3 / 4 rows')).toBeInTheDocument();
+    expect(screen.getByText('1 failed')).toBeInTheDocument();
+  });
+
+  it('uses selected import policy flags when importing', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+
+    const fileInput = await screen.findByLabelText('Mobills TSV file');
+    const file = new File(
+      ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
+      'mobills.tsv',
+      { type: 'text/tab-separated-values' },
+    );
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    fireEvent.click(screen.getByLabelText('Create missing accounts'));
+    fireEvent.click(screen.getByLabelText('Create missing categories'));
+    fireEvent.click(screen.getByLabelText('Create missing tags'));
+    fireEvent.click(screen.getByRole('button', { name: 'Import file' }));
+
+    await waitFor(() => {
+      expect(core.mobillsImport).toHaveBeenCalledTimes(1);
+    });
+
+    const call = vi.mocked(core.mobillsImport).mock.calls[0];
+    expect(call?.[0]).toEqual({
+      fileBase64: expect.any(String),
+      policy: {
+        createMissingAccounts: true,
+        createMissingCategories: false,
+        createMissingTags: false,
+        defaultAccountType: 'cash',
+      },
+    });
+  });
+
+  it('shows import failure in sheet when import fails', async () => {
+    const core = makeCore();
+    vi.mocked(core.mobillsImport).mockRejectedValueOnce(new Error('Import failed hard'));
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+
+    const fileInput = await screen.findByLabelText('Mobills TSV file');
+    const file = new File(
+      ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
+      'mobills.tsv',
+      { type: 'text/tab-separated-values' },
+    );
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Import file' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Import failed hard');
+    expect(screen.getByRole('dialog', { name: 'Import from Mobills' })).toBeInTheDocument();
+  });
+
   it('records quick expense from dedicated expense flow', async () => {
     const core = makeCore();
 
