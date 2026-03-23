@@ -297,6 +297,7 @@ describe('Accounts UX', () => {
         createMissingCategories: false,
         createMissingTags: false,
         defaultAccountType: 'cash',
+        duplicatePolicy: 'skip',
       },
     });
   });
@@ -335,6 +336,47 @@ describe('Accounts UX', () => {
         createMissingCategories: true,
         createMissingTags: true,
         defaultAccountType: 'cash',
+        duplicatePolicy: 'skip',
+      },
+    });
+  });
+
+  it('uses selected duplicate policy when importing', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+
+    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
+    const file = new File(
+      ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
+      'mobills.tsv',
+      { type: 'text/tab-separated-values' },
+    );
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    fireEvent.change(screen.getByLabelText('Duplicate transactions'), { target: { value: 'fail' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Import file' }));
+
+    await waitFor(() => {
+      expect(core.mobillsImport).toHaveBeenCalledTimes(1);
+    });
+
+    const call = vi.mocked(core.mobillsImport).mock.calls[0];
+    expect(call?.[0]).toEqual({
+      fileBase64: expect.any(String),
+      policy: {
+        createMissingAccounts: true,
+        createMissingCategories: true,
+        createMissingTags: true,
+        defaultAccountType: 'cash',
+        duplicatePolicy: 'fail',
       },
     });
   });

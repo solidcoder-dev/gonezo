@@ -26,12 +26,14 @@ type ExpenseItemDraft = {
 
 type TaxonomyCategoryAppliesTo = 'income' | 'expense';
 type MobillsAccountType = 'cash' | 'checking' | 'savings' | 'credit';
+type MobillsDuplicatePolicy = 'skip' | 'fail' | 'import_anyway';
 
 type MobillsImportPolicyInput = {
   createMissingAccounts?: boolean;
   createMissingCategories?: boolean;
   createMissingTags?: boolean;
   defaultAccountType?: MobillsAccountType;
+  duplicatePolicy?: MobillsDuplicatePolicy;
 };
 
 type MobillsImportRowResult = {
@@ -251,6 +253,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [importCreateMissingCategories, setImportCreateMissingCategories] = useState(true);
   const [importCreateMissingTags, setImportCreateMissingTags] = useState(true);
   const [importDefaultAccountType, setImportDefaultAccountType] = useState<MobillsAccountType>('cash');
+  const [importDuplicatePolicy, setImportDuplicatePolicy] = useState<MobillsDuplicatePolicy>('skip');
   const [newAccountName, setNewAccountName] = useState('Main account');
   const [newAccountCurrency, setNewAccountCurrency] = useState('USD');
   const [newAccountOpeningBalance, setNewAccountOpeningBalance] = useState('');
@@ -580,6 +583,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
           createMissingCategories: importCreateMissingCategories,
           createMissingTags: importCreateMissingTags,
           defaultAccountType: importDefaultAccountType,
+          duplicatePolicy: importDuplicatePolicy,
         },
       });
       setImportResult(result);
@@ -1003,6 +1007,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     importCreateMissingCategories,
     importCreateMissingTags,
     importDefaultAccountType,
+    importDuplicatePolicy,
     newAccountName,
     newAccountCurrency,
     newAccountOpeningBalance,
@@ -1052,6 +1057,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setImportCreateMissingCategories,
     setImportCreateMissingTags,
     setImportDefaultAccountType,
+    setImportDuplicatePolicy,
     setImportFile,
     openImportSheet,
     closeImportSheet,

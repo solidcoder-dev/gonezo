@@ -104,6 +104,9 @@ export function AccountsPage({ core }: Props) {
   const importFailedRows = importRows.filter((row) => row.status === 'failed');
   const importFailureSummary = summarizeImportFailures(importRows);
   const accountNotFoundFailures = importFailureSummary.find((item) => item.code === 'ACCOUNT_NOT_FOUND')?.count ?? 0;
+  const duplicateRowsCount = importRows
+    .filter((row) => normalizeImportErrorCode(row.errorCode) === 'DUPLICATE_TRANSACTION')
+    .length;
 
   if (model.loading) {
     return (
@@ -371,6 +374,21 @@ export function AccountsPage({ core }: Props) {
                 </select>
               </label>
 
+              <label className="stack">
+                Duplicate transactions
+                <select
+                  aria-label="Duplicate transactions"
+                  value={model.importDuplicatePolicy}
+                  onChange={(event) =>
+                    model.setImportDuplicatePolicy(event.target.value as 'skip' | 'fail' | 'import_anyway')
+                  }
+                >
+                  <option value="skip">Skip duplicates (recommended)</option>
+                  <option value="fail">Mark duplicates as failed</option>
+                  <option value="import_anyway">Import duplicates anyway</option>
+                </select>
+              </label>
+
               <button type="submit" disabled={model.importingMobills}>
                 {model.importingMobills ? 'Importing...' : 'Import file'}
               </button>
@@ -383,6 +401,7 @@ export function AccountsPage({ core }: Props) {
                 </p>
                 <p>{model.importResult.failedCount} failed</p>
                 <p>{model.importResult.skippedCount} skipped</p>
+                {duplicateRowsCount > 0 ? <p>{duplicateRowsCount} duplicates</p> : null}
                 {model.importResult.importedCount > 0 && model.accounts.length === 0 ? (
                   <p className="hint">
                     Import reported successful rows, but no accounts are visible. Reopen the app and re-check account list.
