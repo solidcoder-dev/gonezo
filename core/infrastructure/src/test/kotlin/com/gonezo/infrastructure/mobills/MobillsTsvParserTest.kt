@@ -61,5 +61,29 @@ class MobillsTsvParserTest {
     assertThat(result.issues.map { it.lineNumber })
       .containsExactly(2, 3, 4)
   }
-}
 
+  @Test
+  fun `parses csv with quoted fields and commas`() {
+    val parser = MobillsTsvParser()
+    val input = """
+      date,account,value,currency,description,merchant,category,subcategory,tags
+      2026-03-20,"Cash, Wallet",-12.50,EUR,"Lunch, team",Cafe,Food,Eating Out,"trip,london,Trip"
+      2026-03-21,Cash Wallet,1500,EUR,Salary,Employer,Salary,Monthly,"work;salary"
+    """.trimIndent().replace("\n", "\r\n")
+      .toByteArray(StandardCharsets.UTF_16)
+
+    val result = parser.parse(input)
+
+    assertThat(result.issues).isEmpty()
+    assertThat(result.rows).hasSize(2)
+
+    val expense = result.rows[0]
+    assertThat(expense.accountName).isEqualTo("Cash, Wallet")
+    assertThat(expense.description).isEqualTo("Lunch, team")
+    assertThat(expense.tags).containsExactly("trip", "london")
+
+    val income = result.rows[1]
+    assertThat(income.value).isEqualByComparingTo(BigDecimal("1500"))
+    assertThat(income.tags).containsExactly("work", "salary")
+  }
+}

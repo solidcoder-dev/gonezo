@@ -51,7 +51,8 @@ class MobillsTsvParser(
       return MobillsParseResult(emptyList(), emptyList())
     }
 
-    val headers = splitTsv(lines[headerIndex]).map(::normalizeHeaderName)
+    val delimiter = detectDelimiter(lines[headerIndex])
+    val headers = splitDelimited(lines[headerIndex], delimiter).map(::normalizeHeaderName)
     val dateCol = requireHeaderIndex(headers, "date", "fecha")
     val accountCol = requireHeaderIndex(headers, "account", "cuenta")
     val valueCol = requireHeaderIndex(headers, "value", "amount", "valor", "importe")
@@ -69,7 +70,7 @@ class MobillsTsvParser(
         continue
       }
       val sourceLine = index + 1
-      val values = splitTsv(line)
+      val values = splitDelimited(line, delimiter)
 
       val occurredAt = parseDate(cell(values, dateCol))
       if (occurredAt == null) {
@@ -221,18 +222,66 @@ class MobillsTsvParser(
     return null
   }
 
-  private fun splitTsv(line: String): List<String> {
-    val cells = mutableListOf<String>()
-    var start = 0
-    while (true) {
-      val tab = line.indexOf('\t', startIndex = start)
-      if (tab < 0) {
-        cells += line.substring(start)
-        return cells
+  private fun detectDelimiter(headerLine: String): Char {
+    val tabCount = countDelimiterOutsideQuotes(headerLine, '\t')
+    val commaCount = countDelimiterOutsideQuotes(headerLine, ',')
+    return if (tabCount >= commaCount) '\t' else ','
+  }
+
+  private fun countDelimiterOutsideQuotes(line: String, delimiter: Char): Int {
+    var inQuotes = false
+    var count = 0
+    var index = 0
+    while (index < line.length) {
+      val char = line[index]
+      if (char == '"') {
+        val escapedQuote = inQuotes && index + 1 < line.length && line[index + 1] == '"'
+        if (escapedQuote) {
+          index += 2
+          continue
+        }
+        inQuotes = !inQuotes
+        index += 1
+        continue
       }
-      cells += line.substring(start, tab)
-      start = tab + 1
+      if (char == delimiter && !inQuotes) {
+        count += 1
+      }
+      index += 1
     }
+    return count
+  }
+
+  private fun splitDelimited(line: String, delimiter: Char): List<String> {
+    val cells = mutableListOf<String>()
+    val current = StringBuilder()
+    var inQuotes = false
+    var index = 0
+
+    while (index < line.length) {
+      val char = line[index]
+      if (char == '"') {
+        val escapedQuote = inQuotes && index + 1 < line.length && line[index + 1] == '"'
+        if (escapedQuote) {
+          current.append('"')
+          index += 2
+          continue
+        }
+        inQuotes = !inQuotes
+        index += 1
+        continue
+      }
+      if (char == delimiter && !inQuotes) {
+        cells += current.toString()
+        current.clear()
+        index += 1
+        continue
+      }
+      current.append(char)
+      index += 1
+    }
+    cells += current.toString()
+    return cells
   }
 
   private fun normalizeHeaderName(raw: String): String = raw
@@ -240,4 +289,3 @@ class MobillsTsvParser(
     .lowercase()
     .replace(Regex("[^a-z0-9]"), "")
 }
-
