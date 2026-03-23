@@ -64,4 +64,108 @@ describe('CoreAdapterWeb mobillsImport', () => {
     const accounts = await core.ledgerListAccounts();
     expect(accounts.items.some((account) => account.name === 'Billetera')).toBe(true);
   });
+
+  it('skips duplicates by default on repeated import', async () => {
+    const core = new CoreAdapterWeb();
+    const csv = [
+      '"Date";"Description";"Value";"Account";"Category";"Subcategory";"Tags"',
+      '"31/07/2018";"Lunch";"-8.30";"Billetera";"Food";"";"trip"',
+      '"31/07/2018";"Salary";"1000.00";"Billetera";"Salary";"";"work"',
+    ].join('\r\n');
+
+    const first = await core.mobillsImport({
+      fileBase64: toUtf16Base64(csv),
+      policy: {
+        createMissingAccounts: true,
+        createMissingCategories: true,
+        createMissingTags: true,
+        defaultAccountType: 'cash',
+      },
+    });
+
+    const second = await core.mobillsImport({
+      fileBase64: toUtf16Base64(csv),
+      policy: {
+        createMissingAccounts: true,
+        createMissingCategories: true,
+        createMissingTags: true,
+        defaultAccountType: 'cash',
+      },
+    });
+
+    expect(first.importedCount).toBe(2);
+    expect(second.importedCount).toBe(0);
+    expect(second.skippedCount).toBe(2);
+    expect(second.failedCount).toBe(0);
+    expect(second.rows.map((row) => row.status)).toEqual(['skipped', 'skipped']);
+    expect(second.rows.every((row) => row.errorCode === 'DUPLICATE_TRANSACTION')).toBe(true);
+  });
+
+  it('fails duplicates when duplicate policy is fail', async () => {
+    const core = new CoreAdapterWeb();
+    const csv = [
+      '"Date";"Description";"Value";"Account";"Category";"Subcategory";"Tags"',
+      '"31/07/2018";"Lunch";"-8.30";"Billetera";"Food";"";"trip"',
+    ].join('\r\n');
+
+    await core.mobillsImport({
+      fileBase64: toUtf16Base64(csv),
+      policy: {
+        createMissingAccounts: true,
+        createMissingCategories: true,
+        createMissingTags: true,
+        defaultAccountType: 'cash',
+      },
+    });
+
+    const second = await core.mobillsImport({
+      fileBase64: toUtf16Base64(csv),
+      policy: {
+        createMissingAccounts: true,
+        createMissingCategories: true,
+        createMissingTags: true,
+        defaultAccountType: 'cash',
+        duplicatePolicy: 'fail',
+      },
+    });
+
+    expect(second.importedCount).toBe(0);
+    expect(second.skippedCount).toBe(0);
+    expect(second.failedCount).toBe(1);
+    expect(second.rows[0]?.status).toBe('failed');
+    expect(second.rows[0]?.errorCode).toBe('DUPLICATE_TRANSACTION');
+  });
+
+  it('imports duplicates when duplicate policy is import_anyway', async () => {
+    const core = new CoreAdapterWeb();
+    const csv = [
+      '"Date";"Description";"Value";"Account";"Category";"Subcategory";"Tags"',
+      '"31/07/2018";"Lunch";"-8.30";"Billetera";"Food";"";"trip"',
+    ].join('\r\n');
+
+    await core.mobillsImport({
+      fileBase64: toUtf16Base64(csv),
+      policy: {
+        createMissingAccounts: true,
+        createMissingCategories: true,
+        createMissingTags: true,
+        defaultAccountType: 'cash',
+      },
+    });
+
+    const second = await core.mobillsImport({
+      fileBase64: toUtf16Base64(csv),
+      policy: {
+        createMissingAccounts: true,
+        createMissingCategories: true,
+        createMissingTags: true,
+        defaultAccountType: 'cash',
+        duplicatePolicy: 'import_anyway',
+      },
+    });
+
+    expect(second.importedCount).toBe(1);
+    expect(second.failedCount).toBe(0);
+    expect(second.skippedCount).toBe(0);
+  });
 });

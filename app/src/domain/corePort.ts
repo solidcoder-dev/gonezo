@@ -213,6 +213,7 @@ export type MobillsImportPolicy = {
   createMissingCategories?: boolean;
   createMissingTags?: boolean;
   defaultAccountType?: 'cash' | 'checking' | 'savings' | 'credit';
+  duplicatePolicy?: 'skip' | 'fail' | 'import_anyway';
 };
 
 export type MobillsImportInput = {

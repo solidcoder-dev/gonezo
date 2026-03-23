@@ -103,6 +103,8 @@ export class CoreAdapterWeb implements CorePort {
 
   private static taxonomyTransactionTags: Map<string, string[]> = new Map();
 
+  private static mobillsImportFingerprintToTransactionId: Map<string, string> = new Map();
+
   private accountOrThrow(accountId: string): MemoryLedgerAccount {
     const account = CoreAdapterWeb.ledgerAccounts.find((item) => item.id === accountId);
     if (!account) {
@@ -301,6 +303,23 @@ export class CoreAdapterWeb implements CorePort {
       return null;
     }
     return parsed.toISOString();
+  }
+
+  private buildMobillsFingerprint(input: {
+    accountName: string;
+    occurredAt: string;
+    rawValue: number;
+    currency: string;
+    description?: string;
+    merchant?: string;
+  }): string {
+    const accountName = input.accountName.trim().toLowerCase();
+    const currency = input.currency.trim().toUpperCase();
+    const occurredAt = input.occurredAt.trim();
+    const signedValue = String(input.rawValue);
+    const description = (input.description ?? '').trim().toLowerCase();
+    const merchant = (input.merchant ?? '').trim().toLowerCase();
+    return ['mobills', accountName, occurredAt, signedValue, currency, description, merchant].join('|');
   }
 
   async doThing(input: string): Promise<CoreResult> {
@@ -642,6 +661,7 @@ export class CoreAdapterWeb implements CorePort {
       createMissingCategories: input.policy?.createMissingCategories !== false,
       createMissingTags: input.policy?.createMissingTags !== false,
       defaultAccountType: input.policy?.defaultAccountType ?? 'cash',
+      duplicatePolicy: input.policy?.duplicatePolicy ?? 'skip',
     };
 
     const content = this.decodeBase64ToText(input.fileBase64);
@@ -726,6 +746,24 @@ export class CoreAdapterWeb implements CorePort {
         .split(/[|,;]/)
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
+      const fingerprint = this.buildMobillsFingerprint({
+        accountName,
+        occurredAt,
+        rawValue,
+        currency,
+        description,
+        merchant,
+      });
+      const duplicateOfTransactionId = CoreAdapterWeb.mobillsImportFingerprintToTransactionId.get(fingerprint);
+      if (duplicateOfTransactionId && policy.duplicatePolicy !== 'import_anyway') {
+        rows.push({
+          sourceLine,
+          status: policy.duplicatePolicy === 'fail' ? 'failed' : 'skipped',
+          errorCode: 'DUPLICATE_TRANSACTION',
+          errorMessage: `Duplicate transaction detected (existing transactionId=${duplicateOfTransactionId})`,
+        });
+        continue;
+      }
 
       try {
         let account = CoreAdapterWeb.ledgerAccounts.find(
@@ -814,6 +852,9 @@ export class CoreAdapterWeb implements CorePort {
           status: 'imported',
           transactionId,
         });
+        if (!CoreAdapterWeb.mobillsImportFingerprintToTransactionId.has(fingerprint)) {
+          CoreAdapterWeb.mobillsImportFingerprintToTransactionId.set(fingerprint, transactionId);
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Import failed';
         rows.push({
