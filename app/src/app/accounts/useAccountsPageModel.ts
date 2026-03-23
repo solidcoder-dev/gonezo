@@ -535,6 +535,9 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   function openImportSheet() {
     setImportError('');
     setImportResult(null);
+    if (accounts.length === 0) {
+      setImportCreateMissingAccounts(true);
+    }
     setImportSheetOpen(true);
   }
 
@@ -581,7 +584,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       });
       setImportResult(result);
       await refreshAccounts(selectedAccountId || undefined);
-      showToast(`Imported ${result.importedCount} / ${result.totalRows} rows.`);
+      showToast(`Import finished: ${result.importedCount} imported, ${result.failedCount} failed.`);
     } catch (err) {
       setImportError(err instanceof Error ? err.message : 'Import failed.');
     } finally {

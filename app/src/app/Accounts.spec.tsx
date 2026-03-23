@@ -206,6 +206,59 @@ describe('Accounts UX', () => {
     });
     expect(await screen.findByText('Imported 3 / 4 rows')).toBeInTheDocument();
     expect(screen.getByText('1 failed')).toBeInTheDocument();
+    expect(screen.getByText('Failure reasons')).toBeInTheDocument();
+    expect(screen.getByText('Invalid value: 1')).toBeInTheDocument();
+    expect(screen.getByText('Line 3 (INVALID_VALUE): Cannot parse value')).toBeInTheDocument();
+  });
+
+  it('shows account-not-found hint when missing accounts are the failure reason', async () => {
+    const core = makeCore();
+    vi.mocked(core.mobillsImport).mockResolvedValueOnce({
+      totalRows: 2,
+      importedCount: 0,
+      failedCount: 2,
+      skippedCount: 0,
+      rows: [
+        {
+          sourceLine: 2,
+          status: 'failed',
+          errorCode: 'ACCOUNT_NOT_FOUND_BILLETERA_EUR',
+          errorMessage: 'ACCOUNT_NOT_FOUND:Billetera:EUR',
+        },
+        {
+          sourceLine: 3,
+          status: 'failed',
+          errorCode: 'ACCOUNT_NOT_FOUND_CASH_USD',
+          errorMessage: 'ACCOUNT_NOT_FOUND:Cash:USD',
+        },
+      ],
+    });
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+
+    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
+    const file = new File(
+      ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
+      'mobills.tsv',
+      { type: 'text/tab-separated-values' },
+    );
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Import file' }));
+
+    await waitFor(() => {
+      expect(core.mobillsImport).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByText('Missing account: 2')).toBeInTheDocument();
+    expect(
+      screen.getByText(/many rows failed because account names were not found/i),
+    ).toBeInTheDocument();
   });
 
   it('uses selected import policy flags when importing', async () => {
@@ -244,6 +297,44 @@ describe('Accounts UX', () => {
         createMissingAccounts: true,
         createMissingCategories: false,
         createMissingTags: false,
+        defaultAccountType: 'cash',
+      },
+    });
+  });
+
+  it('defaults create-missing-accounts to enabled when importing from empty state', async () => {
+    const core = makeCore();
+    vi.mocked(core.ledgerListAccounts).mockResolvedValue({ items: [] });
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { name: 'Create your first account' });
+    fireEvent.click(screen.getByRole('button', { name: 'Import from Mobills' }));
+
+    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
+    const file = new File(
+      ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
+      'mobills.tsv',
+      { type: 'text/tab-separated-values' },
+    );
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Import file' }));
+
+    await waitFor(() => {
+      expect(core.mobillsImport).toHaveBeenCalledTimes(1);
+    });
+
+    const call = vi.mocked(core.mobillsImport).mock.calls[0];
+    expect(call?.[0]).toEqual({
+      fileBase64: expect.any(String),
+      policy: {
+        createMissingAccounts: true,
+        createMissingCategories: true,
+        createMissingTags: true,
         defaultAccountType: 'cash',
       },
     });
