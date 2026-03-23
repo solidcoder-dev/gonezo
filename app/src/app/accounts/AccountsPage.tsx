@@ -361,7 +361,7 @@ export function AccountsPage({ core }: Props) {
       {model.importSheetOpen ? (
         <div className="sheet-backdrop" role="presentation" onClick={model.closeImportSheet}>
           <section
-            className="sheet-panel"
+            className="sheet-panel import-sheet"
             role="dialog"
             aria-modal="true"
             aria-label="Import from Mobills"
@@ -385,125 +385,127 @@ export function AccountsPage({ core }: Props) {
               </div>
             ) : null}
 
-            <form className="stack" onSubmit={model.submitMobillsImport} aria-busy={model.importingMobills}>
-              <label className="stack">
-                Mobills file (TSV/CSV)
-                <input
-                  aria-label="Mobills file (TSV/CSV)"
-                  type="file"
-                  accept=".csv,text/csv,.tsv,.txt,text/tab-separated-values"
-                  onChange={(event) => model.setImportFile(event.target.files?.[0] ?? null)}
-                />
-              </label>
-              {model.importFileName ? <p className="hint">Selected: {model.importFileName}</p> : null}
+            <div className="import-sheet-content">
+              <form className="stack" onSubmit={model.submitMobillsImport} aria-busy={model.importingMobills}>
+                <label className="stack">
+                  Mobills file (TSV/CSV)
+                  <input
+                    aria-label="Mobills file (TSV/CSV)"
+                    type="file"
+                    accept=".csv,text/csv,.tsv,.txt,text/tab-separated-values"
+                    onChange={(event) => model.setImportFile(event.target.files?.[0] ?? null)}
+                  />
+                </label>
+                {model.importFileName ? <p className="hint">Selected: {model.importFileName}</p> : null}
 
-              <label className="inline-checkbox">
-                <input
-                  type="checkbox"
-                  checked={model.importCreateMissingAccounts}
-                  onChange={(event) => model.setImportCreateMissingAccounts(event.target.checked)}
-                />
-                Create missing accounts
-              </label>
-              <label className="inline-checkbox">
-                <input
-                  type="checkbox"
-                  checked={model.importCreateMissingCategories}
-                  onChange={(event) => model.setImportCreateMissingCategories(event.target.checked)}
-                />
-                Create missing categories
-              </label>
-              <label className="inline-checkbox">
-                <input
-                  type="checkbox"
-                  checked={model.importCreateMissingTags}
-                  onChange={(event) => model.setImportCreateMissingTags(event.target.checked)}
-                />
-                Create missing tags
-              </label>
+                <label className="inline-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={model.importCreateMissingAccounts}
+                    onChange={(event) => model.setImportCreateMissingAccounts(event.target.checked)}
+                  />
+                  Create missing accounts
+                </label>
+                <label className="inline-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={model.importCreateMissingCategories}
+                    onChange={(event) => model.setImportCreateMissingCategories(event.target.checked)}
+                  />
+                  Create missing categories
+                </label>
+                <label className="inline-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={model.importCreateMissingTags}
+                    onChange={(event) => model.setImportCreateMissingTags(event.target.checked)}
+                  />
+                  Create missing tags
+                </label>
 
-              <label className="stack">
-                Account type for auto-created accounts
-                <select
-                  aria-label="Account type for auto-created accounts"
-                  value={model.importDefaultAccountType}
-                  onChange={(event) =>
-                    model.setImportDefaultAccountType(event.target.value as 'cash' | 'checking' | 'savings' | 'credit')
-                  }
-                >
-                  <option value="cash">cash</option>
-                  <option value="checking">checking</option>
-                  <option value="savings">savings</option>
-                  <option value="credit">credit</option>
-                </select>
-              </label>
+                <label className="stack">
+                  Account type for auto-created accounts
+                  <select
+                    aria-label="Account type for auto-created accounts"
+                    value={model.importDefaultAccountType}
+                    onChange={(event) =>
+                      model.setImportDefaultAccountType(event.target.value as 'cash' | 'checking' | 'savings' | 'credit')
+                    }
+                  >
+                    <option value="cash">cash</option>
+                    <option value="checking">checking</option>
+                    <option value="savings">savings</option>
+                    <option value="credit">credit</option>
+                  </select>
+                </label>
 
-              <label className="stack">
-                Duplicate transactions
-                <select
-                  aria-label="Duplicate transactions"
-                  value={model.importDuplicatePolicy}
-                  onChange={(event) =>
-                    model.setImportDuplicatePolicy(event.target.value as 'skip' | 'fail' | 'import_anyway')
-                  }
-                >
-                  <option value="skip">Skip duplicates (recommended)</option>
-                  <option value="fail">Mark duplicates as failed</option>
-                  <option value="import_anyway">Import duplicates anyway</option>
-                </select>
-              </label>
+                <label className="stack">
+                  Duplicate transactions
+                  <select
+                    aria-label="Duplicate transactions"
+                    value={model.importDuplicatePolicy}
+                    onChange={(event) =>
+                      model.setImportDuplicatePolicy(event.target.value as 'skip' | 'fail' | 'import_anyway')
+                    }
+                  >
+                    <option value="skip">Skip duplicates (recommended)</option>
+                    <option value="fail">Mark duplicates as failed</option>
+                    <option value="import_anyway">Import duplicates anyway</option>
+                  </select>
+                </label>
 
-              <button type="submit" disabled={model.importingMobills}>
-                {model.importingMobills ? 'Importing...' : 'Import file'}
-              </button>
-            </form>
+                <button type="submit" disabled={model.importingMobills}>
+                  {model.importingMobills ? 'Importing...' : 'Import file'}
+                </button>
+              </form>
 
-            {model.importResult ? (
-              <section className="stack section-gap" aria-label="Import summary">
-                <p>
-                  Imported {model.importResult.importedCount} / {model.importResult.totalRows} rows
-                </p>
-                <p>{model.importResult.failedCount} failed</p>
-                <p>{model.importResult.skippedCount} skipped</p>
-                {duplicateRowsCount > 0 ? <p>{duplicateRowsCount} duplicates</p> : null}
-                {model.importResult.importedCount > 0 && model.accounts.length === 0 ? (
-                  <p className="hint">
-                    Import reported successful rows, but no accounts are visible. Reopen the app and re-check account list.
-                    If this persists, share the failed-line examples below.
+              {model.importResult ? (
+                <section className="stack section-gap" aria-label="Import summary">
+                  <p>
+                    Imported {model.importResult.importedCount} / {model.importResult.totalRows} rows
                   </p>
-                ) : null}
-                {importFailureSummary.length > 0 ? (
-                  <>
-                    <p>Failure reasons</p>
-                    <ul>
-                      {importFailureSummary.slice(0, 6).map((item) => (
-                        <li key={item.code}>
-                          {item.label}: {item.count}
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                ) : null}
-                {accountNotFoundFailures > 0 ? (
-                  <p className="hint">
-                    Tip: many rows failed because account names were not found. Enable `Create missing accounts` and import
-                    again.
-                  </p>
-                ) : null}
-                {importFailedRows.length > 0 ? (
-                  <>
-                    <p>Failed line examples</p>
-                    <ul>
-                      {importFailedRows.slice(0, 10).map((row) => (
-                        <li key={`${row.sourceLine}-${row.errorCode ?? 'IMPORT_FAILED'}`}>
-                          Line {row.sourceLine} ({normalizeImportErrorCode(row.errorCode)}): {row.errorMessage ?? 'Import failed'}
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                ) : null}
-              </section>
-            ) : null}
+                  <p>{model.importResult.failedCount} failed</p>
+                  <p>{model.importResult.skippedCount} skipped</p>
+                  {duplicateRowsCount > 0 ? <p>{duplicateRowsCount} duplicates</p> : null}
+                  {model.importResult.importedCount > 0 && model.accounts.length === 0 ? (
+                    <p className="hint">
+                      Import reported successful rows, but no accounts are visible. Reopen the app and re-check account list.
+                      If this persists, share the failed-line examples below.
+                    </p>
+                  ) : null}
+                  {importFailureSummary.length > 0 ? (
+                    <>
+                      <p>Failure reasons</p>
+                      <ul>
+                        {importFailureSummary.slice(0, 6).map((item) => (
+                          <li key={item.code}>
+                            {item.label}: {item.count}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+                  {accountNotFoundFailures > 0 ? (
+                    <p className="hint">
+                      Tip: many rows failed because account names were not found. Enable `Create missing accounts` and import
+                      again.
+                    </p>
+                  ) : null}
+                  {importFailedRows.length > 0 ? (
+                    <>
+                      <p>Failed line examples</p>
+                      <ul>
+                        {importFailedRows.slice(0, 10).map((row) => (
+                          <li key={`${row.sourceLine}-${row.errorCode ?? 'IMPORT_FAILED'}`}>
+                            Line {row.sourceLine} ({normalizeImportErrorCode(row.errorCode)}): {row.errorMessage ?? 'Import failed'}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+                </section>
+              ) : null}
+            </div>
           </section>
         </div>
       ) : null}

@@ -242,7 +242,7 @@ describe('Accounts UX', () => {
   it('opens and closes the mobills import sheet', async () => {
     const core = makeCore();
 
-    render(
+    const view = render(
       <MemoryRouter>
         <Accounts core={core} />
       </MemoryRouter>
@@ -250,7 +250,10 @@ describe('Accounts UX', () => {
 
     await screen.findByText('Net balance');
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
-    expect(await screen.findByRole('dialog', { name: 'Import from Mobills' })).toBeInTheDocument();
+    const dialog = await screen.findByRole('dialog', { name: 'Import from Mobills' });
+    expect(dialog).toBeInTheDocument();
+    expect(dialog).toHaveClass('import-sheet');
+    expect(view.container.querySelector('.import-sheet-content')).not.toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Close import sheet' }));
     await waitFor(() => {
