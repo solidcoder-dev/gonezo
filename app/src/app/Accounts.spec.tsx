@@ -403,7 +403,6 @@ describe('Accounts UX', () => {
         createMissingAccounts: true,
         createMissingCategories: false,
         createMissingTags: false,
-        defaultAccountType: 'cash',
         duplicatePolicy: 'skip',
       },
     });
@@ -442,7 +441,6 @@ describe('Accounts UX', () => {
         createMissingAccounts: true,
         createMissingCategories: true,
         createMissingTags: true,
-        defaultAccountType: 'cash',
         duplicatePolicy: 'skip',
       },
     });
@@ -482,7 +480,6 @@ describe('Accounts UX', () => {
         createMissingAccounts: true,
         createMissingCategories: true,
         createMissingTags: true,
-        defaultAccountType: 'cash',
         duplicatePolicy: 'fail',
       },
     });

@@ -451,7 +451,6 @@ public class CorePlugin extends Plugin {
     boolean createMissingAccounts = createMissingAccountsValue != null && createMissingAccountsValue;
     boolean createMissingCategories = createMissingCategoriesValue == null || createMissingCategoriesValue;
     boolean createMissingTags = createMissingTagsValue == null || createMissingTagsValue;
-    String defaultAccountType = policy.getString("defaultAccountType", "cash");
     String duplicatePolicy = normalizeDuplicatePolicy(policy.getString("duplicatePolicy", "skip"));
 
     try {
@@ -462,7 +461,6 @@ public class CorePlugin extends Plugin {
         createMissingAccounts,
         createMissingCategories,
         createMissingTags,
-        defaultAccountType,
         duplicatePolicy
       );
       call.resolve(result);
@@ -523,7 +521,6 @@ public class CorePlugin extends Plugin {
     boolean createMissingAccounts,
     boolean createMissingCategories,
     boolean createMissingTags,
-    String defaultAccountType,
     String duplicatePolicy
   ) throws JSONException {
     String[] lines = content.split("\\r?\\n");
@@ -631,7 +628,7 @@ public class CorePlugin extends Plugin {
           if (!createMissingAccounts) {
             throw new IllegalStateException("ACCOUNT_NOT_FOUND:" + accountName + ":" + currency);
           }
-          String createdAccountId = ledgerCore.openAccount(accountName, defaultAccountType, currency, null, null).toString();
+          String createdAccountId = ledgerCore.openAccount(accountName, "cash", currency, null, null).toString();
           cachedAccounts = new ArrayList<>(ledgerCore.listAccounts());
           account = findAccountById(cachedAccounts, createdAccountId);
         }

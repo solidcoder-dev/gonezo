@@ -25,14 +25,12 @@ type ExpenseItemDraft = {
 };
 
 type TaxonomyCategoryAppliesTo = 'income' | 'expense';
-type MobillsAccountType = 'cash' | 'checking' | 'savings' | 'credit';
 type MobillsDuplicatePolicy = 'skip' | 'fail' | 'import_anyway';
 
 type MobillsImportPolicyInput = {
   createMissingAccounts?: boolean;
   createMissingCategories?: boolean;
   createMissingTags?: boolean;
-  defaultAccountType?: MobillsAccountType;
   duplicatePolicy?: MobillsDuplicatePolicy;
 };
 
@@ -266,7 +264,6 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [importCreateMissingAccounts, setImportCreateMissingAccounts] = useState(true);
   const [importCreateMissingCategories, setImportCreateMissingCategories] = useState(true);
   const [importCreateMissingTags, setImportCreateMissingTags] = useState(true);
-  const [importDefaultAccountType, setImportDefaultAccountType] = useState<MobillsAccountType>('cash');
   const [importDuplicatePolicy, setImportDuplicatePolicy] = useState<MobillsDuplicatePolicy>('skip');
   const [newAccountName, setNewAccountName] = useState('Main account');
   const [newAccountCurrency, setNewAccountCurrency] = useState('USD');
@@ -694,7 +691,6 @@ export function useAccountsPageModel(core: AccountsCorePort) {
           createMissingAccounts: importCreateMissingAccounts,
           createMissingCategories: importCreateMissingCategories,
           createMissingTags: importCreateMissingTags,
-          defaultAccountType: importDefaultAccountType,
           duplicatePolicy: importDuplicatePolicy,
         },
       });
@@ -1121,7 +1117,6 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     importCreateMissingAccounts,
     importCreateMissingCategories,
     importCreateMissingTags,
-    importDefaultAccountType,
     importDuplicatePolicy,
     newAccountName,
     newAccountCurrency,
@@ -1174,7 +1169,6 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setImportCreateMissingAccounts,
     setImportCreateMissingCategories,
     setImportCreateMissingTags,
-    setImportDefaultAccountType,
     setImportDuplicatePolicy,
     setImportFile,
     openImportSheet,

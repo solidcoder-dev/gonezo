@@ -424,22 +424,6 @@ export function AccountsPage({ core }: Props) {
                 </label>
 
                 <label className="stack">
-                  Account type for auto-created accounts
-                  <select
-                    aria-label="Account type for auto-created accounts"
-                    value={model.importDefaultAccountType}
-                    onChange={(event) =>
-                      model.setImportDefaultAccountType(event.target.value as 'cash' | 'checking' | 'savings' | 'credit')
-                    }
-                  >
-                    <option value="cash">cash</option>
-                    <option value="checking">checking</option>
-                    <option value="savings">savings</option>
-                    <option value="credit">credit</option>
-                  </select>
-                </label>
-
-                <label className="stack">
                   Duplicate transactions
                   <select
                     aria-label="Duplicate transactions"

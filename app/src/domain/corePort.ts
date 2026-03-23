@@ -216,7 +216,6 @@ export type MobillsImportPolicy = {
   createMissingAccounts?: boolean;
   createMissingCategories?: boolean;
   createMissingTags?: boolean;
-  defaultAccountType?: 'cash' | 'checking' | 'savings' | 'credit';
   duplicatePolicy?: 'skip' | 'fail' | 'import_anyway';
 };
 

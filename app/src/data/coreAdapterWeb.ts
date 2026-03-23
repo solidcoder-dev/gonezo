@@ -690,7 +690,6 @@ export class CoreAdapterWeb implements CorePort {
       createMissingAccounts: input.policy?.createMissingAccounts === true,
       createMissingCategories: input.policy?.createMissingCategories !== false,
       createMissingTags: input.policy?.createMissingTags !== false,
-      defaultAccountType: input.policy?.defaultAccountType ?? 'cash',
       duplicatePolicy: input.policy?.duplicatePolicy ?? 'skip',
     };
 
@@ -805,7 +804,7 @@ export class CoreAdapterWeb implements CorePort {
           }
           const opened = await this.ledgerOpenAccount({
             name: accountName,
-            type: policy.defaultAccountType,
+            type: 'cash',
             currency,
           });
           account = CoreAdapterWeb.ledgerAccounts.find((item) => item.id === opened.id);

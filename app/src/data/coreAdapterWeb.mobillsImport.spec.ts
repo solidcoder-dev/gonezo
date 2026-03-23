@@ -26,7 +26,6 @@ describe('CoreAdapterWeb mobillsImport', () => {
         createMissingAccounts: true,
         createMissingCategories: true,
         createMissingTags: true,
-        defaultAccountType: 'cash',
       },
     });
 
@@ -53,7 +52,6 @@ describe('CoreAdapterWeb mobillsImport', () => {
         createMissingAccounts: true,
         createMissingCategories: true,
         createMissingTags: true,
-        defaultAccountType: 'cash',
       },
     });
 
@@ -79,7 +77,6 @@ describe('CoreAdapterWeb mobillsImport', () => {
         createMissingAccounts: true,
         createMissingCategories: true,
         createMissingTags: true,
-        defaultAccountType: 'cash',
       },
     });
 
@@ -89,7 +86,6 @@ describe('CoreAdapterWeb mobillsImport', () => {
         createMissingAccounts: true,
         createMissingCategories: true,
         createMissingTags: true,
-        defaultAccountType: 'cash',
       },
     });
 
@@ -114,7 +110,6 @@ describe('CoreAdapterWeb mobillsImport', () => {
         createMissingAccounts: true,
         createMissingCategories: true,
         createMissingTags: true,
-        defaultAccountType: 'cash',
       },
     });
 
@@ -124,7 +119,6 @@ describe('CoreAdapterWeb mobillsImport', () => {
         createMissingAccounts: true,
         createMissingCategories: true,
         createMissingTags: true,
-        defaultAccountType: 'cash',
         duplicatePolicy: 'fail',
       },
     });
@@ -149,7 +143,6 @@ describe('CoreAdapterWeb mobillsImport', () => {
         createMissingAccounts: true,
         createMissingCategories: true,
         createMissingTags: true,
-        defaultAccountType: 'cash',
       },
     });
 
@@ -159,7 +152,6 @@ describe('CoreAdapterWeb mobillsImport', () => {
         createMissingAccounts: true,
         createMissingCategories: true,
         createMissingTags: true,
-        defaultAccountType: 'cash',
         duplicatePolicy: 'import_anyway',
       },
     });
