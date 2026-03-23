@@ -4,6 +4,7 @@ skinparam shadowing false
 hide stereotypes
 
 actor User
+actor "Mobills Export File" as MobillsFile
 
 package "Gonezo" {
   package "Client App" {
@@ -13,6 +14,7 @@ package "Gonezo" {
 
   package "Backend" {
     component "API / Workflows" as API
+    component "Mobills Import Orchestration" as MobillsImport
     component "Ledger Application" as LedgerApp
     component "Taxonomy Application" as TaxonomyApp
     component "Classification Worker" as Worker
@@ -23,6 +25,10 @@ package "Gonezo" {
   UI --> CacheDb : offline use
   API --> LedgerApp
   API --> TaxonomyApp
+  API --> MobillsImport
+  MobillsImport --> LedgerApp
+  MobillsImport --> TaxonomyApp
+  MobillsImport --> MainDb : row result + workflow state
   API --> MainDb : workflow state (category/tag status)
   Worker --> TaxonomyApp : retry category / apply tags
   Worker --> MainDb : update workflow state
@@ -31,5 +37,6 @@ package "Gonezo" {
 }
 
 User --> UI
+MobillsFile --> MobillsImport : UTF-16 TSV
 
 @enduml
