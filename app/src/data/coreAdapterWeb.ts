@@ -178,18 +178,61 @@ export class CoreAdapterWeb implements CorePort {
     return new TextDecoder().decode(bytes).replace(/\uFEFF/g, '');
   }
 
-  private splitTsv(line: string): string[] {
-    const cells: string[] = [];
-    let start = 0;
-    while (true) {
-      const tabIndex = line.indexOf('\t', start);
-      if (tabIndex < 0) {
-        cells.push(line.slice(start));
-        return cells;
+  private detectDelimiter(headerLine: string): '\t' | ',' {
+    const tabs = this.countDelimiterOutsideQuotes(headerLine, '\t');
+    const commas = this.countDelimiterOutsideQuotes(headerLine, ',');
+    return tabs >= commas ? '\t' : ',';
+  }
+
+  private countDelimiterOutsideQuotes(line: string, delimiter: '\t' | ','): number {
+    let inQuotes = false;
+    let count = 0;
+
+    for (let index = 0; index < line.length; index += 1) {
+      const char = line[index];
+      if (char === '"') {
+        const escapedQuote = inQuotes && line[index + 1] === '"';
+        if (escapedQuote) {
+          index += 1;
+          continue;
+        }
+        inQuotes = !inQuotes;
+        continue;
       }
-      cells.push(line.slice(start, tabIndex));
-      start = tabIndex + 1;
+      if (char === delimiter && !inQuotes) {
+        count += 1;
+      }
     }
+
+    return count;
+  }
+
+  private splitDelimited(line: string, delimiter: '\t' | ','): string[] {
+    const cells: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let index = 0; index < line.length; index += 1) {
+      const char = line[index];
+      if (char === '"') {
+        const escapedQuote = inQuotes && line[index + 1] === '"';
+        if (escapedQuote) {
+          current += '"';
+          index += 1;
+          continue;
+        }
+        inQuotes = !inQuotes;
+        continue;
+      }
+      if (char === delimiter && !inQuotes) {
+        cells.push(current);
+        current = '';
+        continue;
+      }
+      current += char;
+    }
+    cells.push(current);
+    return cells;
   }
 
   private normalizeHeaderName(value: string): string {
@@ -601,7 +644,8 @@ export class CoreAdapterWeb implements CorePort {
       };
     }
 
-    const header = this.splitTsv(lines[0]);
+    const delimiter = this.detectDelimiter(lines[0]);
+    const header = this.splitDelimited(lines[0], delimiter);
     const dateIndex = this.findHeaderIndex(header, ['date', 'fecha']);
     const accountIndex = this.findHeaderIndex(header, ['account', 'cuenta']);
     const valueIndex = this.findHeaderIndex(header, ['value', 'amount', 'valor', 'importe']);
@@ -617,7 +661,7 @@ export class CoreAdapterWeb implements CorePort {
     const rows: MobillsImportRowResult[] = [];
     for (let index = 1; index < lines.length; index += 1) {
       const sourceLine = index + 1;
-      const cells = this.splitTsv(lines[index]);
+      const cells = this.splitDelimited(lines[index], delimiter);
       const accountName = (cells[accountIndex] ?? '').trim();
       const occurredAt = this.parseMobillsDate(cells[dateIndex] ?? '');
       const rawValue = this.parseMobillsValue(cells[valueIndex] ?? '');
