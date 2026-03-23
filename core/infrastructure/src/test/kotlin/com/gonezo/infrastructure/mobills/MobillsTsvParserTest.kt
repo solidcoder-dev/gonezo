@@ -86,4 +86,31 @@ class MobillsTsvParserTest {
     assertThat(income.value).isEqualByComparingTo(BigDecimal("1500"))
     assertThat(income.tags).containsExactly("work", "salary")
   }
+
+  @Test
+  fun `parses semicolon separated export with quoted headers and values`() {
+    val parser = MobillsTsvParser()
+    val input = """
+      "Date";"Description";"Value";"Account";"Category";"Subcategory";"Tags"
+      "31/07/2018";"Limpiar coche";"-1.10";"Billetera";"Transporte";"";""
+      "31/07/2018";"Pollo y papas";"-8.30";"Billetera";"Alimentación";"";"trip;london"
+    """.trimIndent().replace("\n", "\r\n")
+      .toByteArray(StandardCharsets.UTF_16)
+
+    val result = parser.parse(input)
+
+    assertThat(result.issues).isEmpty()
+    assertThat(result.rows).hasSize(2)
+
+    val first = result.rows[0]
+    assertThat(first.accountName).isEqualTo("Billetera")
+    assertThat(first.description).isEqualTo("Limpiar coche")
+    assertThat(first.category).isEqualTo("Transporte")
+    assertThat(first.value).isEqualByComparingTo(BigDecimal("-1.10"))
+    assertThat(first.occurredAt).isEqualTo(Instant.parse("2018-07-31T00:00:00Z"))
+
+    val second = result.rows[1]
+    assertThat(second.category).isEqualTo("Alimentación")
+    assertThat(second.tags).containsExactly("trip", "london")
+  }
 }

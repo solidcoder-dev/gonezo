@@ -223,9 +223,8 @@ class MobillsTsvParser(
   }
 
   private fun detectDelimiter(headerLine: String): Char {
-    val tabCount = countDelimiterOutsideQuotes(headerLine, '\t')
-    val commaCount = countDelimiterOutsideQuotes(headerLine, ',')
-    return if (tabCount >= commaCount) '\t' else ','
+    val candidates = listOf('\t', ';', ',')
+    return candidates.maxBy { delimiter -> countDelimiterOutsideQuotes(headerLine, delimiter) }
   }
 
   private fun countDelimiterOutsideQuotes(line: String, delimiter: Char): Int {
