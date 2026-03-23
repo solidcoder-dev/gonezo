@@ -511,7 +511,8 @@ public class CorePlugin extends Plugin {
       return buildImportResponse(new JSONArray());
     }
 
-    List<String> headerCells = splitTsv(lines[headerLineIndex]);
+    char delimiter = MobillsDelimitedParser.detectDelimiter(lines[headerLineIndex]);
+    List<String> headerCells = MobillsDelimitedParser.splitDelimited(lines[headerLineIndex], delimiter);
     int dateIndex = findHeaderIndex(headerCells, "date", "fecha");
     int accountIndex = findHeaderIndex(headerCells, "account", "cuenta");
     int valueIndex = findHeaderIndex(headerCells, "value", "amount", "valor", "importe");
@@ -536,7 +537,7 @@ public class CorePlugin extends Plugin {
       }
       int sourceLine = index + 1;
 
-      List<String> cells = splitTsv(line);
+      List<String> cells = MobillsDelimitedParser.splitDelimited(line, delimiter);
       String accountName = cell(cells, accountIndex).trim();
       String occurredAt = parseMobillsDate(cell(cells, dateIndex));
       BigDecimal value = parseMobillsValue(cell(cells, valueIndex));
@@ -749,20 +750,6 @@ public class CorePlugin extends Plugin {
       return utf16;
     }
     return new String(bytes, StandardCharsets.UTF_8).replace("\uFEFF", "");
-  }
-
-  private List<String> splitTsv(String line) {
-    List<String> cells = new ArrayList<>();
-    int start = 0;
-    while (true) {
-      int tab = line.indexOf('\t', start);
-      if (tab < 0) {
-        cells.add(line.substring(start));
-        return cells;
-      }
-      cells.add(line.substring(start, tab));
-      start = tab + 1;
-    }
   }
 
   private int findHeaderIndex(List<String> headerCells, String... aliases) {
