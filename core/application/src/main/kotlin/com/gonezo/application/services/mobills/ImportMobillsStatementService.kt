@@ -15,6 +15,8 @@ import com.gonezo.ledger.domain.Account
 import com.gonezo.ledger.domain.CurrencyCode
 import com.gonezo.ledger.domain.TransactionId
 import com.gonezo.domain.shared.Money
+import com.gonezo.taxonomy.application.ListCategoriesUC
+import com.gonezo.taxonomy.domain.CategoryId
 import java.time.Instant
 
 class ImportMobillsStatementService(
@@ -22,12 +24,16 @@ class ImportMobillsStatementService(
   private val openAccountUC: OpenLedgerAccountUC,
   private val recordExpenseUC: RecordLedgerExpenseUC,
   private val recordIncomeUC: RecordLedgerIncomeUC,
+  private val listCategoriesUC: ListCategoriesUC,
   private val categorizeLedgerTransactionUC: CategorizeLedgerTransactionUC,
   private val applyTransactionTagsUC: ApplyTransactionTagsUC,
 ) : ImportMobillsStatementUC {
   override fun execute(command: ImportMobillsStatementCommand): ImportMobillsResult {
     val accountIndex = listAccountsUC.execute()
       .associateBy { accountKey(it.name, it.currency.value) }
+      .toMutableMap()
+    val categoryIndex = listCategoriesUC.execute()
+      .associate { category -> categoryKey(category.name, category.appliesTo.value) to category.id }
       .toMutableMap()
     val results = mutableListOf<ImportMobillsRowResult>()
 
@@ -47,6 +53,7 @@ class ImportMobillsStatementService(
           requestedAt = command.requestedAt,
           policy = command.policy,
           accountIndex = accountIndex,
+          categoryIndex = categoryIndex,
         )
       }
 
@@ -75,14 +82,16 @@ class ImportMobillsStatementService(
     requestedAt: Instant,
     policy: ImportMobillsPolicy,
     accountIndex: MutableMap<String, Account>,
+    categoryIndex: MutableMap<String, CategoryId>,
   ): TransactionId {
     require(row.value.signum() != 0) { "ZERO_VALUE" }
 
     val currencyCode = CurrencyCode.from(row.currency)
     val account = resolveAccount(row, requestedAt, policy, accountIndex, currencyCode)
     val amount = Money(row.value.abs(), currencyCode.value)
+    val transactionType = if (row.value.signum() < 0) "expense" else "income"
 
-    val transactionId = if (row.value.signum() < 0) {
+    val transactionId = if (transactionType == "expense") {
       recordExpenseUC.execute(
         RecordLedgerExpenseCommand(
           accountId = account.id,
@@ -106,17 +115,27 @@ class ImportMobillsStatementService(
 
     val normalizedCategory = row.category?.trim().orEmpty()
     if (normalizedCategory.isNotBlank()) {
-      require(policy.createMissingCategories) {
-        "CATEGORY_AUTOCREATE_DISABLED"
+      val key = categoryKey(normalizedCategory, transactionType)
+      val resolvedCategoryId = categoryIndex[key]
+      if (resolvedCategoryId == null) {
+        require(policy.createMissingCategories) {
+          "CATEGORY_AUTOCREATE_DISABLED"
+        }
       }
-      categorizeLedgerTransactionUC.execute(
+
+      val categorizationState = categorizeLedgerTransactionUC.execute(
         CategorizeLedgerTransactionCommand(
           transactionId = transactionId,
-          transactionType = if (row.value.signum() < 0) "expense" else "income",
-          newCategoryName = normalizedCategory,
+          transactionType = transactionType,
+          categoryId = resolvedCategoryId,
+          newCategoryName = if (resolvedCategoryId == null) normalizedCategory else null,
           requestedAt = requestedAt,
         ),
       )
+      val assignedCategoryId = categorizationState.requestedCategoryId ?: resolvedCategoryId
+      if (assignedCategoryId != null) {
+        categoryIndex[key] = assignedCategoryId
+      }
     }
 
     val normalizedTags = row.tags.map(String::trim).filter(String::isNotBlank)
@@ -170,6 +189,7 @@ class ImportMobillsStatementService(
   }
 
   private fun accountKey(name: String, currency: String): String = "${name.trim().lowercase()}|${currency.trim().uppercase()}"
+  private fun categoryKey(name: String, appliesTo: String): String = "${name.trim().lowercase()}|${appliesTo.trim().lowercase()}"
 
   private fun toErrorCode(throwable: Throwable): String {
     val raw = throwable.message?.trim().orEmpty()
@@ -180,4 +200,3 @@ class ImportMobillsStatementService(
     return if (normalized.isBlank()) "IMPORT_FAILED" else normalized
   }
 }
-

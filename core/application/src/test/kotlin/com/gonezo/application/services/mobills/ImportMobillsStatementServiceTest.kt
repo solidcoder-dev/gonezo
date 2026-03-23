@@ -18,6 +18,11 @@ import com.gonezo.ledger.domain.AccountId
 import com.gonezo.ledger.domain.AccountType
 import com.gonezo.ledger.domain.CurrencyCode
 import com.gonezo.ledger.domain.TransactionId
+import com.gonezo.taxonomy.application.ListCategoriesUC
+import com.gonezo.taxonomy.domain.Category
+import com.gonezo.taxonomy.domain.CategoryAppliesTo
+import com.gonezo.taxonomy.domain.CategoryId
+import com.gonezo.taxonomy.domain.CategoryStatus
 import com.gonezo.taxonomy.domain.TagId
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -39,6 +44,7 @@ class ImportMobillsStatementServiceTest {
     val openAccountUC = RecordingOpenLedgerAccountUC()
     val recordExpenseUC = RecordingRecordExpenseUC()
     val recordIncomeUC = RecordingRecordIncomeUC()
+    val listCategoriesUC = StubListCategoriesUC()
     val categorizeUC = RecordingCategorizeLedgerTransactionUC()
     val applyTagsUC = RecordingApplyTransactionTagsUC()
     val service = ImportMobillsStatementService(
@@ -46,6 +52,7 @@ class ImportMobillsStatementServiceTest {
       openAccountUC = openAccountUC,
       recordExpenseUC = recordExpenseUC,
       recordIncomeUC = recordIncomeUC,
+      listCategoriesUC = listCategoriesUC,
       categorizeLedgerTransactionUC = categorizeUC,
       applyTransactionTagsUC = applyTagsUC,
     )
@@ -101,6 +108,7 @@ class ImportMobillsStatementServiceTest {
     val openAccountUC = RecordingOpenLedgerAccountUC()
     val recordExpenseUC = RecordingRecordExpenseUC()
     val recordIncomeUC = RecordingRecordIncomeUC()
+    val listCategoriesUC = StubListCategoriesUC()
     val categorizeUC = RecordingCategorizeLedgerTransactionUC()
     val applyTagsUC = RecordingApplyTransactionTagsUC()
     val service = ImportMobillsStatementService(
@@ -108,6 +116,7 @@ class ImportMobillsStatementServiceTest {
       openAccountUC = openAccountUC,
       recordExpenseUC = recordExpenseUC,
       recordIncomeUC = recordIncomeUC,
+      listCategoriesUC = listCategoriesUC,
       categorizeLedgerTransactionUC = categorizeUC,
       applyTransactionTagsUC = applyTagsUC,
     )
@@ -146,6 +155,7 @@ class ImportMobillsStatementServiceTest {
     val openAccountUC = RecordingOpenLedgerAccountUC(AccountId.random())
     val recordExpenseUC = RecordingRecordExpenseUC()
     val recordIncomeUC = RecordingRecordIncomeUC()
+    val listCategoriesUC = StubListCategoriesUC()
     val categorizeUC = RecordingCategorizeLedgerTransactionUC()
     val applyTagsUC = RecordingApplyTransactionTagsUC()
     val service = ImportMobillsStatementService(
@@ -153,6 +163,7 @@ class ImportMobillsStatementServiceTest {
       openAccountUC = openAccountUC,
       recordExpenseUC = recordExpenseUC,
       recordIncomeUC = recordIncomeUC,
+      listCategoriesUC = listCategoriesUC,
       categorizeLedgerTransactionUC = categorizeUC,
       applyTransactionTagsUC = applyTagsUC,
     )
@@ -190,6 +201,7 @@ class ImportMobillsStatementServiceTest {
     val openAccountUC = RecordingOpenLedgerAccountUC(AccountId.random())
     val recordExpenseUC = RecordingRecordExpenseUC()
     val recordIncomeUC = RecordingRecordIncomeUC()
+    val listCategoriesUC = StubListCategoriesUC()
     val categorizeUC = RecordingCategorizeLedgerTransactionUC()
     val applyTagsUC = RecordingApplyTransactionTagsUC()
     val service = ImportMobillsStatementService(
@@ -197,6 +209,7 @@ class ImportMobillsStatementServiceTest {
       openAccountUC = openAccountUC,
       recordExpenseUC = recordExpenseUC,
       recordIncomeUC = recordIncomeUC,
+      listCategoriesUC = listCategoriesUC,
       categorizeLedgerTransactionUC = categorizeUC,
       applyTransactionTagsUC = applyTagsUC,
     )
@@ -237,12 +250,173 @@ class ImportMobillsStatementServiceTest {
     assertThat(recordIncomeUC.calls).hasSize(1)
     assertThat(recordExpenseUC.calls.single().accountId).isEqualTo(recordIncomeUC.calls.single().accountId)
   }
+
+  @Test
+  fun `uses existing category id when category already exists`() {
+    val account = Account.open(
+      id = AccountId.random(),
+      name = "Wallet",
+      type = AccountType.CASH,
+      currency = CurrencyCode.from("EUR"),
+      createdAt = Instant.parse("2026-03-20T10:00:00Z"),
+    )
+    val existingCategory = Category(
+      id = CategoryId.random(),
+      name = "Food",
+      appliesTo = CategoryAppliesTo.EXPENSE,
+      status = CategoryStatus.ACTIVE,
+      createdAt = Instant.parse("2026-03-20T10:00:00Z"),
+      archivedAt = null,
+    )
+    val categorizeUC = RecordingCategorizeLedgerTransactionUC()
+    val service = ImportMobillsStatementService(
+      listAccountsUC = StubListLedgerAccountsUC(listOf(account)),
+      openAccountUC = RecordingOpenLedgerAccountUC(),
+      recordExpenseUC = RecordingRecordExpenseUC(),
+      recordIncomeUC = RecordingRecordIncomeUC(),
+      listCategoriesUC = StubListCategoriesUC(existingCategory),
+      categorizeLedgerTransactionUC = categorizeUC,
+      applyTransactionTagsUC = RecordingApplyTransactionTagsUC(),
+    )
+
+    service.execute(
+      ImportMobillsStatementCommand(
+        rows = listOf(
+          ImportMobillsRow(
+            sourceLine = 2,
+            accountName = "Wallet",
+            occurredAt = Instant.parse("2026-03-21T10:00:00Z"),
+            value = BigDecimal("-12.50"),
+            currency = "EUR",
+            description = "Lunch",
+            merchant = "Cafe",
+            category = "Food",
+            tags = emptyList(),
+          ),
+        ),
+        requestedAt = Instant.parse("2026-03-22T12:00:00Z"),
+      ),
+    )
+
+    val call = categorizeUC.calls.single()
+    assertThat(call.categoryId).isEqualTo(existingCategory.id)
+    assertThat(call.newCategoryName).isNull()
+  }
+
+  @Test
+  fun `creates category once and reuses resolved id for next rows`() {
+    val account = Account.open(
+      id = AccountId.random(),
+      name = "Wallet",
+      type = AccountType.CASH,
+      currency = CurrencyCode.from("EUR"),
+      createdAt = Instant.parse("2026-03-20T10:00:00Z"),
+    )
+    val categorizeUC = RecordingCategorizeLedgerTransactionUC()
+    val service = ImportMobillsStatementService(
+      listAccountsUC = StubListLedgerAccountsUC(listOf(account)),
+      openAccountUC = RecordingOpenLedgerAccountUC(),
+      recordExpenseUC = RecordingRecordExpenseUC(),
+      recordIncomeUC = RecordingRecordIncomeUC(),
+      listCategoriesUC = StubListCategoriesUC(),
+      categorizeLedgerTransactionUC = categorizeUC,
+      applyTransactionTagsUC = RecordingApplyTransactionTagsUC(),
+    )
+
+    val result = service.execute(
+      ImportMobillsStatementCommand(
+        rows = listOf(
+          ImportMobillsRow(
+            sourceLine = 2,
+            accountName = "Wallet",
+            occurredAt = Instant.parse("2026-03-21T10:00:00Z"),
+            value = BigDecimal("-12.50"),
+            currency = "EUR",
+            description = "Lunch",
+            merchant = "Cafe",
+            category = "Travel",
+            tags = emptyList(),
+          ),
+          ImportMobillsRow(
+            sourceLine = 3,
+            accountName = "Wallet",
+            occurredAt = Instant.parse("2026-03-22T10:00:00Z"),
+            value = BigDecimal("-5.00"),
+            currency = "EUR",
+            description = "Tube",
+            merchant = "TfL",
+            category = "Travel",
+            tags = emptyList(),
+          ),
+        ),
+        requestedAt = Instant.parse("2026-03-22T12:00:00Z"),
+      ),
+    )
+
+    assertThat(result.importedCount).isEqualTo(2)
+    assertThat(categorizeUC.calls).hasSize(2)
+    assertThat(categorizeUC.calls.first().newCategoryName).isEqualTo("Travel")
+    assertThat(categorizeUC.calls.first().categoryId).isNull()
+    assertThat(categorizeUC.calls.last().newCategoryName).isNull()
+    assertThat(categorizeUC.calls.last().categoryId).isNotNull()
+  }
+
+  @Test
+  fun `fails row when tag autocreate is disabled and tags are provided`() {
+    val account = Account.open(
+      id = AccountId.random(),
+      name = "Wallet",
+      type = AccountType.CASH,
+      currency = CurrencyCode.from("EUR"),
+      createdAt = Instant.parse("2026-03-20T10:00:00Z"),
+    )
+    val applyTagsUC = RecordingApplyTransactionTagsUC()
+    val service = ImportMobillsStatementService(
+      listAccountsUC = StubListLedgerAccountsUC(listOf(account)),
+      openAccountUC = RecordingOpenLedgerAccountUC(),
+      recordExpenseUC = RecordingRecordExpenseUC(),
+      recordIncomeUC = RecordingRecordIncomeUC(),
+      listCategoriesUC = StubListCategoriesUC(),
+      categorizeLedgerTransactionUC = RecordingCategorizeLedgerTransactionUC(),
+      applyTransactionTagsUC = applyTagsUC,
+    )
+
+    val result = service.execute(
+      ImportMobillsStatementCommand(
+        rows = listOf(
+          ImportMobillsRow(
+            sourceLine = 2,
+            accountName = "Wallet",
+            occurredAt = Instant.parse("2026-03-21T10:00:00Z"),
+            value = BigDecimal("-12.50"),
+            currency = "EUR",
+            description = "Lunch",
+            merchant = "Cafe",
+            category = null,
+            tags = listOf("trip"),
+          ),
+        ),
+        policy = ImportMobillsPolicy(createMissingTags = false),
+        requestedAt = Instant.parse("2026-03-22T12:00:00Z"),
+      ),
+    )
+
+    assertThat(applyTagsUC.calls).isEmpty()
+    assertThat(result.failedCount).isEqualTo(1)
+    assertThat(result.rows.single().errorCode).isEqualTo("TAG_AUTOCREATE_DISABLED")
+  }
 }
 
 private class StubListLedgerAccountsUC(
   private val accounts: List<Account>,
 ) : ListLedgerAccountsUC {
   override fun execute(): List<Account> = accounts
+}
+
+private class StubListCategoriesUC(
+  private vararg val categories: Category,
+) : ListCategoriesUC {
+  override fun execute(): List<Category> = categories.toList()
 }
 
 private class RecordingOpenLedgerAccountUC : OpenLedgerAccountUC {
@@ -279,12 +453,16 @@ private class RecordingRecordIncomeUC : RecordLedgerIncomeUC {
 
 private class RecordingCategorizeLedgerTransactionUC : CategorizeLedgerTransactionUC {
   val calls = mutableListOf<CategorizeLedgerTransactionCommand>()
+  private val generatedCategoryByName = linkedMapOf<String, CategoryId>()
 
   override fun execute(command: CategorizeLedgerTransactionCommand): TxCategorizationState {
     calls += command
+    val resolvedCategoryId = command.categoryId ?: command.newCategoryName?.let { name ->
+      generatedCategoryByName.getOrPut(name.lowercase()) { CategoryId.random() }
+    }
     return TxCategorizationState(
       transactionId = command.transactionId.value,
-      requestedCategoryId = command.categoryId,
+      requestedCategoryId = resolvedCategoryId,
       status = CategorizationStatus.NONE,
       errorCode = null,
       errorMessage = null,
