@@ -48,6 +48,9 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     })),
     ledgerListTransactions: vi.fn(async () => ({ items: transactions })),
     ledgerOpenAccount: vi.fn(async () => ({ id: 'acc-1' })),
+    ledgerRenameAccount: vi.fn(async () => undefined),
+    ledgerArchiveAccount: vi.fn(async () => undefined),
+    ledgerDeleteAccount: vi.fn(async () => undefined),
     ledgerRecordExpense: vi.fn(async () => ({ id: 'tx-exp' })),
     ledgerRecordIncome: vi.fn(async () => ({ id: 'tx-inc' })),
     ledgerRecordTransfer: vi.fn(async () => ({ transferOutId: 'tx-tr-out', transferInId: 'tx-tr-in' })),
@@ -92,6 +95,7 @@ describe('Accounts UX', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it('shows switch account action inline with account summary', async () => {
@@ -119,6 +123,106 @@ describe('Accounts UX', () => {
 
     await screen.findByText('Net balance');
     expect(screen.getByRole('button', { name: 'Import' })).toBeInTheDocument();
+  });
+
+  it('opens account management sheet from account controls', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+    expect(await screen.findByRole('dialog', { name: 'Manage account' })).toBeInTheDocument();
+  });
+
+  it('renames current account from management sheet', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+    fireEvent.change(await screen.findByLabelText('Manage account name'), { target: { value: 'Wallet renamed' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save name' }));
+
+    await waitFor(() => {
+      expect(core.ledgerRenameAccount).toHaveBeenCalledTimes(1);
+    });
+    expect(core.ledgerRenameAccount).toHaveBeenCalledWith({
+      accountId: 'acc-1',
+      name: 'Wallet renamed',
+    });
+  });
+
+  it('archives current account from management sheet after confirmation', async () => {
+    const core = makeCore();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Archive account' }));
+
+    await waitFor(() => {
+      expect(core.ledgerArchiveAccount).toHaveBeenCalledTimes(1);
+    });
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(core.ledgerArchiveAccount).toHaveBeenCalledWith({
+      accountId: 'acc-1',
+    });
+  });
+
+  it('deletes current account from management sheet after confirmation', async () => {
+    const core = makeCore();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete account' }));
+
+    await waitFor(() => {
+      expect(core.ledgerDeleteAccount).toHaveBeenCalledTimes(1);
+    });
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(core.ledgerDeleteAccount).toHaveBeenCalledWith({
+      accountId: 'acc-1',
+    });
+  });
+
+  it('does not delete account when confirmation is canceled', async () => {
+    const core = makeCore();
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete account' }));
+
+    expect(core.ledgerDeleteAccount).not.toHaveBeenCalled();
   });
 
   it('shows import action in empty state when no accounts exist', async () => {

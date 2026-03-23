@@ -6,6 +6,7 @@ import type {
   LedgerListSupportedCurrenciesResult,
   LedgerRenameAccountInput,
   LedgerArchiveAccountInput,
+  LedgerDeleteAccountInput,
   LedgerListAccountsResult,
   LedgerGetAccountSummaryInput,
   LedgerGetAccountSummaryResult,
@@ -386,6 +387,35 @@ export class CoreAdapterWeb implements CorePort {
     const account = this.accountOrThrow(input.accountId);
     account.status = 'archived';
     account.archivedAt = input.archivedAt ?? new Date().toISOString();
+  }
+
+  async ledgerDeleteAccount(input: LedgerDeleteAccountInput): Promise<void> {
+    const accountId = input.accountId.trim();
+    if (!accountId) {
+      throw new Error('accountId is required');
+    }
+    this.accountOrThrow(accountId);
+
+    const deletedTransactionIds = new Set(
+      CoreAdapterWeb.ledgerTransactions
+        .filter((tx) => tx.accountId === accountId)
+        .map((tx) => tx.id),
+    );
+
+    CoreAdapterWeb.ledgerTransactions = CoreAdapterWeb.ledgerTransactions
+      .filter((tx) => tx.accountId !== accountId);
+    CoreAdapterWeb.ledgerAccounts = CoreAdapterWeb.ledgerAccounts
+      .filter((account) => account.id !== accountId);
+
+    for (const transactionId of deletedTransactionIds) {
+      CoreAdapterWeb.taxonomyTransactionTags.delete(transactionId);
+    }
+    if (deletedTransactionIds.size > 0) {
+      CoreAdapterWeb.mobillsImportFingerprintToTransactionId = new Map(
+        [...CoreAdapterWeb.mobillsImportFingerprintToTransactionId.entries()]
+          .filter(([, transactionId]) => !deletedTransactionIds.has(transactionId)),
+      );
+    }
   }
 
   async ledgerListAccounts(): Promise<LedgerListAccountsResult> {

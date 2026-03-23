@@ -25,6 +25,10 @@ export type LedgerArchiveAccountInput = {
   archivedAt?: string;
 };
 
+export type LedgerDeleteAccountInput = {
+  accountId: string;
+};
+
 export type LedgerAccountItem = {
   id: string;
   name: string;
@@ -268,6 +272,7 @@ export interface CorePort {
   ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult>;
   ledgerRenameAccount(input: LedgerRenameAccountInput): Promise<void>;
   ledgerArchiveAccount(input: LedgerArchiveAccountInput): Promise<void>;
+  ledgerDeleteAccount(input: LedgerDeleteAccountInput): Promise<void>;
   ledgerListAccounts(): Promise<LedgerListAccountsResult>;
   ledgerGetAccountSummary(input: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult>;
   ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult>;

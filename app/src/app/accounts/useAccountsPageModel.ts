@@ -74,6 +74,17 @@ export type AccountsCorePort = {
     createdAt?: string;
     openingBalanceAmount?: string;
   }): Promise<{ id: string }>;
+  ledgerRenameAccount(input: {
+    accountId: string;
+    name: string;
+  }): Promise<void>;
+  ledgerArchiveAccount(input: {
+    accountId: string;
+    archivedAt?: string;
+  }): Promise<void>;
+  ledgerDeleteAccount(input: {
+    accountId: string;
+  }): Promise<void>;
   ledgerRecordExpense(input: {
     accountId: string;
     occurredAt: string;
@@ -243,6 +254,9 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [historyExpanded, setHistoryExpanded] = useState(false);
 
   const [showCreateAccountForm, setShowCreateAccountForm] = useState(false);
+  const [manageAccountSheetOpen, setManageAccountSheetOpen] = useState(false);
+  const [manageAccountName, setManageAccountName] = useState('');
+  const [managingAccount, setManagingAccount] = useState(false);
   const [importSheetOpen, setImportSheetOpen] = useState(false);
   const [importingMobills, setImportingMobills] = useState(false);
   const [importFileName, setImportFileName] = useState('');
@@ -532,6 +546,104 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setCreatingAccount(false);
+    }
+  }
+
+  function openManageAccountSheet() {
+    if (!selectedAccount) {
+      setError('Select an account first.');
+      return;
+    }
+    setError('');
+    clearToastState();
+    setManageAccountName(selectedAccount.name);
+    setManageAccountSheetOpen(true);
+  }
+
+  function closeManageAccountSheet() {
+    setManageAccountSheetOpen(false);
+  }
+
+  async function submitRenameAccount(event: FormEvent) {
+    event.preventDefault();
+    if (!selectedAccount) {
+      setError('Select an account first.');
+      return;
+    }
+
+    const name = manageAccountName.trim();
+    if (!name) {
+      setError('Account name is required.');
+      return;
+    }
+
+    setError('');
+    clearToastState();
+    setManagingAccount(true);
+    try {
+      await core.ledgerRenameAccount({
+        accountId: selectedAccount.id,
+        name,
+      });
+      await refreshAccounts(selectedAccount.id);
+      setManageAccountSheetOpen(false);
+      showToast('Account renamed.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setManagingAccount(false);
+    }
+  }
+
+  async function archiveSelectedAccount() {
+    if (!selectedAccount) {
+      setError('Select an account first.');
+      return;
+    }
+    if (!window.confirm(`Archive account "${selectedAccount.name}"?`)) {
+      return;
+    }
+
+    setError('');
+    clearToastState();
+    setManagingAccount(true);
+    try {
+      await core.ledgerArchiveAccount({
+        accountId: selectedAccount.id,
+      });
+      await refreshAccounts(selectedAccount.id);
+      setManageAccountSheetOpen(false);
+      showToast('Account archived.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setManagingAccount(false);
+    }
+  }
+
+  async function deleteSelectedAccount() {
+    if (!selectedAccount) {
+      setError('Select an account first.');
+      return;
+    }
+    if (!window.confirm(`Delete account "${selectedAccount.name}" and all its transactions? This cannot be undone.`)) {
+      return;
+    }
+
+    setError('');
+    clearToastState();
+    setManagingAccount(true);
+    try {
+      await core.ledgerDeleteAccount({
+        accountId: selectedAccount.id,
+      });
+      await refreshAccounts();
+      setManageAccountSheetOpen(false);
+      showToast('Account deleted.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setManagingAccount(false);
     }
   }
 
@@ -998,6 +1110,9 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     hiddenTransactionsCount,
     historyExpanded,
     showCreateAccountForm,
+    manageAccountSheetOpen,
+    manageAccountName,
+    managingAccount,
     importSheetOpen,
     importingMobills,
     importFileName,
@@ -1034,6 +1149,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setNewAccountName,
     setNewAccountCurrency,
     setNewAccountOpeningBalance,
+    setManageAccountName,
     setTransactionAmount: setTransactionAmountValue,
     setTransactionDate,
     setTransactionNote,
@@ -1053,6 +1169,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     runToastAction: () => toastAction?.(),
     openCreateAccountForm: () => setShowCreateAccountForm(true),
     closeCreateAccountForm: () => setShowCreateAccountForm(false),
+    openManageAccountSheet,
+    closeManageAccountSheet,
     setImportCreateMissingAccounts,
     setImportCreateMissingCategories,
     setImportCreateMissingTags,
@@ -1071,6 +1189,9 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     removeExpenseItem,
     assignRemaining,
     submitCreateAccount,
+    submitRenameAccount,
+    archiveSelectedAccount,
+    deleteSelectedAccount,
     selectAccount,
     submitTransaction,
     voidTransaction,

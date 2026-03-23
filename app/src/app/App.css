@@ -273,6 +273,11 @@ button:disabled {
   opacity: 0.6;
 }
 
+.danger-button {
+  background: #8a2020;
+  color: #fff;
+}
+
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {

@@ -223,9 +223,10 @@ export function AccountsPage({ core }: Props) {
             <AccountSwitcher
               accounts={model.accounts}
               selectedAccountId={model.selectedAccountId}
-              disabled={model.refreshing || model.postingTransaction}
+              disabled={model.refreshing || model.postingTransaction || model.managingAccount}
               onSelect={model.selectAccount}
               onAddAccount={model.openCreateAccountForm}
+              onManageAccount={model.openManageAccountSheet}
               onImport={model.openImportSheet}
             />
           </section>
@@ -293,6 +294,69 @@ export function AccountsPage({ core }: Props) {
           />
         </>
       )}
+
+      {model.manageAccountSheetOpen ? (
+        <div className="sheet-backdrop" role="presentation" onClick={model.closeManageAccountSheet}>
+          <section
+            className="sheet-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Manage account"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="inline-header">
+              <h3>Manage account</h3>
+              <button
+                type="button"
+                className="text-button icon-button"
+                aria-label="Close account management"
+                onClick={model.closeManageAccountSheet}
+              >
+                ×
+              </button>
+            </div>
+
+            <form className="stack" onSubmit={model.submitRenameAccount} aria-busy={model.managingAccount}>
+              <label className="stack">
+                Account name
+                <input
+                  aria-label="Manage account name"
+                  value={model.manageAccountName}
+                  onChange={(event) => model.setManageAccountName(event.target.value)}
+                  placeholder="Account name"
+                  autoComplete="off"
+                />
+              </label>
+
+              <div className="quick-row">
+                <button type="submit" disabled={model.managingAccount}>
+                  Save name
+                </button>
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={model.archiveSelectedAccount}
+                  disabled={model.managingAccount}
+                >
+                  Archive account
+                </button>
+              </div>
+
+              <p className="hint">Archived accounts stay visible but cannot accept new transactions.</p>
+
+              <button
+                type="button"
+                className="danger-button"
+                onClick={model.deleteSelectedAccount}
+                disabled={model.managingAccount}
+              >
+                Delete account
+              </button>
+              <p className="hint">Delete removes the account and all its transactions permanently.</p>
+            </form>
+          </section>
+        </div>
+      ) : null}
 
       {model.importSheetOpen ? (
         <div className="sheet-backdrop" role="presentation" onClick={model.closeImportSheet}>

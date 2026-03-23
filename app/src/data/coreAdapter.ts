@@ -7,6 +7,7 @@ import type {
   LedgerListSupportedCurrenciesResult,
   LedgerRenameAccountInput,
   LedgerArchiveAccountInput,
+  LedgerDeleteAccountInput,
   LedgerListAccountsResult,
   LedgerGetAccountSummaryInput,
   LedgerGetAccountSummaryResult,
@@ -77,6 +78,14 @@ export class CoreAdapter implements CorePort {
       return;
     }
     await this.web.ledgerArchiveAccount(input);
+  }
+
+  async ledgerDeleteAccount(input: LedgerDeleteAccountInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.ledgerDeleteAccount(input);
+      return;
+    }
+    await this.web.ledgerDeleteAccount(input);
   }
 
   async ledgerListAccounts(): Promise<LedgerListAccountsResult> {

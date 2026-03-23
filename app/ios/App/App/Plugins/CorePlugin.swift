@@ -429,8 +429,69 @@ public class CorePlugin: CAPPlugin {
         ])
     }
 
-    @objc func ledgerRenameAccount(_ call: CAPPluginCall) { call.resolve() }
-    @objc func ledgerArchiveAccount(_ call: CAPPluginCall) { call.resolve() }
+    @objc func ledgerRenameAccount(_ call: CAPPluginCall) {
+        let accountId = (call.getString("accountId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = (call.getString("name") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !accountId.isEmpty else {
+            call.reject("accountId is required")
+            return
+        }
+        guard !name.isEmpty else {
+            call.reject("name is required")
+            return
+        }
+        guard let index = accounts.firstIndex(where: { ($0["id"] as? String) == accountId }) else {
+            call.reject("Account not found")
+            return
+        }
+
+        var updated = accounts[index]
+        updated["name"] = name
+        accounts[index] = updated
+        call.resolve()
+    }
+
+    @objc func ledgerArchiveAccount(_ call: CAPPluginCall) {
+        let accountId = (call.getString("accountId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !accountId.isEmpty else {
+            call.reject("accountId is required")
+            return
+        }
+        guard let index = accounts.firstIndex(where: { ($0["id"] as? String) == accountId }) else {
+            call.reject("Account not found")
+            return
+        }
+
+        var updated = accounts[index]
+        updated["status"] = "archived"
+        accounts[index] = updated
+        call.resolve()
+    }
+
+    @objc func ledgerDeleteAccount(_ call: CAPPluginCall) {
+        let accountId = (call.getString("accountId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !accountId.isEmpty else {
+            call.reject("accountId is required")
+            return
+        }
+        guard accounts.contains(where: { ($0["id"] as? String) == accountId }) else {
+            call.reject("Account not found")
+            return
+        }
+
+        let removedTransactionIds: Set<String> = Set(
+            transactions
+                .filter { ($0["accountId"] as? String) == accountId }
+                .compactMap { $0["id"] as? String }
+        )
+
+        transactions.removeAll { ($0["accountId"] as? String) == accountId }
+        accounts.removeAll { ($0["id"] as? String) == accountId }
+        for transactionId in removedTransactionIds {
+            transactionTagsByTransactionId.removeValue(forKey: transactionId)
+        }
+        call.resolve()
+    }
 
     private func createPostedTx(_ call: CAPPluginCall, type: String) {
         let id = UUID().uuidString
