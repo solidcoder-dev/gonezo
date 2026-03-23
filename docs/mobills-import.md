@@ -27,6 +27,27 @@ Importar exportes Mobills (TSV UTF-16) sin mezclar dominios:
    - resolver/crear tags y asignarlos (taxonomy)
 5. Devuelve resultado por fila (`imported | failed | skipped`) con `errorCode/errorMessage` cuando aplica.
 
+## Integracion App (UI + plugin)
+
+Desde la pantalla de cuentas:
+
+1. Usuario abre `Import` / `Import from Mobills`.
+2. Selecciona archivo TSV.
+3. Configura policy:
+   - `createMissingAccounts`
+   - `createMissingCategories`
+   - `createMissingTags`
+   - `defaultAccountType`
+4. App llama a `mobillsImport` con:
+   - `fileBase64`
+   - `policy`
+5. UI muestra resumen:
+   - `totalRows`
+   - `importedCount`
+   - `failedCount`
+   - `skippedCount`
+   - filas con detalle (`sourceLine`, `status`, `transactionId`, `errorCode`, `errorMessage`).
+
 ## Reglas de normalizacion
 
 - `value < 0` => expense
@@ -49,4 +70,3 @@ Importar exportes Mobills (TSV UTF-16) sin mezclar dominios:
 
 Importar Mobills es un caso de uso de coordinación.
 No pertenece al dominio `ledger` ni al dominio `taxonomy`.
-
