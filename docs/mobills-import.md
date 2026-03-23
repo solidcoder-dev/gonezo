@@ -38,6 +38,7 @@ Desde la pantalla de cuentas:
    - `createMissingCategories`
    - `createMissingTags`
    - `defaultAccountType`
+   - `duplicatePolicy` (`skip | fail | import_anyway`)
 4. App llama a `mobillsImport` con:
    - `fileBase64`
    - `policy`
@@ -65,6 +66,23 @@ Desde la pantalla de cuentas:
 - `createMissingCategories`
 - `createMissingTags`
 - `defaultAccountType`
+- `duplicatePolicy`:
+  - `skip` (default): no vuelve a importar la fila duplicada
+  - `fail`: marca la fila como fallida con `DUPLICATE_TRANSACTION`
+  - `import_anyway`: importa aunque exista fingerprint previo
+
+## Idempotencia (tabla tecnica)
+
+En Android se usa tabla tecnica `mobills_import_fingerprints` para idempotencia de import:
+
+- `source`
+- `fingerprint`
+- `transaction_id`
+- `first_seen_at`
+- `last_seen_at`
+- `seen_count`
+
+Esto evita duplicar transacciones al reimportar el mismo archivo sin acoplar `ledger`/`taxonomy`.
 
 ## Principio de frontera
 

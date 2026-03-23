@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 9;
+  private static final int DB_VERSION = 10;
 
   CoreDatabase(Context context) {
     super(context, DB_NAME, null, DB_VERSION);
@@ -34,6 +34,10 @@ final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion < 9) {
       createTaxonomyTables(db);
     }
+
+    if (oldVersion < 10) {
+      createMobillsImportTables(db);
+    }
   }
 
   @Override
@@ -45,6 +49,7 @@ final class CoreDatabase extends SQLiteOpenHelper {
   private static void createTables(SQLiteDatabase db) {
     createLedgerTables(db);
     createTaxonomyTables(db);
+    createMobillsImportTables(db);
   }
 
   private static void createLedgerTables(SQLiteDatabase db) {
@@ -123,7 +128,22 @@ final class CoreDatabase extends SQLiteOpenHelper {
     );
   }
 
+  private static void createMobillsImportTables(SQLiteDatabase db) {
+    db.execSQL(
+      "create table if not exists mobills_import_fingerprints (" +
+        "source text not null," +
+        "fingerprint text not null," +
+        "transaction_id text not null," +
+        "first_seen_at text not null," +
+        "last_seen_at text not null," +
+        "seen_count integer not null default 1," +
+        "primary key(source, fingerprint)" +
+      ");"
+    );
+  }
+
   private static void dropTables(SQLiteDatabase db) {
+    db.execSQL("drop table if exists mobills_import_fingerprints");
     db.execSQL("drop table if exists taxonomy_transaction_assignments");
     db.execSQL("drop table if exists taxonomy_categories");
     db.execSQL("drop table if exists ledger_transaction_items");

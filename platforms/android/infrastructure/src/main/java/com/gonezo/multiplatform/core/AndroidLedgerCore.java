@@ -76,6 +76,7 @@ public final class AndroidLedgerCore {
   private final ListLedgerTransactionsUC listTransactionsUC;
   private final GetLedgerAccountBalanceUC getAccountBalanceUC;
   private final AndroidLedgerAccountRepository accountRepository;
+  private final AndroidMobillsImportFingerprintRepository mobillsImportFingerprintRepository;
 
   private AndroidLedgerCore(Context context) {
     CoreDatabase database = new CoreDatabase(context.getApplicationContext());
@@ -97,6 +98,7 @@ public final class AndroidLedgerCore {
     this.listTransactionsUC = new ListLedgerTransactionsService(transactionRepository);
     this.getAccountBalanceUC = new GetLedgerAccountBalanceService(accountRepository, transactionRepository, new BalanceCalculator());
     this.accountRepository = accountRepository;
+    this.mobillsImportFingerprintRepository = new AndroidMobillsImportFingerprintRepository(database);
   }
 
   public static synchronized AndroidLedgerCore getInstance(Context context) {
@@ -263,6 +265,27 @@ public final class AndroidLedgerCore {
       .filter((tx) -> resolvedIncludeVoided || tx.getStatus() != TransactionStatus.VOIDED)
       .map(AndroidLedgerCore::toTransactionView)
       .toList();
+  }
+
+  public String findMobillsImportTransactionId(String fingerprint) {
+    return mobillsImportFingerprintRepository.findTransactionIdByFingerprint(
+      requireText(fingerprint, "fingerprint is required")
+    );
+  }
+
+  public void recordMobillsImportFingerprint(String fingerprint, String transactionId) {
+    mobillsImportFingerprintRepository.recordImported(
+      requireText(fingerprint, "fingerprint is required"),
+      requireText(transactionId, "transactionId is required"),
+      Instant.now()
+    );
+  }
+
+  public void touchMobillsImportFingerprint(String fingerprint) {
+    mobillsImportFingerprintRepository.touchDuplicate(
+      requireText(fingerprint, "fingerprint is required"),
+      Instant.now()
+    );
   }
 
   private static LedgerAccountView toAccountView(Account account) {

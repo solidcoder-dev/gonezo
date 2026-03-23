@@ -427,6 +427,7 @@ public class CorePlugin extends Plugin {
     boolean createMissingCategories = createMissingCategoriesValue == null || createMissingCategoriesValue;
     boolean createMissingTags = createMissingTagsValue == null || createMissingTagsValue;
     String defaultAccountType = policy.getString("defaultAccountType", "cash");
+    String duplicatePolicy = normalizeDuplicatePolicy(policy.getString("duplicatePolicy", "skip"));
 
     try {
       byte[] bytes = Base64.getDecoder().decode(fileBase64);
@@ -436,7 +437,8 @@ public class CorePlugin extends Plugin {
         createMissingAccounts,
         createMissingCategories,
         createMissingTags,
-        defaultAccountType
+        defaultAccountType,
+        duplicatePolicy
       );
       call.resolve(result);
     } catch (Exception ex) {
@@ -496,7 +498,8 @@ public class CorePlugin extends Plugin {
     boolean createMissingAccounts,
     boolean createMissingCategories,
     boolean createMissingTags,
-    String defaultAccountType
+    String defaultAccountType,
+    String duplicatePolicy
   ) throws JSONException {
     String[] lines = content.split("\\r?\\n");
     int headerLineIndex = -1;
@@ -566,6 +569,36 @@ public class CorePlugin extends Plugin {
       String merchant = nullIfBlank(cell(cells, merchantIndex));
       String category = nullIfBlank(cell(cells, categoryIndex));
       List<String> tagNames = parseTagNames(cell(cells, tagsIndex));
+      String fingerprint = MobillsImportFingerprint.fromRow(
+        accountName,
+        occurredAt,
+        value,
+        currency,
+        description,
+        merchant
+      );
+      String duplicateTransactionId = ledgerCore.findMobillsImportTransactionId(fingerprint);
+      if (duplicateTransactionId != null && !"import_anyway".equals(duplicatePolicy)) {
+        ledgerCore.touchMobillsImportFingerprint(fingerprint);
+        if ("fail".equals(duplicatePolicy)) {
+          rowResults.put(
+            failedImportRow(
+              sourceLine,
+              "DUPLICATE_TRANSACTION",
+              "Duplicate transaction detected (existing transactionId=" + duplicateTransactionId + ")"
+            )
+          );
+        } else {
+          rowResults.put(
+            skippedImportRow(
+              sourceLine,
+              "DUPLICATE_TRANSACTION",
+              "Duplicate transaction skipped (existing transactionId=" + duplicateTransactionId + ")"
+            )
+          );
+        }
+        continue;
+      }
 
       try {
         AndroidLedgerCore.LedgerAccountView account = findAccount(cachedAccounts, accountName, currency);
@@ -625,6 +658,7 @@ public class CorePlugin extends Plugin {
         imported.put("status", "imported");
         imported.put("transactionId", transactionId);
         rowResults.put(imported);
+        ledgerCore.recordMobillsImportFingerprint(fingerprint, transactionId);
       } catch (RuntimeException ex) {
         String message = ex.getMessage() == null ? "Import failed" : ex.getMessage();
         rowResults.put(
@@ -671,6 +705,15 @@ public class CorePlugin extends Plugin {
     failed.put("errorCode", errorCode);
     failed.put("errorMessage", errorMessage);
     return failed;
+  }
+
+  private JSObject skippedImportRow(int sourceLine, String errorCode, String errorMessage) {
+    JSObject skipped = new JSObject();
+    skipped.put("sourceLine", sourceLine);
+    skipped.put("status", "skipped");
+    skipped.put("errorCode", errorCode);
+    skipped.put("errorMessage", errorMessage);
+    return skipped;
   }
 
   private JSObject applyTagsToTransaction(String transactionId, JSONArray tagNames) throws JSONException {
@@ -927,5 +970,13 @@ public class CorePlugin extends Plugin {
       return "IMPORT_FAILED";
     }
     return normalized;
+  }
+
+  private String normalizeDuplicatePolicy(String rawValue) {
+    String value = rawValue == null ? "" : rawValue.trim().toLowerCase(Locale.ROOT);
+    if ("fail".equals(value) || "import_anyway".equals(value)) {
+      return value;
+    }
+    return "skip";
   }
 }
