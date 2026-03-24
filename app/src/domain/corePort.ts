@@ -160,6 +160,16 @@ export type LedgerTransactionListItem = {
   description?: string;
   merchant?: string;
   categoryId?: string;
+  category?: {
+    id: string;
+    name: string;
+  };
+  tags?: Array<{
+    id: string;
+    name: string;
+  }>;
+  categorizationStatus?: 'none' | 'pending' | 'processing' | 'assigned' | 'failed';
+  taggingStatus?: 'none' | 'pending' | 'processing' | 'assigned' | 'failed';
   items: LedgerTransactionBreakdownItem[];
 };
 
@@ -265,6 +275,22 @@ export type OrchestrationApplyTransactionTagsResult = {
   errorMessage?: string;
 };
 
+export type OrchestrationListTransactionTaxonomyInput = {
+  transactionIds: string[];
+};
+
+export type OrchestrationTransactionTaxonomyItem = {
+  transactionId: string;
+  categoryId?: string;
+  tagIds?: string[];
+  categorizationStatus?: 'none' | 'pending' | 'processing' | 'assigned' | 'failed';
+  taggingStatus?: 'none' | 'pending' | 'processing' | 'assigned' | 'failed';
+};
+
+export type OrchestrationListTransactionTaxonomyResult = {
+  items: OrchestrationTransactionTaxonomyItem[];
+};
+
 export interface CorePort {
   doThing(input: string): Promise<CoreResult>;
   ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult>;
@@ -292,4 +318,7 @@ export interface CorePort {
   orchestrationApplyTransactionTags(
     input: OrchestrationApplyTransactionTagsInput,
   ): Promise<OrchestrationApplyTransactionTagsResult>;
+  orchestrationListTransactionTaxonomy(
+    input: OrchestrationListTransactionTaxonomyInput,
+  ): Promise<OrchestrationListTransactionTaxonomyResult>;
 }

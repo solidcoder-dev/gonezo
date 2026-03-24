@@ -36,6 +36,8 @@ import type {
   OrchestrationCategorizeTransactionResult,
   OrchestrationApplyTransactionTagsInput,
   OrchestrationApplyTransactionTagsResult,
+  OrchestrationListTransactionTaxonomyInput,
+  OrchestrationListTransactionTaxonomyResult,
 } from '../domain/corePort';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from '../native/corePlugin';
@@ -205,5 +207,14 @@ export class CoreAdapter implements CorePort {
       return CorePlugin.orchestrationApplyTransactionTags(input);
     }
     return this.web.orchestrationApplyTransactionTags(input);
+  }
+
+  async orchestrationListTransactionTaxonomy(
+    input: OrchestrationListTransactionTaxonomyInput,
+  ): Promise<OrchestrationListTransactionTaxonomyResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.orchestrationListTransactionTaxonomy(input);
+    }
+    return this.web.orchestrationListTransactionTaxonomy(input);
   }
 }

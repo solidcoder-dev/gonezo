@@ -28,6 +28,7 @@ import org.json.JSONException;
 @CapacitorPlugin(name = "CorePlugin")
 public class CorePlugin extends Plugin {
   private final java.util.List<JSObject> taxonomyTags = new java.util.ArrayList<>();
+  private final java.util.Map<String, String> transactionCategoryByTransactionId = new java.util.HashMap<>();
   private final java.util.Map<String, java.util.List<String>> transactionTagsByTransactionId = new java.util.HashMap<>();
 
   @PluginMethod
@@ -120,6 +121,7 @@ public class CorePlugin extends Plugin {
       );
       core.deleteAccount(accountId);
       for (AndroidLedgerCore.LedgerTransactionView transaction : existingTransactions) {
+        transactionCategoryByTransactionId.remove(transaction.id());
         transactionTagsByTransactionId.remove(transaction.id());
       }
       call.resolve();
@@ -339,7 +341,11 @@ public class CorePlugin extends Plugin {
         item.put("occurredAt", tx.occurredAt());
         item.put("description", tx.description());
         item.put("merchant", tx.merchant());
-        item.put("categoryId", tx.categoryId());
+        String categoryIdValue = transactionCategoryByTransactionId.get(tx.id());
+        if (categoryIdValue == null || categoryIdValue.trim().isEmpty()) {
+          categoryIdValue = tx.categoryId();
+        }
+        item.put("categoryId", categoryIdValue);
 
         org.json.JSONArray txItems = new org.json.JSONArray();
         for (AndroidLedgerCore.LedgerTransactionItemView txItem : tx.items()) {
@@ -493,6 +499,11 @@ public class CorePlugin extends Plugin {
       if (categorization.errorMessage() != null) {
         result.put("errorMessage", categorization.errorMessage());
       }
+      if ("assigned".equalsIgnoreCase(categorization.status()) && categorization.categoryId() != null) {
+        transactionCategoryByTransactionId.put(transactionId, categorization.categoryId());
+      } else if ("none".equalsIgnoreCase(categorization.status())) {
+        transactionCategoryByTransactionId.remove(transactionId);
+      }
       call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());
@@ -510,6 +521,48 @@ public class CorePlugin extends Plugin {
 
     try {
       JSObject result = applyTagsToTransaction(transactionId, tagNames);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void orchestrationListTransactionTaxonomy(PluginCall call) {
+    JSONArray transactionIds = call.getArray("transactionIds");
+    try {
+      JSONArray items = new JSONArray();
+      if (transactionIds != null) {
+        for (int index = 0; index < transactionIds.length(); index++) {
+          String transactionId = transactionIds.optString(index, "").trim();
+          if (transactionId.isEmpty()) {
+            continue;
+          }
+          JSObject item = new JSObject();
+          item.put("transactionId", transactionId);
+
+          String categoryId = transactionCategoryByTransactionId.get(transactionId);
+          if (categoryId != null && !categoryId.trim().isEmpty()) {
+            item.put("categoryId", categoryId);
+            item.put("categorizationStatus", "assigned");
+          } else {
+            item.put("categorizationStatus", "none");
+          }
+
+          JSONArray tagIds = new JSONArray();
+          List<String> tags = transactionTagsByTransactionId.get(transactionId);
+          if (tags != null) {
+            for (String tagId : tags) {
+              tagIds.put(tagId);
+            }
+          }
+          item.put("tagIds", tagIds);
+          item.put("taggingStatus", tagIds.length() > 0 ? "assigned" : "none");
+          items.put(item);
+        }
+      }
+      JSObject result = new JSObject();
+      result.put("items", items);
       call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());
@@ -711,6 +764,11 @@ public class CorePlugin extends Plugin {
               taxonomyCore.categorizeTransaction(transactionId, transactionType, categoryId);
             if ("failed".equalsIgnoreCase(categorization.status())) {
               throw new IllegalStateException(categorization.errorCode() != null ? categorization.errorCode() : categorization.errorMessage());
+            }
+            if ("assigned".equalsIgnoreCase(categorization.status()) && categorization.categoryId() != null) {
+              transactionCategoryByTransactionId.put(transactionId, categorization.categoryId());
+            } else if ("none".equalsIgnoreCase(categorization.status())) {
+              transactionCategoryByTransactionId.remove(transactionId);
             }
           }
 

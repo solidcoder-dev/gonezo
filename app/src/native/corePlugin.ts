@@ -35,6 +35,8 @@ import type {
   OrchestrationCategorizeTransactionResult,
   OrchestrationApplyTransactionTagsInput,
   OrchestrationApplyTransactionTagsResult,
+  OrchestrationListTransactionTaxonomyInput,
+  OrchestrationListTransactionTaxonomyResult,
 } from '../domain/corePort';
 
 export interface CorePlugin {
@@ -64,6 +66,9 @@ export interface CorePlugin {
   orchestrationApplyTransactionTags(
     options: OrchestrationApplyTransactionTagsInput,
   ): Promise<OrchestrationApplyTransactionTagsResult>;
+  orchestrationListTransactionTaxonomy(
+    options: OrchestrationListTransactionTaxonomyInput,
+  ): Promise<OrchestrationListTransactionTaxonomyResult>;
 }
 
 export const CorePlugin = registerPlugin<CorePlugin>('CorePlugin', {

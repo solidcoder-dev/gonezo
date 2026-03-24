@@ -35,6 +35,8 @@ import type {
   OrchestrationCategorizeTransactionResult,
   OrchestrationApplyTransactionTagsInput,
   OrchestrationApplyTransactionTagsResult,
+  OrchestrationListTransactionTaxonomyInput,
+  OrchestrationListTransactionTaxonomyResult,
 } from '../domain/corePort';
 import { CoreAdapterWeb } from '../data/coreAdapterWeb';
 import type { CorePlugin } from './corePlugin';
@@ -132,5 +134,11 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
     options: OrchestrationApplyTransactionTagsInput,
   ): Promise<OrchestrationApplyTransactionTagsResult> {
     return this.core.orchestrationApplyTransactionTags(options);
+  }
+
+  async orchestrationListTransactionTaxonomy(
+    options: OrchestrationListTransactionTaxonomyInput,
+  ): Promise<OrchestrationListTransactionTaxonomyResult> {
+    return this.core.orchestrationListTransactionTaxonomy(options);
   }
 }

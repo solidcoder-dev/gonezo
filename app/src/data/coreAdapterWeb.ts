@@ -36,6 +36,8 @@ import type {
   OrchestrationCategorizeTransactionResult,
   OrchestrationApplyTransactionTagsInput,
   OrchestrationApplyTransactionTagsResult,
+  OrchestrationListTransactionTaxonomyInput,
+  OrchestrationListTransactionTaxonomyResult,
 } from '../domain/corePort';
 
 type MemoryLedgerAccount = {
@@ -1134,5 +1136,24 @@ export class CoreAdapterWeb implements CorePort {
       status: 'assigned',
       tagIds: [...tagIds],
     };
+  }
+
+  async orchestrationListTransactionTaxonomy(
+    input: OrchestrationListTransactionTaxonomyInput,
+  ): Promise<OrchestrationListTransactionTaxonomyResult> {
+    const uniqueTransactionIds = [...new Set(input.transactionIds.map((id) => id.trim()).filter((id) => id.length > 0))];
+    const items: OrchestrationListTransactionTaxonomyResult['items'] = uniqueTransactionIds.map((transactionId) => {
+      const transaction = CoreAdapterWeb.ledgerTransactions.find((item) => item.id === transactionId);
+      const tagIds = CoreAdapterWeb.taxonomyTransactionTags.get(transactionId) ?? [];
+      const categoryId = transaction?.categoryId;
+      return {
+        transactionId,
+        categoryId,
+        tagIds: [...tagIds],
+        categorizationStatus: categoryId ? 'assigned' : 'none',
+        taggingStatus: tagIds.length > 0 ? 'assigned' : 'none',
+      };
+    });
+    return { items };
   }
 }
