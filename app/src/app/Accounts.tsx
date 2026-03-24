@@ -1,6 +1,6 @@
 import { CoreAdapter } from '../data/coreAdapter';
-import { AccountsPage } from './accounts/AccountsPage';
-import type { AccountsCorePort } from './accounts/useAccountsPageModel';
+import { AccountPageView } from '../account/ui/AccountPageView';
+import type { AccountsCorePort } from '../account/application/useAccountPageOrchestrator';
 
 const defaultCore = new CoreAdapter();
 
@@ -9,5 +9,5 @@ type Props = {
 };
 
 export function Accounts({ core }: Props) {
-  return <AccountsPage core={core ?? defaultCore} />;
+  return <AccountPageView core={core ?? defaultCore} />;
 }

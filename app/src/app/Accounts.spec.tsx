@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Accounts } from './Accounts';
-import type { AccountsCorePort } from './accounts/useAccountsPageModel';
+import type { AccountsCorePort } from '../account/application/useAccountPageOrchestrator';
 import type { LedgerTransactionListItem } from '../domain/corePort';
 
 function makeCore(transactionCount = 0): AccountsCorePort {

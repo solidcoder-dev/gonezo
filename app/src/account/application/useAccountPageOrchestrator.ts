@@ -1,7 +1,7 @@
 import {
   useAccountsPageModel,
   type AccountsCorePort,
-} from '../../app/accounts/useAccountsPageModel';
+} from './useAccountPageModel';
 import { useAccountCommands } from './useAccountCommands';
 import { useManageAccountFlow } from './useManageAccountFlow';
 import { useTransactionsList } from './useTransactionsList';
