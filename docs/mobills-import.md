@@ -37,7 +37,6 @@ Desde la pantalla de cuentas:
    - `createMissingAccounts`
    - `createMissingCategories`
    - `createMissingTags`
-   - `defaultAccountType`
    - `duplicatePolicy` (`skip | fail | import_anyway`)
 4. App llama a `mobillsImport` con:
    - `fileBase64`
@@ -48,6 +47,10 @@ Desde la pantalla de cuentas:
    - `failedCount`
    - `skippedCount`
    - filas con detalle (`sourceLine`, `status`, `transactionId`, `errorCode`, `errorMessage`).
+
+En frontend, esta integracion se encapsula en el modulo:
+
+- `app/src/imports/mobills/{application,domain,infrastructure,ui}`
 
 ## Reglas de normalizacion
 
@@ -65,7 +68,6 @@ Desde la pantalla de cuentas:
 - `createMissingAccounts`
 - `createMissingCategories`
 - `createMissingTags`
-- `defaultAccountType`
 - `duplicatePolicy`:
   - `skip` (default): no vuelve a importar la fila duplicada
   - `fail`: marca la fila como fallida con `DUPLICATE_TRANSACTION`
