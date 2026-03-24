@@ -80,6 +80,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     })),
     orchestrationCategorizeTransaction: vi.fn(async () => ({ status: 'assigned' as const })),
     orchestrationApplyTransactionTags: vi.fn(async () => ({ status: 'assigned' as const })),
+    orchestrationListTransactionTaxonomy: vi.fn(async () => ({ items: [] })),
   };
 }
 
@@ -880,6 +881,59 @@ describe('Accounts UX', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Void canceled.');
     await vi.advanceTimersByTimeAsync(5000);
     expect(core.ledgerVoidTransaction).toHaveBeenCalledTimes(0);
+  });
+
+  it('renders transaction category, tags and time using taxonomy assignments', async () => {
+    const core = makeCore(1);
+    const listTransactionTaxonomy = vi.fn(async () => ({
+      items: [
+        {
+          transactionId: 'tx-1',
+          categoryId: 'cat-food',
+          tagIds: ['tag-home', 'tag-london'],
+          categorizationStatus: 'assigned',
+          taggingStatus: 'assigned',
+        },
+      ],
+    }));
+    (core as unknown as { orchestrationListTransactionTaxonomy: typeof listTransactionTaxonomy })
+      .orchestrationListTransactionTaxonomy = listTransactionTaxonomy;
+
+    vi.mocked(core.ledgerListTransactions).mockResolvedValueOnce({
+      items: [
+        {
+          id: 'tx-1',
+          accountId: 'acc-1',
+          occurredAt: '2026-03-06T09:41:00.000Z',
+          description: 'Breakfast',
+          merchant: 'Cafe',
+          amount: '8.50',
+          currency: 'USD',
+          type: 'expense',
+          status: 'posted',
+          items: [],
+        },
+      ],
+    });
+
+    const view = render(
+      <MemoryRouter>
+        <Accounts core={core} />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { name: 'Recent transactions' });
+
+    await waitFor(() => {
+      expect(listTransactionTaxonomy).toHaveBeenCalledWith({ transactionIds: ['tx-1'] });
+    });
+
+    expect(screen.getByText('Food')).toBeInTheDocument();
+    expect(screen.getByText('#home')).toBeInTheDocument();
+    expect(screen.getByText('#london')).toBeInTheDocument();
+
+    const timeElements = [...view.container.querySelectorAll('time')];
+    expect(timeElements.some((element) => (element.textContent ?? '').includes(':'))).toBe(true);
   });
 
   it('shows See all only when there are more than three transactions', async () => {

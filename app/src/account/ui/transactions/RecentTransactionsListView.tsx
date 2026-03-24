@@ -1,5 +1,5 @@
 import type { LedgerTransactionListItem } from '../../../domain/corePort';
-import { formatCurrencyAmount, formatIsoDate } from '../../../shared/utils/formatting';
+import { formatCurrencyAmount, formatIsoDateTime } from '../../../shared/utils/formatting';
 
 export type RecentTransactionsListViewProps = {
   items: LedgerTransactionListItem[];
@@ -71,9 +71,27 @@ export function RecentTransactionsListView({
                     {txAmount(transaction.amount, transaction.currency)}
                   </strong>
                 </div>
-                <time dateTime={transaction.occurredAt}>{formatIsoDate(transaction.occurredAt)}</time>
+                <time dateTime={transaction.occurredAt}>{formatIsoDateTime(transaction.occurredAt)}</time>
               </div>
               <span>{transaction.merchant || transaction.description || 'No description'}</span>
+              {transaction.category || (transaction.tags && transaction.tags.length > 0) ? (
+                <div className="quick-row" aria-label="Transaction taxonomy">
+                  {transaction.category ? (
+                    <span className="chip active">{transaction.category.name}</span>
+                  ) : null}
+                  {(transaction.tags ?? []).map((tag) => (
+                    <span key={tag.id} className="chip">
+                      #{tag.name}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              {transaction.categorizationStatus && transaction.categorizationStatus !== 'assigned' ? (
+                <span className="hint">Category: {transaction.categorizationStatus}</span>
+              ) : null}
+              {transaction.taggingStatus && transaction.taggingStatus !== 'assigned' ? (
+                <span className="hint">Tags: {transaction.taggingStatus}</span>
+              ) : null}
               {transaction.status !== 'posted' ? <span className="hint">Status: {transaction.status}</span> : null}
               <div className="quick-row">
                 {transaction.status === 'posted' ? (

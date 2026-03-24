@@ -40,3 +40,25 @@ export function formatIsoDate(dateIso: string, preferredLocale?: string): string
     return dateIso;
   }
 }
+
+export function formatIsoDateTime(dateIso: string, preferredLocale?: string): string {
+  if (!dateIso) {
+    return '';
+  }
+  try {
+    const parsed = dateIso.length === 10 ? new Date(`${dateIso}T00:00:00`) : new Date(dateIso);
+    if (Number.isNaN(parsed.getTime())) {
+      return dateIso;
+    }
+    const locale = userLocale(preferredLocale);
+    const date = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(parsed);
+    const time = new Intl.DateTimeFormat(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(parsed);
+    return `${date} ${time}`;
+  } catch {
+    return dateIso;
+  }
+}

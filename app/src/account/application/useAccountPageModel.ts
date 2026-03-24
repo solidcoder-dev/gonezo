@@ -139,6 +139,17 @@ export type AccountsCorePort = {
     errorCode?: string;
     errorMessage?: string;
   }>;
+  orchestrationListTransactionTaxonomy(input: {
+    transactionIds: string[];
+  }): Promise<{
+    items: Array<{
+      transactionId: string;
+      categoryId?: string;
+      tagIds?: string[];
+      categorizationStatus?: 'none' | 'pending' | 'processing' | 'assigned' | 'failed';
+      taggingStatus?: 'none' | 'pending' | 'processing' | 'assigned' | 'failed';
+    }>;
+  }>;
 };
 
 function todayIso(): string {
@@ -199,6 +210,9 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [selectedAccountId, setSelectedAccountId] = useState('');
   const [balanceAmount, setBalanceAmount] = useState('0.00');
   const [transactions, setTransactions] = useState<LedgerTransactionListItem[]>([]);
+  const [transactionTaxonomyByTransactionId, setTransactionTaxonomyByTransactionId] = useState<
+    Record<string, { categoryId?: string; tagIds: string[]; categorizationStatus?: string; taggingStatus?: string }>
+  >({});
   const [historyExpanded, setHistoryExpanded] = useState(false);
 
   const [showCreateAccountForm, setShowCreateAccountForm] = useState(false);
@@ -260,6 +274,50 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     [tags],
   );
 
+  const categoryNameById = useMemo(() => {
+    const mapping = new Map<string, string>();
+    for (const category of categories) {
+      mapping.set(category.id, category.name);
+    }
+    return mapping;
+  }, [categories]);
+
+  const tagNameById = useMemo(() => {
+    const mapping = new Map<string, string>();
+    for (const tag of tags) {
+      mapping.set(tag.id, tag.name);
+    }
+    return mapping;
+  }, [tags]);
+
+  const transactionsWithTaxonomy = useMemo(
+    () => transactions.map((transaction) => {
+      const taxonomy = transactionTaxonomyByTransactionId[transaction.id];
+      const categoryId = taxonomy?.categoryId ?? transaction.categoryId;
+      const tagIds = taxonomy?.tagIds ?? [];
+      const category = categoryId
+        ? {
+          id: categoryId,
+          name: categoryNameById.get(categoryId) ?? categoryId,
+        }
+        : undefined;
+      const transactionTags = tagIds.map((tagId) => ({
+        id: tagId,
+        name: tagNameById.get(tagId) ?? tagId,
+      }));
+
+      return {
+        ...transaction,
+        categoryId,
+        category,
+        tags: transactionTags,
+        categorizationStatus: taxonomy?.categorizationStatus as LedgerTransactionListItem['categorizationStatus'],
+        taggingStatus: taxonomy?.taggingStatus as LedgerTransactionListItem['taggingStatus'],
+      };
+    }),
+    [categoryNameById, tagNameById, transactionTaxonomyByTransactionId, transactions],
+  );
+
   const expenseAssigned = useMemo(
     () => expenseItems.reduce((acc, item) => acc + parseAmount(item.amount), 0),
     [expenseItems],
@@ -274,10 +332,10 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   }, [transactionAmount, expenseAssigned]);
 
   const visibleTransactions = useMemo(
-    () => (historyExpanded ? transactions : transactions.slice(0, 3)),
-    [transactions, historyExpanded],
+    () => (historyExpanded ? transactionsWithTaxonomy : transactionsWithTaxonomy.slice(0, 3)),
+    [transactionsWithTaxonomy, historyExpanded],
   );
-  const hiddenTransactionsCount = Math.max(0, transactions.length - visibleTransactions.length);
+  const hiddenTransactionsCount = Math.max(0, transactionsWithTaxonomy.length - visibleTransactions.length);
 
   useEffect(() => {
     if (!toastMessage) {
@@ -341,6 +399,26 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setFieldErrors({});
   }
 
+  async function refreshTransactionTaxonomy(items: LedgerTransactionListItem[]) {
+    const transactionIds = [...new Set(items.map((item) => item.id).filter((id) => id.trim().length > 0))];
+    if (transactionIds.length === 0) {
+      setTransactionTaxonomyByTransactionId({});
+      return;
+    }
+
+    const result = await core.orchestrationListTransactionTaxonomy({ transactionIds });
+    const next: Record<string, { categoryId?: string; tagIds: string[]; categorizationStatus?: string; taggingStatus?: string }> = {};
+    for (const item of result.items) {
+      next[item.transactionId] = {
+        categoryId: item.categoryId,
+        tagIds: [...(item.tagIds ?? [])],
+        categorizationStatus: item.categorizationStatus,
+        taggingStatus: item.taggingStatus,
+      };
+    }
+    setTransactionTaxonomyByTransactionId(next);
+  }
+
   async function refreshAccounts(preferredAccountId?: string) {
     const accountResult = await core.ledgerListAccounts();
     setAccounts(accountResult.items);
@@ -350,6 +428,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       setTransferToAccountId('');
       setBalanceAmount('0.00');
       setTransactions([]);
+      setTransactionTaxonomyByTransactionId({});
       return;
     }
 
@@ -377,6 +456,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       includeVoided: true,
     });
     setTransactions(transactionResult.items);
+    await refreshTransactionTaxonomy(transactionResult.items);
   }
 
   const mobillsImport = useMobillsImport({
@@ -439,6 +519,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       setBalanceAmount(summary.balanceAmount);
       const transactionResult = await core.ledgerListTransactions({ accountId, limit: 20, includeVoided: true });
       setTransactions(transactionResult.items);
+      await refreshTransactionTaxonomy(transactionResult.items);
       setHistoryExpanded(false);
       const nextTarget =
         transferToAccountId && transferToAccountId !== accountId && accounts.some((item) => item.id === transferToAccountId)
