@@ -6,6 +6,11 @@ import type {
   TaxonomyCategoryItem,
   TaxonomyTagItem,
 } from '../../domain/corePort';
+import {
+  useMobillsImport,
+  type MobillsImportPolicyInput,
+  type MobillsImportResult,
+} from '../../imports/mobills/application/useMobillsImport';
 
 type FieldErrors = {
   amount?: string;
@@ -25,30 +30,6 @@ type ExpenseItemDraft = {
 };
 
 type TaxonomyCategoryAppliesTo = 'income' | 'expense';
-type MobillsDuplicatePolicy = 'skip' | 'fail' | 'import_anyway';
-
-type MobillsImportPolicyInput = {
-  createMissingAccounts?: boolean;
-  createMissingCategories?: boolean;
-  createMissingTags?: boolean;
-  duplicatePolicy?: MobillsDuplicatePolicy;
-};
-
-type MobillsImportRowResult = {
-  sourceLine: number;
-  status: 'imported' | 'failed' | 'skipped';
-  transactionId?: string;
-  errorCode?: string;
-  errorMessage?: string;
-};
-
-type MobillsImportResult = {
-  totalRows: number;
-  importedCount: number;
-  failedCount: number;
-  skippedCount: number;
-  rows: MobillsImportRowResult[];
-};
 
 export type AccountsCorePort = {
   ledgerListSupportedCurrencies(): Promise<{ items: string[] }>;
@@ -198,37 +179,6 @@ function resolveOccurredAt(dateInput: string): string {
   return new Date().toISOString();
 }
 
-function arrayBufferToBase64(value: ArrayBuffer): string {
-  const bytes = new Uint8Array(value);
-  const chunkSize = 0x8000;
-  let binary = '';
-  for (let index = 0; index < bytes.length; index += chunkSize) {
-    const chunk = bytes.subarray(index, index + chunkSize);
-    binary += String.fromCharCode(...chunk);
-  }
-  return globalThis.btoa(binary);
-}
-
-async function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
-  const maybeArrayBuffer = (file as File & { arrayBuffer?: () => Promise<ArrayBuffer> }).arrayBuffer;
-  if (typeof maybeArrayBuffer === 'function') {
-    return maybeArrayBuffer.call(file);
-  }
-
-  return new Promise<ArrayBuffer>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Cannot read selected file.'));
-    reader.onload = () => {
-      if (reader.result instanceof ArrayBuffer) {
-        resolve(reader.result);
-        return;
-      }
-      reject(new Error('Cannot read selected file.'));
-    };
-    reader.readAsArrayBuffer(file);
-  });
-}
-
 const VOID_COMMIT_DELAY_MS = 5000;
 
 export function useAccountsPageModel(core: AccountsCorePort) {
@@ -255,16 +205,6 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [manageAccountSheetOpen, setManageAccountSheetOpen] = useState(false);
   const [manageAccountName, setManageAccountName] = useState('');
   const [managingAccount, setManagingAccount] = useState(false);
-  const [importSheetOpen, setImportSheetOpen] = useState(false);
-  const [importingMobills, setImportingMobills] = useState(false);
-  const [importFileName, setImportFileName] = useState('');
-  const [importFile, setImportFileState] = useState<File | null>(null);
-  const [importError, setImportError] = useState('');
-  const [importResult, setImportResult] = useState<MobillsImportResult | null>(null);
-  const [importCreateMissingAccounts, setImportCreateMissingAccounts] = useState(true);
-  const [importCreateMissingCategories, setImportCreateMissingCategories] = useState(true);
-  const [importCreateMissingTags, setImportCreateMissingTags] = useState(true);
-  const [importDuplicatePolicy, setImportDuplicatePolicy] = useState<MobillsDuplicatePolicy>('skip');
   const [newAccountName, setNewAccountName] = useState('Main account');
   const [newAccountCurrency, setNewAccountCurrency] = useState('USD');
   const [newAccountOpeningBalance, setNewAccountOpeningBalance] = useState('');
@@ -438,6 +378,14 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     });
     setTransactions(transactionResult.items);
   }
+
+  const mobillsImport = useMobillsImport({
+    core,
+    accountsCount: accounts.length,
+    selectedAccountId,
+    refreshAccounts,
+    showToast,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -641,66 +589,6 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setManagingAccount(false);
-    }
-  }
-
-  function openImportSheet() {
-    setImportError('');
-    setImportResult(null);
-    if (accounts.length === 0) {
-      setImportCreateMissingAccounts(true);
-    }
-    setImportSheetOpen(true);
-  }
-
-  function closeImportSheet() {
-    setImportSheetOpen(false);
-    setImportError('');
-  }
-
-  function setImportFile(file: File | null) {
-    if (!file) {
-      setImportFileState(null);
-      setImportFileName('');
-      return;
-    }
-
-    setImportError('');
-    setImportResult(null);
-    setImportFileState(file);
-    setImportFileName(file.name);
-  }
-
-  async function submitMobillsImport(event: FormEvent) {
-    event.preventDefault();
-    setImportError('');
-    setImportResult(null);
-
-    if (!importFile) {
-      setImportError('Select a Mobills TSV/CSV file first.');
-      return;
-    }
-
-    setImportingMobills(true);
-    try {
-      const fileBuffer = await readFileAsArrayBuffer(importFile);
-      const fileBase64 = arrayBufferToBase64(fileBuffer);
-      const result = await core.mobillsImport({
-        fileBase64,
-        policy: {
-          createMissingAccounts: importCreateMissingAccounts,
-          createMissingCategories: importCreateMissingCategories,
-          createMissingTags: importCreateMissingTags,
-          duplicatePolicy: importDuplicatePolicy,
-        },
-      });
-      setImportResult(result);
-      await refreshAccounts(selectedAccountId || undefined);
-      showToast(`Import finished: ${result.importedCount} imported, ${result.failedCount} failed.`);
-    } catch (err) {
-      setImportError(err instanceof Error ? err.message : 'Import failed.');
-    } finally {
-      setImportingMobills(false);
     }
   }
 
@@ -1109,15 +997,15 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     manageAccountSheetOpen,
     manageAccountName,
     managingAccount,
-    importSheetOpen,
-    importingMobills,
-    importFileName,
-    importError,
-    importResult,
-    importCreateMissingAccounts,
-    importCreateMissingCategories,
-    importCreateMissingTags,
-    importDuplicatePolicy,
+    importSheetOpen: mobillsImport.importSheetOpen,
+    importingMobills: mobillsImport.importingMobills,
+    importFileName: mobillsImport.importFileName,
+    importError: mobillsImport.importError,
+    importResult: mobillsImport.importResult,
+    importCreateMissingAccounts: mobillsImport.importCreateMissingAccounts,
+    importCreateMissingCategories: mobillsImport.importCreateMissingCategories,
+    importCreateMissingTags: mobillsImport.importCreateMissingTags,
+    importDuplicatePolicy: mobillsImport.importDuplicatePolicy,
     newAccountName,
     newAccountCurrency,
     newAccountOpeningBalance,
@@ -1166,14 +1054,14 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     closeCreateAccountForm: () => setShowCreateAccountForm(false),
     openManageAccountSheet,
     closeManageAccountSheet,
-    setImportCreateMissingAccounts,
-    setImportCreateMissingCategories,
-    setImportCreateMissingTags,
-    setImportDuplicatePolicy,
-    setImportFile,
-    openImportSheet,
-    closeImportSheet,
-    submitMobillsImport,
+    setImportCreateMissingAccounts: mobillsImport.setImportCreateMissingAccounts,
+    setImportCreateMissingCategories: mobillsImport.setImportCreateMissingCategories,
+    setImportCreateMissingTags: mobillsImport.setImportCreateMissingTags,
+    setImportDuplicatePolicy: mobillsImport.setImportDuplicatePolicy,
+    setImportFile: mobillsImport.setImportFile,
+    openImportSheet: mobillsImport.openImportSheet,
+    closeImportSheet: mobillsImport.closeImportSheet,
+    submitMobillsImport: mobillsImport.submitMobillsImport,
     expandHistory: () => setHistoryExpanded(true),
     openTransactionComposer,
     closeTransactionComposer,
