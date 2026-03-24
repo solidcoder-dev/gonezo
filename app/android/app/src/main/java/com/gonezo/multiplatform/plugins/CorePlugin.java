@@ -591,6 +591,17 @@ public class CorePlugin extends Plugin {
       String merchant = nullIfBlank(cell(cells, merchantIndex));
       String category = nullIfBlank(cell(cells, categoryIndex));
       List<String> tagNames = parseTagNames(cell(cells, tagsIndex));
+      TransferDescriptor transferDescriptor = parseTransferDescriptor(description, accountName, value);
+      if (transferDescriptor != null && value.compareTo(BigDecimal.ZERO) > 0) {
+        rowResults.put(
+          skippedImportRow(
+            sourceLine,
+            "TRANSFER_PAIR_ROW",
+            "Mirrored transfer row skipped at line " + sourceLine
+          )
+        );
+        continue;
+      }
       String fingerprint = MobillsImportFingerprint.fromRow(
         accountName,
         occurredAt,
@@ -623,55 +634,100 @@ public class CorePlugin extends Plugin {
       }
 
       try {
-        AndroidLedgerCore.LedgerAccountView account = findAccount(cachedAccounts, accountName, currency);
-        if (account == null) {
-          if (!createMissingAccounts) {
-            throw new IllegalStateException("ACCOUNT_NOT_FOUND:" + accountName + ":" + currency);
-          }
-          String createdAccountId = ledgerCore.openAccount(accountName, "cash", currency, null, null).toString();
-          cachedAccounts = new ArrayList<>(ledgerCore.listAccounts());
-          account = findAccountById(cachedAccounts, createdAccountId);
-        }
-        if (account == null) {
-          throw new IllegalStateException("Account not found: " + accountName);
-        }
+        String transactionId;
+        if (transferDescriptor != null && value.compareTo(BigDecimal.ZERO) < 0) {
+          AndroidLedgerCore.LedgerAccountView fromAccount = resolveImportAccount(
+            ledgerCore,
+            cachedAccounts,
+            transferDescriptor.outAccountName(),
+            currency,
+            createMissingAccounts
+          );
+          AndroidLedgerCore.LedgerAccountView toAccount = resolveImportAccount(
+            ledgerCore,
+            cachedAccounts,
+            transferDescriptor.inAccountName(),
+            currency,
+            createMissingAccounts
+          );
+          String amount = value.abs().toPlainString();
+          AndroidLedgerCore.LedgerTransferResultView transferResult = ledgerCore.recordTransfer(
+            fromAccount.id(),
+            toAccount.id(),
+            occurredAt,
+            amount,
+            currency,
+            description
+          );
+          transactionId = transferResult.transferOutId();
 
-        boolean expense = value.compareTo(BigDecimal.ZERO) < 0;
-        String amount = value.abs().toPlainString();
-        String transactionType = expense ? "expense" : "income";
-        String transactionId = expense
-          ? ledgerCore.recordExpense(account.id(), occurredAt, amount, currency, description, merchant, null).toString()
-          : ledgerCore.recordIncome(account.id(), occurredAt, amount, currency, description, merchant, null).toString();
-
-        if (category != null) {
-          String categoryId = findCategoryId(taxonomyCore, transactionType, category);
-          if (categoryId == null) {
-            if (!createMissingCategories) {
-              throw new IllegalStateException("CATEGORY_AUTOCREATE_DISABLED");
+          if (!tagNames.isEmpty()) {
+            if (!createMissingTags) {
+              throw new IllegalStateException("TAG_AUTOCREATE_DISABLED");
             }
-            categoryId = taxonomyCore.createCategory(category, transactionType).toString();
+            JSONArray tags = new JSONArray();
+            for (String tagName : tagNames) {
+              tags.put(tagName);
+            }
+            JSObject outTagging = applyTagsToTransaction(transferResult.transferOutId(), tags);
+            if ("failed".equalsIgnoreCase(outTagging.getString("status"))) {
+              String code = outTagging.getString("errorCode");
+              String message = outTagging.getString("errorMessage");
+              throw new IllegalStateException(code != null ? code : message);
+            }
+            JSObject inTagging = applyTagsToTransaction(transferResult.transferInId(), tags);
+            if ("failed".equalsIgnoreCase(inTagging.getString("status"))) {
+              String code = inTagging.getString("errorCode");
+              String message = inTagging.getString("errorMessage");
+              throw new IllegalStateException(code != null ? code : message);
+            }
+          }
+        } else {
+          AndroidLedgerCore.LedgerAccountView account = resolveImportAccount(
+            ledgerCore,
+            cachedAccounts,
+            accountName,
+            currency,
+            createMissingAccounts
+          );
+
+          boolean expense = value.compareTo(BigDecimal.ZERO) < 0;
+          String amount = value.abs().toPlainString();
+          String transactionType = expense ? "expense" : "income";
+          transactionId = expense
+            ? ledgerCore.recordExpense(account.id(), occurredAt, amount, currency, description, merchant, null).toString()
+            : ledgerCore.recordIncome(account.id(), occurredAt, amount, currency, description, merchant, null).toString();
+
+          if (category != null) {
+            String categoryId = findCategoryId(taxonomyCore, transactionType, category);
+            if (categoryId == null) {
+              if (!createMissingCategories) {
+                throw new IllegalStateException("CATEGORY_AUTOCREATE_DISABLED");
+              }
+              categoryId = taxonomyCore.createCategory(category, transactionType).toString();
+            }
+
+            AndroidTaxonomyCore.TaxonomyCategorizationResultView categorization =
+              taxonomyCore.categorizeTransaction(transactionId, transactionType, categoryId);
+            if ("failed".equalsIgnoreCase(categorization.status())) {
+              throw new IllegalStateException(categorization.errorCode() != null ? categorization.errorCode() : categorization.errorMessage());
+            }
           }
 
-          AndroidTaxonomyCore.TaxonomyCategorizationResultView categorization =
-            taxonomyCore.categorizeTransaction(transactionId, transactionType, categoryId);
-          if ("failed".equalsIgnoreCase(categorization.status())) {
-            throw new IllegalStateException(categorization.errorCode() != null ? categorization.errorCode() : categorization.errorMessage());
-          }
-        }
-
-        if (!tagNames.isEmpty()) {
-          if (!createMissingTags) {
-            throw new IllegalStateException("TAG_AUTOCREATE_DISABLED");
-          }
-          JSONArray tags = new JSONArray();
-          for (String tagName : tagNames) {
-            tags.put(tagName);
-          }
-          JSObject tagging = applyTagsToTransaction(transactionId, tags);
-          if ("failed".equalsIgnoreCase(tagging.getString("status"))) {
-            String code = tagging.getString("errorCode");
-            String message = tagging.getString("errorMessage");
-            throw new IllegalStateException(code != null ? code : message);
+          if (!tagNames.isEmpty()) {
+            if (!createMissingTags) {
+              throw new IllegalStateException("TAG_AUTOCREATE_DISABLED");
+            }
+            JSONArray tags = new JSONArray();
+            for (String tagName : tagNames) {
+              tags.put(tagName);
+            }
+            JSObject tagging = applyTagsToTransaction(transactionId, tags);
+            if ("failed".equalsIgnoreCase(tagging.getString("status"))) {
+              String code = tagging.getString("errorCode");
+              String message = tagging.getString("errorMessage");
+              throw new IllegalStateException(code != null ? code : message);
+            }
           }
         }
 
@@ -945,6 +1001,74 @@ public class CorePlugin extends Plugin {
     return new ArrayList<>(uniqueByNormalizedName.values());
   }
 
+  private AndroidLedgerCore.LedgerAccountView resolveImportAccount(
+    AndroidLedgerCore ledgerCore,
+    List<AndroidLedgerCore.LedgerAccountView> cachedAccounts,
+    String accountName,
+    String currency,
+    boolean createMissingAccounts
+  ) {
+    AndroidLedgerCore.LedgerAccountView account = findAccount(cachedAccounts, accountName, currency);
+    if (account == null) {
+      if (!createMissingAccounts) {
+        throw new IllegalStateException("ACCOUNT_NOT_FOUND:" + accountName + ":" + currency);
+      }
+      String createdAccountId = ledgerCore.openAccount(accountName, "cash", currency, null, null).toString();
+      cachedAccounts.clear();
+      cachedAccounts.addAll(ledgerCore.listAccounts());
+      account = findAccountById(cachedAccounts, createdAccountId);
+    }
+    if (account == null) {
+      throw new IllegalStateException("Account not found: " + accountName);
+    }
+    return account;
+  }
+
+  private TransferDescriptor parseTransferDescriptor(String description, String rowAccountName, BigDecimal value) {
+    String normalizedDescription = nullIfBlank(description);
+    String normalizedRowAccount = nullIfBlank(rowAccountName);
+    if (normalizedDescription == null || normalizedRowAccount == null || value == null) {
+      return null;
+    }
+    if (!normalizedDescription.regionMatches(true, 0, "Transfer ", 0, 9)) {
+      return null;
+    }
+    String body = normalizedDescription.substring(9).trim();
+    if (body.isEmpty()) {
+      return null;
+    }
+
+    if (value.compareTo(BigDecimal.ZERO) < 0) {
+      if (body.length() <= normalizedRowAccount.length()) {
+        return null;
+      }
+      if (!body.regionMatches(true, 0, normalizedRowAccount, 0, normalizedRowAccount.length())) {
+        return null;
+      }
+      String inAccountName = body.substring(normalizedRowAccount.length()).trim();
+      if (inAccountName.isEmpty()) {
+        return null;
+      }
+      return new TransferDescriptor(normalizedRowAccount, inAccountName);
+    }
+
+    if (value.compareTo(BigDecimal.ZERO) > 0) {
+      if (body.length() <= normalizedRowAccount.length()) {
+        return null;
+      }
+      int suffixStart = body.length() - normalizedRowAccount.length();
+      if (!body.regionMatches(true, suffixStart, normalizedRowAccount, 0, normalizedRowAccount.length())) {
+        return null;
+      }
+      String outAccountName = body.substring(0, suffixStart).trim();
+      if (outAccountName.isEmpty()) {
+        return null;
+      }
+      return new TransferDescriptor(outAccountName, normalizedRowAccount);
+    }
+    return null;
+  }
+
   private AndroidLedgerCore.LedgerAccountView findAccount(
     List<AndroidLedgerCore.LedgerAccountView> accounts,
     String accountName,
@@ -1001,4 +1125,9 @@ public class CorePlugin extends Plugin {
     }
     return "skip";
   }
+
+  private record TransferDescriptor(
+    String outAccountName,
+    String inAccountName
+  ) {}
 }

@@ -12,6 +12,43 @@ function toUtf16Base64(text: string): string {
 }
 
 describe('CoreAdapterWeb mobillsImport', () => {
+  it('imports transfer rows as ledger transfers and skips mirrored inbound row', async () => {
+    const core = new CoreAdapterWeb();
+    const csv = [
+      '"Date";"Description";"Value";"Account";"Category";"Subcategory";"Tags"',
+      '"01/06/2024";"Transfer BBVA Trade republic";"-100";"BBVA";"Transferencia";"";"invest"',
+      '"01/06/2024";"Transfer BBVA Trade republic";"100";"Trade republic";"Transferencia";"";"invest"',
+    ].join('\r\n');
+
+    const result = await core.mobillsImport({
+      fileBase64: toUtf16Base64(csv),
+      policy: {
+        createMissingAccounts: true,
+        createMissingCategories: true,
+        createMissingTags: true,
+      },
+    });
+
+    expect(result.totalRows).toBe(2);
+    expect(result.importedCount).toBe(1);
+    expect(result.skippedCount).toBe(1);
+    expect(result.failedCount).toBe(0);
+    expect(result.rows[0]?.status).toBe('imported');
+    expect(result.rows[1]?.status).toBe('skipped');
+    expect(result.rows[1]?.errorCode).toBe('TRANSFER_PAIR_ROW');
+
+    const accounts = await core.ledgerListAccounts();
+    const bbva = accounts.items.find((item) => item.name === 'BBVA');
+    const tradeRepublic = accounts.items.find((item) => item.name === 'Trade republic');
+    expect(bbva).toBeDefined();
+    expect(tradeRepublic).toBeDefined();
+
+    const bbvaTx = await core.ledgerListTransactions({ accountId: bbva!.id, includeVoided: true, limit: 20 });
+    const tradeTx = await core.ledgerListTransactions({ accountId: tradeRepublic!.id, includeVoided: true, limit: 20 });
+    expect(bbvaTx.items.some((tx) => tx.type === 'transfer_out' && tx.amount === '100.00')).toBe(true);
+    expect(tradeTx.items.some((tx) => tx.type === 'transfer_in' && tx.amount === '100.00')).toBe(true);
+  });
+
   it('imports csv content with quoted commas', async () => {
     const core = new CoreAdapterWeb();
     const csv = [

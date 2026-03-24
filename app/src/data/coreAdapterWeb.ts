@@ -306,6 +306,87 @@ export class CoreAdapterWeb implements CorePort {
     return parsed.toISOString();
   }
 
+  private escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  private parseTransferDescriptor(input: {
+    description?: string;
+    rowAccountName: string;
+    rawValue: number;
+  }): { outAccountName: string; inAccountName: string } | null {
+    const description = input.description?.trim();
+    if (!description || !description.toLowerCase().startsWith('transfer ')) {
+      return null;
+    }
+    const body = description.slice('transfer '.length).trim();
+    if (!body) {
+      return null;
+    }
+    const rowAccountName = input.rowAccountName.trim();
+    if (!rowAccountName) {
+      return null;
+    }
+
+    if (input.rawValue < 0) {
+      const fromPrefix = new RegExp(`^${this.escapeRegExp(rowAccountName)}\\s+`, 'i');
+      if (!fromPrefix.test(body)) {
+        return null;
+      }
+      const inAccountName = body.replace(fromPrefix, '').trim();
+      if (!inAccountName) {
+        return null;
+      }
+      return {
+        outAccountName: rowAccountName,
+        inAccountName,
+      };
+    }
+
+    if (input.rawValue > 0) {
+      const toSuffix = new RegExp(`\\s+${this.escapeRegExp(rowAccountName)}$`, 'i');
+      if (!toSuffix.test(body)) {
+        return null;
+      }
+      const outAccountName = body.replace(toSuffix, '').trim();
+      if (!outAccountName) {
+        return null;
+      }
+      return {
+        outAccountName,
+        inAccountName: rowAccountName,
+      };
+    }
+
+    return null;
+  }
+
+  private async resolveImportAccount(
+    accountName: string,
+    currency: string,
+    createMissingAccounts: boolean,
+  ): Promise<MemoryLedgerAccount> {
+    const normalizedName = accountName.trim();
+    let account = CoreAdapterWeb.ledgerAccounts.find(
+      (item) => item.name.toLowerCase() === normalizedName.toLowerCase() && item.currency === currency,
+    );
+    if (!account) {
+      if (!createMissingAccounts) {
+        throw new Error(`ACCOUNT_NOT_FOUND:${normalizedName}:${currency}`);
+      }
+      const opened = await this.ledgerOpenAccount({
+        name: normalizedName,
+        type: 'cash',
+        currency,
+      });
+      account = CoreAdapterWeb.ledgerAccounts.find((item) => item.id === opened.id);
+    }
+    if (!account) {
+      throw new Error(`Account not found: ${normalizedName}`);
+    }
+    return account;
+  }
+
   private buildMobillsFingerprint(input: {
     accountName: string;
     occurredAt: string;
@@ -775,6 +856,21 @@ export class CoreAdapterWeb implements CorePort {
         .split(/[|,;]/)
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
+      const transferDescriptor = this.parseTransferDescriptor({
+        description,
+        rowAccountName: accountName,
+        rawValue,
+      });
+      if (transferDescriptor && rawValue > 0) {
+        rows.push({
+          sourceLine,
+          status: 'skipped',
+          errorCode: 'TRANSFER_PAIR_ROW',
+          errorMessage: `Mirrored transfer row skipped at line ${sourceLine}`,
+        });
+        continue;
+      }
+
       const fingerprint = this.buildMobillsFingerprint({
         accountName,
         occurredAt,
@@ -795,84 +891,111 @@ export class CoreAdapterWeb implements CorePort {
       }
 
       try {
-        let account = CoreAdapterWeb.ledgerAccounts.find(
-          (item) => item.name.toLowerCase() === accountName.toLowerCase() && item.currency === currency,
-        );
-        if (!account) {
-          if (!policy.createMissingAccounts) {
-            throw new Error(`ACCOUNT_NOT_FOUND:${accountName}:${currency}`);
-          }
-          const opened = await this.ledgerOpenAccount({
-            name: accountName,
-            type: 'cash',
+        let transactionId: string;
+        if (transferDescriptor && rawValue < 0) {
+          const fromAccount = await this.resolveImportAccount(
+            transferDescriptor.outAccountName,
             currency,
-          });
-          account = CoreAdapterWeb.ledgerAccounts.find((item) => item.id === opened.id);
-        }
-        if (!account) {
-          throw new Error(`Account not found: ${accountName}`);
-        }
-
-        const amount = Math.abs(rawValue).toFixed(2);
-        const transactionId = rawValue < 0
-          ? (await this.ledgerRecordExpense({
-            accountId: account.id,
-            occurredAt,
-            amount,
-            currency,
-            description,
-            merchant,
-          })).id
-          : (await this.ledgerRecordIncome({
-            accountId: account.id,
-            occurredAt,
-            amount,
-            currency,
-            description,
-            merchant,
-          })).id;
-
-        if (categoryName) {
-          const transactionType = rawValue < 0 ? 'expense' : 'income';
-          let category = CoreAdapterWeb.taxonomyCategories.find(
-            (item) =>
-              item.status === 'active'
-              && item.appliesTo === transactionType
-              && item.normalizedName === this.normalizeCategoryName(categoryName),
+            policy.createMissingAccounts,
           );
-          if (!category) {
-            if (!policy.createMissingCategories) {
-              throw new Error('CATEGORY_AUTOCREATE_DISABLED');
-            }
-            const created = await this.taxonomyCreateCategory({
-              name: categoryName,
-              appliesTo: transactionType,
-            });
-            category = CoreAdapterWeb.taxonomyCategories.find((item) => item.id === created.id);
-          }
-          if (!category) {
-            throw new Error(`Category not found: ${categoryName}`);
-          }
-          const categorized = await this.orchestrationCategorizeTransaction({
-            transactionId,
-            transactionType,
-            categoryId: category.id,
+          const toAccount = await this.resolveImportAccount(
+            transferDescriptor.inAccountName,
+            currency,
+            policy.createMissingAccounts,
+          );
+          const amount = Math.abs(rawValue).toFixed(2);
+          const transfer = await this.ledgerRecordTransfer({
+            fromAccountId: fromAccount.id,
+            toAccountId: toAccount.id,
+            occurredAt,
+            amount,
+            currency,
+            description,
           });
-          if (categorized.status === 'failed') {
-            throw new Error(categorized.errorCode ?? categorized.errorMessage ?? 'Categorization failed');
-          }
-        }
+          transactionId = transfer.transferOutId;
 
-        if (tagNames.length > 0) {
-          if (!policy.createMissingTags) {
-            throw new Error('TAG_AUTOCREATE_DISABLED');
+          if (tagNames.length > 0) {
+            if (!policy.createMissingTags) {
+              throw new Error('TAG_AUTOCREATE_DISABLED');
+            }
+            const outTagging = await this.orchestrationApplyTransactionTags({
+              transactionId: transfer.transferOutId,
+              tagNames,
+            });
+            if (outTagging.status === 'failed') {
+              throw new Error(outTagging.errorCode ?? outTagging.errorMessage ?? 'Tag assignment failed');
+            }
+            const inTagging = await this.orchestrationApplyTransactionTags({
+              transactionId: transfer.transferInId,
+              tagNames,
+            });
+            if (inTagging.status === 'failed') {
+              throw new Error(inTagging.errorCode ?? inTagging.errorMessage ?? 'Tag assignment failed');
+            }
           }
-          const tagging = await this.orchestrationApplyTransactionTags({
-            transactionId,
-            tagNames,
-          });
-          if (tagging.status === 'failed') {
-            throw new Error(tagging.errorCode ?? tagging.errorMessage ?? 'Tag assignment failed');
+        } else {
+          const account = await this.resolveImportAccount(accountName, currency, policy.createMissingAccounts);
+          const amount = Math.abs(rawValue).toFixed(2);
+          transactionId = rawValue < 0
+            ? (await this.ledgerRecordExpense({
+              accountId: account.id,
+              occurredAt,
+              amount,
+              currency,
+              description,
+              merchant,
+            })).id
+            : (await this.ledgerRecordIncome({
+              accountId: account.id,
+              occurredAt,
+              amount,
+              currency,
+              description,
+              merchant,
+            })).id;
+
+          if (categoryName) {
+            const transactionType = rawValue < 0 ? 'expense' : 'income';
+            let category = CoreAdapterWeb.taxonomyCategories.find(
+              (item) =>
+                item.status === 'active'
+                && item.appliesTo === transactionType
+                && item.normalizedName === this.normalizeCategoryName(categoryName),
+            );
+            if (!category) {
+              if (!policy.createMissingCategories) {
+                throw new Error('CATEGORY_AUTOCREATE_DISABLED');
+              }
+              const created = await this.taxonomyCreateCategory({
+                name: categoryName,
+                appliesTo: transactionType,
+              });
+              category = CoreAdapterWeb.taxonomyCategories.find((item) => item.id === created.id);
+            }
+            if (!category) {
+              throw new Error(`Category not found: ${categoryName}`);
+            }
+            const categorized = await this.orchestrationCategorizeTransaction({
+              transactionId,
+              transactionType,
+              categoryId: category.id,
+            });
+            if (categorized.status === 'failed') {
+              throw new Error(categorized.errorCode ?? categorized.errorMessage ?? 'Categorization failed');
+            }
+          }
+
+          if (tagNames.length > 0) {
+            if (!policy.createMissingTags) {
+              throw new Error('TAG_AUTOCREATE_DISABLED');
+            }
+            const tagging = await this.orchestrationApplyTransactionTags({
+              transactionId,
+              tagNames,
+            });
+            if (tagging.status === 'failed') {
+              throw new Error(tagging.errorCode ?? tagging.errorMessage ?? 'Tag assignment failed');
+            }
           }
         }
 
