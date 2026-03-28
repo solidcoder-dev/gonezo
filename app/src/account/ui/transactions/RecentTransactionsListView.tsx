@@ -1,4 +1,4 @@
-import type { LedgerTransactionListItem } from '../../../domain/corePort';
+import type { LedgerTransactionListItem } from '../../../shared/domain/corePort';
 import { formatCurrencyAmount, formatIsoDateTime } from '../../../shared/utils/formatting';
 
 export type RecentTransactionsListViewProps = {

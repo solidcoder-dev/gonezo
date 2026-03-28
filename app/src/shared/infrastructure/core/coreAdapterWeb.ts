@@ -38,7 +38,7 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
-} from '../domain/corePort';
+} from '../../domain/corePort';
 
 type MemoryLedgerAccount = {
   id: string;

@@ -8,9 +8,17 @@ Separar frontend por dominios y capas, manteniendo la mezcla de dominios solo en
 
 ```text
 app/src/
+  App.tsx
+  App.css
+  main.tsx
+  index.css
+
   ledger/
     application/
       useLedgerAccounts.ts
+      useLedgerAccountWorkspace.ts
+      useLedgerComposerWorkspace.ts
+      useLedgerTransactionsWorkspace.ts
       useLedgerTransactions.ts
       useLedgerTransactionCommands.ts
     domain/
@@ -18,15 +26,12 @@ app/src/
       ledger.rules.ts
     infrastructure/
       ledgerGateway.ts
-      ledgerMappers.ts
     ui/
-      LedgerAccountSwitcherView.tsx
-      LedgerSummaryCard.tsx
-      LedgerTransactionsListView.tsx
 
   taxonomy/
     application/
       useCategorySuggestions.ts
+      useTaxonomyComposerWorkspace.ts
       useTagSuggestions.ts
       useTransactionClassification.ts
     domain/
@@ -34,7 +39,6 @@ app/src/
       taxonomy.rules.ts
     infrastructure/
       taxonomyGateway.ts
-      taxonomyMappers.ts
     ui/
       CategoryComboboxField.tsx
       TagComboboxField.tsx
@@ -43,56 +47,50 @@ app/src/
     mobills/
       application/
         useMobillsImport.ts
+        useMobillsImportWorkspace.ts
       domain/
+        importFailureSummary.ts
         mobillsImport.types.ts
-        mobillsImportPolicy.ts
       infrastructure/
         mobillsFileReader.ts
-        mobillsParser.ts
-        mobillsImportGateway.ts
       ui/
         MobillsImportSheetView.tsx
         MobillsImportSummaryView.tsx
 
   account/
     application/
-      useAccountPageOrchestrator.ts
-      useAccountCommands.ts
-      useTransactionSubmitFlow.ts
-      useManageAccountFlow.ts
+      AccountPage.tsx
+      useAccountPageModel.ts
       useToast.ts
     domain/
       accountPage.types.ts
-      accountPage.vm.ts
     infrastructure/
-      accountUiPolicies.ts
+      App.spec.tsx
     ui/
       AccountPageView.tsx
-      TransactionComposerView.tsx
-      ExpenseSplitEditor.tsx
-      TransferTargetSelect.tsx
-      ManageAccountSheetView.tsx
-      ImportSheetView.tsx
-      ImportResultSummary.tsx
-      ToastBanner.tsx
-      ErrorBanner.tsx
+      accountPageView.contract.ts
+      AccountSwitcherView.tsx
+      sections/*
+      transactions/
+        TransactionComposerView.tsx
+        RecentTransactionsListView.tsx
 
   shared/
+    domain/
+      corePort.ts
+    infrastructure/
+      core/
+        coreAdapter.ts
+        coreAdapterWeb.ts
+        corePlugin.ts
+        corePluginWeb.ts
     ui/
-      ModalSheet.tsx
-      ConfirmDialog.tsx
-      LoadingState.tsx
-    application/
-      useAsyncAction.ts
+      transactions/
+        components/*
+    testing/
+      setup.ts
     utils/
-      date.ts
       formatting.ts
-    types/
-      ui.ts
-
-  app/
-    App.tsx
-    Accounts.tsx
 ```
 
 ## Responsabilidades por modulo
@@ -105,13 +103,15 @@ app/src/
 
 ## Convenciones de hooks
 
-- `useAccountPageOrchestrator` es el unico hook de orquestacion global de pantalla.
-- Los demas hooks exponen contrato estable `{ state, actions }`.
+- `AccountPage.tsx` es el unico punto de composicion/orquestacion global de pantalla.
+- Los hooks por dominio (`ledger`, `taxonomy`, `imports/mobills`) exponen contratos `{ state, actions }`.
 - Hooks de dominio no deben llamar hooks de otro dominio.
 
 ## Convenciones de UI
 
-- Componentes `ui/*` son dumb: reciben datos por props y emiten eventos.
+- `AccountPageView` recibe `state` y `actions` agrupados por feature (`account`, `transactions`, `composer`, `imports`, `toast`).
+- Carga y errores se modelan por feature (`loadPhase`/`submitPhase`) y solo se eleva un estado global cuando bloquea la pantalla.
+- Componentes `ui/*` son dumb: reciben un contrato explicito de props y emiten eventos.
 - Ningun componente visual llama a `core.*` directamente.
 - La mezcla `ledger + taxonomy + imports` ocurre en `account/application`.
 

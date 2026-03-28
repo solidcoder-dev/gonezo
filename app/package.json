@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "check:structure": "node ./scripts/check-src-structure.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview"

@@ -5,31 +5,29 @@ import type {
   LedgerTransactionListItem,
   TaxonomyCategoryItem,
   TaxonomyTagItem,
-} from '../../domain/corePort';
+} from '../../shared/domain/corePort';
 import {
   useMobillsImport,
-  type MobillsImportPolicyInput,
-  type MobillsImportResult,
 } from '../../imports/mobills/application/useMobillsImport';
-
-type FieldErrors = {
-  amount?: string;
-  date?: string;
-  expenseItemName?: string;
-  expenseItemAmount?: string;
-  expenseSplit?: string;
-};
-
-type ComposerMode = 'picker' | 'expense' | 'income' | 'transfer';
-export type TransactionType = Exclude<ComposerMode, 'picker'>;
-
-type ExpenseItemDraft = {
-  id: string;
-  name: string;
-  amount: string;
-};
-
-type TaxonomyCategoryAppliesTo = 'income' | 'expense';
+import type {
+  MobillsImportPolicyInput,
+  MobillsImportResult,
+} from '../../imports/mobills/domain/mobillsImport.types';
+import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
+import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
+import { useLedgerTransactions } from '../../ledger/application/useLedgerTransactions';
+import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
+import { useCategorySuggestions } from '../../taxonomy/application/useCategorySuggestions';
+import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions';
+import { useTransactionClassification } from '../../taxonomy/application/useTransactionClassification';
+import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
+import type {
+  ComposerMode,
+  ExpenseItemDraft,
+  FieldErrors,
+  TaxonomyCategoryAppliesTo,
+} from '../domain/accountPage.types';
+export type { TransactionType } from '../domain/accountPage.types';
 
 export type AccountsCorePort = {
   ledgerListSupportedCurrencies(): Promise<{ items: string[] }>;
@@ -245,6 +243,16 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     [accounts, selectedAccountId],
   );
 
+  const ledgerGateway = useMemo(() => createLedgerGateway(core), [core]);
+  const taxonomyGateway = useMemo(() => createTaxonomyGateway(core), [core]);
+
+  const ledgerAccounts = useLedgerAccounts(ledgerGateway);
+  const ledgerTransactions = useLedgerTransactions(ledgerGateway);
+  const ledgerTransactionCommands = useLedgerTransactionCommands(ledgerGateway);
+  const categorySuggestions = useCategorySuggestions(taxonomyGateway);
+  const tagSuggestions = useTagSuggestions(taxonomyGateway);
+  const transactionClassification = useTransactionClassification(taxonomyGateway);
+
   const transferTargetOptions = useMemo(
     () => accounts.filter((account) => account.id !== selectedAccountId),
     [accounts, selectedAccountId],
@@ -406,7 +414,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       return;
     }
 
-    const result = await core.orchestrationListTransactionTaxonomy({ transactionIds });
+    const result = await transactionClassification.listTransactionTaxonomy({ transactionIds });
     const next: Record<string, { categoryId?: string; tagIds: string[]; categorizationStatus?: string; taggingStatus?: string }> = {};
     for (const item of result.items) {
       next[item.transactionId] = {
@@ -420,7 +428,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   }
 
   async function refreshAccounts(preferredAccountId?: string) {
-    const accountResult = await core.ledgerListAccounts();
+    const accountResult = await ledgerAccounts.listAccounts();
     setAccounts(accountResult.items);
 
     if (accountResult.items.length === 0) {
@@ -447,10 +455,10 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       ?? '';
     setTransferToAccountId(fallbackTransferTarget);
 
-    const summary = await core.ledgerGetAccountSummary({ accountId: nextSelectedId });
+    const summary = await ledgerAccounts.getAccountSummary({ accountId: nextSelectedId });
     setBalanceAmount(summary.balanceAmount);
 
-    const transactionResult = await core.ledgerListTransactions({
+    const transactionResult = await ledgerTransactions.listTransactions({
       accountId: nextSelectedId,
       limit: 20,
       includeVoided: true,
@@ -474,14 +482,14 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       setLoading(true);
       setError('');
       try {
-        const currencies = await core.ledgerListSupportedCurrencies();
+        const currencies = await ledgerAccounts.listSupportedCurrencies();
         setSupportedCurrencies(currencies.items);
         if (currencies.items.length > 0 && !currencies.items.includes(newAccountCurrency)) {
           setNewAccountCurrency(currencies.items[0]);
         }
-        const taxonomy = await core.taxonomyListCategories({ includeArchived: false });
+        const taxonomy = await categorySuggestions.listCategories({ includeArchived: false });
         setCategories(taxonomy.items);
-        const taxonomyTags = await core.taxonomyListTags({ includeArchived: false });
+        const taxonomyTags = await tagSuggestions.listTags({ includeArchived: false });
         setTags(taxonomyTags.items);
         await refreshAccounts();
       } catch (err) {
@@ -515,9 +523,9 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setRefreshing(true);
 
     try {
-      const summary = await core.ledgerGetAccountSummary({ accountId });
+      const summary = await ledgerAccounts.getAccountSummary({ accountId });
       setBalanceAmount(summary.balanceAmount);
-      const transactionResult = await core.ledgerListTransactions({ accountId, limit: 20, includeVoided: true });
+      const transactionResult = await ledgerTransactions.listTransactions({ accountId, limit: 20, includeVoided: true });
       setTransactions(transactionResult.items);
       await refreshTransactionTaxonomy(transactionResult.items);
       setHistoryExpanded(false);
@@ -558,7 +566,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
     setCreatingAccount(true);
     try {
-      const created = await core.ledgerOpenAccount({
+      const created = await ledgerAccounts.openAccount({
         name,
         type: 'cash',
         currency,
@@ -607,7 +615,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     clearToastState();
     setManagingAccount(true);
     try {
-      await core.ledgerRenameAccount({
+      await ledgerAccounts.renameAccount({
         accountId: selectedAccount.id,
         name,
       });
@@ -634,7 +642,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     clearToastState();
     setManagingAccount(true);
     try {
-      await core.ledgerArchiveAccount({
+      await ledgerAccounts.archiveAccount({
         accountId: selectedAccount.id,
       });
       await refreshAccounts(selectedAccount.id);
@@ -660,7 +668,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     clearToastState();
     setManagingAccount(true);
     try {
-      await core.ledgerDeleteAccount({
+      await ledgerAccounts.deleteAccount({
         accountId: selectedAccount.id,
       });
       await refreshAccounts();
@@ -683,7 +691,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     resetComposerState();
     void (async () => {
       try {
-        const taxonomy = await core.taxonomyListCategories({ includeArchived: false });
+        const taxonomy = await categorySuggestions.listCategories({ includeArchived: false });
         setCategories(taxonomy.items);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -814,7 +822,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       return existing.id;
     }
 
-    const created = await core.taxonomyCreateCategory({
+    const created = await categorySuggestions.createCategory({
       name: rawInput,
       appliesTo: type,
     });
@@ -844,7 +852,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     if (!categoryId) {
       return;
     }
-    const result = await core.orchestrationCategorizeTransaction({
+    const result = await transactionClassification.categorizeTransaction({
       transactionId,
       transactionType,
       categoryId,
@@ -873,7 +881,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     if (tagNames.length === 0) {
       return;
     }
-    const result = await core.orchestrationApplyTransactionTags({
+    const result = await transactionClassification.applyTransactionTags({
       transactionId,
       tagNames,
     });
@@ -941,7 +949,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       if (composerMode === 'expense') {
         const categoryId = await resolveCategorySelection('expense');
         if (!expenseDetailed) {
-          const result = await core.ledgerRecordExpense({
+          const result = await ledgerTransactionCommands.recordExpense({
             accountId: selectedAccount.id,
             occurredAt,
             amount,
@@ -954,7 +962,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
           showToast(`Expense recorded: ${result.id}`);
           recorded = true;
         } else {
-          const draft = await core.ledgerCreateExpenseDraft({
+          const draft = await ledgerTransactionCommands.createExpenseDraft({
             accountId: selectedAccount.id,
             occurredAt,
             amount,
@@ -963,14 +971,14 @@ export function useAccountsPageModel(core: AccountsCorePort) {
             merchant: transactionNote.trim() || undefined,
           });
           for (const item of expenseItems) {
-            await core.ledgerAddTransactionItem({
+            await ledgerTransactionCommands.addTransactionItem({
               transactionId: draft.id,
               name: item.name,
               amount: item.amount,
               currency: selectedAccount.currency,
             });
           }
-          await core.ledgerPostDraftTransaction({ transactionId: draft.id });
+          await ledgerTransactionCommands.postDraftTransaction({ transactionId: draft.id });
           await categorizeTransaction(draft.id, 'expense', categoryId);
           await applyTransactionTags(draft.id, tagNames);
           showToast(`Expense recorded: ${draft.id}`);
@@ -980,7 +988,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
       if (composerMode === 'income') {
         const categoryId = await resolveCategorySelection('income');
-        const result = await core.ledgerRecordIncome({
+        const result = await ledgerTransactionCommands.recordIncome({
           accountId: selectedAccount.id,
           occurredAt,
           amount,
@@ -995,7 +1003,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
       }
 
       if (composerMode === 'transfer') {
-        const result = await core.ledgerRecordTransfer({
+        const result = await ledgerTransactionCommands.recordTransfer({
           fromAccountId: selectedAccount.id,
           toAccountId: transferToAccountId,
           occurredAt,
@@ -1024,7 +1032,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   async function executeVoidTransaction(transactionId: string, accountId: string) {
     setPostingTransaction(true);
     try {
-      await core.ledgerVoidTransaction({ transactionId });
+      await ledgerTransactions.voidTransaction({ transactionId });
       showToast('Transaction voided.');
       await refreshAccounts(accountId);
     } catch (err) {

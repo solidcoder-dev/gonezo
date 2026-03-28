@@ -1,4 +1,4 @@
-import type { LedgerAccountItem } from '../../domain/corePort';
+import type { LedgerAccountItem } from '../../shared/domain/corePort';
 import { useState } from 'react';
 
 type Props = {

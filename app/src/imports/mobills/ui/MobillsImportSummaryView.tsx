@@ -1,4 +1,4 @@
-import type { MobillsImportResult } from '../application/useMobillsImport';
+import type { MobillsImportResult } from '../domain/mobillsImport.types';
 
 type Props = {
   result: MobillsImportResult;

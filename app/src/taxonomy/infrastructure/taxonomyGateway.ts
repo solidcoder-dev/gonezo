@@ -1,4 +1,4 @@
-import type { TaxonomyCategoryItem, TaxonomyTagItem } from '../../domain/corePort';
+import type { TaxonomyCategoryItem, TaxonomyTagItem } from '../../shared/domain/corePort';
 
 export type TaxonomyGatewayPort = {
   taxonomyListCategories(input?: {
@@ -31,6 +31,17 @@ export type TaxonomyGatewayPort = {
     errorCode?: string;
     errorMessage?: string;
   }>;
+  orchestrationListTransactionTaxonomy(input: {
+    transactionIds: string[];
+  }): Promise<{
+    items: Array<{
+      transactionId: string;
+      categoryId?: string;
+      tagIds?: string[];
+      categorizationStatus?: 'none' | 'pending' | 'processing' | 'assigned' | 'failed';
+      taggingStatus?: 'none' | 'pending' | 'processing' | 'assigned' | 'failed';
+    }>;
+  }>;
 };
 
 export function createTaxonomyGateway(core: TaxonomyGatewayPort): TaxonomyGatewayPort {
@@ -40,5 +51,6 @@ export function createTaxonomyGateway(core: TaxonomyGatewayPort): TaxonomyGatewa
     taxonomyListTags: core.taxonomyListTags,
     orchestrationCategorizeTransaction: core.orchestrationCategorizeTransaction,
     orchestrationApplyTransactionTags: core.orchestrationApplyTransactionTags,
+    orchestrationListTransactionTaxonomy: core.orchestrationListTransactionTaxonomy,
   };
 }

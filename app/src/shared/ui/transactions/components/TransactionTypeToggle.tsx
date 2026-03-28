@@ -1,4 +1,4 @@
-import type { TransactionType } from '../../../account/application/useAccountPageModel';
+type TransactionType = 'expense' | 'income' | 'transfer';
 
 export interface TransactionTypeToggleProps {
   value: TransactionType;

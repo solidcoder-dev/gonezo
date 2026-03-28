@@ -37,8 +37,8 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
-} from '../domain/corePort';
-import { CoreAdapterWeb } from '../data/coreAdapterWeb';
+} from '../../domain/corePort';
+import { CoreAdapterWeb } from './coreAdapterWeb';
 import type { CorePlugin } from './corePlugin';
 
 export class CorePluginWeb extends WebPlugin implements CorePlugin {

@@ -37,7 +37,7 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
-} from '../domain/corePort';
+} from '../../domain/corePort';
 
 export interface CorePlugin {
   doThing(options: { input: string }): Promise<CoreResult>;

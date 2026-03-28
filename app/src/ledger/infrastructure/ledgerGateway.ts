@@ -1,4 +1,4 @@
-import type { LedgerAccountItem, LedgerTransactionListItem } from '../../domain/corePort';
+import type { LedgerAccountItem, LedgerTransactionListItem } from '../../shared/domain/corePort';
 
 export type LedgerGatewayPort = {
   ledgerListSupportedCurrencies(): Promise<{ items: string[] }>;

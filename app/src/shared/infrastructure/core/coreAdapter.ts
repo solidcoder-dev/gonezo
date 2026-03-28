@@ -38,9 +38,9 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
-} from '../domain/corePort';
+} from '../../domain/corePort';
 import { CoreAdapterWeb } from './coreAdapterWeb';
-import { CorePlugin } from '../native/corePlugin';
+import { CorePlugin } from './corePlugin';
 
 export class CoreAdapter implements CorePort {
   private readonly web = new CoreAdapterWeb();

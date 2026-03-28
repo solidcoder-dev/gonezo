@@ -14,8 +14,14 @@ export function useTransactionClassification(gateway: TaxonomyGatewayPort) {
     [gateway],
   );
 
+  const listTransactionTaxonomy = useCallback(
+    (input: { transactionIds: string[] }) => gateway.orchestrationListTransactionTaxonomy(input),
+    [gateway],
+  );
+
   return {
     categorizeTransaction,
     applyTransactionTags,
+    listTransactionTaxonomy,
   };
 }
