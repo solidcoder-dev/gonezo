@@ -45,18 +45,19 @@ app/src/
 
   imports/
     application/
-      useTransactionsImport.ts
+      useTransactionsImportController.ts
+      TransactionsImportComponent.tsx
     domain/
       importFailureSummary.ts
       transactionsImport.types.ts
     infrastructure/
-      TransactionsImportComponent.tsx
       readImportFileAsBase64.ts
       providers/
         mobills/
           mobillsFileReader.ts
     ui/
-      TransactionsImportComponent.contract.ts
+      TransactionsImportView.tsx
+      TransactionsImportView.contract.ts
       TransactionsImportSummaryView.tsx
     index.ts
 

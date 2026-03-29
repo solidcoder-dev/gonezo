@@ -1,0 +1,59 @@
+import type { TransactionsImportRequest, TransactionsImportResult } from '../domain/transactionsImport.types';
+import { useTransactionsImportController } from './useTransactionsImportController';
+import {
+  TransactionsImportView,
+  type TransactionsImportViewProvided,
+  type TransactionsImportViewRequired,
+} from '../ui/TransactionsImportView';
+
+export type TransactionsImportComponentRequired = {
+  accountsCount: number;
+};
+
+export type TransactionsImportComponentProvided = {
+  submitImport: (input: TransactionsImportRequest) => Promise<TransactionsImportResult>;
+  onCompleted?: (result: TransactionsImportResult) => void;
+  onFailed?: (message: string) => void;
+};
+
+export type TransactionsImportComponentProps = {
+  required: TransactionsImportComponentRequired;
+  provided: TransactionsImportComponentProvided;
+};
+
+export function TransactionsImportComponent({ required, provided }: TransactionsImportComponentProps) {
+  const workspace = useTransactionsImportController({
+    port: {
+      submitImport: provided.submitImport,
+    },
+    onCompleted: provided.onCompleted,
+    onFailed: provided.onFailed,
+  });
+
+  const viewRequired: TransactionsImportViewRequired = {
+    accountsCount: required.accountsCount,
+    isSubmitting: workspace.state.isSubmitting,
+    fileName: workspace.state.fileName,
+    error: workspace.state.error,
+    result: workspace.state.result,
+    createMissingAccounts: workspace.state.createMissingAccounts,
+    createMissingCategories: workspace.state.createMissingCategories,
+    createMissingTags: workspace.state.createMissingTags,
+    duplicatePolicy: workspace.state.duplicatePolicy,
+    failedRows: workspace.state.failedRows,
+    failureSummary: workspace.state.failureSummary,
+    accountNotFoundFailures: workspace.state.accountNotFoundFailures,
+    duplicateRowsCount: workspace.state.duplicateRowsCount,
+  };
+
+  const viewProvided: TransactionsImportViewProvided = {
+    setFile: workspace.actions.setFile,
+    setCreateMissingAccounts: workspace.actions.setCreateMissingAccounts,
+    setCreateMissingCategories: workspace.actions.setCreateMissingCategories,
+    setCreateMissingTags: workspace.actions.setCreateMissingTags,
+    setDuplicatePolicy: workspace.actions.setDuplicatePolicy,
+    submit: workspace.actions.submit,
+  };
+
+  return <TransactionsImportView required={viewRequired} provided={viewProvided} />;
+}

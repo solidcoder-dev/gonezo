@@ -1,9 +1,9 @@
-export { TransactionsImportComponent } from './infrastructure/TransactionsImportComponent';
+export { TransactionsImportComponent } from './application/TransactionsImportComponent';
 export type {
   TransactionsImportComponentProps,
   TransactionsImportComponentProvided,
   TransactionsImportComponentRequired,
-} from './ui/TransactionsImportComponent.contract';
+} from './application/TransactionsImportComponent';
 export type {
   TransactionsImportDuplicatePolicy,
   TransactionsImportPolicyInput,

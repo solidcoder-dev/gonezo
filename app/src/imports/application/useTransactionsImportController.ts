@@ -23,7 +23,7 @@ type UseTransactionsImportInput = {
   onFailed?: (message: string) => void;
 };
 
-export function useTransactionsImport({ port, onCompleted, onFailed }: UseTransactionsImportInput) {
+export function useTransactionsImportController({ port, onCompleted, onFailed }: UseTransactionsImportInput) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fileName, setFileName] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
