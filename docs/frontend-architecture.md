@@ -44,18 +44,21 @@ app/src/
       TagComboboxField.tsx
 
   imports/
-    mobills/
-      application/
-        useMobillsImport.ts
-        useMobillsImportWorkspace.ts
-      domain/
-        importFailureSummary.ts
-        mobillsImport.types.ts
-      infrastructure/
-        mobillsFileReader.ts
-      ui/
-        MobillsImportSheetView.tsx
-        MobillsImportSummaryView.tsx
+    application/
+      useTransactionsImport.ts
+    domain/
+      importFailureSummary.ts
+      transactionsImport.types.ts
+    infrastructure/
+      TransactionsImportComponent.tsx
+      readImportFileAsBase64.ts
+      providers/
+        mobills/
+          mobillsFileReader.ts
+    ui/
+      TransactionsImportComponent.contract.ts
+      TransactionsImportSummaryView.tsx
+    index.ts
 
   account/
     application/
@@ -97,14 +100,14 @@ app/src/
 
 - `ledger`: dinero y hechos financieros.
 - `taxonomy`: clasificacion (categorias y tags).
-- `imports/mobills`: adaptacion e importacion de archivo externo.
+- `imports`: adaptacion e importacion de archivos externos.
 - `account`: composicion cross-domain para la experiencia de cuentas.
 - `shared`: piezas reutilizables y neutrales.
 
 ## Convenciones de hooks
 
 - `AccountPage.tsx` es el unico punto de composicion/orquestacion global de pantalla.
-- Los hooks por dominio (`ledger`, `taxonomy`, `imports/mobills`) exponen contratos `{ state, actions }`.
+- Los hooks por dominio (`ledger`, `taxonomy`, `imports`) exponen contratos `{ state, actions }`.
 - Hooks de dominio no deben llamar hooks de otro dominio.
 
 ## Convenciones de UI
@@ -120,6 +123,6 @@ app/src/
 
 - `ledger/*` no depende de `taxonomy/*` ni de `imports/*`.
 - `taxonomy/*` no depende de `ledger/*`.
-- `imports/mobills/*` puede depender de `ledger` y `taxonomy` via puertos de aplicacion.
-- `account/*` puede componer `ledger`, `taxonomy` e `imports/mobills`.
+- `imports/*` puede depender de `ledger` y `taxonomy` via puertos de aplicacion.
+- `account/*` puede componer `ledger`, `taxonomy` e `imports`.
 - `shared/*` no depende de modulos de dominio.

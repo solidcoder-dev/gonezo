@@ -251,14 +251,14 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Import from Mobills' });
+    const dialog = await screen.findByRole('dialog', { name: 'Import transactions' });
     expect(dialog).toBeInTheDocument();
     expect(dialog).toHaveClass('import-sheet');
     expect(view.container.querySelector('.import-sheet-content')).not.toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Close import sheet' }));
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Import from Mobills' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'Import transactions' })).not.toBeInTheDocument();
     });
   });
 
@@ -274,7 +274,7 @@ describe('App Accounts UX', () => {
     await screen.findByText('Net balance');
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
 
-    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
+    const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
     expect(fileInput).toHaveAttribute('accept', expect.stringContaining('.csv'));
   });
 
@@ -300,7 +300,7 @@ describe('App Accounts UX', () => {
     await screen.findByText('Net balance');
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
 
-    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
+    const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
     const file = new File(
       ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
       'mobills.tsv',
@@ -351,7 +351,7 @@ describe('App Accounts UX', () => {
     await screen.findByText('Net balance');
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
 
-    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
+    const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
     const file = new File(
       ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
       'mobills.tsv',
@@ -381,7 +381,7 @@ describe('App Accounts UX', () => {
     await screen.findByText('Net balance');
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
 
-    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
+    const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
     const file = new File(
       ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
       'mobills.tsv',
@@ -422,7 +422,7 @@ describe('App Accounts UX', () => {
     await screen.findByRole('heading', { name: 'Create your first account' });
     fireEvent.click(screen.getByRole('button', { name: 'Import from Mobills' }));
 
-    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
+    const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
     const file = new File(
       ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
       'mobills.tsv',
@@ -459,7 +459,7 @@ describe('App Accounts UX', () => {
     await screen.findByText('Net balance');
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
 
-    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
+    const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
     const file = new File(
       ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
       'mobills.tsv',
@@ -499,7 +499,7 @@ describe('App Accounts UX', () => {
     await screen.findByText('Net balance');
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
 
-    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
+    const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
     const file = new File(
       ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
       'mobills.tsv',
@@ -509,7 +509,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Import file' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Import failed hard');
-    expect(screen.getByRole('dialog', { name: 'Import from Mobills' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Import transactions' })).toBeInTheDocument();
   });
 
   it('records quick expense from dedicated expense flow', async () => {

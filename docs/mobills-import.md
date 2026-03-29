@@ -50,7 +50,8 @@ Desde la pantalla de cuentas:
 
 En frontend, esta integracion se encapsula en el modulo:
 
-- `app/src/imports/mobills/{application,domain,infrastructure,ui}`
+- `app/src/imports/{application,domain,infrastructure,ui}`
+- Proveedor Mobills concreto en `app/src/imports/infrastructure/providers/mobills/*`
 
 ## Reglas de normalizacion
 

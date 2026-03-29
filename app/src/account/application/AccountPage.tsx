@@ -1,4 +1,3 @@
-import { useMobillsImportWorkspace } from '../../imports/mobills/application/useMobillsImportWorkspace';
 import { useLedgerAccountWorkspace } from '../../ledger/application/useLedgerAccountWorkspace';
 import { useLedgerComposerWorkspace } from '../../ledger/application/useLedgerComposerWorkspace';
 import { useLedgerTransactionsWorkspace } from '../../ledger/application/useLedgerTransactionsWorkspace';
@@ -33,20 +32,12 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
   const ledgerTransactions = useLedgerTransactionsWorkspace(model);
   const ledgerComposer = useLedgerComposerWorkspace(model);
   const taxonomyComposer = useTaxonomyComposerWorkspace(model);
-  const mobillsImport = useMobillsImportWorkspace(model);
   const toast = useToast(model);
 
   const screenLoadPhase = toLoadPhase(model.loading, Boolean(model.error));
   const accountLoadPhase = toLoadPhase(model.loading || model.refreshing, Boolean(model.error));
   const composerLoadPhase = toLoadPhase(model.loading, Boolean(model.error));
   const transactionsLoadPhase = toLoadPhase(model.refreshing, Boolean(model.error));
-  const importsSubmitPhase: LoadPhase = model.importingMobills
-    ? 'loading'
-    : model.importError
-      ? 'error'
-      : model.importResult
-        ? 'ready'
-        : 'idle';
 
   const required: AccountPageViewRequired = {
     screen: {
@@ -111,20 +102,8 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
       pendingVoidTransactionId: ledgerTransactions.state.pendingVoidTransactionId,
     },
     imports: {
-      submitPhase: importsSubmitPhase,
-      sheetOpen: mobillsImport.state.importSheetOpen,
-      isImporting: mobillsImport.state.importingMobills,
-      fileName: mobillsImport.state.importFileName,
-      error: mobillsImport.state.importError,
-      result: mobillsImport.state.importResult,
-      createMissingAccounts: mobillsImport.state.importCreateMissingAccounts,
-      createMissingCategories: mobillsImport.state.importCreateMissingCategories,
-      createMissingTags: mobillsImport.state.importCreateMissingTags,
-      duplicatePolicy: mobillsImport.state.importDuplicatePolicy,
-      failedRows: mobillsImport.state.importFailedRows,
-      failureSummary: mobillsImport.state.importFailureSummary,
-      accountNotFoundFailures: mobillsImport.state.accountNotFoundFailures,
-      duplicateRowsCount: mobillsImport.state.duplicateRowsCount,
+      sheetOpen: model.importSheetOpen,
+      isSubmitting: model.importingTransactions,
     },
   };
 
@@ -172,14 +151,9 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
       voidTransaction: ledgerTransactions.actions.voidTransaction,
     },
     imports: {
-      openSheet: mobillsImport.actions.openImportSheet,
-      closeSheet: mobillsImport.actions.closeImportSheet,
-      setFile: mobillsImport.actions.setImportFile,
-      setCreateMissingAccounts: mobillsImport.actions.setImportCreateMissingAccounts,
-      setCreateMissingCategories: mobillsImport.actions.setImportCreateMissingCategories,
-      setCreateMissingTags: mobillsImport.actions.setImportCreateMissingTags,
-      setDuplicatePolicy: mobillsImport.actions.setImportDuplicatePolicy,
-      submitImport: mobillsImport.actions.submitMobillsImport,
+      openSheet: model.openImportSheet,
+      closeSheet: model.closeImportSheet,
+      submitImport: model.submitTransactionsImport,
     },
   };
 

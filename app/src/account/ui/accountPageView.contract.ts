@@ -1,7 +1,6 @@
 import type { FormEvent } from 'react';
 import type { FieldErrors } from '../domain/accountPage.types';
-import type { ImportFailureSummaryItem, ImportRowResult } from '../../imports/mobills/domain/importFailureSummary';
-import type { MobillsDuplicatePolicy, MobillsImportResult } from '../../imports/mobills/domain/mobillsImport.types';
+import type { TransactionsImportRequest, TransactionsImportResult } from '../../imports/domain/transactionsImport.types';
 import type { LedgerAccountItem, LedgerTransactionListItem } from '../../shared/domain/corePort';
 
 export type LoadPhase = 'idle' | 'loading' | 'ready' | 'error';
@@ -69,20 +68,8 @@ export type AccountPageViewRequired = {
     pendingVoidTransactionId: string;
   };
   imports: {
-    submitPhase: LoadPhase;
     sheetOpen: boolean;
-    isImporting: boolean;
-    fileName: string;
-    error: string;
-    result: MobillsImportResult | null;
-    createMissingAccounts: boolean;
-    createMissingCategories: boolean;
-    createMissingTags: boolean;
-    duplicatePolicy: MobillsDuplicatePolicy;
-    failedRows: ImportRowResult[];
-    failureSummary: ImportFailureSummaryItem[];
-    accountNotFoundFailures: number;
-    duplicateRowsCount: number;
+    isSubmitting: boolean;
   };
 };
 
@@ -132,12 +119,7 @@ export type AccountPageViewProvided = {
   imports: {
     openSheet: () => void;
     closeSheet: () => void;
-    setFile: (file: File | null) => void;
-    setCreateMissingAccounts: (value: boolean) => void;
-    setCreateMissingCategories: (value: boolean) => void;
-    setCreateMissingTags: (value: boolean) => void;
-    setDuplicatePolicy: (value: MobillsDuplicatePolicy) => void;
-    submitImport: (event: FormEvent) => Promise<void>;
+    submitImport: (input: TransactionsImportRequest) => Promise<TransactionsImportResult>;
   };
 };
 

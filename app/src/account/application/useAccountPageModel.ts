@@ -6,13 +6,10 @@ import type {
   TaxonomyCategoryItem,
   TaxonomyTagItem,
 } from '../../shared/domain/corePort';
-import {
-  useMobillsImport,
-} from '../../imports/mobills/application/useMobillsImport';
 import type {
-  MobillsImportPolicyInput,
-  MobillsImportResult,
-} from '../../imports/mobills/domain/mobillsImport.types';
+  TransactionsImportPolicyInput,
+  TransactionsImportResult,
+} from '../../imports/domain/transactionsImport.types';
 import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
 import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
 import { useLedgerTransactions } from '../../ledger/application/useLedgerTransactions';
@@ -116,8 +113,8 @@ export type AccountsCorePort = {
   }): Promise<{ items: TaxonomyTagItem[] }>;
   mobillsImport(input: {
     fileBase64: string;
-    policy?: MobillsImportPolicyInput;
-  }): Promise<MobillsImportResult>;
+    policy?: TransactionsImportPolicyInput;
+  }): Promise<TransactionsImportResult>;
   orchestrationCategorizeTransaction(input: {
     transactionId: string;
     transactionType: TaxonomyCategoryAppliesTo;
@@ -217,6 +214,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [manageAccountSheetOpen, setManageAccountSheetOpen] = useState(false);
   const [manageAccountName, setManageAccountName] = useState('');
   const [managingAccount, setManagingAccount] = useState(false);
+  const [importSheetOpen, setImportSheetOpen] = useState(false);
+  const [importingTransactions, setImportingTransactions] = useState(false);
   const [newAccountName, setNewAccountName] = useState('Main account');
   const [newAccountCurrency, setNewAccountCurrency] = useState('USD');
   const [newAccountOpeningBalance, setNewAccountOpeningBalance] = useState('');
@@ -466,14 +465,6 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setTransactions(transactionResult.items);
     await refreshTransactionTaxonomy(transactionResult.items);
   }
-
-  const mobillsImport = useMobillsImport({
-    core,
-    accountsCount: accounts.length,
-    selectedAccountId,
-    refreshAccounts,
-    showToast,
-  });
 
   useEffect(() => {
     let cancelled = false;
@@ -1064,6 +1055,34 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     }, VOID_COMMIT_DELAY_MS);
   }
 
+  function openImportSheet() {
+    setImportSheetOpen(true);
+  }
+
+  function closeImportSheet() {
+    setImportSheetOpen(false);
+  }
+
+  async function submitTransactionsImport(input: {
+    fileBase64: string;
+    policy?: TransactionsImportPolicyInput;
+  }): Promise<TransactionsImportResult> {
+    setImportingTransactions(true);
+    try {
+      const result = await core.mobillsImport(input);
+      await refreshAccounts(selectedAccountId || undefined);
+      showToast(`Import finished: ${result.importedCount} imported, ${result.failedCount} failed.`);
+      return result;
+    } catch (err) {
+      if (err instanceof Error) {
+        throw err;
+      }
+      throw new Error('Import failed.');
+    } finally {
+      setImportingTransactions(false);
+    }
+  }
+
   return {
     loading,
     refreshing,
@@ -1086,15 +1105,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     manageAccountSheetOpen,
     manageAccountName,
     managingAccount,
-    importSheetOpen: mobillsImport.importSheetOpen,
-    importingMobills: mobillsImport.importingMobills,
-    importFileName: mobillsImport.importFileName,
-    importError: mobillsImport.importError,
-    importResult: mobillsImport.importResult,
-    importCreateMissingAccounts: mobillsImport.importCreateMissingAccounts,
-    importCreateMissingCategories: mobillsImport.importCreateMissingCategories,
-    importCreateMissingTags: mobillsImport.importCreateMissingTags,
-    importDuplicatePolicy: mobillsImport.importDuplicatePolicy,
+    importSheetOpen,
+    importingTransactions,
     newAccountName,
     newAccountCurrency,
     newAccountOpeningBalance,
@@ -1143,14 +1155,9 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     closeCreateAccountForm: () => setShowCreateAccountForm(false),
     openManageAccountSheet,
     closeManageAccountSheet,
-    setImportCreateMissingAccounts: mobillsImport.setImportCreateMissingAccounts,
-    setImportCreateMissingCategories: mobillsImport.setImportCreateMissingCategories,
-    setImportCreateMissingTags: mobillsImport.setImportCreateMissingTags,
-    setImportDuplicatePolicy: mobillsImport.setImportDuplicatePolicy,
-    setImportFile: mobillsImport.setImportFile,
-    openImportSheet: mobillsImport.openImportSheet,
-    closeImportSheet: mobillsImport.closeImportSheet,
-    submitMobillsImport: mobillsImport.submitMobillsImport,
+    openImportSheet,
+    closeImportSheet,
+    submitTransactionsImport,
     expandHistory: () => setHistoryExpanded(true),
     openTransactionComposer,
     closeTransactionComposer,
