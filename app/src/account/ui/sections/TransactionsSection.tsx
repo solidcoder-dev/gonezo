@@ -1,78 +1,88 @@
 import { TransactionComposerView } from '../transactions/TransactionComposerView';
 import { RecentTransactionsListView } from '../transactions/RecentTransactionsListView';
-import type { AccountPageActions, AccountPageState } from '../accountPageView.contract';
+import type { AccountPageViewProvided, AccountPageViewRequired } from '../accountPageView.contract';
 
-type Props = {
-  account: AccountPageState['account'];
-  composer: AccountPageState['composer'];
-  transactions: AccountPageState['transactions'];
-  composerActions: AccountPageActions['composer'];
-  transactionActions: AccountPageActions['transactions'];
+export type TransactionsSectionRequired = {
+  account: AccountPageViewRequired['account'];
+  composer: AccountPageViewRequired['composer'];
+  transactions: AccountPageViewRequired['transactions'];
 };
 
-export function TransactionsSection({
-  account,
-  composer,
-  transactions,
-  composerActions,
-  transactionActions,
-}: Props) {
-  const transactionControlsDisabled = composer.isSubmitting || account.isRefreshing;
+export type TransactionsSectionProvided = {
+  composer: AccountPageViewProvided['composer'];
+  transactions: AccountPageViewProvided['transactions'];
+};
+
+type Props = {
+  required: TransactionsSectionRequired;
+  provided: TransactionsSectionProvided;
+};
+
+export function TransactionsSection({ required, provided }: Props) {
+  const transactionControlsDisabled = required.composer.isSubmitting || required.account.isRefreshing;
 
   return (
     <>
       <TransactionComposerView
-        open={composer.isOpen}
-        mode={composer.mode}
-        onOpen={composerActions.openComposer}
-        onClose={composerActions.closeComposer}
-        onSelectMode={composerActions.selectMode}
-        onToggleAdvanced={composerActions.toggleAdvanced}
-        advancedOpen={composer.advancedOpen}
-        amount={composer.amount}
-        date={composer.date}
-        note={composer.note}
-        categoryInput={composer.categoryInput}
-        categoryOptions={composer.categoryOptions}
-        tagInput={composer.tagInput}
-        tagOptions={composer.tagOptions}
-        transferTargetAccountId={composer.transferTargetAccountId}
-        transferTargetOptions={composer.transferTargetOptions}
-        expenseDetailed={composer.expenseDetailed}
-        expenseItems={composer.expenseItems}
-        expenseItemName={composer.expenseItemName}
-        expenseItemAmount={composer.expenseItemAmount}
-        expenseRemaining={composer.expenseRemaining}
-        currencyCode={account.selectedAccount?.currency}
-        expenseItemNameError={composer.expenseItemNameError}
-        expenseItemAmountError={composer.expenseItemAmountError}
-        expenseSplitError={composer.expenseSplitError}
-        onToggleExpenseDetailed={() => composerActions.setExpenseDetailed(!composer.expenseDetailed)}
-        onSetExpenseItemName={composerActions.setExpenseItemName}
-        onSetExpenseItemAmount={composerActions.setExpenseItemAmount}
-        onAddExpenseItem={composerActions.addExpenseItem}
-        onRemoveExpenseItem={composerActions.removeExpenseItem}
-        onAssignRemaining={composerActions.assignRemaining}
-        amountError={composer.fieldErrors.amount}
-        dateError={composer.fieldErrors.date}
-        disabled={transactionControlsDisabled}
-        onSetAmount={composerActions.setAmount}
-        onSetDate={composerActions.setDate}
-        onSetNote={composerActions.setNote}
-        onSetCategoryInput={composerActions.setCategoryInput}
-        onSetTagInput={composerActions.setTagInput}
-        onSetTransferTarget={composerActions.setTransferTargetAccountId}
-        onSubmit={composerActions.submitTransaction}
+        required={{
+          open: required.composer.isOpen,
+          mode: required.composer.mode,
+          disabled: transactionControlsDisabled,
+          amount: required.composer.amount,
+          date: required.composer.date,
+          note: required.composer.note,
+          categoryInput: required.composer.categoryInput,
+          categoryOptions: required.composer.categoryOptions,
+          tagInput: required.composer.tagInput,
+          tagOptions: required.composer.tagOptions,
+          advancedOpen: required.composer.advancedOpen,
+          transferTargetAccountId: required.composer.transferTargetAccountId,
+          transferTargetOptions: required.composer.transferTargetOptions,
+          expenseDetailed: required.composer.expenseDetailed,
+          expenseItems: required.composer.expenseItems,
+          expenseItemName: required.composer.expenseItemName,
+          expenseItemAmount: required.composer.expenseItemAmount,
+          expenseRemaining: required.composer.expenseRemaining,
+          currencyCode: required.account.selectedAccount?.currency,
+          expenseItemNameError: required.composer.expenseItemNameError,
+          expenseItemAmountError: required.composer.expenseItemAmountError,
+          expenseSplitError: required.composer.expenseSplitError,
+          amountError: required.composer.fieldErrors.amount,
+          dateError: required.composer.fieldErrors.date,
+        }}
+        provided={{
+          onOpen: provided.composer.openComposer,
+          onClose: provided.composer.closeComposer,
+          onSelectMode: provided.composer.selectMode,
+          onToggleAdvanced: provided.composer.toggleAdvanced,
+          onSetAmount: provided.composer.setAmount,
+          onSetDate: provided.composer.setDate,
+          onSetNote: provided.composer.setNote,
+          onSetCategoryInput: provided.composer.setCategoryInput,
+          onSetTagInput: provided.composer.setTagInput,
+          onSetTransferTarget: provided.composer.setTransferTargetAccountId,
+          onToggleExpenseDetailed: () => provided.composer.setExpenseDetailed(!required.composer.expenseDetailed),
+          onSetExpenseItemName: provided.composer.setExpenseItemName,
+          onSetExpenseItemAmount: provided.composer.setExpenseItemAmount,
+          onAddExpenseItem: provided.composer.addExpenseItem,
+          onRemoveExpenseItem: provided.composer.removeExpenseItem,
+          onAssignRemaining: provided.composer.assignRemaining,
+          onSubmit: provided.composer.submitTransaction,
+        }}
       />
 
       <RecentTransactionsListView
-        items={transactions.items}
-        hiddenCount={transactions.hiddenCount}
-        expanded={transactions.expanded}
-        disabled={transactionControlsDisabled}
-        pendingVoidTransactionId={transactions.pendingVoidTransactionId}
-        onViewAll={transactionActions.expandHistory}
-        onVoid={transactionActions.voidTransaction}
+        required={{
+          items: required.transactions.items,
+          hiddenCount: required.transactions.hiddenCount,
+          expanded: required.transactions.expanded,
+          disabled: transactionControlsDisabled,
+          pendingVoidTransactionId: required.transactions.pendingVoidTransactionId,
+        }}
+        provided={{
+          onViewAll: provided.transactions.expandHistory,
+          onVoid: provided.transactions.voidTransaction,
+        }}
       />
     </>
   );

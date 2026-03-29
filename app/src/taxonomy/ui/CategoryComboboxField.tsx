@@ -5,14 +5,22 @@ type CategoryOption = {
   name: string;
 };
 
-type Props = {
+export type CategoryComboboxFieldRequired = {
   value: string;
   options: CategoryOption[];
   disabled: boolean;
+};
+
+export type CategoryComboboxFieldProvided = {
   onChange: (value: string) => void;
 };
 
-export function CategoryComboboxField({ value, options, disabled, onChange }: Props) {
+type Props = {
+  required: CategoryComboboxFieldRequired;
+  provided: CategoryComboboxFieldProvided;
+};
+
+export function CategoryComboboxField({ required, provided }: Props) {
   const listId = useId();
 
   return (
@@ -20,15 +28,15 @@ export function CategoryComboboxField({ value, options, disabled, onChange }: Pr
       Category
       <input
         aria-label="Category"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
+        value={required.value}
+        onChange={(event) => provided.onChange(event.target.value)}
         placeholder="Choose or type a category (optional)"
         list={listId}
         autoComplete="off"
-        disabled={disabled}
+        disabled={required.disabled}
       />
       <datalist id={listId}>
-        {options.map((category) => (
+        {required.options.map((category) => (
           <option key={category.id} value={category.name} />
         ))}
       </datalist>

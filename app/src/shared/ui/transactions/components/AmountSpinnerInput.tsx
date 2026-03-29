@@ -1,17 +1,25 @@
 import { useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 
-export interface AmountSpinnerInputProps {
+export type AmountSpinnerInputRequired = {
   amount: string;
   disabled: boolean;
+};
+
+export type AmountSpinnerInputProvided = {
   onRollUnits: (units: number) => void;
   onSetAmount: (value: string) => void;
   onFormatAmount: () => void;
-}
+};
 
-export function AmountSpinnerInput({ amount, disabled, onRollUnits, onSetAmount, onFormatAmount }: AmountSpinnerInputProps) {
+export type AmountSpinnerInputProps = {
+  required: AmountSpinnerInputRequired;
+  provided: AmountSpinnerInputProvided;
+};
+
+export function AmountSpinnerInput({ required, provided }: AmountSpinnerInputProps) {
   const [isEditingAmount, setIsEditingAmount] = useState(false);
-  const numericAmount = Number(amount);
+  const numericAmount = Number(required.amount);
   const amountValueForAria = Number.isFinite(numericAmount) && numericAmount > 0 ? numericAmount : 0.01;
 
   const dragRef = useRef({
@@ -23,7 +31,7 @@ export function AmountSpinnerInput({ amount, disabled, onRollUnits, onSetAmount,
   });
 
   function onRollStart(event: ReactPointerEvent<HTMLDivElement>) {
-    if (disabled) {
+    if (required.disabled) {
       return;
     }
     event.preventDefault();
@@ -62,7 +70,7 @@ export function AmountSpinnerInput({ amount, disabled, onRollUnits, onSetAmount,
     const deltaY = event.clientY - dragRef.current.lastY;
     const units = Math.trunc(deltaY / stepThreshold);
     if (units !== 0) {
-      onRollUnits(-units);
+      provided.onRollUnits(-units);
       dragRef.current.lastY += units * stepThreshold;
     }
   }
@@ -77,7 +85,7 @@ export function AmountSpinnerInput({ amount, disabled, onRollUnits, onSetAmount,
   }
 
   function finishAmountEditing() {
-    onFormatAmount();
+    provided.onFormatAmount();
     setIsEditingAmount(false);
   }
 
@@ -87,8 +95,8 @@ export function AmountSpinnerInput({ amount, disabled, onRollUnits, onSetAmount,
         type="button"
         className="spinner-btn"
         aria-label="Increase amount by current step"
-        disabled={disabled}
-        onClick={() => onRollUnits(1)}
+        disabled={required.disabled}
+        onClick={() => provided.onRollUnits(1)}
       >
         ▲
       </button>
@@ -98,8 +106,8 @@ export function AmountSpinnerInput({ amount, disabled, onRollUnits, onSetAmount,
           type="number"
           min="0.01"
           step="0.01"
-          value={amount}
-          onChange={(event) => onSetAmount(event.target.value)}
+          value={required.amount}
+          onChange={(event) => provided.onSetAmount(event.target.value)}
           onBlur={finishAmountEditing}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
@@ -123,15 +131,15 @@ export function AmountSpinnerInput({ amount, disabled, onRollUnits, onSetAmount,
           onPointerCancel={onRollEnd}
           onClick={() => setIsEditingAmount(true)}
         >
-          {amount || '0.00'}
+          {required.amount || '0.00'}
         </div>
       )}
       <button
         type="button"
         className="spinner-btn"
         aria-label="Decrease amount by current step"
-        disabled={disabled}
-        onClick={() => onRollUnits(-1)}
+        disabled={required.disabled}
+        onClick={() => provided.onRollUnits(-1)}
       >
         ▼
       </button>

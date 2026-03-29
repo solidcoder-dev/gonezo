@@ -9,13 +9,17 @@ describe('StepSelector', () => {
 
     render(
       <StepSelector
-        disabled={false}
-        stepSize="0.10"
-        showMore={false}
-        visibleSteps={['0.01', '0.10']}
-        moreSteps={['0.50']}
-        onToggleMore={onToggleMore}
-        onChangeStepSize={onChangeStepSize}
+        required={{
+          disabled: false,
+          stepSize: '0.10',
+          showMore: false,
+          visibleSteps: ['0.01', '0.10'],
+          moreSteps: ['0.50'],
+        }}
+        provided={{
+          onToggleMore,
+          onChangeStepSize,
+        }}
       />
     );
 
@@ -30,13 +34,17 @@ describe('StepSelector', () => {
   it('renders additional steps when expanded', () => {
     render(
       <StepSelector
-        disabled={false}
-        stepSize="0.50"
-        showMore={true}
-        visibleSteps={['0.01', '0.10']}
-        moreSteps={['0.50']}
-        onToggleMore={vi.fn()}
-        onChangeStepSize={vi.fn()}
+        required={{
+          disabled: false,
+          stepSize: '0.50',
+          showMore: true,
+          visibleSteps: ['0.01', '0.10'],
+          moreSteps: ['0.50'],
+        }}
+        provided={{
+          onToggleMore: vi.fn(),
+          onChangeStepSize: vi.fn(),
+        }}
       />
     );
 

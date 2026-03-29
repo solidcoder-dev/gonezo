@@ -1,24 +1,32 @@
-export interface CounterpartyFieldProps {
+export type CounterpartyFieldRequired = {
   transactionType: 'expense' | 'income' | 'transfer';
   value: string;
   disabled: boolean;
-  onChange: (value: string) => void;
-}
+};
 
-export function CounterpartyField({ transactionType, value, disabled, onChange }: CounterpartyFieldProps) {
+export type CounterpartyFieldProvided = {
+  onChange: (value: string) => void;
+};
+
+export type CounterpartyFieldProps = {
+  required: CounterpartyFieldRequired;
+  provided: CounterpartyFieldProvided;
+};
+
+export function CounterpartyField({ required, provided }: CounterpartyFieldProps) {
   return (
     <input
       aria-label="Source or merchant"
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
+      value={required.value}
+      onChange={(event) => provided.onChange(event.target.value)}
       placeholder={
-        transactionType === 'income'
+        required.transactionType === 'income'
           ? 'Source (optional)'
-          : transactionType === 'transfer'
+          : required.transactionType === 'transfer'
             ? 'Note (optional)'
             : 'Merchant (optional)'
       }
-      disabled={disabled}
+      disabled={required.disabled}
     />
   );
 }

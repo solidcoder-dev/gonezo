@@ -6,7 +6,7 @@ import type { LedgerAccountItem, LedgerTransactionListItem } from '../../shared/
 
 export type LoadPhase = 'idle' | 'loading' | 'ready' | 'error';
 
-export type AccountPageState = {
+export type AccountPageViewRequired = {
   screen: {
     loadPhase: LoadPhase;
     error: string;
@@ -86,7 +86,7 @@ export type AccountPageState = {
   };
 };
 
-export type AccountPageActions = {
+export type AccountPageViewProvided = {
   toast: {
     dismiss: () => void;
     runAction: () => void;
@@ -142,6 +142,6 @@ export type AccountPageActions = {
 };
 
 export type AccountPageViewProps = {
-  state: AccountPageState;
-  actions: AccountPageActions;
+  required: AccountPageViewRequired;
+  provided: AccountPageViewProvided;
 };

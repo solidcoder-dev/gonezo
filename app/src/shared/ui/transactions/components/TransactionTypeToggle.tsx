@@ -1,41 +1,49 @@
 type TransactionType = 'expense' | 'income' | 'transfer';
 
-export interface TransactionTypeToggleProps {
+export type TransactionTypeToggleRequired = {
   value: TransactionType;
   disabled: boolean;
-  onChange: (value: TransactionType) => void;
-}
+};
 
-export function TransactionTypeToggle({ value, disabled, onChange }: TransactionTypeToggleProps) {
+export type TransactionTypeToggleProvided = {
+  onChange: (value: TransactionType) => void;
+};
+
+export type TransactionTypeToggleProps = {
+  required: TransactionTypeToggleRequired;
+  provided: TransactionTypeToggleProvided;
+};
+
+export function TransactionTypeToggle({ required, provided }: TransactionTypeToggleProps) {
   return (
     <div className="segmented" role="radiogroup" aria-label="Transaction type">
       <button
         type="button"
         role="radio"
-        aria-checked={value === 'expense'}
-        className={value === 'expense' ? 'segment active' : 'segment'}
-        disabled={disabled}
-        onClick={() => onChange('expense')}
+        aria-checked={required.value === 'expense'}
+        className={required.value === 'expense' ? 'segment active' : 'segment'}
+        disabled={required.disabled}
+        onClick={() => provided.onChange('expense')}
       >
         Expense
       </button>
       <button
         type="button"
         role="radio"
-        aria-checked={value === 'income'}
-        className={value === 'income' ? 'segment active' : 'segment'}
-        disabled={disabled}
-        onClick={() => onChange('income')}
+        aria-checked={required.value === 'income'}
+        className={required.value === 'income' ? 'segment active' : 'segment'}
+        disabled={required.disabled}
+        onClick={() => provided.onChange('income')}
       >
         Income
       </button>
       <button
         type="button"
         role="radio"
-        aria-checked={value === 'transfer'}
-        className={value === 'transfer' ? 'segment active' : 'segment'}
-        disabled={disabled}
-        onClick={() => onChange('transfer')}
+        aria-checked={required.value === 'transfer'}
+        className={required.value === 'transfer' ? 'segment active' : 'segment'}
+        disabled={required.disabled}
+        onClick={() => provided.onChange('transfer')}
       >
         Transfer
       </button>

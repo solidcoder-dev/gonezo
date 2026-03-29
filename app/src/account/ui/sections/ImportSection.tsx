@@ -1,69 +1,84 @@
 import { MobillsImportSheetView } from '../../../imports/mobills/ui/MobillsImportSheetView';
 import { MobillsImportSummaryView } from '../../../imports/mobills/ui/MobillsImportSummaryView';
 import { normalizeImportErrorCode } from '../../../imports/mobills/domain/importFailureSummary';
-import type { AccountPageActions, AccountPageState } from '../accountPageView.contract';
+import type { AccountPageViewProvided, AccountPageViewRequired } from '../accountPageView.contract';
 
-type Props = {
-  imports: AccountPageState['imports'];
+export type ImportSectionRequired = {
+  imports: AccountPageViewRequired['imports'];
   accountsCount: number;
-  importActions: AccountPageActions['imports'];
 };
 
-export function ImportSection({ imports, accountsCount, importActions }: Props) {
+export type ImportSectionProvided = {
+  imports: AccountPageViewProvided['imports'];
+};
+
+type Props = {
+  required: ImportSectionRequired;
+  provided: ImportSectionProvided;
+};
+
+export function ImportSection({ required, provided }: Props) {
   return (
-    <MobillsImportSheetView open={imports.sheetOpen} onClose={importActions.closeSheet}>
+    <MobillsImportSheetView
+      required={{
+        open: required.imports.sheetOpen,
+      }}
+      provided={{
+        onClose: provided.imports.closeSheet,
+      }}
+    >
       <div className="inline-header">
         <h3>Import from Mobills</h3>
         <button
           type="button"
           className="text-button icon-button"
           aria-label="Close import sheet"
-          onClick={importActions.closeSheet}
+          onClick={provided.imports.closeSheet}
         >
           ×
         </button>
       </div>
 
-      {imports.error ? (
+      {required.imports.error ? (
         <div className="banner error" role="alert">
-          {imports.error}
+          {required.imports.error}
         </div>
       ) : null}
 
       <div className="import-sheet-content">
-        <form className="stack" onSubmit={importActions.submitImport} aria-busy={imports.isImporting}>
+        <form className="stack" onSubmit={provided.imports.submitImport} aria-busy={required.imports.isImporting}>
           <label className="stack">
             Mobills file (TSV/CSV)
             <input
               aria-label="Mobills file (TSV/CSV)"
               type="file"
               accept=".csv,text/csv,.tsv,.txt,text/tab-separated-values"
-              onChange={(event) => importActions.setFile(event.target.files?.[0] ?? null)}
+              onChange={(event) => provided.imports.setFile(event.target.files?.[0] ?? null)}
             />
           </label>
-          {imports.fileName ? <p className="hint">Selected: {imports.fileName}</p> : null}
+          {required.imports.fileName ? <p className="hint">Selected: {required.imports.fileName}</p> : null}
 
           <label className="inline-checkbox">
             <input
               type="checkbox"
-              checked={imports.createMissingAccounts}
-              onChange={(event) => importActions.setCreateMissingAccounts(event.target.checked)}
+              checked={required.imports.createMissingAccounts}
+              onChange={(event) => provided.imports.setCreateMissingAccounts(event.target.checked)}
             />
             Create missing accounts
           </label>
           <label className="inline-checkbox">
             <input
               type="checkbox"
-              checked={imports.createMissingCategories}
-              onChange={(event) => importActions.setCreateMissingCategories(event.target.checked)}
+              checked={required.imports.createMissingCategories}
+              onChange={(event) => provided.imports.setCreateMissingCategories(event.target.checked)}
             />
             Create missing categories
           </label>
           <label className="inline-checkbox">
             <input
               type="checkbox"
-              checked={imports.createMissingTags}
-              onChange={(event) => importActions.setCreateMissingTags(event.target.checked)}
+              checked={required.imports.createMissingTags}
+              onChange={(event) => provided.imports.setCreateMissingTags(event.target.checked)}
             />
             Create missing tags
           </label>
@@ -72,9 +87,9 @@ export function ImportSection({ imports, accountsCount, importActions }: Props) 
             Duplicate transactions
             <select
               aria-label="Duplicate transactions"
-              value={imports.duplicatePolicy}
+              value={required.imports.duplicatePolicy}
               onChange={(event) =>
-                importActions.setDuplicatePolicy(event.target.value as 'skip' | 'fail' | 'import_anyway')
+                provided.imports.setDuplicatePolicy(event.target.value as 'skip' | 'fail' | 'import_anyway')
               }
             >
               <option value="skip">Skip duplicates (recommended)</option>
@@ -83,25 +98,30 @@ export function ImportSection({ imports, accountsCount, importActions }: Props) 
             </select>
           </label>
 
-          <button type="submit" disabled={imports.isImporting}>
-            {imports.isImporting ? 'Importing...' : 'Import file'}
+          <button type="submit" disabled={required.imports.isImporting}>
+            {required.imports.isImporting ? 'Importing...' : 'Import file'}
           </button>
         </form>
 
-        {imports.result ? (
+        {required.imports.result ? (
           <section className="stack section-gap" aria-label="Import summary">
-            <MobillsImportSummaryView result={imports.result} duplicatesCount={imports.duplicateRowsCount} />
-            {imports.result.importedCount > 0 && accountsCount === 0 ? (
+            <MobillsImportSummaryView
+              required={{
+                result: required.imports.result,
+                duplicatesCount: required.imports.duplicateRowsCount,
+              }}
+            />
+            {required.imports.result.importedCount > 0 && required.accountsCount === 0 ? (
               <p className="hint">
                 Import reported successful rows, but no accounts are visible. Reopen the app and re-check account list.
                 If this persists, share the failed-line examples below.
               </p>
             ) : null}
-            {imports.failureSummary.length > 0 ? (
+            {required.imports.failureSummary.length > 0 ? (
               <>
                 <p>Failure reasons</p>
                 <ul>
-                  {imports.failureSummary.slice(0, 6).map((item) => (
+                  {required.imports.failureSummary.slice(0, 6).map((item) => (
                     <li key={item.code}>
                       {item.label}: {item.count}
                     </li>
@@ -109,17 +129,17 @@ export function ImportSection({ imports, accountsCount, importActions }: Props) 
                 </ul>
               </>
             ) : null}
-            {imports.accountNotFoundFailures > 0 ? (
+            {required.imports.accountNotFoundFailures > 0 ? (
               <p className="hint">
                 Tip: many rows failed because account names were not found. Enable `Create missing accounts` and import
                 again.
               </p>
             ) : null}
-            {imports.failedRows.length > 0 ? (
+            {required.imports.failedRows.length > 0 ? (
               <>
                 <p>Failed line examples</p>
                 <ul>
-                  {imports.failedRows.slice(0, 10).map((row) => (
+                  {required.imports.failedRows.slice(0, 10).map((row) => (
                     <li key={`${row.sourceLine}-${row.errorCode ?? 'IMPORT_FAILED'}`}>
                       Line {row.sourceLine} ({normalizeImportErrorCode(row.errorCode)}): {row.errorMessage ?? 'Import failed'}
                     </li>

@@ -1,45 +1,45 @@
 import type { LedgerAccountItem } from '../../shared/domain/corePort';
 import { useState } from 'react';
 
-type Props = {
+export type AccountSwitcherViewRequired = {
   accounts: LedgerAccountItem[];
   selectedAccountId: string;
   disabled: boolean;
+};
+
+export type AccountSwitcherViewProvided = {
   onSelect: (accountId: string) => void;
   onAddAccount: () => void;
   onManageAccount: () => void;
   onImport: () => void;
 };
 
-export function AccountSwitcherView({
-  accounts,
-  selectedAccountId,
-  disabled,
-  onSelect,
-  onAddAccount,
-  onManageAccount,
-  onImport,
-}: Props) {
+type Props = {
+  required: AccountSwitcherViewRequired;
+  provided: AccountSwitcherViewProvided;
+};
+
+export function AccountSwitcherView({ required, provided }: Props) {
   const [showAccounts, setShowAccounts] = useState(false);
 
   return (
-    <div className="quick-row account-actions" aria-busy={disabled}>
+    <div className="quick-row account-actions" aria-busy={required.disabled}>
       <button
         type="button"
         className="text-button"
         onClick={() => setShowAccounts(true)}
-        disabled={disabled}
+        disabled={required.disabled}
         aria-label="Switch account"
       >
         Switch account
       </button>
-      <button type="button" className="text-button" onClick={onAddAccount} disabled={disabled}>
+      <button type="button" className="text-button" onClick={provided.onAddAccount} disabled={required.disabled}>
         Add account
       </button>
-      <button type="button" className="text-button" onClick={onManageAccount} disabled={disabled}>
+      <button type="button" className="text-button" onClick={provided.onManageAccount} disabled={required.disabled}>
         Manage
       </button>
-      <button type="button" className="text-button" onClick={onImport} disabled={disabled}>
+      <button type="button" className="text-button" onClick={provided.onImport} disabled={required.disabled}>
         Import
       </button>
 
@@ -53,14 +53,14 @@ export function AccountSwitcherView({
               </button>
             </div>
             <div className="stack">
-              {accounts.map((account) => (
+              {required.accounts.map((account) => (
                 <button
                   key={account.id}
                   type="button"
-                  className={account.id === selectedAccountId ? 'chip active account-choice' : 'chip account-choice'}
-                  disabled={disabled}
+                  className={account.id === required.selectedAccountId ? 'chip active account-choice' : 'chip account-choice'}
+                  disabled={required.disabled}
                   onClick={() => {
-                    onSelect(account.id);
+                    provided.onSelect(account.id);
                     setShowAccounts(false);
                   }}
                 >

@@ -10,11 +10,15 @@ describe('QuickDateSelector', () => {
 
     render(
       <QuickDateSelector
-        date="2026-03-08"
-        disabled={false}
-        onToday={onToday}
-        onYesterday={onYesterday}
-        onChangeDate={onChangeDate}
+        required={{
+          date: '2026-03-08',
+          disabled: false,
+        }}
+        provided={{
+          onToday,
+          onYesterday,
+          onChangeDate,
+        }}
       />
     );
 

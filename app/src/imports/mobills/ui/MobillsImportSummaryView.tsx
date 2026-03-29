@@ -1,19 +1,23 @@
 import type { MobillsImportResult } from '../domain/mobillsImport.types';
 
-type Props = {
+export type MobillsImportSummaryViewRequired = {
   result: MobillsImportResult;
   duplicatesCount?: number;
 };
 
-export function MobillsImportSummaryView({ result, duplicatesCount = 0 }: Props) {
+type Props = {
+  required: MobillsImportSummaryViewRequired;
+};
+
+export function MobillsImportSummaryView({ required }: Props) {
   return (
     <section className="stack section-gap" aria-label="Import summary">
       <p>
-        Imported {result.importedCount} / {result.totalRows} rows
+        Imported {required.result.importedCount} / {required.result.totalRows} rows
       </p>
-      <p>{result.failedCount} failed</p>
-      <p>{result.skippedCount} skipped</p>
-      {duplicatesCount > 0 ? <p>{duplicatesCount} duplicates</p> : null}
+      <p>{required.result.failedCount} failed</p>
+      <p>{required.result.skippedCount} skipped</p>
+      {(required.duplicatesCount ?? 0) > 0 ? <p>{required.duplicatesCount} duplicates</p> : null}
     </section>
   );
 }

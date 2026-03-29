@@ -6,7 +6,18 @@ describe('CounterpartyField', () => {
   it('renders merchant placeholder for expense and emits changes', () => {
     const onChange = vi.fn();
 
-    render(<CounterpartyField transactionType="expense" value="" disabled={false} onChange={onChange} />);
+    render(
+      <CounterpartyField
+        required={{
+          transactionType: 'expense',
+          value: '',
+          disabled: false,
+        }}
+        provided={{
+          onChange,
+        }}
+      />
+    );
 
     const input = screen.getByLabelText('Source or merchant');
     expect(input).toHaveAttribute('placeholder', 'Merchant (optional)');
@@ -18,7 +29,18 @@ describe('CounterpartyField', () => {
   it('renders note placeholder for transfer', () => {
     const onChange = vi.fn();
 
-    render(<CounterpartyField transactionType="transfer" value="" disabled={false} onChange={onChange} />);
+    render(
+      <CounterpartyField
+        required={{
+          transactionType: 'transfer',
+          value: '',
+          disabled: false,
+        }}
+        provided={{
+          onChange,
+        }}
+      />
+    );
 
     const input = screen.getByLabelText('Source or merchant');
     expect(input).toHaveAttribute('placeholder', 'Note (optional)');

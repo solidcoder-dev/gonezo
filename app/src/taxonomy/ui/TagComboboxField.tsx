@@ -5,14 +5,22 @@ type TagOption = {
   name: string;
 };
 
-type Props = {
+export type TagComboboxFieldRequired = {
   value: string;
   options: TagOption[];
   disabled: boolean;
+};
+
+export type TagComboboxFieldProvided = {
   onChange: (value: string) => void;
 };
 
-export function TagComboboxField({ value, options, disabled, onChange }: Props) {
+type Props = {
+  required: TagComboboxFieldRequired;
+  provided: TagComboboxFieldProvided;
+};
+
+export function TagComboboxField({ required, provided }: Props) {
   const listId = useId();
 
   return (
@@ -20,15 +28,15 @@ export function TagComboboxField({ value, options, disabled, onChange }: Props) 
       Tags
       <input
         aria-label="Tags"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
+        value={required.value}
+        onChange={(event) => provided.onChange(event.target.value)}
         placeholder="Choose existing or type new tags, separated by commas"
         list={listId}
         autoComplete="off"
-        disabled={disabled}
+        disabled={required.disabled}
       />
       <datalist id={listId}>
-        {options.map((tag) => (
+        {required.options.map((tag) => (
           <option key={tag.id} value={tag.name} />
         ))}
       </datalist>

@@ -6,19 +6,23 @@ import { CoreAdapter } from './shared/infrastructure/core/coreAdapter';
 
 const defaultCore = new CoreAdapter();
 
-type Props = {
+export type AppRequired = {
   core?: AccountsCorePort;
 };
 
-export function App({ core }: Props) {
-  const resolvedCore = core ?? defaultCore;
+type AppProps = {
+  required?: AppRequired;
+};
+
+export function App({ required }: AppProps) {
+  const resolvedCore = required?.core ?? defaultCore;
 
   return (
     <div className="app-shell">
       <main className="app-main">
         <Routes>
-          <Route path="/" element={<AccountPage core={resolvedCore} />} />
-          <Route path="/accounts" element={<AccountPage core={resolvedCore} />} />
+          <Route path="/" element={<AccountPage required={{ core: resolvedCore }} />} />
+          <Route path="/accounts" element={<AccountPage required={{ core: resolvedCore }} />} />
         </Routes>
       </main>
     </div>

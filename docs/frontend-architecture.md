@@ -109,7 +109,8 @@ app/src/
 
 ## Convenciones de UI
 
-- `AccountPageView` recibe `state` y `actions` agrupados por feature (`account`, `transactions`, `composer`, `imports`, `toast`).
+- `AccountPageView` recibe contratos `required` y `provided` agrupados por feature (`account`, `transactions`, `composer`, `imports`, `toast`).
+- Componentes de seccion y componentes reutilizables siguen el mismo patron: tipos `*Required` y `*Provided` cuando corresponda.
 - Carga y errores se modelan por feature (`loadPhase`/`submitPhase`) y solo se eleva un estado global cuando bloquea la pantalla.
 - Componentes `ui/*` son dumb: reciben un contrato explicito de props y emiten eventos.
 - Ningun componente visual llama a `core.*` directamente.

@@ -1,28 +1,34 @@
-import type { AccountPageActions, AccountPageState } from '../accountPageView.contract';
+import type { AccountPageViewProvided, AccountPageViewRequired } from '../accountPageView.contract';
 
-type Props = {
-  screen: AccountPageState['screen'];
-  toast: AccountPageState['toast'];
-  toastActions: AccountPageActions['toast'];
+export type StatusSectionRequired = {
+  screen: AccountPageViewRequired['screen'];
+  toast: AccountPageViewRequired['toast'];
 };
 
-export function StatusSection({ screen, toast, toastActions }: Props) {
+export type StatusSectionProvided = AccountPageViewProvided['toast'];
+
+type Props = {
+  required: StatusSectionRequired;
+  provided: StatusSectionProvided;
+};
+
+export function StatusSection({ required, provided }: Props) {
   return (
     <>
-      {screen.error ? (
+      {required.screen.error ? (
         <div className="banner error" role="alert">
-          {screen.error}
+          {required.screen.error}
         </div>
       ) : null}
-      {toast.message ? (
+      {required.toast.message ? (
         <div className="toast" role="status" aria-live="polite">
-          <span>{toast.message}</span>
-          {toast.actionLabel ? (
-            <button type="button" className="text-button" onClick={toastActions.runAction}>
-              {toast.actionLabel}
+          <span>{required.toast.message}</span>
+          {required.toast.actionLabel ? (
+            <button type="button" className="text-button" onClick={provided.runAction}>
+              {required.toast.actionLabel}
             </button>
           ) : null}
-          <button type="button" className="text-button" onClick={toastActions.dismiss}>
+          <button type="button" className="text-button" onClick={provided.dismiss}>
             Dismiss
           </button>
         </div>

@@ -11,7 +11,7 @@ export type ComposerExpenseItem = {
   amount: string;
 };
 
-type Props = {
+export type TransactionComposerViewRequired = {
   open: boolean;
   mode: ComposerMode;
   disabled: boolean;
@@ -36,6 +36,9 @@ type Props = {
   expenseSplitError?: string;
   amountError?: string;
   dateError?: string;
+};
+
+export type TransactionComposerViewProvided = {
   onOpen: () => void;
   onClose: () => void;
   onSelectMode: (mode: Exclude<ComposerMode, 'picker'>) => void;
@@ -55,6 +58,11 @@ type Props = {
   onSubmit: (event: FormEvent) => Promise<void> | void;
 };
 
+type Props = {
+  required: TransactionComposerViewRequired;
+  provided: TransactionComposerViewProvided;
+};
+
 function titleForMode(mode: ComposerMode): string {
   if (mode === 'expense') return 'New expense';
   if (mode === 'income') return 'New income';
@@ -62,49 +70,53 @@ function titleForMode(mode: ComposerMode): string {
   return 'Add movement';
 }
 
-export function TransactionComposerView({
-  open,
-  mode,
-  disabled,
-  amount,
-  date,
-  note,
-  categoryInput,
-  categoryOptions,
-  tagInput,
-  tagOptions,
-  advancedOpen,
-  transferTargetAccountId,
-  transferTargetOptions,
-  expenseDetailed,
-  expenseItems,
-  expenseItemName,
-  expenseItemAmount,
-  expenseRemaining,
-  currencyCode,
-  expenseItemNameError,
-  expenseItemAmountError,
-  expenseSplitError,
-  amountError,
-  dateError,
-  onOpen,
-  onClose,
-  onSelectMode,
-  onToggleAdvanced,
-  onSetAmount,
-  onSetDate,
-  onSetNote,
-  onSetCategoryInput,
-  onSetTagInput,
-  onSetTransferTarget,
-  onToggleExpenseDetailed,
-  onSetExpenseItemName,
-  onSetExpenseItemAmount,
-  onAddExpenseItem,
-  onRemoveExpenseItem,
-  onAssignRemaining,
-  onSubmit,
-}: Props) {
+export function TransactionComposerView({ required, provided }: Props) {
+  const {
+    open,
+    mode,
+    disabled,
+    amount,
+    date,
+    note,
+    categoryInput,
+    categoryOptions,
+    tagInput,
+    tagOptions,
+    advancedOpen,
+    transferTargetAccountId,
+    transferTargetOptions,
+    expenseDetailed,
+    expenseItems,
+    expenseItemName,
+    expenseItemAmount,
+    expenseRemaining,
+    currencyCode,
+    expenseItemNameError,
+    expenseItemAmountError,
+    expenseSplitError,
+    amountError,
+    dateError,
+  } = required;
+  const {
+    onOpen,
+    onClose,
+    onSelectMode,
+    onToggleAdvanced,
+    onSetAmount,
+    onSetDate,
+    onSetNote,
+    onSetCategoryInput,
+    onSetTagInput,
+    onSetTransferTarget,
+    onToggleExpenseDetailed,
+    onSetExpenseItemName,
+    onSetExpenseItemAmount,
+    onAddExpenseItem,
+    onRemoveExpenseItem,
+    onAssignRemaining,
+    onSubmit,
+  } = provided;
+
   const amountInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -214,18 +226,26 @@ export function TransactionComposerView({
 
                 {mode === 'expense' || mode === 'income' ? (
                   <CategoryComboboxField
-                    value={categoryInput}
-                    options={categoryOptions}
-                    disabled={disabled}
-                    onChange={onSetCategoryInput}
+                    required={{
+                      value: categoryInput,
+                      options: categoryOptions,
+                      disabled,
+                    }}
+                    provided={{
+                      onChange: onSetCategoryInput,
+                    }}
                   />
                 ) : null}
 
                 <TagComboboxField
-                  value={tagInput}
-                  options={tagOptions}
-                  disabled={disabled}
-                  onChange={onSetTagInput}
+                  required={{
+                    value: tagInput,
+                    options: tagOptions,
+                    disabled,
+                  }}
+                  provided={{
+                    onChange: onSetTagInput,
+                  }}
                 />
               </>
             ) : null}

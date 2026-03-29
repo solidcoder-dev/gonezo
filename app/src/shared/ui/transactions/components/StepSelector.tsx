@@ -1,33 +1,33 @@
-export interface StepSelectorProps {
+export type StepSelectorRequired = {
   disabled: boolean;
   stepSize: string;
   showMore: boolean;
   visibleSteps: string[];
   moreSteps: string[];
+};
+
+export type StepSelectorProvided = {
   onToggleMore: () => void;
   onChangeStepSize: (value: string) => void;
-}
+};
 
-export function StepSelector({
-  disabled,
-  stepSize,
-  showMore,
-  visibleSteps,
-  moreSteps,
-  onToggleMore,
-  onChangeStepSize,
-}: StepSelectorProps) {
+export type StepSelectorProps = {
+  required: StepSelectorRequired;
+  provided: StepSelectorProvided;
+};
+
+export function StepSelector({ required, provided }: StepSelectorProps) {
   return (
     <>
       <div className="step-inline-row" aria-label="Step size">
         <div className="quick-row">
-          {visibleSteps.map((value) => (
+          {required.visibleSteps.map((value) => (
             <button
               key={value}
               type="button"
-              className={stepSize === value ? 'chip active' : 'chip'}
-              disabled={disabled}
-              onClick={() => onChangeStepSize(value)}
+              className={required.stepSize === value ? 'chip active' : 'chip'}
+              disabled={required.disabled}
+              onClick={() => provided.onChangeStepSize(value)}
             >
               {value}
             </button>
@@ -37,22 +37,22 @@ export function StepSelector({
           type="button"
           className="text-button"
           aria-label="Toggle more steps"
-          disabled={disabled}
-          onClick={onToggleMore}
+          disabled={required.disabled}
+          onClick={provided.onToggleMore}
         >
-          {showMore ? '−' : '+'}
+          {required.showMore ? '−' : '+'}
         </button>
       </div>
 
-      {showMore ? (
+      {required.showMore ? (
         <div className="quick-row" aria-label="More step size">
-          {moreSteps.map((value) => (
+          {required.moreSteps.map((value) => (
             <button
               key={value}
               type="button"
-              className={stepSize === value ? 'chip active' : 'chip'}
-              disabled={disabled}
-              onClick={() => onChangeStepSize(value)}
+              className={required.stepSize === value ? 'chip active' : 'chip'}
+              disabled={required.disabled}
+              onClick={() => provided.onChangeStepSize(value)}
             >
               {value}
             </button>

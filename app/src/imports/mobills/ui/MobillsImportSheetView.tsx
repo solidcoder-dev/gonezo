@@ -1,24 +1,32 @@
 import type { ReactNode } from 'react';
 
-type Props = {
+export type MobillsImportSheetViewRequired = {
   open: boolean;
-  onClose: () => void;
   title?: string;
+};
+
+export type MobillsImportSheetViewProvided = {
+  onClose: () => void;
+};
+
+type Props = {
+  required: MobillsImportSheetViewRequired;
+  provided: MobillsImportSheetViewProvided;
   children: ReactNode;
 };
 
-export function MobillsImportSheetView({ open, onClose, title = 'Import from Mobills', children }: Props) {
-  if (!open) {
+export function MobillsImportSheetView({ required, provided, children }: Props) {
+  if (!required.open) {
     return null;
   }
 
   return (
-    <div className="sheet-backdrop" role="presentation" onClick={onClose}>
+    <div className="sheet-backdrop" role="presentation" onClick={provided.onClose}>
       <section
         className="sheet-panel import-sheet"
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-label={required.title ?? 'Import from Mobills'}
         onClick={(event) => event.stopPropagation()}
       >
         {children}

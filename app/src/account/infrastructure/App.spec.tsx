@@ -104,7 +104,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -118,7 +118,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -131,7 +131,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -145,7 +145,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -169,7 +169,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -192,7 +192,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -215,7 +215,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -232,7 +232,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -245,7 +245,7 @@ describe('App Accounts UX', () => {
 
     const view = render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -267,7 +267,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -293,7 +293,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -344,7 +344,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -374,7 +374,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -415,7 +415,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -452,7 +452,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -492,7 +492,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -517,7 +517,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -537,7 +537,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -562,7 +562,7 @@ describe('App Accounts UX', () => {
     const core = makeCore();
     const view = render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -595,7 +595,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -633,7 +633,7 @@ describe('App Accounts UX', () => {
 
     const view = render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -652,7 +652,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -671,7 +671,7 @@ describe('App Accounts UX', () => {
     const core = makeCore();
     const view = render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -692,7 +692,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -718,7 +718,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -749,7 +749,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -770,7 +770,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -799,7 +799,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -826,7 +826,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -851,7 +851,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -869,7 +869,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -918,7 +918,7 @@ describe('App Accounts UX', () => {
 
     const view = render(
       <MemoryRouter>
-        <App core={core} />
+        <App required={{ core }} />
       </MemoryRouter>
     );
 
@@ -941,7 +941,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={coreWithMoreThanThree} />
+        <App required={{ core: coreWithMoreThanThree }} />
       </MemoryRouter>
     );
 
@@ -954,7 +954,7 @@ describe('App Accounts UX', () => {
 
     render(
       <MemoryRouter>
-        <App core={coreWithThree} />
+        <App required={{ core: coreWithThree }} />
       </MemoryRouter>
     );
 

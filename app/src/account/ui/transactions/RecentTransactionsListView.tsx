@@ -1,25 +1,28 @@
 import type { LedgerTransactionListItem } from '../../../shared/domain/corePort';
 import { formatCurrencyAmount, formatIsoDateTime } from '../../../shared/utils/formatting';
 
-export type RecentTransactionsListViewProps = {
+export type RecentTransactionsListViewRequired = {
   items: LedgerTransactionListItem[];
   hiddenCount: number;
   expanded: boolean;
   disabled: boolean;
   pendingVoidTransactionId?: string;
+};
+
+export type RecentTransactionsListViewProvided = {
   onViewAll: () => void;
   onVoid: (transactionId: string) => void;
 };
 
-export function RecentTransactionsListView({
-  items,
-  hiddenCount,
-  expanded,
-  disabled,
-  pendingVoidTransactionId,
-  onViewAll,
-  onVoid,
-}: RecentTransactionsListViewProps) {
+export type RecentTransactionsListViewProps = {
+  required: RecentTransactionsListViewRequired;
+  provided: RecentTransactionsListViewProvided;
+};
+
+export function RecentTransactionsListView({ required, provided }: RecentTransactionsListViewProps) {
+  const { items, hiddenCount, expanded, disabled, pendingVoidTransactionId } = required;
+  const { onViewAll, onVoid } = provided;
+
   function txLabel(type: LedgerTransactionListItem['type']): string {
     if (type === 'income') return 'Income';
     if (type === 'expense') return 'Expense';

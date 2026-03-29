@@ -6,10 +6,14 @@ import { useTaxonomyComposerWorkspace } from '../../taxonomy/application/useTaxo
 import { useAccountsPageModel, type AccountsCorePort } from './useAccountPageModel';
 import { useToast } from './useToast';
 import { AccountPageView } from '../ui/AccountPageView';
-import type { AccountPageActions, AccountPageState, LoadPhase } from '../ui/accountPageView.contract';
+import type { AccountPageViewProvided, AccountPageViewRequired, LoadPhase } from '../ui/accountPageView.contract';
 
-type Props = {
+export type AccountPageRequired = {
   core: AccountsCorePort;
+};
+
+type AccountPageProps = {
+  required: AccountPageRequired;
 };
 
 function toLoadPhase(isLoading: boolean, hasError: boolean): LoadPhase {
@@ -22,8 +26,8 @@ function toLoadPhase(isLoading: boolean, hasError: boolean): LoadPhase {
   return 'ready';
 }
 
-export function AccountPage({ core }: Props) {
-  const model = useAccountsPageModel(core);
+export function AccountPage({ required: pageRequired }: AccountPageProps) {
+  const model = useAccountsPageModel(pageRequired.core);
 
   const ledgerAccount = useLedgerAccountWorkspace(model);
   const ledgerTransactions = useLedgerTransactionsWorkspace(model);
@@ -44,7 +48,7 @@ export function AccountPage({ core }: Props) {
         ? 'ready'
         : 'idle';
 
-  const state: AccountPageState = {
+  const required: AccountPageViewRequired = {
     screen: {
       loadPhase: screenLoadPhase,
       error: model.error,
@@ -124,7 +128,7 @@ export function AccountPage({ core }: Props) {
     },
   };
 
-  const actions: AccountPageActions = {
+  const provided: AccountPageViewProvided = {
     toast: {
       dismiss: toast.clearToast,
       runAction: toast.runToastAction,
@@ -179,5 +183,5 @@ export function AccountPage({ core }: Props) {
     },
   };
 
-  return <AccountPageView state={state} actions={actions} />;
+  return <AccountPageView required={required} provided={provided} />;
 }

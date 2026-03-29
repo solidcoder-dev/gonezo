@@ -8,11 +8,15 @@ describe('AmountSpinnerInput', () => {
 
     render(
       <AmountSpinnerInput
-        amount="1.00"
-        disabled={false}
-        onRollUnits={onRollUnits}
-        onSetAmount={vi.fn()}
-        onFormatAmount={vi.fn()}
+        required={{
+          amount: '1.00',
+          disabled: false,
+        }}
+        provided={{
+          onRollUnits,
+          onSetAmount: vi.fn(),
+          onFormatAmount: vi.fn(),
+        }}
       />
     );
 
@@ -29,11 +33,15 @@ describe('AmountSpinnerInput', () => {
 
     render(
       <AmountSpinnerInput
-        amount="1.00"
-        disabled={false}
-        onRollUnits={vi.fn()}
-        onSetAmount={onSetAmount}
-        onFormatAmount={onFormatAmount}
+        required={{
+          amount: '1.00',
+          disabled: false,
+        }}
+        provided={{
+          onRollUnits: vi.fn(),
+          onSetAmount,
+          onFormatAmount,
+        }}
       />
     );
 

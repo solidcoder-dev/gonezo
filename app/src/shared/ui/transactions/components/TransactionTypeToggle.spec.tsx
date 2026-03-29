@@ -6,7 +6,17 @@ describe('TransactionTypeToggle', () => {
   it('renders current selection and triggers changes', () => {
     const onChange = vi.fn();
 
-    render(<TransactionTypeToggle value="expense" disabled={false} onChange={onChange} />);
+    render(
+      <TransactionTypeToggle
+        required={{
+          value: 'expense',
+          disabled: false,
+        }}
+        provided={{
+          onChange,
+        }}
+      />
+    );
 
     expect(screen.getByRole('radio', { name: 'Expense' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByRole('radio', { name: 'Income' })).toHaveAttribute('aria-checked', 'false');

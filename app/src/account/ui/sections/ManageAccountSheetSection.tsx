@@ -1,17 +1,25 @@
-import type { AccountPageActions, AccountPageState } from '../accountPageView.contract';
+import type { AccountPageViewProvided, AccountPageViewRequired } from '../accountPageView.contract';
 
-type Props = {
-  account: AccountPageState['account'];
-  accountActions: AccountPageActions['account'];
+export type ManageAccountSheetSectionRequired = {
+  account: AccountPageViewRequired['account'];
 };
 
-export function ManageAccountSheetSection({ account, accountActions }: Props) {
-  if (!account.manage.isOpen) {
+export type ManageAccountSheetSectionProvided = {
+  account: AccountPageViewProvided['account'];
+};
+
+type Props = {
+  required: ManageAccountSheetSectionRequired;
+  provided: ManageAccountSheetSectionProvided;
+};
+
+export function ManageAccountSheetSection({ required, provided }: Props) {
+  if (!required.account.manage.isOpen) {
     return null;
   }
 
   return (
-    <div className="sheet-backdrop" role="presentation" onClick={accountActions.closeManageAccountSheet}>
+    <div className="sheet-backdrop" role="presentation" onClick={provided.account.closeManageAccountSheet}>
       <section
         className="sheet-panel"
         role="dialog"
@@ -25,33 +33,37 @@ export function ManageAccountSheetSection({ account, accountActions }: Props) {
             type="button"
             className="text-button icon-button"
             aria-label="Close account management"
-            onClick={accountActions.closeManageAccountSheet}
+            onClick={provided.account.closeManageAccountSheet}
           >
             ×
           </button>
         </div>
 
-        <form className="stack" onSubmit={accountActions.submitRenameAccount} aria-busy={account.manage.isSubmitting}>
+        <form
+          className="stack"
+          onSubmit={provided.account.submitRenameAccount}
+          aria-busy={required.account.manage.isSubmitting}
+        >
           <label className="stack">
             Account name
             <input
               aria-label="Manage account name"
-              value={account.manage.name}
-              onChange={(event) => accountActions.setManageAccountName(event.target.value)}
+              value={required.account.manage.name}
+              onChange={(event) => provided.account.setManageAccountName(event.target.value)}
               placeholder="Account name"
               autoComplete="off"
             />
           </label>
 
           <div className="quick-row">
-            <button type="submit" disabled={account.manage.isSubmitting}>
+            <button type="submit" disabled={required.account.manage.isSubmitting}>
               Save name
             </button>
             <button
               type="button"
               className="text-button"
-              onClick={accountActions.archiveSelectedAccount}
-              disabled={account.manage.isSubmitting}
+              onClick={provided.account.archiveSelectedAccount}
+              disabled={required.account.manage.isSubmitting}
             >
               Archive account
             </button>
@@ -62,8 +74,8 @@ export function ManageAccountSheetSection({ account, accountActions }: Props) {
           <button
             type="button"
             className="danger-button"
-            onClick={accountActions.deleteSelectedAccount}
-            disabled={account.manage.isSubmitting}
+            onClick={provided.account.deleteSelectedAccount}
+            disabled={required.account.manage.isSubmitting}
           >
             Delete account
           </button>

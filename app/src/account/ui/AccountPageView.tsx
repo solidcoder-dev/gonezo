@@ -7,8 +7,8 @@ import type { AccountPageViewProps } from './accountPageView.contract';
 
 export type { AccountPageViewProps } from './accountPageView.contract';
 
-export function AccountPageView({ state, actions }: AccountPageViewProps) {
-  if (state.screen.loadPhase === 'loading') {
+export function AccountPageView({ required, provided }: AccountPageViewProps) {
+  if (required.screen.loadPhase === 'loading') {
     return (
       <section className="card">
         <p>Loading accounts...</p>
@@ -18,31 +18,50 @@ export function AccountPageView({ state, actions }: AccountPageViewProps) {
 
   return (
     <section className="card">
-      <StatusSection screen={state.screen} toast={state.toast} toastActions={actions.toast} />
-
-      <AccountSection
-        account={state.account}
-        isPostingTransaction={state.composer.isSubmitting}
-        accountActions={actions.account}
-        importsActions={actions.imports}
+      <StatusSection
+        required={{
+          screen: required.screen,
+          toast: required.toast,
+        }}
+        provided={provided.toast}
       />
 
-      {state.account.accounts.length > 0 ? (
+      <AccountSection
+        required={{
+          account: required.account,
+          isPostingTransaction: required.composer.isSubmitting,
+        }}
+        provided={{
+          account: provided.account,
+          imports: provided.imports,
+        }}
+      />
+
+      {required.account.accounts.length > 0 ? (
         <TransactionsSection
-          account={state.account}
-          composer={state.composer}
-          transactions={state.transactions}
-          composerActions={actions.composer}
-          transactionActions={actions.transactions}
+          required={{
+            account: required.account,
+            composer: required.composer,
+            transactions: required.transactions,
+          }}
+          provided={{
+            composer: provided.composer,
+            transactions: provided.transactions,
+          }}
         />
       ) : null}
 
-      <ManageAccountSheetSection account={state.account} accountActions={actions.account} />
+      <ManageAccountSheetSection
+        required={{ account: required.account }}
+        provided={{ account: provided.account }}
+      />
 
       <ImportSection
-        imports={state.imports}
-        accountsCount={state.account.accounts.length}
-        importActions={actions.imports}
+        required={{
+          imports: required.imports,
+          accountsCount: required.account.accounts.length,
+        }}
+        provided={{ imports: provided.imports }}
       />
     </section>
   );
