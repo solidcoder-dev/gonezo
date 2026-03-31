@@ -1,8 +1,8 @@
-import type { LedgerTransactionListItem } from '../../../shared/domain/corePort';
-import { formatCurrencyAmount, formatIsoDateTime } from '../../../shared/utils/formatting';
+import { formatCurrencyAmount, formatIsoDateTime } from '../../shared/utils/formatting';
+import type { TransactionHistoryItemView } from '../domain/transactionView.types';
 
 export type RecentTransactionsListViewRequired = {
-  items: LedgerTransactionListItem[];
+  items: TransactionHistoryItemView[];
   hiddenCount: number;
   expanded: boolean;
   disabled: boolean;
@@ -23,7 +23,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
   const { items, hiddenCount, expanded, disabled, pendingVoidTransactionId } = required;
   const { onViewAll, onVoid } = provided;
 
-  function txLabel(type: LedgerTransactionListItem['type']): string {
+  function txLabel(type: TransactionHistoryItemView['type']): string {
     if (type === 'income') return 'Income';
     if (type === 'expense') return 'Expense';
     if (type === 'transfer_in') return 'Transfer in';
@@ -31,13 +31,13 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
     return 'Transfer';
   }
 
-  function txSign(type: LedgerTransactionListItem['type']): string {
+  function txSign(type: TransactionHistoryItemView['type']): string {
     if (type === 'income' || type === 'transfer_in') return '+';
     if (type === 'expense' || type === 'transfer_out') return '-';
     return '';
   }
 
-  function txBadgeClass(type: LedgerTransactionListItem['type']): string {
+  function txBadgeClass(type: TransactionHistoryItemView['type']): string {
     return type === 'income' || type === 'transfer_in' ? 'tx-badge income' : 'tx-badge expense';
   }
 

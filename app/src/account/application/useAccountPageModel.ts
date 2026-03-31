@@ -17,14 +17,13 @@ import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
 import { useCategorySuggestions } from '../../taxonomy/application/useCategorySuggestions';
 import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions';
 import { useTransactionClassification } from '../../taxonomy/application/useTransactionClassification';
+import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.types';
 import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
 import type {
-  ComposerMode,
-  ExpenseItemDraft,
-  FieldErrors,
-  TaxonomyCategoryAppliesTo,
+  SubmitPhase,
 } from '../domain/accountPage.types';
-export type { TransactionType } from '../domain/accountPage.types';
+import type { ComposerMode, ExpenseItemDraft, TransactionFieldErrors } from '../../transactions/domain/transactions.types';
+export type { TransactionType } from '../../transactions/domain/transactions.types';
 
 export type AccountsCorePort = {
   ledgerListSupportedCurrencies(): Promise<{ items: string[] }>;
@@ -197,7 +196,8 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [toastActionLabel, setToastActionLabel] = useState('');
   const [toastAction, setToastAction] = useState<(() => void) | null>(null);
   const [pendingVoidTransactionId, setPendingVoidTransactionId] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [voidMutationPhase, setVoidMutationPhase] = useState<'idle' | 'scheduled' | 'committing'>('idle');
+  const [fieldErrors, setFieldErrors] = useState<TransactionFieldErrors>({});
   const pendingVoidTimerRef = useRef<number | null>(null);
 
   const [supportedCurrencies, setSupportedCurrencies] = useState<string[]>([]);
@@ -216,6 +216,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   const [managingAccount, setManagingAccount] = useState(false);
   const [importSheetOpen, setImportSheetOpen] = useState(false);
   const [importingTransactions, setImportingTransactions] = useState(false);
+  const [importSubmitPhase, setImportSubmitPhase] = useState<SubmitPhase>('idle');
   const [newAccountName, setNewAccountName] = useState('Main account');
   const [newAccountCurrency, setNewAccountCurrency] = useState('USD');
   const [newAccountOpeningBalance, setNewAccountOpeningBalance] = useState('');
@@ -386,6 +387,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
   function cancelPendingVoid(message: string) {
     clearPendingVoidTimer();
     setPendingVoidTransactionId('');
+    setVoidMutationPhase('idle');
     setToastActionLabel('');
     setToastAction(null);
     setToastMessage(message);
@@ -741,7 +743,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     const name = expenseItemName.trim();
     const amount = parseAmount(expenseItemAmount);
 
-    const nextErrors: FieldErrors = {};
+    const nextErrors: TransactionFieldErrors = {};
     if (!name) {
       nextErrors.expenseItemName = 'Item name is required.';
     }
@@ -893,7 +895,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     }
 
     const amount = transactionAmount.trim();
-    const nextErrors: FieldErrors = {};
+    const nextErrors: TransactionFieldErrors = {};
     if (!amount || Number.isNaN(Number(amount)) || Number(amount) <= 0) {
       nextErrors.amount = 'Enter a valid amount greater than 0.';
     }
@@ -1022,6 +1024,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
   async function executeVoidTransaction(transactionId: string, accountId: string) {
     setPostingTransaction(true);
+    setVoidMutationPhase('committing');
     try {
       await ledgerTransactions.voidTransaction({ transactionId });
       showToast('Transaction voided.');
@@ -1031,6 +1034,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     } finally {
       setPostingTransaction(false);
       setPendingVoidTransactionId('');
+      setVoidMutationPhase('idle');
       setToastActionLabel('');
       setToastAction(null);
       clearPendingVoidTimer();
@@ -1044,6 +1048,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     setError('');
     clearPendingVoidTimer();
     setPendingVoidTransactionId(transactionId);
+    setVoidMutationPhase('scheduled');
     setToastMessage('Transaction will be voided in 5 seconds.');
     setToastActionLabel('Undo');
     setToastAction(() => () => cancelPendingVoid('Void canceled.'));
@@ -1068,12 +1073,15 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     policy?: TransactionsImportPolicyInput;
   }): Promise<TransactionsImportResult> {
     setImportingTransactions(true);
+    setImportSubmitPhase('submitting');
     try {
       const result = await core.mobillsImport(input);
       await refreshAccounts(selectedAccountId || undefined);
       showToast(`Import finished: ${result.importedCount} imported, ${result.failedCount} failed.`);
+      setImportSubmitPhase('succeeded');
       return result;
     } catch (err) {
+      setImportSubmitPhase('failed');
       if (err instanceof Error) {
         throw err;
       }
@@ -1092,6 +1100,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     toastMessage,
     toastActionLabel,
     pendingVoidTransactionId,
+    voidMutationPhase,
     fieldErrors,
     accounts,
     supportedCurrencies,
@@ -1107,6 +1116,7 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     managingAccount,
     importSheetOpen,
     importingTransactions,
+    importSubmitPhase,
     newAccountName,
     newAccountCurrency,
     newAccountOpeningBalance,

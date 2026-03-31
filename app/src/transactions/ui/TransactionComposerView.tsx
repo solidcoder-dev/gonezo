@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { FormEvent } from 'react';
-import { CategoryComboboxField } from '../../../taxonomy/ui/CategoryComboboxField';
-import { TagComboboxField } from '../../../taxonomy/ui/TagComboboxField';
+import { CategoryComboboxField } from './CategoryComboboxField';
+import { TagComboboxField } from './TagComboboxField';
 
 export type ComposerMode = 'picker' | 'expense' | 'income' | 'transfer';
 

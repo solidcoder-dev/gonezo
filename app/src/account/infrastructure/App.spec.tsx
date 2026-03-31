@@ -532,6 +532,64 @@ describe('App Accounts UX', () => {
     });
   });
 
+  it('refreshes recent transactions after saving a movement', async () => {
+    const core = makeCore();
+    const transactions: LedgerTransactionListItem[] = [
+      {
+        id: 'tx-seed',
+        accountId: 'acc-1',
+        occurredAt: '2026-03-10T09:00:00.000Z',
+        description: 'Seed movement',
+        merchant: 'Seed merchant',
+        amount: '9.00',
+        currency: 'USD',
+        type: 'expense',
+        status: 'posted',
+        items: [],
+      },
+    ];
+
+    vi.mocked(core.ledgerListTransactions).mockImplementation(async () => ({ items: [...transactions] }));
+    vi.mocked(core.ledgerRecordExpense).mockImplementation(async () => {
+      transactions.unshift({
+        id: 'tx-new',
+        accountId: 'acc-1',
+        occurredAt: '2026-03-10T10:00:00.000Z',
+        description: 'New movement',
+        merchant: 'Auto refresh merchant',
+        amount: '12.50',
+        currency: 'USD',
+        type: 'expense',
+        status: 'posted',
+        items: [],
+      });
+      return { id: 'tx-new' };
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { name: 'Recent transactions' });
+    await waitFor(() => {
+      expect(core.ledgerListTransactions).toHaveBeenCalledTimes(1);
+    });
+
+    await openMode('Expense');
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save expense' }));
+
+    await waitFor(() => {
+      expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(core.ledgerListTransactions).toHaveBeenCalledTimes(2);
+    });
+    expect(await screen.findByText('Auto refresh merchant')).toBeInTheDocument();
+  });
+
   it('uses current time when submitting a date-only transaction', async () => {
     const core = makeCore();
 

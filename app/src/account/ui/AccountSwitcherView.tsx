@@ -1,8 +1,8 @@
-import type { LedgerAccountItem } from '../../shared/domain/corePort';
 import { useState } from 'react';
+import type { AccountSummaryView } from '../domain/accountView.types';
 
 export type AccountSwitcherViewRequired = {
-  accounts: LedgerAccountItem[];
+  accounts: AccountSummaryView[];
   selectedAccountId: string;
   disabled: boolean;
 };

@@ -25,6 +25,7 @@ type UseTransactionsImportInput = {
 
 export function useTransactionsImportController({ port, onCompleted, onFailed }: UseTransactionsImportInput) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitPhase, setSubmitPhase] = useState<'idle' | 'submitting' | 'succeeded' | 'failed'>('idle');
   const [fileName, setFileName] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState('');
@@ -54,6 +55,7 @@ export function useTransactionsImportController({ port, onCompleted, onFailed }:
     }
 
     setError('');
+    setSubmitPhase('idle');
     setResult(null);
     setSelectedFile(file);
     setFileName(file.name);
@@ -61,6 +63,7 @@ export function useTransactionsImportController({ port, onCompleted, onFailed }:
 
   function resetResult() {
     setError('');
+    setSubmitPhase('idle');
     setResult(null);
   }
 
@@ -76,6 +79,7 @@ export function useTransactionsImportController({ port, onCompleted, onFailed }:
     }
 
     setIsSubmitting(true);
+    setSubmitPhase('submitting');
     try {
       const fileBase64 = await readImportFileAsBase64(selectedFile);
       const policy: TransactionsImportPolicyInput = {
@@ -86,10 +90,12 @@ export function useTransactionsImportController({ port, onCompleted, onFailed }:
       };
       const nextResult = await port.submitImport({ fileBase64, policy });
       setResult(nextResult);
+      setSubmitPhase('succeeded');
       onCompleted?.(nextResult);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Import failed.';
       setError(message);
+      setSubmitPhase('failed');
       onFailed?.(message);
     } finally {
       setIsSubmitting(false);
@@ -99,6 +105,7 @@ export function useTransactionsImportController({ port, onCompleted, onFailed }:
   return {
     state: {
       isSubmitting,
+      submitPhase,
       fileName,
       error,
       result,

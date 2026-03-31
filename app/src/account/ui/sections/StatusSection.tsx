@@ -24,11 +24,11 @@ export function StatusSection({ required, provided }: Props) {
         <div className="toast" role="status" aria-live="polite">
           <span>{required.toast.message}</span>
           {required.toast.actionLabel ? (
-            <button type="button" className="text-button" onClick={provided.runAction}>
+            <button type="button" className="text-button" onClick={provided.commands.runAction}>
               {required.toast.actionLabel}
             </button>
           ) : null}
-          <button type="button" className="text-button" onClick={provided.dismiss}>
+          <button type="button" className="text-button" onClick={provided.commands.dismiss}>
             Dismiss
           </button>
         </div>

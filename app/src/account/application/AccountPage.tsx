@@ -1,11 +1,14 @@
+import { useMemo, useState } from 'react';
 import { useLedgerAccountWorkspace } from '../../ledger/application/useLedgerAccountWorkspace';
-import { useLedgerComposerWorkspace } from '../../ledger/application/useLedgerComposerWorkspace';
-import { useLedgerTransactionsWorkspace } from '../../ledger/application/useLedgerTransactionsWorkspace';
-import { useTaxonomyComposerWorkspace } from '../../taxonomy/application/useTaxonomyComposerWorkspace';
+import { mapAccountSummaryList } from './accountViewMappers';
 import { useAccountsPageModel, type AccountsCorePort } from './useAccountPageModel';
 import { useToast } from './useToast';
+import { RecentTransactionsComponent, TransactionEntryComponent, type TransactionsCorePort } from '../../transactions';
 import { AccountPageView } from '../ui/AccountPageView';
-import type { AccountPageViewProvided, AccountPageViewRequired, LoadPhase } from '../ui/accountPageView.contract';
+import { AccountsComponent } from '../ui/capabilities/AccountsComponent';
+import { TransactionsImportComponent } from '../ui/capabilities/TransactionsImportComponent';
+import type { AccountPageViewProvided, AccountPageViewRequired } from '../ui/accountPageView.contract';
+import type { LoadPhase } from '../domain/accountPage.types';
 
 export type AccountPageRequired = {
   core: AccountsCorePort;
@@ -25,19 +28,135 @@ function toLoadPhase(isLoading: boolean, hasError: boolean): LoadPhase {
   return 'ready';
 }
 
+function createAccountsShellCore(core: AccountsCorePort): AccountsCorePort {
+  return {
+    ledgerListSupportedCurrencies: () => core.ledgerListSupportedCurrencies(),
+    ledgerListAccounts: () => core.ledgerListAccounts(),
+    ledgerGetAccountSummary: (input) => core.ledgerGetAccountSummary(input),
+    ledgerOpenAccount: (input) => core.ledgerOpenAccount(input),
+    ledgerRenameAccount: (input) => core.ledgerRenameAccount(input),
+    ledgerArchiveAccount: (input) => core.ledgerArchiveAccount(input),
+    ledgerDeleteAccount: (input) => core.ledgerDeleteAccount(input),
+    mobillsImport: (input) => core.mobillsImport(input),
+    ledgerListTransactions: async () => ({ items: [] }),
+    ledgerRecordExpense: async () => ({ id: 'disabled-tx' }),
+    ledgerRecordIncome: async () => ({ id: 'disabled-tx' }),
+    ledgerRecordTransfer: async () => ({ transferOutId: 'disabled-tx-out', transferInId: 'disabled-tx-in' }),
+    ledgerCreateExpenseDraft: async () => ({ id: 'disabled-draft' }),
+    ledgerAddTransactionItem: async () => undefined,
+    ledgerPostDraftTransaction: async () => undefined,
+    ledgerVoidTransaction: async () => undefined,
+    taxonomyListCategories: async () => ({ items: [] }),
+    taxonomyCreateCategory: async () => ({ id: 'disabled-category' }),
+    taxonomyListTags: async () => ({ items: [] }),
+    orchestrationCategorizeTransaction: async () => ({ status: 'none' }),
+    orchestrationApplyTransactionTags: async () => ({ status: 'none' }),
+    orchestrationListTransactionTaxonomy: async () => ({ items: [] }),
+  };
+}
+
 export function AccountPage({ required: pageRequired }: AccountPageProps) {
-  const model = useAccountsPageModel(pageRequired.core);
+  const accountsCore = useMemo(() => createAccountsShellCore(pageRequired.core), [pageRequired.core]);
+  const model = useAccountsPageModel(accountsCore);
+  const [recentTransactionsRefreshSignal, setRecentTransactionsRefreshSignal] = useState(false);
 
   const ledgerAccount = useLedgerAccountWorkspace(model);
-  const ledgerTransactions = useLedgerTransactionsWorkspace(model);
-  const ledgerComposer = useLedgerComposerWorkspace(model);
-  const taxonomyComposer = useTaxonomyComposerWorkspace(model);
   const toast = useToast(model);
 
   const screenLoadPhase = toLoadPhase(model.loading, Boolean(model.error));
   const accountLoadPhase = toLoadPhase(model.loading || model.refreshing, Boolean(model.error));
-  const composerLoadPhase = toLoadPhase(model.loading, Boolean(model.error));
-  const transactionsLoadPhase = toLoadPhase(model.refreshing, Boolean(model.error));
+
+  const accountSummaries = mapAccountSummaryList(ledgerAccount.state.accounts);
+  const selectedAccount = accountSummaries.find((account) => account.id === ledgerAccount.state.selectedAccountId);
+  const hasSelectedAccount = Boolean(ledgerAccount.state.selectedAccountId);
+
+  const accountsRequired = {
+    state: {
+      accounts: accountSummaries,
+      selectedAccountId: ledgerAccount.state.selectedAccountId,
+      selectedAccount,
+      balanceAmount: ledgerAccount.state.balanceAmount,
+      supportedCurrencies: ledgerAccount.state.supportedCurrencies,
+      createForm: {
+        isOpen: ledgerAccount.state.showCreateAccountForm,
+        name: ledgerAccount.state.newAccountName,
+        currency: ledgerAccount.state.newAccountCurrency,
+        openingBalance: ledgerAccount.state.newAccountOpeningBalance,
+      },
+      manageForm: {
+        isOpen: ledgerAccount.state.manageAccountSheetOpen,
+        name: ledgerAccount.state.manageAccountName,
+      },
+    },
+    status: {
+      loadPhase: accountLoadPhase,
+      isRefreshing: ledgerAccount.state.refreshing,
+      isCreating: ledgerAccount.state.creatingAccount,
+      isManaging: ledgerAccount.state.managingAccount,
+      isPostingTransaction: model.refreshing,
+    },
+  };
+
+  const accountsProvided = {
+    commands: {
+      setCreateName: ledgerAccount.actions.setNewAccountName,
+      setCreateCurrency: ledgerAccount.actions.setNewAccountCurrency,
+      setCreateOpeningBalance: ledgerAccount.actions.setNewAccountOpeningBalance,
+      submitCreate: ledgerAccount.actions.submitCreateAccount,
+      openCreateForm: ledgerAccount.actions.openCreateAccountForm,
+      closeCreateForm: ledgerAccount.actions.closeCreateAccountForm,
+      selectAccount: ledgerAccount.actions.selectAccount,
+      openManageForm: ledgerAccount.actions.openManageAccountSheet,
+      closeManageForm: ledgerAccount.actions.closeManageAccountSheet,
+      setManageName: ledgerAccount.actions.setManageAccountName,
+      submitRename: ledgerAccount.actions.submitRenameAccount,
+      archiveSelected: ledgerAccount.actions.archiveSelectedAccount,
+      deleteSelected: ledgerAccount.actions.deleteSelectedAccount,
+    },
+    events: {
+      onImportRequested: model.openImportSheet,
+    },
+  };
+
+  const transactionsImportRequired = {
+    state: {
+      accountsCount: accountSummaries.length,
+      isOpen: model.importSheetOpen,
+    },
+    status: {
+      loadPhase: screenLoadPhase,
+      submitPhase: model.importSubmitPhase,
+    },
+  };
+
+  const transactionsImportProvided = {
+    commands: {
+      open: model.openImportSheet,
+      close: model.closeImportSheet,
+      submit: model.submitTransactionsImport,
+    },
+  };
+
+  const transactionEntryRequired = {
+    context: {
+      accountId: hasSelectedAccount ? ledgerAccount.state.selectedAccountId : null,
+      core: pageRequired.core as TransactionsCorePort,
+    },
+    config: {
+      enabled: hasSelectedAccount,
+    },
+  };
+
+  const recentTransactionsRequired = {
+    context: {
+      accountId: hasSelectedAccount ? ledgerAccount.state.selectedAccountId : null,
+      core: pageRequired.core as TransactionsCorePort,
+    },
+    config: {
+      enabled: hasSelectedAccount,
+      refreshSignal: recentTransactionsRefreshSignal,
+    },
+  };
 
   const required: AccountPageViewRequired = {
     screen: {
@@ -48,112 +167,35 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
       message: toast.toastMessage,
       actionLabel: toast.toastActionLabel,
     },
-    account: {
-      loadPhase: accountLoadPhase,
-      isRefreshing: ledgerAccount.state.refreshing,
-      isCreating: ledgerAccount.state.creatingAccount,
-      supportedCurrencies: ledgerAccount.state.supportedCurrencies,
-      accounts: ledgerAccount.state.accounts,
-      selectedAccountId: ledgerAccount.state.selectedAccountId,
-      selectedAccount: ledgerAccount.state.selectedAccount,
-      balanceAmount: ledgerAccount.state.balanceAmount,
-      createForm: {
-        isVisible: ledgerAccount.state.showCreateAccountForm,
-        name: ledgerAccount.state.newAccountName,
-        currency: ledgerAccount.state.newAccountCurrency,
-        openingBalance: ledgerAccount.state.newAccountOpeningBalance,
-      },
-      manage: {
-        isOpen: ledgerAccount.state.manageAccountSheetOpen,
-        name: ledgerAccount.state.manageAccountName,
-        isSubmitting: ledgerAccount.state.managingAccount,
-      },
-    },
-    composer: {
-      loadPhase: composerLoadPhase,
-      isSubmitting: ledgerComposer.state.postingTransaction,
-      isOpen: ledgerComposer.state.composerOpen,
-      mode: ledgerComposer.state.composerMode,
-      advancedOpen: ledgerComposer.state.composerAdvancedOpen,
-      amount: ledgerComposer.state.transactionAmount,
-      date: ledgerComposer.state.transactionDate,
-      note: ledgerComposer.state.transactionNote,
-      categoryInput: taxonomyComposer.state.transactionCategoryInput,
-      categoryOptions: taxonomyComposer.state.categoryOptions,
-      tagInput: taxonomyComposer.state.transactionTagInput,
-      tagOptions: taxonomyComposer.state.tagOptions,
-      transferTargetAccountId: ledgerComposer.state.transferToAccountId,
-      transferTargetOptions: ledgerComposer.state.transferTargetOptions,
-      expenseDetailed: ledgerComposer.state.expenseDetailed,
-      expenseItems: ledgerComposer.state.expenseItems,
-      expenseItemName: ledgerComposer.state.expenseItemName,
-      expenseItemAmount: ledgerComposer.state.expenseItemAmount,
-      expenseRemaining: ledgerComposer.state.expenseRemaining,
-      fieldErrors: ledgerComposer.state.fieldErrors,
-      expenseItemNameError: ledgerComposer.state.expenseItemNameError,
-      expenseItemAmountError: ledgerComposer.state.expenseItemAmountError,
-      expenseSplitError: ledgerComposer.state.expenseSplitError,
-    },
-    transactions: {
-      loadPhase: transactionsLoadPhase,
-      items: ledgerTransactions.state.visibleTransactions,
-      hiddenCount: ledgerTransactions.state.hiddenTransactionsCount,
-      expanded: ledgerTransactions.state.historyExpanded,
-      pendingVoidTransactionId: ledgerTransactions.state.pendingVoidTransactionId,
-    },
-    imports: {
-      sheetOpen: model.importSheetOpen,
-      isSubmitting: model.importingTransactions,
+    sections: {
+      accounts: <AccountsComponent required={accountsRequired} provided={accountsProvided} />,
+      transactionEntry: hasSelectedAccount
+        ? (
+            <TransactionEntryComponent
+              required={transactionEntryRequired}
+              provided={{
+                events: {
+                  onRecorded: () => setRecentTransactionsRefreshSignal((previous) => !previous),
+                },
+              }}
+            />
+          )
+        : null,
+      recentTransactions: hasSelectedAccount
+        ? <RecentTransactionsComponent required={recentTransactionsRequired} />
+        : null,
+      transactionsImport: (
+        <TransactionsImportComponent required={transactionsImportRequired} provided={transactionsImportProvided} />
+      ),
     },
   };
 
   const provided: AccountPageViewProvided = {
     toast: {
-      dismiss: toast.clearToast,
-      runAction: toast.runToastAction,
-    },
-    account: {
-      setNewAccountName: ledgerAccount.actions.setNewAccountName,
-      setNewAccountCurrency: ledgerAccount.actions.setNewAccountCurrency,
-      setNewAccountOpeningBalance: ledgerAccount.actions.setNewAccountOpeningBalance,
-      submitCreateAccount: ledgerAccount.actions.submitCreateAccount,
-      openCreateAccountForm: ledgerAccount.actions.openCreateAccountForm,
-      closeCreateAccountForm: ledgerAccount.actions.closeCreateAccountForm,
-      selectAccount: ledgerAccount.actions.selectAccount,
-      openManageAccountSheet: ledgerAccount.actions.openManageAccountSheet,
-      closeManageAccountSheet: ledgerAccount.actions.closeManageAccountSheet,
-      setManageAccountName: ledgerAccount.actions.setManageAccountName,
-      submitRenameAccount: ledgerAccount.actions.submitRenameAccount,
-      archiveSelectedAccount: ledgerAccount.actions.archiveSelectedAccount,
-      deleteSelectedAccount: ledgerAccount.actions.deleteSelectedAccount,
-    },
-    composer: {
-      openComposer: ledgerComposer.actions.openTransactionComposer,
-      closeComposer: ledgerComposer.actions.closeTransactionComposer,
-      selectMode: ledgerComposer.actions.selectComposerMode,
-      toggleAdvanced: ledgerComposer.actions.toggleComposerAdvanced,
-      setAmount: ledgerComposer.actions.setTransactionAmount,
-      setDate: ledgerComposer.actions.setTransactionDate,
-      setNote: ledgerComposer.actions.setTransactionNote,
-      setCategoryInput: taxonomyComposer.actions.setTransactionCategoryInput,
-      setTagInput: taxonomyComposer.actions.setTransactionTagInput,
-      setTransferTargetAccountId: ledgerComposer.actions.setTransferToAccountId,
-      setExpenseDetailed: ledgerComposer.actions.setExpenseDetailed,
-      setExpenseItemName: ledgerComposer.actions.setExpenseItemName,
-      setExpenseItemAmount: ledgerComposer.actions.setExpenseItemAmount,
-      addExpenseItem: ledgerComposer.actions.addExpenseItem,
-      removeExpenseItem: ledgerComposer.actions.removeExpenseItem,
-      assignRemaining: ledgerComposer.actions.assignRemaining,
-      submitTransaction: ledgerComposer.actions.submitTransaction,
-    },
-    transactions: {
-      expandHistory: ledgerTransactions.actions.expandHistory,
-      voidTransaction: ledgerTransactions.actions.voidTransaction,
-    },
-    imports: {
-      openSheet: model.openImportSheet,
-      closeSheet: model.closeImportSheet,
-      submitImport: model.submitTransactionsImport,
+      commands: {
+        dismiss: toast.clearToast,
+        runAction: toast.runToastAction,
+      },
     },
   };
 

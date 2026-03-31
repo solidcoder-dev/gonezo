@@ -24,10 +24,16 @@ export default defineConfig([
     files: ['src/**/ui/**/*.{ts,tsx}', 'src/*/ui/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': ['error', {
-        patterns: [{
-          group: ['**/application/use*'],
-          message: 'UI components must not import application hooks directly. Use infrastructure containers.',
-        }],
+        patterns: [
+          {
+            group: ['**/application/use*'],
+            message: 'UI components must not import application hooks directly. Use infrastructure containers.',
+          },
+          {
+            group: ['**/shared/domain/corePort'],
+            message: 'UI components must consume view contracts/models, not core adapter DTOs.',
+          },
+        ],
       }],
     },
   },

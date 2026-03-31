@@ -31,28 +31,36 @@ export function TransactionsImportComponent({ required, provided }: Transactions
   });
 
   const viewRequired: TransactionsImportViewRequired = {
-    accountsCount: required.accountsCount,
-    isSubmitting: workspace.state.isSubmitting,
-    fileName: workspace.state.fileName,
-    error: workspace.state.error,
-    result: workspace.state.result,
-    createMissingAccounts: workspace.state.createMissingAccounts,
-    createMissingCategories: workspace.state.createMissingCategories,
-    createMissingTags: workspace.state.createMissingTags,
-    duplicatePolicy: workspace.state.duplicatePolicy,
-    failedRows: workspace.state.failedRows,
-    failureSummary: workspace.state.failureSummary,
-    accountNotFoundFailures: workspace.state.accountNotFoundFailures,
-    duplicateRowsCount: workspace.state.duplicateRowsCount,
+    state: {
+      accountsCount: required.accountsCount,
+      fileName: workspace.state.fileName,
+      result: workspace.state.result,
+      policy: {
+        createMissingAccounts: workspace.state.createMissingAccounts,
+        createMissingCategories: workspace.state.createMissingCategories,
+        createMissingTags: workspace.state.createMissingTags,
+        duplicatePolicy: workspace.state.duplicatePolicy,
+      },
+      failedRows: workspace.state.failedRows,
+      failureSummary: workspace.state.failureSummary,
+      accountNotFoundFailures: workspace.state.accountNotFoundFailures,
+      duplicateRowsCount: workspace.state.duplicateRowsCount,
+    },
+    status: {
+      submitPhase: workspace.state.submitPhase,
+      error: workspace.state.error,
+    },
   };
 
   const viewProvided: TransactionsImportViewProvided = {
-    setFile: workspace.actions.setFile,
-    setCreateMissingAccounts: workspace.actions.setCreateMissingAccounts,
-    setCreateMissingCategories: workspace.actions.setCreateMissingCategories,
-    setCreateMissingTags: workspace.actions.setCreateMissingTags,
-    setDuplicatePolicy: workspace.actions.setDuplicatePolicy,
-    submit: workspace.actions.submit,
+    commands: {
+      setFile: workspace.actions.setFile,
+      setCreateMissingAccounts: workspace.actions.setCreateMissingAccounts,
+      setCreateMissingCategories: workspace.actions.setCreateMissingCategories,
+      setCreateMissingTags: workspace.actions.setCreateMissingTags,
+      setDuplicatePolicy: workspace.actions.setDuplicatePolicy,
+      submit: workspace.actions.submit,
+    },
   };
 
   return <TransactionsImportView required={viewRequired} provided={viewProvided} />;
