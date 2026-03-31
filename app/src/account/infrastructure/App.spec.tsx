@@ -89,6 +89,12 @@ async function openMode(mode: 'Expense' | 'Income' | 'Transfer') {
   fireEvent.click(await screen.findByRole('button', { name: mode }));
 }
 
+async function openImportSheetFromAccounts() {
+  fireEvent.click(screen.getByRole('button', { name: 'Accounts' }));
+  await screen.findByRole('dialog', { name: 'Select account' });
+  fireEvent.click(screen.getByRole('button', { name: 'Import transactions' }));
+}
+
 describe('App Accounts UX', () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -99,7 +105,7 @@ describe('App Accounts UX', () => {
     vi.restoreAllMocks();
   });
 
-  it('shows switch account action inline with account summary', async () => {
+  it('shows accounts action inline with account summary', async () => {
     const core = makeCore();
 
     render(
@@ -109,11 +115,11 @@ describe('App Accounts UX', () => {
     );
 
     expect(await screen.findByText('Net balance')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Switch account' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Accounts' })).toBeInTheDocument();
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   });
 
-  it('shows import action in account controls when accounts exist', async () => {
+  it('shows import action inside accounts menu when accounts exist', async () => {
     const core = makeCore();
 
     render(
@@ -123,7 +129,27 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    expect(screen.getByRole('button', { name: 'Import' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Accounts' }));
+    expect(await screen.findByRole('button', { name: 'Import transactions' })).toBeInTheDocument();
+  });
+
+  it('opens add account sheet from accounts menu', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(screen.getByRole('button', { name: 'Accounts' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add account' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Create account' });
+    expect(dialog).toBeInTheDocument();
+    expect(dialog).toHaveClass('import-sheet');
+    expect(screen.getByRole('button', { name: 'Close add account sheet' })).toBeInTheDocument();
   });
 
   it('opens account management sheet from account controls', async () => {
@@ -250,7 +276,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    await openImportSheetFromAccounts();
     const dialog = await screen.findByRole('dialog', { name: 'Import transactions' });
     expect(dialog).toBeInTheDocument();
     expect(dialog).toHaveClass('import-sheet');
@@ -272,7 +298,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    await openImportSheetFromAccounts();
 
     const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
     expect(fileInput).toHaveAttribute('accept', expect.stringContaining('.csv'));
@@ -298,7 +324,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    await openImportSheetFromAccounts();
 
     const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
     const file = new File(
@@ -349,7 +375,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    await openImportSheetFromAccounts();
 
     const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
     const file = new File(
@@ -379,7 +405,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    await openImportSheetFromAccounts();
 
     const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
     const file = new File(
@@ -457,7 +483,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    await openImportSheetFromAccounts();
 
     const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
     const file = new File(
@@ -497,7 +523,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    await openImportSheetFromAccounts();
 
     const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
     const file = new File(

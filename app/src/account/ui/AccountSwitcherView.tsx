@@ -25,18 +25,12 @@ export function AccountSwitcherView({ required, provided }: Props) {
     <div className="quick-row account-actions" aria-busy={required.disabled}>
       <button
         type="button"
-        className="text-button"
+        className="account-menu-trigger"
         onClick={() => setShowAccounts(true)}
         disabled={required.disabled}
-        aria-label="Switch account"
+        aria-label="Accounts"
       >
-        Switch account
-      </button>
-      <button type="button" className="text-button" onClick={provided.onAddAccount} disabled={required.disabled}>
-        Add account
-      </button>
-      <button type="button" className="text-button" onClick={provided.onImport} disabled={required.disabled}>
-        Import
+        Accounts
       </button>
 
       {showAccounts ? (
@@ -63,6 +57,30 @@ export function AccountSwitcherView({ required, provided }: Props) {
                   {account.name} ({account.currency})
                 </button>
               ))}
+            </div>
+            <div className="quick-row account-menu-actions">
+              <button
+                type="button"
+                className="text-button"
+                disabled={required.disabled}
+                onClick={() => {
+                  provided.onAddAccount();
+                  setShowAccounts(false);
+                }}
+              >
+                Add account
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                disabled={required.disabled}
+                onClick={() => {
+                  provided.onImport();
+                  setShowAccounts(false);
+                }}
+              >
+                Import transactions
+              </button>
             </div>
           </div>
         </div>

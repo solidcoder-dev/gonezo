@@ -58,45 +58,62 @@ export function AccountsComponent({ required, provided }: AccountsComponentProps
   return (
     <>
       {state.createForm.isOpen ? (
-        <form className="stack" onSubmit={provided.commands.submitCreate} aria-busy={status.isCreating}>
-          <h3>Add account</h3>
-          <input
-            aria-label="Account name"
-            value={state.createForm.name}
-            onChange={(event) => provided.commands.setCreateName(event.target.value)}
-            placeholder="Account name"
-            autoComplete="off"
-          />
-          <input
-            aria-label="Opening balance"
-            value={state.createForm.openingBalance}
-            onChange={(event) => provided.commands.setCreateOpeningBalance(event.target.value)}
-            placeholder="Opening balance (optional)"
-            inputMode="decimal"
-          />
-          <label className="stack">
-            Currency
-            <select
-              aria-label="Currency"
-              value={state.createForm.currency}
-              onChange={(event) => provided.commands.setCreateCurrency(event.target.value)}
-            >
-              {state.supportedCurrencies.map((currency) => (
-                <option key={currency} value={currency}>
-                  {currency}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="quick-row">
-            <button type="submit" disabled={status.isCreating}>
-              {status.isCreating ? 'Creating account...' : 'Create account'}
-            </button>
-            <button type="button" className="text-button" onClick={provided.commands.closeCreateForm}>
-              Cancel
-            </button>
-          </div>
-        </form>
+        <div className="sheet-backdrop" role="presentation" onClick={provided.commands.closeCreateForm}>
+          <section
+            className="sheet-panel import-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Create account"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="inline-header">
+              <h3>Add account</h3>
+              <button
+                type="button"
+                className="text-button icon-button"
+                aria-label="Close add account sheet"
+                onClick={provided.commands.closeCreateForm}
+              >
+                ×
+              </button>
+            </div>
+            <div className="import-sheet-content">
+              <form className="stack" onSubmit={provided.commands.submitCreate} aria-busy={status.isCreating}>
+                <input
+                  aria-label="Account name"
+                  value={state.createForm.name}
+                  onChange={(event) => provided.commands.setCreateName(event.target.value)}
+                  placeholder="Account name"
+                  autoComplete="off"
+                />
+                <input
+                  aria-label="Opening balance"
+                  value={state.createForm.openingBalance}
+                  onChange={(event) => provided.commands.setCreateOpeningBalance(event.target.value)}
+                  placeholder="Opening balance (optional)"
+                  inputMode="decimal"
+                />
+                <label className="stack">
+                  Currency
+                  <select
+                    aria-label="Currency"
+                    value={state.createForm.currency}
+                    onChange={(event) => provided.commands.setCreateCurrency(event.target.value)}
+                  >
+                    {state.supportedCurrencies.map((currency) => (
+                      <option key={currency} value={currency}>
+                        {currency}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button type="submit" disabled={status.isCreating}>
+                  {status.isCreating ? 'Creating account...' : 'Create account'}
+                </button>
+              </form>
+            </div>
+          </section>
+        </div>
       ) : null}
 
       <section className="section-gap">

@@ -137,6 +137,14 @@
   justify-content: flex-start;
 }
 
+.account-menu-trigger {
+  min-width: 120px;
+}
+
+.account-menu-actions {
+  margin-top: 12px;
+}
+
 .account-choice {
   text-align: left;
   justify-content: flex-start;
