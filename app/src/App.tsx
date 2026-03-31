@@ -18,13 +18,9 @@ export function App({ required }: AppProps) {
   const resolvedCore = required?.core ?? defaultCore;
 
   return (
-    <div className="app-shell">
-      <main className="app-main">
-        <Routes>
-          <Route path="/" element={<AccountPage required={{ core: resolvedCore }} />} />
-          <Route path="/accounts" element={<AccountPage required={{ core: resolvedCore }} />} />
-        </Routes>
-      </main>
-    </div>
+    <Routes>
+      <Route path="/" element={<AccountPage required={{ core: resolvedCore }} />} />
+      <Route path="/accounts" element={<AccountPage required={{ core: resolvedCore }} />} />
+    </Routes>
   );
 }

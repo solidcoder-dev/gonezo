@@ -35,14 +35,20 @@ export function AccountSwitcherView({ required, provided }: Props) {
 
       {showAccounts ? (
         <div className="sheet-backdrop" role="presentation" onClick={() => setShowAccounts(false)}>
-          <div className="sheet-panel" role="dialog" aria-modal="true" aria-label="Select account" onClick={(event) => event.stopPropagation()}>
+          <div
+            className="sheet-panel account-menu-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Select account"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="inline-header">
               <h3>Accounts</h3>
               <button type="button" className="text-button icon-button" onClick={() => setShowAccounts(false)} aria-label="Close account list">
                 ×
               </button>
             </div>
-            <div className="stack">
+            <div className="stack account-menu-list">
               {required.accounts.map((account) => (
                 <button
                   key={account.id}
