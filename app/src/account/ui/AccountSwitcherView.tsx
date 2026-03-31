@@ -10,7 +10,6 @@ export type AccountSwitcherViewRequired = {
 export type AccountSwitcherViewProvided = {
   onSelect: (accountId: string) => void;
   onAddAccount: () => void;
-  onManageAccount: () => void;
   onImport: () => void;
 };
 
@@ -35,9 +34,6 @@ export function AccountSwitcherView({ required, provided }: Props) {
       </button>
       <button type="button" className="text-button" onClick={provided.onAddAccount} disabled={required.disabled}>
         Add account
-      </button>
-      <button type="button" className="text-button" onClick={provided.onManageAccount} disabled={required.disabled}>
-        Manage
       </button>
       <button type="button" className="text-button" onClick={provided.onImport} disabled={required.disabled}>
         Import

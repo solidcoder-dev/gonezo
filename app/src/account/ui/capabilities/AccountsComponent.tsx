@@ -109,7 +109,6 @@ export function AccountsComponent({ required, provided }: AccountsComponentProps
           provided={{
             onSelect: provided.commands.selectAccount,
             onAddAccount: provided.commands.openCreateForm,
-            onManageAccount: provided.commands.openManageForm,
             onImport: importRequested ?? (() => undefined),
           }}
         />
@@ -117,7 +116,18 @@ export function AccountsComponent({ required, provided }: AccountsComponentProps
 
       {state.selectedAccount ? (
         <section className="summary-card section-gap">
-          <h2>{state.selectedAccount.name}</h2>
+          <div className="summary-header">
+            <h2>{state.selectedAccount.name}</h2>
+            <button
+              type="button"
+              className="text-button icon-button summary-menu-button"
+              aria-label="Account options"
+              onClick={provided.commands.openManageForm}
+              disabled={controlsDisabled}
+            >
+              ...
+            </button>
+          </div>
           <p className="summary-label">Net balance</p>
           <div className="summary-amount">
             {formatCurrencyAmount(state.balanceAmount, state.selectedAccount.currency)}

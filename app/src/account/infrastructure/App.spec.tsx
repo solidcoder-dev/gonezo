@@ -136,7 +136,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Account options' }));
     expect(await screen.findByRole('dialog', { name: 'Manage account' })).toBeInTheDocument();
   });
 
@@ -150,7 +150,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Account options' }));
     fireEvent.change(await screen.findByLabelText('Manage account name'), { target: { value: 'Wallet renamed' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save name' }));
 
@@ -174,7 +174,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Account options' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Archive account' }));
 
     await waitFor(() => {
@@ -197,7 +197,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Account options' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Delete account' }));
 
     await waitFor(() => {
@@ -220,7 +220,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Account options' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Delete account' }));
 
     expect(core.ledgerDeleteAccount).not.toHaveBeenCalled();
@@ -588,6 +588,43 @@ describe('App Accounts UX', () => {
       expect(core.ledgerListTransactions).toHaveBeenCalledTimes(2);
     });
     expect(await screen.findByText('Auto refresh merchant')).toBeInTheDocument();
+  });
+
+  it('refreshes account balance after saving a movement', async () => {
+    const core = makeCore();
+    let currentBalance = '100.00';
+
+    vi.mocked(core.ledgerGetAccountSummary).mockImplementation(async () => ({
+      accountId: 'acc-1',
+      name: 'Main',
+      type: 'cash',
+      currency: 'USD',
+      balanceAmount: currentBalance,
+    }));
+    vi.mocked(core.ledgerRecordExpense).mockImplementation(async () => {
+      currentBalance = '87.50';
+      return { id: 'tx-exp' };
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    expect(screen.getByText(/\$100\.00/)).toBeInTheDocument();
+
+    await openMode('Expense');
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save expense' }));
+
+    await waitFor(() => {
+      expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(screen.getByText(/\$87\.50/)).toBeInTheDocument();
+    });
   });
 
   it('uses current time when submitting a date-only transaction', async () => {

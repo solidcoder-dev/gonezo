@@ -175,7 +175,13 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
               required={transactionEntryRequired}
               provided={{
                 events: {
-                  onRecorded: () => setRecentTransactionsRefreshSignal((previous) => !previous),
+                  onRecorded: () => {
+                    setRecentTransactionsRefreshSignal((previous) => !previous);
+                    const accountId = ledgerAccount.state.selectedAccountId;
+                    if (accountId) {
+                      void ledgerAccount.actions.selectAccount(accountId);
+                    }
+                  },
                 },
               }}
             />

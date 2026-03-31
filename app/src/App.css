@@ -344,6 +344,22 @@ select:focus-visible {
   font-size: 1.05rem;
 }
 
+.summary-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summary-menu-button {
+  min-width: 36px;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  line-height: 1;
+  font-weight: 700;
+}
+
 .summary-label {
   margin: 8px 0 4px;
   font-size: 0.8rem;
