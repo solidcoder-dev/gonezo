@@ -11,7 +11,8 @@ export type AccountPageViewRequired = {
     actionLabel: string;
   };
   sections: {
-    accounts: ReactNode;
+    accountHub: ReactNode;
+    accountSummary: ReactNode;
     transactionEntry: ReactNode;
     recentTransactions: ReactNode;
     transactionsImport: ReactNode;
