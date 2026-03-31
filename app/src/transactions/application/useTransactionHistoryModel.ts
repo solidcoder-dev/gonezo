@@ -7,7 +7,11 @@ import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions'
 import { useTransactionClassification } from '../../taxonomy/application/useTransactionClassification';
 import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
 import type { TransactionHistoryItemView } from '../domain/transactionView.types';
-import type { TransactionHistoryViewProvided, TransactionHistoryViewRequired } from '../ui/TransactionHistoryView';
+import type {
+  TransactionHistoryStatusFilterValue,
+  TransactionHistoryViewProvided,
+  TransactionHistoryViewRequired,
+} from '../ui/TransactionHistoryView.contract';
 import { mapTransactionHistoryList } from './transactionViewMappers';
 import type { TransactionsCorePort } from './transactionsCore.port';
 
@@ -27,13 +31,124 @@ type TaxonomyAssignment = {
   taggingStatus?: string;
 };
 
+type TransactionFilterFormState = {
+  text: string;
+  categoryIds: string[];
+  tagIds: string[];
+  amountMin: string;
+  amountMax: string;
+  fromDate: string;
+  toDate: string;
+  status: TransactionHistoryStatusFilterValue;
+  sortField: 'occurredAt' | 'amount';
+  sortDirection: 'asc' | 'desc';
+  pageSize: number;
+};
+
+type TransactionPaginationState = {
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+};
+
 const VOID_COMMIT_DELAY_MS = 5000;
+
+const DEFAULT_FILTERS: TransactionFilterFormState = {
+  text: '',
+  categoryIds: [],
+  tagIds: [],
+  amountMin: '',
+  amountMax: '',
+  fromDate: '',
+  toDate: '',
+  status: 'all',
+  sortField: 'occurredAt',
+  sortDirection: 'desc',
+  pageSize: 10,
+};
+
+const EMPTY_PAGINATION: TransactionPaginationState = {
+  page: 0,
+  size: DEFAULT_FILTERS.pageSize,
+  totalElements: 0,
+  totalPages: 0,
+  hasNext: false,
+  hasPrevious: false,
+};
+
+function createDefaultFilters(): TransactionFilterFormState {
+  return {
+    ...DEFAULT_FILTERS,
+    categoryIds: [],
+    tagIds: [],
+  };
+}
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
   return 'Unknown error';
+}
+
+function normalizeIdentifierList(values: string[]): string[] {
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+  for (const rawValue of values) {
+    const value = rawValue.trim();
+    if (!value || seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+    normalized.push(value);
+  }
+  return normalized;
+}
+
+function normalizeAmount(value: string): string | undefined {
+  const normalized = value.trim().replace(',', '.');
+  if (!normalized) {
+    return undefined;
+  }
+  const numeric = Number(normalized);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return undefined;
+  }
+  return numeric.toString();
+}
+
+function normalizeFromDate(value: string): string | undefined {
+  const normalized = value.trim();
+  if (!normalized) {
+    return undefined;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return `${normalized}T00:00:00.000Z`;
+  }
+  return normalized;
+}
+
+function normalizeToDate(value: string): string | undefined {
+  const normalized = value.trim();
+  if (!normalized) {
+    return undefined;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return `${normalized}T23:59:59.999Z`;
+  }
+  return normalized;
+}
+
+function resolveStatuses(
+  status: TransactionHistoryStatusFilterValue,
+): Array<'draft' | 'posted' | 'voided'> | undefined {
+  if (status === 'all') {
+    return undefined;
+  }
+  return [status];
 }
 
 export function useTransactionHistoryModel(input: UseTransactionHistoryModelInput) {
@@ -52,10 +167,17 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
   const [categories, setCategories] = useState<TaxonomyCategoryItem[]>([]);
   const [tags, setTags] = useState<TaxonomyTagItem[]>([]);
 
-  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filtersAdvancedOpen, setFiltersAdvancedOpen] = useState(false);
+  const [filterDraft, setFilterDraft] = useState<TransactionFilterFormState>(() => createDefaultFilters());
+  const [appliedFilters, setAppliedFilters] = useState<TransactionFilterFormState>(() => createDefaultFilters());
+  const [page, setPage] = useState(0);
+  const [pagination, setPagination] = useState<TransactionPaginationState>(EMPTY_PAGINATION);
+
   const [pendingVoidTransactionId, setPendingVoidTransactionId] = useState('');
   const [voidMutationPhase, setVoidMutationPhase] = useState<'idle' | 'scheduled' | 'committing'>('idle');
   const pendingVoidTimerRef = useRef<number | null>(null);
+  const previousAccountIdRef = useRef<string | null>(null);
 
   const ledgerGateway = useMemo(() => createLedgerGateway(core), [core]);
   const taxonomyGateway = useMemo(() => createTaxonomyGateway(core), [core]);
@@ -112,11 +234,9 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
   );
 
   const historyItems = useMemo<TransactionHistoryItemView[]>(
-    () => mapTransactionHistoryList(historyExpanded ? transactionsWithTaxonomy : transactionsWithTaxonomy.slice(0, 3)),
-    [historyExpanded, transactionsWithTaxonomy],
+    () => mapTransactionHistoryList(transactionsWithTaxonomy),
+    [transactionsWithTaxonomy],
   );
-
-  const hiddenTransactionsCount = Math.max(0, transactionsWithTaxonomy.length - historyItems.length);
 
   function clearPendingVoidTimer() {
     if (pendingVoidTimerRef.current != null) {
@@ -170,18 +290,29 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
       };
     }
     setTaxonomyByTransactionId(next);
+  }
 
-    const hasCategoryIds = result.items.some((item) => Boolean(item.categoryId));
-    const hasTagIds = result.items.some((item) => (item.tagIds?.length ?? 0) > 0);
+  async function ensureFilterOptionsLoaded() {
+    const operations: Promise<void>[] = [];
 
-    if (hasCategoryIds && categories.length === 0) {
-      const taxonomy = await categorySuggestions.listCategories({ includeArchived: false });
-      setCategories(taxonomy.items);
+    if (categories.length === 0) {
+      operations.push(
+        categorySuggestions
+          .listCategories({ includeArchived: false })
+          .then((result) => setCategories(result.items)),
+      );
     }
 
-    if (hasTagIds && tags.length === 0) {
-      const taxonomyTags = await tagSuggestions.listTags({ includeArchived: false });
-      setTags(taxonomyTags.items);
+    if (tags.length === 0) {
+      operations.push(
+        tagSuggestions
+          .listTags({ includeArchived: false })
+          .then((result) => setTags(result.items)),
+      );
+    }
+
+    if (operations.length > 0) {
+      await Promise.all(operations);
     }
   }
 
@@ -189,25 +320,88 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
     if (!accountId) {
       setTransactions([]);
       setTaxonomyByTransactionId({});
+      setPagination({ ...EMPTY_PAGINATION, size: appliedFilters.pageSize });
       return;
+    }
+
+    const normalizedCategoryIds = normalizeIdentifierList(appliedFilters.categoryIds);
+    const normalizedTagIds = normalizeIdentifierList(appliedFilters.tagIds);
+    let amountMin = normalizeAmount(appliedFilters.amountMin);
+    let amountMax = normalizeAmount(appliedFilters.amountMax);
+    if (amountMin != null && amountMax != null && Number(amountMin) > Number(amountMax)) {
+      [amountMin, amountMax] = [amountMax, amountMin];
     }
 
     const transactionResult = await ledgerTransactions.listTransactions({
       accountId,
-      limit: 20,
-      includeVoided: true,
+      filters: {
+        text: appliedFilters.text.trim() || undefined,
+        categoryIds: normalizedCategoryIds.length > 0 ? normalizedCategoryIds : undefined,
+        categoryId: normalizedCategoryIds.length === 1 ? normalizedCategoryIds[0] : undefined,
+        tagIds: normalizedTagIds.length > 0 ? normalizedTagIds : undefined,
+        amountMin,
+        amountMax,
+        fromDate: normalizeFromDate(appliedFilters.fromDate),
+        toDate: normalizeToDate(appliedFilters.toDate),
+        statuses: resolveStatuses(appliedFilters.status),
+      },
+      pagination: {
+        page,
+        size: appliedFilters.pageSize,
+      },
+      sort: [
+        {
+          field: appliedFilters.sortField,
+          direction: appliedFilters.sortDirection,
+        },
+      ],
     });
-    setTransactions(transactionResult.items);
-    await refreshTaxonomyAssignments(transactionResult.items);
+    setTransactions(transactionResult.content);
+    setPagination({
+      page: transactionResult.page,
+      size: transactionResult.size,
+      totalElements: transactionResult.totalElements,
+      totalPages: transactionResult.totalPages,
+      hasNext: transactionResult.hasNext,
+      hasPrevious: transactionResult.hasPrevious,
+    });
+    if (page !== transactionResult.page) {
+      setPage(transactionResult.page);
+    }
+    await refreshTaxonomyAssignments(transactionResult.content);
   }
 
   useEffect(() => {
     if (!enabled || !accountId) {
+      previousAccountIdRef.current = accountId;
       setLoading(false);
       setTransactions([]);
       setTaxonomyByTransactionId({});
       setError('');
       clearToastState();
+      setFiltersOpen(false);
+      setFiltersAdvancedOpen(false);
+      setFilterDraft(createDefaultFilters());
+      setAppliedFilters(createDefaultFilters());
+      setPage(0);
+      setPagination(EMPTY_PAGINATION);
+      return;
+    }
+
+    const accountChanged = previousAccountIdRef.current !== accountId;
+    if (accountChanged) {
+      previousAccountIdRef.current = accountId;
+      setError('');
+      clearToastState();
+      setFiltersOpen(false);
+      setFiltersAdvancedOpen(false);
+      setFilterDraft(createDefaultFilters());
+      setAppliedFilters(createDefaultFilters());
+      setPage(0);
+      setPagination(EMPTY_PAGINATION);
+      setTransactions([]);
+      setTaxonomyByTransactionId({});
+      setLoading(true);
       return;
     }
 
@@ -217,10 +411,7 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
       setLoading(true);
       setError('');
       try {
-        await refreshTransactions();
-        if (!cancelled) {
-          setHistoryExpanded(false);
-        }
+        await Promise.all([refreshTransactions(), ensureFilterOptionsLoaded()]);
       } catch (err) {
         if (!cancelled) {
           reportError(err);
@@ -239,7 +430,7 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
       clearPendingVoidTimer();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, accountId, refreshSignal]);
+  }, [enabled, accountId, refreshSignal, page, appliedFilters]);
 
   useEffect(() => () => {
     clearPendingVoidTimer();
@@ -285,8 +476,33 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
   const required: TransactionHistoryViewRequired = {
     state: {
       items: historyItems,
-      hiddenCount: hiddenTransactionsCount,
-      expanded: historyExpanded,
+      filtersOpen,
+      filtersAdvancedOpen,
+      filters: {
+        text: filterDraft.text,
+        categoryIds: filterDraft.categoryIds,
+        tagIds: filterDraft.tagIds,
+        amountMin: filterDraft.amountMin,
+        amountMax: filterDraft.amountMax,
+        fromDate: filterDraft.fromDate,
+        toDate: filterDraft.toDate,
+        status: filterDraft.status,
+        sortField: filterDraft.sortField,
+        sortDirection: filterDraft.sortDirection,
+        pageSize: filterDraft.pageSize,
+      },
+      filterOptions: {
+        categories: categories.map((category) => ({ id: category.id, label: category.name })),
+        tags: tags.map((tag) => ({ id: tag.id, label: tag.name })),
+      },
+      pagination: {
+        page: pagination.page,
+        size: pagination.size,
+        totalElements: pagination.totalElements,
+        totalPages: pagination.totalPages,
+        hasNext: pagination.hasNext,
+        hasPrevious: pagination.hasPrevious,
+      },
       pendingVoidTransactionId: pendingVoidTransactionId || undefined,
     },
     status: {
@@ -298,7 +514,62 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
 
   const provided: TransactionHistoryViewProvided = {
     commands: {
-      expandHistory: () => setHistoryExpanded(true),
+      openFilters: () => {
+        setFilterDraft({ ...appliedFilters });
+        setFiltersOpen(true);
+        setFiltersAdvancedOpen(false);
+        void ensureFilterOptionsLoaded().catch(reportError);
+      },
+      closeFilters: () => {
+        setFiltersOpen(false);
+        setFiltersAdvancedOpen(false);
+      },
+      toggleAdvancedFilters: () => {
+        setFiltersAdvancedOpen((previous) => {
+          const next = !previous;
+          if (next) {
+            void ensureFilterOptionsLoaded().catch(reportError);
+          }
+          return next;
+        });
+      },
+      resetFilters: () => {
+        setFilterDraft(createDefaultFilters());
+        setAppliedFilters(createDefaultFilters());
+        setPage(0);
+        setFiltersAdvancedOpen(false);
+      },
+      setFilterText: (value) => setFilterDraft((previous) => ({ ...previous, text: value })),
+      setFilterCategoryIds: (values) =>
+        setFilterDraft((previous) => ({ ...previous, categoryIds: normalizeIdentifierList(values) })),
+      setFilterTagIds: (values) =>
+        setFilterDraft((previous) => ({ ...previous, tagIds: normalizeIdentifierList(values) })),
+      setFilterAmountMin: (value) => setFilterDraft((previous) => ({ ...previous, amountMin: value })),
+      setFilterAmountMax: (value) => setFilterDraft((previous) => ({ ...previous, amountMax: value })),
+      setFilterFromDate: (value) => setFilterDraft((previous) => ({ ...previous, fromDate: value })),
+      setFilterToDate: (value) => setFilterDraft((previous) => ({ ...previous, toDate: value })),
+      setFilterStatus: (value) => setFilterDraft((previous) => ({ ...previous, status: value })),
+      setSortField: (value) => setFilterDraft((previous) => ({ ...previous, sortField: value })),
+      setSortDirection: (value) => setFilterDraft((previous) => ({ ...previous, sortDirection: value })),
+      setPageSize: (value) => {
+        const normalized = Number.isFinite(value) && value > 0 ? Math.min(Math.trunc(value), 100) : DEFAULT_FILTERS.pageSize;
+        setFilterDraft((previous) => ({ ...previous, pageSize: normalized }));
+      },
+      applyFilters: () => {
+        setAppliedFilters({ ...filterDraft });
+        setPage(0);
+        setFiltersOpen(false);
+        setFiltersAdvancedOpen(false);
+      },
+      goToPreviousPage: () => {
+        setPage((previous) => Math.max(0, previous - 1));
+      },
+      goToNextPage: () => {
+        if (!pagination.hasNext) {
+          return;
+        }
+        setPage((previous) => previous + 1);
+      },
       requestVoid: requestVoidTransaction,
       undoVoid: () => toastAction?.(),
     },

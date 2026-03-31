@@ -47,11 +47,9 @@ import com.gonezo.ledger.application.VoidLedgerTransactionService;
 import com.gonezo.ledger.domain.Account;
 import com.gonezo.ledger.domain.AccountId;
 import com.gonezo.ledger.domain.CurrencyCode;
-import com.gonezo.ledger.domain.DateRange;
 import com.gonezo.ledger.domain.Transaction;
 import com.gonezo.ledger.domain.TransactionId;
 import com.gonezo.ledger.domain.TransactionItem;
-import com.gonezo.ledger.domain.TransactionStatus;
 import com.gonezo.ledger.domain.services.BalanceCalculator;
 import com.gonezo.domain.shared.Money;
 import java.math.BigDecimal;
@@ -59,7 +57,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 public final class AndroidLedgerCore {
@@ -263,21 +265,154 @@ public final class AndroidLedgerCore {
     String merchant,
     Boolean includeVoided
   ) {
-    DateRange range = null;
-    if (blankToNull(fromDate) != null && blankToNull(toDate) != null) {
-      range = new DateRange(Instant.parse(fromDate), Instant.parse(toDate));
+    List<String> statuses = includeVoided != null && includeVoided
+      ? null
+      : List.of("draft", "posted");
+
+    LedgerTransactionFilterInput filters = new LedgerTransactionFilterInput(
+      null,
+      blankToNull(merchant),
+      blankToNull(categoryId),
+      blankToNull(fromDate),
+      blankToNull(toDate),
+      statuses,
+      null
+    );
+    LedgerPageRequestInput pagination = new LedgerPageRequestInput(0, limit != null && limit > 0 ? limit : 20);
+    List<LedgerTransactionSortInput> sort = List.of(new LedgerTransactionSortInput("occurredAt", "desc"));
+    return listTransactions(accountId, filters, pagination, sort).content();
+  }
+
+  public LedgerTransactionPageView listTransactions(
+    String accountId,
+    LedgerTransactionFilterInput filters,
+    LedgerPageRequestInput pagination,
+    List<LedgerTransactionSortInput> sort
+  ) {
+    LedgerTransactionFilterInput resolvedFilters = filters == null
+      ? new LedgerTransactionFilterInput(null, null, null, null, null, null, null)
+      : filters;
+
+    int requestedPage = pagination != null && pagination.page() != null && pagination.page() >= 0 ? pagination.page() : 0;
+    int requestedSize = pagination != null && pagination.size() != null && pagination.size() > 0 ? pagination.size() : 20;
+    int pageSize = Math.min(requestedSize, 100);
+
+    Instant fromInstant = blankToNull(resolvedFilters.fromDate()) == null
+      ? null
+      : parseInstantOrDate(resolvedFilters.fromDate(), "fromDate");
+    Instant toInstant = blankToNull(resolvedFilters.toDate()) == null
+      ? null
+      : parseInstantOrDate(resolvedFilters.toDate(), "toDate");
+
+    Set<String> statusesFilterBuffer = null;
+    if (resolvedFilters.statuses() != null && !resolvedFilters.statuses().isEmpty()) {
+      statusesFilterBuffer = new HashSet<>();
+      for (String status : resolvedFilters.statuses()) {
+        String normalized = blankToNull(status);
+        if (normalized != null) {
+          statusesFilterBuffer.add(normalized.toLowerCase(Locale.ROOT));
+        }
+      }
     }
+    final Set<String> statusesFilter = statusesFilterBuffer;
+
+    Set<String> typesFilterBuffer = null;
+    if (resolvedFilters.types() != null && !resolvedFilters.types().isEmpty()) {
+      typesFilterBuffer = new HashSet<>();
+      for (String type : resolvedFilters.types()) {
+        String normalized = blankToNull(type);
+        if (normalized != null) {
+          typesFilterBuffer.add(normalized.toLowerCase(Locale.ROOT));
+        }
+      }
+    }
+    final Set<String> typesFilter = typesFilterBuffer;
+
+    String merchantFilterValue = blankToNull(resolvedFilters.merchant());
+    if (merchantFilterValue != null) {
+      merchantFilterValue = merchantFilterValue.toLowerCase(Locale.ROOT);
+    }
+    final String merchantFilter = merchantFilterValue;
+
+    String textFilterValue = blankToNull(resolvedFilters.text());
+    if (textFilterValue != null) {
+      textFilterValue = textFilterValue.toLowerCase(Locale.ROOT);
+    }
+    final String textFilter = textFilterValue;
+
     ListLedgerTransactionsQuery query = new ListLedgerTransactionsQuery(
       new AccountId(UUID.fromString(requireText(accountId, "accountId is required"))),
-      limit,
-      range,
-      blankToNull(merchant)
+      null,
+      null,
+      null
     );
-    boolean resolvedIncludeVoided = includeVoided != null && includeVoided;
-    return listTransactionsUC.execute(query).stream()
-      .filter((tx) -> resolvedIncludeVoided || tx.getStatus() != TransactionStatus.VOIDED)
+
+    List<Transaction> filtered = listTransactionsUC.execute(query).stream()
+      .filter((tx) -> fromInstant == null || !tx.getOccurredAt().isBefore(fromInstant))
+      .filter((tx) -> toInstant == null || !tx.getOccurredAt().isAfter(toInstant))
+      .filter((tx) -> statusesFilter == null || statusesFilter.contains(tx.getStatus().getValue().toLowerCase(Locale.ROOT)))
+      .filter((tx) -> typesFilter == null || typesFilter.contains(tx.getType().getValue().toLowerCase(Locale.ROOT)))
+      .filter((tx) -> {
+        if (merchantFilter == null) {
+          return true;
+        }
+        String merchantValue = tx.getMerchant() == null ? "" : tx.getMerchant().toLowerCase(Locale.ROOT);
+        return merchantValue.contains(merchantFilter);
+      })
+      .filter((tx) -> {
+        if (textFilter == null) {
+          return true;
+        }
+        String merchantValue = tx.getMerchant() == null ? "" : tx.getMerchant().toLowerCase(Locale.ROOT);
+        String descriptionValue = tx.getDescription() == null ? "" : tx.getDescription().toLowerCase(Locale.ROOT);
+        return merchantValue.contains(textFilter) || descriptionValue.contains(textFilter);
+      })
+      .toList();
+
+    List<LedgerTransactionSortInput> resolvedSort = sort == null || sort.isEmpty()
+      ? List.of(new LedgerTransactionSortInput("occurredAt", "desc"))
+      : sort;
+
+    List<Transaction> sorted = new java.util.ArrayList<>(filtered);
+    Comparator<Transaction> comparator = (left, right) -> {
+      for (LedgerTransactionSortInput criterion : resolvedSort) {
+        String field = blankToNull(criterion.field()) == null ? "occurredAt" : criterion.field();
+        String direction = blankToNull(criterion.direction()) == null ? "desc" : criterion.direction();
+
+        int comparison;
+        if ("amount".equalsIgnoreCase(field)) {
+          comparison = left.getAmount().getAmount().compareTo(right.getAmount().getAmount());
+        } else {
+          comparison = left.getOccurredAt().compareTo(right.getOccurredAt());
+        }
+
+        if (comparison != 0) {
+          return "asc".equalsIgnoreCase(direction) ? comparison : -comparison;
+        }
+      }
+      return right.getId().toString().compareTo(left.getId().toString());
+    };
+    sorted.sort(comparator);
+
+    int totalElements = sorted.size();
+    int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / pageSize);
+    int resolvedPage = totalPages == 0 ? 0 : Math.min(requestedPage, totalPages - 1);
+    int start = resolvedPage * pageSize;
+    int end = Math.min(start + pageSize, totalElements);
+
+    List<LedgerTransactionView> content = sorted.subList(start, end).stream()
       .map(AndroidLedgerCore::toTransactionView)
       .toList();
+
+    return new LedgerTransactionPageView(
+      content,
+      resolvedPage,
+      pageSize,
+      totalElements,
+      totalPages,
+      totalPages > 0 && resolvedPage + 1 < totalPages,
+      resolvedPage > 0
+    );
   }
 
   public String findMobillsImportTransactionId(String fingerprint) {
@@ -402,6 +537,36 @@ public final class AndroidLedgerCore {
     String merchant,
     String categoryId,
     List<LedgerTransactionItemView> items
+  ) {}
+
+  public record LedgerTransactionFilterInput(
+    String text,
+    String merchant,
+    String categoryId,
+    String fromDate,
+    String toDate,
+    List<String> statuses,
+    List<String> types
+  ) {}
+
+  public record LedgerPageRequestInput(
+    Integer page,
+    Integer size
+  ) {}
+
+  public record LedgerTransactionSortInput(
+    String field,
+    String direction
+  ) {}
+
+  public record LedgerTransactionPageView(
+    List<LedgerTransactionView> content,
+    int page,
+    int size,
+    int totalElements,
+    int totalPages,
+    boolean hasNext,
+    boolean hasPrevious
   ) {}
 
   public record LedgerTransferResultView(

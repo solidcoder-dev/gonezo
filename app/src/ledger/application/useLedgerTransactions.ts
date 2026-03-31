@@ -1,9 +1,10 @@
 import { useCallback } from 'react';
+import type { LedgerListTransactionsInput } from '../../shared/domain/corePort';
 import type { LedgerGatewayPort } from '../infrastructure/ledgerGateway';
 
 export function useLedgerTransactions(gateway: LedgerGatewayPort) {
   const listTransactions = useCallback(
-    (input: { accountId: string; limit?: number; includeVoided?: boolean }) => gateway.ledgerListTransactions(input),
+    (input: LedgerListTransactionsInput) => gateway.ledgerListTransactions(input),
     [gateway],
   );
 

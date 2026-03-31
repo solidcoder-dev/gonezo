@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 @CapacitorPlugin(name = "CorePlugin")
 public class CorePlugin extends Plugin {
@@ -310,27 +311,115 @@ public class CorePlugin extends Plugin {
   @PluginMethod
   public void ledgerListTransactions(PluginCall call) {
     String accountId = call.getString("accountId");
-    Integer limit = call.getInt("limit");
-    String fromDate = call.getString("fromDate");
-    String toDate = call.getString("toDate");
-    String categoryId = call.getString("categoryId");
-    String merchant = call.getString("merchant");
-    Boolean includeVoided = call.getBoolean("includeVoided");
+    JSObject filters = call.getObject("filters");
+    JSObject pagination = call.getObject("pagination");
+    JSONArray sort = call.getArray("sort");
 
     try {
+      String text = filters == null ? null : nullIfBlank(filters.getString("text", null));
+      String merchant = filters == null ? null : nullIfBlank(filters.getString("merchant", null));
+      String categoryId = filters == null ? null : nullIfBlank(filters.getString("categoryId", null));
+      List<String> categoryIds = filters == null ? null : toStringList(filters.optJSONArray("categoryIds"));
+      if ((categoryIds == null || categoryIds.isEmpty()) && categoryId != null) {
+        categoryIds = List.of(categoryId);
+      }
+      List<String> tagIds = filters == null ? null : toStringList(filters.optJSONArray("tagIds"));
+      BigDecimal amountMin = parseDecimalOrNull(filters == null ? null : filters.getString("amountMin", null));
+      BigDecimal amountMax = parseDecimalOrNull(filters == null ? null : filters.getString("amountMax", null));
+      if (amountMin != null && amountMax != null && amountMin.compareTo(amountMax) > 0) {
+        BigDecimal swap = amountMin;
+        amountMin = amountMax;
+        amountMax = swap;
+      }
+      String fromDate = filters == null ? null : nullIfBlank(filters.getString("fromDate", null));
+      String toDate = filters == null ? null : nullIfBlank(filters.getString("toDate", null));
+      List<String> statuses = filters == null ? null : toStringList(filters.optJSONArray("statuses"));
+      List<String> types = filters == null ? null : toStringList(filters.optJSONArray("types"));
+
+      int requestedPage = pagination == null ? 0 : Math.max(pagination.optInt("page", 0), 0);
+      int requestedSize = pagination == null ? 20 : pagination.optInt("size", 20);
+      int pageSize = requestedSize > 0 ? Math.min(requestedSize, 100) : 20;
+      List<AndroidLedgerCore.LedgerTransactionSortInput> resolvedSort = toSortInput(sort);
+
       AndroidLedgerCore core = AndroidLedgerCore.getInstance(getContext());
-      java.util.List<AndroidLedgerCore.LedgerTransactionView> transactions = core.listTransactions(
+      List<AndroidLedgerCore.LedgerTransactionView> allTransactions = listAllTransactions(
+        core,
         accountId,
-        limit,
-        fromDate,
-        toDate,
-        categoryId,
-        merchant,
-        includeVoided
+        new AndroidLedgerCore.LedgerTransactionFilterInput(
+          text,
+          merchant,
+          null,
+          fromDate,
+          toDate,
+          statuses,
+          types
+        ),
+        resolvedSort
       );
 
+      java.util.Set<String> categoryFilter = categoryIds == null || categoryIds.isEmpty()
+        ? null
+        : new java.util.HashSet<>(categoryIds);
+      java.util.Set<String> tagFilter = tagIds == null || tagIds.isEmpty()
+        ? null
+        : new java.util.HashSet<>(tagIds);
+
+      List<AndroidLedgerCore.LedgerTransactionView> filteredTransactions = new ArrayList<>();
+      for (AndroidLedgerCore.LedgerTransactionView tx : allTransactions) {
+        String resolvedCategoryId = transactionCategoryByTransactionId.get(tx.id());
+        if (resolvedCategoryId == null || resolvedCategoryId.trim().isEmpty()) {
+          resolvedCategoryId = tx.categoryId();
+        }
+
+        if (categoryFilter != null && (resolvedCategoryId == null || !categoryFilter.contains(resolvedCategoryId))) {
+          continue;
+        }
+
+        if (tagFilter != null) {
+          List<String> assignedTagIds = transactionTagsByTransactionId.get(tx.id());
+          if (assignedTagIds == null || assignedTagIds.isEmpty()) {
+            continue;
+          }
+          boolean matchesAnyTag = false;
+          for (String assignedTagId : assignedTagIds) {
+            if (tagFilter.contains(assignedTagId)) {
+              matchesAnyTag = true;
+              break;
+            }
+          }
+          if (!matchesAnyTag) {
+            continue;
+          }
+        }
+
+        if (amountMin != null || amountMax != null) {
+          BigDecimal amount;
+          try {
+            amount = new BigDecimal(tx.amount());
+          } catch (NumberFormatException ex) {
+            continue;
+          }
+
+          if (amountMin != null && amount.compareTo(amountMin) < 0) {
+            continue;
+          }
+          if (amountMax != null && amount.compareTo(amountMax) > 0) {
+            continue;
+          }
+        }
+
+        filteredTransactions.add(tx);
+      }
+
+      int totalElements = filteredTransactions.size();
+      int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / pageSize);
+      int resolvedPage = totalPages == 0 ? 0 : Math.min(requestedPage, totalPages - 1);
+      int start = resolvedPage * pageSize;
+      int end = Math.min(start + pageSize, totalElements);
+      List<AndroidLedgerCore.LedgerTransactionView> pageTransactions = filteredTransactions.subList(start, end);
+
       org.json.JSONArray items = new org.json.JSONArray();
-      for (AndroidLedgerCore.LedgerTransactionView tx : transactions) {
+      for (AndroidLedgerCore.LedgerTransactionView tx : pageTransactions) {
         JSObject item = new JSObject();
         item.put("id", tx.id());
         item.put("accountId", tx.accountId());
@@ -364,7 +453,14 @@ public class CorePlugin extends Plugin {
       }
 
       JSObject result = new JSObject();
+      result.put("content", items);
       result.put("items", items);
+      result.put("page", resolvedPage);
+      result.put("size", pageSize);
+      result.put("totalElements", totalElements);
+      result.put("totalPages", totalPages);
+      result.put("hasNext", totalPages > 0 && resolvedPage + 1 < totalPages);
+      result.put("hasPrevious", resolvedPage > 0);
       call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());
@@ -567,6 +663,78 @@ public class CorePlugin extends Plugin {
     } catch (Exception ex) {
       call.reject(ex.getMessage());
     }
+  }
+
+  private List<String> toStringList(JSONArray values) {
+    if (values == null || values.length() == 0) {
+      return null;
+    }
+    List<String> result = new ArrayList<>();
+    for (int index = 0; index < values.length(); index++) {
+      String value = values.optString(index, "").trim();
+      if (!value.isEmpty()) {
+        result.add(value);
+      }
+    }
+    return result.isEmpty() ? null : result;
+  }
+
+  private BigDecimal parseDecimalOrNull(String value) {
+    String normalized = nullIfBlank(value);
+    if (normalized == null) {
+      return null;
+    }
+    try {
+      return new BigDecimal(normalized);
+    } catch (NumberFormatException ex) {
+      return null;
+    }
+  }
+
+  private List<AndroidLedgerCore.LedgerTransactionView> listAllTransactions(
+    AndroidLedgerCore core,
+    String accountId,
+    AndroidLedgerCore.LedgerTransactionFilterInput filters,
+    List<AndroidLedgerCore.LedgerTransactionSortInput> sort
+  ) {
+    List<AndroidLedgerCore.LedgerTransactionView> all = new ArrayList<>();
+    int page = 0;
+    while (true) {
+      AndroidLedgerCore.LedgerTransactionPageView chunk = core.listTransactions(
+        accountId,
+        filters,
+        new AndroidLedgerCore.LedgerPageRequestInput(page, 100),
+        sort
+      );
+      all.addAll(chunk.content());
+      if (!chunk.hasNext()) {
+        break;
+      }
+      page += 1;
+    }
+    return all;
+  }
+
+  private List<AndroidLedgerCore.LedgerTransactionSortInput> toSortInput(JSONArray values) {
+    List<AndroidLedgerCore.LedgerTransactionSortInput> result = new ArrayList<>();
+    if (values != null) {
+      for (int index = 0; index < values.length(); index++) {
+        JSONObject item = values.optJSONObject(index);
+        if (item == null) {
+          continue;
+        }
+        String field = nullIfBlank(item.optString("field", null));
+        String direction = nullIfBlank(item.optString("direction", null));
+        if (field == null) {
+          continue;
+        }
+        result.add(new AndroidLedgerCore.LedgerTransactionSortInput(field, direction == null ? "desc" : direction));
+      }
+    }
+    if (result.isEmpty()) {
+      result.add(new AndroidLedgerCore.LedgerTransactionSortInput("occurredAt", "desc"));
+    }
+    return result;
   }
 
   private JSObject importMobillsText(

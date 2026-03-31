@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type {
+  CorePort,
   LedgerAccountItem,
   LedgerTransactionListItem,
   TaxonomyCategoryItem,
@@ -25,126 +26,7 @@ import type {
 import type { ComposerMode, ExpenseItemDraft, TransactionFieldErrors } from '../../transactions/domain/transactions.types';
 export type { TransactionType } from '../../transactions/domain/transactions.types';
 
-export type AccountsCorePort = {
-  ledgerListSupportedCurrencies(): Promise<{ items: string[] }>;
-  ledgerListAccounts(): Promise<{ items: LedgerAccountItem[] }>;
-  ledgerGetAccountSummary(input: { accountId: string }): Promise<{
-    accountId: string;
-    name: string;
-    type: string;
-    currency: string;
-    balanceAmount: string;
-  }>;
-  ledgerListTransactions(input: {
-    accountId: string;
-    limit?: number;
-    includeVoided?: boolean;
-  }): Promise<{ items: LedgerTransactionListItem[] }>;
-  ledgerOpenAccount(input: {
-    name: string;
-    type?: string;
-    currency: string;
-    createdAt?: string;
-    openingBalanceAmount?: string;
-  }): Promise<{ id: string }>;
-  ledgerRenameAccount(input: {
-    accountId: string;
-    name: string;
-  }): Promise<void>;
-  ledgerArchiveAccount(input: {
-    accountId: string;
-    archivedAt?: string;
-  }): Promise<void>;
-  ledgerDeleteAccount(input: {
-    accountId: string;
-  }): Promise<void>;
-  ledgerRecordExpense(input: {
-    accountId: string;
-    occurredAt: string;
-    amount: string;
-    currency: string;
-    description?: string;
-    merchant?: string;
-  }): Promise<{ id: string }>;
-  ledgerRecordIncome(input: {
-    accountId: string;
-    occurredAt: string;
-    amount: string;
-    currency: string;
-    description?: string;
-    merchant?: string;
-  }): Promise<{ id: string }>;
-  ledgerRecordTransfer(input: {
-    fromAccountId: string;
-    toAccountId: string;
-    occurredAt: string;
-    amount: string;
-    currency: string;
-    description?: string;
-  }): Promise<{ transferOutId: string; transferInId: string }>;
-  ledgerCreateExpenseDraft(input: {
-    accountId: string;
-    occurredAt: string;
-    amount: string;
-    currency: string;
-    description?: string;
-    merchant?: string;
-  }): Promise<{ id: string }>;
-  ledgerAddTransactionItem(input: {
-    transactionId: string;
-    name: string;
-    amount: string;
-    currency: string;
-    note?: string;
-  }): Promise<void>;
-  ledgerPostDraftTransaction(input: { transactionId: string }): Promise<void>;
-  ledgerVoidTransaction(input: { transactionId: string }): Promise<void>;
-  taxonomyListCategories(input?: {
-    appliesTo?: TaxonomyCategoryAppliesTo;
-    includeArchived?: boolean;
-  }): Promise<{ items: TaxonomyCategoryItem[] }>;
-  taxonomyCreateCategory(input: {
-    name: string;
-    appliesTo: TaxonomyCategoryAppliesTo;
-  }): Promise<{ id: string }>;
-  taxonomyListTags(input?: {
-    includeArchived?: boolean;
-  }): Promise<{ items: TaxonomyTagItem[] }>;
-  mobillsImport(input: {
-    fileBase64: string;
-    policy?: TransactionsImportPolicyInput;
-  }): Promise<TransactionsImportResult>;
-  orchestrationCategorizeTransaction(input: {
-    transactionId: string;
-    transactionType: TaxonomyCategoryAppliesTo;
-    categoryId?: string;
-  }): Promise<{
-    status: 'assigned' | 'failed' | 'none';
-    categoryId?: string;
-    errorCode?: string;
-    errorMessage?: string;
-  }>;
-  orchestrationApplyTransactionTags(input: {
-    transactionId: string;
-    tagNames: string[];
-  }): Promise<{
-    status: 'assigned' | 'failed' | 'none';
-    tagIds?: string[];
-    errorCode?: string;
-    errorMessage?: string;
-  }>;
-  orchestrationListTransactionTaxonomy(input: {
-    transactionIds: string[];
-  }): Promise<{
-    items: Array<{
-      transactionId: string;
-      categoryId?: string;
-      tagIds?: string[];
-      categorizationStatus?: 'none' | 'pending' | 'processing' | 'assigned' | 'failed';
-      taggingStatus?: 'none' | 'pending' | 'processing' | 'assigned' | 'failed';
-    }>;
-  }>;
-};
+export type AccountsCorePort = CorePort;
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -461,11 +343,19 @@ export function useAccountsPageModel(core: AccountsCorePort) {
 
     const transactionResult = await ledgerTransactions.listTransactions({
       accountId: nextSelectedId,
-      limit: 20,
-      includeVoided: true,
+      filters: {
+        statuses: ['draft', 'posted', 'voided'],
+      },
+      pagination: {
+        page: 0,
+        size: 20,
+      },
+      sort: [
+        { field: 'occurredAt', direction: 'desc' },
+      ],
     });
-    setTransactions(transactionResult.items);
-    await refreshTransactionTaxonomy(transactionResult.items);
+    setTransactions(transactionResult.content);
+    await refreshTransactionTaxonomy(transactionResult.content);
   }
 
   useEffect(() => {
@@ -518,9 +408,21 @@ export function useAccountsPageModel(core: AccountsCorePort) {
     try {
       const summary = await ledgerAccounts.getAccountSummary({ accountId });
       setBalanceAmount(summary.balanceAmount);
-      const transactionResult = await ledgerTransactions.listTransactions({ accountId, limit: 20, includeVoided: true });
-      setTransactions(transactionResult.items);
-      await refreshTransactionTaxonomy(transactionResult.items);
+      const transactionResult = await ledgerTransactions.listTransactions({
+        accountId,
+        filters: {
+          statuses: ['draft', 'posted', 'voided'],
+        },
+        pagination: {
+          page: 0,
+          size: 20,
+        },
+        sort: [
+          { field: 'occurredAt', direction: 'desc' },
+        ],
+      });
+      setTransactions(transactionResult.content);
+      await refreshTransactionTaxonomy(transactionResult.content);
       setHistoryExpanded(false);
       const nextTarget =
         transferToAccountId && transferToAccountId !== accountId && accounts.some((item) => item.id === transferToAccountId)

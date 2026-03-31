@@ -1,4 +1,8 @@
-import type { LedgerAccountItem, LedgerTransactionListItem } from '../../shared/domain/corePort';
+import type {
+  LedgerAccountItem,
+  LedgerListTransactionsInput,
+  LedgerListTransactionsResult,
+} from '../../shared/domain/corePort';
 
 export type LedgerGatewayPort = {
   ledgerListSupportedCurrencies(): Promise<{ items: string[] }>;
@@ -10,11 +14,7 @@ export type LedgerGatewayPort = {
     currency: string;
     balanceAmount: string;
   }>;
-  ledgerListTransactions(input: {
-    accountId: string;
-    limit?: number;
-    includeVoided?: boolean;
-  }): Promise<{ items: LedgerTransactionListItem[] }>;
+  ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult>;
   ledgerOpenAccount(input: {
     name: string;
     type?: string;

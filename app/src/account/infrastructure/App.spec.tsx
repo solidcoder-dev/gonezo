@@ -3,7 +3,96 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../App';
 import type { AccountsCorePort } from '../application/useAccountPageModel';
-import type { LedgerTransactionListItem } from '../../shared/domain/corePort';
+import type {
+  LedgerListTransactionsInput,
+  LedgerListTransactionsResult,
+  LedgerTransactionListItem,
+} from '../../shared/domain/corePort';
+
+function toPagedResult(
+  source: LedgerTransactionListItem[],
+  input: LedgerListTransactionsInput,
+): LedgerListTransactionsResult {
+  const filters = input.filters ?? {};
+  const categoryIds = filters.categoryIds && filters.categoryIds.length > 0
+    ? filters.categoryIds
+    : filters.categoryId
+      ? [filters.categoryId]
+      : [];
+  const tagIds = filters.tagIds ?? [];
+  const parsedMinAmount = filters.amountMin == null ? undefined : Number(filters.amountMin);
+  const parsedMaxAmount = filters.amountMax == null ? undefined : Number(filters.amountMax);
+  const hasMinAmount = typeof parsedMinAmount === 'number' && Number.isFinite(parsedMinAmount);
+  const hasMaxAmount = typeof parsedMaxAmount === 'number' && Number.isFinite(parsedMaxAmount);
+  const size = input.pagination?.size ?? 20;
+  const requestedPage = input.pagination?.page ?? 0;
+  const sort = input.sort && input.sort.length > 0 ? input.sort : [{ field: 'occurredAt', direction: 'desc' as const }];
+
+  const filtered = source
+    .filter((item) => item.accountId === input.accountId)
+    .filter((item) => !filters.statuses || filters.statuses.length === 0 || filters.statuses.includes(item.status))
+    .filter((item) => !filters.types || filters.types.length === 0 || filters.types.includes(item.type))
+    .filter((item) => categoryIds.length === 0 || (item.categoryId != null && categoryIds.includes(item.categoryId)))
+    .filter((item) => tagIds.length === 0 || (item.tags ?? []).some((tag) => tagIds.includes(tag.id)))
+    .filter((item) => {
+      if (!hasMinAmount && !hasMaxAmount) {
+        return true;
+      }
+      const amount = Number(item.amount);
+      if (!Number.isFinite(amount)) {
+        return false;
+      }
+      if (hasMinAmount && amount < parsedMinAmount!) {
+        return false;
+      }
+      if (hasMaxAmount && amount > parsedMaxAmount!) {
+        return false;
+      }
+      return true;
+    })
+    .filter((item) => !filters.fromDate || item.occurredAt >= filters.fromDate)
+    .filter((item) => !filters.toDate || item.occurredAt <= filters.toDate)
+    .filter((item) => !filters.merchant || (item.merchant ?? '').toLowerCase().includes(filters.merchant.toLowerCase()))
+    .filter((item) => {
+      if (!filters.text) {
+        return true;
+      }
+      const normalizedText = filters.text.toLowerCase();
+      return (item.merchant ?? '').toLowerCase().includes(normalizedText)
+        || (item.description ?? '').toLowerCase().includes(normalizedText);
+    });
+
+  const sorted = [...filtered].sort((left, right) => {
+    for (const criterion of sort) {
+      let comparison = 0;
+      if (criterion.field === 'amount') {
+        comparison = Number(left.amount) - Number(right.amount);
+      } else {
+        comparison = left.occurredAt.localeCompare(right.occurredAt);
+      }
+      if (comparison !== 0) {
+        return criterion.direction === 'asc' ? comparison : -comparison;
+      }
+    }
+    return right.id.localeCompare(left.id);
+  });
+
+  const totalElements = sorted.length;
+  const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / size);
+  const page = totalPages === 0 ? 0 : Math.min(Math.max(requestedPage, 0), totalPages - 1);
+  const start = page * size;
+  const content = sorted.slice(start, start + size);
+
+  return {
+    content,
+    page,
+    size,
+    totalElements,
+    totalPages,
+    hasNext: totalPages > 0 && page + 1 < totalPages,
+    hasPrevious: page > 0,
+  };
+}
 
 function makeCore(transactionCount = 0): AccountsCorePort {
   const transactions: LedgerTransactionListItem[] = Array.from({ length: transactionCount }).map((_, index) => ({
@@ -20,6 +109,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
   }));
 
   return {
+    doThing: vi.fn(async () => ({ status: 'ok' as const, message: 'ok' })) as AccountsCorePort['doThing'],
     ledgerListSupportedCurrencies: vi.fn(async () => ({ items: ['EUR', 'USD'] })),
     ledgerListAccounts: vi.fn(async () => ({
       items: [
@@ -46,7 +136,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
       currency: 'USD',
       balanceAmount: '100.00',
     })),
-    ledgerListTransactions: vi.fn(async () => ({ items: transactions })),
+    ledgerListTransactions: vi.fn(async (input) => toPagedResult(transactions, input)),
     ledgerOpenAccount: vi.fn(async () => ({ id: 'acc-1' })),
     ledgerRenameAccount: vi.fn(async () => undefined),
     ledgerArchiveAccount: vi.fn(async () => undefined),
@@ -575,7 +665,7 @@ describe('App Accounts UX', () => {
       },
     ];
 
-    vi.mocked(core.ledgerListTransactions).mockImplementation(async () => ({ items: [...transactions] }));
+    vi.mocked(core.ledgerListTransactions).mockImplementation(async (input) => toPagedResult([...transactions], input));
     vi.mocked(core.ledgerRecordExpense).mockImplementation(async () => {
       transactions.unshift({
         id: 'tx-new',
@@ -598,7 +688,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Recent transactions' });
+    await screen.findByRole('heading', { name: 'Transactions' });
     await waitFor(() => {
       expect(core.ledgerListTransactions).toHaveBeenCalledTimes(1);
     });
@@ -746,11 +836,12 @@ describe('App Accounts UX', () => {
 
   it('refreshes categories from backend when opening transaction composer', async () => {
     const core = makeCore();
+    const travelCategories = {
+      items: [{ id: 'cat-travel', name: 'Travel', appliesTo: 'expense' as const, status: 'active' as const }],
+    };
     vi.mocked(core.taxonomyListCategories)
       .mockResolvedValueOnce({ items: [] })
-      .mockResolvedValueOnce({
-        items: [{ id: 'cat-travel', name: 'Travel', appliesTo: 'expense' as const, status: 'active' as const }],
-      });
+      .mockResolvedValue(travelCategories);
 
     const view = render(
       <MemoryRouter>
@@ -763,7 +854,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Toggle advanced options' }));
 
     await waitFor(() => {
-      expect(core.taxonomyListCategories).toHaveBeenCalledTimes(2);
+      expect(vi.mocked(core.taxonomyListCategories).mock.calls.length).toBeGreaterThanOrEqual(2);
     });
     expect(view.container.querySelector('datalist option[value="Travel"]')).not.toBeNull();
   });
@@ -976,9 +1067,10 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Recent transactions' });
+    await screen.findByRole('heading', { name: 'Transactions' });
+    const voidButton = await screen.findByRole('button', { name: 'Void' });
     vi.useFakeTimers();
-    fireEvent.click(screen.getByRole('button', { name: 'Void' }));
+    fireEvent.click(voidButton);
     expect(core.ledgerVoidTransaction).toHaveBeenCalledTimes(0);
     await vi.advanceTimersByTimeAsync(5000);
     await Promise.resolve();
@@ -994,9 +1086,10 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Recent transactions' });
+    await screen.findByRole('heading', { name: 'Transactions' });
+    const voidButton = await screen.findByRole('button', { name: 'Void' });
     vi.useFakeTimers();
-    fireEvent.click(screen.getByRole('button', { name: 'Void' }));
+    fireEvent.click(voidButton);
 
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.getByRole('status')).toHaveTextContent('Void canceled.');
@@ -1021,7 +1114,7 @@ describe('App Accounts UX', () => {
       .orchestrationListTransactionTaxonomy = listTransactionTaxonomy;
 
     vi.mocked(core.ledgerListTransactions).mockResolvedValueOnce({
-      items: [
+      content: [
         {
           id: 'tx-1',
           accountId: 'acc-1',
@@ -1035,6 +1128,12 @@ describe('App Accounts UX', () => {
           items: [],
         },
       ],
+      page: 0,
+      size: 10,
+      totalElements: 1,
+      totalPages: 1,
+      hasNext: false,
+      hasPrevious: false,
     });
 
     const view = render(
@@ -1043,7 +1142,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Recent transactions' });
+    await screen.findByRole('heading', { name: 'Transactions' });
 
     await waitFor(() => {
       expect(listTransactionTaxonomy).toHaveBeenCalledWith({ transactionIds: ['tx-1'] });
@@ -1057,7 +1156,7 @@ describe('App Accounts UX', () => {
     expect(timeElements.some((element) => (element.textContent ?? '').includes(':'))).toBe(true);
   });
 
-  it('shows See all only when there are more than three transactions', async () => {
+  it('always shows Filter action for transactions', async () => {
     const coreWithMoreThanThree = makeCore(5);
 
     render(
@@ -1066,11 +1165,11 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Recent transactions' });
-    expect(screen.getByRole('button', { name: 'See all' })).toBeInTheDocument();
+    await screen.findByRole('heading', { name: 'Transactions' });
+    expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument();
   });
 
-  it('hides See all when there are three or fewer transactions', async () => {
+  it('opens filters panel and applies search', async () => {
     const coreWithThree = makeCore(3);
 
     render(
@@ -1079,7 +1178,96 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Recent transactions' });
-    expect(screen.queryByRole('button', { name: 'See all' })).not.toBeInTheDocument();
+    await screen.findByRole('heading', { name: 'Transactions' });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filter' })).not.toBeDisabled();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    expect(screen.getByLabelText('Transaction filters')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Search transactions'), { target: { value: 'Merchant 1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    await waitFor(() => {
+      expect(coreWithThree.ledgerListTransactions).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('resets filters when switching account', async () => {
+    const coreWithThree = makeCore(3);
+
+    render(
+      <MemoryRouter>
+        <App required={{ core: coreWithThree }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { name: 'Transactions' });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filter' })).not.toBeDisabled();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    fireEvent.change(screen.getByLabelText('Search transactions'), { target: { value: 'Merchant 1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+
+    await waitFor(() => {
+      expect(coreWithThree.ledgerListTransactions).toHaveBeenCalledTimes(2);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Accounts' }));
+    await screen.findByRole('dialog', { name: 'Select account' });
+    fireEvent.click(screen.getByRole('button', { name: /Savings/ }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filter' })).not.toBeDisabled();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+
+    expect(screen.getByLabelText('Search transactions')).toHaveValue('');
+  });
+
+  it('applies category, tag and amount range filters', async () => {
+    const coreWithThree = makeCore(3);
+
+    render(
+      <MemoryRouter>
+        <App required={{ core: coreWithThree }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { name: 'Transactions' });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Filter' })).not.toBeDisabled();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'More filters' }));
+
+    const categorySelect = await screen.findByLabelText('Categories');
+    const tagSelect = await screen.findByLabelText('Tags');
+
+    for (const option of (categorySelect as HTMLSelectElement).options) {
+      option.selected = option.value === 'cat-food';
+    }
+    fireEvent.change(categorySelect);
+
+    for (const option of (tagSelect as HTMLSelectElement).options) {
+      option.selected = option.value === 'tag-home';
+    }
+    fireEvent.change(tagSelect);
+
+    fireEvent.change(screen.getByLabelText('Min amount'), { target: { value: '5' } });
+    fireEvent.change(screen.getByLabelText('Max amount'), { target: { value: '20' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+
+    await waitFor(() => {
+      expect(coreWithThree.ledgerListTransactions).toHaveBeenCalledTimes(2);
+    });
+
+    const lastCall = vi.mocked(coreWithThree.ledgerListTransactions).mock.calls.at(-1);
+    expect(lastCall?.[0].filters).toMatchObject({
+      categoryIds: ['cat-food'],
+      categoryId: 'cat-food',
+      tagIds: ['tag-home'],
+      amountMin: '5',
+      amountMax: '20',
+    });
   });
 });

@@ -130,14 +130,43 @@ export type LedgerVoidTransactionInput = {
   transactionId: string;
 };
 
-export type LedgerListTransactionsInput = {
-  accountId: string;
-  limit?: number;
+export type LedgerTransactionType = 'income' | 'expense' | 'transfer' | 'transfer_out' | 'transfer_in';
+
+export type LedgerTransactionStatus = 'draft' | 'posted' | 'voided';
+
+export type LedgerTransactionFilterInput = {
+  text?: string;
+  merchant?: string;
+  categoryId?: string;
+  categoryIds?: string[];
+  tagIds?: string[];
+  amountMin?: string;
+  amountMax?: string;
   fromDate?: string;
   toDate?: string;
-  categoryId?: string;
-  merchant?: string;
-  includeVoided?: boolean;
+  statuses?: LedgerTransactionStatus[];
+  types?: LedgerTransactionType[];
+};
+
+export type LedgerTransactionSortField = 'occurredAt' | 'amount';
+
+export type LedgerSortDirection = 'asc' | 'desc';
+
+export type LedgerTransactionSortInput = {
+  field: LedgerTransactionSortField;
+  direction: LedgerSortDirection;
+};
+
+export type LedgerPageRequestInput = {
+  page?: number;
+  size?: number;
+};
+
+export type LedgerListTransactionsInput = {
+  accountId: string;
+  filters?: LedgerTransactionFilterInput;
+  pagination?: LedgerPageRequestInput;
+  sort?: LedgerTransactionSortInput[];
 };
 
 export type LedgerTransactionBreakdownItem = {
@@ -152,8 +181,8 @@ export type LedgerTransactionBreakdownItem = {
 export type LedgerTransactionListItem = {
   id: string;
   accountId: string;
-  type: 'income' | 'expense' | 'transfer' | 'transfer_out' | 'transfer_in';
-  status: 'draft' | 'posted' | 'voided';
+  type: LedgerTransactionType;
+  status: LedgerTransactionStatus;
   amount: string;
   currency: string;
   occurredAt: string;
@@ -174,7 +203,13 @@ export type LedgerTransactionListItem = {
 };
 
 export type LedgerListTransactionsResult = {
-  items: LedgerTransactionListItem[];
+  content: LedgerTransactionListItem[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
 };
 
 export type TaxonomyCategoryAppliesTo = 'income' | 'expense';

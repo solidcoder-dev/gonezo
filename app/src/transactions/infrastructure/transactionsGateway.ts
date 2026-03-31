@@ -1,11 +1,7 @@
-import type { LedgerTransactionListItem } from '../../shared/domain/corePort';
+import type { LedgerListTransactionsInput, LedgerListTransactionsResult } from '../../shared/domain/corePort';
 
 export type TransactionsGatewayPort = {
-  ledgerListTransactions(input: {
-    accountId: string;
-    limit?: number;
-    includeVoided?: boolean;
-  }): Promise<{ items: LedgerTransactionListItem[] }>;
+  ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult>;
   ledgerVoidTransaction(input: { transactionId: string }): Promise<void>;
 };
 

@@ -43,10 +43,18 @@ describe('CoreAdapterWeb mobillsImport', () => {
     expect(bbva).toBeDefined();
     expect(tradeRepublic).toBeDefined();
 
-    const bbvaTx = await core.ledgerListTransactions({ accountId: bbva!.id, includeVoided: true, limit: 20 });
-    const tradeTx = await core.ledgerListTransactions({ accountId: tradeRepublic!.id, includeVoided: true, limit: 20 });
-    expect(bbvaTx.items.some((tx) => tx.type === 'transfer_out' && tx.amount === '100.00')).toBe(true);
-    expect(tradeTx.items.some((tx) => tx.type === 'transfer_in' && tx.amount === '100.00')).toBe(true);
+    const bbvaTx = await core.ledgerListTransactions({
+      accountId: bbva!.id,
+      filters: { statuses: ['draft', 'posted', 'voided'] },
+      pagination: { page: 0, size: 20 },
+    });
+    const tradeTx = await core.ledgerListTransactions({
+      accountId: tradeRepublic!.id,
+      filters: { statuses: ['draft', 'posted', 'voided'] },
+      pagination: { page: 0, size: 20 },
+    });
+    expect(bbvaTx.content.some((tx) => tx.type === 'transfer_out' && tx.amount === '100.00')).toBe(true);
+    expect(tradeTx.content.some((tx) => tx.type === 'transfer_in' && tx.amount === '100.00')).toBe(true);
   });
 
   it('imports csv content with quoted commas', async () => {

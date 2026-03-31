@@ -22,8 +22,6 @@ export function RecentTransactionsComponent({ required, provided = {} }: RecentT
     return null;
   }
 
-  const historyReady = !model.required.status.loading || model.required.state.items.length > 0;
-
   return (
     <>
       {model.error ? (
@@ -46,9 +44,7 @@ export function RecentTransactionsComponent({ required, provided = {} }: RecentT
         </div>
       ) : null}
 
-      {historyReady ? (
-        <TransactionHistoryView required={model.required} provided={model.provided} />
-      ) : null}
+      <TransactionHistoryView required={model.required} provided={model.provided} />
     </>
   );
 }

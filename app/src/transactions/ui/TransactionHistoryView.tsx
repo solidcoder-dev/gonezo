@@ -12,13 +12,34 @@ export function TransactionHistoryView({ required, provided }: TransactionHistor
     <RecentTransactionsListView
       required={{
         items: required.state.items,
-        hiddenCount: required.state.hiddenCount,
-        expanded: required.state.expanded,
+        filtersOpen: required.state.filtersOpen,
+        filtersAdvancedOpen: required.state.filtersAdvancedOpen,
+        filters: required.state.filters,
+        filterOptions: required.state.filterOptions,
+        pagination: required.state.pagination,
+        loading: required.status.loading,
         disabled: required.status.disabled,
         pendingVoidTransactionId: required.state.pendingVoidTransactionId,
       }}
       provided={{
-        onViewAll: provided.commands.expandHistory,
+        onOpenFilters: provided.commands.openFilters,
+        onCloseFilters: provided.commands.closeFilters,
+        onToggleAdvancedFilters: provided.commands.toggleAdvancedFilters,
+        onResetFilters: provided.commands.resetFilters,
+        onFilterTextChange: provided.commands.setFilterText,
+        onFilterCategoryIdsChange: provided.commands.setFilterCategoryIds,
+        onFilterTagIdsChange: provided.commands.setFilterTagIds,
+        onFilterAmountMinChange: provided.commands.setFilterAmountMin,
+        onFilterAmountMaxChange: provided.commands.setFilterAmountMax,
+        onFilterFromDateChange: provided.commands.setFilterFromDate,
+        onFilterToDateChange: provided.commands.setFilterToDate,
+        onFilterStatusChange: provided.commands.setFilterStatus,
+        onSortFieldChange: provided.commands.setSortField,
+        onSortDirectionChange: provided.commands.setSortDirection,
+        onPageSizeChange: provided.commands.setPageSize,
+        onApplyFilters: provided.commands.applyFilters,
+        onPreviousPage: provided.commands.goToPreviousPage,
+        onNextPage: provided.commands.goToNextPage,
         onVoid: provided.commands.requestVoid,
       }}
     />
