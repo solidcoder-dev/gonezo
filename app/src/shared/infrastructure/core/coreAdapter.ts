@@ -38,6 +38,10 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
+  TransactionVoiceCaptureInput,
+  TransactionVoiceCaptureResult,
+  TransactionVoiceFinalizeInput,
+  TransactionVoiceFinalizeResult,
 } from '../../domain/corePort';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
@@ -216,5 +220,19 @@ export class CoreAdapter implements CorePort {
       return CorePlugin.orchestrationListTransactionTaxonomy(input);
     }
     return this.web.orchestrationListTransactionTaxonomy(input);
+  }
+
+  async transactionVoiceCapture(input: TransactionVoiceCaptureInput): Promise<TransactionVoiceCaptureResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.transactionVoiceCapture(input);
+    }
+    return this.web.transactionVoiceCapture(input);
+  }
+
+  async transactionVoiceFinalize(input: TransactionVoiceFinalizeInput): Promise<TransactionVoiceFinalizeResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.transactionVoiceFinalize(input);
+    }
+    return this.web.transactionVoiceFinalize(input);
   }
 }

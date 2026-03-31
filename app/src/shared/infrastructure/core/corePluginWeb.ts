@@ -37,6 +37,10 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
+  TransactionVoiceCaptureInput,
+  TransactionVoiceCaptureResult,
+  TransactionVoiceFinalizeInput,
+  TransactionVoiceFinalizeResult,
 } from '../../domain/corePort';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import type { CorePlugin } from './corePlugin';
@@ -140,5 +144,13 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
     options: OrchestrationListTransactionTaxonomyInput,
   ): Promise<OrchestrationListTransactionTaxonomyResult> {
     return this.core.orchestrationListTransactionTaxonomy(options);
+  }
+
+  async transactionVoiceCapture(options: TransactionVoiceCaptureInput): Promise<TransactionVoiceCaptureResult> {
+    return this.core.transactionVoiceCapture(options);
+  }
+
+  async transactionVoiceFinalize(options: TransactionVoiceFinalizeInput): Promise<TransactionVoiceFinalizeResult> {
+    return this.core.transactionVoiceFinalize(options);
   }
 }

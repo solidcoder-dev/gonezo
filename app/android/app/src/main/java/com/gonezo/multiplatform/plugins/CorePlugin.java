@@ -31,6 +31,7 @@ public class CorePlugin extends Plugin {
   private final java.util.List<JSObject> taxonomyTags = new java.util.ArrayList<>();
   private final java.util.Map<String, String> transactionCategoryByTransactionId = new java.util.HashMap<>();
   private final java.util.Map<String, java.util.List<String>> transactionTagsByTransactionId = new java.util.HashMap<>();
+  private final java.util.Map<String, JSObject> transactionVoiceAnalysisById = new java.util.HashMap<>();
 
   @PluginMethod
   public void doThing(PluginCall call) {
@@ -659,6 +660,133 @@ public class CorePlugin extends Plugin {
       }
       JSObject result = new JSObject();
       result.put("items", items);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void transactionVoiceCapture(PluginCall call) {
+    String accountId = call.getString("accountId");
+    String expectedType = call.getString("expectedType");
+    if (accountId == null || accountId.trim().isEmpty()) {
+      call.reject("accountId is required");
+      return;
+    }
+    if (expectedType == null || expectedType.trim().isEmpty()) {
+      call.reject("expectedType is required");
+      return;
+    }
+
+    String normalizedType = expectedType.trim().toLowerCase(Locale.ROOT);
+    if (!"expense".equals(normalizedType) && !"income".equals(normalizedType) && !"transfer".equals(normalizedType)) {
+      call.reject("expectedType must be expense, income or transfer");
+      return;
+    }
+
+    String analysisId = UUID.randomUUID().toString();
+    String recordingId = UUID.randomUUID().toString();
+    String createdAt = Instant.now().toString();
+
+    String defaultAmount;
+    if ("income".equals(normalizedType)) {
+      defaultAmount = "100.00";
+    } else if ("transfer".equals(normalizedType)) {
+      defaultAmount = "25.00";
+    } else {
+      defaultAmount = "10.00";
+    }
+
+    JSObject recording = new JSObject();
+    recording.put("id", recordingId);
+    recording.put("path", "storage://voice-recordings/" + recordingId + ".wav");
+    recording.put("createdAt", createdAt);
+
+    JSObject draft = new JSObject();
+    draft.put("type", normalizedType);
+    draft.put("amount", defaultAmount);
+    draft.put("occurredAt", createdAt);
+    draft.put("note", "");
+
+    JSObject analysis = new JSObject();
+    analysis.put("analysisId", analysisId);
+    analysis.put("accountId", accountId);
+    analysis.put("expectedType", normalizedType);
+    analysis.put("recording", recording);
+    analysis.put("draft", draft);
+    analysis.put("createdAt", createdAt);
+    try {
+      AndroidLedgerCore core = AndroidLedgerCore.getInstance(getContext());
+      core.recordTransactionVoiceCapture(
+        analysisId,
+        recordingId,
+        recording.getString("path"),
+        accountId,
+        normalizedType,
+        draft.toString(),
+        createdAt
+      );
+      transactionVoiceAnalysisById.put(analysisId, analysis);
+
+      JSObject result = new JSObject();
+      result.put("analysisId", analysisId);
+      result.put("recording", recording);
+      result.put("draft", draft);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void transactionVoiceFinalize(PluginCall call) {
+    String analysisId = call.getString("analysisId");
+    if (analysisId == null || analysisId.trim().isEmpty()) {
+      call.reject("analysisId is required");
+      return;
+    }
+
+    try {
+      AndroidLedgerCore core = AndroidLedgerCore.getInstance(getContext());
+      if (!core.hasTransactionVoiceCapture(analysisId)) {
+        call.reject("Voice analysis not found: " + analysisId);
+        return;
+      }
+
+      JSObject existing = transactionVoiceAnalysisById.get(analysisId);
+      String outcome = call.getString("outcome", "saved");
+      String finalizedAt = Instant.now().toString();
+      JSONArray transactionIds = call.getArray("transactionIds");
+      JSObject finalDraft = call.getObject("finalDraft");
+      String errorMessage = call.getString("errorMessage");
+
+      core.finalizeTransactionVoiceCapture(
+        analysisId,
+        outcome,
+        transactionIds == null ? null : transactionIds.toString(),
+        finalDraft == null ? null : finalDraft.toString(),
+        errorMessage,
+        finalizedAt
+      );
+
+      if (existing != null) {
+        existing.put("outcome", outcome);
+        existing.put("finalizedAt", finalizedAt);
+        if (finalDraft != null) {
+          existing.put("finalDraft", finalDraft);
+        }
+        if (transactionIds != null) {
+          existing.put("transactionIds", transactionIds);
+        }
+        if (errorMessage != null && !errorMessage.trim().isEmpty()) {
+          existing.put("errorMessage", errorMessage);
+        }
+      }
+
+      JSObject result = new JSObject();
+      result.put("analysisId", analysisId);
+      result.put("finalizedAt", finalizedAt);
       call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());

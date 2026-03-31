@@ -37,6 +37,10 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
+  TransactionVoiceCaptureInput,
+  TransactionVoiceCaptureResult,
+  TransactionVoiceFinalizeInput,
+  TransactionVoiceFinalizeResult,
 } from '../../domain/corePort';
 
 export interface CorePlugin {
@@ -69,6 +73,8 @@ export interface CorePlugin {
   orchestrationListTransactionTaxonomy(
     options: OrchestrationListTransactionTaxonomyInput,
   ): Promise<OrchestrationListTransactionTaxonomyResult>;
+  transactionVoiceCapture(options: TransactionVoiceCaptureInput): Promise<TransactionVoiceCaptureResult>;
+  transactionVoiceFinalize(options: TransactionVoiceFinalizeInput): Promise<TransactionVoiceFinalizeResult>;
 }
 
 export const CorePlugin = registerPlugin<CorePlugin>('CorePlugin', {

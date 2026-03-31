@@ -13,7 +13,10 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
       required={{
         open: required.state.open,
         mode: required.state.mode,
+        voicePhase: required.state.voicePhase,
+        voiceMode: required.state.voiceMode,
         disabled: required.status.disabled,
+        voiceProcessing: required.status.voiceProcessing,
         amount: required.state.amount,
         date: required.state.date,
         note: required.state.note,
@@ -39,6 +42,9 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
       provided={{
         onOpen: provided.commands.open,
         onClose: provided.commands.close,
+        onStartVoiceCapture: provided.commands.startVoiceCapture,
+        onCancelVoiceCapture: provided.commands.cancelVoiceCapture,
+        onConfirmVoiceCapture: provided.commands.confirmVoiceCapture,
         onSelectMode: provided.commands.selectMode,
         onToggleAdvanced: provided.commands.toggleAdvanced,
         onSetAmount: provided.commands.setAmount,

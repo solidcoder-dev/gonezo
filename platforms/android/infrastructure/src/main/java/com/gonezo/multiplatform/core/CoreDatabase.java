@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 10;
+  private static final int DB_VERSION = 11;
 
   CoreDatabase(Context context) {
     super(context, DB_NAME, null, DB_VERSION);
@@ -38,6 +38,10 @@ final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion < 10) {
       createMobillsImportTables(db);
     }
+
+    if (oldVersion < 11) {
+      createTransactionVoiceAnalysisTables(db);
+    }
   }
 
   @Override
@@ -50,6 +54,7 @@ final class CoreDatabase extends SQLiteOpenHelper {
     createLedgerTables(db);
     createTaxonomyTables(db);
     createMobillsImportTables(db);
+    createTransactionVoiceAnalysisTables(db);
   }
 
   private static void createLedgerTables(SQLiteDatabase db) {
@@ -142,7 +147,27 @@ final class CoreDatabase extends SQLiteOpenHelper {
     );
   }
 
+  private static void createTransactionVoiceAnalysisTables(SQLiteDatabase db) {
+    db.execSQL(
+      "create table if not exists transaction_voice_analysis (" +
+        "analysis_id text primary key," +
+        "recording_id text not null," +
+        "recording_path text not null," +
+        "account_id text not null," +
+        "expected_type text not null," +
+        "initial_draft_json text not null," +
+        "created_at text not null," +
+        "outcome text," +
+        "transaction_ids_json text," +
+        "final_draft_json text," +
+        "error_message text," +
+        "finalized_at text" +
+      ");"
+    );
+  }
+
   private static void dropTables(SQLiteDatabase db) {
+    db.execSQL("drop table if exists transaction_voice_analysis");
     db.execSQL("drop table if exists mobills_import_fingerprints");
     db.execSQL("drop table if exists taxonomy_transaction_assignments");
     db.execSQL("drop table if exists taxonomy_categories");

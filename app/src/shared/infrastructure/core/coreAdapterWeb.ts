@@ -38,6 +38,12 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
+  TransactionVoiceCaptureInput,
+  TransactionVoiceCaptureResult,
+  TransactionVoiceDraft,
+  TransactionVoiceFinalizeInput,
+  TransactionVoiceFinalizeResult,
+  TransactionVoiceType,
 } from '../../domain/corePort';
 
 type MemoryLedgerAccount = {
@@ -93,6 +99,21 @@ type MemoryTaxonomyTag = {
   archivedAt?: string;
 };
 
+type MemoryVoiceCaptureRecord = {
+  analysisId: string;
+  recordingId: string;
+  recordingPath: string;
+  accountId: string;
+  expectedType: TransactionVoiceType;
+  draft: TransactionVoiceDraft;
+  createdAt: string;
+  finalizedAt?: string;
+  outcome?: 'saved' | 'cancelled' | 'failed';
+  transactionIds?: string[];
+  finalDraft?: TransactionVoiceDraft;
+  errorMessage?: string;
+};
+
 export class CoreAdapterWeb implements CorePort {
   private static readonly supportedCurrencies = ['AUD', 'BRL', 'CAD', 'CHF', 'EUR', 'GBP', 'JPY', 'MXN', 'NZD', 'USD'];
 
@@ -107,6 +128,16 @@ export class CoreAdapterWeb implements CorePort {
   private static taxonomyTransactionTags: Map<string, string[]> = new Map();
 
   private static mobillsImportFingerprintToTransactionId: Map<string, string> = new Map();
+
+  private static voiceRecordingStorage: Map<string, {
+    id: string;
+    path: string;
+    mimeType: string;
+    payloadBase64: string;
+    createdAt: string;
+  }> = new Map();
+
+  private static voiceCaptureByAnalysisId: Map<string, MemoryVoiceCaptureRecord> = new Map();
 
   private accountOrThrow(accountId: string): MemoryLedgerAccount {
     const account = CoreAdapterWeb.ledgerAccounts.find((item) => item.id === accountId);
@@ -130,6 +161,101 @@ export class CoreAdapterWeb implements CorePort {
 
   private normalizeTagName(name: string): string {
     return name.trim().toLowerCase();
+  }
+
+  private encodeTextAsBase64(value: string): string {
+    const bytes = new TextEncoder().encode(value);
+    let binary = '';
+    for (const byte of bytes) {
+      binary += String.fromCharCode(byte);
+    }
+    return globalThis.btoa(binary);
+  }
+
+  private persistVoiceCapture(record: MemoryVoiceCaptureRecord) {
+    CoreAdapterWeb.voiceCaptureByAnalysisId.set(record.analysisId, record);
+    try {
+      globalThis.localStorage.setItem(`gonezo.voice.capture.${record.analysisId}`, JSON.stringify(record));
+    } catch {
+      // localStorage can fail in private mode / quota limits; keep in-memory copy.
+    }
+  }
+
+  private parseVoiceAmount(value: string): string | undefined {
+    const match = value.match(/-?\d+(?:[.,]\d+)?/);
+    if (!match) {
+      return undefined;
+    }
+    const parsed = Number(match[0].replace(',', '.'));
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return undefined;
+    }
+    return parsed.toFixed(2);
+  }
+
+  private parseVoiceTags(value: string): string[] {
+    const unique = new Map<string, string>();
+    const matches = value.match(/#[A-Za-z0-9_-]+/g) ?? [];
+    for (const rawTag of matches) {
+      const normalized = rawTag.replace(/^#/, '').trim().toLowerCase();
+      if (!normalized || unique.has(normalized)) {
+        continue;
+      }
+      unique.set(normalized, normalized);
+    }
+    return [...unique.values()];
+  }
+
+  private resolveVoiceTransferTarget(accountId: string, utterance: string): string | undefined {
+    const normalizedUtterance = utterance.trim().toLowerCase();
+    if (!normalizedUtterance) {
+      return undefined;
+    }
+    const candidate = CoreAdapterWeb.ledgerAccounts.find((account) => (
+      account.id !== accountId
+      && account.status === 'active'
+      && normalizedUtterance.includes(account.name.trim().toLowerCase())
+    ));
+    return candidate?.id;
+  }
+
+  private resolveVoiceCategoryName(utterance: string, type: TransactionVoiceType): string | undefined {
+    if (type === 'transfer') {
+      return undefined;
+    }
+
+    const normalizedUtterance = utterance.trim().toLowerCase();
+    if (!normalizedUtterance) {
+      return undefined;
+    }
+
+    const candidate = CoreAdapterWeb.taxonomyCategories.find((category) => (
+      category.status === 'active'
+      && category.appliesTo === type
+      && normalizedUtterance.includes(category.name.trim().toLowerCase())
+    ));
+    return candidate?.name;
+  }
+
+  private buildVoiceDraft(input: {
+    accountCurrency: string;
+    accountId: string;
+    expectedType: TransactionVoiceType;
+    utterance: string;
+  }): TransactionVoiceDraft {
+    const note = input.utterance.trim();
+    return {
+      type: input.expectedType,
+      amount: this.parseVoiceAmount(note),
+      currency: input.accountCurrency,
+      occurredAt: new Date().toISOString(),
+      note: note || undefined,
+      transferToAccountId: input.expectedType === 'transfer'
+        ? this.resolveVoiceTransferTarget(input.accountId, note)
+        : undefined,
+      categoryName: this.resolveVoiceCategoryName(note, input.expectedType),
+      tagNames: this.parseVoiceTags(note),
+    };
   }
 
   private ensureAccountCanPost(account: MemoryLedgerAccount, currency: string) {
@@ -1268,5 +1394,84 @@ export class CoreAdapterWeb implements CorePort {
       };
     });
     return { items };
+  }
+
+  async transactionVoiceCapture(input: TransactionVoiceCaptureInput): Promise<TransactionVoiceCaptureResult> {
+    const account = this.accountOrThrow(input.accountId);
+    const now = new Date().toISOString();
+    const recordingId = crypto.randomUUID();
+    const analysisId = crypto.randomUUID();
+    const recordingPath = `storage://voice-recordings/${recordingId}.txt`;
+    const defaultUtteranceByType: Record<TransactionVoiceType, string> = {
+      expense: 'Lunch 12.50',
+      income: 'Salary 1200',
+      transfer: 'Transfer 100',
+    };
+    const promptedUtterance = globalThis.prompt?.(`Describe your ${input.expectedType}`) ?? '';
+    const utterance = promptedUtterance.trim() || defaultUtteranceByType[input.expectedType];
+
+    const recordingPayload = {
+      id: recordingId,
+      path: recordingPath,
+      mimeType: 'text/plain',
+      payloadBase64: this.encodeTextAsBase64(utterance),
+      createdAt: now,
+    };
+    CoreAdapterWeb.voiceRecordingStorage.set(recordingId, recordingPayload);
+    try {
+      globalThis.localStorage.setItem(`gonezo.storage.voice.${recordingId}`, JSON.stringify(recordingPayload));
+    } catch {
+      // localStorage can fail; keep in-memory copy.
+    }
+
+    const draft = this.buildVoiceDraft({
+      accountCurrency: account.currency,
+      accountId: input.accountId,
+      expectedType: input.expectedType,
+      utterance,
+    });
+
+    this.persistVoiceCapture({
+      analysisId,
+      recordingId,
+      recordingPath,
+      accountId: input.accountId,
+      expectedType: input.expectedType,
+      draft,
+      createdAt: now,
+    });
+
+    return {
+      analysisId,
+      recording: {
+        id: recordingId,
+        path: recordingPath,
+        createdAt: now,
+      },
+      draft,
+    };
+  }
+
+  async transactionVoiceFinalize(input: TransactionVoiceFinalizeInput): Promise<TransactionVoiceFinalizeResult> {
+    const existing = CoreAdapterWeb.voiceCaptureByAnalysisId.get(input.analysisId);
+    if (!existing) {
+      throw new Error(`Voice analysis not found: ${input.analysisId}`);
+    }
+
+    const finalizedAt = new Date().toISOString();
+    const nextRecord: MemoryVoiceCaptureRecord = {
+      ...existing,
+      finalizedAt,
+      outcome: input.outcome,
+      transactionIds: input.transactionIds ? [...input.transactionIds] : undefined,
+      finalDraft: input.finalDraft,
+      errorMessage: input.errorMessage,
+    };
+    this.persistVoiceCapture(nextRecord);
+
+    return {
+      analysisId: input.analysisId,
+      finalizedAt,
+    };
   }
 }

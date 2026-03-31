@@ -326,6 +326,47 @@ export type OrchestrationListTransactionTaxonomyResult = {
   items: OrchestrationTransactionTaxonomyItem[];
 };
 
+export type TransactionVoiceType = 'expense' | 'income' | 'transfer';
+
+export type TransactionVoiceDraft = {
+  type: TransactionVoiceType;
+  amount?: string;
+  currency?: string;
+  occurredAt?: string;
+  note?: string;
+  transferToAccountId?: string;
+  categoryName?: string;
+  tagNames?: string[];
+};
+
+export type TransactionVoiceCaptureInput = {
+  accountId: string;
+  expectedType: TransactionVoiceType;
+};
+
+export type TransactionVoiceCaptureResult = {
+  analysisId: string;
+  recording: {
+    id: string;
+    path: string;
+    createdAt: string;
+  };
+  draft: TransactionVoiceDraft;
+};
+
+export type TransactionVoiceFinalizeInput = {
+  analysisId: string;
+  outcome: 'saved' | 'cancelled' | 'failed';
+  transactionIds?: string[];
+  finalDraft?: TransactionVoiceDraft;
+  errorMessage?: string;
+};
+
+export type TransactionVoiceFinalizeResult = {
+  analysisId: string;
+  finalizedAt: string;
+};
+
 export interface CorePort {
   doThing(input: string): Promise<CoreResult>;
   ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult>;
@@ -356,4 +397,6 @@ export interface CorePort {
   orchestrationListTransactionTaxonomy(
     input: OrchestrationListTransactionTaxonomyInput,
   ): Promise<OrchestrationListTransactionTaxonomyResult>;
+  transactionVoiceCapture(input: TransactionVoiceCaptureInput): Promise<TransactionVoiceCaptureResult>;
+  transactionVoiceFinalize(input: TransactionVoiceFinalizeInput): Promise<TransactionVoiceFinalizeResult>;
 }

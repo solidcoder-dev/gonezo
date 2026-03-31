@@ -5,6 +5,8 @@ export type TransactionEntryViewRequired = {
   state: {
     open: boolean;
     mode: ComposerMode;
+    voicePhase: 'idle' | 'recording' | 'processing';
+    voiceMode: Exclude<ComposerMode, 'picker'> | null;
     advancedOpen: boolean;
     amount: string;
     date: string;
@@ -25,6 +27,7 @@ export type TransactionEntryViewRequired = {
   status: {
     submitting: boolean;
     disabled: boolean;
+    voiceProcessing: boolean;
     errors: TransactionFieldErrors;
   };
 };
@@ -33,6 +36,9 @@ export type TransactionEntryViewProvided = {
   commands: {
     open: () => void;
     close: () => void;
+    startVoiceCapture: (mode: Exclude<ComposerMode, 'picker'>) => void;
+    cancelVoiceCapture: () => void;
+    confirmVoiceCapture: () => Promise<void>;
     selectMode: (mode: Exclude<ComposerMode, 'picker'>) => void;
     toggleAdvanced: () => void;
     setAmount: (value: string) => void;

@@ -171,6 +171,25 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     orchestrationCategorizeTransaction: vi.fn(async () => ({ status: 'assigned' as const })),
     orchestrationApplyTransactionTags: vi.fn(async () => ({ status: 'assigned' as const })),
     orchestrationListTransactionTaxonomy: vi.fn(async () => ({ items: [] })),
+    transactionVoiceCapture: vi.fn(async (input) => ({
+      analysisId: 'analysis-default',
+      recording: {
+        id: 'voice-recording-default',
+        path: 'storage://voice/voice-recording-default.webm',
+        createdAt: '2026-03-10T10:00:00.000Z',
+      },
+      draft: {
+        type: input.expectedType,
+        amount: input.expectedType === 'income' ? '100.00' : '10.00',
+        currency: 'USD',
+        occurredAt: '2026-03-10T10:00:00.000Z',
+        note: '',
+      },
+    })),
+    transactionVoiceFinalize: vi.fn(async (input) => ({
+      analysisId: input.analysisId,
+      finalizedAt: '2026-03-10T10:01:00.000Z',
+    })),
   };
 }
 
@@ -184,6 +203,11 @@ async function openImportSheetFromAccounts() {
   await screen.findByRole('dialog', { name: 'Select account' });
   fireEvent.click(screen.getByRole('button', { name: 'Import transactions' }));
 }
+
+type VoiceTestCore = AccountsCorePort & {
+  transactionVoiceCapture: ReturnType<typeof vi.fn>;
+  transactionVoiceFinalize: ReturnType<typeof vi.fn>;
+};
 
 describe('App Accounts UX', () => {
   beforeEach(() => {
@@ -646,6 +670,84 @@ describe('App Accounts UX', () => {
     await waitFor(() => {
       expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('shows voice shortcuts next to movement types', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(screen.getByRole('button', { name: 'Add movement' }));
+
+    expect(screen.getByRole('button', { name: 'Voice expense' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Voice income' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Voice transfer' })).toBeInTheDocument();
+  });
+
+  it('prefills and finalizes a voice expense draft after save', async () => {
+    const core = makeCore() as VoiceTestCore;
+    core.transactionVoiceCapture = vi.fn(async () => ({
+      analysisId: 'analysis-1',
+      recording: {
+        id: 'rec-1',
+        path: 'storage://voice/rec-1.webm',
+        createdAt: '2026-03-10T10:00:00.000Z',
+      },
+      draft: {
+        type: 'expense' as const,
+        amount: '14.50',
+        occurredAt: '2026-03-10T10:00:00.000Z',
+        note: 'Lunch menu',
+        categoryName: 'Food',
+        tagNames: ['team'],
+      },
+    }));
+    core.transactionVoiceFinalize = vi.fn(async () => ({
+      analysisId: 'analysis-1',
+      finalizedAt: '2026-03-10T10:00:30.000Z',
+    }));
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(screen.getByRole('button', { name: 'Add movement' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Voice expense' }));
+
+    expect(await screen.findByText('Recording expense')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Stop and process' }));
+
+    const amountInput = await screen.findByLabelText('Amount');
+    expect((amountInput as HTMLInputElement).value).toBe('14.50');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save expense' }));
+
+    await waitFor(() => {
+      expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
+      expect(core.transactionVoiceFinalize).toHaveBeenCalledTimes(1);
+    });
+
+    expect(core.transactionVoiceCapture).toHaveBeenCalledWith({
+      accountId: 'acc-1',
+      expectedType: 'expense',
+    });
+    expect(core.transactionVoiceFinalize).toHaveBeenCalledWith(expect.objectContaining({
+      analysisId: 'analysis-1',
+      outcome: 'saved',
+      transactionIds: ['tx-exp'],
+      finalDraft: expect.objectContaining({
+        type: 'expense',
+        amount: '14.50',
+      }),
+    }));
   });
 
   it('refreshes recent transactions after saving a movement', async () => {

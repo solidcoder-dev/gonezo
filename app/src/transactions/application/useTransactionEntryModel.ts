@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { LedgerAccountItem, TaxonomyCategoryItem, TaxonomyTagItem } from '../../shared/domain/corePort';
+import type {
+  LedgerAccountItem,
+  TaxonomyCategoryItem,
+  TaxonomyTagItem,
+  TransactionVoiceDraft,
+  TransactionVoiceType,
+} from '../../shared/domain/corePort';
 import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
 import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
 import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
@@ -11,6 +17,7 @@ import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.t
 import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
 import type { ExpenseItemDraft, TransactionFieldErrors } from '../domain/transactions.types';
 import type { TransactionEntryViewProvided, TransactionEntryViewRequired } from '../ui/TransactionEntryView';
+import { createTransactionsVoiceGateway } from '../infrastructure/transactionsVoiceGateway';
 import type { TransactionsCorePort } from './transactionsCore.port';
 
 type UseTransactionEntryModelInput = {
@@ -59,6 +66,17 @@ function resolveOccurredAt(dateInput: string): string {
   return new Date().toISOString();
 }
 
+function toDateInputValue(occurredAt?: string): string {
+  if (!occurredAt) {
+    return todayIso();
+  }
+  const parsed = new Date(occurredAt);
+  if (Number.isNaN(parsed.getTime())) {
+    return todayIso();
+  }
+  return parsed.toISOString().slice(0, 10);
+}
+
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
@@ -72,7 +90,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [postingTransaction, setPostingTransaction] = useState(false);
+  const [voicePhase, setVoicePhase] = useState<'idle' | 'recording' | 'processing'>('idle');
+  const [voiceMode, setVoiceMode] = useState<'expense' | 'income' | 'transfer' | null>(null);
   const [error, setError] = useState('');
+  const [voiceAnalysisId, setVoiceAnalysisId] = useState<string | null>(null);
 
   const [accounts, setAccounts] = useState<LedgerAccountItem[]>([]);
   const [accountCurrency, setAccountCurrency] = useState('USD');
@@ -98,6 +119,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
   const ledgerGateway = useMemo(() => createLedgerGateway(core), [core]);
   const taxonomyGateway = useMemo(() => createTaxonomyGateway(core), [core]);
+  const transactionsVoiceGateway = useMemo(() => createTransactionsVoiceGateway(core), [core]);
 
   const ledgerAccounts = useLedgerAccounts(ledgerGateway);
   const ledgerTransactionCommands = useLedgerTransactionCommands(ledgerGateway);
@@ -197,6 +219,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     if (!enabled || !accountId) {
       setLoading(false);
       setComposerOpen(false);
+      setVoicePhase('idle');
+      setVoiceMode(null);
+      setVoiceAnalysisId(null);
       setError('');
       return;
     }
@@ -236,6 +261,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
     setError('');
     setComposerOpen(true);
+    setVoicePhase('idle');
+    setVoiceMode(null);
+    setVoiceAnalysisId(null);
     resetComposerState();
 
     void (async () => {
@@ -249,11 +277,89 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   }
 
   function closeTransactionComposer() {
+    void finalizeVoiceCapture({
+      outcome: 'cancelled',
+      mode: composerMode === 'picker' ? undefined : composerMode,
+    });
+    setVoicePhase('idle');
+    setVoiceMode(null);
     setComposerOpen(false);
     resetComposerState();
   }
 
+  function startVoiceCapture(mode: Exclude<typeof composerMode, 'picker'>) {
+    if (!accountId) {
+      setError('Select an account first.');
+      return;
+    }
+
+    if (voicePhase !== 'idle') {
+      return;
+    }
+
+    setError('');
+    setVoiceMode(mode);
+    setVoicePhase('recording');
+  }
+
+  function cancelVoiceCapture() {
+    if (voicePhase !== 'recording') {
+      return;
+    }
+    setVoiceMode(null);
+    setVoicePhase('idle');
+  }
+
+  function applyVoiceDraft(draft: TransactionVoiceDraft) {
+    setComposerMode(draft.type);
+    setComposerAdvancedOpen(true);
+    setTransactionAmount((draft.amount ?? '').replace('-', ''));
+    setTransactionDate(toDateInputValue(draft.occurredAt));
+    setTransactionNote(draft.note ?? '');
+    setTransactionCategoryInput(draft.categoryName ?? '');
+    setTransactionTagInput((draft.tagNames ?? []).join(', '));
+    if (draft.type === 'transfer') {
+      setTransferToAccountId(draft.transferToAccountId ?? '');
+      return;
+    }
+    setTransferToAccountId('');
+  }
+
+  async function confirmVoiceCapture() {
+    if (!accountId || !voiceMode || voicePhase !== 'recording') {
+      return;
+    }
+
+    await finalizeVoiceCapture({
+      outcome: 'cancelled',
+      mode: composerMode === 'picker' ? undefined : composerMode,
+    });
+
+    setError('');
+    setVoicePhase('processing');
+
+    try {
+      const result = await transactionsVoiceGateway.transactionVoiceCapture({
+        accountId,
+        expectedType: voiceMode as TransactionVoiceType,
+      });
+
+      setVoiceAnalysisId(result.analysisId);
+      resetComposerState();
+      applyVoiceDraft(result.draft);
+      await refreshTaxonomyLookups();
+    } catch (err) {
+      reportError(err);
+      setComposerMode('picker');
+    } finally {
+      setVoiceMode(null);
+      setVoicePhase('idle');
+    }
+  }
+
   function selectComposerMode(mode: Exclude<typeof composerMode, 'picker'>) {
+    setVoicePhase('idle');
+    setVoiceMode(null);
     setComposerMode(mode);
     setComposerAdvancedOpen(false);
     setTransactionCategoryInput('');
@@ -400,6 +506,48 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     return [...uniqueByNormalizedName.values()];
   }
 
+  function buildCurrentVoiceDraft(mode: Exclude<typeof composerMode, 'picker'>): TransactionVoiceDraft {
+    const trimmedAmount = transactionAmount.trim();
+    const trimmedNote = transactionNote.trim();
+    const tagNames = parseTransactionTags();
+    return {
+      type: mode,
+      amount: trimmedAmount || undefined,
+      currency: accountCurrency,
+      occurredAt: resolveOccurredAt(transactionDate),
+      note: trimmedNote || undefined,
+      transferToAccountId: mode === 'transfer' ? transferToAccountId || undefined : undefined,
+      categoryName: mode === 'transfer' ? undefined : transactionCategoryInput.trim() || undefined,
+      tagNames: tagNames.length > 0 ? tagNames : undefined,
+    };
+  }
+
+  async function finalizeVoiceCapture(input: {
+    outcome: 'saved' | 'cancelled' | 'failed';
+    mode?: Exclude<typeof composerMode, 'picker'>;
+    transactionIds?: string[];
+    errorMessage?: string;
+  }) {
+    if (!voiceAnalysisId) {
+      return;
+    }
+
+    const analysisIdToFinalize = voiceAnalysisId;
+    setVoiceAnalysisId(null);
+
+    try {
+      await transactionsVoiceGateway.transactionVoiceFinalize({
+        analysisId: analysisIdToFinalize,
+        outcome: input.outcome,
+        transactionIds: input.transactionIds,
+        finalDraft: input.mode ? buildCurrentVoiceDraft(input.mode) : undefined,
+        errorMessage: input.errorMessage,
+      });
+    } catch {
+      // Audit persistence must never block the transaction flow.
+    }
+  }
+
   async function categorizeTransaction(
     transactionId: string,
     transactionType: TaxonomyCategoryAppliesTo,
@@ -486,6 +634,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       const occurredAt = resolveOccurredAt(transactionDate);
       const tagNames = parseTransactionTags();
       let recorded = false;
+      const recordedTransactionIds: string[] = [];
 
       if (composerMode === 'expense') {
         const categoryId = await resolveCategorySelection('expense');
@@ -500,6 +649,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           });
           await categorizeTransaction(result.id, 'expense', categoryId);
           await applyTransactionTags(result.id, tagNames);
+          recordedTransactionIds.push(result.id);
           recorded = true;
         } else {
           const draft = await ledgerTransactionCommands.createExpenseDraft({
@@ -523,6 +673,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           await ledgerTransactionCommands.postDraftTransaction({ transactionId: draft.id });
           await categorizeTransaction(draft.id, 'expense', categoryId);
           await applyTransactionTags(draft.id, tagNames);
+          recordedTransactionIds.push(draft.id);
           recorded = true;
         }
       }
@@ -539,6 +690,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         });
         await categorizeTransaction(result.id, 'income', categoryId);
         await applyTransactionTags(result.id, tagNames);
+        recordedTransactionIds.push(result.id);
         recorded = true;
       }
 
@@ -553,10 +705,16 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         });
         await applyTransactionTags(result.transferOutId, tagNames);
         await applyTransactionTags(result.transferInId, tagNames);
+        recordedTransactionIds.push(result.transferOutId, result.transferInId);
         recorded = true;
       }
 
       if (recorded) {
+        await finalizeVoiceCapture({
+          outcome: 'saved',
+          mode: composerMode === 'picker' ? undefined : composerMode,
+          transactionIds: recordedTransactionIds,
+        });
         onRecorded?.();
         setComposerOpen(false);
         resetComposerState();
@@ -569,6 +727,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         }
       }
     } catch (err) {
+      await finalizeVoiceCapture({
+        outcome: 'failed',
+        mode: composerMode === 'picker' ? undefined : composerMode,
+        errorMessage: toErrorMessage(err),
+      });
       reportError(err);
     } finally {
       setPostingTransaction(false);
@@ -579,6 +742,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     state: {
       open: composerOpen,
       mode: composerMode,
+      voicePhase,
+      voiceMode,
       advancedOpen: composerAdvancedOpen,
       amount: transactionAmount,
       date: transactionDate,
@@ -598,7 +763,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     },
     status: {
       submitting: postingTransaction,
-      disabled: loading || refreshing || postingTransaction,
+      disabled: loading || refreshing || postingTransaction || voicePhase === 'processing',
+      voiceProcessing: voicePhase === 'processing',
       errors: fieldErrors,
     },
   };
@@ -607,6 +773,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     commands: {
       open: openTransactionComposer,
       close: closeTransactionComposer,
+      startVoiceCapture,
+      cancelVoiceCapture,
+      confirmVoiceCapture,
       selectMode: selectComposerMode,
       toggleAdvanced: () => setComposerAdvancedOpen((previous) => !previous),
       setAmount: setTransactionAmountValue,
