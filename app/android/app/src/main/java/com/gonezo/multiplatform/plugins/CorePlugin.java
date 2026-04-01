@@ -17,11 +17,13 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
+import com.gonezo.multiplatform.audioextraction.application.AudioExtractionUseCase;
+import com.gonezo.multiplatform.audioextraction.contract.ContractJsonMapper;
+import com.gonezo.multiplatform.audioextraction.contract.ExtractionRequest;
+import com.gonezo.multiplatform.audioextraction.contract.ExtractionResult;
+import com.gonezo.multiplatform.audioextraction.infrastructure.factory.AudioExtractionModuleFactory;
 import com.gonezo.multiplatform.core.AndroidLedgerCore;
 import com.gonezo.multiplatform.core.AndroidTaxonomyCore;
-import com.gonezo.multiplatform.plugins.voice.RuleBasedVoiceDraftProcessor;
-import com.gonezo.multiplatform.plugins.voice.VoiceDraftProcessingInput;
-import com.gonezo.multiplatform.plugins.voice.VoiceDraftProcessor;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -58,9 +60,7 @@ public class CorePlugin extends Plugin {
   private final java.util.Map<String, MediaRecorder> transactionVoiceRecorderBySessionId = new java.util.HashMap<>();
   private final java.util.Map<String, SpeechRecognizer> transactionVoiceRecognizerBySessionId = new java.util.HashMap<>();
   private final java.util.Map<String, JSObject> transactionVoiceAnalysisById = new java.util.HashMap<>();
-  // Processor boundary: swap RuleBasedVoiceDraftProcessor with an on-device LLM implementation
-  // without changing UI flow (start/stop/extract/finalize) or application contracts.
-  private final VoiceDraftProcessor voiceDraftProcessor = new RuleBasedVoiceDraftProcessor();
+  private AudioExtractionUseCase audioExtractionUseCase;
 
   @PluginMethod
   public void doThing(PluginCall call) {
@@ -884,21 +884,22 @@ public class CorePlugin extends Plugin {
     String transcript = session.getString("transcript", "");
 
     AndroidLedgerCore ledgerCore = AndroidLedgerCore.getInstance(getContext());
-    List<AndroidLedgerCore.LedgerAccountView> accounts = ledgerCore.listAccounts();
-    List<AndroidTaxonomyCore.TaxonomyCategoryView> categories = "transfer".equals(expectedType)
-      ? List.of()
-      : AndroidTaxonomyCore.getInstance(getContext()).listCategories(expectedType, false);
-
-    JSObject draft = voiceDraftProcessor.process(
-      new VoiceDraftProcessingInput(
-        accountId,
-        expectedType,
-        stoppedAt,
-        transcript,
-        accounts,
-        categories
-      )
+    ExtractionRequest extractionRequest = new ExtractionRequest(
+      "v1",
+      new ExtractionRequest.Source("fileRef", recordingPath),
+      new ExtractionRequest.Extraction(
+        ContractJsonMapper.toMap(AudioExtractionModuleFactory.loadTransactionOutputSchema(getContext())),
+        "Extract transaction fields from audio transcript."
+      ),
+      Map.of(
+        "accountId", accountId,
+        "expectedType", expectedType,
+        "transcriptHint", transcript
+      ),
+      new ExtractionRequest.Options(true, null)
     );
+    ExtractionResult extractionResult = audioExtractionUseCase().execute(extractionRequest);
+    JSObject draft = mapExtractionResultToDraft(extractionResult, expectedType, stoppedAt, transcript);
 
     JSObject recording = new JSObject();
     recording.put("id", recordingId);
@@ -936,6 +937,120 @@ public class CorePlugin extends Plugin {
     } catch (Exception ex) {
       call.reject(ex.getMessage());
     }
+  }
+
+  private AudioExtractionUseCase audioExtractionUseCase() {
+    if (audioExtractionUseCase == null) {
+      audioExtractionUseCase = AudioExtractionModuleFactory.create(getContext());
+    }
+    return audioExtractionUseCase;
+  }
+
+  private JSObject mapExtractionResultToDraft(
+    ExtractionResult extractionResult,
+    String expectedType,
+    String defaultOccurredAt,
+    String transcript
+  ) {
+    JSObject draft = new JSObject();
+
+    String type = asText(resolveExtractionValue(extractionResult, "type"));
+    if (!isSupportedVoiceType(type)) {
+      type = expectedType;
+    }
+
+    String amount = toAmountString(resolveExtractionValue(extractionResult, "amount"));
+    String occurredAt = asText(resolveExtractionValue(extractionResult, "occurredAt"));
+    String note = asText(resolveExtractionValue(extractionResult, "note"));
+
+    draft.put("type", type);
+    if (amount != null) {
+      draft.put("amount", amount);
+    }
+    draft.put("occurredAt", occurredAt == null ? defaultOccurredAt : occurredAt);
+    draft.put("note", note == null ? transcript : note);
+
+    String transferToAccountId = asText(resolveExtractionValue(extractionResult, "transferToAccountId"));
+    if (transferToAccountId != null && !transferToAccountId.isBlank()) {
+      draft.put("transferToAccountId", transferToAccountId);
+    }
+
+    String categoryName = asText(resolveExtractionValue(extractionResult, "categoryName"));
+    if (categoryName != null && !categoryName.isBlank()) {
+      draft.put("categoryName", categoryName);
+    }
+
+    JSONArray tagNames = toTagNames(resolveExtractionValue(extractionResult, "tagNames"));
+    if (tagNames.length() > 0) {
+      draft.put("tagNames", tagNames);
+    }
+
+    return draft;
+  }
+
+  private Object resolveExtractionValue(ExtractionResult extractionResult, String fieldName) {
+    if (extractionResult == null) {
+      return null;
+    }
+
+    if (extractionResult.data().containsKey(fieldName)) {
+      return extractionResult.data().get(fieldName);
+    }
+
+    ExtractionResult.FieldResult fieldResult = extractionResult.fieldResults().get(fieldName);
+    return fieldResult == null ? null : fieldResult.value();
+  }
+
+  private String asText(Object value) {
+    if (value == null) {
+      return null;
+    }
+    String text = String.valueOf(value).trim();
+    return text.isEmpty() ? null : text;
+  }
+
+  private String toAmountString(Object value) {
+    if (value == null) {
+      return null;
+    }
+    try {
+      BigDecimal parsed = value instanceof Number numberValue
+        ? new BigDecimal(numberValue.toString())
+        : new BigDecimal(String.valueOf(value).trim().replace(",", "."));
+      return parsed.abs().toPlainString();
+    } catch (NumberFormatException ex) {
+      return null;
+    }
+  }
+
+  private JSONArray toTagNames(Object value) {
+    JSONArray tags = new JSONArray();
+    if (value == null) {
+      return tags;
+    }
+
+    if (value instanceof List<?> listValue) {
+      for (Object listItem : listValue) {
+        String tag = asText(listItem);
+        if (tag != null) {
+          tags.put(tag);
+        }
+      }
+      return tags;
+    }
+
+    String raw = asText(value);
+    if (raw == null) {
+      return tags;
+    }
+
+    for (String chunk : raw.split("[,;|]")) {
+      String normalized = chunk.trim();
+      if (!normalized.isEmpty()) {
+        tags.put(normalized);
+      }
+    }
+    return tags;
   }
 
   private void cleanupVoiceSessionResources(String sessionId, boolean removeSession) {
