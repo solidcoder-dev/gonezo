@@ -34,7 +34,21 @@ tasks.register('checkLayerBoundaries') {
       }
     }
 
-    checkForbidden('core/domain', fileTree('domain/src/main/kotlin') { include '**/*.kt' }, domainForbidden)
-    checkForbidden('core/application', fileTree('application/src/main/kotlin') { include '**/*.kt' }, applicationForbidden)
+    checkForbidden(
+      'core/domain',
+      fileTree('domain/src/main') {
+        include '**/*.kt'
+        include '**/*.java'
+      },
+      domainForbidden
+    )
+    checkForbidden(
+      'core/application',
+      fileTree('application/src/main') {
+        include '**/*.kt'
+        include '**/*.java'
+      },
+      applicationForbidden
+    )
   }
 }

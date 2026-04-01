@@ -18,13 +18,11 @@ public class ExecutionPlannerTest {
   @Test
   public void buildsPlanUsingRequiredAndOptionalFields() {
     ExecutionPlanner planner = new ExecutionPlanner();
-    OutputSchema schema = new OutputSchema(
-      new LinkedHashMap<>(Map.of(
-        "amount", new FieldSchema("number", null, List.of(), true),
-        "note", new FieldSchema("string", null, List.of(), false),
-        "type", new FieldSchema("string", null, List.of("expense", "income"), true)
-      ))
-    );
+    Map<String, FieldSchema> orderedFields = new LinkedHashMap<>();
+    orderedFields.put("amount", new FieldSchema("number", null, List.of(), true));
+    orderedFields.put("note", new FieldSchema("string", null, List.of(), false));
+    orderedFields.put("type", new FieldSchema("string", null, List.of("expense", "income"), true));
+    OutputSchema schema = new OutputSchema(orderedFields);
 
     ExtractionRequest request = new ExtractionRequest(
       "v1",
@@ -60,4 +58,3 @@ public class ExecutionPlannerTest {
     assertFalse(plan.includeTranscript());
   }
 }
-
