@@ -37,10 +37,14 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
-  TransactionVoiceCaptureInput,
-  TransactionVoiceCaptureResult,
+  TransactionVoiceExtractDraftInput,
+  TransactionVoiceExtractDraftResult,
   TransactionVoiceFinalizeInput,
   TransactionVoiceFinalizeResult,
+  TransactionVoiceStartInput,
+  TransactionVoiceStartResult,
+  TransactionVoiceStopInput,
+  TransactionVoiceStopResult,
 } from '../../domain/corePort';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import type { CorePlugin } from './corePlugin';
@@ -146,8 +150,18 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
     return this.core.orchestrationListTransactionTaxonomy(options);
   }
 
-  async transactionVoiceCapture(options: TransactionVoiceCaptureInput): Promise<TransactionVoiceCaptureResult> {
-    return this.core.transactionVoiceCapture(options);
+  async transactionVoiceStart(options: TransactionVoiceStartInput): Promise<TransactionVoiceStartResult> {
+    return this.core.transactionVoiceStart(options);
+  }
+
+  async transactionVoiceStop(options: TransactionVoiceStopInput): Promise<TransactionVoiceStopResult> {
+    return this.core.transactionVoiceStop(options);
+  }
+
+  async transactionVoiceExtractDraft(
+    options: TransactionVoiceExtractDraftInput,
+  ): Promise<TransactionVoiceExtractDraftResult> {
+    return this.core.transactionVoiceExtractDraft(options);
   }
 
   async transactionVoiceFinalize(options: TransactionVoiceFinalizeInput): Promise<TransactionVoiceFinalizeResult> {

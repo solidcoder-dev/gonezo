@@ -92,6 +92,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [postingTransaction, setPostingTransaction] = useState(false);
   const [voicePhase, setVoicePhase] = useState<'idle' | 'recording' | 'processing'>('idle');
   const [voiceMode, setVoiceMode] = useState<'expense' | 'income' | 'transfer' | null>(null);
+  const [voiceSessionId, setVoiceSessionId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [voiceAnalysisId, setVoiceAnalysisId] = useState<string | null>(null);
 
@@ -221,6 +222,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       setComposerOpen(false);
       setVoicePhase('idle');
       setVoiceMode(null);
+      setVoiceSessionId(null);
       setVoiceAnalysisId(null);
       setError('');
       return;
@@ -263,6 +265,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setComposerOpen(true);
     setVoicePhase('idle');
     setVoiceMode(null);
+    setVoiceSessionId(null);
     setVoiceAnalysisId(null);
     resetComposerState();
 
@@ -277,14 +280,19 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   }
 
   function closeTransactionComposer() {
+    const sessionIdToClose = voiceSessionId;
     void finalizeVoiceCapture({
       outcome: 'cancelled',
       mode: composerMode === 'picker' ? undefined : composerMode,
     });
     setVoicePhase('idle');
     setVoiceMode(null);
+    setVoiceSessionId(null);
     setComposerOpen(false);
     resetComposerState();
+    if (sessionIdToClose) {
+      void transactionsVoiceGateway.transactionVoiceStop({ sessionId: sessionIdToClose }).catch(() => undefined);
+    }
   }
 
   function startVoiceCapture(mode: Exclude<typeof composerMode, 'picker'>) {
@@ -297,17 +305,47 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       return;
     }
 
+    const sessionIdToClose = voiceSessionId;
     setError('');
     setVoiceMode(mode);
+    setVoiceSessionId(null);
     setVoicePhase('recording');
+
+    void (async () => {
+      try {
+        if (sessionIdToClose) {
+          await transactionsVoiceGateway.transactionVoiceStop({ sessionId: sessionIdToClose });
+        }
+      } catch {
+        // Ignore orphan session cleanup failures.
+      }
+
+      try {
+        const started = await transactionsVoiceGateway.transactionVoiceStart({
+          accountId,
+          expectedType: mode as TransactionVoiceType,
+        });
+        setVoiceSessionId(started.sessionId);
+      } catch (err) {
+        reportError(err);
+        setVoiceMode(null);
+        setVoicePhase('idle');
+        setVoiceSessionId(null);
+      }
+    })();
   }
 
   function cancelVoiceCapture() {
     if (voicePhase !== 'recording') {
       return;
     }
+    const sessionIdToClose = voiceSessionId;
     setVoiceMode(null);
     setVoicePhase('idle');
+    setVoiceSessionId(null);
+    if (sessionIdToClose) {
+      void transactionsVoiceGateway.transactionVoiceStop({ sessionId: sessionIdToClose }).catch(() => undefined);
+    }
   }
 
   function applyVoiceDraft(draft: TransactionVoiceDraft) {
@@ -326,7 +364,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   }
 
   async function confirmVoiceCapture() {
-    if (!accountId || !voiceMode || voicePhase !== 'recording') {
+    if (!accountId || !voiceMode || voicePhase !== 'recording' || !voiceSessionId) {
       return;
     }
 
@@ -337,12 +375,17 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
     setError('');
     setVoicePhase('processing');
+    const processingStartedAt = Date.now();
 
     try {
-      const result = await transactionsVoiceGateway.transactionVoiceCapture({
-        accountId,
-        expectedType: voiceMode as TransactionVoiceType,
-      });
+      await transactionsVoiceGateway.transactionVoiceStop({ sessionId: voiceSessionId });
+      const result = await transactionsVoiceGateway.transactionVoiceExtractDraft({ sessionId: voiceSessionId });
+      const elapsedMs = Date.now() - processingStartedAt;
+      if (elapsedMs < 350) {
+        await new Promise((resolve) => {
+          window.setTimeout(resolve, 350 - elapsedMs);
+        });
+      }
 
       setVoiceAnalysisId(result.analysisId);
       resetComposerState();
@@ -352,6 +395,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       reportError(err);
       setComposerMode('picker');
     } finally {
+      setVoiceSessionId(null);
       setVoiceMode(null);
       setVoicePhase('idle');
     }
@@ -360,6 +404,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   function selectComposerMode(mode: Exclude<typeof composerMode, 'picker'>) {
     setVoicePhase('idle');
     setVoiceMode(null);
+    setVoiceSessionId(null);
     setComposerMode(mode);
     setComposerAdvancedOpen(false);
     setTransactionCategoryInput('');

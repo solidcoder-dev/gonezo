@@ -38,11 +38,15 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
-  TransactionVoiceCaptureInput,
-  TransactionVoiceCaptureResult,
+  TransactionVoiceExtractDraftInput,
+  TransactionVoiceExtractDraftResult,
   TransactionVoiceDraft,
   TransactionVoiceFinalizeInput,
   TransactionVoiceFinalizeResult,
+  TransactionVoiceStartInput,
+  TransactionVoiceStartResult,
+  TransactionVoiceStopInput,
+  TransactionVoiceStopResult,
   TransactionVoiceType,
 } from '../../domain/corePort';
 
@@ -101,6 +105,7 @@ type MemoryTaxonomyTag = {
 
 type MemoryVoiceCaptureRecord = {
   analysisId: string;
+  sessionId: string;
   recordingId: string;
   recordingPath: string;
   accountId: string;
@@ -112,6 +117,18 @@ type MemoryVoiceCaptureRecord = {
   transactionIds?: string[];
   finalDraft?: TransactionVoiceDraft;
   errorMessage?: string;
+};
+
+type MemoryVoiceSessionRecord = {
+  sessionId: string;
+  accountId: string;
+  expectedType: TransactionVoiceType;
+  recordingId: string;
+  recordingPath: string;
+  startedAt: string;
+  stoppedAt?: string;
+  durationMs?: number;
+  utterance?: string;
 };
 
 export class CoreAdapterWeb implements CorePort {
@@ -138,6 +155,8 @@ export class CoreAdapterWeb implements CorePort {
   }> = new Map();
 
   private static voiceCaptureByAnalysisId: Map<string, MemoryVoiceCaptureRecord> = new Map();
+
+  private static voiceSessionById: Map<string, MemoryVoiceSessionRecord> = new Map();
 
   private accountOrThrow(accountId: string): MemoryLedgerAccount {
     const account = CoreAdapterWeb.ledgerAccounts.find((item) => item.id === accountId);
@@ -1396,57 +1415,113 @@ export class CoreAdapterWeb implements CorePort {
     return { items };
   }
 
-  async transactionVoiceCapture(input: TransactionVoiceCaptureInput): Promise<TransactionVoiceCaptureResult> {
-    const account = this.accountOrThrow(input.accountId);
-    const now = new Date().toISOString();
+  async transactionVoiceStart(input: TransactionVoiceStartInput): Promise<TransactionVoiceStartResult> {
+    this.accountOrThrow(input.accountId);
+
+    const startedAt = new Date().toISOString();
+    const sessionId = crypto.randomUUID();
     const recordingId = crypto.randomUUID();
-    const analysisId = crypto.randomUUID();
-    const recordingPath = `storage://voice-recordings/${recordingId}.txt`;
-    const defaultUtteranceByType: Record<TransactionVoiceType, string> = {
-      expense: 'Lunch 12.50',
-      income: 'Salary 1200',
-      transfer: 'Transfer 100',
+    const recordingPath = `storage://voice-recordings/${recordingId}.wav`;
+    CoreAdapterWeb.voiceSessionById.set(sessionId, {
+      sessionId,
+      accountId: input.accountId,
+      expectedType: input.expectedType,
+      recordingId,
+      recordingPath,
+      startedAt,
+    });
+    return {
+      sessionId,
+      recordingId,
+      recordingPath,
+      startedAt,
     };
-    const promptedUtterance = globalThis.prompt?.(`Describe your ${input.expectedType}`) ?? '';
-    const utterance = promptedUtterance.trim() || defaultUtteranceByType[input.expectedType];
+  }
+
+  async transactionVoiceStop(input: TransactionVoiceStopInput): Promise<TransactionVoiceStopResult> {
+    const session = CoreAdapterWeb.voiceSessionById.get(input.sessionId);
+    if (!session) {
+      throw new Error(`Voice session not found: ${input.sessionId}`);
+    }
+
+    const stoppedAt = new Date().toISOString();
+    const durationMs = Math.max(500, new Date(stoppedAt).getTime() - new Date(session.startedAt).getTime());
+    const defaultUtteranceByType: Record<TransactionVoiceType, string> = {
+      expense: 'Lunch 12.50 #team',
+      income: 'Salary 1200',
+      transfer: 'Transfer 100 to savings',
+    };
+    const promptedUtterance = globalThis.prompt?.(`Describe your ${session.expectedType}`) ?? '';
+    const utterance = promptedUtterance.trim() || defaultUtteranceByType[session.expectedType];
 
     const recordingPayload = {
-      id: recordingId,
-      path: recordingPath,
-      mimeType: 'text/plain',
+      id: session.recordingId,
+      path: session.recordingPath,
+      mimeType: 'audio/wav',
       payloadBase64: this.encodeTextAsBase64(utterance),
-      createdAt: now,
+      createdAt: session.startedAt,
     };
-    CoreAdapterWeb.voiceRecordingStorage.set(recordingId, recordingPayload);
+    CoreAdapterWeb.voiceRecordingStorage.set(session.recordingId, recordingPayload);
     try {
-      globalThis.localStorage.setItem(`gonezo.storage.voice.${recordingId}`, JSON.stringify(recordingPayload));
+      globalThis.localStorage.setItem(`gonezo.storage.voice.${session.recordingId}`, JSON.stringify(recordingPayload));
     } catch {
       // localStorage can fail; keep in-memory copy.
     }
 
-    const draft = this.buildVoiceDraft({
-      accountCurrency: account.currency,
-      accountId: input.accountId,
-      expectedType: input.expectedType,
+    CoreAdapterWeb.voiceSessionById.set(session.sessionId, {
+      ...session,
+      stoppedAt,
+      durationMs,
       utterance,
     });
 
+    return {
+      sessionId: session.sessionId,
+      recordingId: session.recordingId,
+      recordingPath: session.recordingPath,
+      stoppedAt,
+      durationMs,
+    };
+  }
+
+  async transactionVoiceExtractDraft(input: TransactionVoiceExtractDraftInput): Promise<TransactionVoiceExtractDraftResult> {
+    const session = CoreAdapterWeb.voiceSessionById.get(input.sessionId);
+    if (!session) {
+      throw new Error(`Voice session not found: ${input.sessionId}`);
+    }
+
+    if (!session.stoppedAt) {
+      throw new Error('Voice session must be stopped before extraction');
+    }
+
+    const account = this.accountOrThrow(session.accountId);
+    const utterance = session.utterance ?? '';
+    const draft = this.buildVoiceDraft({
+      accountCurrency: account.currency,
+      accountId: session.accountId,
+      expectedType: session.expectedType,
+      utterance,
+    });
+    const analysisId = crypto.randomUUID();
+
     this.persistVoiceCapture({
       analysisId,
-      recordingId,
-      recordingPath,
-      accountId: input.accountId,
-      expectedType: input.expectedType,
+      sessionId: session.sessionId,
+      recordingId: session.recordingId,
+      recordingPath: session.recordingPath,
+      accountId: session.accountId,
+      expectedType: session.expectedType,
       draft,
-      createdAt: now,
+      createdAt: session.startedAt,
     });
 
     return {
       analysisId,
+      sessionId: session.sessionId,
       recording: {
-        id: recordingId,
-        path: recordingPath,
-        createdAt: now,
+        id: session.recordingId,
+        path: session.recordingPath,
+        createdAt: session.startedAt,
       },
       draft,
     };

@@ -1,12 +1,29 @@
 package com.gonezo.multiplatform.plugins;
 
+import android.Manifest;
+import android.content.Intent;
+import android.media.MediaRecorder;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import com.getcapacitor.JSObject;
+import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 import com.gonezo.multiplatform.core.AndroidLedgerCore;
 import com.gonezo.multiplatform.core.AndroidTaxonomyCore;
+import com.gonezo.multiplatform.plugins.voice.RuleBasedVoiceDraftProcessor;
+import com.gonezo.multiplatform.plugins.voice.VoiceDraftProcessingInput;
+import com.gonezo.multiplatform.plugins.voice.VoiceDraftProcessor;
+import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -26,12 +43,24 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-@CapacitorPlugin(name = "CorePlugin")
+@CapacitorPlugin(
+  name = "CorePlugin",
+  permissions = {
+    @Permission(alias = "microphone", strings = { Manifest.permission.RECORD_AUDIO }),
+  }
+)
 public class CorePlugin extends Plugin {
+  private final Handler mainThreadHandler = new Handler(Looper.getMainLooper());
   private final java.util.List<JSObject> taxonomyTags = new java.util.ArrayList<>();
   private final java.util.Map<String, String> transactionCategoryByTransactionId = new java.util.HashMap<>();
   private final java.util.Map<String, java.util.List<String>> transactionTagsByTransactionId = new java.util.HashMap<>();
+  private final java.util.Map<String, JSObject> transactionVoiceSessionById = new java.util.HashMap<>();
+  private final java.util.Map<String, MediaRecorder> transactionVoiceRecorderBySessionId = new java.util.HashMap<>();
+  private final java.util.Map<String, SpeechRecognizer> transactionVoiceRecognizerBySessionId = new java.util.HashMap<>();
   private final java.util.Map<String, JSObject> transactionVoiceAnalysisById = new java.util.HashMap<>();
+  // Processor boundary: swap RuleBasedVoiceDraftProcessor with an on-device LLM implementation
+  // without changing UI flow (start/stop/extract/finalize) or application contracts.
+  private final VoiceDraftProcessor voiceDraftProcessor = new RuleBasedVoiceDraftProcessor();
 
   @PluginMethod
   public void doThing(PluginCall call) {
@@ -667,7 +696,24 @@ public class CorePlugin extends Plugin {
   }
 
   @PluginMethod
-  public void transactionVoiceCapture(PluginCall call) {
+  public void transactionVoiceStart(PluginCall call) {
+    if (getPermissionState("microphone") != PermissionState.GRANTED) {
+      requestPermissionForAlias("microphone", call, "transactionVoiceStartPermissionCallback");
+      return;
+    }
+    startTransactionVoiceSession(call);
+  }
+
+  @PermissionCallback
+  private void transactionVoiceStartPermissionCallback(PluginCall call) {
+    if (getPermissionState("microphone") != PermissionState.GRANTED) {
+      call.reject("Microphone permission denied");
+      return;
+    }
+    startTransactionVoiceSession(call);
+  }
+
+  private void startTransactionVoiceSession(PluginCall call) {
     String accountId = call.getString("accountId");
     String expectedType = call.getString("expectedType");
     if (accountId == null || accountId.trim().isEmpty()) {
@@ -680,63 +726,337 @@ public class CorePlugin extends Plugin {
     }
 
     String normalizedType = expectedType.trim().toLowerCase(Locale.ROOT);
-    if (!"expense".equals(normalizedType) && !"income".equals(normalizedType) && !"transfer".equals(normalizedType)) {
+    if (!isSupportedVoiceType(normalizedType)) {
       call.reject("expectedType must be expense, income or transfer");
       return;
     }
 
-    String analysisId = UUID.randomUUID().toString();
+    String sessionId = UUID.randomUUID().toString();
     String recordingId = UUID.randomUUID().toString();
-    String createdAt = Instant.now().toString();
+    String startedAt = Instant.now().toString();
+    String recordingPath = "storage://voice-recordings/" + recordingId + ".m4a";
+    File recordingFile = resolveVoiceRecordingFile(recordingId);
 
-    String defaultAmount;
-    if ("income".equals(normalizedType)) {
-      defaultAmount = "100.00";
-    } else if ("transfer".equals(normalizedType)) {
-      defaultAmount = "25.00";
-    } else {
-      defaultAmount = "10.00";
+    JSObject session = new JSObject();
+    session.put("sessionId", sessionId);
+    session.put("accountId", accountId.trim());
+    session.put("expectedType", normalizedType);
+    session.put("recordingId", recordingId);
+    session.put("recordingPath", recordingPath);
+    session.put("recordingFilePath", recordingFile.getAbsolutePath());
+    session.put("startedAt", startedAt);
+    try {
+      MediaRecorder recorder = new MediaRecorder();
+      recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+      recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+      recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+      recorder.setAudioSamplingRate(44100);
+      recorder.setAudioEncodingBitRate(128000);
+      recorder.setOutputFile(recordingFile.getAbsolutePath());
+      recorder.prepare();
+      recorder.start();
+
+      transactionVoiceSessionById.put(sessionId, session);
+      transactionVoiceRecorderBySessionId.put(sessionId, recorder);
+      startVoiceSpeechRecognition(sessionId);
+
+      JSObject result = new JSObject();
+      result.put("sessionId", sessionId);
+      result.put("recordingId", recordingId);
+      result.put("recordingPath", recordingPath);
+      result.put("startedAt", startedAt);
+      call.resolve(result);
+    } catch (IOException | RuntimeException ex) {
+      cleanupVoiceSessionResources(sessionId, false);
+      if (recordingFile.exists()) {
+        //noinspection ResultOfMethodCallIgnored
+        recordingFile.delete();
+      }
+      call.reject("Failed to start voice recording: " + ex.getMessage());
     }
+  }
+
+  @PluginMethod
+  public void transactionVoiceStop(PluginCall call) {
+    String sessionId = call.getString("sessionId");
+    if (sessionId == null || sessionId.trim().isEmpty()) {
+      call.reject("sessionId is required");
+      return;
+    }
+
+    JSObject session = transactionVoiceSessionById.get(sessionId.trim());
+    if (session == null) {
+      call.reject("Voice session not found: " + sessionId);
+      return;
+    }
+
+    String normalizedSessionId = sessionId.trim();
+    String manualTranscript = nullIfBlank(call.getString("transcript"));
+    if (manualTranscript != null) {
+      session.put("transcript", manualTranscript);
+    }
+
+    MediaRecorder recorder = transactionVoiceRecorderBySessionId.remove(normalizedSessionId);
+    RuntimeException stopRecordingException = null;
+    if (recorder != null) {
+      try {
+        recorder.stop();
+      } catch (RuntimeException ex) {
+        stopRecordingException = ex;
+      } finally {
+        recorder.reset();
+        recorder.release();
+      }
+    }
+
+    SpeechRecognizer recognizer = transactionVoiceRecognizerBySessionId.remove(normalizedSessionId);
+    if (recognizer != null) {
+      runOnMainThread(() -> {
+        try {
+          recognizer.stopListening();
+        } catch (RuntimeException ignored) {
+          // no-op
+        }
+        recognizer.destroy();
+      });
+    }
+
+    String stoppedAt = Instant.now().toString();
+    String startedAt = session.getString("startedAt", stoppedAt);
+    long durationMs = 0L;
+    try {
+      durationMs = Math.max(0L, Instant.parse(stoppedAt).toEpochMilli() - Instant.parse(startedAt).toEpochMilli());
+    } catch (DateTimeParseException ignored) {
+      durationMs = 0L;
+    }
+
+    if (stopRecordingException != null) {
+      File recordingFile = new File(session.getString("recordingFilePath", ""));
+      if (recordingFile.exists()) {
+        //noinspection ResultOfMethodCallIgnored
+        recordingFile.delete();
+      }
+    }
+
+    session.put("stoppedAt", stoppedAt);
+    session.put("durationMs", durationMs);
+
+    JSObject result = new JSObject();
+    result.put("sessionId", normalizedSessionId);
+    result.put("recordingId", session.getString("recordingId"));
+    result.put("recordingPath", session.getString("recordingPath"));
+    result.put("stoppedAt", stoppedAt);
+    result.put("durationMs", durationMs);
+    call.resolve(result);
+  }
+
+  @PluginMethod
+  public void transactionVoiceExtractDraft(PluginCall call) {
+    String sessionId = call.getString("sessionId");
+    if (sessionId == null || sessionId.trim().isEmpty()) {
+      call.reject("sessionId is required");
+      return;
+    }
+
+    JSObject session = transactionVoiceSessionById.get(sessionId.trim());
+    if (session == null) {
+      call.reject("Voice session not found: " + sessionId);
+      return;
+    }
+
+    String stoppedAt = session.getString("stoppedAt");
+    if (stoppedAt == null || stoppedAt.trim().isEmpty()) {
+      call.reject("Voice session must be stopped before extraction");
+      return;
+    }
+
+    String expectedType = session.getString("expectedType", "").trim().toLowerCase(Locale.ROOT);
+    if (!isSupportedVoiceType(expectedType)) {
+      call.reject("Voice session has invalid expectedType");
+      return;
+    }
+
+    String analysisId = UUID.randomUUID().toString();
+    String createdAt = Instant.now().toString();
+    String recordingId = session.getString("recordingId");
+    String recordingPath = session.getString("recordingPath");
+    String accountId = session.getString("accountId");
+    String transcript = session.getString("transcript", "");
+
+    AndroidLedgerCore ledgerCore = AndroidLedgerCore.getInstance(getContext());
+    List<AndroidLedgerCore.LedgerAccountView> accounts = ledgerCore.listAccounts();
+    List<AndroidTaxonomyCore.TaxonomyCategoryView> categories = "transfer".equals(expectedType)
+      ? List.of()
+      : AndroidTaxonomyCore.getInstance(getContext()).listCategories(expectedType, false);
+
+    JSObject draft = voiceDraftProcessor.process(
+      new VoiceDraftProcessingInput(
+        accountId,
+        expectedType,
+        stoppedAt,
+        transcript,
+        accounts,
+        categories
+      )
+    );
 
     JSObject recording = new JSObject();
     recording.put("id", recordingId);
-    recording.put("path", "storage://voice-recordings/" + recordingId + ".wav");
-    recording.put("createdAt", createdAt);
-
-    JSObject draft = new JSObject();
-    draft.put("type", normalizedType);
-    draft.put("amount", defaultAmount);
-    draft.put("occurredAt", createdAt);
-    draft.put("note", "");
+    recording.put("path", recordingPath);
+    recording.put("createdAt", session.getString("startedAt", createdAt));
 
     JSObject analysis = new JSObject();
     analysis.put("analysisId", analysisId);
+    analysis.put("sessionId", sessionId.trim());
     analysis.put("accountId", accountId);
-    analysis.put("expectedType", normalizedType);
+    analysis.put("expectedType", expectedType);
     analysis.put("recording", recording);
     analysis.put("draft", draft);
     analysis.put("createdAt", createdAt);
+
     try {
-      AndroidLedgerCore core = AndroidLedgerCore.getInstance(getContext());
-      core.recordTransactionVoiceCapture(
+      ledgerCore.recordTransactionVoiceCapture(
         analysisId,
         recordingId,
-        recording.getString("path"),
+        recordingPath,
         accountId,
-        normalizedType,
+        expectedType,
         draft.toString(),
         createdAt
       );
       transactionVoiceAnalysisById.put(analysisId, analysis);
+      transactionVoiceSessionById.remove(sessionId.trim());
 
       JSObject result = new JSObject();
       result.put("analysisId", analysisId);
+      result.put("sessionId", sessionId.trim());
       result.put("recording", recording);
       result.put("draft", draft);
       call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());
     }
+  }
+
+  private void cleanupVoiceSessionResources(String sessionId, boolean removeSession) {
+    MediaRecorder recorder = transactionVoiceRecorderBySessionId.remove(sessionId);
+    if (recorder != null) {
+      try {
+        recorder.reset();
+      } catch (RuntimeException ignored) {
+        // no-op
+      }
+      recorder.release();
+    }
+
+    SpeechRecognizer recognizer = transactionVoiceRecognizerBySessionId.remove(sessionId);
+    if (recognizer != null) {
+      runOnMainThread(recognizer::destroy);
+    }
+
+    if (removeSession) {
+      transactionVoiceSessionById.remove(sessionId);
+    }
+  }
+
+  private void startVoiceSpeechRecognition(String sessionId) {
+    runOnMainThread(() -> {
+      try {
+        if (!SpeechRecognizer.isRecognitionAvailable(getContext())) {
+          return;
+        }
+
+        SpeechRecognizer recognizer = SpeechRecognizer.createSpeechRecognizer(getContext());
+        recognizer.setRecognitionListener(new RecognitionListener() {
+          @Override
+          public void onReadyForSpeech(Bundle params) {
+          }
+
+          @Override
+          public void onBeginningOfSpeech() {
+          }
+
+          @Override
+          public void onRmsChanged(float rmsdB) {
+          }
+
+          @Override
+          public void onBufferReceived(byte[] buffer) {
+          }
+
+          @Override
+          public void onEndOfSpeech() {
+          }
+
+          @Override
+          public void onError(int error) {
+          }
+
+          @Override
+          public void onResults(Bundle results) {
+            updateVoiceSessionTranscript(sessionId, extractPrimaryRecognition(results));
+          }
+
+          @Override
+          public void onPartialResults(Bundle partialResults) {
+            updateVoiceSessionTranscript(sessionId, extractPrimaryRecognition(partialResults));
+          }
+
+          @Override
+          public void onEvent(int eventType, Bundle params) {
+          }
+        });
+
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+        intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+        intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getContext().getPackageName());
+        recognizer.startListening(intent);
+        transactionVoiceRecognizerBySessionId.put(sessionId, recognizer);
+      } catch (RuntimeException ignored) {
+        // Voice transcript is best-effort; recording remains available if recognizer fails.
+      }
+    });
+  }
+
+  private void runOnMainThread(Runnable action) {
+    if (Looper.myLooper() == Looper.getMainLooper()) {
+      action.run();
+      return;
+    }
+    mainThreadHandler.post(action);
+  }
+
+  private void updateVoiceSessionTranscript(String sessionId, String transcript) {
+    String normalized = nullIfBlank(transcript);
+    if (normalized == null) {
+      return;
+    }
+    JSObject session = transactionVoiceSessionById.get(sessionId);
+    if (session == null) {
+      return;
+    }
+    session.put("transcript", normalized);
+  }
+
+  private String extractPrimaryRecognition(Bundle payload) {
+    if (payload == null) {
+      return null;
+    }
+    ArrayList<String> matches = payload.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+    if (matches == null || matches.isEmpty()) {
+      return null;
+    }
+    return nullIfBlank(matches.get(0));
+  }
+
+  private File resolveVoiceRecordingFile(String recordingId) {
+    File recordingsDir = new File(getContext().getFilesDir(), "voice-recordings");
+    if (!recordingsDir.exists() && !recordingsDir.mkdirs()) {
+      throw new IllegalStateException("Cannot create voice recording directory");
+    }
+    return new File(recordingsDir, recordingId + ".m4a");
   }
 
   @PluginMethod
@@ -1478,6 +1798,10 @@ public class CorePlugin extends Plugin {
       return value;
     }
     return "skip";
+  }
+
+  private boolean isSupportedVoiceType(String voiceType) {
+    return "expense".equals(voiceType) || "income".equals(voiceType) || "transfer".equals(voiceType);
   }
 
   private record TransferDescriptor(

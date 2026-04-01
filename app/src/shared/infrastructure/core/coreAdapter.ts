@@ -38,10 +38,14 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
-  TransactionVoiceCaptureInput,
-  TransactionVoiceCaptureResult,
+  TransactionVoiceExtractDraftInput,
+  TransactionVoiceExtractDraftResult,
   TransactionVoiceFinalizeInput,
   TransactionVoiceFinalizeResult,
+  TransactionVoiceStartInput,
+  TransactionVoiceStartResult,
+  TransactionVoiceStopInput,
+  TransactionVoiceStopResult,
 } from '../../domain/corePort';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
@@ -222,11 +226,25 @@ export class CoreAdapter implements CorePort {
     return this.web.orchestrationListTransactionTaxonomy(input);
   }
 
-  async transactionVoiceCapture(input: TransactionVoiceCaptureInput): Promise<TransactionVoiceCaptureResult> {
+  async transactionVoiceStart(input: TransactionVoiceStartInput): Promise<TransactionVoiceStartResult> {
     if (Capacitor.isNativePlatform()) {
-      return CorePlugin.transactionVoiceCapture(input);
+      return CorePlugin.transactionVoiceStart(input);
     }
-    return this.web.transactionVoiceCapture(input);
+    return this.web.transactionVoiceStart(input);
+  }
+
+  async transactionVoiceStop(input: TransactionVoiceStopInput): Promise<TransactionVoiceStopResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.transactionVoiceStop(input);
+    }
+    return this.web.transactionVoiceStop(input);
+  }
+
+  async transactionVoiceExtractDraft(input: TransactionVoiceExtractDraftInput): Promise<TransactionVoiceExtractDraftResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.transactionVoiceExtractDraft(input);
+    }
+    return this.web.transactionVoiceExtractDraft(input);
   }
 
   async transactionVoiceFinalize(input: TransactionVoiceFinalizeInput): Promise<TransactionVoiceFinalizeResult> {

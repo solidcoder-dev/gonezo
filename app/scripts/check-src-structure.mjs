@@ -16,11 +16,13 @@ const EXPECTED_TOP_LEVEL = new Set([
   'main.tsx',
   'shared',
   'taxonomy',
+  'transactions',
 ]);
 
 const EXPECTED_LAYER_DIRS = ['application', 'domain', 'infrastructure', 'ui'];
 const EXPECTED_SHARED_DIRS = ['domain', 'infrastructure', 'testing', 'ui', 'utils'];
-const EXPECTED_IMPORTS_DIRS = ['mobills'];
+const EXPECTED_IMPORTS_INFRASTRUCTURE_DIRS = ['providers'];
+const EXPECTED_IMPORTS_PROVIDER_MODULES = ['mobills'];
 
 async function listNames(path) {
   const entries = await readdir(path, { withFileTypes: true });
@@ -73,16 +75,27 @@ async function checkShared() {
 async function checkImports() {
   const importsPath = resolve(SRC_DIR, 'imports');
   const { dirs: importsDirs } = await listNames(importsPath);
-  assertContainsAll(importsDirs, EXPECTED_IMPORTS_DIRS, 'src/imports');
+  assertContainsAll(importsDirs, EXPECTED_LAYER_DIRS, 'src/imports');
 
   for (const dir of importsDirs) {
-    if (!EXPECTED_IMPORTS_DIRS.includes(dir)) {
-      fail(`src/imports has unexpected module "${dir}"`);
+    if (!EXPECTED_LAYER_DIRS.includes(dir)) {
+      fail(`src/imports has unexpected entry "${dir}"`);
     }
   }
 
-  const { dirs: mobillsDirs } = await listNames(resolve(importsPath, 'mobills'));
-  assertContainsAll(mobillsDirs, EXPECTED_LAYER_DIRS, 'src/imports/mobills');
+  const importsInfrastructurePath = resolve(importsPath, 'infrastructure');
+  const { dirs: infrastructureDirs } = await listNames(importsInfrastructurePath);
+  assertContainsAll(infrastructureDirs, EXPECTED_IMPORTS_INFRASTRUCTURE_DIRS, 'src/imports/infrastructure');
+
+  for (const dir of infrastructureDirs) {
+    if (dir !== 'providers') {
+      fail(`src/imports/infrastructure has unexpected entry "${dir}"`);
+    }
+  }
+
+  const providersPath = resolve(importsInfrastructurePath, 'providers');
+  const { dirs: providerDirs } = await listNames(providersPath);
+  assertContainsAll(providerDirs, EXPECTED_IMPORTS_PROVIDER_MODULES, 'src/imports/infrastructure/providers');
 }
 
 async function main() {
@@ -90,6 +103,7 @@ async function main() {
   await checkDomainLayers('account');
   await checkDomainLayers('ledger');
   await checkDomainLayers('taxonomy');
+  await checkDomainLayers('transactions');
   await checkImports();
   await checkShared();
 

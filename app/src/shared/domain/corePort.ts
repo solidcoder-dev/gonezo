@@ -339,13 +339,37 @@ export type TransactionVoiceDraft = {
   tagNames?: string[];
 };
 
-export type TransactionVoiceCaptureInput = {
+export type TransactionVoiceStartInput = {
   accountId: string;
   expectedType: TransactionVoiceType;
 };
 
-export type TransactionVoiceCaptureResult = {
+export type TransactionVoiceStartResult = {
+  sessionId: string;
+  recordingId: string;
+  recordingPath: string;
+  startedAt: string;
+};
+
+export type TransactionVoiceStopInput = {
+  sessionId: string;
+};
+
+export type TransactionVoiceStopResult = {
+  sessionId: string;
+  recordingId: string;
+  recordingPath: string;
+  stoppedAt: string;
+  durationMs: number;
+};
+
+export type TransactionVoiceExtractDraftInput = {
+  sessionId: string;
+};
+
+export type TransactionVoiceExtractDraftResult = {
   analysisId: string;
+  sessionId: string;
   recording: {
     id: string;
     path: string;
@@ -397,6 +421,8 @@ export interface CorePort {
   orchestrationListTransactionTaxonomy(
     input: OrchestrationListTransactionTaxonomyInput,
   ): Promise<OrchestrationListTransactionTaxonomyResult>;
-  transactionVoiceCapture(input: TransactionVoiceCaptureInput): Promise<TransactionVoiceCaptureResult>;
+  transactionVoiceStart(input: TransactionVoiceStartInput): Promise<TransactionVoiceStartResult>;
+  transactionVoiceStop(input: TransactionVoiceStopInput): Promise<TransactionVoiceStopResult>;
+  transactionVoiceExtractDraft(input: TransactionVoiceExtractDraftInput): Promise<TransactionVoiceExtractDraftResult>;
   transactionVoiceFinalize(input: TransactionVoiceFinalizeInput): Promise<TransactionVoiceFinalizeResult>;
 }

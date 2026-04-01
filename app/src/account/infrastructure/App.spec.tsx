@@ -171,16 +171,30 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     orchestrationCategorizeTransaction: vi.fn(async () => ({ status: 'assigned' as const })),
     orchestrationApplyTransactionTags: vi.fn(async () => ({ status: 'assigned' as const })),
     orchestrationListTransactionTaxonomy: vi.fn(async () => ({ items: [] })),
-    transactionVoiceCapture: vi.fn(async (input) => ({
+    transactionVoiceStart: vi.fn(async (input) => ({
+      sessionId: `voice-session-${input.expectedType}`,
+      recordingId: `voice-recording-${input.expectedType}`,
+      recordingPath: `storage://voice/voice-recording-${input.expectedType}.wav`,
+      startedAt: '2026-03-10T10:00:00.000Z',
+    })),
+    transactionVoiceStop: vi.fn(async (input) => ({
+      sessionId: input.sessionId,
+      recordingId: `voice-recording-${input.sessionId}`,
+      recordingPath: `storage://voice/voice-recording-${input.sessionId}.wav`,
+      stoppedAt: '2026-03-10T10:00:05.000Z',
+      durationMs: 5000,
+    })),
+    transactionVoiceExtractDraft: vi.fn(async () => ({
       analysisId: 'analysis-default',
+      sessionId: 'voice-session-expense',
       recording: {
         id: 'voice-recording-default',
-        path: 'storage://voice/voice-recording-default.webm',
+        path: 'storage://voice/voice-recording-default.wav',
         createdAt: '2026-03-10T10:00:00.000Z',
       },
       draft: {
-        type: input.expectedType,
-        amount: input.expectedType === 'income' ? '100.00' : '10.00',
+        type: 'expense' as const,
+        amount: '10.00',
         currency: 'USD',
         occurredAt: '2026-03-10T10:00:00.000Z',
         note: '',
@@ -205,7 +219,9 @@ async function openImportSheetFromAccounts() {
 }
 
 type VoiceTestCore = AccountsCorePort & {
-  transactionVoiceCapture: ReturnType<typeof vi.fn>;
+  transactionVoiceStart: ReturnType<typeof vi.fn>;
+  transactionVoiceStop: ReturnType<typeof vi.fn>;
+  transactionVoiceExtractDraft: ReturnType<typeof vi.fn>;
   transactionVoiceFinalize: ReturnType<typeof vi.fn>;
 };
 
@@ -691,11 +707,25 @@ describe('App Accounts UX', () => {
 
   it('prefills and finalizes a voice expense draft after save', async () => {
     const core = makeCore() as VoiceTestCore;
-    core.transactionVoiceCapture = vi.fn(async () => ({
+    core.transactionVoiceStart = vi.fn(async () => ({
+      sessionId: 'session-1',
+      recordingId: 'rec-1',
+      recordingPath: 'storage://voice/rec-1.wav',
+      startedAt: '2026-03-10T10:00:00.000Z',
+    }));
+    core.transactionVoiceStop = vi.fn(async () => ({
+      sessionId: 'session-1',
+      recordingId: 'rec-1',
+      recordingPath: 'storage://voice/rec-1.wav',
+      stoppedAt: '2026-03-10T10:00:08.000Z',
+      durationMs: 8000,
+    }));
+    core.transactionVoiceExtractDraft = vi.fn(async () => ({
       analysisId: 'analysis-1',
+      sessionId: 'session-1',
       recording: {
         id: 'rec-1',
-        path: 'storage://voice/rec-1.webm',
+        path: 'storage://voice/rec-1.wav',
         createdAt: '2026-03-10T10:00:00.000Z',
       },
       draft: {
@@ -724,6 +754,7 @@ describe('App Accounts UX', () => {
 
     expect(await screen.findByText('Recording expense')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Stop and process' }));
+    expect(await screen.findByText('Processing audio')).toBeInTheDocument();
 
     const amountInput = await screen.findByLabelText('Amount');
     expect((amountInput as HTMLInputElement).value).toBe('14.50');
@@ -735,10 +766,12 @@ describe('App Accounts UX', () => {
       expect(core.transactionVoiceFinalize).toHaveBeenCalledTimes(1);
     });
 
-    expect(core.transactionVoiceCapture).toHaveBeenCalledWith({
+    expect(core.transactionVoiceStart).toHaveBeenCalledWith({
       accountId: 'acc-1',
       expectedType: 'expense',
     });
+    expect(core.transactionVoiceStop).toHaveBeenCalledWith({ sessionId: 'session-1' });
+    expect(core.transactionVoiceExtractDraft).toHaveBeenCalledWith({ sessionId: 'session-1' });
     expect(core.transactionVoiceFinalize).toHaveBeenCalledWith(expect.objectContaining({
       analysisId: 'analysis-1',
       outcome: 'saved',
