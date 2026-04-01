@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["schemaVersion", "source", "extraction"],
+  "properties": {
+    "schemaVersion": { "type": "string", "enum": ["v1"] },
+    "source": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": { "enum": ["base64", "url", "fileRef"] },
+        "value": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "extraction": {
+      "type": "object",
+      "required": ["outputSchema"],
+      "properties": {
+        "outputSchema": { "type": "object" },
+        "instructions": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "context": { "type": "object", "additionalProperties": true },
+    "options": {
+      "type": "object",
+      "properties": {
+        "includeTranscript": { "type": "boolean" },
+        "language": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
