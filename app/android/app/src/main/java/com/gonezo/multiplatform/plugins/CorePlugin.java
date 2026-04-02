@@ -18,15 +18,18 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
-import com.gonezo.multiplatform.audioextraction.application.AudioExtractionUseCase;
-import com.gonezo.multiplatform.audioextraction.contract.ContractJsonMapper;
-import com.gonezo.multiplatform.audioextraction.contract.ExtractionRequest;
-import com.gonezo.multiplatform.audioextraction.contract.ExtractionResult;
-import com.gonezo.multiplatform.audioextraction.infrastructure.factory.AudioExtractionModuleFactory;
+import com.gonezo.audioextraction.domain.contract.ContractJsonMapper;
+import com.gonezo.audioextraction.infrastructure.llm.LlmConfig;
+import com.gonezo.audioextraction.ui.AudioExtractionFacade;
+import com.gonezo.audioextraction.ui.config.AudioExtractionWiring;
+import com.gonezo.audioextraction.ui.dto.ExtractionRequestDto;
+import com.gonezo.audioextraction.ui.dto.ExtractionResultDto;
 import com.gonezo.multiplatform.core.AndroidLedgerCore;
 import com.gonezo.multiplatform.core.AndroidTaxonomyCore;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -68,7 +71,7 @@ public class CorePlugin extends Plugin {
   private final java.util.Map<String, SpeechRecognizer> transactionVoiceRecognizerBySessionId = new ConcurrentHashMap<>();
   private final java.util.Map<String, VoiceRecognitionState> transactionVoiceRecognitionStateBySessionId = new ConcurrentHashMap<>();
   private final java.util.Map<String, JSObject> transactionVoiceAnalysisById = new ConcurrentHashMap<>();
-  private AudioExtractionUseCase audioExtractionUseCase;
+  private AudioExtractionFacade audioExtractionFacade;
 
   private static final class VoiceRecognitionState {
     volatile boolean ready;
@@ -948,11 +951,11 @@ public class CorePlugin extends Plugin {
     );
 
     AndroidLedgerCore ledgerCore = AndroidLedgerCore.getInstance(getContext());
-    ExtractionRequest extractionRequest = new ExtractionRequest(
+    ExtractionRequestDto extractionRequest = new ExtractionRequestDto(
       "v1",
-      new ExtractionRequest.Source("fileRef", recordingPath),
-      new ExtractionRequest.Extraction(
-        ContractJsonMapper.toMap(AudioExtractionModuleFactory.loadTransactionOutputSchema(getContext())),
+      new ExtractionRequestDto.SourceDto("base64", base64Utf8(transcript)),
+      new ExtractionRequestDto.ExtractionDto(
+        loadTransactionOutputSchemaMap(),
         "Extract transaction fields from audio transcript."
       ),
       Map.of(
@@ -960,19 +963,19 @@ public class CorePlugin extends Plugin {
         "expectedType", expectedType,
         "transcriptHint", transcript
       ),
-      new ExtractionRequest.Options(true, null)
+      new ExtractionRequestDto.OptionsDto(true, null)
     );
-    ExtractionResult extractionResult = audioExtractionUseCase().execute(extractionRequest);
+    ExtractionResultDto extractionResult = audioExtractionFacade().execute(extractionRequest);
     logi("voice_extract_result sessionId=" + sessionId.trim()
         + " analysisId=" + analysisId
-        + " outcome=" + extractionResult.outcome()
-        + " issues=" + summarizeIssues(extractionResult.globalIssues())
+        + " outcome=" + extractionResult.getOutcome()
+        + " issues=" + summarizeIssues(extractionResult.getGlobalIssues())
         + " stageTimings=" + summarizeStageTimings(extractionResult)
     );
-    if ("failed".equalsIgnoreCase(extractionResult.outcome())) {
-      String issues = extractionResult.globalIssues() == null || extractionResult.globalIssues().isEmpty()
+    if ("failed".equalsIgnoreCase(extractionResult.getOutcome())) {
+      String issues = extractionResult.getGlobalIssues() == null || extractionResult.getGlobalIssues().isEmpty()
         ? "unknown"
-        : String.join(",", extractionResult.globalIssues());
+        : String.join(",", extractionResult.getGlobalIssues());
       logw("voice_extract_failed sessionId=" + sessionId.trim()
           + " analysisId=" + analysisId
           + " issues=" + issues
@@ -1028,15 +1031,15 @@ public class CorePlugin extends Plugin {
     }
   }
 
-  private AudioExtractionUseCase audioExtractionUseCase() {
-    if (audioExtractionUseCase == null) {
-      audioExtractionUseCase = AudioExtractionModuleFactory.create(getContext());
+  private AudioExtractionFacade audioExtractionFacade() {
+    if (audioExtractionFacade == null) {
+      audioExtractionFacade = AudioExtractionWiring.INSTANCE.createFacade(60_000L, new LlmConfig(2048, 8000, 5_000L));
     }
-    return audioExtractionUseCase;
+    return audioExtractionFacade;
   }
 
   private JSObject mapExtractionResultToDraft(
-    ExtractionResult extractionResult,
+    ExtractionResultDto extractionResult,
     String expectedType,
     String defaultOccurredAt,
     String transcript
@@ -1053,7 +1056,7 @@ public class CorePlugin extends Plugin {
     String note = asText(resolveExtractionValue(extractionResult, "note"));
     String transcriptFallback = nullIfBlank(transcript);
     if (transcriptFallback == null) {
-      transcriptFallback = asText(extractionResult == null ? null : extractionResult.transcript());
+      transcriptFallback = asText(extractionResult == null ? null : extractionResult.getTranscript());
     }
 
     draft.put("type", type);
@@ -1081,17 +1084,17 @@ public class CorePlugin extends Plugin {
     return draft;
   }
 
-  private Object resolveExtractionValue(ExtractionResult extractionResult, String fieldName) {
+  private Object resolveExtractionValue(ExtractionResultDto extractionResult, String fieldName) {
     if (extractionResult == null) {
       return null;
     }
 
-    if (extractionResult.data().containsKey(fieldName)) {
-      return extractionResult.data().get(fieldName);
+    if (extractionResult.getData().containsKey(fieldName)) {
+      return extractionResult.getData().get(fieldName);
     }
 
-    ExtractionResult.FieldResult fieldResult = extractionResult.fieldResults().get(fieldName);
-    return fieldResult == null ? null : fieldResult.value();
+    ExtractionResultDto.FieldResultDto fieldResult = extractionResult.getFieldResults().get(fieldName);
+    return fieldResult == null ? null : fieldResult.getValue();
   }
 
   private String asText(Object value) {
@@ -1372,12 +1375,12 @@ public class CorePlugin extends Plugin {
     return String.join("|", issues);
   }
 
-  private String summarizeStageTimings(ExtractionResult extractionResult) {
-    if (extractionResult == null || extractionResult.processingInfo() == null || extractionResult.processingInfo().stageTimings().isEmpty()) {
+  private String summarizeStageTimings(ExtractionResultDto extractionResult) {
+    if (extractionResult == null || extractionResult.getProcessingInfo() == null || extractionResult.getProcessingInfo().getStageTimings().isEmpty()) {
       return "none";
     }
     StringBuilder builder = new StringBuilder();
-    for (Map.Entry<String, Double> entry : extractionResult.processingInfo().stageTimings().entrySet()) {
+    for (Map.Entry<String, Double> entry : extractionResult.getProcessingInfo().getStageTimings().entrySet()) {
       if (builder.length() > 0) {
         builder.append(',');
       }
@@ -1405,6 +1408,27 @@ public class CorePlugin extends Plugin {
       case -1 -> "none";
       default -> "code_" + code;
     };
+  }
+
+  private String base64Utf8(String value) {
+    String normalized = value == null ? "" : value;
+    return Base64.getEncoder().encodeToString(normalized.getBytes(StandardCharsets.UTF_8));
+  }
+
+  private Map<String, Object> loadTransactionOutputSchemaMap() {
+    try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+      getContext().getAssets().open("audio-extraction/schemas/transaction-output.v1.schema.json"),
+      StandardCharsets.UTF_8
+    ))) {
+      StringBuilder content = new StringBuilder();
+      String line;
+      while ((line = reader.readLine()) != null) {
+        content.append(line).append('\n');
+      }
+      return ContractJsonMapper.toMap(new JSONObject(content.toString()));
+    } catch (IOException | JSONException ex) {
+      throw new IllegalStateException("Cannot load transaction output schema", ex);
+    }
   }
 
   private void logd(String message) {

@@ -1,10 +1,48 @@
-allprojects {
-  group = 'com.gonezo'
-  version = '0.1.0-SNAPSHOT'
+plugins {
+  id 'org.jetbrains.kotlin.jvm' version '2.3.0'
+}
 
-  repositories {
-    mavenCentral()
+group = 'com.gonezo'
+version = '0.1.0-SNAPSHOT'
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_17
+  targetCompatibility = JavaVersion.VERSION_17
+}
+
+kotlin {
+  compilerOptions {
+    jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    freeCompilerArgs.addAll(['-Xjsr305=strict'])
   }
+}
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+  implementation 'org.json:json:20240303'
+
+  compileOnly 'org.springframework:spring-context:6.2.3'
+  compileOnly 'org.springframework:spring-jdbc:6.2.3'
+  compileOnly 'org.springframework:spring-tx:6.2.3'
+  compileOnly 'org.flywaydb:flyway-core:11.20.2'
+  compileOnly 'org.xerial:sqlite-jdbc:3.47.0.0'
+
+  testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+  testImplementation 'org.assertj:assertj-core:3.26.3'
+  testImplementation 'org.springframework:spring-context:6.2.3'
+  testImplementation 'org.springframework:spring-jdbc:6.2.3'
+  testImplementation 'org.springframework:spring-tx:6.2.3'
+  testImplementation 'org.flywaydb:flyway-core:11.20.2'
+  testImplementation 'org.xerial:sqlite-jdbc:3.47.0.0'
+  testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.4'
+}
+
+tasks.withType(Test).configureEach {
+  useJUnitPlatform()
 }
 
 tasks.register('checkLayerBoundaries') {
@@ -36,17 +74,21 @@ tasks.register('checkLayerBoundaries') {
 
     checkForbidden(
       'core/domain',
-      fileTree('domain/src/main') {
-        include '**/*.kt'
-        include '**/*.java'
+      fileTree('src/main') {
+        include '**/com/gonezo/domain/**/*.kt'
+        include '**/com/gonezo/domain/**/*.java'
+        include '**/com/gonezo/audioextraction/domain/**/*.kt'
+        include '**/com/gonezo/audioextraction/domain/**/*.java'
       },
       domainForbidden
     )
     checkForbidden(
       'core/application',
-      fileTree('application/src/main') {
-        include '**/*.kt'
-        include '**/*.java'
+      fileTree('src/main') {
+        include '**/com/gonezo/application/**/*.kt'
+        include '**/com/gonezo/application/**/*.java'
+        include '**/com/gonezo/audioextraction/application/**/*.kt'
+        include '**/com/gonezo/audioextraction/application/**/*.java'
       },
       applicationForbidden
     )

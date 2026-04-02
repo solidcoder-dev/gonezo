@@ -1,5 +1,1 @@
 rootProject.name = 'gonezo-core'
-
-include ':domain'
-include ':application'
-include ':infrastructure'
