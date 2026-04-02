@@ -21,6 +21,7 @@ import com.gonezo.audioextraction.domain.schema.OutputSchema
 import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.logging.Logger
 
 class DefaultAudioExtractionUseCase(
   private val requestGuard: RequestGuard,
@@ -38,6 +39,9 @@ class DefaultAudioExtractionUseCase(
     val requestId = UUID.randomUUID().toString()
     val startedAt = System.currentTimeMillis()
     cancelledByRequestId[requestId] = false
+    logInfo(
+      "pipeline_execute_start requestId=$requestId schemaVersion=${request.schemaVersion} sourceType=${request.source?.type} sourceRef=${sanitizeSourceRef(request.source?.value)} contextKeys=${request.context.keys}",
+    )
 
     val stageTimings = linkedMapOf<String, Double>()
     val globalIssues = mutableListOf<String>()
@@ -49,16 +53,26 @@ class DefaultAudioExtractionUseCase(
 
     try {
       measureStage(stageTimings, "validate") { requestGuard.validateRequest(request) }
+      logInfo("pipeline_stage_ok requestId=$requestId stage=validate durationMs=${stageTimings["validate"]?.toLong() ?: 0}")
       ensureRunning(requestId, startedAt)
 
       plan = measureStage(stageTimings, "plan") { executionPlanner.plan(request, outputSchema) }
+      logInfo(
+        "pipeline_stage_ok requestId=$requestId stage=plan durationMs=${stageTimings["plan"]?.toLong() ?: 0} requiredFields=${plan.requiredFields.size} optionalFields=${plan.optionalFields.size} includeTranscript=${plan.includeTranscript}",
+      )
       ensureRunning(requestId, startedAt)
 
       val requestWithRequestId = withRequestIdInContext(request, requestId)
       val sourceAudio = measureStage(stageTimings, "load") { sourceLoader.load(requestWithRequestId) }
+      logInfo(
+        "pipeline_stage_ok requestId=$requestId stage=load durationMs=${stageTimings["load"]?.toLong() ?: 0} bytesLength=${sourceAudio.bytes.size} sourceRef=${sanitizeSourceRef(sourceAudio.sourceRef)} metadataKeys=${sourceAudio.metadata.keys}",
+      )
       ensureRunning(requestId, startedAt)
 
       transcript = measureStage(stageTimings, "transcribe") { transcriptionEngine.transcribe(sourceAudio) }
+      logInfo(
+        "pipeline_stage_ok requestId=$requestId stage=transcribe durationMs=${stageTimings["transcribe"]?.toLong() ?: 0} transcriptLength=${transcript.text.length} segments=${transcript.segments.size}",
+      )
       ensureRunning(requestId, startedAt)
 
       val candidates = measureStage(stageTimings, "extract") {
@@ -66,11 +80,17 @@ class DefaultAudioExtractionUseCase(
           structuredExtractor.extract(transcript, plan, outputSchema)
         }
       }
+      logInfo(
+        "pipeline_stage_ok requestId=$requestId stage=extract durationMs=${stageTimings["extract"]?.toLong() ?: 0} candidateFields=${candidates.size}",
+      )
       ensureRunning(requestId, startedAt)
 
       resolved = LinkedHashMap(measureStage(stageTimings, "resolve") {
         resolutionCoordinator.resolve(candidates, outputSchema, ExtractionContext(requestId, request.context))
       })
+      logInfo(
+        "pipeline_stage_ok requestId=$requestId stage=resolve durationMs=${stageTimings["resolve"]?.toLong() ?: 0} resolvedFields=${resolved.size}",
+      )
       ensureRunning(requestId, startedAt)
 
       val result = measureStage(stageTimings, "assemble") {
@@ -85,15 +105,30 @@ class DefaultAudioExtractionUseCase(
           elapsedSince(startedAt),
         )
       }
+      logInfo(
+        "pipeline_stage_ok requestId=$requestId stage=assemble durationMs=${stageTimings["assemble"]?.toLong() ?: 0} outcome=${result.outcome} dataFields=${result.data.size} fieldResults=${result.fieldResults.size} globalIssues=${result.globalIssues.size}",
+      )
 
       measureStage(stageTimings, "validateResult") { requestGuard.validateResult(result) }
+      logInfo("pipeline_stage_ok requestId=$requestId stage=validateResult durationMs=${stageTimings["validateResult"]?.toLong() ?: 0}")
+      logPipelineEnd(requestId, startedAt, result)
       return result
     } catch (ex: AudioExtractionException) {
+      logWarn(
+        "pipeline_stage_failed requestId=$requestId code=${ex.code.name.lowercase(Locale.ROOT)} message=${ex.message.orEmpty()} stageTimings=$stageTimings",
+      )
       globalIssues.add(ex.code.name.lowercase(Locale.ROOT))
-      return failedResult(requestId, startedAt, stageTimings, globalIssues, transcript, outputSchema, plan, resolved)
+      val result = failedResult(requestId, startedAt, stageTimings, globalIssues, transcript, outputSchema, plan, resolved)
+      logPipelineEnd(requestId, startedAt, result)
+      return result
     } catch (ex: RuntimeException) {
+      logWarn(
+        "pipeline_stage_failed requestId=$requestId code=${ErrorCode.RESOLUTION_FAILED.name.lowercase(Locale.ROOT)} reason=${ex.javaClass.simpleName} message=${ex.message.orEmpty()} stageTimings=$stageTimings",
+      )
       globalIssues.add(ErrorCode.RESOLUTION_FAILED.name.lowercase(Locale.ROOT))
-      return failedResult(requestId, startedAt, stageTimings, globalIssues, transcript, outputSchema, plan, resolved)
+      val result = failedResult(requestId, startedAt, stageTimings, globalIssues, transcript, outputSchema, plan, resolved)
+      logPipelineEnd(requestId, startedAt, result)
+      return result
     } finally {
       cancelledByRequestId.remove(requestId)
     }
@@ -175,5 +210,41 @@ class DefaultAudioExtractionUseCase(
     } finally {
       stageTimings[stage] = (System.currentTimeMillis() - startedAt).toDouble()
     }
+  }
+
+  private fun logPipelineEnd(requestId: String, startedAt: Long, result: ExtractionResult) {
+    logInfo(
+      "pipeline_execute_end requestId=$requestId outcome=${result.outcome} processingTimeMs=${result.processingInfo?.processingTimeMs?.toLong() ?: 0L} wallTimeMs=${elapsedSince(startedAt).toLong()} dataFields=${result.data.size} fieldResults=${result.fieldResults.size} globalIssues=${result.globalIssues.size}",
+    )
+  }
+
+  private fun sanitizeSourceRef(value: String?): String {
+    if (value.isNullOrBlank()) {
+      return "n/a"
+    }
+    return runCatching {
+      val uri = java.net.URI.create(value)
+      val scheme = uri.scheme ?: return@runCatching value
+      if (scheme.equals("http", ignoreCase = true) || scheme.equals("https", ignoreCase = true)) {
+        val host = uri.host ?: "unknown-host"
+        val port = if (uri.port > 0) ":${uri.port}" else ""
+        val path = if (uri.path.isNullOrBlank()) "/" else uri.path
+        "$scheme://$host$port$path"
+      } else {
+        value
+      }
+    }.getOrDefault(value)
+  }
+
+  private fun logInfo(message: String) {
+    LOGGER.info(message)
+  }
+
+  private fun logWarn(message: String) {
+    LOGGER.warning(message)
+  }
+
+  private companion object {
+    private val LOGGER: Logger = Logger.getLogger("GonezoAudioExtract")
   }
 }

@@ -8,9 +8,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 final class LocalStorageHttpServer extends NanoHTTPD {
   private static final String ROUTE_PREFIX = "/storage/";
+  private static final Logger LOGGER = Logger.getLogger("GonezoStorage");
   private final LocalStorageRepository repository;
   private final SignedUrlSigner signer;
 
@@ -22,32 +24,39 @@ final class LocalStorageHttpServer extends NanoHTTPD {
 
   @Override
   public Response serve(IHTTPSession session) {
+    logInfo("storage_http_request method=" + session.getMethod() + " path=" + session.getUri());
     if (session.getMethod() != Method.GET) {
+      logWarn("storage_http_rejected reason=method_not_allowed method=" + session.getMethod());
       return newFixedLengthResponse(Response.Status.METHOD_NOT_ALLOWED, "text/plain", "Method not allowed");
     }
 
     String uri = session.getUri();
     StorageRef ref = decodeRefFromUri(uri);
     if (ref == null) {
+      logWarn("storage_http_rejected reason=invalid_path path=" + uri);
       return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Not found");
     }
 
     long expiry = parseExpiry(session.getParameters());
     String signature = firstParam(session.getParameters(), "sig");
     if (expiry <= 0 || signature == null) {
+      logWarn("storage_http_rejected reason=invalid_signed_url namespace=" + ref.namespace() + " path=" + ref.path());
       return newFixedLengthResponse(Response.Status.FORBIDDEN, "text/plain", "Invalid signed URL");
     }
     if (Instant.now().getEpochSecond() > expiry) {
+      logWarn("storage_http_rejected reason=expired namespace=" + ref.namespace() + " path=" + ref.path() + " exp=" + expiry);
       return newFixedLengthResponse(Response.Status.FORBIDDEN, "text/plain", "Signed URL expired");
     }
 
     String canonicalPath = encodePath(ref);
     if (!signer.verify("GET", canonicalPath, expiry, signature)) {
+      logWarn("storage_http_rejected reason=invalid_signature namespace=" + ref.namespace() + " path=" + ref.path());
       return newFixedLengthResponse(Response.Status.FORBIDDEN, "text/plain", "Invalid signature");
     }
 
     StoredObject object = repository.get(ref);
     if (object == null) {
+      logWarn("storage_http_rejected reason=object_not_found namespace=" + ref.namespace() + " path=" + ref.path());
       return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Object not found");
     }
 
@@ -61,8 +70,12 @@ final class LocalStorageHttpServer extends NanoHTTPD {
         response.addHeader("Content-Disposition", "attachment; filename=\"" + filename.replace("\"", "") + "\"");
       }
       response.addHeader("Accept-Ranges", "bytes");
+      logInfo(
+        "storage_http_response status=200 namespace=" + ref.namespace() + " path=" + ref.path() + " bytes=" + object.file().length() + " contentType=" + contentType
+      );
       return response;
     } catch (FileNotFoundException ex) {
+      logWarn("storage_http_rejected reason=file_not_found namespace=" + ref.namespace() + " path=" + ref.path());
       return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Object not found");
     }
   }
@@ -148,5 +161,13 @@ final class LocalStorageHttpServer extends NanoHTTPD {
       || (character >= 'a' && character <= 'z')
       || (character >= '0' && character <= '9')
       || character == '-' || character == '_' || character == '.' || character == '~';
+  }
+
+  private static void logInfo(String message) {
+    LOGGER.info(message);
+  }
+
+  private static void logWarn(String message) {
+    LOGGER.warning(message);
   }
 }

@@ -14,13 +14,14 @@ public final class AndroidObjectStorage implements ObjectStorage {
   private static final String SECRET_KEY = "signed_url_secret";
   private final LocalStorageRepository repository;
   private final SignedUrlSigner signer;
+  private final Context appContext;
   private LocalStorageHttpServer server;
 
   public AndroidObjectStorage(Context context) {
-    Context appContext = context.getApplicationContext();
-    File storageRoot = new File(appContext.getFilesDir(), "storage");
+    this.appContext = context.getApplicationContext();
+    File storageRoot = new File(this.appContext.getFilesDir(), "storage");
     this.repository = new LocalStorageRepository(storageRoot);
-    this.signer = new SignedUrlSigner(loadOrCreateSecret(appContext));
+    this.signer = new SignedUrlSigner(loadOrCreateSecret(this.appContext));
   }
 
   @Override
@@ -36,7 +37,15 @@ public final class AndroidObjectStorage implements ObjectStorage {
     long expiresAt = now + normalizedTtl;
     String path = LocalStorageHttpServer.encodePath(ref);
     String signature = signer.sign("GET", path, expiresAt);
-    String url = "http://127.0.0.1:" + server.getListeningPort() + path + "?exp=" + expiresAt + "&sig=" + signature;
+    String url = "https://127.0.0.1:" + server.getListeningPort() + path + "?exp=" + expiresAt + "&sig=" + signature;
+    Log.i(
+      LOG_TAG,
+      "storage_signed_url_generated namespace=" + ref.namespace()
+        + " path=" + ref.path()
+        + " host=127.0.0.1"
+        + " port=" + server.getListeningPort()
+        + " expiresAt=" + Instant.ofEpochSecond(expiresAt)
+    );
     return new SignedAccessLink(url, Instant.ofEpochSecond(expiresAt).toString());
   }
 
@@ -51,8 +60,14 @@ public final class AndroidObjectStorage implements ObjectStorage {
     }
     try {
       server = new LocalStorageHttpServer(0, repository, signer);
+      server.makeSecure(LoopbackTlsIdentity.createServerSocketFactory(appContext), null);
       server.start(NanoHttpdReadTimeout.MILLISECONDS_30_SECONDS, true);
+      Log.i(
+        LOG_TAG,
+        "storage_http_server_started host=127.0.0.1 port=" + server.getListeningPort() + " tls=true"
+      );
     } catch (Exception ex) {
+      Log.e(LOG_TAG, "storage_http_server_start_failed", ex);
       throw new IllegalStateException("Cannot start local storage HTTP server", ex);
     }
   }

@@ -13,14 +13,15 @@ import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 import com.gonezo.audioextraction.domain.contract.ContractJsonMapper;
 import com.gonezo.audioextraction.infrastructure.llm.LlmConfig;
-import com.gonezo.audioextraction.infrastructure.source.DefaultSourceLoader;
 import com.gonezo.audioextraction.ui.AudioExtractionFacade;
 import com.gonezo.audioextraction.ui.config.AudioExtractionWiring;
-import com.gonezo.audioextraction.ui.dto.ExtractionRequestDto;
 import com.gonezo.audioextraction.ui.dto.ExtractionResultDto;
 import com.gonezo.multiplatform.audioextraction.infrastructure.asr.VoskTranscriptionEngine;
+import com.gonezo.multiplatform.audioextraction.infrastructure.source.LoopbackHttpsSourceLoader;
 import com.gonezo.multiplatform.core.AndroidLedgerCore;
 import com.gonezo.multiplatform.core.AndroidTaxonomyCore;
+import com.gonezo.multiplatform.plugins.voice.VoiceExtractionRequestBuilder;
+import com.gonezo.multiplatform.plugins.voice.VoiceExtractionRequestFactory;
 import com.gonezo.multiplatform.storage.AndroidObjectStorage;
 import com.gonezo.multiplatform.storage.ObjectStorage;
 import com.gonezo.multiplatform.storage.SignedAccessLink;
@@ -66,6 +67,7 @@ public class CorePlugin extends Plugin {
   private final java.util.Map<String, MediaRecorder> transactionVoiceRecorderBySessionId = new ConcurrentHashMap<>();
   private final java.util.Map<String, JSObject> transactionVoiceAnalysisById = new ConcurrentHashMap<>();
   private AudioExtractionFacade audioExtractionFacade;
+  private VoiceExtractionRequestBuilder voiceExtractionRequestBuilder;
   private ObjectStorage objectStorage;
 
   @PluginMethod
@@ -954,21 +956,25 @@ public class CorePlugin extends Plugin {
     );
 
     AndroidLedgerCore ledgerCore = AndroidLedgerCore.getInstance(getContext());
-    ExtractionRequestDto extractionRequest = new ExtractionRequestDto(
-      "v1",
-      new ExtractionRequestDto.SourceDto("url", signedAccessLink.url()),
-      new ExtractionRequestDto.ExtractionDto(
-        loadTransactionOutputSchemaMap(),
-        "Extract transaction fields from audio transcript."
-      ),
-      Map.of(
-        "accountId", accountId,
-        "expectedType", expectedType,
-        "transcriptHint", transcript
-      ),
-      new ExtractionRequestDto.OptionsDto(true, null)
-    );
-    ExtractionResultDto extractionResult = audioExtractionFacade().execute(extractionRequest);
+    ExtractionResultDto extractionResult;
+    try {
+      extractionResult = audioExtractionFacade().execute(
+        voiceExtractionRequestBuilder().build(
+          signedAccessLink.url(),
+          loadTransactionOutputSchemaMap(),
+          accountId,
+          expectedType,
+          transcript
+        )
+      );
+    } catch (IllegalArgumentException ex) {
+      logw("voice_extract_invalid_request sessionId=" + sessionId.trim()
+          + " analysisId=" + analysisId
+          + " reason=" + ex.getMessage()
+      );
+      call.reject(ex.getMessage());
+      return;
+    }
     logi("voice_extract_result sessionId=" + sessionId.trim()
         + " analysisId=" + analysisId
         + " outcome=" + extractionResult.getOutcome()
@@ -1039,11 +1045,18 @@ public class CorePlugin extends Plugin {
       audioExtractionFacade = AudioExtractionWiring.INSTANCE.createFacade(
         60_000L,
         new LlmConfig(2048, 8000, 5_000L),
-        new DefaultSourceLoader(),
+        new LoopbackHttpsSourceLoader(getContext()),
         new VoskTranscriptionEngine(getContext())
       );
     }
     return audioExtractionFacade;
+  }
+
+  private VoiceExtractionRequestBuilder voiceExtractionRequestBuilder() {
+    if (voiceExtractionRequestBuilder == null) {
+      voiceExtractionRequestBuilder = new VoiceExtractionRequestFactory();
+    }
+    return voiceExtractionRequestBuilder;
   }
 
   private ObjectStorage objectStorage() {
