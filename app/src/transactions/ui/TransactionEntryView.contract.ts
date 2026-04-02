@@ -1,12 +1,33 @@
 import type { FormEvent } from 'react';
 import type { ComposerMode, TransactionFieldErrors } from '../domain/transactions.types';
 
+type TransactionVoiceDebugState = {
+  enabled: boolean;
+  platform: 'native' | 'web';
+  lastSessionId?: string;
+  lastRecordingPath?: string;
+  lastStoppedAt?: string;
+  lastDurationMs?: number;
+  lastAnalysisId?: string;
+  lastDraft?: {
+    type?: string;
+    amount?: string;
+    occurredAt?: string;
+    note?: string;
+    categoryName?: string;
+    transferToAccountId?: string;
+    tagNames?: string[];
+  };
+  lastError?: string;
+};
+
 export type TransactionEntryViewRequired = {
   state: {
     open: boolean;
     mode: ComposerMode;
     voicePhase: 'idle' | 'recording' | 'processing';
     voiceMode: Exclude<ComposerMode, 'picker'> | null;
+    voiceDebug?: TransactionVoiceDebugState;
     advancedOpen: boolean;
     amount: string;
     date: string;

@@ -78,7 +78,8 @@ public final class DefaultAudioExtractionUseCase implements AudioExtractionUseCa
       plan = measureStage(stageTimings, "plan", () -> executionPlanner.plan(request, outputSchema));
       ensureRunning(requestId, startedAt);
 
-      SourceAudio sourceAudio = measureStage(stageTimings, "load", () -> sourceLoader.load(request));
+      final ExtractionRequest requestWithRequestId = withRequestIdInContext(request, requestId);
+      SourceAudio sourceAudio = measureStage(stageTimings, "load", () -> sourceLoader.load(requestWithRequestId));
       ensureRunning(requestId, startedAt);
 
       transcript = measureStage(stageTimings, "transcribe", () -> transcriptionEngine.transcribe(sourceAudio));
@@ -146,6 +147,21 @@ public final class DefaultAudioExtractionUseCase implements AudioExtractionUseCa
       return new OutputSchema(Map.of());
     }
     return OutputSchema.fromJson(ContractJsonMapper.toJsonObject(request.extraction().outputSchema()));
+  }
+
+  private ExtractionRequest withRequestIdInContext(ExtractionRequest request, String requestId) {
+    if (request == null) {
+      return null;
+    }
+    Map<String, Object> context = new LinkedHashMap<>(request.context());
+    context.put("requestId", requestId);
+    return new ExtractionRequest(
+      request.schemaVersion(),
+      request.source(),
+      request.extraction(),
+      context,
+      request.options()
+    );
   }
 
   private ExtractionResult failedResult(

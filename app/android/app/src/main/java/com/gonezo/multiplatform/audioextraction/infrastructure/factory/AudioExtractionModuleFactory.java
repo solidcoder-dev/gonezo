@@ -12,12 +12,16 @@ import com.gonezo.multiplatform.audioextraction.infrastructure.asr.VoskTranscrip
 import com.gonezo.multiplatform.audioextraction.infrastructure.contract.RequestGuardImpl;
 import com.gonezo.multiplatform.audioextraction.infrastructure.llm.DefaultChunkingService;
 import com.gonezo.multiplatform.audioextraction.infrastructure.llm.DefaultLlmGuard;
-import com.gonezo.multiplatform.audioextraction.infrastructure.llm.InMemoryExtractionTelemetry;
+import com.gonezo.multiplatform.audioextraction.infrastructure.llm.AndroidLogExtractionTelemetry;
 import com.gonezo.multiplatform.audioextraction.infrastructure.llm.JsonPromptBuilder;
 import com.gonezo.multiplatform.audioextraction.infrastructure.llm.LlmConfig;
 import com.gonezo.multiplatform.audioextraction.infrastructure.llm.LlmStructuredExtractor;
 import com.gonezo.multiplatform.audioextraction.infrastructure.llm.RuleBasedLocalLlmEngine;
 import com.gonezo.multiplatform.audioextraction.infrastructure.llm.StrictJsonOutputParser;
+import com.gonezo.multiplatform.audioextraction.infrastructure.logging.LoggingAudioExtractionUseCase;
+import com.gonezo.multiplatform.audioextraction.infrastructure.logging.LoggingResolutionCoordinator;
+import com.gonezo.multiplatform.audioextraction.infrastructure.logging.LoggingResultAssembler;
+import com.gonezo.multiplatform.audioextraction.infrastructure.logging.LoggingStructuredExtractor;
 import com.gonezo.multiplatform.audioextraction.infrastructure.resolution.ResolutionCoordinatorImpl;
 import com.gonezo.multiplatform.audioextraction.infrastructure.source.AndroidSourceLoader;
 import java.io.BufferedReader;
@@ -34,24 +38,26 @@ public final class AudioExtractionModuleFactory {
   }
 
   public static AudioExtractionUseCase create(Context context) {
-    return new DefaultAudioExtractionUseCase(
+    LlmStructuredExtractor llmExtractor = new LlmStructuredExtractor(
+      new RuleBasedLocalLlmEngine(),
+      new LlmConfig(512, 4000, 20000L),
+      new JsonPromptBuilder(),
+      new StrictJsonOutputParser(),
+      new DefaultLlmGuard(),
+      new DefaultChunkingService(),
+      new AndroidLogExtractionTelemetry()
+    );
+    AudioExtractionUseCase useCase = new DefaultAudioExtractionUseCase(
       new RequestGuardImpl(context),
       new ExecutionPlanner(),
       new AndroidSourceLoader(context),
       new VoskTranscriptionEngine(),
-      new LlmStructuredExtractor(
-        new RuleBasedLocalLlmEngine(),
-        new LlmConfig(512, 4000, 20000L),
-        new JsonPromptBuilder(),
-        new StrictJsonOutputParser(),
-        new DefaultLlmGuard(),
-        new DefaultChunkingService(),
-        new InMemoryExtractionTelemetry()
-      ),
-      new ResolutionCoordinatorImpl(),
-      new ResultAssemblerImpl(),
+      new LoggingStructuredExtractor(llmExtractor),
+      new LoggingResolutionCoordinator(new ResolutionCoordinatorImpl()),
+      new LoggingResultAssembler(new ResultAssemblerImpl()),
       20000L
     );
+    return new LoggingAudioExtractionUseCase(useCase);
   }
 
   public static JSONObject loadTransactionOutputSchema(Context context) {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
+import { Capacitor } from '@capacitor/core';
 import type {
   LedgerAccountItem,
   TaxonomyCategoryItem,
@@ -27,6 +28,35 @@ type UseTransactionEntryModelInput = {
   onRecorded?: () => void;
   onError?: (error: { message: string }) => void;
 };
+
+type VoiceDebugState = {
+  enabled: boolean;
+  platform: 'native' | 'web';
+  lastSessionId?: string;
+  lastRecordingPath?: string;
+  lastStoppedAt?: string;
+  lastDurationMs?: number;
+  lastAnalysisId?: string;
+  lastDraft?: TransactionVoiceDraft;
+  lastError?: string;
+};
+
+function resolveVoiceDebugEnabled(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const queryValue = new URLSearchParams(window.location.search).get('debugVoice');
+  if (queryValue === '1' || queryValue === 'true') {
+    return true;
+  }
+
+  try {
+    return window.localStorage.getItem('gonezo.debug.voice') === '1';
+  } catch {
+    return false;
+  }
+}
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -95,6 +125,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [voiceSessionId, setVoiceSessionId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [voiceAnalysisId, setVoiceAnalysisId] = useState<string | null>(null);
+  const [voiceDebug, setVoiceDebug] = useState<VoiceDebugState>(() => ({
+    enabled: resolveVoiceDebugEnabled(),
+    platform: Capacitor.isNativePlatform() ? 'native' : 'web',
+  }));
 
   const [accounts, setAccounts] = useState<LedgerAccountItem[]>([]);
   const [accountCurrency, setAccountCurrency] = useState('USD');
@@ -161,9 +195,18 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     return (Math.round((total - expenseAssigned) * 100) / 100).toFixed(2);
   }, [transactionAmount, expenseAssigned]);
 
+  function updateVoiceDebug(partial: Partial<Omit<VoiceDebugState, 'enabled' | 'platform'>>) {
+    setVoiceDebug((previous) => ({
+      ...previous,
+      platform: Capacitor.isNativePlatform() ? 'native' : 'web',
+      ...partial,
+    }));
+  }
+
   function reportError(raw: unknown) {
     const message = toErrorMessage(raw);
     setError(message);
+    updateVoiceDebug({ lastError: message });
     onError?.({ message });
   }
 
@@ -326,6 +369,15 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           expectedType: mode as TransactionVoiceType,
         });
         setVoiceSessionId(started.sessionId);
+        updateVoiceDebug({
+          lastSessionId: started.sessionId,
+          lastRecordingPath: started.recordingPath,
+          lastStoppedAt: undefined,
+          lastDurationMs: undefined,
+          lastAnalysisId: undefined,
+          lastDraft: undefined,
+          lastError: undefined,
+        });
       } catch (err) {
         reportError(err);
         setVoiceMode(null);
@@ -378,8 +430,20 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     const processingStartedAt = Date.now();
 
     try {
-      await transactionsVoiceGateway.transactionVoiceStop({ sessionId: voiceSessionId });
+      const stopped = await transactionsVoiceGateway.transactionVoiceStop({ sessionId: voiceSessionId });
+      updateVoiceDebug({
+        lastSessionId: stopped.sessionId,
+        lastRecordingPath: stopped.recordingPath,
+        lastStoppedAt: stopped.stoppedAt,
+        lastDurationMs: stopped.durationMs,
+        lastError: undefined,
+      });
       const result = await transactionsVoiceGateway.transactionVoiceExtractDraft({ sessionId: voiceSessionId });
+      updateVoiceDebug({
+        lastAnalysisId: result.analysisId,
+        lastDraft: result.draft,
+        lastError: undefined,
+      });
       const elapsedMs = Date.now() - processingStartedAt;
       if (elapsedMs < 350) {
         await new Promise((resolve) => {
@@ -789,6 +853,19 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       mode: composerMode,
       voicePhase,
       voiceMode,
+      voiceDebug: voiceDebug.enabled
+        ? {
+          enabled: voiceDebug.enabled,
+          platform: voiceDebug.platform,
+          lastSessionId: voiceDebug.lastSessionId,
+          lastRecordingPath: voiceDebug.lastRecordingPath,
+          lastStoppedAt: voiceDebug.lastStoppedAt,
+          lastDurationMs: voiceDebug.lastDurationMs,
+          lastAnalysisId: voiceDebug.lastAnalysisId,
+          lastDraft: voiceDebug.lastDraft,
+          lastError: voiceDebug.lastError,
+        }
+        : undefined,
       advancedOpen: composerAdvancedOpen,
       amount: transactionAmount,
       date: transactionDate,

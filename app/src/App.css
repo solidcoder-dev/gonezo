@@ -115,6 +115,27 @@ body {
   animation: voice-spin 0.9s linear infinite;
 }
 
+.voice-debug-panel {
+  border: 1px dashed #b9b9ae;
+  background: #fcfcf8;
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.voice-debug-panel pre {
+  margin: 0;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #e3e3d7;
+  background: #ffffff;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  overflow: auto;
+  max-height: 220px;
+}
+
 @keyframes voice-spin {
   from {
     transform: rotate(0deg);

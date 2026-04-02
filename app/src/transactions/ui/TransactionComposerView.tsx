@@ -16,6 +16,25 @@ export type TransactionComposerViewRequired = {
   mode: ComposerMode;
   voicePhase: 'idle' | 'recording' | 'processing';
   voiceMode: Exclude<ComposerMode, 'picker'> | null;
+  voiceDebug?: {
+    enabled: boolean;
+    platform: 'native' | 'web';
+    lastSessionId?: string;
+    lastRecordingPath?: string;
+    lastStoppedAt?: string;
+    lastDurationMs?: number;
+    lastAnalysisId?: string;
+    lastDraft?: {
+      type?: string;
+      amount?: string;
+      occurredAt?: string;
+      note?: string;
+      categoryName?: string;
+      transferToAccountId?: string;
+      tagNames?: string[];
+    };
+    lastError?: string;
+  };
   disabled: boolean;
   voiceProcessing: boolean;
   amount: string;
@@ -100,6 +119,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     mode,
     voicePhase,
     voiceMode,
+    voiceDebug,
     disabled,
     voiceProcessing,
     amount,
@@ -173,6 +193,31 @@ export function TransactionComposerView({ required, provided }: Props) {
     }
     return expenseItems.length > 0 && Number(expenseRemaining) === 0;
   }, [expenseDetailed, expenseItems.length, expenseRemaining, mode]);
+
+  const voiceDebugPanel = useMemo(() => {
+    if (!voiceDebug?.enabled) {
+      return null;
+    }
+
+    return (
+      <section className="voice-debug-panel" aria-live="polite">
+        <strong>Voice debug ({voiceDebug.platform})</strong>
+        <pre>
+          {JSON.stringify({
+            phase: voicePhase,
+            mode: voiceMode,
+            sessionId: voiceDebug.lastSessionId,
+            recordingPath: voiceDebug.lastRecordingPath,
+            stoppedAt: voiceDebug.lastStoppedAt,
+            durationMs: voiceDebug.lastDurationMs,
+            analysisId: voiceDebug.lastAnalysisId,
+            draft: voiceDebug.lastDraft,
+            error: voiceDebug.lastError,
+          }, null, 2)}
+        </pre>
+      </section>
+    );
+  }, [voiceDebug, voiceMode, voicePhase]);
 
   if (!open) {
     return (
@@ -280,6 +325,8 @@ export function TransactionComposerView({ required, provided }: Props) {
                 </div>
               </>
             ) : null}
+
+            {voiceDebugPanel}
           </div>
         ) : (
           <form className="stack composer-form" onSubmit={onSubmit} aria-busy={disabled}>
@@ -452,6 +499,8 @@ export function TransactionComposerView({ required, provided }: Props) {
             <button type="submit" className="primary-cta" disabled={disabled || !splitReady}>
               {submitLabel}
             </button>
+
+            {voiceDebugPanel}
           </form>
         )}
       </section>

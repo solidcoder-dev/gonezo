@@ -15,6 +15,7 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         mode: required.state.mode,
         voicePhase: required.state.voicePhase,
         voiceMode: required.state.voiceMode,
+        voiceDebug: required.state.voiceDebug,
         disabled: required.status.disabled,
         voiceProcessing: required.status.voiceProcessing,
         amount: required.state.amount,

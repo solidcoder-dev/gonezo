@@ -45,6 +45,21 @@ public class VoskTranscriptionEngineTest {
   }
 
   @Test
+  public void acceptsTranscriptFromContextTranscriptKey() {
+    VoskTranscriptionEngine engine = new VoskTranscriptionEngine();
+    SourceAudio audio = new SourceAudio(
+      new byte[] {0x01, 0x02},
+      "audio/mp4",
+      "storage://voice-recordings/rec-2.m4a",
+      Map.of("transcript", "expense taxi 12.50")
+    );
+
+    Transcript transcript = engine.transcribe(audio);
+
+    assertEquals("expense taxi 12.50", transcript.text());
+  }
+
+  @Test
   public void throwsWhenCannotProduceTranscript() {
     VoskTranscriptionEngine engine = new VoskTranscriptionEngine();
     SourceAudio audio = new SourceAudio(
@@ -62,4 +77,3 @@ public class VoskTranscriptionEngineTest {
     }
   }
 }
-
