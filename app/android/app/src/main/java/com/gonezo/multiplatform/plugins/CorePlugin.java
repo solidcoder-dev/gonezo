@@ -1,14 +1,7 @@
 package com.gonezo.multiplatform.plugins;
 
 import android.Manifest;
-import android.content.Intent;
 import android.media.MediaRecorder;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.speech.RecognitionListener;
-import android.speech.RecognizerIntent;
-import android.speech.SpeechRecognizer;
 import android.util.Log;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
@@ -20,18 +13,26 @@ import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 import com.gonezo.audioextraction.domain.contract.ContractJsonMapper;
 import com.gonezo.audioextraction.infrastructure.llm.LlmConfig;
+import com.gonezo.audioextraction.infrastructure.source.DefaultSourceLoader;
 import com.gonezo.audioextraction.ui.AudioExtractionFacade;
 import com.gonezo.audioextraction.ui.config.AudioExtractionWiring;
 import com.gonezo.audioextraction.ui.dto.ExtractionRequestDto;
 import com.gonezo.audioextraction.ui.dto.ExtractionResultDto;
+import com.gonezo.multiplatform.audioextraction.infrastructure.asr.VoskTranscriptionEngine;
 import com.gonezo.multiplatform.core.AndroidLedgerCore;
 import com.gonezo.multiplatform.core.AndroidTaxonomyCore;
+import com.gonezo.multiplatform.storage.AndroidObjectStorage;
+import com.gonezo.multiplatform.storage.ObjectStorage;
+import com.gonezo.multiplatform.storage.SignedAccessLink;
+import com.gonezo.multiplatform.storage.StorageMetadata;
+import com.gonezo.multiplatform.storage.StorageRef;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -46,9 +47,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -60,28 +58,15 @@ import org.json.JSONObject;
   }
 )
 public class CorePlugin extends Plugin {
-  private static final long VOICE_RECOGNITION_STOP_TIMEOUT_MS = 1200L;
   private static final String VOICE_LOG_TAG = "GonezoVoiceFlow";
-  private final Handler mainThreadHandler = new Handler(Looper.getMainLooper());
   private final java.util.List<JSObject> taxonomyTags = new java.util.ArrayList<>();
   private final java.util.Map<String, String> transactionCategoryByTransactionId = new java.util.HashMap<>();
   private final java.util.Map<String, java.util.List<String>> transactionTagsByTransactionId = new java.util.HashMap<>();
   private final java.util.Map<String, JSObject> transactionVoiceSessionById = new ConcurrentHashMap<>();
   private final java.util.Map<String, MediaRecorder> transactionVoiceRecorderBySessionId = new ConcurrentHashMap<>();
-  private final java.util.Map<String, SpeechRecognizer> transactionVoiceRecognizerBySessionId = new ConcurrentHashMap<>();
-  private final java.util.Map<String, VoiceRecognitionState> transactionVoiceRecognitionStateBySessionId = new ConcurrentHashMap<>();
   private final java.util.Map<String, JSObject> transactionVoiceAnalysisById = new ConcurrentHashMap<>();
   private AudioExtractionFacade audioExtractionFacade;
-
-  private static final class VoiceRecognitionState {
-    volatile boolean ready;
-    volatile int lastErrorCode = -1;
-    final CountDownLatch completionSignal = new CountDownLatch(1);
-
-    void markCompleted() {
-      completionSignal.countDown();
-    }
-  }
+  private ObjectStorage objectStorage;
 
   @PluginMethod
   public void doThing(PluginCall call) {
@@ -755,7 +740,9 @@ public class CorePlugin extends Plugin {
     String sessionId = UUID.randomUUID().toString();
     String recordingId = UUID.randomUUID().toString();
     String startedAt = Instant.now().toString();
-    String recordingPath = "storage://voice-recordings/" + recordingId + ".m4a";
+    String storageNamespace = "voice-recordings";
+    String storagePath = recordingId + ".m4a";
+    String recordingPath = "storage://" + storageNamespace + "/" + storagePath;
     File recordingFile = resolveVoiceRecordingFile(recordingId);
     logi("voice_start_requested sessionId=" + sessionId
         + " expectedType=" + normalizedType
@@ -769,8 +756,9 @@ public class CorePlugin extends Plugin {
     session.put("recordingId", recordingId);
     session.put("recordingPath", recordingPath);
     session.put("recordingFilePath", recordingFile.getAbsolutePath());
+    session.put("storageNamespace", storageNamespace);
+    session.put("storagePath", storagePath);
     session.put("startedAt", startedAt);
-    session.put("recognizerLanguage", Locale.getDefault().toLanguageTag());
     try {
       MediaRecorder recorder = new MediaRecorder();
       recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
@@ -784,7 +772,6 @@ public class CorePlugin extends Plugin {
 
       transactionVoiceSessionById.put(sessionId, session);
       transactionVoiceRecorderBySessionId.put(sessionId, recorder);
-      startVoiceSpeechRecognition(sessionId);
       logi("voice_start_ok sessionId=" + sessionId
           + " recordingFileExists=" + recordingFile.exists()
           + " recordingFileSize=" + recordingFile.length()
@@ -850,31 +837,6 @@ public class CorePlugin extends Plugin {
       );
     }
 
-    VoiceRecognitionState recognitionState = transactionVoiceRecognitionStateBySessionId.remove(normalizedSessionId);
-    SpeechRecognizer recognizer = transactionVoiceRecognizerBySessionId.remove(normalizedSessionId);
-    if (recognizer != null) {
-      runOnMainThread(() -> stopVoiceRecognition(recognizer, recognitionState));
-
-      if (recognitionState != null && Looper.myLooper() != Looper.getMainLooper()) {
-        try {
-          recognitionState.completionSignal.await(VOICE_RECOGNITION_STOP_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException ex) {
-          Thread.currentThread().interrupt();
-        }
-        if (recognitionState.lastErrorCode >= 0) {
-          session.put("recognizerErrorCode", recognitionState.lastErrorCode);
-        }
-      }
-
-      runOnMainThread(() -> {
-        try {
-          recognizer.destroy();
-        } catch (RuntimeException ignored) {
-          // no-op
-        }
-      });
-    }
-
     String stoppedAt = Instant.now().toString();
     String startedAt = session.getString("startedAt", stoppedAt);
     long durationMs = 0L;
@@ -889,6 +851,32 @@ public class CorePlugin extends Plugin {
       if (recordingFile.exists()) {
         //noinspection ResultOfMethodCallIgnored
         recordingFile.delete();
+      }
+    } else {
+      try {
+        String storageNamespace = session.getString("storageNamespace", "").trim();
+        String storagePath = session.getString("storagePath", "").trim();
+        StorageRef storageRef = new StorageRef(storageNamespace, storagePath);
+        File recordingFile = new File(session.getString("recordingFilePath", ""));
+        byte[] bytes = Files.readAllBytes(recordingFile.toPath());
+        objectStorage().put(
+          storageRef,
+          bytes,
+          new StorageMetadata("audio/mp4", storagePath, stoppedAt)
+        );
+        if (recordingFile.exists()) {
+          //noinspection ResultOfMethodCallIgnored
+          recordingFile.delete();
+        }
+        logi("voice_storage_put_ok sessionId=" + normalizedSessionId
+            + " namespace=" + storageNamespace
+            + " path=" + storagePath
+            + " bytes=" + bytes.length
+        );
+      } catch (Exception ex) {
+        loge("voice_storage_put_failed sessionId=" + normalizedSessionId, ex);
+        call.reject("Failed to persist voice recording");
+        return;
       }
     }
 
@@ -905,8 +893,6 @@ public class CorePlugin extends Plugin {
     logi("voice_stop_ok sessionId=" + normalizedSessionId
         + " durationMs=" + durationMs
         + " transcriptLength=" + safeLength(session.getString("transcript", ""))
-        + " recognizerReady=" + (recognitionState != null && recognitionState.ready)
-        + " recognizerError=" + (recognitionState == null ? "none" : speechErrorLabel(recognitionState.lastErrorCode))
     );
     call.resolve(result);
   }
@@ -941,19 +927,36 @@ public class CorePlugin extends Plugin {
     String createdAt = Instant.now().toString();
     String recordingId = session.getString("recordingId");
     String recordingPath = session.getString("recordingPath");
+    String storageNamespace = session.getString("storageNamespace", "").trim();
+    String storagePath = session.getString("storagePath", "").trim();
     String accountId = session.getString("accountId");
     String transcript = session.getString("transcript", "");
+    if (storageNamespace.isEmpty() || storagePath.isEmpty()) {
+      call.reject("Voice session storage ref is missing");
+      return;
+    }
+
+    SignedAccessLink signedAccessLink;
+    try {
+      signedAccessLink = objectStorage().getSignedAccess(new StorageRef(storageNamespace, storagePath), 120L);
+    } catch (Exception ex) {
+      loge("voice_storage_signed_url_failed sessionId=" + sessionId.trim(), ex);
+      call.reject("Cannot generate signed URL for voice recording");
+      return;
+    }
+
     logi("voice_extract_requested sessionId=" + sessionId.trim()
         + " analysisId=" + analysisId
         + " transcriptLength=" + safeLength(transcript)
-        + " recognizerError=" + speechErrorLabel(session.getInteger("recognizerErrorCode", -1))
+        + " storageRef=" + storageNamespace + "/" + storagePath
+        + " accessExpiresAt=" + signedAccessLink.expiresAt()
         + " recordingPath=" + recordingPath
     );
 
     AndroidLedgerCore ledgerCore = AndroidLedgerCore.getInstance(getContext());
     ExtractionRequestDto extractionRequest = new ExtractionRequestDto(
       "v1",
-      new ExtractionRequestDto.SourceDto("base64", base64Utf8(transcript)),
+      new ExtractionRequestDto.SourceDto("url", signedAccessLink.url()),
       new ExtractionRequestDto.ExtractionDto(
         loadTransactionOutputSchemaMap(),
         "Extract transaction fields from audio transcript."
@@ -1033,9 +1036,21 @@ public class CorePlugin extends Plugin {
 
   private AudioExtractionFacade audioExtractionFacade() {
     if (audioExtractionFacade == null) {
-      audioExtractionFacade = AudioExtractionWiring.INSTANCE.createFacade(60_000L, new LlmConfig(2048, 8000, 5_000L));
+      audioExtractionFacade = AudioExtractionWiring.INSTANCE.createFacade(
+        60_000L,
+        new LlmConfig(2048, 8000, 5_000L),
+        new DefaultSourceLoader(),
+        new VoskTranscriptionEngine(getContext())
+      );
     }
     return audioExtractionFacade;
+  }
+
+  private ObjectStorage objectStorage() {
+    if (objectStorage == null) {
+      objectStorage = new AndroidObjectStorage(getContext());
+    }
+    return objectStorage;
   }
 
   private JSObject mapExtractionResultToDraft(
@@ -1160,208 +1175,9 @@ public class CorePlugin extends Plugin {
       recorder.release();
     }
 
-    SpeechRecognizer recognizer = transactionVoiceRecognizerBySessionId.remove(sessionId);
-    if (recognizer != null) {
-      runOnMainThread(() -> {
-        try {
-          recognizer.destroy();
-        } catch (RuntimeException ignored) {
-          // no-op
-        }
-      });
-    }
-    transactionVoiceRecognitionStateBySessionId.remove(sessionId);
-
     if (removeSession) {
       transactionVoiceSessionById.remove(sessionId);
     }
-  }
-
-  private void startVoiceSpeechRecognition(String sessionId) {
-    VoiceRecognitionState recognitionState = new VoiceRecognitionState();
-    transactionVoiceRecognitionStateBySessionId.put(sessionId, recognitionState);
-    boolean recognitionAvailable = SpeechRecognizer.isRecognitionAvailable(getContext());
-    String preferredLanguageTag = resolveRecognizerLanguage(sessionId);
-    logi("voice_recognition_start sessionId=" + sessionId
-        + " recognitionAvailable=" + recognitionAvailable
-        + " language=" + preferredLanguageTag
-    );
-    runOnMainThread(() -> {
-      try {
-        if (!recognitionAvailable) {
-          recognitionState.markCompleted();
-          logw("voice_recognition_unavailable sessionId=" + sessionId);
-          return;
-        }
-
-        SpeechRecognizer recognizer = createSpeechRecognizer();
-        AtomicBoolean retryWithoutLanguage = new AtomicBoolean(false);
-        recognizer.setRecognitionListener(new RecognitionListener() {
-          @Override
-          public void onReadyForSpeech(Bundle params) {
-            recognitionState.ready = true;
-            logd("voice_recognition_ready sessionId=" + sessionId);
-          }
-
-          @Override
-          public void onBeginningOfSpeech() {
-          }
-
-          @Override
-          public void onRmsChanged(float rmsdB) {
-          }
-
-          @Override
-          public void onBufferReceived(byte[] buffer) {
-          }
-
-          @Override
-          public void onEndOfSpeech() {
-          }
-
-          @Override
-          public void onError(int error) {
-            if ((error == 12 || error == 13) && retryWithoutLanguage.compareAndSet(false, true)) {
-              logw("voice_recognition_retry_without_language sessionId=" + sessionId + " initialError=" + speechErrorLabel(error));
-              try {
-                recognizer.cancel();
-              } catch (RuntimeException ignored) {
-                // no-op
-              }
-              try {
-                recognizer.startListening(buildSpeechRecognitionIntent(null));
-                return;
-              } catch (RuntimeException retryEx) {
-                logw("voice_recognition_retry_failed sessionId=" + sessionId + " reason=" + retryEx.getClass().getSimpleName(), retryEx);
-              }
-            }
-            recognitionState.lastErrorCode = error;
-            recognitionState.markCompleted();
-            logw("voice_recognition_error sessionId=" + sessionId + " error=" + speechErrorLabel(error)
-            );
-          }
-
-          @Override
-          public void onResults(Bundle results) {
-            String recognized = extractPrimaryRecognition(results);
-            updateVoiceSessionTranscript(sessionId, recognized);
-            logi("voice_recognition_results sessionId=" + sessionId + " transcriptLength=" + safeLength(recognized)
-            );
-            recognitionState.markCompleted();
-          }
-
-          @Override
-          public void onPartialResults(Bundle partialResults) {
-            String partial = extractPrimaryRecognition(partialResults);
-            updateVoiceSessionTranscript(sessionId, partial);
-            logd("voice_recognition_partial sessionId=" + sessionId + " transcriptLength=" + safeLength(partial)
-            );
-          }
-
-          @Override
-          public void onEvent(int eventType, Bundle params) {
-          }
-        });
-
-        Intent intent = buildSpeechRecognitionIntent(preferredLanguageTag);
-        recognizer.startListening(intent);
-        transactionVoiceRecognizerBySessionId.put(sessionId, recognizer);
-        logd("voice_recognition_listening sessionId=" + sessionId + " preferOffline=false");
-      } catch (RuntimeException ex) {
-        recognitionState.lastErrorCode = -2;
-        recognitionState.markCompleted();
-        logw("voice_recognition_start_failed sessionId=" + sessionId + " reason=" + ex.getClass().getSimpleName(),
-          ex
-        );
-        // Voice transcript is best-effort; recording remains available if recognizer fails.
-      }
-    });
-  }
-
-  private void stopVoiceRecognition(SpeechRecognizer recognizer, VoiceRecognitionState state) {
-    try {
-      recognizer.stopListening();
-      logd("voice_recognition_stop_listening");
-    } catch (RuntimeException ignored) {
-      try {
-        recognizer.cancel();
-        logd("voice_recognition_cancel");
-      } catch (RuntimeException ignoredCancel) {
-        // no-op
-      }
-      if (state != null) {
-        state.markCompleted();
-      }
-    }
-  }
-
-  private SpeechRecognizer createSpeechRecognizer() {
-    return SpeechRecognizer.createSpeechRecognizer(getContext());
-  }
-
-  private String resolveRecognizerLanguage(String sessionId) {
-    JSObject session = transactionVoiceSessionById.get(sessionId);
-    if (session != null) {
-      String explicit = nullIfBlank(session.getString("recognizerLanguage", null));
-      if (explicit != null) {
-        return explicit;
-      }
-    }
-    Locale locale = Locale.getDefault();
-    if (locale == null) {
-      return null;
-    }
-    String languageTag = nullIfBlank(locale.toLanguageTag());
-    if (languageTag != null) {
-      return languageTag;
-    }
-    String fallback = nullIfBlank(locale.getLanguage());
-    return fallback;
-  }
-
-  private Intent buildSpeechRecognitionIntent(String languageTag) {
-    Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-    intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
-    intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
-    intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false);
-    intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getContext().getPackageName());
-    if (languageTag != null) {
-      intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageTag);
-      intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, languageTag);
-    }
-    return intent;
-  }
-
-  private void runOnMainThread(Runnable action) {
-    if (Looper.myLooper() == Looper.getMainLooper()) {
-      action.run();
-      return;
-    }
-    mainThreadHandler.post(action);
-  }
-
-  private void updateVoiceSessionTranscript(String sessionId, String transcript) {
-    String normalized = nullIfBlank(transcript);
-    if (normalized == null) {
-      return;
-    }
-    JSObject session = transactionVoiceSessionById.get(sessionId);
-    if (session == null) {
-      return;
-    }
-    session.put("transcript", normalized);
-  }
-
-  private String extractPrimaryRecognition(Bundle payload) {
-    if (payload == null) {
-      return null;
-    }
-    ArrayList<String> matches = payload.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-    if (matches == null || matches.isEmpty()) {
-      return null;
-    }
-    return nullIfBlank(matches.get(0));
   }
 
   private int safeLength(String value) {
@@ -1387,32 +1203,6 @@ public class CorePlugin extends Plugin {
       builder.append(entry.getKey()).append('=').append(String.format(Locale.ROOT, "%.0f", entry.getValue()));
     }
     return builder.toString();
-  }
-
-  private String speechErrorLabel(int code) {
-    return switch (code) {
-      case -2 -> "start_exception";
-      case SpeechRecognizer.ERROR_AUDIO -> "audio(" + code + ")";
-      case SpeechRecognizer.ERROR_CLIENT -> "client(" + code + ")";
-      case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "permissions(" + code + ")";
-      case SpeechRecognizer.ERROR_NETWORK -> "network(" + code + ")";
-      case SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "network_timeout(" + code + ")";
-      case SpeechRecognizer.ERROR_NO_MATCH -> "no_match(" + code + ")";
-      case SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "recognizer_busy(" + code + ")";
-      case SpeechRecognizer.ERROR_SERVER -> "server(" + code + ")";
-      case SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "speech_timeout(" + code + ")";
-      case 12 -> "language_not_supported(12)";
-      case 13 -> "language_unavailable(13)";
-      case 14 -> "cannot_check_support(14)";
-      case 15 -> "cannot_listen_to_download_events(15)";
-      case -1 -> "none";
-      default -> "code_" + code;
-    };
-  }
-
-  private String base64Utf8(String value) {
-    String normalized = value == null ? "" : value;
-    return Base64.getEncoder().encodeToString(normalized.getBytes(StandardCharsets.UTF_8));
   }
 
   private Map<String, Object> loadTransactionOutputSchemaMap() {
