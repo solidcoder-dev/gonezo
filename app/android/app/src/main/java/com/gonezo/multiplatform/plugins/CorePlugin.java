@@ -1,7 +1,6 @@
 package com.gonezo.multiplatform.plugins;
 
 import android.Manifest;
-import android.media.MediaRecorder;
 import android.util.Log;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
@@ -12,16 +11,20 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 import com.gonezo.audioextraction.domain.contract.ContractJsonMapper;
+import com.gonezo.audioextraction.infrastructure.transcription.whisper.StaticModelProvider;
+import com.gonezo.audioextraction.infrastructure.transcription.whisper.WavPcmDecoder;
+import com.gonezo.audioextraction.infrastructure.transcription.whisper.WhisperCppJniTranscriber;
+import com.gonezo.audioextraction.infrastructure.transcription.whisper.WhisperCppTranscriptionEngine;
 import com.gonezo.audioextraction.infrastructure.llm.LlmConfig;
 import com.gonezo.audioextraction.ui.AudioExtractionFacade;
 import com.gonezo.audioextraction.ui.config.AudioExtractionWiring;
 import com.gonezo.audioextraction.ui.dto.ExtractionResultDto;
-import com.gonezo.multiplatform.audioextraction.infrastructure.asr.VoskTranscriptionEngine;
 import com.gonezo.multiplatform.audioextraction.infrastructure.source.LoopbackHttpsSourceLoader;
 import com.gonezo.multiplatform.core.AndroidLedgerCore;
 import com.gonezo.multiplatform.core.AndroidTaxonomyCore;
 import com.gonezo.multiplatform.plugins.voice.VoiceExtractionRequestBuilder;
 import com.gonezo.multiplatform.plugins.voice.VoiceExtractionRequestFactory;
+import com.gonezo.multiplatform.plugins.voice.WavRecorder;
 import com.gonezo.multiplatform.storage.AndroidObjectStorage;
 import com.gonezo.multiplatform.storage.ObjectStorage;
 import com.gonezo.multiplatform.storage.SignedAccessLink;
@@ -64,7 +67,7 @@ public class CorePlugin extends Plugin {
   private final java.util.Map<String, String> transactionCategoryByTransactionId = new java.util.HashMap<>();
   private final java.util.Map<String, java.util.List<String>> transactionTagsByTransactionId = new java.util.HashMap<>();
   private final java.util.Map<String, JSObject> transactionVoiceSessionById = new ConcurrentHashMap<>();
-  private final java.util.Map<String, MediaRecorder> transactionVoiceRecorderBySessionId = new ConcurrentHashMap<>();
+  private final java.util.Map<String, WavRecorder> transactionVoiceRecorderBySessionId = new ConcurrentHashMap<>();
   private final java.util.Map<String, JSObject> transactionVoiceAnalysisById = new ConcurrentHashMap<>();
   private AudioExtractionFacade audioExtractionFacade;
   private VoiceExtractionRequestBuilder voiceExtractionRequestBuilder;
@@ -743,7 +746,7 @@ public class CorePlugin extends Plugin {
     String recordingId = UUID.randomUUID().toString();
     String startedAt = Instant.now().toString();
     String storageNamespace = "voice-recordings";
-    String storagePath = recordingId + ".m4a";
+    String storagePath = recordingId + ".wav";
     String recordingPath = "storage://" + storageNamespace + "/" + storagePath;
     File recordingFile = resolveVoiceRecordingFile(recordingId);
     logi("voice_start_requested sessionId=" + sessionId
@@ -762,14 +765,7 @@ public class CorePlugin extends Plugin {
     session.put("storagePath", storagePath);
     session.put("startedAt", startedAt);
     try {
-      MediaRecorder recorder = new MediaRecorder();
-      recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-      recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-      recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-      recorder.setAudioSamplingRate(44100);
-      recorder.setAudioEncodingBitRate(128000);
-      recorder.setOutputFile(recordingFile.getAbsolutePath());
-      recorder.prepare();
+      WavRecorder recorder = new WavRecorder(recordingFile);
       recorder.start();
 
       transactionVoiceSessionById.put(sessionId, session);
@@ -822,16 +818,13 @@ public class CorePlugin extends Plugin {
         + " manualTranscriptLength=" + safeLength(manualTranscript)
     );
 
-    MediaRecorder recorder = transactionVoiceRecorderBySessionId.remove(normalizedSessionId);
+    WavRecorder recorder = transactionVoiceRecorderBySessionId.remove(normalizedSessionId);
     RuntimeException stopRecordingException = null;
     if (recorder != null) {
       try {
-        recorder.stop();
-      } catch (RuntimeException ex) {
+        recorder.stopAndWait();
+      } catch (IllegalStateException ex) {
         stopRecordingException = ex;
-      } finally {
-        recorder.reset();
-        recorder.release();
       }
     }
     if (stopRecordingException != null) {
@@ -864,7 +857,7 @@ public class CorePlugin extends Plugin {
         objectStorage().put(
           storageRef,
           bytes,
-          new StorageMetadata("audio/mp4", storagePath, stoppedAt)
+          new StorageMetadata("audio/wav", storagePath, stoppedAt)
         );
         if (recordingFile.exists()) {
           //noinspection ResultOfMethodCallIgnored
@@ -1046,7 +1039,11 @@ public class CorePlugin extends Plugin {
         60_000L,
         new LlmConfig(2048, 8000, 5_000L),
         new LoopbackHttpsSourceLoader(getContext()),
-        new VoskTranscriptionEngine(getContext())
+        new WhisperCppTranscriptionEngine(
+          new StaticModelProvider(resolveWhisperModelPath()),
+          new WavPcmDecoder(),
+          new WhisperCppJniTranscriber()
+        )
       );
     }
     return audioExtractionFacade;
@@ -1178,14 +1175,13 @@ public class CorePlugin extends Plugin {
   }
 
   private void cleanupVoiceSessionResources(String sessionId, boolean removeSession) {
-    MediaRecorder recorder = transactionVoiceRecorderBySessionId.remove(sessionId);
+    WavRecorder recorder = transactionVoiceRecorderBySessionId.remove(sessionId);
     if (recorder != null) {
       try {
-        recorder.reset();
+        recorder.stopAndWait();
       } catch (RuntimeException ignored) {
         // no-op
       }
-      recorder.release();
     }
 
     if (removeSession) {
@@ -1234,6 +1230,37 @@ public class CorePlugin extends Plugin {
     }
   }
 
+  private String resolveWhisperModelPath() {
+    File modelFile = new File(getContext().getNoBackupFilesDir(), "audio-extraction/models/whisper/ggml-tiny.bin");
+    if (modelFile.exists() && modelFile.length() > 0L) {
+      return modelFile.getAbsolutePath();
+    }
+
+    File parent = modelFile.getParentFile();
+    if (parent != null && !parent.exists() && !parent.mkdirs()) {
+      throw new IllegalStateException("Cannot create whisper model directory");
+    }
+
+    try {
+      copyAssetToFile("audio-extraction/models/whisper/ggml-tiny.bin", modelFile);
+      return modelFile.getAbsolutePath();
+    } catch (IOException ex) {
+      throw new IllegalStateException("Cannot prepare whisper model", ex);
+    }
+  }
+
+  private void copyAssetToFile(String assetPath, File destinationFile) throws IOException {
+    try (java.io.InputStream input = getContext().getAssets().open(assetPath);
+         java.io.OutputStream output = Files.newOutputStream(destinationFile.toPath())) {
+      byte[] buffer = new byte[8192];
+      int read;
+      while ((read = input.read(buffer)) > 0) {
+        output.write(buffer, 0, read);
+      }
+      output.flush();
+    }
+  }
+
   private void logd(String message) {
     try {
       Log.d(VOICE_LOG_TAG, message);
@@ -1279,7 +1306,7 @@ public class CorePlugin extends Plugin {
     if (!recordingsDir.exists() && !recordingsDir.mkdirs()) {
       throw new IllegalStateException("Cannot create voice recording directory");
     }
-    return new File(recordingsDir, recordingId + ".m4a");
+    return new File(recordingsDir, recordingId + ".wav");
   }
 
   @PluginMethod

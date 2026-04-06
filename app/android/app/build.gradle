@@ -3,6 +3,7 @@ apply plugin: 'com.android.application'
 android {
     namespace = "com.gonezo.multiplatform"
     compileSdk = rootProject.ext.compileSdkVersion
+    ndkPath "/Users/brunopicolo/Library/Android/sdk/ndk/27.0.12077973"
     defaultConfig {
         applicationId "com.gonezo.multiplatform"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -14,6 +15,11 @@ android {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++17"
+            }
         }
     }
     packaging {
@@ -33,6 +39,11 @@ android {
     sourceSets {
         main {
             java.srcDirs += ['../../../platforms/android/infrastructure/src/main/java']
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path "../../../core/src/main/cpp/audioextraction/CMakeLists.txt"
         }
     }
 }
