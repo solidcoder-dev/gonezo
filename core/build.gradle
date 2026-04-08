@@ -77,8 +77,6 @@ tasks.register('checkLayerBoundaries') {
       fileTree('src/main') {
         include '**/com/gonezo/domain/**/*.kt'
         include '**/com/gonezo/domain/**/*.java'
-        include '**/com/gonezo/audioextraction/domain/**/*.kt'
-        include '**/com/gonezo/audioextraction/domain/**/*.java'
       },
       domainForbidden
     )
@@ -87,8 +85,6 @@ tasks.register('checkLayerBoundaries') {
       fileTree('src/main') {
         include '**/com/gonezo/application/**/*.kt'
         include '**/com/gonezo/application/**/*.java'
-        include '**/com/gonezo/audioextraction/application/**/*.kt'
-        include '**/com/gonezo/audioextraction/application/**/*.java'
       },
       applicationForbidden
     )
