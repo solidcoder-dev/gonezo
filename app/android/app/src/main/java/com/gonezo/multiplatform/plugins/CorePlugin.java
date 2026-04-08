@@ -10,30 +10,15 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
-import com.gonezo.audioextraction.domain.contract.ContractJsonMapper;
-import com.gonezo.audioextraction.infrastructure.transcription.whisper.StaticModelProvider;
-import com.gonezo.audioextraction.infrastructure.transcription.whisper.WavPcmDecoder;
-import com.gonezo.audioextraction.infrastructure.transcription.whisper.WhisperCppJniTranscriber;
-import com.gonezo.audioextraction.infrastructure.transcription.whisper.WhisperCppTranscriptionEngine;
-import com.gonezo.audioextraction.infrastructure.llm.LlmConfig;
-import com.gonezo.audioextraction.ui.AudioExtractionFacade;
-import com.gonezo.audioextraction.ui.config.AudioExtractionWiring;
-import com.gonezo.audioextraction.ui.dto.ExtractionResultDto;
-import com.gonezo.multiplatform.audioextraction.infrastructure.source.LoopbackHttpsSourceLoader;
 import com.gonezo.multiplatform.core.AndroidLedgerCore;
 import com.gonezo.multiplatform.core.AndroidTaxonomyCore;
-import com.gonezo.multiplatform.plugins.voice.VoiceExtractionRequestBuilder;
-import com.gonezo.multiplatform.plugins.voice.VoiceExtractionRequestFactory;
 import com.gonezo.multiplatform.plugins.voice.WavRecorder;
 import com.gonezo.multiplatform.storage.AndroidObjectStorage;
 import com.gonezo.multiplatform.storage.ObjectStorage;
-import com.gonezo.multiplatform.storage.SignedAccessLink;
 import com.gonezo.multiplatform.storage.StorageMetadata;
 import com.gonezo.multiplatform.storage.StorageRef;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -51,6 +36,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -63,14 +50,14 @@ import org.json.JSONObject;
 )
 public class CorePlugin extends Plugin {
   private static final String VOICE_LOG_TAG = "GonezoVoiceFlow";
+  private static final Pattern VOICE_AMOUNT_PATTERN = Pattern.compile("-?\\d+(?:[.,]\\d+)?");
+  private static final Pattern VOICE_TAG_PATTERN = Pattern.compile("#([A-Za-z0-9_-]+)");
   private final java.util.List<JSObject> taxonomyTags = new java.util.ArrayList<>();
   private final java.util.Map<String, String> transactionCategoryByTransactionId = new java.util.HashMap<>();
   private final java.util.Map<String, java.util.List<String>> transactionTagsByTransactionId = new java.util.HashMap<>();
   private final java.util.Map<String, JSObject> transactionVoiceSessionById = new ConcurrentHashMap<>();
   private final java.util.Map<String, WavRecorder> transactionVoiceRecorderBySessionId = new ConcurrentHashMap<>();
   private final java.util.Map<String, JSObject> transactionVoiceAnalysisById = new ConcurrentHashMap<>();
-  private AudioExtractionFacade audioExtractionFacade;
-  private VoiceExtractionRequestBuilder voiceExtractionRequestBuilder;
   private ObjectStorage objectStorage;
 
   @PluginMethod
@@ -931,62 +918,22 @@ public class CorePlugin extends Plugin {
       return;
     }
 
-    SignedAccessLink signedAccessLink;
-    try {
-      signedAccessLink = objectStorage().getSignedAccess(new StorageRef(storageNamespace, storagePath), 120L);
-    } catch (Exception ex) {
-      loge("voice_storage_signed_url_failed sessionId=" + sessionId.trim(), ex);
-      call.reject("Cannot generate signed URL for voice recording");
-      return;
-    }
-
     logi("voice_extract_requested sessionId=" + sessionId.trim()
         + " analysisId=" + analysisId
         + " transcriptLength=" + safeLength(transcript)
         + " storageRef=" + storageNamespace + "/" + storagePath
-        + " accessExpiresAt=" + signedAccessLink.expiresAt()
         + " recordingPath=" + recordingPath
+        + " mode=fallback"
     );
 
     AndroidLedgerCore ledgerCore = AndroidLedgerCore.getInstance(getContext());
-    ExtractionResultDto extractionResult;
-    try {
-      extractionResult = audioExtractionFacade().execute(
-        voiceExtractionRequestBuilder().build(
-          signedAccessLink.url(),
-          loadTransactionOutputSchemaMap(),
-          accountId,
-          expectedType,
-          transcript
-        )
-      );
-    } catch (IllegalArgumentException ex) {
-      logw("voice_extract_invalid_request sessionId=" + sessionId.trim()
-          + " analysisId=" + analysisId
-          + " reason=" + ex.getMessage()
-      );
-      call.reject(ex.getMessage());
-      return;
-    }
+    AndroidTaxonomyCore taxonomyCore = AndroidTaxonomyCore.getInstance(getContext());
+    JSObject draft = buildFallbackVoiceDraft(ledgerCore, taxonomyCore, accountId, expectedType, stoppedAt, transcript);
     logi("voice_extract_result sessionId=" + sessionId.trim()
         + " analysisId=" + analysisId
-        + " outcome=" + extractionResult.getOutcome()
-        + " issues=" + summarizeIssues(extractionResult.getGlobalIssues())
-        + " stageTimings=" + summarizeStageTimings(extractionResult)
+        + " mode=fallback"
+        + " draftFields=" + draft.keys().hasNext()
     );
-    if ("failed".equalsIgnoreCase(extractionResult.getOutcome())) {
-      String issues = extractionResult.getGlobalIssues() == null || extractionResult.getGlobalIssues().isEmpty()
-        ? "unknown"
-        : String.join(",", extractionResult.getGlobalIssues());
-      logw("voice_extract_failed sessionId=" + sessionId.trim()
-          + " analysisId=" + analysisId
-          + " issues=" + issues
-          + " transcriptLength=" + safeLength(transcript)
-      );
-      call.reject("Voice extraction failed: " + issues);
-      return;
-    }
-    JSObject draft = mapExtractionResultToDraft(extractionResult, expectedType, stoppedAt, transcript);
 
     JSObject recording = new JSObject();
     recording.put("id", recordingId);
@@ -1033,29 +980,6 @@ public class CorePlugin extends Plugin {
     }
   }
 
-  private AudioExtractionFacade audioExtractionFacade() {
-    if (audioExtractionFacade == null) {
-      audioExtractionFacade = AudioExtractionWiring.INSTANCE.createFacade(
-        60_000L,
-        new LlmConfig(2048, 8000, 5_000L),
-        new LoopbackHttpsSourceLoader(getContext()),
-        new WhisperCppTranscriptionEngine(
-          new StaticModelProvider(resolveWhisperModelPath()),
-          new WavPcmDecoder(),
-          new WhisperCppJniTranscriber()
-        )
-      );
-    }
-    return audioExtractionFacade;
-  }
-
-  private VoiceExtractionRequestBuilder voiceExtractionRequestBuilder() {
-    if (voiceExtractionRequestBuilder == null) {
-      voiceExtractionRequestBuilder = new VoiceExtractionRequestFactory();
-    }
-    return voiceExtractionRequestBuilder;
-  }
-
   private ObjectStorage objectStorage() {
     if (objectStorage == null) {
       objectStorage = new AndroidObjectStorage(getContext());
@@ -1063,45 +987,45 @@ public class CorePlugin extends Plugin {
     return objectStorage;
   }
 
-  private JSObject mapExtractionResultToDraft(
-    ExtractionResultDto extractionResult,
+  private JSObject buildFallbackVoiceDraft(
+    AndroidLedgerCore ledgerCore,
+    AndroidTaxonomyCore taxonomyCore,
+    String accountId,
     String expectedType,
     String defaultOccurredAt,
     String transcript
   ) {
     JSObject draft = new JSObject();
+    String normalizedType = isSupportedVoiceType(expectedType) ? expectedType : "expense";
+    String normalizedTranscript = nullIfBlank(transcript);
 
-    String type = asText(resolveExtractionValue(extractionResult, "type"));
-    if (!isSupportedVoiceType(type)) {
-      type = expectedType;
-    }
-
-    String amount = toAmountString(resolveExtractionValue(extractionResult, "amount"));
-    String occurredAt = asText(resolveExtractionValue(extractionResult, "occurredAt"));
-    String note = asText(resolveExtractionValue(extractionResult, "note"));
-    String transcriptFallback = nullIfBlank(transcript);
-    if (transcriptFallback == null) {
-      transcriptFallback = asText(extractionResult == null ? null : extractionResult.getTranscript());
-    }
-
-    draft.put("type", type);
+    draft.put("type", normalizedType);
+    String amount = extractVoiceAmount(normalizedTranscript);
     if (amount != null) {
       draft.put("amount", amount);
     }
-    draft.put("occurredAt", occurredAt == null ? defaultOccurredAt : occurredAt);
-    draft.put("note", note == null ? (transcriptFallback == null ? "" : transcriptFallback) : note);
+    String accountCurrency = resolveVoiceAccountCurrency(ledgerCore, accountId);
+    if (accountCurrency != null) {
+      draft.put("currency", accountCurrency);
+    }
+    draft.put("occurredAt", defaultOccurredAt);
+    draft.put("note", normalizedTranscript == null ? "" : normalizedTranscript);
 
-    String transferToAccountId = asText(resolveExtractionValue(extractionResult, "transferToAccountId"));
-    if (transferToAccountId != null && !transferToAccountId.isBlank()) {
+    String transferToAccountId = "transfer".equals(normalizedType)
+      ? resolveVoiceTransferTarget(ledgerCore, accountId, normalizedTranscript)
+      : null;
+    if (transferToAccountId != null) {
       draft.put("transferToAccountId", transferToAccountId);
     }
 
-    String categoryName = asText(resolveExtractionValue(extractionResult, "categoryName"));
-    if (categoryName != null && !categoryName.isBlank()) {
+    String categoryName = "transfer".equals(normalizedType)
+      ? null
+      : resolveVoiceCategoryName(taxonomyCore, normalizedType, normalizedTranscript);
+    if (categoryName != null) {
       draft.put("categoryName", categoryName);
     }
 
-    JSONArray tagNames = toTagNames(resolveExtractionValue(extractionResult, "tagNames"));
+    JSONArray tagNames = extractVoiceTagNames(normalizedTranscript);
     if (tagNames.length() > 0) {
       draft.put("tagNames", tagNames);
     }
@@ -1109,67 +1033,95 @@ public class CorePlugin extends Plugin {
     return draft;
   }
 
-  private Object resolveExtractionValue(ExtractionResultDto extractionResult, String fieldName) {
-    if (extractionResult == null) {
+  private String resolveVoiceAccountCurrency(AndroidLedgerCore ledgerCore, String accountId) {
+    if (accountId == null || accountId.isBlank()) {
       return null;
     }
-
-    if (extractionResult.getData().containsKey(fieldName)) {
-      return extractionResult.getData().get(fieldName);
-    }
-
-    ExtractionResultDto.FieldResultDto fieldResult = extractionResult.getFieldResults().get(fieldName);
-    return fieldResult == null ? null : fieldResult.getValue();
+    AndroidLedgerCore.LedgerAccountView account = findAccountById(ledgerCore.listAccounts(), accountId);
+    return account == null ? null : account.currency();
   }
 
-  private String asText(Object value) {
-    if (value == null) {
+  private String resolveVoiceTransferTarget(
+    AndroidLedgerCore ledgerCore,
+    String sourceAccountId,
+    String transcript
+  ) {
+    String normalizedTranscript = transcript == null ? "" : transcript.trim().toLowerCase(Locale.ROOT);
+    if (normalizedTranscript.isEmpty()) {
       return null;
     }
-    String text = String.valueOf(value).trim();
-    return text.isEmpty() ? null : text;
+    for (AndroidLedgerCore.LedgerAccountView account : ledgerCore.listAccounts()) {
+      if (sourceAccountId != null && sourceAccountId.equals(account.id())) {
+        continue;
+      }
+      if (!"active".equalsIgnoreCase(account.status())) {
+        continue;
+      }
+      String accountName = account.name() == null ? "" : account.name().trim().toLowerCase(Locale.ROOT);
+      if (!accountName.isEmpty() && normalizedTranscript.contains(accountName)) {
+        return account.id();
+      }
+    }
+    return null;
   }
 
-  private String toAmountString(Object value) {
-    if (value == null) {
+  private String resolveVoiceCategoryName(AndroidTaxonomyCore taxonomyCore, String expectedType, String transcript) {
+    String normalizedTranscript = transcript == null ? "" : transcript.trim().toLowerCase(Locale.ROOT);
+    if (normalizedTranscript.isEmpty()) {
       return null;
     }
+    for (AndroidTaxonomyCore.TaxonomyCategoryView category : taxonomyCore.listCategories(expectedType, false)) {
+      if (!"active".equalsIgnoreCase(category.status())) {
+        continue;
+      }
+      String categoryName = category.name() == null ? "" : category.name().trim();
+      if (categoryName.isEmpty()) {
+        continue;
+      }
+      if (normalizedTranscript.contains(categoryName.toLowerCase(Locale.ROOT))) {
+        return categoryName;
+      }
+    }
+    return null;
+  }
+
+  private String extractVoiceAmount(String transcript) {
+    if (transcript == null || transcript.isBlank()) {
+      return null;
+    }
+    Matcher matcher = VOICE_AMOUNT_PATTERN.matcher(transcript);
+    if (!matcher.find()) {
+      return null;
+    }
+    String token = matcher.group();
     try {
-      BigDecimal parsed = value instanceof Number numberValue
-        ? new BigDecimal(numberValue.toString())
-        : new BigDecimal(String.valueOf(value).trim().replace(",", "."));
-      return parsed.abs().toPlainString();
+      BigDecimal parsed = new BigDecimal(token.replace(",", "."));
+      if (parsed.compareTo(BigDecimal.ZERO) <= 0) {
+        return null;
+      }
+      return parsed.toPlainString();
     } catch (NumberFormatException ex) {
       return null;
     }
   }
 
-  private JSONArray toTagNames(Object value) {
+  private JSONArray extractVoiceTagNames(String transcript) {
     JSONArray tags = new JSONArray();
-    if (value == null) {
+    if (transcript == null || transcript.isBlank()) {
       return tags;
     }
-
-    if (value instanceof List<?> listValue) {
-      for (Object listItem : listValue) {
-        String tag = asText(listItem);
-        if (tag != null) {
-          tags.put(tag);
-        }
+    LinkedHashMap<String, String> uniqueTags = new LinkedHashMap<>();
+    Matcher matcher = VOICE_TAG_PATTERN.matcher(transcript);
+    while (matcher.find()) {
+      String rawTag = matcher.group(1).trim();
+      if (rawTag.isEmpty()) {
+        continue;
       }
-      return tags;
+      String normalizedTag = rawTag.toLowerCase(Locale.ROOT);
+      uniqueTags.putIfAbsent(normalizedTag, normalizedTag);
     }
-
-    String raw = asText(value);
-    if (raw == null) {
-      return tags;
-    }
-
-    for (String chunk : raw.split("[,;|]")) {
-      String normalized = chunk.trim();
-      if (!normalized.isEmpty()) {
-        tags.put(normalized);
-      }
+    for (String tag : uniqueTags.values()) {
+      tags.put(tag);
     }
     return tags;
   }
@@ -1191,74 +1143,6 @@ public class CorePlugin extends Plugin {
 
   private int safeLength(String value) {
     return value == null ? 0 : value.length();
-  }
-
-  private String summarizeIssues(List<String> issues) {
-    if (issues == null || issues.isEmpty()) {
-      return "none";
-    }
-    return String.join("|", issues);
-  }
-
-  private String summarizeStageTimings(ExtractionResultDto extractionResult) {
-    if (extractionResult == null || extractionResult.getProcessingInfo() == null || extractionResult.getProcessingInfo().getStageTimings().isEmpty()) {
-      return "none";
-    }
-    StringBuilder builder = new StringBuilder();
-    for (Map.Entry<String, Double> entry : extractionResult.getProcessingInfo().getStageTimings().entrySet()) {
-      if (builder.length() > 0) {
-        builder.append(',');
-      }
-      builder.append(entry.getKey()).append('=').append(String.format(Locale.ROOT, "%.0f", entry.getValue()));
-    }
-    return builder.toString();
-  }
-
-  private Map<String, Object> loadTransactionOutputSchemaMap() {
-    try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-      getContext().getAssets().open("audio-extraction/schemas/transaction-output.v1.schema.json"),
-      StandardCharsets.UTF_8
-    ))) {
-      StringBuilder content = new StringBuilder();
-      String line;
-      while ((line = reader.readLine()) != null) {
-        content.append(line).append('\n');
-      }
-      return ContractJsonMapper.toMap(new JSONObject(content.toString()));
-    } catch (IOException | JSONException ex) {
-      throw new IllegalStateException("Cannot load transaction output schema", ex);
-    }
-  }
-
-  private String resolveWhisperModelPath() {
-    File modelFile = new File(getContext().getNoBackupFilesDir(), "audio-extraction/models/whisper/ggml-tiny.bin");
-    if (modelFile.exists() && modelFile.length() > 0L) {
-      return modelFile.getAbsolutePath();
-    }
-
-    File parent = modelFile.getParentFile();
-    if (parent != null && !parent.exists() && !parent.mkdirs()) {
-      throw new IllegalStateException("Cannot create whisper model directory");
-    }
-
-    try {
-      copyAssetToFile("audio-extraction/models/whisper/ggml-tiny.bin", modelFile);
-      return modelFile.getAbsolutePath();
-    } catch (IOException ex) {
-      throw new IllegalStateException("Cannot prepare whisper model", ex);
-    }
-  }
-
-  private void copyAssetToFile(String assetPath, File destinationFile) throws IOException {
-    try (java.io.InputStream input = getContext().getAssets().open(assetPath);
-         java.io.OutputStream output = Files.newOutputStream(destinationFile.toPath())) {
-      byte[] buffer = new byte[8192];
-      int read;
-      while ((read = input.read(buffer)) > 0) {
-        output.write(buffer, 0, read);
-      }
-      output.flush();
-    }
   }
 
   private void logd(String message) {
