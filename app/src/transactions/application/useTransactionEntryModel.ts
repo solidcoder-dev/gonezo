@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Capacitor } from '@capacitor/core';
 import type {
   LedgerAccountItem,
   TaxonomyCategoryItem,
   TaxonomyTagItem,
-  TransactionVoiceDraft,
-  TransactionVoiceType,
 } from '../../shared/domain/corePort';
 import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
 import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
@@ -18,7 +15,6 @@ import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.t
 import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
 import type { ExpenseItemDraft, TransactionFieldErrors } from '../domain/transactions.types';
 import type { TransactionEntryViewProvided, TransactionEntryViewRequired } from '../ui/TransactionEntryView';
-import { createTransactionsVoiceGateway } from '../infrastructure/transactionsVoiceGateway';
 import type { TransactionsCorePort } from './transactionsCore.port';
 
 type UseTransactionEntryModelInput = {
@@ -28,35 +24,6 @@ type UseTransactionEntryModelInput = {
   onRecorded?: () => void;
   onError?: (error: { message: string }) => void;
 };
-
-type VoiceDebugState = {
-  enabled: boolean;
-  platform: 'native' | 'web';
-  lastSessionId?: string;
-  lastRecordingPath?: string;
-  lastStoppedAt?: string;
-  lastDurationMs?: number;
-  lastAnalysisId?: string;
-  lastDraft?: TransactionVoiceDraft;
-  lastError?: string;
-};
-
-function resolveVoiceDebugEnabled(): boolean {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-
-  const queryValue = new URLSearchParams(window.location.search).get('debugVoice');
-  if (queryValue === '1' || queryValue === 'true') {
-    return true;
-  }
-
-  try {
-    return window.localStorage.getItem('gonezo.debug.voice') === '1';
-  } catch {
-    return false;
-  }
-}
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -96,17 +63,6 @@ function resolveOccurredAt(dateInput: string): string {
   return new Date().toISOString();
 }
 
-function toDateInputValue(occurredAt?: string): string {
-  if (!occurredAt) {
-    return todayIso();
-  }
-  const parsed = new Date(occurredAt);
-  if (Number.isNaN(parsed.getTime())) {
-    return todayIso();
-  }
-  return parsed.toISOString().slice(0, 10);
-}
-
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
@@ -120,15 +76,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [postingTransaction, setPostingTransaction] = useState(false);
-  const [voicePhase, setVoicePhase] = useState<'idle' | 'recording' | 'processing'>('idle');
-  const [voiceMode, setVoiceMode] = useState<'expense' | 'income' | 'transfer' | null>(null);
-  const [voiceSessionId, setVoiceSessionId] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [voiceAnalysisId, setVoiceAnalysisId] = useState<string | null>(null);
-  const [voiceDebug, setVoiceDebug] = useState<VoiceDebugState>(() => ({
-    enabled: resolveVoiceDebugEnabled(),
-    platform: Capacitor.isNativePlatform() ? 'native' : 'web',
-  }));
 
   const [accounts, setAccounts] = useState<LedgerAccountItem[]>([]);
   const [accountCurrency, setAccountCurrency] = useState('USD');
@@ -154,7 +102,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
   const ledgerGateway = useMemo(() => createLedgerGateway(core), [core]);
   const taxonomyGateway = useMemo(() => createTaxonomyGateway(core), [core]);
-  const transactionsVoiceGateway = useMemo(() => createTransactionsVoiceGateway(core), [core]);
 
   const ledgerAccounts = useLedgerAccounts(ledgerGateway);
   const ledgerTransactionCommands = useLedgerTransactionCommands(ledgerGateway);
@@ -195,18 +142,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     return (Math.round((total - expenseAssigned) * 100) / 100).toFixed(2);
   }, [transactionAmount, expenseAssigned]);
 
-  function updateVoiceDebug(partial: Partial<Omit<VoiceDebugState, 'enabled' | 'platform'>>) {
-    setVoiceDebug((previous) => ({
-      ...previous,
-      platform: Capacitor.isNativePlatform() ? 'native' : 'web',
-      ...partial,
-    }));
-  }
-
   function reportError(raw: unknown) {
     const message = toErrorMessage(raw);
     setError(message);
-    updateVoiceDebug({ lastError: message });
     onError?.({ message });
   }
 
@@ -263,10 +201,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     if (!enabled || !accountId) {
       setLoading(false);
       setComposerOpen(false);
-      setVoicePhase('idle');
-      setVoiceMode(null);
-      setVoiceSessionId(null);
-      setVoiceAnalysisId(null);
       setError('');
       return;
     }
@@ -306,10 +240,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
     setError('');
     setComposerOpen(true);
-    setVoicePhase('idle');
-    setVoiceMode(null);
-    setVoiceSessionId(null);
-    setVoiceAnalysisId(null);
     resetComposerState();
 
     void (async () => {
@@ -323,152 +253,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   }
 
   function closeTransactionComposer() {
-    const sessionIdToClose = voiceSessionId;
-    void finalizeVoiceCapture({
-      outcome: 'cancelled',
-      mode: composerMode === 'picker' ? undefined : composerMode,
-    });
-    setVoicePhase('idle');
-    setVoiceMode(null);
-    setVoiceSessionId(null);
     setComposerOpen(false);
     resetComposerState();
-    if (sessionIdToClose) {
-      void transactionsVoiceGateway.transactionVoiceStop({ sessionId: sessionIdToClose }).catch(() => undefined);
-    }
-  }
-
-  function startVoiceCapture(mode: Exclude<typeof composerMode, 'picker'>) {
-    if (!accountId) {
-      setError('Select an account first.');
-      return;
-    }
-
-    if (voicePhase !== 'idle') {
-      return;
-    }
-
-    const sessionIdToClose = voiceSessionId;
-    setError('');
-    setVoiceMode(mode);
-    setVoiceSessionId(null);
-    setVoicePhase('recording');
-
-    void (async () => {
-      try {
-        if (sessionIdToClose) {
-          await transactionsVoiceGateway.transactionVoiceStop({ sessionId: sessionIdToClose });
-        }
-      } catch {
-        // Ignore orphan session cleanup failures.
-      }
-
-      try {
-        const started = await transactionsVoiceGateway.transactionVoiceStart({
-          accountId,
-          expectedType: mode as TransactionVoiceType,
-        });
-        setVoiceSessionId(started.sessionId);
-        updateVoiceDebug({
-          lastSessionId: started.sessionId,
-          lastRecordingPath: started.recordingPath,
-          lastStoppedAt: undefined,
-          lastDurationMs: undefined,
-          lastAnalysisId: undefined,
-          lastDraft: undefined,
-          lastError: undefined,
-        });
-      } catch (err) {
-        reportError(err);
-        setVoiceMode(null);
-        setVoicePhase('idle');
-        setVoiceSessionId(null);
-      }
-    })();
-  }
-
-  function cancelVoiceCapture() {
-    if (voicePhase !== 'recording') {
-      return;
-    }
-    const sessionIdToClose = voiceSessionId;
-    setVoiceMode(null);
-    setVoicePhase('idle');
-    setVoiceSessionId(null);
-    if (sessionIdToClose) {
-      void transactionsVoiceGateway.transactionVoiceStop({ sessionId: sessionIdToClose }).catch(() => undefined);
-    }
-  }
-
-  function applyVoiceDraft(draft: TransactionVoiceDraft) {
-    setComposerMode(draft.type);
-    setComposerAdvancedOpen(true);
-    setTransactionAmount((draft.amount ?? '').replace('-', ''));
-    setTransactionDate(toDateInputValue(draft.occurredAt));
-    setTransactionNote(draft.note ?? '');
-    setTransactionCategoryInput(draft.categoryName ?? '');
-    setTransactionTagInput((draft.tagNames ?? []).join(', '));
-    if (draft.type === 'transfer') {
-      setTransferToAccountId(draft.transferToAccountId ?? '');
-      return;
-    }
-    setTransferToAccountId('');
-  }
-
-  async function confirmVoiceCapture() {
-    if (!accountId || !voiceMode || voicePhase !== 'recording' || !voiceSessionId) {
-      return;
-    }
-
-    await finalizeVoiceCapture({
-      outcome: 'cancelled',
-      mode: composerMode === 'picker' ? undefined : composerMode,
-    });
-
-    setError('');
-    setVoicePhase('processing');
-    const processingStartedAt = Date.now();
-
-    try {
-      const stopped = await transactionsVoiceGateway.transactionVoiceStop({ sessionId: voiceSessionId });
-      updateVoiceDebug({
-        lastSessionId: stopped.sessionId,
-        lastRecordingPath: stopped.recordingPath,
-        lastStoppedAt: stopped.stoppedAt,
-        lastDurationMs: stopped.durationMs,
-        lastError: undefined,
-      });
-      const result = await transactionsVoiceGateway.transactionVoiceExtractDraft({ sessionId: voiceSessionId });
-      updateVoiceDebug({
-        lastAnalysisId: result.analysisId,
-        lastDraft: result.draft,
-        lastError: undefined,
-      });
-      const elapsedMs = Date.now() - processingStartedAt;
-      if (elapsedMs < 350) {
-        await new Promise((resolve) => {
-          window.setTimeout(resolve, 350 - elapsedMs);
-        });
-      }
-
-      setVoiceAnalysisId(result.analysisId);
-      resetComposerState();
-      applyVoiceDraft(result.draft);
-      await refreshTaxonomyLookups();
-    } catch (err) {
-      reportError(err);
-      setComposerMode('picker');
-    } finally {
-      setVoiceSessionId(null);
-      setVoiceMode(null);
-      setVoicePhase('idle');
-    }
   }
 
   function selectComposerMode(mode: Exclude<typeof composerMode, 'picker'>) {
-    setVoicePhase('idle');
-    setVoiceMode(null);
-    setVoiceSessionId(null);
     setComposerMode(mode);
     setComposerAdvancedOpen(false);
     setTransactionCategoryInput('');
@@ -615,48 +404,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     return [...uniqueByNormalizedName.values()];
   }
 
-  function buildCurrentVoiceDraft(mode: Exclude<typeof composerMode, 'picker'>): TransactionVoiceDraft {
-    const trimmedAmount = transactionAmount.trim();
-    const trimmedNote = transactionNote.trim();
-    const tagNames = parseTransactionTags();
-    return {
-      type: mode,
-      amount: trimmedAmount || undefined,
-      currency: accountCurrency,
-      occurredAt: resolveOccurredAt(transactionDate),
-      note: trimmedNote || undefined,
-      transferToAccountId: mode === 'transfer' ? transferToAccountId || undefined : undefined,
-      categoryName: mode === 'transfer' ? undefined : transactionCategoryInput.trim() || undefined,
-      tagNames: tagNames.length > 0 ? tagNames : undefined,
-    };
-  }
-
-  async function finalizeVoiceCapture(input: {
-    outcome: 'saved' | 'cancelled' | 'failed';
-    mode?: Exclude<typeof composerMode, 'picker'>;
-    transactionIds?: string[];
-    errorMessage?: string;
-  }) {
-    if (!voiceAnalysisId) {
-      return;
-    }
-
-    const analysisIdToFinalize = voiceAnalysisId;
-    setVoiceAnalysisId(null);
-
-    try {
-      await transactionsVoiceGateway.transactionVoiceFinalize({
-        analysisId: analysisIdToFinalize,
-        outcome: input.outcome,
-        transactionIds: input.transactionIds,
-        finalDraft: input.mode ? buildCurrentVoiceDraft(input.mode) : undefined,
-        errorMessage: input.errorMessage,
-      });
-    } catch {
-      // Audit persistence must never block the transaction flow.
-    }
-  }
-
   async function categorizeTransaction(
     transactionId: string,
     transactionType: TaxonomyCategoryAppliesTo,
@@ -743,7 +490,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       const occurredAt = resolveOccurredAt(transactionDate);
       const tagNames = parseTransactionTags();
       let recorded = false;
-      const recordedTransactionIds: string[] = [];
 
       if (composerMode === 'expense') {
         const categoryId = await resolveCategorySelection('expense');
@@ -758,7 +504,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           });
           await categorizeTransaction(result.id, 'expense', categoryId);
           await applyTransactionTags(result.id, tagNames);
-          recordedTransactionIds.push(result.id);
           recorded = true;
         } else {
           const draft = await ledgerTransactionCommands.createExpenseDraft({
@@ -782,7 +527,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           await ledgerTransactionCommands.postDraftTransaction({ transactionId: draft.id });
           await categorizeTransaction(draft.id, 'expense', categoryId);
           await applyTransactionTags(draft.id, tagNames);
-          recordedTransactionIds.push(draft.id);
           recorded = true;
         }
       }
@@ -799,7 +543,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         });
         await categorizeTransaction(result.id, 'income', categoryId);
         await applyTransactionTags(result.id, tagNames);
-        recordedTransactionIds.push(result.id);
         recorded = true;
       }
 
@@ -814,16 +557,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         });
         await applyTransactionTags(result.transferOutId, tagNames);
         await applyTransactionTags(result.transferInId, tagNames);
-        recordedTransactionIds.push(result.transferOutId, result.transferInId);
         recorded = true;
       }
 
       if (recorded) {
-        await finalizeVoiceCapture({
-          outcome: 'saved',
-          mode: composerMode === 'picker' ? undefined : composerMode,
-          transactionIds: recordedTransactionIds,
-        });
         onRecorded?.();
         setComposerOpen(false);
         resetComposerState();
@@ -836,11 +573,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         }
       }
     } catch (err) {
-      await finalizeVoiceCapture({
-        outcome: 'failed',
-        mode: composerMode === 'picker' ? undefined : composerMode,
-        errorMessage: toErrorMessage(err),
-      });
       reportError(err);
     } finally {
       setPostingTransaction(false);
@@ -851,21 +583,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     state: {
       open: composerOpen,
       mode: composerMode,
-      voicePhase,
-      voiceMode,
-      voiceDebug: voiceDebug.enabled
-        ? {
-          enabled: voiceDebug.enabled,
-          platform: voiceDebug.platform,
-          lastSessionId: voiceDebug.lastSessionId,
-          lastRecordingPath: voiceDebug.lastRecordingPath,
-          lastStoppedAt: voiceDebug.lastStoppedAt,
-          lastDurationMs: voiceDebug.lastDurationMs,
-          lastAnalysisId: voiceDebug.lastAnalysisId,
-          lastDraft: voiceDebug.lastDraft,
-          lastError: voiceDebug.lastError,
-        }
-        : undefined,
       advancedOpen: composerAdvancedOpen,
       amount: transactionAmount,
       date: transactionDate,
@@ -885,8 +602,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     },
     status: {
       submitting: postingTransaction,
-      disabled: loading || refreshing || postingTransaction || voicePhase === 'processing',
-      voiceProcessing: voicePhase === 'processing',
+      disabled: loading || refreshing || postingTransaction,
       errors: fieldErrors,
     },
   };
@@ -895,9 +611,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     commands: {
       open: openTransactionComposer,
       close: closeTransactionComposer,
-      startVoiceCapture,
-      cancelVoiceCapture,
-      confirmVoiceCapture,
       selectMode: selectComposerMode,
       toggleAdvanced: () => setComposerAdvancedOpen((previous) => !previous),
       setAmount: setTransactionAmountValue,

@@ -218,13 +218,6 @@ async function openImportSheetFromAccounts() {
   fireEvent.click(screen.getByRole('button', { name: 'Import transactions' }));
 }
 
-type VoiceTestCore = AccountsCorePort & {
-  transactionVoiceStart: ReturnType<typeof vi.fn>;
-  transactionVoiceStop: ReturnType<typeof vi.fn>;
-  transactionVoiceExtractDraft: ReturnType<typeof vi.fn>;
-  transactionVoiceFinalize: ReturnType<typeof vi.fn>;
-};
-
 describe('App Accounts UX', () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -686,101 +679,6 @@ describe('App Accounts UX', () => {
     await waitFor(() => {
       expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
     });
-  });
-
-  it('shows voice shortcuts next to movement types', async () => {
-    const core = makeCore();
-
-    render(
-      <MemoryRouter>
-        <App required={{ core }} />
-      </MemoryRouter>
-    );
-
-    await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Add movement' }));
-
-    expect(screen.getByRole('button', { name: 'Voice expense' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Voice income' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Voice transfer' })).toBeInTheDocument();
-  });
-
-  it('prefills and finalizes a voice expense draft after save', async () => {
-    const core = makeCore() as VoiceTestCore;
-    core.transactionVoiceStart = vi.fn(async () => ({
-      sessionId: 'session-1',
-      recordingId: 'rec-1',
-      recordingPath: 'storage://voice/rec-1.wav',
-      startedAt: '2026-03-10T10:00:00.000Z',
-    }));
-    core.transactionVoiceStop = vi.fn(async () => ({
-      sessionId: 'session-1',
-      recordingId: 'rec-1',
-      recordingPath: 'storage://voice/rec-1.wav',
-      stoppedAt: '2026-03-10T10:00:08.000Z',
-      durationMs: 8000,
-    }));
-    core.transactionVoiceExtractDraft = vi.fn(async () => ({
-      analysisId: 'analysis-1',
-      sessionId: 'session-1',
-      recording: {
-        id: 'rec-1',
-        path: 'storage://voice/rec-1.wav',
-        createdAt: '2026-03-10T10:00:00.000Z',
-      },
-      draft: {
-        type: 'expense' as const,
-        amount: '14.50',
-        occurredAt: '2026-03-10T10:00:00.000Z',
-        note: 'Lunch menu',
-        categoryName: 'Food',
-        tagNames: ['team'],
-      },
-    }));
-    core.transactionVoiceFinalize = vi.fn(async () => ({
-      analysisId: 'analysis-1',
-      finalizedAt: '2026-03-10T10:00:30.000Z',
-    }));
-
-    render(
-      <MemoryRouter>
-        <App required={{ core }} />
-      </MemoryRouter>
-    );
-
-    await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Add movement' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Voice expense' }));
-
-    expect(await screen.findByText('Recording expense')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Stop and process' }));
-    expect(await screen.findByText('Processing audio')).toBeInTheDocument();
-
-    const amountInput = await screen.findByLabelText('Amount');
-    expect((amountInput as HTMLInputElement).value).toBe('14.50');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Save expense' }));
-
-    await waitFor(() => {
-      expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
-      expect(core.transactionVoiceFinalize).toHaveBeenCalledTimes(1);
-    });
-
-    expect(core.transactionVoiceStart).toHaveBeenCalledWith({
-      accountId: 'acc-1',
-      expectedType: 'expense',
-    });
-    expect(core.transactionVoiceStop).toHaveBeenCalledWith({ sessionId: 'session-1' });
-    expect(core.transactionVoiceExtractDraft).toHaveBeenCalledWith({ sessionId: 'session-1' });
-    expect(core.transactionVoiceFinalize).toHaveBeenCalledWith(expect.objectContaining({
-      analysisId: 'analysis-1',
-      outcome: 'saved',
-      transactionIds: ['tx-exp'],
-      finalDraft: expect.objectContaining({
-        type: 'expense',
-        amount: '14.50',
-      }),
-    }));
   });
 
   it('refreshes recent transactions after saving a movement', async () => {

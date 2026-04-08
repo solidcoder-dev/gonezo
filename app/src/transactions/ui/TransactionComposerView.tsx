@@ -14,29 +14,7 @@ export type ComposerExpenseItem = {
 export type TransactionComposerViewRequired = {
   open: boolean;
   mode: ComposerMode;
-  voicePhase: 'idle' | 'recording' | 'processing';
-  voiceMode: Exclude<ComposerMode, 'picker'> | null;
-  voiceDebug?: {
-    enabled: boolean;
-    platform: 'native' | 'web';
-    lastSessionId?: string;
-    lastRecordingPath?: string;
-    lastStoppedAt?: string;
-    lastDurationMs?: number;
-    lastAnalysisId?: string;
-    lastDraft?: {
-      type?: string;
-      amount?: string;
-      occurredAt?: string;
-      note?: string;
-      categoryName?: string;
-      transferToAccountId?: string;
-      tagNames?: string[];
-    };
-    lastError?: string;
-  };
   disabled: boolean;
-  voiceProcessing: boolean;
   amount: string;
   date: string;
   note: string;
@@ -63,9 +41,6 @@ export type TransactionComposerViewRequired = {
 export type TransactionComposerViewProvided = {
   onOpen: () => void;
   onClose: () => void;
-  onStartVoiceCapture: (mode: Exclude<ComposerMode, 'picker'>) => void;
-  onCancelVoiceCapture: () => void;
-  onConfirmVoiceCapture: () => Promise<void> | void;
   onSelectMode: (mode: Exclude<ComposerMode, 'picker'>) => void;
   onToggleAdvanced: () => void;
   onSetAmount: (value: string) => void;
@@ -95,33 +70,11 @@ function titleForMode(mode: ComposerMode): string {
   return 'Add movement';
 }
 
-function labelForVoiceMode(mode: Exclude<ComposerMode, 'picker'> | null): string {
-  if (mode === 'expense') return 'expense';
-  if (mode === 'income') return 'income';
-  if (mode === 'transfer') return 'transfer';
-  return 'movement';
-}
-
-function MicrophoneIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path
-        d="M12 3c-1.7 0-3 1.3-3 3v6c0 1.7 1.3 3 3 3s3-1.3 3-3V6c0-1.7-1.3-3-3-3Zm-5 9a1 1 0 1 0-2 0 7 7 0 0 0 6 6.9V21H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-3v-2.1A7 7 0 0 0 19 12a1 1 0 1 0-2 0 5 5 0 0 1-10 0Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
 export function TransactionComposerView({ required, provided }: Props) {
   const {
     open,
     mode,
-    voicePhase,
-    voiceMode,
-    voiceDebug,
     disabled,
-    voiceProcessing,
     amount,
     date,
     note,
@@ -147,9 +100,6 @@ export function TransactionComposerView({ required, provided }: Props) {
   const {
     onOpen,
     onClose,
-    onStartVoiceCapture,
-    onCancelVoiceCapture,
-    onConfirmVoiceCapture,
     onSelectMode,
     onToggleAdvanced,
     onSetAmount,
@@ -194,31 +144,6 @@ export function TransactionComposerView({ required, provided }: Props) {
     return expenseItems.length > 0 && Number(expenseRemaining) === 0;
   }, [expenseDetailed, expenseItems.length, expenseRemaining, mode]);
 
-  const voiceDebugPanel = useMemo(() => {
-    if (!voiceDebug?.enabled) {
-      return null;
-    }
-
-    return (
-      <section className="voice-debug-panel" aria-live="polite">
-        <strong>Voice debug ({voiceDebug.platform})</strong>
-        <pre>
-          {JSON.stringify({
-            phase: voicePhase,
-            mode: voiceMode,
-            sessionId: voiceDebug.lastSessionId,
-            recordingPath: voiceDebug.lastRecordingPath,
-            stoppedAt: voiceDebug.lastStoppedAt,
-            durationMs: voiceDebug.lastDurationMs,
-            analysisId: voiceDebug.lastAnalysisId,
-            draft: voiceDebug.lastDraft,
-            error: voiceDebug.lastError,
-          }, null, 2)}
-        </pre>
-      </section>
-    );
-  }, [voiceDebug, voiceMode, voicePhase]);
-
   if (!open) {
     return (
       <button type="button" className="fab-button" onClick={onOpen} aria-label="Add movement">
@@ -231,11 +156,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     <div
       className="sheet-backdrop"
       role="presentation"
-      onClick={() => {
-        if (voicePhase !== 'processing') {
-          onClose();
-        }
-      }}
+      onClick={onClose}
     >
       <section className="sheet-panel composer-sheet" role="dialog" aria-modal="true" aria-label="Transaction composer" onClick={(event) => event.stopPropagation()}>
         <div className="inline-header">
@@ -245,7 +166,6 @@ export function TransactionComposerView({ required, provided }: Props) {
             className="text-button icon-button"
             onClick={onClose}
             aria-label="Close transaction composer"
-            disabled={voicePhase === 'processing'}
           >
             ×
           </button>
@@ -253,80 +173,21 @@ export function TransactionComposerView({ required, provided }: Props) {
 
         {mode === 'picker' ? (
           <div className="stack">
-            {voicePhase === 'recording' ? (
-              <section className="voice-stage" aria-live="polite">
-                <div className="voice-stage-icon">
-                  <MicrophoneIcon />
-                </div>
-                <strong>Recording {labelForVoiceMode(voiceMode)}</strong>
-                <p className="hint">Speak now, then stop to process.</p>
-                <div className="quick-row">
-                  <button type="button" className="text-button" onClick={onCancelVoiceCapture}>
-                    Cancel
-                  </button>
-                  <button type="button" onClick={onConfirmVoiceCapture}>
-                    Stop and process
-                  </button>
-                </div>
-              </section>
-            ) : null}
-
-            {voicePhase === 'processing' ? (
-              <section className="voice-stage" aria-live="polite" aria-busy="true">
-                <div className="voice-loader" />
-                <strong>Processing audio</strong>
-                <p className="hint">Extracting movement fields...</p>
-              </section>
-            ) : null}
-
-            {voicePhase === 'idle' ? (
-              <>
-                <div className="mode-row">
-                  <button type="button" onClick={() => onSelectMode('expense')} disabled={voiceProcessing}>
-                    Expense
-                  </button>
-                  <button
-                    type="button"
-                    className="text-button icon-button"
-                    onClick={() => onStartVoiceCapture('expense')}
-                    disabled={disabled || voiceProcessing}
-                    aria-label="Voice expense"
-                  >
-                    <MicrophoneIcon />
-                  </button>
-                </div>
-                <div className="mode-row">
-                  <button type="button" onClick={() => onSelectMode('income')} disabled={voiceProcessing}>
-                    Income
-                  </button>
-                  <button
-                    type="button"
-                    className="text-button icon-button"
-                    onClick={() => onStartVoiceCapture('income')}
-                    disabled={disabled || voiceProcessing}
-                    aria-label="Voice income"
-                  >
-                    <MicrophoneIcon />
-                  </button>
-                </div>
-                <div className="mode-row">
-                  <button type="button" onClick={() => onSelectMode('transfer')} disabled={voiceProcessing}>
-                    Transfer
-                  </button>
-                  <button
-                    type="button"
-                    className="text-button icon-button"
-                    onClick={() => onStartVoiceCapture('transfer')}
-                    disabled={disabled || voiceProcessing}
-                    aria-label="Voice transfer"
-                  >
-                    <MicrophoneIcon />
-                  </button>
-                </div>
-              </>
-            ) : null}
-
-            {voiceDebugPanel}
+            <div className="mode-row">
+              <button type="button" onClick={() => onSelectMode('expense')} disabled={disabled}>
+                Expense
+              </button>
+            </div>
+            <div className="mode-row">
+              <button type="button" onClick={() => onSelectMode('income')} disabled={disabled}>
+                Income
+              </button>
+            </div>
+            <div className="mode-row">
+              <button type="button" onClick={() => onSelectMode('transfer')} disabled={disabled}>
+                Transfer
+              </button>
+            </div>
           </div>
         ) : (
           <form className="stack composer-form" onSubmit={onSubmit} aria-busy={disabled}>
@@ -499,8 +360,6 @@ export function TransactionComposerView({ required, provided }: Props) {
             <button type="submit" className="primary-cta" disabled={disabled || !splitReady}>
               {submitLabel}
             </button>
-
-            {voiceDebugPanel}
           </form>
         )}
       </section>

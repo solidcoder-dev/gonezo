@@ -1,33 +1,10 @@
 import type { FormEvent } from 'react';
 import type { ComposerMode, TransactionFieldErrors } from '../domain/transactions.types';
 
-type TransactionVoiceDebugState = {
-  enabled: boolean;
-  platform: 'native' | 'web';
-  lastSessionId?: string;
-  lastRecordingPath?: string;
-  lastStoppedAt?: string;
-  lastDurationMs?: number;
-  lastAnalysisId?: string;
-  lastDraft?: {
-    type?: string;
-    amount?: string;
-    occurredAt?: string;
-    note?: string;
-    categoryName?: string;
-    transferToAccountId?: string;
-    tagNames?: string[];
-  };
-  lastError?: string;
-};
-
 export type TransactionEntryViewRequired = {
   state: {
     open: boolean;
     mode: ComposerMode;
-    voicePhase: 'idle' | 'recording' | 'processing';
-    voiceMode: Exclude<ComposerMode, 'picker'> | null;
-    voiceDebug?: TransactionVoiceDebugState;
     advancedOpen: boolean;
     amount: string;
     date: string;
@@ -48,7 +25,6 @@ export type TransactionEntryViewRequired = {
   status: {
     submitting: boolean;
     disabled: boolean;
-    voiceProcessing: boolean;
     errors: TransactionFieldErrors;
   };
 };
@@ -57,9 +33,6 @@ export type TransactionEntryViewProvided = {
   commands: {
     open: () => void;
     close: () => void;
-    startVoiceCapture: (mode: Exclude<ComposerMode, 'picker'>) => void;
-    cancelVoiceCapture: () => void;
-    confirmVoiceCapture: () => Promise<void>;
     selectMode: (mode: Exclude<ComposerMode, 'picker'>) => void;
     toggleAdvanced: () => void;
     setAmount: (value: string) => void;
