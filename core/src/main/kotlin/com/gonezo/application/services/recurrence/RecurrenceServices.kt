@@ -5,6 +5,7 @@ import com.gonezo.recurrence.domain.RecurrenceOutboxStatus
 import com.gonezo.recurrence.domain.RecurringMovement
 import com.gonezo.recurrence.domain.RecurringMovementId
 import com.gonezo.recurrence.domain.RecurringMovementOccurrence
+import com.gonezo.recurrence.domain.RecurringMovementOccurrenceStatus
 import com.gonezo.recurrence.domain.ports.RecurrenceOutboxRepository
 import com.gonezo.recurrence.domain.ports.RecurringMovementOccurrenceRepository
 import com.gonezo.recurrence.domain.ports.RecurringMovementRepository
@@ -145,6 +146,84 @@ class ProcessDueRecurringMovementsService(
       scanned = dueMovements.size,
       createdOccurrences = createdOccurrences,
       advancedSchedules = advancedSchedules,
+    )
+  }
+}
+
+class AcknowledgeRecurringMovementOccurrenceService(
+  private val occurrenceRepository: RecurringMovementOccurrenceRepository,
+) : AcknowledgeRecurringMovementOccurrenceUC {
+  override fun execute(command: AcknowledgeRecurringMovementOccurrenceCommand): RecurringMovementOccurrence {
+    val occurrence = occurrenceRepository.findById(command.occurrenceId)
+      ?: throw IllegalStateException("Recurring movement occurrence not found: ${command.occurrenceId}")
+
+    val acknowledged = when (command.status) {
+      AcknowledgeRecurringMovementOccurrenceStatus.POSTED -> {
+        val ledgerTransactionId = command.ledgerTransactionId?.trim().orEmpty()
+        require(ledgerTransactionId.isNotBlank()) { "ledgerTransactionId is required when status is posted" }
+        if (occurrence.status == RecurringMovementOccurrenceStatus.POSTED && occurrence.ledgerTransactionId == ledgerTransactionId) {
+          return occurrence
+        }
+        occurrence.acknowledgePosted(ledgerTxId = ledgerTransactionId, at = command.acknowledgedAt)
+      }
+
+      AcknowledgeRecurringMovementOccurrenceStatus.FAILED -> {
+        if (occurrence.status == RecurringMovementOccurrenceStatus.FAILED) {
+          return occurrence
+        }
+        occurrence.acknowledgeFailed(
+          errorCodeValue = command.errorCode,
+          errorMessageValue = command.errorMessage,
+          at = command.acknowledgedAt,
+        )
+      }
+    }
+
+    occurrenceRepository.save(acknowledged)
+    return acknowledged
+  }
+}
+
+class PublishRecurrenceOutboxService(
+  private val outboxRepository: RecurrenceOutboxRepository,
+  private val publisher: RecurrenceOutboxEventPublisher,
+) : PublishRecurrenceOutboxUC {
+  override fun execute(command: PublishRecurrenceOutboxCommand): PublishRecurrenceOutboxResult {
+    require(command.limit > 0) { "limit must be greater than 0" }
+
+    val pending = outboxRepository.findPending(command.limit)
+    var published = 0
+    var failed = 0
+
+    pending.forEach { message ->
+      try {
+        publisher.publish(message)
+        outboxRepository.save(
+          message.copy(
+            status = RecurrenceOutboxStatus.PUBLISHED,
+            attempts = message.attempts + 1,
+            lastError = null,
+            publishedAt = command.publishedAt,
+          ),
+        )
+        published += 1
+      } catch (ex: RuntimeException) {
+        outboxRepository.save(
+          message.copy(
+            status = RecurrenceOutboxStatus.FAILED,
+            attempts = message.attempts + 1,
+            lastError = ex.message ?: "outbox publish failed",
+            publishedAt = null,
+          ),
+        )
+        failed += 1
+      }
+    }
+
+    return PublishRecurrenceOutboxResult(
+      processed = pending.size,
+      published = published,
+      failed = failed,
     )
   }
 }

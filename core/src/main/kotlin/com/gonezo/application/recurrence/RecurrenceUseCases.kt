@@ -73,6 +73,21 @@ interface AcknowledgeRecurringMovementOccurrenceUC {
   fun execute(command: AcknowledgeRecurringMovementOccurrenceCommand): RecurringMovementOccurrence
 }
 
+data class PublishRecurrenceOutboxCommand(
+  val limit: Int = 100,
+  val publishedAt: Instant,
+)
+
+data class PublishRecurrenceOutboxResult(
+  val processed: Int,
+  val published: Int,
+  val failed: Int,
+)
+
+interface PublishRecurrenceOutboxUC {
+  fun execute(command: PublishRecurrenceOutboxCommand): PublishRecurrenceOutboxResult
+}
+
 data class ListRecurringMovementsByAccountQuery(
   val sourceAccountId: String,
 )
