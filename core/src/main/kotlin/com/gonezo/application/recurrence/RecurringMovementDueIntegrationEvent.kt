@@ -1,0 +1,62 @@
+package com.gonezo.recurrence.application
+
+import org.json.JSONObject
+import java.util.UUID
+
+data class RecurringMovementDueIntegrationEvent(
+  val eventId: UUID,
+  val recurringMovementId: String,
+  val occurrenceId: String,
+  val dueAt: String,
+  val movementType: String,
+  val sourceAccountId: String,
+  val targetAccountId: String?,
+  val amount: String,
+  val currency: String,
+  val destinationAmount: String?,
+  val destinationCurrency: String?,
+  val exchangeRate: String?,
+  val description: String?,
+  val merchant: String?,
+) {
+  fun toJson(): String = JSONObject()
+    .put("eventId", eventId.toString())
+    .put("recurringMovementId", recurringMovementId)
+    .put("occurrenceId", occurrenceId)
+    .put("dueAt", dueAt)
+    .put("movementType", movementType)
+    .put("sourceAccountId", sourceAccountId)
+    .put("targetAccountId", targetAccountId)
+    .put("amount", amount)
+    .put("currency", currency)
+    .put("destinationAmount", destinationAmount)
+    .put("destinationCurrency", destinationCurrency)
+    .put("exchangeRate", exchangeRate)
+    .put("description", description)
+    .put("merchant", merchant)
+    .toString()
+
+  companion object {
+    const val EVENT_TYPE = "recurrence.recurring_movement_due.v1"
+
+    fun fromJson(json: String): RecurringMovementDueIntegrationEvent {
+      val parsed = JSONObject(json)
+      return RecurringMovementDueIntegrationEvent(
+        eventId = UUID.fromString(parsed.getString("eventId")),
+        recurringMovementId = parsed.getString("recurringMovementId"),
+        occurrenceId = parsed.getString("occurrenceId"),
+        dueAt = parsed.getString("dueAt"),
+        movementType = parsed.getString("movementType"),
+        sourceAccountId = parsed.getString("sourceAccountId"),
+        targetAccountId = parsed.optString("targetAccountId", "").ifBlank { null },
+        amount = parsed.getString("amount"),
+        currency = parsed.getString("currency"),
+        destinationAmount = parsed.optString("destinationAmount", "").ifBlank { null },
+        destinationCurrency = parsed.optString("destinationCurrency", "").ifBlank { null },
+        exchangeRate = parsed.optString("exchangeRate", "").ifBlank { null },
+        description = parsed.optString("description", "").ifBlank { null },
+        merchant = parsed.optString("merchant", "").ifBlank { null },
+      )
+    }
+  }
+}
