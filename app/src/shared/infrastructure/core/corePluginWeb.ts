@@ -47,6 +47,11 @@ import type {
   TransactionVoiceStartResult,
   TransactionVoiceStopInput,
   TransactionVoiceStopResult,
+  RecurrenceCreateRecurringMovementInput,
+  RecurrenceCreateRecurringMovementResult,
+  RecurrenceDeactivateRecurringMovementInput,
+  RecurrenceListRecurringMovementsInput,
+  RecurrenceListRecurringMovementsResult,
 } from '../../domain/corePort';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import type { CorePlugin } from './corePlugin';
@@ -172,5 +177,21 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async transactionVoiceFinalize(options: TransactionVoiceFinalizeInput): Promise<TransactionVoiceFinalizeResult> {
     return this.core.transactionVoiceFinalize(options);
+  }
+
+  async recurrenceCreateRecurringMovement(
+    options: RecurrenceCreateRecurringMovementInput,
+  ): Promise<RecurrenceCreateRecurringMovementResult> {
+    return this.core.recurrenceCreateRecurringMovement(options);
+  }
+
+  async recurrenceDeactivateRecurringMovement(options: RecurrenceDeactivateRecurringMovementInput): Promise<void> {
+    return this.core.recurrenceDeactivateRecurringMovement(options);
+  }
+
+  async recurrenceListRecurringMovements(
+    options: RecurrenceListRecurringMovementsInput,
+  ): Promise<RecurrenceListRecurringMovementsResult> {
+    return this.core.recurrenceListRecurringMovements(options);
   }
 }

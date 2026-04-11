@@ -9,6 +9,7 @@ public class CorePlugin: CAPPlugin {
     private var taxonomyCategories: [[String: Any]] = []
     private var taxonomyTags: [[String: Any]] = []
     private var transactionTagsByTransactionId: [String: [String]] = [:]
+    private var recurringMovements: [[String: Any]] = []
 
     @objc func doThing(_ call: CAPPluginCall) {
         let input = call.getString("input") ?? ""
@@ -423,6 +424,114 @@ public class CorePlugin: CAPPlugin {
         }
 
         call.reject("mobillsImport is not implemented on iOS yet")
+    }
+
+    @objc func recurrenceCreateRecurringMovement(_ call: CAPPluginCall) {
+        let sourceAccountId = (call.getString("sourceAccountId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let amount = (call.getString("amount") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let currency = (call.getString("currency") ?? "").trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        let type = (call.getString("type") ?? "expense").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let startAt = call.getString("startAt") ?? ISO8601DateFormatter().string(from: Date())
+        let zoneId = (call.getString("zoneId") ?? "UTC").trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if sourceAccountId.isEmpty {
+            call.reject("sourceAccountId is required")
+            return
+        }
+        if amount.isEmpty || Double(amount) == nil || (Double(amount) ?? 0) <= 0 {
+            call.reject("amount must be greater than 0")
+            return
+        }
+        if currency.isEmpty {
+            call.reject("currency is required")
+            return
+        }
+        if !accounts.contains(where: { ($0["id"] as? String) == sourceAccountId }) {
+            call.reject("source account not found")
+            return
+        }
+
+        let targetAccountId = (call.getString("targetAccountId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if type == "transfer" {
+            if targetAccountId.isEmpty {
+                call.reject("targetAccountId is required for transfer recurrence")
+                return
+            }
+            if sourceAccountId == targetAccountId {
+                call.reject("source and destination accounts must be different")
+                return
+            }
+            if !accounts.contains(where: { ($0["id"] as? String) == targetAccountId }) {
+                call.reject("target account not found")
+                return
+            }
+        }
+
+        let id = UUID().uuidString
+        let movement: [String: Any] = [
+            "id": id,
+            "type": type,
+            "sourceAccountId": sourceAccountId,
+            "targetAccountId": targetAccountId.isEmpty ? NSNull() : targetAccountId,
+            "amount": String(format: "%.2f", Double(amount) ?? 0),
+            "currency": currency,
+            "destinationAmount": call.getString("destinationAmount") as Any,
+            "destinationCurrency": call.getString("destinationCurrency") as Any,
+            "exchangeRate": call.getString("exchangeRate") as Any,
+            "description": call.getString("description") as Any,
+            "merchant": call.getString("merchant") as Any,
+            "status": "active",
+            "startAt": startAt,
+            "nextDueAt": startAt,
+            "zoneId": zoneId.isEmpty ? "UTC" : zoneId,
+            "generatedOccurrences": 0,
+            "rule": call.getObject("rule") as Any,
+            "recurrenceEnd": call.getObject("recurrenceEnd") as Any
+        ]
+        recurringMovements.append(movement)
+        call.resolve(["id": id])
+    }
+
+    @objc func recurrenceDeactivateRecurringMovement(_ call: CAPPluginCall) {
+        let recurringMovementId = (call.getString("recurringMovementId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if recurringMovementId.isEmpty {
+            call.reject("recurringMovementId is required")
+            return
+        }
+
+        guard let index = recurringMovements.firstIndex(where: { ($0["id"] as? String) == recurringMovementId }) else {
+            call.reject("Recurring movement not found")
+            return
+        }
+
+        recurringMovements[index]["status"] = "deactivated"
+        recurringMovements[index]["nextDueAt"] = NSNull()
+        recurringMovements[index]["deactivatedAt"] = call.getString("deactivatedAt") ?? ISO8601DateFormatter().string(from: Date())
+        call.resolve()
+    }
+
+    @objc func recurrenceListRecurringMovements(_ call: CAPPluginCall) {
+        let sourceAccountId = (call.getString("sourceAccountId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if sourceAccountId.isEmpty {
+            call.reject("sourceAccountId is required")
+            return
+        }
+
+        let items = recurringMovements
+            .filter { ($0["sourceAccountId"] as? String) == sourceAccountId }
+            .sorted { lhs, rhs in
+                let leftDue = lhs["nextDueAt"] as? String ?? ""
+                let rightDue = rhs["nextDueAt"] as? String ?? ""
+                if leftDue.isEmpty && rightDue.isEmpty {
+                    let leftId = lhs["id"] as? String ?? ""
+                    let rightId = rhs["id"] as? String ?? ""
+                    return leftId < rightId
+                }
+                if leftDue.isEmpty { return false }
+                if rightDue.isEmpty { return true }
+                return leftDue < rightDue
+            }
+        call.resolve(["items": items])
     }
 
     @objc func orchestrationCategorizeTransaction(_ call: CAPPluginCall) {

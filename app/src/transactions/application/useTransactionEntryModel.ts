@@ -2,12 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import type {
   LedgerAccountItem,
+  RecurrenceCreateRecurringMovementInput,
+  RecurrenceEndInput,
+  RecurrenceFrequency,
+  RecurrenceMonthlyPattern,
   TaxonomyCategoryItem,
   TaxonomyTagItem,
 } from '../../shared/domain/corePort';
 import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
 import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
 import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
+import { createRecurrenceGateway } from '../../recurrence/infrastructure/recurrenceGateway';
 import { useCategorySuggestions } from '../../taxonomy/application/useCategorySuggestions';
 import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions';
 import { useTransactionClassification } from '../../taxonomy/application/useTransactionClassification';
@@ -75,6 +80,36 @@ function resolveOccurredAt(dateInput: string): string {
   return new Date().toISOString();
 }
 
+function dayOfMonthFromDateInput(dateInput: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+    return String(Number(dateInput.slice(8, 10)));
+  }
+  const parsed = new Date(dateInput);
+  if (!Number.isNaN(parsed.getTime())) {
+    return String(parsed.getUTCDate());
+  }
+  return String(new Date().getUTCDate());
+}
+
+function weekDayIsoFromDateInput(dateInput: string): string {
+  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(dateInput)
+    ? new Date(`${dateInput}T12:00:00`)
+    : new Date(dateInput);
+  if (Number.isNaN(parsed.getTime())) {
+    return '1';
+  }
+  const day = parsed.getDay();
+  return String(day === 0 ? 7 : day);
+}
+
+function resolveTimeZoneId(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
@@ -113,9 +148,21 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [expenseItemName, setExpenseItemName] = useState('');
   const [expenseItemAmount, setExpenseItemAmount] = useState('');
   const [expenseItems, setExpenseItems] = useState<ExpenseItemDraft[]>([]);
+  const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency>('monthly');
+  const [recurrenceInterval, setRecurrenceInterval] = useState('1');
+  const [recurrenceWeeklyDay, setRecurrenceWeeklyDay] = useState(weekDayIsoFromDateInput(todayIso()));
+  const [recurrenceMonthlyPattern, setRecurrenceMonthlyPattern] = useState<RecurrenceMonthlyPattern>('day_of_month');
+  const [recurrenceDayOfMonth, setRecurrenceDayOfMonth] = useState(dayOfMonthFromDateInput(todayIso()));
+  const [recurrenceMonthlyOrdinal, setRecurrenceMonthlyOrdinal] = useState('1');
+  const [recurrenceMonthlyWeekday, setRecurrenceMonthlyWeekday] = useState(weekDayIsoFromDateInput(todayIso()));
+  const [recurrenceEndKind, setRecurrenceEndKind] = useState<RecurrenceEndInput['kind']>('never');
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
+  const [recurrenceEndCount, setRecurrenceEndCount] = useState('12');
   const [fieldErrors, setFieldErrors] = useState<TransactionFieldErrors>({});
 
   const ledgerGateway = useMemo(() => createLedgerGateway(core), [core]);
+  const recurrenceGateway = useMemo(() => createRecurrenceGateway(core), [core]);
   const taxonomyGateway = useMemo(() => createTaxonomyGateway(core), [core]);
 
   const ledgerAccounts = useLedgerAccounts(ledgerGateway);
@@ -174,10 +221,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   }
 
   function resetComposerState() {
+    const today = todayIso();
     setComposerMode('picker');
     setComposerAdvancedOpen(false);
     setTransactionAmount('');
-    setTransactionDate(todayIso());
+    setTransactionDate(today);
     setTransactionNote('');
     setTransactionCategoryInput('');
     setTransactionTagInput('');
@@ -188,6 +236,17 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setExpenseItemName('');
     setExpenseItemAmount('');
     setExpenseItems([]);
+    setRecurrenceEnabled(false);
+    setRecurrenceFrequency('monthly');
+    setRecurrenceInterval('1');
+    setRecurrenceWeeklyDay(weekDayIsoFromDateInput(today));
+    setRecurrenceMonthlyPattern('day_of_month');
+    setRecurrenceDayOfMonth(dayOfMonthFromDateInput(today));
+    setRecurrenceMonthlyOrdinal('1');
+    setRecurrenceMonthlyWeekday(weekDayIsoFromDateInput(today));
+    setRecurrenceEndKind('never');
+    setRecurrenceEndDate('');
+    setRecurrenceEndCount('12');
     setFieldErrors({});
   }
 
@@ -475,6 +534,74 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     }
   }
 
+  function setTransactionDateValue(value: string) {
+    setTransactionDate(value);
+    setFieldErrors((previous) => ({
+      ...previous,
+      date: undefined,
+      recurrenceEndDate: undefined,
+    }));
+    if (!recurrenceEnabled) {
+      return;
+    }
+    setRecurrenceWeeklyDay(weekDayIsoFromDateInput(value));
+    setRecurrenceMonthlyWeekday(weekDayIsoFromDateInput(value));
+    if (recurrenceMonthlyPattern === 'day_of_month') {
+      setRecurrenceDayOfMonth(dayOfMonthFromDateInput(value));
+    }
+  }
+
+  function setRecurrenceEnabledValue(value: boolean) {
+    setRecurrenceEnabled(value);
+    setFieldErrors((previous) => ({
+      ...previous,
+      recurrenceInterval: undefined,
+      recurrenceEndDate: undefined,
+      recurrenceEndCount: undefined,
+    }));
+  }
+
+  function setRecurrenceFrequencyValue(value: RecurrenceFrequency) {
+    setRecurrenceFrequency(value);
+    setFieldErrors((previous) => ({
+      ...previous,
+      recurrenceInterval: undefined,
+    }));
+  }
+
+  function setRecurrenceIntervalValue(value: string) {
+    setRecurrenceInterval(value.replace('-', ''));
+    setFieldErrors((previous) => ({
+      ...previous,
+      recurrenceInterval: undefined,
+    }));
+  }
+
+  function setRecurrenceEndKindValue(value: RecurrenceEndInput['kind']) {
+    setRecurrenceEndKind(value);
+    setFieldErrors((previous) => ({
+      ...previous,
+      recurrenceEndDate: undefined,
+      recurrenceEndCount: undefined,
+    }));
+  }
+
+  function setRecurrenceEndDateValue(value: string) {
+    setRecurrenceEndDate(value);
+    setFieldErrors((previous) => ({
+      ...previous,
+      recurrenceEndDate: undefined,
+    }));
+  }
+
+  function setRecurrenceEndCountValue(value: string) {
+    setRecurrenceEndCount(value.replace('-', ''));
+    setFieldErrors((previous) => ({
+      ...previous,
+      recurrenceEndCount: undefined,
+    }));
+  }
+
   function setExpenseDetailedValue(value: boolean) {
     setExpenseDetailed(value);
     if (!value) {
@@ -710,11 +837,33 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       }
     }
 
+    if (recurrenceEnabled) {
+      const interval = Number(recurrenceInterval.trim());
+      if (!Number.isFinite(interval) || interval <= 0 || !Number.isInteger(interval)) {
+        nextErrors.recurrenceInterval = 'Recurrence interval must be a positive integer.';
+      }
+      if (recurrenceEndKind === 'on_date' && !recurrenceEndDate.trim()) {
+        nextErrors.recurrenceEndDate = 'Recurrence end date is required.';
+      }
+      if (recurrenceEndKind === 'after_occurrences') {
+        const count = Number(recurrenceEndCount.trim());
+        if (!Number.isFinite(count) || count <= 0 || !Number.isInteger(count)) {
+          nextErrors.recurrenceEndCount = 'Recurrence count must be a positive integer.';
+        }
+      }
+      if (composerMode === 'expense' && expenseDetailed) {
+        nextErrors.expenseSplit = 'Split expenses are not supported for recurring movements.';
+      }
+    }
+
     if (
       nextErrors.amount
       || nextErrors.transferAmountIn
       || nextErrors.transferFxRate
       || nextErrors.date
+      || nextErrors.recurrenceInterval
+      || nextErrors.recurrenceEndDate
+      || nextErrors.recurrenceEndCount
       || nextErrors.expenseItemName
       || nextErrors.expenseItemAmount
       || nextErrors.expenseSplit
@@ -729,7 +878,91 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       const tagNames = parseTransactionTags();
       let recorded = false;
 
-      if (composerMode === 'expense') {
+      if (recurrenceEnabled) {
+        const interval = Number(recurrenceInterval.trim());
+        const recurrenceRule: RecurrenceCreateRecurringMovementInput['rule'] = {
+          frequency: recurrenceFrequency,
+          interval,
+        };
+        if (recurrenceFrequency === 'weekly') {
+          recurrenceRule.weeklyDays = [Number(recurrenceWeeklyDay || '1')];
+        }
+        if (recurrenceFrequency === 'monthly') {
+          recurrenceRule.monthlyPattern = recurrenceMonthlyPattern;
+          if (recurrenceMonthlyPattern === 'day_of_month') {
+            recurrenceRule.dayOfMonth = Number(recurrenceDayOfMonth || dayOfMonthFromDateInput(transactionDate));
+          } else {
+            recurrenceRule.monthlyWeekOrdinal = Number(recurrenceMonthlyOrdinal || '1');
+            recurrenceRule.monthlyWeekday = Number(recurrenceMonthlyWeekday || weekDayIsoFromDateInput(transactionDate));
+          }
+        }
+
+        const recurrenceEnd: RecurrenceCreateRecurringMovementInput['recurrenceEnd'] = recurrenceEndKind === 'on_date'
+          ? { kind: 'on_date', onDate: recurrenceEndDate.trim() }
+          : recurrenceEndKind === 'after_occurrences'
+            ? { kind: 'after_occurrences', afterOccurrences: Number(recurrenceEndCount.trim()) }
+            : { kind: 'never' };
+
+        if (composerMode === 'transfer') {
+          const transferTargetAccount = accounts.find((candidate) => candidate.id === transferToAccountId);
+          if (!transferTargetAccount) {
+            throw new Error('Destination account not found');
+          }
+          const isCrossCurrencyTransfer = transferTargetAccount.currency.toUpperCase() !== accountCurrency.toUpperCase();
+          const sourceAmountNumeric = parseAmount(amount);
+          const sourceAmount = formatAmount(sourceAmountNumeric);
+
+          let destinationAmount: string | undefined;
+          let destinationCurrency: string | undefined;
+          let exchangeRate: string | undefined;
+          if (isCrossCurrencyTransfer) {
+            const destinationAmountNumeric = parseAmount(transferAmountIn);
+            const resolvedRate = transferFxMode === 'auto_rate'
+              ? destinationAmountNumeric / sourceAmountNumeric
+              : parseAmount(transferFxRate);
+            destinationAmount = formatAmount(destinationAmountNumeric);
+            destinationCurrency = transferTargetAccount.currency;
+            exchangeRate = formatFxRate(resolvedRate);
+          }
+
+          await recurrenceGateway.recurrenceCreateRecurringMovement({
+            type: 'transfer',
+            sourceAccountId: accountId,
+            targetAccountId: transferToAccountId,
+            amount: sourceAmount,
+            currency: accountCurrency,
+            destinationAmount,
+            destinationCurrency,
+            exchangeRate,
+            description: transactionNote.trim() || undefined,
+            merchant: undefined,
+            rule: recurrenceRule,
+            recurrenceEnd,
+            startAt: occurredAt,
+            zoneId: resolveTimeZoneId(),
+          });
+        }
+
+        if (composerMode === 'expense' || composerMode === 'income') {
+          await recurrenceGateway.recurrenceCreateRecurringMovement({
+            type: composerMode,
+            sourceAccountId: accountId,
+            amount: formatAmount(parseAmount(amount)),
+            currency: accountCurrency,
+            description: transactionNote.trim() || undefined,
+            merchant: transactionNote.trim() || undefined,
+            rule: recurrenceRule,
+            recurrenceEnd,
+            startAt: occurredAt,
+            zoneId: resolveTimeZoneId(),
+          });
+        }
+
+        void tagNames;
+        recorded = true;
+      }
+
+      if (!recurrenceEnabled && composerMode === 'expense') {
         const categoryId = await resolveCategorySelection('expense');
         if (!expenseDetailed) {
           const result = await ledgerTransactionCommands.recordExpense({
@@ -769,7 +1002,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         }
       }
 
-      if (composerMode === 'income') {
+      if (!recurrenceEnabled && composerMode === 'income') {
         const categoryId = await resolveCategorySelection('income');
         const result = await ledgerTransactionCommands.recordIncome({
           accountId,
@@ -784,7 +1017,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         recorded = true;
       }
 
-      if (composerMode === 'transfer') {
+      if (!recurrenceEnabled && composerMode === 'transfer') {
         const transferTargetAccount = accounts.find((candidate) => candidate.id === transferToAccountId);
         if (!transferTargetAccount) {
           throw new Error('Destination account not found');
@@ -889,6 +1122,17 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       splitItemName: expenseItemName,
       splitItemAmount: expenseItemAmount,
       splitRemaining: expenseRemaining,
+      recurrenceEnabled,
+      recurrenceFrequency,
+      recurrenceInterval,
+      recurrenceWeeklyDay,
+      recurrenceMonthlyPattern,
+      recurrenceDayOfMonth,
+      recurrenceMonthlyOrdinal,
+      recurrenceMonthlyWeekday,
+      recurrenceEndKind,
+      recurrenceEndDate,
+      recurrenceEndCount,
       currencyCode: accountCurrency,
     },
     status: {
@@ -905,7 +1149,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       selectMode: selectComposerMode,
       toggleAdvanced: () => setComposerAdvancedOpen((previous) => !previous),
       setAmount: setTransactionAmountValue,
-      setDate: setTransactionDate,
+      setDate: setTransactionDateValue,
       setNote: setTransactionNote,
       setCategoryInput: setTransactionCategoryInput,
       setTagInput: setTransactionTagInput,
@@ -919,6 +1163,17 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       addSplitItem: addExpenseItem,
       removeSplitItem: removeExpenseItem,
       assignSplitRemaining: assignRemaining,
+      setRecurrenceEnabled: setRecurrenceEnabledValue,
+      setRecurrenceFrequency: setRecurrenceFrequencyValue,
+      setRecurrenceInterval: setRecurrenceIntervalValue,
+      setRecurrenceWeeklyDay,
+      setRecurrenceMonthlyPattern,
+      setRecurrenceDayOfMonth,
+      setRecurrenceMonthlyOrdinal,
+      setRecurrenceMonthlyWeekday,
+      setRecurrenceEndKind: setRecurrenceEndKindValue,
+      setRecurrenceEndDate: setRecurrenceEndDateValue,
+      setRecurrenceEndCount: setRecurrenceEndCountValue,
       submit: submitTransaction,
     },
   };

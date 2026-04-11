@@ -47,6 +47,11 @@ import type {
   TransactionVoiceStartResult,
   TransactionVoiceStopInput,
   TransactionVoiceStopResult,
+  RecurrenceCreateRecurringMovementInput,
+  RecurrenceCreateRecurringMovementResult,
+  RecurrenceDeactivateRecurringMovementInput,
+  RecurrenceListRecurringMovementsInput,
+  RecurrenceListRecurringMovementsResult,
 } from '../../domain/corePort';
 
 export interface CorePlugin {
@@ -84,6 +89,13 @@ export interface CorePlugin {
   transactionVoiceStop(options: TransactionVoiceStopInput): Promise<TransactionVoiceStopResult>;
   transactionVoiceExtractDraft(options: TransactionVoiceExtractDraftInput): Promise<TransactionVoiceExtractDraftResult>;
   transactionVoiceFinalize(options: TransactionVoiceFinalizeInput): Promise<TransactionVoiceFinalizeResult>;
+  recurrenceCreateRecurringMovement(
+    options: RecurrenceCreateRecurringMovementInput,
+  ): Promise<RecurrenceCreateRecurringMovementResult>;
+  recurrenceDeactivateRecurringMovement(options: RecurrenceDeactivateRecurringMovementInput): Promise<void>;
+  recurrenceListRecurringMovements(
+    options: RecurrenceListRecurringMovementsInput,
+  ): Promise<RecurrenceListRecurringMovementsResult>;
 }
 
 export const CorePlugin = registerPlugin<CorePlugin>('CorePlugin', {

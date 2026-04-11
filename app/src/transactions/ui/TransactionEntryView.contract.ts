@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react';
 import type { ComposerMode, TransactionFieldErrors } from '../domain/transactions.types';
+import type { RecurrenceEndInput, RecurrenceFrequency, RecurrenceMonthlyPattern } from '../../shared/domain/corePort';
 
 export type TransactionEntryViewRequired = {
   state: {
@@ -25,6 +26,17 @@ export type TransactionEntryViewRequired = {
     splitItemName: string;
     splitItemAmount: string;
     splitRemaining: string;
+    recurrenceEnabled: boolean;
+    recurrenceFrequency: RecurrenceFrequency;
+    recurrenceInterval: string;
+    recurrenceWeeklyDay: string;
+    recurrenceMonthlyPattern: RecurrenceMonthlyPattern;
+    recurrenceDayOfMonth: string;
+    recurrenceMonthlyOrdinal: string;
+    recurrenceMonthlyWeekday: string;
+    recurrenceEndKind: RecurrenceEndInput['kind'];
+    recurrenceEndDate: string;
+    recurrenceEndCount: string;
     currencyCode?: string;
   };
   status: {
@@ -55,6 +67,17 @@ export type TransactionEntryViewProvided = {
     addSplitItem: () => void;
     removeSplitItem: (itemId: string) => void;
     assignSplitRemaining: () => void;
+    setRecurrenceEnabled: (value: boolean) => void;
+    setRecurrenceFrequency: (value: RecurrenceFrequency) => void;
+    setRecurrenceInterval: (value: string) => void;
+    setRecurrenceWeeklyDay: (value: string) => void;
+    setRecurrenceMonthlyPattern: (value: RecurrenceMonthlyPattern) => void;
+    setRecurrenceDayOfMonth: (value: string) => void;
+    setRecurrenceMonthlyOrdinal: (value: string) => void;
+    setRecurrenceMonthlyWeekday: (value: string) => void;
+    setRecurrenceEndKind: (value: RecurrenceEndInput['kind']) => void;
+    setRecurrenceEndDate: (value: string) => void;
+    setRecurrenceEndCount: (value: string) => void;
     submit: (event: FormEvent) => Promise<void>;
   };
 };

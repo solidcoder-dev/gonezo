@@ -48,6 +48,11 @@ import type {
   TransactionVoiceStartResult,
   TransactionVoiceStopInput,
   TransactionVoiceStopResult,
+  RecurrenceCreateRecurringMovementInput,
+  RecurrenceCreateRecurringMovementResult,
+  RecurrenceDeactivateRecurringMovementInput,
+  RecurrenceListRecurringMovementsInput,
+  RecurrenceListRecurringMovementsResult,
 } from '../../domain/corePort';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
@@ -261,5 +266,31 @@ export class CoreAdapter implements CorePort {
       return CorePlugin.transactionVoiceFinalize(input);
     }
     return this.web.transactionVoiceFinalize(input);
+  }
+
+  async recurrenceCreateRecurringMovement(
+    input: RecurrenceCreateRecurringMovementInput,
+  ): Promise<RecurrenceCreateRecurringMovementResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.recurrenceCreateRecurringMovement(input);
+    }
+    return this.web.recurrenceCreateRecurringMovement(input);
+  }
+
+  async recurrenceDeactivateRecurringMovement(input: RecurrenceDeactivateRecurringMovementInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.recurrenceDeactivateRecurringMovement(input);
+      return;
+    }
+    await this.web.recurrenceDeactivateRecurringMovement(input);
+  }
+
+  async recurrenceListRecurringMovements(
+    input: RecurrenceListRecurringMovementsInput,
+  ): Promise<RecurrenceListRecurringMovementsResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.recurrenceListRecurringMovements(input);
+    }
+    return this.web.recurrenceListRecurringMovements(input);
   }
 }

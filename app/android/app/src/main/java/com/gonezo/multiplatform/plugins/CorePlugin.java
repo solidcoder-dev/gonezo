@@ -58,6 +58,7 @@ public class CorePlugin extends Plugin {
   private final java.util.Map<String, JSObject> transactionVoiceSessionById = new ConcurrentHashMap<>();
   private final java.util.Map<String, WavRecorder> transactionVoiceRecorderBySessionId = new ConcurrentHashMap<>();
   private final java.util.Map<String, JSObject> transactionVoiceAnalysisById = new ConcurrentHashMap<>();
+  private final java.util.Map<String, JSObject> recurringMovementById = new ConcurrentHashMap<>();
   private ObjectStorage objectStorage;
 
   @PluginMethod
@@ -1275,6 +1276,148 @@ public class CorePlugin extends Plugin {
       JSObject result = new JSObject();
       result.put("analysisId", analysisId);
       result.put("finalizedAt", finalizedAt);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void recurrenceCreateRecurringMovement(PluginCall call) {
+    String type = call.getString("type", "expense");
+    String sourceAccountId = call.getString("sourceAccountId");
+    String targetAccountId = call.getString("targetAccountId");
+    String amount = call.getString("amount");
+    String currency = call.getString("currency");
+    String description = call.getString("description");
+    String merchant = call.getString("merchant");
+    String destinationAmount = call.getString("destinationAmount");
+    String destinationCurrency = call.getString("destinationCurrency");
+    String exchangeRate = call.getString("exchangeRate");
+    String startAt = call.getString("startAt", Instant.now().toString());
+    String zoneId = call.getString("zoneId", "UTC");
+    JSObject rule = call.getObject("rule");
+    JSObject recurrenceEnd = call.getObject("recurrenceEnd");
+
+    try {
+      String normalizedSourceAccountId = nullIfBlank(sourceAccountId);
+      String normalizedAmount = nullIfBlank(amount);
+      String normalizedCurrency = nullIfBlank(currency);
+      if (normalizedSourceAccountId == null) {
+        throw new IllegalArgumentException("sourceAccountId is required");
+      }
+      if (normalizedAmount == null) {
+        throw new IllegalArgumentException("amount is required");
+      }
+      if (normalizedCurrency == null) {
+        throw new IllegalArgumentException("currency is required");
+      }
+      AndroidLedgerCore ledgerCore = AndroidLedgerCore.getInstance(getContext());
+      ledgerCore.getAccountSummary(normalizedSourceAccountId);
+      if ("transfer".equalsIgnoreCase(type)) {
+        String normalizedTargetAccountId = nullIfBlank(targetAccountId);
+        if (normalizedTargetAccountId == null) {
+          throw new IllegalArgumentException("targetAccountId is required for transfer recurrence");
+        }
+        if (normalizedSourceAccountId.equals(normalizedTargetAccountId)) {
+          throw new IllegalArgumentException("source and destination accounts must be different");
+        }
+        ledgerCore.getAccountSummary(normalizedTargetAccountId);
+        targetAccountId = normalizedTargetAccountId;
+      }
+      sourceAccountId = normalizedSourceAccountId;
+      amount = normalizedAmount;
+      currency = normalizedCurrency;
+
+      String id = UUID.randomUUID().toString();
+      JSObject movement = new JSObject();
+      movement.put("id", id);
+      movement.put("type", type == null ? "expense" : type.trim().toLowerCase(Locale.ROOT));
+      movement.put("sourceAccountId", sourceAccountId);
+      movement.put("targetAccountId", nullIfBlank(targetAccountId));
+      movement.put("amount", new BigDecimal(amount.trim()).setScale(2, java.math.RoundingMode.HALF_UP).toPlainString());
+      movement.put("currency", currency.trim().toUpperCase(Locale.ROOT));
+      movement.put("destinationAmount", nullIfBlank(destinationAmount));
+      movement.put("destinationCurrency", nullIfBlank(destinationCurrency));
+      movement.put("exchangeRate", nullIfBlank(exchangeRate));
+      movement.put("description", nullIfBlank(description));
+      movement.put("merchant", nullIfBlank(merchant));
+      movement.put("status", "active");
+      movement.put("startAt", startAt);
+      movement.put("nextDueAt", startAt);
+      movement.put("zoneId", zoneId == null ? "UTC" : zoneId.trim());
+      movement.put("generatedOccurrences", 0);
+      movement.put("rule", rule == null ? new JSObject() : rule);
+      movement.put("recurrenceEnd", recurrenceEnd == null ? new JSObject().put("kind", "never") : recurrenceEnd);
+      movement.put("createdAt", Instant.now().toString());
+      recurringMovementById.put(id, movement);
+
+      JSObject result = new JSObject();
+      result.put("id", id);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void recurrenceDeactivateRecurringMovement(PluginCall call) {
+    String recurringMovementId = call.getString("recurringMovementId");
+    String deactivatedAt = call.getString("deactivatedAt", Instant.now().toString());
+    try {
+      String id = nullIfBlank(recurringMovementId);
+      if (id == null) {
+        throw new IllegalArgumentException("recurringMovementId is required");
+      }
+      JSObject movement = recurringMovementById.get(id);
+      if (movement == null) {
+        call.reject("Recurring movement not found: " + id);
+        return;
+      }
+      movement.put("status", "deactivated");
+      movement.put("nextDueAt", JSONObject.NULL);
+      movement.put("deactivatedAt", deactivatedAt);
+      recurringMovementById.put(id, movement);
+      call.resolve();
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void recurrenceListRecurringMovements(PluginCall call) {
+    String sourceAccountId = call.getString("sourceAccountId");
+    try {
+      String accountId = nullIfBlank(sourceAccountId);
+      if (accountId == null) {
+        throw new IllegalArgumentException("sourceAccountId is required");
+      }
+      List<JSObject> items = new ArrayList<>();
+      for (JSObject item : recurringMovementById.values()) {
+        if (accountId.equals(item.optString("sourceAccountId", ""))) {
+          items.add(item);
+        }
+      }
+      items.sort((left, right) -> {
+        String leftDue = left.optString("nextDueAt", "");
+        String rightDue = right.optString("nextDueAt", "");
+        if (leftDue.isEmpty() && rightDue.isEmpty()) {
+          return left.optString("id", "").compareTo(right.optString("id", ""));
+        }
+        if (leftDue.isEmpty()) {
+          return 1;
+        }
+        if (rightDue.isEmpty()) {
+          return -1;
+        }
+        return leftDue.compareTo(rightDue);
+      });
+      JSONArray array = new JSONArray();
+      for (JSObject item : items) {
+        array.put(item);
+      }
+      JSObject result = new JSObject();
+      result.put("items", array);
       call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());

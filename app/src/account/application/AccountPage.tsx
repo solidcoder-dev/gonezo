@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { TransactionsImportPolicyInput, TransactionsImportResult } from '../../imports/domain/transactionsImport.types';
+import { RecurringMovementsComponent } from '../../recurrence';
 import { RecentTransactionsComponent, TransactionEntryComponent, type TransactionsCorePort } from '../../transactions';
 import { AccountPageView } from '../ui/AccountPageView';
 import { TransactionsImportComponent } from '../ui/capabilities/TransactionsImportComponent';
@@ -39,6 +40,7 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
   const [accountHubRefreshSignal, setAccountHubRefreshSignal] = useState(false);
   const [accountSummaryRefreshSignal, setAccountSummaryRefreshSignal] = useState(false);
   const [recentTransactionsRefreshSignal, setRecentTransactionsRefreshSignal] = useState(false);
+  const [recurringMovementsRefreshSignal, setRecurringMovementsRefreshSignal] = useState(false);
 
   const hasSelectedAccount = Boolean(selectedAccountId);
 
@@ -56,6 +58,7 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
       setAccountHubRefreshSignal((previous) => !previous);
       setAccountSummaryRefreshSignal((previous) => !previous);
       setRecentTransactionsRefreshSignal((previous) => !previous);
+      setRecurringMovementsRefreshSignal((previous) => !previous);
       return result;
     } catch (err) {
       setImportSubmitPhase('failed');
@@ -144,7 +147,24 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
                   onRecorded: () => {
                     setRecentTransactionsRefreshSignal((previous) => !previous);
                     setAccountSummaryRefreshSignal((previous) => !previous);
+                    setRecurringMovementsRefreshSignal((previous) => !previous);
                   },
+                },
+              }}
+            />
+          )
+        : null,
+      recurringMovements: hasSelectedAccount
+        ? (
+            <RecurringMovementsComponent
+              required={{
+                context: {
+                  accountId: selectedAccountId,
+                  core: pageRequired.core as TransactionsCorePort,
+                },
+                config: {
+                  enabled: hasSelectedAccount,
+                  refreshSignal: recurringMovementsRefreshSignal,
                 },
               }}
             />

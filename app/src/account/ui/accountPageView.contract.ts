@@ -14,6 +14,7 @@ export type AccountPageViewRequired = {
     accountHub: ReactNode;
     accountSummary: ReactNode;
     transactionEntry: ReactNode;
+    recurringMovements: ReactNode;
     recentTransactions: ReactNode;
     transactionsImport: ReactNode;
   };

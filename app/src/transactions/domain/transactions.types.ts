@@ -8,6 +8,9 @@ export type TransactionFieldErrors = {
   transferAmountIn?: string;
   transferFxRate?: string;
   date?: string;
+  recurrenceInterval?: string;
+  recurrenceEndDate?: string;
+  recurrenceEndCount?: string;
   expenseItemName?: string;
   expenseItemAmount?: string;
   expenseSplit?: string;

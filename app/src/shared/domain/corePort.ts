@@ -229,6 +229,88 @@ export type LedgerListTransactionsResult = {
   hasPrevious: boolean;
 };
 
+export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export type RecurrenceMonthlyPattern = 'day_of_month' | 'nth_weekday';
+
+export type RecurrenceRuleInput = {
+  frequency: RecurrenceFrequency;
+  interval?: number;
+  weeklyDays?: number[];
+  monthlyPattern?: RecurrenceMonthlyPattern;
+  dayOfMonth?: number;
+  monthlyWeekOrdinal?: number;
+  monthlyWeekday?: number;
+};
+
+export type RecurrenceEndInput =
+  | {
+    kind: 'never';
+  }
+  | {
+    kind: 'on_date';
+    onDate: string;
+  }
+  | {
+    kind: 'after_occurrences';
+    afterOccurrences: number;
+  };
+
+export type RecurrenceCreateRecurringMovementInput = {
+  type: 'expense' | 'income' | 'transfer';
+  sourceAccountId: string;
+  targetAccountId?: string;
+  amount: string;
+  currency: string;
+  destinationAmount?: string;
+  destinationCurrency?: string;
+  exchangeRate?: string;
+  description?: string;
+  merchant?: string;
+  rule: RecurrenceRuleInput;
+  recurrenceEnd: RecurrenceEndInput;
+  startAt: string;
+  zoneId: string;
+};
+
+export type RecurrenceCreateRecurringMovementResult = {
+  id: string;
+};
+
+export type RecurrenceDeactivateRecurringMovementInput = {
+  recurringMovementId: string;
+  deactivatedAt?: string;
+};
+
+export type RecurrenceListRecurringMovementsInput = {
+  sourceAccountId: string;
+};
+
+export type RecurrenceMovementItem = {
+  id: string;
+  type: 'expense' | 'income' | 'transfer';
+  sourceAccountId: string;
+  targetAccountId?: string;
+  amount: string;
+  currency: string;
+  destinationAmount?: string;
+  destinationCurrency?: string;
+  exchangeRate?: string;
+  description?: string;
+  merchant?: string;
+  status: 'active' | 'deactivated' | 'completed';
+  startAt: string;
+  nextDueAt?: string;
+  zoneId: string;
+  generatedOccurrences: number;
+  rule: RecurrenceRuleInput;
+  recurrenceEnd: RecurrenceEndInput;
+};
+
+export type RecurrenceListRecurringMovementsResult = {
+  items: RecurrenceMovementItem[];
+};
+
 export type TaxonomyCategoryAppliesTo = 'income' | 'expense';
 
 export type TaxonomyCategoryStatus = 'active' | 'archived';
@@ -443,4 +525,11 @@ export interface CorePort {
   transactionVoiceStop(input: TransactionVoiceStopInput): Promise<TransactionVoiceStopResult>;
   transactionVoiceExtractDraft(input: TransactionVoiceExtractDraftInput): Promise<TransactionVoiceExtractDraftResult>;
   transactionVoiceFinalize(input: TransactionVoiceFinalizeInput): Promise<TransactionVoiceFinalizeResult>;
+  recurrenceCreateRecurringMovement(
+    input: RecurrenceCreateRecurringMovementInput,
+  ): Promise<RecurrenceCreateRecurringMovementResult>;
+  recurrenceDeactivateRecurringMovement(input: RecurrenceDeactivateRecurringMovementInput): Promise<void>;
+  recurrenceListRecurringMovements(
+    input: RecurrenceListRecurringMovementsInput,
+  ): Promise<RecurrenceListRecurringMovementsResult>;
 }

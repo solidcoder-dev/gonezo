@@ -19,6 +19,12 @@ body {
   box-sizing: border-box;
 }
 
+.nested-card {
+  margin-top: 14px;
+  border: 1px solid #ececdf;
+  box-shadow: none;
+}
+
 .stack {
   display: grid;
   gap: 10px;

@@ -50,6 +50,15 @@ import type {
   TransactionVoiceStopInput,
   TransactionVoiceStopResult,
   TransactionVoiceType,
+  RecurrenceCreateRecurringMovementInput,
+  RecurrenceCreateRecurringMovementResult,
+  RecurrenceDeactivateRecurringMovementInput,
+  RecurrenceEndInput,
+  RecurrenceFrequency,
+  RecurrenceListRecurringMovementsInput,
+  RecurrenceListRecurringMovementsResult,
+  RecurrenceMovementItem,
+  RecurrenceRuleInput,
 } from '../../domain/corePort';
 
 type MemoryLedgerAccount = {
@@ -105,6 +114,12 @@ type MemoryTaxonomyTag = {
   archivedAt?: string;
 };
 
+type MemoryRecurringMovement = RecurrenceMovementItem & {
+  createdAt: string;
+  deactivatedAt?: string;
+  completedAt?: string;
+};
+
 type MemoryVoiceCaptureRecord = {
   analysisId: string;
   sessionId: string;
@@ -147,6 +162,8 @@ export class CoreAdapterWeb implements CorePort {
   private static taxonomyTransactionTags: Map<string, string[]> = new Map();
 
   private static mobillsImportFingerprintToTransactionId: Map<string, string> = new Map();
+
+  private static recurringMovements: MemoryRecurringMovement[] = [];
 
   private static voiceRecordingStorage: Map<string, {
     id: string;
@@ -551,6 +568,194 @@ export class CoreAdapterWeb implements CorePort {
     const description = (input.description ?? '').trim().toLowerCase();
     const merchant = (input.merchant ?? '').trim().toLowerCase();
     return ['mobills', accountName, occurredAt, signedValue, currency, description, merchant].join('|');
+  }
+
+  private resolveFrequency(rule: RecurrenceRuleInput): RecurrenceFrequency {
+    const normalized = (rule.frequency ?? '').trim().toLowerCase();
+    if (normalized === 'daily' || normalized === 'weekly' || normalized === 'monthly' || normalized === 'yearly') {
+      return normalized;
+    }
+    throw new Error(`Unsupported recurrence frequency: ${rule.frequency}`);
+  }
+
+  private normalizeRecurrenceRule(rule: RecurrenceRuleInput): RecurrenceRuleInput {
+    const frequency = this.resolveFrequency(rule);
+    const interval = Math.max(1, Number(rule.interval ?? 1));
+
+    if (frequency === 'daily') {
+      return { frequency, interval };
+    }
+
+    if (frequency === 'weekly') {
+      const weeklyDays = [...new Set((rule.weeklyDays ?? []).map((day) => Number(day)).filter((day) => day >= 1 && day <= 7))];
+      if (weeklyDays.length === 0) {
+        throw new Error('Weekly recurrence requires at least one weekday');
+      }
+      return { frequency, interval, weeklyDays };
+    }
+
+    if (frequency === 'monthly') {
+      const monthlyPattern = rule.monthlyPattern === 'nth_weekday' ? 'nth_weekday' : 'day_of_month';
+      if (monthlyPattern === 'day_of_month') {
+        const day = rule.dayOfMonth == null ? undefined : Number(rule.dayOfMonth);
+        if (day != null && (day < 1 || day > 31)) {
+          throw new Error('Monthly dayOfMonth must be between 1 and 31');
+        }
+        return {
+          frequency,
+          interval,
+          monthlyPattern,
+          dayOfMonth: day,
+        };
+      }
+      const ordinal = Number(rule.monthlyWeekOrdinal ?? 1);
+      const weekday = Number(rule.monthlyWeekday ?? 1);
+      if (ordinal < 1 || ordinal > 5) {
+        throw new Error('Monthly ordinal must be between 1 and 5');
+      }
+      if (weekday < 1 || weekday > 7) {
+        throw new Error('Monthly weekday must be between 1 and 7');
+      }
+      return {
+        frequency,
+        interval,
+        monthlyPattern,
+        monthlyWeekOrdinal: ordinal,
+        monthlyWeekday: weekday,
+      };
+    }
+
+    return { frequency, interval };
+  }
+
+  private normalizeRecurrenceEnd(input: RecurrenceEndInput): RecurrenceEndInput {
+    if (input.kind === 'never') {
+      return { kind: 'never' };
+    }
+    if (input.kind === 'on_date') {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(input.onDate.trim())) {
+        throw new Error('Recurrence end date must use YYYY-MM-DD');
+      }
+      return {
+        kind: 'on_date',
+        onDate: input.onDate.trim(),
+      };
+    }
+    const afterOccurrences = Number(input.afterOccurrences);
+    if (!Number.isFinite(afterOccurrences) || afterOccurrences <= 0) {
+      throw new Error('Recurrence end count must be greater than 0');
+    }
+    return {
+      kind: 'after_occurrences',
+      afterOccurrences,
+    };
+  }
+
+  private nthWeekdayOfMonth(year: number, monthZeroBased: number, weekdayIso: number, ordinal: number): Date {
+    const firstOfMonth = new Date(year, monthZeroBased, 1);
+    const jsTargetDay = weekdayIso % 7;
+    const offset = (jsTargetDay - firstOfMonth.getDay() + 7) % 7;
+    const firstMatch = new Date(year, monthZeroBased, 1 + offset);
+    const candidate = new Date(firstMatch);
+    candidate.setDate(firstMatch.getDate() + (ordinal - 1) * 7);
+    if (candidate.getMonth() !== monthZeroBased) {
+      candidate.setDate(candidate.getDate() - 7);
+    }
+    return candidate;
+  }
+
+  private firstDueAtForRule(input: {
+    startAt: string;
+    zoneId: string;
+    rule: RecurrenceRuleInput;
+    recurrenceEnd: RecurrenceEndInput;
+  }): string | undefined {
+    if (!input.zoneId.trim()) {
+      throw new Error('zoneId is required');
+    }
+    const start = new Date(input.startAt);
+    if (Number.isNaN(start.getTime())) {
+      throw new Error('startAt must be a valid ISO datetime');
+    }
+    const rule = this.normalizeRecurrenceRule(input.rule);
+    const end = this.normalizeRecurrenceEnd(input.recurrenceEnd);
+
+    const anchor = new Date(start);
+    const anchorHour = anchor.getHours();
+    const anchorMinutes = anchor.getMinutes();
+    const anchorSeconds = anchor.getSeconds();
+    const anchorMs = anchor.getMilliseconds();
+    let candidate = new Date(start);
+
+    const frequency = this.resolveFrequency(rule);
+    if (frequency === 'weekly') {
+      const weeklyDays = [...new Set((rule.weeklyDays ?? []).map((day) => Number(day)).filter((day) => day >= 1 && day <= 7))]
+        .sort((left, right) => left - right);
+      const startOfWeek = new Date(anchor);
+      const currentIsoDay = ((startOfWeek.getDay() + 6) % 7) + 1;
+      startOfWeek.setDate(startOfWeek.getDate() - (currentIsoDay - 1));
+      startOfWeek.setHours(anchorHour, anchorMinutes, anchorSeconds, anchorMs);
+
+      let found: Date | undefined;
+      for (const day of weeklyDays) {
+        const maybe = new Date(startOfWeek);
+        maybe.setDate(startOfWeek.getDate() + (day - 1));
+        if (maybe.getTime() >= anchor.getTime()) {
+          found = maybe;
+          break;
+        }
+      }
+      if (!found) {
+        const cycleStart = new Date(startOfWeek);
+        cycleStart.setDate(cycleStart.getDate() + (rule.interval ?? 1) * 7);
+        found = new Date(cycleStart);
+        found.setDate(cycleStart.getDate() + (weeklyDays[0] - 1));
+      }
+      candidate = found;
+    }
+
+    if (frequency === 'monthly') {
+      const interval = rule.interval ?? 1;
+      const monthlyPattern = rule.monthlyPattern === 'nth_weekday' ? 'nth_weekday' : 'day_of_month';
+      const iterateCandidate = (year: number, monthZeroBased: number): Date => {
+        if (monthlyPattern === 'nth_weekday') {
+          const ordinal = Number(rule.monthlyWeekOrdinal ?? 1);
+          const weekday = Number(rule.monthlyWeekday ?? 1);
+          const date = this.nthWeekdayOfMonth(year, monthZeroBased, weekday, ordinal);
+          date.setHours(anchorHour, anchorMinutes, anchorSeconds, anchorMs);
+          return date;
+        }
+        const preferredDay = Number(rule.dayOfMonth ?? anchor.getDate());
+        const monthLastDay = new Date(year, monthZeroBased + 1, 0).getDate();
+        const date = new Date(year, monthZeroBased, Math.min(preferredDay, monthLastDay));
+        date.setHours(anchorHour, anchorMinutes, anchorSeconds, anchorMs);
+        return date;
+      };
+
+      let year = anchor.getFullYear();
+      let month = anchor.getMonth();
+      let maybe = iterateCandidate(year, month);
+      while (maybe.getTime() < anchor.getTime()) {
+        month += interval;
+        year += Math.floor(month / 12);
+        month %= 12;
+        maybe = iterateCandidate(year, month);
+      }
+      candidate = maybe;
+    }
+
+    if (frequency === 'yearly') {
+      candidate = new Date(anchor);
+    }
+
+    if (end.kind === 'on_date') {
+      const candidateDay = candidate.toISOString().slice(0, 10);
+      if (candidateDay > end.onDate) {
+        return undefined;
+      }
+    }
+
+    return candidate.toISOString();
   }
 
   async doThing(input: string): Promise<CoreResult> {
@@ -1629,5 +1834,103 @@ export class CoreAdapterWeb implements CorePort {
       analysisId: input.analysisId,
       finalizedAt,
     };
+  }
+
+  async recurrenceCreateRecurringMovement(
+    input: RecurrenceCreateRecurringMovementInput,
+  ): Promise<RecurrenceCreateRecurringMovementResult> {
+    const sourceAccount = this.accountOrThrow(input.sourceAccountId);
+    if (sourceAccount.status !== 'active') {
+      throw new Error('Source account is archived');
+    }
+
+    if (input.type === 'transfer') {
+      if (!input.targetAccountId) {
+        throw new Error('targetAccountId is required for transfer recurrence');
+      }
+      const targetAccount = this.accountOrThrow(input.targetAccountId);
+      if (targetAccount.status !== 'active') {
+        throw new Error('Target account is archived');
+      }
+      if (targetAccount.id === sourceAccount.id) {
+        throw new Error('Source and target accounts must be different');
+      }
+    }
+
+    const amount = Number(input.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Recurring amount must be greater than 0');
+    }
+    const destinationAmount = input.destinationAmount == null ? undefined : Number(input.destinationAmount);
+    if (destinationAmount != null && (!Number.isFinite(destinationAmount) || destinationAmount <= 0)) {
+      throw new Error('Recurring destination amount must be greater than 0');
+    }
+    const normalizedRule = this.normalizeRecurrenceRule(input.rule);
+    const normalizedEnd = this.normalizeRecurrenceEnd(input.recurrenceEnd);
+    const nextDueAt = this.firstDueAtForRule({
+      startAt: input.startAt,
+      zoneId: input.zoneId,
+      rule: normalizedRule,
+      recurrenceEnd: normalizedEnd,
+    });
+    const id = crypto.randomUUID();
+    const movement: MemoryRecurringMovement = {
+      id,
+      type: input.type,
+      sourceAccountId: input.sourceAccountId,
+      targetAccountId: input.targetAccountId?.trim() || undefined,
+      amount: amount.toFixed(2),
+      currency: input.currency.trim().toUpperCase(),
+      destinationAmount: destinationAmount?.toFixed(2),
+      destinationCurrency: input.destinationCurrency?.trim().toUpperCase() || undefined,
+      exchangeRate: input.exchangeRate ? String(Number(input.exchangeRate)) : undefined,
+      description: input.description?.trim() || undefined,
+      merchant: input.merchant?.trim() || undefined,
+      status: nextDueAt ? 'active' : 'completed',
+      startAt: new Date(input.startAt).toISOString(),
+      nextDueAt,
+      zoneId: input.zoneId.trim(),
+      generatedOccurrences: 0,
+      rule: normalizedRule,
+      recurrenceEnd: normalizedEnd,
+      createdAt: new Date().toISOString(),
+      completedAt: nextDueAt ? undefined : new Date().toISOString(),
+    };
+    CoreAdapterWeb.recurringMovements.push(movement);
+    return { id };
+  }
+
+  async recurrenceDeactivateRecurringMovement(input: RecurrenceDeactivateRecurringMovementInput): Promise<void> {
+    const movement = CoreAdapterWeb.recurringMovements.find((item) => item.id === input.recurringMovementId);
+    if (!movement) {
+      throw new Error(`Recurring movement not found: ${input.recurringMovementId}`);
+    }
+    if (movement.status !== 'active') {
+      return;
+    }
+    movement.status = 'deactivated';
+    movement.nextDueAt = undefined;
+    movement.deactivatedAt = input.deactivatedAt ? new Date(input.deactivatedAt).toISOString() : new Date().toISOString();
+  }
+
+  async recurrenceListRecurringMovements(
+    input: RecurrenceListRecurringMovementsInput,
+  ): Promise<RecurrenceListRecurringMovementsResult> {
+    const items = CoreAdapterWeb.recurringMovements
+      .filter((movement) => movement.sourceAccountId === input.sourceAccountId)
+      .sort((left, right) => {
+        if (!left.nextDueAt && !right.nextDueAt) {
+          return left.createdAt.localeCompare(right.createdAt);
+        }
+        if (!left.nextDueAt) {
+          return 1;
+        }
+        if (!right.nextDueAt) {
+          return -1;
+        }
+        return left.nextDueAt.localeCompare(right.nextDueAt);
+      })
+      .map((movement) => ({ ...movement }));
+    return { items };
   }
 }

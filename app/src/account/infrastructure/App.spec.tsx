@@ -205,6 +205,9 @@ function makeCore(transactionCount = 0): AccountsCorePort {
       analysisId: input.analysisId,
       finalizedAt: '2026-03-10T10:01:00.000Z',
     })),
+    recurrenceCreateRecurringMovement: vi.fn(async () => ({ id: 'rec-1' })),
+    recurrenceDeactivateRecurringMovement: vi.fn(async () => undefined),
+    recurrenceListRecurringMovements: vi.fn(async () => ({ items: [] })),
   };
 }
 
