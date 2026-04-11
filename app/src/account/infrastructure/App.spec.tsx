@@ -1443,4 +1443,94 @@ describe('App Accounts UX', () => {
       amountMax: '20',
     });
   });
+
+  it('creates recurring expense from composer more options', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Expense');
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '37.5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle advanced options' }));
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-05-04' } });
+    fireEvent.click(screen.getByLabelText('Repeat this movement'));
+    fireEvent.change(screen.getByLabelText('Recurrence frequency'), { target: { value: 'monthly' } });
+    fireEvent.change(screen.getByLabelText('Recurrence interval'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Monthly day of month'), { target: { value: '11' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save recurring' }));
+
+    await waitFor(() => {
+      expect(core.recurrenceCreateRecurringMovement).toHaveBeenCalledTimes(1);
+    });
+
+    const recurrenceCall = vi.mocked(core.recurrenceCreateRecurringMovement).mock.calls[0]?.[0];
+    expect(recurrenceCall).toMatchObject({
+      type: 'expense',
+      sourceAccountId: 'acc-1',
+      amount: '37.50',
+      currency: 'USD',
+      rule: {
+        frequency: 'monthly',
+        interval: 2,
+        dayOfMonth: 11,
+      },
+      recurrenceEnd: { kind: 'never' },
+    });
+    expect(core.ledgerRecordExpense).not.toHaveBeenCalled();
+  });
+
+  it('lists recurring movements and allows deactivation', async () => {
+    const core = makeCore();
+    let isActive = true;
+
+    const recurrenceItem = {
+      id: 'rec-1',
+      type: 'expense' as const,
+      sourceAccountId: 'acc-1',
+      amount: '15.00',
+      currency: 'USD',
+      status: 'active' as const,
+      startAt: '2026-05-01T10:00:00.000Z',
+      nextDueAt: '2026-05-11T10:00:00.000Z',
+      zoneId: 'UTC',
+      generatedOccurrences: 0,
+      rule: { frequency: 'monthly' as const, interval: 1, monthlyPattern: 'day_of_month' as const, dayOfMonth: 11 },
+      recurrenceEnd: { kind: 'never' as const },
+    };
+
+    core.recurrenceListRecurringMovements = vi.fn(async () => ({
+      items: isActive
+        ? [recurrenceItem]
+        : [{ ...recurrenceItem, status: 'deactivated' as const, nextDueAt: undefined }],
+    }));
+    core.recurrenceDeactivateRecurringMovement = vi.fn(async () => {
+      isActive = false;
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { name: 'Recurring' });
+    const deactivateButton = await screen.findByRole('button', { name: 'Deactivate' });
+    fireEvent.click(deactivateButton);
+
+    await waitFor(() => {
+      expect(core.recurrenceDeactivateRecurringMovement).toHaveBeenCalledWith({
+        recurringMovementId: 'rec-1',
+      });
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Deactivate' })).not.toBeInTheDocument();
+    });
+    expect(screen.getByText(/Status: deactivated/i)).toBeInTheDocument();
+  });
 });
