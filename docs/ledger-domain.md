@@ -58,7 +58,7 @@ Campos:
 
 - `id: TransactionId`
 - `accountId: AccountId`
-- `type: TransactionType` (`income | expense | transfer`)
+- `type: TransactionType` (`income | expense | transfer_out | transfer_in | transfer`)
 - `amount: Money`
 - `occurredAt: Instant`
 - `description: String?`
@@ -73,6 +73,8 @@ Reglas:
 - `accountId` obligatorio
 - `occurredAt` obligatorio
 - moneda de transaccion igual a moneda de cuenta
+- `transfer_out` y `transfer_in` requieren `linkedTransactionId`
+- transferencias no aceptan `items`
 - en `draft`, suma de items no puede superar `amount`
 - al publicar (`posted`), si hay items: `sum(items) == amount`
 - transaccion anulada (`voided`) no impacta balance
@@ -82,6 +84,7 @@ Comandos:
 - `RecordLedgerIncome`
 - `RecordLedgerExpense`
 - `RecordLedgerTransfer`
+- `RecordLedgerTransferFx`
 - `CreateLedgerExpenseDraft`
 - `AddLedgerTransactionItem`
 - `RemoveLedgerTransactionItem`
@@ -162,6 +165,20 @@ Transferencias operativas con doble transaccion enlazada:
 - `transfer_in` en cuenta destino
 - ambas con `linkedTransactionId` reciproco
 - al anular una, se anula su transaccion enlazada
+
+Reglas de coherencia para transferencias:
+
+- misma divisa: importes origen/destino iguales
+- distinta divisa:
+  - `transfer_out.amount/currency` debe coincidir con cuenta origen
+  - `transfer_in.amount/currency` debe coincidir con cuenta destino
+  - `exchangeRate` opcional pero, si existe, debe ser `> 0`
+  - el sistema valida: `round(sourceAmount * exchangeRate, 2) == destinationAmount`
+
+Nota de diseno:
+
+- Ledger no modela cotizaciones de mercado ni proveedores FX.
+- Ledger solo valida coherencia numerica del asiento (`transfer_out` + `transfer_in`).
 
 ## Apertura con balance inicial
 

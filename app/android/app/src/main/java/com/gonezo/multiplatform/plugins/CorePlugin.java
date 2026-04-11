@@ -272,6 +272,40 @@ public class CorePlugin extends Plugin {
   }
 
   @PluginMethod
+  public void ledgerRecordTransferFx(PluginCall call) {
+    String fromAccountId = call.getString("fromAccountId");
+    String toAccountId = call.getString("toAccountId");
+    String occurredAt = call.getString("occurredAt");
+    String sourceAmount = call.getString("sourceAmount");
+    String sourceCurrency = call.getString("sourceCurrency");
+    String destinationAmount = call.getString("destinationAmount");
+    String destinationCurrency = call.getString("destinationCurrency");
+    String exchangeRate = call.getString("exchangeRate");
+    String description = call.getString("description");
+
+    try {
+      AndroidLedgerCore core = AndroidLedgerCore.getInstance(getContext());
+      AndroidLedgerCore.LedgerTransferResultView result = core.recordTransferFx(
+        fromAccountId,
+        toAccountId,
+        occurredAt,
+        sourceAmount,
+        sourceCurrency,
+        destinationAmount,
+        destinationCurrency,
+        exchangeRate,
+        description
+      );
+      JSObject response = new JSObject();
+      response.put("transferOutId", result.transferOutId());
+      response.put("transferInId", result.transferInId());
+      call.resolve(response);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
   public void ledgerCreateExpenseDraft(PluginCall call) {
     String accountId = call.getString("accountId");
     String occurredAt = call.getString("occurredAt");

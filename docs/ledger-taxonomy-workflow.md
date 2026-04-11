@@ -21,7 +21,9 @@ Para `expense`/`income` con categoria + tags:
 
 Para `transfer`:
 
-- `Ledger` registra `transfer_out` + `transfer_in`.
+- si ambas cuentas comparten divisa: `RecordLedgerTransfer`.
+- si cuentas con divisa distinta: `RecordLedgerTransferFx`.
+- en ambos casos, `Ledger` registra `transfer_out` + `transfer_in`.
 - si se solicita categoria, workflow marca `failed` con `CATEGORY_NOT_ALLOWED_FOR_TRANSFER`.
 - tags si se aplican a ambas transacciones (`transfer_out` y `transfer_in`).
 

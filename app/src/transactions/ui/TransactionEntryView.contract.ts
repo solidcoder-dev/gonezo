@@ -15,6 +15,11 @@ export type TransactionEntryViewRequired = {
     tagOptions: Array<{ id: string; name: string }>;
     transferTargetAccountId: string;
     transferTargetOptions: Array<{ id: string; name: string; currency: string }>;
+    transferAmountIn: string;
+    transferFxRate: string;
+    transferFxMode: 'auto_destination' | 'auto_rate';
+    transferDestinationCurrency?: string;
+    transferCrossCurrency: boolean;
     splitEnabled: boolean;
     splitItems: Array<{ id: string; name: string; amount: string }>;
     splitItemName: string;
@@ -41,6 +46,9 @@ export type TransactionEntryViewProvided = {
     setCategoryInput: (value: string) => void;
     setTagInput: (value: string) => void;
     setTransferTarget: (value: string) => void;
+    setTransferAmountIn: (value: string) => void;
+    setTransferFxRate: (value: string) => void;
+    setTransferFxMode: (value: 'auto_destination' | 'auto_rate') => void;
     setSplitEnabled: (value: boolean) => void;
     setSplitItemName: (value: string) => void;
     setSplitItemAmount: (value: string) => void;

@@ -144,6 +144,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     ledgerRecordExpense: vi.fn(async () => ({ id: 'tx-exp' })),
     ledgerRecordIncome: vi.fn(async () => ({ id: 'tx-inc' })),
     ledgerRecordTransfer: vi.fn(async () => ({ transferOutId: 'tx-tr-out', transferInId: 'tx-tr-in' })),
+    ledgerRecordTransferFx: vi.fn(async () => ({ transferOutId: 'tx-tr-fx-out', transferInId: 'tx-tr-fx-in' })),
     ledgerCreateExpenseDraft: vi.fn(async () => ({ id: 'tx-draft' })),
     ledgerAddTransactionItem: vi.fn(async () => undefined),
     ledgerPostDraftTransaction: vi.fn(async () => undefined),
@@ -974,7 +975,10 @@ describe('App Accounts UX', () => {
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
     fireEvent.change(screen.getByLabelText('Destination account'), { target: { value: 'acc-2' } });
     fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'trip, shared' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save transfer' }));
+    const saveTransferButton = screen.getByRole('button', { name: 'Save transfer' });
+    const transferForm = saveTransferButton.closest('form');
+    expect(transferForm).not.toBeNull();
+    fireEvent.submit(transferForm!);
 
     await waitFor(() => {
       expect(core.orchestrationApplyTransactionTags).toHaveBeenCalledTimes(2);
@@ -1003,10 +1007,143 @@ describe('App Accounts UX', () => {
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '5' } });
     fireEvent.change(screen.getByLabelText('Destination account'), { target: { value: 'acc-2' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save transfer' }));
+    const saveTransferButton = screen.getByRole('button', { name: 'Save transfer' });
+    const transferForm = saveTransferButton.closest('form');
+    expect(transferForm).not.toBeNull();
+    fireEvent.submit(transferForm!);
 
     await waitFor(() => {
       expect(core.ledgerRecordTransfer).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('records cross-currency transfer through FX command', async () => {
+    const core = makeCore();
+    vi.mocked(core.ledgerListAccounts).mockResolvedValue({
+      items: [
+        {
+          id: 'acc-1',
+          name: 'Main USD',
+          type: 'cash',
+          currency: 'USD',
+          status: 'active',
+        },
+        {
+          id: 'acc-2',
+          name: 'Savings EUR',
+          type: 'savings',
+          currency: 'EUR',
+          status: 'active',
+        },
+      ],
+    });
+    vi.mocked(core.ledgerGetAccountSummary).mockResolvedValue({
+      accountId: 'acc-1',
+      name: 'Main USD',
+      type: 'cash',
+      currency: 'USD',
+      balanceAmount: '100.00',
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Transfer');
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
+    fireEvent.change(screen.getByLabelText('Destination account'), { target: { value: 'acc-2' } });
+    fireEvent.change(screen.getByLabelText(/FX rate/), { target: { value: '0.9' } });
+
+    expect(screen.getByLabelText('Amount in (EUR)')).toHaveValue(9);
+
+    const saveTransferButton = screen.getByRole('button', { name: 'Save transfer' });
+    const transferForm = saveTransferButton.closest('form');
+    expect(transferForm).not.toBeNull();
+    fireEvent.submit(transferForm!);
+
+    await waitFor(() => {
+      expect(core.ledgerRecordTransferFx).toHaveBeenCalledTimes(1);
+    });
+    expect(core.ledgerRecordTransfer).toHaveBeenCalledTimes(0);
+    expect(core.ledgerRecordTransferFx).toHaveBeenCalledWith({
+      fromAccountId: 'acc-1',
+      toAccountId: 'acc-2',
+      occurredAt: expect.any(String),
+      sourceAmount: '10.00',
+      sourceCurrency: 'USD',
+      destinationAmount: '9.00',
+      destinationCurrency: 'EUR',
+      exchangeRate: '0.9',
+      description: undefined,
+    });
+  });
+
+  it('recalculates FX rate when auto-rate mode is selected', async () => {
+    const core = makeCore();
+    vi.mocked(core.ledgerListAccounts).mockResolvedValue({
+      items: [
+        {
+          id: 'acc-1',
+          name: 'Main USD',
+          type: 'cash',
+          currency: 'USD',
+          status: 'active',
+        },
+        {
+          id: 'acc-2',
+          name: 'Savings EUR',
+          type: 'savings',
+          currency: 'EUR',
+          status: 'active',
+        },
+      ],
+    });
+    vi.mocked(core.ledgerGetAccountSummary).mockResolvedValue({
+      accountId: 'acc-1',
+      name: 'Main USD',
+      type: 'cash',
+      currency: 'USD',
+      balanceAmount: '100.00',
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Transfer');
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
+    fireEvent.change(screen.getByLabelText('Destination account'), { target: { value: 'acc-2' } });
+    fireEvent.click(screen.getByRole('radio', { name: 'Auto FX rate' }));
+    fireEvent.change(screen.getByLabelText('Amount in (EUR)'), { target: { value: '8.50' } });
+
+    expect(screen.getByLabelText(/FX rate/)).toHaveValue(0.85);
+
+    const saveTransferButton = screen.getByRole('button', { name: 'Save transfer' });
+    const transferForm = saveTransferButton.closest('form');
+    expect(transferForm).not.toBeNull();
+    fireEvent.submit(transferForm!);
+
+    await waitFor(() => {
+      expect(core.ledgerRecordTransferFx).toHaveBeenCalledTimes(1);
+    });
+    expect(core.ledgerRecordTransferFx).toHaveBeenCalledWith({
+      fromAccountId: 'acc-1',
+      toAccountId: 'acc-2',
+      occurredAt: expect.any(String),
+      sourceAmount: '10.00',
+      sourceCurrency: 'USD',
+      destinationAmount: '8.50',
+      destinationCurrency: 'EUR',
+      exchangeRate: '0.85',
+      description: undefined,
     });
   });
 

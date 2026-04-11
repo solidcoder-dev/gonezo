@@ -5,6 +5,8 @@ export type TransactionType = Exclude<ComposerMode, 'picker'>;
 
 export type TransactionFieldErrors = {
   amount?: string;
+  transferAmountIn?: string;
+  transferFxRate?: string;
   date?: string;
   expenseItemName?: string;
   expenseItemAmount?: string;

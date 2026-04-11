@@ -141,6 +141,29 @@ app/src/
   - `account/application/accountViewMappers.ts` (cuentas)
   - `transactions/application/transactionViewMappers.ts` (transacciones)
 
+## UX Transferencias FX
+
+La logica UX de transferencias vive en:
+
+- `transactions/application/useTransactionEntryModel.ts` (estado, reglas y submit)
+- `transactions/ui/TransactionComposerView.tsx` (render y campos)
+
+Comportamiento esperado:
+
+- siempre: `Amount out` + `Destination account`.
+- misma divisa: no se muestra `FX rate`; `Amount in` se mantiene 1:1.
+- distinta divisa: se muestran `Amount in` y `FX rate` con 2 modos:
+  - `Auto amount in`: editas `Amount out` + `FX rate`; `Amount in` se calcula.
+  - `Auto FX rate`: editas `Amount out` + `Amount in`; `FX rate` se calcula.
+- `More options` mantiene campos avanzados (date/note/tags; category cuando aplica).
+
+Errores UX:
+
+- validacion local por campo:
+  - `transferAmountIn`: importe destino invalido
+  - `transferFxRate`: cambio invalido (`<= 0`)
+- errores de negocio del backend se propagan como error general de formulario (sin romper DDD en UI).
+
 ## Reglas de dependencia
 
 - `shared/*` no depende de `account|ledger|taxonomy|imports`.

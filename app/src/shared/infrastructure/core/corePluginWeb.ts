@@ -16,6 +16,8 @@ import type {
   LedgerRecordIncomeResult,
   LedgerRecordTransferInput,
   LedgerRecordTransferResult,
+  LedgerRecordTransferFxInput,
+  LedgerRecordTransferFxResult,
   LedgerCreateExpenseDraftInput,
   LedgerCreateExpenseDraftResult,
   LedgerAddTransactionItemInput,
@@ -94,6 +96,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async ledgerRecordTransfer(options: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult> {
     return this.core.ledgerRecordTransfer(options);
+  }
+
+  async ledgerRecordTransferFx(options: LedgerRecordTransferFxInput): Promise<LedgerRecordTransferFxResult> {
+    return this.core.ledgerRecordTransferFx(options);
   }
 
   async ledgerCreateExpenseDraft(options: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult> {

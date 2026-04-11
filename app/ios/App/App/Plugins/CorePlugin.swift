@@ -168,6 +168,127 @@ public class CorePlugin: CAPPlugin {
         ])
     }
 
+    @objc func ledgerRecordTransferFx(_ call: CAPPluginCall) {
+        let fromAccountId = call.getString("fromAccountId") ?? ""
+        let toAccountId = call.getString("toAccountId") ?? ""
+        if fromAccountId.isEmpty || toAccountId.isEmpty {
+            call.reject("fromAccountId and toAccountId are required")
+            return
+        }
+        if fromAccountId == toAccountId {
+            call.reject("source and destination accounts must be different")
+            return
+        }
+
+        guard let fromAccount = accounts.first(where: { ($0["id"] as? String) == fromAccountId }) else {
+            call.reject("Account not found: \(fromAccountId)")
+            return
+        }
+        guard let toAccount = accounts.first(where: { ($0["id"] as? String) == toAccountId }) else {
+            call.reject("Account not found: \(toAccountId)")
+            return
+        }
+
+        let sourceCurrency = (call.getString("sourceCurrency") ?? "").uppercased()
+        let destinationCurrency = (call.getString("destinationCurrency") ?? "").uppercased()
+        guard let fromAccountCurrency = fromAccount["currency"] as? String,
+              let toAccountCurrency = toAccount["currency"] as? String else {
+            call.reject("Account currency not found")
+            return
+        }
+        if sourceCurrency != fromAccountCurrency.uppercased() {
+            call.reject("Transfer currency must match source account currency (\(fromAccountCurrency.uppercased()))")
+            return
+        }
+        if destinationCurrency != toAccountCurrency.uppercased() {
+            call.reject("Transfer currency must match destination account currency (\(toAccountCurrency.uppercased()))")
+            return
+        }
+
+        guard let sourceAmount = Double(call.getString("sourceAmount") ?? ""),
+              sourceAmount > 0 else {
+            call.reject("source amount must be greater than 0")
+            return
+        }
+        guard let destinationAmount = Double(call.getString("destinationAmount") ?? ""),
+              destinationAmount > 0 else {
+            call.reject("destination amount must be greater than 0")
+            return
+        }
+
+        let providedRate = (call.getString("exchangeRate") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let exchangeRate: Double
+        if providedRate.isEmpty {
+            exchangeRate = destinationAmount / sourceAmount
+        } else {
+            guard let parsedRate = Double(providedRate), parsedRate > 0 else {
+                call.reject("exchange rate must be greater than 0")
+                return
+            }
+            exchangeRate = parsedRate
+        }
+
+        let roundedSource = (sourceAmount * 100).rounded() / 100
+        let roundedDestination = (destinationAmount * 100).rounded() / 100
+
+        if sourceCurrency == destinationCurrency {
+            if abs(roundedSource - roundedDestination) > 0.0001 {
+                call.reject("Same-currency transfer must keep equal source and destination amounts")
+                return
+            }
+            if !providedRate.isEmpty && abs(exchangeRate - 1.0) > 0.000001 {
+                call.reject("Same-currency transfer exchange rate must be 1")
+                return
+            }
+        } else {
+            let expectedDestination = ((roundedSource * exchangeRate) * 100).rounded() / 100
+            if abs(expectedDestination - roundedDestination) > 0.0001 {
+                call.reject("Transfer amounts do not match exchange rate")
+                return
+            }
+        }
+
+        let occurredAt = call.getString("occurredAt") ?? ""
+        let description = call.getString("description")
+
+        let outId = UUID().uuidString
+        let inId = UUID().uuidString
+
+        transactions.append([
+            "id": outId,
+            "accountId": fromAccountId,
+            "type": "transfer_out",
+            "status": "posted",
+            "amount": String(format: "%.2f", roundedSource),
+            "currency": sourceCurrency,
+            "occurredAt": occurredAt,
+            "description": description as Any,
+            "merchant": NSNull(),
+            "categoryId": NSNull(),
+            "linkedTransactionId": inId,
+            "items": []
+        ])
+        transactions.append([
+            "id": inId,
+            "accountId": toAccountId,
+            "type": "transfer_in",
+            "status": "posted",
+            "amount": String(format: "%.2f", roundedDestination),
+            "currency": destinationCurrency,
+            "occurredAt": occurredAt,
+            "description": description as Any,
+            "merchant": NSNull(),
+            "categoryId": NSNull(),
+            "linkedTransactionId": outId,
+            "items": []
+        ])
+
+        call.resolve([
+            "transferOutId": outId,
+            "transferInId": inId
+        ])
+    }
+
     @objc func ledgerCreateExpenseDraft(_ call: CAPPluginCall) {
         let id = UUID().uuidString
         let tx: [String: Any] = [

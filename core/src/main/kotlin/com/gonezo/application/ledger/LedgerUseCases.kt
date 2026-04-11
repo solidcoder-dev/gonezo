@@ -98,6 +98,20 @@ interface RecordLedgerTransferUC {
   fun execute(command: RecordLedgerTransferCommand): RecordLedgerTransferResult
 }
 
+data class RecordLedgerTransferFxCommand(
+  val fromAccountId: AccountId,
+  val toAccountId: AccountId,
+  val sourceAmount: Money,
+  val destinationAmount: Money,
+  val occurredAt: Instant,
+  val description: String?,
+  val exchangeRate: BigDecimal? = null,
+)
+
+interface RecordLedgerTransferFxUC {
+  fun execute(command: RecordLedgerTransferFxCommand): RecordLedgerTransferResult
+}
+
 data class CreateLedgerExpenseDraftCommand(
   val accountId: AccountId,
   val amount: Money,

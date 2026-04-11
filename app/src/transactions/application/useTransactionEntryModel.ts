@@ -34,6 +34,18 @@ function parseAmount(value: string): number {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+function formatAmount(value: number): string {
+  return value.toFixed(2);
+}
+
+function formatFxRate(value: number): string {
+  if (!Number.isFinite(value)) {
+    return '';
+  }
+  const normalized = value.toFixed(8).replace(/0+$/, '').replace(/\.$/, '');
+  return normalized || '0';
+}
+
 function resolveOccurredAt(dateInput: string): string {
   const raw = dateInput.trim();
   if (!raw) {
@@ -90,6 +102,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [transactionCategoryInput, setTransactionCategoryInput] = useState('');
   const [transactionTagInput, setTransactionTagInput] = useState('');
   const [transferToAccountId, setTransferToAccountId] = useState('');
+  const [transferAmountIn, setTransferAmountIn] = useState('');
+  const [transferFxRate, setTransferFxRate] = useState('1');
+  const [transferFxMode, setTransferFxMode] = useState<'auto_destination' | 'auto_rate'>('auto_destination');
 
   const [categories, setCategories] = useState<TaxonomyCategoryItem[]>([]);
   const [tags, setTags] = useState<TaxonomyTagItem[]>([]);
@@ -112,6 +127,16 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const transferTargetOptions = useMemo(
     () => accounts.filter((account) => account.id !== accountId),
     [accounts, accountId],
+  );
+  const selectedTransferTarget = useMemo(
+    () => transferTargetOptions.find((account) => account.id === transferToAccountId),
+    [transferTargetOptions, transferToAccountId],
+  );
+  const transferDestinationCurrency = selectedTransferTarget?.currency ?? '';
+  const transferCrossCurrency = Boolean(
+    transferToAccountId
+    && transferDestinationCurrency
+    && transferDestinationCurrency.toUpperCase() !== accountCurrency.toUpperCase(),
   );
 
   const categoryOptions = useMemo(() => {
@@ -156,6 +181,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setTransactionNote('');
     setTransactionCategoryInput('');
     setTransactionTagInput('');
+    setTransferAmountIn('');
+    setTransferFxRate('1');
+    setTransferFxMode('auto_destination');
     setExpenseDetailed(false);
     setExpenseItemName('');
     setExpenseItemAmount('');
@@ -262,11 +290,189 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setComposerAdvancedOpen(false);
     setTransactionCategoryInput('');
     setTransactionTagInput('');
+
+    if (mode === 'transfer') {
+      const sourceAmount = parseAmount(transactionAmount);
+      const target = accounts.find((account) => account.id === transferToAccountId);
+      const crossCurrency = Boolean(
+        target
+        && target.currency.toUpperCase() !== accountCurrency.toUpperCase(),
+      );
+
+      if (!crossCurrency) {
+        setTransferAmountIn(transactionAmount);
+        setTransferFxRate('1');
+        return;
+      }
+
+      if (transferFxMode === 'auto_destination') {
+        const rate = parseAmount(transferFxRate) > 0 ? parseAmount(transferFxRate) : 1;
+        setTransferFxRate(formatFxRate(rate));
+        if (sourceAmount > 0) {
+          setTransferAmountIn(formatAmount(sourceAmount * rate));
+        }
+        return;
+      }
+
+      const destination = parseAmount(transferAmountIn);
+      if (sourceAmount > 0 && destination > 0) {
+        setTransferFxRate(formatFxRate(destination / sourceAmount));
+      }
+    }
+  }
+
+  function isTransferCrossCurrency(targetAccountId: string): boolean {
+    const target = accounts.find((account) => account.id === targetAccountId);
+    if (!target) {
+      return false;
+    }
+    return target.currency.toUpperCase() !== accountCurrency.toUpperCase();
   }
 
   function setTransactionAmountValue(value: string) {
-    setTransactionAmount(value.replace('-', ''));
-    setFieldErrors((previous) => ({ ...previous, amount: undefined, expenseSplit: undefined }));
+    const normalized = value.replace('-', '');
+    setTransactionAmount(normalized);
+    setFieldErrors((previous) => ({
+      ...previous,
+      amount: undefined,
+      transferAmountIn: undefined,
+      transferFxRate: undefined,
+      expenseSplit: undefined,
+    }));
+
+    if (composerMode !== 'transfer') {
+      return;
+    }
+
+    const sourceAmount = parseAmount(normalized);
+    if (!isTransferCrossCurrency(transferToAccountId)) {
+      setTransferAmountIn(normalized);
+      setTransferFxRate('1');
+      return;
+    }
+
+    if (transferFxMode === 'auto_destination') {
+      const rate = parseAmount(transferFxRate);
+      if (sourceAmount > 0 && rate > 0) {
+        setTransferAmountIn(formatAmount(sourceAmount * rate));
+      }
+      return;
+    }
+
+    const destination = parseAmount(transferAmountIn);
+    if (sourceAmount > 0 && destination > 0) {
+      setTransferFxRate(formatFxRate(destination / sourceAmount));
+    }
+  }
+
+  function setTransferTargetValue(value: string) {
+    setTransferToAccountId(value);
+    setFieldErrors((previous) => ({
+      ...previous,
+      transferAmountIn: undefined,
+      transferFxRate: undefined,
+    }));
+
+    if (!value) {
+      setTransferAmountIn('');
+      setTransferFxRate('1');
+      return;
+    }
+
+    const sourceAmount = parseAmount(transactionAmount);
+    if (!isTransferCrossCurrency(value)) {
+      setTransferAmountIn(transactionAmount);
+      setTransferFxRate('1');
+      return;
+    }
+
+    if (transferFxMode === 'auto_destination') {
+      const rate = parseAmount(transferFxRate) > 0 ? parseAmount(transferFxRate) : 1;
+      setTransferFxRate(formatFxRate(rate));
+      if (sourceAmount > 0) {
+        setTransferAmountIn(formatAmount(sourceAmount * rate));
+      }
+      return;
+    }
+
+    const destination = parseAmount(transferAmountIn);
+    if (sourceAmount > 0 && destination > 0) {
+      setTransferFxRate(formatFxRate(destination / sourceAmount));
+    }
+  }
+
+  function setTransferAmountInValue(value: string) {
+    const normalized = value.replace('-', '');
+    setTransferAmountIn(normalized);
+    setFieldErrors((previous) => ({ ...previous, transferAmountIn: undefined, transferFxRate: undefined }));
+
+    if (composerMode !== 'transfer') {
+      return;
+    }
+    if (!isTransferCrossCurrency(transferToAccountId)) {
+      return;
+    }
+    if (transferFxMode !== 'auto_rate') {
+      return;
+    }
+
+    const sourceAmount = parseAmount(transactionAmount);
+    const destination = parseAmount(normalized);
+    if (sourceAmount > 0 && destination > 0) {
+      setTransferFxRate(formatFxRate(destination / sourceAmount));
+    }
+  }
+
+  function setTransferFxRateValue(value: string) {
+    const normalized = value.replace('-', '');
+    setTransferFxRate(normalized);
+    setFieldErrors((previous) => ({ ...previous, transferFxRate: undefined, transferAmountIn: undefined }));
+
+    if (composerMode !== 'transfer') {
+      return;
+    }
+    if (!isTransferCrossCurrency(transferToAccountId)) {
+      setTransferFxRate('1');
+      setTransferAmountIn(transactionAmount);
+      return;
+    }
+    if (transferFxMode !== 'auto_destination') {
+      return;
+    }
+
+    const sourceAmount = parseAmount(transactionAmount);
+    const rate = parseAmount(normalized);
+    if (sourceAmount > 0 && rate > 0) {
+      setTransferAmountIn(formatAmount(sourceAmount * rate));
+    }
+  }
+
+  function setTransferFxModeValue(value: 'auto_destination' | 'auto_rate') {
+    setTransferFxMode(value);
+    setFieldErrors((previous) => ({ ...previous, transferAmountIn: undefined, transferFxRate: undefined }));
+
+    if (composerMode !== 'transfer') {
+      return;
+    }
+    if (!isTransferCrossCurrency(transferToAccountId)) {
+      setTransferFxRate('1');
+      setTransferAmountIn(transactionAmount);
+      return;
+    }
+
+    const sourceAmount = parseAmount(transactionAmount);
+    if (value === 'auto_destination') {
+      const rate = parseAmount(transferFxRate);
+      if (sourceAmount > 0 && rate > 0) {
+        setTransferAmountIn(formatAmount(sourceAmount * rate));
+      }
+      return;
+    }
+
+    const destination = parseAmount(transferAmountIn);
+    if (sourceAmount > 0 && destination > 0) {
+      setTransferFxRate(formatFxRate(destination / sourceAmount));
+    }
   }
 
   function setExpenseDetailedValue(value: boolean) {
@@ -455,6 +661,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       nextErrors.date = 'Date is required.';
     }
 
+    const transferTarget = composerMode === 'transfer'
+      ? accounts.find((account) => account.id === transferToAccountId)
+      : undefined;
+
     if (composerMode === 'transfer' && !transferToAccountId) {
       setError('Select a destination account for transfer.');
       return;
@@ -463,6 +673,32 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     if (composerMode === 'transfer' && transferToAccountId === accountId) {
       setError('Source and destination accounts must be different.');
       return;
+    }
+
+    if (composerMode === 'transfer' && !transferTarget) {
+      setError('Select a valid destination account.');
+      return;
+    }
+
+    const transferCrossCurrencySelection = Boolean(
+      composerMode === 'transfer'
+      && transferTarget
+      && transferTarget.currency.toUpperCase() !== accountCurrency.toUpperCase(),
+    );
+
+    if (composerMode === 'transfer' && transferCrossCurrencySelection) {
+      const amountIn = transferAmountIn.trim();
+
+      if (!amountIn || Number.isNaN(Number(amountIn)) || Number(amountIn) <= 0) {
+        nextErrors.transferAmountIn = 'Enter a valid destination amount greater than 0.';
+      }
+
+      if (transferFxMode === 'auto_destination') {
+        const fxRate = transferFxRate.trim();
+        if (!fxRate || Number.isNaN(Number(fxRate)) || Number(fxRate) <= 0) {
+          nextErrors.transferFxRate = 'Enter a valid FX rate greater than 0.';
+        }
+      }
     }
 
     if (composerMode === 'expense' && expenseDetailed) {
@@ -476,6 +712,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
     if (
       nextErrors.amount
+      || nextErrors.transferAmountIn
+      || nextErrors.transferFxRate
       || nextErrors.date
       || nextErrors.expenseItemName
       || nextErrors.expenseItemAmount
@@ -547,14 +785,62 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       }
 
       if (composerMode === 'transfer') {
-        const result = await ledgerTransactionCommands.recordTransfer({
-          fromAccountId: accountId,
-          toAccountId: transferToAccountId,
-          occurredAt,
-          amount,
-          currency: accountCurrency,
-          description: transactionNote.trim() || undefined,
-        });
+        const transferTargetAccount = accounts.find((candidate) => candidate.id === transferToAccountId);
+        if (!transferTargetAccount) {
+          throw new Error('Destination account not found');
+        }
+
+        const sourceAmountNumeric = parseAmount(amount);
+        const sourceAmount = formatAmount(sourceAmountNumeric);
+        const isCrossCurrencyTransfer = transferTargetAccount.currency.toUpperCase() !== accountCurrency.toUpperCase();
+
+        let result: { transferOutId: string; transferInId: string };
+
+        if (!isCrossCurrencyTransfer) {
+          result = await ledgerTransactionCommands.recordTransfer({
+            fromAccountId: accountId,
+            toAccountId: transferToAccountId,
+            occurredAt,
+            amount: sourceAmount,
+            currency: accountCurrency,
+            description: transactionNote.trim() || undefined,
+          });
+        } else {
+          const destinationAmountNumeric = parseAmount(transferAmountIn);
+          const normalizedDestinationAmount = formatAmount(destinationAmountNumeric);
+          const resolvedRate = transferFxMode === 'auto_rate'
+            ? destinationAmountNumeric / sourceAmountNumeric
+            : parseAmount(transferFxRate);
+
+          if (!Number.isFinite(resolvedRate) || resolvedRate <= 0) {
+            setFieldErrors((previous) => ({
+              ...previous,
+              transferFxRate: 'Enter a valid FX rate greater than 0.',
+            }));
+            return;
+          }
+
+          if (!Number.isFinite(destinationAmountNumeric) || destinationAmountNumeric <= 0) {
+            setFieldErrors((previous) => ({
+              ...previous,
+              transferAmountIn: 'Enter a valid destination amount greater than 0.',
+            }));
+            return;
+          }
+
+          result = await ledgerTransactionCommands.recordTransferFx({
+            fromAccountId: accountId,
+            toAccountId: transferToAccountId,
+            occurredAt,
+            sourceAmount,
+            sourceCurrency: accountCurrency,
+            destinationAmount: normalizedDestinationAmount,
+            destinationCurrency: transferTargetAccount.currency,
+            exchangeRate: formatFxRate(resolvedRate),
+            description: transactionNote.trim() || undefined,
+          });
+        }
+
         await applyTransactionTags(result.transferOutId, tagNames);
         await applyTransactionTags(result.transferInId, tagNames);
         recorded = true;
@@ -593,6 +879,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       tagOptions,
       transferTargetAccountId: transferToAccountId,
       transferTargetOptions,
+      transferAmountIn,
+      transferFxRate,
+      transferFxMode,
+      transferDestinationCurrency: transferDestinationCurrency || undefined,
+      transferCrossCurrency,
       splitEnabled: expenseDetailed,
       splitItems: expenseItems,
       splitItemName: expenseItemName,
@@ -618,7 +909,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       setNote: setTransactionNote,
       setCategoryInput: setTransactionCategoryInput,
       setTagInput: setTransactionTagInput,
-      setTransferTarget: setTransferToAccountId,
+      setTransferTarget: setTransferTargetValue,
+      setTransferAmountIn: setTransferAmountInValue,
+      setTransferFxRate: setTransferFxRateValue,
+      setTransferFxMode: setTransferFxModeValue,
       setSplitEnabled: setExpenseDetailedValue,
       setSplitItemName: setExpenseItemNameValue,
       setSplitItemAmount: setExpenseItemAmountValue,

@@ -99,6 +99,23 @@ export type LedgerRecordTransferResult = {
   transferInId: string;
 };
 
+export type LedgerRecordTransferFxInput = {
+  fromAccountId: string;
+  toAccountId: string;
+  occurredAt: string;
+  sourceAmount: string;
+  sourceCurrency: string;
+  destinationAmount: string;
+  destinationCurrency: string;
+  exchangeRate?: string;
+  description?: string;
+};
+
+export type LedgerRecordTransferFxResult = {
+  transferOutId: string;
+  transferInId: string;
+};
+
 export type LedgerCreateExpenseDraftInput = {
   accountId: string;
   occurredAt: string;
@@ -403,6 +420,7 @@ export interface CorePort {
   ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult>;
   ledgerRecordIncome(input: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult>;
   ledgerRecordTransfer(input: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult>;
+  ledgerRecordTransferFx(input: LedgerRecordTransferFxInput): Promise<LedgerRecordTransferFxResult>;
   ledgerCreateExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult>;
   ledgerAddTransactionItem(input: LedgerAddTransactionItemInput): Promise<void>;
   ledgerPostDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void>;

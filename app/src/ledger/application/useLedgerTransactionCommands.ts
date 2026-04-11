@@ -38,6 +38,21 @@ export function useLedgerTransactionCommands(gateway: LedgerGatewayPort) {
     [gateway],
   );
 
+  const recordTransferFx = useCallback(
+    (input: {
+      fromAccountId: string;
+      toAccountId: string;
+      occurredAt: string;
+      sourceAmount: string;
+      sourceCurrency: string;
+      destinationAmount: string;
+      destinationCurrency: string;
+      exchangeRate?: string;
+      description?: string;
+    }) => gateway.ledgerRecordTransferFx(input),
+    [gateway],
+  );
+
   const createExpenseDraft = useCallback(
     (input: {
       accountId: string;
@@ -70,6 +85,7 @@ export function useLedgerTransactionCommands(gateway: LedgerGatewayPort) {
     recordExpense,
     recordIncome,
     recordTransfer,
+    recordTransferFx,
     createExpenseDraft,
     addTransactionItem,
     postDraftTransaction,

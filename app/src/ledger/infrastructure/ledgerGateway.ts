@@ -49,6 +49,17 @@ export type LedgerGatewayPort = {
     currency: string;
     description?: string;
   }): Promise<{ transferOutId: string; transferInId: string }>;
+  ledgerRecordTransferFx(input: {
+    fromAccountId: string;
+    toAccountId: string;
+    occurredAt: string;
+    sourceAmount: string;
+    sourceCurrency: string;
+    destinationAmount: string;
+    destinationCurrency: string;
+    exchangeRate?: string;
+    description?: string;
+  }): Promise<{ transferOutId: string; transferInId: string }>;
   ledgerCreateExpenseDraft(input: {
     accountId: string;
     occurredAt: string;
@@ -81,6 +92,7 @@ export function createLedgerGateway(core: LedgerGatewayPort): LedgerGatewayPort 
     ledgerRecordExpense: core.ledgerRecordExpense,
     ledgerRecordIncome: core.ledgerRecordIncome,
     ledgerRecordTransfer: core.ledgerRecordTransfer,
+    ledgerRecordTransferFx: core.ledgerRecordTransferFx,
     ledgerCreateExpenseDraft: core.ledgerCreateExpenseDraft,
     ledgerAddTransactionItem: core.ledgerAddTransactionItem,
     ledgerPostDraftTransaction: core.ledgerPostDraftTransaction,

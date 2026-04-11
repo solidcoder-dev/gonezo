@@ -24,7 +24,9 @@ import com.gonezo.ledger.application.RecordLedgerExpenseUC;
 import com.gonezo.ledger.application.RecordLedgerIncomeCommand;
 import com.gonezo.ledger.application.RecordLedgerIncomeUC;
 import com.gonezo.ledger.application.RecordLedgerTransferCommand;
+import com.gonezo.ledger.application.RecordLedgerTransferFxCommand;
 import com.gonezo.ledger.application.RecordLedgerTransferResult;
+import com.gonezo.ledger.application.RecordLedgerTransferFxUC;
 import com.gonezo.ledger.application.RecordLedgerTransferUC;
 import com.gonezo.ledger.application.RenameLedgerAccountCommand;
 import com.gonezo.ledger.application.RenameLedgerAccountUC;
@@ -42,6 +44,7 @@ import com.gonezo.ledger.application.PostLedgerDraftTransactionService;
 import com.gonezo.ledger.application.RecordLedgerExpenseService;
 import com.gonezo.ledger.application.RecordLedgerIncomeService;
 import com.gonezo.ledger.application.RecordLedgerTransferService;
+import com.gonezo.ledger.application.RecordLedgerTransferFxService;
 import com.gonezo.ledger.application.RenameLedgerAccountService;
 import com.gonezo.ledger.application.VoidLedgerTransactionService;
 import com.gonezo.ledger.domain.Account;
@@ -75,6 +78,7 @@ public final class AndroidLedgerCore {
   private final RecordLedgerIncomeUC recordIncomeUC;
   private final RecordLedgerExpenseUC recordExpenseUC;
   private final RecordLedgerTransferUC recordTransferUC;
+  private final RecordLedgerTransferFxUC recordTransferFxUC;
   private final CreateLedgerExpenseDraftUC createExpenseDraftUC;
   private final AddLedgerTransactionItemUC addTransactionItemUC;
   private final PostLedgerDraftTransactionUC postDraftTransactionUC;
@@ -99,6 +103,7 @@ public final class AndroidLedgerCore {
     this.recordIncomeUC = new RecordLedgerIncomeService(accountRepository, transactionRepository, eventPublisher);
     this.recordExpenseUC = new RecordLedgerExpenseService(accountRepository, transactionRepository, eventPublisher);
     this.recordTransferUC = new RecordLedgerTransferService(accountRepository, transactionRepository, eventPublisher);
+    this.recordTransferFxUC = new RecordLedgerTransferFxService(accountRepository, transactionRepository, eventPublisher);
     this.createExpenseDraftUC = new CreateLedgerExpenseDraftService(accountRepository, transactionRepository);
     this.addTransactionItemUC = new AddLedgerTransactionItemService(transactionRepository, eventPublisher);
     this.postDraftTransactionUC = new PostLedgerDraftTransactionService(transactionRepository, eventPublisher);
@@ -221,6 +226,36 @@ public final class AndroidLedgerCore {
       blankToNull(description)
     );
     RecordLedgerTransferResult result = recordTransferUC.execute(command);
+    return new LedgerTransferResultView(result.getTransferOutId().toString(), result.getTransferInId().toString());
+  }
+
+  public LedgerTransferResultView recordTransferFx(
+    String fromAccountId,
+    String toAccountId,
+    String occurredAt,
+    String sourceAmount,
+    String sourceCurrency,
+    String destinationAmount,
+    String destinationCurrency,
+    String exchangeRate,
+    String description
+  ) {
+    RecordLedgerTransferFxCommand command = new RecordLedgerTransferFxCommand(
+      new AccountId(UUID.fromString(requireText(fromAccountId, "fromAccountId is required"))),
+      new AccountId(UUID.fromString(requireText(toAccountId, "toAccountId is required"))),
+      new Money(
+        new BigDecimal(requireText(sourceAmount, "sourceAmount is required")),
+        requireText(sourceCurrency, "sourceCurrency is required").toUpperCase()
+      ),
+      new Money(
+        new BigDecimal(requireText(destinationAmount, "destinationAmount is required")),
+        requireText(destinationCurrency, "destinationCurrency is required").toUpperCase()
+      ),
+      parseInstantOrDate(occurredAt, "occurredAt"),
+      blankToNull(description),
+      blankToNull(exchangeRate) == null ? null : new BigDecimal(exchangeRate)
+    );
+    RecordLedgerTransferResult result = recordTransferFxUC.execute(command);
     return new LedgerTransferResultView(result.getTransferOutId().toString(), result.getTransferInId().toString());
   }
 

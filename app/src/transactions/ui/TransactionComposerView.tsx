@@ -25,6 +25,11 @@ export type TransactionComposerViewRequired = {
   advancedOpen: boolean;
   transferTargetAccountId: string;
   transferTargetOptions: Array<{ id: string; name: string; currency: string }>;
+  transferAmountIn: string;
+  transferFxRate: string;
+  transferFxMode: 'auto_destination' | 'auto_rate';
+  transferDestinationCurrency?: string;
+  transferCrossCurrency: boolean;
   expenseDetailed: boolean;
   expenseItems: ComposerExpenseItem[];
   expenseItemName: string;
@@ -35,6 +40,8 @@ export type TransactionComposerViewRequired = {
   expenseItemAmountError?: string;
   expenseSplitError?: string;
   amountError?: string;
+  transferAmountInError?: string;
+  transferFxRateError?: string;
   dateError?: string;
 };
 
@@ -49,6 +56,9 @@ export type TransactionComposerViewProvided = {
   onSetCategoryInput: (value: string) => void;
   onSetTagInput: (value: string) => void;
   onSetTransferTarget: (value: string) => void;
+  onSetTransferAmountIn: (value: string) => void;
+  onSetTransferFxRate: (value: string) => void;
+  onSetTransferFxMode: (value: 'auto_destination' | 'auto_rate') => void;
   onToggleExpenseDetailed: () => void;
   onSetExpenseItemName: (value: string) => void;
   onSetExpenseItemAmount: (value: string) => void;
@@ -85,6 +95,11 @@ export function TransactionComposerView({ required, provided }: Props) {
     advancedOpen,
     transferTargetAccountId,
     transferTargetOptions,
+    transferAmountIn,
+    transferFxRate,
+    transferFxMode,
+    transferDestinationCurrency,
+    transferCrossCurrency,
     expenseDetailed,
     expenseItems,
     expenseItemName,
@@ -95,6 +110,8 @@ export function TransactionComposerView({ required, provided }: Props) {
     expenseItemAmountError,
     expenseSplitError,
     amountError,
+    transferAmountInError,
+    transferFxRateError,
     dateError,
   } = required;
   const {
@@ -108,6 +125,9 @@ export function TransactionComposerView({ required, provided }: Props) {
     onSetCategoryInput,
     onSetTagInput,
     onSetTransferTarget,
+    onSetTransferAmountIn,
+    onSetTransferFxRate,
+    onSetTransferFxMode,
     onToggleExpenseDetailed,
     onSetExpenseItemName,
     onSetExpenseItemAmount,
@@ -136,6 +156,13 @@ export function TransactionComposerView({ required, provided }: Props) {
     if (mode === 'transfer') return 'Save transfer';
     return 'Continue';
   }, [mode, expenseDetailed]);
+
+  const amountLabel = mode === 'transfer'
+    ? `Amount out${currencyCode ? ` (${currencyCode})` : ''}`
+    : 'Amount';
+
+  const amountInLabel = `Amount in${transferDestinationCurrency ? ` (${transferDestinationCurrency})` : ''}`;
+  const fxLabel = `FX rate${transferDestinationCurrency && currencyCode ? ` (${transferDestinationCurrency}/${currencyCode})` : ''}`;
 
   const splitReady = useMemo(() => {
     if (mode !== 'expense' || !expenseDetailed) {
@@ -192,7 +219,7 @@ export function TransactionComposerView({ required, provided }: Props) {
         ) : (
           <form className="stack composer-form" onSubmit={onSubmit} aria-busy={disabled}>
             <label className="stack">
-              Amount
+              {amountLabel}
               <input
                 ref={amountInputRef}
                 aria-label="Amount"
@@ -207,6 +234,90 @@ export function TransactionComposerView({ required, provided }: Props) {
               />
             </label>
             {amountError ? <p id="composer-amount-error" className="field-error">{amountError}</p> : null}
+
+            {mode === 'transfer' ? (
+              <div className="stack item-editor">
+                <label className="stack">
+                  Destination account
+                  <select
+                    aria-label="Destination account"
+                    value={transferTargetAccountId}
+                    onChange={(event) => onSetTransferTarget(event.target.value)}
+                  >
+                    <option value="">Select account</option>
+                    {transferTargetOptions.map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.name} ({account.currency})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="stack">
+                  {amountInLabel}
+                  <input
+                    aria-label={amountInLabel}
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={transferAmountIn}
+                    onChange={(event) => onSetTransferAmountIn(event.target.value)}
+                    inputMode="decimal"
+                    disabled={disabled || !transferCrossCurrency || transferFxMode === 'auto_destination'}
+                    aria-invalid={Boolean(transferAmountInError)}
+                    aria-describedby={transferAmountInError ? 'composer-transfer-amount-in-error' : undefined}
+                  />
+                </label>
+                {transferAmountInError ? <p id="composer-transfer-amount-in-error" className="field-error">{transferAmountInError}</p> : null}
+
+                {transferCrossCurrency ? (
+                  <>
+                    <label className="stack">
+                      {fxLabel}
+                      <input
+                        aria-label={fxLabel}
+                        type="number"
+                        min="0.0000001"
+                        step="0.0001"
+                        value={transferFxRate}
+                        onChange={(event) => onSetTransferFxRate(event.target.value)}
+                        inputMode="decimal"
+                        disabled={disabled || transferFxMode === 'auto_rate'}
+                        aria-invalid={Boolean(transferFxRateError)}
+                        aria-describedby={transferFxRateError ? 'composer-transfer-fx-rate-error' : undefined}
+                      />
+                    </label>
+                    {transferFxRateError ? <p id="composer-transfer-fx-rate-error" className="field-error">{transferFxRateError}</p> : null}
+
+                    <div className="segmented segmented-2" role="radiogroup" aria-label="Transfer auto calculation mode">
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={transferFxMode === 'auto_destination'}
+                        className={transferFxMode === 'auto_destination' ? 'segment active' : 'segment'}
+                        disabled={disabled}
+                        onClick={() => onSetTransferFxMode('auto_destination')}
+                      >
+                        Auto amount in
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={transferFxMode === 'auto_rate'}
+                        className={transferFxMode === 'auto_rate' ? 'segment active' : 'segment'}
+                        disabled={disabled}
+                        onClick={() => onSetTransferFxMode('auto_rate')}
+                      >
+                        Auto FX rate
+                      </button>
+                    </div>
+                    <p className="hint">Edit two values; the third one is calculated automatically.</p>
+                  </>
+                ) : (
+                  <p className="hint">Same currency transfer uses 1:1 amount.</p>
+                )}
+              </div>
+            ) : null}
 
             <div className="inline-header">
               <span className="hint">Need more fields?</span>
@@ -263,24 +374,6 @@ export function TransactionComposerView({ required, provided }: Props) {
                   }}
                 />
               </>
-            ) : null}
-
-            {mode === 'transfer' ? (
-              <label className="stack">
-                Destination account
-                <select
-                  aria-label="Destination account"
-                  value={transferTargetAccountId}
-                  onChange={(event) => onSetTransferTarget(event.target.value)}
-                >
-                  <option value="">Select account</option>
-                  {transferTargetOptions.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.name} ({account.currency})
-                    </option>
-                  ))}
-                </select>
-              </label>
             ) : null}
 
             {mode === 'expense' ? (
