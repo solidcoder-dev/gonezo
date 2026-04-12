@@ -618,8 +618,12 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
         });
       },
       resetFilters: () => {
-        setFilterDraft(createDefaultFilters());
+        const defaults = createDefaultFilters();
+        setFilterDraft(defaults);
+        setAppliedFilters(defaults);
+        setSearchApplied(false);
         setPage(0);
+        setFiltersOpen(false);
         setFiltersAdvancedOpen(false);
       },
       setFilterText: (value) => setFilterDraft((previous) => ({ ...previous, text: value })),

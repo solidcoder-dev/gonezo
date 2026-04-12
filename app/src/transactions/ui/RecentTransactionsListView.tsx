@@ -400,9 +400,6 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
             <button type="button" className="text-button" onClick={provided.onToggleAdvancedFilters} disabled={disabled}>
               {filtersAdvancedOpen ? 'Less options' : 'Advanced filters'}
             </button>
-            <button type="button" className="text-button" onClick={provided.onResetFilters} disabled={disabled}>
-              Reset
-            </button>
           </div>
 
           {filtersAdvancedOpen ? (
