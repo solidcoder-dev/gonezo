@@ -1,5 +1,6 @@
 import { formatCurrencyAmount, formatIsoDateTime } from '../../shared/utils/formatting';
 import type { SchedulingMovementItem } from '../../shared/domain/corePort';
+import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
 import type { TransactionHistoryItemView } from '../domain/transactionView.types';
 import type { TransactionHistoryOriginFilterValue, TransactionHistoryStatusFilterValue } from './TransactionHistoryView.contract';
 
@@ -122,7 +123,8 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
   }
 
   function scheduledOrigin(item: SchedulingMovementItem): string {
-    return item.origin ?? item.scheduleKind ?? 'recurring';
+    const kind = resolveSchedulingKind(item);
+    return kind === 'one_shot' ? 'one-shot' : 'recurring';
   }
 
   const totalPagesLabel = pagination.totalPages > 0 ? pagination.totalPages : 1;

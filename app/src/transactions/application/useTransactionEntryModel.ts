@@ -148,7 +148,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [expenseItemName, setExpenseItemName] = useState('');
   const [expenseItemAmount, setExpenseItemAmount] = useState('');
   const [expenseItems, setExpenseItems] = useState<ExpenseItemDraft[]>([]);
-  const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
+  const [schedulingMode, setSchedulingMode] = useState<'now' | 'scheduled'>('now');
+  const [schedulingKind, setSchedulingKind] = useState<'one_shot' | 'recurring'>('one_shot');
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<SchedulingFrequency>('monthly');
   const [recurrenceInterval, setRecurrenceInterval] = useState('1');
   const [recurrenceWeeklyDay, setRecurrenceWeeklyDay] = useState(weekDayIsoFromDateInput(todayIso()));
@@ -213,6 +214,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     const total = parseAmount(transactionAmount);
     return (Math.round((total - expenseAssigned) * 100) / 100).toFixed(2);
   }, [transactionAmount, expenseAssigned]);
+  const recurrenceEnabled = schedulingMode === 'scheduled' && schedulingKind === 'recurring';
 
   function reportError(raw: unknown) {
     const message = toErrorMessage(raw);
@@ -236,7 +238,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setExpenseItemName('');
     setExpenseItemAmount('');
     setExpenseItems([]);
-    setRecurrenceEnabled(false);
+    setSchedulingMode('now');
+    setSchedulingKind('one_shot');
     setRecurrenceFrequency('monthly');
     setRecurrenceInterval('1');
     setRecurrenceWeeklyDay(weekDayIsoFromDateInput(today));
@@ -551,13 +554,29 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     }
   }
 
-  function setRecurrenceEnabledValue(value: boolean) {
-    setRecurrenceEnabled(value);
+  function setSchedulingModeValue(value: 'now' | 'scheduled') {
+    setSchedulingMode(value);
+    setFieldErrors((previous) => ({
+      ...previous,
+      date: undefined,
+      recurrenceInterval: undefined,
+      recurrenceEndDate: undefined,
+      recurrenceEndCount: undefined,
+      expenseSplit: undefined,
+    }));
+    if (value === 'scheduled' && expenseDetailed) {
+      setExpenseDetailed(false);
+    }
+  }
+
+  function setSchedulingKindValue(value: 'one_shot' | 'recurring') {
+    setSchedulingKind(value);
     setFieldErrors((previous) => ({
       ...previous,
       recurrenceInterval: undefined,
       recurrenceEndDate: undefined,
       recurrenceEndCount: undefined,
+      expenseSplit: undefined,
     }));
   }
 
@@ -805,7 +824,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     if (!transactionDate) {
       nextErrors.date = 'Date is required.';
     }
-    if (!recurrenceEnabled && transactionDate) {
+    if (schedulingMode === 'now' && transactionDate) {
       const today = todayIso();
       if (/^\d{4}-\d{2}-\d{2}$/.test(transactionDate)) {
         if (transactionDate > today) {
@@ -815,6 +834,20 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         const parsed = new Date(transactionDate);
         if (!Number.isNaN(parsed.getTime()) && parsed.getTime() > Date.now()) {
           nextErrors.date = 'Manual movements cannot use a future date.';
+        }
+      }
+    }
+    if (schedulingMode === 'scheduled' && transactionDate) {
+      const today = todayIso();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(transactionDate)) {
+        if (transactionDate < today) {
+          nextErrors.date = 'Scheduled movements must use today or a future date.';
+        }
+      } else {
+        const parsed = new Date(transactionDate);
+        const todayMidnight = new Date(`${today}T00:00:00`);
+        if (!Number.isNaN(parsed.getTime()) && parsed.getTime() < todayMidnight.getTime()) {
+          nextErrors.date = 'Scheduled movements must use today or a future date.';
         }
       }
     }
@@ -860,11 +893,15 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     }
 
     if (composerMode === 'expense' && expenseDetailed) {
-      if (expenseItems.length === 0) {
-        nextErrors.expenseSplit = 'Add at least one item before publishing.';
-      }
-      if (parseAmount(expenseRemaining) !== 0) {
-        nextErrors.expenseSplit = 'Items must match the total amount before publishing.';
+      if (schedulingMode === 'scheduled') {
+        nextErrors.expenseSplit = 'Split expenses are not supported for scheduled movements.';
+      } else {
+        if (expenseItems.length === 0) {
+          nextErrors.expenseSplit = 'Add at least one item before publishing.';
+        }
+        if (parseAmount(expenseRemaining) !== 0) {
+          nextErrors.expenseSplit = 'Items must match the total amount before publishing.';
+        }
       }
     }
 
@@ -883,7 +920,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         }
       }
       if (composerMode === 'expense' && expenseDetailed) {
-        nextErrors.expenseSplit = 'Split expenses are not supported for recurring movements.';
+        nextErrors.expenseSplit = 'Split expenses are not supported for scheduled movements.';
       }
     }
 
@@ -910,33 +947,47 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       const tagIds = resolveTagSelectionIds(tagNames);
       let recorded = false;
 
-      if (recurrenceEnabled) {
+      if (schedulingMode === 'scheduled') {
         const categoryId = composerMode === 'expense' || composerMode === 'income'
           ? await resolveCategorySelection(composerMode)
           : undefined;
-        const interval = Number(recurrenceInterval.trim());
-        const recurrenceRule: SchedulingCreateMovementInput['rule'] = {
-          frequency: recurrenceFrequency,
-          interval,
-        };
-        if (recurrenceFrequency === 'weekly') {
-          recurrenceRule.weeklyDays = [Number(recurrenceWeeklyDay || '1')];
-        }
-        if (recurrenceFrequency === 'monthly') {
-          recurrenceRule.monthlyPattern = recurrenceMonthlyPattern;
-          if (recurrenceMonthlyPattern === 'day_of_month') {
-            recurrenceRule.dayOfMonth = Number(recurrenceDayOfMonth || dayOfMonthFromDateInput(transactionDate));
-          } else {
-            recurrenceRule.monthlyWeekOrdinal = Number(recurrenceMonthlyOrdinal || '1');
-            recurrenceRule.monthlyWeekday = Number(recurrenceMonthlyWeekday || weekDayIsoFromDateInput(transactionDate));
-          }
-        }
+        let scheduleRule: SchedulingCreateMovementInput['rule'];
+        let scheduleEnd: SchedulingCreateMovementInput['recurrenceEnd'];
 
-        const recurrenceEnd: SchedulingCreateMovementInput['recurrenceEnd'] = recurrenceEndKind === 'on_date'
-          ? { kind: 'on_date', onDate: recurrenceEndDate.trim() }
-          : recurrenceEndKind === 'after_occurrences'
-            ? { kind: 'after_occurrences', afterOccurrences: Number(recurrenceEndCount.trim()) }
-            : { kind: 'never' };
+        if (recurrenceEnabled) {
+          const interval = Number(recurrenceInterval.trim());
+          scheduleRule = {
+            frequency: recurrenceFrequency,
+            interval,
+          };
+          if (recurrenceFrequency === 'weekly') {
+            scheduleRule.weeklyDays = [Number(recurrenceWeeklyDay || '1')];
+          }
+          if (recurrenceFrequency === 'monthly') {
+            scheduleRule.monthlyPattern = recurrenceMonthlyPattern;
+            if (recurrenceMonthlyPattern === 'day_of_month') {
+              scheduleRule.dayOfMonth = Number(recurrenceDayOfMonth || dayOfMonthFromDateInput(transactionDate));
+            } else {
+              scheduleRule.monthlyWeekOrdinal = Number(recurrenceMonthlyOrdinal || '1');
+              scheduleRule.monthlyWeekday = Number(recurrenceMonthlyWeekday || weekDayIsoFromDateInput(transactionDate));
+            }
+          }
+
+          scheduleEnd = recurrenceEndKind === 'on_date'
+            ? { kind: 'on_date', onDate: recurrenceEndDate.trim() }
+            : recurrenceEndKind === 'after_occurrences'
+              ? { kind: 'after_occurrences', afterOccurrences: Number(recurrenceEndCount.trim()) }
+              : { kind: 'never' };
+        } else {
+          scheduleRule = {
+            frequency: 'daily',
+            interval: 1,
+          };
+          scheduleEnd = {
+            kind: 'after_occurrences',
+            afterOccurrences: 1,
+          };
+        }
 
         if (composerMode === 'transfer') {
           const transferTargetAccount = accounts.find((candidate) => candidate.id === transferToAccountId);
@@ -974,11 +1025,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
             categoryId: undefined,
             tagIds,
             tagNames,
-            rule: recurrenceRule,
-            recurrenceEnd,
+            rule: scheduleRule,
+            recurrenceEnd: scheduleEnd,
             startAt: occurredAt,
             zoneId: resolveTimeZoneId(),
-            scheduleKind: 'recurring',
+            scheduleKind: schedulingKind,
           });
         }
 
@@ -993,17 +1044,17 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
             categoryId,
             tagIds,
             tagNames,
-            rule: recurrenceRule,
-            recurrenceEnd,
+            rule: scheduleRule,
+            recurrenceEnd: scheduleEnd,
             startAt: occurredAt,
             zoneId: resolveTimeZoneId(),
-            scheduleKind: 'recurring',
+            scheduleKind: schedulingKind,
           });
         }
         recorded = true;
       }
 
-      if (!recurrenceEnabled && composerMode === 'expense') {
+      if (schedulingMode === 'now' && composerMode === 'expense') {
         const categoryId = await resolveCategorySelection('expense');
         if (!expenseDetailed) {
           const result = await ledgerTransactionCommands.recordExpense({
@@ -1043,7 +1094,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         }
       }
 
-      if (!recurrenceEnabled && composerMode === 'income') {
+      if (schedulingMode === 'now' && composerMode === 'income') {
         const categoryId = await resolveCategorySelection('income');
         const result = await ledgerTransactionCommands.recordIncome({
           accountId,
@@ -1058,7 +1109,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         recorded = true;
       }
 
-      if (!recurrenceEnabled && composerMode === 'transfer') {
+      if (schedulingMode === 'now' && composerMode === 'transfer') {
         const transferTargetAccount = accounts.find((candidate) => candidate.id === transferToAccountId);
         if (!transferTargetAccount) {
           throw new Error('Destination account not found');
@@ -1163,7 +1214,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       splitItemName: expenseItemName,
       splitItemAmount: expenseItemAmount,
       splitRemaining: expenseRemaining,
-      recurrenceEnabled,
+      schedulingMode,
+      schedulingKind,
       recurrenceFrequency,
       recurrenceInterval,
       recurrenceWeeklyDay,
@@ -1204,7 +1256,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       addSplitItem: addExpenseItem,
       removeSplitItem: removeExpenseItem,
       assignSplitRemaining: assignRemaining,
-      setRecurrenceEnabled: setRecurrenceEnabledValue,
+      setSchedulingMode: setSchedulingModeValue,
+      setSchedulingKind: setSchedulingKindValue,
       setRecurrenceFrequency: setRecurrenceFrequencyValue,
       setRecurrenceInterval: setRecurrenceIntervalValue,
       setRecurrenceWeeklyDay,

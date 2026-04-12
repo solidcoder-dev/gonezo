@@ -63,6 +63,7 @@ import type {
   MovementsListScheduledInput,
   MovementsListScheduledResult,
 } from '../../domain/corePort';
+import { resolveSchedulingKind } from '../../domain/schedulingKind';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
 
@@ -322,7 +323,17 @@ export class CoreAdapter implements CorePort {
 
   async schedulingListMovements(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult> {
     if (Capacitor.isNativePlatform()) {
-      return CorePlugin.recurrenceListRecurringMovements(input);
+      const result = await CorePlugin.recurrenceListRecurringMovements(input);
+      return {
+        items: result.items.map((item) => {
+          const kind = resolveSchedulingKind(item);
+          return {
+            ...item,
+            scheduleKind: kind,
+            origin: kind,
+          };
+        }),
+      };
     }
     return this.web.schedulingListMovements(input);
   }
@@ -349,7 +360,7 @@ export class CoreAdapter implements CorePort {
         return false;
       })
       .filter((item) => {
-        const resolvedOrigin = item.origin ?? item.scheduleKind ?? 'recurring';
+        const resolvedOrigin = resolveSchedulingKind(item);
         if (origin === 'all') {
           return true;
         }
@@ -421,6 +432,16 @@ export class CoreAdapter implements CorePort {
         return true;
       }
       return false;
+    }).filter((item) => {
+      const origin = input.filters?.origin ?? 'all';
+      const resolvedOrigin = resolveSchedulingKind(item);
+      if (origin === 'all') {
+        return true;
+      }
+      if (origin === 'manual') {
+        return false;
+      }
+      return resolvedOrigin === origin;
     });
 
     const totalElements = filtered.length;

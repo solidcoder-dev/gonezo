@@ -26,7 +26,8 @@ export type TransactionEntryViewRequired = {
     splitItemName: string;
     splitItemAmount: string;
     splitRemaining: string;
-    recurrenceEnabled: boolean;
+    schedulingMode: 'now' | 'scheduled';
+    schedulingKind: 'one_shot' | 'recurring';
     recurrenceFrequency: RecurrenceFrequency;
     recurrenceInterval: string;
     recurrenceWeeklyDay: string;
@@ -67,7 +68,8 @@ export type TransactionEntryViewProvided = {
     addSplitItem: () => void;
     removeSplitItem: (itemId: string) => void;
     assignSplitRemaining: () => void;
-    setRecurrenceEnabled: (value: boolean) => void;
+    setSchedulingMode: (value: 'now' | 'scheduled') => void;
+    setSchedulingKind: (value: 'one_shot' | 'recurring') => void;
     setRecurrenceFrequency: (value: RecurrenceFrequency) => void;
     setRecurrenceInterval: (value: string) => void;
     setRecurrenceWeeklyDay: (value: string) => void;

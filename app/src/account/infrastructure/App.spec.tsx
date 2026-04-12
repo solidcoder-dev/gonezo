@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../App';
+import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
 import type { AccountsCorePort } from '../application/useAccountPageModel';
 import type {
   LedgerListTransactionsInput,
@@ -256,7 +257,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
           const origin = input.filters?.origin ?? 'all';
           if (origin === 'all') return true;
           if (origin === 'manual') return false;
-          return (item.origin ?? item.scheduleKind ?? 'recurring') === origin;
+          return resolveSchedulingKind(item) === origin;
         });
 
       const shouldHideExecuted = (input.filters?.status === 'scheduled' || input.filters?.status === 'failed')
@@ -305,6 +306,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
 
   vi.mocked(core.recurrenceCreateRecurringMovement).mockImplementation(async (input) => {
     const id = `rec-${scheduledMovements.length + 1}`;
+    const scheduledKind = resolveSchedulingKind(input as any);
     scheduledMovements.push({
       id,
       type: input.type,
@@ -327,8 +329,8 @@ function makeCore(transactionCount = 0): AccountsCorePort {
       generatedOccurrences: 0,
       rule: input.rule,
       recurrenceEnd: input.recurrenceEnd,
-      scheduleKind: 'recurring',
-      origin: 'recurring',
+      scheduleKind: scheduledKind,
+      origin: scheduledKind,
     });
     return { id };
   });
@@ -1612,9 +1614,9 @@ describe('App Accounts UX', () => {
     await screen.findByText('Net balance');
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '37.5' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Toggle advanced options' }));
-    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-05-04' } });
-    fireEvent.click(screen.getByLabelText('Repeat this movement'));
+    fireEvent.click(screen.getByRole('radio', { name: 'Schedule' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Recurring' }));
+    fireEvent.change(screen.getByLabelText('First execution date'), { target: { value: '2026-05-04' } });
     fireEvent.change(screen.getByLabelText('Recurrence frequency'), { target: { value: 'monthly' } });
     fireEvent.change(screen.getByLabelText('Recurrence interval'), { target: { value: '2' } });
     fireEvent.change(screen.getByLabelText('Monthly day of month'), { target: { value: '11' } });
@@ -1637,6 +1639,45 @@ describe('App Accounts UX', () => {
         dayOfMonth: 11,
       },
       recurrenceEnd: { kind: 'never' },
+      scheduleKind: 'recurring',
+    });
+    expect(core.ledgerRecordExpense).not.toHaveBeenCalled();
+  });
+
+  it('creates one-time scheduled expense from composer', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Expense');
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '25' } });
+    fireEvent.click(screen.getByRole('radio', { name: 'Schedule' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'One-time' }));
+    fireEvent.change(screen.getByLabelText('Execution date'), { target: { value: '2026-05-11' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save scheduled' }));
+
+    await waitFor(() => {
+      expect(core.recurrenceCreateRecurringMovement).toHaveBeenCalledTimes(1);
+    });
+    const scheduleCall = vi.mocked(core.recurrenceCreateRecurringMovement).mock.calls[0]?.[0];
+    expect(scheduleCall).toMatchObject({
+      type: 'expense',
+      amount: '25.00',
+      scheduleKind: 'one_shot',
+      rule: {
+        frequency: 'daily',
+        interval: 1,
+      },
+      recurrenceEnd: {
+        kind: 'after_occurrences',
+        afterOccurrences: 1,
+      },
     });
     expect(core.ledgerRecordExpense).not.toHaveBeenCalled();
   });
@@ -1703,5 +1744,49 @@ describe('App Accounts UX', () => {
       expect(screen.queryByRole('button', { name: 'Deactivate' })).not.toBeInTheDocument();
     });
     expect(screen.getByText(/#deactivated/i)).toBeInTheDocument();
+  });
+
+  it('infers one-shot metadata for legacy scheduled items', async () => {
+    const core = makeCore();
+    const legacyScheduled: SchedulingMovementItem = {
+      id: 'rec-legacy',
+      type: 'expense',
+      sourceAccountId: 'acc-1',
+      amount: '18.00',
+      currency: 'USD',
+      status: 'active',
+      startAt: '2026-05-10T10:00:00.000Z',
+      nextDueAt: '2026-05-10T10:00:00.000Z',
+      zoneId: 'UTC',
+      generatedOccurrences: 0,
+      rule: { frequency: 'daily', interval: 1 },
+      recurrenceEnd: { kind: 'after_occurrences', afterOccurrences: 1 },
+    };
+
+    core.movementsGetOverview = vi.fn(async () => ({
+      scheduledPreview: {
+        items: [legacyScheduled],
+        total: 1,
+        hasMore: false,
+      },
+      executedPage: {
+        content: [],
+        page: 0,
+        size: 10,
+        totalElements: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
+      },
+    }));
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { name: 'Scheduled' });
+    expect(screen.getByText(/one[-_ ]shot/i)).toBeInTheDocument();
   });
 });

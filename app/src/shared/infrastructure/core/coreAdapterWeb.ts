@@ -70,6 +70,7 @@ import type {
   MovementsListScheduledInput,
   MovementsListScheduledResult,
 } from '../../domain/corePort';
+import { resolveSchedulingKind } from '../../domain/schedulingKind';
 
 type MemoryLedgerAccount = {
   id: string;
@@ -2033,7 +2034,7 @@ export class CoreAdapterWeb implements CorePort {
         return false;
       })
       .filter((movement) => {
-        const resolvedOrigin = movement.origin ?? movement.scheduleKind ?? 'recurring';
+        const resolvedOrigin = resolveSchedulingKind(movement);
         if (origin === 'all') {
           return true;
         }
@@ -2115,7 +2116,14 @@ export class CoreAdapterWeb implements CorePort {
         return left.nextDueAt.localeCompare(right.nextDueAt);
       });
 
-    return filtered.map((item) => ({ ...item })) as SchedulingMovementItem[];
+    return filtered.map((item) => {
+      const kind = resolveSchedulingKind(item);
+      return {
+        ...item,
+        scheduleKind: kind,
+        origin: kind,
+      };
+    }) as SchedulingMovementItem[];
   }
 
   async movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult> {

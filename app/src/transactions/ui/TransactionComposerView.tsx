@@ -36,7 +36,8 @@ export type TransactionComposerViewRequired = {
   expenseItemName: string;
   expenseItemAmount: string;
   expenseRemaining: string;
-  recurrenceEnabled: boolean;
+  schedulingMode: 'now' | 'scheduled';
+  schedulingKind: 'one_shot' | 'recurring';
   recurrenceFrequency: RecurrenceFrequency;
   recurrenceInterval: string;
   recurrenceWeeklyDay: string;
@@ -80,7 +81,8 @@ export type TransactionComposerViewProvided = {
   onAddExpenseItem: () => void;
   onRemoveExpenseItem: (itemId: string) => void;
   onAssignRemaining: () => void;
-  onSetRecurrenceEnabled: (value: boolean) => void;
+  onSetSchedulingMode: (value: 'now' | 'scheduled') => void;
+  onSetSchedulingKind: (value: 'one_shot' | 'recurring') => void;
   onSetRecurrenceFrequency: (value: RecurrenceFrequency) => void;
   onSetRecurrenceInterval: (value: string) => void;
   onSetRecurrenceWeeklyDay: (value: string) => void;
@@ -131,7 +133,8 @@ export function TransactionComposerView({ required, provided }: Props) {
     expenseItemName,
     expenseItemAmount,
     expenseRemaining,
-    recurrenceEnabled,
+    schedulingMode,
+    schedulingKind,
     recurrenceFrequency,
     recurrenceInterval,
     recurrenceWeeklyDay,
@@ -174,7 +177,8 @@ export function TransactionComposerView({ required, provided }: Props) {
     onAddExpenseItem,
     onRemoveExpenseItem,
     onAssignRemaining,
-    onSetRecurrenceEnabled,
+    onSetSchedulingMode,
+    onSetSchedulingKind,
     onSetRecurrenceFrequency,
     onSetRecurrenceInterval,
     onSetRecurrenceWeeklyDay,
@@ -202,12 +206,13 @@ export function TransactionComposerView({ required, provided }: Props) {
   }, [open, mode]);
 
   const submitLabel = useMemo(() => {
-    if (recurrenceEnabled) return 'Save recurring';
+    if (schedulingMode === 'scheduled' && schedulingKind === 'recurring') return 'Save recurring';
+    if (schedulingMode === 'scheduled') return 'Save scheduled';
     if (mode === 'expense') return expenseDetailed ? 'Publish expense' : 'Save expense';
     if (mode === 'income') return 'Save income';
     if (mode === 'transfer') return 'Save transfer';
     return 'Continue';
-  }, [mode, expenseDetailed, recurrenceEnabled]);
+  }, [mode, expenseDetailed, schedulingMode, schedulingKind]);
 
   const amountLabel = mode === 'transfer'
     ? `Amount out${currencyCode ? ` (${currencyCode})` : ''}`
@@ -215,7 +220,16 @@ export function TransactionComposerView({ required, provided }: Props) {
 
   const amountInLabel = `Amount in${transferDestinationCurrency ? ` (${transferDestinationCurrency})` : ''}`;
   const fxLabel = `FX rate${transferDestinationCurrency && currencyCode ? ` (${transferDestinationCurrency}/${currencyCode})` : ''}`;
-  const manualDateMax = recurrenceEnabled ? undefined : new Date().toISOString().slice(0, 10);
+  const isScheduledMovement = schedulingMode === 'scheduled';
+  const isRecurringMovement = isScheduledMovement && schedulingKind === 'recurring';
+  const today = new Date().toISOString().slice(0, 10);
+  const dateInputLabel = isRecurringMovement
+    ? 'First execution date'
+    : isScheduledMovement
+      ? 'Execution date'
+      : 'Date';
+  const dateMin = isScheduledMovement ? today : undefined;
+  const dateMax = isScheduledMovement ? undefined : today;
 
   const splitReady = useMemo(() => {
     if (mode !== 'expense' || !expenseDetailed) {
@@ -372,6 +386,243 @@ export function TransactionComposerView({ required, provided }: Props) {
               </div>
             ) : null}
 
+            <div className="stack item-editor">
+              <span className="hint">When should this movement be applied?</span>
+              <div className="segmented segmented-2" role="radiogroup" aria-label="Movement timing">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={schedulingMode === 'now'}
+                  className={schedulingMode === 'now' ? 'segment active' : 'segment'}
+                  disabled={disabled}
+                  onClick={() => onSetSchedulingMode('now')}
+                >
+                  Now
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={schedulingMode === 'scheduled'}
+                  className={schedulingMode === 'scheduled' ? 'segment active' : 'segment'}
+                  disabled={disabled}
+                  onClick={() => onSetSchedulingMode('scheduled')}
+                >
+                  Schedule
+                </button>
+              </div>
+
+              {isScheduledMovement ? (
+                <div className="segmented segmented-2" role="radiogroup" aria-label="Schedule type">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={schedulingKind === 'one_shot'}
+                    className={schedulingKind === 'one_shot' ? 'segment active' : 'segment'}
+                    disabled={disabled}
+                    onClick={() => onSetSchedulingKind('one_shot')}
+                  >
+                    One-time
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={schedulingKind === 'recurring'}
+                    className={schedulingKind === 'recurring' ? 'segment active' : 'segment'}
+                    disabled={disabled}
+                    onClick={() => onSetSchedulingKind('recurring')}
+                  >
+                    Recurring
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            <label className="stack">
+              {dateInputLabel}
+              <input
+                aria-label={dateInputLabel}
+                type="date"
+                value={date}
+                min={dateMin}
+                max={dateMax}
+                onChange={(event) => onSetDate(event.target.value)}
+                aria-invalid={Boolean(dateError)}
+                aria-describedby={dateError ? 'composer-date-error' : undefined}
+              />
+            </label>
+            {dateError ? <p id="composer-date-error" className="field-error">{dateError}</p> : null}
+
+            {isRecurringMovement ? (
+              <div className="stack item-editor">
+                <label className="stack">
+                  Frequency
+                  <select
+                    aria-label="Recurrence frequency"
+                    value={recurrenceFrequency}
+                    onChange={(event) => onSetRecurrenceFrequency(event.target.value as RecurrenceFrequency)}
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
+                </label>
+
+                <label className="stack">
+                  Every
+                  <input
+                    aria-label="Recurrence interval"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={recurrenceInterval}
+                    onChange={(event) => onSetRecurrenceInterval(event.target.value)}
+                    aria-invalid={Boolean(recurrenceIntervalError)}
+                    aria-describedby={recurrenceIntervalError ? 'composer-recurrence-interval-error' : undefined}
+                  />
+                </label>
+                {recurrenceIntervalError ? (
+                  <p id="composer-recurrence-interval-error" className="field-error">{recurrenceIntervalError}</p>
+                ) : null}
+
+                {recurrenceFrequency === 'weekly' ? (
+                  <label className="stack">
+                    Weekday
+                    <select
+                      aria-label="Recurrence weekday"
+                      value={recurrenceWeeklyDay}
+                      onChange={(event) => onSetRecurrenceWeeklyDay(event.target.value)}
+                    >
+                      <option value="1">Monday</option>
+                      <option value="2">Tuesday</option>
+                      <option value="3">Wednesday</option>
+                      <option value="4">Thursday</option>
+                      <option value="5">Friday</option>
+                      <option value="6">Saturday</option>
+                      <option value="7">Sunday</option>
+                    </select>
+                  </label>
+                ) : null}
+
+                {recurrenceFrequency === 'monthly' ? (
+                  <>
+                    <label className="stack">
+                      Monthly rule
+                      <select
+                        aria-label="Monthly recurrence rule"
+                        value={recurrenceMonthlyPattern}
+                        onChange={(event) => onSetRecurrenceMonthlyPattern(event.target.value as RecurrenceMonthlyPattern)}
+                      >
+                        <option value="day_of_month">Day of month</option>
+                        <option value="nth_weekday">Nth weekday</option>
+                      </select>
+                    </label>
+
+                    {recurrenceMonthlyPattern === 'day_of_month' ? (
+                      <label className="stack">
+                        Day of month
+                        <input
+                          aria-label="Monthly day of month"
+                          type="number"
+                          min="1"
+                          max="31"
+                          step="1"
+                          value={recurrenceDayOfMonth}
+                          onChange={(event) => onSetRecurrenceDayOfMonth(event.target.value)}
+                        />
+                      </label>
+                    ) : (
+                      <div className="quick-row">
+                        <label className="stack">
+                          Ordinal
+                          <select
+                            aria-label="Monthly ordinal"
+                            value={recurrenceMonthlyOrdinal}
+                            onChange={(event) => onSetRecurrenceMonthlyOrdinal(event.target.value)}
+                          >
+                            <option value="1">1st</option>
+                            <option value="2">2nd</option>
+                            <option value="3">3rd</option>
+                            <option value="4">4th</option>
+                            <option value="5">Last-ish</option>
+                          </select>
+                        </label>
+                        <label className="stack">
+                          Weekday
+                          <select
+                            aria-label="Monthly weekday"
+                            value={recurrenceMonthlyWeekday}
+                            onChange={(event) => onSetRecurrenceMonthlyWeekday(event.target.value)}
+                          >
+                            <option value="1">Monday</option>
+                            <option value="2">Tuesday</option>
+                            <option value="3">Wednesday</option>
+                            <option value="4">Thursday</option>
+                            <option value="5">Friday</option>
+                            <option value="6">Saturday</option>
+                            <option value="7">Sunday</option>
+                          </select>
+                        </label>
+                      </div>
+                    )}
+                  </>
+                ) : null}
+
+                <label className="stack">
+                  Ends
+                  <select
+                    aria-label="Recurrence end"
+                    value={recurrenceEndKind}
+                    onChange={(event) => onSetRecurrenceEndKind(event.target.value as RecurrenceEndInput['kind'])}
+                  >
+                    <option value="never">Never</option>
+                    <option value="on_date">On date</option>
+                    <option value="after_occurrences">After count</option>
+                  </select>
+                </label>
+
+                {recurrenceEndKind === 'on_date' ? (
+                  <>
+                    <label className="stack">
+                      End date
+                      <input
+                        aria-label="Recurrence end date"
+                        type="date"
+                        value={recurrenceEndDate}
+                        onChange={(event) => onSetRecurrenceEndDate(event.target.value)}
+                        aria-invalid={Boolean(recurrenceEndDateError)}
+                        aria-describedby={recurrenceEndDateError ? 'composer-recurrence-end-date-error' : undefined}
+                      />
+                    </label>
+                    {recurrenceEndDateError ? (
+                      <p id="composer-recurrence-end-date-error" className="field-error">{recurrenceEndDateError}</p>
+                    ) : null}
+                  </>
+                ) : null}
+
+                {recurrenceEndKind === 'after_occurrences' ? (
+                  <>
+                    <label className="stack">
+                      Occurrences
+                      <input
+                        aria-label="Recurrence end count"
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={recurrenceEndCount}
+                        onChange={(event) => onSetRecurrenceEndCount(event.target.value)}
+                        aria-invalid={Boolean(recurrenceEndCountError)}
+                        aria-describedby={recurrenceEndCountError ? 'composer-recurrence-end-count-error' : undefined}
+                      />
+                    </label>
+                    {recurrenceEndCountError ? (
+                      <p id="composer-recurrence-end-count-error" className="field-error">{recurrenceEndCountError}</p>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+
             <div className="inline-header">
               <span className="hint">Need more fields?</span>
               <button type="button" className="text-button" onClick={onToggleAdvanced} aria-label="Toggle advanced options">
@@ -381,19 +632,6 @@ export function TransactionComposerView({ required, provided }: Props) {
 
             {advancedOpen ? (
               <>
-                <label className="stack">
-                  Date
-                  <input
-                    aria-label="Date"
-                    type="date"
-                    value={date}
-                    max={manualDateMax}
-                    onChange={(event) => onSetDate(event.target.value)}
-                    aria-invalid={Boolean(dateError)}
-                    aria-describedby={dateError ? 'composer-date-error' : undefined}
-                  />
-                </label>
-                {dateError ? <p id="composer-date-error" className="field-error">{dateError}</p> : null}
                 <label className="stack">
                   {mode === 'expense' ? 'Merchant (optional)' : mode === 'income' ? 'Source (optional)' : 'Note (optional)'}
                   <input
@@ -427,189 +665,6 @@ export function TransactionComposerView({ required, provided }: Props) {
                     onChange: onSetTagInput,
                   }}
                 />
-
-                <div className="stack item-editor">
-                  <label className="inline-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={recurrenceEnabled}
-                      onChange={(event) => onSetRecurrenceEnabled(event.target.checked)}
-                      disabled={disabled}
-                    />
-                    Repeat this movement
-                  </label>
-
-                  {recurrenceEnabled ? (
-                    <>
-                      <label className="stack">
-                        Frequency
-                        <select
-                          aria-label="Recurrence frequency"
-                          value={recurrenceFrequency}
-                          onChange={(event) => onSetRecurrenceFrequency(event.target.value as RecurrenceFrequency)}
-                        >
-                          <option value="daily">Daily</option>
-                          <option value="weekly">Weekly</option>
-                          <option value="monthly">Monthly</option>
-                          <option value="yearly">Yearly</option>
-                        </select>
-                      </label>
-
-                      <label className="stack">
-                        Every
-                        <input
-                          aria-label="Recurrence interval"
-                          type="number"
-                          min="1"
-                          step="1"
-                          value={recurrenceInterval}
-                          onChange={(event) => onSetRecurrenceInterval(event.target.value)}
-                          aria-invalid={Boolean(recurrenceIntervalError)}
-                          aria-describedby={recurrenceIntervalError ? 'composer-recurrence-interval-error' : undefined}
-                        />
-                      </label>
-                      {recurrenceIntervalError ? (
-                        <p id="composer-recurrence-interval-error" className="field-error">{recurrenceIntervalError}</p>
-                      ) : null}
-
-                      {recurrenceFrequency === 'weekly' ? (
-                        <label className="stack">
-                          Weekday
-                          <select
-                            aria-label="Recurrence weekday"
-                            value={recurrenceWeeklyDay}
-                            onChange={(event) => onSetRecurrenceWeeklyDay(event.target.value)}
-                          >
-                            <option value="1">Monday</option>
-                            <option value="2">Tuesday</option>
-                            <option value="3">Wednesday</option>
-                            <option value="4">Thursday</option>
-                            <option value="5">Friday</option>
-                            <option value="6">Saturday</option>
-                            <option value="7">Sunday</option>
-                          </select>
-                        </label>
-                      ) : null}
-
-                      {recurrenceFrequency === 'monthly' ? (
-                        <>
-                          <label className="stack">
-                            Monthly rule
-                            <select
-                              aria-label="Monthly recurrence rule"
-                              value={recurrenceMonthlyPattern}
-                              onChange={(event) => onSetRecurrenceMonthlyPattern(event.target.value as RecurrenceMonthlyPattern)}
-                            >
-                              <option value="day_of_month">Day of month</option>
-                              <option value="nth_weekday">Nth weekday</option>
-                            </select>
-                          </label>
-
-                          {recurrenceMonthlyPattern === 'day_of_month' ? (
-                            <label className="stack">
-                              Day of month
-                              <input
-                                aria-label="Monthly day of month"
-                                type="number"
-                                min="1"
-                                max="31"
-                                step="1"
-                                value={recurrenceDayOfMonth}
-                                onChange={(event) => onSetRecurrenceDayOfMonth(event.target.value)}
-                              />
-                            </label>
-                          ) : (
-                            <div className="quick-row">
-                              <label className="stack">
-                                Ordinal
-                                <select
-                                  aria-label="Monthly ordinal"
-                                  value={recurrenceMonthlyOrdinal}
-                                  onChange={(event) => onSetRecurrenceMonthlyOrdinal(event.target.value)}
-                                >
-                                  <option value="1">1st</option>
-                                  <option value="2">2nd</option>
-                                  <option value="3">3rd</option>
-                                  <option value="4">4th</option>
-                                  <option value="5">Last-ish</option>
-                                </select>
-                              </label>
-                              <label className="stack">
-                                Weekday
-                                <select
-                                  aria-label="Monthly weekday"
-                                  value={recurrenceMonthlyWeekday}
-                                  onChange={(event) => onSetRecurrenceMonthlyWeekday(event.target.value)}
-                                >
-                                  <option value="1">Monday</option>
-                                  <option value="2">Tuesday</option>
-                                  <option value="3">Wednesday</option>
-                                  <option value="4">Thursday</option>
-                                  <option value="5">Friday</option>
-                                  <option value="6">Saturday</option>
-                                  <option value="7">Sunday</option>
-                                </select>
-                              </label>
-                            </div>
-                          )}
-                        </>
-                      ) : null}
-
-                      <label className="stack">
-                        Ends
-                        <select
-                          aria-label="Recurrence end"
-                          value={recurrenceEndKind}
-                          onChange={(event) => onSetRecurrenceEndKind(event.target.value as RecurrenceEndInput['kind'])}
-                        >
-                          <option value="never">Never</option>
-                          <option value="on_date">On date</option>
-                          <option value="after_occurrences">After count</option>
-                        </select>
-                      </label>
-
-                      {recurrenceEndKind === 'on_date' ? (
-                        <>
-                          <label className="stack">
-                            End date
-                            <input
-                              aria-label="Recurrence end date"
-                              type="date"
-                              value={recurrenceEndDate}
-                              onChange={(event) => onSetRecurrenceEndDate(event.target.value)}
-                              aria-invalid={Boolean(recurrenceEndDateError)}
-                              aria-describedby={recurrenceEndDateError ? 'composer-recurrence-end-date-error' : undefined}
-                            />
-                          </label>
-                          {recurrenceEndDateError ? (
-                            <p id="composer-recurrence-end-date-error" className="field-error">{recurrenceEndDateError}</p>
-                          ) : null}
-                        </>
-                      ) : null}
-
-                      {recurrenceEndKind === 'after_occurrences' ? (
-                        <>
-                          <label className="stack">
-                            Occurrences
-                            <input
-                              aria-label="Recurrence end count"
-                              type="number"
-                              min="1"
-                              step="1"
-                              value={recurrenceEndCount}
-                              onChange={(event) => onSetRecurrenceEndCount(event.target.value)}
-                              aria-invalid={Boolean(recurrenceEndCountError)}
-                              aria-describedby={recurrenceEndCountError ? 'composer-recurrence-end-count-error' : undefined}
-                            />
-                          </label>
-                          {recurrenceEndCountError ? (
-                            <p id="composer-recurrence-end-count-error" className="field-error">{recurrenceEndCountError}</p>
-                          ) : null}
-                        </>
-                      ) : null}
-                    </>
-                  ) : null}
-                </div>
               </>
             ) : null}
 
@@ -620,9 +675,13 @@ export function TransactionComposerView({ required, provided }: Props) {
                     type="checkbox"
                     checked={expenseDetailed}
                     onChange={onToggleExpenseDetailed}
+                    disabled={isScheduledMovement}
                   />
                   Split into items
                 </label>
+                {isScheduledMovement ? (
+                  <p className="hint">Split items are unavailable for scheduled movements.</p>
+                ) : null}
 
                 {expenseDetailed ? (
                   <div className="stack item-editor">
