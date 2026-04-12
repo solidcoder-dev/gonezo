@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../App';
@@ -1571,18 +1571,9 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
     fireEvent.click(screen.getByRole('button', { name: 'More filters' }));
 
-    const categorySelect = await screen.findByLabelText('Categories');
-    const tagSelect = await screen.findByLabelText('Tags');
-
-    for (const option of (categorySelect as HTMLSelectElement).options) {
-      option.selected = option.value === 'cat-food';
-    }
-    fireEvent.change(categorySelect);
-
-    for (const option of (tagSelect as HTMLSelectElement).options) {
-      option.selected = option.value === 'tag-home';
-    }
-    fireEvent.change(tagSelect);
+    const advancedFilters = await screen.findByLabelText('Advanced transaction filters');
+    fireEvent.click(within(advancedFilters).getByRole('button', { name: 'Food' }));
+    fireEvent.click(within(advancedFilters).getByRole('button', { name: '#home' }));
 
     fireEvent.change(screen.getByLabelText('Min amount'), { target: { value: '5' } });
     fireEvent.change(screen.getByLabelText('Max amount'), { target: { value: '20' } });
@@ -1787,6 +1778,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Upcoming' });
-    expect(screen.getByText(/one[-_ ]shot/i)).toBeInTheDocument();
+    const upcomingGroup = screen.getByLabelText(/Upcoming group/i);
+    expect(within(upcomingGroup).getByText(/one[-_ ]shot/i)).toBeInTheDocument();
   });
 });

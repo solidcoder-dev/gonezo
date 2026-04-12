@@ -9,6 +9,21 @@ export type TransactionHistoryFilterOption = {
   label: string;
 };
 
+export type TransactionHistoryFiltersState = {
+  text: string;
+  categoryIds: string[];
+  tagIds: string[];
+  amountMin: string;
+  amountMax: string;
+  fromDate: string;
+  toDate: string;
+  status: TransactionHistoryStatusFilterValue;
+  origin: TransactionHistoryOriginFilterValue;
+  sortField: 'occurredAt' | 'amount';
+  sortDirection: 'asc' | 'desc';
+  pageSize: number;
+};
+
 export type TransactionHistoryViewRequired = {
   state: {
     items: TransactionHistoryItemView[];
@@ -17,20 +32,8 @@ export type TransactionHistoryViewRequired = {
     scheduledHasMore: boolean;
     filtersOpen: boolean;
     filtersAdvancedOpen: boolean;
-    filters: {
-      text: string;
-      categoryIds: string[];
-      tagIds: string[];
-      amountMin: string;
-      amountMax: string;
-      fromDate: string;
-      toDate: string;
-      status: TransactionHistoryStatusFilterValue;
-      origin: TransactionHistoryOriginFilterValue;
-      sortField: 'occurredAt' | 'amount';
-      sortDirection: 'asc' | 'desc';
-      pageSize: number;
-    };
+    filters: TransactionHistoryFiltersState;
+    appliedFilters: TransactionHistoryFiltersState;
     filterOptions: {
       categories: TransactionHistoryFilterOption[];
       tags: TransactionHistoryFilterOption[];
@@ -71,6 +74,7 @@ export type TransactionHistoryViewProvided = {
     setSortField: (value: 'occurredAt' | 'amount') => void;
     setSortDirection: (value: 'asc' | 'desc') => void;
     setPageSize: (value: number) => void;
+    applyFilterPatch: (patch: Partial<TransactionHistoryFiltersState>) => void;
     applyFilters: () => void;
     goToPreviousPage: () => void;
     goToNextPage: () => void;

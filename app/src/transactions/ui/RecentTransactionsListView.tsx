@@ -3,7 +3,11 @@ import { formatCurrencyAmount } from '../../shared/utils/formatting';
 import type { SchedulingMovementItem } from '../../shared/domain/corePort';
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
 import type { TransactionHistoryItemView } from '../domain/transactionView.types';
-import type { TransactionHistoryOriginFilterValue, TransactionHistoryStatusFilterValue } from './TransactionHistoryView.contract';
+import type {
+  TransactionHistoryFiltersState,
+  TransactionHistoryOriginFilterValue,
+  TransactionHistoryStatusFilterValue,
+} from './TransactionHistoryView.contract';
 import { formatCalendarDay, groupPostedTransactionsByDate } from './postedGrouping';
 import { groupScheduledMovementsByDate } from './scheduledGrouping';
 
@@ -14,20 +18,8 @@ export type RecentTransactionsListViewRequired = {
   scheduledHasMore: boolean;
   filtersOpen: boolean;
   filtersAdvancedOpen: boolean;
-  filters: {
-    text: string;
-    categoryIds: string[];
-    tagIds: string[];
-    amountMin: string;
-    amountMax: string;
-    fromDate: string;
-    toDate: string;
-    status: TransactionHistoryStatusFilterValue;
-    origin: TransactionHistoryOriginFilterValue;
-    sortField: 'occurredAt' | 'amount';
-    sortDirection: 'asc' | 'desc';
-    pageSize: number;
-  };
+  filters: TransactionHistoryFiltersState;
+  appliedFilters: TransactionHistoryFiltersState;
   filterOptions: {
     categories: Array<{ id: string; label: string }>;
     tags: Array<{ id: string; label: string }>;
@@ -63,6 +55,7 @@ export type RecentTransactionsListViewProvided = {
   onSortFieldChange: (value: 'occurredAt' | 'amount') => void;
   onSortDirectionChange: (value: 'asc' | 'desc') => void;
   onPageSizeChange: (value: number) => void;
+  onApplyFilterPatch: (patch: Partial<TransactionHistoryFiltersState>) => void;
   onApplyFilters: () => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
@@ -75,6 +68,138 @@ export type RecentTransactionsListViewProps = {
   provided: RecentTransactionsListViewProvided;
 };
 
+type ActiveFilterChip = {
+  key: string;
+  label: string;
+  clearPatch: Partial<TransactionHistoryFiltersState>;
+};
+
+const STATUS_QUICK_FILTERS: Array<{ value: TransactionHistoryStatusFilterValue; label: string }> = [
+  { value: 'all', label: 'All' },
+  { value: 'scheduled', label: 'Upcoming' },
+  { value: 'executed', label: 'Posted' },
+  { value: 'voided', label: 'Voided' },
+  { value: 'failed', label: 'Failed' },
+];
+
+const ORIGIN_QUICK_FILTERS: Array<{ value: TransactionHistoryOriginFilterValue; label: string }> = [
+  { value: 'all', label: 'Any origin' },
+  { value: 'recurring', label: 'Recurring' },
+  { value: 'one_shot', label: 'One-shot' },
+  { value: 'manual', label: 'Manual' },
+];
+
+const DEFAULT_PAGE_SIZE = 10;
+
+function summarizeNames(names: string[]): string {
+  if (names.length <= 2) {
+    return names.join(', ');
+  }
+  return `${names.slice(0, 2).join(', ')} +${names.length - 2}`;
+}
+
+function toggleIdentifier(values: string[], candidate: string): string[] {
+  if (values.includes(candidate)) {
+    return values.filter((value) => value !== candidate);
+  }
+  return [...values, candidate];
+}
+
+function buildActiveFilterChips(
+  filters: TransactionHistoryFiltersState,
+  filterOptions: RecentTransactionsListViewRequired['filterOptions'],
+): ActiveFilterChip[] {
+  const chips: ActiveFilterChip[] = [];
+  const categoryNameById = new Map(filterOptions.categories.map((item) => [item.id, item.label]));
+  const tagNameById = new Map(filterOptions.tags.map((item) => [item.id, item.label]));
+
+  if (filters.text.trim()) {
+    chips.push({
+      key: 'text',
+      label: `Search: "${filters.text.trim()}"`,
+      clearPatch: { text: '' },
+    });
+  }
+  if (filters.fromDate.trim()) {
+    chips.push({
+      key: 'fromDate',
+      label: `From ${filters.fromDate.trim()}`,
+      clearPatch: { fromDate: '' },
+    });
+  }
+  if (filters.toDate.trim()) {
+    chips.push({
+      key: 'toDate',
+      label: `To ${filters.toDate.trim()}`,
+      clearPatch: { toDate: '' },
+    });
+  }
+  if (filters.status !== 'all') {
+    const option = STATUS_QUICK_FILTERS.find((candidate) => candidate.value === filters.status);
+    chips.push({
+      key: 'status',
+      label: `Status: ${option?.label ?? filters.status}`,
+      clearPatch: { status: 'all' },
+    });
+  }
+  if (filters.origin !== 'all') {
+    const option = ORIGIN_QUICK_FILTERS.find((candidate) => candidate.value === filters.origin);
+    chips.push({
+      key: 'origin',
+      label: `Origin: ${option?.label ?? filters.origin}`,
+      clearPatch: { origin: 'all' },
+    });
+  }
+  if (filters.categoryIds.length > 0) {
+    const names = filters.categoryIds.map((id) => categoryNameById.get(id) ?? id);
+    chips.push({
+      key: 'categoryIds',
+      label: `Categories: ${summarizeNames(names)}`,
+      clearPatch: { categoryIds: [] },
+    });
+  }
+  if (filters.tagIds.length > 0) {
+    const names = filters.tagIds.map((id) => tagNameById.get(id) ?? id);
+    chips.push({
+      key: 'tagIds',
+      label: `Tags: ${summarizeNames(names)}`,
+      clearPatch: { tagIds: [] },
+    });
+  }
+  if (filters.amountMin.trim() || filters.amountMax.trim()) {
+    const min = filters.amountMin.trim() || '0';
+    const max = filters.amountMax.trim() || '∞';
+    chips.push({
+      key: 'amount',
+      label: `Amount: ${min} - ${max}`,
+      clearPatch: { amountMin: '', amountMax: '' },
+    });
+  }
+  if (filters.sortField !== 'occurredAt') {
+    chips.push({
+      key: 'sortField',
+      label: filters.sortField === 'amount' ? 'Sort: Amount' : `Sort: ${filters.sortField}`,
+      clearPatch: { sortField: 'occurredAt' },
+    });
+  }
+  if (filters.sortDirection !== 'desc') {
+    chips.push({
+      key: 'sortDirection',
+      label: 'Order: Ascending',
+      clearPatch: { sortDirection: 'desc' },
+    });
+  }
+  if (filters.pageSize !== DEFAULT_PAGE_SIZE) {
+    chips.push({
+      key: 'pageSize',
+      label: `Page size: ${filters.pageSize}`,
+      clearPatch: { pageSize: DEFAULT_PAGE_SIZE },
+    });
+  }
+
+  return chips;
+}
+
 export function RecentTransactionsListView({ required, provided }: RecentTransactionsListViewProps) {
   const {
     items,
@@ -84,6 +209,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
     filtersOpen,
     filtersAdvancedOpen,
     filters,
+    appliedFilters,
     filterOptions,
     pagination,
     loading,
@@ -182,6 +308,10 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
 
   const postedGroups = useMemo(() => groupPostedTransactionsByDate(items), [items]);
   const upcomingGroups = useMemo(() => groupScheduledMovementsByDate(scheduledItems), [scheduledItems]);
+  const activeFilterChips = useMemo(
+    () => buildActiveFilterChips(appliedFilters, filterOptions),
+    [appliedFilters, filterOptions],
+  );
 
   const totalPagesLabel = pagination.totalPages > 0 ? pagination.totalPages : 1;
   const pageLabel = pagination.totalElements > 0 ? pagination.page + 1 : 1;
@@ -201,68 +331,81 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
         )}
       </div>
 
+      <div className="stack">
+        <input
+          aria-label="Search transactions"
+          value={filters.text}
+          onChange={(event) => provided.onFilterTextChange(event.target.value)}
+          placeholder="Search merchant or description"
+          autoComplete="off"
+        />
+      </div>
+
+      <div className="chip-row" aria-label="Quick status filters">
+        {STATUS_QUICK_FILTERS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            className={appliedFilters.status === option.value ? 'chip active' : 'chip'}
+            aria-pressed={appliedFilters.status === option.value}
+            onClick={() => provided.onApplyFilterPatch({ status: option.value })}
+            disabled={disabled}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="chip-row" aria-label="Quick origin filters">
+        {ORIGIN_QUICK_FILTERS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            className={appliedFilters.origin === option.value ? 'chip active' : 'chip'}
+            aria-pressed={appliedFilters.origin === option.value}
+            onClick={() => provided.onApplyFilterPatch({ origin: option.value })}
+            disabled={disabled}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      {activeFilterChips.length > 0 ? (
+        <div className="chip-row active-filter-row" aria-label="Applied filters">
+          {activeFilterChips.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              className="chip"
+              onClick={() => provided.onApplyFilterPatch(chip.clearPatch)}
+              disabled={disabled}
+            >
+              {chip.label} x
+            </button>
+          ))}
+          <button type="button" className="text-button" onClick={provided.onResetFilters} disabled={disabled}>
+            Clear all
+          </button>
+        </div>
+      ) : null}
+
       {filtersOpen ? (
         <div className="item-editor stack" aria-label="Transaction filters">
-          <label className="stack">
-            Search
-            <input
-              aria-label="Search transactions"
-              value={filters.text}
-              onChange={(event) => provided.onFilterTextChange(event.target.value)}
-              placeholder="Merchant or description"
-              autoComplete="off"
-            />
-          </label>
-
           <div className="quick-row">
-            <label className="stack">
-              From date
-              <input
-                type="date"
-                aria-label="From date"
-                value={filters.fromDate}
-                onChange={(event) => provided.onFilterFromDateChange(event.target.value)}
-              />
-            </label>
-            <label className="stack">
-              To date
-              <input
-                type="date"
-                aria-label="To date"
-                value={filters.toDate}
-                onChange={(event) => provided.onFilterToDateChange(event.target.value)}
-              />
-            </label>
-
-          <label className="stack">
-            Status
-            <select
-                aria-label="Transaction status"
-              value={filters.status}
-              onChange={(event) => provided.onFilterStatusChange(event.target.value as TransactionHistoryStatusFilterValue)}
-            >
-              <option value="all">All</option>
-              <option value="scheduled">Upcoming</option>
-              <option value="executed">Posted</option>
-              <option value="voided">Voided</option>
-              <option value="failed">Failed</option>
-            </select>
-          </label>
-
-          <label className="stack">
-            Origin
-            <select
-              aria-label="Movement origin"
-              value={filters.origin}
-              onChange={(event) => provided.onFilterOriginChange(event.target.value as TransactionHistoryOriginFilterValue)}
-            >
-              <option value="all">All</option>
-              <option value="recurring">Recurring</option>
-              <option value="one_shot">One-shot</option>
-              <option value="manual">Manual</option>
-            </select>
-          </label>
-        </div>
+            <input
+              type="date"
+              aria-label="From date"
+              value={filters.fromDate}
+              onChange={(event) => provided.onFilterFromDateChange(event.target.value)}
+            />
+            <input
+              type="date"
+              aria-label="To date"
+              value={filters.toDate}
+              onChange={(event) => provided.onFilterToDateChange(event.target.value)}
+            />
+          </div>
 
           <div className="quick-row">
             <button type="button" className="text-button" onClick={provided.onToggleAdvancedFilters} disabled={disabled}>
@@ -275,105 +418,143 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
 
           {filtersAdvancedOpen ? (
             <div className="stack" aria-label="Advanced transaction filters">
-              <div className="quick-row">
-                <label className="stack">
-                  Categories
-                  <select
-                    multiple
-                    aria-label="Categories"
-                    value={filters.categoryIds}
-                    onChange={(event) =>
-                      provided.onFilterCategoryIdsChange(Array.from(event.currentTarget.selectedOptions).map((option) => option.value))}
-                  >
-                    {filterOptions.categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+              <div className="stack">
+                <p className="hint">Categories</p>
+                {filterOptions.categories.length > 0 ? (
+                  <div className="chip-row">
+                    {filterOptions.categories.map((category) => {
+                      const selected = filters.categoryIds.includes(category.id);
+                      return (
+                        <button
+                          key={category.id}
+                          type="button"
+                          className={selected ? 'chip active' : 'chip'}
+                          aria-pressed={selected}
+                          onClick={() => provided.onFilterCategoryIdsChange(toggleIdentifier(filters.categoryIds, category.id))}
+                          disabled={disabled}
+                        >
+                          {category.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="hint">No categories</p>
+                )}
+              </div>
 
-                <label className="stack">
-                  Tags
-                  <select
-                    multiple
-                    aria-label="Tags"
-                    value={filters.tagIds}
-                    onChange={(event) =>
-                      provided.onFilterTagIdsChange(Array.from(event.currentTarget.selectedOptions).map((option) => option.value))}
-                  >
-                    {filterOptions.tags.map((tag) => (
-                      <option key={tag.id} value={tag.id}>
-                        {tag.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="stack">
-                  Min amount
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    min="0"
-                    aria-label="Min amount"
-                    value={filters.amountMin}
-                    onChange={(event) => provided.onFilterAmountMinChange(event.target.value)}
-                  />
-                </label>
-
-                <label className="stack">
-                  Max amount
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    min="0"
-                    aria-label="Max amount"
-                    value={filters.amountMax}
-                    onChange={(event) => provided.onFilterAmountMaxChange(event.target.value)}
-                  />
-                </label>
+              <div className="stack">
+                <p className="hint">Tags</p>
+                {filterOptions.tags.length > 0 ? (
+                  <div className="chip-row">
+                    {filterOptions.tags.map((tag) => {
+                      const selected = filters.tagIds.includes(tag.id);
+                      return (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          className={selected ? 'chip active' : 'chip'}
+                          aria-pressed={selected}
+                          onClick={() => provided.onFilterTagIdsChange(toggleIdentifier(filters.tagIds, tag.id))}
+                          disabled={disabled}
+                        >
+                          #{tag.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="hint">No tags</p>
+                )}
               </div>
 
               <div className="quick-row">
-                <label className="stack">
-                  Sort by
-                  <select
-                    aria-label="Sort by"
-                    value={filters.sortField}
-                    onChange={(event) => provided.onSortFieldChange(event.target.value as 'occurredAt' | 'amount')}
-                  >
-                    <option value="occurredAt">Date</option>
-                    <option value="amount">Amount</option>
-                  </select>
-                </label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  min="0"
+                  aria-label="Min amount"
+                  value={filters.amountMin}
+                  onChange={(event) => provided.onFilterAmountMinChange(event.target.value)}
+                  placeholder="Min amount"
+                />
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  min="0"
+                  aria-label="Max amount"
+                  value={filters.amountMax}
+                  onChange={(event) => provided.onFilterAmountMaxChange(event.target.value)}
+                  placeholder="Max amount"
+                />
+              </div>
 
-                <label className="stack">
-                  Order
-                  <select
-                    aria-label="Sort direction"
-                    value={filters.sortDirection}
-                    onChange={(event) => provided.onSortDirectionChange(event.target.value as 'asc' | 'desc')}
+              <div className="stack">
+                <p className="hint">Sort by</p>
+                <div className="segmented segmented-2" role="radiogroup" aria-label="Sort by">
+                  <button
+                    type="button"
+                    className={filters.sortField === 'occurredAt' ? 'segment active' : 'segment'}
+                    aria-pressed={filters.sortField === 'occurredAt'}
+                    onClick={() => provided.onSortFieldChange('occurredAt')}
+                    disabled={disabled}
                   >
-                    <option value="desc">Descending</option>
-                    <option value="asc">Ascending</option>
-                  </select>
-                </label>
+                    Date
+                  </button>
+                  <button
+                    type="button"
+                    className={filters.sortField === 'amount' ? 'segment active' : 'segment'}
+                    aria-pressed={filters.sortField === 'amount'}
+                    onClick={() => provided.onSortFieldChange('amount')}
+                    disabled={disabled}
+                  >
+                    Amount
+                  </button>
+                </div>
+              </div>
 
-                <label className="stack">
-                  Page size
-                  <select
-                    aria-label="Page size"
-                    value={filters.pageSize}
-                    onChange={(event) => provided.onPageSizeChange(Number(event.target.value))}
+              <div className="stack">
+                <p className="hint">Order</p>
+                <div className="segmented segmented-2" role="radiogroup" aria-label="Sort direction">
+                  <button
+                    type="button"
+                    className={filters.sortDirection === 'desc' ? 'segment active' : 'segment'}
+                    aria-pressed={filters.sortDirection === 'desc'}
+                    onClick={() => provided.onSortDirectionChange('desc')}
+                    disabled={disabled}
                   >
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                  </select>
-                </label>
+                    Descending
+                  </button>
+                  <button
+                    type="button"
+                    className={filters.sortDirection === 'asc' ? 'segment active' : 'segment'}
+                    aria-pressed={filters.sortDirection === 'asc'}
+                    onClick={() => provided.onSortDirectionChange('asc')}
+                    disabled={disabled}
+                  >
+                    Ascending
+                  </button>
+                </div>
+              </div>
+
+              <div className="stack">
+                <p className="hint">Page size</p>
+                <div className="chip-row" aria-label="Page size">
+                  {[5, 10, 20].map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      className={filters.pageSize === size ? 'chip active' : 'chip'}
+                      aria-pressed={filters.pageSize === size}
+                      onClick={() => provided.onPageSizeChange(size)}
+                      disabled={disabled}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           ) : null}

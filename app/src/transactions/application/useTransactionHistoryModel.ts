@@ -9,8 +9,7 @@ import { useTransactionClassification } from '../../taxonomy/application/useTran
 import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
 import type { TransactionHistoryItemView } from '../domain/transactionView.types';
 import type {
-  TransactionHistoryOriginFilterValue,
-  TransactionHistoryStatusFilterValue,
+  TransactionHistoryFiltersState,
   TransactionHistoryViewProvided,
   TransactionHistoryViewRequired,
 } from '../ui/TransactionHistoryView.contract';
@@ -33,20 +32,7 @@ type TaxonomyAssignment = {
   taggingStatus?: string;
 };
 
-type TransactionFilterFormState = {
-  text: string;
-  categoryIds: string[];
-  tagIds: string[];
-  amountMin: string;
-  amountMax: string;
-  fromDate: string;
-  toDate: string;
-  status: TransactionHistoryStatusFilterValue;
-  origin: TransactionHistoryOriginFilterValue;
-  sortField: 'occurredAt' | 'amount';
-  sortDirection: 'asc' | 'desc';
-  pageSize: number;
-};
+type TransactionFilterFormState = TransactionHistoryFiltersState;
 
 type TransactionPaginationState = {
   page: number;
@@ -144,6 +130,29 @@ function normalizeToDate(value: string): string | undefined {
     return `${normalized}T23:59:59.999Z`;
   }
   return normalized;
+}
+
+function mergeFilterPatch(
+  base: TransactionFilterFormState,
+  patch: Partial<TransactionFilterFormState>,
+): TransactionFilterFormState {
+  const next: TransactionFilterFormState = {
+    ...base,
+    ...patch,
+  };
+  if (patch.categoryIds != null) {
+    next.categoryIds = normalizeIdentifierList(patch.categoryIds);
+  }
+  if (patch.tagIds != null) {
+    next.tagIds = normalizeIdentifierList(patch.tagIds);
+  }
+  if (patch.pageSize != null) {
+    const parsedPageSize = Number(patch.pageSize);
+    next.pageSize = Number.isFinite(parsedPageSize) && parsedPageSize > 0
+      ? Math.min(Math.trunc(parsedPageSize), 100)
+      : DEFAULT_FILTERS.pageSize;
+  }
+  return next;
 }
 
 export function useTransactionHistoryModel(input: UseTransactionHistoryModelInput) {
@@ -528,6 +537,20 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
         sortDirection: filterDraft.sortDirection,
         pageSize: filterDraft.pageSize,
       },
+      appliedFilters: {
+        text: appliedFilters.text,
+        categoryIds: appliedFilters.categoryIds,
+        tagIds: appliedFilters.tagIds,
+        amountMin: appliedFilters.amountMin,
+        amountMax: appliedFilters.amountMax,
+        fromDate: appliedFilters.fromDate,
+        toDate: appliedFilters.toDate,
+        status: appliedFilters.status,
+        origin: appliedFilters.origin,
+        sortField: appliedFilters.sortField,
+        sortDirection: appliedFilters.sortDirection,
+        pageSize: appliedFilters.pageSize,
+      },
       filterOptions: {
         categories: categories.map((category) => ({ id: category.id, label: category.name })),
         tags: tags.map((tag) => ({ id: tag.id, label: tag.name })),
@@ -594,8 +617,16 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
         const normalized = Number.isFinite(value) && value > 0 ? Math.min(Math.trunc(value), 100) : DEFAULT_FILTERS.pageSize;
         setFilterDraft((previous) => ({ ...previous, pageSize: normalized }));
       },
+      applyFilterPatch: (patch) => {
+        const next = mergeFilterPatch(appliedFilters, patch);
+        setFilterDraft(next);
+        setAppliedFilters(next);
+        setPage(0);
+        setFiltersOpen(false);
+        setFiltersAdvancedOpen(false);
+      },
       applyFilters: () => {
-        setAppliedFilters({ ...filterDraft });
+        setAppliedFilters(mergeFilterPatch(filterDraft, {}));
         setPage(0);
         setFiltersOpen(false);
         setFiltersAdvancedOpen(false);
