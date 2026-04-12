@@ -1487,7 +1487,7 @@ describe('App Accounts UX', () => {
     expect(timeElements).toHaveLength(0);
   });
 
-  it('always shows Filter action for transactions', async () => {
+  it('always shows more filters action for transactions', async () => {
     const coreWithMoreThanThree = makeCore(5);
 
     render(
@@ -1497,7 +1497,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Transactions' });
-    expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'More filters' })).toBeInTheDocument();
   });
 
   it('opens filters panel and applies search', async () => {
@@ -1511,9 +1511,9 @@ describe('App Accounts UX', () => {
 
     await screen.findByRole('heading', { name: 'Transactions' });
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Filter' })).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: 'More filters' })).not.toBeDisabled();
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'More filters' }));
     expect(screen.getByLabelText('Transaction filters')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Search transactions'), { target: { value: 'Merchant 1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -1533,9 +1533,9 @@ describe('App Accounts UX', () => {
 
     await screen.findByRole('heading', { name: 'Transactions' });
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Filter' })).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: 'More filters' })).not.toBeDisabled();
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'More filters' }));
     fireEvent.change(screen.getByLabelText('Search transactions'), { target: { value: 'Merchant 1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Search' }));
 
@@ -1548,9 +1548,9 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: /Savings/ }));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Filter' })).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: 'More filters' })).not.toBeDisabled();
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'More filters' }));
 
     expect(screen.getByLabelText('Search transactions')).toHaveValue('');
   });
@@ -1566,10 +1566,10 @@ describe('App Accounts UX', () => {
 
     await screen.findByRole('heading', { name: 'Transactions' });
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Filter' })).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: 'More filters' })).not.toBeDisabled();
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
     fireEvent.click(screen.getByRole('button', { name: 'More filters' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Advanced filters' }));
 
     const advancedFilters = await screen.findByLabelText('Advanced transaction filters');
     fireEvent.click(within(advancedFilters).getByRole('button', { name: 'Food' }));

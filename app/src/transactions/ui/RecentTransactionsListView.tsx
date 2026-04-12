@@ -312,26 +312,42 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
     () => buildActiveFilterChips(appliedFilters, filterOptions),
     [appliedFilters, filterOptions],
   );
+  const categoryLabelById = useMemo(
+    () => new Map(filterOptions.categories.map((item) => [item.id, item.label] as const)),
+    [filterOptions.categories],
+  );
+  const tagLabelById = useMemo(
+    () => new Map(filterOptions.tags.map((item) => [item.id, item.label] as const)),
+    [filterOptions.tags],
+  );
 
   const totalPagesLabel = pagination.totalPages > 0 ? pagination.totalPages : 1;
   const pageLabel = pagination.totalElements > 0 ? pagination.page + 1 : 1;
 
+  function resolveScheduledCategoryName(categoryId?: string): string | undefined {
+    if (!categoryId || categoryId.trim().length === 0) {
+      return undefined;
+    }
+    return categoryLabelById.get(categoryId);
+  }
+
+  function resolveScheduledTagNames(movement: SchedulingMovementItem): string[] {
+    const namesFromMovement = (movement.tagNames ?? [])
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0);
+    if (namesFromMovement.length > 0) {
+      return namesFromMovement;
+    }
+    return (movement.tagIds ?? [])
+      .map((tagId) => tagLabelById.get(tagId))
+      .filter((name): name is string => Boolean(name && name.trim().length > 0));
+  }
+
   return (
     <section className="stack section-gap transactions-section" aria-busy={loading}>
-      <div className="inline-header">
-        <h2>Transactions</h2>
-        {filtersOpen ? (
-          <button type="button" className="text-button" onClick={provided.onCloseFilters} disabled={disabled}>
-            Close
-          </button>
-        ) : (
-          <button type="button" className="text-button" onClick={provided.onOpenFilters} disabled={disabled}>
-            Filter
-          </button>
-        )}
-      </div>
+      <h2>Transactions</h2>
 
-      <div className="stack">
+      <div className="quick-row transactions-search-row">
         <input
           aria-label="Search transactions"
           value={filters.text}
@@ -339,6 +355,17 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
           placeholder="Search merchant or description"
           autoComplete="off"
         />
+        <button type="button" onClick={provided.onApplyFilters} disabled={disabled}>
+          Search
+        </button>
+        <button
+          type="button"
+          className="text-button"
+          onClick={filtersOpen ? provided.onCloseFilters : provided.onOpenFilters}
+          disabled={disabled}
+        >
+          {filtersOpen ? 'Hide filters' : 'More filters'}
+        </button>
       </div>
 
       <div className="chip-row" aria-label="Quick status filters">
@@ -346,7 +373,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
           <button
             key={option.value}
             type="button"
-            className={appliedFilters.status === option.value ? 'chip active' : 'chip'}
+            className={appliedFilters.status === option.value ? 'chip filter-chip active' : 'chip filter-chip'}
             aria-pressed={appliedFilters.status === option.value}
             onClick={() => provided.onApplyFilterPatch({ status: option.value })}
             disabled={disabled}
@@ -361,7 +388,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
           <button
             key={option.value}
             type="button"
-            className={appliedFilters.origin === option.value ? 'chip active' : 'chip'}
+            className={appliedFilters.origin === option.value ? 'chip filter-chip active' : 'chip filter-chip'}
             aria-pressed={appliedFilters.origin === option.value}
             onClick={() => provided.onApplyFilterPatch({ origin: option.value })}
             disabled={disabled}
@@ -377,7 +404,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
             <button
               key={chip.key}
               type="button"
-              className="chip"
+              className="chip filter-chip"
               onClick={() => provided.onApplyFilterPatch(chip.clearPatch)}
               disabled={disabled}
             >
@@ -409,7 +436,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
 
           <div className="quick-row">
             <button type="button" className="text-button" onClick={provided.onToggleAdvancedFilters} disabled={disabled}>
-              {filtersAdvancedOpen ? 'Less filters' : 'More filters'}
+              {filtersAdvancedOpen ? 'Less options' : 'Advanced filters'}
             </button>
             <button type="button" className="text-button" onClick={provided.onResetFilters} disabled={disabled}>
               Reset
@@ -428,7 +455,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
                         <button
                           key={category.id}
                           type="button"
-                          className={selected ? 'chip active' : 'chip'}
+                          className={selected ? 'chip filter-chip active' : 'chip filter-chip'}
                           aria-pressed={selected}
                           onClick={() => provided.onFilterCategoryIdsChange(toggleIdentifier(filters.categoryIds, category.id))}
                           disabled={disabled}
@@ -453,7 +480,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
                         <button
                           key={tag.id}
                           type="button"
-                          className={selected ? 'chip active' : 'chip'}
+                          className={selected ? 'chip filter-chip active' : 'chip filter-chip'}
                           aria-pressed={selected}
                           onClick={() => provided.onFilterTagIdsChange(toggleIdentifier(filters.tagIds, tag.id))}
                           disabled={disabled}
@@ -546,7 +573,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
                     <button
                       key={size}
                       type="button"
-                      className={filters.pageSize === size ? 'chip active' : 'chip'}
+                      className={filters.pageSize === size ? 'chip filter-chip active' : 'chip filter-chip'}
                       aria-pressed={filters.pageSize === size}
                       onClick={() => provided.onPageSizeChange(size)}
                       disabled={disabled}
@@ -559,11 +586,6 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
             </div>
           ) : null}
 
-          <div className="quick-row">
-            <button type="button" onClick={provided.onApplyFilters} disabled={disabled}>
-              Search
-            </button>
-          </div>
         </div>
       ) : null}
 
@@ -583,10 +605,11 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
               <p className="hint date-group-label">{group.label}</p>
               <ul className="expense-list expense-list--compact" aria-label={`Upcoming group ${group.label}`}>
                 {group.items.map((movement) => {
+                  const scheduledCategoryName = resolveScheduledCategoryName(movement.categoryId);
                   const details = [
                     `${scheduledOrigin(movement)} · due ${formatCalendarDay(movement.nextDueAt ?? movement.startAt)}`,
-                    movement.categoryId,
-                    compactTagNames(movement.tagNames),
+                    scheduledCategoryName,
+                    compactTagNames(resolveScheduledTagNames(movement)),
                   ].filter((value): value is string => Boolean(value && value.trim().length > 0));
                   const detailsLabel = details.join(' · ');
                   return (
@@ -658,10 +681,14 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
                         {[
                           transaction.category?.name,
                           compactTags(transaction.tags),
-                          transaction.categorizationStatus && transaction.categorizationStatus !== 'assigned'
+                          transaction.categorizationStatus
+                            && transaction.categorizationStatus !== 'assigned'
+                            && transaction.categorizationStatus !== 'none'
                             ? `Category: ${transaction.categorizationStatus}`
                             : undefined,
-                          transaction.taggingStatus && transaction.taggingStatus !== 'assigned'
+                          transaction.taggingStatus
+                            && transaction.taggingStatus !== 'assigned'
+                            && transaction.taggingStatus !== 'none'
                             ? `Tags: ${transaction.taggingStatus}`
                             : undefined,
                           transaction.status !== 'posted' ? `Status: ${transaction.status}` : undefined,

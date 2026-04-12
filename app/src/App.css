@@ -89,6 +89,18 @@ body {
   flex-wrap: wrap;
 }
 
+.transactions-search-row {
+  align-items: center;
+}
+
+.transactions-search-row input {
+  flex: 1 1 220px;
+}
+
+.transactions-search-row button {
+  flex: 0 0 auto;
+}
+
 .mode-row {
   display: block;
 }
@@ -544,7 +556,12 @@ select:focus-visible {
   align-items: center;
 }
 
-.active-filter-row .chip,
+.filter-chip {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+}
+
 .active-filter-row .text-button {
   min-height: 34px;
   padding: 6px 10px;

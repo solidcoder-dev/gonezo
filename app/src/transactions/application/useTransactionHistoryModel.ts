@@ -215,20 +215,40 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
   const transactionsWithTaxonomy = useMemo(
     () => transactions.map((transaction) => {
       const taxonomy = taxonomyByTransactionId[transaction.id];
-      const categoryId = taxonomy?.categoryId ?? transaction.categoryId;
-      const tagIds = taxonomy?.tagIds ?? [];
+      const categoryId = taxonomy?.categoryId ?? transaction.categoryId ?? transaction.category?.id;
+      const categoryName = categoryId
+        ? transaction.category?.name ?? categoryNameById.get(categoryId)
+        : undefined;
 
-      const category = categoryId
+      const category = categoryId && categoryName
         ? {
             id: categoryId,
-            name: categoryNameById.get(categoryId) ?? categoryId,
+            name: categoryName,
           }
         : undefined;
 
-      const transactionTags = tagIds.map((tagId) => ({
-        id: tagId,
-        name: tagNameById.get(tagId) ?? tagId,
-      }));
+      const taxonomyTagIds = taxonomy?.tagIds ?? [];
+      const fallbackTagMap = new Map(
+        (transaction.tags ?? [])
+          .map((tag) => [tag.id, tag.name] as const)
+          .filter((entry) => entry[0].trim().length > 0 && entry[1].trim().length > 0),
+      );
+      const tagIds = taxonomyTagIds.length > 0
+        ? taxonomyTagIds
+        : (transaction.tags ?? []).map((tag) => tag.id);
+
+      const transactionTags = tagIds
+        .map((tagId) => {
+          const name = tagNameById.get(tagId) ?? fallbackTagMap.get(tagId);
+          if (!name || name.trim().length === 0) {
+            return undefined;
+          }
+          return {
+            id: tagId,
+            name,
+          };
+        })
+        .filter((tag): tag is { id: string; name: string } => tag != null);
 
       return {
         ...transaction,
@@ -576,7 +596,6 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
   const provided: TransactionHistoryViewProvided = {
     commands: {
       openFilters: () => {
-        setFilterDraft({ ...appliedFilters });
         setFiltersOpen(true);
         setFiltersAdvancedOpen(false);
         void ensureFilterOptionsLoaded().catch(reportError);
