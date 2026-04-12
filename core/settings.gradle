@@ -1,1 +1,11 @@
+pluginManagement {
+  repositories {
+    gradlePluginPortal()
+    mavenCentral()
+  }
+  plugins {
+    id 'org.jetbrains.kotlin.jvm' version '2.3.0'
+  }
+}
+
 rootProject.name = 'gonezo-core'

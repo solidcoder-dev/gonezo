@@ -11,6 +11,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 import com.gonezo.multiplatform.core.AndroidLedgerCore;
+import com.gonezo.multiplatform.core.AndroidRecurringCore;
 import com.gonezo.multiplatform.core.AndroidTaxonomyCore;
 import com.gonezo.multiplatform.plugins.voice.WavRecorder;
 import com.gonezo.multiplatform.storage.AndroidObjectStorage;
@@ -58,7 +59,6 @@ public class CorePlugin extends Plugin {
   private final java.util.Map<String, JSObject> transactionVoiceSessionById = new ConcurrentHashMap<>();
   private final java.util.Map<String, WavRecorder> transactionVoiceRecorderBySessionId = new ConcurrentHashMap<>();
   private final java.util.Map<String, JSObject> transactionVoiceAnalysisById = new ConcurrentHashMap<>();
-  private final java.util.Map<String, JSObject> recurringMovementById = new ConcurrentHashMap<>();
   private ObjectStorage objectStorage;
 
   @PluginMethod
@@ -1300,60 +1300,28 @@ public class CorePlugin extends Plugin {
     JSObject recurrenceEnd = call.getObject("recurrenceEnd");
 
     try {
-      String normalizedSourceAccountId = nullIfBlank(sourceAccountId);
-      String normalizedAmount = nullIfBlank(amount);
-      String normalizedCurrency = nullIfBlank(currency);
-      if (normalizedSourceAccountId == null) {
-        throw new IllegalArgumentException("sourceAccountId is required");
-      }
-      if (normalizedAmount == null) {
-        throw new IllegalArgumentException("amount is required");
-      }
-      if (normalizedCurrency == null) {
-        throw new IllegalArgumentException("currency is required");
-      }
-      AndroidLedgerCore ledgerCore = AndroidLedgerCore.getInstance(getContext());
-      ledgerCore.getAccountSummary(normalizedSourceAccountId);
-      if ("transfer".equalsIgnoreCase(type)) {
-        String normalizedTargetAccountId = nullIfBlank(targetAccountId);
-        if (normalizedTargetAccountId == null) {
-          throw new IllegalArgumentException("targetAccountId is required for transfer recurrence");
-        }
-        if (normalizedSourceAccountId.equals(normalizedTargetAccountId)) {
-          throw new IllegalArgumentException("source and destination accounts must be different");
-        }
-        ledgerCore.getAccountSummary(normalizedTargetAccountId);
-        targetAccountId = normalizedTargetAccountId;
-      }
-      sourceAccountId = normalizedSourceAccountId;
-      amount = normalizedAmount;
-      currency = normalizedCurrency;
-
-      String id = UUID.randomUUID().toString();
-      JSObject movement = new JSObject();
-      movement.put("id", id);
-      movement.put("type", type == null ? "expense" : type.trim().toLowerCase(Locale.ROOT));
-      movement.put("sourceAccountId", sourceAccountId);
-      movement.put("targetAccountId", nullIfBlank(targetAccountId));
-      movement.put("amount", new BigDecimal(amount.trim()).setScale(2, java.math.RoundingMode.HALF_UP).toPlainString());
-      movement.put("currency", currency.trim().toUpperCase(Locale.ROOT));
-      movement.put("destinationAmount", nullIfBlank(destinationAmount));
-      movement.put("destinationCurrency", nullIfBlank(destinationCurrency));
-      movement.put("exchangeRate", nullIfBlank(exchangeRate));
-      movement.put("description", nullIfBlank(description));
-      movement.put("merchant", nullIfBlank(merchant));
-      movement.put("status", "active");
-      movement.put("startAt", startAt);
-      movement.put("nextDueAt", startAt);
-      movement.put("zoneId", zoneId == null ? "UTC" : zoneId.trim());
-      movement.put("generatedOccurrences", 0);
-      movement.put("rule", rule == null ? new JSObject() : rule);
-      movement.put("recurrenceEnd", recurrenceEnd == null ? new JSObject().put("kind", "never") : recurrenceEnd);
-      movement.put("createdAt", Instant.now().toString());
-      recurringMovementById.put(id, movement);
+      AndroidRecurringCore recurrenceCore = AndroidRecurringCore.getInstance(getContext());
+      UUID id = recurrenceCore.createRecurringMovement(
+        new AndroidRecurringCore.CreateRecurringMovementInput(
+          type == null ? "expense" : type.trim().toLowerCase(Locale.ROOT),
+          sourceAccountId,
+          nullIfBlank(targetAccountId),
+          amount,
+          currency,
+          nullIfBlank(destinationAmount),
+          nullIfBlank(destinationCurrency),
+          nullIfBlank(exchangeRate),
+          nullIfBlank(description),
+          nullIfBlank(merchant),
+          toRecurringRuleInput(rule),
+          toRecurrenceEndInput(recurrenceEnd),
+          startAt,
+          zoneId == null ? "UTC" : zoneId.trim()
+        )
+      );
 
       JSObject result = new JSObject();
-      result.put("id", id);
+      result.put("id", id.toString());
       call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());
@@ -1365,19 +1333,8 @@ public class CorePlugin extends Plugin {
     String recurringMovementId = call.getString("recurringMovementId");
     String deactivatedAt = call.getString("deactivatedAt", Instant.now().toString());
     try {
-      String id = nullIfBlank(recurringMovementId);
-      if (id == null) {
-        throw new IllegalArgumentException("recurringMovementId is required");
-      }
-      JSObject movement = recurringMovementById.get(id);
-      if (movement == null) {
-        call.reject("Recurring movement not found: " + id);
-        return;
-      }
-      movement.put("status", "deactivated");
-      movement.put("nextDueAt", JSONObject.NULL);
-      movement.put("deactivatedAt", deactivatedAt);
-      recurringMovementById.put(id, movement);
+      AndroidRecurringCore recurrenceCore = AndroidRecurringCore.getInstance(getContext());
+      recurrenceCore.deactivateRecurringMovement(recurringMovementId, deactivatedAt);
       call.resolve();
     } catch (Exception ex) {
       call.reject(ex.getMessage());
@@ -1392,29 +1349,11 @@ public class CorePlugin extends Plugin {
       if (accountId == null) {
         throw new IllegalArgumentException("sourceAccountId is required");
       }
-      List<JSObject> items = new ArrayList<>();
-      for (JSObject item : recurringMovementById.values()) {
-        if (accountId.equals(item.optString("sourceAccountId", ""))) {
-          items.add(item);
-        }
-      }
-      items.sort((left, right) -> {
-        String leftDue = left.optString("nextDueAt", "");
-        String rightDue = right.optString("nextDueAt", "");
-        if (leftDue.isEmpty() && rightDue.isEmpty()) {
-          return left.optString("id", "").compareTo(right.optString("id", ""));
-        }
-        if (leftDue.isEmpty()) {
-          return 1;
-        }
-        if (rightDue.isEmpty()) {
-          return -1;
-        }
-        return leftDue.compareTo(rightDue);
-      });
+      AndroidRecurringCore recurrenceCore = AndroidRecurringCore.getInstance(getContext());
+      List<AndroidRecurringCore.RecurringMovementView> items = recurrenceCore.listRecurringMovements(accountId);
       JSONArray array = new JSONArray();
-      for (JSObject item : items) {
-        array.put(item);
+      for (AndroidRecurringCore.RecurringMovementView item : items) {
+        array.put(toRecurringMovementJson(item));
       }
       JSObject result = new JSObject();
       result.put("items", array);
@@ -1422,6 +1361,104 @@ public class CorePlugin extends Plugin {
     } catch (Exception ex) {
       call.reject(ex.getMessage());
     }
+  }
+
+  private AndroidRecurringCore.RecurrenceRuleInput toRecurringRuleInput(JSObject rawRule) {
+    JSObject rule = rawRule == null ? new JSObject() : rawRule;
+    JSONArray rawWeeklyDays = rule.optJSONArray("weeklyDays");
+    List<Integer> weeklyDays = new ArrayList<>();
+    if (rawWeeklyDays != null) {
+      for (int index = 0; index < rawWeeklyDays.length(); index++) {
+        if (rawWeeklyDays.isNull(index)) {
+          continue;
+        }
+        int value = rawWeeklyDays.optInt(index, Integer.MIN_VALUE);
+        if (value != Integer.MIN_VALUE) {
+          weeklyDays.add(value);
+        }
+      }
+    }
+    String frequency = nullIfBlank(rule.optString("frequency", null));
+    String monthlyPattern = nullIfBlank(rule.optString("monthlyPattern", null));
+    Integer interval = nullableInteger(rule, "interval");
+    Integer dayOfMonth = nullableInteger(rule, "dayOfMonth");
+    Integer monthlyWeekOrdinal = nullableInteger(rule, "monthlyWeekOrdinal");
+    Integer monthlyWeekday = nullableInteger(rule, "monthlyWeekday");
+    return new AndroidRecurringCore.RecurrenceRuleInput(
+      frequency == null ? "daily" : frequency,
+      interval == null ? 1 : interval,
+      weeklyDays,
+      monthlyPattern == null ? "day_of_month" : monthlyPattern,
+      dayOfMonth,
+      monthlyWeekOrdinal,
+      monthlyWeekday
+    );
+  }
+
+  private AndroidRecurringCore.RecurrenceEndInput toRecurrenceEndInput(JSObject rawRecurrenceEnd) {
+    JSObject recurrenceEnd = rawRecurrenceEnd == null ? new JSObject() : rawRecurrenceEnd;
+    String kind = nullIfBlank(recurrenceEnd.optString("kind", null));
+    String onDate = nullIfBlank(recurrenceEnd.optString("onDate", null));
+    Integer afterOccurrences = nullableInteger(recurrenceEnd, "afterOccurrences");
+    return new AndroidRecurringCore.RecurrenceEndInput(
+      kind == null ? "never" : kind,
+      onDate,
+      afterOccurrences
+    );
+  }
+
+  private JSObject toRecurringMovementJson(AndroidRecurringCore.RecurringMovementView movement) {
+    JSObject result = new JSObject();
+    result.put("id", movement.getId());
+    result.put("type", movement.getType());
+    result.put("sourceAccountId", movement.getSourceAccountId());
+    result.put("targetAccountId", movement.getTargetAccountId());
+    result.put("amount", movement.getAmount());
+    result.put("currency", movement.getCurrency());
+    result.put("destinationAmount", movement.getDestinationAmount());
+    result.put("destinationCurrency", movement.getDestinationCurrency());
+    result.put("exchangeRate", movement.getExchangeRate());
+    result.put("description", movement.getDescription());
+    result.put("merchant", movement.getMerchant());
+    result.put("status", movement.getStatus());
+    result.put("startAt", movement.getStartAt());
+    result.put("nextDueAt", movement.getNextDueAt());
+    result.put("zoneId", movement.getZoneId());
+    result.put("generatedOccurrences", movement.getGeneratedOccurrences());
+    result.put("rule", toRecurrenceRuleJson(movement.getRule()));
+    result.put("recurrenceEnd", toRecurrenceEndJson(movement.getRecurrenceEnd()));
+    return result;
+  }
+
+  private JSObject toRecurrenceRuleJson(AndroidRecurringCore.RecurrenceRuleInput rule) {
+    JSObject result = new JSObject();
+    result.put("frequency", rule.getFrequency());
+    result.put("interval", rule.getInterval());
+    JSONArray weeklyDays = new JSONArray();
+    for (Integer day : rule.getWeeklyDays()) {
+      weeklyDays.put(day);
+    }
+    result.put("weeklyDays", weeklyDays);
+    result.put("monthlyPattern", rule.getMonthlyPattern());
+    result.put("dayOfMonth", rule.getDayOfMonth());
+    result.put("monthlyWeekOrdinal", rule.getMonthlyWeekOrdinal());
+    result.put("monthlyWeekday", rule.getMonthlyWeekday());
+    return result;
+  }
+
+  private JSObject toRecurrenceEndJson(AndroidRecurringCore.RecurrenceEndInput recurrenceEnd) {
+    JSObject result = new JSObject();
+    result.put("kind", recurrenceEnd.getKind());
+    result.put("onDate", recurrenceEnd.getOnDate());
+    result.put("afterOccurrences", recurrenceEnd.getAfterOccurrences());
+    return result;
+  }
+
+  private Integer nullableInteger(JSONObject input, String key) {
+    if (input == null || !input.has(key) || input.isNull(key)) {
+      return null;
+    }
+    return input.optInt(key);
   }
 
   private List<String> toStringList(JSONArray values) {

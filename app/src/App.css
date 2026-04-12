@@ -420,6 +420,10 @@ select:focus-visible {
   gap: 10px;
 }
 
+.expense-list--compact {
+  gap: 6px;
+}
+
 .expense-item {
   display: grid;
   gap: 4px;
@@ -427,6 +431,12 @@ select:focus-visible {
   border-radius: 10px;
   padding: 12px;
   border-left: 4px solid #b0b0a5;
+}
+
+.expense-item--compact {
+  padding: 9px 10px;
+  gap: 3px;
+  border-radius: 9px;
 }
 
 .expense-item--income {
@@ -467,6 +477,27 @@ select:focus-visible {
 
 .compact-meta {
   margin-top: 2px;
+}
+
+.expense-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.compact-subline {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-action {
+  min-height: 32px;
+  min-width: 0;
+  padding: 4px 10px;
+  line-height: 1;
 }
 
 .date-group-label {

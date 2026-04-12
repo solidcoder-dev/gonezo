@@ -5,6 +5,7 @@ import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
 import type { TransactionHistoryItemView } from '../domain/transactionView.types';
 import type { TransactionHistoryOriginFilterValue, TransactionHistoryStatusFilterValue } from './TransactionHistoryView.contract';
 import { formatCalendarDay, groupPostedTransactionsByDate } from './postedGrouping';
+import { groupScheduledMovementsByDate } from './scheduledGrouping';
 
 export type RecentTransactionsListViewRequired = {
   items: TransactionHistoryItemView[];
@@ -168,7 +169,19 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
     return visible.join(' ');
   }
 
+  function compactTagNames(tags?: string[]): string | undefined {
+    if (!tags || tags.length === 0) {
+      return undefined;
+    }
+    const visible = tags.slice(0, 2).map((tag) => `#${tag}`);
+    if (tags.length > 2) {
+      visible.push(`+${tags.length - 2}`);
+    }
+    return visible.join(' ');
+  }
+
   const postedGroups = useMemo(() => groupPostedTransactionsByDate(items), [items]);
+  const upcomingGroups = useMemo(() => groupScheduledMovementsByDate(scheduledItems), [scheduledItems]);
 
   const totalPagesLabel = pagination.totalPages > 0 ? pagination.totalPages : 1;
   const pageLabel = pagination.totalElements > 0 ? pagination.page + 1 : 1;
@@ -384,49 +397,50 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
               {scheduledHasMore ? ' (showing first items)' : ''}
             </span>
           </div>
-          <ul className="expense-list" aria-label="Scheduled movements list">
-            {scheduledItems.map((movement) => (
-              <li key={movement.id} className={movementTypeClass(movement.type)}>
-                <div className="expense-top-row compact-row">
-                  <div className="tx-head compact-main">
-                    <span aria-hidden>{movementKindIcon(movement.type)}</span>
-                    <strong className="compact-title">{movement.merchant || movement.description || 'Scheduled movement'}</strong>
-                  </div>
-                  <strong>
-                    {movement.type === 'income' ? '+' : movement.type === 'transfer' ? '⇄' : '-'}
-                    {txAmount(movement.amount, movement.currency)}
-                  </strong>
-                </div>
-                <span className="hint">
-                  {scheduledOrigin(movement)}
-                  {' · due '}
-                  {formatCalendarDay(movement.nextDueAt ?? movement.startAt)}
-                </span>
-                <div className="quick-row compact-meta" aria-label="Scheduled metadata">
-                  <span className="chip">#{scheduledStatus(movement)}</span>
-                  {movement.categoryId ? <span className="chip">{movement.categoryId}</span> : null}
-                  {(movement.tagNames ?? []).slice(0, 2).map((tag) => (
-                    <span key={`${movement.id}-${tag}`} className="chip">
-                      #{tag}
-                    </span>
-                  ))}
-                  {(movement.tagNames ?? []).length > 2 ? (
-                    <span className="chip">+{(movement.tagNames ?? []).length - 2}</span>
-                  ) : null}
-                </div>
-                {movement.status === 'active' ? (
-                  <button
-                    type="button"
-                    className="text-button"
-                    onClick={() => void provided.onDeactivateScheduled(movement.id)}
-                    disabled={disabled || pendingDeactivateScheduledId === movement.id}
-                  >
-                    {pendingDeactivateScheduledId === movement.id ? 'Deactivating…' : 'Deactivate'}
-                  </button>
-                ) : null}
-              </li>
-            ))}
-          </ul>
+          {upcomingGroups.map((group) => (
+            <div key={group.key} className="stack">
+              <p className="hint date-group-label">{group.label}</p>
+              <ul className="expense-list expense-list--compact" aria-label={`Upcoming group ${group.label}`}>
+                {group.items.map((movement) => {
+                  const details = [
+                    `${scheduledOrigin(movement)} · due ${formatCalendarDay(movement.nextDueAt ?? movement.startAt)}`,
+                    movement.categoryId,
+                    compactTagNames(movement.tagNames),
+                  ].filter((value): value is string => Boolean(value && value.trim().length > 0));
+                  const detailsLabel = details.join(' · ');
+                  return (
+                    <li key={movement.id} className={`${movementTypeClass(movement.type)} expense-item--compact`}>
+                      <div className="expense-top-row compact-row">
+                        <div className="tx-head compact-main">
+                          <span aria-hidden>{movementKindIcon(movement.type)}</span>
+                          <strong className="compact-title">{movement.merchant || movement.description || 'Scheduled movement'}</strong>
+                        </div>
+                        <strong>
+                          {movement.type === 'income' ? '+' : movement.type === 'transfer' ? '⇄' : '-'}
+                          {txAmount(movement.amount, movement.currency)}
+                        </strong>
+                      </div>
+                      <div className="expense-bottom-row compact-row">
+                        <span className="hint compact-subline">{detailsLabel}</span>
+                        {movement.status === 'active' ? (
+                          <button
+                            type="button"
+                            className="text-button compact-action"
+                            onClick={() => void provided.onDeactivateScheduled(movement.id)}
+                            disabled={disabled || pendingDeactivateScheduledId === movement.id}
+                          >
+                            {pendingDeactivateScheduledId === movement.id ? 'Deactivating…' : 'Deactivate'}
+                          </button>
+                        ) : (
+                          <span className="chip">{scheduledStatus(movement)}</span>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
           {scheduledHasMore ? (
             <div className="quick-row">
               <button type="button" className="text-button" disabled>
@@ -445,9 +459,9 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
           {postedGroups.map((group) => (
             <div key={group.key} className="stack">
               <p className="hint date-group-label">{group.label}</p>
-              <ul className="expense-list" aria-label={`Posted group ${group.label}`}>
+              <ul className="expense-list expense-list--compact" aria-label={`Posted group ${group.label}`}>
                 {group.items.map((transaction) => (
-                  <li key={transaction.id} className={txItemTypeClass(transaction.type)}>
+                  <li key={transaction.id} className={`${txItemTypeClass(transaction.type)} expense-item--compact`}>
                     <div className="expense-top-row compact-row">
                       <div className="tx-head compact-main">
                         <span aria-hidden>{txKindIcon(transaction.type)}</span>
@@ -458,29 +472,28 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
                         {txAmount(transaction.amount, transaction.currency)}
                       </strong>
                     </div>
-                    {transaction.category || (transaction.tags && transaction.tags.length > 0) ? (
-                      <span className="hint">
-                        {transaction.category?.name}
-                        {transaction.category && transaction.tags && transaction.tags.length > 0 ? ' · ' : ''}
-                        {compactTags(transaction.tags)}
+                    <div className="expense-bottom-row compact-row">
+                      <span className="hint compact-subline">
+                        {[
+                          transaction.category?.name,
+                          compactTags(transaction.tags),
+                          transaction.categorizationStatus && transaction.categorizationStatus !== 'assigned'
+                            ? `Category: ${transaction.categorizationStatus}`
+                            : undefined,
+                          transaction.taggingStatus && transaction.taggingStatus !== 'assigned'
+                            ? `Tags: ${transaction.taggingStatus}`
+                            : undefined,
+                          transaction.status !== 'posted' ? `Status: ${transaction.status}` : undefined,
+                        ].filter((value): value is string => Boolean(value && value.trim().length > 0)).join(' · ')}
                       </span>
-                    ) : null}
-                    {transaction.categorizationStatus && transaction.categorizationStatus !== 'assigned' ? (
-                      <span className="hint">Category: {transaction.categorizationStatus}</span>
-                    ) : null}
-                    {transaction.taggingStatus && transaction.taggingStatus !== 'assigned' ? (
-                      <span className="hint">Tags: {transaction.taggingStatus}</span>
-                    ) : null}
-                    {transaction.status !== 'posted' ? <span className="hint">Status: {transaction.status}</span> : null}
-                    <div className="quick-row">
                       {transaction.status === 'posted' ? (
                         <button
                           type="button"
-                          className="text-button"
+                          className="text-button compact-action"
                           disabled={disabled || pendingVoidTransactionId === transaction.id}
                           onClick={() => provided.onVoid(transaction.id)}
                         >
-                          {pendingVoidTransactionId === transaction.id ? 'Pending void…' : 'Void'}
+                          {pendingVoidTransactionId === transaction.id ? 'Pending…' : 'Void'}
                         </button>
                       ) : null}
                     </div>

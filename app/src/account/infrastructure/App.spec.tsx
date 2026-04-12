@@ -1743,7 +1743,7 @@ describe('App Accounts UX', () => {
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: 'Deactivate' })).not.toBeInTheDocument();
     });
-    expect(screen.getByText(/#deactivated/i)).toBeInTheDocument();
+    expect(screen.getByText(/^deactivated$/i)).toBeInTheDocument();
   });
 
   it('infers one-shot metadata for legacy scheduled items', async () => {
