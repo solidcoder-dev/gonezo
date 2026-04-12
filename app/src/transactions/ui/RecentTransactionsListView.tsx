@@ -1,8 +1,10 @@
-import { formatCurrencyAmount, formatIsoDateTime } from '../../shared/utils/formatting';
+import { useMemo } from 'react';
+import { formatCurrencyAmount } from '../../shared/utils/formatting';
 import type { SchedulingMovementItem } from '../../shared/domain/corePort';
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
 import type { TransactionHistoryItemView } from '../domain/transactionView.types';
 import type { TransactionHistoryOriginFilterValue, TransactionHistoryStatusFilterValue } from './TransactionHistoryView.contract';
+import { formatCalendarDay, groupPostedTransactionsByDate } from './postedGrouping';
 
 export type RecentTransactionsListViewRequired = {
   items: TransactionHistoryItemView[];
@@ -103,8 +105,36 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
     return '';
   }
 
-  function txBadgeClass(type: TransactionHistoryItemView['type']): string {
-    return type === 'income' || type === 'transfer_in' ? 'tx-badge income' : 'tx-badge expense';
+  function txItemTypeClass(type: TransactionHistoryItemView['type']): string {
+    if (type === 'income' || type === 'transfer_in') {
+      return 'expense-item expense-item--income';
+    }
+    if (type === 'transfer' || type === 'transfer_out') {
+      return 'expense-item expense-item--transfer';
+    }
+    return 'expense-item expense-item--expense';
+  }
+
+  function movementTypeClass(type: SchedulingMovementItem['type']): string {
+    if (type === 'income') {
+      return 'expense-item expense-item--income';
+    }
+    if (type === 'transfer') {
+      return 'expense-item expense-item--transfer';
+    }
+    return 'expense-item expense-item--expense';
+  }
+
+  function txKindIcon(type: TransactionHistoryItemView['type']): string {
+    if (type === 'income' || type === 'transfer_in') return '↑';
+    if (type === 'transfer' || type === 'transfer_out') return '⇄';
+    return '↓';
+  }
+
+  function movementKindIcon(type: SchedulingMovementItem['type']): string {
+    if (type === 'income') return '↑';
+    if (type === 'transfer') return '⇄';
+    return '↓';
   }
 
   function txAmount(amount: string, currency: string): string {
@@ -126,6 +156,19 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
     const kind = resolveSchedulingKind(item);
     return kind === 'one_shot' ? 'one-shot' : 'recurring';
   }
+
+  function compactTags(tags?: Array<{ id: string; name: string }>): string | undefined {
+    if (!tags || tags.length === 0) {
+      return undefined;
+    }
+    const visible = tags.slice(0, 2).map((tag) => `#${tag.name}`);
+    if (tags.length > 2) {
+      visible.push(`+${tags.length - 2}`);
+    }
+    return visible.join(' ');
+  }
+
+  const postedGroups = useMemo(() => groupPostedTransactionsByDate(items), [items]);
 
   const totalPagesLabel = pagination.totalPages > 0 ? pagination.totalPages : 1;
   const pageLabel = pagination.totalElements > 0 ? pagination.page + 1 : 1;
@@ -186,8 +229,8 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
               onChange={(event) => provided.onFilterStatusChange(event.target.value as TransactionHistoryStatusFilterValue)}
             >
               <option value="all">All</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="executed">Executed</option>
+              <option value="scheduled">Upcoming</option>
+              <option value="executed">Posted</option>
               <option value="voided">Voided</option>
               <option value="failed">Failed</option>
             </select>
@@ -335,7 +378,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
       {!loading && scheduledItems.length > 0 ? (
         <div className="stack">
           <div className="inline-header">
-            <h3>Scheduled</h3>
+            <h3>Upcoming</h3>
             <span className="hint">
               {scheduledTotal}
               {scheduledHasMore ? ' (showing first items)' : ''}
@@ -343,31 +386,33 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
           </div>
           <ul className="expense-list" aria-label="Scheduled movements list">
             {scheduledItems.map((movement) => (
-              <li key={movement.id} className="expense-item">
-                <div className="expense-top-row">
-                  <div className="tx-head">
-                    <span className={txBadgeClass(movement.type === 'transfer' ? 'transfer_out' : movement.type)}>
-                      {movement.type}
-                    </span>
-                    <strong>
-                      {movement.type === 'income' ? '+' : '-'}
-                      {txAmount(movement.amount, movement.currency)}
-                    </strong>
+              <li key={movement.id} className={movementTypeClass(movement.type)}>
+                <div className="expense-top-row compact-row">
+                  <div className="tx-head compact-main">
+                    <span aria-hidden>{movementKindIcon(movement.type)}</span>
+                    <strong className="compact-title">{movement.merchant || movement.description || 'Scheduled movement'}</strong>
                   </div>
-                  <time dateTime={movement.nextDueAt ?? movement.startAt}>
-                    {formatIsoDateTime(movement.nextDueAt ?? movement.startAt)}
-                  </time>
+                  <strong>
+                    {movement.type === 'income' ? '+' : movement.type === 'transfer' ? '⇄' : '-'}
+                    {txAmount(movement.amount, movement.currency)}
+                  </strong>
                 </div>
-                <span>{movement.merchant || movement.description || 'Scheduled movement'}</span>
-                <div className="quick-row" aria-label="Scheduled metadata">
+                <span className="hint">
+                  {scheduledOrigin(movement)}
+                  {' · due '}
+                  {formatCalendarDay(movement.nextDueAt ?? movement.startAt)}
+                </span>
+                <div className="quick-row compact-meta" aria-label="Scheduled metadata">
                   <span className="chip">#{scheduledStatus(movement)}</span>
-                  <span className="chip">{scheduledOrigin(movement)}</span>
                   {movement.categoryId ? <span className="chip">{movement.categoryId}</span> : null}
-                  {(movement.tagNames ?? []).map((tag) => (
+                  {(movement.tagNames ?? []).slice(0, 2).map((tag) => (
                     <span key={`${movement.id}-${tag}`} className="chip">
                       #{tag}
                     </span>
                   ))}
+                  {(movement.tagNames ?? []).length > 2 ? (
+                    <span className="chip">+{(movement.tagNames ?? []).length - 2}</span>
+                  ) : null}
                 </div>
                 {movement.status === 'active' ? (
                   <button
@@ -382,63 +427,73 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
               </li>
             ))}
           </ul>
+          {scheduledHasMore ? (
+            <div className="quick-row">
+              <button type="button" className="text-button" disabled>
+                See all upcoming
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
-      {!loading && items.length > 0 ? (
-        <ul className="expense-list" aria-label="Transactions list">
-          {items.map((transaction) => (
-            <li key={transaction.id} className="expense-item">
-              <div className="expense-top-row">
-                <div className="tx-head">
-                  <span className={txBadgeClass(transaction.type)}>
-                    {txLabel(transaction.type)}
-                  </span>
-                  <strong>
-                    {txSign(transaction.type)}
-                    {txAmount(transaction.amount, transaction.currency)}
-                  </strong>
-                </div>
-                <time dateTime={transaction.occurredAt}>{formatIsoDateTime(transaction.occurredAt)}</time>
-              </div>
-              <span>{transaction.merchant || transaction.description || 'No description'}</span>
-              {transaction.category || (transaction.tags && transaction.tags.length > 0) ? (
-                <div className="quick-row" aria-label="Transaction taxonomy">
-                  {transaction.category ? (
-                    <span className="chip active">{transaction.category.name}</span>
-                  ) : null}
-                  {(transaction.tags ?? []).map((tag) => (
-                    <span key={tag.id} className="chip">
-                      #{tag.name}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-              {transaction.categorizationStatus && transaction.categorizationStatus !== 'assigned' ? (
-                <span className="hint">Category: {transaction.categorizationStatus}</span>
-              ) : null}
-              {transaction.taggingStatus && transaction.taggingStatus !== 'assigned' ? (
-                <span className="hint">Tags: {transaction.taggingStatus}</span>
-              ) : null}
-              {transaction.status !== 'posted' ? <span className="hint">Status: {transaction.status}</span> : null}
-              <div className="quick-row">
-                {transaction.status === 'posted' ? (
-                  <button
-                    type="button"
-                    className="text-button"
-                    disabled={disabled || pendingVoidTransactionId === transaction.id}
-                    onClick={() => provided.onVoid(transaction.id)}
-                  >
-                    {pendingVoidTransactionId === transaction.id ? 'Pending void…' : 'Void'}
-                  </button>
-                ) : null}
-              </div>
-            </li>
+      {!loading && postedGroups.length > 0 ? (
+        <div className="stack" aria-label="Posted movements">
+          <div className="inline-header">
+            <h3>Posted</h3>
+            <span className="hint">{pagination.totalElements} items</span>
+          </div>
+          {postedGroups.map((group) => (
+            <div key={group.key} className="stack">
+              <p className="hint date-group-label">{group.label}</p>
+              <ul className="expense-list" aria-label={`Posted group ${group.label}`}>
+                {group.items.map((transaction) => (
+                  <li key={transaction.id} className={txItemTypeClass(transaction.type)}>
+                    <div className="expense-top-row compact-row">
+                      <div className="tx-head compact-main">
+                        <span aria-hidden>{txKindIcon(transaction.type)}</span>
+                        <strong className="compact-title">{transaction.merchant || transaction.description || txLabel(transaction.type)}</strong>
+                      </div>
+                      <strong>
+                        {txSign(transaction.type)}
+                        {txAmount(transaction.amount, transaction.currency)}
+                      </strong>
+                    </div>
+                    {transaction.category || (transaction.tags && transaction.tags.length > 0) ? (
+                      <span className="hint">
+                        {transaction.category?.name}
+                        {transaction.category && transaction.tags && transaction.tags.length > 0 ? ' · ' : ''}
+                        {compactTags(transaction.tags)}
+                      </span>
+                    ) : null}
+                    {transaction.categorizationStatus && transaction.categorizationStatus !== 'assigned' ? (
+                      <span className="hint">Category: {transaction.categorizationStatus}</span>
+                    ) : null}
+                    {transaction.taggingStatus && transaction.taggingStatus !== 'assigned' ? (
+                      <span className="hint">Tags: {transaction.taggingStatus}</span>
+                    ) : null}
+                    {transaction.status !== 'posted' ? <span className="hint">Status: {transaction.status}</span> : null}
+                    <div className="quick-row">
+                      {transaction.status === 'posted' ? (
+                        <button
+                          type="button"
+                          className="text-button"
+                          disabled={disabled || pendingVoidTransactionId === transaction.id}
+                          onClick={() => provided.onVoid(transaction.id)}
+                        >
+                          {pendingVoidTransactionId === transaction.id ? 'Pending void…' : 'Void'}
+                        </button>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : null}
 
       <div className="inline-header">
-        <p className="hint">Page {pageLabel} of {totalPagesLabel} · {pagination.totalElements} executed</p>
+        <p className="hint">Page {pageLabel} of {totalPagesLabel} · {pagination.totalElements} posted</p>
         <div className="quick-row">
           <button
             type="button"

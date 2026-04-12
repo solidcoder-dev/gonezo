@@ -426,6 +426,19 @@ select:focus-visible {
   background: #f4f4ef;
   border-radius: 10px;
   padding: 12px;
+  border-left: 4px solid #b0b0a5;
+}
+
+.expense-item--income {
+  border-left-color: #1b5b28;
+}
+
+.expense-item--expense {
+  border-left-color: #8a2020;
+}
+
+.expense-item--transfer {
+  border-left-color: #4a4a44;
 }
 
 .expense-top-row {
@@ -433,6 +446,36 @@ select:focus-visible {
   justify-content: space-between;
   gap: 8px;
   align-items: baseline;
+}
+
+.compact-row {
+  align-items: center;
+}
+
+.compact-main {
+  min-width: 0;
+  gap: 6px;
+}
+
+.compact-title {
+  display: inline-block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-meta {
+  margin-top: 2px;
+}
+
+.date-group-label {
+  margin: 2px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid #e6e6da;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .tx-head {

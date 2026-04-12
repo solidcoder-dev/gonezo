@@ -1479,12 +1479,12 @@ describe('App Accounts UX', () => {
       expect(listTransactionTaxonomy).toHaveBeenCalledWith({ transactionIds: ['tx-1'] });
     });
 
-    expect(screen.getByText('Food')).toBeInTheDocument();
-    expect(screen.getByText('#home')).toBeInTheDocument();
-    expect(screen.getByText('#london')).toBeInTheDocument();
+    expect(screen.getByText(/Food/)).toBeInTheDocument();
+    expect(screen.getByText(/#home/)).toBeInTheDocument();
+    expect(screen.getByText(/#london/)).toBeInTheDocument();
 
     const timeElements = [...view.container.querySelectorAll('time')];
-    expect(timeElements.some((element) => (element.textContent ?? '').includes(':'))).toBe(true);
+    expect(timeElements).toHaveLength(0);
   });
 
   it('always shows Filter action for transactions', async () => {
@@ -1731,7 +1731,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Scheduled' });
+    await screen.findByRole('heading', { name: 'Upcoming' });
     const deactivateButton = await screen.findByRole('button', { name: 'Deactivate' });
     fireEvent.click(deactivateButton);
 
@@ -1786,7 +1786,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Scheduled' });
+    await screen.findByRole('heading', { name: 'Upcoming' });
     expect(screen.getByText(/one[-_ ]shot/i)).toBeInTheDocument();
   });
 });
