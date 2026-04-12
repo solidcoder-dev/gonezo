@@ -17,7 +17,6 @@ export function AccountPageView({ required, provided }: AccountPageViewProps) {
       {required.sections.accountHub}
       {required.sections.accountSummary}
       {required.sections.transactionEntry}
-      {required.sections.recurringMovements}
       {required.sections.recentTransactions}
       {required.sections.transactionsImport}
     </section>

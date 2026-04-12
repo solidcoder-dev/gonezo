@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { LedgerTransactionListItem, TaxonomyCategoryItem, TaxonomyTagItem } from '../../shared/domain/corePort';
+import type { LedgerTransactionListItem, SchedulingMovementItem, TaxonomyCategoryItem, TaxonomyTagItem } from '../../shared/domain/corePort';
 import { useLedgerTransactions } from '../../ledger/application/useLedgerTransactions';
 import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
+import { createSchedulingGateway } from '../../scheduling/infrastructure/schedulingGateway';
 import { useCategorySuggestions } from '../../taxonomy/application/useCategorySuggestions';
 import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions';
 import { useTransactionClassification } from '../../taxonomy/application/useTransactionClassification';
 import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
 import type { TransactionHistoryItemView } from '../domain/transactionView.types';
 import type {
+  TransactionHistoryOriginFilterValue,
   TransactionHistoryStatusFilterValue,
   TransactionHistoryViewProvided,
   TransactionHistoryViewRequired,
@@ -40,6 +42,7 @@ type TransactionFilterFormState = {
   fromDate: string;
   toDate: string;
   status: TransactionHistoryStatusFilterValue;
+  origin: TransactionHistoryOriginFilterValue;
   sortField: 'occurredAt' | 'amount';
   sortDirection: 'asc' | 'desc';
   pageSize: number;
@@ -65,6 +68,7 @@ const DEFAULT_FILTERS: TransactionFilterFormState = {
   fromDate: '',
   toDate: '',
   status: 'all',
+  origin: 'all',
   sortField: 'occurredAt',
   sortDirection: 'desc',
   pageSize: 10,
@@ -142,15 +146,6 @@ function normalizeToDate(value: string): string | undefined {
   return normalized;
 }
 
-function resolveStatuses(
-  status: TransactionHistoryStatusFilterValue,
-): Array<'draft' | 'posted' | 'voided'> | undefined {
-  if (status === 'all') {
-    return undefined;
-  }
-  return [status];
-}
-
 export function useTransactionHistoryModel(input: UseTransactionHistoryModelInput) {
   const { core, accountId, enabled, refreshSignal, onVoided, onError } = input;
 
@@ -163,6 +158,9 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
   const [toastAction, setToastAction] = useState<(() => void) | null>(null);
 
   const [transactions, setTransactions] = useState<LedgerTransactionListItem[]>([]);
+  const [scheduledItems, setScheduledItems] = useState<SchedulingMovementItem[]>([]);
+  const [scheduledTotal, setScheduledTotal] = useState(0);
+  const [scheduledHasMore, setScheduledHasMore] = useState(false);
   const [taxonomyByTransactionId, setTaxonomyByTransactionId] = useState<Record<string, TaxonomyAssignment>>({});
   const [categories, setCategories] = useState<TaxonomyCategoryItem[]>([]);
   const [tags, setTags] = useState<TaxonomyTagItem[]>([]);
@@ -175,11 +173,13 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
   const [pagination, setPagination] = useState<TransactionPaginationState>(EMPTY_PAGINATION);
 
   const [pendingVoidTransactionId, setPendingVoidTransactionId] = useState('');
+  const [pendingDeactivateScheduledId, setPendingDeactivateScheduledId] = useState('');
   const [voidMutationPhase, setVoidMutationPhase] = useState<'idle' | 'scheduled' | 'committing'>('idle');
   const pendingVoidTimerRef = useRef<number | null>(null);
   const previousAccountIdRef = useRef<string | null>(null);
 
   const ledgerGateway = useMemo(() => createLedgerGateway(core), [core]);
+  const schedulingGateway = useMemo(() => createSchedulingGateway(core), [core]);
   const taxonomyGateway = useMemo(() => createTaxonomyGateway(core), [core]);
 
   const ledgerTransactions = useLedgerTransactions(ledgerGateway);
@@ -319,6 +319,10 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
   async function refreshTransactions() {
     if (!accountId) {
       setTransactions([]);
+      setScheduledItems([]);
+      setScheduledTotal(0);
+      setScheduledHasMore(false);
+      setPendingDeactivateScheduledId('');
       setTaxonomyByTransactionId({});
       setPagination({ ...EMPTY_PAGINATION, size: appliedFilters.pageSize });
       return;
@@ -332,7 +336,7 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
       [amountMin, amountMax] = [amountMax, amountMin];
     }
 
-    const transactionResult = await ledgerTransactions.listTransactions({
+    const overviewResult = await schedulingGateway.movementsGetOverview({
       accountId,
       filters: {
         text: appliedFilters.text.trim() || undefined,
@@ -343,9 +347,11 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
         amountMax,
         fromDate: normalizeFromDate(appliedFilters.fromDate),
         toDate: normalizeToDate(appliedFilters.toDate),
-        statuses: resolveStatuses(appliedFilters.status),
+        status: appliedFilters.status,
+        origin: appliedFilters.origin,
+        types: undefined,
       },
-      pagination: {
+      executedPagination: {
         page,
         size: appliedFilters.pageSize,
       },
@@ -355,20 +361,24 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
           direction: appliedFilters.sortDirection,
         },
       ],
+      scheduledPreviewSize: 5,
     });
-    setTransactions(transactionResult.content);
+    setTransactions(overviewResult.executedPage.content);
+    setScheduledItems(overviewResult.scheduledPreview.items);
+    setScheduledTotal(overviewResult.scheduledPreview.total);
+    setScheduledHasMore(overviewResult.scheduledPreview.hasMore);
     setPagination({
-      page: transactionResult.page,
-      size: transactionResult.size,
-      totalElements: transactionResult.totalElements,
-      totalPages: transactionResult.totalPages,
-      hasNext: transactionResult.hasNext,
-      hasPrevious: transactionResult.hasPrevious,
+      page: overviewResult.executedPage.page,
+      size: overviewResult.executedPage.size,
+      totalElements: overviewResult.executedPage.totalElements,
+      totalPages: overviewResult.executedPage.totalPages,
+      hasNext: overviewResult.executedPage.hasNext,
+      hasPrevious: overviewResult.executedPage.hasPrevious,
     });
-    if (page !== transactionResult.page) {
-      setPage(transactionResult.page);
+    if (page !== overviewResult.executedPage.page) {
+      setPage(overviewResult.executedPage.page);
     }
-    await refreshTaxonomyAssignments(transactionResult.content);
+    await refreshTaxonomyAssignments(overviewResult.executedPage.content);
   }
 
   useEffect(() => {
@@ -376,6 +386,9 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
       previousAccountIdRef.current = accountId;
       setLoading(false);
       setTransactions([]);
+      setScheduledItems([]);
+      setScheduledTotal(0);
+      setScheduledHasMore(false);
       setTaxonomyByTransactionId({});
       setError('');
       clearToastState();
@@ -400,6 +413,10 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
       setPage(0);
       setPagination(EMPTY_PAGINATION);
       setTransactions([]);
+      setScheduledItems([]);
+      setScheduledTotal(0);
+      setScheduledHasMore(false);
+      setPendingDeactivateScheduledId('');
       setTaxonomyByTransactionId({});
       setLoading(true);
       return;
@@ -456,6 +473,22 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
     }
   }
 
+  async function deactivateScheduledMovement(scheduledMovementId: string) {
+    setError('');
+    setPendingDeactivateScheduledId(scheduledMovementId);
+    try {
+      await schedulingGateway.schedulingDeactivateMovement({
+        recurringMovementId: scheduledMovementId,
+      });
+      await refreshTransactions();
+      showToast('Scheduled movement deactivated.');
+    } catch (err) {
+      reportError(err);
+    } finally {
+      setPendingDeactivateScheduledId('');
+    }
+  }
+
   function requestVoidTransaction(transactionId: string) {
     setError('');
     clearPendingVoidTimer();
@@ -476,6 +509,9 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
   const required: TransactionHistoryViewRequired = {
     state: {
       items: historyItems,
+      scheduledItems,
+      scheduledTotal,
+      scheduledHasMore,
       filtersOpen,
       filtersAdvancedOpen,
       filters: {
@@ -487,6 +523,7 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
         fromDate: filterDraft.fromDate,
         toDate: filterDraft.toDate,
         status: filterDraft.status,
+        origin: filterDraft.origin,
         sortField: filterDraft.sortField,
         sortDirection: filterDraft.sortDirection,
         pageSize: filterDraft.pageSize,
@@ -504,6 +541,7 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
         hasPrevious: pagination.hasPrevious,
       },
       pendingVoidTransactionId: pendingVoidTransactionId || undefined,
+      pendingDeactivateScheduledId: pendingDeactivateScheduledId || undefined,
     },
     status: {
       loading,
@@ -549,6 +587,7 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
       setFilterFromDate: (value) => setFilterDraft((previous) => ({ ...previous, fromDate: value })),
       setFilterToDate: (value) => setFilterDraft((previous) => ({ ...previous, toDate: value })),
       setFilterStatus: (value) => setFilterDraft((previous) => ({ ...previous, status: value })),
+      setFilterOrigin: (value) => setFilterDraft((previous) => ({ ...previous, origin: value })),
       setSortField: (value) => setFilterDraft((previous) => ({ ...previous, sortField: value })),
       setSortDirection: (value) => setFilterDraft((previous) => ({ ...previous, sortDirection: value })),
       setPageSize: (value) => {
@@ -571,6 +610,7 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
         setPage((previous) => previous + 1);
       },
       requestVoid: requestVoidTransaction,
+      deactivateScheduledMovement,
       undoVoid: () => toastAction?.(),
     },
   };

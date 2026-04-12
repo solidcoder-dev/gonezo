@@ -7,6 +7,9 @@ import type {
   LedgerListTransactionsInput,
   LedgerListTransactionsResult,
   LedgerTransactionListItem,
+  MovementsGetOverviewInput,
+  MovementsListScheduledInput,
+  SchedulingMovementItem,
 } from '../../shared/domain/corePort';
 
 function toPagedResult(
@@ -107,8 +110,9 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     status: 'posted',
     items: [],
   }));
+  const scheduledMovements: SchedulingMovementItem[] = [];
 
-  return {
+  const core: AccountsCorePort = {
     doThing: vi.fn(async () => ({ status: 'ok' as const, message: 'ok' })) as AccountsCorePort['doThing'],
     ledgerListSupportedCurrencies: vi.fn(async () => ({ items: ['EUR', 'USD'] })),
     ledgerListAccounts: vi.fn(async () => ({
@@ -208,7 +212,138 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     recurrenceCreateRecurringMovement: vi.fn(async () => ({ id: 'rec-1' })),
     recurrenceDeactivateRecurringMovement: vi.fn(async () => undefined),
     recurrenceListRecurringMovements: vi.fn(async () => ({ items: [] })),
+    schedulingCreateMovement: vi.fn(async (input) => core.recurrenceCreateRecurringMovement(input)),
+    schedulingDeactivateMovement: vi.fn(async (input) => core.recurrenceDeactivateRecurringMovement(input)),
+    schedulingListMovements: vi.fn(async (input) => {
+      const sourceAccountId = input.sourceAccountId;
+      return { items: scheduledMovements.filter((item) => item.sourceAccountId === sourceAccountId) };
+    }),
+    movementsGetOverview: vi.fn(async (input: MovementsGetOverviewInput) => {
+      const statuses = input.filters?.status === 'executed'
+        ? ['posted' as const]
+        : input.filters?.status === 'voided'
+          ? ['voided' as const]
+          : undefined;
+
+      const executedPage = await core.ledgerListTransactions({
+        accountId: input.accountId,
+        filters: {
+          text: input.filters?.text,
+          merchant: input.filters?.merchant,
+          categoryId: input.filters?.categoryId,
+          categoryIds: input.filters?.categoryIds,
+          tagIds: input.filters?.tagIds,
+          amountMin: input.filters?.amountMin,
+          amountMax: input.filters?.amountMax,
+          fromDate: input.filters?.fromDate,
+          toDate: input.filters?.toDate,
+          statuses,
+        },
+        pagination: input.executedPagination,
+        sort: input.sort,
+      });
+
+      const previewSize = input.scheduledPreviewSize ?? 5;
+      const filteredScheduled = scheduledMovements
+        .filter((item) => item.sourceAccountId === input.accountId)
+        .filter((item) => {
+          const status = input.filters?.status ?? 'all';
+          if (status === 'all') return true;
+          if (status === 'scheduled') return item.status === 'active';
+          return false;
+        })
+        .filter((item) => {
+          const origin = input.filters?.origin ?? 'all';
+          if (origin === 'all') return true;
+          if (origin === 'manual') return false;
+          return (item.origin ?? item.scheduleKind ?? 'recurring') === origin;
+        });
+
+      const shouldHideExecuted = (input.filters?.status === 'scheduled' || input.filters?.status === 'failed')
+        || input.filters?.origin === 'recurring'
+        || input.filters?.origin === 'one_shot';
+
+      return {
+        scheduledPreview: {
+          items: filteredScheduled.slice(0, previewSize),
+          total: filteredScheduled.length,
+          hasMore: filteredScheduled.length > previewSize,
+        },
+        executedPage: shouldHideExecuted
+          ? {
+              content: [],
+              page: 0,
+              size: executedPage.size,
+              totalElements: 0,
+              totalPages: 0,
+              hasNext: false,
+              hasPrevious: false,
+            }
+          : executedPage,
+      };
+    }),
+    movementsListScheduled: vi.fn(async (input: MovementsListScheduledInput) => {
+      const source = scheduledMovements.filter((item) => item.sourceAccountId === input.accountId);
+      const size = input.pagination?.size ?? 20;
+      const requestedPage = input.pagination?.page ?? 0;
+      const page = Math.max(0, requestedPage);
+      const totalElements = source.length;
+      const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / size);
+      const resolvedPage = totalPages === 0 ? 0 : Math.min(page, totalPages - 1);
+      const start = resolvedPage * size;
+      return {
+        content: source.slice(start, start + size),
+        page: resolvedPage,
+        size,
+        totalElements,
+        totalPages,
+        hasNext: totalPages > 0 && resolvedPage + 1 < totalPages,
+        hasPrevious: resolvedPage > 0,
+      };
+    }),
   };
+
+  vi.mocked(core.recurrenceCreateRecurringMovement).mockImplementation(async (input) => {
+    const id = `rec-${scheduledMovements.length + 1}`;
+    scheduledMovements.push({
+      id,
+      type: input.type,
+      sourceAccountId: input.sourceAccountId,
+      targetAccountId: input.targetAccountId,
+      amount: input.amount,
+      currency: input.currency,
+      destinationAmount: input.destinationAmount,
+      destinationCurrency: input.destinationCurrency,
+      exchangeRate: input.exchangeRate,
+      description: input.description,
+      merchant: input.merchant,
+      categoryId: input.categoryId,
+      tagIds: input.tagIds,
+      tagNames: input.tagNames,
+      status: 'active',
+      startAt: input.startAt,
+      nextDueAt: input.startAt,
+      zoneId: input.zoneId,
+      generatedOccurrences: 0,
+      rule: input.rule,
+      recurrenceEnd: input.recurrenceEnd,
+      scheduleKind: 'recurring',
+      origin: 'recurring',
+    });
+    return { id };
+  });
+  vi.mocked(core.recurrenceDeactivateRecurringMovement).mockImplementation(async (input) => {
+    const movement = scheduledMovements.find((item) => item.id === input.recurringMovementId);
+    if (movement) {
+      movement.status = 'deactivated';
+      movement.nextDueAt = undefined;
+    }
+  });
+  vi.mocked(core.recurrenceListRecurringMovements).mockImplementation(async (input) => ({
+    items: scheduledMovements.filter((item) => item.sourceAccountId === input.sourceAccountId),
+  }));
+
+  return core;
 }
 
 async function openMode(mode: 'Expense' | 'Income' | 'Transfer') {
@@ -804,6 +939,27 @@ describe('App Accounts UX', () => {
     const [firstCall] = vi.mocked(core.ledgerRecordExpense).mock.calls;
     expect(firstCall?.[0].occurredAt.startsWith('2026-03-10T')).toBe(true);
     expect(firstCall?.[0].occurredAt.endsWith('Z')).toBe(true);
+  });
+
+  it('blocks manual transaction submission when date is in the future', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Expense');
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle advanced options' }));
+
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-12-31' } });
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save expense' }));
+
+    expect(await screen.findByText('Manual movements cannot use a future date.')).toBeInTheDocument();
+    expect(core.ledgerRecordExpense).not.toHaveBeenCalled();
   });
 
   it('categorizes quick expense with an existing category', async () => {
@@ -1489,7 +1645,7 @@ describe('App Accounts UX', () => {
     const core = makeCore();
     let isActive = true;
 
-    const recurrenceItem = {
+    const scheduledItem = {
       id: 'rec-1',
       type: 'expense' as const,
       sourceAccountId: 'acc-1',
@@ -1502,14 +1658,29 @@ describe('App Accounts UX', () => {
       generatedOccurrences: 0,
       rule: { frequency: 'monthly' as const, interval: 1, monthlyPattern: 'day_of_month' as const, dayOfMonth: 11 },
       recurrenceEnd: { kind: 'never' as const },
+      origin: 'recurring' as const,
+      scheduleKind: 'recurring' as const,
     };
 
-    core.recurrenceListRecurringMovements = vi.fn(async () => ({
-      items: isActive
-        ? [recurrenceItem]
-        : [{ ...recurrenceItem, status: 'deactivated' as const, nextDueAt: undefined }],
+    core.movementsGetOverview = vi.fn(async () => ({
+      scheduledPreview: {
+        items: isActive
+          ? [scheduledItem]
+          : [{ ...scheduledItem, status: 'deactivated' as const, nextDueAt: undefined }],
+        total: 1,
+        hasMore: false,
+      },
+      executedPage: {
+        content: [],
+        page: 0,
+        size: 10,
+        totalElements: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
+      },
     }));
-    core.recurrenceDeactivateRecurringMovement = vi.fn(async () => {
+    core.schedulingDeactivateMovement = vi.fn(async () => {
       isActive = false;
     });
 
@@ -1519,18 +1690,18 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Recurring' });
+    await screen.findByRole('heading', { name: 'Scheduled' });
     const deactivateButton = await screen.findByRole('button', { name: 'Deactivate' });
     fireEvent.click(deactivateButton);
 
     await waitFor(() => {
-      expect(core.recurrenceDeactivateRecurringMovement).toHaveBeenCalledWith({
+      expect(core.schedulingDeactivateMovement).toHaveBeenCalledWith({
         recurringMovementId: 'rec-1',
       });
     });
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: 'Deactivate' })).not.toBeInTheDocument();
     });
-    expect(screen.getByText(/Status: deactivated/i)).toBeInTheDocument();
+    expect(screen.getByText(/#deactivated/i)).toBeInTheDocument();
   });
 });

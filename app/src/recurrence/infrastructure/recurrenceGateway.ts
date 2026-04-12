@@ -18,8 +18,8 @@ export type RecurrenceGatewayPort = {
 
 export function createRecurrenceGateway(core: RecurrenceGatewayPort): RecurrenceGatewayPort {
   return {
-    recurrenceCreateRecurringMovement: core.recurrenceCreateRecurringMovement,
-    recurrenceDeactivateRecurringMovement: core.recurrenceDeactivateRecurringMovement,
-    recurrenceListRecurringMovements: core.recurrenceListRecurringMovements,
+    recurrenceCreateRecurringMovement: (input) => core.recurrenceCreateRecurringMovement(input),
+    recurrenceDeactivateRecurringMovement: (input) => core.recurrenceDeactivateRecurringMovement(input),
+    recurrenceListRecurringMovements: (input) => core.recurrenceListRecurringMovements(input),
   };
 }

@@ -215,6 +215,7 @@ export function TransactionComposerView({ required, provided }: Props) {
 
   const amountInLabel = `Amount in${transferDestinationCurrency ? ` (${transferDestinationCurrency})` : ''}`;
   const fxLabel = `FX rate${transferDestinationCurrency && currencyCode ? ` (${transferDestinationCurrency}/${currencyCode})` : ''}`;
+  const manualDateMax = recurrenceEnabled ? undefined : new Date().toISOString().slice(0, 10);
 
   const splitReady = useMemo(() => {
     if (mode !== 'expense' || !expenseDetailed) {
@@ -269,7 +270,7 @@ export function TransactionComposerView({ required, provided }: Props) {
             </div>
           </div>
         ) : (
-          <form className="stack composer-form" onSubmit={onSubmit} aria-busy={disabled}>
+          <form className="stack composer-form" onSubmit={onSubmit} aria-busy={disabled} noValidate>
             <label className="stack">
               {amountLabel}
               <input
@@ -386,6 +387,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                     aria-label="Date"
                     type="date"
                     value={date}
+                    max={manualDateMax}
                     onChange={(event) => onSetDate(event.target.value)}
                     aria-invalid={Boolean(dateError)}
                     aria-describedby={dateError ? 'composer-date-error' : undefined}

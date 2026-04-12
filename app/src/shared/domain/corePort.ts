@@ -267,6 +267,9 @@ export type RecurrenceCreateRecurringMovementInput = {
   exchangeRate?: string;
   description?: string;
   merchant?: string;
+  categoryId?: string;
+  tagIds?: string[];
+  tagNames?: string[];
   rule: RecurrenceRuleInput;
   recurrenceEnd: RecurrenceEndInput;
   startAt: string;
@@ -309,6 +312,88 @@ export type RecurrenceMovementItem = {
 
 export type RecurrenceListRecurringMovementsResult = {
   items: RecurrenceMovementItem[];
+};
+
+export type SchedulingFrequency = RecurrenceFrequency;
+
+export type SchedulingMonthlyPattern = RecurrenceMonthlyPattern;
+
+export type SchedulingRuleInput = RecurrenceRuleInput;
+
+export type SchedulingEndInput = RecurrenceEndInput;
+
+export type SchedulingCreateMovementInput = RecurrenceCreateRecurringMovementInput & {
+  scheduleKind?: 'recurring' | 'one_shot';
+};
+
+export type SchedulingCreateMovementResult = RecurrenceCreateRecurringMovementResult;
+
+export type SchedulingDeactivateMovementInput = RecurrenceDeactivateRecurringMovementInput;
+
+export type SchedulingListMovementsInput = RecurrenceListRecurringMovementsInput;
+
+export type SchedulingMovementItem = RecurrenceMovementItem & {
+  categoryId?: string;
+  tagIds?: string[];
+  tagNames?: string[];
+  scheduleKind?: 'recurring' | 'one_shot';
+  origin?: 'recurring' | 'one_shot';
+};
+
+export type SchedulingListMovementsResult = {
+  items: SchedulingMovementItem[];
+};
+
+export type MovementsOverviewFilterInput = {
+  text?: string;
+  merchant?: string;
+  categoryId?: string;
+  categoryIds?: string[];
+  tagIds?: string[];
+  amountMin?: string;
+  amountMax?: string;
+  fromDate?: string;
+  toDate?: string;
+  types?: LedgerTransactionType[];
+  status?: 'all' | 'scheduled' | 'executed' | 'voided' | 'failed';
+  origin?: 'all' | 'recurring' | 'one_shot' | 'manual';
+};
+
+export type MovementsGetOverviewInput = {
+  accountId: string;
+  filters?: MovementsOverviewFilterInput;
+  executedPagination?: LedgerPageRequestInput;
+  sort?: LedgerTransactionSortInput[];
+  scheduledPreviewSize?: number;
+};
+
+export type MovementsGetOverviewResult = {
+  scheduledPreview: {
+    items: SchedulingMovementItem[];
+    total: number;
+    hasMore: boolean;
+  };
+  executedPage: LedgerListTransactionsResult;
+};
+
+export type MovementsListScheduledInput = {
+  accountId: string;
+  filters?: MovementsOverviewFilterInput;
+  pagination?: LedgerPageRequestInput;
+  sort?: Array<{
+    field: 'nextDueAt' | 'amount';
+    direction: LedgerSortDirection;
+  }>;
+};
+
+export type MovementsListScheduledResult = {
+  content: SchedulingMovementItem[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
 };
 
 export type TaxonomyCategoryAppliesTo = 'income' | 'expense';
@@ -532,4 +617,9 @@ export interface CorePort {
   recurrenceListRecurringMovements(
     input: RecurrenceListRecurringMovementsInput,
   ): Promise<RecurrenceListRecurringMovementsResult>;
+  schedulingCreateMovement(input: SchedulingCreateMovementInput): Promise<SchedulingCreateMovementResult>;
+  schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void>;
+  schedulingListMovements(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult>;
+  movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult>;
+  movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult>;
 }

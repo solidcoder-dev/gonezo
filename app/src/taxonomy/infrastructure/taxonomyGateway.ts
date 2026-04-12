@@ -46,11 +46,11 @@ export type TaxonomyGatewayPort = {
 
 export function createTaxonomyGateway(core: TaxonomyGatewayPort): TaxonomyGatewayPort {
   return {
-    taxonomyListCategories: core.taxonomyListCategories,
-    taxonomyCreateCategory: core.taxonomyCreateCategory,
-    taxonomyListTags: core.taxonomyListTags,
-    orchestrationCategorizeTransaction: core.orchestrationCategorizeTransaction,
-    orchestrationApplyTransactionTags: core.orchestrationApplyTransactionTags,
-    orchestrationListTransactionTaxonomy: core.orchestrationListTransactionTaxonomy,
+    taxonomyListCategories: (input) => core.taxonomyListCategories(input),
+    taxonomyCreateCategory: (input) => core.taxonomyCreateCategory(input),
+    taxonomyListTags: (input) => core.taxonomyListTags(input),
+    orchestrationCategorizeTransaction: (input) => core.orchestrationCategorizeTransaction(input),
+    orchestrationApplyTransactionTags: (input) => core.orchestrationApplyTransactionTags(input),
+    orchestrationListTransactionTaxonomy: (input) => core.orchestrationListTransactionTaxonomy(input),
   };
 }

@@ -52,6 +52,15 @@ import type {
   RecurrenceDeactivateRecurringMovementInput,
   RecurrenceListRecurringMovementsInput,
   RecurrenceListRecurringMovementsResult,
+  SchedulingCreateMovementInput,
+  SchedulingCreateMovementResult,
+  SchedulingDeactivateMovementInput,
+  SchedulingListMovementsInput,
+  SchedulingListMovementsResult,
+  MovementsGetOverviewInput,
+  MovementsGetOverviewResult,
+  MovementsListScheduledInput,
+  MovementsListScheduledResult,
 } from '../../domain/corePort';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import type { CorePlugin } from './corePlugin';
@@ -193,5 +202,25 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
     options: RecurrenceListRecurringMovementsInput,
   ): Promise<RecurrenceListRecurringMovementsResult> {
     return this.core.recurrenceListRecurringMovements(options);
+  }
+
+  async schedulingCreateMovement(options: SchedulingCreateMovementInput): Promise<SchedulingCreateMovementResult> {
+    return this.core.schedulingCreateMovement(options);
+  }
+
+  async schedulingDeactivateMovement(options: SchedulingDeactivateMovementInput): Promise<void> {
+    return this.core.schedulingDeactivateMovement(options);
+  }
+
+  async schedulingListMovements(options: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult> {
+    return this.core.schedulingListMovements(options);
+  }
+
+  async movementsGetOverview(options: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult> {
+    return this.core.movementsGetOverview(options);
+  }
+
+  async movementsListScheduled(options: MovementsListScheduledInput): Promise<MovementsListScheduledResult> {
+    return this.core.movementsListScheduled(options);
   }
 }

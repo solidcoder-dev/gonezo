@@ -1,9 +1,13 @@
 import { formatCurrencyAmount, formatIsoDateTime } from '../../shared/utils/formatting';
+import type { SchedulingMovementItem } from '../../shared/domain/corePort';
 import type { TransactionHistoryItemView } from '../domain/transactionView.types';
-import type { TransactionHistoryStatusFilterValue } from './TransactionHistoryView.contract';
+import type { TransactionHistoryOriginFilterValue, TransactionHistoryStatusFilterValue } from './TransactionHistoryView.contract';
 
 export type RecentTransactionsListViewRequired = {
   items: TransactionHistoryItemView[];
+  scheduledItems: SchedulingMovementItem[];
+  scheduledTotal: number;
+  scheduledHasMore: boolean;
   filtersOpen: boolean;
   filtersAdvancedOpen: boolean;
   filters: {
@@ -15,6 +19,7 @@ export type RecentTransactionsListViewRequired = {
     fromDate: string;
     toDate: string;
     status: TransactionHistoryStatusFilterValue;
+    origin: TransactionHistoryOriginFilterValue;
     sortField: 'occurredAt' | 'amount';
     sortDirection: 'asc' | 'desc';
     pageSize: number;
@@ -34,6 +39,7 @@ export type RecentTransactionsListViewRequired = {
   loading: boolean;
   disabled: boolean;
   pendingVoidTransactionId?: string;
+  pendingDeactivateScheduledId?: string;
 };
 
 export type RecentTransactionsListViewProvided = {
@@ -49,6 +55,7 @@ export type RecentTransactionsListViewProvided = {
   onFilterFromDateChange: (value: string) => void;
   onFilterToDateChange: (value: string) => void;
   onFilterStatusChange: (value: TransactionHistoryStatusFilterValue) => void;
+  onFilterOriginChange: (value: TransactionHistoryOriginFilterValue) => void;
   onSortFieldChange: (value: 'occurredAt' | 'amount') => void;
   onSortDirectionChange: (value: 'asc' | 'desc') => void;
   onPageSizeChange: (value: number) => void;
@@ -56,6 +63,7 @@ export type RecentTransactionsListViewProvided = {
   onPreviousPage: () => void;
   onNextPage: () => void;
   onVoid: (transactionId: string) => void;
+  onDeactivateScheduled: (scheduledMovementId: string) => Promise<void>;
 };
 
 export type RecentTransactionsListViewProps = {
@@ -66,6 +74,9 @@ export type RecentTransactionsListViewProps = {
 export function RecentTransactionsListView({ required, provided }: RecentTransactionsListViewProps) {
   const {
     items,
+    scheduledItems,
+    scheduledTotal,
+    scheduledHasMore,
     filtersOpen,
     filtersAdvancedOpen,
     filters,
@@ -74,6 +85,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
     loading,
     disabled,
     pendingVoidTransactionId,
+    pendingDeactivateScheduledId,
   } = required;
 
   function txLabel(type: TransactionHistoryItemView['type']): string {
@@ -100,6 +112,17 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
       return `${amount} ${currency}`;
     }
     return formatCurrencyAmount(Math.abs(numeric).toString(), currency);
+  }
+
+  function scheduledStatus(item: SchedulingMovementItem): string {
+    if (item.status === 'active') return 'scheduled';
+    if (item.status === 'deactivated') return 'deactivated';
+    if (item.status === 'completed') return 'completed';
+    return item.status;
+  }
+
+  function scheduledOrigin(item: SchedulingMovementItem): string {
+    return item.origin ?? item.scheduleKind ?? 'recurring';
   }
 
   const totalPagesLabel = pagination.totalPages > 0 ? pagination.totalPages : 1;
@@ -153,20 +176,35 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
               />
             </label>
 
-            <label className="stack">
-              Status
-              <select
+          <label className="stack">
+            Status
+            <select
                 aria-label="Transaction status"
-                value={filters.status}
-                onChange={(event) => provided.onFilterStatusChange(event.target.value as TransactionHistoryStatusFilterValue)}
-              >
-                <option value="all">All</option>
-                <option value="posted">Posted</option>
-                <option value="draft">Draft</option>
-                <option value="voided">Voided</option>
-              </select>
-            </label>
-          </div>
+              value={filters.status}
+              onChange={(event) => provided.onFilterStatusChange(event.target.value as TransactionHistoryStatusFilterValue)}
+            >
+              <option value="all">All</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="executed">Executed</option>
+              <option value="voided">Voided</option>
+              <option value="failed">Failed</option>
+            </select>
+          </label>
+
+          <label className="stack">
+            Origin
+            <select
+              aria-label="Movement origin"
+              value={filters.origin}
+              onChange={(event) => provided.onFilterOriginChange(event.target.value as TransactionHistoryOriginFilterValue)}
+            >
+              <option value="all">All</option>
+              <option value="recurring">Recurring</option>
+              <option value="one_shot">One-shot</option>
+              <option value="manual">Manual</option>
+            </select>
+          </label>
+        </div>
 
           <div className="quick-row">
             <button type="button" className="text-button" onClick={provided.onToggleAdvancedFilters} disabled={disabled}>
@@ -291,7 +329,59 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
       ) : null}
 
       {loading ? <p role="status">Loading transactions...</p> : null}
-      {!loading && items.length === 0 ? <p>No transactions yet.</p> : null}
+      {!loading && scheduledItems.length === 0 && items.length === 0 ? <p>No movements yet.</p> : null}
+      {!loading && scheduledItems.length > 0 ? (
+        <div className="stack">
+          <div className="inline-header">
+            <h3>Scheduled</h3>
+            <span className="hint">
+              {scheduledTotal}
+              {scheduledHasMore ? ' (showing first items)' : ''}
+            </span>
+          </div>
+          <ul className="expense-list" aria-label="Scheduled movements list">
+            {scheduledItems.map((movement) => (
+              <li key={movement.id} className="expense-item">
+                <div className="expense-top-row">
+                  <div className="tx-head">
+                    <span className={txBadgeClass(movement.type === 'transfer' ? 'transfer_out' : movement.type)}>
+                      {movement.type}
+                    </span>
+                    <strong>
+                      {movement.type === 'income' ? '+' : '-'}
+                      {txAmount(movement.amount, movement.currency)}
+                    </strong>
+                  </div>
+                  <time dateTime={movement.nextDueAt ?? movement.startAt}>
+                    {formatIsoDateTime(movement.nextDueAt ?? movement.startAt)}
+                  </time>
+                </div>
+                <span>{movement.merchant || movement.description || 'Scheduled movement'}</span>
+                <div className="quick-row" aria-label="Scheduled metadata">
+                  <span className="chip">#{scheduledStatus(movement)}</span>
+                  <span className="chip">{scheduledOrigin(movement)}</span>
+                  {movement.categoryId ? <span className="chip">{movement.categoryId}</span> : null}
+                  {(movement.tagNames ?? []).map((tag) => (
+                    <span key={`${movement.id}-${tag}`} className="chip">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+                {movement.status === 'active' ? (
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() => void provided.onDeactivateScheduled(movement.id)}
+                    disabled={disabled || pendingDeactivateScheduledId === movement.id}
+                  >
+                    {pendingDeactivateScheduledId === movement.id ? 'Deactivating…' : 'Deactivate'}
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       {!loading && items.length > 0 ? (
         <ul className="expense-list" aria-label="Transactions list">
           {items.map((transaction) => (
@@ -346,7 +436,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
       ) : null}
 
       <div className="inline-header">
-        <p className="hint">Page {pageLabel} of {totalPagesLabel} · {pagination.totalElements} transactions</p>
+        <p className="hint">Page {pageLabel} of {totalPagesLabel} · {pagination.totalElements} executed</p>
         <div className="quick-row">
           <button
             type="button"

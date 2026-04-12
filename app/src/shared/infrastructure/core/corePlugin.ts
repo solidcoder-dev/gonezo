@@ -52,6 +52,15 @@ import type {
   RecurrenceDeactivateRecurringMovementInput,
   RecurrenceListRecurringMovementsInput,
   RecurrenceListRecurringMovementsResult,
+  SchedulingCreateMovementInput,
+  SchedulingCreateMovementResult,
+  SchedulingDeactivateMovementInput,
+  SchedulingListMovementsInput,
+  SchedulingListMovementsResult,
+  MovementsGetOverviewInput,
+  MovementsGetOverviewResult,
+  MovementsListScheduledInput,
+  MovementsListScheduledResult,
 } from '../../domain/corePort';
 
 export interface CorePlugin {
@@ -96,6 +105,15 @@ export interface CorePlugin {
   recurrenceListRecurringMovements(
     options: RecurrenceListRecurringMovementsInput,
   ): Promise<RecurrenceListRecurringMovementsResult>;
+  schedulingCreateMovement(
+    options: SchedulingCreateMovementInput,
+  ): Promise<SchedulingCreateMovementResult>;
+  schedulingDeactivateMovement(options: SchedulingDeactivateMovementInput): Promise<void>;
+  schedulingListMovements(
+    options: SchedulingListMovementsInput,
+  ): Promise<SchedulingListMovementsResult>;
+  movementsGetOverview(options: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult>;
+  movementsListScheduled(options: MovementsListScheduledInput): Promise<MovementsListScheduledResult>;
 }
 
 export const CorePlugin = registerPlugin<CorePlugin>('CorePlugin', {

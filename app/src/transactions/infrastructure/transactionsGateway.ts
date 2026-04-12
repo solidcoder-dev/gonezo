@@ -7,7 +7,7 @@ export type TransactionsGatewayPort = {
 
 export function createTransactionsGateway(core: TransactionsGatewayPort): TransactionsGatewayPort {
   return {
-    ledgerListTransactions: core.ledgerListTransactions,
-    ledgerVoidTransaction: core.ledgerVoidTransaction,
+    ledgerListTransactions: (input) => core.ledgerListTransactions(input),
+    ledgerVoidTransaction: (input) => core.ledgerVoidTransaction(input),
   };
 }

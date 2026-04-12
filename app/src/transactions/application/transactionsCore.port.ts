@@ -1,5 +1,5 @@
 import type { LedgerGatewayPort } from '../../ledger/infrastructure/ledgerGateway';
-import type { RecurrenceGatewayPort } from '../../recurrence/infrastructure/recurrenceGateway';
+import type { SchedulingGatewayPort } from '../../scheduling/infrastructure/schedulingGateway';
 import type { TaxonomyGatewayPort } from '../../taxonomy/infrastructure/taxonomyGateway';
 
-export type TransactionsCorePort = LedgerGatewayPort & TaxonomyGatewayPort & RecurrenceGatewayPort;
+export type TransactionsCorePort = LedgerGatewayPort & TaxonomyGatewayPort & SchedulingGatewayPort;

@@ -59,6 +59,16 @@ import type {
   RecurrenceListRecurringMovementsResult,
   RecurrenceMovementItem,
   RecurrenceRuleInput,
+  SchedulingCreateMovementInput,
+  SchedulingCreateMovementResult,
+  SchedulingDeactivateMovementInput,
+  SchedulingListMovementsInput,
+  SchedulingListMovementsResult,
+  SchedulingMovementItem,
+  MovementsGetOverviewInput,
+  MovementsGetOverviewResult,
+  MovementsListScheduledInput,
+  MovementsListScheduledResult,
 } from '../../domain/corePort';
 
 type MemoryLedgerAccount = {
@@ -115,6 +125,11 @@ type MemoryTaxonomyTag = {
 };
 
 type MemoryRecurringMovement = RecurrenceMovementItem & {
+  categoryId?: string;
+  tagIds?: string[];
+  tagNames?: string[];
+  scheduleKind?: 'recurring' | 'one_shot';
+  origin?: 'recurring' | 'one_shot';
   createdAt: string;
   deactivatedAt?: string;
   completedAt?: string;
@@ -1886,6 +1901,11 @@ export class CoreAdapterWeb implements CorePort {
       exchangeRate: input.exchangeRate ? String(Number(input.exchangeRate)) : undefined,
       description: input.description?.trim() || undefined,
       merchant: input.merchant?.trim() || undefined,
+      categoryId: input.categoryId?.trim() || undefined,
+      tagIds: [...new Set((input.tagIds ?? []).map((value) => value.trim()).filter((value) => value.length > 0))],
+      tagNames: [...new Set((input.tagNames ?? []).map((value) => value.trim()).filter((value) => value.length > 0))],
+      scheduleKind: 'recurring',
+      origin: 'recurring',
       status: nextDueAt ? 'active' : 'completed',
       startAt: new Date(input.startAt).toISOString(),
       nextDueAt,
@@ -1932,5 +1952,287 @@ export class CoreAdapterWeb implements CorePort {
       })
       .map((movement) => ({ ...movement }));
     return { items };
+  }
+
+  async schedulingCreateMovement(
+    input: SchedulingCreateMovementInput,
+  ): Promise<SchedulingCreateMovementResult> {
+    const result = await this.recurrenceCreateRecurringMovement(input);
+    if (input.scheduleKind === 'one_shot') {
+      const movement = CoreAdapterWeb.recurringMovements.find((item) => item.id === result.id);
+      if (movement) {
+        movement.scheduleKind = 'one_shot';
+        movement.origin = 'one_shot';
+      }
+    }
+    return result;
+  }
+
+  async schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void> {
+    await this.recurrenceDeactivateRecurringMovement(input);
+  }
+
+  async schedulingListMovements(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult> {
+    const result = await this.recurrenceListRecurringMovements(input);
+    return {
+      items: result.items.map((item) => ({ ...item })) as SchedulingMovementItem[],
+    };
+  }
+
+  private movementDateEpoch(movement: MemoryRecurringMovement): number | undefined {
+    const candidate = movement.nextDueAt ?? movement.startAt;
+    const parsed = candidate ? Date.parse(candidate) : Number.NaN;
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+
+  private filterScheduledMovements(input: {
+    accountId: string;
+    filters?: MovementsGetOverviewInput['filters'] | MovementsListScheduledInput['filters'];
+  }): SchedulingMovementItem[] {
+    const filters = input.filters ?? {};
+    const text = filters.text?.trim().toLowerCase();
+    const merchant = filters.merchant?.trim().toLowerCase();
+    const categoryIds = filters.categoryIds && filters.categoryIds.length > 0
+      ? filters.categoryIds
+      : filters.categoryId
+        ? [filters.categoryId]
+        : [];
+    const categoryFilter = categoryIds.length > 0
+      ? new Set(categoryIds.map((value) => value.trim()).filter((value) => value.length > 0))
+      : null;
+    const tagFilter = filters.tagIds && filters.tagIds.length > 0
+      ? new Set(filters.tagIds.map((value) => value.trim()).filter((value) => value.length > 0))
+      : null;
+    const parsedAmountMin = filters.amountMin == null ? undefined : Number(filters.amountMin);
+    const parsedAmountMax = filters.amountMax == null ? undefined : Number(filters.amountMax);
+    const hasAmountMin = typeof parsedAmountMin === 'number' && Number.isFinite(parsedAmountMin);
+    const hasAmountMax = typeof parsedAmountMax === 'number' && Number.isFinite(parsedAmountMax);
+    const fromDateEpoch = filters.fromDate ? Date.parse(filters.fromDate) : undefined;
+    const toDateEpoch = filters.toDate ? Date.parse(filters.toDate) : undefined;
+    const hasFromDateEpoch = typeof fromDateEpoch === 'number' && Number.isFinite(fromDateEpoch);
+    const hasToDateEpoch = typeof toDateEpoch === 'number' && Number.isFinite(toDateEpoch);
+    const typeFilter = filters.types && filters.types.length > 0
+      ? new Set(filters.types.filter((value) => value === 'expense' || value === 'income' || value === 'transfer'))
+      : null;
+
+    const status = filters.status ?? 'all';
+    const origin = filters.origin ?? 'all';
+
+    const filtered = CoreAdapterWeb.recurringMovements
+      .filter((movement) => movement.sourceAccountId === input.accountId)
+      .filter((movement) => {
+        if (status === 'all') {
+          return true;
+        }
+        if (status === 'scheduled') {
+          return movement.status === 'active';
+        }
+        if (status === 'failed') {
+          return false;
+        }
+        return false;
+      })
+      .filter((movement) => {
+        const resolvedOrigin = movement.origin ?? movement.scheduleKind ?? 'recurring';
+        if (origin === 'all') {
+          return true;
+        }
+        if (origin === 'manual') {
+          return false;
+        }
+        return resolvedOrigin === origin;
+      })
+      .filter((movement) => (typeFilter ? typeFilter.has(movement.type) : true))
+      .filter((movement) => {
+        if (!categoryFilter) {
+          return true;
+        }
+        return Boolean(movement.categoryId && categoryFilter.has(movement.categoryId));
+      })
+      .filter((movement) => {
+        if (!tagFilter) {
+          return true;
+        }
+        const movementTags = movement.tagIds ?? [];
+        return movementTags.some((tagId) => tagFilter.has(tagId));
+      })
+      .filter((movement) => {
+        if (!hasAmountMin && !hasAmountMax) {
+          return true;
+        }
+        const amount = Number(movement.amount);
+        if (!Number.isFinite(amount)) {
+          return false;
+        }
+        if (hasAmountMin && amount < parsedAmountMin!) {
+          return false;
+        }
+        if (hasAmountMax && amount > parsedAmountMax!) {
+          return false;
+        }
+        return true;
+      })
+      .filter((movement) => {
+        if (!hasFromDateEpoch && !hasToDateEpoch) {
+          return true;
+        }
+        const dueEpoch = this.movementDateEpoch(movement);
+        if (dueEpoch == null) {
+          return false;
+        }
+        if (hasFromDateEpoch && dueEpoch < fromDateEpoch!) {
+          return false;
+        }
+        if (hasToDateEpoch && dueEpoch > toDateEpoch!) {
+          return false;
+        }
+        return true;
+      })
+      .filter((movement) => {
+        if (!merchant) {
+          return true;
+        }
+        return (movement.merchant ?? '').toLowerCase().includes(merchant);
+      })
+      .filter((movement) => {
+        if (!text) {
+          return true;
+        }
+        const merchantText = movement.merchant?.toLowerCase() ?? '';
+        const descriptionText = movement.description?.toLowerCase() ?? '';
+        return merchantText.includes(text) || descriptionText.includes(text);
+      })
+      .sort((left, right) => {
+        if (!left.nextDueAt && !right.nextDueAt) {
+          return left.createdAt.localeCompare(right.createdAt);
+        }
+        if (!left.nextDueAt) {
+          return 1;
+        }
+        if (!right.nextDueAt) {
+          return -1;
+        }
+        return left.nextDueAt.localeCompare(right.nextDueAt);
+      });
+
+    return filtered.map((item) => ({ ...item })) as SchedulingMovementItem[];
+  }
+
+  async movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult> {
+    const previewSize = input.scheduledPreviewSize != null && input.scheduledPreviewSize > 0
+      ? Math.min(Math.trunc(input.scheduledPreviewSize), 20)
+      : 5;
+
+    const scheduledFiltered = this.filterScheduledMovements({
+      accountId: input.accountId,
+      filters: input.filters,
+    });
+
+    const status = input.filters?.status ?? 'all';
+    const origin = input.filters?.origin ?? 'all';
+    const shouldHideExecuted = status === 'scheduled' || status === 'failed' || origin === 'recurring' || origin === 'one_shot';
+
+    const requestedSize = input.executedPagination?.size ?? 20;
+    const pageSize = Number.isFinite(requestedSize) && requestedSize > 0 ? Math.min(Math.trunc(requestedSize), 100) : 20;
+    const requestedPage = input.executedPagination?.page ?? 0;
+    const page = Number.isFinite(requestedPage) && requestedPage >= 0 ? Math.trunc(requestedPage) : 0;
+
+    const executedPage = shouldHideExecuted
+      ? {
+          content: [],
+          page: 0,
+          size: pageSize,
+          totalElements: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrevious: false,
+        }
+      : await this.ledgerListTransactions({
+          accountId: input.accountId,
+          filters: {
+            text: input.filters?.text,
+            merchant: input.filters?.merchant,
+            categoryId: input.filters?.categoryId,
+            categoryIds: input.filters?.categoryIds,
+            tagIds: input.filters?.tagIds,
+            amountMin: input.filters?.amountMin,
+            amountMax: input.filters?.amountMax,
+            fromDate: input.filters?.fromDate,
+            toDate: input.filters?.toDate,
+            types: input.filters?.types,
+            statuses: status === 'executed'
+              ? ['posted']
+              : status === 'voided'
+                ? ['voided']
+                : undefined,
+          },
+          pagination: {
+            page,
+            size: pageSize,
+          },
+          sort: input.sort,
+        });
+
+    return {
+      scheduledPreview: {
+        items: scheduledFiltered.slice(0, previewSize),
+        total: scheduledFiltered.length,
+        hasMore: scheduledFiltered.length > previewSize,
+      },
+      executedPage,
+    };
+  }
+
+  async movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult> {
+    const requestedPage = input.pagination?.page ?? 0;
+    const requestedSize = input.pagination?.size ?? 20;
+    const page = Number.isFinite(requestedPage) && requestedPage >= 0 ? Math.trunc(requestedPage) : 0;
+    const size = Number.isFinite(requestedSize) && requestedSize > 0 ? Math.min(Math.trunc(requestedSize), 100) : 20;
+
+    const sorted = [...this.filterScheduledMovements({
+      accountId: input.accountId,
+      filters: input.filters,
+    })];
+
+    const sort = input.sort && input.sort.length > 0
+      ? input.sort
+      : [{ field: 'nextDueAt' as const, direction: 'asc' as const }];
+
+    sorted.sort((left, right) => {
+      for (const criterion of sort) {
+        let comparison = 0;
+        if (criterion.field === 'amount') {
+          const leftAmount = Number(left.amount);
+          const rightAmount = Number(right.amount);
+          const safeLeft = Number.isFinite(leftAmount) ? leftAmount : 0;
+          const safeRight = Number.isFinite(rightAmount) ? rightAmount : 0;
+          comparison = safeLeft - safeRight;
+        } else {
+          const leftDue = left.nextDueAt ?? left.startAt;
+          const rightDue = right.nextDueAt ?? right.startAt;
+          comparison = leftDue.localeCompare(rightDue);
+        }
+        if (comparison !== 0) {
+          return criterion.direction === 'asc' ? comparison : -comparison;
+        }
+      }
+      return left.id.localeCompare(right.id);
+    });
+
+    const totalElements = sorted.length;
+    const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / size);
+    const resolvedPage = totalPages === 0 ? 0 : Math.min(page, totalPages - 1);
+    const startIndex = resolvedPage * size;
+    const content = sorted.slice(startIndex, startIndex + size).map((item) => ({ ...item }));
+
+    return {
+      content,
+      page: resolvedPage,
+      size,
+      totalElements,
+      totalPages,
+      hasNext: totalPages > 0 && resolvedPage + 1 < totalPages,
+      hasPrevious: resolvedPage > 0,
+    };
   }
 }

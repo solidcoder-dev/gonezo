@@ -53,6 +53,15 @@ import type {
   RecurrenceDeactivateRecurringMovementInput,
   RecurrenceListRecurringMovementsInput,
   RecurrenceListRecurringMovementsResult,
+  SchedulingCreateMovementInput,
+  SchedulingCreateMovementResult,
+  SchedulingDeactivateMovementInput,
+  SchedulingListMovementsInput,
+  SchedulingListMovementsResult,
+  MovementsGetOverviewInput,
+  MovementsGetOverviewResult,
+  MovementsListScheduledInput,
+  MovementsListScheduledResult,
 } from '../../domain/corePort';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
@@ -292,5 +301,142 @@ export class CoreAdapter implements CorePort {
       return CorePlugin.recurrenceListRecurringMovements(input);
     }
     return this.web.recurrenceListRecurringMovements(input);
+  }
+
+  async schedulingCreateMovement(
+    input: SchedulingCreateMovementInput,
+  ): Promise<SchedulingCreateMovementResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.recurrenceCreateRecurringMovement(input);
+    }
+    return this.web.schedulingCreateMovement(input);
+  }
+
+  async schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.recurrenceDeactivateRecurringMovement(input);
+      return;
+    }
+    await this.web.schedulingDeactivateMovement(input);
+  }
+
+  async schedulingListMovements(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.recurrenceListRecurringMovements(input);
+    }
+    return this.web.schedulingListMovements(input);
+  }
+
+  async movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult> {
+    if (!Capacitor.isNativePlatform()) {
+      return this.web.movementsGetOverview(input);
+    }
+    const previewSize = input.scheduledPreviewSize != null && input.scheduledPreviewSize > 0
+      ? Math.min(Math.trunc(input.scheduledPreviewSize), 20)
+      : 5;
+    const status = input.filters?.status ?? 'all';
+    const origin = input.filters?.origin ?? 'all';
+
+    const scheduledResult = await this.schedulingListMovements({ sourceAccountId: input.accountId });
+    const scheduledFiltered = scheduledResult.items
+      .filter((item) => {
+        if (status === 'scheduled') {
+          return item.status === 'active';
+        }
+        if (status === 'all') {
+          return true;
+        }
+        return false;
+      })
+      .filter((item) => {
+        const resolvedOrigin = item.origin ?? item.scheduleKind ?? 'recurring';
+        if (origin === 'all') {
+          return true;
+        }
+        if (origin === 'manual') {
+          return false;
+        }
+        return resolvedOrigin === origin;
+      });
+
+    const shouldHideExecuted = status === 'scheduled' || status === 'failed' || origin === 'recurring' || origin === 'one_shot';
+    const executedPage = shouldHideExecuted
+      ? {
+          content: [],
+          page: 0,
+          size: input.executedPagination?.size ?? 20,
+          totalElements: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrevious: false,
+        }
+      : await this.ledgerListTransactions({
+          accountId: input.accountId,
+          filters: {
+            text: input.filters?.text,
+            merchant: input.filters?.merchant,
+            categoryId: input.filters?.categoryId,
+            categoryIds: input.filters?.categoryIds,
+            tagIds: input.filters?.tagIds,
+            amountMin: input.filters?.amountMin,
+            amountMax: input.filters?.amountMax,
+            fromDate: input.filters?.fromDate,
+            toDate: input.filters?.toDate,
+            types: input.filters?.types,
+            statuses: status === 'executed'
+              ? ['posted']
+              : status === 'voided'
+                ? ['voided']
+                : undefined,
+          },
+          pagination: input.executedPagination,
+          sort: input.sort,
+        });
+
+    return {
+      scheduledPreview: {
+        items: scheduledFiltered.slice(0, previewSize),
+        total: scheduledFiltered.length,
+        hasMore: scheduledFiltered.length > previewSize,
+      },
+      executedPage,
+    };
+  }
+
+  async movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult> {
+    if (!Capacitor.isNativePlatform()) {
+      return this.web.movementsListScheduled(input);
+    }
+    const result = await this.schedulingListMovements({ sourceAccountId: input.accountId });
+    const requestedPage = input.pagination?.page ?? 0;
+    const requestedSize = input.pagination?.size ?? 20;
+    const page = Number.isFinite(requestedPage) && requestedPage >= 0 ? Math.trunc(requestedPage) : 0;
+    const size = Number.isFinite(requestedSize) && requestedSize > 0 ? Math.min(Math.trunc(requestedSize), 100) : 20;
+
+    const filtered = result.items.filter((item) => {
+      if ((input.filters?.status ?? 'all') === 'scheduled') {
+        return item.status === 'active';
+      }
+      if ((input.filters?.status ?? 'all') === 'all') {
+        return true;
+      }
+      return false;
+    });
+
+    const totalElements = filtered.length;
+    const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / size);
+    const resolvedPage = totalPages === 0 ? 0 : Math.min(page, totalPages - 1);
+    const start = resolvedPage * size;
+    const content = filtered.slice(start, start + size);
+
+    return {
+      content,
+      page: resolvedPage,
+      size,
+      totalElements,
+      totalPages,
+      hasNext: totalPages > 0 && resolvedPage + 1 < totalPages,
+      hasPrevious: resolvedPage > 0,
+    };
   }
 }

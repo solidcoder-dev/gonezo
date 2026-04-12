@@ -12,6 +12,9 @@ export function TransactionHistoryView({ required, provided }: TransactionHistor
     <RecentTransactionsListView
       required={{
         items: required.state.items,
+        scheduledItems: required.state.scheduledItems,
+        scheduledTotal: required.state.scheduledTotal,
+        scheduledHasMore: required.state.scheduledHasMore,
         filtersOpen: required.state.filtersOpen,
         filtersAdvancedOpen: required.state.filtersAdvancedOpen,
         filters: required.state.filters,
@@ -20,6 +23,7 @@ export function TransactionHistoryView({ required, provided }: TransactionHistor
         loading: required.status.loading,
         disabled: required.status.disabled,
         pendingVoidTransactionId: required.state.pendingVoidTransactionId,
+        pendingDeactivateScheduledId: required.state.pendingDeactivateScheduledId,
       }}
       provided={{
         onOpenFilters: provided.commands.openFilters,
@@ -34,6 +38,7 @@ export function TransactionHistoryView({ required, provided }: TransactionHistor
         onFilterFromDateChange: provided.commands.setFilterFromDate,
         onFilterToDateChange: provided.commands.setFilterToDate,
         onFilterStatusChange: provided.commands.setFilterStatus,
+        onFilterOriginChange: provided.commands.setFilterOrigin,
         onSortFieldChange: provided.commands.setSortField,
         onSortDirectionChange: provided.commands.setSortDirection,
         onPageSizeChange: provided.commands.setPageSize,
@@ -41,6 +46,7 @@ export function TransactionHistoryView({ required, provided }: TransactionHistor
         onPreviousPage: provided.commands.goToPreviousPage,
         onNextPage: provided.commands.goToNextPage,
         onVoid: provided.commands.requestVoid,
+        onDeactivateScheduled: provided.commands.deactivateScheduledMovement,
       }}
     />
   );

@@ -1,6 +1,8 @@
 import type { TransactionHistoryItemView } from '../domain/transactionView.types';
+import type { SchedulingMovementItem } from '../../shared/domain/corePort';
 
-export type TransactionHistoryStatusFilterValue = 'all' | 'draft' | 'posted' | 'voided';
+export type TransactionHistoryStatusFilterValue = 'all' | 'scheduled' | 'executed' | 'voided' | 'failed';
+export type TransactionHistoryOriginFilterValue = 'all' | 'recurring' | 'one_shot' | 'manual';
 
 export type TransactionHistoryFilterOption = {
   id: string;
@@ -10,6 +12,9 @@ export type TransactionHistoryFilterOption = {
 export type TransactionHistoryViewRequired = {
   state: {
     items: TransactionHistoryItemView[];
+    scheduledItems: SchedulingMovementItem[];
+    scheduledTotal: number;
+    scheduledHasMore: boolean;
     filtersOpen: boolean;
     filtersAdvancedOpen: boolean;
     filters: {
@@ -21,6 +26,7 @@ export type TransactionHistoryViewRequired = {
       fromDate: string;
       toDate: string;
       status: TransactionHistoryStatusFilterValue;
+      origin: TransactionHistoryOriginFilterValue;
       sortField: 'occurredAt' | 'amount';
       sortDirection: 'asc' | 'desc';
       pageSize: number;
@@ -38,6 +44,7 @@ export type TransactionHistoryViewRequired = {
       hasPrevious: boolean;
     };
     pendingVoidTransactionId?: string;
+    pendingDeactivateScheduledId?: string;
   };
   status: {
     loading: boolean;
@@ -60,6 +67,7 @@ export type TransactionHistoryViewProvided = {
     setFilterFromDate: (value: string) => void;
     setFilterToDate: (value: string) => void;
     setFilterStatus: (value: TransactionHistoryStatusFilterValue) => void;
+    setFilterOrigin: (value: TransactionHistoryOriginFilterValue) => void;
     setSortField: (value: 'occurredAt' | 'amount') => void;
     setSortDirection: (value: 'asc' | 'desc') => void;
     setPageSize: (value: number) => void;
@@ -67,6 +75,7 @@ export type TransactionHistoryViewProvided = {
     goToPreviousPage: () => void;
     goToNextPage: () => void;
     requestVoid: (transactionId: string) => void;
+    deactivateScheduledMovement: (scheduledMovementId: string) => Promise<void>;
     undoVoid: () => void;
   };
 };
