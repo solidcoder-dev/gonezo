@@ -347,27 +347,6 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
     <section className="stack section-gap transactions-section" aria-busy={loading}>
       <h2>Transactions</h2>
 
-      <div className="quick-row transactions-search-row">
-        <input
-          aria-label="Search transactions"
-          value={filters.text}
-          onChange={(event) => provided.onFilterTextChange(event.target.value)}
-          placeholder="Search merchant or description"
-          autoComplete="off"
-        />
-        <button type="button" onClick={provided.onApplyFilters} disabled={disabled}>
-          Search
-        </button>
-        <button
-          type="button"
-          className="text-button"
-          onClick={filtersOpen ? provided.onCloseFilters : provided.onOpenFilters}
-          disabled={disabled}
-        >
-          {filtersOpen ? 'Hide filters' : 'More filters'}
-        </button>
-      </div>
-
       <div className="chip-row" aria-label="Quick status filters">
         {STATUS_QUICK_FILTERS.map((option) => (
           <button
@@ -397,25 +376,6 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
           </button>
         ))}
       </div>
-
-      {activeFilterChips.length > 0 ? (
-        <div className="chip-row active-filter-row" aria-label="Applied filters">
-          {activeFilterChips.map((chip) => (
-            <button
-              key={chip.key}
-              type="button"
-              className="chip filter-chip"
-              onClick={() => provided.onApplyFilterPatch(chip.clearPatch)}
-              disabled={disabled}
-            >
-              {chip.label} x
-            </button>
-          ))}
-          <button type="button" className="text-button" onClick={provided.onResetFilters} disabled={disabled}>
-            Clear all
-          </button>
-        </div>
-      ) : null}
 
       {filtersOpen ? (
         <div className="item-editor stack" aria-label="Transaction filters">
@@ -586,6 +546,46 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
             </div>
           ) : null}
 
+        </div>
+      ) : null}
+
+      <div className="quick-row transactions-search-row">
+        <input
+          aria-label="Search transactions"
+          value={filters.text}
+          onChange={(event) => provided.onFilterTextChange(event.target.value)}
+          placeholder="Search merchant or description"
+          autoComplete="off"
+        />
+        <button
+          type="button"
+          className="text-button"
+          onClick={filtersOpen ? provided.onCloseFilters : provided.onOpenFilters}
+          disabled={disabled}
+        >
+          {filtersOpen ? 'Hide filters' : 'More filters'}
+        </button>
+        <button type="button" onClick={provided.onApplyFilters} disabled={disabled}>
+          Search
+        </button>
+      </div>
+
+      {activeFilterChips.length > 0 ? (
+        <div className="chip-row active-filter-row" aria-label="Applied filters">
+          {activeFilterChips.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              className="chip filter-chip"
+              onClick={() => provided.onApplyFilterPatch(chip.clearPatch)}
+              disabled={disabled}
+            >
+              {chip.label} x
+            </button>
+          ))}
+          <button type="button" className="text-button" onClick={provided.onResetFilters} disabled={disabled}>
+            Clear all
+          </button>
         </div>
       ) : null}
 
