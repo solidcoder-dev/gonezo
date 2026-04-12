@@ -32,6 +32,7 @@ export type TransactionHistoryViewRequired = {
     scheduledHasMore: boolean;
     filtersOpen: boolean;
     filtersAdvancedOpen: boolean;
+    searchApplied: boolean;
     filters: TransactionHistoryFiltersState;
     appliedFilters: TransactionHistoryFiltersState;
     filterOptions: {

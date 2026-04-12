@@ -18,6 +18,7 @@ export type RecentTransactionsListViewRequired = {
   scheduledHasMore: boolean;
   filtersOpen: boolean;
   filtersAdvancedOpen: boolean;
+  searchApplied: boolean;
   filters: TransactionHistoryFiltersState;
   appliedFilters: TransactionHistoryFiltersState;
   filterOptions: {
@@ -108,12 +109,13 @@ function toggleIdentifier(values: string[], candidate: string): string[] {
 function buildActiveFilterChips(
   filters: TransactionHistoryFiltersState,
   filterOptions: RecentTransactionsListViewRequired['filterOptions'],
+  includeSearchText: boolean,
 ): ActiveFilterChip[] {
   const chips: ActiveFilterChip[] = [];
   const categoryNameById = new Map(filterOptions.categories.map((item) => [item.id, item.label]));
   const tagNameById = new Map(filterOptions.tags.map((item) => [item.id, item.label]));
 
-  if (filters.text.trim()) {
+  if (includeSearchText && filters.text.trim()) {
     chips.push({
       key: 'text',
       label: `Search: "${filters.text.trim()}"`,
@@ -208,6 +210,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
     scheduledHasMore,
     filtersOpen,
     filtersAdvancedOpen,
+    searchApplied,
     filters,
     appliedFilters,
     filterOptions,
@@ -309,8 +312,8 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
   const postedGroups = useMemo(() => groupPostedTransactionsByDate(items), [items]);
   const upcomingGroups = useMemo(() => groupScheduledMovementsByDate(scheduledItems), [scheduledItems]);
   const activeFilterChips = useMemo(
-    () => buildActiveFilterChips(appliedFilters, filterOptions),
-    [appliedFilters, filterOptions],
+    () => buildActiveFilterChips(appliedFilters, filterOptions, searchApplied),
+    [appliedFilters, filterOptions, searchApplied],
   );
   const categoryLabelById = useMemo(
     () => new Map(filterOptions.categories.map((item) => [item.id, item.label] as const)),
@@ -549,7 +552,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
         </div>
       ) : null}
 
-      <div className="quick-row transactions-search-row">
+      <div className="stack transactions-search-input">
         <input
           aria-label="Search transactions"
           value={filters.text}
@@ -557,6 +560,8 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
           placeholder="Search merchant or description"
           autoComplete="off"
         />
+      </div>
+      <div className="quick-row transactions-search-actions">
         <button
           type="button"
           className="text-button"

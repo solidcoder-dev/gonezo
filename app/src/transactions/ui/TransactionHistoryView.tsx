@@ -17,6 +17,7 @@ export function TransactionHistoryView({ required, provided }: TransactionHistor
         scheduledHasMore: required.state.scheduledHasMore,
         filtersOpen: required.state.filtersOpen,
         filtersAdvancedOpen: required.state.filtersAdvancedOpen,
+        searchApplied: required.state.searchApplied,
         filters: required.state.filters,
         appliedFilters: required.state.appliedFilters,
         filterOptions: required.state.filterOptions,

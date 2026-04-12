@@ -89,15 +89,15 @@ body {
   flex-wrap: wrap;
 }
 
-.transactions-search-row {
-  align-items: center;
+.transactions-search-input {
+  margin-top: 0;
 }
 
-.transactions-search-row input {
-  flex: 1 1 220px;
+.transactions-search-actions {
+  margin-top: 0;
 }
 
-.transactions-search-row button {
+.transactions-search-actions button {
   flex: 0 0 auto;
 }
 

@@ -176,6 +176,7 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filtersAdvancedOpen, setFiltersAdvancedOpen] = useState(false);
+  const [searchApplied, setSearchApplied] = useState(false);
   const [filterDraft, setFilterDraft] = useState<TransactionFilterFormState>(() => createDefaultFilters());
   const [appliedFilters, setAppliedFilters] = useState<TransactionFilterFormState>(() => createDefaultFilters());
   const [page, setPage] = useState(0);
@@ -423,6 +424,7 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
       clearToastState();
       setFiltersOpen(false);
       setFiltersAdvancedOpen(false);
+      setSearchApplied(false);
       setFilterDraft(createDefaultFilters());
       setAppliedFilters(createDefaultFilters());
       setPage(0);
@@ -437,6 +439,7 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
       clearToastState();
       setFiltersOpen(false);
       setFiltersAdvancedOpen(false);
+      setSearchApplied(false);
       setFilterDraft(createDefaultFilters());
       setAppliedFilters(createDefaultFilters());
       setPage(0);
@@ -543,6 +546,7 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
       scheduledHasMore,
       filtersOpen,
       filtersAdvancedOpen,
+      searchApplied,
       filters: {
         text: filterDraft.text,
         categoryIds: filterDraft.categoryIds,
@@ -616,6 +620,7 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
       resetFilters: () => {
         setFilterDraft(createDefaultFilters());
         setAppliedFilters(createDefaultFilters());
+        setSearchApplied(false);
         setPage(0);
         setFiltersAdvancedOpen(false);
       },
@@ -646,6 +651,7 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
       },
       applyFilters: () => {
         setAppliedFilters(mergeFilterPatch(filterDraft, {}));
+        setSearchApplied(true);
         setPage(0);
         setFiltersOpen(false);
         setFiltersAdvancedOpen(false);
