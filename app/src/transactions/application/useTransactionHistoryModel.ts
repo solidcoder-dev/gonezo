@@ -619,8 +619,6 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
       },
       resetFilters: () => {
         setFilterDraft(createDefaultFilters());
-        setAppliedFilters(createDefaultFilters());
-        setSearchApplied(false);
         setPage(0);
         setFiltersAdvancedOpen(false);
       },
@@ -642,12 +640,8 @@ export function useTransactionHistoryModel(input: UseTransactionHistoryModelInpu
         setFilterDraft((previous) => ({ ...previous, pageSize: normalized }));
       },
       applyFilterPatch: (patch) => {
-        const next = mergeFilterPatch(appliedFilters, patch);
+        const next = mergeFilterPatch(filterDraft, patch);
         setFilterDraft(next);
-        setAppliedFilters(next);
-        setPage(0);
-        setFiltersOpen(false);
-        setFiltersAdvancedOpen(false);
       },
       applyFilters: () => {
         setAppliedFilters(mergeFilterPatch(filterDraft, {}));

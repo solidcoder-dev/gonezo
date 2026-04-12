@@ -109,13 +109,12 @@ function toggleIdentifier(values: string[], candidate: string): string[] {
 function buildActiveFilterChips(
   filters: TransactionHistoryFiltersState,
   filterOptions: RecentTransactionsListViewRequired['filterOptions'],
-  includeSearchText: boolean,
 ): ActiveFilterChip[] {
   const chips: ActiveFilterChip[] = [];
   const categoryNameById = new Map(filterOptions.categories.map((item) => [item.id, item.label]));
   const tagNameById = new Map(filterOptions.tags.map((item) => [item.id, item.label]));
 
-  if (includeSearchText && filters.text.trim()) {
+  if (filters.text.trim()) {
     chips.push({
       key: 'text',
       label: `Search: "${filters.text.trim()}"`,
@@ -312,8 +311,8 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
   const postedGroups = useMemo(() => groupPostedTransactionsByDate(items), [items]);
   const upcomingGroups = useMemo(() => groupScheduledMovementsByDate(scheduledItems), [scheduledItems]);
   const activeFilterChips = useMemo(
-    () => buildActiveFilterChips(appliedFilters, filterOptions, searchApplied),
-    [appliedFilters, filterOptions, searchApplied],
+    () => buildActiveFilterChips(appliedFilters, filterOptions),
+    [appliedFilters, filterOptions],
   );
   const categoryLabelById = useMemo(
     () => new Map(filterOptions.categories.map((item) => [item.id, item.label] as const)),
@@ -355,8 +354,8 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
           <button
             key={option.value}
             type="button"
-            className={appliedFilters.status === option.value ? 'chip filter-chip active' : 'chip filter-chip'}
-            aria-pressed={appliedFilters.status === option.value}
+            className={filters.status === option.value ? 'chip filter-chip active' : 'chip filter-chip'}
+            aria-pressed={filters.status === option.value}
             onClick={() => provided.onApplyFilterPatch({ status: option.value })}
             disabled={disabled}
           >
@@ -370,8 +369,8 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
           <button
             key={option.value}
             type="button"
-            className={appliedFilters.origin === option.value ? 'chip filter-chip active' : 'chip filter-chip'}
-            aria-pressed={appliedFilters.origin === option.value}
+            className={filters.origin === option.value ? 'chip filter-chip active' : 'chip filter-chip'}
+            aria-pressed={filters.origin === option.value}
             onClick={() => provided.onApplyFilterPatch({ origin: option.value })}
             disabled={disabled}
           >
@@ -575,7 +574,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
         </button>
       </div>
 
-      {activeFilterChips.length > 0 ? (
+      {searchApplied && activeFilterChips.length > 0 ? (
         <div className="chip-row active-filter-row" aria-label="Applied filters">
           {activeFilterChips.map((chip) => (
             <button
