@@ -98,11 +98,16 @@ function toPagedResult(
   };
 }
 
+function isoInCurrentMonth(day: number, hour = 12, minute = 0): string {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), day, hour, minute, 0, 0).toISOString();
+}
+
 function makeCore(transactionCount = 0): AccountsCorePort {
   const transactions: LedgerTransactionListItem[] = Array.from({ length: transactionCount }).map((_, index) => ({
     id: `tx-${index + 1}`,
     accountId: 'acc-1',
-    occurredAt: `2026-03-0${(index % 9) + 1}`,
+    occurredAt: isoInCurrentMonth((index % 20) + 1, 9, index % 60),
     description: `Description ${index + 1}`,
     merchant: `Merchant ${index + 1}`,
     amount: `${index + 1}.00`,
@@ -828,7 +833,7 @@ describe('App Accounts UX', () => {
       {
         id: 'tx-seed',
         accountId: 'acc-1',
-        occurredAt: '2026-03-10T09:00:00.000Z',
+        occurredAt: isoInCurrentMonth(10, 9),
         description: 'Seed movement',
         merchant: 'Seed merchant',
         amount: '9.00',
@@ -844,7 +849,7 @@ describe('App Accounts UX', () => {
       transactions.unshift({
         id: 'tx-new',
         accountId: 'acc-1',
-        occurredAt: '2026-03-10T10:00:00.000Z',
+        occurredAt: isoInCurrentMonth(10, 10),
         description: 'New movement',
         merchant: 'Auto refresh merchant',
         amount: '12.50',
@@ -1449,7 +1454,7 @@ describe('App Accounts UX', () => {
         {
           id: 'tx-1',
           accountId: 'acc-1',
-          occurredAt: '2026-03-06T09:41:00.000Z',
+          occurredAt: isoInCurrentMonth(6, 9, 41),
           description: 'Breakfast',
           merchant: 'Cafe',
           amount: '8.50',
@@ -1487,7 +1492,7 @@ describe('App Accounts UX', () => {
     expect(timeElements).toHaveLength(0);
   });
 
-  it('always shows more filters action for transactions', async () => {
+  it('shows advanced-search entry on hub', async () => {
     const coreWithMoreThanThree = makeCore(5);
 
     render(
@@ -1497,100 +1502,65 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Transactions' });
-    expect(screen.getByRole('button', { name: 'More filters' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Advanced search' })).toBeInTheDocument();
   });
 
-  it('opens filters panel and applies search', async () => {
+  it('links to advanced search with the current account id', async () => {
     const coreWithThree = makeCore(3);
 
     render(
       <MemoryRouter>
         <App required={{ core: coreWithThree }} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     await screen.findByRole('heading', { name: 'Transactions' });
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'More filters' })).not.toBeDisabled();
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'More filters' }));
-    expect(screen.getByLabelText('Transaction filters')).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Search transactions'), { target: { value: 'Merchant 1' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
-    await waitFor(() => {
-      expect(coreWithThree.ledgerListTransactions).toHaveBeenCalledTimes(2);
-    });
+    expect(screen.getByRole('link', { name: 'Advanced search' })).toHaveAttribute(
+      'href',
+      '/movements/search?accountId=acc-1',
+    );
   });
 
-  it('resets filters when switching account', async () => {
+  it('updates advanced-search link when switching account', async () => {
     const coreWithThree = makeCore(3);
 
     render(
       <MemoryRouter>
         <App required={{ core: coreWithThree }} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     await screen.findByRole('heading', { name: 'Transactions' });
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'More filters' })).not.toBeDisabled();
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'More filters' }));
-    fireEvent.change(screen.getByLabelText('Search transactions'), { target: { value: 'Merchant 1' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
-
-    await waitFor(() => {
-      expect(coreWithThree.ledgerListTransactions).toHaveBeenCalledTimes(2);
-    });
+    expect(screen.getByRole('link', { name: 'Advanced search' })).toHaveAttribute(
+      'href',
+      '/movements/search?accountId=acc-1',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Accounts' }));
     await screen.findByRole('dialog', { name: 'Select account' });
     fireEvent.click(screen.getByRole('button', { name: /Savings/ }));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'More filters' })).not.toBeDisabled();
+      expect(screen.getByRole('link', { name: 'Advanced search' })).toHaveAttribute(
+        'href',
+        '/movements/search?accountId=acc-2',
+      );
     });
-    fireEvent.click(screen.getByRole('button', { name: 'More filters' }));
-
-    expect(screen.getByLabelText('Search transactions')).toHaveValue('');
   });
 
-  it('applies category, tag and amount range filters', async () => {
+  it('keeps hub monthly-focused without exposing advanced filter controls', async () => {
     const coreWithThree = makeCore(3);
 
     render(
       <MemoryRouter>
         <App required={{ core: coreWithThree }} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     await screen.findByRole('heading', { name: 'Transactions' });
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'More filters' })).not.toBeDisabled();
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'More filters' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Advanced filters' }));
-
-    const advancedFilters = await screen.findByLabelText('Advanced transaction filters');
-    fireEvent.click(within(advancedFilters).getByRole('button', { name: 'Food' }));
-    fireEvent.click(within(advancedFilters).getByRole('button', { name: '#home' }));
-
-    fireEvent.change(screen.getByLabelText('Min amount'), { target: { value: '5' } });
-    fireEvent.change(screen.getByLabelText('Max amount'), { target: { value: '20' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
-
-    await waitFor(() => {
-      expect(coreWithThree.ledgerListTransactions).toHaveBeenCalledTimes(2);
-    });
-
-    const lastCall = vi.mocked(coreWithThree.ledgerListTransactions).mock.calls.at(-1);
-    expect(lastCall?.[0].filters).toMatchObject({
-      categoryIds: ['cat-food'],
-      categoryId: 'cat-food',
-      tagIds: ['tag-home'],
-      amountMin: '5',
-      amountMax: '20',
-    });
+    expect(screen.queryByRole('button', { name: 'More filters' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Upcoming' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Posted' })).toBeInTheDocument();
   });
 
   it('creates recurring expense from composer more options', async () => {
