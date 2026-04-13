@@ -1,0 +1,506 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { LedgerTransactionListItem, TaxonomyCategoryItem, TaxonomyTagItem } from '../../shared/domain/corePort';
+import { useLedgerTransactions } from '../../ledger/application/useLedgerTransactions';
+import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
+import { createSchedulingGateway } from '../../scheduling/infrastructure/schedulingGateway';
+import { useCategorySuggestions } from '../../taxonomy/application/useCategorySuggestions';
+import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions';
+import { useTransactionClassification } from '../../taxonomy/application/useTransactionClassification';
+import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
+import { mapTransactionHistoryList } from '../../transactions/application/transactionViewMappers';
+import type { TransactionsCorePort } from '../../transactions/application/transactionsCore.port';
+import type { MonthlyMovementsViewProvided, MonthlyMovementsViewRequired } from '../ui/MonthlyMovementsView.contract';
+
+type UseMonthlyMovementsModelInput = {
+  core: TransactionsCorePort;
+  accountId: string | null;
+  enabled: boolean;
+  refreshSignal: boolean;
+  onVoided?: (transactionId: string) => void;
+  onError?: (error: { message: string }) => void;
+};
+
+type TaxonomyAssignment = {
+  categoryId?: string;
+  tagIds: string[];
+};
+
+type PaginationState = {
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+};
+
+const VOID_COMMIT_DELAY_MS = 5000;
+const POSTED_PAGE_SIZE = 10;
+const UPCOMING_PREVIEW_SIZE = 30;
+
+const EMPTY_PAGINATION: PaginationState = {
+  page: 0,
+  size: POSTED_PAGE_SIZE,
+  totalElements: 0,
+  totalPages: 0,
+  hasNext: false,
+  hasPrevious: false,
+};
+
+function toErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'Unknown error';
+}
+
+function monthStart(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
+}
+
+function monthEnd(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+}
+
+function monthLabel(date: Date): string {
+  return new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(date);
+}
+
+function sameMonth(left: Date, right: Date): boolean {
+  return left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth();
+}
+
+export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
+  const { core, accountId, enabled, refreshSignal, onVoided, onError } = input;
+
+  const [loading, setLoading] = useState(true);
+  const [postingTransaction, setPostingTransaction] = useState(false);
+  const [mutating, setMutating] = useState(false);
+  const [error, setError] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastActionLabel, setToastActionLabel] = useState('');
+  const [toastAction, setToastAction] = useState<(() => void) | null>(null);
+
+  const [monthCursor, setMonthCursor] = useState<Date>(() => monthStart(new Date()));
+  const [page, setPage] = useState(0);
+  const [pagination, setPagination] = useState<PaginationState>(EMPTY_PAGINATION);
+
+  const [transactions, setTransactions] = useState<LedgerTransactionListItem[]>([]);
+  const [scheduledItems, setScheduledItems] = useState<MonthlyMovementsViewRequired['state']['scheduledItems']>([]);
+  const [scheduledTotal, setScheduledTotal] = useState(0);
+  const [scheduledHasMore, setScheduledHasMore] = useState(false);
+  const [taxonomyByTransactionId, setTaxonomyByTransactionId] = useState<Record<string, TaxonomyAssignment>>({});
+  const [categories, setCategories] = useState<TaxonomyCategoryItem[]>([]);
+  const [tags, setTags] = useState<TaxonomyTagItem[]>([]);
+
+  const [pendingVoidTransactionId, setPendingVoidTransactionId] = useState('');
+  const [pendingDeactivateScheduledId, setPendingDeactivateScheduledId] = useState('');
+  const [voidMutationPhase, setVoidMutationPhase] = useState<'idle' | 'scheduled' | 'committing'>('idle');
+
+  const pendingVoidTimerRef = useRef<number | null>(null);
+  const previousAccountIdRef = useRef<string | null>(null);
+
+  const monthStartDate = useMemo(() => monthStart(monthCursor), [monthCursor]);
+  const monthEndDate = useMemo(() => monthEnd(monthCursor), [monthCursor]);
+  const currentMonth = useMemo(() => monthStart(new Date()), []);
+  const isCurrentMonth = sameMonth(monthCursor, currentMonth);
+
+  const ledgerGateway = useMemo(() => createLedgerGateway(core), [core]);
+  const schedulingGateway = useMemo(() => createSchedulingGateway(core), [core]);
+  const taxonomyGateway = useMemo(() => createTaxonomyGateway(core), [core]);
+
+  const ledgerTransactions = useLedgerTransactions(ledgerGateway);
+  const categorySuggestions = useCategorySuggestions(taxonomyGateway);
+  const tagSuggestions = useTagSuggestions(taxonomyGateway);
+  const transactionClassification = useTransactionClassification(taxonomyGateway);
+
+  const categoryNameById = useMemo(() => {
+    const mapping = new Map<string, string>();
+    for (const category of categories) {
+      mapping.set(category.id, category.name);
+    }
+    return mapping;
+  }, [categories]);
+
+  const tagNameById = useMemo(() => {
+    const mapping = new Map<string, string>();
+    for (const tag of tags) {
+      mapping.set(tag.id, tag.name);
+    }
+    return mapping;
+  }, [tags]);
+
+  const transactionsWithTaxonomy = useMemo(
+    () => transactions.map((transaction) => {
+      const taxonomy = taxonomyByTransactionId[transaction.id];
+      const categoryId = taxonomy?.categoryId ?? transaction.categoryId ?? transaction.category?.id;
+      const categoryName = categoryId
+        ? transaction.category?.name ?? categoryNameById.get(categoryId)
+        : undefined;
+
+      const category = categoryId && categoryName
+        ? {
+            id: categoryId,
+            name: categoryName,
+          }
+        : undefined;
+
+      const taxonomyTagIds = taxonomy?.tagIds ?? [];
+      const fallbackTagMap = new Map(
+        (transaction.tags ?? [])
+          .map((tag) => [tag.id, tag.name] as const)
+          .filter((entry) => entry[0].trim().length > 0 && entry[1].trim().length > 0),
+      );
+      const tagIds = taxonomyTagIds.length > 0
+        ? taxonomyTagIds
+        : (transaction.tags ?? []).map((tag) => tag.id);
+
+      const transactionTags = tagIds
+        .map((tagId) => {
+          const name = tagNameById.get(tagId) ?? fallbackTagMap.get(tagId);
+          if (!name || name.trim().length === 0) {
+            return undefined;
+          }
+          return {
+            id: tagId,
+            name,
+          };
+        })
+        .filter((tag): tag is { id: string; name: string } => tag != null);
+
+      return {
+        ...transaction,
+        categoryId,
+        category,
+        tags: transactionTags,
+      };
+    }),
+    [categoryNameById, tagNameById, taxonomyByTransactionId, transactions],
+  );
+
+  const historyItems = useMemo(
+    () => mapTransactionHistoryList(transactionsWithTaxonomy),
+    [transactionsWithTaxonomy],
+  );
+
+  function clearPendingVoidTimer() {
+    if (pendingVoidTimerRef.current != null) {
+      window.clearTimeout(pendingVoidTimerRef.current);
+      pendingVoidTimerRef.current = null;
+    }
+  }
+
+  function clearToastState() {
+    setToastMessage('');
+    setToastActionLabel('');
+    setToastAction(null);
+  }
+
+  function showToast(message: string) {
+    setToastMessage(message);
+    setToastActionLabel('');
+    setToastAction(null);
+  }
+
+  function reportError(raw: unknown) {
+    const message = toErrorMessage(raw);
+    setError(message);
+    onError?.({ message });
+  }
+
+  function cancelPendingVoid(message: string) {
+    clearPendingVoidTimer();
+    setPendingVoidTransactionId('');
+    setVoidMutationPhase('idle');
+    setToastActionLabel('');
+    setToastAction(null);
+    setToastMessage(message);
+  }
+
+  async function refreshTaxonomyAssignments(items: LedgerTransactionListItem[]) {
+    const transactionIds = [...new Set(items.map((item) => item.id).filter((id) => id.trim().length > 0))];
+    if (transactionIds.length === 0) {
+      setTaxonomyByTransactionId({});
+      return;
+    }
+
+    const result = await transactionClassification.listTransactionTaxonomy({ transactionIds });
+    const next: Record<string, TaxonomyAssignment> = {};
+    for (const item of result.items) {
+      next[item.transactionId] = {
+        categoryId: item.categoryId,
+        tagIds: [...(item.tagIds ?? [])],
+      };
+    }
+    setTaxonomyByTransactionId(next);
+  }
+
+  async function ensureTaxonomyLoaded() {
+    const operations: Promise<void>[] = [];
+
+    if (categories.length === 0) {
+      operations.push(
+        categorySuggestions
+          .listCategories({ includeArchived: false })
+          .then((result) => setCategories(result.items)),
+      );
+    }
+
+    if (tags.length === 0) {
+      operations.push(
+        tagSuggestions
+          .listTags({ includeArchived: false })
+          .then((result) => setTags(result.items)),
+      );
+    }
+
+    if (operations.length > 0) {
+      await Promise.all(operations);
+    }
+  }
+
+  async function refreshMovements() {
+    if (!accountId) {
+      setTransactions([]);
+      setScheduledItems([]);
+      setScheduledTotal(0);
+      setScheduledHasMore(false);
+      setPagination(EMPTY_PAGINATION);
+      setTaxonomyByTransactionId({});
+      return;
+    }
+
+    const overview = await schedulingGateway.movementsGetOverview({
+      accountId,
+      filters: {
+        fromDate: monthStartDate.toISOString(),
+        toDate: monthEndDate.toISOString(),
+      },
+      executedPagination: {
+        page,
+        size: POSTED_PAGE_SIZE,
+      },
+      sort: [
+        {
+          field: 'occurredAt',
+          direction: 'desc',
+        },
+      ],
+      scheduledPreviewSize: UPCOMING_PREVIEW_SIZE,
+    });
+
+    setTransactions(overview.executedPage.content);
+    setScheduledItems(overview.scheduledPreview.items);
+    setScheduledTotal(overview.scheduledPreview.total);
+    setScheduledHasMore(overview.scheduledPreview.hasMore);
+    setPagination({
+      page: overview.executedPage.page,
+      size: overview.executedPage.size,
+      totalElements: overview.executedPage.totalElements,
+      totalPages: overview.executedPage.totalPages,
+      hasNext: overview.executedPage.hasNext,
+      hasPrevious: overview.executedPage.hasPrevious,
+    });
+    if (page !== overview.executedPage.page) {
+      setPage(overview.executedPage.page);
+    }
+    await refreshTaxonomyAssignments(overview.executedPage.content);
+  }
+
+  useEffect(() => {
+    if (!enabled || !accountId) {
+      previousAccountIdRef.current = accountId;
+      clearPendingVoidTimer();
+      setLoading(false);
+      setError('');
+      clearToastState();
+      setTransactions([]);
+      setScheduledItems([]);
+      setScheduledTotal(0);
+      setScheduledHasMore(false);
+      setTaxonomyByTransactionId({});
+      setPagination(EMPTY_PAGINATION);
+      setPendingVoidTransactionId('');
+      setPendingDeactivateScheduledId('');
+      setPostingTransaction(false);
+      setVoidMutationPhase('idle');
+      return;
+    }
+
+    const accountChanged = previousAccountIdRef.current !== accountId;
+    if (accountChanged) {
+      previousAccountIdRef.current = accountId;
+      clearPendingVoidTimer();
+      setPage(0);
+      setError('');
+      clearToastState();
+      setTransactions([]);
+      setScheduledItems([]);
+      setScheduledTotal(0);
+      setScheduledHasMore(false);
+      setTaxonomyByTransactionId({});
+      setPagination(EMPTY_PAGINATION);
+      setPendingVoidTransactionId('');
+      setPendingDeactivateScheduledId('');
+      setPostingTransaction(false);
+      setVoidMutationPhase('idle');
+      setLoading(true);
+    }
+
+    let cancelled = false;
+
+    async function run() {
+      setLoading(true);
+      setError('');
+      try {
+        await Promise.all([refreshMovements(), ensureTaxonomyLoaded()]);
+      } catch (err) {
+        if (!cancelled) {
+          reportError(err);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void run();
+
+    return () => {
+      cancelled = true;
+      clearPendingVoidTimer();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, accountId, refreshSignal, page, monthStartDate.getTime(), monthEndDate.getTime()]);
+
+  useEffect(() => () => {
+    clearPendingVoidTimer();
+  }, []);
+
+  async function executeVoidTransaction(transactionId: string) {
+    setPostingTransaction(true);
+    setVoidMutationPhase('committing');
+    setToastActionLabel('');
+    setToastAction(null);
+    try {
+      await ledgerTransactions.voidTransaction({ transactionId });
+      await refreshMovements();
+      showToast('Transaction voided.');
+      onVoided?.(transactionId);
+    } catch (err) {
+      reportError(err);
+    } finally {
+      setPostingTransaction(false);
+      setPendingVoidTransactionId('');
+      setVoidMutationPhase('idle');
+      setToastActionLabel('');
+      setToastAction(null);
+      clearPendingVoidTimer();
+    }
+  }
+
+  function requestVoid(transactionId: string) {
+    setError('');
+    clearPendingVoidTimer();
+    setPendingVoidTransactionId(transactionId);
+    setVoidMutationPhase('scheduled');
+    setToastMessage('Transaction will be voided in 5 seconds.');
+    setToastActionLabel('Undo');
+    setToastAction(() => () => cancelPendingVoid('Void canceled.'));
+
+    pendingVoidTimerRef.current = window.setTimeout(() => {
+      pendingVoidTimerRef.current = null;
+      void executeVoidTransaction(transactionId);
+    }, VOID_COMMIT_DELAY_MS);
+  }
+
+  async function deactivateScheduledMovement(scheduledMovementId: string) {
+    setMutating(true);
+    setPendingDeactivateScheduledId(scheduledMovementId);
+    setError('');
+    try {
+      await schedulingGateway.schedulingDeactivateMovement({
+        recurringMovementId: scheduledMovementId,
+      });
+      await refreshMovements();
+      showToast('Scheduled movement deactivated.');
+    } catch (err) {
+      reportError(err);
+    } finally {
+      setMutating(false);
+      setPendingDeactivateScheduledId('');
+    }
+  }
+
+  const disabled = loading || mutating || postingTransaction || voidMutationPhase === 'committing';
+
+  const required: MonthlyMovementsViewRequired = {
+    state: {
+      accountId: accountId ?? '',
+      monthLabel: monthLabel(monthCursor),
+      isCurrentMonth,
+      items: historyItems,
+      scheduledItems,
+      scheduledTotal,
+      scheduledHasMore,
+      filterOptions: {
+        categories: categories.map((category) => ({ id: category.id, label: category.name })),
+        tags: tags.map((tag) => ({ id: tag.id, label: tag.name })),
+      },
+      pagination,
+      pendingVoidTransactionId: pendingVoidTransactionId || undefined,
+      pendingDeactivateScheduledId: pendingDeactivateScheduledId || undefined,
+    },
+    status: {
+      loading,
+      disabled,
+    },
+  };
+
+  const provided: MonthlyMovementsViewProvided = {
+    commands: {
+      goToPreviousMonth: () => {
+        setMonthCursor((previous) => monthStart(new Date(previous.getFullYear(), previous.getMonth() - 1, 1)));
+        setPage(0);
+      },
+      goToCurrentMonth: () => {
+        setMonthCursor(monthStart(new Date()));
+        setPage(0);
+      },
+      goToNextMonth: () => {
+        setMonthCursor((previous) => monthStart(new Date(previous.getFullYear(), previous.getMonth() + 1, 1)));
+        setPage(0);
+      },
+      goToPreviousPage: () => {
+        setPage((previous) => Math.max(0, previous - 1));
+      },
+      goToNextPage: () => {
+        if (!pagination.hasNext) {
+          return;
+        }
+        setPage((previous) => previous + 1);
+      },
+      requestVoid,
+      deactivateScheduledMovement,
+    },
+  };
+
+  return {
+    error,
+    toast: {
+      message: toastMessage,
+      actionLabel: toastActionLabel,
+      dismiss: () => {
+        if (pendingVoidTransactionId) {
+          cancelPendingVoid('Void canceled.');
+        } else {
+          clearToastState();
+        }
+      },
+      runAction: () => toastAction?.(),
+    },
+    required,
+    provided,
+  };
+}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { TransactionsImportPolicyInput, TransactionsImportResult } from '../../imports/domain/transactionsImport.types';
-import { RecentTransactionsComponent, TransactionEntryComponent, type TransactionsCorePort } from '../../transactions';
+import { TransactionEntryComponent, type TransactionsCorePort } from '../../transactions';
+import { MonthlyMovementsComponent } from '../../movements';
 import { AccountPageView } from '../ui/AccountPageView';
 import { TransactionsImportComponent } from '../ui/capabilities/TransactionsImportComponent';
 import type { AccountPageViewProvided, AccountPageViewRequired } from '../ui/accountPageView.contract';
@@ -152,7 +153,7 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
         : null,
       recentTransactions: hasSelectedAccount
         ? (
-            <RecentTransactionsComponent
+            <MonthlyMovementsComponent
               required={{
                 context: {
                   accountId: selectedAccountId,

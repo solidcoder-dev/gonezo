@@ -101,6 +101,16 @@ body {
   flex: 0 0 auto;
 }
 
+.month-nav-row {
+  align-items: center;
+}
+
+.month-nav-label {
+  min-width: 140px;
+  text-align: center;
+  font-weight: 600;
+}
+
 .mode-row {
   display: block;
 }
