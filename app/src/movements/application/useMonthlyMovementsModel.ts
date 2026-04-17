@@ -82,6 +82,9 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const [toastAction, setToastAction] = useState<(() => void) | null>(null);
 
   const [monthCursor, setMonthCursor] = useState<Date>(() => monthStart(new Date()));
+  const [monthMenuOpen, setMonthMenuOpen] = useState(false);
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+  const [monthPickerYear, setMonthPickerYear] = useState(() => new Date().getFullYear());
   const [page, setPage] = useState(0);
   const [pagination, setPagination] = useState<PaginationState>(EMPTY_PAGINATION);
 
@@ -104,6 +107,10 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const monthEndDate = useMemo(() => monthEnd(monthCursor), [monthCursor]);
   const currentMonth = useMemo(() => monthStart(new Date()), []);
   const isCurrentMonth = sameMonth(monthCursor, currentMonth);
+  const viewedMonthIndex = monthCursor.getMonth();
+  const viewedYear = monthCursor.getFullYear();
+  const currentMonthIndex = currentMonth.getMonth();
+  const currentYear = currentMonth.getFullYear();
 
   const ledgerGateway = useMemo(() => createLedgerGateway(core), [core]);
   const schedulingGateway = useMemo(() => createSchedulingGateway(core), [core]);
@@ -324,6 +331,9 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       setPendingDeactivateScheduledId('');
       setPostingTransaction(false);
       setVoidMutationPhase('idle');
+      setMonthMenuOpen(false);
+      setMonthPickerOpen(false);
+      setMonthPickerYear(monthCursor.getFullYear());
       return;
     }
 
@@ -344,6 +354,9 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       setPendingDeactivateScheduledId('');
       setPostingTransaction(false);
       setVoidMutationPhase('idle');
+      setMonthMenuOpen(false);
+      setMonthPickerOpen(false);
+      setMonthPickerYear(monthCursor.getFullYear());
       setLoading(true);
     }
 
@@ -440,6 +453,13 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       accountId: accountId ?? '',
       monthLabel: monthLabel(monthCursor),
       isCurrentMonth,
+      monthMenuOpen,
+      monthPickerOpen,
+      monthPickerYear,
+      viewedMonthIndex,
+      viewedYear,
+      currentMonthIndex,
+      currentYear,
       items: historyItems,
       scheduledItems,
       scheduledTotal,
@@ -462,14 +482,49 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     commands: {
       goToPreviousMonth: () => {
         setMonthCursor((previous) => monthStart(new Date(previous.getFullYear(), previous.getMonth() - 1, 1)));
+        setMonthMenuOpen(false);
+        setMonthPickerOpen(false);
         setPage(0);
       },
       goToCurrentMonth: () => {
-        setMonthCursor(monthStart(new Date()));
+        const target = monthStart(new Date());
+        setMonthCursor(target);
+        setMonthPickerYear(target.getFullYear());
+        setMonthMenuOpen(false);
+        setMonthPickerOpen(false);
         setPage(0);
       },
       goToNextMonth: () => {
         setMonthCursor((previous) => monthStart(new Date(previous.getFullYear(), previous.getMonth() + 1, 1)));
+        setMonthMenuOpen(false);
+        setMonthPickerOpen(false);
+        setPage(0);
+      },
+      toggleMonthMenu: () => {
+        setMonthPickerOpen(false);
+        setMonthMenuOpen((previous) => !previous);
+      },
+      closeMonthMenu: () => {
+        setMonthMenuOpen(false);
+      },
+      openMonthPicker: () => {
+        setMonthMenuOpen(false);
+        setMonthPickerYear(monthCursor.getFullYear());
+        setMonthPickerOpen(true);
+      },
+      closeMonthPicker: () => {
+        setMonthPickerOpen(false);
+      },
+      goToPreviousPickerYear: () => {
+        setMonthPickerYear((previous) => previous - 1);
+      },
+      goToNextPickerYear: () => {
+        setMonthPickerYear((previous) => previous + 1);
+      },
+      selectPickerMonth: (monthIndex) => {
+        setMonthCursor(monthStart(new Date(monthPickerYear, monthIndex, 1)));
+        setMonthMenuOpen(false);
+        setMonthPickerOpen(false);
         setPage(0);
       },
       goToPreviousPage: () => {

@@ -6,6 +6,13 @@ export type MonthlyMovementsViewRequired = {
     accountId: string;
     monthLabel: string;
     isCurrentMonth: boolean;
+    monthMenuOpen: boolean;
+    monthPickerOpen: boolean;
+    monthPickerYear: number;
+    viewedMonthIndex: number;
+    viewedYear: number;
+    currentMonthIndex: number;
+    currentYear: number;
     items: TransactionHistoryItemView[];
     scheduledItems: SchedulingMovementItem[];
     scheduledTotal: number;
@@ -36,6 +43,13 @@ export type MonthlyMovementsViewProvided = {
     goToPreviousMonth: () => void;
     goToCurrentMonth: () => void;
     goToNextMonth: () => void;
+    toggleMonthMenu: () => void;
+    closeMonthMenu: () => void;
+    openMonthPicker: () => void;
+    closeMonthPicker: () => void;
+    goToPreviousPickerYear: () => void;
+    goToNextPickerYear: () => void;
+    selectPickerMonth: (monthIndex: number) => void;
     goToPreviousPage: () => void;
     goToNextPage: () => void;
     requestVoid: (transactionId: string) => void;

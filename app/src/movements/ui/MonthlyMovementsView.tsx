@@ -6,6 +6,9 @@ import { formatCurrencyAmount } from '../../shared/utils/formatting';
 import type { TransactionHistoryItemView } from '../../transactions/domain/transactionView.types';
 import { formatCalendarDay, groupPostedTransactionsByDate } from '../../transactions/ui/postedGrouping';
 import { groupScheduledMovementsByDate } from '../../transactions/ui/scheduledGrouping';
+import { MonthNavigatorView } from './MonthNavigatorView';
+import { MonthPickerModalView } from './MonthPickerModalView';
+import { YearMonthSelectorView } from './YearMonthSelectorView';
 import type { MonthlyMovementsViewProps } from './MonthlyMovementsView.contract';
 
 export type { MonthlyMovementsViewProps } from './MonthlyMovementsView.contract';
@@ -103,6 +106,13 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
     accountId,
     monthLabel,
     isCurrentMonth,
+    monthMenuOpen,
+    monthPickerOpen,
+    monthPickerYear,
+    viewedMonthIndex,
+    viewedYear,
+    currentMonthIndex,
+    currentYear,
     items,
     scheduledItems,
     scheduledTotal,
@@ -158,23 +168,46 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
         </Link>
       </div>
 
-      <div className="quick-row month-nav-row" aria-label="Monthly navigation">
-        <button type="button" className="text-button" onClick={provided.commands.goToPreviousMonth} disabled={disabled}>
-          Previous month
-        </button>
-        <span className="hint month-nav-label">{monthLabel}</span>
-        <button type="button" className="text-button" onClick={provided.commands.goToNextMonth} disabled={disabled}>
-          Next month
-        </button>
-        <button
-          type="button"
-          className="text-button"
-          onClick={provided.commands.goToCurrentMonth}
-          disabled={disabled || isCurrentMonth}
-        >
-          Current month
-        </button>
-      </div>
+      <MonthNavigatorView
+        required={{
+          monthLabel,
+          disabled,
+          monthMenuOpen,
+          isCurrentMonth,
+        }}
+        provided={{
+          onPreviousMonth: provided.commands.goToPreviousMonth,
+          onNextMonth: provided.commands.goToNextMonth,
+          onToggleMenu: provided.commands.toggleMonthMenu,
+          onGoToCurrentMonth: provided.commands.goToCurrentMonth,
+          onOpenMonthPicker: provided.commands.openMonthPicker,
+        }}
+      />
+
+      <MonthPickerModalView
+        required={{
+          open: monthPickerOpen,
+        }}
+        provided={{
+          onDismiss: provided.commands.closeMonthPicker,
+        }}
+      >
+        <YearMonthSelectorView
+          required={{
+            year: monthPickerYear,
+            viewedYear,
+            viewedMonthIndex,
+            currentYear,
+            currentMonthIndex,
+            disabled,
+          }}
+          provided={{
+            onPreviousYear: provided.commands.goToPreviousPickerYear,
+            onNextYear: provided.commands.goToNextPickerYear,
+            onSelectMonth: provided.commands.selectPickerMonth,
+          }}
+        />
+      </MonthPickerModalView>
 
       {loading ? <p role="status">Loading monthly movements...</p> : null}
 
