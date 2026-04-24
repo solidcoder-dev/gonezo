@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { AccountsCorePort } from './useAccountPageModel';
 
 export type AccountSummaryComponentRequired = {
@@ -8,6 +9,7 @@ export type AccountSummaryComponentRequired = {
   config: {
     enabled: boolean;
     refreshSignal: boolean;
+    headerSlot?: ReactNode;
   };
 };
 

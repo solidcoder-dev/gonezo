@@ -166,18 +166,18 @@ export function AccountSummaryComponent({ required, provided = {} }: AccountSumm
 
       <section className="summary-card section-gap" aria-busy={loading}>
         <div className="summary-header">
-          <h2>{summary.name}</h2>
+          {required.config.headerSlot ?? <h2>{summary.name}</h2>}
           <button
             type="button"
             className="text-button icon-button summary-menu-button"
-            aria-label="Account options"
+            aria-label="Account settings"
             onClick={() => {
               setManageName(summary.name);
               setManageOpen(true);
             }}
             disabled={managing}
           >
-            <i className="bi bi-three-dots-vertical" aria-hidden />
+            <i className="bi bi-gear" aria-hidden />
           </button>
         </div>
         <p className="summary-label">Net balance</p>

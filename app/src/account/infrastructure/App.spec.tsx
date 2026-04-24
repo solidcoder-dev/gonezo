@@ -408,7 +408,7 @@ async function openMode(mode: 'Expense' | 'Income' | 'Transfer') {
 }
 
 async function openImportSheetFromAccounts() {
-  fireEvent.click(screen.getByRole('button', { name: 'Accounts' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
   await screen.findByRole('dialog', { name: 'Select account' });
   fireEvent.click(screen.getByRole('button', { name: 'Import transactions' }));
 }
@@ -423,7 +423,7 @@ describe('App Accounts UX', () => {
     vi.restoreAllMocks();
   });
 
-  it('shows accounts action inline with account summary', async () => {
+  it('shows selected account menu inline with account summary', async () => {
     const core = makeCore();
 
     render(
@@ -433,7 +433,7 @@ describe('App Accounts UX', () => {
     );
 
     expect(await screen.findByText('Net balance')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Accounts' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Main' })).toBeInTheDocument();
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   });
 
@@ -447,7 +447,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Accounts' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
     expect(await screen.findByRole('button', { name: 'Import transactions' })).toBeInTheDocument();
   });
 
@@ -461,7 +461,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Accounts' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Add account' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Create account' });
@@ -480,7 +480,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Account options' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Account settings' }));
     expect(await screen.findByRole('dialog', { name: 'Manage account' })).toBeInTheDocument();
   });
 
@@ -494,7 +494,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Account options' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Account settings' }));
     fireEvent.change(await screen.findByLabelText('Manage account name'), { target: { value: 'Wallet renamed' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save name' }));
 
@@ -518,7 +518,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Account options' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Account settings' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Archive account' }));
 
     await waitFor(() => {
@@ -541,7 +541,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Account options' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Account settings' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Delete account' }));
 
     await waitFor(() => {
@@ -564,7 +564,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByText('Net balance');
-    fireEvent.click(screen.getByRole('button', { name: 'Account options' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Account settings' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Delete account' }));
 
     expect(core.ledgerDeleteAccount).not.toHaveBeenCalled();
@@ -1585,7 +1585,7 @@ describe('App Accounts UX', () => {
       '/movements/search?accountId=acc-1',
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Accounts' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
     await screen.findByRole('dialog', { name: 'Select account' });
     fireEvent.click(screen.getByRole('button', { name: /Savings/ }));
 
@@ -1667,7 +1667,7 @@ describe('App Accounts UX', () => {
 
     expect(await screen.findByText('Scheduled transfer')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Accounts' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
     await screen.findByRole('dialog', { name: 'Select account' });
     fireEvent.click(screen.getByRole('button', { name: /Savings/ }));
 

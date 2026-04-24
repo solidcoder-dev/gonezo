@@ -281,7 +281,7 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
         </div>
       ) : null}
 
-      <section className="section-gap">
+      <section className="section-gap account-switcher-section">
         <AccountSwitcherView
           required={{
             accounts,

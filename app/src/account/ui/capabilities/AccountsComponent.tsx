@@ -12,6 +12,20 @@ export function AccountsComponent({ required, provided }: AccountsComponentProps
   const { state, status } = required;
   const importRequested = provided.events?.onImportRequested;
   const controlsDisabled = status.isRefreshing || status.isManaging || status.isPostingTransaction;
+  const accountSwitcher = (
+    <AccountSwitcherView
+      required={{
+        accounts: state.accounts,
+        selectedAccountId: state.selectedAccountId,
+        disabled: controlsDisabled,
+      }}
+      provided={{
+        onSelect: provided.commands.selectAccount,
+        onAddAccount: provided.commands.openCreateForm,
+        onImport: importRequested ?? (() => undefined),
+      }}
+    />
+  );
 
   if (state.accounts.length === 0) {
     return (
@@ -116,33 +130,18 @@ export function AccountsComponent({ required, provided }: AccountsComponentProps
         </div>
       ) : null}
 
-      <section className="section-gap">
-        <AccountSwitcherView
-          required={{
-            accounts: state.accounts,
-            selectedAccountId: state.selectedAccountId,
-            disabled: controlsDisabled,
-          }}
-          provided={{
-            onSelect: provided.commands.selectAccount,
-            onAddAccount: provided.commands.openCreateForm,
-            onImport: importRequested ?? (() => undefined),
-          }}
-        />
-      </section>
-
       {state.selectedAccount ? (
         <section className="summary-card section-gap">
           <div className="summary-header">
-            <h2>{state.selectedAccount.name}</h2>
+            {accountSwitcher}
             <button
               type="button"
               className="text-button icon-button summary-menu-button"
-              aria-label="Account options"
+              aria-label="Account settings"
               onClick={provided.commands.openManageForm}
               disabled={controlsDisabled}
             >
-              <i className="bi bi-three-dots-vertical" aria-hidden />
+              <i className="bi bi-gear" aria-hidden />
             </button>
           </div>
           <p className="summary-label">Net balance</p>
@@ -150,7 +149,9 @@ export function AccountsComponent({ required, provided }: AccountsComponentProps
             {formatCurrencyAmount(state.balanceAmount, state.selectedAccount.currency)}
           </div>
         </section>
-      ) : null}
+      ) : (
+        <section className="section-gap">{accountSwitcher}</section>
+      )}
 
       {state.manageForm.isOpen ? (
         <div className="sheet-backdrop" role="presentation" onClick={provided.commands.closeManageForm}>

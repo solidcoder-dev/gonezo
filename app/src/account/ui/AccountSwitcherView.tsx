@@ -20,17 +20,19 @@ type Props = {
 
 export function AccountSwitcherView({ required, provided }: Props) {
   const [showAccounts, setShowAccounts] = useState(false);
+  const selectedAccount = required.accounts.find((account) => account.id === required.selectedAccountId);
 
   return (
-    <div className="quick-row account-actions" aria-busy={required.disabled}>
+    <div className="account-actions" aria-busy={required.disabled}>
       <button
         type="button"
         className="account-menu-trigger"
         onClick={() => setShowAccounts(true)}
         disabled={required.disabled}
-        aria-label="Accounts"
+        aria-haspopup="dialog"
       >
-        Accounts
+        <span>{selectedAccount?.name ?? 'Accounts'}</span>
+        <i className="bi bi-chevron-down" aria-hidden />
       </button>
 
       {showAccounts ? (
@@ -60,10 +62,13 @@ export function AccountSwitcherView({ required, provided }: Props) {
                     setShowAccounts(false);
                   }}
                 >
-                  {account.name} ({account.currency})
+                  <span aria-hidden>{account.id === required.selectedAccountId ? '●' : ''}</span>
+                  <span>{account.name}</span>
+                  <span className="account-choice-currency">{account.currency}</span>
                 </button>
               ))}
             </div>
+            <p className="hint account-menu-actions-label">Global actions</p>
             <div className="quick-row account-menu-actions">
               <button
                 type="button"

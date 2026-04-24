@@ -335,14 +335,53 @@ body {
 
 .account-actions {
   margin-top: 0;
-  justify-content: flex-start;
+  min-width: 0;
+}
+
+.account-switcher-section {
+  min-width: 0;
+}
+
+.summary-header .account-switcher-section {
+  flex: 1 1 auto;
+  margin-top: 0;
 }
 
 .account-menu-trigger {
-  min-width: 120px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1d1d1b;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  font-weight: 700;
+  text-align: left;
+}
+
+.account-menu-trigger span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-menu-trigger .bi {
+  flex: 0 0 auto;
+  font-size: 0.8rem;
+  line-height: 1;
 }
 
 .account-menu-actions {
+  margin-top: 6px;
+}
+
+.account-menu-actions-label {
   margin-top: 12px;
 }
 
@@ -361,8 +400,23 @@ body {
 }
 
 .account-choice {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
   text-align: left;
-  justify-content: flex-start;
+}
+
+.account-choice span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-choice-currency {
+  color: inherit;
+  opacity: 0.75;
+  font-size: 0.78rem;
 }
 
 .sheet-backdrop {
@@ -576,7 +630,7 @@ select:focus-visible {
 
 .summary-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }

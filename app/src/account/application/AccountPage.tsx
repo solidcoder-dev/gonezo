@@ -43,6 +43,17 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
 
   const hasSelectedAccount = Boolean(selectedAccountId);
 
+  function handleSelectedAccountChanged(accountId: string | null) {
+    setSelectedAccountId((previousAccountId) => {
+      if (previousAccountId === accountId) {
+        return previousAccountId;
+      }
+      setAccountSummaryRefreshSignal((previous) => !previous);
+      setRecentTransactionsRefreshSignal((previous) => !previous);
+      return accountId;
+    });
+  }
+
   async function submitTransactionsImport(input: {
     fileBase64: string;
     policy?: TransactionsImportPolicyInput;
@@ -64,6 +75,27 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
     }
   }
 
+  const accountHub = (
+    <AccountHubComponent
+      required={{
+        context: {
+          core: pageRequired.core,
+        },
+        config: {
+          refreshSignal: accountHubRefreshSignal,
+        },
+      }}
+      provided={{
+        events: {
+          onLoadPhaseChanged: setScreenLoadPhase,
+          onSelectedAccountChanged: handleSelectedAccountChanged,
+          onAccountsCountChanged: setAccountsCount,
+          onImportRequested: () => setImportSheetOpen(true),
+        },
+      }}
+    />
+  );
+
   const required: AccountPageViewRequired = {
     screen: {
       loadPhase: screenLoadPhase,
@@ -74,30 +106,7 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
       actionLabel: toastActionLabel,
     },
     sections: {
-      accountHub: (
-        <AccountHubComponent
-          required={{
-            context: {
-              core: pageRequired.core,
-            },
-            config: {
-              refreshSignal: accountHubRefreshSignal,
-            },
-          }}
-          provided={{
-            events: {
-              onLoadPhaseChanged: setScreenLoadPhase,
-              onSelectedAccountChanged: (accountId) => {
-                setSelectedAccountId(accountId);
-                setAccountSummaryRefreshSignal((previous) => !previous);
-                setRecentTransactionsRefreshSignal((previous) => !previous);
-              },
-              onAccountsCountChanged: setAccountsCount,
-              onImportRequested: () => setImportSheetOpen(true),
-            },
-          }}
-        />
-      ),
+      accountHub: hasSelectedAccount ? null : accountHub,
       accountSummary: hasSelectedAccount ? (
         <AccountSummaryComponent
           required={{
@@ -108,6 +117,7 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
             config: {
               enabled: hasSelectedAccount,
               refreshSignal: accountSummaryRefreshSignal,
+              headerSlot: accountHub,
             },
           }}
           provided={{
