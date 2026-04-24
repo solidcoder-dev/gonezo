@@ -720,8 +720,14 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
             aria-label="Transaction details"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="inline-header">
-              <h3>{selectedTransaction.merchant || selectedTransaction.description || txLabel(selectedTransaction.type)}</h3>
+            <div className="detail-sheet-header">
+              <div className="detail-sheet-title">
+                <span className="detail-sheet-kicker">
+                  <i className={txKindIconClass(selectedTransaction.type)} aria-hidden />
+                  <span>{txLabel(selectedTransaction.type)}</span>
+                </span>
+                <h3>{selectedTransaction.merchant || selectedTransaction.description || 'Transaction'}</h3>
+              </div>
               <button
                 type="button"
                 className="text-button icon-button"
@@ -731,17 +737,29 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
                 <i className="bi bi-x-lg" aria-hidden />
               </button>
             </div>
-            <p className="summary-amount">
+            <div className="detail-sheet-amount detail-sheet-amount--expense">
               {txSign(selectedTransaction.type)}
               {txAmount(selectedTransaction.amount, selectedTransaction.currency)}
-            </p>
-            <div className="stack">
-              <p className="hint">{formatCalendarDay(selectedTransaction.occurredAt)}</p>
-              <p className="hint">{selectedTransaction.category?.name ?? 'No category'}</p>
-              <p className="hint">{compactTags(selectedTransaction.tags) ?? 'No tags'}</p>
-              <p className="hint">Status: {selectedTransaction.status}</p>
             </div>
-            <div className="quick-row">
+            <div className="detail-meta-grid">
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Date</span>
+                <strong>{formatCalendarDay(selectedTransaction.occurredAt)}</strong>
+              </div>
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Category</span>
+                <strong>{selectedTransaction.category?.name ?? 'No category'}</strong>
+              </div>
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Tags</span>
+                <strong>{compactTags(selectedTransaction.tags) ?? 'No tags'}</strong>
+              </div>
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Status</span>
+                <strong>{selectedTransaction.status}</strong>
+              </div>
+            </div>
+            <div className="detail-actions">
               {selectedTransaction.status === 'posted' ? (
                 <button
                   type="button"
@@ -772,8 +790,14 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
             aria-label="Scheduled movement details"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="inline-header">
-              <h3>{selectedScheduledMovement.merchant || selectedScheduledMovement.description || 'Scheduled movement'}</h3>
+            <div className="detail-sheet-header">
+              <div className="detail-sheet-title">
+                <span className="detail-sheet-kicker">
+                  <i className={movementKindIconClass(selectedScheduledMovement.type)} aria-hidden />
+                  <span>Scheduled</span>
+                </span>
+                <h3>{selectedScheduledMovement.merchant || selectedScheduledMovement.description || 'Scheduled movement'}</h3>
+              </div>
               <button
                 type="button"
                 className="text-button icon-button"
@@ -783,20 +807,35 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
                 <i className="bi bi-x-lg" aria-hidden />
               </button>
             </div>
-            <p className="summary-amount">
+            <div className="detail-sheet-amount detail-sheet-amount--scheduled">
               {selectedScheduledMovement.type === 'income' ? '+' : null}
               {selectedScheduledMovement.type === 'transfer' ? <i className="bi bi-arrow-left-right movement-amount-transfer-icon" aria-hidden /> : null}
               {selectedScheduledMovement.type === 'expense' ? '-' : null}
               {txAmount(selectedScheduledMovement.amount, selectedScheduledMovement.currency)}
-            </p>
-            <div className="stack">
-              <p className="hint">{formatCalendarDay(selectedScheduledMovement.nextDueAt ?? selectedScheduledMovement.startAt)}</p>
-              <p className="hint">{scheduledOrigin(selectedScheduledMovement)}</p>
-              <p className="hint">Status: {scheduledStatus(selectedScheduledMovement)}</p>
-              <p className="hint">{resolveScheduledCategoryName(selectedScheduledMovement.categoryId) ?? 'No category'}</p>
-              <p className="hint">{compactTagNames(resolveScheduledTagNames(selectedScheduledMovement)) ?? 'No tags'}</p>
             </div>
-            <div className="quick-row">
+            <div className="detail-meta-grid">
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Due</span>
+                <strong>{formatCalendarDay(selectedScheduledMovement.nextDueAt ?? selectedScheduledMovement.startAt)}</strong>
+              </div>
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Origin</span>
+                <strong>{scheduledOrigin(selectedScheduledMovement)}</strong>
+              </div>
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Category</span>
+                <strong>{resolveScheduledCategoryName(selectedScheduledMovement.categoryId) ?? 'No category'}</strong>
+              </div>
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Tags</span>
+                <strong>{compactTagNames(resolveScheduledTagNames(selectedScheduledMovement)) ?? 'No tags'}</strong>
+              </div>
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Status</span>
+                <strong>{scheduledStatus(selectedScheduledMovement)}</strong>
+              </div>
+            </div>
+            <div className="detail-actions">
               {selectedScheduledMovement.status === 'active' ? (
                 <button
                   type="button"

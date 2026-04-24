@@ -382,8 +382,14 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
             aria-label="Scheduled movement details"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="inline-header">
-              <h3>{selectedScheduledMovement.merchant || selectedScheduledMovement.description || 'Scheduled movement'}</h3>
+            <div className="detail-sheet-header">
+              <div className="detail-sheet-title">
+                <span className="detail-sheet-kicker">
+                  <i className={movementKindIconClass(selectedScheduledMovement.type)} aria-hidden />
+                  <span>Scheduled</span>
+                </span>
+                <h3>{selectedScheduledMovement.merchant || selectedScheduledMovement.description || 'Scheduled movement'}</h3>
+              </div>
               <button
                 type="button"
                 className="text-button icon-button"
@@ -393,20 +399,35 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
                 <i className="bi bi-x-lg" aria-hidden />
               </button>
             </div>
-            <p className="summary-amount">
+            <div className="detail-sheet-amount detail-sheet-amount--scheduled">
               {selectedScheduledMovement.type === 'income' ? '+' : null}
               {selectedScheduledMovement.type === 'transfer' ? <i className="bi bi-arrow-left-right movement-amount-transfer-icon" aria-hidden /> : null}
               {selectedScheduledMovement.type === 'expense' ? '-' : null}
               {txAmount(selectedScheduledMovement.amount, selectedScheduledMovement.currency)}
-            </p>
-            <div className="stack">
-              <p className="hint">{formatCalendarDay(selectedScheduledMovement.nextDueAt ?? selectedScheduledMovement.startAt)}</p>
-              <p className="hint">{scheduledOrigin(selectedScheduledMovement)}</p>
-              <p className="hint">{resolveScheduledCategoryName(selectedScheduledMovement.categoryId) ?? 'No category'}</p>
-              <p className="hint">{compactTagNames(resolveScheduledTagNames(selectedScheduledMovement)) ?? 'No tags'}</p>
-              <p className="hint">Status: {scheduledStatus(selectedScheduledMovement)}</p>
             </div>
-            <div className="quick-row">
+            <div className="detail-meta-grid">
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Due</span>
+                <strong>{formatCalendarDay(selectedScheduledMovement.nextDueAt ?? selectedScheduledMovement.startAt)}</strong>
+              </div>
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Origin</span>
+                <strong>{scheduledOrigin(selectedScheduledMovement)}</strong>
+              </div>
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Category</span>
+                <strong>{resolveScheduledCategoryName(selectedScheduledMovement.categoryId) ?? 'No category'}</strong>
+              </div>
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Tags</span>
+                <strong>{compactTagNames(resolveScheduledTagNames(selectedScheduledMovement)) ?? 'No tags'}</strong>
+              </div>
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Status</span>
+                <strong>{scheduledStatus(selectedScheduledMovement)}</strong>
+              </div>
+            </div>
+            <div className="detail-actions">
               {selectedScheduledMovement.status === 'active' ? (
                 <button
                   type="button"
