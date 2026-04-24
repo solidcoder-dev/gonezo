@@ -74,7 +74,7 @@ export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
   }, [location.search, required.core]);
 
   return (
-    <section className="card">
+    <section className="app-screen">
       <div className="inline-header">
         <h2>Search movements</h2>
         <button type="button" className="text-button" onClick={() => navigate(-1)}>

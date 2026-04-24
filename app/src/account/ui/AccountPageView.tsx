@@ -5,7 +5,7 @@ export type { AccountPageViewProps } from './accountPageView.contract';
 
 export function AccountPageView({ required, provided }: AccountPageViewProps) {
   return (
-    <section className="card">
+    <section className="app-screen">
       <StatusSection
         required={{
           screen: required.screen,
