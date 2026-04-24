@@ -58,6 +58,7 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
+  SchedulingMovementItem,
   MovementsGetOverviewInput,
   MovementsGetOverviewResult,
   MovementsListScheduledInput,
@@ -66,6 +67,125 @@ import type {
 import { resolveSchedulingKind } from '../../domain/schedulingKind';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
+
+type ScheduledMovementFilters = MovementsGetOverviewInput['filters'] | MovementsListScheduledInput['filters'];
+
+function scheduledMovementDateEpoch(movement: SchedulingMovementItem): number | undefined {
+  const candidate = movement.nextDueAt ?? movement.startAt;
+  const parsed = candidate ? Date.parse(candidate) : Number.NaN;
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function filterScheduledMovementItems(
+  items: SchedulingMovementItem[],
+  filters?: ScheduledMovementFilters,
+): SchedulingMovementItem[] {
+  const resolvedFilters = filters ?? {};
+  const status = resolvedFilters.status ?? 'all';
+  const origin = resolvedFilters.origin ?? 'all';
+  const text = resolvedFilters.text?.trim().toLowerCase();
+  const merchant = resolvedFilters.merchant?.trim().toLowerCase();
+  const categoryIds = resolvedFilters.categoryIds && resolvedFilters.categoryIds.length > 0
+    ? resolvedFilters.categoryIds
+    : resolvedFilters.categoryId
+      ? [resolvedFilters.categoryId]
+      : [];
+  const categoryFilter = categoryIds.length > 0
+    ? new Set(categoryIds.map((value) => value.trim()).filter((value) => value.length > 0))
+    : null;
+  const tagFilter = resolvedFilters.tagIds && resolvedFilters.tagIds.length > 0
+    ? new Set(resolvedFilters.tagIds.map((value) => value.trim()).filter((value) => value.length > 0))
+    : null;
+  const typeFilter = resolvedFilters.types && resolvedFilters.types.length > 0
+    ? new Set(resolvedFilters.types.filter((value) => value === 'expense' || value === 'income' || value === 'transfer'))
+    : null;
+  const parsedAmountMin = resolvedFilters.amountMin == null ? undefined : Number(resolvedFilters.amountMin);
+  const parsedAmountMax = resolvedFilters.amountMax == null ? undefined : Number(resolvedFilters.amountMax);
+  const hasAmountMin = typeof parsedAmountMin === 'number' && Number.isFinite(parsedAmountMin);
+  const hasAmountMax = typeof parsedAmountMax === 'number' && Number.isFinite(parsedAmountMax);
+  const fromDateEpoch = resolvedFilters.fromDate ? Date.parse(resolvedFilters.fromDate) : undefined;
+  const toDateEpoch = resolvedFilters.toDate ? Date.parse(resolvedFilters.toDate) : undefined;
+  const hasFromDateEpoch = typeof fromDateEpoch === 'number' && Number.isFinite(fromDateEpoch);
+  const hasToDateEpoch = typeof toDateEpoch === 'number' && Number.isFinite(toDateEpoch);
+
+  return items
+    .filter((item) => {
+      if (status === 'all') {
+        return true;
+      }
+      if (status === 'scheduled') {
+        return item.status === 'active';
+      }
+      if (status === 'failed') {
+        return false;
+      }
+      return false;
+    })
+    .filter((item) => {
+      const resolvedOrigin = resolveSchedulingKind(item);
+      if (origin === 'all') {
+        return true;
+      }
+      if (origin === 'manual') {
+        return false;
+      }
+      return resolvedOrigin === origin;
+    })
+    .filter((item) => (typeFilter ? typeFilter.has(item.type) : true))
+    .filter((item) => (categoryFilter ? Boolean(item.categoryId && categoryFilter.has(item.categoryId)) : true))
+    .filter((item) => {
+      if (!tagFilter) {
+        return true;
+      }
+      return (item.tagIds ?? []).some((tagId) => tagFilter.has(tagId));
+    })
+    .filter((item) => {
+      if (!hasAmountMin && !hasAmountMax) {
+        return true;
+      }
+      const amount = Number(item.amount);
+      if (!Number.isFinite(amount)) {
+        return false;
+      }
+      if (hasAmountMin && amount < parsedAmountMin!) {
+        return false;
+      }
+      if (hasAmountMax && amount > parsedAmountMax!) {
+        return false;
+      }
+      return true;
+    })
+    .filter((item) => {
+      if (!hasFromDateEpoch && !hasToDateEpoch) {
+        return true;
+      }
+      const dueEpoch = scheduledMovementDateEpoch(item);
+      if (dueEpoch == null) {
+        return false;
+      }
+      if (hasFromDateEpoch && dueEpoch < fromDateEpoch!) {
+        return false;
+      }
+      if (hasToDateEpoch && dueEpoch > toDateEpoch!) {
+        return false;
+      }
+      return true;
+    })
+    .filter((item) => {
+      if (!merchant) {
+        return true;
+      }
+      return (item.merchant ?? '').toLowerCase().includes(merchant);
+    })
+    .filter((item) => {
+      if (!text) {
+        return true;
+      }
+      const merchantText = item.merchant?.toLowerCase() ?? '';
+      const descriptionText = item.description?.toLowerCase() ?? '';
+      return merchantText.includes(text) || descriptionText.includes(text);
+    });
+}
 
 export class CoreAdapter implements CorePort {
   private readonly web = new CoreAdapterWeb();
@@ -349,26 +469,7 @@ export class CoreAdapter implements CorePort {
     const origin = input.filters?.origin ?? 'all';
 
     const scheduledResult = await this.schedulingListMovements({ sourceAccountId: input.accountId });
-    const scheduledFiltered = scheduledResult.items
-      .filter((item) => {
-        if (status === 'scheduled') {
-          return item.status === 'active';
-        }
-        if (status === 'all') {
-          return true;
-        }
-        return false;
-      })
-      .filter((item) => {
-        const resolvedOrigin = resolveSchedulingKind(item);
-        if (origin === 'all') {
-          return true;
-        }
-        if (origin === 'manual') {
-          return false;
-        }
-        return resolvedOrigin === origin;
-      });
+    const scheduledFiltered = filterScheduledMovementItems(scheduledResult.items, input.filters);
 
     const shouldHideExecuted = status === 'scheduled' || status === 'failed' || origin === 'recurring' || origin === 'one_shot';
     const executedPage = shouldHideExecuted
@@ -424,25 +525,7 @@ export class CoreAdapter implements CorePort {
     const page = Number.isFinite(requestedPage) && requestedPage >= 0 ? Math.trunc(requestedPage) : 0;
     const size = Number.isFinite(requestedSize) && requestedSize > 0 ? Math.min(Math.trunc(requestedSize), 100) : 20;
 
-    const filtered = result.items.filter((item) => {
-      if ((input.filters?.status ?? 'all') === 'scheduled') {
-        return item.status === 'active';
-      }
-      if ((input.filters?.status ?? 'all') === 'all') {
-        return true;
-      }
-      return false;
-    }).filter((item) => {
-      const origin = input.filters?.origin ?? 'all';
-      const resolvedOrigin = resolveSchedulingKind(item);
-      if (origin === 'all') {
-        return true;
-      }
-      if (origin === 'manual') {
-        return false;
-      }
-      return resolvedOrigin === origin;
-    });
+    const filtered = filterScheduledMovementItems(result.items, input.filters);
 
     const totalElements = filtered.length;
     const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / size);

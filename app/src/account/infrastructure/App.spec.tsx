@@ -103,6 +103,54 @@ function isoInCurrentMonth(day: number, hour = 12, minute = 0): string {
   return new Date(now.getFullYear(), now.getMonth(), day, hour, minute, 0, 0).toISOString();
 }
 
+function scheduledDateEpoch(item: SchedulingMovementItem): number | undefined {
+  const candidate = item.nextDueAt ?? item.startAt;
+  const parsed = candidate ? Date.parse(candidate) : Number.NaN;
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function filterScheduledForOverview(
+  items: SchedulingMovementItem[],
+  input: MovementsGetOverviewInput | MovementsListScheduledInput,
+): SchedulingMovementItem[] {
+  const filters = input.filters ?? {};
+  const fromDateEpoch = filters.fromDate ? Date.parse(filters.fromDate) : undefined;
+  const toDateEpoch = filters.toDate ? Date.parse(filters.toDate) : undefined;
+  const hasFromDateEpoch = typeof fromDateEpoch === 'number' && Number.isFinite(fromDateEpoch);
+  const hasToDateEpoch = typeof toDateEpoch === 'number' && Number.isFinite(toDateEpoch);
+
+  return items
+    .filter((item) => item.sourceAccountId === input.accountId)
+    .filter((item) => {
+      const status = filters.status ?? 'all';
+      if (status === 'all') return true;
+      if (status === 'scheduled') return item.status === 'active';
+      return false;
+    })
+    .filter((item) => {
+      const origin = filters.origin ?? 'all';
+      if (origin === 'all') return true;
+      if (origin === 'manual') return false;
+      return resolveSchedulingKind(item) === origin;
+    })
+    .filter((item) => {
+      if (!hasFromDateEpoch && !hasToDateEpoch) {
+        return true;
+      }
+      const dueEpoch = scheduledDateEpoch(item);
+      if (dueEpoch == null) {
+        return false;
+      }
+      if (hasFromDateEpoch && dueEpoch < fromDateEpoch!) {
+        return false;
+      }
+      if (hasToDateEpoch && dueEpoch > toDateEpoch!) {
+        return false;
+      }
+      return true;
+    });
+}
+
 function makeCore(transactionCount = 0): AccountsCorePort {
   const transactions: LedgerTransactionListItem[] = Array.from({ length: transactionCount }).map((_, index) => ({
     id: `tx-${index + 1}`,
@@ -250,20 +298,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
       });
 
       const previewSize = input.scheduledPreviewSize ?? 5;
-      const filteredScheduled = scheduledMovements
-        .filter((item) => item.sourceAccountId === input.accountId)
-        .filter((item) => {
-          const status = input.filters?.status ?? 'all';
-          if (status === 'all') return true;
-          if (status === 'scheduled') return item.status === 'active';
-          return false;
-        })
-        .filter((item) => {
-          const origin = input.filters?.origin ?? 'all';
-          if (origin === 'all') return true;
-          if (origin === 'manual') return false;
-          return resolveSchedulingKind(item) === origin;
-        });
+      const filteredScheduled = filterScheduledForOverview(scheduledMovements, input);
 
       const shouldHideExecuted = (input.filters?.status === 'scheduled' || input.filters?.status === 'failed')
         || input.filters?.origin === 'recurring'
@@ -289,7 +324,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
       };
     }),
     movementsListScheduled: vi.fn(async (input: MovementsListScheduledInput) => {
-      const source = scheduledMovements.filter((item) => item.sourceAccountId === input.accountId);
+      const source = filterScheduledForOverview(scheduledMovements, input);
       const size = input.pagination?.size ?? 20;
       const requestedPage = input.pagination?.page ?? 0;
       const page = Math.max(0, requestedPage);
@@ -311,7 +346,14 @@ function makeCore(transactionCount = 0): AccountsCorePort {
 
   vi.mocked(core.recurrenceCreateRecurringMovement).mockImplementation(async (input) => {
     const id = `rec-${scheduledMovements.length + 1}`;
-    const scheduledKind = resolveSchedulingKind(input as any);
+    const scheduleKind = 'scheduleKind' in input
+      && (input.scheduleKind === 'one_shot' || input.scheduleKind === 'recurring')
+      ? input.scheduleKind
+      : undefined;
+    const scheduledKind = resolveSchedulingKind({
+      recurrenceEnd: input.recurrenceEnd,
+      scheduleKind,
+    });
     scheduledMovements.push({
       id,
       type: input.type,
@@ -1559,8 +1601,39 @@ describe('App Accounts UX', () => {
 
     await screen.findByRole('heading', { name: 'Transactions' });
     expect(screen.queryByRole('button', { name: 'More filters' })).not.toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: 'Upcoming' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Scheduled' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Posted' })).toBeInTheDocument();
+  });
+
+  it('filters scheduled movements by the selected month', async () => {
+    const core = makeCore();
+    await core.schedulingCreateMovement({
+      type: 'expense',
+      sourceAccountId: 'acc-1',
+      amount: '50.00',
+      currency: 'USD',
+      description: 'Scheduled movement',
+      rule: { frequency: 'daily', interval: 1 },
+      recurrenceEnd: { kind: 'after_occurrences', afterOccurrences: 1 },
+      startAt: new Date().toISOString(),
+      zoneId: 'UTC',
+      scheduleKind: 'one_shot',
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Scheduled movement')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Previous month' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Scheduled movement')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText(/No scheduled movements in/i)).toBeInTheDocument();
   });
 
   it('creates recurring expense from composer more options', async () => {
@@ -1692,7 +1765,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Upcoming' });
+    await screen.findByRole('heading', { name: 'Scheduled' });
     const deactivateButton = await screen.findByRole('button', { name: 'Deactivate' });
     fireEvent.click(deactivateButton);
 
@@ -1747,8 +1820,8 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Upcoming' });
-    const upcomingGroup = screen.getByLabelText(/Upcoming group/i);
+    await screen.findByRole('heading', { name: 'Scheduled' });
+    const upcomingGroup = screen.getByLabelText(/Scheduled group/i);
     expect(within(upcomingGroup).getByText(/one[-_ ]shot/i)).toBeInTheDocument();
   });
 });

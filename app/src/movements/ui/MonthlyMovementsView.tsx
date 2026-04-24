@@ -214,17 +214,17 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
       {!loading ? (
         <div className="stack">
           <div className="inline-header">
-            <h3>Upcoming</h3>
+            <h3>Scheduled</h3>
             <span className="hint">
               {scheduledTotal}
               {scheduledHasMore ? ' (preview)' : ''}
             </span>
           </div>
-          {upcomingGroups.length === 0 ? <p className="hint">No upcoming movements in {monthLabel}.</p> : null}
+          {upcomingGroups.length === 0 ? <p className="hint">No scheduled movements in {monthLabel}.</p> : null}
           {upcomingGroups.map((group) => (
             <div key={group.key} className="stack">
               <p className="hint date-group-label">{group.label}</p>
-              <ul className="expense-list expense-list--compact" aria-label={`Upcoming group ${group.label}`}>
+              <ul className="expense-list expense-list--compact" aria-label={`Scheduled group ${group.label}`}>
                 {group.items.map((movement) => {
                   const scheduledCategoryName = resolveScheduledCategoryName(movement.categoryId);
                   const details = [
