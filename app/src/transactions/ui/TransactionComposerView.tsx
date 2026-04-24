@@ -241,7 +241,7 @@ export function TransactionComposerView({ required, provided }: Props) {
   if (!open) {
     return (
       <button type="button" className="fab-button" onClick={onOpen} aria-label="Add movement">
-        + Movement
+        <i className="bi bi-plus-lg" aria-hidden /> Movement
       </button>
     );
   }
@@ -261,7 +261,7 @@ export function TransactionComposerView({ required, provided }: Props) {
             onClick={onClose}
             aria-label="Close transaction composer"
           >
-            ×
+            <i className="bi bi-x-lg" aria-hidden />
           </button>
         </div>
 

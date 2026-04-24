@@ -40,7 +40,7 @@ export function StepSelector({ required, provided }: StepSelectorProps) {
           disabled={required.disabled}
           onClick={provided.onToggleMore}
         >
-          {required.showMore ? '−' : '+'}
+          {required.showMore ? <i className="bi bi-dash-lg" aria-hidden /> : <i className="bi bi-plus-lg" aria-hidden />}
         </button>
       </div>
 

@@ -122,6 +122,10 @@ body {
   line-height: 1;
 }
 
+.month-nav-arrow .bi {
+  line-height: 1;
+}
+
 .month-nav-center {
   position: relative;
   min-width: 0;
@@ -151,6 +155,10 @@ body {
   line-height: 1;
   font-size: 0.75rem;
   transform: translateY(1px);
+}
+
+.month-nav-trigger-caret .bi {
+  line-height: 1;
 }
 
 .month-nav-menu {
@@ -207,6 +215,10 @@ body {
 
 .month-selector-year-button {
   width: 100%;
+}
+
+.month-selector-year-button .bi {
+  line-height: 1;
 }
 
 .month-selector-year-value {
@@ -309,6 +321,11 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 1.1rem;
+}
+
+.icon-button .bi {
+  line-height: 1;
+  font-size: 1rem;
 }
 
 .account-identity {
@@ -432,9 +449,16 @@ body {
   right: 16px;
   bottom: 16px;
   z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border-radius: 999px;
   padding: 14px 18px;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.fab-button .bi {
+  line-height: 1;
 }
 
 .amount-spinner {
@@ -686,6 +710,16 @@ select:focus-visible {
   gap: 8px;
 }
 
+.tx-head .bi {
+  line-height: 1;
+}
+
+.movement-amount-transfer-icon {
+  margin-right: 4px;
+  font-size: 0.92em;
+  vertical-align: -1px;
+}
+
 .tx-badge {
   display: inline-flex;
   align-items: center;
@@ -719,6 +753,16 @@ select:focus-visible {
   min-height: 32px;
   padding: 6px 10px;
   font-size: 0.78rem;
+}
+
+.active-filter-row .filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.active-filter-row .filter-chip .bi {
+  line-height: 1;
 }
 
 .active-filter-row .text-button {

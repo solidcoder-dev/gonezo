@@ -47,16 +47,16 @@ function movementTypeClass(type: SchedulingMovementItem['type']): string {
   return 'expense-item expense-item--expense';
 }
 
-function txKindIcon(type: TransactionHistoryItemView['type']): string {
-  if (type === 'income' || type === 'transfer_in') return '^';
-  if (type === 'transfer' || type === 'transfer_out') return '<>';
-  return 'v';
+function txKindIconClass(type: TransactionHistoryItemView['type']): string {
+  if (type === 'income' || type === 'transfer_in') return 'bi bi-arrow-up-right';
+  if (type === 'transfer' || type === 'transfer_out') return 'bi bi-arrow-left-right';
+  return 'bi bi-arrow-down-right';
 }
 
-function movementKindIcon(type: SchedulingMovementItem['type']): string {
-  if (type === 'income') return '^';
-  if (type === 'transfer') return '<>';
-  return 'v';
+function movementKindIconClass(type: SchedulingMovementItem['type']): string {
+  if (type === 'income') return 'bi bi-arrow-up-right';
+  if (type === 'transfer') return 'bi bi-arrow-left-right';
+  return 'bi bi-arrow-down-right';
 }
 
 function txAmount(amount: string, currency: string): string {
@@ -237,11 +237,13 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
                     <li key={movement.id} className={`${movementTypeClass(movement.type)} expense-item--compact`}>
                       <div className="expense-top-row compact-row">
                         <div className="tx-head compact-main">
-                          <span aria-hidden>{movementKindIcon(movement.type)}</span>
+                          <i className={movementKindIconClass(movement.type)} aria-hidden />
                           <strong className="compact-title">{movement.merchant || movement.description || 'Scheduled movement'}</strong>
                         </div>
                         <strong>
-                          {movement.type === 'income' ? '+' : movement.type === 'transfer' ? '<>' : '-'}
+                          {movement.type === 'income' ? '+' : null}
+                          {movement.type === 'transfer' ? <i className="bi bi-arrow-left-right movement-amount-transfer-icon" aria-hidden /> : null}
+                          {movement.type === 'expense' ? '-' : null}
                           {txAmount(movement.amount, movement.currency)}
                         </strong>
                       </div>
@@ -291,7 +293,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
                   <li key={transaction.id} className={`${txItemTypeClass(transaction.type)} expense-item--compact`}>
                     <div className="expense-top-row compact-row">
                       <div className="tx-head compact-main">
-                        <span aria-hidden>{txKindIcon(transaction.type)}</span>
+                        <i className={txKindIconClass(transaction.type)} aria-hidden />
                         <strong className="compact-title">{transaction.merchant || transaction.description || txLabel(transaction.type)}</strong>
                       </div>
                       <strong>

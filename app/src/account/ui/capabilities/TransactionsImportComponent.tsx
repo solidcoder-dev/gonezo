@@ -31,7 +31,7 @@ export function TransactionsImportComponent({ required, provided }: Transactions
             aria-label="Close import sheet"
             onClick={provided.commands.close}
           >
-            ×
+            <i className="bi bi-x-lg" aria-hidden />
           </button>
         </div>
 

@@ -45,7 +45,7 @@ export function AccountSwitcherView({ required, provided }: Props) {
             <div className="inline-header">
               <h3>Accounts</h3>
               <button type="button" className="text-button icon-button" onClick={() => setShowAccounts(false)} aria-label="Close account list">
-                ×
+                <i className="bi bi-x-lg" aria-hidden />
               </button>
             </div>
             <div className="stack account-menu-list">

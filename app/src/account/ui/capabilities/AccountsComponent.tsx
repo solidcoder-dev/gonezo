@@ -74,7 +74,7 @@ export function AccountsComponent({ required, provided }: AccountsComponentProps
                 aria-label="Close add account sheet"
                 onClick={provided.commands.closeCreateForm}
               >
-                ×
+                <i className="bi bi-x-lg" aria-hidden />
               </button>
             </div>
             <div className="import-sheet-content">
@@ -142,7 +142,7 @@ export function AccountsComponent({ required, provided }: AccountsComponentProps
               onClick={provided.commands.openManageForm}
               disabled={controlsDisabled}
             >
-              ...
+              <i className="bi bi-three-dots-vertical" aria-hidden />
             </button>
           </div>
           <p className="summary-label">Net balance</p>
@@ -169,7 +169,7 @@ export function AccountsComponent({ required, provided }: AccountsComponentProps
                 aria-label="Close account management"
                 onClick={provided.commands.closeManageForm}
               >
-                ×
+                <i className="bi bi-x-lg" aria-hidden />
               </button>
             </div>
 

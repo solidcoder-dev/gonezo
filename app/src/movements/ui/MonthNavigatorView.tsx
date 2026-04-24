@@ -31,7 +31,7 @@ export function MonthNavigatorView({ required, provided }: MonthNavigatorViewPro
           disabled={disabled}
           aria-label="Previous month"
         >
-          {'<'}
+          <i className="bi bi-chevron-left" aria-hidden />
         </button>
 
         <div className="month-nav-center">
@@ -46,7 +46,7 @@ export function MonthNavigatorView({ required, provided }: MonthNavigatorViewPro
           >
             <span className="month-nav-trigger-label">{monthLabel}</span>
             <span className="month-nav-trigger-caret" aria-hidden>
-              {'v'}
+              <i className="bi bi-chevron-down" aria-hidden />
             </span>
           </button>
 
@@ -85,7 +85,7 @@ export function MonthNavigatorView({ required, provided }: MonthNavigatorViewPro
           disabled={disabled}
           aria-label="Next month"
         >
-          {'>'}
+          <i className="bi bi-chevron-right" aria-hidden />
         </button>
       </div>
     </div>

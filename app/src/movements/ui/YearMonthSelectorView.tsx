@@ -53,7 +53,7 @@ export function YearMonthSelectorView({ required, provided }: YearMonthSelectorV
           disabled={disabled}
           aria-label="Previous year"
         >
-          {'<'}
+          <i className="bi bi-chevron-left" aria-hidden />
         </button>
         <p className="month-selector-year-value" aria-live="polite" aria-atomic="true">
           {year}
@@ -65,7 +65,7 @@ export function YearMonthSelectorView({ required, provided }: YearMonthSelectorV
           disabled={disabled}
           aria-label="Next year"
         >
-          {'>'}
+          <i className="bi bi-chevron-right" aria-hidden />
         </button>
       </div>
 

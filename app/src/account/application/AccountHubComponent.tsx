@@ -239,7 +239,7 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
                 aria-label="Close add account sheet"
                 onClick={() => setCreateFormOpen(false)}
               >
-                ×
+                <i className="bi bi-x-lg" aria-hidden />
               </button>
             </div>
             <div className="import-sheet-content">

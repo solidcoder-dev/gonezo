@@ -177,7 +177,7 @@ export function AccountSummaryComponent({ required, provided = {} }: AccountSumm
             }}
             disabled={managing}
           >
-            ...
+            <i className="bi bi-three-dots-vertical" aria-hidden />
           </button>
         </div>
         <p className="summary-label">Net balance</p>
@@ -203,7 +203,7 @@ export function AccountSummaryComponent({ required, provided = {} }: AccountSumm
                 aria-label="Close account management"
                 onClick={() => setManageOpen(false)}
               >
-                ×
+                <i className="bi bi-x-lg" aria-hidden />
               </button>
             </div>
 
