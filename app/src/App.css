@@ -330,6 +330,8 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 1.1rem;
+  border: 0;
+  background: transparent;
 }
 
 .icon-button .bi {

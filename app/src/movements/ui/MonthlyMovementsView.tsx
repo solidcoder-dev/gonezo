@@ -163,8 +163,8 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
     <section className="stack section-gap transactions-section" aria-busy={loading}>
       <div className="inline-header">
         <h2>Movements</h2>
-        <Link className="text-button" to={searchHref}>
-          Search movements
+        <Link className="text-button icon-button" to={searchHref} aria-label="Search movements">
+          <i className="bi bi-search" aria-hidden />
         </Link>
       </div>
 
