@@ -1453,9 +1453,11 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Movements' });
-    const voidButton = await screen.findByRole('button', { name: 'Void' });
+    const movementRow = await screen.findByText('Merchant 1');
+    fireEvent.click(movementRow.closest('button')!);
+    const detailDialog = await screen.findByRole('dialog', { name: 'Transaction details' });
     vi.useFakeTimers();
-    fireEvent.click(voidButton);
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Void movement' }));
     expect(core.ledgerVoidTransaction).toHaveBeenCalledTimes(0);
     await vi.advanceTimersByTimeAsync(5000);
     await Promise.resolve();
@@ -1472,9 +1474,11 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Movements' });
-    const voidButton = await screen.findByRole('button', { name: 'Void' });
+    const movementRow = await screen.findByText('Merchant 1');
+    fireEvent.click(movementRow.closest('button')!);
+    const detailDialog = await screen.findByRole('dialog', { name: 'Transaction details' });
     vi.useFakeTimers();
-    fireEvent.click(voidButton);
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Void movement' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.getByRole('status')).toHaveTextContent('Void canceled.');
@@ -1806,8 +1810,10 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Scheduled' });
-    const deactivateButton = await screen.findByRole('button', { name: 'Deactivate' });
-    fireEvent.click(deactivateButton);
+    const scheduledRow = await screen.findByText('Scheduled movement');
+    fireEvent.click(scheduledRow.closest('button')!);
+    const detailDialog = await screen.findByRole('dialog', { name: 'Scheduled movement details' });
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Deactivate movement' }));
 
     await waitFor(() => {
       expect(core.schedulingDeactivateMovement).toHaveBeenCalledWith({
@@ -1815,9 +1821,9 @@ describe('App Accounts UX', () => {
       });
     });
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: 'Deactivate' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'Scheduled movement details' })).not.toBeInTheDocument();
     });
-    expect(screen.getByText(/^deactivated$/i)).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Scheduled movement deactivated.');
   });
 
   it('infers one-shot metadata for legacy scheduled items', async () => {

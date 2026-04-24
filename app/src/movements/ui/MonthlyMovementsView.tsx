@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { SchedulingMovementItem } from '../../shared/domain/corePort';
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
@@ -123,6 +123,8 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
     pendingDeactivateScheduledId,
   } = required.state;
   const { loading, disabled } = required.status;
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionHistoryItemView | null>(null);
+  const [selectedScheduledMovement, setSelectedScheduledMovement] = useState<SchedulingMovementItem | null>(null);
 
   const categoryLabelById = useMemo(
     () => new Map(filterOptions.categories.map((item) => [item.id, item.label] as const)),
@@ -235,33 +237,28 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
                   const detailsLabel = details.join(' · ');
                   return (
                     <li key={movement.id} className={`${movementTypeClass(movement.type)} expense-item--compact`}>
-                      <div className="expense-top-row compact-row">
-                        <div className="tx-head compact-main">
-                          <i className={movementKindIconClass(movement.type)} aria-hidden />
-                          <strong className="compact-title">{movement.merchant || movement.description || 'Scheduled movement'}</strong>
+                      <button
+                        type="button"
+                        className="expense-item-button expense-item-button--compact"
+                        onClick={() => setSelectedScheduledMovement(movement)}
+                        disabled={disabled}
+                      >
+                        <div className="expense-top-row compact-row">
+                          <div className="tx-head compact-main">
+                            <i className={movementKindIconClass(movement.type)} aria-hidden />
+                            <strong className="compact-title">{movement.merchant || movement.description || 'Scheduled movement'}</strong>
+                          </div>
+                          <strong>
+                            {movement.type === 'income' ? '+' : null}
+                            {movement.type === 'transfer' ? <i className="bi bi-arrow-left-right movement-amount-transfer-icon" aria-hidden /> : null}
+                            {movement.type === 'expense' ? '-' : null}
+                            {txAmount(movement.amount, movement.currency)}
+                          </strong>
                         </div>
-                        <strong>
-                          {movement.type === 'income' ? '+' : null}
-                          {movement.type === 'transfer' ? <i className="bi bi-arrow-left-right movement-amount-transfer-icon" aria-hidden /> : null}
-                          {movement.type === 'expense' ? '-' : null}
-                          {txAmount(movement.amount, movement.currency)}
-                        </strong>
-                      </div>
-                      <div className="expense-bottom-row compact-row">
-                        <span className="hint compact-subline">{detailsLabel}</span>
-                        {movement.status === 'active' ? (
-                          <button
-                            type="button"
-                            className="text-button compact-action"
-                            onClick={() => void provided.commands.deactivateScheduledMovement(movement.id)}
-                            disabled={disabled || pendingDeactivateScheduledId === movement.id}
-                          >
-                            {pendingDeactivateScheduledId === movement.id ? 'Deactivating...' : 'Deactivate'}
-                          </button>
-                        ) : (
-                          <span className="chip">{scheduledStatus(movement)}</span>
-                        )}
-                      </div>
+                        <div className="expense-bottom-row compact-row">
+                          <span className="hint compact-subline">{detailsLabel}</span>
+                        </div>
+                      </button>
                     </li>
                   );
                 })}
@@ -291,39 +288,143 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
               <ul className="expense-list expense-list--compact" aria-label={`Posted group ${group.label}`}>
                 {group.items.map((transaction) => (
                   <li key={transaction.id} className={`${txItemTypeClass(transaction.type)} expense-item--compact`}>
-                    <div className="expense-top-row compact-row">
-                      <div className="tx-head compact-main">
-                        <i className={txKindIconClass(transaction.type)} aria-hidden />
-                        <strong className="compact-title">{transaction.merchant || transaction.description || txLabel(transaction.type)}</strong>
+                    <button
+                      type="button"
+                      className="expense-item-button expense-item-button--compact"
+                      onClick={() => setSelectedTransaction(transaction)}
+                      disabled={disabled}
+                    >
+                      <div className="expense-top-row compact-row">
+                        <div className="tx-head compact-main">
+                          <i className={txKindIconClass(transaction.type)} aria-hidden />
+                          <strong className="compact-title">{transaction.merchant || transaction.description || txLabel(transaction.type)}</strong>
+                        </div>
+                        <strong>
+                          {txSign(transaction.type)}
+                          {txAmount(transaction.amount, transaction.currency)}
+                        </strong>
                       </div>
-                      <strong>
-                        {txSign(transaction.type)}
-                        {txAmount(transaction.amount, transaction.currency)}
-                      </strong>
-                    </div>
-                    <div className="expense-bottom-row compact-row">
-                      <span className="hint compact-subline">
-                        {[
-                          transaction.category?.name,
-                          compactTags(transaction.tags),
-                        ].filter((value): value is string => Boolean(value && value.trim().length > 0)).join(' · ')}
-                      </span>
-                      {transaction.status === 'posted' ? (
-                        <button
-                          type="button"
-                          className="text-button compact-action"
-                          disabled={disabled || pendingVoidTransactionId === transaction.id}
-                          onClick={() => provided.commands.requestVoid(transaction.id)}
-                        >
-                          {pendingVoidTransactionId === transaction.id ? 'Pending...' : 'Void'}
-                        </button>
-                      ) : null}
-                    </div>
+                      <div className="expense-bottom-row compact-row">
+                        <span className="hint compact-subline">
+                          {[
+                            transaction.category?.name,
+                            compactTags(transaction.tags),
+                          ].filter((value): value is string => Boolean(value && value.trim().length > 0)).join(' · ')}
+                        </span>
+                      </div>
+                    </button>
                   </li>
                 ))}
               </ul>
             </div>
           ))}
+        </div>
+      ) : null}
+
+      {selectedTransaction ? (
+        <div className="sheet-backdrop" role="presentation" onClick={() => setSelectedTransaction(null)}>
+          <section
+            className="sheet-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Transaction details"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="inline-header">
+              <h3>{selectedTransaction.merchant || selectedTransaction.description || txLabel(selectedTransaction.type)}</h3>
+              <button
+                type="button"
+                className="text-button icon-button"
+                aria-label="Close transaction details"
+                onClick={() => setSelectedTransaction(null)}
+              >
+                <i className="bi bi-x-lg" aria-hidden />
+              </button>
+            </div>
+            <p className="summary-amount">
+              {txSign(selectedTransaction.type)}
+              {txAmount(selectedTransaction.amount, selectedTransaction.currency)}
+            </p>
+            <div className="stack">
+              <p className="hint">{formatCalendarDay(selectedTransaction.occurredAt)}</p>
+              <p className="hint">{selectedTransaction.category?.name ?? 'No category'}</p>
+              <p className="hint">{compactTags(selectedTransaction.tags) ?? 'No tags'}</p>
+              <p className="hint">Status: {selectedTransaction.status}</p>
+            </div>
+            <div className="quick-row">
+              {selectedTransaction.status === 'posted' ? (
+                <button
+                  type="button"
+                  className="danger-button"
+                  disabled={disabled || pendingVoidTransactionId === selectedTransaction.id}
+                  onClick={() => {
+                    provided.commands.requestVoid(selectedTransaction.id);
+                    setSelectedTransaction(null);
+                  }}
+                >
+                  {pendingVoidTransactionId === selectedTransaction.id ? 'Pending...' : 'Void movement'}
+                </button>
+              ) : null}
+              <button type="button" className="text-button" onClick={() => setSelectedTransaction(null)}>
+                Close
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {selectedScheduledMovement ? (
+        <div className="sheet-backdrop" role="presentation" onClick={() => setSelectedScheduledMovement(null)}>
+          <section
+            className="sheet-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Scheduled movement details"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="inline-header">
+              <h3>{selectedScheduledMovement.merchant || selectedScheduledMovement.description || 'Scheduled movement'}</h3>
+              <button
+                type="button"
+                className="text-button icon-button"
+                aria-label="Close scheduled movement details"
+                onClick={() => setSelectedScheduledMovement(null)}
+              >
+                <i className="bi bi-x-lg" aria-hidden />
+              </button>
+            </div>
+            <p className="summary-amount">
+              {selectedScheduledMovement.type === 'income' ? '+' : null}
+              {selectedScheduledMovement.type === 'transfer' ? <i className="bi bi-arrow-left-right movement-amount-transfer-icon" aria-hidden /> : null}
+              {selectedScheduledMovement.type === 'expense' ? '-' : null}
+              {txAmount(selectedScheduledMovement.amount, selectedScheduledMovement.currency)}
+            </p>
+            <div className="stack">
+              <p className="hint">{formatCalendarDay(selectedScheduledMovement.nextDueAt ?? selectedScheduledMovement.startAt)}</p>
+              <p className="hint">{scheduledOrigin(selectedScheduledMovement)}</p>
+              <p className="hint">{resolveScheduledCategoryName(selectedScheduledMovement.categoryId) ?? 'No category'}</p>
+              <p className="hint">{compactTagNames(resolveScheduledTagNames(selectedScheduledMovement)) ?? 'No tags'}</p>
+              <p className="hint">Status: {scheduledStatus(selectedScheduledMovement)}</p>
+            </div>
+            <div className="quick-row">
+              {selectedScheduledMovement.status === 'active' ? (
+                <button
+                  type="button"
+                  className="danger-button"
+                  disabled={disabled || pendingDeactivateScheduledId === selectedScheduledMovement.id}
+                  onClick={() => {
+                    void provided.commands.deactivateScheduledMovement(selectedScheduledMovement.id);
+                    setSelectedScheduledMovement(null);
+                  }}
+                >
+                  {pendingDeactivateScheduledId === selectedScheduledMovement.id ? 'Deactivating...' : 'Deactivate movement'}
+                </button>
+              ) : null}
+              <button type="button" className="text-button" onClick={() => setSelectedScheduledMovement(null)}>
+                Close
+              </button>
+            </div>
+          </section>
         </div>
       ) : null}
 
