@@ -105,12 +105,15 @@ class JdbcRecurringMovementRepository(
     val sql = """
       select *
       from recurring_movements
-      where source_account_id = :source_account_id
+      where source_account_id = :account_id
+         or (movement_type = :transfer_type and target_account_id = :account_id)
       order by created_at desc, id desc
     """.trimIndent()
     return jdbcTemplate.query(
       sql,
-      MapSqlParameterSource("source_account_id", accountId),
+      MapSqlParameterSource()
+        .addValue("account_id", accountId)
+        .addValue("transfer_type", RecurringMovementType.TRANSFER.value),
       rowMapper(),
     )
   }

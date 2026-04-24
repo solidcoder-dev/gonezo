@@ -109,6 +109,13 @@ function scheduledDateEpoch(item: SchedulingMovementItem): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function isScheduledVisibleForAccount(item: SchedulingMovementItem, accountId: string): boolean {
+  if (item.sourceAccountId === accountId) {
+    return true;
+  }
+  return item.type === 'transfer' && item.targetAccountId === accountId;
+}
+
 function filterScheduledForOverview(
   items: SchedulingMovementItem[],
   input: MovementsGetOverviewInput | MovementsListScheduledInput,
@@ -120,7 +127,7 @@ function filterScheduledForOverview(
   const hasToDateEpoch = typeof toDateEpoch === 'number' && Number.isFinite(toDateEpoch);
 
   return items
-    .filter((item) => item.sourceAccountId === input.accountId)
+    .filter((item) => isScheduledVisibleForAccount(item, input.accountId))
     .filter((item) => {
       const status = filters.status ?? 'all';
       if (status === 'all') return true;
@@ -270,7 +277,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     schedulingDeactivateMovement: vi.fn(async (input) => core.recurrenceDeactivateRecurringMovement(input)),
     schedulingListMovements: vi.fn(async (input) => {
       const sourceAccountId = input.sourceAccountId;
-      return { items: scheduledMovements.filter((item) => item.sourceAccountId === sourceAccountId) };
+      return { items: scheduledMovements.filter((item) => isScheduledVisibleForAccount(item, sourceAccountId)) };
     }),
     movementsGetOverview: vi.fn(async (input: MovementsGetOverviewInput) => {
       const statuses = input.filters?.status === 'executed'
@@ -389,7 +396,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     }
   });
   vi.mocked(core.recurrenceListRecurringMovements).mockImplementation(async (input) => ({
-    items: scheduledMovements.filter((item) => item.sourceAccountId === input.sourceAccountId),
+    items: scheduledMovements.filter((item) => isScheduledVisibleForAccount(item, input.sourceAccountId)),
   }));
 
   return core;
@@ -1634,6 +1641,39 @@ describe('App Accounts UX', () => {
       expect(screen.queryByText('Scheduled movement')).not.toBeInTheDocument();
     });
     expect(screen.getByText(/No scheduled movements in/i)).toBeInTheDocument();
+  });
+
+  it('shows scheduled transfer when switching to destination account', async () => {
+    const core = makeCore();
+    await core.schedulingCreateMovement({
+      type: 'transfer',
+      sourceAccountId: 'acc-1',
+      targetAccountId: 'acc-2',
+      amount: '50.00',
+      currency: 'USD',
+      description: 'Scheduled transfer',
+      rule: { frequency: 'daily', interval: 1 },
+      recurrenceEnd: { kind: 'after_occurrences', afterOccurrences: 1 },
+      startAt: new Date().toISOString(),
+      zoneId: 'UTC',
+      scheduleKind: 'one_shot',
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Scheduled transfer')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Accounts' }));
+    await screen.findByRole('dialog', { name: 'Select account' });
+    fireEvent.click(screen.getByRole('button', { name: /Savings/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Scheduled transfer')).toBeInTheDocument();
+    });
   });
 
   it('creates recurring expense from composer more options', async () => {

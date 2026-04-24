@@ -1938,7 +1938,7 @@ export class CoreAdapterWeb implements CorePort {
     input: RecurrenceListRecurringMovementsInput,
   ): Promise<RecurrenceListRecurringMovementsResult> {
     const items = CoreAdapterWeb.recurringMovements
-      .filter((movement) => movement.sourceAccountId === input.sourceAccountId)
+      .filter((movement) => this.isMovementVisibleForAccount(movement, input.sourceAccountId))
       .sort((left, right) => {
         if (!left.nextDueAt && !right.nextDueAt) {
           return left.createdAt.localeCompare(right.createdAt);
@@ -1986,6 +1986,13 @@ export class CoreAdapterWeb implements CorePort {
     return Number.isFinite(parsed) ? parsed : undefined;
   }
 
+  private isMovementVisibleForAccount(movement: MemoryRecurringMovement, accountId: string): boolean {
+    if (movement.sourceAccountId === accountId) {
+      return true;
+    }
+    return movement.type === 'transfer' && movement.targetAccountId === accountId;
+  }
+
   private filterScheduledMovements(input: {
     accountId: string;
     filters?: MovementsGetOverviewInput['filters'] | MovementsListScheduledInput['filters'];
@@ -2020,7 +2027,7 @@ export class CoreAdapterWeb implements CorePort {
     const origin = filters.origin ?? 'all';
 
     const filtered = CoreAdapterWeb.recurringMovements
-      .filter((movement) => movement.sourceAccountId === input.accountId)
+      .filter((movement) => this.isMovementVisibleForAccount(movement, input.accountId))
       .filter((movement) => {
         if (status === 'all') {
           return true;
