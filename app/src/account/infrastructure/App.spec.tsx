@@ -916,7 +916,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Transactions' });
+    await screen.findByRole('heading', { name: 'Movements' });
     await waitFor(() => {
       expect(core.ledgerListTransactions).toHaveBeenCalledTimes(1);
     });
@@ -1452,7 +1452,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Transactions' });
+    await screen.findByRole('heading', { name: 'Movements' });
     const voidButton = await screen.findByRole('button', { name: 'Void' });
     vi.useFakeTimers();
     fireEvent.click(voidButton);
@@ -1471,7 +1471,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Transactions' });
+    await screen.findByRole('heading', { name: 'Movements' });
     const voidButton = await screen.findByRole('button', { name: 'Void' });
     vi.useFakeTimers();
     fireEvent.click(voidButton);
@@ -1527,7 +1527,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Transactions' });
+    await screen.findByRole('heading', { name: 'Movements' });
 
     await waitFor(() => {
       expect(listTransactionTaxonomy).toHaveBeenCalledWith({ transactionIds: ['tx-1'] });
@@ -1550,8 +1550,8 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Transactions' });
-    expect(screen.getByRole('link', { name: 'Advanced search' })).toBeInTheDocument();
+    await screen.findByRole('heading', { name: 'Movements' });
+    expect(screen.getByRole('link', { name: 'Search movements' })).toBeInTheDocument();
   });
 
   it('links to advanced search with the current account id', async () => {
@@ -1563,8 +1563,8 @@ describe('App Accounts UX', () => {
       </MemoryRouter>,
     );
 
-    await screen.findByRole('heading', { name: 'Transactions' });
-    expect(screen.getByRole('link', { name: 'Advanced search' })).toHaveAttribute(
+    await screen.findByRole('heading', { name: 'Movements' });
+    expect(screen.getByRole('link', { name: 'Search movements' })).toHaveAttribute(
       'href',
       '/movements/search?accountId=acc-1',
     );
@@ -1579,8 +1579,8 @@ describe('App Accounts UX', () => {
       </MemoryRouter>,
     );
 
-    await screen.findByRole('heading', { name: 'Transactions' });
-    expect(screen.getByRole('link', { name: 'Advanced search' })).toHaveAttribute(
+    await screen.findByRole('heading', { name: 'Movements' });
+    expect(screen.getByRole('link', { name: 'Search movements' })).toHaveAttribute(
       'href',
       '/movements/search?accountId=acc-1',
     );
@@ -1590,7 +1590,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: /Savings/ }));
 
     await waitFor(() => {
-      expect(screen.getByRole('link', { name: 'Advanced search' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Search movements' })).toHaveAttribute(
         'href',
         '/movements/search?accountId=acc-2',
       );
@@ -1606,7 +1606,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>,
     );
 
-    await screen.findByRole('heading', { name: 'Transactions' });
+    await screen.findByRole('heading', { name: 'Movements' });
     expect(screen.queryByRole('button', { name: 'More filters' })).not.toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Scheduled' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Posted' })).toBeInTheDocument();

@@ -162,9 +162,9 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
   return (
     <section className="stack section-gap transactions-section" aria-busy={loading}>
       <div className="inline-header">
-        <h2>Transactions</h2>
+        <h2>Movements</h2>
         <Link className="text-button" to={searchHref}>
-          Advanced search
+          Search movements
         </Link>
       </div>
 
@@ -271,7 +271,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
           {scheduledHasMore ? (
             <div className="quick-row">
               <Link className="text-button" to={searchHref}>
-                See all upcoming
+                See all scheduled
               </Link>
             </div>
           ) : null}

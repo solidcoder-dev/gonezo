@@ -77,7 +77,7 @@ type ActiveFilterChip = {
 
 const STATUS_QUICK_FILTERS: Array<{ value: TransactionHistoryStatusFilterValue; label: string }> = [
   { value: 'all', label: 'All' },
-  { value: 'scheduled', label: 'Upcoming' },
+  { value: 'scheduled', label: 'Scheduled' },
   { value: 'executed', label: 'Posted' },
   { value: 'voided', label: 'Voided' },
   { value: 'failed', label: 'Failed' },
@@ -347,7 +347,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
 
   return (
     <section className="stack section-gap transactions-section" aria-busy={loading}>
-      <h2>Transactions</h2>
+      <h2>Movements</h2>
 
       <div className="chip-row" aria-label="Quick status filters">
         {STATUS_QUICK_FILTERS.map((option) => (
@@ -591,12 +591,12 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
         </div>
       ) : null}
 
-      {loading ? <p role="status">Loading transactions...</p> : null}
+      {loading ? <p role="status">Loading movements...</p> : null}
       {!loading && scheduledItems.length === 0 && items.length === 0 ? <p>No movements yet.</p> : null}
       {!loading && scheduledItems.length > 0 ? (
         <div className="stack">
           <div className="inline-header">
-            <h3>Upcoming</h3>
+            <h3>Scheduled</h3>
             <span className="hint">
               {scheduledTotal}
               {scheduledHasMore ? ' (showing first items)' : ''}
@@ -605,7 +605,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
           {upcomingGroups.map((group) => (
             <div key={group.key} className="stack">
               <p className="hint date-group-label">{group.label}</p>
-              <ul className="expense-list expense-list--compact" aria-label={`Upcoming group ${group.label}`}>
+              <ul className="expense-list expense-list--compact" aria-label={`Scheduled group ${group.label}`}>
                 {group.items.map((movement) => {
                   const scheduledCategoryName = resolveScheduledCategoryName(movement.categoryId);
                   const details = [
@@ -652,7 +652,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
           {scheduledHasMore ? (
             <div className="quick-row">
               <button type="button" className="text-button" disabled>
-                See all upcoming
+                See all scheduled
               </button>
             </div>
           ) : null}

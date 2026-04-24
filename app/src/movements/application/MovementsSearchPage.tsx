@@ -78,11 +78,11 @@ export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
       <div className="inline-header">
         <h2>Search movements</h2>
         <button type="button" className="text-button" onClick={() => navigate(-1)}>
-          Back
+          Back to movements
         </button>
       </div>
 
-      <p className="hint">Advanced filters and full transaction exploration.</p>
+      <p className="hint">Advanced filters and full movement exploration.</p>
 
       {loading ? <p role="status">Loading accounts...</p> : null}
       {!loading && error ? (
