@@ -659,7 +659,7 @@ export function RecentTransactionsListView({ required, provided }: RecentTransac
         <div className="stack" aria-label="Posted movements">
           <div className="inline-header">
             <h3>Posted</h3>
-            <span className="hint">{pagination.totalElements} items</span>
+            <span className="hint">{pagination.totalElements}</span>
           </div>
           {postedGroups.map((group) => (
             <div key={group.key} className="stack">

@@ -139,8 +139,6 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
   const upcomingGroups = useMemo(() => groupScheduledMovementsByDate(scheduledItems), [scheduledItems]);
 
   const searchHref = `/movements/search?accountId=${encodeURIComponent(accountId)}`;
-  const totalPagesLabel = pagination.totalPages > 0 ? pagination.totalPages : 1;
-  const pageLabel = pagination.totalElements > 0 ? pagination.page + 1 : 1;
 
   function resolveScheduledCategoryName(categoryId?: string): string | undefined {
     if (!categoryId || categoryId.trim().length === 0) {
@@ -279,7 +277,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
         <div className="stack" aria-label="Posted movements">
           <div className="inline-header">
             <h3>Posted</h3>
-            <span className="hint">{pagination.totalElements} items</span>
+            <span className="hint">{pagination.totalElements}</span>
           </div>
           {postedGroups.length === 0 ? <p className="hint">No posted movements in {monthLabel}.</p> : null}
           {postedGroups.map((group) => (
@@ -449,29 +447,6 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
         </div>
       ) : null}
 
-      {pagination.totalElements > 0 ? (
-        <div className="inline-header">
-          <p className="hint">Page {pageLabel} of {totalPagesLabel} · {pagination.totalElements} posted</p>
-          <div className="quick-row">
-            <button
-              type="button"
-              className="text-button"
-              onClick={provided.commands.goToPreviousPage}
-              disabled={disabled || !pagination.hasPrevious}
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              className="text-button"
-              onClick={provided.commands.goToNextPage}
-              disabled={disabled || !pagination.hasNext}
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      ) : null}
     </section>
   );
 }
