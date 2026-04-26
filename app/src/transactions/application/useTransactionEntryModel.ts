@@ -821,17 +821,15 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       nextErrors.amount = 'Enter a valid amount greater than 0.';
     }
 
-    if (!transactionDate) {
-      nextErrors.date = 'Date is required.';
-    }
+    const resolvedTransactionDate = transactionDate.trim() || todayIso();
     if (schedulingMode === 'now' && transactionDate) {
       const today = todayIso();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(transactionDate)) {
-        if (transactionDate > today) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(resolvedTransactionDate)) {
+        if (resolvedTransactionDate > today) {
           nextErrors.date = 'Manual movements cannot use a future date.';
         }
       } else {
-        const parsed = new Date(transactionDate);
+        const parsed = new Date(resolvedTransactionDate);
         if (!Number.isNaN(parsed.getTime()) && parsed.getTime() > Date.now()) {
           nextErrors.date = 'Manual movements cannot use a future date.';
         }
@@ -839,12 +837,12 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     }
     if (schedulingMode === 'scheduled' && transactionDate) {
       const today = todayIso();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(transactionDate)) {
-        if (transactionDate < today) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(resolvedTransactionDate)) {
+        if (resolvedTransactionDate < today) {
           nextErrors.date = 'Scheduled movements must use today or a future date.';
         }
       } else {
-        const parsed = new Date(transactionDate);
+        const parsed = new Date(resolvedTransactionDate);
         const todayMidnight = new Date(`${today}T00:00:00`);
         if (!Number.isNaN(parsed.getTime()) && parsed.getTime() < todayMidnight.getTime()) {
           nextErrors.date = 'Scheduled movements must use today or a future date.';
@@ -942,7 +940,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
     setPostingTransaction(true);
     try {
-      const occurredAt = resolveOccurredAt(transactionDate);
+      const occurredAt = resolveOccurredAt(resolvedTransactionDate);
       const tagNames = parseTransactionTags();
       const tagIds = resolveTagSelectionIds(tagNames);
       let recorded = false;

@@ -600,6 +600,65 @@ body {
   padding: 12px;
 }
 
+.composer-advanced {
+  margin-top: 4px;
+}
+
+.date-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.date-input-field {
+  min-width: 0;
+}
+
+.date-input-field input {
+  width: 100%;
+}
+
+.date-picker-button {
+  align-self: center;
+  height: 44px;
+  min-width: 44px;
+  padding-inline: 10px;
+  justify-content: center;
+}
+
+.composer-more-options {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 0;
+  margin-top: 2px;
+  font-weight: 600;
+  color: #2d2d26;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  min-height: 0;
+}
+
+.composer-more-options-caret {
+  font-size: 0.82em;
+  line-height: 1;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .hint.success {
   color: #1b5b28;
 }
