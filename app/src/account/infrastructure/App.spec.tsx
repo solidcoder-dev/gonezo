@@ -1365,6 +1365,54 @@ describe('App Accounts UX', () => {
     });
   });
 
+  it('keeps amount in read only when auto amount in mode is selected', async () => {
+    const core = makeCore();
+    vi.mocked(core.ledgerListAccounts).mockResolvedValue({
+      items: [
+        {
+          id: 'acc-1',
+          name: 'Main USD',
+          type: 'cash',
+          currency: 'USD',
+          status: 'active',
+        },
+        {
+          id: 'acc-2',
+          name: 'Savings EUR',
+          type: 'savings',
+          currency: 'EUR',
+          status: 'active',
+        },
+      ],
+    });
+    vi.mocked(core.ledgerGetAccountSummary).mockResolvedValue({
+      accountId: 'acc-1',
+      name: 'Main USD',
+      type: 'cash',
+      currency: 'USD',
+      balanceAmount: '100.00',
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Transfer');
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
+    fireEvent.change(screen.getByLabelText('Destination account'), { target: { value: 'acc-2' } });
+
+    const amountIn = screen.getByLabelText('Amount in (EUR)');
+    expect(amountIn).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Auto amount in' }));
+    expect(amountIn).toBeDisabled();
+  });
+
   it('supports detailed expense with items using draft flow', async () => {
     const core = makeCore();
 

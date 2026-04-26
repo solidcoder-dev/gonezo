@@ -294,23 +294,77 @@ export function TransactionComposerView({ required, provided }: Props) {
           </div>
         ) : (
           <form className="stack composer-form" onSubmit={onSubmit} aria-busy={disabled} noValidate>
-            <label className="stack">
-              <span className="visually-hidden">{amountLabel}</span>
-              <input
-                ref={amountInputRef}
-                aria-label="Amount"
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={amount}
-                placeholder="Amount"
-                onChange={(event) => onSetAmount(event.target.value)}
-                inputMode="decimal"
-                aria-invalid={Boolean(amountError)}
-                aria-describedby={amountError ? 'composer-amount-error' : undefined}
-              />
-            </label>
-            {amountError ? <p id="composer-amount-error" className="field-error">{amountError}</p> : null}
+            {mode !== 'transfer' ? (
+              <>
+                <label className="stack">
+                  <span className="visually-hidden">{amountLabel}</span>
+                  <input
+                    ref={amountInputRef}
+                    aria-label="Amount"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={amount}
+                    placeholder="Amount"
+                    onChange={(event) => onSetAmount(event.target.value)}
+                    inputMode="decimal"
+                    aria-invalid={Boolean(amountError)}
+                    aria-describedby={amountError ? 'composer-amount-error' : undefined}
+                  />
+                </label>
+                {amountError ? <p id="composer-amount-error" className="field-error">{amountError}</p> : null}
+              </>
+            ) : null}
+
+            {mode === 'transfer' ? (
+              <label className="stack">
+                <span className="visually-hidden">Destination account</span>
+                <select
+                  aria-label="Destination account"
+                  value={transferTargetAccountId}
+                  onChange={(event) => onSetTransferTarget(event.target.value)}
+                >
+                  <option value="">Select account</option>
+                  {transferTargetOptions.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name} ({account.currency})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
+            {mode === 'transfer' ? (
+              <>
+                <label className="stack">
+                  <span className="visually-hidden">{amountLabel}</span>
+                  <input
+                    ref={amountInputRef}
+                    aria-label="Amount"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={amount}
+                    placeholder="Amount"
+                    onChange={(event) => onSetAmount(event.target.value)}
+                    inputMode="decimal"
+                    aria-invalid={Boolean(amountError)}
+                    aria-describedby={amountError ? 'composer-amount-error' : undefined}
+                  />
+                </label>
+                {amountError ? <p id="composer-amount-error" className="field-error">{amountError}</p> : null}
+
+                <label className="stack">
+                  <span className="visually-hidden">Description</span>
+                  <input
+                    aria-label="Description"
+                    value={note}
+                    onChange={(event) => onSetNote(event.target.value)}
+                    placeholder="Description"
+                  />
+                </label>
+              </>
+            ) : null}
 
             {mode !== 'transfer' ? (
               <label className="stack">
@@ -365,6 +419,68 @@ export function TransactionComposerView({ required, provided }: Props) {
               </button>
             </div>
             {dateError ? <p id="composer-date-error" className="field-error">{dateError}</p> : null}
+
+            {mode === 'transfer' && transferCrossCurrency ? (
+              <div className="stack item-editor">
+                <label className="stack">
+                  <span className="visually-hidden">{amountInLabel}</span>
+                  <input
+                    aria-label={amountInLabel}
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={transferAmountIn}
+                    onChange={(event) => onSetTransferAmountIn(event.target.value)}
+                    inputMode="decimal"
+                    disabled={transferFxMode === 'auto_destination'}
+                    aria-invalid={Boolean(transferAmountInError)}
+                    aria-describedby={transferAmountInError ? 'composer-transfer-amount-in-error' : undefined}
+                  />
+                </label>
+                {transferAmountInError ? <p id="composer-transfer-amount-in-error" className="field-error">{transferAmountInError}</p> : null}
+
+                <label className="stack">
+                  <span className="visually-hidden">{fxLabel}</span>
+                  <input
+                    aria-label={fxLabel}
+                    type="number"
+                    min="0.0000001"
+                    step="0.0001"
+                    value={transferFxRate}
+                    onChange={(event) => onSetTransferFxRate(event.target.value)}
+                    inputMode="decimal"
+                    disabled={transferFxMode === 'auto_rate'}
+                    aria-invalid={Boolean(transferFxRateError)}
+                    aria-describedby={transferFxRateError ? 'composer-transfer-fx-rate-error' : undefined}
+                  />
+                </label>
+                {transferFxRateError ? <p id="composer-transfer-fx-rate-error" className="field-error">{transferFxRateError}</p> : null}
+
+                <div className="segmented segmented-2" role="radiogroup" aria-label="Transfer auto calculation mode">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={transferFxMode === 'auto_destination'}
+                    className={transferFxMode === 'auto_destination' ? 'segment active' : 'segment'}
+                    disabled={disabled}
+                    onClick={() => onSetTransferFxMode('auto_destination')}
+                  >
+                    Auto amount in
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={transferFxMode === 'auto_rate'}
+                    className={transferFxMode === 'auto_rate' ? 'segment active' : 'segment'}
+                    disabled={disabled}
+                    onClick={() => onSetTransferFxMode('auto_rate')}
+                  >
+                    Auto FX rate
+                  </button>
+                </div>
+                <p className="hint">Edit two values; the third one is calculated automatically.</p>
+              </div>
+            ) : null}
 
             <button
               type="button"
@@ -433,18 +549,6 @@ export function TransactionComposerView({ required, provided }: Props) {
                       ) : null}
                     </div>
 
-                    {mode === 'transfer' ? (
-                      <label className="stack">
-                        Note
-                        <input
-                          aria-label="Note"
-                          value={note}
-                          onChange={(event) => onSetNote(event.target.value)}
-                          placeholder="Note"
-                        />
-                      </label>
-                    ) : null}
-
                     {mode === 'expense' || mode === 'income' ? (
                       <CategoryComboboxField
                         required={{
@@ -468,92 +572,6 @@ export function TransactionComposerView({ required, provided }: Props) {
                         onChange: onSetTagInput,
                       }}
                     />
-
-                    {mode === 'transfer' ? (
-                      <>
-                        <label className="stack">
-                          Destination account
-                          <select
-                            aria-label="Destination account"
-                            value={transferTargetAccountId}
-                            onChange={(event) => onSetTransferTarget(event.target.value)}
-                          >
-                            <option value="">Select account</option>
-                            {transferTargetOptions.map((account) => (
-                              <option key={account.id} value={account.id}>
-                                {account.name} ({account.currency})
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-
-                        <div className="stack item-editor">
-                          <label className="stack">
-                            {amountInLabel}
-                            <input
-                              aria-label={amountInLabel}
-                              type="number"
-                              min="0.01"
-                              step="0.01"
-                              value={transferAmountIn}
-                              onChange={(event) => onSetTransferAmountIn(event.target.value)}
-                              inputMode="decimal"
-                              disabled={disabled || !transferCrossCurrency || transferFxMode === 'auto_destination'}
-                              aria-invalid={Boolean(transferAmountInError)}
-                              aria-describedby={transferAmountInError ? 'composer-transfer-amount-in-error' : undefined}
-                            />
-                          </label>
-                          {transferAmountInError ? <p id="composer-transfer-amount-in-error" className="field-error">{transferAmountInError}</p> : null}
-
-                          {transferCrossCurrency ? (
-                            <>
-                              <label className="stack">
-                                {fxLabel}
-                                <input
-                                  aria-label={fxLabel}
-                                  type="number"
-                                  min="0.0000001"
-                                  step="0.0001"
-                                  value={transferFxRate}
-                                  onChange={(event) => onSetTransferFxRate(event.target.value)}
-                                  inputMode="decimal"
-                                  disabled={disabled || transferFxMode === 'auto_rate'}
-                                  aria-invalid={Boolean(transferFxRateError)}
-                                  aria-describedby={transferFxRateError ? 'composer-transfer-fx-rate-error' : undefined}
-                                />
-                              </label>
-                              {transferFxRateError ? <p id="composer-transfer-fx-rate-error" className="field-error">{transferFxRateError}</p> : null}
-
-                              <div className="segmented segmented-2" role="radiogroup" aria-label="Transfer auto calculation mode">
-                                <button
-                                  type="button"
-                                  role="radio"
-                                  aria-checked={transferFxMode === 'auto_destination'}
-                                  className={transferFxMode === 'auto_destination' ? 'segment active' : 'segment'}
-                                  disabled={disabled}
-                                  onClick={() => onSetTransferFxMode('auto_destination')}
-                                >
-                                  Auto amount in
-                                </button>
-                                <button
-                                  type="button"
-                                  role="radio"
-                                  aria-checked={transferFxMode === 'auto_rate'}
-                                  className={transferFxMode === 'auto_rate' ? 'segment active' : 'segment'}
-                                  disabled={disabled}
-                                  onClick={() => onSetTransferFxMode('auto_rate')}
-                                >
-                                  Auto FX rate
-                                </button>
-                              </div>
-                              <p className="hint">Edit two values; the third one is calculated automatically.</p>
-                            </>
-                          ) : (
-                            <p className="hint">Same currency transfer uses 1:1 amount.</p>
-                          )}
-                        </div>
-                      </>
-                    ) : null}
 
                     {mode === 'expense' ? (
                       <div className="stack">
