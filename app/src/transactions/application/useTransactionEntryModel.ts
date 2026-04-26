@@ -91,6 +91,14 @@ function dayOfMonthFromDateInput(dateInput: string): string {
   return String(new Date().getUTCDate());
 }
 
+function isFutureIsoDateInput(dateInput: string): boolean {
+  const trimmed = dateInput.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return false;
+  }
+  return trimmed > todayIso();
+}
+
 function weekDayIsoFromDateInput(dateInput: string): string {
   const parsed = /^\d{4}-\d{2}-\d{2}$/.test(dateInput)
     ? new Date(`${dateInput}T12:00:00`)
@@ -544,6 +552,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       date: undefined,
       recurrenceEndDate: undefined,
     }));
+    if (composerMode === 'expense' && isFutureIsoDateInput(value) && expenseDetailed) {
+      setExpenseDetailed(false);
+    }
     if (!recurrenceEnabled) {
       return;
     }
@@ -822,30 +833,32 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     }
 
     const resolvedTransactionDate = transactionDate.trim() || todayIso();
-    if (schedulingMode === 'now' && transactionDate) {
-      const today = todayIso();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(resolvedTransactionDate)) {
-        if (resolvedTransactionDate > today) {
-          nextErrors.date = 'Manual movements cannot use a future date.';
-        }
-      } else {
-        const parsed = new Date(resolvedTransactionDate);
-        if (!Number.isNaN(parsed.getTime()) && parsed.getTime() > Date.now()) {
-          nextErrors.date = 'Manual movements cannot use a future date.';
+    if (composerMode !== 'expense') {
+      if (schedulingMode === 'now' && transactionDate) {
+        const today = todayIso();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(resolvedTransactionDate)) {
+          if (resolvedTransactionDate > today) {
+            nextErrors.date = 'Manual movements cannot use a future date.';
+          }
+        } else {
+          const parsed = new Date(resolvedTransactionDate);
+          if (!Number.isNaN(parsed.getTime()) && parsed.getTime() > Date.now()) {
+            nextErrors.date = 'Manual movements cannot use a future date.';
+          }
         }
       }
-    }
-    if (schedulingMode === 'scheduled' && transactionDate) {
-      const today = todayIso();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(resolvedTransactionDate)) {
-        if (resolvedTransactionDate < today) {
-          nextErrors.date = 'Scheduled movements must use today or a future date.';
-        }
-      } else {
-        const parsed = new Date(resolvedTransactionDate);
-        const todayMidnight = new Date(`${today}T00:00:00`);
-        if (!Number.isNaN(parsed.getTime()) && parsed.getTime() < todayMidnight.getTime()) {
-          nextErrors.date = 'Scheduled movements must use today or a future date.';
+      if (schedulingMode === 'scheduled' && transactionDate) {
+        const today = todayIso();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(resolvedTransactionDate)) {
+          if (resolvedTransactionDate < today) {
+            nextErrors.date = 'Scheduled movements must use today or a future date.';
+          }
+        } else {
+          const parsed = new Date(resolvedTransactionDate);
+          const todayMidnight = new Date(`${today}T00:00:00`);
+          if (!Number.isNaN(parsed.getTime()) && parsed.getTime() < todayMidnight.getTime()) {
+            nextErrors.date = 'Scheduled movements must use today or a future date.';
+          }
         }
       }
     }
@@ -890,8 +903,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       }
     }
 
+    const expenseScheduled = composerMode === 'expense' && (recurrenceEnabled || isFutureIsoDateInput(resolvedTransactionDate));
+
     if (composerMode === 'expense' && expenseDetailed) {
-      if (schedulingMode === 'scheduled') {
+      if (expenseScheduled) {
         nextErrors.expenseSplit = 'Split expenses are not supported for scheduled movements.';
       } else {
         if (expenseItems.length === 0) {
@@ -945,9 +960,81 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       const tagIds = resolveTagSelectionIds(tagNames);
       let recorded = false;
 
-      if (schedulingMode === 'scheduled') {
-        const categoryId = composerMode === 'expense' || composerMode === 'income'
-          ? await resolveCategorySelection(composerMode)
+      if (composerMode === 'expense' && recurrenceEnabled) {
+        const categoryId = await resolveCategorySelection('expense');
+        const interval = Number(recurrenceInterval.trim());
+        let scheduleRule: SchedulingCreateMovementInput['rule'] = {
+          frequency: recurrenceFrequency,
+          interval,
+        };
+        if (recurrenceFrequency === 'weekly') {
+          scheduleRule.weeklyDays = [Number(recurrenceWeeklyDay || '1')];
+        }
+        if (recurrenceFrequency === 'monthly') {
+          scheduleRule.monthlyPattern = recurrenceMonthlyPattern;
+          if (recurrenceMonthlyPattern === 'day_of_month') {
+            scheduleRule.dayOfMonth = Number(recurrenceDayOfMonth || dayOfMonthFromDateInput(transactionDate));
+          } else {
+            scheduleRule.monthlyWeekOrdinal = Number(recurrenceMonthlyOrdinal || '1');
+            scheduleRule.monthlyWeekday = Number(recurrenceMonthlyWeekday || weekDayIsoFromDateInput(transactionDate));
+          }
+        }
+
+        const scheduleEnd: SchedulingCreateMovementInput['recurrenceEnd'] = recurrenceEndKind === 'on_date'
+          ? { kind: 'on_date', onDate: recurrenceEndDate.trim() }
+          : recurrenceEndKind === 'after_occurrences'
+            ? { kind: 'after_occurrences', afterOccurrences: Number(recurrenceEndCount.trim()) }
+            : { kind: 'never' };
+
+        await schedulingGateway.schedulingCreateMovement({
+          type: 'expense',
+          sourceAccountId: accountId,
+          amount: formatAmount(parseAmount(amount)),
+          currency: accountCurrency,
+          description: transactionNote.trim() || undefined,
+          merchant: transactionNote.trim() || undefined,
+          categoryId,
+          tagIds,
+          tagNames,
+          rule: scheduleRule,
+          recurrenceEnd: scheduleEnd,
+          startAt: occurredAt,
+          zoneId: resolveTimeZoneId(),
+          scheduleKind: 'recurring',
+        });
+        recorded = true;
+      }
+
+      if (!recorded && composerMode === 'expense' && expenseScheduled) {
+        const categoryId = await resolveCategorySelection('expense');
+        await schedulingGateway.schedulingCreateMovement({
+          type: 'expense',
+          sourceAccountId: accountId,
+          amount: formatAmount(parseAmount(amount)),
+          currency: accountCurrency,
+          description: transactionNote.trim() || undefined,
+          merchant: transactionNote.trim() || undefined,
+          categoryId,
+          tagIds,
+          tagNames,
+          rule: {
+            frequency: 'daily',
+            interval: 1,
+          },
+          recurrenceEnd: {
+            kind: 'after_occurrences',
+            afterOccurrences: 1,
+          },
+          startAt: occurredAt,
+          zoneId: resolveTimeZoneId(),
+          scheduleKind: 'one_shot',
+        });
+        recorded = true;
+      }
+
+      if (!recorded && composerMode !== 'expense' && schedulingMode === 'scheduled') {
+        const categoryId = composerMode === 'income'
+          ? await resolveCategorySelection('income')
           : undefined;
         let scheduleRule: SchedulingCreateMovementInput['rule'];
         let scheduleEnd: SchedulingCreateMovementInput['recurrenceEnd'];
@@ -1031,9 +1118,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           });
         }
 
-        if (composerMode === 'expense' || composerMode === 'income') {
+        if (composerMode === 'income') {
           await schedulingGateway.schedulingCreateMovement({
-            type: composerMode,
+            type: 'income',
             sourceAccountId: accountId,
             amount: formatAmount(parseAmount(amount)),
             currency: accountCurrency,
@@ -1052,7 +1139,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         recorded = true;
       }
 
-      if (schedulingMode === 'now' && composerMode === 'expense') {
+      if (!recorded && composerMode === 'expense') {
         const categoryId = await resolveCategorySelection('expense');
         if (!expenseDetailed) {
           const result = await ledgerTransactionCommands.recordExpense({
@@ -1092,7 +1179,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         }
       }
 
-      if (schedulingMode === 'now' && composerMode === 'income') {
+      if (!recorded && schedulingMode === 'now' && composerMode === 'income') {
         const categoryId = await resolveCategorySelection('income');
         const result = await ledgerTransactionCommands.recordIncome({
           accountId,
@@ -1107,7 +1194,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         recorded = true;
       }
 
-      if (schedulingMode === 'now' && composerMode === 'transfer') {
+      if (!recorded && schedulingMode === 'now' && composerMode === 'transfer') {
         const transferTargetAccount = accounts.find((candidate) => candidate.id === transferToAccountId);
         if (!transferTargetAccount) {
           throw new Error('Destination account not found');

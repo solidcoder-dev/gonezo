@@ -600,6 +600,29 @@ body {
   padding: 12px;
 }
 
+.composer-recurring-panel {
+  margin-inline-start: 12px;
+  background: #f2f6fb;
+  border-color: #d6e0ee;
+}
+
+.composer-expense-split-block {
+  margin-top: 2px;
+}
+
+.composer-recurring-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 1fr) minmax(0, 1.4fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.composer-recurring-row > span {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #4d4d4d;
+}
+
 .composer-advanced {
   margin-top: 4px;
 }

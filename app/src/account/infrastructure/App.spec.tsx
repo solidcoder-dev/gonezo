@@ -997,7 +997,7 @@ describe('App Accounts UX', () => {
     expect(firstCall?.[0].occurredAt.endsWith('Z')).toBe(true);
   });
 
-  it('blocks manual transaction submission when date is in the future', async () => {
+  it('creates a scheduled one-time expense when date is in the future', async () => {
     const core = makeCore();
 
     render(
@@ -1008,13 +1008,13 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openMode('Expense');
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
-
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-12-31' } });
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-    expect(await screen.findByText('Manual movements cannot use a future date.')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(core.recurrenceCreateRecurringMovement).toHaveBeenCalledTimes(1);
+    });
     expect(core.ledgerRecordExpense).not.toHaveBeenCalled();
   });
 
@@ -1427,7 +1427,7 @@ describe('App Accounts UX', () => {
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
     fireEvent.click(screen.getByRole('button', { name: 'More options' }));
-    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Split into items' }));
 
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Groceries' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
@@ -1457,7 +1457,7 @@ describe('App Accounts UX', () => {
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
     fireEvent.click(screen.getByRole('button', { name: 'More options' }));
-    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Split into items' }));
 
     const saveButton = screen.getByRole('button', { name: 'Save' });
     expect(saveButton).toBeDisabled();
@@ -1746,9 +1746,8 @@ describe('App Accounts UX', () => {
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '37.5' } });
     fireEvent.click(screen.getByRole('button', { name: 'More options' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Schedule' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Recurring' }));
-    fireEvent.change(screen.getByLabelText('First execution date'), { target: { value: '2026-05-04' } });
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-05-04' } });
+    fireEvent.click(screen.getByLabelText('Repeat this expense'));
     fireEvent.change(screen.getByLabelText('Recurrence frequency'), { target: { value: 'monthly' } });
     fireEvent.change(screen.getByLabelText('Recurrence interval'), { target: { value: '2' } });
     fireEvent.change(screen.getByLabelText('Monthly day of month'), { target: { value: '11' } });
@@ -1788,10 +1787,7 @@ describe('App Accounts UX', () => {
     await screen.findByText('Net balance');
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '25' } });
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Schedule' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'One-time' }));
-    fireEvent.change(screen.getByLabelText('Execution date'), { target: { value: '2026-05-11' } });
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-05-11' } });
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
