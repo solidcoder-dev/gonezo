@@ -121,6 +121,7 @@ export type LedgerCreateExpenseDraftInput = {
   occurredAt: string;
   amount: string;
   currency: string;
+  type?: 'expense' | 'income';
   description?: string;
   merchant?: string;
   categoryId?: string;

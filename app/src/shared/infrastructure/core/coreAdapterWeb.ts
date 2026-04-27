@@ -1062,7 +1062,7 @@ export class CoreAdapterWeb implements CorePort {
     CoreAdapterWeb.ledgerTransactions.push({
       id,
       accountId: input.accountId,
-      type: 'expense',
+      type: input.type ?? 'expense',
       status: 'draft',
       amount: input.amount,
       currency: input.currency.toUpperCase(),

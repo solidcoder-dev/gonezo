@@ -59,6 +59,7 @@ export function useLedgerTransactionCommands(gateway: LedgerGatewayPort) {
       occurredAt: string;
       amount: string;
       currency: string;
+      type?: 'expense' | 'income';
       description?: string;
       merchant?: string;
     }) => gateway.ledgerCreateExpenseDraft(input),

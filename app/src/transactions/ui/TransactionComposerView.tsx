@@ -232,8 +232,10 @@ export function TransactionComposerView({ required, provided }: Props) {
   const amountInLabel = `Amount in${transferDestinationCurrency ? ` (${transferDestinationCurrency})` : ''}`;
   const fxLabel = `FX rate${transferDestinationCurrency && currencyCode ? ` (${transferDestinationCurrency}/${currencyCode})` : ''}`;
   const datePlaceholder = todayIsoLocal();
-  const expenseRepeatEnabled = mode === 'expense' && schedulingMode === 'scheduled' && schedulingKind === 'recurring';
-  const expenseFutureDate = mode === 'expense'
+  const repeatEnabled = (mode === 'expense' || mode === 'income')
+    && schedulingMode === 'scheduled'
+    && schedulingKind === 'recurring';
+  const futureDateScheduled = (mode === 'expense' || mode === 'income')
     && /^\d{4}-\d{2}-\d{2}$/.test(date)
     && date > datePlaceholder;
   const scheduledMovementVisible = mode !== 'expense' && schedulingMode === 'scheduled';
@@ -247,7 +249,7 @@ export function TransactionComposerView({ required, provided }: Props) {
         : 'Date';
 
   const splitReady = useMemo(() => {
-    if (mode !== 'expense' || !expenseDetailed) {
+    if ((mode !== 'expense' && mode !== 'income') || !expenseDetailed) {
       return true;
     }
     return expenseItems.length > 0 && Number(expenseRemaining) === 0;
@@ -504,7 +506,7 @@ export function TransactionComposerView({ required, provided }: Props) {
 
             {advancedOpen ? (
               <div id="composer-advanced-options" className="stack composer-advanced">
-                {mode === 'expense' ? (
+                {mode === 'expense' || mode === 'income' ? (
                   <>
                     <CategoryComboboxField
                       required={{
@@ -531,9 +533,9 @@ export function TransactionComposerView({ required, provided }: Props) {
                     <label className="inline-checkbox">
                       <input
                         type="checkbox"
-                        checked={expenseRepeatEnabled}
+                        checked={repeatEnabled}
                         onChange={() => {
-                          if (expenseRepeatEnabled) {
+                          if (repeatEnabled) {
                             onSetSchedulingKind('one_shot');
                             onSetSchedulingMode('now');
                             return;
@@ -543,10 +545,10 @@ export function TransactionComposerView({ required, provided }: Props) {
                         }}
                         disabled={disabled}
                       />
-                      Repeat this expense
+                      {mode === 'expense' ? 'Repeat this expense' : 'Repeat this income'}
                     </label>
 
-                    {expenseRepeatEnabled ? (
+                    {repeatEnabled ? (
                       <div className="stack item-editor composer-recurring-panel">
                         <div className="composer-recurring-row">
                           <span>Frequency</span>
@@ -723,11 +725,11 @@ export function TransactionComposerView({ required, provided }: Props) {
                           type="checkbox"
                           checked={expenseDetailed}
                           onChange={onToggleExpenseDetailed}
-                          disabled={expenseRepeatEnabled || expenseFutureDate}
+                          disabled={repeatEnabled || futureDateScheduled}
                         />
                         Split into items
                       </label>
-                      {expenseRepeatEnabled || expenseFutureDate ? (
+                      {repeatEnabled || futureDateScheduled ? (
                         <p className="hint">Split items are unavailable for scheduled movements.</p>
                       ) : null}
 
@@ -845,19 +847,6 @@ export function TransactionComposerView({ required, provided }: Props) {
                         </div>
                       ) : null}
                     </div>
-
-                    {mode === 'income' ? (
-                      <CategoryComboboxField
-                        required={{
-                          value: categoryInput,
-                          options: categoryOptions,
-                          disabled,
-                        }}
-                        provided={{
-                          onChange: onSetCategoryInput,
-                        }}
-                      />
-                    ) : null}
 
                     <TagComboboxField
                       required={{

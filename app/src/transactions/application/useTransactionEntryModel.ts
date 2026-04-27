@@ -552,7 +552,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       date: undefined,
       recurrenceEndDate: undefined,
     }));
-    if (composerMode === 'expense' && isFutureIsoDateInput(value) && expenseDetailed) {
+    if ((composerMode === 'expense' || composerMode === 'income') && isFutureIsoDateInput(value) && expenseDetailed) {
       setExpenseDetailed(false);
     }
     if (!recurrenceEnabled) {
@@ -575,7 +575,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       recurrenceEndCount: undefined,
       expenseSplit: undefined,
     }));
-    if (value === 'scheduled' && expenseDetailed) {
+    if (value === 'scheduled' && expenseDetailed && (composerMode === 'expense' || composerMode === 'income')) {
       setExpenseDetailed(false);
     }
   }
@@ -903,11 +903,12 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       }
     }
 
-    const expenseScheduled = composerMode === 'expense' && (recurrenceEnabled || isFutureIsoDateInput(resolvedTransactionDate));
+    const movementScheduled = (composerMode === 'expense' || composerMode === 'income')
+      && (recurrenceEnabled || isFutureIsoDateInput(resolvedTransactionDate));
 
-    if (composerMode === 'expense' && expenseDetailed) {
-      if (expenseScheduled) {
-        nextErrors.expenseSplit = 'Split expenses are not supported for scheduled movements.';
+    if ((composerMode === 'expense' || composerMode === 'income') && expenseDetailed) {
+      if (movementScheduled) {
+        nextErrors.expenseSplit = 'Split items are unavailable for scheduled movements.';
       } else {
         if (expenseItems.length === 0) {
           nextErrors.expenseSplit = 'Add at least one item before publishing.';
@@ -932,8 +933,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           nextErrors.recurrenceEndCount = 'Recurrence count must be a positive integer.';
         }
       }
-      if (composerMode === 'expense' && expenseDetailed) {
-        nextErrors.expenseSplit = 'Split expenses are not supported for scheduled movements.';
+      if ((composerMode === 'expense' || composerMode === 'income') && expenseDetailed) {
+        nextErrors.expenseSplit = 'Split items are unavailable for scheduled movements.';
       }
     }
 
@@ -960,8 +961,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       const tagIds = resolveTagSelectionIds(tagNames);
       let recorded = false;
 
-      if (composerMode === 'expense' && recurrenceEnabled) {
-        const categoryId = await resolveCategorySelection('expense');
+      if ((composerMode === 'expense' || composerMode === 'income') && recurrenceEnabled) {
+        const categoryId = await resolveCategorySelection(composerMode);
         const interval = Number(recurrenceInterval.trim());
         let scheduleRule: SchedulingCreateMovementInput['rule'] = {
           frequency: recurrenceFrequency,
@@ -1005,10 +1006,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         recorded = true;
       }
 
-      if (!recorded && composerMode === 'expense' && expenseScheduled) {
-        const categoryId = await resolveCategorySelection('expense');
+      if (!recorded && (composerMode === 'expense' || composerMode === 'income') && movementScheduled) {
+        const categoryId = await resolveCategorySelection(composerMode);
         await schedulingGateway.schedulingCreateMovement({
-          type: 'expense',
+          type: composerMode,
           sourceAccountId: accountId,
           amount: formatAmount(parseAmount(amount)),
           currency: accountCurrency,
@@ -1179,19 +1180,45 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         }
       }
 
-      if (!recorded && schedulingMode === 'now' && composerMode === 'income') {
+      if (!recorded && composerMode === 'income') {
         const categoryId = await resolveCategorySelection('income');
-        const result = await ledgerTransactionCommands.recordIncome({
-          accountId,
-          occurredAt,
-          amount,
-          currency: accountCurrency,
-          description: transactionNote.trim() || undefined,
-          merchant: transactionNote.trim() || undefined,
-        });
-        await categorizeTransaction(result.id, 'income', categoryId);
-        await applyTransactionTags(result.id, tagNames);
-        recorded = true;
+        if (!expenseDetailed) {
+          const result = await ledgerTransactionCommands.recordIncome({
+            accountId,
+            occurredAt,
+            amount,
+            currency: accountCurrency,
+            description: transactionNote.trim() || undefined,
+            merchant: transactionNote.trim() || undefined,
+          });
+          await categorizeTransaction(result.id, 'income', categoryId);
+          await applyTransactionTags(result.id, tagNames);
+          recorded = true;
+        } else {
+          const draft = await ledgerTransactionCommands.createExpenseDraft({
+            accountId,
+            occurredAt,
+            amount,
+            currency: accountCurrency,
+            type: 'income',
+            description: transactionNote.trim() || undefined,
+            merchant: transactionNote.trim() || undefined,
+          });
+
+          for (const item of expenseItems) {
+            await ledgerTransactionCommands.addTransactionItem({
+              transactionId: draft.id,
+              name: item.name,
+              amount: item.amount,
+              currency: accountCurrency,
+            });
+          }
+
+          await ledgerTransactionCommands.postDraftTransaction({ transactionId: draft.id });
+          await categorizeTransaction(draft.id, 'income', categoryId);
+          await applyTransactionTags(draft.id, tagNames);
+          recorded = true;
+        }
       }
 
       if (!recorded && schedulingMode === 'now' && composerMode === 'transfer') {

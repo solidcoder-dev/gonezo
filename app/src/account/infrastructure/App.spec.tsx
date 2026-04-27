@@ -1128,6 +1128,39 @@ describe('App Accounts UX', () => {
     });
   });
 
+  it('supports detailed income with items using draft flow', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Income');
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
+    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Split into items' }));
+
+    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Bonus' } });
+    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Assign remaining' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(core.ledgerCreateExpenseDraft).toHaveBeenCalledTimes(1);
+      expect(core.ledgerAddTransactionItem).toHaveBeenCalledTimes(2);
+      expect(core.ledgerPostDraftTransaction).toHaveBeenCalledTimes(1);
+    });
+    expect(vi.mocked(core.ledgerCreateExpenseDraft).mock.calls[0]?.[0]).toMatchObject({
+      type: 'income',
+    });
+  });
+
   it('shows tags input only in advanced options', async () => {
     const core = makeCore();
     const view = render(
