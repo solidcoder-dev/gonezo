@@ -104,8 +104,8 @@ internal class AndroidRecurringMovementRepository(
     val cursor = db.readableDatabase.query(
       "recurring_movements",
       COLUMNS,
-      "source_account_id = ?",
-      arrayOf(accountId),
+      "source_account_id = ? OR (movement_type = ? AND target_account_id = ?)",
+      arrayOf(accountId, RecurringMovementType.TRANSFER.value, accountId),
       null,
       null,
       "created_at desc, id desc",
@@ -253,4 +253,3 @@ internal class AndroidRecurringMovementRepository(
     )
   }
 }
-

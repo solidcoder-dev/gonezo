@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import type { LedgerAccountItem } from '../../shared/domain/corePort';
-import { RecentTransactionsComponent, type TransactionsCorePort } from '../../transactions';
 import type { AccountsCorePort } from '../../account/application/useAccountPageModel';
+import { useMovementsSearchModel } from './useMovementsSearchModel';
+import { MovementsSearchFilters } from '../ui/MovementsSearchFilters';
+import { MovementsSearchResults } from '../ui/MovementsSearchResults';
 
 type MovementsSearchPageProps = {
   required: {
@@ -32,13 +34,11 @@ function resolveInitialAccountId(accounts: LedgerAccountItem[], queryValue: stri
 
 export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
   const location = useLocation();
-  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [accounts, setAccounts] = useState<LedgerAccountItem[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
-  const [refreshSignal, setRefreshSignal] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,16 +73,23 @@ export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
     };
   }, [location.search, required.core]);
 
+  const searchModel = useMovementsSearchModel({
+    core: required.core,
+    accountId: selectedAccountId,
+    enabled: Boolean(selectedAccountId),
+  });
+
   return (
     <section className="app-screen">
       <div className="inline-header">
-        <h2>Search movements</h2>
-        <button type="button" className="text-button" onClick={() => navigate(-1)}>
+        <div className="stack">
+          <h2>Search movements</h2>
+          <p className="hint">Search posted or scheduled movements in one list.</p>
+        </div>
+        <Link to="/" className="text-button">
           Back to movements
-        </button>
+        </Link>
       </div>
-
-      <p className="hint">Advanced filters and full movement exploration.</p>
 
       {loading ? <p role="status">Loading accounts...</p> : null}
       {!loading && error ? (
@@ -90,17 +97,19 @@ export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
           {error}
         </div>
       ) : null}
+      {searchModel.error ? (
+        <div className="banner error" role="alert">
+          {searchModel.error}
+        </div>
+      ) : null}
 
       {!loading && !error && accounts.length > 0 ? (
         <label className="stack">
-          Search account
+          Account
           <select
             aria-label="Search account"
             value={selectedAccountId ?? ''}
-            onChange={(event) => {
-              setSelectedAccountId(event.target.value || null);
-              setRefreshSignal((previous) => !previous);
-            }}
+            onChange={(event) => setSelectedAccountId(event.target.value || null)}
           >
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
@@ -113,19 +122,31 @@ export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
 
       {!loading && !error && accounts.length === 0 ? <p>No accounts available.</p> : null}
 
-      <RecentTransactionsComponent
-        key={selectedAccountId ?? 'no-account'}
-        required={{
-          context: {
-            accountId: selectedAccountId,
-            core: required.core as TransactionsCorePort,
-          },
-          config: {
-            enabled: Boolean(selectedAccountId),
-            refreshSignal,
-          },
-        }}
-      />
+      {selectedAccountId ? (
+        <>
+          <MovementsSearchFilters
+            required={{
+              error: searchModel.required.error,
+              state: searchModel.required.state,
+              status: searchModel.required.status,
+            }}
+            provided={{
+              commands: searchModel.provided.commands,
+            }}
+          />
+
+          <MovementsSearchResults
+            required={{
+              error: searchModel.required.error,
+              state: searchModel.required.state,
+              status: searchModel.required.status,
+            }}
+            provided={{
+              commands: searchModel.provided.commands,
+            }}
+          />
+        </>
+      ) : null}
     </section>
   );
 }

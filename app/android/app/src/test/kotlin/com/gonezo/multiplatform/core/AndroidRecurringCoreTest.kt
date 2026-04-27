@@ -3,6 +3,7 @@ package com.gonezo.multiplatform.core
 import com.gonezo.recurrence.domain.RecurringMovement
 import com.gonezo.recurrence.domain.RecurringMovementId
 import com.gonezo.recurrence.domain.RecurringMovementStatus
+import com.gonezo.recurrence.domain.RecurringMovementType
 import com.gonezo.recurrence.domain.ports.RecurringMovementRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -77,6 +78,57 @@ class AndroidRecurringCoreTest {
     assertNull(afterDeactivate.first().nextDueAt)
   }
 
+  @Test
+  fun listsTransferForDestinationAccount() {
+    val repository = InMemoryRecurringMovementRepository()
+    val accountExists: (String) -> Boolean = { accountId -> accountId == "acc-1" || accountId == "acc-2" }
+    val fixedClock = Clock.fixed(Instant.parse("2026-04-01T00:00:00Z"), ZoneOffset.UTC)
+    val core = AndroidRecurringCore(
+      recurringMovementRepository = repository,
+      accountExists = accountExists,
+      clock = fixedClock,
+    )
+
+    val createdId = core.createRecurringMovement(
+      AndroidRecurringCore.CreateRecurringMovementInput(
+        type = "transfer",
+        sourceAccountId = "acc-1",
+        targetAccountId = "acc-2",
+        amount = "15.00",
+        currency = "USD",
+        destinationAmount = null,
+        destinationCurrency = null,
+        exchangeRate = null,
+        description = "Move to savings",
+        merchant = null,
+        rule = AndroidRecurringCore.RecurrenceRuleInput(
+          frequency = "monthly",
+          interval = 1,
+          weeklyDays = emptyList(),
+          monthlyPattern = "day_of_month",
+          dayOfMonth = 11,
+          monthlyWeekOrdinal = null,
+          monthlyWeekday = null,
+        ),
+        recurrenceEnd = AndroidRecurringCore.RecurrenceEndInput(
+          kind = "never",
+          onDate = null,
+          afterOccurrences = null,
+        ),
+        startAt = "2026-04-02T10:00:00Z",
+        zoneId = "UTC",
+      ),
+    )
+
+    val listed = core.listRecurringMovements("acc-2")
+
+    assertEquals(1, listed.size)
+    assertEquals(createdId.toString(), listed.first().id)
+    assertEquals("transfer", listed.first().type)
+    assertEquals("acc-1", listed.first().sourceAccountId)
+    assertEquals("acc-2", listed.first().targetAccountId)
+  }
+
   private class InMemoryRecurringMovementRepository : RecurringMovementRepository {
     private val storage = ConcurrentHashMap<RecurringMovementId, RecurringMovement>()
 
@@ -94,7 +146,9 @@ class AndroidRecurringCoreTest {
       .toList()
 
     override fun listBySourceAccount(accountId: String): List<RecurringMovement> = storage.values
-      .filter { it.sourceAccountId == accountId }
+      .filter {
+        it.sourceAccountId == accountId
+          || (it.type == RecurringMovementType.TRANSFER && it.targetAccountId == accountId)
+      }
   }
 }
-

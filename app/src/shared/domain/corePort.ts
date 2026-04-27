@@ -345,7 +345,30 @@ export type SchedulingListMovementsResult = {
   items: SchedulingMovementItem[];
 };
 
-export type MovementsOverviewFilterInput = {
+export type MovementsMonthOverviewInput = {
+  accountId: string;
+  fromDate?: string;
+  toDate?: string;
+  postedPagination?: LedgerPageRequestInput;
+  executedPagination?: LedgerPageRequestInput;
+  scheduledPreviewSize?: number;
+  filters?: MovementsSearchFiltersInput;
+  sort?: LedgerTransactionSortInput[];
+};
+
+export type MovementsMonthOverviewResult = {
+  scheduledPreview: {
+    items: SchedulingMovementItem[];
+    total: number;
+    hasMore: boolean;
+  };
+  postedPage: LedgerListTransactionsResult;
+  executedPage: LedgerListTransactionsResult;
+};
+
+export type MovementsSearchSource = 'posted' | 'scheduled';
+
+export type MovementsSearchFiltersInput = {
   text?: string;
   merchant?: string;
   categoryId?: string;
@@ -360,22 +383,55 @@ export type MovementsOverviewFilterInput = {
   origin?: 'all' | 'recurring' | 'one_shot' | 'manual';
 };
 
-export type MovementsGetOverviewInput = {
-  accountId: string;
-  filters?: MovementsOverviewFilterInput;
-  executedPagination?: LedgerPageRequestInput;
-  sort?: LedgerTransactionSortInput[];
-  scheduledPreviewSize?: number;
+export type MovementsSearchSortField = 'date' | 'amount';
+
+export type MovementsSearchSortInput = {
+  field: MovementsSearchSortField;
+  direction: LedgerSortDirection;
 };
 
-export type MovementsGetOverviewResult = {
-  scheduledPreview: {
-    items: SchedulingMovementItem[];
-    total: number;
-    hasMore: boolean;
+export type MovementsSearchItem = {
+  id: string;
+  source: MovementsSearchSource;
+  type: LedgerTransactionType;
+  status: 'posted' | 'scheduled' | 'voided' | 'failed' | 'deactivated';
+  amount: string;
+  currency: string;
+  occurredAt: string;
+  title: string;
+  description?: string;
+  merchant?: string;
+  category?: {
+    id: string;
+    name: string;
   };
-  executedPage: LedgerListTransactionsResult;
+  tags?: Array<{
+    id: string;
+    name: string;
+  }>;
 };
+
+export type MovementsSearchInput = {
+  accountId: string;
+  source: MovementsSearchSource;
+  filters?: MovementsSearchFiltersInput;
+  pagination?: LedgerPageRequestInput;
+  sort?: MovementsSearchSortInput[];
+};
+
+export type MovementsSearchResult = {
+  content: MovementsSearchItem[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+};
+
+export type MovementsOverviewFilterInput = MovementsSearchFiltersInput;
+export type MovementsGetOverviewInput = MovementsMonthOverviewInput;
+export type MovementsGetOverviewResult = MovementsMonthOverviewResult;
 
 export type MovementsListScheduledInput = {
   accountId: string;
@@ -621,6 +677,8 @@ export interface CorePort {
   schedulingCreateMovement(input: SchedulingCreateMovementInput): Promise<SchedulingCreateMovementResult>;
   schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void>;
   schedulingListMovements(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult>;
+  movementsGetMonthOverview(input: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;
+  movementsSearch(input: MovementsSearchInput): Promise<MovementsSearchResult>;
   movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult>;
   movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult>;
 }

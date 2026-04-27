@@ -518,7 +518,13 @@ public class CorePlugin: CAPPlugin {
         }
 
         let items = recurringMovements
-            .filter { ($0["sourceAccountId"] as? String) == sourceAccountId }
+            .filter {
+                if ($0["sourceAccountId"] as? String) == sourceAccountId {
+                    return true
+                }
+                return ($0["type"] as? String) == "transfer"
+                    && ($0["targetAccountId"] as? String) == sourceAccountId
+            }
             .sorted { lhs, rhs in
                 let leftDue = lhs["nextDueAt"] as? String ?? ""
                 let rightDue = rhs["nextDueAt"] as? String ?? ""

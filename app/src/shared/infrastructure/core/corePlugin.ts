@@ -57,8 +57,10 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
-  MovementsGetOverviewInput,
-  MovementsGetOverviewResult,
+  MovementsMonthOverviewInput,
+  MovementsMonthOverviewResult,
+  MovementsSearchInput,
+  MovementsSearchResult,
   MovementsListScheduledInput,
   MovementsListScheduledResult,
 } from '../../domain/corePort';
@@ -112,7 +114,9 @@ export interface CorePlugin {
   schedulingListMovements(
     options: SchedulingListMovementsInput,
   ): Promise<SchedulingListMovementsResult>;
-  movementsGetOverview(options: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult>;
+  movementsGetMonthOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;
+  movementsSearch(options: MovementsSearchInput): Promise<MovementsSearchResult>;
+  movementsGetOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;
   movementsListScheduled(options: MovementsListScheduledInput): Promise<MovementsListScheduledResult>;
 }
 

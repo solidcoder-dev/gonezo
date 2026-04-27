@@ -65,8 +65,15 @@ import type {
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
   SchedulingMovementItem,
+  LedgerTransactionListItem,
+  MovementsMonthOverviewInput,
+  MovementsMonthOverviewResult,
   MovementsGetOverviewInput,
   MovementsGetOverviewResult,
+  MovementsSearchFiltersInput,
+  MovementsSearchInput,
+  MovementsSearchItem,
+  MovementsSearchResult,
   MovementsListScheduledInput,
   MovementsListScheduledResult,
 } from '../../domain/corePort';
@@ -207,6 +214,13 @@ export class CoreAdapterWeb implements CorePort {
       throw new Error('Transaction not found');
     }
     return transaction;
+  }
+
+  private categoryNameById(categoryId?: string): string | undefined {
+    if (!categoryId) {
+      return undefined;
+    }
+    return CoreAdapterWeb.taxonomyCategories.find((category) => category.id === categoryId)?.name;
   }
 
   private normalizeCategoryName(name: string): string {
@@ -1995,7 +2009,7 @@ export class CoreAdapterWeb implements CorePort {
 
   private filterScheduledMovements(input: {
     accountId: string;
-    filters?: MovementsGetOverviewInput['filters'] | MovementsListScheduledInput['filters'];
+    filters?: MovementsSearchFiltersInput;
   }): SchedulingMovementItem[] {
     const filters = input.filters ?? {};
     const text = filters.text?.trim().toLowerCase();
@@ -2023,33 +2037,8 @@ export class CoreAdapterWeb implements CorePort {
       ? new Set(filters.types.filter((value) => value === 'expense' || value === 'income' || value === 'transfer'))
       : null;
 
-    const status = filters.status ?? 'all';
-    const origin = filters.origin ?? 'all';
-
     const filtered = CoreAdapterWeb.recurringMovements
       .filter((movement) => this.isMovementVisibleForAccount(movement, input.accountId))
-      .filter((movement) => {
-        if (status === 'all') {
-          return true;
-        }
-        if (status === 'scheduled') {
-          return movement.status === 'active';
-        }
-        if (status === 'failed') {
-          return false;
-        }
-        return false;
-      })
-      .filter((movement) => {
-        const resolvedOrigin = resolveSchedulingKind(movement);
-        if (origin === 'all') {
-          return true;
-        }
-        if (origin === 'manual') {
-          return false;
-        }
-        return resolvedOrigin === origin;
-      })
       .filter((movement) => (typeFilter ? typeFilter.has(movement.type) : true))
       .filter((movement) => {
         if (!categoryFilter) {
@@ -2133,60 +2122,61 @@ export class CoreAdapterWeb implements CorePort {
     }) as SchedulingMovementItem[];
   }
 
-  async movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult> {
+  async movementsGetMonthOverview(input: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> {
     const previewSize = input.scheduledPreviewSize != null && input.scheduledPreviewSize > 0
       ? Math.min(Math.trunc(input.scheduledPreviewSize), 20)
       : 5;
+    const fromDate = input.fromDate ?? input.filters?.fromDate;
+    const toDate = input.toDate ?? input.filters?.toDate;
 
     const scheduledFiltered = this.filterScheduledMovements({
       accountId: input.accountId,
-      filters: input.filters,
+      filters: {
+        fromDate,
+        toDate,
+      },
     });
 
-    const status = input.filters?.status ?? 'all';
-    const origin = input.filters?.origin ?? 'all';
-    const shouldHideExecuted = status === 'scheduled' || status === 'failed' || origin === 'recurring' || origin === 'one_shot';
-
-    const requestedSize = input.executedPagination?.size ?? 20;
-    const pageSize = Number.isFinite(requestedSize) && requestedSize > 0 ? Math.min(Math.trunc(requestedSize), 100) : 20;
-    const requestedPage = input.executedPagination?.page ?? 0;
-    const page = Number.isFinite(requestedPage) && requestedPage >= 0 ? Math.trunc(requestedPage) : 0;
-
-    const executedPage = shouldHideExecuted
-      ? {
-          content: [],
-          page: 0,
-          size: pageSize,
-          totalElements: 0,
-          totalPages: 0,
-          hasNext: false,
-          hasPrevious: false,
-        }
-      : await this.ledgerListTransactions({
-          accountId: input.accountId,
-          filters: {
-            text: input.filters?.text,
-            merchant: input.filters?.merchant,
-            categoryId: input.filters?.categoryId,
-            categoryIds: input.filters?.categoryIds,
-            tagIds: input.filters?.tagIds,
-            amountMin: input.filters?.amountMin,
-            amountMax: input.filters?.amountMax,
-            fromDate: input.filters?.fromDate,
-            toDate: input.filters?.toDate,
-            types: input.filters?.types,
-            statuses: status === 'executed'
-              ? ['posted']
-              : status === 'voided'
-                ? ['voided']
-                : undefined,
+    const postedFilters = {
+      fromDate,
+      toDate,
+      statuses: ['posted' as const],
+    };
+    const allPosted: LedgerTransactionListItem[] = [];
+    let postedPageIndex = 0;
+    let hasMorePosted = true;
+    while (hasMorePosted) {
+      const pageResult = await this.ledgerListTransactions({
+        accountId: input.accountId,
+        filters: postedFilters,
+        pagination: {
+          page: postedPageIndex,
+          size: 100,
+        },
+        sort: [
+          {
+            field: 'occurredAt',
+            direction: 'desc',
           },
-          pagination: {
-            page,
-            size: pageSize,
-          },
-          sort: input.sort,
-        });
+        ],
+      });
+      allPosted.push(...pageResult.content);
+      hasMorePosted = pageResult.hasNext;
+      postedPageIndex += 1;
+      if (!hasMorePosted || pageResult.content.length === 0) {
+        break;
+      }
+    }
+
+    const postedPage: LedgerListTransactionsResult = {
+      content: allPosted,
+      page: 0,
+      size: allPosted.length,
+      totalElements: allPosted.length,
+      totalPages: allPosted.length === 0 ? 0 : 1,
+      hasNext: false,
+      hasPrevious: false,
+    };
 
     return {
       scheduledPreview: {
@@ -2194,7 +2184,117 @@ export class CoreAdapterWeb implements CorePort {
         total: scheduledFiltered.length,
         hasMore: scheduledFiltered.length > previewSize,
       },
-      executedPage,
+      postedPage,
+      executedPage: postedPage,
+    };
+  }
+
+  async movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult> {
+    return this.movementsGetMonthOverview(input);
+  }
+
+  private mapPostedTransactionToSearchItem(transaction: LedgerTransactionListItem): MovementsSearchItem {
+    return {
+      id: transaction.id,
+      source: 'posted',
+      type: transaction.type,
+      status: transaction.status === 'voided' ? 'voided' : 'posted',
+      amount: transaction.amount,
+      currency: transaction.currency,
+      occurredAt: transaction.occurredAt,
+      title: transaction.merchant || transaction.description || 'Movement',
+      description: transaction.description,
+      merchant: transaction.merchant,
+      category: transaction.category,
+      tags: transaction.tags,
+    };
+  }
+
+  private mapScheduledMovementToSearchItem(movement: SchedulingMovementItem): MovementsSearchItem {
+    const tags = (movement.tagNames ?? movement.tagIds ?? [])
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0)
+      .map((tag) => ({ id: tag, name: tag }));
+    return {
+      id: movement.id,
+      source: 'scheduled',
+      type: movement.type,
+      status: movement.status === 'active' ? 'scheduled' : movement.status === 'deactivated' ? 'deactivated' : 'failed',
+      amount: movement.amount,
+      currency: movement.currency,
+      occurredAt: movement.nextDueAt ?? movement.startAt,
+      title: movement.merchant || movement.description || 'Scheduled movement',
+      description: movement.description,
+      merchant: movement.merchant,
+      category: movement.categoryId ? { id: movement.categoryId, name: this.categoryNameById(movement.categoryId) ?? movement.categoryId } : undefined,
+      tags,
+    };
+  }
+
+  async movementsSearch(input: MovementsSearchInput): Promise<MovementsSearchResult> {
+    const requestedSize = input.pagination?.size ?? 20;
+    const pageSize = Number.isFinite(requestedSize) && requestedSize > 0 ? Math.min(Math.trunc(requestedSize), 100) : 20;
+    const requestedPage = input.pagination?.page ?? 0;
+    const page = Number.isFinite(requestedPage) && requestedPage >= 0 ? Math.trunc(requestedPage) : 0;
+    const filters = input.filters ?? {};
+
+    if (input.source === 'posted') {
+      const result = await this.ledgerListTransactions({
+        accountId: input.accountId,
+        filters: {
+          text: filters.text,
+          merchant: filters.merchant,
+          categoryId: filters.categoryId,
+          categoryIds: filters.categoryIds,
+          tagIds: filters.tagIds,
+          amountMin: filters.amountMin,
+          amountMax: filters.amountMax,
+          fromDate: filters.fromDate,
+          toDate: filters.toDate,
+          types: filters.types,
+          statuses: ['posted'],
+        },
+        pagination: {
+          page,
+          size: pageSize,
+        },
+        sort: input.sort?.map((item) => ({
+          field: item.field === 'date' ? 'occurredAt' : item.field,
+          direction: item.direction,
+        })) ?? [{ field: 'occurredAt', direction: 'desc' }],
+      });
+      return {
+        content: result.content.map((transaction) => this.mapPostedTransactionToSearchItem(transaction)),
+        page: result.page,
+        size: result.size,
+        totalElements: result.totalElements,
+        totalPages: result.totalPages,
+        hasNext: result.hasNext,
+        hasPrevious: result.hasPrevious,
+      };
+    }
+
+    const scheduledResult = await this.movementsListScheduled({
+      accountId: input.accountId,
+      filters,
+      pagination: {
+        page,
+        size: pageSize,
+      },
+      sort: input.sort?.map((item) => ({
+        field: item.field === 'date' ? 'nextDueAt' : item.field,
+        direction: item.direction,
+      })) ?? [{ field: 'nextDueAt', direction: 'desc' }],
+    });
+
+    return {
+      content: scheduledResult.content.map((movement) => this.mapScheduledMovementToSearchItem(movement)),
+      page: scheduledResult.page,
+      size: scheduledResult.size,
+      totalElements: scheduledResult.totalElements,
+      totalPages: scheduledResult.totalPages,
+      hasNext: scheduledResult.hasNext,
+      hasPrevious: scheduledResult.hasPrevious,
     };
   }
 

@@ -57,8 +57,10 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
-  MovementsGetOverviewInput,
-  MovementsGetOverviewResult,
+  MovementsMonthOverviewInput,
+  MovementsMonthOverviewResult,
+  MovementsSearchInput,
+  MovementsSearchResult,
   MovementsListScheduledInput,
   MovementsListScheduledResult,
 } from '../../domain/corePort';
@@ -216,7 +218,15 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
     return this.core.schedulingListMovements(options);
   }
 
-  async movementsGetOverview(options: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult> {
+  async movementsGetMonthOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> {
+    return this.core.movementsGetMonthOverview(options);
+  }
+
+  async movementsSearch(options: MovementsSearchInput): Promise<MovementsSearchResult> {
+    return this.core.movementsSearch(options);
+  }
+
+  async movementsGetOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> {
     return this.core.movementsGetOverview(options);
   }
 

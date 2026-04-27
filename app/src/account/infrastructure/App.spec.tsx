@@ -8,7 +8,10 @@ import type {
   LedgerListTransactionsInput,
   LedgerListTransactionsResult,
   LedgerTransactionListItem,
-  MovementsGetOverviewInput,
+  MovementsMonthOverviewInput,
+  MovementsSearchFiltersInput,
+  MovementsSearchInput,
+  MovementsSearchResult,
   MovementsListScheduledInput,
   SchedulingMovementItem,
 } from '../../shared/domain/corePort';
@@ -118,7 +121,7 @@ function isScheduledVisibleForAccount(item: SchedulingMovementItem, accountId: s
 
 function filterScheduledForOverview(
   items: SchedulingMovementItem[],
-  input: MovementsGetOverviewInput | MovementsListScheduledInput,
+  input: { accountId: string; filters?: MovementsSearchFiltersInput } | MovementsListScheduledInput,
 ): SchedulingMovementItem[] {
   const filters = input.filters ?? {};
   const fromDateEpoch = filters.fromDate ? Date.parse(filters.fromDate) : undefined;
@@ -128,18 +131,6 @@ function filterScheduledForOverview(
 
   return items
     .filter((item) => isScheduledVisibleForAccount(item, input.accountId))
-    .filter((item) => {
-      const status = filters.status ?? 'all';
-      if (status === 'all') return true;
-      if (status === 'scheduled') return item.status === 'active';
-      return false;
-    })
-    .filter((item) => {
-      const origin = filters.origin ?? 'all';
-      if (origin === 'all') return true;
-      if (origin === 'manual') return false;
-      return resolveSchedulingKind(item) === origin;
-    })
     .filter((item) => {
       if (!hasFromDateEpoch && !hasToDateEpoch) {
         return true;
@@ -279,37 +270,33 @@ function makeCore(transactionCount = 0): AccountsCorePort {
       const sourceAccountId = input.sourceAccountId;
       return { items: scheduledMovements.filter((item) => isScheduledVisibleForAccount(item, sourceAccountId)) };
     }),
-    movementsGetOverview: vi.fn(async (input: MovementsGetOverviewInput) => {
-      const statuses = input.filters?.status === 'executed'
-        ? ['posted' as const]
-        : input.filters?.status === 'voided'
-          ? ['voided' as const]
-          : undefined;
-
-      const executedPage = await core.ledgerListTransactions({
+    movementsGetMonthOverview: vi.fn(async (input: MovementsMonthOverviewInput) => {
+      const fromDate = input.fromDate ?? input.filters?.fromDate;
+      const toDate = input.toDate ?? input.filters?.toDate;
+      const postedPage = await core.ledgerListTransactions({
         accountId: input.accountId,
         filters: {
-          text: input.filters?.text,
-          merchant: input.filters?.merchant,
-          categoryId: input.filters?.categoryId,
-          categoryIds: input.filters?.categoryIds,
-          tagIds: input.filters?.tagIds,
-          amountMin: input.filters?.amountMin,
-          amountMax: input.filters?.amountMax,
-          fromDate: input.filters?.fromDate,
-          toDate: input.filters?.toDate,
-          statuses,
+          fromDate,
+          toDate,
+          statuses: ['posted' as const],
         },
-        pagination: input.executedPagination,
-        sort: input.sort,
+        pagination: {
+          page: 0,
+          size: 100,
+        },
+        sort: [{ field: 'occurredAt', direction: 'desc' as const }],
       });
 
-      const previewSize = input.scheduledPreviewSize ?? 5;
-      const filteredScheduled = filterScheduledForOverview(scheduledMovements, input);
+      const allPosted = postedPage.content;
 
-      const shouldHideExecuted = (input.filters?.status === 'scheduled' || input.filters?.status === 'failed')
-        || input.filters?.origin === 'recurring'
-        || input.filters?.origin === 'one_shot';
+      const previewSize = input.scheduledPreviewSize ?? 5;
+      const filteredScheduled = filterScheduledForOverview(scheduledMovements, {
+        accountId: input.accountId,
+        filters: {
+          fromDate,
+          toDate,
+        },
+      });
 
       return {
         scheduledPreview: {
@@ -317,17 +304,112 @@ function makeCore(transactionCount = 0): AccountsCorePort {
           total: filteredScheduled.length,
           hasMore: filteredScheduled.length > previewSize,
         },
-        executedPage: shouldHideExecuted
-          ? {
-              content: [],
-              page: 0,
-              size: executedPage.size,
-              totalElements: 0,
-              totalPages: 0,
-              hasNext: false,
-              hasPrevious: false,
-            }
-          : executedPage,
+        postedPage: {
+          ...postedPage,
+          content: allPosted,
+          page: 0,
+          size: allPosted.length,
+          totalElements: allPosted.length,
+          totalPages: allPosted.length === 0 ? 0 : 1,
+          hasNext: false,
+          hasPrevious: false,
+        },
+        executedPage: {
+          ...postedPage,
+          content: allPosted,
+          page: 0,
+          size: allPosted.length,
+          totalElements: allPosted.length,
+          totalPages: allPosted.length === 0 ? 0 : 1,
+          hasNext: false,
+          hasPrevious: false,
+        },
+      };
+    }),
+    movementsGetOverview: vi.fn(async (input: MovementsMonthOverviewInput) => core.movementsGetMonthOverview(input)),
+    movementsSearch: vi.fn(async (input: MovementsSearchInput): Promise<MovementsSearchResult> => {
+      if (input.source === 'posted') {
+        const page = await core.ledgerListTransactions({
+          accountId: input.accountId,
+          filters: {
+            text: input.filters?.text,
+            merchant: input.filters?.merchant,
+            categoryId: input.filters?.categoryId,
+            categoryIds: input.filters?.categoryIds,
+            tagIds: input.filters?.tagIds,
+            amountMin: input.filters?.amountMin,
+            amountMax: input.filters?.amountMax,
+            fromDate: input.filters?.fromDate,
+            toDate: input.filters?.toDate,
+            statuses: ['posted' as const],
+            types: input.filters?.types,
+          },
+          pagination: input.pagination,
+          sort: [
+            {
+              field: input.sort?.[0]?.field === 'amount' ? 'amount' : 'occurredAt',
+              direction: input.sort?.[0]?.direction ?? 'desc',
+            },
+          ],
+        });
+
+        return {
+          content: page.content.map((transaction) => ({
+            id: transaction.id,
+            source: 'posted' as const,
+            type: transaction.type,
+            status: transaction.status === 'posted' ? 'posted' as const : 'voided' as const,
+            amount: transaction.amount,
+            currency: transaction.currency,
+            occurredAt: transaction.occurredAt,
+            title: transaction.merchant || transaction.description || 'Movement',
+            description: transaction.description,
+            merchant: transaction.merchant,
+            category: transaction.category,
+            tags: transaction.tags,
+          })),
+          page: page.page,
+          size: page.size,
+          totalElements: page.totalElements,
+          totalPages: page.totalPages,
+          hasNext: page.hasNext,
+          hasPrevious: page.hasPrevious,
+        };
+      }
+
+      const scheduled = filterScheduledForOverview(scheduledMovements, {
+        accountId: input.accountId,
+        filters: input.filters,
+      });
+      const size = input.pagination?.size ?? 20;
+      const requestedPage = input.pagination?.page ?? 0;
+      const totalElements = scheduled.length;
+      const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / size);
+      const page = totalPages === 0 ? 0 : Math.min(Math.max(requestedPage, 0), totalPages - 1);
+      const start = page * size;
+      const content = scheduled.slice(start, start + size).map((movement) => ({
+        id: movement.id,
+        source: 'scheduled' as const,
+        type: movement.type,
+        status: movement.status === 'active' ? 'scheduled' as const : movement.status === 'deactivated' ? 'deactivated' as const : 'failed' as const,
+        amount: movement.amount,
+        currency: movement.currency,
+        occurredAt: movement.nextDueAt ?? movement.startAt,
+        title: movement.merchant || movement.description || 'Scheduled movement',
+        description: movement.description,
+        merchant: movement.merchant,
+        category: movement.categoryId ? { id: movement.categoryId, name: movement.categoryId } : undefined,
+        tags: (movement.tagNames ?? movement.tagIds ?? []).map((tag) => ({ id: tag, name: tag })),
+      }));
+
+      return {
+        content,
+        page,
+        size,
+        totalElements,
+        totalPages,
+        hasNext: totalPages > 0 && page + 1 < totalPages,
+        hasPrevious: page > 0,
       };
     }),
     movementsListScheduled: vi.fn(async (input: MovementsListScheduledInput) => {
@@ -1873,6 +1955,15 @@ describe('App Accounts UX', () => {
         total: 1,
         hasMore: false,
       },
+      postedPage: {
+        content: [],
+        page: 0,
+        size: 10,
+        totalElements: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
+      },
       executedPage: {
         content: [],
         page: 0,
@@ -1932,6 +2023,15 @@ describe('App Accounts UX', () => {
         items: [legacyScheduled],
         total: 1,
         hasMore: false,
+      },
+      postedPage: {
+        content: [],
+        page: 0,
+        size: 10,
+        totalElements: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
       },
       executedPage: {
         content: [],
