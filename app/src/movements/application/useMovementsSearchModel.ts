@@ -71,6 +71,8 @@ const EMPTY_PAGINATION: PaginationState = {
   hasPrevious: false,
 };
 
+const EMPTY_ITEMS: SearchResultEntry[] = [];
+
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
@@ -248,7 +250,7 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
 
   async function refreshResults() {
     if (!accountId) {
-      setItems([]);
+      setItems(EMPTY_ITEMS);
       setPagination(EMPTY_PAGINATION);
       return;
     }
@@ -307,13 +309,13 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
       previousAccountIdRef.current = accountId;
       setLoading(false);
       setError('');
-      setItems([]);
+      setItems(EMPTY_ITEMS);
       setPagination(EMPTY_PAGINATION);
       setFiltersOpen(false);
       setFiltersAdvancedOpen(false);
       setSearchApplied(false);
-      setFilterDraft({ ...DEFAULT_FILTERS });
-      setAppliedFilters({ ...DEFAULT_FILTERS });
+      setFilterDraft(DEFAULT_FILTERS);
+      setAppliedFilters(DEFAULT_FILTERS);
       setPage(0);
       return;
     }

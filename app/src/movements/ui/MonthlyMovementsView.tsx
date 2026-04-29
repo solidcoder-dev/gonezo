@@ -137,6 +137,8 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
 
   const postedGroups = useMemo(() => groupPostedTransactionsByDate(items), [items]);
   const upcomingGroups = useMemo(() => groupScheduledMovementsByDate(scheduledItems), [scheduledItems]);
+  const showScheduledSection = viewedYear > currentYear
+    || (viewedYear === currentYear && viewedMonthIndex >= currentMonthIndex);
 
   const searchHref = `/movements/search?accountId=${encodeURIComponent(accountId)}`;
 
@@ -211,7 +213,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
 
       {loading ? <p role="status">Loading monthly movements...</p> : null}
 
-      {!loading ? (
+      {!loading && showScheduledSection ? (
         <div className="stack">
           <div className="inline-header">
             <h3>Scheduled</h3>
@@ -371,7 +373,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
         </div>
       ) : null}
 
-      {selectedScheduledMovement ? (
+      {showScheduledSection && selectedScheduledMovement ? (
         <div className="sheet-backdrop" role="presentation" onClick={() => setSelectedScheduledMovement(null)}>
           <section
             className="sheet-panel"

@@ -82,12 +82,9 @@ export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
   return (
     <section className="app-screen">
       <div className="inline-header">
-        <div className="stack">
-          <h2>Search movements</h2>
-          <p className="hint">Search posted or scheduled movements in one list.</p>
-        </div>
-        <Link to="/" className="text-button">
-          Back to movements
+        <h2>Search</h2>
+        <Link to="/" className="text-button icon-button" aria-label="Close search">
+          <i className="bi bi-x-lg" aria-hidden />
         </Link>
       </div>
 

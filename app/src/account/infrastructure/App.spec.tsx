@@ -1769,6 +1769,21 @@ describe('App Accounts UX', () => {
     });
   });
 
+  it('shows compact advanced-search header with close action', async () => {
+    const core = makeCore(3);
+
+    render(
+      <MemoryRouter initialEntries={['/movements/search?accountId=acc-1']}>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Search' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Close search' })).toHaveAttribute('href', '/');
+    expect(screen.queryByText('Back to movements')).not.toBeInTheDocument();
+    expect(screen.queryByText('Search posted or scheduled movements in one list.')).not.toBeInTheDocument();
+  });
+
   it('keeps hub monthly-focused without exposing advanced filter controls', async () => {
     const coreWithThree = makeCore(3);
 
@@ -1812,7 +1827,8 @@ describe('App Accounts UX', () => {
     await waitFor(() => {
       expect(screen.queryByText('Scheduled movement')).not.toBeInTheDocument();
     });
-    expect(screen.getByText(/No scheduled movements in/i)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Scheduled' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/No scheduled movements in/i)).not.toBeInTheDocument();
   });
 
   it('shows scheduled transfer when switching to destination account', async () => {
