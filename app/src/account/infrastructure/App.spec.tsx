@@ -1784,6 +1784,63 @@ describe('App Accounts UX', () => {
     expect(screen.queryByText('Search posted or scheduled movements in one list.')).not.toBeInTheDocument();
   });
 
+  it('opens advanced-search filters in a sheet instead of expanding them inline', async () => {
+    const core = makeCore(3);
+
+    render(
+      <MemoryRouter initialEntries={['/movements/search?accountId=acc-1']}>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    await screen.findByRole('heading', { name: 'Search' });
+    await screen.findByText('3 movements · Grouped by day · Date desc');
+    expect(screen.queryByRole('button', { name: 'More filters' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
+
+    const filtersDialog = await screen.findByRole('dialog', { name: 'Filters' });
+    expect(within(filtersDialog).getAllByText('Date').length).toBeGreaterThan(0);
+    expect(within(filtersDialog).getByText('Type')).toBeInTheDocument();
+    expect(within(filtersDialog).getByText('Category')).toBeInTheDocument();
+    expect(within(filtersDialog).getAllByText('Amount').length).toBeGreaterThan(0);
+    expect(within(filtersDialog).getByText('Tags')).toBeInTheDocument();
+    expect(within(filtersDialog).getByText('Group')).toBeInTheDocument();
+    expect(within(filtersDialog).getByRole('button', { name: 'Apply' })).toBeInTheDocument();
+  });
+
+  it('groups date-sorted advanced-search results by day', async () => {
+    const core = makeCore(3);
+
+    render(
+      <MemoryRouter initialEntries={['/movements/search?accountId=acc-1']}>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('3 movements · Grouped by day · Date desc')).toBeInTheDocument();
+    expect(screen.getAllByRole('list', { name: /Movement results/ })).toHaveLength(3);
+  });
+
+  it('uses a flat advanced-search list when sorting by amount', async () => {
+    const core = makeCore(3);
+
+    render(
+      <MemoryRouter initialEntries={['/movements/search?accountId=acc-1']}>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('3 movements · Grouped by day · Date desc');
+    fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
+    const filtersDialog = await screen.findByRole('dialog', { name: 'Filters' });
+    fireEvent.click(within(filtersDialog).getByRole('button', { name: 'Amount' }));
+    fireEvent.click(within(filtersDialog).getByRole('button', { name: 'Apply' }));
+
+    expect(await screen.findByText('3 movements · Amount desc')).toBeInTheDocument();
+    expect(screen.getAllByRole('list', { name: 'Movement results' })).toHaveLength(1);
+  });
+
   it('keeps hub monthly-focused without exposing advanced filter controls', async () => {
     const coreWithThree = makeCore(3);
 

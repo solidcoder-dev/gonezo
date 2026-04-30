@@ -64,7 +64,8 @@ body {
   font-weight: 600;
 }
 
-.chip.active {
+.chip.active,
+.chip.selected {
   background: #1d1d1b;
   color: #ffffff;
   border-color: #1d1d1b;
@@ -86,10 +87,61 @@ body {
   color: #1d1d1b;
 }
 
-.segment.active {
+.segment.active,
+.segment.selected {
   background: #1d1d1b;
   color: #ffffff;
   border-color: #1d1d1b;
+}
+
+.search-controls {
+  gap: 12px;
+}
+
+.search-input-wrap {
+  position: relative;
+}
+
+.search-input-wrap input {
+  width: 100%;
+  padding-right: 40px;
+  box-sizing: border-box;
+}
+
+.search-input-wrap .bi {
+  position: absolute;
+  right: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #575752;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.search-action-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.search-action-row button,
+.search-sheet-actions button {
+  width: 100%;
+}
+
+.search-account-context {
+  display: block;
+  margin-top: 6px;
+}
+
+.search-account-context select {
+  border: 0;
+  min-height: 32px;
+  padding: 0 22px 0 0;
+  border-radius: 0;
+  background: transparent;
+  color: #575752;
+  font-weight: 700;
 }
 
 .quick-row {
@@ -507,6 +559,16 @@ body {
   color: #8a2020;
 }
 
+.detail-sheet-amount--income {
+  background: #ecf8ef;
+  color: #1b5b28;
+}
+
+.detail-sheet-amount--transfer {
+  background: #f4f4ef;
+  color: #2f2f2a;
+}
+
 .detail-sheet-amount--scheduled {
   background: #f3f6ff;
   color: #223c8b;
@@ -598,6 +660,13 @@ body {
   border: 1px solid #e3e3d7;
   border-radius: 12px;
   padding: 12px;
+}
+
+.search-filter-sheet {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  max-height: min(92dvh, 760px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .composer-recurring-panel {
@@ -954,6 +1023,22 @@ select:focus-visible {
   white-space: nowrap;
 }
 
+.movement-amount {
+  white-space: nowrap;
+}
+
+.movement-amount--income {
+  color: #1b5b28;
+}
+
+.movement-amount--expense {
+  color: #8a2020;
+}
+
+.movement-amount--transfer {
+  color: #2f2f2a;
+}
+
 .compact-action {
   min-height: 32px;
   min-width: 0;
@@ -1013,6 +1098,10 @@ select:focus-visible {
 
 .active-filter-row {
   align-items: center;
+}
+
+.search-results-summary {
+  font-weight: 700;
 }
 
 .filter-chip {

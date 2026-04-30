@@ -34,60 +34,167 @@ function compactTags(tags?: Array<{ id: string; name: string }>): string | undef
   return visible.join(' ');
 }
 
+function txKind(type: MovementsSearchItem['type']): 'income' | 'expense' | 'transfer' {
+  if (type === 'income') return 'income';
+  if (type === 'transfer') return 'transfer';
+  return 'expense';
+}
+
+function movementTypeLabel(type: MovementsSearchItem['type']): string {
+  if (type === 'income') return 'Income';
+  if (type === 'transfer') return 'Transfer';
+  return 'Expense';
+}
+
+function movementIconClass(type: MovementsSearchItem['type']): string {
+  const kind = txKind(type);
+  if (kind === 'income') return 'bi bi-arrow-up-right';
+  if (kind === 'transfer') return 'bi bi-arrow-left-right';
+  return 'bi bi-arrow-down-right';
+}
+
+function groupDateLabel(isoDateTime: string, now = new Date()): string {
+  const parsed = new Date(isoDateTime);
+  if (Number.isNaN(parsed.getTime())) {
+    return isoDateTime;
+  }
+
+  const sameYear = parsed.getFullYear() === now.getFullYear();
+  const datePart = new Intl.DateTimeFormat(undefined, sameYear
+    ? { month: 'short', day: 'numeric' }
+    : { month: 'short', day: 'numeric', year: 'numeric' }).format(parsed).toUpperCase();
+  const relative = formatCalendarDay(isoDateTime, now);
+  if (relative === 'Today' || relative === 'Yesterday') {
+    return `${datePart} · ${relative.toUpperCase()}`;
+  }
+  return datePart;
+}
+
+function groupKey(isoDateTime: string): string {
+  const parsed = new Date(isoDateTime);
+  if (Number.isNaN(parsed.getTime())) {
+    return isoDateTime;
+  }
+  return `${parsed.getFullYear()}-${parsed.getMonth() + 1}-${parsed.getDate()}`;
+}
+
+function groupEntriesByDay(entries: MovementsSearchItem[]): Array<{ key: string; label: string; items: MovementsSearchItem[] }> {
+  const groups: Array<{ key: string; label: string; items: MovementsSearchItem[] }> = [];
+  const groupIndexByKey = new Map<string, number>();
+
+  for (const entry of entries) {
+    const key = groupKey(entry.occurredAt);
+    const knownIndex = groupIndexByKey.get(key);
+    if (knownIndex == null) {
+      groups.push({ key, label: groupDateLabel(entry.occurredAt), items: [entry] });
+      groupIndexByKey.set(key, groups.length - 1);
+      continue;
+    }
+    groups[knownIndex].items.push(entry);
+  }
+
+  return groups;
+}
+
+function resultMeta(entry: MovementsSearchItem, includeDate: boolean): string {
+  return [
+    includeDate ? formatCalendarDay(entry.occurredAt) : undefined,
+    entry.category?.name,
+    compactTags(entry.tags),
+  ].filter((value): value is string => Boolean(value && value.trim().length > 0)).join(' · ');
+}
+
+function ResultRow({
+  entry,
+  disabled,
+  includeDate,
+  onSelect,
+}: {
+  entry: MovementsSearchItem;
+  disabled: boolean;
+  includeDate: boolean;
+  onSelect: (entry: MovementsSearchItem) => void;
+}) {
+  const kind = txKind(entry.type);
+
+  return (
+    <li className={`expense-item expense-item--compact expense-item--${kind}`}>
+      <button
+        type="button"
+        className="expense-item-button expense-item-button--compact"
+        onClick={() => onSelect(entry)}
+        disabled={disabled}
+      >
+        <div className="expense-top-row compact-row">
+          <div className="tx-head compact-main">
+            <i className={movementIconClass(entry.type)} aria-hidden />
+            <strong className="compact-title">{entry.title}</strong>
+          </div>
+          <strong className={`movement-amount movement-amount--${kind}`}>
+            {txSign(entry.type)}
+            {txAmount(entry.amount, entry.currency)}
+          </strong>
+        </div>
+        <div className="expense-bottom-row compact-row">
+          <span className="hint compact-subline">{resultMeta(entry, includeDate)}</span>
+        </div>
+      </button>
+    </li>
+  );
+}
+
 export function MovementsSearchResults({ required, provided }: MovementsSearchResultsProps) {
-  const { items, pagination } = required.state;
+  const { appliedFilters, items, pagination } = required.state;
   const { loading, disabled } = required.status;
   const [selectedEntry, setSelectedEntry] = useState<MovementsSearchItem | null>(null);
 
   const entries = useMemo(() => items, [items]);
+  const groupedByDay = appliedFilters.sortField === 'date' && appliedFilters.groupByDay;
+  const groups = useMemo(() => groupedByDay ? groupEntriesByDay(entries) : [], [entries, groupedByDay]);
+  const sortSummary = `${appliedFilters.sortField === 'date' ? 'Date' : 'Amount'} ${appliedFilters.sortDirection}`;
+  const resultsLabel = `${pagination.totalElements} ${pagination.totalElements === 1 ? 'movement' : 'movements'}`;
+  const summaryLabel = groupedByDay ? `${resultsLabel} · Grouped by day · ${sortSummary}` : `${resultsLabel} · ${sortSummary}`;
 
   return (
     <section className="stack" aria-label="Search results">
       {loading ? <p role="status">Loading movements...</p> : null}
-      {!loading && entries.length === 0 ? <p>No movements found.</p> : null}
+      {!loading ? <p className="hint search-results-summary">{summaryLabel}</p> : null}
+      {!loading && entries.length === 0 ? <p>No movements match these filters.</p> : null}
 
       {!loading && entries.length > 0 ? (
         <>
-          <ul className="expense-list expense-list--compact" aria-label="Movement results">
-            {entries.map((entry) => (
-              <li key={`${entry.source}-${entry.id}`} className="expense-item expense-item--compact">
-                <button
-                  type="button"
-                  className="expense-item-button expense-item-button--compact"
-                  onClick={() => setSelectedEntry(entry)}
-                  disabled={disabled}
-                >
-                  <div className="expense-top-row compact-row">
-                    <div className="tx-head compact-main">
-                      <i
-                        className={entry.type === 'income' || entry.type === 'transfer_in'
-                          ? 'bi bi-arrow-up-right'
-                          : entry.type === 'transfer' || entry.type === 'transfer_out'
-                            ? 'bi bi-arrow-left-right'
-                            : 'bi bi-arrow-down-right'}
-                        aria-hidden
+          {groupedByDay ? (
+            <div className="stack">
+              {groups.map((group) => (
+                <div key={group.key} className="stack">
+                  <p className="hint date-group-label">{group.label}</p>
+                  <ul className="expense-list expense-list--compact" aria-label={`Movement results ${group.label}`}>
+                    {group.items.map((entry) => (
+                      <ResultRow
+                        key={`${entry.source}-${entry.id}`}
+                        entry={entry}
+                        disabled={disabled}
+                        includeDate={false}
+                        onSelect={setSelectedEntry}
                       />
-                      <strong className="compact-title">{entry.title}</strong>
-                    </div>
-                    <strong>
-                      {txSign(entry.type)}
-                      {txAmount(entry.amount, entry.currency)}
-                    </strong>
-                  </div>
-                  <div className="expense-bottom-row compact-row">
-                    <span className="hint compact-subline">
-                      {[
-                        formatCalendarDay(entry.occurredAt),
-                        entry.category?.name,
-                        compactTags(entry.tags),
-                        entry.source === 'posted' ? 'Posted' : 'Scheduled',
-                      ].filter((value): value is string => Boolean(value && value.trim().length > 0)).join(' · ')}
-                    </span>
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <ul className="expense-list expense-list--compact" aria-label="Movement results">
+              {entries.map((entry) => (
+                <ResultRow
+                  key={`${entry.source}-${entry.id}`}
+                  entry={entry}
+                  disabled={disabled}
+                  includeDate
+                  onSelect={setSelectedEntry}
+                />
+              ))}
+            </ul>
+          )}
 
           {pagination.totalPages > 1 ? (
             <div className="quick-row">
@@ -127,15 +234,8 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
             <div className="detail-sheet-header">
               <div className="detail-sheet-title">
                 <span className="detail-sheet-kicker">
-                  <i
-                    className={selectedEntry.type === 'income' || selectedEntry.type === 'transfer_in'
-                      ? 'bi bi-arrow-up-right'
-                      : selectedEntry.type === 'transfer' || selectedEntry.type === 'transfer_out'
-                        ? 'bi bi-arrow-left-right'
-                        : 'bi bi-arrow-down-right'}
-                    aria-hidden
-                  />
-                  <span>{selectedEntry.source === 'posted' ? 'Posted' : 'Scheduled'}</span>
+                  <i className={movementIconClass(selectedEntry.type)} aria-hidden />
+                  <span>{movementTypeLabel(selectedEntry.type)} · {selectedEntry.source === 'posted' ? 'Posted' : 'Scheduled'}</span>
                 </span>
                 <h3>{selectedEntry.title}</h3>
               </div>
@@ -148,7 +248,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
                 <i className="bi bi-x-lg" aria-hidden />
               </button>
             </div>
-            <div className="detail-sheet-amount detail-sheet-amount--expense">
+            <div className={`detail-sheet-amount detail-sheet-amount--${txKind(selectedEntry.type)}`}>
               {txSign(selectedEntry.type)}
               {txAmount(selectedEntry.amount, selectedEntry.currency)}
             </div>

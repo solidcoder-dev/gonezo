@@ -101,8 +101,8 @@ export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
       ) : null}
 
       {!loading && !error && accounts.length > 0 ? (
-        <label className="stack">
-          Account
+        <label className="search-account-context">
+          <span className="visually-hidden">Account</span>
           <select
             aria-label="Search account"
             value={selectedAccountId ?? ''}

@@ -27,6 +27,7 @@ type TransactionSearchFiltersState = {
   sortField: MovementsSearchSortField;
   sortDirection: LedgerSortDirection;
   pageSize: number;
+  groupByDay: boolean;
 };
 
 type PaginationState = {
@@ -60,6 +61,7 @@ const DEFAULT_FILTERS: TransactionSearchFiltersState = {
   sortField: 'date',
   sortDirection: 'desc',
   pageSize: 10,
+  groupByDay: true,
 };
 
 const EMPTY_PAGINATION: PaginationState = {
@@ -183,6 +185,7 @@ export type MovementsSearchModelProvided = {
     setSortField: (value: MovementsSearchSortField) => void;
     setSortDirection: (value: LedgerSortDirection) => void;
     setPageSize: (value: number) => void;
+    setGroupByDay: (value: boolean) => void;
     applyFilterPatch: (patch: Partial<TransactionSearchFiltersState>) => void;
     applyFilters: () => void;
     goToPreviousPage: () => void;
@@ -432,14 +435,23 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
       setFilterFromDate: (value) => setFilterDraft((previous) => ({ ...previous, fromDate: value })),
       setFilterToDate: (value) => setFilterDraft((previous) => ({ ...previous, toDate: value })),
       setFilterTypes: (values) => setFilterDraft((previous) => ({ ...previous, types: [...new Set(values)] })),
-      setSortField: (value) => setFilterDraft((previous) => ({ ...previous, sortField: value })),
+      setSortField: (value) => setFilterDraft((previous) => ({
+        ...previous,
+        sortField: value,
+        groupByDay: value === 'date' ? previous.groupByDay : false,
+      })),
       setSortDirection: (value) => setFilterDraft((previous) => ({ ...previous, sortDirection: value })),
       setPageSize: (value) => {
         const normalized = Number.isFinite(value) && value > 0 ? Math.min(Math.trunc(value), 100) : DEFAULT_FILTERS.pageSize;
         setFilterDraft((previous) => ({ ...previous, pageSize: normalized }));
       },
+      setGroupByDay: (value) => setFilterDraft((previous) => ({ ...previous, groupByDay: value })),
       applyFilterPatch: (patch) => {
-        setFilterDraft((previous) => mergeFilterPatch(previous, patch));
+        const nextFilters = mergeFilterPatch(appliedFilters, patch);
+        setFilterDraft(nextFilters);
+        setAppliedFilters(nextFilters);
+        setSearchApplied(true);
+        setPage(0);
       },
       applyFilters: () => {
         setAppliedFilters(mergeFilterPatch(filterDraft, {}));
