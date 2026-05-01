@@ -13,6 +13,7 @@ import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
 import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
 import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
 import { createSchedulingGateway } from '../../scheduling/infrastructure/schedulingGateway';
+import { createExpectedGateway } from '../../expected/infrastructure/expectedGateway';
 import { useCategorySuggestions } from '../../taxonomy/application/useCategorySuggestions';
 import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions';
 import { useTransactionClassification } from '../../taxonomy/application/useTransactionClassification';
@@ -157,6 +158,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [expenseItemAmount, setExpenseItemAmount] = useState('');
   const [expenseItems, setExpenseItems] = useState<ExpenseItemDraft[]>([]);
   const [schedulingMode, setSchedulingMode] = useState<'now' | 'scheduled'>('now');
+  const [expectedMovement, setExpectedMovement] = useState(false);
   const [schedulingKind, setSchedulingKind] = useState<'one_shot' | 'recurring'>('one_shot');
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<SchedulingFrequency>('monthly');
   const [recurrenceInterval, setRecurrenceInterval] = useState('1');
@@ -172,6 +174,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
   const ledgerGateway = useMemo(() => createLedgerGateway(core), [core]);
   const schedulingGateway = useMemo(() => createSchedulingGateway(core), [core]);
+  const expectedGateway = useMemo(() => createExpectedGateway(core), [core]);
   const taxonomyGateway = useMemo(() => createTaxonomyGateway(core), [core]);
 
   const ledgerAccounts = useLedgerAccounts(ledgerGateway);
@@ -247,6 +250,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setExpenseItemAmount('');
     setExpenseItems([]);
     setSchedulingMode('now');
+    setExpectedMovement(false);
     setSchedulingKind('one_shot');
     setRecurrenceFrequency('monthly');
     setRecurrenceInterval('1');
@@ -360,6 +364,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setComposerAdvancedOpen(false);
     setTransactionCategoryInput('');
     setTransactionTagInput('');
+    if (mode === 'transfer') {
+      setExpectedMovement(false);
+    }
 
     if (mode === 'transfer') {
       const sourceAmount = parseAmount(transactionAmount);
@@ -567,6 +574,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
   function setSchedulingModeValue(value: 'now' | 'scheduled') {
     setSchedulingMode(value);
+    if (value === 'scheduled') {
+      setExpectedMovement(false);
+    }
     setFieldErrors((previous) => ({
       ...previous,
       date: undefined,
@@ -634,6 +644,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
   function setExpenseDetailedValue(value: boolean) {
     setExpenseDetailed(value);
+    if (value) {
+      setExpectedMovement(false);
+    }
     if (!value) {
       setFieldErrors((previous) => ({
         ...previous,
@@ -641,6 +654,21 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         expenseItemAmount: undefined,
         expenseSplit: undefined,
       }));
+    }
+  }
+
+  function setExpectedMovementValue(value: boolean) {
+    setExpectedMovement(value);
+    setFieldErrors((previous) => ({
+      ...previous,
+      expectedConflict: undefined,
+      date: undefined,
+      expenseSplit: undefined,
+    }));
+    if (value) {
+      setSchedulingMode('now');
+      setSchedulingKind('one_shot');
+      setExpenseDetailed(false);
     }
   }
 
@@ -903,8 +931,16 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       }
     }
 
+    const movementExpected = (composerMode === 'expense' || composerMode === 'income') && expectedMovement;
     const movementScheduled = (composerMode === 'expense' || composerMode === 'income')
       && (recurrenceEnabled || isFutureIsoDateInput(resolvedTransactionDate));
+
+    if (movementExpected && recurrenceEnabled) {
+      nextErrors.expectedConflict = 'Expected movements cannot repeat.';
+    }
+    if (movementExpected && expenseDetailed) {
+      nextErrors.expectedConflict = 'Expected movements cannot use split items.';
+    }
 
     if ((composerMode === 'expense' || composerMode === 'income') && expenseDetailed) {
       if (movementScheduled) {
@@ -946,6 +982,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       || nextErrors.recurrenceInterval
       || nextErrors.recurrenceEndDate
       || nextErrors.recurrenceEndCount
+      || nextErrors.expectedConflict
       || nextErrors.expenseItemName
       || nextErrors.expenseItemAmount
       || nextErrors.expenseSplit
@@ -960,6 +997,21 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       const tagNames = parseTransactionTags();
       const tagIds = resolveTagSelectionIds(tagNames);
       let recorded = false;
+
+      if (movementExpected && (composerMode === 'expense' || composerMode === 'income')) {
+        const categoryId = await resolveCategorySelection(composerMode);
+        await expectedGateway.expectedCreateMovement({
+          accountId,
+          type: composerMode,
+          amount: formatAmount(parseAmount(amount)),
+          currency: accountCurrency,
+          expectedAt: occurredAt,
+          description: transactionNote.trim() || undefined,
+          merchant: transactionNote.trim() || undefined,
+          categoryId,
+        });
+        recorded = true;
+      }
 
       if ((composerMode === 'expense' || composerMode === 'income') && recurrenceEnabled) {
         const categoryId = await resolveCategorySelection(composerMode);
@@ -1338,6 +1390,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       recurrenceEndKind,
       recurrenceEndDate,
       recurrenceEndCount,
+      expected: expectedMovement,
       currencyCode: accountCurrency,
     },
     status: {
@@ -1380,6 +1433,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       setRecurrenceEndKind: setRecurrenceEndKindValue,
       setRecurrenceEndDate: setRecurrenceEndDateValue,
       setRecurrenceEndCount: setRecurrenceEndCountValue,
+      setExpected: setExpectedMovementValue,
       submit: submitTransaction,
     },
   };

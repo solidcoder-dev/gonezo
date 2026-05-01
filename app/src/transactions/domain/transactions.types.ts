@@ -11,6 +11,7 @@ export type TransactionFieldErrors = {
   recurrenceInterval?: string;
   recurrenceEndDate?: string;
   recurrenceEndCount?: string;
+  expectedConflict?: string;
   expenseItemName?: string;
   expenseItemAmount?: string;
   expenseSplit?: string;

@@ -57,6 +57,12 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
+  ExpectedCreateMovementInput,
+  ExpectedCreateMovementResult,
+  ExpectedDismissMovementInput,
+  ExpectedListMovementsInput,
+  ExpectedListMovementsResult,
+  ExpectedResolveMovementInput,
   MovementsMonthOverviewInput,
   MovementsMonthOverviewResult,
   MovementsSearchInput,
@@ -114,6 +120,10 @@ export interface CorePlugin {
   schedulingListMovements(
     options: SchedulingListMovementsInput,
   ): Promise<SchedulingListMovementsResult>;
+  expectedCreateMovement(options: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult>;
+  expectedListMovements(options: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult>;
+  expectedResolveMovement(options: ExpectedResolveMovementInput): Promise<void>;
+  expectedDismissMovement(options: ExpectedDismissMovementInput): Promise<void>;
   movementsGetMonthOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;
   movementsSearch(options: MovementsSearchInput): Promise<MovementsSearchResult>;
   movementsGetOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;

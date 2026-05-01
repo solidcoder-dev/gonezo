@@ -60,6 +60,13 @@ import type {
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
   SchedulingMovementItem,
+  ExpectedCreateMovementInput,
+  ExpectedCreateMovementResult,
+  ExpectedDismissMovementInput,
+  ExpectedListMovementsInput,
+  ExpectedListMovementsResult,
+  ExpectedMovementItem,
+  ExpectedResolveMovementInput,
   MovementsMonthOverviewInput,
   MovementsMonthOverviewResult,
   MovementsGetOverviewInput,
@@ -206,6 +213,132 @@ function mapScheduledMovementToSearchItem(movement: SchedulingMovementItem): Mov
     merchant: movement.merchant,
     category: movement.categoryId ? { id: movement.categoryId, name: movement.categoryId } : undefined,
     tags,
+  };
+}
+
+function expectedMovementDateEpoch(movement: ExpectedMovementItem): number | undefined {
+  const parsed = movement.expectedAt ? Date.parse(movement.expectedAt) : Number.NaN;
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function filterExpectedMovementItems(
+  items: ExpectedMovementItem[],
+  filters?: MovementsSearchInput['filters'],
+): ExpectedMovementItem[] {
+  const resolvedFilters = filters ?? {};
+  const text = resolvedFilters.text?.trim().toLowerCase();
+  const merchant = resolvedFilters.merchant?.trim().toLowerCase();
+  const categoryIds = resolvedFilters.categoryIds && resolvedFilters.categoryIds.length > 0
+    ? resolvedFilters.categoryIds
+    : resolvedFilters.categoryId
+      ? [resolvedFilters.categoryId]
+      : [];
+  const categoryFilter = categoryIds.length > 0
+    ? new Set(categoryIds.map((value) => value.trim()).filter((value) => value.length > 0))
+    : null;
+  const hasTagFilter = Boolean(resolvedFilters.tagIds && resolvedFilters.tagIds.length > 0);
+  const typeFilter = resolvedFilters.types && resolvedFilters.types.length > 0
+    ? new Set(resolvedFilters.types.filter((value) => value === 'expense' || value === 'income'))
+    : null;
+  const parsedAmountMin = resolvedFilters.amountMin == null ? undefined : Number(resolvedFilters.amountMin);
+  const parsedAmountMax = resolvedFilters.amountMax == null ? undefined : Number(resolvedFilters.amountMax);
+  const hasAmountMin = typeof parsedAmountMin === 'number' && Number.isFinite(parsedAmountMin);
+  const hasAmountMax = typeof parsedAmountMax === 'number' && Number.isFinite(parsedAmountMax);
+  const fromDateEpoch = resolvedFilters.fromDate ? Date.parse(resolvedFilters.fromDate) : undefined;
+  const toDateEpoch = resolvedFilters.toDate ? Date.parse(resolvedFilters.toDate) : undefined;
+  const hasFromDateEpoch = typeof fromDateEpoch === 'number' && Number.isFinite(fromDateEpoch);
+  const hasToDateEpoch = typeof toDateEpoch === 'number' && Number.isFinite(toDateEpoch);
+
+  return items
+    .filter((item) => (typeFilter ? typeFilter.has(item.type) : true))
+    .filter((item) => (categoryFilter ? Boolean(item.categoryId && categoryFilter.has(item.categoryId)) : true))
+    .filter(() => !hasTagFilter)
+    .filter((item) => {
+      if (!hasAmountMin && !hasAmountMax) {
+        return true;
+      }
+      const amount = Number(item.amount);
+      if (!Number.isFinite(amount)) {
+        return false;
+      }
+      if (hasAmountMin && amount < parsedAmountMin!) {
+        return false;
+      }
+      if (hasAmountMax && amount > parsedAmountMax!) {
+        return false;
+      }
+      return true;
+    })
+    .filter((item) => {
+      if (!hasFromDateEpoch && !hasToDateEpoch) {
+        return true;
+      }
+      const expectedEpoch = expectedMovementDateEpoch(item);
+      if (expectedEpoch == null) {
+        return false;
+      }
+      if (hasFromDateEpoch && expectedEpoch < fromDateEpoch!) {
+        return false;
+      }
+      if (hasToDateEpoch && expectedEpoch > toDateEpoch!) {
+        return false;
+      }
+      return true;
+    })
+    .filter((item) => {
+      if (!merchant) {
+        return true;
+      }
+      return (item.merchant ?? '').toLowerCase().includes(merchant);
+    })
+    .filter((item) => {
+      if (!text) {
+        return true;
+      }
+      const merchantText = item.merchant?.toLowerCase() ?? '';
+      const descriptionText = item.description?.toLowerCase() ?? '';
+      return merchantText.includes(text) || descriptionText.includes(text);
+    });
+}
+
+function sortExpectedMovementItems(
+  items: ExpectedMovementItem[],
+  sort?: MovementsSearchInput['sort'],
+): ExpectedMovementItem[] {
+  const resolvedSort = sort && sort.length > 0 ? sort : [{ field: 'date' as const, direction: 'desc' as const }];
+  const [primary] = resolvedSort;
+  const direction = primary.direction === 'asc' ? 1 : -1;
+  return [...items].sort((left, right) => {
+    const comparison = primary.field === 'amount'
+      ? Number(left.amount) - Number(right.amount)
+      : (expectedMovementDateEpoch(left) ?? 0) - (expectedMovementDateEpoch(right) ?? 0);
+    if (comparison !== 0) {
+      return comparison * direction;
+    }
+    return left.id.localeCompare(right.id);
+  });
+}
+
+function mapExpectedMovementToSearchItem(
+  movement: ExpectedMovementItem,
+  categoryNamesById?: Map<string, string>,
+): MovementsSearchItem {
+  return {
+    id: movement.id,
+    source: 'expected',
+    type: movement.type,
+    status: movement.status === 'pending' ? 'expected' : movement.status,
+    amount: movement.amount,
+    currency: movement.currency,
+    occurredAt: movement.expectedAt,
+    title: movement.merchant || movement.description || 'Expected movement',
+    description: movement.description,
+    merchant: movement.merchant,
+    categoryId: movement.categoryId,
+    category: movement.categoryId
+      ? { id: movement.categoryId, name: categoryNamesById?.get(movement.categoryId) ?? movement.categoryId }
+      : undefined,
+    tags: [],
   };
 }
 
@@ -480,6 +613,36 @@ export class CoreAdapter implements CorePort {
     return this.web.schedulingListMovements(input);
   }
 
+  async expectedCreateMovement(input: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.expectedCreateMovement(input);
+    }
+    return this.web.expectedCreateMovement(input);
+  }
+
+  async expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.expectedListMovements(input);
+    }
+    return this.web.expectedListMovements(input);
+  }
+
+  async expectedResolveMovement(input: ExpectedResolveMovementInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.expectedResolveMovement(input);
+      return;
+    }
+    await this.web.expectedResolveMovement(input);
+  }
+
+  async expectedDismissMovement(input: ExpectedDismissMovementInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.expectedDismissMovement(input);
+      return;
+    }
+    await this.web.expectedDismissMovement(input);
+  }
+
   async movementsGetMonthOverview(input: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> {
     if (!Capacitor.isNativePlatform()) {
       return this.web.movementsGetMonthOverview(input);
@@ -570,6 +733,36 @@ export class CoreAdapter implements CorePort {
         totalPages: result.totalPages,
         hasNext: result.hasNext,
         hasPrevious: result.hasPrevious,
+      };
+    }
+
+    if (input.source === 'expected') {
+      const [result, categories] = await Promise.all([
+        this.expectedListMovements({
+          accountId: input.accountId,
+          includeClosed: filters.status === 'all',
+        }),
+        this.taxonomyListCategories({}),
+      ]);
+      const categoryNamesById = new Map(categories.items.map((category) => [category.id, category.name]));
+      const filtered = filterExpectedMovementItems(result.items, filters);
+      const sorted = sortExpectedMovementItems(filtered, input.sort);
+      const totalElements = sorted.length;
+      const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / pageSize);
+      const resolvedPage = totalPages === 0 ? 0 : Math.min(page, totalPages - 1);
+      const start = resolvedPage * pageSize;
+      const content = sorted
+        .slice(start, start + pageSize)
+        .map((movement) => mapExpectedMovementToSearchItem(movement, categoryNamesById));
+
+      return {
+        content,
+        page: resolvedPage,
+        size: pageSize,
+        totalElements,
+        totalPages,
+        hasNext: totalPages > 0 && resolvedPage + 1 < totalPages,
+        hasPrevious: resolvedPage > 0,
       };
     }
 

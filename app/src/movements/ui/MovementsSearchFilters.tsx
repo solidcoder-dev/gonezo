@@ -153,7 +153,7 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
 
   return (
     <section className="stack search-controls" aria-label="Search controls">
-      <div className="segmented segmented-2" role="radiogroup" aria-label="Search source">
+      <div className="segmented" role="radiogroup" aria-label="Search source">
         <button
           type="button"
           className={filters.source === 'posted' ? 'segment selected' : 'segment'}
@@ -171,6 +171,15 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
           disabled={disabled}
         >
           Scheduled
+        </button>
+        <button
+          type="button"
+          className={filters.source === 'expected' ? 'segment selected' : 'segment'}
+          aria-pressed={filters.source === 'expected'}
+          onClick={() => provided.commands.setSource('expected')}
+          disabled={disabled}
+        >
+          Expected
         </button>
       </div>
 

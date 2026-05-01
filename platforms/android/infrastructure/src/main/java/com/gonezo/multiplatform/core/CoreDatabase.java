@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 13;
+  private static final int DB_VERSION = 14;
 
   CoreDatabase(Context context) {
     super(context, DB_NAME, null, DB_VERSION);
@@ -50,6 +50,10 @@ final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion < 13) {
       createTaxonomyTagTables(db);
     }
+
+    if (oldVersion < 14) {
+      createExpectedMovementTables(db);
+    }
   }
 
   @Override
@@ -65,6 +69,7 @@ final class CoreDatabase extends SQLiteOpenHelper {
     createMobillsImportTables(db);
     createTransactionVoiceAnalysisTables(db);
     createRecurrenceTables(db);
+    createExpectedMovementTables(db);
   }
 
   private static void createLedgerTables(SQLiteDatabase db) {
@@ -306,7 +311,41 @@ final class CoreDatabase extends SQLiteOpenHelper {
     );
   }
 
+  private static void createExpectedMovementTables(SQLiteDatabase db) {
+    db.execSQL(
+      "create table if not exists expected_movements (" +
+        "id text primary key," +
+        "account_id text not null," +
+        "movement_type text not null," +
+        "amount text not null," +
+        "currency text not null," +
+        "expected_at text not null," +
+        "description text," +
+        "merchant text," +
+        "category_id text," +
+        "status text not null," +
+        "resolved_transaction_id text," +
+        "created_at text not null," +
+        "updated_at text not null," +
+        "resolved_at text," +
+        "dismissed_at text," +
+        "foreign key(account_id) references ledger_accounts(id)" +
+      ");"
+    );
+
+    db.execSQL(
+      "create index if not exists idx_expected_movements_account_status_expected " +
+        "on expected_movements(account_id, status, expected_at);"
+    );
+
+    db.execSQL(
+      "create index if not exists idx_expected_movements_resolved_transaction " +
+        "on expected_movements(resolved_transaction_id);"
+    );
+  }
+
   private static void dropTables(SQLiteDatabase db) {
+    db.execSQL("drop table if exists expected_movements");
     db.execSQL("drop table if exists recurrence_outbox");
     db.execSQL("drop table if exists recurring_movement_occurrences");
     db.execSQL("drop table if exists recurring_movements");

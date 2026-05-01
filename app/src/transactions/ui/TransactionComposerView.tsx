@@ -48,6 +48,7 @@ export type TransactionComposerViewRequired = {
   recurrenceEndKind: RecurrenceEndInput['kind'];
   recurrenceEndDate: string;
   recurrenceEndCount: string;
+  expected: boolean;
   currencyCode?: string;
   expenseItemNameError?: string;
   expenseItemAmountError?: string;
@@ -59,6 +60,7 @@ export type TransactionComposerViewRequired = {
   recurrenceIntervalError?: string;
   recurrenceEndDateError?: string;
   recurrenceEndCountError?: string;
+  expectedConflictError?: string;
 };
 
 export type TransactionComposerViewProvided = {
@@ -93,6 +95,7 @@ export type TransactionComposerViewProvided = {
   onSetRecurrenceEndKind: (value: RecurrenceEndInput['kind']) => void;
   onSetRecurrenceEndDate: (value: string) => void;
   onSetRecurrenceEndCount: (value: string) => void;
+  onSetExpected: (value: boolean) => void;
   onSubmit: (event: FormEvent) => Promise<void> | void;
 };
 
@@ -164,6 +167,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     recurrenceEndKind,
     recurrenceEndDate,
     recurrenceEndCount,
+    expected,
     currencyCode,
     expenseItemNameError,
     expenseItemAmountError,
@@ -175,6 +179,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     recurrenceIntervalError,
     recurrenceEndDateError,
     recurrenceEndCountError,
+    expectedConflictError,
   } = required;
   const {
     onOpen,
@@ -208,6 +213,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     onSetRecurrenceEndKind,
     onSetRecurrenceEndDate,
     onSetRecurrenceEndCount,
+    onSetExpected,
     onSubmit,
   } = provided;
 
@@ -225,9 +231,12 @@ export function TransactionComposerView({ required, provided }: Props) {
     return undefined;
   }, [open, mode]);
 
+  const expectedAvailable = mode === 'expense' || mode === 'income';
   const amountLabel = mode === 'transfer'
     ? `Amount out${currencyCode ? ` (${currencyCode})` : ''}`
-    : 'Amount';
+    : expected
+      ? 'Estimated amount'
+      : 'Amount';
 
   const amountInLabel = `Amount in${transferDestinationCurrency ? ` (${transferDestinationCurrency})` : ''}`;
   const fxLabel = `FX rate${transferDestinationCurrency && currencyCode ? ` (${transferDestinationCurrency}/${currencyCode})` : ''}`;
@@ -240,8 +249,10 @@ export function TransactionComposerView({ required, provided }: Props) {
     && date > datePlaceholder;
   const scheduledMovementVisible = mode !== 'expense' && schedulingMode === 'scheduled';
   const recurringMovementVisible = scheduledMovementVisible && schedulingKind === 'recurring';
-  const dateInputLabel = mode === 'expense'
-    ? 'Date'
+  const dateInputLabel = expected
+    ? 'Expected date'
+    : mode === 'expense'
+      ? 'Date'
     : recurringMovementVisible
       ? 'First execution date'
       : scheduledMovementVisible
@@ -533,6 +544,17 @@ export function TransactionComposerView({ required, provided }: Props) {
                     <label className="inline-checkbox">
                       <input
                         type="checkbox"
+                        checked={expected}
+                        onChange={() => onSetExpected(!expected)}
+                        disabled={disabled}
+                      />
+                      Expected
+                    </label>
+                    {expectedConflictError ? <p className="field-error">{expectedConflictError}</p> : null}
+
+                    <label className="inline-checkbox">
+                      <input
+                        type="checkbox"
                         checked={repeatEnabled}
                         onChange={() => {
                           if (repeatEnabled) {
@@ -543,10 +565,11 @@ export function TransactionComposerView({ required, provided }: Props) {
                           onSetSchedulingMode('scheduled');
                           onSetSchedulingKind('recurring');
                         }}
-                        disabled={disabled}
+                        disabled={disabled || expected}
                       />
                       {mode === 'expense' ? 'Repeat this expense' : 'Repeat this income'}
                     </label>
+                    {expected ? <p className="hint">Expected movements stay out of ledger balance until posted.</p> : null}
 
                     {repeatEnabled ? (
                       <div className="stack item-editor composer-recurring-panel">
@@ -864,7 +887,7 @@ export function TransactionComposerView({ required, provided }: Props) {
             ) : null}
 
             <button type="submit" className="primary-cta" disabled={disabled || !splitReady}>
-              Save
+              {expectedAvailable && expected ? 'Save expected' : 'Save'}
             </button>
           </form>
         )}

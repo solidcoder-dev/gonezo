@@ -11,6 +11,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 import com.gonezo.multiplatform.core.AndroidLedgerCore;
+import com.gonezo.multiplatform.core.AndroidExpectedCore;
 import com.gonezo.multiplatform.core.AndroidRecurringCore;
 import com.gonezo.multiplatform.core.AndroidTaxonomyCore;
 import com.gonezo.multiplatform.plugins.voice.WavRecorder;
@@ -1361,6 +1362,86 @@ public class CorePlugin extends Plugin {
     }
   }
 
+  @PluginMethod
+  public void expectedCreateMovement(PluginCall call) {
+    String accountId = call.getString("accountId");
+    String type = call.getString("type");
+    String amount = call.getString("amount");
+    String currency = call.getString("currency");
+    String expectedAt = call.getString("expectedAt");
+    String description = call.getString("description");
+    String merchant = call.getString("merchant");
+    String categoryId = call.getString("categoryId");
+
+    try {
+      AndroidExpectedCore expectedCore = AndroidExpectedCore.getInstance(getContext());
+      UUID id = expectedCore.createMovement(
+        accountId,
+        type,
+        amount,
+        currency,
+        expectedAt,
+        description,
+        merchant,
+        categoryId
+      );
+      JSObject result = new JSObject();
+      result.put("id", id.toString());
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void expectedListMovements(PluginCall call) {
+    String accountId = call.getString("accountId");
+    Boolean includeClosedValue = call.getBoolean("includeClosed");
+    boolean includeClosed = includeClosedValue != null && includeClosedValue;
+
+    try {
+      AndroidExpectedCore expectedCore = AndroidExpectedCore.getInstance(getContext());
+      JSONArray items = new JSONArray();
+      for (AndroidExpectedCore.ExpectedMovementView movement : expectedCore.listMovements(accountId, includeClosed)) {
+        items.put(toExpectedMovementJson(movement));
+      }
+      JSObject result = new JSObject();
+      result.put("items", items);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void expectedResolveMovement(PluginCall call) {
+    String expectedMovementId = call.getString("expectedMovementId");
+    String transactionId = call.getString("transactionId");
+    String resolvedAt = call.getString("resolvedAt");
+
+    try {
+      AndroidExpectedCore expectedCore = AndroidExpectedCore.getInstance(getContext());
+      expectedCore.resolveMovement(expectedMovementId, transactionId, resolvedAt);
+      call.resolve();
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void expectedDismissMovement(PluginCall call) {
+    String expectedMovementId = call.getString("expectedMovementId");
+    String dismissedAt = call.getString("dismissedAt");
+
+    try {
+      AndroidExpectedCore expectedCore = AndroidExpectedCore.getInstance(getContext());
+      expectedCore.dismissMovement(expectedMovementId, dismissedAt);
+      call.resolve();
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
   private AndroidRecurringCore.RecurrenceRuleInput toRecurringRuleInput(JSObject rawRule) {
     JSObject rule = rawRule == null ? new JSObject() : rawRule;
     JSONArray rawWeeklyDays = rule.optJSONArray("weeklyDays");
@@ -1425,6 +1506,26 @@ public class CorePlugin extends Plugin {
     result.put("generatedOccurrences", movement.getGeneratedOccurrences());
     result.put("rule", toRecurrenceRuleJson(movement.getRule()));
     result.put("recurrenceEnd", toRecurrenceEndJson(movement.getRecurrenceEnd()));
+    return result;
+  }
+
+  private JSObject toExpectedMovementJson(AndroidExpectedCore.ExpectedMovementView movement) {
+    JSObject result = new JSObject();
+    result.put("id", movement.getId());
+    result.put("accountId", movement.getAccountId());
+    result.put("type", movement.getType());
+    result.put("amount", movement.getAmount());
+    result.put("currency", movement.getCurrency());
+    result.put("expectedAt", movement.getExpectedAt());
+    result.put("description", movement.getDescription());
+    result.put("merchant", movement.getMerchant());
+    result.put("categoryId", movement.getCategoryId());
+    result.put("status", movement.getStatus());
+    result.put("resolvedTransactionId", movement.getResolvedTransactionId());
+    result.put("createdAt", movement.getCreatedAt());
+    result.put("updatedAt", movement.getUpdatedAt());
+    result.put("resolvedAt", movement.getResolvedAt());
+    result.put("dismissedAt", movement.getDismissedAt());
     return result;
   }
 

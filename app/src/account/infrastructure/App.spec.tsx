@@ -13,6 +13,7 @@ import type {
   MovementsSearchInput,
   MovementsSearchResult,
   MovementsListScheduledInput,
+  ExpectedMovementItem,
   SchedulingMovementItem,
 } from '../../shared/domain/corePort';
 
@@ -163,6 +164,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     items: [],
   }));
   const scheduledMovements: SchedulingMovementItem[] = [];
+  const expectedMovements: ExpectedMovementItem[] = [];
 
   const core: AccountsCorePort = {
     doThing: vi.fn(async () => ({ status: 'ok' as const, message: 'ok' })) as AccountsCorePort['doThing'],
@@ -270,6 +272,47 @@ function makeCore(transactionCount = 0): AccountsCorePort {
       const sourceAccountId = input.sourceAccountId;
       return { items: scheduledMovements.filter((item) => isScheduledVisibleForAccount(item, sourceAccountId)) };
     }),
+    expectedCreateMovement: vi.fn(async (input) => {
+      const now = new Date().toISOString();
+      const id = `exp-${expectedMovements.length + 1}`;
+      expectedMovements.push({
+        id,
+        accountId: input.accountId,
+        type: input.type,
+        amount: input.amount,
+        currency: input.currency,
+        expectedAt: input.expectedAt,
+        description: input.description,
+        merchant: input.merchant,
+        categoryId: input.categoryId,
+        status: 'pending',
+        createdAt: now,
+        updatedAt: now,
+      });
+      return { id };
+    }),
+    expectedListMovements: vi.fn(async (input) => ({
+      items: expectedMovements
+        .filter((movement) => movement.accountId === input.accountId)
+        .filter((movement) => input.includeClosed === true || movement.status === 'pending'),
+    })),
+    expectedResolveMovement: vi.fn(async (input) => {
+      const movement = expectedMovements.find((item) => item.id === input.expectedMovementId);
+      if (!movement) return;
+      const resolvedAt = input.resolvedAt ?? new Date().toISOString();
+      movement.status = 'resolved';
+      movement.resolvedTransactionId = input.transactionId;
+      movement.resolvedAt = resolvedAt;
+      movement.updatedAt = resolvedAt;
+    }),
+    expectedDismissMovement: vi.fn(async (input) => {
+      const movement = expectedMovements.find((item) => item.id === input.expectedMovementId);
+      if (!movement) return;
+      const dismissedAt = input.dismissedAt ?? new Date().toISOString();
+      movement.status = 'dismissed';
+      movement.dismissedAt = dismissedAt;
+      movement.updatedAt = dismissedAt;
+    }),
     movementsGetMonthOverview: vi.fn(async (input: MovementsMonthOverviewInput) => {
       const fromDate = input.fromDate ?? input.filters?.fromDate;
       const toDate = input.toDate ?? input.filters?.toDate;
@@ -374,6 +417,48 @@ function makeCore(transactionCount = 0): AccountsCorePort {
           totalPages: page.totalPages,
           hasNext: page.hasNext,
           hasPrevious: page.hasPrevious,
+        };
+      }
+
+      if (input.source === 'expected') {
+        const filters = input.filters ?? {};
+        const filtered = expectedMovements
+          .filter((movement) => movement.accountId === input.accountId)
+          .filter((movement) => movement.status === 'pending')
+          .filter((movement) => !filters.text || (movement.merchant ?? movement.description ?? '').toLowerCase().includes(filters.text.toLowerCase()))
+          .filter((movement) => !filters.merchant || (movement.merchant ?? '').toLowerCase().includes(filters.merchant.toLowerCase()))
+          .filter((movement) => !filters.categoryId || movement.categoryId === filters.categoryId)
+          .filter((movement) => !filters.categoryIds || filters.categoryIds.length === 0 || (movement.categoryId != null && filters.categoryIds.includes(movement.categoryId)))
+          .filter((movement) => !filters.types || filters.types.length === 0 || filters.types.includes(movement.type));
+        const size = input.pagination?.size ?? 20;
+        const requestedPage = input.pagination?.page ?? 0;
+        const totalElements = filtered.length;
+        const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / size);
+        const page = totalPages === 0 ? 0 : Math.min(Math.max(requestedPage, 0), totalPages - 1);
+        const start = page * size;
+        const content = filtered.slice(start, start + size).map((movement) => ({
+          id: movement.id,
+          source: 'expected' as const,
+          type: movement.type,
+          status: 'expected' as const,
+          amount: movement.amount,
+          currency: movement.currency,
+          occurredAt: movement.expectedAt,
+          title: movement.merchant || movement.description || 'Expected movement',
+          description: movement.description,
+          merchant: movement.merchant,
+          categoryId: movement.categoryId,
+          category: movement.categoryId ? { id: movement.categoryId, name: movement.categoryId } : undefined,
+          tags: [],
+        }));
+        return {
+          content,
+          page,
+          size,
+          totalElements,
+          totalPages,
+          hasNext: totalPages > 0 && page + 1 < totalPages,
+          hasPrevious: page > 0,
         };
       }
 

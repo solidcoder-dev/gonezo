@@ -117,6 +117,7 @@ final class AndroidLedgerAccountRepository implements LedgerAccountRepository {
         database.delete("mobills_import_fingerprints", "transaction_id in (" + placeholders + ")", txArgs);
       }
 
+      database.delete("expected_movements", "account_id = ?", new String[] {accountId});
       database.delete("ledger_transactions", "account_id = ?", new String[] {accountId});
       database.delete("ledger_accounts", "id = ?", new String[] {accountId});
       database.setTransactionSuccessful();

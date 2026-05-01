@@ -53,6 +53,12 @@ function movementIconClass(type: MovementsSearchItem['type']): string {
   return 'bi bi-arrow-down-right';
 }
 
+function sourceLabel(source: MovementsSearchItem['source']): string {
+  if (source === 'posted') return 'Posted';
+  if (source === 'scheduled') return 'Scheduled';
+  return 'Expected';
+}
+
 function groupDateLabel(isoDateTime: string, now = new Date()): string {
   const parsed = new Date(isoDateTime);
   if (Number.isNaN(parsed.getTime())) {
@@ -235,7 +241,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
               <div className="detail-sheet-title">
                 <span className="detail-sheet-kicker">
                   <i className={movementIconClass(selectedEntry.type)} aria-hidden />
-                  <span>{movementTypeLabel(selectedEntry.type)} · {selectedEntry.source === 'posted' ? 'Posted' : 'Scheduled'}</span>
+                  <span>{movementTypeLabel(selectedEntry.type)} · {sourceLabel(selectedEntry.source)}</span>
                 </span>
                 <h3>{selectedEntry.title}</h3>
               </div>

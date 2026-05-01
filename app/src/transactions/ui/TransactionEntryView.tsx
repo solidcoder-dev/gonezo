@@ -46,6 +46,7 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         recurrenceEndKind: required.state.recurrenceEndKind,
         recurrenceEndDate: required.state.recurrenceEndDate,
         recurrenceEndCount: required.state.recurrenceEndCount,
+        expected: required.state.expected,
         currencyCode: required.state.currencyCode,
         expenseItemNameError: required.status.errors.expenseItemName,
         expenseItemAmountError: required.status.errors.expenseItemAmount,
@@ -57,6 +58,7 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         recurrenceIntervalError: required.status.errors.recurrenceInterval,
         recurrenceEndDateError: required.status.errors.recurrenceEndDate,
         recurrenceEndCountError: required.status.errors.recurrenceEndCount,
+        expectedConflictError: required.status.errors.expectedConflict,
       }}
       provided={{
         onOpen: provided.commands.open,
@@ -90,6 +92,7 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         onSetRecurrenceEndKind: provided.commands.setRecurrenceEndKind,
         onSetRecurrenceEndDate: provided.commands.setRecurrenceEndDate,
         onSetRecurrenceEndCount: provided.commands.setRecurrenceEndCount,
+        onSetExpected: provided.commands.setExpected,
         onSubmit: provided.commands.submit,
       }}
     />

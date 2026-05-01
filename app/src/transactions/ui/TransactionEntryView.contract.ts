@@ -38,6 +38,7 @@ export type TransactionEntryViewRequired = {
     recurrenceEndKind: RecurrenceEndInput['kind'];
     recurrenceEndDate: string;
     recurrenceEndCount: string;
+    expected: boolean;
     currencyCode?: string;
   };
   status: {
@@ -80,6 +81,7 @@ export type TransactionEntryViewProvided = {
     setRecurrenceEndKind: (value: RecurrenceEndInput['kind']) => void;
     setRecurrenceEndDate: (value: string) => void;
     setRecurrenceEndCount: (value: string) => void;
+    setExpected: (value: boolean) => void;
     submit: (event: FormEvent) => Promise<void>;
   };
 };

@@ -57,6 +57,12 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
+  ExpectedCreateMovementInput,
+  ExpectedCreateMovementResult,
+  ExpectedDismissMovementInput,
+  ExpectedListMovementsInput,
+  ExpectedListMovementsResult,
+  ExpectedResolveMovementInput,
   MovementsMonthOverviewInput,
   MovementsMonthOverviewResult,
   MovementsSearchInput,
@@ -216,6 +222,22 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async schedulingListMovements(options: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult> {
     return this.core.schedulingListMovements(options);
+  }
+
+  async expectedCreateMovement(options: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult> {
+    return this.core.expectedCreateMovement(options);
+  }
+
+  async expectedListMovements(options: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult> {
+    return this.core.expectedListMovements(options);
+  }
+
+  async expectedResolveMovement(options: ExpectedResolveMovementInput): Promise<void> {
+    return this.core.expectedResolveMovement(options);
+  }
+
+  async expectedDismissMovement(options: ExpectedDismissMovementInput): Promise<void> {
+    return this.core.expectedDismissMovement(options);
   }
 
   async movementsGetMonthOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> {

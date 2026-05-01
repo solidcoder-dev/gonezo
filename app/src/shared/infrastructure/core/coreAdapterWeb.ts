@@ -65,6 +65,13 @@ import type {
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
   SchedulingMovementItem,
+  ExpectedCreateMovementInput,
+  ExpectedCreateMovementResult,
+  ExpectedDismissMovementInput,
+  ExpectedListMovementsInput,
+  ExpectedListMovementsResult,
+  ExpectedMovementItem,
+  ExpectedResolveMovementInput,
   LedgerTransactionListItem,
   MovementsMonthOverviewInput,
   MovementsMonthOverviewResult,
@@ -143,6 +150,8 @@ type MemoryRecurringMovement = RecurrenceMovementItem & {
   completedAt?: string;
 };
 
+type MemoryExpectedMovement = ExpectedMovementItem;
+
 type MemoryVoiceCaptureRecord = {
   analysisId: string;
   sessionId: string;
@@ -187,6 +196,8 @@ export class CoreAdapterWeb implements CorePort {
   private static mobillsImportFingerprintToTransactionId: Map<string, string> = new Map();
 
   private static recurringMovements: MemoryRecurringMovement[] = [];
+
+  private static expectedMovements: MemoryExpectedMovement[] = [];
 
   private static voiceRecordingStorage: Map<string, {
     id: string;
@@ -2232,6 +2243,167 @@ export class CoreAdapterWeb implements CorePort {
     };
   }
 
+  private filterExpectedMovements(input: {
+    accountId: string;
+    filters?: MovementsSearchFiltersInput;
+    includeClosed?: boolean;
+  }): ExpectedMovementItem[] {
+    const filters = input.filters ?? {};
+    const text = filters.text?.trim().toLowerCase();
+    const merchant = filters.merchant?.trim().toLowerCase();
+    const categoryIds = filters.categoryIds && filters.categoryIds.length > 0
+      ? filters.categoryIds
+      : filters.categoryId
+        ? [filters.categoryId]
+        : [];
+    const categoryFilter = categoryIds.length > 0
+      ? new Set(categoryIds.map((value) => value.trim()).filter((value) => value.length > 0))
+      : null;
+    const typeFilter = filters.types && filters.types.length > 0
+      ? new Set(filters.types.filter((value) => value === 'expense' || value === 'income'))
+      : null;
+    const parsedAmountMin = filters.amountMin == null ? undefined : Number(filters.amountMin);
+    const parsedAmountMax = filters.amountMax == null ? undefined : Number(filters.amountMax);
+    const hasAmountMin = typeof parsedAmountMin === 'number' && Number.isFinite(parsedAmountMin);
+    const hasAmountMax = typeof parsedAmountMax === 'number' && Number.isFinite(parsedAmountMax);
+    const fromDateEpoch = filters.fromDate ? Date.parse(filters.fromDate) : undefined;
+    const toDateEpoch = filters.toDate ? Date.parse(filters.toDate) : undefined;
+    const hasFromDateEpoch = typeof fromDateEpoch === 'number' && Number.isFinite(fromDateEpoch);
+    const hasToDateEpoch = typeof toDateEpoch === 'number' && Number.isFinite(toDateEpoch);
+
+    return CoreAdapterWeb.expectedMovements
+      .filter((movement) => movement.accountId === input.accountId)
+      .filter((movement) => input.includeClosed || movement.status === 'pending')
+      .filter((movement) => (typeFilter ? typeFilter.has(movement.type) : true))
+      .filter((movement) => (categoryFilter ? Boolean(movement.categoryId && categoryFilter.has(movement.categoryId)) : true))
+      .filter((movement) => {
+        if (!hasAmountMin && !hasAmountMax) {
+          return true;
+        }
+        const amount = Number(movement.amount);
+        if (!Number.isFinite(amount)) {
+          return false;
+        }
+        if (hasAmountMin && amount < parsedAmountMin!) {
+          return false;
+        }
+        if (hasAmountMax && amount > parsedAmountMax!) {
+          return false;
+        }
+        return true;
+      })
+      .filter((movement) => {
+        if (!hasFromDateEpoch && !hasToDateEpoch) {
+          return true;
+        }
+        const expectedAtEpoch = Date.parse(movement.expectedAt);
+        if (!Number.isFinite(expectedAtEpoch)) {
+          return false;
+        }
+        if (hasFromDateEpoch && expectedAtEpoch < fromDateEpoch!) {
+          return false;
+        }
+        if (hasToDateEpoch && expectedAtEpoch > toDateEpoch!) {
+          return false;
+        }
+        return true;
+      })
+      .filter((movement) => {
+        if (!merchant) {
+          return true;
+        }
+        return (movement.merchant ?? '').toLowerCase().includes(merchant);
+      })
+      .filter((movement) => {
+        if (!text) {
+          return true;
+        }
+        const merchantText = movement.merchant?.toLowerCase() ?? '';
+        const descriptionText = movement.description?.toLowerCase() ?? '';
+        return merchantText.includes(text) || descriptionText.includes(text);
+      });
+  }
+
+  private mapExpectedMovementToSearchItem(movement: ExpectedMovementItem): MovementsSearchItem {
+    return {
+      id: movement.id,
+      source: 'expected',
+      type: movement.type,
+      status: movement.status === 'pending' ? 'expected' : movement.status,
+      amount: movement.amount,
+      currency: movement.currency,
+      occurredAt: movement.expectedAt,
+      title: movement.merchant || movement.description || 'Expected movement',
+      description: movement.description,
+      merchant: movement.merchant,
+      categoryId: movement.categoryId,
+      category: movement.categoryId ? { id: movement.categoryId, name: this.categoryNameById(movement.categoryId) ?? movement.categoryId } : undefined,
+      tags: [],
+    };
+  }
+
+  async expectedCreateMovement(input: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult> {
+    const account = this.accountOrThrow(input.accountId);
+    this.ensureAccountCanPost(account, input.currency);
+    const amount = Number(input.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Expected movement amount must be greater than 0');
+    }
+    const expectedAt = input.expectedAt.trim() || new Date().toISOString();
+    const now = new Date().toISOString();
+    const id = crypto.randomUUID();
+    CoreAdapterWeb.expectedMovements.push({
+      id,
+      accountId: input.accountId,
+      type: input.type,
+      amount: amount.toFixed(2),
+      currency: input.currency.toUpperCase(),
+      expectedAt,
+      description: input.description,
+      merchant: input.merchant,
+      categoryId: input.categoryId,
+      status: 'pending',
+      createdAt: now,
+      updatedAt: now,
+    });
+    return { id };
+  }
+
+  async expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult> {
+    this.accountOrThrow(input.accountId);
+    return {
+      items: this.filterExpectedMovements({
+        accountId: input.accountId,
+        includeClosed: input.includeClosed === true,
+      }),
+    };
+  }
+
+  async expectedResolveMovement(input: ExpectedResolveMovementInput): Promise<void> {
+    const movement = CoreAdapterWeb.expectedMovements.find((item) => item.id === input.expectedMovementId);
+    if (!movement) {
+      throw new Error(`Expected movement not found: ${input.expectedMovementId}`);
+    }
+    const transactionId = input.transactionId.trim();
+    if (!transactionId) {
+      throw new Error('transactionId is required');
+    }
+    movement.status = 'resolved';
+    movement.resolvedTransactionId = transactionId;
+    movement.resolvedAt = input.resolvedAt ?? new Date().toISOString();
+    movement.updatedAt = movement.resolvedAt;
+  }
+
+  async expectedDismissMovement(input: ExpectedDismissMovementInput): Promise<void> {
+    const movement = CoreAdapterWeb.expectedMovements.find((item) => item.id === input.expectedMovementId);
+    if (!movement) {
+      throw new Error(`Expected movement not found: ${input.expectedMovementId}`);
+    }
+    movement.status = 'dismissed';
+    movement.dismissedAt = input.dismissedAt ?? new Date().toISOString();
+    movement.updatedAt = movement.dismissedAt;
+  }
+
   async movementsSearch(input: MovementsSearchInput): Promise<MovementsSearchResult> {
     const requestedSize = input.pagination?.size ?? 20;
     const pageSize = Number.isFinite(requestedSize) && requestedSize > 0 ? Math.min(Math.trunc(requestedSize), 100) : 20;
@@ -2272,6 +2444,46 @@ export class CoreAdapterWeb implements CorePort {
         totalPages: result.totalPages,
         hasNext: result.hasNext,
         hasPrevious: result.hasPrevious,
+      };
+    }
+
+    if (input.source === 'expected') {
+      const sort = input.sort && input.sort.length > 0
+        ? input.sort
+        : [{ field: 'date' as const, direction: 'desc' as const }];
+      const sorted = [...this.filterExpectedMovements({
+        accountId: input.accountId,
+        filters,
+      })].sort((left, right) => {
+        for (const criterion of sort) {
+          let comparison = 0;
+          if (criterion.field === 'amount') {
+            const leftAmount = Number(left.amount);
+            const rightAmount = Number(right.amount);
+            comparison = (Number.isFinite(leftAmount) ? leftAmount : 0) - (Number.isFinite(rightAmount) ? rightAmount : 0);
+          } else {
+            comparison = left.expectedAt.localeCompare(right.expectedAt);
+          }
+          if (comparison !== 0) {
+            return criterion.direction === 'asc' ? comparison : -comparison;
+          }
+        }
+        return right.id.localeCompare(left.id);
+      });
+
+      const totalElements = sorted.length;
+      const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / pageSize);
+      const resolvedPage = totalPages === 0 ? 0 : Math.min(page, totalPages - 1);
+      const startIndex = resolvedPage * pageSize;
+      const content = sorted.slice(startIndex, startIndex + pageSize);
+      return {
+        content: content.map((movement) => this.mapExpectedMovementToSearchItem(movement)),
+        page: resolvedPage,
+        size: pageSize,
+        totalElements,
+        totalPages,
+        hasNext: totalPages > 0 && resolvedPage + 1 < totalPages,
+        hasPrevious: resolvedPage > 0,
       };
     }
 

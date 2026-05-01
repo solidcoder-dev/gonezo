@@ -10,6 +10,7 @@ public class CorePlugin: CAPPlugin {
     private var taxonomyTags: [[String: Any]] = []
     private var transactionTagsByTransactionId: [String: [String]] = [:]
     private var recurringMovements: [[String: Any]] = []
+    private var expectedMovements: [[String: Any]] = []
 
     @objc func doThing(_ call: CAPPluginCall) {
         let input = call.getString("input") ?? ""
@@ -536,8 +537,140 @@ public class CorePlugin: CAPPlugin {
                 if leftDue.isEmpty { return false }
                 if rightDue.isEmpty { return true }
                 return leftDue < rightDue
+        }
+        call.resolve(["items": items])
+    }
+
+    @objc func expectedCreateMovement(_ call: CAPPluginCall) {
+        let accountId = (call.getString("accountId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let type = (call.getString("type") ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let amount = (call.getString("amount") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let currency = (call.getString("currency") ?? "").trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+
+        if accountId.isEmpty {
+            call.reject("accountId is required")
+            return
+        }
+        if !accounts.contains(where: { ($0["id"] as? String) == accountId }) {
+            call.reject("Account not found")
+            return
+        }
+        if type != "expense" && type != "income" {
+            call.reject("type must be expense or income")
+            return
+        }
+        guard let parsedAmount = Double(amount), parsedAmount > 0 else {
+            call.reject("amount must be greater than 0")
+            return
+        }
+        if currency.isEmpty {
+            call.reject("currency is required")
+            return
+        }
+
+        let id = UUID().uuidString
+        let now = ISO8601DateFormatter().string(from: Date())
+        let expectedAt = call.getString("expectedAt") ?? now
+        expectedMovements.append([
+            "id": id,
+            "accountId": accountId,
+            "type": type,
+            "amount": amount,
+            "currency": currency,
+            "expectedAt": expectedAt,
+            "description": call.getString("description") as Any,
+            "merchant": call.getString("merchant") as Any,
+            "categoryId": call.getString("categoryId") as Any,
+            "status": "pending",
+            "resolvedTransactionId": NSNull(),
+            "createdAt": now,
+            "updatedAt": now,
+            "resolvedAt": NSNull(),
+            "dismissedAt": NSNull()
+        ])
+        call.resolve(["id": id])
+    }
+
+    @objc func expectedListMovements(_ call: CAPPluginCall) {
+        let accountId = (call.getString("accountId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let includeClosed = call.getBool("includeClosed") ?? false
+        if accountId.isEmpty {
+            call.reject("accountId is required")
+            return
+        }
+
+        let items = expectedMovements
+            .filter { movement in
+                if (movement["accountId"] as? String) != accountId {
+                    return false
+                }
+                if includeClosed {
+                    return true
+                }
+                return (movement["status"] as? String) == "pending"
+            }
+            .sorted { lhs, rhs in
+                let leftDate = lhs["expectedAt"] as? String ?? ""
+                let rightDate = rhs["expectedAt"] as? String ?? ""
+                if leftDate != rightDate {
+                    return leftDate < rightDate
+                }
+                return (lhs["id"] as? String ?? "") < (rhs["id"] as? String ?? "")
             }
         call.resolve(["items": items])
+    }
+
+    @objc func expectedResolveMovement(_ call: CAPPluginCall) {
+        let expectedMovementId = (call.getString("expectedMovementId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let transactionId = (call.getString("transactionId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if expectedMovementId.isEmpty {
+            call.reject("expectedMovementId is required")
+            return
+        }
+        if transactionId.isEmpty {
+            call.reject("transactionId is required")
+            return
+        }
+        guard let index = expectedMovements.firstIndex(where: { ($0["id"] as? String) == expectedMovementId }) else {
+            call.reject("Expected movement not found")
+            return
+        }
+        if (expectedMovements[index]["status"] as? String) != "pending" {
+            call.reject("Only pending expected movements can be changed")
+            return
+        }
+
+        let resolvedAt = call.getString("resolvedAt") ?? ISO8601DateFormatter().string(from: Date())
+        expectedMovements[index]["status"] = "resolved"
+        expectedMovements[index]["resolvedTransactionId"] = transactionId
+        expectedMovements[index]["updatedAt"] = resolvedAt
+        expectedMovements[index]["resolvedAt"] = resolvedAt
+        expectedMovements[index]["dismissedAt"] = NSNull()
+        call.resolve()
+    }
+
+    @objc func expectedDismissMovement(_ call: CAPPluginCall) {
+        let expectedMovementId = (call.getString("expectedMovementId") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if expectedMovementId.isEmpty {
+            call.reject("expectedMovementId is required")
+            return
+        }
+        guard let index = expectedMovements.firstIndex(where: { ($0["id"] as? String) == expectedMovementId }) else {
+            call.reject("Expected movement not found")
+            return
+        }
+        if (expectedMovements[index]["status"] as? String) != "pending" {
+            call.reject("Only pending expected movements can be changed")
+            return
+        }
+
+        let dismissedAt = call.getString("dismissedAt") ?? ISO8601DateFormatter().string(from: Date())
+        expectedMovements[index]["status"] = "dismissed"
+        expectedMovements[index]["resolvedTransactionId"] = NSNull()
+        expectedMovements[index]["updatedAt"] = dismissedAt
+        expectedMovements[index]["resolvedAt"] = NSNull()
+        expectedMovements[index]["dismissedAt"] = dismissedAt
+        call.resolve()
     }
 
     @objc func orchestrationCategorizeTransaction(_ call: CAPPluginCall) {

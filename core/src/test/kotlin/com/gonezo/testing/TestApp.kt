@@ -1,6 +1,15 @@
 package com.gonezo.testing
 
 import com.gonezo.application.events.DomainEventPublisher
+import com.gonezo.expected.application.CreateExpectedMovementService
+import com.gonezo.expected.application.CreateExpectedMovementUC
+import com.gonezo.expected.application.DismissExpectedMovementService
+import com.gonezo.expected.application.DismissExpectedMovementUC
+import com.gonezo.expected.application.ListExpectedMovementsService
+import com.gonezo.expected.application.ListExpectedMovementsUC
+import com.gonezo.expected.application.ResolveExpectedMovementService
+import com.gonezo.expected.application.ResolveExpectedMovementUC
+import com.gonezo.expected.infrastructure.persistence.JdbcExpectedMovementRepository
 import com.gonezo.ledger.application.AddLedgerTransactionItemUC
 import com.gonezo.ledger.application.CreateLedgerExpenseDraftUC
 import com.gonezo.ledger.application.DeleteLedgerAccountUC
@@ -39,6 +48,7 @@ class TestApp(private val db: TestDatabase) {
 
   val ledgerAccountRepository = JdbcLedgerAccountRepository(namedJdbc)
   val ledgerTransactionRepository = JdbcLedgerTransactionRepository(namedJdbc)
+  val expectedMovementRepository = JdbcExpectedMovementRepository(namedJdbc)
 
   private val domainEventPublisher: DomainEventPublisher = NoopDomainEventPublisher()
 
@@ -94,6 +104,10 @@ class TestApp(private val db: TestDatabase) {
     ledgerAccountRepository,
     ledgerTransactionRepository,
   )
+  val expectedCreateMovementUC: CreateExpectedMovementUC = CreateExpectedMovementService(expectedMovementRepository)
+  val expectedResolveMovementUC: ResolveExpectedMovementUC = ResolveExpectedMovementService(expectedMovementRepository)
+  val expectedDismissMovementUC: DismissExpectedMovementUC = DismissExpectedMovementService(expectedMovementRepository)
+  val expectedListMovementsUC: ListExpectedMovementsUC = ListExpectedMovementsService(expectedMovementRepository)
 }
 
 private class NoopDomainEventPublisher : DomainEventPublisher {
