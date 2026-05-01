@@ -113,6 +113,7 @@ final class AndroidLedgerAccountRepository implements LedgerAccountRepository {
         String placeholders = placeholders(transactionIds.size());
         String[] txArgs = transactionIds.toArray(new String[0]);
         database.delete("taxonomy_transaction_assignments", "transaction_id in (" + placeholders + ")", txArgs);
+        database.delete("taxonomy_transaction_tag_assignments", "transaction_id in (" + placeholders + ")", txArgs);
         database.delete("mobills_import_fingerprints", "transaction_id in (" + placeholders + ")", txArgs);
       }
 

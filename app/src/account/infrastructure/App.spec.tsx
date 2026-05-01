@@ -1841,6 +1841,192 @@ describe('App Accounts UX', () => {
     expect(screen.getAllByRole('list', { name: 'Movement results' })).toHaveLength(1);
   });
 
+  it('shows tag metadata on advanced-search cards and detail when filtering by tag', async () => {
+    const core = makeCore(1);
+    core.movementsSearch = vi.fn(async (input: MovementsSearchInput): Promise<MovementsSearchResult> => ({
+      content: [
+        {
+          id: 'tx-1',
+          source: 'posted',
+          type: 'expense',
+          status: 'posted',
+          amount: '1.00',
+          currency: 'USD',
+          occurredAt: isoInCurrentMonth(1, 9, 0),
+          title: 'Merchant 1',
+          description: 'Description 1',
+          merchant: 'Merchant 1',
+        },
+      ],
+      page: input.pagination?.page ?? 0,
+      size: input.pagination?.size ?? 10,
+      totalElements: 1,
+      totalPages: 1,
+      hasNext: false,
+      hasPrevious: false,
+    }));
+    const listTransactionTaxonomy = vi.fn(async () => ({
+      items: [
+        {
+          transactionId: 'tx-1',
+          categoryId: undefined,
+          tagIds: ['tag-home'],
+          categorizationStatus: 'none' as const,
+          taggingStatus: 'assigned' as const,
+        },
+      ],
+    }));
+    (core as unknown as { orchestrationListTransactionTaxonomy: typeof listTransactionTaxonomy })
+      .orchestrationListTransactionTaxonomy = listTransactionTaxonomy;
+
+    render(
+      <MemoryRouter initialEntries={['/movements/search?accountId=acc-1']}>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('1 movement · Grouped by day · Date desc');
+    fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
+    const filtersDialog = await screen.findByRole('dialog', { name: 'Filters' });
+    fireEvent.click(within(filtersDialog).getByRole('button', { name: '#home' }));
+    fireEvent.click(within(filtersDialog).getByRole('button', { name: 'Apply' }));
+
+    expect(await screen.findByText('#home')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Merchant 1'));
+    const detailDialog = await screen.findByRole('dialog', { name: 'Movement details' });
+    expect(within(detailDialog).getByText('#home')).toBeInTheDocument();
+  });
+
+  it('shows category metadata on advanced-search cards and detail when only category id is returned', async () => {
+    const core = makeCore(1);
+    core.movementsSearch = vi.fn(async (input: MovementsSearchInput): Promise<MovementsSearchResult> => ({
+      content: [
+        {
+          id: 'tx-1',
+          source: 'posted',
+          type: 'expense',
+          status: 'posted',
+          amount: '1.00',
+          currency: 'USD',
+          occurredAt: isoInCurrentMonth(1, 9, 0),
+          title: 'Merchant 1',
+          description: 'Description 1',
+          merchant: 'Merchant 1',
+          categoryId: 'cat-food',
+        },
+      ],
+      page: input.pagination?.page ?? 0,
+      size: input.pagination?.size ?? 10,
+      totalElements: 1,
+      totalPages: 1,
+      hasNext: false,
+      hasPrevious: false,
+    }));
+
+    render(
+      <MemoryRouter initialEntries={['/movements/search?accountId=acc-1']}>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('1 movement · Grouped by day · Date desc');
+    fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
+    const filtersDialog = await screen.findByRole('dialog', { name: 'Filters' });
+    fireEvent.click(within(filtersDialog).getByRole('button', { name: 'Food' }));
+    fireEvent.click(within(filtersDialog).getByRole('button', { name: 'Apply' }));
+
+    expect(await screen.findByText('Food')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Merchant 1'));
+    const detailDialog = await screen.findByRole('dialog', { name: 'Movement details' });
+    expect(within(detailDialog).getByText('Food')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(core.movementsSearch).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          filters: expect.objectContaining({
+            categoryId: 'cat-food',
+            categoryIds: ['cat-food'],
+          }),
+          pagination: {
+            page: 0,
+            size: 100,
+          },
+        }),
+      );
+    });
+  });
+
+  it('client-filters advanced-search posted results after taxonomy hydration when the adapter ignores category filters', async () => {
+    const core = makeCore(2);
+    core.movementsSearch = vi.fn(async (input: MovementsSearchInput): Promise<MovementsSearchResult> => ({
+      content: [
+        {
+          id: 'tx-1',
+          source: 'posted',
+          type: 'expense',
+          status: 'posted',
+          amount: '1.00',
+          currency: 'USD',
+          occurredAt: isoInCurrentMonth(1, 9, 0),
+          title: 'Merchant 1',
+          merchant: 'Merchant 1',
+        },
+        {
+          id: 'tx-2',
+          source: 'posted',
+          type: 'expense',
+          status: 'posted',
+          amount: '2.00',
+          currency: 'USD',
+          occurredAt: isoInCurrentMonth(2, 9, 0),
+          title: 'Merchant 2',
+          merchant: 'Merchant 2',
+        },
+      ],
+      page: input.pagination?.page ?? 0,
+      size: input.pagination?.size ?? 10,
+      totalElements: 2,
+      totalPages: 1,
+      hasNext: false,
+      hasPrevious: false,
+    }));
+    const listTransactionTaxonomy = vi.fn(async () => ({
+      items: [
+        {
+          transactionId: 'tx-1',
+          categoryId: 'cat-food',
+          tagIds: [],
+          categorizationStatus: 'assigned' as const,
+          taggingStatus: 'none' as const,
+        },
+        {
+          transactionId: 'tx-2',
+          categoryId: undefined,
+          tagIds: [],
+          categorizationStatus: 'none' as const,
+          taggingStatus: 'none' as const,
+        },
+      ],
+    }));
+    (core as unknown as { orchestrationListTransactionTaxonomy: typeof listTransactionTaxonomy })
+      .orchestrationListTransactionTaxonomy = listTransactionTaxonomy;
+
+    render(
+      <MemoryRouter initialEntries={['/movements/search?accountId=acc-1']}>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('2 movements · Grouped by day · Date desc');
+    fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
+    const filtersDialog = await screen.findByRole('dialog', { name: 'Filters' });
+    fireEvent.click(within(filtersDialog).getByRole('button', { name: 'Food' }));
+    fireEvent.click(within(filtersDialog).getByRole('button', { name: 'Apply' }));
+
+    expect(await screen.findByText('1 movement · Grouped by day · Date desc')).toBeInTheDocument();
+    expect(screen.getByText('Merchant 1')).toBeInTheDocument();
+    expect(screen.queryByText('Merchant 2')).not.toBeInTheDocument();
+  });
+
   it('keeps hub monthly-focused without exposing advanced filter controls', async () => {
     const coreWithThree = makeCore(3);
 

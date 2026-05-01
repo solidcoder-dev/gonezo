@@ -53,9 +53,6 @@ public class CorePlugin extends Plugin {
   private static final String VOICE_LOG_TAG = "GonezoVoiceFlow";
   private static final Pattern VOICE_AMOUNT_PATTERN = Pattern.compile("-?\\d+(?:[.,]\\d+)?");
   private static final Pattern VOICE_TAG_PATTERN = Pattern.compile("#([A-Za-z0-9_-]+)");
-  private final java.util.List<JSObject> taxonomyTags = new java.util.ArrayList<>();
-  private final java.util.Map<String, String> transactionCategoryByTransactionId = new java.util.HashMap<>();
-  private final java.util.Map<String, java.util.List<String>> transactionTagsByTransactionId = new java.util.HashMap<>();
   private final java.util.Map<String, JSObject> transactionVoiceSessionById = new ConcurrentHashMap<>();
   private final java.util.Map<String, WavRecorder> transactionVoiceRecorderBySessionId = new ConcurrentHashMap<>();
   private final java.util.Map<String, JSObject> transactionVoiceAnalysisById = new ConcurrentHashMap<>();
@@ -150,10 +147,6 @@ public class CorePlugin extends Plugin {
         true
       );
       core.deleteAccount(accountId);
-      for (AndroidLedgerCore.LedgerTransactionView transaction : existingTransactions) {
-        transactionCategoryByTransactionId.remove(transaction.id());
-        transactionTagsByTransactionId.remove(transaction.id());
-      }
       call.resolve();
     } catch (Exception ex) {
       call.reject(ex.getMessage());
@@ -405,6 +398,7 @@ public class CorePlugin extends Plugin {
       List<AndroidLedgerCore.LedgerTransactionSortInput> resolvedSort = toSortInput(sort);
 
       AndroidLedgerCore core = AndroidLedgerCore.getInstance(getContext());
+      AndroidTaxonomyCore taxonomyCore = AndroidTaxonomyCore.getInstance(getContext());
       List<AndroidLedgerCore.LedgerTransactionView> allTransactions = listAllTransactions(
         core,
         accountId,
@@ -426,10 +420,14 @@ public class CorePlugin extends Plugin {
       java.util.Set<String> tagFilter = tagIds == null || tagIds.isEmpty()
         ? null
         : new java.util.HashSet<>(tagIds);
+      List<String> transactionIds = allTransactions.stream().map(AndroidLedgerCore.LedgerTransactionView::id).toList();
+      Map<String, AndroidTaxonomyCore.TransactionTaxonomyView> taxonomyByTransactionId =
+        taxonomyCore.listTransactionTaxonomy(transactionIds);
 
       List<AndroidLedgerCore.LedgerTransactionView> filteredTransactions = new ArrayList<>();
       for (AndroidLedgerCore.LedgerTransactionView tx : allTransactions) {
-        String resolvedCategoryId = transactionCategoryByTransactionId.get(tx.id());
+        AndroidTaxonomyCore.TransactionTaxonomyView taxonomy = taxonomyByTransactionId.get(tx.id());
+        String resolvedCategoryId = taxonomy == null ? null : taxonomy.categoryId();
         if (resolvedCategoryId == null || resolvedCategoryId.trim().isEmpty()) {
           resolvedCategoryId = tx.categoryId();
         }
@@ -439,7 +437,7 @@ public class CorePlugin extends Plugin {
         }
 
         if (tagFilter != null) {
-          List<String> assignedTagIds = transactionTagsByTransactionId.get(tx.id());
+          List<String> assignedTagIds = taxonomy == null ? null : taxonomy.tagIds();
           if (assignedTagIds == null || assignedTagIds.isEmpty()) {
             continue;
           }
@@ -493,7 +491,8 @@ public class CorePlugin extends Plugin {
         item.put("occurredAt", tx.occurredAt());
         item.put("description", tx.description());
         item.put("merchant", tx.merchant());
-        String categoryIdValue = transactionCategoryByTransactionId.get(tx.id());
+        AndroidTaxonomyCore.TransactionTaxonomyView taxonomy = taxonomyByTransactionId.get(tx.id());
+        String categoryIdValue = taxonomy == null ? null : taxonomy.categoryId();
         if (categoryIdValue == null || categoryIdValue.trim().isEmpty()) {
           categoryIdValue = tx.categoryId();
         }
@@ -574,19 +573,15 @@ public class CorePlugin extends Plugin {
   @PluginMethod
   public void taxonomyListTags(PluginCall call) {
     Boolean includeArchived = call.getBoolean("includeArchived");
-    boolean resolvedIncludeArchived = includeArchived != null && includeArchived;
 
     try {
+      AndroidTaxonomyCore core = AndroidTaxonomyCore.getInstance(getContext());
       org.json.JSONArray items = new org.json.JSONArray();
-      for (JSObject tag : taxonomyTags) {
-        String tagStatus = tag.getString("status", "active");
-        if (!resolvedIncludeArchived && "archived".equalsIgnoreCase(tagStatus)) {
-          continue;
-        }
+      for (AndroidTaxonomyCore.TaxonomyTagView tag : core.listTags(includeArchived)) {
         JSObject item = new JSObject();
-        item.put("id", tag.getString("id"));
-        item.put("name", tag.getString("name"));
-        item.put("status", tagStatus);
+        item.put("id", tag.id());
+        item.put("name", tag.name());
+        item.put("status", tag.status());
         items.put(item);
       }
 
@@ -658,11 +653,6 @@ public class CorePlugin extends Plugin {
       if (categorization.errorMessage() != null) {
         result.put("errorMessage", categorization.errorMessage());
       }
-      if ("assigned".equalsIgnoreCase(categorization.status()) && categorization.categoryId() != null) {
-        transactionCategoryByTransactionId.put(transactionId, categorization.categoryId());
-      } else if ("none".equalsIgnoreCase(categorization.status())) {
-        transactionCategoryByTransactionId.remove(transactionId);
-      }
       call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());
@@ -691,7 +681,18 @@ public class CorePlugin extends Plugin {
     JSONArray transactionIds = call.getArray("transactionIds");
     try {
       JSONArray items = new JSONArray();
+      AndroidTaxonomyCore core = AndroidTaxonomyCore.getInstance(getContext());
+      List<String> requestedTransactionIds = new ArrayList<>();
       if (transactionIds != null) {
+        for (int index = 0; index < transactionIds.length(); index++) {
+          String transactionId = transactionIds.optString(index, "").trim();
+          if (!transactionId.isEmpty()) {
+            requestedTransactionIds.add(transactionId);
+          }
+        }
+
+        Map<String, AndroidTaxonomyCore.TransactionTaxonomyView> taxonomy =
+          core.listTransactionTaxonomy(requestedTransactionIds);
         for (int index = 0; index < transactionIds.length(); index++) {
           String transactionId = transactionIds.optString(index, "").trim();
           if (transactionId.isEmpty()) {
@@ -700,23 +701,20 @@ public class CorePlugin extends Plugin {
           JSObject item = new JSObject();
           item.put("transactionId", transactionId);
 
-          String categoryId = transactionCategoryByTransactionId.get(transactionId);
+          AndroidTaxonomyCore.TransactionTaxonomyView view = taxonomy.get(transactionId);
+          String categoryId = view == null ? null : view.categoryId();
           if (categoryId != null && !categoryId.trim().isEmpty()) {
             item.put("categoryId", categoryId);
-            item.put("categorizationStatus", "assigned");
-          } else {
-            item.put("categorizationStatus", "none");
           }
+          item.put("categorizationStatus", view == null ? "none" : view.categorizationStatus());
 
           JSONArray tagIds = new JSONArray();
-          List<String> tags = transactionTagsByTransactionId.get(transactionId);
-          if (tags != null) {
-            for (String tagId : tags) {
-              tagIds.put(tagId);
-            }
+          List<String> tags = view == null ? List.of() : view.tagIds();
+          for (String tagId : tags) {
+            tagIds.put(tagId);
           }
           item.put("tagIds", tagIds);
-          item.put("taggingStatus", tagIds.length() > 0 ? "assigned" : "none");
+          item.put("taggingStatus", view == null ? "none" : view.taggingStatus());
           items.put(item);
         }
       }
@@ -1729,11 +1727,6 @@ public class CorePlugin extends Plugin {
             if ("failed".equalsIgnoreCase(categorization.status())) {
               throw new IllegalStateException(categorization.errorCode() != null ? categorization.errorCode() : categorization.errorMessage());
             }
-            if ("assigned".equalsIgnoreCase(categorization.status()) && categorization.categoryId() != null) {
-              transactionCategoryByTransactionId.put(transactionId, categorization.categoryId());
-            } else if ("none".equalsIgnoreCase(categorization.status())) {
-              transactionCategoryByTransactionId.remove(transactionId);
-            }
           }
 
           if (!tagNames.isEmpty()) {
@@ -1831,58 +1824,22 @@ public class CorePlugin extends Plugin {
       }
     }
 
-    if (uniqueByNormalizedName.isEmpty()) {
-      transactionTagsByTransactionId.put(transactionId, new ArrayList<>());
-      JSObject result = new JSObject();
-      result.put("status", "none");
-      return result;
-    }
+    AndroidTaxonomyCore core = AndroidTaxonomyCore.getInstance(getContext());
+    AndroidTaxonomyCore.TaxonomyTaggingResultView tagging =
+      core.applyTagsToTransaction(transactionId, new ArrayList<>(uniqueByNormalizedName.values()));
 
-    JSONArray resolvedTagIds = new JSONArray();
-    List<String> storedTagIds = new ArrayList<>();
-    for (Map.Entry<String, String> entry : uniqueByNormalizedName.entrySet()) {
-      String normalizedTagName = entry.getKey();
-      String rawTagName = entry.getValue();
-
-      JSObject existingTag = null;
-      for (JSObject tag : taxonomyTags) {
-        if (normalizedTagName.equals(tag.getString("normalizedName", ""))) {
-          existingTag = tag;
-          break;
-        }
-      }
-
-      if (existingTag != null) {
-        String tagStatus = existingTag.getString("status", "active");
-        if (!"active".equalsIgnoreCase(tagStatus)) {
-          JSObject failed = new JSObject();
-          failed.put("status", "failed");
-          failed.put("errorCode", "TAG_ARCHIVED");
-          failed.put("errorMessage", "Tag is archived: " + existingTag.getString("name"));
-          return failed;
-        }
-
-        String existingTagId = existingTag.getString("id");
-        resolvedTagIds.put(existingTagId);
-        storedTagIds.add(existingTagId);
-        continue;
-      }
-
-      JSObject createdTag = new JSObject();
-      String createdTagId = UUID.randomUUID().toString();
-      createdTag.put("id", createdTagId);
-      createdTag.put("name", rawTagName);
-      createdTag.put("normalizedName", normalizedTagName);
-      createdTag.put("status", "active");
-      taxonomyTags.add(createdTag);
-
-      resolvedTagIds.put(createdTagId);
-      storedTagIds.add(createdTagId);
-    }
-
-    transactionTagsByTransactionId.put(transactionId, storedTagIds);
     JSObject result = new JSObject();
-    result.put("status", "assigned");
+    result.put("status", tagging.status());
+    if (tagging.errorCode() != null) {
+      result.put("errorCode", tagging.errorCode());
+    }
+    if (tagging.errorMessage() != null) {
+      result.put("errorMessage", tagging.errorMessage());
+    }
+    JSONArray resolvedTagIds = new JSONArray();
+    for (String tagId : tagging.tagIds()) {
+      resolvedTagIds.put(tagId);
+    }
     result.put("tagIds", resolvedTagIds);
     return result;
   }

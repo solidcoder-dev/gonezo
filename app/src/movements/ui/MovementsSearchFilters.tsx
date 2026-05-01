@@ -238,7 +238,7 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
               </button>
             </div>
 
-            <div className="stack" aria-label="Movement filters">
+            <div className="stack search-filter-sheet-content" aria-label="Movement filters">
               <input
                 type="text"
                 aria-label="Merchant"
@@ -435,15 +435,6 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
                 </div>
               </div>
 
-              <div className="quick-row search-sheet-actions">
-                <button type="button" className="text-button" onClick={provided.commands.resetFilters} disabled={disabled}>
-                  Reset
-                </button>
-                <button type="button" className="primary-cta" onClick={provided.commands.applyFilters} disabled={disabled}>
-                  Apply
-                </button>
-              </div>
-
               {filtersAdvancedOpen ? (
                 <div className="stack">
                   <p className="hint">Page size</p>
@@ -467,6 +458,15 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
               <button type="button" className="composer-more-options" onClick={provided.commands.toggleAdvancedFilters} disabled={disabled}>
                 <span>{filtersAdvancedOpen ? 'Less options' : 'More options'}</span>
                 <i className={filtersAdvancedOpen ? 'bi bi-chevron-up composer-more-options-caret' : 'bi bi-chevron-down composer-more-options-caret'} aria-hidden />
+              </button>
+            </div>
+
+            <div className="search-sheet-actions">
+              <button type="button" className="text-button" onClick={provided.commands.resetFilters} disabled={disabled}>
+                Reset
+              </button>
+              <button type="button" className="primary-cta" onClick={provided.commands.applyFilters} disabled={disabled}>
+                Apply
               </button>
             </div>
           </section>

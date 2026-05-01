@@ -181,6 +181,7 @@ function mapPostedTransactionToSearchItem(transaction: LedgerTransactionListItem
     title: transaction.merchant || transaction.description || 'Movement',
     description: transaction.description,
     merchant: transaction.merchant,
+    categoryId: transaction.categoryId,
     category: transaction.category,
     tags: transaction.tags,
   };

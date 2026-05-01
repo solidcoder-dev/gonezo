@@ -401,6 +401,7 @@ export type MovementsSearchItem = {
   title: string;
   description?: string;
   merchant?: string;
+  categoryId?: string;
   category?: {
     id: string;
     name: string;

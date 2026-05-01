@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 12;
+  private static final int DB_VERSION = 13;
 
   CoreDatabase(Context context) {
     super(context, DB_NAME, null, DB_VERSION);
@@ -46,6 +46,10 @@ final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion < 12) {
       createRecurrenceTables(db);
     }
+
+    if (oldVersion < 13) {
+      createTaxonomyTagTables(db);
+    }
   }
 
   @Override
@@ -57,6 +61,7 @@ final class CoreDatabase extends SQLiteOpenHelper {
   private static void createTables(SQLiteDatabase db) {
     createLedgerTables(db);
     createTaxonomyTables(db);
+    createTaxonomyTagTables(db);
     createMobillsImportTables(db);
     createTransactionVoiceAnalysisTables(db);
     createRecurrenceTables(db);
@@ -135,6 +140,43 @@ final class CoreDatabase extends SQLiteOpenHelper {
     db.execSQL(
       "create index if not exists idx_taxonomy_assignments_category_id " +
         "on taxonomy_transaction_assignments(category_id);"
+    );
+  }
+
+  private static void createTaxonomyTagTables(SQLiteDatabase db) {
+    db.execSQL(
+      "create table if not exists taxonomy_tags (" +
+        "id text primary key," +
+        "name text not null," +
+        "name_normalized text not null," +
+        "status text not null," +
+        "created_at text not null," +
+        "archived_at text" +
+      ");"
+    );
+
+    db.execSQL(
+      "create unique index if not exists uq_taxonomy_tags_name " +
+        "on taxonomy_tags(name_normalized);"
+    );
+
+    db.execSQL(
+      "create table if not exists taxonomy_transaction_tag_assignments (" +
+        "transaction_id text not null," +
+        "tag_id text not null," +
+        "assigned_at text not null," +
+        "primary key(transaction_id, tag_id)" +
+      ");"
+    );
+
+    db.execSQL(
+      "create index if not exists idx_taxonomy_transaction_tags_tx " +
+        "on taxonomy_transaction_tag_assignments(transaction_id);"
+    );
+
+    db.execSQL(
+      "create index if not exists idx_taxonomy_transaction_tags_tag " +
+        "on taxonomy_transaction_tag_assignments(tag_id);"
     );
   }
 
@@ -270,6 +312,8 @@ final class CoreDatabase extends SQLiteOpenHelper {
     db.execSQL("drop table if exists recurring_movements");
     db.execSQL("drop table if exists transaction_voice_analysis");
     db.execSQL("drop table if exists mobills_import_fingerprints");
+    db.execSQL("drop table if exists taxonomy_transaction_tag_assignments");
+    db.execSQL("drop table if exists taxonomy_tags");
     db.execSQL("drop table if exists taxonomy_transaction_assignments");
     db.execSQL("drop table if exists taxonomy_categories");
     db.execSQL("drop table if exists ledger_transaction_items");

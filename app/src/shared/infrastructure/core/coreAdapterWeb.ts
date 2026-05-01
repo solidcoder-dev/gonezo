@@ -2205,6 +2205,7 @@ export class CoreAdapterWeb implements CorePort {
       title: transaction.merchant || transaction.description || 'Movement',
       description: transaction.description,
       merchant: transaction.merchant,
+      categoryId: transaction.categoryId,
       category: transaction.category,
       tags: transaction.tags,
     };
