@@ -2137,6 +2137,9 @@ export class CoreAdapterWeb implements CorePort {
     const previewSize = input.scheduledPreviewSize != null && input.scheduledPreviewSize > 0
       ? Math.min(Math.trunc(input.scheduledPreviewSize), 20)
       : 5;
+    const expectedPreviewSize = input.expectedPreviewSize != null && input.expectedPreviewSize > 0
+      ? Math.min(Math.trunc(input.expectedPreviewSize), 20)
+      : previewSize;
     const fromDate = input.fromDate ?? input.filters?.fromDate;
     const toDate = input.toDate ?? input.filters?.toDate;
 
@@ -2146,6 +2149,16 @@ export class CoreAdapterWeb implements CorePort {
         fromDate,
         toDate,
       },
+    });
+    const expectedFiltered = this.filterExpectedMovements({
+      accountId: input.accountId,
+      filters: {
+        fromDate,
+        toDate,
+      },
+    }).sort((left, right) => {
+      const dateComparison = left.expectedAt.localeCompare(right.expectedAt);
+      return dateComparison !== 0 ? dateComparison : left.id.localeCompare(right.id);
     });
 
     const postedFilters = {
@@ -2194,6 +2207,11 @@ export class CoreAdapterWeb implements CorePort {
         items: scheduledFiltered.slice(0, previewSize),
         total: scheduledFiltered.length,
         hasMore: scheduledFiltered.length > previewSize,
+      },
+      expectedPreview: {
+        items: expectedFiltered.slice(0, expectedPreviewSize),
+        total: expectedFiltered.length,
+        hasMore: expectedFiltered.length > expectedPreviewSize,
       },
       postedPage,
       executedPage: postedPage,

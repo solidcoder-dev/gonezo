@@ -10,6 +10,7 @@ export function useLedgerTransactionCommands(gateway: LedgerGatewayPort) {
       currency: string;
       description?: string;
       merchant?: string;
+      categoryId?: string;
     }) => gateway.ledgerRecordExpense(input),
     [gateway],
   );
@@ -22,6 +23,7 @@ export function useLedgerTransactionCommands(gateway: LedgerGatewayPort) {
       currency: string;
       description?: string;
       merchant?: string;
+      categoryId?: string;
     }) => gateway.ledgerRecordIncome(input),
     [gateway],
   );

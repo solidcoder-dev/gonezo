@@ -1,4 +1,4 @@
-import type { SchedulingMovementItem } from '../../shared/domain/corePort';
+import type { ExpectedMovementItem, SchedulingMovementItem } from '../../shared/domain/corePort';
 import type { TransactionHistoryItemView } from '../../transactions/domain/transactionView.types';
 
 export type MonthlyMovementsViewRequired = {
@@ -17,6 +17,9 @@ export type MonthlyMovementsViewRequired = {
     scheduledItems: SchedulingMovementItem[];
     scheduledTotal: number;
     scheduledHasMore: boolean;
+    expectedItems: ExpectedMovementItem[];
+    expectedTotal: number;
+    expectedHasMore: boolean;
     filterOptions: {
       categories: Array<{ id: string; label: string }>;
       tags: Array<{ id: string; label: string }>;
@@ -31,6 +34,7 @@ export type MonthlyMovementsViewRequired = {
     };
     pendingVoidTransactionId?: string;
     pendingDeactivateScheduledId?: string;
+    pendingPostExpectedId?: string;
   };
   status: {
     loading: boolean;
@@ -54,6 +58,8 @@ export type MonthlyMovementsViewProvided = {
     goToNextPage: () => void;
     requestVoid: (transactionId: string) => void;
     deactivateScheduledMovement: (scheduledMovementId: string) => Promise<void>;
+    postExpectedMovement: (movement: ExpectedMovementItem) => Promise<boolean>;
+    editExpectedMovement: (movement: ExpectedMovementItem, categoryName?: string) => void;
   };
 };
 

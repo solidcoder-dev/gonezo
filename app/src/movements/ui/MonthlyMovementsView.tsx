@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { SchedulingMovementItem } from '../../shared/domain/corePort';
+import type { ExpectedMovementItem, SchedulingMovementItem } from '../../shared/domain/corePort';
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
 import type { TransactionHistoryItemView } from '../../transactions/domain/transactionView.types';
@@ -37,7 +37,15 @@ function txItemTypeClass(type: TransactionHistoryItemView['type']): string {
   return 'expense-item expense-item--expense';
 }
 
-function movementTypeClass(type: SchedulingMovementItem['type']): string {
+type MovementVisualType = SchedulingMovementItem['type'] | ExpectedMovementItem['type'];
+
+type ExpectedDateGroup = {
+  key: string;
+  label: string;
+  items: ExpectedMovementItem[];
+};
+
+function movementTypeClass(type: MovementVisualType): string {
   if (type === 'income') {
     return 'expense-item expense-item--income';
   }
@@ -53,7 +61,7 @@ function txKindIconClass(type: TransactionHistoryItemView['type']): string {
   return 'bi bi-arrow-down-right';
 }
 
-function movementKindIconClass(type: SchedulingMovementItem['type']): string {
+function movementKindIconClass(type: MovementVisualType): string {
   if (type === 'income') return 'bi bi-arrow-up-right';
   if (type === 'transfer') return 'bi bi-arrow-left-right';
   return 'bi bi-arrow-down-right';
@@ -101,6 +109,29 @@ function compactTagNames(tags?: string[]): string | undefined {
   return visible.join(' ');
 }
 
+function groupExpectedMovementsByDate(items: ExpectedMovementItem[]): ExpectedDateGroup[] {
+  const sorted = [...items].sort((left, right) => {
+    const dateComparison = left.expectedAt.localeCompare(right.expectedAt);
+    return dateComparison !== 0 ? dateComparison : left.id.localeCompare(right.id);
+  });
+  const groups: ExpectedDateGroup[] = [];
+  for (const item of sorted) {
+    const date = new Date(item.expectedAt);
+    const key = Number.isNaN(date.getTime()) ? item.expectedAt.slice(0, 10) : date.toISOString().slice(0, 10);
+    const existing = groups[groups.length - 1];
+    if (existing && existing.key === key) {
+      existing.items.push(item);
+      continue;
+    }
+    groups.push({
+      key,
+      label: formatCalendarDay(item.expectedAt),
+      items: [item],
+    });
+  }
+  return groups;
+}
+
 export function MonthlyMovementsView({ required, provided }: MonthlyMovementsViewProps) {
   const {
     accountId,
@@ -117,14 +148,21 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
     scheduledItems,
     scheduledTotal,
     scheduledHasMore,
+    expectedItems,
+    expectedTotal,
+    expectedHasMore,
     pagination,
     filterOptions,
     pendingVoidTransactionId,
     pendingDeactivateScheduledId,
+    pendingPostExpectedId,
   } = required.state;
   const { loading, disabled } = required.status;
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionHistoryItemView | null>(null);
   const [selectedScheduledMovement, setSelectedScheduledMovement] = useState<SchedulingMovementItem | null>(null);
+  const [selectedExpectedMovement, setSelectedExpectedMovement] = useState<ExpectedMovementItem | null>(null);
+  const [expectedExpanded, setExpectedExpanded] = useState(false);
+  const [scheduledExpanded, setScheduledExpanded] = useState(false);
 
   const categoryLabelById = useMemo(
     () => new Map(filterOptions.categories.map((item) => [item.id, item.label] as const)),
@@ -137,12 +175,27 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
 
   const postedGroups = useMemo(() => groupPostedTransactionsByDate(items), [items]);
   const upcomingGroups = useMemo(() => groupScheduledMovementsByDate(scheduledItems), [scheduledItems]);
+  const expectedGroups = useMemo(() => groupExpectedMovementsByDate(expectedItems), [expectedItems]);
   const showScheduledSection = viewedYear > currentYear
     || (viewedYear === currentYear && viewedMonthIndex >= currentMonthIndex);
+  const expectedHasItems = expectedTotal > 0;
+  const scheduledHasItems = scheduledTotal > 0;
 
   const searchHref = `/movements/search?accountId=${encodeURIComponent(accountId)}`;
 
+  useEffect(() => {
+    setExpectedExpanded(false);
+    setScheduledExpanded(false);
+  }, [accountId, monthLabel]);
+
   function resolveScheduledCategoryName(categoryId?: string): string | undefined {
+    if (!categoryId || categoryId.trim().length === 0) {
+      return undefined;
+    }
+    return categoryLabelById.get(categoryId);
+  }
+
+  function resolveExpectedCategoryName(categoryId?: string): string | undefined {
     if (!categoryId || categoryId.trim().length === 0) {
       return undefined;
     }
@@ -213,17 +266,102 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
 
       {loading ? <p role="status">Loading monthly movements...</p> : null}
 
+      {!loading ? (
+        <div className="stack" aria-label="Expected movements">
+          {expectedHasItems ? (
+            <button
+              type="button"
+              className="account-menu-trigger movement-section-trigger"
+              aria-label={`${expectedExpanded ? 'Collapse' : 'Expand'} expected movements (${expectedTotal})`}
+              aria-expanded={expectedExpanded}
+              onClick={() => setExpectedExpanded((previous) => !previous)}
+            >
+              <span>Expected</span>
+              <span className="movement-section-count">
+                {expectedTotal}
+                {expectedHasMore ? ' (preview)' : ''}
+              </span>
+              <i className={expectedExpanded ? 'bi bi-chevron-up' : 'bi bi-chevron-down'} aria-hidden />
+            </button>
+          ) : (
+            <div className="inline-header">
+              <h3>Expected</h3>
+              <span className="hint">0</span>
+            </div>
+          )}
+          {expectedExpanded ? expectedGroups.map((group) => (
+            <div key={group.key} className="stack">
+              <p className="hint date-group-label">{group.label}</p>
+              <ul className="expense-list expense-list--compact" aria-label={`Expected group ${group.label}`}>
+                {group.items.map((movement) => {
+                  const expectedCategoryName = resolveExpectedCategoryName(movement.categoryId);
+                  const details = [
+                    `expected ${formatCalendarDay(movement.expectedAt)}`,
+                    expectedCategoryName,
+                    movement.status,
+                  ].filter((value): value is string => Boolean(value && value.trim().length > 0));
+                  return (
+                    <li key={movement.id} className={`${movementTypeClass(movement.type)} expense-item--compact`}>
+                      <button
+                        type="button"
+                        className="expense-item-button expense-item-button--compact"
+                        onClick={() => setSelectedExpectedMovement(movement)}
+                        disabled={disabled}
+                      >
+                        <div className="expense-top-row compact-row">
+                          <div className="tx-head compact-main">
+                            <i className={movementKindIconClass(movement.type)} aria-hidden />
+                            <strong className="compact-title">{movement.merchant || movement.description || 'Expected movement'}</strong>
+                          </div>
+                          <strong>
+                            {movement.type === 'income' ? '+' : '-'}
+                            {txAmount(movement.amount, movement.currency)}
+                          </strong>
+                        </div>
+                        <div className="expense-bottom-row compact-row">
+                          <span className="hint compact-subline">{details.join(' · ')}</span>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )) : null}
+          {expectedExpanded && expectedHasMore ? (
+            <div className="quick-row">
+              <Link className="text-button" to={searchHref}>
+                See all expected
+              </Link>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       {!loading && showScheduledSection ? (
-        <div className="stack">
-          <div className="inline-header">
-            <h3>Scheduled</h3>
-            <span className="hint">
-              {scheduledTotal}
-              {scheduledHasMore ? ' (preview)' : ''}
-            </span>
-          </div>
-          {upcomingGroups.length === 0 ? <p className="hint">No scheduled movements in {monthLabel}.</p> : null}
-          {upcomingGroups.map((group) => (
+        <div className="stack" aria-label="Scheduled movements">
+          {scheduledHasItems ? (
+            <button
+              type="button"
+              className="account-menu-trigger movement-section-trigger"
+              aria-label={`${scheduledExpanded ? 'Collapse' : 'Expand'} scheduled movements (${scheduledTotal})`}
+              aria-expanded={scheduledExpanded}
+              onClick={() => setScheduledExpanded((previous) => !previous)}
+            >
+              <span>Scheduled</span>
+              <span className="movement-section-count">
+                {scheduledTotal}
+                {scheduledHasMore ? ' (preview)' : ''}
+              </span>
+              <i className={scheduledExpanded ? 'bi bi-chevron-up' : 'bi bi-chevron-down'} aria-hidden />
+            </button>
+          ) : (
+            <div className="inline-header">
+              <h3>Scheduled</h3>
+              <span className="hint">0</span>
+            </div>
+          )}
+          {scheduledExpanded ? upcomingGroups.map((group) => (
             <div key={group.key} className="stack">
               <p className="hint date-group-label">{group.label}</p>
               <ul className="expense-list expense-list--compact" aria-label={`Scheduled group ${group.label}`}>
@@ -264,8 +402,8 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
                 })}
               </ul>
             </div>
-          ))}
-          {scheduledHasMore ? (
+          )) : null}
+          {scheduledExpanded && scheduledHasMore ? (
             <div className="quick-row">
               <Link className="text-button" to={searchHref}>
                 See all scheduled
@@ -373,7 +511,87 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
         </div>
       ) : null}
 
-      {showScheduledSection && selectedScheduledMovement ? (
+      {selectedExpectedMovement ? (
+        <div className="sheet-backdrop" role="presentation" onClick={() => setSelectedExpectedMovement(null)}>
+          <section
+            className="sheet-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Expected movement details"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="detail-sheet-header">
+              <div className="detail-sheet-title">
+                <span className="detail-sheet-kicker">
+                  <i className={movementKindIconClass(selectedExpectedMovement.type)} aria-hidden />
+                  <span>Expected</span>
+                </span>
+                <h3>{selectedExpectedMovement.merchant || selectedExpectedMovement.description || 'Expected movement'}</h3>
+              </div>
+              <button
+                type="button"
+                className="text-button icon-button"
+                aria-label="Close expected movement details"
+                onClick={() => setSelectedExpectedMovement(null)}
+              >
+                <i className="bi bi-x-lg" aria-hidden />
+              </button>
+            </div>
+            <div className="detail-sheet-amount detail-sheet-amount--scheduled">
+              {selectedExpectedMovement.type === 'income' ? '+' : '-'}
+              {txAmount(selectedExpectedMovement.amount, selectedExpectedMovement.currency)}
+            </div>
+            <div className="detail-meta-grid">
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Expected</span>
+                <strong>{formatCalendarDay(selectedExpectedMovement.expectedAt)}</strong>
+              </div>
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Category</span>
+                <strong>{resolveExpectedCategoryName(selectedExpectedMovement.categoryId) ?? 'No category'}</strong>
+              </div>
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Status</span>
+                <strong>{selectedExpectedMovement.status}</strong>
+              </div>
+            </div>
+            <div className="detail-actions">
+              <button
+                type="button"
+                disabled={disabled || pendingPostExpectedId === selectedExpectedMovement.id}
+                onClick={() => {
+                  void provided.commands.postExpectedMovement(selectedExpectedMovement).then((posted) => {
+                    if (posted) {
+                      setSelectedExpectedMovement(null);
+                    }
+                  });
+                }}
+              >
+                {pendingPostExpectedId === selectedExpectedMovement.id ? 'Posting...' : 'Post movement'}
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                disabled={disabled}
+                onClick={() => {
+                  provided.commands.editExpectedMovement(
+                    selectedExpectedMovement,
+                    resolveExpectedCategoryName(selectedExpectedMovement.categoryId),
+                  );
+                  setSelectedExpectedMovement(null);
+                }}
+              >
+                Edit movement
+              </button>
+              <button type="button" className="text-button" onClick={() => setSelectedExpectedMovement(null)}>
+                Close
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {showScheduledSection && scheduledHasItems && selectedScheduledMovement ? (
         <div className="sheet-backdrop" role="presentation" onClick={() => setSelectedScheduledMovement(null)}>
           <section
             className="sheet-panel"

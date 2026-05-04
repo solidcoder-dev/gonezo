@@ -1,6 +1,7 @@
 import { MonthlyMovementsView } from '../ui/MonthlyMovementsView';
 import { useMonthlyMovementsModel } from './useMonthlyMovementsModel';
 import type { TransactionsCorePort } from '../../transactions/application/transactionsCore.port';
+import type { ExpectedMovementItem } from '../../shared/domain/corePort';
 
 export type MonthlyMovementsComponentProps = {
   required: {
@@ -16,6 +17,8 @@ export type MonthlyMovementsComponentProps = {
   provided?: {
     events?: {
       onVoided?: (transactionId: string) => void;
+      onExpectedPosted?: () => void;
+      onEditExpectedMovement?: (movement: ExpectedMovementItem, categoryName?: string) => void;
       onError?: (error: { message: string }) => void;
     };
   };
@@ -28,6 +31,8 @@ export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMo
     enabled: required.config.enabled,
     refreshSignal: required.config.refreshSignal,
     onVoided: provided.events?.onVoided,
+    onExpectedPosted: provided.events?.onExpectedPosted,
+    onEditExpectedMovement: provided.events?.onEditExpectedMovement,
     onError: provided.events?.onError,
   });
 

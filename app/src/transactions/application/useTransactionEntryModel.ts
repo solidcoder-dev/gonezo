@@ -21,12 +21,14 @@ import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.t
 import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
 import type { ExpenseItemDraft, TransactionFieldErrors } from '../domain/transactions.types';
 import type { TransactionEntryViewProvided, TransactionEntryViewRequired } from '../ui/TransactionEntryView';
+import type { TransactionEntryPrefillRequest } from './TransactionEntryComponent.contract';
 import type { TransactionsCorePort } from './transactionsCore.port';
 
 type UseTransactionEntryModelInput = {
   core: TransactionsCorePort;
   accountId: string | null;
   enabled: boolean;
+  prefillRequest?: TransactionEntryPrefillRequest;
   onRecorded?: () => void;
   onError?: (error: { message: string }) => void;
 };
@@ -127,7 +129,7 @@ function toErrorMessage(error: unknown): string {
 }
 
 export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
-  const { core, accountId, enabled, onRecorded, onError } = input;
+  const { core, accountId, enabled, prefillRequest, onRecorded, onError } = input;
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -159,6 +161,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [expenseItems, setExpenseItems] = useState<ExpenseItemDraft[]>([]);
   const [schedulingMode, setSchedulingMode] = useState<'now' | 'scheduled'>('now');
   const [expectedMovement, setExpectedMovement] = useState(false);
+  const [sourceExpectedMovementId, setSourceExpectedMovementId] = useState('');
   const [schedulingKind, setSchedulingKind] = useState<'one_shot' | 'recurring'>('one_shot');
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<SchedulingFrequency>('monthly');
   const [recurrenceInterval, setRecurrenceInterval] = useState('1');
@@ -251,6 +254,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setExpenseItems([]);
     setSchedulingMode('now');
     setExpectedMovement(false);
+    setSourceExpectedMovementId('');
     setSchedulingKind('one_shot');
     setRecurrenceFrequency('monthly');
     setRecurrenceInterval('1');
@@ -333,6 +337,34 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, accountId]);
+
+  useEffect(() => {
+    if (!enabled || !accountId || !prefillRequest) {
+      return;
+    }
+
+    setError('');
+    resetComposerState();
+    setComposerOpen(true);
+    setComposerMode(prefillRequest.mode);
+    setComposerAdvancedOpen(true);
+    setTransactionAmount(prefillRequest.amount.replace('-', ''));
+    setTransactionDate(prefillRequest.date);
+    setTransactionNote(prefillRequest.note ?? '');
+    setTransactionCategoryInput(prefillRequest.categoryId ?? '');
+    setSchedulingMode('now');
+    setExpectedMovement(false);
+    setSourceExpectedMovementId(prefillRequest.sourceExpectedMovementId ?? '');
+
+    void (async () => {
+      try {
+        await refreshTaxonomyLookups();
+      } catch (err) {
+        reportError(err);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, accountId, prefillRequest?.requestId]);
 
   function openTransactionComposer() {
     if (!accountId) {
@@ -861,7 +893,13 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     }
 
     const resolvedTransactionDate = transactionDate.trim() || todayIso();
-    if (composerMode !== 'expense') {
+    const movementExpected = (composerMode === 'expense' || composerMode === 'income') && expectedMovement;
+    const movementScheduled = (composerMode === 'expense' || composerMode === 'income')
+      && !movementExpected
+      && !sourceExpectedMovementId
+      && (recurrenceEnabled || isFutureIsoDateInput(resolvedTransactionDate));
+
+    if (!movementExpected && composerMode !== 'expense') {
       if (schedulingMode === 'now' && transactionDate) {
         const today = todayIso();
         if (/^\d{4}-\d{2}-\d{2}$/.test(resolvedTransactionDate)) {
@@ -931,10 +969,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       }
     }
 
-    const movementExpected = (composerMode === 'expense' || composerMode === 'income') && expectedMovement;
-    const movementScheduled = (composerMode === 'expense' || composerMode === 'income')
-      && (recurrenceEnabled || isFutureIsoDateInput(resolvedTransactionDate));
-
     if (movementExpected && recurrenceEnabled) {
       nextErrors.expectedConflict = 'Expected movements cannot repeat.';
     }
@@ -997,6 +1031,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       const tagNames = parseTransactionTags();
       const tagIds = resolveTagSelectionIds(tagNames);
       let recorded = false;
+      let postedTransactionId = '';
 
       if (movementExpected && (composerMode === 'expense' || composerMode === 'income')) {
         const categoryId = await resolveCategorySelection(composerMode);
@@ -1202,7 +1237,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
             currency: accountCurrency,
             description: transactionNote.trim() || undefined,
             merchant: transactionNote.trim() || undefined,
+            categoryId,
           });
+          postedTransactionId = result.id;
           await categorizeTransaction(result.id, 'expense', categoryId);
           await applyTransactionTags(result.id, tagNames);
           recorded = true;
@@ -1226,6 +1263,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           }
 
           await ledgerTransactionCommands.postDraftTransaction({ transactionId: draft.id });
+          postedTransactionId = draft.id;
           await categorizeTransaction(draft.id, 'expense', categoryId);
           await applyTransactionTags(draft.id, tagNames);
           recorded = true;
@@ -1242,7 +1280,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
             currency: accountCurrency,
             description: transactionNote.trim() || undefined,
             merchant: transactionNote.trim() || undefined,
+            categoryId,
           });
+          postedTransactionId = result.id;
           await categorizeTransaction(result.id, 'income', categoryId);
           await applyTransactionTags(result.id, tagNames);
           recorded = true;
@@ -1267,6 +1307,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           }
 
           await ledgerTransactionCommands.postDraftTransaction({ transactionId: draft.id });
+          postedTransactionId = draft.id;
           await categorizeTransaction(draft.id, 'income', categoryId);
           await applyTransactionTags(draft.id, tagNames);
           recorded = true;
@@ -1336,6 +1377,13 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       }
 
       if (recorded) {
+        if (sourceExpectedMovementId && postedTransactionId) {
+          await expectedGateway.expectedResolveMovement({
+            expectedMovementId: sourceExpectedMovementId,
+            transactionId: postedTransactionId,
+            resolvedAt: new Date().toISOString(),
+          });
+        }
         onRecorded?.();
         setComposerOpen(false);
         resetComposerState();

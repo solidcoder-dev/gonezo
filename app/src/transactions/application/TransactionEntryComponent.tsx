@@ -13,6 +13,7 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
     core: required.context.core,
     accountId: required.context.accountId,
     enabled: required.config.enabled,
+    prefillRequest: required.config.prefillRequest,
     onRecorded: provided.events?.onRecorded,
     onError: provided.events?.onError,
   });

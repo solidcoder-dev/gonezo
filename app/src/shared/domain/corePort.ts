@@ -407,6 +407,7 @@ export type MovementsMonthOverviewInput = {
   postedPagination?: LedgerPageRequestInput;
   executedPagination?: LedgerPageRequestInput;
   scheduledPreviewSize?: number;
+  expectedPreviewSize?: number;
   filters?: MovementsSearchFiltersInput;
   sort?: LedgerTransactionSortInput[];
 };
@@ -414,6 +415,11 @@ export type MovementsMonthOverviewInput = {
 export type MovementsMonthOverviewResult = {
   scheduledPreview: {
     items: SchedulingMovementItem[];
+    total: number;
+    hasMore: boolean;
+  };
+  expectedPreview: {
+    items: ExpectedMovementItem[];
     total: number;
     hasMore: boolean;
   };

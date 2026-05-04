@@ -32,6 +32,7 @@ export type LedgerGatewayPort = {
     currency: string;
     description?: string;
     merchant?: string;
+    categoryId?: string;
   }): Promise<{ id: string }>;
   ledgerRecordIncome(input: {
     accountId: string;
@@ -40,6 +41,7 @@ export type LedgerGatewayPort = {
     currency: string;
     description?: string;
     merchant?: string;
+    categoryId?: string;
   }): Promise<{ id: string }>;
   ledgerRecordTransfer(input: {
     fromAccountId: string;

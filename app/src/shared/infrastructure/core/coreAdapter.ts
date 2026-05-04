@@ -653,6 +653,9 @@ export class CoreAdapter implements CorePort {
     const previewSize = input.scheduledPreviewSize != null && input.scheduledPreviewSize > 0
       ? Math.min(Math.trunc(input.scheduledPreviewSize), 20)
       : 5;
+    const expectedPreviewSize = input.expectedPreviewSize != null && input.expectedPreviewSize > 0
+      ? Math.min(Math.trunc(input.expectedPreviewSize), 20)
+      : previewSize;
 
     const scheduledPage = await this.movementsListScheduled({
       accountId: input.accountId,
@@ -665,6 +668,16 @@ export class CoreAdapter implements CorePort {
         size: previewSize,
       },
     });
+    const expectedResult = await this.expectedListMovements({
+      accountId: input.accountId,
+    });
+    const expectedFiltered = sortExpectedMovementItems(
+      filterExpectedMovementItems(expectedResult.items, {
+        fromDate,
+        toDate,
+      }),
+      [{ field: 'date', direction: 'asc' }],
+    );
 
     const postedPage = await CorePlugin.ledgerListTransactions({
       accountId: input.accountId,
@@ -682,6 +695,11 @@ export class CoreAdapter implements CorePort {
         items: scheduledPage.content,
         total: scheduledPage.totalElements,
         hasMore: scheduledPage.hasNext,
+      },
+      expectedPreview: {
+        items: expectedFiltered.slice(0, expectedPreviewSize),
+        total: expectedFiltered.length,
+        hasMore: expectedFiltered.length > expectedPreviewSize,
       },
       postedPage,
       executedPage: postedPage,

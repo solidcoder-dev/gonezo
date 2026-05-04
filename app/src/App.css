@@ -443,6 +443,23 @@ body {
   line-height: 1;
 }
 
+.movement-section-trigger {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.movement-section-trigger .movement-section-count {
+  flex: 0 0 auto;
+  min-width: auto;
+  margin-left: auto;
+  color: #6f6f67;
+  font-size: 0.95rem;
+  font-weight: 600;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
 .account-menu-actions {
   margin-top: 6px;
 }

@@ -1,5 +1,15 @@
 import type { TransactionsCorePort } from './transactionsCore.port';
 
+export type TransactionEntryPrefillRequest = {
+  requestId: number;
+  sourceExpectedMovementId?: string;
+  mode: 'expense' | 'income';
+  amount: string;
+  date: string;
+  note?: string;
+  categoryId?: string;
+};
+
 export type TransactionEntryComponentRequired = {
   context: {
     accountId: string | null;
@@ -7,6 +17,7 @@ export type TransactionEntryComponentRequired = {
   };
   config: {
     enabled: boolean;
+    prefillRequest?: TransactionEntryPrefillRequest;
   };
 };
 

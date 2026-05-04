@@ -150,6 +150,49 @@ function filterScheduledForOverview(
     });
 }
 
+function filterExpectedForOverview(
+  items: ExpectedMovementItem[],
+  input: { accountId: string; filters?: MovementsSearchFiltersInput },
+): ExpectedMovementItem[] {
+  const filters = input.filters ?? {};
+  const fromDateEpoch = filters.fromDate ? Date.parse(filters.fromDate) : undefined;
+  const toDateEpoch = filters.toDate ? Date.parse(filters.toDate) : undefined;
+  const hasFromDateEpoch = typeof fromDateEpoch === 'number' && Number.isFinite(fromDateEpoch);
+  const hasToDateEpoch = typeof toDateEpoch === 'number' && Number.isFinite(toDateEpoch);
+
+  return items
+    .filter((movement) => movement.accountId === input.accountId)
+    .filter((movement) => movement.status === 'pending')
+    .filter((movement) => {
+      if (!hasFromDateEpoch && !hasToDateEpoch) {
+        return true;
+      }
+      const expectedEpoch = Date.parse(movement.expectedAt);
+      if (!Number.isFinite(expectedEpoch)) {
+        return false;
+      }
+      if (hasFromDateEpoch && expectedEpoch < fromDateEpoch!) {
+        return false;
+      }
+      if (hasToDateEpoch && expectedEpoch > toDateEpoch!) {
+        return false;
+      }
+      return true;
+    })
+    .sort((left, right) => {
+      const dateComparison = left.expectedAt.localeCompare(right.expectedAt);
+      return dateComparison !== 0 ? dateComparison : left.id.localeCompare(right.id);
+    });
+}
+
+function emptyExpectedPreview() {
+  return {
+    items: [] as ExpectedMovementItem[],
+    total: 0,
+    hasMore: false,
+  };
+}
+
 function makeCore(transactionCount = 0): AccountsCorePort {
   const transactions: LedgerTransactionListItem[] = Array.from({ length: transactionCount }).map((_, index) => ({
     id: `tx-${index + 1}`,
@@ -333,7 +376,15 @@ function makeCore(transactionCount = 0): AccountsCorePort {
       const allPosted = postedPage.content;
 
       const previewSize = input.scheduledPreviewSize ?? 5;
+      const expectedPreviewSize = input.expectedPreviewSize ?? previewSize;
       const filteredScheduled = filterScheduledForOverview(scheduledMovements, {
+        accountId: input.accountId,
+        filters: {
+          fromDate,
+          toDate,
+        },
+      });
+      const filteredExpected = filterExpectedForOverview(expectedMovements, {
         accountId: input.accountId,
         filters: {
           fromDate,
@@ -346,6 +397,11 @@ function makeCore(transactionCount = 0): AccountsCorePort {
           items: filteredScheduled.slice(0, previewSize),
           total: filteredScheduled.length,
           hasMore: filteredScheduled.length > previewSize,
+        },
+        expectedPreview: {
+          items: filteredExpected.slice(0, expectedPreviewSize),
+          total: filteredExpected.length,
+          hasMore: filteredExpected.length > expectedPreviewSize,
         },
         postedPage: {
           ...postedPage,
@@ -572,6 +628,14 @@ function makeCore(transactionCount = 0): AccountsCorePort {
 async function openMode(mode: 'Expense' | 'Income' | 'Transfer') {
   fireEvent.click(screen.getByRole('button', { name: 'Add movement' }));
   fireEvent.click(await screen.findByRole('button', { name: mode }));
+}
+
+async function expandExpectedMovements() {
+  fireEvent.click(await screen.findByRole('button', { name: /Expand expected movements/i }));
+}
+
+async function expandScheduledMovements() {
+  fireEvent.click(await screen.findByRole('button', { name: /Expand scheduled movements/i }));
 }
 
 async function openImportSheetFromAccounts() {
@@ -1183,6 +1247,40 @@ describe('App Accounts UX', () => {
       expect(core.recurrenceCreateRecurringMovement).toHaveBeenCalledTimes(1);
     });
     expect(core.ledgerRecordExpense).not.toHaveBeenCalled();
+  });
+
+  it('creates a future expected income instead of scheduling it', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Income');
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '1200' } });
+    fireEvent.change(screen.getByLabelText('Source'), { target: { value: 'Client invoice' } });
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-12-31' } });
+    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
+    fireEvent.click(screen.getByLabelText('Expected'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save expected' }));
+
+    await waitFor(() => {
+      expect(core.expectedCreateMovement).toHaveBeenCalledTimes(1);
+    });
+    expect(core.expectedCreateMovement).toHaveBeenCalledWith(expect.objectContaining({
+      accountId: 'acc-1',
+      type: 'income',
+      amount: '1200.00',
+      currency: 'USD',
+      expectedAt: expect.stringMatching(/^2099-12-31T/),
+      description: 'Client invoice',
+      merchant: 'Client invoice',
+    }));
+    expect(core.recurrenceCreateRecurringMovement).not.toHaveBeenCalled();
+    expect(core.ledgerRecordIncome).not.toHaveBeenCalled();
   });
 
   it('categorizes quick expense with an existing category', async () => {
@@ -2123,7 +2221,12 @@ describe('App Accounts UX', () => {
 
     await screen.findByRole('heading', { name: 'Movements' });
     expect(screen.queryByRole('button', { name: 'More filters' })).not.toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: 'Scheduled' })).toBeInTheDocument();
+    const expectedSection = screen.getByLabelText('Expected movements');
+    expect(within(expectedSection).getByRole('heading', { name: 'Expected' })).toBeInTheDocument();
+    expect(expectedSection).toHaveTextContent('0');
+    const scheduledSection = screen.getByLabelText('Scheduled movements');
+    expect(within(scheduledSection).getByRole('heading', { name: 'Scheduled' })).toBeInTheDocument();
+    expect(scheduledSection).toHaveTextContent('0');
     expect(screen.getByRole('heading', { name: 'Posted' })).toBeInTheDocument();
   });
 
@@ -2148,6 +2251,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>,
     );
 
+    await expandScheduledMovements();
     expect(await screen.findByText('Scheduled movement')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Previous month' }));
@@ -2157,6 +2261,105 @@ describe('App Accounts UX', () => {
     });
     expect(screen.queryByRole('heading', { name: 'Scheduled' })).not.toBeInTheDocument();
     expect(screen.queryByText(/No scheduled movements in/i)).not.toBeInTheDocument();
+  });
+
+  it('shows expected movements as their own monthly section', async () => {
+    const core = makeCore();
+    await core.expectedCreateMovement({
+      accountId: 'acc-1',
+      type: 'expense',
+      amount: '42.00',
+      currency: 'USD',
+      expectedAt: new Date().toISOString(),
+      description: 'Expected rent',
+      categoryId: 'cat-food',
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    await expandExpectedMovements();
+    const expectedRow = await screen.findByText('Expected rent');
+    expect(screen.getByLabelText(/Expected group/i)).toHaveTextContent('Food');
+
+    fireEvent.click(expectedRow.closest('button')!);
+    const detailDialog = await screen.findByRole('dialog', { name: 'Expected movement details' });
+    expect(within(detailDialog).getByText('Food')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('pending')).toBeInTheDocument();
+
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Post movement' }));
+
+    await waitFor(() => {
+      expect(core.ledgerRecordExpense).toHaveBeenCalledWith(expect.objectContaining({
+        accountId: 'acc-1',
+        amount: '42.00',
+        currency: 'USD',
+        merchant: undefined,
+        description: 'Expected rent',
+        categoryId: 'cat-food',
+      }));
+    });
+    await waitFor(() => {
+      expect(core.expectedResolveMovement).toHaveBeenCalledWith(expect.objectContaining({
+        expectedMovementId: 'exp-1',
+        transactionId: 'tx-exp',
+      }));
+    });
+  });
+
+  it('opens the composer with expected movement values for editing', async () => {
+    const core = makeCore();
+    await core.expectedCreateMovement({
+      accountId: 'acc-1',
+      type: 'expense',
+      amount: '42.00',
+      currency: 'USD',
+      expectedAt: '2026-05-02T10:00:00.000Z',
+      description: 'Expected rent',
+      categoryId: 'cat-food',
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    await expandExpectedMovements();
+    const expectedRow = await screen.findByText('Expected rent');
+    fireEvent.click(expectedRow.closest('button')!);
+    const detailDialog = await screen.findByRole('dialog', { name: 'Expected movement details' });
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Edit movement' }));
+
+    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    expect(within(composer).getByRole('heading', { name: 'New expense' })).toBeInTheDocument();
+    expect(within(composer).getByLabelText('Amount')).toHaveValue(42);
+    expect(within(composer).getByLabelText('Date')).toHaveValue('2026-05-02');
+    expect(within(composer).getByLabelText('Merchant')).toHaveValue('Expected rent');
+    expect(within(composer).getByLabelText('Category')).toHaveValue('Food');
+
+    fireEvent.change(within(composer).getByLabelText('Amount'), { target: { value: '45.50' } });
+    fireEvent.change(within(composer).getByLabelText('Merchant'), { target: { value: 'Landlord' } });
+    fireEvent.click(within(composer).getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(core.ledgerRecordExpense).toHaveBeenCalledWith(expect.objectContaining({
+        accountId: 'acc-1',
+        amount: '45.50',
+        currency: 'USD',
+        merchant: 'Landlord',
+        description: 'Landlord',
+      }));
+    });
+    await waitFor(() => {
+      expect(core.expectedResolveMovement).toHaveBeenCalledWith(expect.objectContaining({
+        expectedMovementId: 'exp-1',
+        transactionId: 'tx-exp',
+      }));
+    });
   });
 
   it('shows scheduled transfer when switching to destination account', async () => {
@@ -2181,15 +2384,15 @@ describe('App Accounts UX', () => {
       </MemoryRouter>,
     );
 
+    await expandScheduledMovements();
     expect(await screen.findByText('Scheduled transfer')).toBeInTheDocument();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
     await screen.findByRole('dialog', { name: 'Select account' });
     fireEvent.click(screen.getByRole('button', { name: /Savings/ }));
 
-    await waitFor(() => {
-      expect(screen.getByText('Scheduled transfer')).toBeInTheDocument();
-    });
+    await expandScheduledMovements();
+    expect(await screen.findByText('Scheduled transfer')).toBeInTheDocument();
   });
 
   it('creates recurring expense from composer more options', async () => {
@@ -2299,6 +2502,7 @@ describe('App Accounts UX', () => {
         total: 1,
         hasMore: false,
       },
+      expectedPreview: emptyExpectedPreview(),
       postedPage: {
         content: [],
         page: 0,
@@ -2328,7 +2532,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Scheduled' });
+    await expandScheduledMovements();
     const scheduledRow = await screen.findByText('Scheduled movement');
     fireEvent.click(scheduledRow.closest('button')!);
     const detailDialog = await screen.findByRole('dialog', { name: 'Scheduled movement details' });
@@ -2368,6 +2572,7 @@ describe('App Accounts UX', () => {
         total: 1,
         hasMore: false,
       },
+      expectedPreview: emptyExpectedPreview(),
       postedPage: {
         content: [],
         page: 0,
@@ -2394,7 +2599,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Scheduled' });
+    await expandScheduledMovements();
     const upcomingGroup = screen.getByLabelText(/Scheduled group/i);
     expect(within(upcomingGroup).getByText(/one[-_ ]shot/i)).toBeInTheDocument();
   });

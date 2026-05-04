@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import type { ExpectedMovementItem } from '../../shared/domain/corePort';
 import type { TransactionsImportPolicyInput, TransactionsImportResult } from '../../imports/domain/transactionsImport.types';
 import { TransactionEntryComponent, type TransactionsCorePort } from '../../transactions';
+import type { TransactionEntryPrefillRequest } from '../../transactions/application/TransactionEntryComponent.contract';
 import { MonthlyMovementsComponent } from '../../movements';
 import { AccountPageView } from '../ui/AccountPageView';
 import { TransactionsImportComponent } from '../ui/capabilities/TransactionsImportComponent';
@@ -25,6 +27,14 @@ function toErrorMessage(error: unknown): string {
   return 'Unknown error';
 }
 
+function toDateInputValue(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value.slice(0, 10);
+  }
+  return parsed.toISOString().slice(0, 10);
+}
+
 export function AccountPage({ required: pageRequired }: AccountPageProps) {
   const [screenLoadPhase, setScreenLoadPhase] = useState<LoadPhase>('loading');
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
@@ -40,6 +50,7 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
   const [accountHubRefreshSignal, setAccountHubRefreshSignal] = useState(false);
   const [accountSummaryRefreshSignal, setAccountSummaryRefreshSignal] = useState(false);
   const [recentTransactionsRefreshSignal, setRecentTransactionsRefreshSignal] = useState(false);
+  const [transactionEntryPrefill, setTransactionEntryPrefill] = useState<TransactionEntryPrefillRequest | undefined>();
 
   const hasSelectedAccount = Boolean(selectedAccountId);
 
@@ -73,6 +84,18 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
       setImportSubmitPhase('failed');
       throw err instanceof Error ? err : new Error(toErrorMessage(err));
     }
+  }
+
+  function editExpectedMovement(movement: ExpectedMovementItem, categoryName?: string) {
+    setTransactionEntryPrefill({
+      requestId: Date.now(),
+      sourceExpectedMovementId: movement.id,
+      mode: movement.type,
+      amount: movement.amount,
+      date: toDateInputValue(movement.expectedAt),
+      note: movement.merchant || movement.description || '',
+      categoryId: categoryName ?? movement.categoryId,
+    });
   }
 
   const accountHub = (
@@ -148,6 +171,7 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
                 },
                 config: {
                   enabled: hasSelectedAccount,
+                  prefillRequest: transactionEntryPrefill,
                 },
               }}
               provided={{
@@ -155,6 +179,7 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
                   onRecorded: () => {
                     setRecentTransactionsRefreshSignal((previous) => !previous);
                     setAccountSummaryRefreshSignal((previous) => !previous);
+                    setTransactionEntryPrefill(undefined);
                   },
                 },
               }}
@@ -179,6 +204,10 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
                   onVoided: () => {
                     setAccountSummaryRefreshSignal((previous) => !previous);
                   },
+                  onExpectedPosted: () => {
+                    setAccountSummaryRefreshSignal((previous) => !previous);
+                  },
+                  onEditExpectedMovement: editExpectedMovement,
                 },
               }}
             />

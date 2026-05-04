@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { LedgerTransactionListItem, TaxonomyCategoryItem, TaxonomyTagItem } from '../../shared/domain/corePort';
+import type { ExpectedMovementItem, LedgerTransactionListItem, TaxonomyCategoryItem, TaxonomyTagItem } from '../../shared/domain/corePort';
 import { useLedgerTransactions } from '../../ledger/application/useLedgerTransactions';
+import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
+import { createExpectedGateway } from '../../expected/infrastructure/expectedGateway';
 import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
 import { createSchedulingGateway } from '../../scheduling/infrastructure/schedulingGateway';
 import { useCategorySuggestions } from '../../taxonomy/application/useCategorySuggestions';
@@ -17,6 +19,8 @@ type UseMonthlyMovementsModelInput = {
   enabled: boolean;
   refreshSignal: boolean;
   onVoided?: (transactionId: string) => void;
+  onExpectedPosted?: () => void;
+  onEditExpectedMovement?: (movement: ExpectedMovementItem, categoryName?: string) => void;
   onError?: (error: { message: string }) => void;
 };
 
@@ -70,8 +74,44 @@ function sameMonth(left: Date, right: Date): boolean {
   return left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth();
 }
 
+function resolveOccurredAt(dateInput: string): string {
+  const raw = dateInput.trim();
+  if (!raw) {
+    return new Date().toISOString();
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const [year, month, day] = raw.split('-').map((value) => Number(value));
+    const now = new Date();
+    return new Date(
+      year,
+      month - 1,
+      day,
+      now.getHours(),
+      now.getMinutes(),
+      now.getSeconds(),
+      now.getMilliseconds(),
+    ).toISOString();
+  }
+
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString();
+  }
+
+  throw new Error('Date must be valid.');
+}
+
+function normalizeAmount(rawAmount: string): string {
+  const parsed = Number(rawAmount.trim());
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error('Amount must be greater than 0.');
+  }
+  return parsed.toFixed(2);
+}
+
 export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
-  const { core, accountId, enabled, refreshSignal, onVoided, onError } = input;
+  const { core, accountId, enabled, refreshSignal, onVoided, onExpectedPosted, onEditExpectedMovement, onError } = input;
 
   const [loading, setLoading] = useState(true);
   const [postingTransaction, setPostingTransaction] = useState(false);
@@ -92,12 +132,16 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const [scheduledItems, setScheduledItems] = useState<MonthlyMovementsViewRequired['state']['scheduledItems']>([]);
   const [scheduledTotal, setScheduledTotal] = useState(0);
   const [scheduledHasMore, setScheduledHasMore] = useState(false);
+  const [expectedItems, setExpectedItems] = useState<MonthlyMovementsViewRequired['state']['expectedItems']>([]);
+  const [expectedTotal, setExpectedTotal] = useState(0);
+  const [expectedHasMore, setExpectedHasMore] = useState(false);
   const [taxonomyByTransactionId, setTaxonomyByTransactionId] = useState<Record<string, TaxonomyAssignment>>({});
   const [categories, setCategories] = useState<TaxonomyCategoryItem[]>([]);
   const [tags, setTags] = useState<TaxonomyTagItem[]>([]);
 
   const [pendingVoidTransactionId, setPendingVoidTransactionId] = useState('');
   const [pendingDeactivateScheduledId, setPendingDeactivateScheduledId] = useState('');
+  const [pendingPostExpectedId, setPendingPostExpectedId] = useState('');
   const [voidMutationPhase, setVoidMutationPhase] = useState<'idle' | 'scheduled' | 'committing'>('idle');
 
   const pendingVoidTimerRef = useRef<number | null>(null);
@@ -114,9 +158,11 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
 
   const ledgerGateway = useMemo(() => createLedgerGateway(core), [core]);
   const schedulingGateway = useMemo(() => createSchedulingGateway(core), [core]);
+  const expectedGateway = useMemo(() => createExpectedGateway(core), [core]);
   const taxonomyGateway = useMemo(() => createTaxonomyGateway(core), [core]);
 
   const ledgerTransactions = useLedgerTransactions(ledgerGateway);
+  const ledgerTransactionCommands = useLedgerTransactionCommands(ledgerGateway);
   const categorySuggestions = useCategorySuggestions(taxonomyGateway);
   const tagSuggestions = useTagSuggestions(taxonomyGateway);
   const transactionClassification = useTransactionClassification(taxonomyGateway);
@@ -272,6 +318,9 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       setScheduledItems([]);
       setScheduledTotal(0);
       setScheduledHasMore(false);
+      setExpectedItems([]);
+      setExpectedTotal(0);
+      setExpectedHasMore(false);
       setPagination(EMPTY_PAGINATION);
       setTaxonomyByTransactionId({});
       return;
@@ -294,12 +343,16 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
         },
       ],
       scheduledPreviewSize: UPCOMING_PREVIEW_SIZE,
+      expectedPreviewSize: UPCOMING_PREVIEW_SIZE,
     });
 
     setTransactions(overview.executedPage.content);
     setScheduledItems(overview.scheduledPreview.items);
     setScheduledTotal(overview.scheduledPreview.total);
     setScheduledHasMore(overview.scheduledPreview.hasMore);
+    setExpectedItems(overview.expectedPreview.items);
+    setExpectedTotal(overview.expectedPreview.total);
+    setExpectedHasMore(overview.expectedPreview.hasMore);
     setPagination({
       page: overview.executedPage.page,
       size: overview.executedPage.size,
@@ -325,10 +378,14 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       setScheduledItems([]);
       setScheduledTotal(0);
       setScheduledHasMore(false);
+      setExpectedItems([]);
+      setExpectedTotal(0);
+      setExpectedHasMore(false);
       setTaxonomyByTransactionId({});
       setPagination(EMPTY_PAGINATION);
       setPendingVoidTransactionId('');
       setPendingDeactivateScheduledId('');
+      setPendingPostExpectedId('');
       setPostingTransaction(false);
       setVoidMutationPhase('idle');
       setMonthMenuOpen(false);
@@ -348,10 +405,14 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       setScheduledItems([]);
       setScheduledTotal(0);
       setScheduledHasMore(false);
+      setExpectedItems([]);
+      setExpectedTotal(0);
+      setExpectedHasMore(false);
       setTaxonomyByTransactionId({});
       setPagination(EMPTY_PAGINATION);
       setPendingVoidTransactionId('');
       setPendingDeactivateScheduledId('');
+      setPendingPostExpectedId('');
       setPostingTransaction(false);
       setVoidMutationPhase('idle');
       setMonthMenuOpen(false);
@@ -446,6 +507,49 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     }
   }
 
+  async function postExpectedMovement(movement: ExpectedMovementItem): Promise<boolean> {
+    if (!accountId) {
+      reportError(new Error('Account is required.'));
+      return false;
+    }
+
+    setMutating(true);
+    setPendingPostExpectedId(movement.id);
+    setError('');
+    try {
+      const amount = normalizeAmount(movement.amount);
+      const occurredAt = resolveOccurredAt(movement.expectedAt);
+      const payload = {
+        accountId,
+        occurredAt,
+        amount,
+        currency: movement.currency,
+        description: movement.description?.trim() || undefined,
+        merchant: movement.merchant?.trim() || undefined,
+        categoryId: movement.categoryId?.trim() || undefined,
+      };
+      const result = movement.type === 'income'
+        ? await ledgerTransactionCommands.recordIncome(payload)
+        : await ledgerTransactionCommands.recordExpense(payload);
+
+      await expectedGateway.expectedResolveMovement({
+        expectedMovementId: movement.id,
+        transactionId: result.id,
+        resolvedAt: new Date().toISOString(),
+      });
+      await refreshMovements();
+      onExpectedPosted?.();
+      showToast('Expected movement posted.');
+      return true;
+    } catch (err) {
+      reportError(err);
+      return false;
+    } finally {
+      setMutating(false);
+      setPendingPostExpectedId('');
+    }
+  }
+
   const disabled = loading || mutating || postingTransaction || voidMutationPhase === 'committing';
 
   const required: MonthlyMovementsViewRequired = {
@@ -464,6 +568,9 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       scheduledItems,
       scheduledTotal,
       scheduledHasMore,
+      expectedItems,
+      expectedTotal,
+      expectedHasMore,
       filterOptions: {
         categories: categories.map((category) => ({ id: category.id, label: category.name })),
         tags: tags.map((tag) => ({ id: tag.id, label: tag.name })),
@@ -471,6 +578,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       pagination,
       pendingVoidTransactionId: pendingVoidTransactionId || undefined,
       pendingDeactivateScheduledId: pendingDeactivateScheduledId || undefined,
+      pendingPostExpectedId: pendingPostExpectedId || undefined,
     },
     status: {
       loading,
@@ -538,6 +646,8 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       },
       requestVoid,
       deactivateScheduledMovement,
+      postExpectedMovement,
+      editExpectedMovement: (movement, categoryName) => onEditExpectedMovement?.(movement, categoryName),
     },
   };
 
