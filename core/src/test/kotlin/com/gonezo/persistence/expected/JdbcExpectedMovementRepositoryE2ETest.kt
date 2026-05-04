@@ -59,9 +59,39 @@ class JdbcExpectedMovementRepositoryE2ETest : SqliteE2ETest() {
     assertThat(withClosed.map { it.id }).containsExactlyInAnyOrder(pending.id, dismissed.id)
   }
 
+  @Test
+  fun `find by origin occurrence id returns linked expected movement`() {
+    val repository = JdbcExpectedMovementRepository(db.namedJdbcTemplate)
+    val originOccurrenceId = "a625f942-c4ab-4129-8998-cece47eb9592"
+    val movement = expectedMovement(originOccurrenceId = originOccurrenceId)
+    repository.save(movement)
+
+    val loaded = repository.findByOriginOccurrenceId(originOccurrenceId)
+
+    assertThat(loaded).isEqualTo(movement)
+  }
+
+  @Test
+  fun `unique index prevents two expected movements linked to same origin occurrence`() {
+    val repository = JdbcExpectedMovementRepository(db.namedJdbcTemplate)
+    val originOccurrenceId = "6b93faca-53f9-48e4-af06-ed65cddb9917"
+    val first = expectedMovement(originOccurrenceId = originOccurrenceId)
+    val second = expectedMovement(
+      merchant = "Another",
+      originOccurrenceId = originOccurrenceId,
+    )
+    repository.save(first)
+
+    org.assertj.core.api.Assertions.assertThatThrownBy {
+      repository.save(second)
+    }
+      .isInstanceOf(RuntimeException::class.java)
+  }
+
   private fun expectedMovement(
     accountId: String = "account-1",
     merchant: String = "Client",
+    originOccurrenceId: String? = null,
   ): ExpectedMovement = ExpectedMovement.create(
     id = ExpectedMovementId.random(),
     accountId = accountId,
@@ -73,5 +103,6 @@ class JdbcExpectedMovementRepositoryE2ETest : SqliteE2ETest() {
     merchant = merchant,
     categoryId = "cat-income",
     createdAt = Instant.parse("2026-05-01T09:00:00Z"),
+    originOccurrenceId = originOccurrenceId,
   )
 }

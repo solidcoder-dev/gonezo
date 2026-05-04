@@ -2380,6 +2380,7 @@ export class CoreAdapterWeb implements CorePort {
       description: input.description,
       merchant: input.merchant,
       categoryId: input.categoryId,
+      originOccurrenceId: undefined,
       status: 'pending',
       createdAt: now,
       updatedAt: now,

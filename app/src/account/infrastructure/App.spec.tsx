@@ -1283,6 +1283,50 @@ describe('App Accounts UX', () => {
     expect(core.ledgerRecordIncome).not.toHaveBeenCalled();
   });
 
+  it('allows expected and recurring together from composer', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Expense');
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '55' } });
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-05-04' } });
+    fireEvent.change(screen.getByLabelText('Merchant'), { target: { value: 'Gym' } });
+    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
+    fireEvent.click(screen.getByLabelText('Expected'));
+    fireEvent.click(screen.getByLabelText('Repeat this expense'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save expected' }));
+
+    await waitFor(() => {
+      expect(core.expectedCreateMovement).toHaveBeenCalledTimes(1);
+      expect(core.recurrenceCreateRecurringMovement).toHaveBeenCalledTimes(1);
+    });
+
+    expect(core.expectedCreateMovement).toHaveBeenCalledWith(expect.objectContaining({
+      accountId: 'acc-1',
+      type: 'expense',
+      amount: '55.00',
+      currency: 'USD',
+      expectedAt: expect.stringMatching(/^2026-05-04T/),
+      merchant: 'Gym',
+      description: 'Gym',
+    }));
+    expect(core.recurrenceCreateRecurringMovement).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'expense',
+      sourceAccountId: 'acc-1',
+      amount: '55.00',
+      currency: 'USD',
+      scheduleKind: 'recurring',
+      recurrenceEnd: { kind: 'never' },
+    }));
+    expect(core.ledgerRecordExpense).not.toHaveBeenCalled();
+  });
+
   it('categorizes quick expense with an existing category', async () => {
     const core = makeCore();
     const view = render(
@@ -2221,10 +2265,10 @@ describe('App Accounts UX', () => {
 
     await screen.findByRole('heading', { name: 'Movements' });
     expect(screen.queryByRole('button', { name: 'More filters' })).not.toBeInTheDocument();
-    const expectedSection = screen.getByLabelText('Expected movements');
+    const expectedSection = await screen.findByLabelText('Expected movements');
     expect(within(expectedSection).getByRole('heading', { name: 'Expected' })).toBeInTheDocument();
     expect(expectedSection).toHaveTextContent('0');
-    const scheduledSection = screen.getByLabelText('Scheduled movements');
+    const scheduledSection = await screen.findByLabelText('Scheduled movements');
     expect(within(scheduledSection).getByRole('heading', { name: 'Scheduled' })).toBeInTheDocument();
     expect(scheduledSection).toHaveTextContent('0');
     expect(screen.getByRole('heading', { name: 'Posted' })).toBeInTheDocument();
@@ -2288,6 +2332,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(expectedRow.closest('button')!);
     const detailDialog = await screen.findByRole('dialog', { name: 'Expected movement details' });
     expect(within(detailDialog).getByText('Food')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('manual')).toBeInTheDocument();
     expect(within(detailDialog).getByText('pending')).toBeInTheDocument();
 
     fireEvent.click(within(detailDialog).getByRole('button', { name: 'Post movement' }));

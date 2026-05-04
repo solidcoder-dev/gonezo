@@ -372,6 +372,7 @@ export type ExpectedMovementItem = {
   description?: string;
   merchant?: string;
   categoryId?: string;
+  originOccurrenceId?: string;
   status: ExpectedMovementStatus;
   resolvedTransactionId?: string;
   createdAt: string;

@@ -140,6 +140,9 @@ class ExpectedMovementServicesTest {
 
     override fun findById(id: ExpectedMovementId): ExpectedMovement? = storage[id]
 
+    override fun findByOriginOccurrenceId(originOccurrenceId: String): ExpectedMovement? = storage.values
+      .firstOrNull { it.originOccurrenceId == originOccurrenceId }
+
     override fun listByAccount(accountId: String, includeClosed: Boolean): List<ExpectedMovement> = storage.values
       .filter { it.accountId == accountId }
       .filter { includeClosed || it.status == ExpectedMovementStatus.PENDING }

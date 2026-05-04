@@ -13,6 +13,7 @@ data class CreateExpectedMovementCommand(
   val description: String?,
   val merchant: String?,
   val categoryId: String?,
+  val originOccurrenceId: String? = null,
   val createdAt: Instant,
 )
 
@@ -54,6 +55,7 @@ data class ExpectedMovementView(
   val description: String?,
   val merchant: String?,
   val categoryId: String?,
+  val originOccurrenceId: String?,
   val status: String,
   val resolvedTransactionId: String?,
   val createdAt: Instant,

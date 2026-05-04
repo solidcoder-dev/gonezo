@@ -606,9 +606,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
   function setSchedulingModeValue(value: 'now' | 'scheduled') {
     setSchedulingMode(value);
-    if (value === 'scheduled') {
-      setExpectedMovement(false);
-    }
     setFieldErrors((previous) => ({
       ...previous,
       date: undefined,
@@ -698,8 +695,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       expenseSplit: undefined,
     }));
     if (value) {
-      setSchedulingMode('now');
-      setSchedulingKind('one_shot');
       setExpenseDetailed(false);
     }
   }
@@ -969,9 +964,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       }
     }
 
-    if (movementExpected && recurrenceEnabled) {
-      nextErrors.expectedConflict = 'Expected movements cannot repeat.';
-    }
     if (movementExpected && expenseDetailed) {
       nextErrors.expectedConflict = 'Expected movements cannot use split items.';
     }

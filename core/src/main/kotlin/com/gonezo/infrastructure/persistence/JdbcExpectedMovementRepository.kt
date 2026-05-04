@@ -21,11 +21,11 @@ class JdbcExpectedMovementRepository(
     val sql = """
       insert into expected_movements (
         id, account_id, movement_type, amount, currency, expected_at,
-        description, merchant, category_id, status, resolved_transaction_id,
+        description, merchant, category_id, origin_occurrence_id, status, resolved_transaction_id,
         created_at, updated_at, resolved_at, dismissed_at
       ) values (
         :id, :account_id, :movement_type, :amount, :currency, :expected_at,
-        :description, :merchant, :category_id, :status, :resolved_transaction_id,
+        :description, :merchant, :category_id, :origin_occurrence_id, :status, :resolved_transaction_id,
         :created_at, :updated_at, :resolved_at, :dismissed_at
       )
       on conflict(id) do update set
@@ -37,6 +37,7 @@ class JdbcExpectedMovementRepository(
         description = excluded.description,
         merchant = excluded.merchant,
         category_id = excluded.category_id,
+        origin_occurrence_id = excluded.origin_occurrence_id,
         status = excluded.status,
         resolved_transaction_id = excluded.resolved_transaction_id,
         created_at = excluded.created_at,
@@ -55,6 +56,20 @@ class JdbcExpectedMovementRepository(
       where id = :id
     """.trimIndent()
     return jdbcTemplate.query(sql, MapSqlParameterSource("id", id.toString()), rowMapper()).firstOrNull()
+  }
+
+  override fun findByOriginOccurrenceId(originOccurrenceId: String): ExpectedMovement? {
+    val sql = """
+      select *
+      from expected_movements
+      where origin_occurrence_id = :origin_occurrence_id
+      limit 1
+    """.trimIndent()
+    return jdbcTemplate.query(
+      sql,
+      MapSqlParameterSource("origin_occurrence_id", originOccurrenceId),
+      rowMapper(),
+    ).firstOrNull()
   }
 
   override fun listByAccount(accountId: String, includeClosed: Boolean): List<ExpectedMovement> {
@@ -90,6 +105,7 @@ class JdbcExpectedMovementRepository(
       description = rs.getString("description"),
       merchant = rs.getString("merchant"),
       categoryId = rs.getString("category_id"),
+      originOccurrenceId = rs.getString("origin_occurrence_id"),
       status = ExpectedMovementStatus.from(rs.getString("status")),
       resolvedTransactionId = rs.getString("resolved_transaction_id"),
       createdAt = Instant.parse(rs.getString("created_at")),
@@ -110,6 +126,7 @@ class JdbcExpectedMovementRepository(
       .addValue("description", movement.description)
       .addValue("merchant", movement.merchant)
       .addValue("category_id", movement.categoryId)
+      .addValue("origin_occurrence_id", movement.originOccurrenceId)
       .addValue("status", movement.status.value)
       .addValue("resolved_transaction_id", movement.resolvedTransactionId)
       .addValue("created_at", movement.createdAt.toString())

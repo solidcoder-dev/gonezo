@@ -8,5 +8,7 @@ interface ExpectedMovementRepository {
 
   fun findById(id: ExpectedMovementId): ExpectedMovement?
 
+  fun findByOriginOccurrenceId(originOccurrenceId: String): ExpectedMovement?
+
   fun listByAccount(accountId: String, includeClosed: Boolean): List<ExpectedMovement>
 }

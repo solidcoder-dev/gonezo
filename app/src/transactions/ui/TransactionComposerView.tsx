@@ -565,7 +565,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                           onSetSchedulingMode('scheduled');
                           onSetSchedulingKind('recurring');
                         }}
-                        disabled={disabled || expected}
+                        disabled={disabled}
                       />
                       {mode === 'expense' ? 'Repeat this expense' : 'Repeat this income'}
                     </label>

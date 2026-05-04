@@ -87,6 +87,10 @@ function scheduledOrigin(item: SchedulingMovementItem): string {
   return kind === 'one_shot' ? 'one-shot' : 'recurring';
 }
 
+function expectedOrigin(item: ExpectedMovementItem): string {
+  return item.originOccurrenceId ? 'recurring' : 'manual';
+}
+
 function compactTags(tags?: Array<{ id: string; name: string }>): string | undefined {
   if (!tags || tags.length === 0) {
     return undefined;
@@ -297,6 +301,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
                   const expectedCategoryName = resolveExpectedCategoryName(movement.categoryId);
                   const details = [
                     `expected ${formatCalendarDay(movement.expectedAt)}`,
+                    expectedOrigin(movement),
                     expectedCategoryName,
                     movement.status,
                   ].filter((value): value is string => Boolean(value && value.trim().length > 0));
@@ -549,6 +554,10 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
               <div className="detail-meta-item">
                 <span className="hint detail-meta-label">Category</span>
                 <strong>{resolveExpectedCategoryName(selectedExpectedMovement.categoryId) ?? 'No category'}</strong>
+              </div>
+              <div className="detail-meta-item">
+                <span className="hint detail-meta-label">Origin</span>
+                <strong>{expectedOrigin(selectedExpectedMovement)}</strong>
               </div>
               <div className="detail-meta-item">
                 <span className="hint detail-meta-label">Status</span>

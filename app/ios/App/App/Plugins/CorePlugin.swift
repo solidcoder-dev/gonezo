@@ -581,6 +581,7 @@ public class CorePlugin: CAPPlugin {
             "description": call.getString("description") as Any,
             "merchant": call.getString("merchant") as Any,
             "categoryId": call.getString("categoryId") as Any,
+            "originOccurrenceId": NSNull(),
             "status": "pending",
             "resolvedTransactionId": NSNull(),
             "createdAt": now,

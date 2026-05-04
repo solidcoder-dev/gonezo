@@ -13,6 +13,7 @@ data class ExpectedMovement(
   val description: String?,
   val merchant: String?,
   val categoryId: String?,
+  val originOccurrenceId: String?,
   val status: ExpectedMovementStatus,
   val resolvedTransactionId: String?,
   val createdAt: Instant,
@@ -24,6 +25,7 @@ data class ExpectedMovement(
     require(accountId.isNotBlank()) { "accountId is required" }
     require(amount > BigDecimal.ZERO) { "amount must be greater than 0" }
     require(currency.matches(Regex("^[A-Z]{3}$"))) { "currency must be 3 uppercase letters" }
+    require(originOccurrenceId == null || originOccurrenceId.isNotBlank()) { "originOccurrenceId cannot be blank" }
     require(!(status == ExpectedMovementStatus.PENDING && resolvedTransactionId != null)) {
       "pending expected movement cannot have resolved transaction"
     }
@@ -78,6 +80,7 @@ data class ExpectedMovement(
       description: String?,
       merchant: String?,
       categoryId: String?,
+      originOccurrenceId: String? = null,
       createdAt: Instant,
     ): ExpectedMovement = ExpectedMovement(
       id = id,
@@ -89,6 +92,7 @@ data class ExpectedMovement(
       description = description?.trim()?.ifBlank { null },
       merchant = merchant?.trim()?.ifBlank { null },
       categoryId = categoryId?.trim()?.ifBlank { null },
+      originOccurrenceId = originOccurrenceId?.trim()?.ifBlank { null },
       status = ExpectedMovementStatus.PENDING,
       resolvedTransactionId = null,
       createdAt = createdAt,

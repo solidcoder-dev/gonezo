@@ -19,6 +19,7 @@ class CreateExpectedMovementService(
       description = command.description,
       merchant = command.merchant,
       categoryId = command.categoryId,
+      originOccurrenceId = command.originOccurrenceId,
       createdAt = command.createdAt,
     )
     repository.save(movement)
@@ -59,6 +60,7 @@ class ListExpectedMovementsService(
         description = movement.description,
         merchant = movement.merchant,
         categoryId = movement.categoryId,
+        originOccurrenceId = movement.originOccurrenceId,
         status = movement.status.value,
         resolvedTransactionId = movement.resolvedTransactionId,
         createdAt = movement.createdAt,

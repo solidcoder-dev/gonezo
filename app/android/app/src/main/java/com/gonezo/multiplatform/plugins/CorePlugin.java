@@ -1520,6 +1520,7 @@ public class CorePlugin extends Plugin {
     result.put("description", movement.getDescription());
     result.put("merchant", movement.getMerchant());
     result.put("categoryId", movement.getCategoryId());
+    result.put("originOccurrenceId", JSONObject.NULL);
     result.put("status", movement.getStatus());
     result.put("resolvedTransactionId", movement.getResolvedTransactionId());
     result.put("createdAt", movement.getCreatedAt());
