@@ -1,6 +1,5 @@
 import { registerPlugin } from '@capacitor/core';
 import type {
-  CoreResult,
   LedgerOpenAccountInput,
   LedgerOpenAccountResult,
   LedgerListSupportedCurrenciesResult,
@@ -39,14 +38,6 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
-  TransactionVoiceExtractDraftInput,
-  TransactionVoiceExtractDraftResult,
-  TransactionVoiceFinalizeInput,
-  TransactionVoiceFinalizeResult,
-  TransactionVoiceStartInput,
-  TransactionVoiceStartResult,
-  TransactionVoiceStopInput,
-  TransactionVoiceStopResult,
   RecurrenceCreateRecurringMovementInput,
   RecurrenceCreateRecurringMovementResult,
   RecurrenceDeactivateRecurringMovementInput,
@@ -72,7 +63,6 @@ import type {
 } from '../../domain/corePort';
 
 export interface CorePlugin {
-  doThing(options: { input: string }): Promise<CoreResult>;
   ledgerOpenAccount(options: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult>;
   ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult>;
   ledgerRenameAccount(options: LedgerRenameAccountInput): Promise<void>;
@@ -102,10 +92,6 @@ export interface CorePlugin {
   orchestrationListTransactionTaxonomy(
     options: OrchestrationListTransactionTaxonomyInput,
   ): Promise<OrchestrationListTransactionTaxonomyResult>;
-  transactionVoiceStart(options: TransactionVoiceStartInput): Promise<TransactionVoiceStartResult>;
-  transactionVoiceStop(options: TransactionVoiceStopInput): Promise<TransactionVoiceStopResult>;
-  transactionVoiceExtractDraft(options: TransactionVoiceExtractDraftInput): Promise<TransactionVoiceExtractDraftResult>;
-  transactionVoiceFinalize(options: TransactionVoiceFinalizeInput): Promise<TransactionVoiceFinalizeResult>;
   recurrenceCreateRecurringMovement(
     options: RecurrenceCreateRecurringMovementInput,
   ): Promise<RecurrenceCreateRecurringMovementResult>;

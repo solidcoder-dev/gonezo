@@ -2,7 +2,11 @@ import { useEffect, useMemo, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { CategoryComboboxField } from './CategoryComboboxField';
 import { TagComboboxField } from './TagComboboxField';
-import type { RecurrenceEndInput, RecurrenceFrequency, RecurrenceMonthlyPattern } from '../../shared/domain/corePort';
+import type {
+  RecurrenceEndView as RecurrenceEndInput,
+  RecurrenceFrequencyView as RecurrenceFrequency,
+  RecurrenceMonthlyPatternView as RecurrenceMonthlyPattern,
+} from '../../shared/domain/schedulingView.types';
 
 export type ComposerMode = 'picker' | 'expense' | 'income' | 'transfer';
 

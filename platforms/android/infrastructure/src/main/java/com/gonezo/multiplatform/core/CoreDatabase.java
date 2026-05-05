@@ -39,10 +39,6 @@ final class CoreDatabase extends SQLiteOpenHelper {
       createMobillsImportTables(db);
     }
 
-    if (oldVersion < 11) {
-      createTransactionVoiceAnalysisTables(db);
-    }
-
     if (oldVersion < 12) {
       createRecurrenceTables(db);
     }
@@ -67,7 +63,6 @@ final class CoreDatabase extends SQLiteOpenHelper {
     createTaxonomyTables(db);
     createTaxonomyTagTables(db);
     createMobillsImportTables(db);
-    createTransactionVoiceAnalysisTables(db);
     createRecurrenceTables(db);
     createExpectedMovementTables(db);
   }
@@ -195,25 +190,6 @@ final class CoreDatabase extends SQLiteOpenHelper {
         "last_seen_at text not null," +
         "seen_count integer not null default 1," +
         "primary key(source, fingerprint)" +
-      ");"
-    );
-  }
-
-  private static void createTransactionVoiceAnalysisTables(SQLiteDatabase db) {
-    db.execSQL(
-      "create table if not exists transaction_voice_analysis (" +
-        "analysis_id text primary key," +
-        "recording_id text not null," +
-        "recording_path text not null," +
-        "account_id text not null," +
-        "expected_type text not null," +
-        "initial_draft_json text not null," +
-        "created_at text not null," +
-        "outcome text," +
-        "transaction_ids_json text," +
-        "final_draft_json text," +
-        "error_message text," +
-        "finalized_at text" +
       ");"
     );
   }
@@ -349,7 +325,6 @@ final class CoreDatabase extends SQLiteOpenHelper {
     db.execSQL("drop table if exists recurrence_outbox");
     db.execSQL("drop table if exists recurring_movement_occurrences");
     db.execSQL("drop table if exists recurring_movements");
-    db.execSQL("drop table if exists transaction_voice_analysis");
     db.execSQL("drop table if exists mobills_import_fingerprints");
     db.execSQL("drop table if exists taxonomy_transaction_tag_assignments");
     db.execSQL("drop table if exists taxonomy_tags");

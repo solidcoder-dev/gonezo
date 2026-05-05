@@ -1,6 +1,10 @@
 import type { FormEvent } from 'react';
 import type { ComposerMode, TransactionFieldErrors } from '../domain/transactions.types';
-import type { RecurrenceEndInput, RecurrenceFrequency, RecurrenceMonthlyPattern } from '../../shared/domain/corePort';
+import type {
+  RecurrenceEndView as RecurrenceEndInput,
+  RecurrenceFrequencyView as RecurrenceFrequency,
+  RecurrenceMonthlyPatternView as RecurrenceMonthlyPattern,
+} from '../../shared/domain/schedulingView.types';
 
 export type TransactionEntryViewRequired = {
   state: {

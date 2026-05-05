@@ -87,7 +87,6 @@ public final class AndroidLedgerCore {
   private final GetLedgerAccountBalanceUC getAccountBalanceUC;
   private final AndroidLedgerAccountRepository accountRepository;
   private final AndroidMobillsImportFingerprintRepository mobillsImportFingerprintRepository;
-  private final AndroidTransactionVoiceAnalysisRepository transactionVoiceAnalysisRepository;
 
   private AndroidLedgerCore(Context context) {
     CoreDatabase database = new CoreDatabase(context.getApplicationContext());
@@ -112,7 +111,6 @@ public final class AndroidLedgerCore {
     this.getAccountBalanceUC = new GetLedgerAccountBalanceService(accountRepository, transactionRepository, new BalanceCalculator());
     this.accountRepository = accountRepository;
     this.mobillsImportFingerprintRepository = new AndroidMobillsImportFingerprintRepository(database);
-    this.transactionVoiceAnalysisRepository = new AndroidTransactionVoiceAnalysisRepository(database);
   }
 
   public static synchronized AndroidLedgerCore getInstance(Context context) {
@@ -470,48 +468,6 @@ public final class AndroidLedgerCore {
     mobillsImportFingerprintRepository.touchDuplicate(
       requireText(fingerprint, "fingerprint is required"),
       Instant.now()
-    );
-  }
-
-  public void recordTransactionVoiceCapture(
-    String analysisId,
-    String recordingId,
-    String recordingPath,
-    String accountId,
-    String expectedType,
-    String initialDraftJson,
-    String createdAt
-  ) {
-    transactionVoiceAnalysisRepository.recordCapture(
-      requireText(analysisId, "analysisId is required"),
-      requireText(recordingId, "recordingId is required"),
-      requireText(recordingPath, "recordingPath is required"),
-      requireText(accountId, "accountId is required"),
-      requireText(expectedType, "expectedType is required"),
-      requireText(initialDraftJson, "initialDraftJson is required"),
-      requireText(createdAt, "createdAt is required")
-    );
-  }
-
-  public boolean hasTransactionVoiceCapture(String analysisId) {
-    return transactionVoiceAnalysisRepository.exists(requireText(analysisId, "analysisId is required"));
-  }
-
-  public void finalizeTransactionVoiceCapture(
-    String analysisId,
-    String outcome,
-    String transactionIdsJson,
-    String finalDraftJson,
-    String errorMessage,
-    String finalizedAt
-  ) {
-    transactionVoiceAnalysisRepository.finalizeCapture(
-      requireText(analysisId, "analysisId is required"),
-      requireText(outcome, "outcome is required"),
-      blankToNull(transactionIdsJson),
-      blankToNull(finalDraftJson),
-      blankToNull(errorMessage),
-      requireText(finalizedAt, "finalizedAt is required")
     );
   }
 

@@ -1,11 +1,11 @@
-import type { RecurrenceEndInput } from './corePort';
+import type { RecurrenceEndView } from './schedulingView.types';
 
 export type SchedulingKind = 'one_shot' | 'recurring';
 
 type SchedulingKindCarrier = {
   origin?: 'one_shot' | 'recurring';
   scheduleKind?: 'one_shot' | 'recurring';
-  recurrenceEnd?: RecurrenceEndInput;
+  recurrenceEnd?: RecurrenceEndView;
 };
 
 export function resolveSchedulingKind(input: SchedulingKindCarrier): SchedulingKind {
@@ -20,4 +20,3 @@ export function resolveSchedulingKind(input: SchedulingKindCarrier): SchedulingK
   }
   return 'recurring';
 }
-

@@ -3,7 +3,6 @@ package com.gonezo.taxonomy.application
 import com.gonezo.taxonomy.domain.Category
 import com.gonezo.taxonomy.domain.CategoryAppliesTo
 import com.gonezo.taxonomy.domain.CategoryId
-import com.gonezo.taxonomy.domain.Tag
 import com.gonezo.taxonomy.domain.TagId
 import java.time.Instant
 import java.util.UUID
@@ -48,10 +47,6 @@ data class CreateTagCommand(
 
 interface CreateTagUC {
   fun execute(command: CreateTagCommand): TagId
-}
-
-interface ListTagsUC {
-  fun execute(): List<Tag>
 }
 
 data class ReplaceTransactionTagsCommand(

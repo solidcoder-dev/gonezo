@@ -1,6 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import './App.css';
-import type { AccountsCorePort } from './account/application/useAccountPageModel';
+import type { AccountsCorePort } from './account/application/accountsCore.port';
 import { AccountPage } from './account/application/AccountPage';
 import { CoreAdapter } from './shared/infrastructure/core/coreAdapter';
 import { MovementsSearchPage } from './movements';

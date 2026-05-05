@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { ExpectedMovementItem, SchedulingMovementItem } from '../../shared/domain/corePort';
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
 import type { TransactionHistoryItemView } from '../../transactions/domain/transactionView.types';
 import { formatCalendarDay, groupPostedTransactionsByDate } from '../../transactions/ui/postedGrouping';
 import { groupScheduledMovementsByDate } from '../../transactions/ui/scheduledGrouping';
+import type { ExpectedMovementView, ScheduledMovementView } from '../domain/movementsView.types';
 import { MonthNavigatorView } from './MonthNavigatorView';
 import { MonthPickerModalView } from './MonthPickerModalView';
 import { YearMonthSelectorView } from './YearMonthSelectorView';
@@ -37,12 +37,12 @@ function txItemTypeClass(type: TransactionHistoryItemView['type']): string {
   return 'expense-item expense-item--expense';
 }
 
-type MovementVisualType = SchedulingMovementItem['type'] | ExpectedMovementItem['type'];
+type MovementVisualType = ScheduledMovementView['type'] | ExpectedMovementView['type'];
 
 type ExpectedDateGroup = {
   key: string;
   label: string;
-  items: ExpectedMovementItem[];
+  items: ExpectedMovementView[];
 };
 
 function movementTypeClass(type: MovementVisualType): string {
@@ -75,19 +75,19 @@ function txAmount(amount: string, currency: string): string {
   return formatCurrencyAmount(Math.abs(numeric).toString(), currency);
 }
 
-function scheduledStatus(item: SchedulingMovementItem): string {
+function scheduledStatus(item: ScheduledMovementView): string {
   if (item.status === 'active') return 'scheduled';
   if (item.status === 'deactivated') return 'deactivated';
   if (item.status === 'completed') return 'completed';
   return item.status;
 }
 
-function scheduledOrigin(item: SchedulingMovementItem): string {
+function scheduledOrigin(item: ScheduledMovementView): string {
   const kind = resolveSchedulingKind(item);
   return kind === 'one_shot' ? 'one-shot' : 'recurring';
 }
 
-function expectedOrigin(item: ExpectedMovementItem): string {
+function expectedOrigin(item: ExpectedMovementView): string {
   return item.originOccurrenceId ? 'recurring' : 'manual';
 }
 
@@ -113,7 +113,7 @@ function compactTagNames(tags?: string[]): string | undefined {
   return visible.join(' ');
 }
 
-function groupExpectedMovementsByDate(items: ExpectedMovementItem[]): ExpectedDateGroup[] {
+function groupExpectedMovementsByDate(items: ExpectedMovementView[]): ExpectedDateGroup[] {
   const sorted = [...items].sort((left, right) => {
     const dateComparison = left.expectedAt.localeCompare(right.expectedAt);
     return dateComparison !== 0 ? dateComparison : left.id.localeCompare(right.id);
@@ -163,10 +163,16 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
   } = required.state;
   const { loading, disabled } = required.status;
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionHistoryItemView | null>(null);
-  const [selectedScheduledMovement, setSelectedScheduledMovement] = useState<SchedulingMovementItem | null>(null);
-  const [selectedExpectedMovement, setSelectedExpectedMovement] = useState<ExpectedMovementItem | null>(null);
-  const [expectedExpanded, setExpectedExpanded] = useState(false);
-  const [scheduledExpanded, setScheduledExpanded] = useState(false);
+  const [selectedScheduledMovement, setSelectedScheduledMovement] = useState<ScheduledMovementView | null>(null);
+  const [selectedExpectedMovement, setSelectedExpectedMovement] = useState<ExpectedMovementView | null>(null);
+  const expansionScope = `${accountId}:${monthLabel}`;
+  const [expansionState, setExpansionState] = useState({
+    scope: expansionScope,
+    expected: false,
+    scheduled: false,
+  });
+  const expectedExpanded = expansionState.scope === expansionScope ? expansionState.expected : false;
+  const scheduledExpanded = expansionState.scope === expansionScope ? expansionState.scheduled : false;
 
   const categoryLabelById = useMemo(
     () => new Map(filterOptions.categories.map((item) => [item.id, item.label] as const)),
@@ -187,10 +193,17 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
 
   const searchHref = `/movements/search?accountId=${encodeURIComponent(accountId)}`;
 
-  useEffect(() => {
-    setExpectedExpanded(false);
-    setScheduledExpanded(false);
-  }, [accountId, monthLabel]);
+  function toggleExpectedExpanded() {
+    setExpansionState((previous) => previous.scope === expansionScope
+      ? { ...previous, expected: !previous.expected }
+      : { scope: expansionScope, expected: true, scheduled: false });
+  }
+
+  function toggleScheduledExpanded() {
+    setExpansionState((previous) => previous.scope === expansionScope
+      ? { ...previous, scheduled: !previous.scheduled }
+      : { scope: expansionScope, expected: false, scheduled: true });
+  }
 
   function resolveScheduledCategoryName(categoryId?: string): string | undefined {
     if (!categoryId || categoryId.trim().length === 0) {
@@ -206,7 +219,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
     return categoryLabelById.get(categoryId);
   }
 
-  function resolveScheduledTagNames(movement: SchedulingMovementItem): string[] {
+  function resolveScheduledTagNames(movement: ScheduledMovementView): string[] {
     const namesFromMovement = (movement.tagNames ?? [])
       .map((name) => name.trim())
       .filter((name) => name.length > 0);
@@ -278,7 +291,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
               className="account-menu-trigger movement-section-trigger"
               aria-label={`${expectedExpanded ? 'Collapse' : 'Expand'} expected movements (${expectedTotal})`}
               aria-expanded={expectedExpanded}
-              onClick={() => setExpectedExpanded((previous) => !previous)}
+              onClick={toggleExpectedExpanded}
             >
               <span>Expected</span>
               <span className="movement-section-count">
@@ -351,7 +364,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
               className="account-menu-trigger movement-section-trigger"
               aria-label={`${scheduledExpanded ? 'Collapse' : 'Expand'} scheduled movements (${scheduledTotal})`}
               aria-expanded={scheduledExpanded}
-              onClick={() => setScheduledExpanded((previous) => !previous)}
+              onClick={toggleScheduledExpanded}
             >
               <span>Scheduled</span>
               <span className="movement-section-count">

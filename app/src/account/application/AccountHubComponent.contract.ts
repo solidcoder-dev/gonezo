@@ -1,5 +1,5 @@
 import type { LoadPhase } from '../domain/accountPage.types';
-import type { AccountsCorePort } from './useAccountPageModel';
+import type { AccountsCorePort } from './accountsCore.port';
 
 export type AccountHubComponentRequired = {
   context: {

@@ -8,7 +8,7 @@ import { AccountPageView } from '../ui/AccountPageView';
 import { TransactionsImportComponent } from '../ui/capabilities/TransactionsImportComponent';
 import type { AccountPageViewProvided, AccountPageViewRequired } from '../ui/accountPageView.contract';
 import type { LoadPhase, SubmitPhase } from '../domain/accountPage.types';
-import type { AccountsCorePort } from './useAccountPageModel';
+import type { AccountsCorePort } from './accountsCore.port';
 import { AccountHubComponent } from './AccountHubComponent';
 import { AccountSummaryComponent } from './AccountSummaryComponent';
 

@@ -53,10 +53,6 @@ interface ListLedgerAccountsUC {
   fun execute(): List<Account>
 }
 
-interface ListLedgerSupportedCurrenciesUC {
-  fun execute(): List<CurrencyCode>
-}
-
 data class RecordLedgerIncomeCommand(
   val accountId: AccountId,
   val amount: Money,
@@ -135,15 +131,6 @@ interface AddLedgerTransactionItemUC {
   fun execute(command: AddLedgerTransactionItemCommand)
 }
 
-data class RemoveLedgerTransactionItemCommand(
-  val transactionId: TransactionId,
-  val itemId: com.gonezo.ledger.domain.TransactionItemId,
-)
-
-interface RemoveLedgerTransactionItemUC {
-  fun execute(command: RemoveLedgerTransactionItemCommand)
-}
-
 data class PostLedgerDraftTransactionCommand(
   val transactionId: TransactionId,
 )
@@ -158,14 +145,6 @@ data class VoidLedgerTransactionCommand(
 
 interface VoidLedgerTransactionUC {
   fun execute(command: VoidLedgerTransactionCommand)
-}
-
-data class GetLedgerTransactionQuery(
-  val transactionId: TransactionId,
-)
-
-interface GetLedgerTransactionUC {
-  fun execute(query: GetLedgerTransactionQuery): Transaction
 }
 
 data class ListLedgerTransactionsQuery(

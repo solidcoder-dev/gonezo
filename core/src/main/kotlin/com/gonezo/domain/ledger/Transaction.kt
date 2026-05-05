@@ -38,11 +38,6 @@ data class Transaction(
     return copy(items = items + item)
   }
 
-  fun removeItem(itemId: TransactionItemId): Transaction {
-    require(status == TransactionStatus.DRAFT) { "items can only be modified in draft status" }
-    return copy(items = items.filterNot { it.id == itemId })
-  }
-
   fun post(): Transaction {
     require(status == TransactionStatus.DRAFT) { "only draft transactions can be posted" }
     if (items.isNotEmpty()) {

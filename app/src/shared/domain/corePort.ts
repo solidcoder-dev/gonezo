@@ -1,8 +1,3 @@
-export type CoreResult = {
-  status: 'ok' | 'error';
-  message: string;
-};
-
 export type LedgerOpenAccountInput = {
   name: string;
   type?: string;
@@ -630,73 +625,7 @@ export type OrchestrationListTransactionTaxonomyResult = {
   items: OrchestrationTransactionTaxonomyItem[];
 };
 
-export type TransactionVoiceType = 'expense' | 'income' | 'transfer';
-
-export type TransactionVoiceDraft = {
-  type: TransactionVoiceType;
-  amount?: string;
-  currency?: string;
-  occurredAt?: string;
-  note?: string;
-  transferToAccountId?: string;
-  categoryName?: string;
-  tagNames?: string[];
-};
-
-export type TransactionVoiceStartInput = {
-  accountId: string;
-  expectedType: TransactionVoiceType;
-};
-
-export type TransactionVoiceStartResult = {
-  sessionId: string;
-  recordingId: string;
-  recordingPath: string;
-  startedAt: string;
-};
-
-export type TransactionVoiceStopInput = {
-  sessionId: string;
-};
-
-export type TransactionVoiceStopResult = {
-  sessionId: string;
-  recordingId: string;
-  recordingPath: string;
-  stoppedAt: string;
-  durationMs: number;
-};
-
-export type TransactionVoiceExtractDraftInput = {
-  sessionId: string;
-};
-
-export type TransactionVoiceExtractDraftResult = {
-  analysisId: string;
-  sessionId: string;
-  recording: {
-    id: string;
-    path: string;
-    createdAt: string;
-  };
-  draft: TransactionVoiceDraft;
-};
-
-export type TransactionVoiceFinalizeInput = {
-  analysisId: string;
-  outcome: 'saved' | 'cancelled' | 'failed';
-  transactionIds?: string[];
-  finalDraft?: TransactionVoiceDraft;
-  errorMessage?: string;
-};
-
-export type TransactionVoiceFinalizeResult = {
-  analysisId: string;
-  finalizedAt: string;
-};
-
 export interface CorePort {
-  doThing(input: string): Promise<CoreResult>;
   ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult>;
   ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult>;
   ledgerRenameAccount(input: LedgerRenameAccountInput): Promise<void>;
@@ -726,10 +655,6 @@ export interface CorePort {
   orchestrationListTransactionTaxonomy(
     input: OrchestrationListTransactionTaxonomyInput,
   ): Promise<OrchestrationListTransactionTaxonomyResult>;
-  transactionVoiceStart(input: TransactionVoiceStartInput): Promise<TransactionVoiceStartResult>;
-  transactionVoiceStop(input: TransactionVoiceStopInput): Promise<TransactionVoiceStopResult>;
-  transactionVoiceExtractDraft(input: TransactionVoiceExtractDraftInput): Promise<TransactionVoiceExtractDraftResult>;
-  transactionVoiceFinalize(input: TransactionVoiceFinalizeInput): Promise<TransactionVoiceFinalizeResult>;
   recurrenceCreateRecurringMovement(
     input: RecurrenceCreateRecurringMovementInput,
   ): Promise<RecurrenceCreateRecurringMovementResult>;

@@ -1,6 +1,5 @@
 import { WebPlugin } from '@capacitor/core';
 import type {
-  CoreResult,
   LedgerOpenAccountInput,
   LedgerOpenAccountResult,
   LedgerListSupportedCurrenciesResult,
@@ -39,14 +38,6 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
-  TransactionVoiceExtractDraftInput,
-  TransactionVoiceExtractDraftResult,
-  TransactionVoiceFinalizeInput,
-  TransactionVoiceFinalizeResult,
-  TransactionVoiceStartInput,
-  TransactionVoiceStartResult,
-  TransactionVoiceStopInput,
-  TransactionVoiceStopResult,
   RecurrenceCreateRecurringMovementInput,
   RecurrenceCreateRecurringMovementResult,
   RecurrenceDeactivateRecurringMovementInput,
@@ -75,10 +66,6 @@ import type { CorePlugin } from './corePlugin';
 
 export class CorePluginWeb extends WebPlugin implements CorePlugin {
   private readonly core = new CoreAdapterWeb();
-
-  async doThing(options: { input: string }): Promise<CoreResult> {
-    return this.core.doThing(options.input);
-  }
 
   async ledgerOpenAccount(options: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {
     return this.core.ledgerOpenAccount(options);
@@ -176,24 +163,6 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
     options: OrchestrationListTransactionTaxonomyInput,
   ): Promise<OrchestrationListTransactionTaxonomyResult> {
     return this.core.orchestrationListTransactionTaxonomy(options);
-  }
-
-  async transactionVoiceStart(options: TransactionVoiceStartInput): Promise<TransactionVoiceStartResult> {
-    return this.core.transactionVoiceStart(options);
-  }
-
-  async transactionVoiceStop(options: TransactionVoiceStopInput): Promise<TransactionVoiceStopResult> {
-    return this.core.transactionVoiceStop(options);
-  }
-
-  async transactionVoiceExtractDraft(
-    options: TransactionVoiceExtractDraftInput,
-  ): Promise<TransactionVoiceExtractDraftResult> {
-    return this.core.transactionVoiceExtractDraft(options);
-  }
-
-  async transactionVoiceFinalize(options: TransactionVoiceFinalizeInput): Promise<TransactionVoiceFinalizeResult> {
-    return this.core.transactionVoiceFinalize(options);
   }
 
   async recurrenceCreateRecurringMovement(

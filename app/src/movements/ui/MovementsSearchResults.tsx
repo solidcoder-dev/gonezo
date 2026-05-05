@@ -1,15 +1,18 @@
 import { useMemo, useState } from 'react';
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
-import type { MovementsSearchItem } from '../../shared/domain/corePort';
 import { formatCalendarDay } from '../../transactions/ui/postedGrouping';
-import type { MovementsSearchModelProvided, MovementsSearchModelRequired } from '../application/useMovementsSearchModel';
+import type {
+  MovementsSearchItemView,
+  MovementsSearchModelProvided,
+  MovementsSearchModelRequired,
+} from '../domain/movementsView.types';
 
 type MovementsSearchResultsProps = {
   required: Pick<MovementsSearchModelRequired, 'error' | 'state' | 'status'>;
   provided: Pick<MovementsSearchModelProvided, 'commands'>;
 };
 
-function txSign(type: MovementsSearchItem['type']): string {
+function txSign(type: MovementsSearchItemView['type']): string {
   if (type === 'income' || type === 'transfer_in') return '+';
   if (type === 'expense' || type === 'transfer_out') return '-';
   return '';
@@ -34,26 +37,26 @@ function compactTags(tags?: Array<{ id: string; name: string }>): string | undef
   return visible.join(' ');
 }
 
-function txKind(type: MovementsSearchItem['type']): 'income' | 'expense' | 'transfer' {
+function txKind(type: MovementsSearchItemView['type']): 'income' | 'expense' | 'transfer' {
   if (type === 'income') return 'income';
   if (type === 'transfer') return 'transfer';
   return 'expense';
 }
 
-function movementTypeLabel(type: MovementsSearchItem['type']): string {
+function movementTypeLabel(type: MovementsSearchItemView['type']): string {
   if (type === 'income') return 'Income';
   if (type === 'transfer') return 'Transfer';
   return 'Expense';
 }
 
-function movementIconClass(type: MovementsSearchItem['type']): string {
+function movementIconClass(type: MovementsSearchItemView['type']): string {
   const kind = txKind(type);
   if (kind === 'income') return 'bi bi-arrow-up-right';
   if (kind === 'transfer') return 'bi bi-arrow-left-right';
   return 'bi bi-arrow-down-right';
 }
 
-function sourceLabel(source: MovementsSearchItem['source']): string {
+function sourceLabel(source: MovementsSearchItemView['source']): string {
   if (source === 'posted') return 'Posted';
   if (source === 'scheduled') return 'Scheduled';
   return 'Expected';
@@ -84,8 +87,10 @@ function groupKey(isoDateTime: string): string {
   return `${parsed.getFullYear()}-${parsed.getMonth() + 1}-${parsed.getDate()}`;
 }
 
-function groupEntriesByDay(entries: MovementsSearchItem[]): Array<{ key: string; label: string; items: MovementsSearchItem[] }> {
-  const groups: Array<{ key: string; label: string; items: MovementsSearchItem[] }> = [];
+function groupEntriesByDay(
+  entries: MovementsSearchItemView[],
+): Array<{ key: string; label: string; items: MovementsSearchItemView[] }> {
+  const groups: Array<{ key: string; label: string; items: MovementsSearchItemView[] }> = [];
   const groupIndexByKey = new Map<string, number>();
 
   for (const entry of entries) {
@@ -102,7 +107,7 @@ function groupEntriesByDay(entries: MovementsSearchItem[]): Array<{ key: string;
   return groups;
 }
 
-function resultMeta(entry: MovementsSearchItem, includeDate: boolean): string {
+function resultMeta(entry: MovementsSearchItemView, includeDate: boolean): string {
   return [
     includeDate ? formatCalendarDay(entry.occurredAt) : undefined,
     entry.category?.name,
@@ -116,10 +121,10 @@ function ResultRow({
   includeDate,
   onSelect,
 }: {
-  entry: MovementsSearchItem;
+  entry: MovementsSearchItemView;
   disabled: boolean;
   includeDate: boolean;
-  onSelect: (entry: MovementsSearchItem) => void;
+  onSelect: (entry: MovementsSearchItemView) => void;
 }) {
   const kind = txKind(entry.type);
 
@@ -152,7 +157,7 @@ function ResultRow({
 export function MovementsSearchResults({ required, provided }: MovementsSearchResultsProps) {
   const { appliedFilters, items, pagination } = required.state;
   const { loading, disabled } = required.status;
-  const [selectedEntry, setSelectedEntry] = useState<MovementsSearchItem | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<MovementsSearchItemView | null>(null);
 
   const entries = useMemo(() => items, [items]);
   const groupedByDay = appliedFilters.sortField === 'date' && appliedFilters.groupByDay;

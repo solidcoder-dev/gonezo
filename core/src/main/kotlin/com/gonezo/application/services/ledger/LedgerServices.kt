@@ -11,10 +11,7 @@ import com.gonezo.ledger.application.DeleteLedgerAccountCommand
 import com.gonezo.ledger.application.DeleteLedgerAccountUC
 import com.gonezo.ledger.application.GetLedgerAccountBalanceQuery
 import com.gonezo.ledger.application.GetLedgerAccountBalanceUC
-import com.gonezo.ledger.application.GetLedgerTransactionQuery
-import com.gonezo.ledger.application.GetLedgerTransactionUC
 import com.gonezo.ledger.application.ListLedgerAccountsUC
-import com.gonezo.ledger.application.ListLedgerSupportedCurrenciesUC
 import com.gonezo.ledger.application.ListLedgerTransactionsQuery
 import com.gonezo.ledger.application.ListLedgerTransactionsUC
 import com.gonezo.ledger.application.OpenLedgerAccountCommand
@@ -30,8 +27,6 @@ import com.gonezo.ledger.application.RecordLedgerTransferFxCommand
 import com.gonezo.ledger.application.RecordLedgerTransferResult
 import com.gonezo.ledger.application.RecordLedgerTransferFxUC
 import com.gonezo.ledger.application.RecordLedgerTransferUC
-import com.gonezo.ledger.application.RemoveLedgerTransactionItemCommand
-import com.gonezo.ledger.application.RemoveLedgerTransactionItemUC
 import com.gonezo.ledger.application.RenameLedgerAccountCommand
 import com.gonezo.ledger.application.RenameLedgerAccountUC
 import com.gonezo.ledger.application.VoidLedgerTransactionCommand
@@ -134,10 +129,6 @@ class ListLedgerAccountsService(
   private val accountRepository: LedgerAccountRepository,
 ) : ListLedgerAccountsUC {
   override fun execute(): List<Account> = accountRepository.listAll()
-}
-
-class ListLedgerSupportedCurrenciesService : ListLedgerSupportedCurrenciesUC {
-  override fun execute(): List<CurrencyCode> = CurrencyCode.supported()
 }
 
 class RecordLedgerIncomeService(
@@ -357,15 +348,6 @@ class AddLedgerTransactionItemService(
   }
 }
 
-class RemoveLedgerTransactionItemService(
-  private val transactionRepository: LedgerTransactionRepository,
-) : RemoveLedgerTransactionItemUC {
-  override fun execute(command: RemoveLedgerTransactionItemCommand) {
-    val transaction = requireTransaction(transactionRepository, command.transactionId)
-    transactionRepository.save(transaction.removeItem(command.itemId))
-  }
-}
-
 class PostLedgerDraftTransactionService(
   private val transactionRepository: LedgerTransactionRepository,
   private val domainEventPublisher: DomainEventPublisher,
@@ -400,13 +382,6 @@ class VoidLedgerTransactionService(
       }
     }
   }
-}
-
-class GetLedgerTransactionService(
-  private val transactionRepository: LedgerTransactionRepository,
-) : GetLedgerTransactionUC {
-  override fun execute(query: GetLedgerTransactionQuery): Transaction =
-    requireTransaction(transactionRepository, query.transactionId)
 }
 
 class ListLedgerTransactionsService(

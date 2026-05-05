@@ -16,6 +16,7 @@ export type MonthPickerModalViewProps = {
 
 export function MonthPickerModalView({ required, provided, children }: MonthPickerModalViewProps) {
   const { open } = required;
+  const { onDismiss } = provided;
 
   useEffect(() => {
     if (!open) {
@@ -24,7 +25,7 @@ export function MonthPickerModalView({ required, provided, children }: MonthPick
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        provided.onDismiss();
+        onDismiss();
       }
     }
 
@@ -32,14 +33,14 @@ export function MonthPickerModalView({ required, provided, children }: MonthPick
     return () => {
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [open, provided.onDismiss]);
+  }, [open, onDismiss]);
 
   if (!open) {
     return null;
   }
 
   return (
-    <div className="month-picker-backdrop" aria-label="Close month picker" onClick={provided.onDismiss}>
+    <div className="month-picker-backdrop" aria-label="Close month picker" onClick={onDismiss}>
       <div
         className="month-picker-panel"
         role="dialog"

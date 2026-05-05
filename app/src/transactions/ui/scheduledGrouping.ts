@@ -1,26 +1,26 @@
-import type { SchedulingMovementItem } from '../../shared/domain/corePort';
+import type { ScheduledMovementView } from '../../movements/domain/movementsView.types';
 import { formatCalendarDay } from './postedGrouping';
 
 export type ScheduledDateGroup = {
   key: string;
   label: string;
-  items: SchedulingMovementItem[];
+  items: ScheduledMovementView[];
 };
 
 function localDateKey(date: Date): string {
   return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
 }
 
-function movementDate(movement: SchedulingMovementItem): string {
+function movementDate(movement: ScheduledMovementView): string {
   return movement.nextDueAt ?? movement.startAt;
 }
 
-function movementDateEpoch(movement: SchedulingMovementItem): number {
+function movementDateEpoch(movement: ScheduledMovementView): number {
   const parsed = Date.parse(movementDate(movement));
   return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
 }
 
-function compareByMovementDateAscending(left: SchedulingMovementItem, right: SchedulingMovementItem): number {
+function compareByMovementDateAscending(left: ScheduledMovementView, right: ScheduledMovementView): number {
   const leftEpoch = movementDateEpoch(left);
   const rightEpoch = movementDateEpoch(right);
   if (leftEpoch !== rightEpoch) {
@@ -30,7 +30,7 @@ function compareByMovementDateAscending(left: SchedulingMovementItem, right: Sch
 }
 
 export function groupScheduledMovementsByDate(
-  items: SchedulingMovementItem[],
+  items: ScheduledMovementView[],
   now = new Date(),
 ): ScheduledDateGroup[] {
   if (items.length === 0) {
@@ -60,4 +60,3 @@ export function groupScheduledMovementsByDate(
 
   return groups;
 }
-

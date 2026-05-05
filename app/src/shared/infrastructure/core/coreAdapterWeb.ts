@@ -1,6 +1,5 @@
 import type {
   CorePort,
-  CoreResult,
   LedgerOpenAccountInput,
   LedgerOpenAccountResult,
   LedgerListSupportedCurrenciesResult,
@@ -40,16 +39,6 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
-  TransactionVoiceExtractDraftInput,
-  TransactionVoiceExtractDraftResult,
-  TransactionVoiceDraft,
-  TransactionVoiceFinalizeInput,
-  TransactionVoiceFinalizeResult,
-  TransactionVoiceStartInput,
-  TransactionVoiceStartResult,
-  TransactionVoiceStopInput,
-  TransactionVoiceStopResult,
-  TransactionVoiceType,
   RecurrenceCreateRecurringMovementInput,
   RecurrenceCreateRecurringMovementResult,
   RecurrenceDeactivateRecurringMovementInput,
@@ -152,34 +141,6 @@ type MemoryRecurringMovement = RecurrenceMovementItem & {
 
 type MemoryExpectedMovement = ExpectedMovementItem;
 
-type MemoryVoiceCaptureRecord = {
-  analysisId: string;
-  sessionId: string;
-  recordingId: string;
-  recordingPath: string;
-  accountId: string;
-  expectedType: TransactionVoiceType;
-  draft: TransactionVoiceDraft;
-  createdAt: string;
-  finalizedAt?: string;
-  outcome?: 'saved' | 'cancelled' | 'failed';
-  transactionIds?: string[];
-  finalDraft?: TransactionVoiceDraft;
-  errorMessage?: string;
-};
-
-type MemoryVoiceSessionRecord = {
-  sessionId: string;
-  accountId: string;
-  expectedType: TransactionVoiceType;
-  recordingId: string;
-  recordingPath: string;
-  startedAt: string;
-  stoppedAt?: string;
-  durationMs?: number;
-  utterance?: string;
-};
-
 export class CoreAdapterWeb implements CorePort {
   private static readonly supportedCurrencies = ['AUD', 'BRL', 'CAD', 'CHF', 'EUR', 'GBP', 'JPY', 'MXN', 'NZD', 'USD'];
 
@@ -198,18 +159,6 @@ export class CoreAdapterWeb implements CorePort {
   private static recurringMovements: MemoryRecurringMovement[] = [];
 
   private static expectedMovements: MemoryExpectedMovement[] = [];
-
-  private static voiceRecordingStorage: Map<string, {
-    id: string;
-    path: string;
-    mimeType: string;
-    payloadBase64: string;
-    createdAt: string;
-  }> = new Map();
-
-  private static voiceCaptureByAnalysisId: Map<string, MemoryVoiceCaptureRecord> = new Map();
-
-  private static voiceSessionById: Map<string, MemoryVoiceSessionRecord> = new Map();
 
   private accountOrThrow(accountId: string): MemoryLedgerAccount {
     const account = CoreAdapterWeb.ledgerAccounts.find((item) => item.id === accountId);
@@ -240,101 +189,6 @@ export class CoreAdapterWeb implements CorePort {
 
   private normalizeTagName(name: string): string {
     return name.trim().toLowerCase();
-  }
-
-  private encodeTextAsBase64(value: string): string {
-    const bytes = new TextEncoder().encode(value);
-    let binary = '';
-    for (const byte of bytes) {
-      binary += String.fromCharCode(byte);
-    }
-    return globalThis.btoa(binary);
-  }
-
-  private persistVoiceCapture(record: MemoryVoiceCaptureRecord) {
-    CoreAdapterWeb.voiceCaptureByAnalysisId.set(record.analysisId, record);
-    try {
-      globalThis.localStorage.setItem(`gonezo.voice.capture.${record.analysisId}`, JSON.stringify(record));
-    } catch {
-      // localStorage can fail in private mode / quota limits; keep in-memory copy.
-    }
-  }
-
-  private parseVoiceAmount(value: string): string | undefined {
-    const match = value.match(/-?\d+(?:[.,]\d+)?/);
-    if (!match) {
-      return undefined;
-    }
-    const parsed = Number(match[0].replace(',', '.'));
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-      return undefined;
-    }
-    return parsed.toFixed(2);
-  }
-
-  private parseVoiceTags(value: string): string[] {
-    const unique = new Map<string, string>();
-    const matches = value.match(/#[A-Za-z0-9_-]+/g) ?? [];
-    for (const rawTag of matches) {
-      const normalized = rawTag.replace(/^#/, '').trim().toLowerCase();
-      if (!normalized || unique.has(normalized)) {
-        continue;
-      }
-      unique.set(normalized, normalized);
-    }
-    return [...unique.values()];
-  }
-
-  private resolveVoiceTransferTarget(accountId: string, utterance: string): string | undefined {
-    const normalizedUtterance = utterance.trim().toLowerCase();
-    if (!normalizedUtterance) {
-      return undefined;
-    }
-    const candidate = CoreAdapterWeb.ledgerAccounts.find((account) => (
-      account.id !== accountId
-      && account.status === 'active'
-      && normalizedUtterance.includes(account.name.trim().toLowerCase())
-    ));
-    return candidate?.id;
-  }
-
-  private resolveVoiceCategoryName(utterance: string, type: TransactionVoiceType): string | undefined {
-    if (type === 'transfer') {
-      return undefined;
-    }
-
-    const normalizedUtterance = utterance.trim().toLowerCase();
-    if (!normalizedUtterance) {
-      return undefined;
-    }
-
-    const candidate = CoreAdapterWeb.taxonomyCategories.find((category) => (
-      category.status === 'active'
-      && category.appliesTo === type
-      && normalizedUtterance.includes(category.name.trim().toLowerCase())
-    ));
-    return candidate?.name;
-  }
-
-  private buildVoiceDraft(input: {
-    accountCurrency: string;
-    accountId: string;
-    expectedType: TransactionVoiceType;
-    utterance: string;
-  }): TransactionVoiceDraft {
-    const note = input.utterance.trim();
-    return {
-      type: input.expectedType,
-      amount: this.parseVoiceAmount(note),
-      currency: input.accountCurrency,
-      occurredAt: new Date().toISOString(),
-      note: note || undefined,
-      transferToAccountId: input.expectedType === 'transfer'
-        ? this.resolveVoiceTransferTarget(input.accountId, note)
-        : undefined,
-      categoryName: this.resolveVoiceCategoryName(note, input.expectedType),
-      tagNames: this.parseVoiceTags(note),
-    };
   }
 
   private ensureAccountCanPost(account: MemoryLedgerAccount, currency: string) {
@@ -797,13 +651,6 @@ export class CoreAdapterWeb implements CorePort {
     }
 
     return candidate.toISOString();
-  }
-
-  async doThing(input: string): Promise<CoreResult> {
-    return {
-      status: 'ok',
-      message: `web adapter ok: ${input}`,
-    };
   }
 
   async ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {
@@ -1740,141 +1587,6 @@ export class CoreAdapterWeb implements CorePort {
       };
     });
     return { items };
-  }
-
-  async transactionVoiceStart(input: TransactionVoiceStartInput): Promise<TransactionVoiceStartResult> {
-    this.accountOrThrow(input.accountId);
-
-    const startedAt = new Date().toISOString();
-    const sessionId = crypto.randomUUID();
-    const recordingId = crypto.randomUUID();
-    const recordingPath = `storage://voice-recordings/${recordingId}.wav`;
-    CoreAdapterWeb.voiceSessionById.set(sessionId, {
-      sessionId,
-      accountId: input.accountId,
-      expectedType: input.expectedType,
-      recordingId,
-      recordingPath,
-      startedAt,
-    });
-    return {
-      sessionId,
-      recordingId,
-      recordingPath,
-      startedAt,
-    };
-  }
-
-  async transactionVoiceStop(input: TransactionVoiceStopInput): Promise<TransactionVoiceStopResult> {
-    const session = CoreAdapterWeb.voiceSessionById.get(input.sessionId);
-    if (!session) {
-      throw new Error(`Voice session not found: ${input.sessionId}`);
-    }
-
-    const stoppedAt = new Date().toISOString();
-    const durationMs = Math.max(500, new Date(stoppedAt).getTime() - new Date(session.startedAt).getTime());
-    const defaultUtteranceByType: Record<TransactionVoiceType, string> = {
-      expense: 'Lunch 12.50 #team',
-      income: 'Salary 1200',
-      transfer: 'Transfer 100 to savings',
-    };
-    const promptedUtterance = globalThis.prompt?.(`Describe your ${session.expectedType}`) ?? '';
-    const utterance = promptedUtterance.trim() || defaultUtteranceByType[session.expectedType];
-
-    const recordingPayload = {
-      id: session.recordingId,
-      path: session.recordingPath,
-      mimeType: 'audio/wav',
-      payloadBase64: this.encodeTextAsBase64(utterance),
-      createdAt: session.startedAt,
-    };
-    CoreAdapterWeb.voiceRecordingStorage.set(session.recordingId, recordingPayload);
-    try {
-      globalThis.localStorage.setItem(`gonezo.storage.voice.${session.recordingId}`, JSON.stringify(recordingPayload));
-    } catch {
-      // localStorage can fail; keep in-memory copy.
-    }
-
-    CoreAdapterWeb.voiceSessionById.set(session.sessionId, {
-      ...session,
-      stoppedAt,
-      durationMs,
-      utterance,
-    });
-
-    return {
-      sessionId: session.sessionId,
-      recordingId: session.recordingId,
-      recordingPath: session.recordingPath,
-      stoppedAt,
-      durationMs,
-    };
-  }
-
-  async transactionVoiceExtractDraft(input: TransactionVoiceExtractDraftInput): Promise<TransactionVoiceExtractDraftResult> {
-    const session = CoreAdapterWeb.voiceSessionById.get(input.sessionId);
-    if (!session) {
-      throw new Error(`Voice session not found: ${input.sessionId}`);
-    }
-
-    if (!session.stoppedAt) {
-      throw new Error('Voice session must be stopped before extraction');
-    }
-
-    const account = this.accountOrThrow(session.accountId);
-    const utterance = session.utterance ?? '';
-    const draft = this.buildVoiceDraft({
-      accountCurrency: account.currency,
-      accountId: session.accountId,
-      expectedType: session.expectedType,
-      utterance,
-    });
-    const analysisId = crypto.randomUUID();
-
-    this.persistVoiceCapture({
-      analysisId,
-      sessionId: session.sessionId,
-      recordingId: session.recordingId,
-      recordingPath: session.recordingPath,
-      accountId: session.accountId,
-      expectedType: session.expectedType,
-      draft,
-      createdAt: session.startedAt,
-    });
-
-    return {
-      analysisId,
-      sessionId: session.sessionId,
-      recording: {
-        id: session.recordingId,
-        path: session.recordingPath,
-        createdAt: session.startedAt,
-      },
-      draft,
-    };
-  }
-
-  async transactionVoiceFinalize(input: TransactionVoiceFinalizeInput): Promise<TransactionVoiceFinalizeResult> {
-    const existing = CoreAdapterWeb.voiceCaptureByAnalysisId.get(input.analysisId);
-    if (!existing) {
-      throw new Error(`Voice analysis not found: ${input.analysisId}`);
-    }
-
-    const finalizedAt = new Date().toISOString();
-    const nextRecord: MemoryVoiceCaptureRecord = {
-      ...existing,
-      finalizedAt,
-      outcome: input.outcome,
-      transactionIds: input.transactionIds ? [...input.transactionIds] : undefined,
-      finalDraft: input.finalDraft,
-      errorMessage: input.errorMessage,
-    };
-    this.persistVoiceCapture(nextRecord);
-
-    return {
-      analysisId: input.analysisId,
-      finalizedAt,
-    };
   }
 
   async recurrenceCreateRecurringMovement(

@@ -1,9 +1,9 @@
-import type { LedgerTransactionType } from '../../shared/domain/corePort';
 import type {
+  LedgerTransactionTypeView,
   MovementsSearchFiltersState,
   MovementsSearchModelProvided,
   MovementsSearchModelRequired,
-} from '../application/useMovementsSearchModel';
+} from '../domain/movementsView.types';
 
 type MovementsSearchFiltersProps = {
   required: Pick<MovementsSearchModelRequired, 'error' | 'state' | 'status'>;
@@ -16,7 +16,7 @@ type ActiveFilterChip = {
   clearPatch: Partial<MovementsSearchFiltersState>;
 };
 
-const TYPE_FILTERS: Array<{ value: LedgerTransactionType; label: string }> = [
+const TYPE_FILTERS: Array<{ value: LedgerTransactionTypeView; label: string }> = [
   { value: 'expense', label: 'Expense' },
   { value: 'income', label: 'Income' },
   { value: 'transfer', label: 'Transfer' },
@@ -38,7 +38,10 @@ function toggleIdentifier(values: string[], candidate: string): string[] {
   return [...values, candidate];
 }
 
-function toggleValue(values: LedgerTransactionType[], candidate: LedgerTransactionType): LedgerTransactionType[] {
+function toggleValue(
+  values: LedgerTransactionTypeView[],
+  candidate: LedgerTransactionTypeView,
+): LedgerTransactionTypeView[] {
   if (values.includes(candidate)) {
     return values.filter((value) => value !== candidate);
   }

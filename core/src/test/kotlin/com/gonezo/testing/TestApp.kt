@@ -14,7 +14,6 @@ import com.gonezo.ledger.application.AddLedgerTransactionItemUC
 import com.gonezo.ledger.application.CreateLedgerExpenseDraftUC
 import com.gonezo.ledger.application.DeleteLedgerAccountUC
 import com.gonezo.ledger.application.GetLedgerAccountBalanceUC
-import com.gonezo.ledger.application.GetLedgerTransactionUC
 import com.gonezo.ledger.application.ListLedgerAccountsUC
 import com.gonezo.ledger.application.ListLedgerTransactionsUC
 import com.gonezo.ledger.application.OpenLedgerAccountUC
@@ -23,13 +22,11 @@ import com.gonezo.ledger.application.RecordLedgerExpenseUC
 import com.gonezo.ledger.application.RecordLedgerIncomeUC
 import com.gonezo.ledger.application.RecordLedgerTransferUC
 import com.gonezo.ledger.application.RecordLedgerTransferFxUC
-import com.gonezo.ledger.application.RemoveLedgerTransactionItemUC
 import com.gonezo.ledger.application.VoidLedgerTransactionUC
 import com.gonezo.ledger.application.AddLedgerTransactionItemService
 import com.gonezo.ledger.application.CreateLedgerExpenseDraftService
 import com.gonezo.ledger.application.DeleteLedgerAccountService
 import com.gonezo.ledger.application.GetLedgerAccountBalanceService
-import com.gonezo.ledger.application.GetLedgerTransactionService
 import com.gonezo.ledger.application.ListLedgerAccountsService
 import com.gonezo.ledger.application.ListLedgerTransactionsService
 import com.gonezo.ledger.application.OpenLedgerAccountService
@@ -38,7 +35,6 @@ import com.gonezo.ledger.application.RecordLedgerExpenseService
 import com.gonezo.ledger.application.RecordLedgerIncomeService
 import com.gonezo.ledger.application.RecordLedgerTransferService
 import com.gonezo.ledger.application.RecordLedgerTransferFxService
-import com.gonezo.ledger.application.RemoveLedgerTransactionItemService
 import com.gonezo.ledger.application.VoidLedgerTransactionService
 import com.gonezo.ledger.infrastructure.persistence.JdbcLedgerAccountRepository
 import com.gonezo.ledger.infrastructure.persistence.JdbcLedgerTransactionRepository
@@ -87,9 +83,6 @@ class TestApp(private val db: TestDatabase) {
     ledgerTransactionRepository,
     domainEventPublisher,
   )
-  val ledgerRemoveTransactionItemUC: RemoveLedgerTransactionItemUC = RemoveLedgerTransactionItemService(
-    ledgerTransactionRepository,
-  )
   val ledgerPostDraftTransactionUC: PostLedgerDraftTransactionUC = PostLedgerDraftTransactionService(
     ledgerTransactionRepository,
     domainEventPublisher,
@@ -98,7 +91,6 @@ class TestApp(private val db: TestDatabase) {
     ledgerTransactionRepository,
     domainEventPublisher,
   )
-  val ledgerGetTransactionUC: GetLedgerTransactionUC = GetLedgerTransactionService(ledgerTransactionRepository)
   val ledgerListTransactionsUC: ListLedgerTransactionsUC = ListLedgerTransactionsService(ledgerTransactionRepository)
   val ledgerGetAccountBalanceUC: GetLedgerAccountBalanceUC = GetLedgerAccountBalanceService(
     ledgerAccountRepository,

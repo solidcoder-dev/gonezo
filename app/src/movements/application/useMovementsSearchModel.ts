@@ -1,45 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   CorePort,
-  LedgerTransactionType,
-  LedgerSortDirection,
-  MovementsSearchItem,
-  MovementsSearchSortField,
-  MovementsSearchSource,
   TaxonomyCategoryItem,
   TaxonomyTagItem,
 } from '../../shared/domain/corePort';
 import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
 import { useCategorySuggestions } from '../../taxonomy/application/useCategorySuggestions';
 import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions';
-
-type TransactionSearchFiltersState = {
-  source: MovementsSearchSource;
-  text: string;
-  merchant: string;
-  categoryIds: string[];
-  tagIds: string[];
-  amountMin: string;
-  amountMax: string;
-  fromDate: string;
-  toDate: string;
-  types: LedgerTransactionType[];
-  sortField: MovementsSearchSortField;
-  sortDirection: LedgerSortDirection;
-  pageSize: number;
-  groupByDay: boolean;
-};
-
-type PaginationState = {
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-};
-
-type SearchResultEntry = MovementsSearchItem;
+import type {
+  MovementsPaginationView,
+  MovementsSearchFiltersState,
+  MovementsSearchItemView,
+  MovementsSearchModelProvided,
+  MovementsSearchModelRequired,
+} from '../domain/movementsView.types';
 
 type UseMovementsSearchModelInput = {
   core: CorePort;
@@ -47,7 +21,7 @@ type UseMovementsSearchModelInput = {
   enabled: boolean;
 };
 
-const DEFAULT_FILTERS: TransactionSearchFiltersState = {
+const DEFAULT_FILTERS: MovementsSearchFiltersState = {
   source: 'posted',
   text: '',
   merchant: '',
@@ -64,7 +38,7 @@ const DEFAULT_FILTERS: TransactionSearchFiltersState = {
   groupByDay: true,
 };
 
-const EMPTY_PAGINATION: PaginationState = {
+const EMPTY_PAGINATION: MovementsPaginationView = {
   page: 0,
   size: DEFAULT_FILTERS.pageSize,
   totalElements: 0,
@@ -73,7 +47,7 @@ const EMPTY_PAGINATION: PaginationState = {
   hasPrevious: false,
 };
 
-const EMPTY_ITEMS: SearchResultEntry[] = [];
+const EMPTY_ITEMS: MovementsSearchItemView[] = [];
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -117,10 +91,10 @@ function normalizeDate(value: string): string | undefined {
 }
 
 function mergeFilterPatch(
-  base: TransactionSearchFiltersState,
-  patch: Partial<TransactionSearchFiltersState>,
-): TransactionSearchFiltersState {
-  const next: TransactionSearchFiltersState = {
+  base: MovementsSearchFiltersState,
+  patch: Partial<MovementsSearchFiltersState>,
+): MovementsSearchFiltersState {
+  const next: MovementsSearchFiltersState = {
     ...base,
     ...patch,
   };
@@ -142,57 +116,6 @@ function mergeFilterPatch(
   return next;
 }
 
-export type MovementsSearchFiltersState = TransactionSearchFiltersState;
-
-export type MovementsSearchModelRequired = {
-  error: string;
-  state: {
-    source: MovementsSearchSource;
-    items: SearchResultEntry[];
-    filtersOpen: boolean;
-    filtersAdvancedOpen: boolean;
-    searchApplied: boolean;
-    filters: TransactionSearchFiltersState;
-    appliedFilters: TransactionSearchFiltersState;
-    filterOptions: {
-      categories: Array<{ id: string; label: string }>;
-      tags: Array<{ id: string; label: string }>;
-    };
-    pagination: PaginationState;
-  };
-  status: {
-    loading: boolean;
-    disabled: boolean;
-  };
-};
-
-export type MovementsSearchModelProvided = {
-  commands: {
-    setSource: (value: MovementsSearchSource) => void;
-    openFilters: () => void;
-    closeFilters: () => void;
-    toggleAdvancedFilters: () => void;
-    resetFilters: () => void;
-    setFilterText: (value: string) => void;
-    setFilterMerchant: (value: string) => void;
-    setFilterCategoryIds: (values: string[]) => void;
-    setFilterTagIds: (values: string[]) => void;
-    setFilterAmountMin: (value: string) => void;
-    setFilterAmountMax: (value: string) => void;
-    setFilterFromDate: (value: string) => void;
-    setFilterToDate: (value: string) => void;
-    setFilterTypes: (values: LedgerTransactionType[]) => void;
-    setSortField: (value: MovementsSearchSortField) => void;
-    setSortDirection: (value: LedgerSortDirection) => void;
-    setPageSize: (value: number) => void;
-    setGroupByDay: (value: boolean) => void;
-    applyFilterPatch: (patch: Partial<TransactionSearchFiltersState>) => void;
-    applyFilters: () => void;
-    goToPreviousPage: () => void;
-    goToNextPage: () => void;
-  };
-};
-
 export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
   const { core, accountId, enabled } = input;
   const [loading, setLoading] = useState(true);
@@ -203,11 +126,11 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filtersAdvancedOpen, setFiltersAdvancedOpen] = useState(false);
   const [searchApplied, setSearchApplied] = useState(false);
-  const [filterDraft, setFilterDraft] = useState<TransactionSearchFiltersState>(() => ({ ...DEFAULT_FILTERS }));
-  const [appliedFilters, setAppliedFilters] = useState<TransactionSearchFiltersState>(() => ({ ...DEFAULT_FILTERS }));
+  const [filterDraft, setFilterDraft] = useState<MovementsSearchFiltersState>(() => ({ ...DEFAULT_FILTERS }));
+  const [appliedFilters, setAppliedFilters] = useState<MovementsSearchFiltersState>(() => ({ ...DEFAULT_FILTERS }));
   const [page, setPage] = useState(0);
-  const [pagination, setPagination] = useState<PaginationState>(EMPTY_PAGINATION);
-  const [items, setItems] = useState<SearchResultEntry[]>([]);
+  const [pagination, setPagination] = useState<MovementsPaginationView>(EMPTY_PAGINATION);
+  const [items, setItems] = useState<MovementsSearchItemView[]>([]);
   const previousAccountIdRef = useRef<string | null>(null);
 
   const taxonomyGateway = useMemo(() => createTaxonomyGateway(core), [core]);
@@ -268,7 +191,7 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
     await loadFilterOptions();
   }
 
-  async function hydratePostedSearchItems(searchItems: SearchResultEntry[]): Promise<SearchResultEntry[]> {
+  async function hydratePostedSearchItems(searchItems: MovementsSearchItemView[]): Promise<MovementsSearchItemView[]> {
     const transactionIds = [...new Set(
       searchItems
         .filter((item) => item.source === 'posted')
@@ -330,7 +253,7 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
     });
   }
 
-  function applyPostedTaxonomyFilters(searchItems: SearchResultEntry[]): SearchResultEntry[] {
+  function applyPostedTaxonomyFilters(searchItems: MovementsSearchItemView[]): MovementsSearchItemView[] {
     const categoryFilter = normalizeIdentifierList(appliedFilters.categoryIds);
     const tagFilter = normalizeIdentifierList(appliedFilters.tagIds);
     if (categoryFilter.length === 0 && tagFilter.length === 0) {

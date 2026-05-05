@@ -10,17 +10,29 @@ const EXPECTED_TOP_LEVEL = new Set([
   'App.css',
   'App.tsx',
   'account',
+  'expected',
   'imports',
   'index.css',
   'ledger',
   'main.tsx',
+  'movements',
+  'scheduling',
   'shared',
   'taxonomy',
   'transactions',
 ]);
 
 const EXPECTED_LAYER_DIRS = ['application', 'domain', 'infrastructure', 'ui'];
-const EXPECTED_SHARED_DIRS = ['domain', 'infrastructure', 'testing', 'ui', 'utils'];
+const EXPECTED_CONTEXT_DIRS = {
+  account: ['application', 'domain', 'infrastructure', 'ui'],
+  expected: ['infrastructure'],
+  ledger: ['application', 'infrastructure', 'ui'],
+  movements: ['application', 'domain', 'ui'],
+  scheduling: ['infrastructure'],
+  taxonomy: ['application', 'domain', 'infrastructure'],
+  transactions: ['application', 'domain', 'ui'],
+};
+const EXPECTED_SHARED_DIRS = ['domain', 'infrastructure', 'testing', 'utils'];
 const EXPECTED_IMPORTS_INFRASTRUCTURE_DIRS = ['providers'];
 const EXPECTED_IMPORTS_PROVIDER_MODULES = ['mobills'];
 
@@ -45,6 +57,15 @@ function assertContainsAll(actual, expected, prefix) {
   }
 }
 
+function assertContainsOnly(actual, expected, prefix) {
+  const allowed = new Set(expected);
+  for (const name of actual) {
+    if (!allowed.has(name)) {
+      fail(`${prefix} has unexpected entry "${name}"`);
+    }
+  }
+}
+
 async function checkTopLevel() {
   const { files, dirs } = await listNames(SRC_DIR);
   const actual = [...files, ...dirs];
@@ -64,12 +85,15 @@ async function checkTopLevel() {
 
 async function checkDomainLayers(domainName) {
   const { dirs } = await listNames(resolve(SRC_DIR, domainName));
-  assertContainsAll(dirs, EXPECTED_LAYER_DIRS, `src/${domainName}`);
+  const expected = EXPECTED_CONTEXT_DIRS[domainName];
+  assertContainsAll(dirs, expected, `src/${domainName}`);
+  assertContainsOnly(dirs, expected, `src/${domainName}`);
 }
 
 async function checkShared() {
   const { dirs } = await listNames(resolve(SRC_DIR, 'shared'));
   assertContainsAll(dirs, EXPECTED_SHARED_DIRS, 'src/shared');
+  assertContainsOnly(dirs, EXPECTED_SHARED_DIRS, 'src/shared');
 }
 
 async function checkImports() {
@@ -100,10 +124,9 @@ async function checkImports() {
 
 async function main() {
   await checkTopLevel();
-  await checkDomainLayers('account');
-  await checkDomainLayers('ledger');
-  await checkDomainLayers('taxonomy');
-  await checkDomainLayers('transactions');
+  for (const domainName of Object.keys(EXPECTED_CONTEXT_DIRS)) {
+    await checkDomainLayers(domainName);
+  }
   await checkImports();
   await checkShared();
 

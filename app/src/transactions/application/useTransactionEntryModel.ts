@@ -1043,7 +1043,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       if ((composerMode === 'expense' || composerMode === 'income') && recurrenceEnabled) {
         const categoryId = await resolveCategorySelection(composerMode);
         const interval = Number(recurrenceInterval.trim());
-        let scheduleRule: SchedulingCreateMovementInput['rule'] = {
+        const scheduleRule: SchedulingCreateMovementInput['rule'] = {
           frequency: recurrenceFrequency,
           interval,
         };

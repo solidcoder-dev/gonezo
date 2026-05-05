@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { SchedulingMovementItem } from '../../shared/domain/corePort';
+import type { ScheduledMovementView } from '../../movements/domain/movementsView.types';
 import { groupScheduledMovementsByDate } from './scheduledGrouping';
 
-function scheduled(input: Partial<SchedulingMovementItem> & Pick<SchedulingMovementItem, 'id' | 'startAt'>): SchedulingMovementItem {
+function scheduled(
+  input: Partial<ScheduledMovementView> & Pick<ScheduledMovementView, 'id' | 'startAt'>,
+): ScheduledMovementView {
   return {
     id: input.id,
     type: input.type ?? 'expense',

@@ -7,7 +7,6 @@ import com.gonezo.taxonomy.application.CreateCategoryUC
 import com.gonezo.taxonomy.application.CreateTagCommand
 import com.gonezo.taxonomy.application.CreateTagUC
 import com.gonezo.taxonomy.application.ListCategoriesUC
-import com.gonezo.taxonomy.application.ListTagsUC
 import com.gonezo.taxonomy.application.ReplaceTransactionTagsCommand
 import com.gonezo.taxonomy.application.ReplaceTransactionTagsUC
 import com.gonezo.taxonomy.application.UnassignCategoryFromTransactionCommand
@@ -100,12 +99,6 @@ class CreateTagService(
     tagRepository.save(tag)
     return tag.id
   }
-}
-
-class ListTagsService(
-  private val tagRepository: TagRepository,
-) : ListTagsUC {
-  override fun execute(): List<Tag> = tagRepository.listAll()
 }
 
 class ReplaceTransactionTagsService(

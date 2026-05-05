@@ -1,7 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import type {
   CorePort,
-  CoreResult,
   LedgerOpenAccountInput,
   LedgerOpenAccountResult,
   LedgerListSupportedCurrenciesResult,
@@ -41,14 +40,6 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
-  TransactionVoiceExtractDraftInput,
-  TransactionVoiceExtractDraftResult,
-  TransactionVoiceFinalizeInput,
-  TransactionVoiceFinalizeResult,
-  TransactionVoiceStartInput,
-  TransactionVoiceStartResult,
-  TransactionVoiceStopInput,
-  TransactionVoiceStopResult,
   RecurrenceCreateRecurringMovementInput,
   RecurrenceCreateRecurringMovementResult,
   RecurrenceDeactivateRecurringMovementInput,
@@ -345,13 +336,6 @@ function mapExpectedMovementToSearchItem(
 export class CoreAdapter implements CorePort {
   private readonly web = new CoreAdapterWeb();
 
-  async doThing(input: string): Promise<CoreResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.doThing({ input });
-    }
-    return this.web.doThing(input);
-  }
-
   async ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {
     if (Capacitor.isNativePlatform()) {
       return CorePlugin.ledgerOpenAccount(input);
@@ -523,34 +507,6 @@ export class CoreAdapter implements CorePort {
       return CorePlugin.orchestrationListTransactionTaxonomy(input);
     }
     return this.web.orchestrationListTransactionTaxonomy(input);
-  }
-
-  async transactionVoiceStart(input: TransactionVoiceStartInput): Promise<TransactionVoiceStartResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.transactionVoiceStart(input);
-    }
-    return this.web.transactionVoiceStart(input);
-  }
-
-  async transactionVoiceStop(input: TransactionVoiceStopInput): Promise<TransactionVoiceStopResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.transactionVoiceStop(input);
-    }
-    return this.web.transactionVoiceStop(input);
-  }
-
-  async transactionVoiceExtractDraft(input: TransactionVoiceExtractDraftInput): Promise<TransactionVoiceExtractDraftResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.transactionVoiceExtractDraft(input);
-    }
-    return this.web.transactionVoiceExtractDraft(input);
-  }
-
-  async transactionVoiceFinalize(input: TransactionVoiceFinalizeInput): Promise<TransactionVoiceFinalizeResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.transactionVoiceFinalize(input);
-    }
-    return this.web.transactionVoiceFinalize(input);
   }
 
   async recurrenceCreateRecurringMovement(

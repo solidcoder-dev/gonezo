@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { AccountsCorePort } from './useAccountPageModel';
+import type { AccountsCorePort } from './accountsCore.port';
 
 export type AccountSummaryComponentRequired = {
   context: {

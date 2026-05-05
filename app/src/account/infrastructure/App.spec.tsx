@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../App';
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
-import type { AccountsCorePort } from '../application/useAccountPageModel';
+import type { AccountsCorePort } from '../application/accountsCore.port';
 import type {
   LedgerListTransactionsInput,
   LedgerListTransactionsResult,
@@ -210,7 +210,6 @@ function makeCore(transactionCount = 0): AccountsCorePort {
   const expectedMovements: ExpectedMovementItem[] = [];
 
   const core: AccountsCorePort = {
-    doThing: vi.fn(async () => ({ status: 'ok' as const, message: 'ok' })) as AccountsCorePort['doThing'],
     ledgerListSupportedCurrencies: vi.fn(async () => ({ items: ['EUR', 'USD'] })),
     ledgerListAccounts: vi.fn(async () => ({
       items: [
@@ -273,39 +272,6 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     orchestrationCategorizeTransaction: vi.fn(async () => ({ status: 'assigned' as const })),
     orchestrationApplyTransactionTags: vi.fn(async () => ({ status: 'assigned' as const })),
     orchestrationListTransactionTaxonomy: vi.fn(async () => ({ items: [] })),
-    transactionVoiceStart: vi.fn(async (input) => ({
-      sessionId: `voice-session-${input.expectedType}`,
-      recordingId: `voice-recording-${input.expectedType}`,
-      recordingPath: `storage://voice/voice-recording-${input.expectedType}.wav`,
-      startedAt: '2026-03-10T10:00:00.000Z',
-    })),
-    transactionVoiceStop: vi.fn(async (input) => ({
-      sessionId: input.sessionId,
-      recordingId: `voice-recording-${input.sessionId}`,
-      recordingPath: `storage://voice/voice-recording-${input.sessionId}.wav`,
-      stoppedAt: '2026-03-10T10:00:05.000Z',
-      durationMs: 5000,
-    })),
-    transactionVoiceExtractDraft: vi.fn(async () => ({
-      analysisId: 'analysis-default',
-      sessionId: 'voice-session-expense',
-      recording: {
-        id: 'voice-recording-default',
-        path: 'storage://voice/voice-recording-default.wav',
-        createdAt: '2026-03-10T10:00:00.000Z',
-      },
-      draft: {
-        type: 'expense' as const,
-        amount: '10.00',
-        currency: 'USD',
-        occurredAt: '2026-03-10T10:00:00.000Z',
-        note: '',
-      },
-    })),
-    transactionVoiceFinalize: vi.fn(async (input) => ({
-      analysisId: input.analysisId,
-      finalizedAt: '2026-03-10T10:01:00.000Z',
-    })),
     recurrenceCreateRecurringMovement: vi.fn(async () => ({ id: 'rec-1' })),
     recurrenceDeactivateRecurringMovement: vi.fn(async () => undefined),
     recurrenceListRecurringMovements: vi.fn(async () => ({ items: [] })),
