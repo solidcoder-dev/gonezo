@@ -703,6 +703,7 @@ public class CorePlugin extends Plugin {
     String exchangeRate = call.getString("exchangeRate");
     String startAt = call.getString("startAt", Instant.now().toString());
     String zoneId = call.getString("zoneId", "UTC");
+    String categoryId = call.getString("categoryId");
     JSObject rule = call.getObject("rule");
     JSObject recurrenceEnd = call.getObject("recurrenceEnd");
 
@@ -720,6 +721,7 @@ public class CorePlugin extends Plugin {
           nullIfBlank(exchangeRate),
           nullIfBlank(description),
           nullIfBlank(merchant),
+          nullIfBlank(categoryId),
           toRecurringRuleInput(rule),
           toRecurrenceEndInput(recurrenceEnd),
           startAt,
@@ -907,6 +909,7 @@ public class CorePlugin extends Plugin {
     result.put("exchangeRate", movement.getExchangeRate());
     result.put("description", movement.getDescription());
     result.put("merchant", movement.getMerchant());
+    result.put("categoryId", movement.getCategoryId());
     result.put("status", movement.getStatus());
     result.put("startAt", movement.getStartAt());
     result.put("nextDueAt", movement.getNextDueAt());

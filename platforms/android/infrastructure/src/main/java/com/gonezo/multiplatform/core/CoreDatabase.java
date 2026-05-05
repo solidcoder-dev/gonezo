@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 14;
+  private static final int DB_VERSION = 15;
 
   CoreDatabase(Context context) {
     super(context, DB_NAME, null, DB_VERSION);
@@ -49,6 +49,10 @@ final class CoreDatabase extends SQLiteOpenHelper {
 
     if (oldVersion < 14) {
       createExpectedMovementTables(db);
+    }
+
+    if (oldVersion >= 12 && oldVersion < 15) {
+      addRecurringMovementCategoryColumn(db);
     }
   }
 
@@ -208,6 +212,7 @@ final class CoreDatabase extends SQLiteOpenHelper {
         "exchange_rate text," +
         "description text," +
         "merchant text," +
+        "category_id text," +
         "rule_frequency text not null," +
         "rule_interval integer not null," +
         "rule_weekdays text," +
@@ -318,6 +323,10 @@ final class CoreDatabase extends SQLiteOpenHelper {
       "create index if not exists idx_expected_movements_resolved_transaction " +
         "on expected_movements(resolved_transaction_id);"
     );
+  }
+
+  private static void addRecurringMovementCategoryColumn(SQLiteDatabase db) {
+    db.execSQL("alter table recurring_movements add column category_id text;");
   }
 
   private static void dropTables(SQLiteDatabase db) {

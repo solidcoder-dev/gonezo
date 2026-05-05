@@ -38,6 +38,7 @@ class AndroidRecurringCoreTest {
         exchangeRate = null,
         description = "Rent",
         merchant = "Landlord",
+        categoryId = "cat-rent",
         rule = AndroidRecurringCore.RecurrenceRuleInput(
           frequency = "monthly",
           interval = 1,
@@ -69,6 +70,7 @@ class AndroidRecurringCoreTest {
     assertEquals("monthly", listed.first().rule.frequency)
     assertEquals(11, listed.first().rule.dayOfMonth)
     assertEquals("never", listed.first().recurrenceEnd.kind)
+    assertEquals("cat-rent", listed.first().categoryId)
 
     coreB.deactivateRecurringMovement(createdId.toString(), "2026-04-02T11:00:00Z")
 
@@ -101,6 +103,7 @@ class AndroidRecurringCoreTest {
         exchangeRate = null,
         description = "Move to savings",
         merchant = null,
+        categoryId = null,
         rule = AndroidRecurringCore.RecurrenceRuleInput(
           frequency = "monthly",
           interval = 1,

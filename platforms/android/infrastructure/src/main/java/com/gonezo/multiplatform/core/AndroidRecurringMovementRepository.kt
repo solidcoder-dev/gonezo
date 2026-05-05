@@ -42,6 +42,7 @@ internal class AndroidRecurringMovementRepository(
     values.putNullable("exchange_rate", movement.exchangeRate?.toPlainString())
     values.putNullable("description", movement.description)
     values.putNullable("merchant", movement.merchant)
+    values.putNullable("category_id", movement.categoryId)
     values.put("rule_frequency", movement.rule.frequency.value)
     values.put("rule_interval", movement.rule.interval)
     values.put("rule_weekdays", movement.rule.weeklyDays.sortedBy { it.value }.joinToString(",") { it.name })
@@ -170,6 +171,7 @@ internal class AndroidRecurringMovementRepository(
       exchangeRate = cursor.decimalOrNull("exchange_rate"),
       description = cursor.stringOrNull("description"),
       merchant = cursor.stringOrNull("merchant"),
+      categoryId = cursor.stringOrNull("category_id"),
       rule = rule,
       recurrenceEnd = recurrenceEnd,
       startAt = Instant.parse(cursor.string("start_at")),
@@ -231,6 +233,7 @@ internal class AndroidRecurringMovementRepository(
       "exchange_rate",
       "description",
       "merchant",
+      "category_id",
       "rule_frequency",
       "rule_interval",
       "rule_weekdays",
