@@ -2343,6 +2343,53 @@ describe('App Accounts UX', () => {
     expect(screen.queryByText(/No scheduled movements in/i)).not.toBeInTheDocument();
   });
 
+  it('shows split items in posted movement details', async () => {
+    const core = makeCore();
+    const postedTransaction: LedgerTransactionListItem = {
+      id: 'tx-posted-1',
+      accountId: 'acc-1',
+      type: 'expense',
+      status: 'posted',
+      amount: '42.00',
+      currency: 'USD',
+      occurredAt: isoInCurrentMonth(12, 12),
+      description: 'House bill',
+      merchant: 'House bill',
+      categoryId: 'cat-food',
+      category: { id: 'cat-food', name: 'Food' },
+      tags: [],
+      items: [
+        { id: 'item-water', name: 'Water', amount: '12.00', currency: 'USD' },
+        { id: 'item-electricity', name: 'Electricity', amount: '30.00', currency: 'USD' },
+      ],
+    };
+
+    core.ledgerListTransactions = vi.fn(async () => ({
+      content: [
+        postedTransaction,
+      ],
+      page: 0,
+      size: 10,
+      totalElements: 1,
+      totalPages: 1,
+      hasNext: false,
+      hasPrevious: false,
+    }));
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    const postedRow = await screen.findByText('House bill');
+    fireEvent.click(postedRow.closest('button')!);
+
+    const detailDialog = await screen.findByRole('dialog', { name: 'Transaction details' });
+    expect(within(detailDialog).getByText('Water')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('Electricity')).toBeInTheDocument();
+  });
+
   it('posts an expected movement through a copy without editing the expected', async () => {
     const core = makeCore();
     await core.expectedCreateMovement({

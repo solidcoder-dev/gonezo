@@ -34,4 +34,9 @@ export type TransactionHistoryItemView = {
   tags?: TransactionTagView[];
   categorizationStatus?: TaxonomyAssignmentStatusView;
   taggingStatus?: TaxonomyAssignmentStatusView;
+  items: Array<{
+    id: string;
+    name: string;
+    amount: string;
+  }>;
 };

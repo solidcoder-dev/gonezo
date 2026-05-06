@@ -43,5 +43,6 @@ export function mapTransactionHistoryList(input: LedgerTransactionListItem[]): T
     tags: item.tags,
     categorizationStatus: item.categorizationStatus,
     taggingStatus: item.taggingStatus,
+    items: item.items ?? [],
   }));
 }

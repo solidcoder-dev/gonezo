@@ -18,6 +18,7 @@ function tx(input: Partial<TransactionHistoryItemView> & Pick<TransactionHistory
     tags: input.tags,
     categorizationStatus: input.categorizationStatus,
     taggingStatus: input.taggingStatus,
+    items: input.items ?? [],
   };
 }
 

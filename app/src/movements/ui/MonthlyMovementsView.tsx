@@ -530,6 +530,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
               <p className="hint">{compactTags(selectedTransaction.tags) ?? 'No tags'}</p>
               <p className="hint">Status: {selectedTransaction.status}</p>
             </div>
+            {renderSplitItems(selectedTransaction.items)}
             <div className="quick-row">
               {selectedTransaction.status === 'posted' ? (
                 <button
