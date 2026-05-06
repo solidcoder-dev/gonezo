@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import type { ExpectedMovementItem } from '../../shared/domain/corePort';
 import type { TransactionsImportPolicyInput, TransactionsImportResult } from '../../imports/domain/transactionsImport.types';
 import { TransactionEntryComponent, type TransactionsCorePort } from '../../transactions';
 import type { TransactionEntryPrefillRequest } from '../../transactions/application/TransactionEntryComponent.contract';
 import { MonthlyMovementsComponent } from '../../movements';
+import type { ExpectedMovementView } from '../../movements/domain/movementsView.types';
 import { AccountPageView } from '../ui/AccountPageView';
 import { TransactionsImportComponent } from '../ui/capabilities/TransactionsImportComponent';
 import type { AccountPageViewProvided, AccountPageViewRequired } from '../ui/accountPageView.contract';
@@ -86,10 +86,10 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
     }
   }
 
-  function editExpectedMovement(movement: ExpectedMovementItem, categoryName?: string) {
+  function editExpectedMovement(movement: ExpectedMovementView, categoryName?: string) {
     setTransactionEntryPrefill({
       requestId: Date.now(),
-      sourceExpectedMovementId: movement.id,
+      editedExpectedMovementId: movement.id,
       mode: movement.type,
       amount: movement.amount,
       date: toDateInputValue(movement.expectedAt),
@@ -206,6 +206,9 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
                     setAccountSummaryRefreshSignal((previous) => !previous);
                   },
                   onExpectedPosted: () => {
+                    setAccountSummaryRefreshSignal((previous) => !previous);
+                  },
+                  onExpectedDismissed: () => {
                     setAccountSummaryRefreshSignal((previous) => !previous);
                   },
                   onEditExpectedMovement: editExpectedMovement,

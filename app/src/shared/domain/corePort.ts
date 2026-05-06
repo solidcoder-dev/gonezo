@@ -358,6 +358,23 @@ export type ExpectedCreateMovementResult = {
   id: string;
 };
 
+export type ExpectedUpdateMovementInput = {
+  expectedMovementId: string;
+  accountId: string;
+  type: 'expense' | 'income';
+  amount: string;
+  currency: string;
+  expectedAt: string;
+  description?: string;
+  merchant?: string;
+  categoryId?: string;
+  splitItems?: Array<{ id: string; name: string; amount: string }>;
+};
+
+export type ExpectedUpdateMovementResult = {
+  id: string;
+};
+
 export type ExpectedMovementStatus = 'pending' | 'resolved' | 'dismissed';
 
 export type ExpectedMovementItem = {
@@ -670,6 +687,7 @@ export interface CorePort {
   schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void>;
   schedulingListMovements(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult>;
   expectedCreateMovement(input: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult>;
+  expectedUpdateMovement(input: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult>;
   expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult>;
   expectedResolveMovement(input: ExpectedResolveMovementInput): Promise<void>;
   expectedDismissMovement(input: ExpectedDismissMovementInput): Promise<void>;

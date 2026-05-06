@@ -53,6 +53,8 @@ import type {
   SchedulingMovementItem,
   ExpectedCreateMovementInput,
   ExpectedCreateMovementResult,
+  ExpectedUpdateMovementInput,
+  ExpectedUpdateMovementResult,
   ExpectedDismissMovementInput,
   ExpectedListMovementsInput,
   ExpectedListMovementsResult,
@@ -574,6 +576,13 @@ export class CoreAdapter implements CorePort {
       return CorePlugin.expectedCreateMovement(input);
     }
     return this.web.expectedCreateMovement(input);
+  }
+
+  async expectedUpdateMovement(input: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.expectedUpdateMovement(input);
+    }
+    return this.web.expectedUpdateMovement(input);
   }
 
   async expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult> {

@@ -8,6 +8,8 @@ import com.gonezo.expected.application.ListExpectedMovementsQuery
 import com.gonezo.expected.application.ListExpectedMovementsService
 import com.gonezo.expected.application.ResolveExpectedMovementCommand
 import com.gonezo.expected.application.ResolveExpectedMovementService
+import com.gonezo.expected.application.UpdateExpectedMovementCommand
+import com.gonezo.expected.application.UpdateExpectedMovementService
 import com.gonezo.expected.domain.ExpectedMovement
 import com.gonezo.expected.domain.ExpectedMovementId
 import com.gonezo.expected.domain.ExpectedMovementStatus
@@ -21,6 +23,7 @@ import java.time.Instant
 class ExpectedMovementServicesTest {
   private val repository = InMemoryExpectedMovementRepository()
   private val create = CreateExpectedMovementService(repository)
+  private val update = UpdateExpectedMovementService(repository)
   private val resolve = ResolveExpectedMovementService(repository)
   private val dismiss = DismissExpectedMovementService(repository)
   private val list = ListExpectedMovementsService(repository)
@@ -32,7 +35,7 @@ class ExpectedMovementServicesTest {
         accountId = "account-1",
         type = "expense",
         amount = BigDecimal("29.99"),
-        currency = "eur",
+        currency = "EUR",
         expectedAt = Instant.parse("2026-05-05T10:00:00Z"),
         description = "Refund adjustment",
         merchant = "Amazon",
@@ -86,6 +89,72 @@ class ExpectedMovementServicesTest {
   }
 
   @Test
+  fun `update replaces the pending expected movement without changing its identity`() {
+    val id = createExpectedMovement()
+
+    update.execute(
+      UpdateExpectedMovementCommand(
+        expectedMovementId = id,
+        accountId = "account-1",
+        type = "expense",
+        amount = BigDecimal("30.00"),
+        currency = "EUR",
+        expectedAt = Instant.parse("2026-05-06T10:00:00Z"),
+        description = "Updated refund",
+        merchant = "Updated merchant",
+        categoryId = "cat-food",
+        splitItems = listOf(
+          ExpectedMovement.SplitItem(id = "item-a", name = "Item A", amount = BigDecimal("12.00")),
+          ExpectedMovement.SplitItem(id = "item-b", name = "Item B", amount = BigDecimal("18.00")),
+        ),
+        updatedAt = Instant.parse("2026-05-02T10:00:00Z"),
+      ),
+    )
+
+    val stored = repository.findById(id)
+    assertThat(stored).isNotNull
+    assertThat(stored!!.id).isEqualTo(id)
+    assertThat(stored.amount).isEqualTo(BigDecimal("30.00"))
+    assertThat(stored.currency).isEqualTo("EUR")
+    assertThat(stored.description).isEqualTo("Updated refund")
+    assertThat(stored.merchant).isEqualTo("Updated merchant")
+    assertThat(stored.splitItems).hasSize(2)
+    assertThat(repository.listByAccount("account-1", includeClosed = true)).hasSize(1)
+  }
+
+  @Test
+  fun `update fails when expected movement is no longer pending`() {
+    val id = createExpectedMovement()
+    resolve.execute(
+      ResolveExpectedMovementCommand(
+        expectedMovementId = id,
+        transactionId = "tx-posted-1",
+        resolvedAt = Instant.parse("2026-05-04T11:00:00Z"),
+      ),
+    )
+
+    assertThatThrownBy {
+      update.execute(
+        UpdateExpectedMovementCommand(
+          expectedMovementId = id,
+          accountId = "account-1",
+          type = "expense",
+          amount = BigDecimal("31.00"),
+          currency = "EUR",
+          expectedAt = Instant.parse("2026-05-06T10:00:00Z"),
+          description = "Updated refund",
+          merchant = "Updated merchant",
+          categoryId = "cat-food",
+          splitItems = emptyList(),
+          updatedAt = Instant.parse("2026-05-02T10:00:00Z"),
+        ),
+      )
+    }
+      .isInstanceOf(IllegalStateException::class.java)
+      .hasMessageContaining("Only pending expected movements can be changed")
+  }
+
+  @Test
   fun `list excludes resolved and dismissed movements by default`() {
     val pendingId = createExpectedMovement(merchant = "Pending")
     val resolvedId = createExpectedMovement(merchant = "Resolved")
@@ -129,15 +198,15 @@ class ExpectedMovementServicesTest {
       currency = "EUR",
       expectedAt = Instant.parse("2026-05-05T10:00:00Z"),
       description = "Expected refund",
-    merchant = merchant,
-    categoryId = "cat-shopping",
-    splitItems = listOf(
-      ExpectedMovement.SplitItem(id = "item-a", name = "Item A", amount = BigDecimal("10.00")),
-      ExpectedMovement.SplitItem(id = "item-b", name = "Item B", amount = BigDecimal("19.99")),
+      merchant = merchant,
+      categoryId = "cat-shopping",
+      splitItems = listOf(
+        ExpectedMovement.SplitItem(id = "item-a", name = "Item A", amount = BigDecimal("10.00")),
+        ExpectedMovement.SplitItem(id = "item-b", name = "Item B", amount = BigDecimal("19.99")),
+      ),
+      createdAt = Instant.parse("2026-05-01T10:00:00Z"),
     ),
-    createdAt = Instant.parse("2026-05-01T10:00:00Z"),
-  ),
-)
+  )
 
   private class InMemoryExpectedMovementRepository : ExpectedMovementRepository {
     private val storage = linkedMapOf<ExpectedMovementId, ExpectedMovement>()

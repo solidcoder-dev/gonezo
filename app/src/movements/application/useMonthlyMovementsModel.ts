@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ExpectedMovementItem, LedgerTransactionListItem, TaxonomyCategoryItem, TaxonomyTagItem } from '../../shared/domain/corePort';
+import type { LedgerTransactionListItem, TaxonomyCategoryItem, TaxonomyTagItem } from '../../shared/domain/corePort';
 import { useLedgerTransactions } from '../../ledger/application/useLedgerTransactions';
 import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
 import { createExpectedGateway } from '../../expected/infrastructure/expectedGateway';
@@ -11,6 +11,7 @@ import { useTransactionClassification } from '../../taxonomy/application/useTran
 import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
 import { mapTransactionHistoryList } from '../../transactions/application/transactionViewMappers';
 import type { TransactionsCorePort } from '../../transactions/application/transactionsCore.port';
+import type { ExpectedMovementView } from '../domain/movementsView.types';
 import type { MonthlyMovementsViewProvided, MonthlyMovementsViewRequired } from '../ui/MonthlyMovementsView.contract';
 
 type UseMonthlyMovementsModelInput = {
@@ -20,7 +21,8 @@ type UseMonthlyMovementsModelInput = {
   refreshSignal: boolean;
   onVoided?: (transactionId: string) => void;
   onExpectedPosted?: () => void;
-  onEditExpectedMovement?: (movement: ExpectedMovementItem, categoryName?: string) => void;
+  onExpectedDismissed?: () => void;
+  onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
   onError?: (error: { message: string }) => void;
 };
 
@@ -111,7 +113,7 @@ function normalizeAmount(rawAmount: string): string {
 }
 
 export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
-  const { core, accountId, enabled, refreshSignal, onVoided, onExpectedPosted, onEditExpectedMovement, onError } = input;
+  const { core, accountId, enabled, refreshSignal, onVoided, onExpectedPosted, onExpectedDismissed, onEditExpectedMovement, onError } = input;
 
   const [loading, setLoading] = useState(true);
   const [postingTransaction, setPostingTransaction] = useState(false);
@@ -142,6 +144,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const [pendingVoidTransactionId, setPendingVoidTransactionId] = useState('');
   const [pendingDeactivateScheduledId, setPendingDeactivateScheduledId] = useState('');
   const [pendingPostExpectedId, setPendingPostExpectedId] = useState('');
+  const [pendingDismissExpectedId, setPendingDismissExpectedId] = useState('');
   const [voidMutationPhase, setVoidMutationPhase] = useState<'idle' | 'scheduled' | 'committing'>('idle');
 
   const pendingVoidTimerRef = useRef<number | null>(null);
@@ -507,7 +510,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     }
   }
 
-  async function postExpectedMovement(movement: ExpectedMovementItem): Promise<boolean> {
+  async function postExpectedMovement(movement: ExpectedMovementView): Promise<boolean> {
     if (!accountId) {
       reportError(new Error('Account is required.'));
       return false;
@@ -550,6 +553,28 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     }
   }
 
+  async function dismissExpectedMovement(movement: ExpectedMovementView): Promise<boolean> {
+    setMutating(true);
+    setPendingDismissExpectedId(movement.id);
+    setError('');
+    try {
+      await expectedGateway.expectedDismissMovement({
+        expectedMovementId: movement.id,
+        dismissedAt: new Date().toISOString(),
+      });
+      await refreshMovements();
+      onExpectedDismissed?.();
+      showToast('Expected movement dismissed.');
+      return true;
+    } catch (err) {
+      reportError(err);
+      return false;
+    } finally {
+      setMutating(false);
+      setPendingDismissExpectedId('');
+    }
+  }
+
   const disabled = loading || mutating || postingTransaction || voidMutationPhase === 'committing';
 
   const required: MonthlyMovementsViewRequired = {
@@ -579,6 +604,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       pendingVoidTransactionId: pendingVoidTransactionId || undefined,
       pendingDeactivateScheduledId: pendingDeactivateScheduledId || undefined,
       pendingPostExpectedId: pendingPostExpectedId || undefined,
+      pendingDismissExpectedId: pendingDismissExpectedId || undefined,
     },
     status: {
       loading,
@@ -647,6 +673,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       requestVoid,
       deactivateScheduledMovement,
       postExpectedMovement,
+      dismissExpectedMovement,
       editExpectedMovement: (movement, categoryName) => onEditExpectedMovement?.(movement, categoryName),
     },
   };

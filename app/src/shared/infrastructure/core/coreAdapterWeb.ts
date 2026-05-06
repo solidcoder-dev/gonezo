@@ -56,6 +56,8 @@ import type {
   SchedulingMovementItem,
   ExpectedCreateMovementInput,
   ExpectedCreateMovementResult,
+  ExpectedUpdateMovementInput,
+  ExpectedUpdateMovementResult,
   ExpectedDismissMovementInput,
   ExpectedListMovementsInput,
   ExpectedListMovementsResult,
@@ -2108,6 +2110,43 @@ export class CoreAdapterWeb implements CorePort {
       updatedAt: now,
     });
     return { id };
+  }
+
+  async expectedUpdateMovement(input: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult> {
+    const movementIndex = CoreAdapterWeb.expectedMovements.findIndex((item) => item.id === input.expectedMovementId);
+    if (movementIndex < 0) {
+      throw new Error(`Expected movement not found: ${input.expectedMovementId}`);
+    }
+    const current = CoreAdapterWeb.expectedMovements[movementIndex];
+    if (current.status !== 'pending') {
+      throw new Error('Only pending expected movements can be changed');
+    }
+    const account = this.accountOrThrow(input.accountId);
+    this.ensureAccountCanPost(account, input.currency);
+    const amount = Number(input.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Expected movement amount must be greater than 0');
+    }
+    const expectedAt = input.expectedAt.trim() || new Date().toISOString();
+    const now = new Date().toISOString();
+    CoreAdapterWeb.expectedMovements[movementIndex] = {
+      ...current,
+      accountId: input.accountId,
+      type: input.type,
+      amount: amount.toFixed(2),
+      currency: input.currency.toUpperCase(),
+      expectedAt,
+      description: input.description,
+      merchant: input.merchant,
+      categoryId: input.categoryId,
+      splitItems: (input.splitItems ?? []).map((item) => ({
+        id: item.id,
+        name: item.name,
+        amount: Number(item.amount).toFixed(2),
+      })),
+      updatedAt: now,
+    };
+    return { id: current.id };
   }
 
   async expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult> {

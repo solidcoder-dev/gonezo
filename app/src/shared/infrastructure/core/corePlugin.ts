@@ -50,6 +50,8 @@ import type {
   SchedulingListMovementsResult,
   ExpectedCreateMovementInput,
   ExpectedCreateMovementResult,
+  ExpectedUpdateMovementInput,
+  ExpectedUpdateMovementResult,
   ExpectedDismissMovementInput,
   ExpectedListMovementsInput,
   ExpectedListMovementsResult,
@@ -107,6 +109,7 @@ export interface CorePlugin {
     options: SchedulingListMovementsInput,
   ): Promise<SchedulingListMovementsResult>;
   expectedCreateMovement(options: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult>;
+  expectedUpdateMovement(options: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult>;
   expectedListMovements(options: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult>;
   expectedResolveMovement(options: ExpectedResolveMovementInput): Promise<void>;
   expectedDismissMovement(options: ExpectedDismissMovementInput): Promise<void>;

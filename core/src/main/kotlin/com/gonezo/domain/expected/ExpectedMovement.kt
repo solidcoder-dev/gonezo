@@ -71,6 +71,50 @@ data class ExpectedMovement(
     )
   }
 
+  fun update(
+    accountId: String,
+    type: ExpectedMovementType,
+    amount: BigDecimal,
+    currency: String,
+    expectedAt: Instant,
+    description: String?,
+    merchant: String?,
+    categoryId: String?,
+    splitItems: List<SplitItem>,
+    updatedAt: Instant,
+  ): ExpectedMovement {
+    check(status == ExpectedMovementStatus.PENDING) { "Only pending expected movements can be changed" }
+    require(accountId.isNotBlank()) { "accountId is required" }
+    require(amount > BigDecimal.ZERO) { "amount must be greater than 0" }
+    require(currency.matches(Regex("^[A-Z]{3}$"))) { "currency must be 3 uppercase letters" }
+    require(splitItems.all { it.id.isNotBlank() }) { "split item id is required" }
+    require(splitItems.all { it.name.isNotBlank() }) { "split item name is required" }
+    require(splitItems.all { it.amount > BigDecimal.ZERO }) { "split item amount must be greater than 0" }
+    if (splitItems.isNotEmpty()) {
+      val splitTotal = splitItems.fold(BigDecimal.ZERO) { acc, item -> acc + item.amount }
+      require(splitTotal.compareTo(amount) == 0) { "split items must add up to amount" }
+    }
+
+    return copy(
+      accountId = accountId.trim(),
+      type = type,
+      amount = amount,
+      currency = currency.trim().uppercase(),
+      expectedAt = expectedAt,
+      description = description?.trim()?.ifBlank { null },
+      merchant = merchant?.trim()?.ifBlank { null },
+      categoryId = categoryId?.trim()?.ifBlank { null },
+      splitItems = splitItems.map {
+        SplitItem(
+          id = it.id.trim(),
+          name = it.name.trim(),
+          amount = it.amount,
+        )
+      },
+      updatedAt = updatedAt,
+    )
+  }
+
   fun dismiss(at: Instant): ExpectedMovement {
     check(status == ExpectedMovementStatus.PENDING) { "Only pending expected movements can be dismissed" }
 

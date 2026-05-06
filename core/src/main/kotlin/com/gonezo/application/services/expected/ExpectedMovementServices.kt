@@ -28,6 +28,28 @@ class CreateExpectedMovementService(
   }
 }
 
+class UpdateExpectedMovementService(
+  private val repository: ExpectedMovementRepository,
+) : UpdateExpectedMovementUC {
+  override fun execute(command: UpdateExpectedMovementCommand) {
+    val movement = requireExpectedMovement(repository, command.expectedMovementId)
+    repository.save(
+      movement.update(
+        accountId = command.accountId,
+        type = ExpectedMovementType.from(command.type),
+        amount = command.amount,
+        currency = command.currency,
+        expectedAt = command.expectedAt,
+        description = command.description,
+        merchant = command.merchant,
+        categoryId = command.categoryId,
+        splitItems = command.splitItems,
+        updatedAt = command.updatedAt,
+      ),
+    )
+  }
+}
+
 class ResolveExpectedMovementService(
   private val repository: ExpectedMovementRepository,
 ) : ResolveExpectedMovementUC {

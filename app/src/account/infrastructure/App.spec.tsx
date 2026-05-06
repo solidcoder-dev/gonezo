@@ -284,22 +284,40 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     expectedCreateMovement: vi.fn(async (input) => {
       const now = new Date().toISOString();
       const id = `exp-${expectedMovements.length + 1}`;
-    expectedMovements.push({
-      id,
-      accountId: input.accountId,
-      type: input.type,
-      amount: input.amount,
+      expectedMovements.push({
+        id,
+        accountId: input.accountId,
+        type: input.type,
+        amount: input.amount,
         currency: input.currency,
         expectedAt: input.expectedAt,
-      description: input.description,
-      merchant: input.merchant,
-      categoryId: input.categoryId,
-      splitItems: (input.splitItems ?? []).map((item: { id: string; name: string; amount: string }) => ({ ...item })),
-      status: 'pending',
-      createdAt: now,
-      updatedAt: now,
-    });
+        description: input.description,
+        merchant: input.merchant,
+        categoryId: input.categoryId,
+        splitItems: (input.splitItems ?? []).map((item: { id: string; name: string; amount: string }) => ({ ...item })),
+        status: 'pending',
+        createdAt: now,
+        updatedAt: now,
+      });
       return { id };
+    }),
+    expectedUpdateMovement: vi.fn(async (input) => {
+      const movement = expectedMovements.find((item) => item.id === input.expectedMovementId);
+      if (!movement) {
+        throw new Error(`Expected movement not found: ${input.expectedMovementId}`);
+      }
+      const updatedAt = new Date().toISOString();
+      movement.accountId = input.accountId;
+      movement.type = input.type;
+      movement.amount = input.amount;
+      movement.currency = input.currency;
+      movement.expectedAt = input.expectedAt;
+      movement.description = input.description;
+      movement.merchant = input.merchant;
+      movement.categoryId = input.categoryId;
+      movement.splitItems = (input.splitItems ?? []).map((item: { id: string; name: string; amount: string }) => ({ ...item }));
+      movement.updatedAt = updatedAt;
+      return { id: movement.id };
     }),
     expectedListMovements: vi.fn(async (input) => ({
       items: expectedMovements
@@ -2417,6 +2435,95 @@ describe('App Accounts UX', () => {
     const splitItemsList = within(composer).getByRole('list', { name: 'Expense items' });
     expect(within(splitItemsList).getByText('Water')).toBeInTheDocument();
     expect(within(splitItemsList).getByText('Electricity')).toBeInTheDocument();
+  });
+
+  it('updates the same expected movement when editing and saving it', async () => {
+    const core = makeCore();
+    await core.expectedCreateMovement({
+      accountId: 'acc-1',
+      type: 'expense',
+      amount: '42.00',
+      currency: 'USD',
+      expectedAt: '2026-05-02T10:00:00.000Z',
+      description: 'Expected rent',
+      categoryId: 'cat-food',
+      splitItems: [
+        { id: 'split-water', name: 'Water', amount: '12.00' },
+        { id: 'split-electricity', name: 'Electricity', amount: '30.00' },
+      ],
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    await expandExpectedMovements();
+    const expectedRow = await screen.findByText('Expected rent');
+    fireEvent.click(expectedRow.closest('button')!);
+    const detailDialog = await screen.findByRole('dialog', { name: 'Expected movement details' });
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Edit movement' }));
+
+    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    fireEvent.click(within(composer).getByRole('button', { name: 'Save expected' }));
+
+    await waitFor(() => {
+      expect(core.expectedUpdateMovement).toHaveBeenCalledTimes(1);
+    });
+    expect(core.expectedCreateMovement).toHaveBeenCalledTimes(1);
+    expect(core.expectedUpdateMovement).toHaveBeenCalledWith(expect.objectContaining({
+      expectedMovementId: 'exp-1',
+      accountId: 'acc-1',
+      type: 'expense',
+      amount: '42.00',
+      currency: 'USD',
+      categoryId: 'cat-food',
+    }));
+
+    const updated = await core.expectedListMovements({ accountId: 'acc-1' });
+    expect(updated.items).toHaveLength(1);
+    expect(updated.items[0].amount).toBe('42.00');
+    expect(updated.items[0].id).toBe('exp-1');
+  });
+
+  it('dismisses an expected movement from the detail sheet', async () => {
+    const core = makeCore();
+    await core.expectedCreateMovement({
+      accountId: 'acc-1',
+      type: 'expense',
+      amount: '42.00',
+      currency: 'USD',
+      expectedAt: '2026-05-02T10:00:00.000Z',
+      description: 'Expected rent',
+      categoryId: 'cat-food',
+      splitItems: [
+        { id: 'split-water', name: 'Water', amount: '12.00' },
+        { id: 'split-electricity', name: 'Electricity', amount: '30.00' },
+      ],
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    await expandExpectedMovements();
+    const expectedRow = await screen.findByText('Expected rent');
+    fireEvent.click(expectedRow.closest('button')!);
+    const detailDialog = await screen.findByRole('dialog', { name: 'Expected movement details' });
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Remove movement' }));
+
+    await waitFor(() => {
+      expect(core.expectedDismissMovement).toHaveBeenCalledTimes(1);
+    });
+    expect(core.expectedDismissMovement).toHaveBeenCalledWith(expect.objectContaining({
+      expectedMovementId: 'exp-1',
+    }));
+    await waitFor(() => {
+      expect(screen.queryByText('Expected rent')).not.toBeInTheDocument();
+    });
   });
 
   it('shows scheduled transfer when switching to destination account', async () => {

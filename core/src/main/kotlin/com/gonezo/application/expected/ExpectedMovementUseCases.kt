@@ -23,6 +23,24 @@ interface CreateExpectedMovementUC {
   fun execute(command: CreateExpectedMovementCommand): ExpectedMovementId
 }
 
+data class UpdateExpectedMovementCommand(
+  val expectedMovementId: ExpectedMovementId,
+  val accountId: String,
+  val type: String,
+  val amount: BigDecimal,
+  val currency: String,
+  val expectedAt: Instant,
+  val description: String?,
+  val merchant: String?,
+  val categoryId: String?,
+  val splitItems: List<ExpectedMovement.SplitItem> = emptyList(),
+  val updatedAt: Instant,
+)
+
+interface UpdateExpectedMovementUC {
+  fun execute(command: UpdateExpectedMovementCommand)
+}
+
 data class ResolveExpectedMovementCommand(
   val expectedMovementId: ExpectedMovementId,
   val transactionId: String,

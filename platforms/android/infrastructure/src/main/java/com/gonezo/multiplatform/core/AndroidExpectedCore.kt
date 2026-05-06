@@ -73,26 +73,62 @@ class AndroidExpectedCore internal constructor(
     if (inserted == -1L) {
       throw IllegalStateException("Failed to create expected movement")
     }
-    val splitItems = parseSplitItems(splitItemsJson)
-    database.writableDatabase.delete("expected_movement_items", "expected_movement_id = ?", arrayOf(id.toString()))
-    splitItems.forEachIndexed { index, item ->
-      val itemValues = ContentValues()
-      itemValues.put("id", item.id)
-      itemValues.put("expected_movement_id", id.toString())
-      itemValues.put("item_order", index)
-      itemValues.put("name", item.name)
-      itemValues.put("amount", item.amount)
-      if (database.writableDatabase.insertWithOnConflict(
-          "expected_movement_items",
-          null,
-          itemValues,
-          SQLiteDatabase.CONFLICT_ABORT,
-        ) == -1L
-      ) {
-        throw IllegalStateException("Failed to create expected movement split item")
-      }
-    }
+    replaceSplitItems(id.toString(), parseSplitItems(splitItemsJson))
     return id
+  }
+
+  fun updateMovement(
+    expectedMovementId: String?,
+    accountId: String?,
+    type: String?,
+    amount: String?,
+    currency: String?,
+    expectedAt: String?,
+    description: String?,
+    merchant: String?,
+    categoryId: String?,
+    splitItemsJson: String? = null,
+  ): UUID {
+    val id = requireText(expectedMovementId, "expectedMovementId is required")
+    val resolvedAccountId = requireText(accountId, "accountId is required")
+    if (!accountExists(resolvedAccountId)) {
+      throw IllegalArgumentException("Account not found")
+    }
+
+    val resolvedType = requireText(type, "type is required").lowercase(Locale.ROOT)
+    if (resolvedType != "expense" && resolvedType != "income") {
+      throw IllegalArgumentException("type must be expense or income")
+    }
+
+    ensurePendingMovement(id)
+
+    val now = Instant.now(clock)
+    val values = ContentValues()
+    values.put("account_id", resolvedAccountId)
+    values.put("movement_type", resolvedType)
+    values.put("amount", parsePositiveDecimal(requireText(amount, "amount is required")).toPlainString())
+    values.put("currency", requireCurrency(currency))
+    values.put(
+      "expected_at",
+      if (expectedAt.isNullOrBlank()) now.toString() else parseInstantOrDate(expectedAt, "expectedAt").toString(),
+    )
+    putNullable(values, "description", description)
+    putNullable(values, "merchant", merchant)
+    putNullable(values, "category_id", categoryId)
+    values.put("updated_at", now.toString())
+
+    val updated = database.writableDatabase.update(
+      "expected_movements",
+      values,
+      "id = ?",
+      arrayOf(id),
+    )
+    if (updated == 0) {
+      throw IllegalStateException("Expected movement not found: $id")
+    }
+
+    replaceSplitItems(id, parseSplitItems(splitItemsJson))
+    return UUID.fromString(id)
   }
 
   fun listMovements(accountId: String?, includeClosed: Boolean): List<ExpectedMovementView> {
@@ -178,6 +214,27 @@ class AndroidExpectedCore internal constructor(
     )
     if (updated == 0) {
       throw IllegalStateException("Expected movement not found: $id")
+    }
+  }
+
+  private fun replaceSplitItems(expectedMovementId: String, splitItems: List<SplitItemInput>) {
+    database.writableDatabase.delete("expected_movement_items", "expected_movement_id = ?", arrayOf(expectedMovementId))
+    splitItems.forEachIndexed { index, item ->
+      val itemValues = ContentValues()
+      itemValues.put("id", item.id)
+      itemValues.put("expected_movement_id", expectedMovementId)
+      itemValues.put("item_order", index)
+      itemValues.put("name", item.name)
+      itemValues.put("amount", item.amount)
+      if (database.writableDatabase.insertWithOnConflict(
+          "expected_movement_items",
+          null,
+          itemValues,
+          SQLiteDatabase.CONFLICT_ABORT,
+        ) == -1L
+      ) {
+        throw IllegalStateException("Failed to create expected movement split item")
+      }
     }
   }
 

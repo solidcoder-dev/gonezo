@@ -183,6 +183,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
     pendingVoidTransactionId,
     pendingDeactivateScheduledId,
     pendingPostExpectedId,
+    pendingDismissExpectedId,
   } = required.state;
   const { loading, disabled } = required.status;
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionHistoryItemView | null>(null);
@@ -628,6 +629,20 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
                 }}
               >
                 Edit movement
+              </button>
+              <button
+                type="button"
+                className="text-button danger-button"
+                disabled={disabled || pendingDismissExpectedId === selectedExpectedMovement.id}
+                onClick={() => {
+                  void provided.commands.dismissExpectedMovement(selectedExpectedMovement).then((dismissed) => {
+                    if (dismissed) {
+                      setSelectedExpectedMovement(null);
+                    }
+                  });
+                }}
+              >
+                {pendingDismissExpectedId === selectedExpectedMovement.id ? 'Removing...' : 'Remove movement'}
               </button>
               <button type="button" className="text-button" onClick={() => setSelectedExpectedMovement(null)}>
                 Close

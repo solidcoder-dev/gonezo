@@ -35,6 +35,7 @@ export type MonthlyMovementsViewRequired = {
     pendingVoidTransactionId?: string;
     pendingDeactivateScheduledId?: string;
     pendingPostExpectedId?: string;
+    pendingDismissExpectedId?: string;
   };
   status: {
     loading: boolean;
@@ -59,6 +60,7 @@ export type MonthlyMovementsViewProvided = {
     requestVoid: (transactionId: string) => void;
     deactivateScheduledMovement: (scheduledMovementId: string) => Promise<void>;
     postExpectedMovement: (movement: ExpectedMovementView) => Promise<boolean>;
+    dismissExpectedMovement: (movement: ExpectedMovementView) => Promise<boolean>;
     editExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => void;
   };
 };

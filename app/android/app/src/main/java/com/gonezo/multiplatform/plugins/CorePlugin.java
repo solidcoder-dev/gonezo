@@ -808,6 +808,41 @@ public class CorePlugin extends Plugin {
   }
 
   @PluginMethod
+  public void expectedUpdateMovement(PluginCall call) {
+    String expectedMovementId = call.getString("expectedMovementId");
+    String accountId = call.getString("accountId");
+    String type = call.getString("type");
+    String amount = call.getString("amount");
+    String currency = call.getString("currency");
+    String expectedAt = call.getString("expectedAt");
+    String description = call.getString("description");
+    String merchant = call.getString("merchant");
+    String categoryId = call.getString("categoryId");
+    JSONArray splitItems = call.getArray("splitItems");
+
+    try {
+      AndroidExpectedCore expectedCore = AndroidExpectedCore.getInstance(getContext());
+      UUID id = expectedCore.updateMovement(
+        expectedMovementId,
+        accountId,
+        type,
+        amount,
+        currency,
+        expectedAt,
+        description,
+        merchant,
+        categoryId,
+        splitItems == null ? null : splitItems.toString()
+      );
+      JSObject result = new JSObject();
+      result.put("id", id.toString());
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
   public void expectedListMovements(PluginCall call) {
     String accountId = call.getString("accountId");
     Boolean includeClosedValue = call.getBoolean("includeClosed");

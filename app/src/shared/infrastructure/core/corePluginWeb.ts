@@ -50,6 +50,8 @@ import type {
   SchedulingListMovementsResult,
   ExpectedCreateMovementInput,
   ExpectedCreateMovementResult,
+  ExpectedUpdateMovementInput,
+  ExpectedUpdateMovementResult,
   ExpectedDismissMovementInput,
   ExpectedListMovementsInput,
   ExpectedListMovementsResult,
@@ -195,6 +197,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async expectedCreateMovement(options: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult> {
     return this.core.expectedCreateMovement(options);
+  }
+
+  async expectedUpdateMovement(options: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult> {
+    return this.core.expectedUpdateMovement(options);
   }
 
   async expectedListMovements(options: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult> {

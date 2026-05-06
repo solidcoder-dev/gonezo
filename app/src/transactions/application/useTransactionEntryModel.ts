@@ -170,7 +170,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [editingExpenseItemId, setEditingExpenseItemId] = useState('');
   const [schedulingMode, setSchedulingMode] = useState<'now' | 'scheduled'>('now');
   const [expectedMovement, setExpectedMovement] = useState(false);
-  const [sourceExpectedMovementId, setSourceExpectedMovementId] = useState('');
+  const [editedExpectedMovementId, setEditedExpectedMovementId] = useState('');
   const [schedulingKind, setSchedulingKind] = useState<'one_shot' | 'recurring'>('one_shot');
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<SchedulingFrequency>('monthly');
   const [recurrenceInterval, setRecurrenceInterval] = useState('1');
@@ -264,7 +264,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setEditingExpenseItemId('');
     setSchedulingMode('now');
     setExpectedMovement(false);
-    setSourceExpectedMovementId('');
+    setEditedExpectedMovementId('');
     setSchedulingKind('one_shot');
     setRecurrenceFrequency('monthly');
     setRecurrenceInterval('1');
@@ -367,7 +367,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setExpenseDetailed((prefillRequest.splitItems?.length ?? 0) > 0);
     setExpenseItems(cloneExpenseItems(prefillRequest.splitItems ?? []));
     setEditingExpenseItemId('');
-    setSourceExpectedMovementId(prefillRequest.sourceExpectedMovementId ?? '');
+    setEditedExpectedMovementId(prefillRequest.editedExpectedMovementId ?? '');
 
     void (async () => {
       try {
@@ -948,7 +948,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     const movementExpected = (composerMode === 'expense' || composerMode === 'income') && expectedMovement;
     const movementScheduled = (composerMode === 'expense' || composerMode === 'income')
       && !movementExpected
-      && !sourceExpectedMovementId
+      && !editedExpectedMovementId
       && (recurrenceEnabled || isFutureIsoDateInput(resolvedTransactionDate));
 
     if (!movementExpected && composerMode !== 'expense') {
@@ -1072,7 +1072,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
       if (movementExpected && (composerMode === 'expense' || composerMode === 'income')) {
         const categoryId = await resolveCategorySelection(composerMode);
-        await expectedGateway.expectedCreateMovement({
+        const expectedPayload = {
           accountId,
           type: composerMode,
           amount: formatAmount(parseAmount(amount)),
@@ -1082,7 +1082,15 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           merchant: transactionNote.trim() || undefined,
           categoryId,
           splitItems: expenseItems,
-        });
+        };
+        if (editedExpectedMovementId) {
+          await expectedGateway.expectedUpdateMovement({
+            expectedMovementId: editedExpectedMovementId,
+            ...expectedPayload,
+          });
+        } else {
+          await expectedGateway.expectedCreateMovement(expectedPayload);
+        }
         recorded = true;
       }
 
@@ -1417,9 +1425,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       }
 
       if (recorded) {
-        if (sourceExpectedMovementId && postedTransactionId) {
+        if (editedExpectedMovementId && postedTransactionId) {
           await expectedGateway.expectedResolveMovement({
-            expectedMovementId: sourceExpectedMovementId,
+            expectedMovementId: editedExpectedMovementId,
             transactionId: postedTransactionId,
             resolvedAt: new Date().toISOString(),
           });
