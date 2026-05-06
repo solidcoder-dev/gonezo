@@ -326,584 +326,588 @@ export function TransactionComposerView({ required, provided }: Props) {
             </div>
           </div>
         ) : (
-          <form className="stack composer-form" onSubmit={onSubmit} aria-busy={disabled} noValidate>
-            {mode !== 'transfer' ? (
-              <>
+          <form className="composer-form" onSubmit={onSubmit} aria-busy={disabled} noValidate>
+            <div className="composer-form-content stack">
+              {mode !== 'transfer' ? (
+                <>
+                  <label className="stack">
+                    <span className="visually-hidden">{amountLabel}</span>
+                    <input
+                      ref={amountInputRef}
+                      aria-label="Amount"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={amount}
+                      placeholder="Amount"
+                      onChange={(event) => onSetAmount(event.target.value)}
+                      inputMode="decimal"
+                      aria-invalid={Boolean(amountError)}
+                      aria-describedby={amountError ? 'composer-amount-error' : undefined}
+                    />
+                  </label>
+                  {amountError ? <p id="composer-amount-error" className="field-error">{amountError}</p> : null}
+                </>
+              ) : null}
+
+              {mode === 'transfer' ? (
                 <label className="stack">
-                  <span className="visually-hidden">{amountLabel}</span>
-                  <input
-                    ref={amountInputRef}
-                    aria-label="Amount"
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={amount}
-                    placeholder="Amount"
-                    onChange={(event) => onSetAmount(event.target.value)}
-                    inputMode="decimal"
-                    aria-invalid={Boolean(amountError)}
-                    aria-describedby={amountError ? 'composer-amount-error' : undefined}
-                  />
+                  <span className="visually-hidden">Destination account</span>
+                  <select
+                    aria-label="Destination account"
+                    value={transferTargetAccountId}
+                    onChange={(event) => onSetTransferTarget(event.target.value)}
+                  >
+                    <option value="">Select account</option>
+                    {transferTargetOptions.map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.name} ({account.currency})
+                      </option>
+                    ))}
+                  </select>
                 </label>
-                {amountError ? <p id="composer-amount-error" className="field-error">{amountError}</p> : null}
-              </>
-            ) : null}
+              ) : null}
 
-            {mode === 'transfer' ? (
-              <label className="stack">
-                <span className="visually-hidden">Destination account</span>
-                <select
-                  aria-label="Destination account"
-                  value={transferTargetAccountId}
-                  onChange={(event) => onSetTransferTarget(event.target.value)}
-                >
-                  <option value="">Select account</option>
-                  {transferTargetOptions.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.name} ({account.currency})
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
+              {mode === 'transfer' ? (
+                <>
+                  <label className="stack">
+                    <span className="visually-hidden">{amountLabel}</span>
+                    <input
+                      ref={amountInputRef}
+                      aria-label="Amount"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={amount}
+                      placeholder="Amount"
+                      onChange={(event) => onSetAmount(event.target.value)}
+                      inputMode="decimal"
+                      aria-invalid={Boolean(amountError)}
+                      aria-describedby={amountError ? 'composer-amount-error' : undefined}
+                    />
+                  </label>
+                  {amountError ? <p id="composer-amount-error" className="field-error">{amountError}</p> : null}
 
-            {mode === 'transfer' ? (
-              <>
+                  <label className="stack">
+                    <span className="visually-hidden">Description</span>
+                    <input
+                      aria-label="Description"
+                      value={note}
+                      onChange={(event) => onSetNote(event.target.value)}
+                      placeholder="Description"
+                    />
+                  </label>
+                </>
+              ) : null}
+
+              {mode !== 'transfer' ? (
                 <label className="stack">
-                  <span className="visually-hidden">{amountLabel}</span>
+                  <span className="visually-hidden">{mode === 'expense' ? 'Merchant' : 'Source'}</span>
                   <input
-                    ref={amountInputRef}
-                    aria-label="Amount"
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={amount}
-                    placeholder="Amount"
-                    onChange={(event) => onSetAmount(event.target.value)}
-                    inputMode="decimal"
-                    aria-invalid={Boolean(amountError)}
-                    aria-describedby={amountError ? 'composer-amount-error' : undefined}
-                  />
-                </label>
-                {amountError ? <p id="composer-amount-error" className="field-error">{amountError}</p> : null}
-
-                <label className="stack">
-                  <span className="visually-hidden">Description</span>
-                  <input
-                    aria-label="Description"
+                    aria-label={mode === 'expense' ? 'Merchant' : 'Source'}
                     value={note}
                     onChange={(event) => onSetNote(event.target.value)}
-                    placeholder="Description"
+                    placeholder={mode === 'expense' ? 'Cafe' : 'Salary'}
                   />
                 </label>
-              </>
-            ) : null}
+              ) : null}
 
-            {mode !== 'transfer' ? (
-              <label className="stack">
-                <span className="visually-hidden">{mode === 'expense' ? 'Merchant' : 'Source'}</span>
-                <input
-                  aria-label={mode === 'expense' ? 'Merchant' : 'Source'}
-                  value={note}
-                  onChange={(event) => onSetNote(event.target.value)}
-                  placeholder={mode === 'expense' ? 'Cafe' : 'Salary'}
-                />
-              </label>
-            ) : null}
-
-            <div className="date-input-row">
-              <label className="stack date-input-field">
-                <span className="visually-hidden">{dateInputLabel}</span>
-                <input
-                  aria-label={dateInputLabel}
-                  type="text"
-                  value={date}
-                  placeholder={datePlaceholder}
-                  inputMode="numeric"
-                  onFocus={() => {
-                    if (date === datePlaceholder) {
-                      onSetDate('');
-                    }
+              <div className="date-input-row">
+                <label className="stack date-input-field">
+                  <span className="visually-hidden">{dateInputLabel}</span>
+                  <input
+                    aria-label={dateInputLabel}
+                    type="text"
+                    value={date}
+                    placeholder={datePlaceholder}
+                    inputMode="numeric"
+                    onFocus={() => {
+                      if (date === datePlaceholder) {
+                        onSetDate('');
+                      }
+                    }}
+                    onChange={(event) => onSetDate(formatDateInput(event.target.value))}
+                    aria-invalid={Boolean(dateError)}
+                    aria-describedby={dateError ? 'composer-date-error' : undefined}
+                  />
+                  <input
+                    ref={dateInputRef}
+                    className="visually-hidden"
+                    aria-hidden="true"
+                    tabIndex={-1}
+                    type="date"
+                    value={date}
+                    onChange={(event) => onSetDate(event.target.value)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="text-button icon-button date-picker-button"
+                  aria-label="Open calendar"
+                  onClick={() => {
+                    dateInputRef.current?.showPicker?.();
                   }}
-                  onChange={(event) => onSetDate(formatDateInput(event.target.value))}
-                  aria-invalid={Boolean(dateError)}
-                  aria-describedby={dateError ? 'composer-date-error' : undefined}
-                />
-                <input
-                  ref={dateInputRef}
-                  className="visually-hidden"
-                  aria-hidden="true"
-                  tabIndex={-1}
-                  type="date"
-                  value={date}
-                  onChange={(event) => onSetDate(event.target.value)}
-                />
-              </label>
+                  disabled={disabled}
+                >
+                  <i className="bi bi-calendar3" aria-hidden />
+                </button>
+              </div>
+              {dateError ? <p id="composer-date-error" className="field-error">{dateError}</p> : null}
+
+              {mode === 'transfer' && transferCrossCurrency ? (
+                <div className="stack item-editor">
+                  <label className="stack">
+                    <span className="visually-hidden">{amountInLabel}</span>
+                    <input
+                      aria-label={amountInLabel}
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={transferAmountIn}
+                      onChange={(event) => onSetTransferAmountIn(event.target.value)}
+                      inputMode="decimal"
+                      disabled={transferFxMode === 'auto_destination'}
+                      aria-invalid={Boolean(transferAmountInError)}
+                      aria-describedby={transferAmountInError ? 'composer-transfer-amount-in-error' : undefined}
+                    />
+                  </label>
+                  {transferAmountInError ? <p id="composer-transfer-amount-in-error" className="field-error">{transferAmountInError}</p> : null}
+
+                  <label className="stack">
+                    <span className="visually-hidden">{fxLabel}</span>
+                    <input
+                      aria-label={fxLabel}
+                      type="number"
+                      min="0.0000001"
+                      step="0.0001"
+                      value={transferFxRate}
+                      onChange={(event) => onSetTransferFxRate(event.target.value)}
+                      inputMode="decimal"
+                      disabled={transferFxMode === 'auto_rate'}
+                      aria-invalid={Boolean(transferFxRateError)}
+                      aria-describedby={transferFxRateError ? 'composer-transfer-fx-rate-error' : undefined}
+                    />
+                  </label>
+                  {transferFxRateError ? <p id="composer-transfer-fx-rate-error" className="field-error">{transferFxRateError}</p> : null}
+
+                  <div className="segmented segmented-2" role="radiogroup" aria-label="Transfer auto calculation mode">
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={transferFxMode === 'auto_destination'}
+                      className={transferFxMode === 'auto_destination' ? 'segment active' : 'segment'}
+                      disabled={disabled}
+                      onClick={() => onSetTransferFxMode('auto_destination')}
+                    >
+                      Auto amount in
+                    </button>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={transferFxMode === 'auto_rate'}
+                      className={transferFxMode === 'auto_rate' ? 'segment active' : 'segment'}
+                      disabled={disabled}
+                      onClick={() => onSetTransferFxMode('auto_rate')}
+                    >
+                      Auto FX rate
+                    </button>
+                  </div>
+                  <p className="hint">Edit two values; the third one is calculated automatically.</p>
+                </div>
+              ) : null}
+
               <button
                 type="button"
-                className="text-button icon-button date-picker-button"
-                aria-label="Open calendar"
-                onClick={() => {
-                  dateInputRef.current?.showPicker?.();
-                }}
-                disabled={disabled}
+                className="composer-more-options"
+                onClick={onToggleAdvanced}
+                aria-expanded={advancedOpen}
+                aria-controls="composer-advanced-options"
               >
-                <i className="bi bi-calendar3" aria-hidden />
+                <span>More options</span>
+                <i
+                  className={advancedOpen ? 'bi bi-chevron-up composer-more-options-caret' : 'bi bi-chevron-down composer-more-options-caret'}
+                  aria-hidden
+                />
               </button>
-            </div>
-            {dateError ? <p id="composer-date-error" className="field-error">{dateError}</p> : null}
 
-            {mode === 'transfer' && transferCrossCurrency ? (
-              <div className="stack item-editor">
-                <label className="stack">
-                  <span className="visually-hidden">{amountInLabel}</span>
-                  <input
-                    aria-label={amountInLabel}
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={transferAmountIn}
-                    onChange={(event) => onSetTransferAmountIn(event.target.value)}
-                    inputMode="decimal"
-                    disabled={transferFxMode === 'auto_destination'}
-                    aria-invalid={Boolean(transferAmountInError)}
-                    aria-describedby={transferAmountInError ? 'composer-transfer-amount-in-error' : undefined}
-                  />
-                </label>
-                {transferAmountInError ? <p id="composer-transfer-amount-in-error" className="field-error">{transferAmountInError}</p> : null}
-
-                <label className="stack">
-                  <span className="visually-hidden">{fxLabel}</span>
-                  <input
-                    aria-label={fxLabel}
-                    type="number"
-                    min="0.0000001"
-                    step="0.0001"
-                    value={transferFxRate}
-                    onChange={(event) => onSetTransferFxRate(event.target.value)}
-                    inputMode="decimal"
-                    disabled={transferFxMode === 'auto_rate'}
-                    aria-invalid={Boolean(transferFxRateError)}
-                    aria-describedby={transferFxRateError ? 'composer-transfer-fx-rate-error' : undefined}
-                  />
-                </label>
-                {transferFxRateError ? <p id="composer-transfer-fx-rate-error" className="field-error">{transferFxRateError}</p> : null}
-
-                <div className="segmented segmented-2" role="radiogroup" aria-label="Transfer auto calculation mode">
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={transferFxMode === 'auto_destination'}
-                    className={transferFxMode === 'auto_destination' ? 'segment active' : 'segment'}
-                    disabled={disabled}
-                    onClick={() => onSetTransferFxMode('auto_destination')}
-                  >
-                    Auto amount in
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={transferFxMode === 'auto_rate'}
-                    className={transferFxMode === 'auto_rate' ? 'segment active' : 'segment'}
-                    disabled={disabled}
-                    onClick={() => onSetTransferFxMode('auto_rate')}
-                  >
-                    Auto FX rate
-                  </button>
-                </div>
-                <p className="hint">Edit two values; the third one is calculated automatically.</p>
-              </div>
-            ) : null}
-
-            <button
-              type="button"
-              className="composer-more-options"
-              onClick={onToggleAdvanced}
-              aria-expanded={advancedOpen}
-              aria-controls="composer-advanced-options"
-            >
-              <span>More options</span>
-              <i
-                className={advancedOpen ? 'bi bi-chevron-up composer-more-options-caret' : 'bi bi-chevron-down composer-more-options-caret'}
-                aria-hidden
-              />
-            </button>
-
-            {advancedOpen ? (
-              <div id="composer-advanced-options" className="stack composer-advanced">
-                {mode === 'expense' || mode === 'income' ? (
-                  <>
-                    <CategoryComboboxField
-                      required={{
-                        value: categoryInput,
-                        options: categoryOptions,
-                        disabled,
-                      }}
-                      provided={{
-                        onChange: onSetCategoryInput,
-                      }}
-                    />
-
-                    <TagComboboxField
-                      required={{
-                        value: tagInput,
-                        options: tagOptions,
-                        disabled,
-                      }}
-                      provided={{
-                        onChange: onSetTagInput,
-                      }}
-                    />
-
-                    <label className="inline-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={expected}
-                        onChange={() => onSetExpected(!expected)}
-                        disabled={disabled}
-                      />
-                      Expected
-                    </label>
-                    {expectedConflictError ? <p className="field-error">{expectedConflictError}</p> : null}
-
-                    <label className="inline-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={repeatEnabled}
-                        onChange={() => {
-                          if (repeatEnabled) {
-                            onSetSchedulingKind('one_shot');
-                            onSetSchedulingMode('now');
-                            return;
-                          }
-                          onSetSchedulingMode('scheduled');
-                          onSetSchedulingKind('recurring');
+              {advancedOpen ? (
+                <div id="composer-advanced-options" className="stack composer-advanced">
+                  {mode === 'expense' || mode === 'income' ? (
+                    <>
+                      <CategoryComboboxField
+                        required={{
+                          value: categoryInput,
+                          options: categoryOptions,
+                          disabled,
                         }}
-                        disabled={disabled}
+                        provided={{
+                          onChange: onSetCategoryInput,
+                        }}
                       />
-                      {mode === 'expense' ? 'Repeat this expense' : 'Repeat this income'}
-                    </label>
-                    {expected ? <p className="hint">Expected movements stay out of ledger balance until posted.</p> : null}
 
-                    {repeatEnabled ? (
-                      <div className="stack item-editor composer-recurring-panel">
-                        <div className="composer-recurring-row">
-                          <span>Frequency</span>
-                          <select
-                            aria-label="Recurrence frequency"
-                            value={recurrenceFrequency}
-                            onChange={(event) => onSetRecurrenceFrequency(event.target.value as RecurrenceFrequency)}
-                          >
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                            <option value="yearly">Yearly</option>
-                          </select>
-                        </div>
+                      <TagComboboxField
+                        required={{
+                          value: tagInput,
+                          options: tagOptions,
+                          disabled,
+                        }}
+                        provided={{
+                          onChange: onSetTagInput,
+                        }}
+                      />
 
-                        <div className="composer-recurring-row">
-                          <span>Every</span>
-                          <input
-                            aria-label="Recurrence interval"
-                            type="number"
-                            min="1"
-                            step="1"
-                            value={recurrenceInterval}
-                            onChange={(event) => onSetRecurrenceInterval(event.target.value)}
-                            aria-invalid={Boolean(recurrenceIntervalError)}
-                            aria-describedby={recurrenceIntervalError ? 'composer-recurrence-interval-error' : undefined}
-                          />
-                        </div>
-                        {recurrenceIntervalError ? (
-                          <p id="composer-recurrence-interval-error" className="field-error">{recurrenceIntervalError}</p>
-                        ) : null}
+                      <label className="inline-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={expected}
+                          onChange={() => onSetExpected(!expected)}
+                          disabled={disabled}
+                        />
+                        Expected
+                      </label>
+                      {expectedConflictError ? <p className="field-error">{expectedConflictError}</p> : null}
 
-                        {recurrenceFrequency === 'weekly' ? (
+                      <label className="inline-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={repeatEnabled}
+                          onChange={() => {
+                            if (repeatEnabled) {
+                              onSetSchedulingKind('one_shot');
+                              onSetSchedulingMode('now');
+                              return;
+                            }
+                            onSetSchedulingMode('scheduled');
+                            onSetSchedulingKind('recurring');
+                          }}
+                          disabled={disabled}
+                        />
+                        {mode === 'expense' ? 'Repeat this expense' : 'Repeat this income'}
+                      </label>
+                      {expected ? <p className="hint">Expected movements stay out of ledger balance until posted.</p> : null}
+
+                      {repeatEnabled ? (
+                        <div className="stack item-editor composer-recurring-panel">
                           <div className="composer-recurring-row">
-                            <span>Weekly rule</span>
+                            <span>Frequency</span>
                             <select
-                              aria-label="Recurrence weekday"
-                              value={recurrenceWeeklyDay}
-                              onChange={(event) => onSetRecurrenceWeeklyDay(event.target.value)}
+                              aria-label="Recurrence frequency"
+                              value={recurrenceFrequency}
+                              onChange={(event) => onSetRecurrenceFrequency(event.target.value as RecurrenceFrequency)}
                             >
-                              <option value="1">Monday</option>
-                              <option value="2">Tuesday</option>
-                              <option value="3">Wednesday</option>
-                              <option value="4">Thursday</option>
-                              <option value="5">Friday</option>
-                              <option value="6">Saturday</option>
-                              <option value="7">Sunday</option>
+                              <option value="daily">Daily</option>
+                              <option value="weekly">Weekly</option>
+                              <option value="monthly">Monthly</option>
+                              <option value="yearly">Yearly</option>
                             </select>
                           </div>
-                        ) : null}
 
-                        {recurrenceFrequency === 'monthly' ? (
-                          <>
+                          <div className="composer-recurring-row">
+                            <span>Every</span>
+                            <input
+                              aria-label="Recurrence interval"
+                              type="number"
+                              min="1"
+                              step="1"
+                              value={recurrenceInterval}
+                              onChange={(event) => onSetRecurrenceInterval(event.target.value)}
+                              aria-invalid={Boolean(recurrenceIntervalError)}
+                              aria-describedby={recurrenceIntervalError ? 'composer-recurrence-interval-error' : undefined}
+                            />
+                          </div>
+                          {recurrenceIntervalError ? (
+                            <p id="composer-recurrence-interval-error" className="field-error">{recurrenceIntervalError}</p>
+                          ) : null}
+
+                          {recurrenceFrequency === 'weekly' ? (
                             <div className="composer-recurring-row">
-                              <span>Monthly rule</span>
+                              <span>Weekly rule</span>
                               <select
-                                aria-label="Monthly recurrence rule"
-                                value={recurrenceMonthlyPattern}
-                                onChange={(event) => onSetRecurrenceMonthlyPattern(event.target.value as RecurrenceMonthlyPattern)}
+                                aria-label="Recurrence weekday"
+                                value={recurrenceWeeklyDay}
+                                onChange={(event) => onSetRecurrenceWeeklyDay(event.target.value)}
                               >
-                                <option value="day_of_month">Day of month</option>
-                                <option value="nth_weekday">Nth weekday</option>
+                                <option value="1">Monday</option>
+                                <option value="2">Tuesday</option>
+                                <option value="3">Wednesday</option>
+                                <option value="4">Thursday</option>
+                                <option value="5">Friday</option>
+                                <option value="6">Saturday</option>
+                                <option value="7">Sunday</option>
                               </select>
                             </div>
+                          ) : null}
 
-                            {recurrenceMonthlyPattern === 'day_of_month' ? (
+                          {recurrenceFrequency === 'monthly' ? (
+                            <>
                               <div className="composer-recurring-row">
-                                <span>Day of month</span>
+                                <span>Monthly rule</span>
+                                <select
+                                  aria-label="Monthly recurrence rule"
+                                  value={recurrenceMonthlyPattern}
+                                  onChange={(event) => onSetRecurrenceMonthlyPattern(event.target.value as RecurrenceMonthlyPattern)}
+                                >
+                                  <option value="day_of_month">Day of month</option>
+                                  <option value="nth_weekday">Nth weekday</option>
+                                </select>
+                              </div>
+
+                              {recurrenceMonthlyPattern === 'day_of_month' ? (
+                                <div className="composer-recurring-row">
+                                  <span>Day of month</span>
+                                  <input
+                                    aria-label="Monthly day of month"
+                                    type="number"
+                                    min="1"
+                                    max="31"
+                                    step="1"
+                                    value={recurrenceDayOfMonth}
+                                    onChange={(event) => onSetRecurrenceDayOfMonth(event.target.value)}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="quick-row">
+                                  <div className="composer-recurring-row">
+                                    <span>Ordinal</span>
+                                    <select
+                                      aria-label="Monthly ordinal"
+                                      value={recurrenceMonthlyOrdinal}
+                                      onChange={(event) => onSetRecurrenceMonthlyOrdinal(event.target.value)}
+                                    >
+                                      <option value="1">1st</option>
+                                      <option value="2">2nd</option>
+                                      <option value="3">3rd</option>
+                                      <option value="4">4th</option>
+                                      <option value="5">Last-ish</option>
+                                    </select>
+                                  </div>
+                                  <div className="composer-recurring-row">
+                                    <span>Weekday</span>
+                                    <select
+                                      aria-label="Monthly weekday"
+                                      value={recurrenceMonthlyWeekday}
+                                      onChange={(event) => onSetRecurrenceMonthlyWeekday(event.target.value)}
+                                    >
+                                      <option value="1">Monday</option>
+                                      <option value="2">Tuesday</option>
+                                      <option value="3">Wednesday</option>
+                                      <option value="4">Thursday</option>
+                                      <option value="5">Friday</option>
+                                      <option value="6">Saturday</option>
+                                      <option value="7">Sunday</option>
+                                    </select>
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          ) : null}
+
+                          <div className="composer-recurring-row">
+                            <span>Ends</span>
+                            <select
+                              aria-label="Recurrence end"
+                              value={recurrenceEndKind}
+                              onChange={(event) => onSetRecurrenceEndKind(event.target.value as RecurrenceEndInput['kind'])}
+                            >
+                              <option value="never">Never</option>
+                              <option value="on_date">On date</option>
+                              <option value="after_occurrences">After count</option>
+                            </select>
+                          </div>
+
+                          {recurrenceEndKind === 'on_date' ? (
+                            <>
+                              <div className="composer-recurring-row">
+                                <span>End date</span>
                                 <input
-                                  aria-label="Monthly day of month"
-                                  type="number"
-                                  min="1"
-                                  max="31"
-                                  step="1"
-                                  value={recurrenceDayOfMonth}
-                                  onChange={(event) => onSetRecurrenceDayOfMonth(event.target.value)}
+                                  aria-label="Recurrence end date"
+                                  type="date"
+                                  value={recurrenceEndDate}
+                                  onChange={(event) => onSetRecurrenceEndDate(event.target.value)}
+                                  aria-invalid={Boolean(recurrenceEndDateError)}
+                                  aria-describedby={recurrenceEndDateError ? 'composer-recurrence-end-date-error' : undefined}
                                 />
                               </div>
-                            ) : (
-                              <div className="quick-row">
-                                <div className="composer-recurring-row">
-                                  <span>Ordinal</span>
-                                  <select
-                                    aria-label="Monthly ordinal"
-                                    value={recurrenceMonthlyOrdinal}
-                                    onChange={(event) => onSetRecurrenceMonthlyOrdinal(event.target.value)}
-                                  >
-                                    <option value="1">1st</option>
-                                    <option value="2">2nd</option>
-                                    <option value="3">3rd</option>
-                                    <option value="4">4th</option>
-                                    <option value="5">Last-ish</option>
-                                  </select>
-                                </div>
-                                <div className="composer-recurring-row">
-                                  <span>Weekday</span>
-                                  <select
-                                    aria-label="Monthly weekday"
-                                    value={recurrenceMonthlyWeekday}
-                                    onChange={(event) => onSetRecurrenceMonthlyWeekday(event.target.value)}
-                                  >
-                                    <option value="1">Monday</option>
-                                    <option value="2">Tuesday</option>
-                                    <option value="3">Wednesday</option>
-                                    <option value="4">Thursday</option>
-                                    <option value="5">Friday</option>
-                                    <option value="6">Saturday</option>
-                                    <option value="7">Sunday</option>
-                                  </select>
-                                </div>
+                              {recurrenceEndDateError ? (
+                                <p id="composer-recurrence-end-date-error" className="field-error">{recurrenceEndDateError}</p>
+                              ) : null}
+                            </>
+                          ) : null}
+
+                          {recurrenceEndKind === 'after_occurrences' ? (
+                            <>
+                              <div className="composer-recurring-row">
+                                <span>Count</span>
+                                <input
+                                  aria-label="Recurrence end count"
+                                  type="number"
+                                  min="1"
+                                  step="1"
+                                  value={recurrenceEndCount}
+                                  onChange={(event) => onSetRecurrenceEndCount(event.target.value)}
+                                  aria-invalid={Boolean(recurrenceEndCountError)}
+                                  aria-describedby={recurrenceEndCountError ? 'composer-recurrence-end-count-error' : undefined}
+                                />
                               </div>
-                            )}
-                          </>
-                        ) : null}
-
-                        <div className="composer-recurring-row">
-                          <span>Ends</span>
-                          <select
-                            aria-label="Recurrence end"
-                            value={recurrenceEndKind}
-                            onChange={(event) => onSetRecurrenceEndKind(event.target.value as RecurrenceEndInput['kind'])}
-                          >
-                            <option value="never">Never</option>
-                            <option value="on_date">On date</option>
-                            <option value="after_occurrences">After count</option>
-                          </select>
+                              {recurrenceEndCountError ? (
+                                <p id="composer-recurrence-end-count-error" className="field-error">{recurrenceEndCountError}</p>
+                              ) : null}
+                            </>
+                          ) : null}
                         </div>
+                      ) : null}
 
-                        {recurrenceEndKind === 'on_date' ? (
-                          <>
-                            <div className="composer-recurring-row">
-                              <span>End date</span>
-                              <input
-                                aria-label="Recurrence end date"
-                                type="date"
-                                value={recurrenceEndDate}
-                                onChange={(event) => onSetRecurrenceEndDate(event.target.value)}
-                                aria-invalid={Boolean(recurrenceEndDateError)}
-                                aria-describedby={recurrenceEndDateError ? 'composer-recurrence-end-date-error' : undefined}
-                              />
+                      <div className="stack composer-expense-split-block">
+                      <label className="inline-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={expenseDetailed}
+                          onChange={onToggleExpenseDetailed}
+                          disabled={disabled}
+                        />
+                        Split into items
+                      </label>
+                        {expenseDetailed ? (
+                          <div className="stack item-editor">
+                            <div className="inline-header">
+                              <strong>Items</strong>
+                              <span className={expenseRemaining === '0.00' ? 'hint success' : 'hint'}>
+                                Remaining: {expenseRemaining} {currencyCode ?? ''}
+                              </span>
                             </div>
-                            {recurrenceEndDateError ? (
-                              <p id="composer-recurrence-end-date-error" className="field-error">{recurrenceEndDateError}</p>
-                            ) : null}
-                          </>
-                        ) : null}
-
-                        {recurrenceEndKind === 'after_occurrences' ? (
-                          <>
-                            <div className="composer-recurring-row">
-                              <span>Count</span>
+                            <div className="quick-row">
                               <input
-                                aria-label="Recurrence end count"
+                                aria-label="Item name"
+                                value={expenseItemName}
+                                onChange={(event) => onSetExpenseItemName(event.target.value)}
+                                placeholder="Item name"
+                                aria-invalid={Boolean(expenseItemNameError)}
+                                aria-describedby={expenseItemNameError ? 'composer-item-name-error' : undefined}
+                              />
+                              <input
+                                aria-label="Item amount"
                                 type="number"
-                                min="1"
-                                step="1"
-                                value={recurrenceEndCount}
-                                onChange={(event) => onSetRecurrenceEndCount(event.target.value)}
-                                aria-invalid={Boolean(recurrenceEndCountError)}
-                                aria-describedby={recurrenceEndCountError ? 'composer-recurrence-end-count-error' : undefined}
+                                min="0.01"
+                                step="0.01"
+                                value={expenseItemAmount}
+                                onChange={(event) => onSetExpenseItemAmount(event.target.value)}
+                                placeholder="Amount"
+                                inputMode="decimal"
+                                aria-invalid={Boolean(expenseItemAmountError)}
+                                aria-describedby={expenseItemAmountError ? 'composer-item-amount-error' : undefined}
                               />
                             </div>
-                            {recurrenceEndCountError ? (
-                              <p id="composer-recurrence-end-count-error" className="field-error">{recurrenceEndCountError}</p>
-                            ) : null}
-                          </>
+                            {expenseItemNameError ? <p id="composer-item-name-error" className="field-error">{expenseItemNameError}</p> : null}
+                            {expenseItemAmountError ? <p id="composer-item-amount-error" className="field-error">{expenseItemAmountError}</p> : null}
+                            <div className="quick-row">
+                              <button type="button" className="text-button" onClick={onAddExpenseItem}>
+                                Add item
+                              </button>
+                              <button type="button" className="text-button" onClick={onAssignRemaining}>
+                                Assign remaining
+                              </button>
+                            </div>
+                            <ul className="expense-list" aria-label="Expense items">
+                              {expenseItems.map((item) => (
+                                <li key={item.id} className="expense-item">
+                                  <div className="inline-header">
+                                    <strong>{item.name}</strong>
+                                    <span>{item.amount}</span>
+                                  </div>
+                                  <div className="quick-row">
+                                    <button type="button" className="text-button" onClick={() => onEditExpenseItem(item.id)}>
+                                      Edit
+                                    </button>
+                                    <button type="button" className="text-button" onClick={() => onRemoveExpenseItem(item.id)}>
+                                      Remove
+                                    </button>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                            {expenseSplitError ? (
+                              <p className="field-error">{expenseSplitError}</p>
+                            ) : (
+                              <p className="hint">Publish becomes available when Remaining is 0.00.</p>
+                            )}
+                          </div>
                         ) : null}
                       </div>
-                    ) : null}
-
-                    <div className="stack composer-expense-split-block">
-                    <label className="inline-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={expenseDetailed}
-                        onChange={onToggleExpenseDetailed}
-                        disabled={disabled}
-                      />
-                      Split into items
-                    </label>
-                      {expenseDetailed ? (
-                        <div className="stack item-editor">
-                          <div className="inline-header">
-                            <strong>Items</strong>
-                            <span className={expenseRemaining === '0.00' ? 'hint success' : 'hint'}>
-                              Remaining: {expenseRemaining} {currencyCode ?? ''}
-                            </span>
-                          </div>
-                          <div className="quick-row">
-                            <input
-                              aria-label="Item name"
-                              value={expenseItemName}
-                              onChange={(event) => onSetExpenseItemName(event.target.value)}
-                              placeholder="Item name"
-                              aria-invalid={Boolean(expenseItemNameError)}
-                              aria-describedby={expenseItemNameError ? 'composer-item-name-error' : undefined}
-                            />
-                            <input
-                              aria-label="Item amount"
-                              type="number"
-                              min="0.01"
-                              step="0.01"
-                              value={expenseItemAmount}
-                              onChange={(event) => onSetExpenseItemAmount(event.target.value)}
-                              placeholder="Amount"
-                              inputMode="decimal"
-                              aria-invalid={Boolean(expenseItemAmountError)}
-                              aria-describedby={expenseItemAmountError ? 'composer-item-amount-error' : undefined}
-                            />
-                          </div>
-                          {expenseItemNameError ? <p id="composer-item-name-error" className="field-error">{expenseItemNameError}</p> : null}
-                          {expenseItemAmountError ? <p id="composer-item-amount-error" className="field-error">{expenseItemAmountError}</p> : null}
-                          <div className="quick-row">
-                            <button type="button" className="text-button" onClick={onAddExpenseItem}>
-                              Add item
-                            </button>
-                            <button type="button" className="text-button" onClick={onAssignRemaining}>
-                              Assign remaining
-                            </button>
-                          </div>
-                          <ul className="expense-list" aria-label="Expense items">
-                            {expenseItems.map((item) => (
-                              <li key={item.id} className="expense-item">
-                                <div className="inline-header">
-                                  <strong>{item.name}</strong>
-                                  <span>{item.amount}</span>
-                                </div>
-                                <div className="quick-row">
-                                  <button type="button" className="text-button" onClick={() => onEditExpenseItem(item.id)}>
-                                    Edit
-                                  </button>
-                                  <button type="button" className="text-button" onClick={() => onRemoveExpenseItem(item.id)}>
-                                    Remove
-                                  </button>
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                          {expenseSplitError ? (
-                            <p className="field-error">{expenseSplitError}</p>
-                          ) : (
-                            <p className="hint">Publish becomes available when Remaining is 0.00.</p>
-                          )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="stack item-editor">
+                        <span className="hint">When should this movement be applied?</span>
+                        <div className="segmented segmented-2" role="radiogroup" aria-label="Movement timing">
+                          <button
+                            type="button"
+                            role="radio"
+                            aria-checked={schedulingMode === 'now'}
+                            className={schedulingMode === 'now' ? 'segment active' : 'segment'}
+                            disabled={disabled}
+                            onClick={() => onSetSchedulingMode('now')}
+                          >
+                            Now
+                          </button>
+                          <button
+                            type="button"
+                            role="radio"
+                            aria-checked={schedulingMode === 'scheduled'}
+                            className={schedulingMode === 'scheduled' ? 'segment active' : 'segment'}
+                            disabled={disabled}
+                            onClick={() => onSetSchedulingMode('scheduled')}
+                          >
+                            Schedule
+                          </button>
                         </div>
-                      ) : null}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="stack item-editor">
-                      <span className="hint">When should this movement be applied?</span>
-                      <div className="segmented segmented-2" role="radiogroup" aria-label="Movement timing">
-                        <button
-                          type="button"
-                          role="radio"
-                          aria-checked={schedulingMode === 'now'}
-                          className={schedulingMode === 'now' ? 'segment active' : 'segment'}
-                          disabled={disabled}
-                          onClick={() => onSetSchedulingMode('now')}
-                        >
-                          Now
-                        </button>
-                        <button
-                          type="button"
-                          role="radio"
-                          aria-checked={schedulingMode === 'scheduled'}
-                          className={schedulingMode === 'scheduled' ? 'segment active' : 'segment'}
-                          disabled={disabled}
-                          onClick={() => onSetSchedulingMode('scheduled')}
-                        >
-                          Schedule
-                        </button>
+
+                        {scheduledMovementVisible ? (
+                          <div className="segmented segmented-2" role="radiogroup" aria-label="Schedule type">
+                            <button
+                              type="button"
+                              role="radio"
+                              aria-checked={schedulingKind === 'one_shot'}
+                              className={schedulingKind === 'one_shot' ? 'segment active' : 'segment'}
+                              disabled={disabled}
+                              onClick={() => onSetSchedulingKind('one_shot')}
+                            >
+                              One-time
+                            </button>
+                            <button
+                              type="button"
+                              role="radio"
+                              aria-checked={schedulingKind === 'recurring'}
+                              className={schedulingKind === 'recurring' ? 'segment active' : 'segment'}
+                              disabled={disabled}
+                              onClick={() => onSetSchedulingKind('recurring')}
+                            >
+                              Recurring
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
 
-                      {scheduledMovementVisible ? (
-                        <div className="segmented segmented-2" role="radiogroup" aria-label="Schedule type">
-                          <button
-                            type="button"
-                            role="radio"
-                            aria-checked={schedulingKind === 'one_shot'}
-                            className={schedulingKind === 'one_shot' ? 'segment active' : 'segment'}
-                            disabled={disabled}
-                            onClick={() => onSetSchedulingKind('one_shot')}
-                          >
-                            One-time
-                          </button>
-                          <button
-                            type="button"
-                            role="radio"
-                            aria-checked={schedulingKind === 'recurring'}
-                            className={schedulingKind === 'recurring' ? 'segment active' : 'segment'}
-                            disabled={disabled}
-                            onClick={() => onSetSchedulingKind('recurring')}
-                          >
-                            Recurring
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
+                      <TagComboboxField
+                        required={{
+                          value: tagInput,
+                          options: tagOptions,
+                          disabled,
+                        }}
+                        provided={{
+                          onChange: onSetTagInput,
+                        }}
+                      />
+                    </>
+                  )}
+                </div>
+              ) : null}
+            </div>
 
-                    <TagComboboxField
-                      required={{
-                        value: tagInput,
-                        options: tagOptions,
-                        disabled,
-                      }}
-                      provided={{
-                        onChange: onSetTagInput,
-                      }}
-                    />
-                  </>
-                )}
-              </div>
-            ) : null}
-
-            <button type="submit" className="primary-cta" disabled={disabled || !splitReady}>
-              {postExpectedMovement ? 'Post movement' : expectedAvailable && expected ? 'Save expected' : 'Save'}
-            </button>
+            <div className="composer-actions">
+              <button type="submit" className="primary-cta" disabled={disabled || !splitReady}>
+                {postExpectedMovement ? 'Post movement' : expectedAvailable && expected ? 'Save expected' : 'Save'}
+              </button>
+            </div>
           </form>
         )}
       </section>
