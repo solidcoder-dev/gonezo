@@ -2397,6 +2397,49 @@ describe('App Accounts UX', () => {
     });
   });
 
+  it('hides scheduled rows when the month already has the matching expected movement', async () => {
+    const core = makeCore();
+    const dueAt = '2026-05-12T10:00:00.000Z';
+
+    await core.schedulingCreateMovement({
+      type: 'expense',
+      sourceAccountId: 'acc-1',
+      amount: '33.00',
+      currency: 'USD',
+      description: 'Shared bill',
+      categoryId: 'cat-food',
+      rule: { frequency: 'daily', interval: 1 },
+      recurrenceEnd: { kind: 'after_occurrences', afterOccurrences: 1 },
+      startAt: dueAt,
+      zoneId: 'UTC',
+      scheduleKind: 'one_shot',
+    });
+    await core.expectedCreateMovement({
+      accountId: 'acc-1',
+      type: 'expense',
+      amount: '33.00',
+      currency: 'USD',
+      expectedAt: dueAt,
+      description: 'Shared bill',
+      categoryId: 'cat-food',
+      splitItems: [],
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    await expandExpectedMovements();
+    expect(await screen.findByText('Shared bill')).toBeInTheDocument();
+
+    const scheduledSection = screen.getByLabelText('Scheduled movements');
+    expect(within(scheduledSection).getByText('0')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Expand scheduled movements \(1\)/i })).not.toBeInTheDocument();
+    expect(screen.getAllByText('Shared bill')).toHaveLength(1);
+  });
+
   it('opens the composer with expected movement values for editing', async () => {
     const core = makeCore();
     await core.expectedCreateMovement({
