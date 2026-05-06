@@ -1642,6 +1642,11 @@ export class CoreAdapterWeb implements CorePort {
       categoryId: input.categoryId?.trim() || undefined,
       tagIds: [...new Set((input.tagIds ?? []).map((value) => value.trim()).filter((value) => value.length > 0))],
       tagNames: [...new Set((input.tagNames ?? []).map((value) => value.trim()).filter((value) => value.length > 0))],
+      splitItems: (input.splitItems ?? []).map((item) => ({
+        id: item.id,
+        name: item.name,
+        amount: Number(item.amount).toFixed(2),
+      })),
       scheduleKind: 'recurring',
       origin: 'recurring',
       status: nextDueAt ? 'active' : 'completed',
@@ -2093,6 +2098,11 @@ export class CoreAdapterWeb implements CorePort {
       merchant: input.merchant,
       categoryId: input.categoryId,
       originOccurrenceId: undefined,
+      splitItems: (input.splitItems ?? []).map((item) => ({
+        id: item.id,
+        name: item.name,
+        amount: Number(item.amount).toFixed(2),
+      })),
       status: 'pending',
       createdAt: now,
       updatedAt: now,

@@ -19,7 +19,14 @@ data class RecurringMovementDueIntegrationEvent(
   val description: String?,
   val merchant: String?,
   val categoryId: String? = null,
+  val splitItems: List<SplitItem> = emptyList(),
 ) {
+  data class SplitItem(
+    val id: String,
+    val name: String,
+    val amount: String,
+  )
+
   fun toJson(): String = JSONObject()
     .put("eventId", eventId.toString())
     .put("recurringMovementId", recurringMovementId)
@@ -36,6 +43,12 @@ data class RecurringMovementDueIntegrationEvent(
     .put("description", description)
     .put("merchant", merchant)
     .put("categoryId", categoryId)
+    .put("splitItems", splitItems.map { split ->
+      JSONObject()
+        .put("id", split.id)
+        .put("name", split.name)
+        .put("amount", split.amount)
+    })
     .toString()
 
   companion object {
@@ -59,6 +72,20 @@ data class RecurringMovementDueIntegrationEvent(
         description = parsed.optString("description", "").ifBlank { null },
         merchant = parsed.optString("merchant", "").ifBlank { null },
         categoryId = parsed.optString("categoryId", "").ifBlank { null },
+        splitItems = parsed.optJSONArray("splitItems")?.let { items ->
+          buildList {
+            for (index in 0 until items.length()) {
+              val item = items.getJSONObject(index)
+              add(
+                SplitItem(
+                  id = item.getString("id"),
+                  name = item.getString("name"),
+                  amount = item.getString("amount"),
+                ),
+              )
+            }
+          }
+        } ?: emptyList(),
       )
     }
   }

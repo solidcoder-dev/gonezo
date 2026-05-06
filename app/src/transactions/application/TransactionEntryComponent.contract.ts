@@ -8,6 +8,7 @@ export type TransactionEntryPrefillRequest = {
   date: string;
   note?: string;
   categoryId?: string;
+  splitItems?: Array<{ id: string; name: string; amount: string }>;
 };
 
 export type TransactionEntryComponentRequired = {

@@ -47,6 +47,27 @@ class JdbcExpectedMovementRepository(
     """.trimIndent()
 
     jdbcTemplate.update(sql, params(movement))
+    jdbcTemplate.update(
+      "delete from expected_movement_items where expected_movement_id = :expected_movement_id",
+      MapSqlParameterSource("expected_movement_id", movement.id.toString()),
+    )
+    movement.splitItems.forEachIndexed { index, item ->
+      jdbcTemplate.update(
+        """
+          insert into expected_movement_items (
+            id, expected_movement_id, item_order, name, amount
+          ) values (
+            :id, :expected_movement_id, :item_order, :name, :amount
+          )
+        """.trimIndent(),
+        MapSqlParameterSource()
+          .addValue("id", item.id)
+          .addValue("expected_movement_id", movement.id.toString())
+          .addValue("item_order", index)
+          .addValue("name", item.name)
+          .addValue("amount", item.amount.toPlainString()),
+      )
+    }
   }
 
   override fun findById(id: ExpectedMovementId): ExpectedMovement? {
@@ -55,7 +76,9 @@ class JdbcExpectedMovementRepository(
       from expected_movements
       where id = :id
     """.trimIndent()
-    return jdbcTemplate.query(sql, MapSqlParameterSource("id", id.toString()), rowMapper()).firstOrNull()
+    return jdbcTemplate.query(sql, MapSqlParameterSource("id", id.toString()), baseRowMapper())
+      .firstOrNull()
+      ?.toMovement()
   }
 
   override fun findByOriginOccurrenceId(originOccurrenceId: String): ExpectedMovement? {
@@ -68,8 +91,9 @@ class JdbcExpectedMovementRepository(
     return jdbcTemplate.query(
       sql,
       MapSqlParameterSource("origin_occurrence_id", originOccurrenceId),
-      rowMapper(),
+      baseRowMapper(),
     ).firstOrNull()
+      ?.toMovement()
   }
 
   override fun listByAccount(accountId: String, includeClosed: Boolean): List<ExpectedMovement> {
@@ -91,11 +115,12 @@ class JdbcExpectedMovementRepository(
       .addValue("account_id", accountId)
       .addValue("pending_status", ExpectedMovementStatus.PENDING.value)
 
-    return jdbcTemplate.query(sql, params, rowMapper())
+    return jdbcTemplate.query(sql, params, baseRowMapper())
+      .map { it.toMovement() }
   }
 
-  private fun rowMapper(): RowMapper<ExpectedMovement> = RowMapper { rs: ResultSet, _ ->
-    ExpectedMovement(
+  private fun baseRowMapper(): RowMapper<ExpectedMovementRow> = RowMapper { rs: ResultSet, _ ->
+    ExpectedMovementRow(
       id = ExpectedMovementId.from(rs.getString("id")),
       accountId = rs.getString("account_id"),
       type = ExpectedMovementType.from(rs.getString("movement_type")),
@@ -133,4 +158,63 @@ class JdbcExpectedMovementRepository(
       .addValue("updated_at", movement.updatedAt.toString())
       .addValue("resolved_at", movement.resolvedAt?.toString())
       .addValue("dismissed_at", movement.dismissedAt?.toString())
+
+  private fun ExpectedMovementRow.toMovement(): ExpectedMovement = ExpectedMovement(
+    id = id,
+    accountId = accountId,
+    type = type,
+    amount = amount,
+    currency = currency,
+    expectedAt = expectedAt,
+    description = description,
+    merchant = merchant,
+    categoryId = categoryId,
+    originOccurrenceId = originOccurrenceId,
+    splitItems = loadSplitItems(id.toString()),
+    status = status,
+    resolvedTransactionId = resolvedTransactionId,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    resolvedAt = resolvedAt,
+    dismissedAt = dismissedAt,
+  )
+
+  private fun loadSplitItems(expectedMovementId: String): List<ExpectedMovement.SplitItem> {
+    val sql = """
+      select id, name, amount
+      from expected_movement_items
+      where expected_movement_id = :expected_movement_id
+      order by item_order asc, id asc
+    """.trimIndent()
+
+    return jdbcTemplate.query(
+      sql,
+      MapSqlParameterSource("expected_movement_id", expectedMovementId),
+    ) { rs, _ ->
+      ExpectedMovement.SplitItem(
+        id = rs.getString("id"),
+        name = rs.getString("name"),
+        amount = BigDecimal(rs.getString("amount")),
+      )
+    }
+  }
+
+  private data class ExpectedMovementRow(
+    val id: ExpectedMovementId,
+    val accountId: String,
+    val type: ExpectedMovementType,
+    val amount: BigDecimal,
+    val currency: String,
+    val expectedAt: Instant,
+    val description: String?,
+    val merchant: String?,
+    val categoryId: String?,
+    val originOccurrenceId: String?,
+    val status: ExpectedMovementStatus,
+    val resolvedTransactionId: String?,
+    val createdAt: Instant,
+    val updatedAt: Instant,
+    val resolvedAt: Instant?,
+    val dismissedAt: Instant?,
+  )
 }

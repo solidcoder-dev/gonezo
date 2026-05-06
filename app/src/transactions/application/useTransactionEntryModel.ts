@@ -128,6 +128,14 @@ function toErrorMessage(error: unknown): string {
   return 'Unknown error';
 }
 
+function cloneExpenseItems(items: Array<{ id: string; name: string; amount: string }>): ExpenseItemDraft[] {
+  return items.map((item) => ({
+    id: crypto.randomUUID(),
+    name: item.name,
+    amount: item.amount,
+  }));
+}
+
 export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const { core, accountId, enabled, prefillRequest, onRecorded, onError } = input;
 
@@ -159,6 +167,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [expenseItemName, setExpenseItemName] = useState('');
   const [expenseItemAmount, setExpenseItemAmount] = useState('');
   const [expenseItems, setExpenseItems] = useState<ExpenseItemDraft[]>([]);
+  const [editingExpenseItemId, setEditingExpenseItemId] = useState('');
   const [schedulingMode, setSchedulingMode] = useState<'now' | 'scheduled'>('now');
   const [expectedMovement, setExpectedMovement] = useState(false);
   const [sourceExpectedMovementId, setSourceExpectedMovementId] = useState('');
@@ -252,6 +261,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setExpenseItemName('');
     setExpenseItemAmount('');
     setExpenseItems([]);
+    setEditingExpenseItemId('');
     setSchedulingMode('now');
     setExpectedMovement(false);
     setSourceExpectedMovementId('');
@@ -353,7 +363,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setTransactionNote(prefillRequest.note ?? '');
     setTransactionCategoryInput(prefillRequest.categoryId ?? '');
     setSchedulingMode('now');
-    setExpectedMovement(false);
+    setExpectedMovement((prefillRequest.splitItems?.length ?? 0) > 0);
+    setExpenseDetailed((prefillRequest.splitItems?.length ?? 0) > 0);
+    setExpenseItems(cloneExpenseItems(prefillRequest.splitItems ?? []));
+    setEditingExpenseItemId('');
     setSourceExpectedMovementId(prefillRequest.sourceExpectedMovementId ?? '');
 
     void (async () => {
@@ -591,9 +604,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       date: undefined,
       recurrenceEndDate: undefined,
     }));
-    if ((composerMode === 'expense' || composerMode === 'income') && isFutureIsoDateInput(value) && expenseDetailed) {
-      setExpenseDetailed(false);
-    }
     if (!recurrenceEnabled) {
       return;
     }
@@ -614,9 +624,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       recurrenceEndCount: undefined,
       expenseSplit: undefined,
     }));
-    if (value === 'scheduled' && expenseDetailed && (composerMode === 'expense' || composerMode === 'income')) {
-      setExpenseDetailed(false);
-    }
   }
 
   function setSchedulingKindValue(value: 'one_shot' | 'recurring') {
@@ -673,9 +680,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
   function setExpenseDetailedValue(value: boolean) {
     setExpenseDetailed(value);
-    if (value) {
-      setExpectedMovement(false);
-    }
     if (!value) {
       setFieldErrors((previous) => ({
         ...previous,
@@ -694,9 +698,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       date: undefined,
       expenseSplit: undefined,
     }));
-    if (value) {
-      setExpenseDetailed(false);
-    }
   }
 
   function setExpenseItemNameValue(value: string) {
@@ -707,6 +708,23 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   function setExpenseItemAmountValue(value: string) {
     setExpenseItemAmount(value);
     setFieldErrors((previous) => ({ ...previous, expenseItemAmount: undefined }));
+  }
+
+  function syncTransactionAmountWithSplitTotal(items: ExpenseItemDraft[], mode: 'raise' | 'set') {
+    const total = items.reduce((acc, item) => acc + parseAmount(item.amount), 0);
+    const normalizedTotal = formatAmount(total);
+    if (mode === 'set') {
+      setTransactionAmount(normalizedTotal);
+      return;
+    }
+
+    setTransactionAmount((previous) => {
+      const current = parseAmount(previous);
+      if (!previous.trim() || current < total) {
+        return normalizedTotal;
+      }
+      return previous;
+    });
   }
 
   function addExpenseItem() {
@@ -732,20 +750,51 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       expenseItemAmount: undefined,
       expenseSplit: undefined,
     }));
-    setExpenseItems((previous) => [
-      ...previous,
-      {
-        id: crypto.randomUUID(),
+    setExpenseItems((previous) => {
+      const nextItem = {
+        id: editingExpenseItemId || crypto.randomUUID(),
         name,
         amount: amount.toFixed(2),
-      },
-    ]);
+      };
+      const next = editingExpenseItemId
+        ? previous.map((item) => (item.id === editingExpenseItemId ? nextItem : item))
+        : [...previous, nextItem];
+      syncTransactionAmountWithSplitTotal(next, 'raise');
+      return next;
+    });
     setExpenseItemName('');
     setExpenseItemAmount('');
+    setEditingExpenseItemId('');
+  }
+
+  function editExpenseItem(itemId: string) {
+    const item = expenseItems.find((candidate) => candidate.id === itemId);
+    if (!item) {
+      return;
+    }
+
+    setEditingExpenseItemId(item.id);
+    setExpenseItemName(item.name);
+    setExpenseItemAmount(item.amount);
+    setFieldErrors((previous) => ({
+      ...previous,
+      expenseItemName: undefined,
+      expenseItemAmount: undefined,
+      expenseSplit: undefined,
+    }));
   }
 
   function removeExpenseItem(itemId: string) {
-    setExpenseItems((previous) => previous.filter((item) => item.id !== itemId));
+    setExpenseItems((previous) => {
+      const next = previous.filter((item) => item.id !== itemId);
+      syncTransactionAmountWithSplitTotal(next, 'set');
+      return next;
+    });
+    if (editingExpenseItemId === itemId) {
+      setEditingExpenseItemId('');
+      setExpenseItemName('');
+      setExpenseItemAmount('');
+    }
   }
 
   function assignRemaining() {
@@ -763,6 +812,14 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         amount: remaining.toFixed(2),
       },
     ]);
+    setTransactionAmount((previous) => {
+      const current = parseAmount(previous);
+      const nextTotal = parseAmount(transactionAmount) - remaining + remaining;
+      if (!previous.trim() || current < nextTotal) {
+        return formatAmount(nextTotal);
+      }
+      return previous;
+    });
     setExpenseItemName('');
     setExpenseItemAmount('');
     setFieldErrors((previous) => ({ ...previous, expenseSplit: undefined }));
@@ -964,20 +1021,12 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       }
     }
 
-    if (movementExpected && expenseDetailed) {
-      nextErrors.expectedConflict = 'Expected movements cannot use split items.';
-    }
-
     if ((composerMode === 'expense' || composerMode === 'income') && expenseDetailed) {
-      if (movementScheduled) {
-        nextErrors.expenseSplit = 'Split items are unavailable for scheduled movements.';
-      } else {
-        if (expenseItems.length === 0) {
-          nextErrors.expenseSplit = 'Add at least one item before publishing.';
-        }
-        if (parseAmount(expenseRemaining) !== 0) {
-          nextErrors.expenseSplit = 'Items must match the total amount before publishing.';
-        }
+      if (expenseItems.length === 0) {
+        nextErrors.expenseSplit = 'Add at least one item before publishing.';
+      }
+      if (parseAmount(expenseRemaining) !== 0) {
+        nextErrors.expenseSplit = 'Items must match the total amount before publishing.';
       }
     }
 
@@ -995,9 +1044,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           nextErrors.recurrenceEndCount = 'Recurrence count must be a positive integer.';
         }
       }
-      if ((composerMode === 'expense' || composerMode === 'income') && expenseDetailed) {
-        nextErrors.expenseSplit = 'Split items are unavailable for scheduled movements.';
-      }
     }
 
     if (
@@ -1008,7 +1054,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       || nextErrors.recurrenceInterval
       || nextErrors.recurrenceEndDate
       || nextErrors.recurrenceEndCount
-      || nextErrors.expectedConflict
       || nextErrors.expenseItemName
       || nextErrors.expenseItemAmount
       || nextErrors.expenseSplit
@@ -1036,6 +1081,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           description: transactionNote.trim() || undefined,
           merchant: transactionNote.trim() || undefined,
           categoryId,
+          splitItems: expenseItems,
         });
         recorded = true;
       }
@@ -1074,6 +1120,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           description: transactionNote.trim() || undefined,
           merchant: transactionNote.trim() || undefined,
           categoryId,
+          splitItems: expenseItems,
           tagIds,
           tagNames,
           rule: scheduleRule,
@@ -1207,6 +1254,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
             description: transactionNote.trim() || undefined,
             merchant: transactionNote.trim() || undefined,
             categoryId,
+            splitItems: expenseItems,
             tagIds,
             tagNames,
             rule: scheduleRule,
@@ -1459,6 +1507,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       setSplitItemName: setExpenseItemNameValue,
       setSplitItemAmount: setExpenseItemAmountValue,
       addSplitItem: addExpenseItem,
+      editSplitItem: editExpenseItem,
       removeSplitItem: removeExpenseItem,
       assignSplitRemaining: assignRemaining,
       setSchedulingMode: setSchedulingModeValue,

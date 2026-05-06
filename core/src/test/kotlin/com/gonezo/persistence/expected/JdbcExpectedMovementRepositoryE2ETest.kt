@@ -10,6 +10,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import java.time.Instant
+import java.util.UUID
 
 class JdbcExpectedMovementRepositoryE2ETest : SqliteE2ETest() {
   @Test
@@ -102,6 +103,10 @@ class JdbcExpectedMovementRepositoryE2ETest : SqliteE2ETest() {
     description = "Client payment",
     merchant = merchant,
     categoryId = "cat-income",
+    splitItems = listOf(
+      ExpectedMovement.SplitItem(id = "${UUID.randomUUID()}-invoice-a", name = "Invoice A", amount = BigDecimal("70.00")),
+      ExpectedMovement.SplitItem(id = "${UUID.randomUUID()}-invoice-b", name = "Invoice B", amount = BigDecimal("50.00")),
+    ),
     createdAt = Instant.parse("2026-05-01T09:00:00Z"),
     originOccurrenceId = originOccurrenceId,
   )

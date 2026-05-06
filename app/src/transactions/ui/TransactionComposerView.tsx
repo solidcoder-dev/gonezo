@@ -85,6 +85,7 @@ export type TransactionComposerViewProvided = {
   onSetExpenseItemName: (value: string) => void;
   onSetExpenseItemAmount: (value: string) => void;
   onAddExpenseItem: () => void;
+  onEditExpenseItem: (itemId: string) => void;
   onRemoveExpenseItem: (itemId: string) => void;
   onAssignRemaining: () => void;
   onSetSchedulingMode: (value: 'now' | 'scheduled') => void;
@@ -203,6 +204,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     onSetExpenseItemName,
     onSetExpenseItemAmount,
     onAddExpenseItem,
+    onEditExpenseItem,
     onRemoveExpenseItem,
     onAssignRemaining,
     onSetSchedulingMode,
@@ -248,9 +250,6 @@ export function TransactionComposerView({ required, provided }: Props) {
   const repeatEnabled = (mode === 'expense' || mode === 'income')
     && schedulingMode === 'scheduled'
     && schedulingKind === 'recurring';
-  const futureDateScheduled = (mode === 'expense' || mode === 'income')
-    && /^\d{4}-\d{2}-\d{2}$/.test(date)
-    && date > datePlaceholder;
   const scheduledMovementVisible = mode !== 'expense' && schedulingMode === 'scheduled';
   const recurringMovementVisible = scheduledMovementVisible && schedulingKind === 'recurring';
   const dateInputLabel = expected
@@ -747,19 +746,15 @@ export function TransactionComposerView({ required, provided }: Props) {
                     ) : null}
 
                     <div className="stack composer-expense-split-block">
-                      <label className="inline-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={expenseDetailed}
-                          onChange={onToggleExpenseDetailed}
-                          disabled={repeatEnabled || futureDateScheduled}
-                        />
-                        Split into items
-                      </label>
-                      {repeatEnabled || futureDateScheduled ? (
-                        <p className="hint">Split items are unavailable for scheduled movements.</p>
-                      ) : null}
-
+                    <label className="inline-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={expenseDetailed}
+                        onChange={onToggleExpenseDetailed}
+                        disabled={disabled}
+                      />
+                      Split into items
+                    </label>
                       {expenseDetailed ? (
                         <div className="stack item-editor">
                           <div className="inline-header">
@@ -807,9 +802,14 @@ export function TransactionComposerView({ required, provided }: Props) {
                                   <strong>{item.name}</strong>
                                   <span>{item.amount}</span>
                                 </div>
-                                <button type="button" className="text-button" onClick={() => onRemoveExpenseItem(item.id)}>
-                                  Remove
-                                </button>
+                                <div className="quick-row">
+                                  <button type="button" className="text-button" onClick={() => onEditExpenseItem(item.id)}>
+                                    Edit
+                                  </button>
+                                  <button type="button" className="text-button" onClick={() => onRemoveExpenseItem(item.id)}>
+                                    Remove
+                                  </button>
+                                </div>
                               </li>
                             ))}
                           </ul>

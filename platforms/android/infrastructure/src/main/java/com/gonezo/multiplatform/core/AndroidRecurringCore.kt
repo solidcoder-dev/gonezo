@@ -20,6 +20,7 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeParseException
 import java.util.UUID
+import org.json.JSONArray
 
 class AndroidRecurringCore internal constructor(
   private val recurringMovementRepository: RecurringMovementRepository,
@@ -62,6 +63,7 @@ class AndroidRecurringCore internal constructor(
       description = input.description,
       merchant = input.merchant,
       categoryId = input.categoryId,
+      splitItems = parseSplitItems(input.splitItemsJson),
       rule = toDomainRule(input.rule ?: RecurrenceRuleInput(frequency = "daily", interval = 1)),
       recurrenceEnd = toDomainEnd(input.recurrenceEnd ?: RecurrenceEndInput(kind = "never")),
       startAt = parseInstantOrDate(requireText(input.startAt, "startAt is required"), "startAt"),
@@ -119,6 +121,13 @@ class AndroidRecurringCore internal constructor(
       description = movement.description,
       merchant = movement.merchant,
       categoryId = movement.categoryId,
+      splitItems = movement.splitItems.map {
+        SplitItem(
+          id = it.id,
+          name = it.name,
+          amount = it.amount.toPlainString(),
+        )
+      },
       status = movement.status.value,
       startAt = movement.startAt.toString(),
       nextDueAt = movement.nextDueAt?.toString(),
@@ -204,6 +213,26 @@ class AndroidRecurringCore internal constructor(
     return trimmed
   }
 
+  private fun parseSplitItems(splitItemsJson: String?): List<RecurringMovement.SplitItem> {
+    val raw = splitItemsJson?.trim().orEmpty()
+    if (raw.isEmpty()) {
+      return emptyList()
+    }
+    val parsed = JSONArray(raw)
+    val items = mutableListOf<RecurringMovement.SplitItem>()
+    for (index in 0 until parsed.length()) {
+      val item = parsed.getJSONObject(index)
+      items.add(
+        RecurringMovement.SplitItem(
+          id = requireText(item.getString("id"), "split item id is required"),
+          name = requireText(item.getString("name"), "split item name is required"),
+          amount = parsePositiveDecimal(item.getString("amount"), "split item amount must be greater than 0"),
+        ),
+      )
+    }
+    return items
+  }
+
   data class CreateRecurringMovementInput(
     val type: String?,
     val sourceAccountId: String?,
@@ -216,6 +245,7 @@ class AndroidRecurringCore internal constructor(
     val description: String?,
     val merchant: String?,
     val categoryId: String? = null,
+    val splitItemsJson: String? = null,
     val rule: RecurrenceRuleInput?,
     val recurrenceEnd: RecurrenceEndInput?,
     val startAt: String?,
@@ -251,6 +281,7 @@ class AndroidRecurringCore internal constructor(
     val description: String?,
     val merchant: String?,
     val categoryId: String?,
+    val splitItems: List<SplitItem>,
     val status: String,
     val startAt: String,
     val nextDueAt: String?,
@@ -258,6 +289,12 @@ class AndroidRecurringCore internal constructor(
     val generatedOccurrences: Int,
     val rule: RecurrenceRuleInput,
     val recurrenceEnd: RecurrenceEndInput,
+  )
+
+  data class SplitItem(
+    val id: String,
+    val name: String,
+    val amount: String,
   )
 
   companion object {

@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 15;
+  private static final int DB_VERSION = 16;
 
   CoreDatabase(Context context) {
     super(context, DB_NAME, null, DB_VERSION);
@@ -54,6 +54,11 @@ final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion >= 12 && oldVersion < 15) {
       addRecurringMovementCategoryColumn(db);
     }
+
+    if (oldVersion < 16) {
+      createExpectedMovementItemTables(db);
+      createRecurringMovementItemTables(db);
+    }
   }
 
   @Override
@@ -69,6 +74,8 @@ final class CoreDatabase extends SQLiteOpenHelper {
     createMobillsImportTables(db);
     createRecurrenceTables(db);
     createExpectedMovementTables(db);
+    createRecurringMovementItemTables(db);
+    createExpectedMovementItemTables(db);
   }
 
   private static void createLedgerTables(SQLiteDatabase db) {
@@ -310,7 +317,7 @@ final class CoreDatabase extends SQLiteOpenHelper {
         "updated_at text not null," +
         "resolved_at text," +
         "dismissed_at text," +
-        "foreign key(account_id) references ledger_accounts(id)" +
+      "foreign key(account_id) references ledger_accounts(id)" +
       ");"
     );
 
@@ -325,15 +332,63 @@ final class CoreDatabase extends SQLiteOpenHelper {
     );
   }
 
+  private static void createExpectedMovementItemTables(SQLiteDatabase db) {
+    db.execSQL(
+      "create table if not exists expected_movement_items (" +
+        "id text primary key," +
+        "expected_movement_id text not null," +
+        "item_order integer not null," +
+        "name text not null," +
+        "amount text not null," +
+        "foreign key(expected_movement_id) references expected_movements(id) on delete cascade" +
+      ");"
+    );
+
+    db.execSQL(
+      "create unique index if not exists uq_expected_movement_items_order " +
+        "on expected_movement_items(expected_movement_id, item_order);"
+    );
+
+    db.execSQL(
+      "create index if not exists idx_expected_movement_items_expected " +
+        "on expected_movement_items(expected_movement_id);"
+    );
+  }
+
+  private static void createRecurringMovementItemTables(SQLiteDatabase db) {
+    db.execSQL(
+      "create table if not exists recurring_movement_items (" +
+        "id text primary key," +
+        "recurring_movement_id text not null," +
+        "item_order integer not null," +
+        "name text not null," +
+        "amount text not null," +
+        "foreign key(recurring_movement_id) references recurring_movements(id) on delete cascade" +
+      ");"
+    );
+
+    db.execSQL(
+      "create unique index if not exists uq_recurring_movement_items_order " +
+        "on recurring_movement_items(recurring_movement_id, item_order);"
+    );
+
+    db.execSQL(
+      "create index if not exists idx_recurring_movement_items_recurring " +
+        "on recurring_movement_items(recurring_movement_id);"
+    );
+  }
+
   private static void addRecurringMovementCategoryColumn(SQLiteDatabase db) {
     db.execSQL("alter table recurring_movements add column category_id text;");
   }
 
   private static void dropTables(SQLiteDatabase db) {
     db.execSQL("drop table if exists expected_movements");
+    db.execSQL("drop table if exists expected_movement_items");
     db.execSQL("drop table if exists recurrence_outbox");
     db.execSQL("drop table if exists recurring_movement_occurrences");
     db.execSQL("drop table if exists recurring_movements");
+    db.execSQL("drop table if exists recurring_movement_items");
     db.execSQL("drop table if exists mobills_import_fingerprints");
     db.execSQL("drop table if exists taxonomy_transaction_tag_assignments");
     db.execSQL("drop table if exists taxonomy_tags");

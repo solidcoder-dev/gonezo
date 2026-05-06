@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
@@ -111,6 +112,28 @@ function compactTagNames(tags?: string[]): string | undefined {
     visible.push(`+${tags.length - 2}`);
   }
   return visible.join(' ');
+}
+
+function renderSplitItems(items: Array<{ id: string; name: string; amount: string }>): ReactNode {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="stack detail-split-list">
+      <span className="hint detail-meta-label">Splits</span>
+      <ul className="expense-list expense-list--compact" aria-label="Split items">
+        {items.map((item) => (
+          <li key={item.id} className="expense-item expense-item--compact">
+            <div className="inline-header">
+              <strong>{item.name}</strong>
+              <span>{item.amount}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 function groupExpectedMovementsByDate(items: ExpectedMovementView[]): ExpectedDateGroup[] {
@@ -577,6 +600,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
                 <strong>{selectedExpectedMovement.status}</strong>
               </div>
             </div>
+            {renderSplitItems(selectedExpectedMovement.splitItems)}
             <div className="detail-actions">
               <button
                 type="button"
@@ -667,6 +691,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
                 <strong>{scheduledStatus(selectedScheduledMovement)}</strong>
               </div>
             </div>
+            {renderSplitItems(selectedScheduledMovement.splitItems)}
             <div className="detail-actions">
               {selectedScheduledMovement.status === 'active' ? (
                 <button

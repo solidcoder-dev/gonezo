@@ -71,6 +71,7 @@ export type TransactionEntryViewProvided = {
     setSplitItemName: (value: string) => void;
     setSplitItemAmount: (value: string) => void;
     addSplitItem: () => void;
+    editSplitItem: (itemId: string) => void;
     removeSplitItem: (itemId: string) => void;
     assignSplitRemaining: () => void;
     setSchedulingMode: (value: 'now' | 'scheduled') => void;

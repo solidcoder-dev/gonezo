@@ -22,6 +22,7 @@ function scheduled(
     nextDueAt: input.nextDueAt,
     zoneId: input.zoneId ?? 'UTC',
     generatedOccurrences: input.generatedOccurrences ?? 0,
+    splitItems: input.splitItems ?? [],
     rule: input.rule ?? { frequency: 'daily', interval: 1 },
     recurrenceEnd: input.recurrenceEnd ?? { kind: 'never' },
     categoryId: input.categoryId,

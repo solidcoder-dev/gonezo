@@ -704,6 +704,7 @@ public class CorePlugin extends Plugin {
     String startAt = call.getString("startAt", Instant.now().toString());
     String zoneId = call.getString("zoneId", "UTC");
     String categoryId = call.getString("categoryId");
+    JSONArray splitItems = call.getArray("splitItems");
     JSObject rule = call.getObject("rule");
     JSObject recurrenceEnd = call.getObject("recurrenceEnd");
 
@@ -722,6 +723,7 @@ public class CorePlugin extends Plugin {
           nullIfBlank(description),
           nullIfBlank(merchant),
           nullIfBlank(categoryId),
+          splitItems == null ? null : splitItems.toString(),
           toRecurringRuleInput(rule),
           toRecurrenceEndInput(recurrenceEnd),
           startAt,
@@ -782,6 +784,7 @@ public class CorePlugin extends Plugin {
     String description = call.getString("description");
     String merchant = call.getString("merchant");
     String categoryId = call.getString("categoryId");
+    JSONArray splitItems = call.getArray("splitItems");
 
     try {
       AndroidExpectedCore expectedCore = AndroidExpectedCore.getInstance(getContext());
@@ -793,7 +796,8 @@ public class CorePlugin extends Plugin {
         expectedAt,
         description,
         merchant,
-        categoryId
+        categoryId,
+        splitItems == null ? null : splitItems.toString()
       );
       JSObject result = new JSObject();
       result.put("id", id.toString());
@@ -910,6 +914,15 @@ public class CorePlugin extends Plugin {
     result.put("description", movement.getDescription());
     result.put("merchant", movement.getMerchant());
     result.put("categoryId", movement.getCategoryId());
+    JSONArray splitItems = new JSONArray();
+    for (AndroidRecurringCore.SplitItem item : movement.getSplitItems()) {
+      JSObject split = new JSObject();
+      split.put("id", item.getId());
+      split.put("name", item.getName());
+      split.put("amount", item.getAmount());
+      splitItems.put(split);
+    }
+    result.put("splitItems", splitItems);
     result.put("status", movement.getStatus());
     result.put("startAt", movement.getStartAt());
     result.put("nextDueAt", movement.getNextDueAt());
@@ -932,6 +945,15 @@ public class CorePlugin extends Plugin {
     result.put("merchant", movement.getMerchant());
     result.put("categoryId", movement.getCategoryId());
     result.put("originOccurrenceId", JSONObject.NULL);
+    JSONArray splitItems = new JSONArray();
+    for (AndroidExpectedCore.SplitItem item : movement.getSplitItems()) {
+      JSObject split = new JSObject();
+      split.put("id", item.getId());
+      split.put("name", item.getName());
+      split.put("amount", item.getAmount());
+      splitItems.put(split);
+    }
+    result.put("splitItems", splitItems);
     result.put("status", movement.getStatus());
     result.put("resolvedTransactionId", movement.getResolvedTransactionId());
     result.put("createdAt", movement.getCreatedAt());

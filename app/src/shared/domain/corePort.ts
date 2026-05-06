@@ -264,6 +264,7 @@ export type RecurrenceCreateRecurringMovementInput = {
   description?: string;
   merchant?: string;
   categoryId?: string;
+  splitItems?: Array<{ id: string; name: string; amount: string }>;
   tagIds?: string[];
   tagNames?: string[];
   rule: RecurrenceRuleInput;
@@ -302,6 +303,7 @@ export type RecurrenceMovementItem = {
   nextDueAt?: string;
   zoneId: string;
   generatedOccurrences: number;
+  splitItems: Array<{ id: string; name: string; amount: string }>;
   rule: RecurrenceRuleInput;
   recurrenceEnd: RecurrenceEndInput;
 };
@@ -349,6 +351,7 @@ export type ExpectedCreateMovementInput = {
   description?: string;
   merchant?: string;
   categoryId?: string;
+  splitItems?: Array<{ id: string; name: string; amount: string }>;
 };
 
 export type ExpectedCreateMovementResult = {
@@ -368,6 +371,7 @@ export type ExpectedMovementItem = {
   merchant?: string;
   categoryId?: string;
   originOccurrenceId?: string;
+  splitItems: Array<{ id: string; name: string; amount: string }>;
   status: ExpectedMovementStatus;
   resolvedTransactionId?: string;
   createdAt: string;

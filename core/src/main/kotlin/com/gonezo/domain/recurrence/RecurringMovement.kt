@@ -18,6 +18,7 @@ data class RecurringMovement(
   val description: String?,
   val merchant: String?,
   val categoryId: String?,
+  val splitItems: List<SplitItem> = emptyList(),
   val rule: RecurrenceRule,
   val recurrenceEnd: RecurrenceEnd,
   val startAt: Instant,
@@ -30,6 +31,12 @@ data class RecurringMovement(
   val deactivatedAt: Instant?,
   val completedAt: Instant?,
 ) {
+  data class SplitItem(
+    val id: String,
+    val name: String,
+    val amount: BigDecimal,
+  )
+
   init {
     require(sourceAccountId.isNotBlank()) { "sourceAccountId is required" }
     require(type == RecurringMovementType.TRANSFER || targetAccountId.isNullOrBlank()) {
@@ -47,6 +54,13 @@ data class RecurringMovement(
     }
     if (exchangeRate != null) {
       require(exchangeRate > BigDecimal.ZERO) { "exchangeRate must be greater than 0" }
+    }
+    require(splitItems.all { it.id.isNotBlank() }) { "split item id is required" }
+    require(splitItems.all { it.name.isNotBlank() }) { "split item name is required" }
+    require(splitItems.all { it.amount > BigDecimal.ZERO }) { "split item amount must be greater than 0" }
+    if (splitItems.isNotEmpty()) {
+      val splitTotal = splitItems.fold(BigDecimal.ZERO) { acc, item -> acc + item.amount }
+      require(splitTotal.compareTo(amount) == 0) { "split items must add up to amount" }
     }
     require(generatedOccurrences >= 0) { "generatedOccurrences must be greater or equal to 0" }
     require(!(status == RecurringMovementStatus.ACTIVE && nextDueAt == null)) {
@@ -138,6 +152,7 @@ data class RecurringMovement(
       description: String?,
       merchant: String?,
       categoryId: String? = null,
+      splitItems: List<SplitItem> = emptyList(),
       rule: RecurrenceRule,
       recurrenceEnd: RecurrenceEnd,
       startAt: Instant,
@@ -165,6 +180,13 @@ data class RecurringMovement(
         description = description?.trim()?.ifBlank { null },
         merchant = merchant?.trim()?.ifBlank { null },
         categoryId = categoryId?.trim()?.ifBlank { null },
+        splitItems = splitItems.map {
+          SplitItem(
+            id = it.id.trim(),
+            name = it.name.trim(),
+            amount = it.amount,
+          )
+        },
         rule = rule,
         recurrenceEnd = recurrenceEnd,
         startAt = startAt,

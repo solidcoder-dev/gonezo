@@ -284,20 +284,21 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     expectedCreateMovement: vi.fn(async (input) => {
       const now = new Date().toISOString();
       const id = `exp-${expectedMovements.length + 1}`;
-      expectedMovements.push({
-        id,
-        accountId: input.accountId,
-        type: input.type,
-        amount: input.amount,
+    expectedMovements.push({
+      id,
+      accountId: input.accountId,
+      type: input.type,
+      amount: input.amount,
         currency: input.currency,
         expectedAt: input.expectedAt,
-        description: input.description,
-        merchant: input.merchant,
-        categoryId: input.categoryId,
-        status: 'pending',
-        createdAt: now,
-        updatedAt: now,
-      });
+      description: input.description,
+      merchant: input.merchant,
+      categoryId: input.categoryId,
+      splitItems: (input.splitItems ?? []).map((item: { id: string; name: string; amount: string }) => ({ ...item })),
+      status: 'pending',
+      createdAt: now,
+      updatedAt: now,
+    });
       return { id };
     }),
     expectedListMovements: vi.fn(async (input) => ({
@@ -565,6 +566,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
       categoryId: input.categoryId,
       tagIds: input.tagIds,
       tagNames: input.tagNames,
+      splitItems: (input.splitItems ?? []).map((item: { id: string; name: string; amount: string }) => ({ ...item })),
       status: 'active',
       startAt: input.startAt,
       nextDueAt: input.startAt,
@@ -1751,6 +1753,56 @@ describe('App Accounts UX', () => {
     });
   });
 
+  it('updates split totals while adding and editing items', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Expense');
+    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Split into items' }));
+
+    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Water' } });
+    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '20' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+
+    expect(screen.getByLabelText('Amount')).toHaveValue(20);
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
+    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Electricity' } });
+    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '40' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+
+    expect(screen.getByLabelText('Amount')).toHaveValue(60);
+
+    const waterItem = screen.getByText('Water').closest('li');
+    expect(waterItem).not.toBeNull();
+    fireEvent.click(within(waterItem!).getByRole('button', { name: 'Edit' }));
+
+    expect(screen.getByLabelText('Item name')).toHaveValue('Water');
+    expect(screen.getByLabelText('Item amount')).toHaveValue(20);
+
+    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '25' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+
+    expect(screen.getByLabelText('Amount')).toHaveValue(65);
+    expect(screen.getByText('25.00')).toBeInTheDocument();
+
+    const electricityItem = screen.getByText('Electricity').closest('li');
+    expect(electricityItem).not.toBeNull();
+    fireEvent.click(within(electricityItem!).getByRole('button', { name: 'Remove' }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Amount')).toHaveValue(25);
+    });
+    expect(screen.queryByText('Electricity')).not.toBeInTheDocument();
+  });
+
   it('keeps detailed expense publish disabled until split reaches zero', async () => {
     const core = makeCore();
 
@@ -2283,6 +2335,10 @@ describe('App Accounts UX', () => {
       expectedAt: new Date().toISOString(),
       description: 'Expected rent',
       categoryId: 'cat-food',
+      splitItems: [
+        { id: 'split-water', name: 'Water', amount: '12.00' },
+        { id: 'split-electricity', name: 'Electricity', amount: '30.00' },
+      ],
     });
 
     render(
@@ -2300,6 +2356,8 @@ describe('App Accounts UX', () => {
     expect(within(detailDialog).getByText('Food')).toBeInTheDocument();
     expect(within(detailDialog).getByText('manual')).toBeInTheDocument();
     expect(within(detailDialog).getByText('pending')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('Water')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('Electricity')).toBeInTheDocument();
 
     fireEvent.click(within(detailDialog).getByRole('button', { name: 'Post movement' }));
 
@@ -2331,6 +2389,10 @@ describe('App Accounts UX', () => {
       expectedAt: '2026-05-02T10:00:00.000Z',
       description: 'Expected rent',
       categoryId: 'cat-food',
+      splitItems: [
+        { id: 'split-water', name: 'Water', amount: '12.00' },
+        { id: 'split-electricity', name: 'Electricity', amount: '30.00' },
+      ],
     });
 
     render(
@@ -2348,29 +2410,13 @@ describe('App Accounts UX', () => {
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
     expect(within(composer).getByRole('heading', { name: 'New expense' })).toBeInTheDocument();
     expect(within(composer).getByLabelText('Amount')).toHaveValue(42);
-    expect(within(composer).getByLabelText('Date')).toHaveValue('2026-05-02');
+    expect(within(composer).getByLabelText('Expected date')).toHaveValue('2026-05-02');
     expect(within(composer).getByLabelText('Merchant')).toHaveValue('Expected rent');
     expect(within(composer).getByLabelText('Category')).toHaveValue('Food');
-
-    fireEvent.change(within(composer).getByLabelText('Amount'), { target: { value: '45.50' } });
-    fireEvent.change(within(composer).getByLabelText('Merchant'), { target: { value: 'Landlord' } });
-    fireEvent.click(within(composer).getByRole('button', { name: 'Save' }));
-
-    await waitFor(() => {
-      expect(core.ledgerRecordExpense).toHaveBeenCalledWith(expect.objectContaining({
-        accountId: 'acc-1',
-        amount: '45.50',
-        currency: 'USD',
-        merchant: 'Landlord',
-        description: 'Landlord',
-      }));
-    });
-    await waitFor(() => {
-      expect(core.expectedResolveMovement).toHaveBeenCalledWith(expect.objectContaining({
-        expectedMovementId: 'exp-1',
-        transactionId: 'tx-exp',
-      }));
-    });
+    expect(within(composer).getByLabelText('Split into items')).toBeChecked();
+    const splitItemsList = within(composer).getByRole('list', { name: 'Expense items' });
+    expect(within(splitItemsList).getByText('Water')).toBeInTheDocument();
+    expect(within(splitItemsList).getByText('Electricity')).toBeInTheDocument();
   });
 
   it('shows scheduled transfer when switching to destination account', async () => {
@@ -2499,6 +2545,7 @@ describe('App Accounts UX', () => {
       nextDueAt: '2026-05-11T10:00:00.000Z',
       zoneId: 'UTC',
       generatedOccurrences: 0,
+      splitItems: [],
       rule: { frequency: 'monthly' as const, interval: 1, monthlyPattern: 'day_of_month' as const, dayOfMonth: 11 },
       recurrenceEnd: { kind: 'never' as const },
       origin: 'recurring' as const,
@@ -2573,6 +2620,7 @@ describe('App Accounts UX', () => {
       nextDueAt: '2026-05-10T10:00:00.000Z',
       zoneId: 'UTC',
       generatedOccurrences: 0,
+      splitItems: [],
       rule: { frequency: 'daily', interval: 1 },
       recurrenceEnd: { kind: 'after_occurrences', afterOccurrences: 1 },
     };

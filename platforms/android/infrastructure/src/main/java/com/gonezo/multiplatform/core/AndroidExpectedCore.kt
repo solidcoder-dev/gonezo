@@ -14,6 +14,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeParseException
 import java.util.Locale
 import java.util.UUID
+import org.json.JSONArray
 
 class AndroidExpectedCore internal constructor(
   private val database: CoreDatabase,
@@ -29,6 +30,7 @@ class AndroidExpectedCore internal constructor(
     description: String?,
     merchant: String?,
     categoryId: String?,
+    splitItemsJson: String? = null,
   ): UUID {
     val resolvedAccountId = requireText(accountId, "accountId is required")
     if (!accountExists(resolvedAccountId)) {
@@ -70,6 +72,25 @@ class AndroidExpectedCore internal constructor(
     )
     if (inserted == -1L) {
       throw IllegalStateException("Failed to create expected movement")
+    }
+    val splitItems = parseSplitItems(splitItemsJson)
+    database.writableDatabase.delete("expected_movement_items", "expected_movement_id = ?", arrayOf(id.toString()))
+    splitItems.forEachIndexed { index, item ->
+      val itemValues = ContentValues()
+      itemValues.put("id", item.id)
+      itemValues.put("expected_movement_id", id.toString())
+      itemValues.put("item_order", index)
+      itemValues.put("name", item.name)
+      itemValues.put("amount", item.amount)
+      if (database.writableDatabase.insertWithOnConflict(
+          "expected_movement_items",
+          null,
+          itemValues,
+          SQLiteDatabase.CONFLICT_ABORT,
+        ) == -1L
+      ) {
+        throw IllegalStateException("Failed to create expected movement split item")
+      }
     }
     return id
   }
@@ -163,9 +184,10 @@ class AndroidExpectedCore internal constructor(
   private fun readExpectedMovements(cursor: Cursor): List<ExpectedMovementView> {
     val items = mutableListOf<ExpectedMovementView>()
     while (cursor.moveToNext()) {
+      val movementId = cursor.getString(0)
       items.add(
         ExpectedMovementView(
-          id = cursor.getString(0),
+          id = movementId,
           accountId = cursor.getString(1),
           type = cursor.getString(2),
           amount = cursor.getString(3),
@@ -180,6 +202,7 @@ class AndroidExpectedCore internal constructor(
           updatedAt = cursor.getString(12),
           resolvedAt = cursor.getStringOrNull(13),
           dismissedAt = cursor.getStringOrNull(14),
+          splitItems = loadSplitItems(movementId),
         ),
       )
     }
@@ -240,6 +263,51 @@ class AndroidExpectedCore internal constructor(
   private fun Cursor.getStringOrNull(index: Int): String? =
     if (isNull(index)) null else getString(index)
 
+  private fun parseSplitItems(splitItemsJson: String?): List<SplitItemInput> {
+    val raw = splitItemsJson?.trim().orEmpty()
+    if (raw.isEmpty()) {
+      return emptyList()
+    }
+    val parsed = JSONArray(raw)
+    val items = mutableListOf<SplitItemInput>()
+    for (index in 0 until parsed.length()) {
+      val item = parsed.getJSONObject(index)
+      items.add(
+        SplitItemInput(
+          id = requireText(item.getString("id"), "split item id is required"),
+          name = requireText(item.getString("name"), "split item name is required"),
+          amount = requireText(item.getString("amount"), "split item amount is required"),
+        ),
+      )
+    }
+    return items
+  }
+
+  private fun loadSplitItems(expectedMovementId: String): List<SplitItem> {
+    val cursor = database.readableDatabase.query(
+      "expected_movement_items",
+      arrayOf("id", "name", "amount"),
+      "expected_movement_id = ?",
+      arrayOf(expectedMovementId),
+      null,
+      null,
+      "item_order asc, id asc",
+    )
+    return cursor.use {
+      val items = mutableListOf<SplitItem>()
+      while (it.moveToNext()) {
+        items.add(
+          SplitItem(
+            id = it.getString(0),
+            name = it.getString(1),
+            amount = it.getString(2),
+          ),
+        )
+      }
+      items
+    }
+  }
+
   data class ExpectedMovementView(
     val id: String,
     val accountId: String,
@@ -256,6 +324,19 @@ class AndroidExpectedCore internal constructor(
     val updatedAt: String,
     val resolvedAt: String?,
     val dismissedAt: String?,
+    val splitItems: List<SplitItem>,
+  )
+
+  data class SplitItem(
+    val id: String,
+    val name: String,
+    val amount: String,
+  )
+
+  data class SplitItemInput(
+    val id: String,
+    val name: String,
+    val amount: String,
   )
 
   companion object {

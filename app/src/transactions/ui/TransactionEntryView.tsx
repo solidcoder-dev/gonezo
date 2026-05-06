@@ -78,6 +78,7 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         onSetExpenseItemName: provided.commands.setSplitItemName,
         onSetExpenseItemAmount: provided.commands.setSplitItemAmount,
         onAddExpenseItem: provided.commands.addSplitItem,
+        onEditExpenseItem: provided.commands.editSplitItem,
         onRemoveExpenseItem: provided.commands.removeSplitItem,
         onAssignRemaining: provided.commands.assignSplitRemaining,
         onSetSchedulingMode: provided.commands.setSchedulingMode,

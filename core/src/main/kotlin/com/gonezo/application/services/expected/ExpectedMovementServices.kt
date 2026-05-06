@@ -20,6 +20,7 @@ class CreateExpectedMovementService(
       merchant = command.merchant,
       categoryId = command.categoryId,
       originOccurrenceId = command.originOccurrenceId,
+      splitItems = command.splitItems,
       createdAt = command.createdAt,
     )
     repository.save(movement)
@@ -61,6 +62,13 @@ class ListExpectedMovementsService(
         merchant = movement.merchant,
         categoryId = movement.categoryId,
         originOccurrenceId = movement.originOccurrenceId,
+        splitItems = movement.splitItems.map {
+          ExpectedMovementView.SplitItem(
+            id = it.id,
+            name = it.name,
+            amount = it.amount.toPlainString(),
+          )
+        },
         status = movement.status.value,
         resolvedTransactionId = movement.resolvedTransactionId,
         createdAt = movement.createdAt,

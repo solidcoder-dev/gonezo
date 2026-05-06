@@ -95,6 +95,7 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
       date: toDateInputValue(movement.expectedAt),
       note: movement.merchant || movement.description || '',
       categoryId: categoryName ?? movement.categoryId,
+      splitItems: movement.splitItems,
     });
   }
 

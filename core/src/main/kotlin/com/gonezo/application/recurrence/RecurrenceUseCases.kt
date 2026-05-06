@@ -3,6 +3,7 @@ package com.gonezo.recurrence.application
 import com.gonezo.recurrence.domain.RecurrenceEnd
 import com.gonezo.recurrence.domain.RecurrenceRule
 import com.gonezo.recurrence.domain.RecurringMovementId
+import com.gonezo.recurrence.domain.RecurringMovement
 import com.gonezo.recurrence.domain.RecurringMovementOccurrence
 import com.gonezo.recurrence.domain.RecurringMovementType
 import java.math.BigDecimal
@@ -21,6 +22,7 @@ data class CreateRecurringMovementCommand(
   val description: String?,
   val merchant: String?,
   val categoryId: String? = null,
+  val splitItems: List<RecurringMovement.SplitItem> = emptyList(),
   val rule: RecurrenceRule,
   val recurrenceEnd: RecurrenceEnd,
   val startAt: Instant,
@@ -110,7 +112,14 @@ data class RecurringMovementView(
   val description: String?,
   val merchant: String?,
   val categoryId: String?,
+  val splitItems: List<SplitItem>,
   val nextDueAt: Instant?,
   val status: String,
   val generatedOccurrences: Int,
-)
+){
+  data class SplitItem(
+    val id: String,
+    val name: String,
+    val amount: String,
+  )
+}

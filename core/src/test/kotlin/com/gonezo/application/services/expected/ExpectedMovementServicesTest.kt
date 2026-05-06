@@ -37,6 +37,10 @@ class ExpectedMovementServicesTest {
         description = "Refund adjustment",
         merchant = "Amazon",
         categoryId = "cat-shopping",
+        splitItems = listOf(
+          ExpectedMovement.SplitItem(id = "item-a", name = "Item A", amount = BigDecimal("10.00")),
+          ExpectedMovement.SplitItem(id = "item-b", name = "Item B", amount = BigDecimal("19.99")),
+        ),
         createdAt = Instant.parse("2026-05-01T10:00:00Z"),
       ),
     )
@@ -125,11 +129,15 @@ class ExpectedMovementServicesTest {
       currency = "EUR",
       expectedAt = Instant.parse("2026-05-05T10:00:00Z"),
       description = "Expected refund",
-      merchant = merchant,
-      categoryId = "cat-shopping",
-      createdAt = Instant.parse("2026-05-01T10:00:00Z"),
+    merchant = merchant,
+    categoryId = "cat-shopping",
+    splitItems = listOf(
+      ExpectedMovement.SplitItem(id = "item-a", name = "Item A", amount = BigDecimal("10.00")),
+      ExpectedMovement.SplitItem(id = "item-b", name = "Item B", amount = BigDecimal("19.99")),
     ),
-  )
+    createdAt = Instant.parse("2026-05-01T10:00:00Z"),
+  ),
+)
 
   private class InMemoryExpectedMovementRepository : ExpectedMovementRepository {
     private val storage = linkedMapOf<ExpectedMovementId, ExpectedMovement>()

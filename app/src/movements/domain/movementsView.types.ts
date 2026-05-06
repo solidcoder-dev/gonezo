@@ -25,6 +25,7 @@ export type ScheduledMovementView = {
   nextDueAt?: string;
   zoneId: string;
   generatedOccurrences: number;
+  splitItems: Array<{ id: string; name: string; amount: string }>;
   rule: RecurrenceRuleView;
   recurrenceEnd: RecurrenceEndView;
   categoryId?: string;
@@ -45,6 +46,7 @@ export type ExpectedMovementView = {
   merchant?: string;
   categoryId?: string;
   originOccurrenceId?: string;
+  splitItems: Array<{ id: string; name: string; amount: string }>;
   status: 'pending' | 'resolved' | 'dismissed';
   resolvedTransactionId?: string;
   createdAt: string;

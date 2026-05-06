@@ -1,5 +1,6 @@
 package com.gonezo.expected.application
 
+import com.gonezo.expected.domain.ExpectedMovement
 import com.gonezo.expected.domain.ExpectedMovementId
 import java.math.BigDecimal
 import java.time.Instant
@@ -14,6 +15,7 @@ data class CreateExpectedMovementCommand(
   val merchant: String?,
   val categoryId: String?,
   val originOccurrenceId: String? = null,
+  val splitItems: List<ExpectedMovement.SplitItem> = emptyList(),
   val createdAt: Instant,
 )
 
@@ -56,13 +58,20 @@ data class ExpectedMovementView(
   val merchant: String?,
   val categoryId: String?,
   val originOccurrenceId: String?,
+  val splitItems: List<SplitItem>,
   val status: String,
   val resolvedTransactionId: String?,
   val createdAt: Instant,
   val updatedAt: Instant,
   val resolvedAt: Instant?,
   val dismissedAt: Instant?,
-)
+){
+  data class SplitItem(
+    val id: String,
+    val name: String,
+    val amount: String,
+  )
+}
 
 interface ListExpectedMovementsUC {
   fun execute(query: ListExpectedMovementsQuery): List<ExpectedMovementView>

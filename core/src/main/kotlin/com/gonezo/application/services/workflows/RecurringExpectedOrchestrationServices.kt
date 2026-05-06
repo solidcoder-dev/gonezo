@@ -59,6 +59,13 @@ class HandleRecurringMovementDueForExpectedService(
           merchant = command.event.merchant,
           categoryId = command.event.categoryId,
           originOccurrenceId = occurrenceId,
+          splitItems = command.event.splitItems.map {
+            com.gonezo.expected.domain.ExpectedMovement.SplitItem(
+              id = it.id,
+              name = it.name,
+              amount = BigDecimal(it.amount),
+            )
+          },
           createdAt = command.handledAt,
         ),
       )

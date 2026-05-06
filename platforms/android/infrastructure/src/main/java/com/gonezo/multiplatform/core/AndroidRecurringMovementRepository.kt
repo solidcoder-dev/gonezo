@@ -72,6 +72,24 @@ internal class AndroidRecurringMovementRepository(
     if (result == -1L) {
       throw IllegalStateException("Failed to upsert recurring movement: ${movement.id}")
     }
+    db.writableDatabase.delete("recurring_movement_items", "recurring_movement_id = ?", arrayOf(movement.id.toString()))
+    movement.splitItems.forEachIndexed { index, item ->
+      val itemValues = ContentValues()
+      itemValues.put("id", item.id)
+      itemValues.put("recurring_movement_id", movement.id.toString())
+      itemValues.put("item_order", index)
+      itemValues.put("name", item.name)
+      itemValues.put("amount", item.amount.toPlainString())
+      if (db.writableDatabase.insertWithOnConflict(
+          "recurring_movement_items",
+          null,
+          itemValues,
+          SQLiteDatabase.CONFLICT_ABORT,
+        ) == -1L
+      ) {
+        throw IllegalStateException("Failed to upsert recurring movement split item")
+      }
+    }
   }
 
   override fun findById(id: RecurringMovementId): RecurringMovement? {
@@ -172,6 +190,7 @@ internal class AndroidRecurringMovementRepository(
       description = cursor.stringOrNull("description"),
       merchant = cursor.stringOrNull("merchant"),
       categoryId = cursor.stringOrNull("category_id"),
+      splitItems = loadSplitItems(cursor.string("id")),
       rule = rule,
       recurrenceEnd = recurrenceEnd,
       startAt = Instant.parse(cursor.string("start_at")),
@@ -203,6 +222,31 @@ internal class AndroidRecurringMovementRepository(
   private fun Cursor.decimal(column: String): BigDecimal = BigDecimal(string(column))
 
   private fun Cursor.decimalOrNull(column: String): BigDecimal? = stringOrNull(column)?.let(::BigDecimal)
+
+  private fun loadSplitItems(recurringMovementId: String): List<RecurringMovement.SplitItem> {
+    val cursor = db.readableDatabase.query(
+      "recurring_movement_items",
+      arrayOf("id", "name", "amount"),
+      "recurring_movement_id = ?",
+      arrayOf(recurringMovementId),
+      null,
+      null,
+      "item_order asc, id asc",
+    )
+    return cursor.use {
+      val items = mutableListOf<RecurringMovement.SplitItem>()
+      while (it.moveToNext()) {
+        items.add(
+          RecurringMovement.SplitItem(
+            id = it.getString(0),
+            name = it.getString(1),
+            amount = BigDecimal(it.getString(2)),
+          ),
+        )
+      }
+      items
+    }
+  }
 
   private fun ContentValues.putNullable(key: String, value: String?) {
     if (value == null) {

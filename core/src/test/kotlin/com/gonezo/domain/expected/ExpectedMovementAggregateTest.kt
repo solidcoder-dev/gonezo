@@ -21,6 +21,8 @@ class ExpectedMovementAggregateTest {
     assertThat(movement.currency).isEqualTo("EUR")
     assertThat(movement.expectedAt).isEqualTo(Instant.parse("2026-05-05T09:00:00Z"))
     assertThat(movement.resolvedTransactionId).isNull()
+    assertThat(movement.splitItems).hasSize(2)
+    assertThat(movement.splitItems.map { it.name }).containsExactly("Rent", "Utilities")
   }
 
   @Test
@@ -87,6 +89,10 @@ class ExpectedMovementAggregateTest {
     description = "Client payment",
     merchant = "Client",
     categoryId = "cat-income",
+    splitItems = listOf(
+      ExpectedMovement.SplitItem(id = "rent", name = "Rent", amount = BigDecimal("80.00")),
+      ExpectedMovement.SplitItem(id = "utilities", name = "Utilities", amount = BigDecimal("40.00")),
+    ),
     createdAt = Instant.parse("2026-05-01T09:00:00Z"),
   )
 }

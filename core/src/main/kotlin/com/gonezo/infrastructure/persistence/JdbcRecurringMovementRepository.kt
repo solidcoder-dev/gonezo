@@ -74,6 +74,27 @@ class JdbcRecurringMovementRepository(
     """.trimIndent()
 
     jdbcTemplate.update(sql, movementParams(movement))
+    jdbcTemplate.update(
+      "delete from recurring_movement_items where recurring_movement_id = :recurring_movement_id",
+      MapSqlParameterSource("recurring_movement_id", movement.id.toString()),
+    )
+    movement.splitItems.forEachIndexed { index, item ->
+      jdbcTemplate.update(
+        """
+          insert into recurring_movement_items (
+            id, recurring_movement_id, item_order, name, amount
+          ) values (
+            :id, :recurring_movement_id, :item_order, :name, :amount
+          )
+        """.trimIndent(),
+        MapSqlParameterSource()
+          .addValue("id", item.id)
+          .addValue("recurring_movement_id", movement.id.toString())
+          .addValue("item_order", index)
+          .addValue("name", item.name)
+          .addValue("amount", item.amount.toPlainString()),
+      )
+    }
   }
 
   override fun findById(id: RecurringMovementId): RecurringMovement? {
@@ -82,7 +103,9 @@ class JdbcRecurringMovementRepository(
       from recurring_movements
       where id = :id
     """.trimIndent()
-    return jdbcTemplate.query(sql, MapSqlParameterSource("id", id.toString()), rowMapper()).firstOrNull()
+    return jdbcTemplate.query(sql, MapSqlParameterSource("id", id.toString()), baseRowMapper())
+      .firstOrNull()
+      ?.toMovement()
   }
 
   override fun findDue(now: Instant, limit: Int): List<RecurringMovement> {
@@ -99,7 +122,8 @@ class JdbcRecurringMovementRepository(
       .addValue("status_active", RecurringMovementStatus.ACTIVE.value)
       .addValue("now", now.toString())
       .addValue("limit", limit)
-    return jdbcTemplate.query(sql, params, rowMapper())
+    return jdbcTemplate.query(sql, params, baseRowMapper())
+      .map { it.toMovement() }
   }
 
   override fun listBySourceAccount(accountId: String): List<RecurringMovement> {
@@ -115,11 +139,13 @@ class JdbcRecurringMovementRepository(
       MapSqlParameterSource()
         .addValue("account_id", accountId)
         .addValue("transfer_type", RecurringMovementType.TRANSFER.value),
-      rowMapper(),
+      baseRowMapper(),
     )
+      .map { it.toMovement() }
   }
 
-  private fun rowMapper(): RowMapper<RecurringMovement> = RowMapper { rs: ResultSet, _ ->
+  private fun baseRowMapper(): RowMapper<RecurringMovementRow> = RowMapper { rs: ResultSet, _ ->
+    val movementId = RecurringMovementId.from(rs.getString("id"))
     val recurrenceEnd = when (rs.getString("end_kind")) {
       "never" -> RecurrenceEnd.Never
       "on_date" -> RecurrenceEnd.OnDate(LocalDate.parse(rs.getString("end_on_date")))
@@ -150,8 +176,8 @@ class JdbcRecurringMovementRepository(
       monthlyWeekday = monthlyWeekday,
     )
 
-    RecurringMovement(
-      id = RecurringMovementId.from(rs.getString("id")),
+    RecurringMovementRow(
+      id = movementId,
       type = RecurringMovementType.from(rs.getString("movement_type")),
       sourceAccountId = rs.getString("source_account_id"),
       targetAccountId = rs.getString("target_account_id"),
@@ -217,4 +243,77 @@ class JdbcRecurringMovementRepository(
       .addValue("deactivated_at", movement.deactivatedAt?.toString())
       .addValue("completed_at", movement.completedAt?.toString())
   }
+
+  private fun loadSplitItems(recurringMovementId: String): List<RecurringMovement.SplitItem> {
+    val sql = """
+      select id, name, amount
+      from recurring_movement_items
+      where recurring_movement_id = :recurring_movement_id
+      order by item_order asc, id asc
+    """.trimIndent()
+
+    return jdbcTemplate.query(
+      sql,
+      MapSqlParameterSource("recurring_movement_id", recurringMovementId),
+    ) { rs, _ ->
+      RecurringMovement.SplitItem(
+        id = rs.getString("id"),
+        name = rs.getString("name"),
+        amount = BigDecimal(rs.getString("amount")),
+      )
+    }
+  }
+
+  private fun RecurringMovementRow.toMovement(): RecurringMovement = RecurringMovement(
+    id = id,
+    type = type,
+    sourceAccountId = sourceAccountId,
+    targetAccountId = targetAccountId,
+    amount = amount,
+    currency = currency,
+    destinationAmount = destinationAmount,
+    destinationCurrency = destinationCurrency,
+    exchangeRate = exchangeRate,
+    description = description,
+    merchant = merchant,
+    categoryId = categoryId,
+    splitItems = loadSplitItems(id.toString()),
+    rule = rule,
+    recurrenceEnd = recurrenceEnd,
+    startAt = startAt,
+    zoneId = zoneId,
+    nextDueAt = nextDueAt,
+    status = status,
+    generatedOccurrences = generatedOccurrences,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    deactivatedAt = deactivatedAt,
+    completedAt = completedAt,
+  )
+
+  private data class RecurringMovementRow(
+    val id: RecurringMovementId,
+    val type: RecurringMovementType,
+    val sourceAccountId: String,
+    val targetAccountId: String?,
+    val amount: BigDecimal,
+    val currency: String,
+    val destinationAmount: BigDecimal?,
+    val destinationCurrency: String?,
+    val exchangeRate: BigDecimal?,
+    val description: String?,
+    val merchant: String?,
+    val categoryId: String?,
+    val rule: RecurrenceRule,
+    val recurrenceEnd: RecurrenceEnd,
+    val startAt: Instant,
+    val zoneId: String,
+    val nextDueAt: Instant?,
+    val status: RecurringMovementStatus,
+    val generatedOccurrences: Int,
+    val createdAt: Instant,
+    val updatedAt: Instant,
+    val deactivatedAt: Instant?,
+    val completedAt: Instant?,
+  )
 }

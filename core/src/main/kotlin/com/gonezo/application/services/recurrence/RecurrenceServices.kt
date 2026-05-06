@@ -32,6 +32,7 @@ class CreateRecurringMovementService(
       description = command.description,
       merchant = command.merchant,
       categoryId = command.categoryId,
+      splitItems = command.splitItems,
       rule = command.rule,
       recurrenceEnd = command.recurrenceEnd,
       startAt = command.startAt,
@@ -71,6 +72,13 @@ class ListRecurringMovementsByAccountService(
         description = movement.description,
         merchant = movement.merchant,
         categoryId = movement.categoryId,
+        splitItems = movement.splitItems.map {
+          RecurringMovementView.SplitItem(
+            id = it.id,
+            name = it.name,
+            amount = it.amount.toPlainString(),
+          )
+        },
         nextDueAt = movement.nextDueAt,
         status = movement.status.value,
         generatedOccurrences = movement.generatedOccurrences,
@@ -125,6 +133,13 @@ class ProcessDueRecurringMovementsService(
               description = movement.description,
               merchant = movement.merchant,
               categoryId = movement.categoryId,
+              splitItems = movement.splitItems.map {
+                RecurringMovementDueIntegrationEvent.SplitItem(
+                  id = it.id,
+                  name = it.name,
+                  amount = it.amount.toPlainString(),
+                )
+              },
             ).toJson(),
             status = RecurrenceOutboxStatus.PENDING,
             attempts = 0,

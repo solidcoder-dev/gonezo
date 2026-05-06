@@ -14,6 +14,7 @@ data class ExpectedMovement(
   val merchant: String?,
   val categoryId: String?,
   val originOccurrenceId: String?,
+  val splitItems: List<SplitItem> = emptyList(),
   val status: ExpectedMovementStatus,
   val resolvedTransactionId: String?,
   val createdAt: Instant,
@@ -21,11 +22,24 @@ data class ExpectedMovement(
   val resolvedAt: Instant?,
   val dismissedAt: Instant?,
 ) {
+  data class SplitItem(
+    val id: String,
+    val name: String,
+    val amount: BigDecimal,
+  )
+
   init {
     require(accountId.isNotBlank()) { "accountId is required" }
     require(amount > BigDecimal.ZERO) { "amount must be greater than 0" }
     require(currency.matches(Regex("^[A-Z]{3}$"))) { "currency must be 3 uppercase letters" }
     require(originOccurrenceId == null || originOccurrenceId.isNotBlank()) { "originOccurrenceId cannot be blank" }
+    require(splitItems.all { it.id.isNotBlank() }) { "split item id is required" }
+    require(splitItems.all { it.name.isNotBlank() }) { "split item name is required" }
+    require(splitItems.all { it.amount > BigDecimal.ZERO }) { "split item amount must be greater than 0" }
+    if (splitItems.isNotEmpty()) {
+      val splitTotal = splitItems.fold(BigDecimal.ZERO) { acc, item -> acc + item.amount }
+      require(splitTotal.compareTo(amount) == 0) { "split items must add up to amount" }
+    }
     require(!(status == ExpectedMovementStatus.PENDING && resolvedTransactionId != null)) {
       "pending expected movement cannot have resolved transaction"
     }
@@ -81,6 +95,7 @@ data class ExpectedMovement(
       merchant: String?,
       categoryId: String?,
       originOccurrenceId: String? = null,
+      splitItems: List<SplitItem> = emptyList(),
       createdAt: Instant,
     ): ExpectedMovement = ExpectedMovement(
       id = id,
@@ -93,6 +108,13 @@ data class ExpectedMovement(
       merchant = merchant?.trim()?.ifBlank { null },
       categoryId = categoryId?.trim()?.ifBlank { null },
       originOccurrenceId = originOccurrenceId?.trim()?.ifBlank { null },
+      splitItems = splitItems.map {
+        SplitItem(
+          id = it.id.trim(),
+          name = it.name.trim(),
+          amount = it.amount,
+        )
+      },
       status = ExpectedMovementStatus.PENDING,
       resolvedTransactionId = null,
       createdAt = createdAt,
