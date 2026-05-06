@@ -1956,6 +1956,7 @@ export class CoreAdapterWeb implements CorePort {
       categoryId: transaction.categoryId,
       category: transaction.category,
       tags: transaction.tags,
+      items: transaction.items,
     };
   }
 
@@ -1977,6 +1978,7 @@ export class CoreAdapterWeb implements CorePort {
       merchant: movement.merchant,
       category: movement.categoryId ? { id: movement.categoryId, name: this.categoryNameById(movement.categoryId) ?? movement.categoryId } : undefined,
       tags,
+      items: movement.splitItems,
     };
   }
 
@@ -2076,6 +2078,7 @@ export class CoreAdapterWeb implements CorePort {
       categoryId: movement.categoryId,
       category: movement.categoryId ? { id: movement.categoryId, name: this.categoryNameById(movement.categoryId) ?? movement.categoryId } : undefined,
       tags: [],
+      items: movement.splitItems,
     };
   }
 

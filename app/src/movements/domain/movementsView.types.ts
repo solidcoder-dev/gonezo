@@ -75,6 +75,11 @@ export type MovementsSearchItemView = {
     id: string;
     name: string;
   }>;
+  items?: Array<{
+    id: string;
+    name: string;
+    amount: string;
+  }>;
 };
 
 export type MovementsSearchFiltersState = {

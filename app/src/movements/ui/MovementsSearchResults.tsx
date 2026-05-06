@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
 import { formatCalendarDay } from '../../transactions/ui/postedGrouping';
 import type {
@@ -60,6 +60,28 @@ function sourceLabel(source: MovementsSearchItemView['source']): string {
   if (source === 'posted') return 'Posted';
   if (source === 'scheduled') return 'Scheduled';
   return 'Expected';
+}
+
+function renderSplitItems(items?: MovementsSearchItemView['items']): ReactNode {
+  if (!items || items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="stack detail-split-list">
+      <span className="hint detail-meta-label">Splits</span>
+      <ul className="expense-list expense-list--compact" aria-label="Split items">
+        {items.map((item) => (
+          <li key={item.id} className="expense-item expense-item--compact">
+            <div className="inline-header">
+              <strong>{item.name}</strong>
+              <span>{item.amount}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 function groupDateLabel(isoDateTime: string, now = new Date()): string {
@@ -281,6 +303,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
                 <strong>{selectedEntry.source}</strong>
               </div>
             </div>
+            {renderSplitItems(selectedEntry.items)}
           </section>
         </div>
       ) : null}

@@ -184,6 +184,7 @@ function mapPostedTransactionToSearchItem(transaction: LedgerTransactionListItem
     categoryId: transaction.categoryId,
     category: transaction.category,
     tags: transaction.tags,
+    items: transaction.items,
   };
 }
 
@@ -206,6 +207,7 @@ function mapScheduledMovementToSearchItem(movement: SchedulingMovementItem): Mov
     merchant: movement.merchant,
     category: movement.categoryId ? { id: movement.categoryId, name: movement.categoryId } : undefined,
     tags,
+    items: movement.splitItems,
   };
 }
 
@@ -332,6 +334,7 @@ function mapExpectedMovementToSearchItem(
       ? { id: movement.categoryId, name: categoryNamesById?.get(movement.categoryId) ?? movement.categoryId }
       : undefined,
     tags: [],
+    items: movement.splitItems,
   };
 }
 

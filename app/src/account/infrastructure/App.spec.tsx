@@ -451,6 +451,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
             merchant: transaction.merchant,
             category: transaction.category,
             tags: transaction.tags,
+            items: transaction.items,
           })),
           page: page.page,
           size: page.size,
@@ -2216,6 +2217,51 @@ describe('App Accounts UX', () => {
         }),
       );
     });
+  });
+
+  it('shows split items in advanced-search details for posted movements', async () => {
+    const core = makeCore(1);
+    core.movementsSearch = vi.fn(async (input: MovementsSearchInput): Promise<MovementsSearchResult> => ({
+      content: [
+        {
+          id: 'tx-1',
+          source: 'posted',
+          type: 'expense',
+          status: 'posted',
+          amount: '180.00',
+          currency: 'USD',
+          occurredAt: isoInCurrentMonth(1, 9, 0),
+          title: 'Utilities',
+          description: 'Monthly utilities',
+          merchant: 'Utilities',
+          items: [
+            { id: 'item-1', name: 'Water', amount: '25.00' },
+            { id: 'item-2', name: 'Electricity', amount: '55.00' },
+            { id: 'item-3', name: 'Rent', amount: '90.00' },
+          ],
+        },
+      ],
+      page: input.pagination?.page ?? 0,
+      size: input.pagination?.size ?? 10,
+      totalElements: 1,
+      totalPages: 1,
+      hasNext: false,
+      hasPrevious: false,
+    }));
+
+    render(
+      <MemoryRouter initialEntries={['/movements/search?accountId=acc-1']}>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('1 movement · Grouped by day · Date desc');
+    fireEvent.click(screen.getByText('Utilities'));
+
+    const detailDialog = await screen.findByRole('dialog', { name: 'Movement details' });
+    expect(within(detailDialog).getByText('Splits')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('Water')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('55.00')).toBeInTheDocument();
   });
 
   it('client-filters advanced-search posted results after taxonomy hydration when the adapter ignores category filters', async () => {

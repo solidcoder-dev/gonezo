@@ -488,6 +488,11 @@ export type MovementsSearchItem = {
     id: string;
     name: string;
   }>;
+  items?: Array<{
+    id: string;
+    name: string;
+    amount: string;
+  }>;
 };
 
 export type MovementsSearchInput = {
