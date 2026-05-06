@@ -40,6 +40,7 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
+  MovementsBackupExportResult,
   RecurrenceCreateRecurringMovementInput,
   RecurrenceCreateRecurringMovementResult,
   RecurrenceDeactivateRecurringMovementInput,
@@ -512,6 +513,13 @@ export class CoreAdapter implements CorePort {
       return CorePlugin.orchestrationListTransactionTaxonomy(input);
     }
     return this.web.orchestrationListTransactionTaxonomy(input);
+  }
+
+  async movementsExportBackup(): Promise<MovementsBackupExportResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.movementsExportBackup();
+    }
+    return this.web.movementsExportBackup();
   }
 
   async recurrenceCreateRecurringMovement(

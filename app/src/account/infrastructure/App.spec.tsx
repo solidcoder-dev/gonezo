@@ -269,6 +269,15 @@ function makeCore(transactionCount = 0): AccountsCorePort {
       skippedCount: 0,
       rows: [],
     })),
+    movementsExportBackup: vi.fn(async () => ({
+      fileName: 'gonezo-backup.json',
+      exportedAt: new Date().toISOString(),
+      savedTo: '/tmp/gonezo-backup.json',
+      postedMovementCount: 0,
+      accountCount: 2,
+      categoryCount: 2,
+      tagCount: 2,
+    })),
     orchestrationCategorizeTransaction: vi.fn(async () => ({ status: 'assigned' as const })),
     orchestrationApplyTransactionTags: vi.fn(async () => ({ status: 'assigned' as const })),
     orchestrationListTransactionTaxonomy: vi.fn(async () => ({ items: [] })),
@@ -667,6 +676,10 @@ describe('App Accounts UX', () => {
     await screen.findByText('Net balance');
     fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
     expect(await screen.findByRole('button', { name: 'Import transactions' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Backup' }));
+    await waitFor(() => {
+      expect(core.movementsExportBackup).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('opens add account sheet from accounts menu', async () => {
@@ -800,6 +813,10 @@ describe('App Accounts UX', () => {
 
     await screen.findByRole('heading', { name: 'Create your first account' });
     expect(screen.getByRole('button', { name: 'Import from Mobills' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Backup' }));
+    await waitFor(() => {
+      expect(core.movementsExportBackup).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('opens and closes the mobills import sheet', async () => {

@@ -225,6 +225,44 @@ export type LedgerListTransactionsResult = {
   hasPrevious: boolean;
 };
 
+export type MovementsBackupPostedMovementItem = {
+  id: string;
+  accountId: string;
+  type: LedgerTransactionType;
+  status: 'posted';
+  occurredAt: string;
+  amount: string;
+  currency: string;
+  description?: string;
+  merchant?: string;
+  categoryId?: string;
+  category?: {
+    id: string;
+    name: string;
+  };
+  tagIds: string[];
+  splitItems: LedgerTransactionBreakdownItem[];
+};
+
+export type MovementsBackupExport = {
+  schemaVersion: 1;
+  exportedAt: string;
+  accounts: LedgerAccountItem[];
+  categories: TaxonomyCategoryItem[];
+  tags: TaxonomyTagItem[];
+  postedMovements: MovementsBackupPostedMovementItem[];
+};
+
+export type MovementsBackupExportResult = {
+  fileName: string;
+  exportedAt: string;
+  savedTo?: string;
+  postedMovementCount: number;
+  accountCount: number;
+  categoryCount: number;
+  tagCount: number;
+};
+
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export type RecurrenceMonthlyPattern = 'day_of_month' | 'nth_weekday';
@@ -681,6 +719,7 @@ export interface CorePort {
   orchestrationListTransactionTaxonomy(
     input: OrchestrationListTransactionTaxonomyInput,
   ): Promise<OrchestrationListTransactionTaxonomyResult>;
+  movementsExportBackup(): Promise<MovementsBackupExportResult>;
   recurrenceCreateRecurringMovement(
     input: RecurrenceCreateRecurringMovementInput,
   ): Promise<RecurrenceCreateRecurringMovementResult>;

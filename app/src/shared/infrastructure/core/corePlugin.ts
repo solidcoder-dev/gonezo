@@ -38,6 +38,7 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
+  MovementsBackupExportResult,
   RecurrenceCreateRecurringMovementInput,
   RecurrenceCreateRecurringMovementResult,
   RecurrenceDeactivateRecurringMovementInput,
@@ -94,6 +95,7 @@ export interface CorePlugin {
   orchestrationListTransactionTaxonomy(
     options: OrchestrationListTransactionTaxonomyInput,
   ): Promise<OrchestrationListTransactionTaxonomyResult>;
+  movementsExportBackup(): Promise<MovementsBackupExportResult>;
   recurrenceCreateRecurringMovement(
     options: RecurrenceCreateRecurringMovementInput,
   ): Promise<RecurrenceCreateRecurringMovementResult>;

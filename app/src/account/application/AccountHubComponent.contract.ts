@@ -15,6 +15,7 @@ export type AccountHubComponentProvided = {
     onSelectedAccountChanged?: (accountId: string | null) => void;
     onAccountsCountChanged?: (count: number) => void;
     onImportRequested?: () => void;
+    onBackupRequested?: () => void;
     onLoadPhaseChanged?: (loadPhase: LoadPhase) => void;
     onError?: (error: { message: string }) => void;
   };

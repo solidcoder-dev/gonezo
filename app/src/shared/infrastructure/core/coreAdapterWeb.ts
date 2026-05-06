@@ -39,6 +39,8 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
+  MovementsBackupExport,
+  MovementsBackupExportResult,
   RecurrenceCreateRecurringMovementInput,
   RecurrenceCreateRecurringMovementResult,
   RecurrenceDeactivateRecurringMovementInput,
@@ -2185,6 +2187,98 @@ export class CoreAdapterWeb implements CorePort {
     movement.status = 'dismissed';
     movement.dismissedAt = input.dismissedAt ?? new Date().toISOString();
     movement.updatedAt = movement.dismissedAt;
+  }
+
+  private async collectMovementsBackupExport(): Promise<MovementsBackupExport> {
+    const exportedAt = new Date().toISOString();
+    const [accountsResult, categoriesResult, tagsResult] = await Promise.all([
+      this.ledgerListAccounts(),
+      this.taxonomyListCategories({ includeArchived: true }),
+      this.taxonomyListTags({ includeArchived: true }),
+    ]);
+
+    const postedMovements: MovementsBackupExport['postedMovements'] = [];
+    for (const account of accountsResult.items) {
+      let page = 0;
+      while (true) {
+        const result = await this.ledgerListTransactions({
+          accountId: account.id,
+          filters: {
+            statuses: ['posted'],
+          },
+          pagination: {
+            page,
+            size: 100,
+          },
+          sort: [
+            {
+              field: 'occurredAt',
+              direction: 'desc',
+            },
+          ],
+        });
+
+        postedMovements.push(
+          ...result.content.map((transaction) => ({
+            id: transaction.id,
+            accountId: transaction.accountId,
+            type: transaction.type,
+            status: 'posted' as const,
+            occurredAt: transaction.occurredAt,
+            amount: transaction.amount,
+            currency: transaction.currency,
+            description: transaction.description,
+            merchant: transaction.merchant,
+            categoryId: transaction.categoryId,
+            category: transaction.category,
+            tagIds: (transaction.tags ?? []).map((tag) => tag.id),
+            splitItems: transaction.items,
+          })),
+        );
+
+        if (!result.hasNext || result.content.length === 0) {
+          break;
+        }
+        page += 1;
+      }
+    }
+
+    return {
+      schemaVersion: 1,
+      exportedAt,
+      accounts: accountsResult.items,
+      categories: categoriesResult.items,
+      tags: tagsResult.items,
+      postedMovements,
+    };
+  }
+
+  async movementsExportBackup(): Promise<MovementsBackupExportResult> {
+    const exportData = await this.collectMovementsBackupExport();
+    const fileName = `gonezo-backup-${exportData.exportedAt.replace(/[:]/g, '-').replace(/\.\d{3}Z$/, 'Z')}.json`;
+    const json = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    try {
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = fileName;
+      anchor.rel = 'noopener';
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+
+    return {
+      fileName,
+      exportedAt: exportData.exportedAt,
+      postedMovementCount: exportData.postedMovements.length,
+      accountCount: exportData.accounts.length,
+      categoryCount: exportData.categories.length,
+      tagCount: exportData.tags.length,
+    };
   }
 
   async movementsSearch(input: MovementsSearchInput): Promise<MovementsSearchResult> {

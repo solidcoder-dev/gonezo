@@ -206,9 +206,14 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
           <button type="submit" disabled={creating}>
             {creating ? 'Creating account...' : 'Create account'}
           </button>
-          <button type="button" className="text-button" onClick={provided.events?.onImportRequested}>
-            Import from Mobills
-          </button>
+          <div className="quick-row">
+            <button type="button" className="text-button" onClick={provided.events?.onImportRequested}>
+              Import from Mobills
+            </button>
+            <button type="button" className="text-button" onClick={provided.events?.onBackupRequested}>
+              Backup
+            </button>
+          </div>
         </form>
       </>
     );
@@ -294,6 +299,7 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
             },
             onAddAccount: () => setCreateFormOpen(true),
             onImport: provided.events?.onImportRequested ?? (() => undefined),
+            onBackup: provided.events?.onBackupRequested ?? (() => undefined),
           }}
         />
       </section>

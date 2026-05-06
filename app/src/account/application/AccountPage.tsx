@@ -86,6 +86,13 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
     }
   }
 
+  async function requestMovementsBackup(): Promise<void> {
+    const result = await pageRequired.core.movementsExportBackup();
+    setToastMessage(`Backup saved: ${result.fileName} (${result.postedMovementCount} posted movements).`);
+    setToastActionLabel('');
+    setToastAction(null);
+  }
+
   function editExpectedMovement(movement: ExpectedMovementView, categoryName?: string) {
     setTransactionEntryPrefill({
       requestId: Date.now(),
@@ -128,6 +135,13 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
           onSelectedAccountChanged: handleSelectedAccountChanged,
           onAccountsCountChanged: setAccountsCount,
           onImportRequested: () => setImportSheetOpen(true),
+          onBackupRequested: () => {
+            void requestMovementsBackup().catch((err) => {
+              setToastMessage(toErrorMessage(err));
+              setToastActionLabel('');
+              setToastAction(null);
+            });
+          },
         },
       }}
     />

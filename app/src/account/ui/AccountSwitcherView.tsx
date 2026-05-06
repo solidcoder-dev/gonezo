@@ -11,6 +11,7 @@ export type AccountSwitcherViewProvided = {
   onSelect: (accountId: string) => void;
   onAddAccount: () => void;
   onImport: () => void;
+  onBackup: () => void;
 };
 
 type Props = {
@@ -91,6 +92,17 @@ export function AccountSwitcherView({ required, provided }: Props) {
                 }}
               >
                 Import transactions
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                disabled={required.disabled}
+                onClick={() => {
+                  provided.onBackup();
+                  setShowAccounts(false);
+                }}
+              >
+                Backup
               </button>
             </div>
           </div>
