@@ -43,6 +43,7 @@ export type TransactionEntryViewRequired = {
     recurrenceEndDate: string;
     recurrenceEndCount: string;
     expected: boolean;
+    postExpectedMovementId?: string;
     currencyCode?: string;
   };
   status: {

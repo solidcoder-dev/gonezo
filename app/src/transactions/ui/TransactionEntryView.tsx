@@ -47,6 +47,7 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         recurrenceEndDate: required.state.recurrenceEndDate,
         recurrenceEndCount: required.state.recurrenceEndCount,
         expected: required.state.expected,
+        postExpectedMovementId: required.state.postExpectedMovementId,
         currencyCode: required.state.currencyCode,
         expenseItemNameError: required.status.errors.expenseItemName,
         expenseItemAmountError: required.status.errors.expenseItemAmount,

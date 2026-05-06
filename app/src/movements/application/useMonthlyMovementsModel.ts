@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LedgerTransactionListItem, TaxonomyCategoryItem, TaxonomyTagItem } from '../../shared/domain/corePort';
 import { useLedgerTransactions } from '../../ledger/application/useLedgerTransactions';
-import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
 import { createExpectedGateway } from '../../expected/infrastructure/expectedGateway';
 import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
 import { createSchedulingGateway } from '../../scheduling/infrastructure/schedulingGateway';
@@ -23,6 +22,7 @@ type UseMonthlyMovementsModelInput = {
   onVoided?: (transactionId: string) => void;
   onExpectedPosted?: () => void;
   onExpectedDismissed?: () => void;
+  onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
   onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
   onError?: (error: { message: string }) => void;
 };
@@ -75,34 +75,6 @@ function monthLabel(date: Date): string {
 
 function sameMonth(left: Date, right: Date): boolean {
   return left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth();
-}
-
-function resolveOccurredAt(dateInput: string): string {
-  const raw = dateInput.trim();
-  if (!raw) {
-    return new Date().toISOString();
-  }
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-    const [year, month, day] = raw.split('-').map((value) => Number(value));
-    const now = new Date();
-    return new Date(
-      year,
-      month - 1,
-      day,
-      now.getHours(),
-      now.getMinutes(),
-      now.getSeconds(),
-      now.getMilliseconds(),
-    ).toISOString();
-  }
-
-  const parsed = new Date(raw);
-  if (!Number.isNaN(parsed.getTime())) {
-    return parsed.toISOString();
-  }
-
-  throw new Error('Date must be valid.');
 }
 
 function normalizeAmount(rawAmount: string): string {
@@ -176,7 +148,17 @@ function filterDuplicateScheduledItems(
 }
 
 export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
-  const { core, accountId, enabled, refreshSignal, onVoided, onExpectedPosted, onExpectedDismissed, onEditExpectedMovement, onError } = input;
+  const {
+    core,
+    accountId,
+    enabled,
+    refreshSignal,
+    onVoided,
+    onExpectedDismissed,
+    onPostExpectedMovement,
+    onEditExpectedMovement,
+    onError,
+  } = input;
 
   const [loading, setLoading] = useState(true);
   const [postingTransaction, setPostingTransaction] = useState(false);
@@ -206,7 +188,6 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
 
   const [pendingVoidTransactionId, setPendingVoidTransactionId] = useState('');
   const [pendingDeactivateScheduledId, setPendingDeactivateScheduledId] = useState('');
-  const [pendingPostExpectedId, setPendingPostExpectedId] = useState('');
   const [pendingDismissExpectedId, setPendingDismissExpectedId] = useState('');
   const [voidMutationPhase, setVoidMutationPhase] = useState<'idle' | 'scheduled' | 'committing'>('idle');
 
@@ -228,7 +209,6 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const taxonomyGateway = useMemo(() => createTaxonomyGateway(core), [core]);
 
   const ledgerTransactions = useLedgerTransactions(ledgerGateway);
-  const ledgerTransactionCommands = useLedgerTransactionCommands(ledgerGateway);
   const categorySuggestions = useCategorySuggestions(taxonomyGateway);
   const tagSuggestions = useTagSuggestions(taxonomyGateway);
   const transactionClassification = useTransactionClassification(taxonomyGateway);
@@ -455,7 +435,6 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       setPagination(EMPTY_PAGINATION);
       setPendingVoidTransactionId('');
       setPendingDeactivateScheduledId('');
-      setPendingPostExpectedId('');
       setPostingTransaction(false);
       setVoidMutationPhase('idle');
       setMonthMenuOpen(false);
@@ -482,7 +461,6 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       setPagination(EMPTY_PAGINATION);
       setPendingVoidTransactionId('');
       setPendingDeactivateScheduledId('');
-      setPendingPostExpectedId('');
       setPostingTransaction(false);
       setVoidMutationPhase('idle');
       setMonthMenuOpen(false);
@@ -577,47 +555,14 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     }
   }
 
-  async function postExpectedMovement(movement: ExpectedMovementView): Promise<boolean> {
-    if (!accountId) {
-      reportError(new Error('Account is required.'));
+  async function postExpectedMovement(movement: ExpectedMovementView, categoryName?: string): Promise<boolean> {
+    if (!onPostExpectedMovement) {
+      reportError(new Error('Posting expected movements is not available.'));
       return false;
     }
 
-    setMutating(true);
-    setPendingPostExpectedId(movement.id);
-    setError('');
-    try {
-      const amount = normalizeAmount(movement.amount);
-      const occurredAt = resolveOccurredAt(movement.expectedAt);
-      const payload = {
-        accountId,
-        occurredAt,
-        amount,
-        currency: movement.currency,
-        description: movement.description?.trim() || undefined,
-        merchant: movement.merchant?.trim() || undefined,
-        categoryId: movement.categoryId?.trim() || undefined,
-      };
-      const result = movement.type === 'income'
-        ? await ledgerTransactionCommands.recordIncome(payload)
-        : await ledgerTransactionCommands.recordExpense(payload);
-
-      await expectedGateway.expectedResolveMovement({
-        expectedMovementId: movement.id,
-        transactionId: result.id,
-        resolvedAt: new Date().toISOString(),
-      });
-      await refreshMovements();
-      onExpectedPosted?.();
-      showToast('Expected movement posted.');
-      return true;
-    } catch (err) {
-      reportError(err);
-      return false;
-    } finally {
-      setMutating(false);
-      setPendingPostExpectedId('');
-    }
+    onPostExpectedMovement(movement, categoryName);
+    return true;
   }
 
   async function dismissExpectedMovement(movement: ExpectedMovementView): Promise<boolean> {
@@ -670,7 +615,6 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       pagination,
       pendingVoidTransactionId: pendingVoidTransactionId || undefined,
       pendingDeactivateScheduledId: pendingDeactivateScheduledId || undefined,
-      pendingPostExpectedId: pendingPostExpectedId || undefined,
       pendingDismissExpectedId: pendingDismissExpectedId || undefined,
     },
     status: {

@@ -171,6 +171,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [schedulingMode, setSchedulingMode] = useState<'now' | 'scheduled'>('now');
   const [expectedMovement, setExpectedMovement] = useState(false);
   const [editedExpectedMovementId, setEditedExpectedMovementId] = useState('');
+  const [postExpectedMovementId, setPostExpectedMovementId] = useState('');
   const [schedulingKind, setSchedulingKind] = useState<'one_shot' | 'recurring'>('one_shot');
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<SchedulingFrequency>('monthly');
   const [recurrenceInterval, setRecurrenceInterval] = useState('1');
@@ -265,6 +266,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setSchedulingMode('now');
     setExpectedMovement(false);
     setEditedExpectedMovementId('');
+    setPostExpectedMovementId('');
     setSchedulingKind('one_shot');
     setRecurrenceFrequency('monthly');
     setRecurrenceInterval('1');
@@ -363,11 +365,12 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setTransactionNote(prefillRequest.note ?? '');
     setTransactionCategoryInput(prefillRequest.categoryId ?? '');
     setSchedulingMode('now');
-    setExpectedMovement((prefillRequest.splitItems?.length ?? 0) > 0);
+    setExpectedMovement((prefillRequest.splitItems?.length ?? 0) > 0 && !prefillRequest.postExpectedMovementId);
     setExpenseDetailed((prefillRequest.splitItems?.length ?? 0) > 0);
     setExpenseItems(cloneExpenseItems(prefillRequest.splitItems ?? []));
     setEditingExpenseItemId('');
-    setEditedExpectedMovementId(prefillRequest.editedExpectedMovementId ?? '');
+    setEditedExpectedMovementId(prefillRequest.postExpectedMovementId ? '' : (prefillRequest.editedExpectedMovementId ?? ''));
+    setPostExpectedMovementId(prefillRequest.postExpectedMovementId ?? '');
 
     void (async () => {
       try {
@@ -949,6 +952,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     const movementScheduled = (composerMode === 'expense' || composerMode === 'income')
       && !movementExpected
       && !editedExpectedMovementId
+      && !postExpectedMovementId
       && (recurrenceEnabled || isFutureIsoDateInput(resolvedTransactionDate));
 
     if (!movementExpected && composerMode !== 'expense') {
@@ -1431,6 +1435,12 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
             transactionId: postedTransactionId,
             resolvedAt: new Date().toISOString(),
           });
+        } else if (postExpectedMovementId && postedTransactionId) {
+          await expectedGateway.expectedResolveMovement({
+            expectedMovementId: postExpectedMovementId,
+            transactionId: postedTransactionId,
+            resolvedAt: new Date().toISOString(),
+          });
         }
         onRecorded?.();
         setComposerOpen(false);
@@ -1487,6 +1497,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       recurrenceEndDate,
       recurrenceEndCount,
       expected: expectedMovement,
+      postExpectedMovementId: postExpectedMovementId || undefined,
       currencyCode: accountCurrency,
     },
     status: {

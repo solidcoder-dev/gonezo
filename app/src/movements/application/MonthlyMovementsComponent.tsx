@@ -19,6 +19,7 @@ export type MonthlyMovementsComponentProps = {
       onVoided?: (transactionId: string) => void;
       onExpectedPosted?: () => void;
       onExpectedDismissed?: () => void;
+      onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
       onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
       onError?: (error: { message: string }) => void;
     };
@@ -34,6 +35,7 @@ export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMo
     onVoided: provided.events?.onVoided,
     onExpectedPosted: provided.events?.onExpectedPosted,
     onExpectedDismissed: provided.events?.onExpectedDismissed,
+    onPostExpectedMovement: provided.events?.onPostExpectedMovement,
     onEditExpectedMovement: provided.events?.onEditExpectedMovement,
     onError: provided.events?.onError,
   });

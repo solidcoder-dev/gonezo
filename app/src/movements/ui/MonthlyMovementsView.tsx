@@ -182,7 +182,6 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
     filterOptions,
     pendingVoidTransactionId,
     pendingDeactivateScheduledId,
-    pendingPostExpectedId,
     pendingDismissExpectedId,
   } = required.state;
   const { loading, disabled } = required.status;
@@ -605,16 +604,19 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
             <div className="detail-actions">
               <button
                 type="button"
-                disabled={disabled || pendingPostExpectedId === selectedExpectedMovement.id}
+                disabled={disabled}
                 onClick={() => {
-                  void provided.commands.postExpectedMovement(selectedExpectedMovement).then((posted) => {
+                  void provided.commands.postExpectedMovement(
+                    selectedExpectedMovement,
+                    resolveExpectedCategoryName(selectedExpectedMovement.categoryId),
+                  ).then((posted) => {
                     if (posted) {
                       setSelectedExpectedMovement(null);
                     }
                   });
                 }}
               >
-                {pendingPostExpectedId === selectedExpectedMovement.id ? 'Posting...' : 'Post movement'}
+                Post movement
               </button>
               <button
                 type="button"
@@ -628,7 +630,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
                   setSelectedExpectedMovement(null);
                 }}
               >
-                Edit movement
+                Edit expected
               </button>
               <button
                 type="button"

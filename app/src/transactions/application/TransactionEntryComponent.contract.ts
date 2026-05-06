@@ -3,6 +3,7 @@ import type { TransactionsCorePort } from './transactionsCore.port';
 export type TransactionEntryPrefillRequest = {
   requestId: number;
   editedExpectedMovementId?: string;
+  postExpectedMovementId?: string;
   mode: 'expense' | 'income';
   amount: string;
   date: string;

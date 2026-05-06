@@ -2343,7 +2343,7 @@ describe('App Accounts UX', () => {
     expect(screen.queryByText(/No scheduled movements in/i)).not.toBeInTheDocument();
   });
 
-  it('shows expected movements as their own monthly section', async () => {
+  it('posts an expected movement through a copy without editing the expected', async () => {
     const core = makeCore();
     await core.expectedCreateMovement({
       accountId: 'acc-1',
@@ -2379,22 +2379,30 @@ describe('App Accounts UX', () => {
 
     fireEvent.click(within(detailDialog).getByRole('button', { name: 'Post movement' }));
 
+    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    expect(within(composer).getByRole('heading', { name: 'Post expense' })).toBeInTheDocument();
+    fireEvent.click(within(composer).getByRole('button', { name: 'Post movement' }));
+
     await waitFor(() => {
-      expect(core.ledgerRecordExpense).toHaveBeenCalledWith(expect.objectContaining({
+      expect(core.ledgerCreateExpenseDraft).toHaveBeenCalledWith(expect.objectContaining({
         accountId: 'acc-1',
         amount: '42.00',
         currency: 'USD',
-        merchant: undefined,
+        merchant: 'Expected rent',
         description: 'Expected rent',
-        categoryId: 'cat-food',
       }));
+    });
+    expect(core.ledgerAddTransactionItem).toHaveBeenCalledTimes(2);
+    expect(core.ledgerPostDraftTransaction).toHaveBeenCalledWith({
+      transactionId: 'tx-draft',
     });
     await waitFor(() => {
       expect(core.expectedResolveMovement).toHaveBeenCalledWith(expect.objectContaining({
         expectedMovementId: 'exp-1',
-        transactionId: 'tx-exp',
+        transactionId: 'tx-draft',
       }));
     });
+    expect(core.expectedUpdateMovement).not.toHaveBeenCalled();
   });
 
   it('hides scheduled rows when the month already has the matching expected movement', async () => {
@@ -2466,7 +2474,7 @@ describe('App Accounts UX', () => {
     const expectedRow = await screen.findByText('Expected rent');
     fireEvent.click(expectedRow.closest('button')!);
     const detailDialog = await screen.findByRole('dialog', { name: 'Expected movement details' });
-    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Edit movement' }));
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Edit expected' }));
 
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
     expect(within(composer).getByRole('heading', { name: 'New expense' })).toBeInTheDocument();
@@ -2506,7 +2514,7 @@ describe('App Accounts UX', () => {
     const expectedRow = await screen.findByText('Expected rent');
     fireEvent.click(expectedRow.closest('button')!);
     const detailDialog = await screen.findByRole('dialog', { name: 'Expected movement details' });
-    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Edit movement' }));
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Edit expected' }));
 
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
     fireEvent.click(within(composer).getByRole('button', { name: 'Save expected' }));

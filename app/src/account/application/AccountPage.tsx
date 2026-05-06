@@ -99,6 +99,19 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
     });
   }
 
+  function postExpectedMovement(movement: ExpectedMovementView, categoryName?: string) {
+    setTransactionEntryPrefill({
+      requestId: Date.now(),
+      postExpectedMovementId: movement.id,
+      mode: movement.type,
+      amount: movement.amount,
+      date: toDateInputValue(movement.expectedAt),
+      note: movement.merchant || movement.description || '',
+      categoryId: categoryName ?? movement.categoryId,
+      splitItems: movement.splitItems,
+    });
+  }
+
   const accountHub = (
     <AccountHubComponent
       required={{
@@ -211,6 +224,7 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
                   onExpectedDismissed: () => {
                     setAccountSummaryRefreshSignal((previous) => !previous);
                   },
+                  onPostExpectedMovement: postExpectedMovement,
                   onEditExpectedMovement: editExpectedMovement,
                 },
               }}

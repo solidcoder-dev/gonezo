@@ -53,6 +53,7 @@ export type TransactionComposerViewRequired = {
   recurrenceEndDate: string;
   recurrenceEndCount: string;
   expected: boolean;
+  postExpectedMovementId?: string;
   currencyCode?: string;
   expenseItemNameError?: string;
   expenseItemAmountError?: string;
@@ -116,6 +117,14 @@ function titleForMode(mode: ComposerMode): string {
   return 'Add movement';
 }
 
+function titleForModeAndPurpose(mode: ComposerMode, postExpectedMovementId?: string): string {
+  if (postExpectedMovementId) {
+    if (mode === 'expense') return 'Post expense';
+    if (mode === 'income') return 'Post income';
+  }
+  return titleForMode(mode);
+}
+
 function formatDateInput(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 8);
   if (digits.length <= 4) {
@@ -173,6 +182,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     recurrenceEndDate,
     recurrenceEndCount,
     expected,
+    postExpectedMovementId,
     currencyCode,
     expenseItemNameError,
     expenseItemAmountError,
@@ -238,6 +248,7 @@ export function TransactionComposerView({ required, provided }: Props) {
   }, [open, mode]);
 
   const expectedAvailable = mode === 'expense' || mode === 'income';
+  const postExpectedMovement = Boolean(postExpectedMovementId);
   const amountLabel = mode === 'transfer'
     ? `Amount out${currencyCode ? ` (${currencyCode})` : ''}`
     : expected
@@ -285,7 +296,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     >
       <section className="sheet-panel composer-sheet" role="dialog" aria-modal="true" aria-label="Transaction composer" onClick={(event) => event.stopPropagation()}>
         <div className="inline-header">
-          <h3>{titleForMode(mode)}</h3>
+          <h3>{titleForModeAndPurpose(mode, postExpectedMovementId)}</h3>
           <button
             type="button"
             className="text-button icon-button"
@@ -891,7 +902,7 @@ export function TransactionComposerView({ required, provided }: Props) {
             ) : null}
 
             <button type="submit" className="primary-cta" disabled={disabled || !splitReady}>
-              {expectedAvailable && expected ? 'Save expected' : 'Save'}
+              {postExpectedMovement ? 'Post movement' : expectedAvailable && expected ? 'Save expected' : 'Save'}
             </button>
           </form>
         )}
