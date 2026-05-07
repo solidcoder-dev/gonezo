@@ -770,6 +770,58 @@ public class CorePlugin extends Plugin {
   }
 
   @PluginMethod
+  public void recurrenceUpdateRecurringMovement(PluginCall call) {
+    String recurringMovementId = call.getString("recurringMovementId");
+    String type = call.getString("type", "expense");
+    String sourceAccountId = call.getString("sourceAccountId");
+    String targetAccountId = call.getString("targetAccountId");
+    String amount = call.getString("amount");
+    String currency = call.getString("currency");
+    String description = call.getString("description");
+    String merchant = call.getString("merchant");
+    String destinationAmount = call.getString("destinationAmount");
+    String destinationCurrency = call.getString("destinationCurrency");
+    String exchangeRate = call.getString("exchangeRate");
+    String startAt = call.getString("startAt", Instant.now().toString());
+    String zoneId = call.getString("zoneId", "UTC");
+    String categoryId = call.getString("categoryId");
+    JSONArray splitItems = call.getArray("splitItems");
+    JSObject rule = call.getObject("rule");
+    JSObject recurrenceEnd = call.getObject("recurrenceEnd");
+
+    try {
+      AndroidRecurringCore recurrenceCore = AndroidRecurringCore.getInstance(getContext());
+      UUID id = recurrenceCore.updateRecurringMovement(
+        new AndroidRecurringCore.UpdateRecurringMovementInput(
+          recurringMovementId,
+          type == null ? "expense" : type.trim().toLowerCase(Locale.ROOT),
+          sourceAccountId,
+          nullIfBlank(targetAccountId),
+          amount,
+          currency,
+          nullIfBlank(destinationAmount),
+          nullIfBlank(destinationCurrency),
+          nullIfBlank(exchangeRate),
+          nullIfBlank(description),
+          nullIfBlank(merchant),
+          nullIfBlank(categoryId),
+          splitItems == null ? null : splitItems.toString(),
+          toRecurringRuleInput(rule),
+          toRecurrenceEndInput(recurrenceEnd),
+          startAt,
+          zoneId == null ? "UTC" : zoneId.trim()
+        )
+      );
+
+      JSObject result = new JSObject();
+      result.put("id", id.toString());
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
   public void recurrenceDeactivateRecurringMovement(PluginCall call) {
     String recurringMovementId = call.getString("recurringMovementId");
     String deactivatedAt = call.getString("deactivatedAt", Instant.now().toString());

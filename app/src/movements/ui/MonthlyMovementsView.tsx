@@ -174,10 +174,8 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
     items,
     scheduledItems,
     scheduledTotal,
-    scheduledHasMore,
     expectedItems,
     expectedTotal,
-    expectedHasMore,
     pagination,
     filterOptions,
     pendingVoidTransactionId,
@@ -319,7 +317,6 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
               <span>Expected</span>
               <span className="movement-section-count">
                 {expectedTotal}
-                {expectedHasMore ? ' (preview)' : ''}
               </span>
               <i className={expectedExpanded ? 'bi bi-chevron-up' : 'bi bi-chevron-down'} aria-hidden />
             </button>
@@ -369,13 +366,6 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
               </ul>
             </div>
           )) : null}
-          {expectedExpanded && expectedHasMore ? (
-            <div className="quick-row">
-              <Link className="text-button" to={searchHref}>
-                See all expected
-              </Link>
-            </div>
-          ) : null}
         </div>
       ) : null}
 
@@ -392,7 +382,6 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
               <span>Scheduled</span>
               <span className="movement-section-count">
                 {scheduledTotal}
-                {scheduledHasMore ? ' (preview)' : ''}
               </span>
               <i className={scheduledExpanded ? 'bi bi-chevron-up' : 'bi bi-chevron-down'} aria-hidden />
             </button>
@@ -444,13 +433,6 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
               </ul>
             </div>
           )) : null}
-          {scheduledExpanded && scheduledHasMore ? (
-            <div className="quick-row">
-              <Link className="text-button" to={searchHref}>
-                See all scheduled
-              </Link>
-            </div>
-          ) : null}
         </div>
       ) : null}
 
@@ -711,6 +693,22 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
             </div>
             {renderSplitItems(selectedScheduledMovement.splitItems)}
             <div className="detail-actions">
+              {selectedScheduledMovement.status === 'active' ? (
+                <button
+                  type="button"
+                  className="text-button"
+                  disabled={disabled}
+                  onClick={() => {
+                    provided.commands.editScheduledMovement(
+                      selectedScheduledMovement,
+                      resolveScheduledCategoryName(selectedScheduledMovement.categoryId),
+                    );
+                    setSelectedScheduledMovement(null);
+                  }}
+                >
+                  Edit movement
+                </button>
+              ) : null}
               {selectedScheduledMovement.status === 'active' ? (
                 <button
                   type="button"

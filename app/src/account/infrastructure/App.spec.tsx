@@ -285,6 +285,33 @@ function makeCore(transactionCount = 0): AccountsCorePort {
     recurrenceDeactivateRecurringMovement: vi.fn(async () => undefined),
     recurrenceListRecurringMovements: vi.fn(async () => ({ items: [] })),
     schedulingCreateMovement: vi.fn(async (input) => core.recurrenceCreateRecurringMovement(input)),
+    schedulingUpdateMovement: vi.fn(async (input) => {
+      const movement = scheduledMovements.find((item) => item.id === input.recurringMovementId);
+      if (!movement) {
+        throw new Error(`Recurring movement not found: ${input.recurringMovementId}`);
+      }
+      movement.type = input.type;
+      movement.sourceAccountId = input.sourceAccountId;
+      movement.targetAccountId = input.targetAccountId;
+      movement.amount = input.amount;
+      movement.currency = input.currency;
+      movement.destinationAmount = input.destinationAmount;
+      movement.destinationCurrency = input.destinationCurrency;
+      movement.exchangeRate = input.exchangeRate;
+      movement.description = input.description;
+      movement.merchant = input.merchant;
+      movement.categoryId = input.categoryId;
+      movement.tagIds = input.tagIds;
+      movement.tagNames = input.tagNames;
+      movement.splitItems = (input.splitItems ?? []).map((item: { id: string; name: string; amount: string }) => ({ ...item }));
+      movement.rule = input.rule;
+      movement.recurrenceEnd = input.recurrenceEnd;
+      movement.startAt = input.startAt;
+      movement.zoneId = input.zoneId;
+      movement.scheduleKind = input.scheduleKind ?? movement.scheduleKind;
+      movement.origin = movement.scheduleKind;
+      return { id: movement.id };
+    }),
     schedulingDeactivateMovement: vi.fn(async (input) => core.recurrenceDeactivateRecurringMovement(input)),
     schedulingListMovements: vi.fn(async (input) => {
       const sourceAccountId = input.sourceAccountId;
@@ -2873,6 +2900,61 @@ describe('App Accounts UX', () => {
       expect(screen.queryByRole('dialog', { name: 'Scheduled movement details' })).not.toBeInTheDocument();
     });
     expect(screen.getByRole('status')).toHaveTextContent('Scheduled movement deactivated.');
+  });
+
+  it('opens the composer with scheduled movement values for editing', async () => {
+    const core = makeCore();
+    await core.schedulingCreateMovement({
+      type: 'expense',
+      sourceAccountId: 'acc-1',
+      amount: '15.00',
+      currency: 'USD',
+      description: 'Scheduled rent',
+      categoryId: 'cat-food',
+      rule: { frequency: 'daily', interval: 1 },
+      recurrenceEnd: { kind: 'after_occurrences', afterOccurrences: 1 },
+      startAt: '2026-05-11T10:00:00.000Z',
+      zoneId: 'UTC',
+      scheduleKind: 'one_shot',
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    await expandScheduledMovements();
+    const scheduledRow = await screen.findByText('Scheduled rent');
+    fireEvent.click(scheduledRow.closest('button')!);
+    const detailDialog = await screen.findByRole('dialog', { name: 'Scheduled movement details' });
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Edit movement' }));
+
+    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    await waitFor(() => {
+      expect(within(composer).getByRole('heading', { name: 'Edit scheduled expense' })).toBeInTheDocument();
+    });
+    expect(within(composer).getByLabelText('Amount')).toHaveValue(15);
+    expect(within(composer).getByLabelText('Date')).toHaveValue('2026-05-11');
+    expect(within(composer).getByLabelText('Merchant')).toHaveValue('Scheduled rent');
+    expect(within(composer).getByLabelText('Category')).toHaveValue('Food');
+
+    fireEvent.change(within(composer).getByLabelText('Amount'), { target: { value: '17' } });
+    fireEvent.click(within(composer).getByRole('button', { name: 'Update scheduled' }));
+
+    await waitFor(() => {
+      expect(core.schedulingUpdateMovement).toHaveBeenCalledTimes(1);
+    });
+    expect(core.schedulingUpdateMovement).toHaveBeenCalledWith(expect.objectContaining({
+      recurringMovementId: 'rec-1',
+      type: 'expense',
+      amount: '17.00',
+      currency: 'USD',
+      categoryId: 'cat-food',
+    }));
+    await waitFor(() => {
+      expect(screen.getByText('-$17.00')).toBeInTheDocument();
+    });
   });
 
   it('infers one-shot metadata for legacy scheduled items', async () => {

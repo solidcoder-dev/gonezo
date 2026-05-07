@@ -50,11 +50,12 @@ export type TransactionComposerViewRequired = {
   recurrenceMonthlyOrdinal: string;
   recurrenceMonthlyWeekday: string;
   recurrenceEndKind: RecurrenceEndInput['kind'];
-  recurrenceEndDate: string;
-  recurrenceEndCount: string;
-  expected: boolean;
-  postExpectedMovementId?: string;
-  currencyCode?: string;
+    recurrenceEndDate: string;
+    recurrenceEndCount: string;
+    expected: boolean;
+    editedScheduledMovementId?: string;
+    postExpectedMovementId?: string;
+    currencyCode?: string;
   expenseItemNameError?: string;
   expenseItemAmountError?: string;
   expenseSplitError?: string;
@@ -117,10 +118,19 @@ function titleForMode(mode: ComposerMode): string {
   return 'Add movement';
 }
 
-function titleForModeAndPurpose(mode: ComposerMode, postExpectedMovementId?: string): string {
+function titleForModeAndPurpose(
+  mode: ComposerMode,
+  postExpectedMovementId?: string,
+  editedScheduledMovementId?: string,
+): string {
   if (postExpectedMovementId) {
     if (mode === 'expense') return 'Post expense';
     if (mode === 'income') return 'Post income';
+  }
+  if (editedScheduledMovementId) {
+    if (mode === 'expense') return 'Edit scheduled expense';
+    if (mode === 'income') return 'Edit scheduled income';
+    return 'Edit scheduled movement';
   }
   return titleForMode(mode);
 }
@@ -182,6 +192,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     recurrenceEndDate,
     recurrenceEndCount,
     expected,
+    editedScheduledMovementId,
     postExpectedMovementId,
     currencyCode,
     expenseItemNameError,
@@ -247,7 +258,8 @@ export function TransactionComposerView({ required, provided }: Props) {
     return undefined;
   }, [open, mode]);
 
-  const expectedAvailable = mode === 'expense' || mode === 'income';
+  const editingScheduledMovement = Boolean(editedScheduledMovementId);
+  const expectedAvailable = (mode === 'expense' || mode === 'income') && !editingScheduledMovement;
   const postExpectedMovement = Boolean(postExpectedMovementId);
   const amountLabel = mode === 'transfer'
     ? `Amount out${currencyCode ? ` (${currencyCode})` : ''}`
@@ -296,7 +308,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     >
       <section className="sheet-panel composer-sheet" role="dialog" aria-modal="true" aria-label="Transaction composer" onClick={(event) => event.stopPropagation()}>
         <div className="inline-header">
-          <h3>{titleForModeAndPurpose(mode, postExpectedMovementId)}</h3>
+          <h3>{titleForModeAndPurpose(mode, postExpectedMovementId, editedScheduledMovementId)}</h3>
           <button
             type="button"
             className="text-button icon-button"
@@ -561,7 +573,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                           type="checkbox"
                           checked={expected}
                           onChange={() => onSetExpected(!expected)}
-                          disabled={disabled}
+                          disabled={disabled || editingScheduledMovement}
                         />
                         Expected
                       </label>
@@ -905,7 +917,13 @@ export function TransactionComposerView({ required, provided }: Props) {
 
             <div className="composer-actions">
               <button type="submit" className="primary-cta" disabled={disabled || !splitReady}>
-                {postExpectedMovement ? 'Post movement' : expectedAvailable && expected ? 'Save expected' : 'Save'}
+                {postExpectedMovement
+                  ? 'Post movement'
+                  : editingScheduledMovement
+                    ? 'Update scheduled'
+                    : expectedAvailable && expected
+                      ? 'Save expected'
+                      : 'Save'}
               </button>
             </div>
           </form>

@@ -51,6 +51,8 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
+  SchedulingUpdateMovementInput,
+  SchedulingUpdateMovementResult,
   SchedulingMovementItem,
   ExpectedCreateMovementInput,
   ExpectedCreateMovementResult,
@@ -557,6 +559,15 @@ export class CoreAdapter implements CorePort {
     return this.web.schedulingCreateMovement(input);
   }
 
+  async schedulingUpdateMovement(
+    input: SchedulingUpdateMovementInput,
+  ): Promise<SchedulingUpdateMovementResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.recurrenceUpdateRecurringMovement(input);
+    }
+    return this.web.schedulingUpdateMovement(input);
+  }
+
   async schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void> {
     if (Capacitor.isNativePlatform()) {
       await CorePlugin.recurrenceDeactivateRecurringMovement(input);
@@ -626,24 +637,31 @@ export class CoreAdapter implements CorePort {
 
     const fromDate = input.fromDate ?? input.filters?.fromDate;
     const toDate = input.toDate ?? input.filters?.toDate;
-    const previewSize = input.scheduledPreviewSize != null && input.scheduledPreviewSize > 0
-      ? Math.min(Math.trunc(input.scheduledPreviewSize), 20)
-      : 5;
     const expectedPreviewSize = input.expectedPreviewSize != null && input.expectedPreviewSize > 0
       ? Math.min(Math.trunc(input.expectedPreviewSize), 20)
-      : previewSize;
-
-    const scheduledPage = await this.movementsListScheduled({
-      accountId: input.accountId,
-      filters: {
-        fromDate,
-        toDate,
-      },
-      pagination: {
-        page: 0,
-        size: previewSize,
-      },
-    });
+      : 5;
+    const scheduledItems: SchedulingMovementItem[] = [];
+    let scheduledPageIndex = 0;
+    let hasMoreScheduled = true;
+    while (hasMoreScheduled) {
+      const pageResult = await this.movementsListScheduled({
+        accountId: input.accountId,
+        filters: {
+          fromDate,
+          toDate,
+        },
+        pagination: {
+          page: scheduledPageIndex,
+          size: 100,
+        },
+      });
+      scheduledItems.push(...pageResult.content);
+      hasMoreScheduled = pageResult.hasNext;
+      scheduledPageIndex += 1;
+      if (!hasMoreScheduled || pageResult.content.length === 0) {
+        break;
+      }
+    }
     const expectedResult = await this.expectedListMovements({
       accountId: input.accountId,
     });
@@ -668,9 +686,9 @@ export class CoreAdapter implements CorePort {
 
     return {
       scheduledPreview: {
-        items: scheduledPage.content,
-        total: scheduledPage.totalElements,
-        hasMore: scheduledPage.hasNext,
+        items: scheduledItems,
+        total: scheduledItems.length,
+        hasMore: false,
       },
       expectedPreview: {
         items: expectedFiltered.slice(0, expectedPreviewSize),

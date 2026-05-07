@@ -3,12 +3,13 @@ import type { TransactionsImportPolicyInput, TransactionsImportResult } from '..
 import { TransactionEntryComponent, type TransactionsCorePort } from '../../transactions';
 import type { TransactionEntryPrefillRequest } from '../../transactions/application/TransactionEntryComponent.contract';
 import { MonthlyMovementsComponent } from '../../movements';
-import type { ExpectedMovementView } from '../../movements/domain/movementsView.types';
+import type { ExpectedMovementView, ScheduledMovementView } from '../../movements/domain/movementsView.types';
 import { AccountPageView } from '../ui/AccountPageView';
 import { TransactionsImportComponent } from '../ui/capabilities/TransactionsImportComponent';
 import type { AccountPageViewProvided, AccountPageViewRequired } from '../ui/accountPageView.contract';
 import type { LoadPhase, SubmitPhase } from '../domain/accountPage.types';
 import type { AccountsCorePort } from './accountsCore.port';
+import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
 import { AccountHubComponent } from './AccountHubComponent';
 import { AccountSummaryComponent } from './AccountSummaryComponent';
 
@@ -103,6 +104,39 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
       note: movement.merchant || movement.description || '',
       categoryId: categoryName ?? movement.categoryId,
       splitItems: movement.splitItems,
+    });
+  }
+
+  function editScheduledMovement(movement: ScheduledMovementView, categoryName?: string) {
+    const scheduledKind = movement.scheduleKind ?? resolveSchedulingKind(movement);
+    setTransactionEntryPrefill({
+      requestId: Date.now(),
+      editedScheduledMovementId: movement.id,
+      mode: movement.type,
+      amount: movement.amount,
+      date: toDateInputValue(movement.nextDueAt ?? movement.startAt),
+      note: movement.merchant || movement.description || '',
+      categoryId: categoryName ?? movement.categoryId,
+      splitItems: movement.splitItems,
+      transferTargetAccountId: movement.targetAccountId,
+      transferAmountIn: movement.destinationAmount,
+      transferFxRate: movement.exchangeRate,
+      transferFxMode: movement.destinationAmount ? 'auto_destination' : 'auto_rate',
+      transferDestinationCurrency: movement.destinationCurrency,
+      schedulingMode: 'scheduled',
+      schedulingKind: scheduledKind,
+      recurrenceFrequency: movement.rule.frequency,
+      recurrenceInterval: String(movement.rule.interval ?? 1),
+      recurrenceWeeklyDay: String(movement.rule.weeklyDays?.[0] ?? 1),
+      recurrenceMonthlyPattern: movement.rule.monthlyPattern,
+      recurrenceDayOfMonth: String(movement.rule.dayOfMonth ?? 1),
+      recurrenceMonthlyOrdinal: String(movement.rule.monthlyWeekOrdinal ?? 1),
+      recurrenceMonthlyWeekday: String(movement.rule.monthlyWeekday ?? 1),
+      recurrenceEndKind: movement.recurrenceEnd.kind,
+      recurrenceEndDate: movement.recurrenceEnd.kind === 'on_date' ? movement.recurrenceEnd.onDate : '',
+      recurrenceEndCount: movement.recurrenceEnd.kind === 'after_occurrences'
+        ? String(movement.recurrenceEnd.afterOccurrences ?? 1)
+        : '',
     });
   }
 
@@ -240,6 +274,7 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
                   },
                   onPostExpectedMovement: postExpectedMovement,
                   onEditExpectedMovement: editExpectedMovement,
+                  onEditScheduledMovement: editScheduledMovement,
                 },
               }}
             />

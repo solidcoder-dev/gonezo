@@ -8,12 +8,17 @@ import type {
   MovementsGetOverviewResult,
   MovementsListScheduledInput,
   MovementsListScheduledResult,
+  SchedulingUpdateMovementInput,
+  SchedulingUpdateMovementResult,
 } from '../../shared/domain/corePort';
 
 export type SchedulingGatewayPort = {
   schedulingCreateMovement(
     input: SchedulingCreateMovementInput,
   ): Promise<SchedulingCreateMovementResult>;
+  schedulingUpdateMovement(
+    input: SchedulingUpdateMovementInput,
+  ): Promise<SchedulingUpdateMovementResult>;
   schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void>;
   schedulingListMovements(
     input: SchedulingListMovementsInput,
@@ -25,6 +30,7 @@ export type SchedulingGatewayPort = {
 export function createSchedulingGateway(core: SchedulingGatewayPort): SchedulingGatewayPort {
   return {
     schedulingCreateMovement: (input) => core.schedulingCreateMovement(input),
+    schedulingUpdateMovement: (input) => core.schedulingUpdateMovement(input),
     schedulingDeactivateMovement: (input) => core.schedulingDeactivateMovement(input),
     schedulingListMovements: (input) => core.schedulingListMovements(input),
     movementsGetOverview: (input) => core.movementsGetOverview(input),

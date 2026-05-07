@@ -55,6 +55,8 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
+  SchedulingUpdateMovementInput,
+  SchedulingUpdateMovementResult,
   SchedulingMovementItem,
   ExpectedCreateMovementInput,
   ExpectedCreateMovementResult,
@@ -1715,6 +1717,70 @@ export class CoreAdapterWeb implements CorePort {
     return result;
   }
 
+  async schedulingUpdateMovement(
+    input: SchedulingUpdateMovementInput,
+  ): Promise<SchedulingUpdateMovementResult> {
+    const movement = CoreAdapterWeb.recurringMovements.find((item) => item.id === input.recurringMovementId);
+    if (!movement) {
+      throw new Error(`Recurring movement not found: ${input.recurringMovementId}`);
+    }
+    if (movement.status !== 'active') {
+      throw new Error('Only active scheduled movements can be edited');
+    }
+
+    const amount = Number(input.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Recurring amount must be greater than 0');
+    }
+
+    const destinationAmount = input.destinationAmount == null ? undefined : Number(input.destinationAmount);
+    if (destinationAmount != null && (!Number.isFinite(destinationAmount) || destinationAmount <= 0)) {
+      throw new Error('Recurring destination amount must be greater than 0');
+    }
+
+    const normalizedRule = this.normalizeRecurrenceRule(input.rule);
+    const normalizedEnd = this.normalizeRecurrenceEnd(input.recurrenceEnd);
+    const nextDueAt = movement.generatedOccurrences === 0
+      ? this.firstDueAtForRule({
+          startAt: input.startAt,
+          zoneId: input.zoneId,
+          rule: normalizedRule,
+          recurrenceEnd: normalizedEnd,
+        })
+      : movement.nextDueAt;
+
+    movement.type = input.type;
+    movement.sourceAccountId = input.sourceAccountId;
+    movement.targetAccountId = input.targetAccountId?.trim() || undefined;
+    movement.amount = amount.toFixed(2);
+    movement.currency = input.currency.trim().toUpperCase();
+    movement.destinationAmount = destinationAmount?.toFixed(2);
+    movement.destinationCurrency = input.destinationCurrency?.trim().toUpperCase() || undefined;
+    movement.exchangeRate = input.exchangeRate ? String(Number(input.exchangeRate)) : undefined;
+    movement.description = input.description?.trim() || undefined;
+    movement.merchant = input.merchant?.trim() || undefined;
+    movement.categoryId = input.categoryId?.trim() || undefined;
+    movement.tagIds = [...new Set((input.tagIds ?? []).map((value) => value.trim()).filter((value) => value.length > 0))];
+    movement.tagNames = [...new Set((input.tagNames ?? []).map((value) => value.trim()).filter((value) => value.length > 0))];
+    movement.splitItems = (input.splitItems ?? []).map((item) => ({
+      id: item.id,
+      name: item.name,
+      amount: Number(item.amount).toFixed(2),
+    }));
+    movement.scheduleKind = input.scheduleKind ?? movement.scheduleKind ?? resolveSchedulingKind(movement);
+    movement.origin = movement.scheduleKind;
+    movement.rule = normalizedRule;
+    movement.recurrenceEnd = normalizedEnd;
+    movement.startAt = new Date(input.startAt).toISOString();
+    movement.zoneId = input.zoneId.trim();
+    movement.nextDueAt = nextDueAt;
+    movement.deactivatedAt = undefined;
+    movement.completedAt = nextDueAt ? undefined : new Date().toISOString();
+    movement.status = nextDueAt ? 'active' : 'completed';
+
+    return { id: movement.id };
+  }
+
   async schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void> {
     await this.recurrenceDeactivateRecurringMovement(input);
   }
@@ -1855,12 +1921,9 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async movementsGetMonthOverview(input: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> {
-    const previewSize = input.scheduledPreviewSize != null && input.scheduledPreviewSize > 0
-      ? Math.min(Math.trunc(input.scheduledPreviewSize), 20)
-      : 5;
     const expectedPreviewSize = input.expectedPreviewSize != null && input.expectedPreviewSize > 0
       ? Math.min(Math.trunc(input.expectedPreviewSize), 20)
-      : previewSize;
+      : 5;
     const fromDate = input.fromDate ?? input.filters?.fromDate;
     const toDate = input.toDate ?? input.filters?.toDate;
 
@@ -1925,9 +1988,9 @@ export class CoreAdapterWeb implements CorePort {
 
     return {
       scheduledPreview: {
-        items: scheduledFiltered.slice(0, previewSize),
+        items: scheduledFiltered,
         total: scheduledFiltered.length,
-        hasMore: scheduledFiltered.length > previewSize,
+        hasMore: false,
       },
       expectedPreview: {
         items: expectedFiltered.slice(0, expectedPreviewSize),

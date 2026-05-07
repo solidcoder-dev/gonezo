@@ -364,6 +364,12 @@ export type SchedulingCreateMovementInput = RecurrenceCreateRecurringMovementInp
 
 export type SchedulingCreateMovementResult = RecurrenceCreateRecurringMovementResult;
 
+export type SchedulingUpdateMovementInput = SchedulingCreateMovementInput & {
+  recurringMovementId: string;
+};
+
+export type SchedulingUpdateMovementResult = RecurrenceCreateRecurringMovementResult;
+
 export type SchedulingDeactivateMovementInput = RecurrenceDeactivateRecurringMovementInput;
 
 export type SchedulingListMovementsInput = RecurrenceListRecurringMovementsInput;
@@ -728,6 +734,7 @@ export interface CorePort {
     input: RecurrenceListRecurringMovementsInput,
   ): Promise<RecurrenceListRecurringMovementsResult>;
   schedulingCreateMovement(input: SchedulingCreateMovementInput): Promise<SchedulingCreateMovementResult>;
+  schedulingUpdateMovement(input: SchedulingUpdateMovementInput): Promise<SchedulingUpdateMovementResult>;
   schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void>;
   schedulingListMovements(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult>;
   expectedCreateMovement(input: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult>;

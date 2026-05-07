@@ -58,6 +58,7 @@ export type MonthlyMovementsViewProvided = {
     goToNextPage: () => void;
     requestVoid: (transactionId: string) => void;
     deactivateScheduledMovement: (scheduledMovementId: string) => Promise<void>;
+    editScheduledMovement: (movement: ScheduledMovementView, categoryName?: string) => void;
     postExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => Promise<boolean>;
     dismissExpectedMovement: (movement: ExpectedMovementView) => Promise<boolean>;
     editExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => void;

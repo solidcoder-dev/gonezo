@@ -1,7 +1,7 @@
 import { MonthlyMovementsView } from '../ui/MonthlyMovementsView';
 import { useMonthlyMovementsModel } from './useMonthlyMovementsModel';
 import type { TransactionsCorePort } from '../../transactions/application/transactionsCore.port';
-import type { ExpectedMovementView } from '../domain/movementsView.types';
+import type { ExpectedMovementView, ScheduledMovementView } from '../domain/movementsView.types';
 
 export type MonthlyMovementsComponentProps = {
   required: {
@@ -21,6 +21,7 @@ export type MonthlyMovementsComponentProps = {
       onExpectedDismissed?: () => void;
       onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
       onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
+      onEditScheduledMovement?: (movement: ScheduledMovementView, categoryName?: string) => void;
       onError?: (error: { message: string }) => void;
     };
   };
@@ -37,6 +38,7 @@ export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMo
     onExpectedDismissed: provided.events?.onExpectedDismissed,
     onPostExpectedMovement: provided.events?.onPostExpectedMovement,
     onEditExpectedMovement: provided.events?.onEditExpectedMovement,
+    onEditScheduledMovement: provided.events?.onEditScheduledMovement,
     onError: provided.events?.onError,
   });
 

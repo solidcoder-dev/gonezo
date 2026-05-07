@@ -8,6 +8,7 @@ import com.gonezo.recurrence.domain.RecurrenceFrequency
 import com.gonezo.recurrence.domain.RecurrenceRule
 import com.gonezo.recurrence.domain.RecurringMovement
 import com.gonezo.recurrence.domain.RecurringMovementId
+import com.gonezo.recurrence.domain.RecurringMovementStatus
 import com.gonezo.recurrence.domain.RecurringMovementType
 import com.gonezo.recurrence.domain.ports.RecurringMovementRepository
 import com.gonezo.recurrence.domain.services.RecurrenceScheduleCalculator
@@ -73,6 +74,58 @@ class AndroidRecurringCore internal constructor(
     )
     recurringMovementRepository.save(movement)
     return id.value
+  }
+
+  fun updateRecurringMovement(input: UpdateRecurringMovementInput): UUID {
+    val recurringMovementId = RecurringMovementId.from(
+      requireText(input.recurringMovementId, "recurringMovementId is required"),
+    )
+    val existing = recurringMovementRepository.findById(recurringMovementId)
+      ?: throw IllegalStateException("Recurring movement not found: ${input.recurringMovementId}")
+    if (existing.status != RecurringMovementStatus.ACTIVE) {
+      throw IllegalStateException("Only active scheduled movements can be edited")
+    }
+
+    val type = RecurringMovementType.from(requireText(input.type, "type is required"))
+    val sourceAccountId = requireText(input.sourceAccountId, "sourceAccountId is required")
+    ensureAccountExists(sourceAccountId, "source")
+
+    val targetAccountId = input.targetAccountId?.trim()?.ifBlank { null }
+    if (type == RecurringMovementType.TRANSFER) {
+      val resolvedTargetAccountId = targetAccountId
+        ?: throw IllegalArgumentException("targetAccountId is required for transfer recurrence")
+      if (resolvedTargetAccountId == sourceAccountId) {
+        throw IllegalArgumentException("source and destination accounts must be different")
+      }
+      ensureAccountExists(resolvedTargetAccountId, "target")
+    }
+
+    val updated = existing.update(
+      type = type,
+      sourceAccountId = sourceAccountId,
+      targetAccountId = targetAccountId,
+      amount = parsePositiveDecimal(requireText(input.amount, "amount is required"), "amount must be greater than 0"),
+      currency = requireText(input.currency, "currency is required").uppercase(),
+      destinationAmount = input.destinationAmount?.let {
+        parsePositiveDecimal(it, "destinationAmount must be greater than 0")
+      },
+      destinationCurrency = input.destinationCurrency,
+      exchangeRate = input.exchangeRate?.let {
+        parsePositiveDecimal(it, "exchangeRate must be greater than 0")
+      },
+      description = input.description,
+      merchant = input.merchant,
+      categoryId = input.categoryId,
+      splitItems = parseSplitItems(input.splitItemsJson),
+      rule = toDomainRule(input.rule ?: RecurrenceRuleInput(frequency = "daily", interval = 1)),
+      recurrenceEnd = toDomainEnd(input.recurrenceEnd ?: RecurrenceEndInput(kind = "never")),
+      startAt = parseInstantOrDate(requireText(input.startAt, "startAt is required"), "startAt"),
+      zoneId = input.zoneId?.trim()?.ifBlank { "UTC" } ?: "UTC",
+      updatedAt = Instant.now(clock),
+      scheduleCalculator = scheduleCalculator,
+    )
+    recurringMovementRepository.save(updated)
+    return recurringMovementId.value
   }
 
   fun deactivateRecurringMovement(recurringMovementId: String, deactivatedAt: String?) {
@@ -234,6 +287,26 @@ class AndroidRecurringCore internal constructor(
   }
 
   data class CreateRecurringMovementInput(
+    val type: String?,
+    val sourceAccountId: String?,
+    val targetAccountId: String?,
+    val amount: String?,
+    val currency: String?,
+    val destinationAmount: String?,
+    val destinationCurrency: String?,
+    val exchangeRate: String?,
+    val description: String?,
+    val merchant: String?,
+    val categoryId: String? = null,
+    val splitItemsJson: String? = null,
+    val rule: RecurrenceRuleInput?,
+    val recurrenceEnd: RecurrenceEndInput?,
+    val startAt: String?,
+    val zoneId: String? = "UTC",
+  )
+
+  data class UpdateRecurringMovementInput(
+    val recurringMovementId: String?,
     val type: String?,
     val sourceAccountId: String?,
     val targetAccountId: String?,

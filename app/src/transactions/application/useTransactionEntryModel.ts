@@ -171,6 +171,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [schedulingMode, setSchedulingMode] = useState<'now' | 'scheduled'>('now');
   const [expectedMovement, setExpectedMovement] = useState(false);
   const [editedExpectedMovementId, setEditedExpectedMovementId] = useState('');
+  const [editedScheduledMovementId, setEditedScheduledMovementId] = useState('');
   const [postExpectedMovementId, setPostExpectedMovementId] = useState('');
   const [schedulingKind, setSchedulingKind] = useState<'one_shot' | 'recurring'>('one_shot');
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<SchedulingFrequency>('monthly');
@@ -266,6 +267,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setSchedulingMode('now');
     setExpectedMovement(false);
     setEditedExpectedMovementId('');
+    setEditedScheduledMovementId('');
     setPostExpectedMovementId('');
     setSchedulingKind('one_shot');
     setRecurrenceFrequency('monthly');
@@ -364,12 +366,53 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setTransactionDate(prefillRequest.date);
     setTransactionNote(prefillRequest.note ?? '');
     setTransactionCategoryInput(prefillRequest.categoryId ?? '');
-    setSchedulingMode('now');
-    setExpectedMovement((prefillRequest.splitItems?.length ?? 0) > 0 && !prefillRequest.postExpectedMovementId);
+    if (prefillRequest.mode === 'transfer') {
+      setTransferToAccountId(prefillRequest.transferTargetAccountId ?? '');
+      setTransferAmountIn(prefillRequest.transferAmountIn ?? '');
+      setTransferFxRate(prefillRequest.transferFxRate ?? '1');
+      setTransferFxMode(prefillRequest.transferFxMode ?? 'auto_destination');
+    }
+    const isScheduledEdit = Boolean(prefillRequest.editedScheduledMovementId);
+    const isExpectedEdit = Boolean(prefillRequest.editedExpectedMovementId);
+    const isPostExpected = Boolean(prefillRequest.postExpectedMovementId);
+    setSchedulingMode(prefillRequest.schedulingMode ?? (isScheduledEdit ? 'scheduled' : 'now'));
+    setSchedulingKind(prefillRequest.schedulingKind ?? 'one_shot');
+    if (prefillRequest.recurrenceFrequency) {
+      setRecurrenceFrequency(prefillRequest.recurrenceFrequency);
+    }
+    if (prefillRequest.recurrenceInterval != null) {
+      setRecurrenceInterval(prefillRequest.recurrenceInterval);
+    }
+    if (prefillRequest.recurrenceWeeklyDay != null) {
+      setRecurrenceWeeklyDay(prefillRequest.recurrenceWeeklyDay);
+    }
+    if (prefillRequest.recurrenceMonthlyPattern) {
+      setRecurrenceMonthlyPattern(prefillRequest.recurrenceMonthlyPattern);
+    }
+    if (prefillRequest.recurrenceDayOfMonth != null) {
+      setRecurrenceDayOfMonth(prefillRequest.recurrenceDayOfMonth);
+    }
+    if (prefillRequest.recurrenceMonthlyOrdinal != null) {
+      setRecurrenceMonthlyOrdinal(prefillRequest.recurrenceMonthlyOrdinal);
+    }
+    if (prefillRequest.recurrenceMonthlyWeekday != null) {
+      setRecurrenceMonthlyWeekday(prefillRequest.recurrenceMonthlyWeekday);
+    }
+    if (prefillRequest.recurrenceEndKind) {
+      setRecurrenceEndKind(prefillRequest.recurrenceEndKind);
+    }
+    if (prefillRequest.recurrenceEndDate != null) {
+      setRecurrenceEndDate(prefillRequest.recurrenceEndDate);
+    }
+    if (prefillRequest.recurrenceEndCount != null) {
+      setRecurrenceEndCount(prefillRequest.recurrenceEndCount);
+    }
+    setExpectedMovement(isExpectedEdit && !isPostExpected && !isScheduledEdit);
     setExpenseDetailed((prefillRequest.splitItems?.length ?? 0) > 0);
     setExpenseItems(cloneExpenseItems(prefillRequest.splitItems ?? []));
     setEditingExpenseItemId('');
     setEditedExpectedMovementId(prefillRequest.postExpectedMovementId ? '' : (prefillRequest.editedExpectedMovementId ?? ''));
+    setEditedScheduledMovementId(prefillRequest.editedScheduledMovementId ?? '');
     setPostExpectedMovementId(prefillRequest.postExpectedMovementId ?? '');
 
     void (async () => {
@@ -948,11 +991,13 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     }
 
     const resolvedTransactionDate = transactionDate.trim() || todayIso();
-    const movementExpected = (composerMode === 'expense' || composerMode === 'income') && expectedMovement;
+    const editingScheduledMovement = Boolean(editedScheduledMovementId);
+    const movementExpected = (composerMode === 'expense' || composerMode === 'income') && expectedMovement && !editingScheduledMovement;
     const movementScheduled = (composerMode === 'expense' || composerMode === 'income')
       && !movementExpected
       && !editedExpectedMovementId
       && !postExpectedMovementId
+      && !editingScheduledMovement
       && (recurrenceEnabled || isFutureIsoDateInput(resolvedTransactionDate));
 
     if (!movementExpected && composerMode !== 'expense') {
@@ -1074,6 +1119,137 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       let recorded = false;
       let postedTransactionId = '';
 
+      if (editedScheduledMovementId) {
+        const scheduleKind = schedulingKind;
+        let scheduleRule: SchedulingCreateMovementInput['rule'];
+        let scheduleEnd: SchedulingCreateMovementInput['recurrenceEnd'];
+
+        if (recurrenceEnabled) {
+          const interval = Number(recurrenceInterval.trim());
+          scheduleRule = {
+            frequency: recurrenceFrequency,
+            interval,
+          };
+          if (recurrenceFrequency === 'weekly') {
+            scheduleRule.weeklyDays = [Number(recurrenceWeeklyDay || '1')];
+          }
+          if (recurrenceFrequency === 'monthly') {
+            scheduleRule.monthlyPattern = recurrenceMonthlyPattern;
+            if (recurrenceMonthlyPattern === 'day_of_month') {
+              scheduleRule.dayOfMonth = Number(recurrenceDayOfMonth || dayOfMonthFromDateInput(transactionDate));
+            } else {
+              scheduleRule.monthlyWeekOrdinal = Number(recurrenceMonthlyOrdinal || '1');
+              scheduleRule.monthlyWeekday = Number(recurrenceMonthlyWeekday || weekDayIsoFromDateInput(transactionDate));
+            }
+          }
+
+          scheduleEnd = recurrenceEndKind === 'on_date'
+            ? { kind: 'on_date', onDate: recurrenceEndDate.trim() }
+            : recurrenceEndKind === 'after_occurrences'
+              ? { kind: 'after_occurrences', afterOccurrences: Number(recurrenceEndCount.trim()) }
+              : { kind: 'never' };
+        } else {
+          scheduleRule = {
+            frequency: 'daily',
+            interval: 1,
+          };
+          scheduleEnd = {
+            kind: 'after_occurrences',
+            afterOccurrences: 1,
+          };
+        }
+
+        if (composerMode === 'transfer') {
+          const transferTargetAccount = accounts.find((candidate) => candidate.id === transferToAccountId);
+          if (!transferTargetAccount) {
+            throw new Error('Destination account not found');
+          }
+          const isCrossCurrencyTransfer = transferTargetAccount.currency.toUpperCase() !== accountCurrency.toUpperCase();
+          const sourceAmountNumeric = parseAmount(amount);
+          const sourceAmount = formatAmount(sourceAmountNumeric);
+
+          let destinationAmount: string | undefined;
+          let destinationCurrency: string | undefined;
+          let exchangeRate: string | undefined;
+          if (isCrossCurrencyTransfer) {
+            const destinationAmountNumeric = parseAmount(transferAmountIn);
+            const resolvedRate = transferFxMode === 'auto_rate'
+              ? destinationAmountNumeric / sourceAmountNumeric
+              : parseAmount(transferFxRate);
+            destinationAmount = formatAmount(destinationAmountNumeric);
+            destinationCurrency = transferTargetAccount.currency;
+            exchangeRate = formatFxRate(resolvedRate);
+          }
+
+          await schedulingGateway.schedulingUpdateMovement({
+            recurringMovementId: editedScheduledMovementId,
+            type: 'transfer',
+            sourceAccountId: accountId,
+            targetAccountId: transferToAccountId,
+            amount: sourceAmount,
+            currency: accountCurrency,
+            destinationAmount,
+            destinationCurrency,
+            exchangeRate,
+            description: transactionNote.trim() || undefined,
+            merchant: undefined,
+            categoryId: undefined,
+            tagIds,
+            tagNames,
+            rule: scheduleRule,
+            recurrenceEnd: scheduleEnd,
+            startAt: occurredAt,
+            zoneId: resolveTimeZoneId(),
+            scheduleKind,
+          });
+        }
+
+        if (composerMode === 'income') {
+          const categoryId = await resolveCategorySelection('income');
+          await schedulingGateway.schedulingUpdateMovement({
+            recurringMovementId: editedScheduledMovementId,
+            type: 'income',
+            sourceAccountId: accountId,
+            amount: formatAmount(parseAmount(amount)),
+            currency: accountCurrency,
+            description: transactionNote.trim() || undefined,
+            merchant: transactionNote.trim() || undefined,
+            categoryId,
+            splitItems: expenseItems,
+            tagIds,
+            tagNames,
+            rule: scheduleRule,
+            recurrenceEnd: scheduleEnd,
+            startAt: occurredAt,
+            zoneId: resolveTimeZoneId(),
+            scheduleKind,
+          });
+        }
+
+        if (composerMode === 'expense') {
+          const categoryId = await resolveCategorySelection('expense');
+          await schedulingGateway.schedulingUpdateMovement({
+            recurringMovementId: editedScheduledMovementId,
+            type: 'expense',
+            sourceAccountId: accountId,
+            amount: formatAmount(parseAmount(amount)),
+            currency: accountCurrency,
+            description: transactionNote.trim() || undefined,
+            merchant: transactionNote.trim() || undefined,
+            categoryId,
+            splitItems: expenseItems,
+            tagIds,
+            tagNames,
+            rule: scheduleRule,
+            recurrenceEnd: scheduleEnd,
+            startAt: occurredAt,
+            zoneId: resolveTimeZoneId(),
+            scheduleKind,
+          });
+        }
+        recorded = true;
+      }
+
       if (movementExpected && (composerMode === 'expense' || composerMode === 'income')) {
         const categoryId = await resolveCategorySelection(composerMode);
         const expectedPayload = {
@@ -1098,7 +1274,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         recorded = true;
       }
 
-      if ((composerMode === 'expense' || composerMode === 'income') && recurrenceEnabled) {
+      if (!editedScheduledMovementId && (composerMode === 'expense' || composerMode === 'income') && recurrenceEnabled) {
         const categoryId = await resolveCategorySelection(composerMode);
         const interval = Number(recurrenceInterval.trim());
         const scheduleRule: SchedulingCreateMovementInput['rule'] = {
@@ -1497,6 +1673,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       recurrenceEndDate,
       recurrenceEndCount,
       expected: expectedMovement,
+      editedScheduledMovementId: editedScheduledMovementId || undefined,
       postExpectedMovementId: postExpectedMovementId || undefined,
       currencyCode: accountCurrency,
     },

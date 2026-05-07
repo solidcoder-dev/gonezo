@@ -49,6 +49,8 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
+  SchedulingUpdateMovementInput,
+  SchedulingUpdateMovementResult,
   ExpectedCreateMovementInput,
   ExpectedCreateMovementResult,
   ExpectedUpdateMovementInput,
@@ -99,6 +101,9 @@ export interface CorePlugin {
   recurrenceCreateRecurringMovement(
     options: RecurrenceCreateRecurringMovementInput,
   ): Promise<RecurrenceCreateRecurringMovementResult>;
+  recurrenceUpdateRecurringMovement(
+    options: SchedulingUpdateMovementInput,
+  ): Promise<SchedulingUpdateMovementResult>;
   recurrenceDeactivateRecurringMovement(options: RecurrenceDeactivateRecurringMovementInput): Promise<void>;
   recurrenceListRecurringMovements(
     options: RecurrenceListRecurringMovementsInput,
@@ -106,6 +111,9 @@ export interface CorePlugin {
   schedulingCreateMovement(
     options: SchedulingCreateMovementInput,
   ): Promise<SchedulingCreateMovementResult>;
+  schedulingUpdateMovement(
+    options: SchedulingUpdateMovementInput,
+  ): Promise<SchedulingUpdateMovementResult>;
   schedulingDeactivateMovement(options: SchedulingDeactivateMovementInput): Promise<void>;
   schedulingListMovements(
     options: SchedulingListMovementsInput,

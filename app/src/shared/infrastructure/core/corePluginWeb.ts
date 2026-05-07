@@ -49,6 +49,8 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
+  SchedulingUpdateMovementInput,
+  SchedulingUpdateMovementResult,
   ExpectedCreateMovementInput,
   ExpectedCreateMovementResult,
   ExpectedUpdateMovementInput,
@@ -178,6 +180,12 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
     return this.core.recurrenceCreateRecurringMovement(options);
   }
 
+  async recurrenceUpdateRecurringMovement(
+    options: SchedulingUpdateMovementInput,
+  ): Promise<SchedulingUpdateMovementResult> {
+    return this.core.schedulingUpdateMovement(options);
+  }
+
   async recurrenceDeactivateRecurringMovement(options: RecurrenceDeactivateRecurringMovementInput): Promise<void> {
     return this.core.recurrenceDeactivateRecurringMovement(options);
   }
@@ -190,6 +198,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async schedulingCreateMovement(options: SchedulingCreateMovementInput): Promise<SchedulingCreateMovementResult> {
     return this.core.schedulingCreateMovement(options);
+  }
+
+  async schedulingUpdateMovement(options: SchedulingUpdateMovementInput): Promise<SchedulingUpdateMovementResult> {
+    return this.core.schedulingUpdateMovement(options);
   }
 
   async schedulingDeactivateMovement(options: SchedulingDeactivateMovementInput): Promise<void> {

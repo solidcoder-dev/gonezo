@@ -10,7 +10,7 @@ import { useTransactionClassification } from '../../taxonomy/application/useTran
 import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
 import { mapTransactionHistoryList } from '../../transactions/application/transactionViewMappers';
 import type { TransactionsCorePort } from '../../transactions/application/transactionsCore.port';
-import type { ExpectedMovementView } from '../domain/movementsView.types';
+import type { ExpectedMovementView, ScheduledMovementView } from '../domain/movementsView.types';
 import type { MonthlyMovementsViewProvided, MonthlyMovementsViewRequired } from '../ui/MonthlyMovementsView.contract';
 import type { ExpectedMovementItem, SchedulingMovementItem } from '../../shared/domain/corePort';
 
@@ -24,6 +24,7 @@ type UseMonthlyMovementsModelInput = {
   onExpectedDismissed?: () => void;
   onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
   onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
+  onEditScheduledMovement?: (movement: ScheduledMovementView, categoryName?: string) => void;
   onError?: (error: { message: string }) => void;
 };
 
@@ -43,7 +44,6 @@ type PaginationState = {
 
 const VOID_COMMIT_DELAY_MS = 5000;
 const POSTED_PAGE_SIZE = 10;
-const UPCOMING_PREVIEW_SIZE = 30;
 
 const EMPTY_PAGINATION: PaginationState = {
   page: 0,
@@ -144,7 +144,9 @@ function filterDuplicateScheduledItems(
   }
 
   const expectedSignatures = new Set(expectedItems.map((item) => expectedSignature(item)));
-  return scheduledItems.filter((item) => !expectedSignatures.has(scheduledSignature(item)));
+  return scheduledItems
+    .filter((item) => item.status === 'active')
+    .filter((item) => !expectedSignatures.has(scheduledSignature(item)));
 }
 
 export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
@@ -157,6 +159,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     onExpectedDismissed,
     onPostExpectedMovement,
     onEditExpectedMovement,
+    onEditScheduledMovement,
     onError,
   } = input;
 
@@ -388,8 +391,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
           direction: 'desc',
         },
       ],
-      scheduledPreviewSize: UPCOMING_PREVIEW_SIZE,
-      expectedPreviewSize: UPCOMING_PREVIEW_SIZE,
+      expectedPreviewSize: 30,
     });
     const visibleScheduledItems = filterDuplicateScheduledItems(
       overview.scheduledPreview.items,
@@ -399,7 +401,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     setTransactions(overview.executedPage.content);
     setScheduledItems(visibleScheduledItems);
     setScheduledTotal(visibleScheduledItems.length);
-    setScheduledHasMore(overview.scheduledPreview.hasMore || visibleScheduledItems.length < overview.scheduledPreview.total);
+    setScheduledHasMore(false);
     setExpectedItems(overview.expectedPreview.items);
     setExpectedTotal(overview.expectedPreview.total);
     setExpectedHasMore(overview.expectedPreview.hasMore);
@@ -683,6 +685,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       },
       requestVoid,
       deactivateScheduledMovement,
+      editScheduledMovement: (movement, categoryName) => onEditScheduledMovement?.(movement, categoryName),
       postExpectedMovement,
       dismissExpectedMovement,
       editExpectedMovement: (movement, categoryName) => onEditExpectedMovement?.(movement, categoryName),

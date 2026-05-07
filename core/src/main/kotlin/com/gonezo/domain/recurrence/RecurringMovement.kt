@@ -87,6 +87,55 @@ data class RecurringMovement(
     )
   }
 
+  fun update(
+    type: RecurringMovementType,
+    sourceAccountId: String,
+    targetAccountId: String?,
+    amount: BigDecimal,
+    currency: String,
+    destinationAmount: BigDecimal?,
+    destinationCurrency: String?,
+    exchangeRate: BigDecimal?,
+    description: String?,
+    merchant: String?,
+    categoryId: String?,
+    splitItems: List<SplitItem> = emptyList(),
+    rule: RecurrenceRule,
+    recurrenceEnd: RecurrenceEnd,
+    startAt: Instant,
+    zoneId: String,
+    updatedAt: Instant,
+    scheduleCalculator: RecurrenceScheduleCalculator,
+  ): RecurringMovement {
+    val updated = create(
+      id = id,
+      type = type,
+      sourceAccountId = sourceAccountId,
+      targetAccountId = targetAccountId,
+      amount = amount,
+      currency = currency,
+      destinationAmount = destinationAmount,
+      destinationCurrency = destinationCurrency,
+      exchangeRate = exchangeRate,
+      description = description,
+      merchant = merchant,
+      categoryId = categoryId,
+      splitItems = splitItems,
+      rule = rule,
+      recurrenceEnd = recurrenceEnd,
+      startAt = startAt,
+      zoneId = zoneId,
+      createdAt = createdAt,
+      scheduleCalculator = scheduleCalculator,
+    )
+    return updated.copy(
+      generatedOccurrences = generatedOccurrences,
+      updatedAt = updatedAt,
+      deactivatedAt = null,
+      completedAt = if (updated.status == RecurringMovementStatus.COMPLETED) updatedAt else null,
+    )
+  }
+
   fun advanceAfterDue(
     dueAt: Instant,
     advancedAt: Instant,
