@@ -7,7 +7,7 @@ import com.gonezo.ledger.domain.Account;
 import com.gonezo.ledger.domain.AccountId;
 import com.gonezo.ledger.domain.AccountStatus;
 import com.gonezo.ledger.domain.AccountType;
-import com.gonezo.ledger.domain.CurrencyCode;
+import com.gonezo.domain.shared.CurrencyCode;
 import com.gonezo.ledger.domain.ports.LedgerAccountRepository;
 import java.time.Instant;
 import java.util.ArrayList;

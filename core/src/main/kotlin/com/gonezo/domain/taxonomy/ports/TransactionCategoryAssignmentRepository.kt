@@ -8,6 +8,10 @@ interface TransactionCategoryAssignmentRepository {
 
   fun deleteByTransactionId(transactionId: UUID)
 
+  fun deleteByTransactionIds(transactionIds: Collection<UUID>) {
+    transactionIds.forEach(::deleteByTransactionId)
+  }
+
   fun findByTransactionId(transactionId: UUID): TransactionCategoryAssignment?
 
   fun findByTransactionIds(transactionIds: Collection<UUID>): Map<UUID, TransactionCategoryAssignment>

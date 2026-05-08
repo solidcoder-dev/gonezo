@@ -38,6 +38,8 @@ interface TxCategorizationStateRepository {
 
   fun findByTransactionIds(transactionIds: Collection<UUID>): Map<UUID, TxCategorizationState>
 
+  fun deleteByTransactionIds(transactionIds: Collection<UUID>)
+
   fun findPending(now: Instant, limit: Int): List<TxCategorizationState>
 }
 

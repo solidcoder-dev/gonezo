@@ -1,0 +1,11 @@
+✔ Copying web assets from dist to android/app/src/main/assets/public in 4.58ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 398.54μs
+[info] Inlining sourcemaps
+✔ copy android in 15.53ms
+✔ Updating Android plugins in 1.70ms
+✔ update android in 52.55ms
+[?25l[36m?[39m [1mPlease choose a target device:[22m [90m›[39m [90m- Use arrow-keys. Return to submit.[39m
+[36m❯[39m   [36m[4mGoogle sdk_gphone64_arm64 (emulator-5554)[39m[24m[90m[39m
+    Pixel_3a_API_34_extension_level_7_arm64-v8a (emulator) (Pixel_3a_API_34_extension_level_7_arm64-v8a)[90m[39m
+[2K[1G[32m✔[39m [1mPlease choose a target device:[22m [90m›[39m Google sdk_gphone64_arm64 (emulator-5554)
+[?25h

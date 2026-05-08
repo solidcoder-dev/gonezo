@@ -20,6 +20,7 @@ Current package structure:
 - `com.gonezo.application.query`
 - `com.gonezo.application.orchestration`
 - `com.gonezo.infrastructure` (technical infrastructure)
+- `com.gonezo.domain.shared` (shared kernel)
 
 Layer intent:
 
@@ -27,9 +28,17 @@ Layer intent:
 - `taxonomy/*`: classification core, independent.
 - `recurrence/*`: scheduled/recurring movement model and outbox.
 - `expected/*`: expected movement model.
+- `domain/shared`: stable shared kernel (`Money`, `CurrencyCode`, `DomainEvent`).
 - `application/query`: composed read models across modules.
 - `application/orchestration`: coordination workflows and retries.
 - `infrastructure/*`: adapters, persistence, scheduler/event plumbing.
+
+DDD boundary rules:
+
+- Domain packages must not import other bounded contexts.
+- `Ledger` does not own category/tag identity; those belong to `Taxonomy`.
+- Cross-context cleanup belongs in orchestration workflows, not context repositories.
+- Multi-write local flows use `ConsistencyBoundary` so the application layer owns consistency without depending on a concrete transaction technology.
 
 Android runtime integration lives outside the pure core in:
 

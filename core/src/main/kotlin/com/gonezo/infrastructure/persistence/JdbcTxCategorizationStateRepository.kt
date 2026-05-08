@@ -70,6 +70,15 @@ class JdbcTxCategorizationStateRepository(
     return jdbcTemplate.query(sql, params, rowMapper()).associateBy { it.transactionId }
   }
 
+  override fun deleteByTransactionIds(transactionIds: Collection<UUID>) {
+    if (transactionIds.isEmpty()) {
+      return
+    }
+    val sql = "delete from workflow_tx_categorization where transaction_id in (:transaction_ids)"
+    val params = MapSqlParameterSource("transaction_ids", transactionIds.map(UUID::toString))
+    jdbcTemplate.update(sql, params)
+  }
+
   override fun findPending(now: Instant, limit: Int): List<TxCategorizationState> {
     val sql = """
       select transaction_id, requested_category_id, status, error_code, error_message, attempts, next_attempt_at, updated_at, created_at

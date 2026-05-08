@@ -1,6 +1,8 @@
 package com.gonezo.testing
 
 import com.gonezo.application.events.DomainEventPublisher
+import com.gonezo.application.orchestration.DeleteLedgerAccountWorkflowService
+import com.gonezo.domain.shared.DomainEvent
 import com.gonezo.expected.application.CreateExpectedMovementService
 import com.gonezo.expected.application.CreateExpectedMovementUC
 import com.gonezo.expected.application.DismissExpectedMovementService
@@ -38,15 +40,28 @@ import com.gonezo.ledger.application.RecordLedgerTransferFxService
 import com.gonezo.ledger.application.VoidLedgerTransactionService
 import com.gonezo.ledger.infrastructure.persistence.JdbcLedgerAccountRepository
 import com.gonezo.ledger.infrastructure.persistence.JdbcLedgerTransactionRepository
+import com.gonezo.infrastructure.persistence.JdbcTxCategorizationStateRepository
+import com.gonezo.infrastructure.transaction.JdbcConsistencyBoundary
+import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTransactionCategoryAssignmentRepository
+import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTransactionTagAssignmentRepository
+import org.springframework.jdbc.datasource.DataSourceTransactionManager
+import org.springframework.transaction.support.TransactionTemplate
 
 class TestApp(private val db: TestDatabase) {
   private val namedJdbc = db.namedJdbcTemplate
+  private val consistencyBoundary = JdbcConsistencyBoundary(
+    TransactionTemplate(DataSourceTransactionManager(db.dataSource)),
+  )
 
   val ledgerAccountRepository = JdbcLedgerAccountRepository(namedJdbc)
   val ledgerTransactionRepository = JdbcLedgerTransactionRepository(namedJdbc)
   val expectedMovementRepository = JdbcExpectedMovementRepository(namedJdbc)
+  val taxonomyTransactionCategoryAssignmentRepository = JdbcTaxonomyTransactionCategoryAssignmentRepository(namedJdbc)
+  val taxonomyTransactionTagAssignmentRepository = JdbcTaxonomyTransactionTagAssignmentRepository(namedJdbc)
+  val txCategorizationStateRepository = JdbcTxCategorizationStateRepository(namedJdbc)
 
   private val domainEventPublisher: DomainEventPublisher = NoopDomainEventPublisher()
+  private val ledgerDeleteAccountService: DeleteLedgerAccountUC = DeleteLedgerAccountService(ledgerAccountRepository)
 
   val ledgerOpenAccountUC: OpenLedgerAccountUC = OpenLedgerAccountService(
     ledgerAccountRepository,
@@ -54,7 +69,14 @@ class TestApp(private val db: TestDatabase) {
     domainEventPublisher,
   )
   val ledgerListAccountsUC: ListLedgerAccountsUC = ListLedgerAccountsService(ledgerAccountRepository)
-  val ledgerDeleteAccountUC: DeleteLedgerAccountUC = DeleteLedgerAccountService(ledgerAccountRepository)
+  val ledgerDeleteAccountUC: DeleteLedgerAccountUC = DeleteLedgerAccountWorkflowService(
+    ledgerTransactionRepository,
+    taxonomyTransactionCategoryAssignmentRepository,
+    taxonomyTransactionTagAssignmentRepository,
+    txCategorizationStateRepository,
+    ledgerDeleteAccountService,
+    consistencyBoundary,
+  )
   val ledgerRecordIncomeUC: RecordLedgerIncomeUC = RecordLedgerIncomeService(
     ledgerAccountRepository,
     ledgerTransactionRepository,
@@ -103,5 +125,5 @@ class TestApp(private val db: TestDatabase) {
 }
 
 private class NoopDomainEventPublisher : DomainEventPublisher {
-  override fun publish(event: Any) = Unit
+  override fun publish(event: DomainEvent) = Unit
 }

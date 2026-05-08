@@ -114,7 +114,7 @@ Reglas:
 - `AccountId`
 - `TransactionId`
 - `TransactionItemId`
-- `CurrencyCode`
+- `CurrencyCode` (shared kernel)
 
 ## Repositorios (domain ports)
 
@@ -189,6 +189,8 @@ No se guarda saldo mutable en `Account`: si se informa balance inicial, se crea 
 ## Integracion con Taxonomy
 
 Ledger no persiste clasificacion por categoria ni tags.
+
+`LedgerAccountRepository` solo borra filas propias de Ledger. Si una cuenta debe eliminar tambien proyecciones de Taxonomy o estados de workflow, esa operacion pertenece a `DeleteLedgerAccountWorkflowService`.
 
 Si una UI recibe clasificacion al registrar una transaccion:
 

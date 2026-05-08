@@ -1,5 +1,7 @@
 package com.gonezo.ledger.application
 
+import com.gonezo.application.ConsistencyBoundary
+import com.gonezo.application.ImmediateConsistencyBoundary
 import com.gonezo.application.events.DomainEventPublisher
 import com.gonezo.ledger.application.AddLedgerTransactionItemCommand
 import com.gonezo.ledger.application.AddLedgerTransactionItemUC
@@ -55,8 +57,9 @@ class OpenLedgerAccountService(
   private val accountRepository: LedgerAccountRepository,
   private val transactionRepository: LedgerTransactionRepository,
   private val domainEventPublisher: DomainEventPublisher,
+  private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary,
 ) : OpenLedgerAccountUC {
-  override fun execute(command: OpenLedgerAccountCommand): AccountId {
+  override fun execute(command: OpenLedgerAccountCommand): AccountId = consistencyBoundary.withinConsistencyBoundary {
     val account = Account.open(
       id = AccountId.random(),
       name = command.name,
@@ -92,7 +95,7 @@ class OpenLedgerAccountService(
       domainEventPublisher.publish(TransactionRecorded(openingTx.id, openingTx.accountId))
     }
 
-    return account.id
+    account.id
   }
 }
 
@@ -181,132 +184,136 @@ class RecordLedgerTransferService(
   private val accountRepository: LedgerAccountRepository,
   private val transactionRepository: LedgerTransactionRepository,
   private val domainEventPublisher: DomainEventPublisher,
+  private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary,
 ) : RecordLedgerTransferUC {
-  override fun execute(command: RecordLedgerTransferCommand): RecordLedgerTransferResult {
-    require(command.fromAccountId != command.toAccountId) { "source and destination accounts must be different" }
+  override fun execute(command: RecordLedgerTransferCommand): RecordLedgerTransferResult =
+    consistencyBoundary.withinConsistencyBoundary {
+      require(command.fromAccountId != command.toAccountId) { "source and destination accounts must be different" }
 
-    val fromAccount = requireAccount(accountRepository, command.fromAccountId)
-    val toAccount = requireAccount(accountRepository, command.toAccountId)
-    fromAccount.ensureCanRecordTransactions()
-    toAccount.ensureCanRecordTransactions()
+      val fromAccount = requireAccount(accountRepository, command.fromAccountId)
+      val toAccount = requireAccount(accountRepository, command.toAccountId)
+      fromAccount.ensureCanRecordTransactions()
+      toAccount.ensureCanRecordTransactions()
 
-    val normalizedCurrency = command.amount.currency.uppercase()
-    require(normalizedCurrency == fromAccount.currency.value) {
-      "Transfer currency must match source account currency (${fromAccount.currency.value})"
+      val normalizedCurrency = command.amount.currency.uppercase()
+      require(normalizedCurrency == fromAccount.currency.value) {
+        "Transfer currency must match source account currency (${fromAccount.currency.value})"
+      }
+      require(normalizedCurrency == toAccount.currency.value) {
+        "Transfer currency must match destination account currency (${toAccount.currency.value})"
+      }
+
+      val transferOutId = TransactionId.random()
+      val transferInId = TransactionId.random()
+      val normalizedAmount = Money(command.amount.amount, normalizedCurrency)
+
+      val transferOut = Transaction.recordTransferOut(
+        id = transferOutId,
+        accountId = fromAccount.id,
+        amount = normalizedAmount,
+        occurredAt = command.occurredAt,
+        description = command.description,
+        linkedTransactionId = transferInId,
+      )
+      val transferIn = Transaction.recordTransferIn(
+        id = transferInId,
+        accountId = toAccount.id,
+        amount = normalizedAmount,
+        occurredAt = command.occurredAt,
+        description = command.description,
+        linkedTransactionId = transferOutId,
+      )
+
+      transactionRepository.save(transferOut)
+      transactionRepository.save(transferIn)
+      domainEventPublisher.publish(TransactionRecorded(transferOut.id, transferOut.accountId))
+      domainEventPublisher.publish(TransactionRecorded(transferIn.id, transferIn.accountId))
+
+      RecordLedgerTransferResult(
+        transferOutId = transferOutId,
+        transferInId = transferInId,
+      )
     }
-    require(normalizedCurrency == toAccount.currency.value) {
-      "Transfer currency must match destination account currency (${toAccount.currency.value})"
-    }
-
-    val transferOutId = TransactionId.random()
-    val transferInId = TransactionId.random()
-    val normalizedAmount = Money(command.amount.amount, normalizedCurrency)
-
-    val transferOut = Transaction.recordTransferOut(
-      id = transferOutId,
-      accountId = fromAccount.id,
-      amount = normalizedAmount,
-      occurredAt = command.occurredAt,
-      description = command.description,
-      linkedTransactionId = transferInId,
-    )
-    val transferIn = Transaction.recordTransferIn(
-      id = transferInId,
-      accountId = toAccount.id,
-      amount = normalizedAmount,
-      occurredAt = command.occurredAt,
-      description = command.description,
-      linkedTransactionId = transferOutId,
-    )
-
-    transactionRepository.save(transferOut)
-    transactionRepository.save(transferIn)
-    domainEventPublisher.publish(TransactionRecorded(transferOut.id, transferOut.accountId))
-    domainEventPublisher.publish(TransactionRecorded(transferIn.id, transferIn.accountId))
-
-    return RecordLedgerTransferResult(
-      transferOutId = transferOutId,
-      transferInId = transferInId,
-    )
-  }
 }
 
 class RecordLedgerTransferFxService(
   private val accountRepository: LedgerAccountRepository,
   private val transactionRepository: LedgerTransactionRepository,
   private val domainEventPublisher: DomainEventPublisher,
+  private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary,
 ) : RecordLedgerTransferFxUC {
-  override fun execute(command: RecordLedgerTransferFxCommand): RecordLedgerTransferResult {
-    require(command.fromAccountId != command.toAccountId) { "source and destination accounts must be different" }
+  override fun execute(command: RecordLedgerTransferFxCommand): RecordLedgerTransferResult =
+    consistencyBoundary.withinConsistencyBoundary {
+      require(command.fromAccountId != command.toAccountId) { "source and destination accounts must be different" }
 
-    val fromAccount = requireAccount(accountRepository, command.fromAccountId)
-    val toAccount = requireAccount(accountRepository, command.toAccountId)
-    fromAccount.ensureCanRecordTransactions()
-    toAccount.ensureCanRecordTransactions()
+      val fromAccount = requireAccount(accountRepository, command.fromAccountId)
+      val toAccount = requireAccount(accountRepository, command.toAccountId)
+      fromAccount.ensureCanRecordTransactions()
+      toAccount.ensureCanRecordTransactions()
 
-    val sourceAmount = requireAmountInAccountCurrency(fromAccount, command.sourceAmount)
-    val destinationAmount = requireAmountInAccountCurrency(toAccount, command.destinationAmount)
+      val sourceAmount = requireAmountInAccountCurrency(fromAccount, command.sourceAmount)
+      val destinationAmount = requireAmountInAccountCurrency(toAccount, command.destinationAmount)
 
-    val providedExchangeRate = command.exchangeRate?.stripTrailingZeros()
-    if (providedExchangeRate != null) {
-      require(providedExchangeRate > BigDecimal.ZERO) { "exchange rate must be greater than 0" }
-    }
-
-    val normalizedSourceAmount = sourceAmount.amount.setScale(2, RoundingMode.HALF_UP)
-    val normalizedDestinationAmount = destinationAmount.amount.setScale(2, RoundingMode.HALF_UP)
-    require(normalizedSourceAmount > BigDecimal.ZERO) { "source amount must be greater than 0" }
-    require(normalizedDestinationAmount > BigDecimal.ZERO) { "destination amount must be greater than 0" }
-    val resolvedExchangeRate = providedExchangeRate
-      ?: normalizedDestinationAmount.divide(normalizedSourceAmount, 10, RoundingMode.HALF_UP)
-
-    if (sourceAmount.currency == destinationAmount.currency) {
-      require(normalizedSourceAmount.compareTo(normalizedDestinationAmount) == 0) {
-        "Same-currency transfer must keep equal source and destination amounts"
-      }
+      val providedExchangeRate = command.exchangeRate?.stripTrailingZeros()
       if (providedExchangeRate != null) {
-        require(providedExchangeRate.compareTo(BigDecimal.ONE) == 0) {
-          "Same-currency transfer exchange rate must be 1"
+        require(providedExchangeRate > BigDecimal.ZERO) { "exchange rate must be greater than 0" }
+      }
+
+      val normalizedSourceAmount = sourceAmount.amount.setScale(2, RoundingMode.HALF_UP)
+      val normalizedDestinationAmount = destinationAmount.amount.setScale(2, RoundingMode.HALF_UP)
+      require(normalizedSourceAmount > BigDecimal.ZERO) { "source amount must be greater than 0" }
+      require(normalizedDestinationAmount > BigDecimal.ZERO) { "destination amount must be greater than 0" }
+      val resolvedExchangeRate = providedExchangeRate
+        ?: normalizedDestinationAmount.divide(normalizedSourceAmount, 10, RoundingMode.HALF_UP)
+
+      if (sourceAmount.currency == destinationAmount.currency) {
+        require(normalizedSourceAmount.compareTo(normalizedDestinationAmount) == 0) {
+          "Same-currency transfer must keep equal source and destination amounts"
+        }
+        if (providedExchangeRate != null) {
+          require(providedExchangeRate.compareTo(BigDecimal.ONE) == 0) {
+            "Same-currency transfer exchange rate must be 1"
+          }
+        }
+      } else {
+        val expectedDestinationAmount = normalizedSourceAmount
+          .multiply(resolvedExchangeRate)
+          .setScale(2, RoundingMode.HALF_UP)
+        require(expectedDestinationAmount.compareTo(normalizedDestinationAmount) == 0) {
+          "Transfer amounts do not match exchange rate"
         }
       }
-    } else {
-      val expectedDestinationAmount = normalizedSourceAmount
-        .multiply(resolvedExchangeRate)
-        .setScale(2, RoundingMode.HALF_UP)
-      require(expectedDestinationAmount.compareTo(normalizedDestinationAmount) == 0) {
-        "Transfer amounts do not match exchange rate"
-      }
+
+      val transferOutId = TransactionId.random()
+      val transferInId = TransactionId.random()
+
+      val transferOut = Transaction.recordTransferOut(
+        id = transferOutId,
+        accountId = fromAccount.id,
+        amount = Money(normalizedSourceAmount, sourceAmount.currency.uppercase()),
+        occurredAt = command.occurredAt,
+        description = command.description,
+        linkedTransactionId = transferInId,
+      )
+      val transferIn = Transaction.recordTransferIn(
+        id = transferInId,
+        accountId = toAccount.id,
+        amount = Money(normalizedDestinationAmount, destinationAmount.currency.uppercase()),
+        occurredAt = command.occurredAt,
+        description = command.description,
+        linkedTransactionId = transferOutId,
+      )
+
+      transactionRepository.save(transferOut)
+      transactionRepository.save(transferIn)
+      domainEventPublisher.publish(TransactionRecorded(transferOut.id, transferOut.accountId))
+      domainEventPublisher.publish(TransactionRecorded(transferIn.id, transferIn.accountId))
+
+      RecordLedgerTransferResult(
+        transferOutId = transferOutId,
+        transferInId = transferInId,
+      )
     }
-
-    val transferOutId = TransactionId.random()
-    val transferInId = TransactionId.random()
-
-    val transferOut = Transaction.recordTransferOut(
-      id = transferOutId,
-      accountId = fromAccount.id,
-      amount = Money(normalizedSourceAmount, sourceAmount.currency.uppercase()),
-      occurredAt = command.occurredAt,
-      description = command.description,
-      linkedTransactionId = transferInId,
-    )
-    val transferIn = Transaction.recordTransferIn(
-      id = transferInId,
-      accountId = toAccount.id,
-      amount = Money(normalizedDestinationAmount, destinationAmount.currency.uppercase()),
-      occurredAt = command.occurredAt,
-      description = command.description,
-      linkedTransactionId = transferOutId,
-    )
-
-    transactionRepository.save(transferOut)
-    transactionRepository.save(transferIn)
-    domainEventPublisher.publish(TransactionRecorded(transferOut.id, transferOut.accountId))
-    domainEventPublisher.publish(TransactionRecorded(transferIn.id, transferIn.accountId))
-
-    return RecordLedgerTransferResult(
-      transferOutId = transferOutId,
-      transferInId = transferInId,
-    )
-  }
 }
 
 class CreateLedgerExpenseDraftService(
@@ -363,21 +370,24 @@ class PostLedgerDraftTransactionService(
 class VoidLedgerTransactionService(
   private val transactionRepository: LedgerTransactionRepository,
   private val domainEventPublisher: DomainEventPublisher,
+  private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary,
 ) : VoidLedgerTransactionUC {
   override fun execute(command: VoidLedgerTransactionCommand) {
-    val transaction = requireTransaction(transactionRepository, command.transactionId)
-    val voidedTransaction = transaction.void()
-    transactionRepository.save(voidedTransaction)
-    domainEventPublisher.publish(TransactionVoided(voidedTransaction.id))
+    consistencyBoundary.withinConsistencyBoundary {
+      val transaction = requireTransaction(transactionRepository, command.transactionId)
+      val voidedTransaction = transaction.void()
+      transactionRepository.save(voidedTransaction)
+      domainEventPublisher.publish(TransactionVoided(voidedTransaction.id))
 
-    if (transaction.type == TransactionType.TRANSFER_OUT || transaction.type == TransactionType.TRANSFER_IN) {
-      val linkedId = transaction.linkedTransactionId
-      if (linkedId != null) {
-        val linked = requireTransaction(transactionRepository, linkedId)
-        if (linked.status != voidedTransaction.status) {
-          val voidedLinked = linked.void()
-          transactionRepository.save(voidedLinked)
-          domainEventPublisher.publish(TransactionVoided(voidedLinked.id))
+      if (transaction.type == TransactionType.TRANSFER_OUT || transaction.type == TransactionType.TRANSFER_IN) {
+        val linkedId = transaction.linkedTransactionId
+        if (linkedId != null) {
+          val linked = requireTransaction(transactionRepository, linkedId)
+          if (linked.status != voidedTransaction.status) {
+            val voidedLinked = linked.void()
+            transactionRepository.save(voidedLinked)
+            domainEventPublisher.publish(TransactionVoided(voidedLinked.id))
+          }
         }
       }
     }

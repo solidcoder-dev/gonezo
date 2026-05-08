@@ -47,7 +47,7 @@ tasks.withType(Test).configureEach {
 
 tasks.register('checkLayerBoundaries') {
   group = 'verification'
-  description = 'Fails when forbidden framework/platform imports leak into inner layers.'
+  description = 'Fails when forbidden framework/platform imports leak into inner layers or bounded contexts.'
 
   doLast {
     def domainForbidden = [
@@ -88,5 +88,26 @@ tasks.register('checkLayerBoundaries') {
       },
       applicationForbidden
     )
+
+    def boundedContexts = ['ledger', 'taxonomy', 'expected', 'recurrence']
+    boundedContexts.each { context ->
+      def forbiddenContextImports = boundedContexts
+        .findAll { it != context }
+        .collect { ~/import\s+com\.gonezo\.${it}\./ }
+
+      checkForbidden(
+        "core/domain/${context}",
+        fileTree('src/main') {
+          include "**/com/gonezo/domain/${context}/**/*.kt"
+          include "**/com/gonezo/domain/${context}/**/*.java"
+        },
+        forbiddenContextImports
+      )
+    }
+
+    def ledgerCategoryId = file('src/main/kotlin/com/gonezo/domain/ledger/CategoryId.kt')
+    if (ledgerCategoryId.exists()) {
+      throw new GradleException('CategoryId belongs to Taxonomy; Ledger must not define its own category identity.')
+    }
   }
 }

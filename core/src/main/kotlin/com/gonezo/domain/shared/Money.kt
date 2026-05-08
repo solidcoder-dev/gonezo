@@ -9,4 +9,9 @@ data class Money(
   init {
     require(currency.isNotBlank()) { "currency must not be blank" }
   }
+
+  companion object {
+    fun of(amount: BigDecimal, currency: String): Money =
+      Money(amount = amount, currency = CurrencyCode.from(currency).value)
+  }
 }

@@ -114,6 +114,8 @@ Comandos:
 - `TransactionTagAssignmentRepository`
 - `TransactionReferencePort` (consulta minima a Ledger para validar tipo/estado si aplica)
 
+Las asignaciones pueden limpiarse por lote mediante `deleteByTransactionIds` cuando un workflow externo elimina transacciones de Ledger. Esa limpieza no vive en el repositorio de Ledger.
+
 ## Eventos de dominio
 
 - `CategoryCreated`

@@ -37,6 +37,15 @@ class JdbcTaxonomyTransactionCategoryAssignmentRepository(
     jdbcTemplate.update(sql, MapSqlParameterSource("transaction_id", transactionId.toString()))
   }
 
+  override fun deleteByTransactionIds(transactionIds: Collection<UUID>) {
+    if (transactionIds.isEmpty()) {
+      return
+    }
+    val sql = "delete from taxonomy_transaction_assignments where transaction_id in (:transaction_ids)"
+    val params = MapSqlParameterSource("transaction_ids", transactionIds.map(UUID::toString))
+    jdbcTemplate.update(sql, params)
+  }
+
   override fun findByTransactionId(transactionId: UUID): TransactionCategoryAssignment? {
     val sql = """
       select transaction_id, category_id, assigned_at

@@ -1,5 +1,7 @@
 package com.gonezo.recurrence.application
 
+import com.gonezo.application.ConsistencyBoundary
+import com.gonezo.application.ImmediateConsistencyBoundary
 import com.gonezo.recurrence.domain.RecurrenceOutboxMessage
 import com.gonezo.recurrence.domain.RecurrenceOutboxStatus
 import com.gonezo.recurrence.domain.RecurringMovement
@@ -91,6 +93,7 @@ class ProcessDueRecurringMovementsService(
   private val occurrenceRepository: RecurringMovementOccurrenceRepository,
   private val outboxRepository: RecurrenceOutboxRepository,
   private val scheduleCalculator: RecurrenceScheduleCalculator,
+  private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary,
 ) : ProcessDueRecurringMovementsUC {
   override fun execute(command: ProcessDueRecurringMovementsCommand): ProcessDueRecurringMovementsResult {
     require(command.limit > 0) { "limit must be greater than 0" }
@@ -100,63 +103,70 @@ class ProcessDueRecurringMovementsService(
     var advancedSchedules = 0
 
     dueMovements.forEach { movement ->
-      val dueAt = checkNotNull(movement.nextDueAt) { "Active recurring movement must have nextDueAt" }
+      val createdOccurrence = consistencyBoundary.withinConsistencyBoundary {
+        val dueAt = checkNotNull(movement.nextDueAt) { "Active recurring movement must have nextDueAt" }
+        var created = false
 
-      val existingOccurrence = occurrenceRepository.findByRecurringMovementAndDueAt(movement.id, dueAt)
-      if (existingOccurrence == null) {
-        val occurrence = RecurringMovementOccurrence.pending(
-          id = UUID.randomUUID(),
-          recurringMovementId = movement.id,
-          dueAt = dueAt,
-          createdAt = command.now,
-        )
-        occurrenceRepository.save(occurrence)
-        outboxRepository.save(
-          RecurrenceOutboxMessage(
+        val existingOccurrence = occurrenceRepository.findByRecurringMovementAndDueAt(movement.id, dueAt)
+        if (existingOccurrence == null) {
+          val occurrence = RecurringMovementOccurrence.pending(
             id = UUID.randomUUID(),
-            aggregateId = movement.id,
-            occurrenceId = occurrence.id,
-            eventType = RecurringMovementDueIntegrationEvent.EVENT_TYPE,
-            payloadJson = RecurringMovementDueIntegrationEvent(
-              eventId = UUID.randomUUID(),
-              recurringMovementId = movement.id.toString(),
-              occurrenceId = occurrence.id.toString(),
-              dueAt = dueAt.toString(),
-              movementType = movement.type.value,
-              sourceAccountId = movement.sourceAccountId,
-              targetAccountId = movement.targetAccountId,
-              amount = movement.amount.toPlainString(),
-              currency = movement.currency,
-              destinationAmount = movement.destinationAmount?.toPlainString(),
-              destinationCurrency = movement.destinationCurrency,
-              exchangeRate = movement.exchangeRate?.toPlainString(),
-              description = movement.description,
-              merchant = movement.merchant,
-              categoryId = movement.categoryId,
-              splitItems = movement.splitItems.map {
-                RecurringMovementDueIntegrationEvent.SplitItem(
-                  id = it.id,
-                  name = it.name,
-                  amount = it.amount.toPlainString(),
-                )
-              },
-            ).toJson(),
-            status = RecurrenceOutboxStatus.PENDING,
-            attempts = 0,
-            lastError = null,
+            recurringMovementId = movement.id,
+            dueAt = dueAt,
             createdAt = command.now,
-            publishedAt = null,
-          ),
+          )
+          occurrenceRepository.save(occurrence)
+          outboxRepository.save(
+            RecurrenceOutboxMessage(
+              id = UUID.randomUUID(),
+              aggregateId = movement.id,
+              occurrenceId = occurrence.id,
+              eventType = RecurringMovementDueIntegrationEvent.EVENT_TYPE,
+              payloadJson = RecurringMovementDueIntegrationEvent(
+                eventId = UUID.randomUUID(),
+                recurringMovementId = movement.id.toString(),
+                occurrenceId = occurrence.id.toString(),
+                dueAt = dueAt.toString(),
+                movementType = movement.type.value,
+                sourceAccountId = movement.sourceAccountId,
+                targetAccountId = movement.targetAccountId,
+                amount = movement.amount.toPlainString(),
+                currency = movement.currency,
+                destinationAmount = movement.destinationAmount?.toPlainString(),
+                destinationCurrency = movement.destinationCurrency,
+                exchangeRate = movement.exchangeRate?.toPlainString(),
+                description = movement.description,
+                merchant = movement.merchant,
+                categoryId = movement.categoryId,
+                splitItems = movement.splitItems.map {
+                  RecurringMovementDueIntegrationEvent.SplitItem(
+                    id = it.id,
+                    name = it.name,
+                    amount = it.amount.toPlainString(),
+                  )
+                },
+              ).toJson(),
+              status = RecurrenceOutboxStatus.PENDING,
+              attempts = 0,
+              lastError = null,
+              createdAt = command.now,
+              publishedAt = null,
+            ),
+          )
+          created = true
+        }
+
+        val advanced = movement.advanceAfterDue(
+          dueAt = dueAt,
+          advancedAt = command.now,
+          scheduleCalculator = scheduleCalculator,
         )
+        recurringMovementRepository.save(advanced)
+        created
+      }
+      if (createdOccurrence) {
         createdOccurrences += 1
       }
-
-      val advanced = movement.advanceAfterDue(
-        dueAt = dueAt,
-        advancedAt = command.now,
-        scheduleCalculator = scheduleCalculator,
-      )
-      recurringMovementRepository.save(advanced)
       advancedSchedules += 1
     }
 

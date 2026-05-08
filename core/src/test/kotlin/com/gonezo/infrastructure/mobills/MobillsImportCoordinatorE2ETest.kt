@@ -1,6 +1,7 @@
 package com.gonezo.infrastructure.mobills
 
 import com.gonezo.application.events.DomainEventPublisher
+import com.gonezo.domain.shared.DomainEvent
 import com.gonezo.application.orchestration.ApplyTransactionTagsService
 import com.gonezo.application.orchestration.CategorizeLedgerTransactionService
 import com.gonezo.application.orchestration.ProcessTransactionCategorizationService
@@ -137,6 +138,5 @@ class MobillsImportCoordinatorE2ETest : SqliteE2ETest() {
 }
 
 private class NoopDomainEventPublisher : DomainEventPublisher {
-  override fun publish(event: Any) = Unit
+  override fun publish(event: DomainEvent) = Unit
 }
-

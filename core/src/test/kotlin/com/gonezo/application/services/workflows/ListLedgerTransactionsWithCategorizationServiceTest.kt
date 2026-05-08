@@ -222,6 +222,10 @@ private class InMemoryStateRepository(
   override fun findByTransactionIds(transactionIds: Collection<UUID>): Map<UUID, TxCategorizationState> =
     transactionIds.mapNotNull { id -> values[id]?.let { id to it } }.toMap()
 
+  override fun deleteByTransactionIds(transactionIds: Collection<UUID>) {
+    transactionIds.forEach(values::remove)
+  }
+
   override fun findPending(now: Instant, limit: Int): List<TxCategorizationState> =
     values.values.filter { it.status == CategorizationStatus.PENDING }.take(limit)
 }

@@ -1,6 +1,7 @@
 package com.gonezo.multiplatform.core;
 
 import android.content.Context;
+import com.gonezo.application.ConsistencyBoundary;
 import com.gonezo.application.events.DomainEventPublisher;
 import com.gonezo.ledger.application.AddLedgerTransactionItemCommand;
 import com.gonezo.ledger.application.AddLedgerTransactionItemUC;
@@ -49,7 +50,7 @@ import com.gonezo.ledger.application.RenameLedgerAccountService;
 import com.gonezo.ledger.application.VoidLedgerTransactionService;
 import com.gonezo.ledger.domain.Account;
 import com.gonezo.ledger.domain.AccountId;
-import com.gonezo.ledger.domain.CurrencyCode;
+import com.gonezo.domain.shared.CurrencyCode;
 import com.gonezo.ledger.domain.Transaction;
 import com.gonezo.ledger.domain.TransactionId;
 import com.gonezo.ledger.domain.TransactionItem;
@@ -93,20 +94,40 @@ public final class AndroidLedgerCore {
     AndroidLedgerAccountRepository accountRepository = new AndroidLedgerAccountRepository(database);
     AndroidLedgerTransactionRepository transactionRepository = new AndroidLedgerTransactionRepository(database);
     DomainEventPublisher eventPublisher = new NoopDomainEventPublisher();
+    ConsistencyBoundary consistencyBoundary = new AndroidConsistencyBoundary(database);
 
-    this.openAccountUC = new OpenLedgerAccountService(accountRepository, transactionRepository, eventPublisher);
+    this.openAccountUC = new OpenLedgerAccountService(
+      accountRepository,
+      transactionRepository,
+      eventPublisher,
+      consistencyBoundary
+    );
     this.renameAccountUC = new RenameLedgerAccountService(accountRepository);
     this.archiveAccountUC = new ArchiveLedgerAccountService(accountRepository, eventPublisher);
     this.deleteAccountUC = new DeleteLedgerAccountService(accountRepository);
     this.listAccountsUC = new ListLedgerAccountsService(accountRepository);
     this.recordIncomeUC = new RecordLedgerIncomeService(accountRepository, transactionRepository, eventPublisher);
     this.recordExpenseUC = new RecordLedgerExpenseService(accountRepository, transactionRepository, eventPublisher);
-    this.recordTransferUC = new RecordLedgerTransferService(accountRepository, transactionRepository, eventPublisher);
-    this.recordTransferFxUC = new RecordLedgerTransferFxService(accountRepository, transactionRepository, eventPublisher);
+    this.recordTransferUC = new RecordLedgerTransferService(
+      accountRepository,
+      transactionRepository,
+      eventPublisher,
+      consistencyBoundary
+    );
+    this.recordTransferFxUC = new RecordLedgerTransferFxService(
+      accountRepository,
+      transactionRepository,
+      eventPublisher,
+      consistencyBoundary
+    );
     this.createExpenseDraftUC = new CreateLedgerExpenseDraftService(accountRepository, transactionRepository);
     this.addTransactionItemUC = new AddLedgerTransactionItemService(transactionRepository, eventPublisher);
     this.postDraftTransactionUC = new PostLedgerDraftTransactionService(transactionRepository, eventPublisher);
-    this.voidTransactionUC = new VoidLedgerTransactionService(transactionRepository, eventPublisher);
+    this.voidTransactionUC = new VoidLedgerTransactionService(
+      transactionRepository,
+      eventPublisher,
+      consistencyBoundary
+    );
     this.listTransactionsUC = new ListLedgerTransactionsService(transactionRepository);
     this.getAccountBalanceUC = new GetLedgerAccountBalanceService(accountRepository, transactionRepository, new BalanceCalculator());
     this.accountRepository = accountRepository;
