@@ -17,8 +17,9 @@ app/src/
   account/
     application/
       AccountPage.tsx
-      useAccountPageModel.ts
-      useToast.ts
+      AccountHubComponent.tsx
+      AccountSummaryComponent.tsx
+      accountsCore.port.ts
       accountViewMappers.ts
     domain/
       accountPage.types.ts
@@ -30,8 +31,6 @@ app/src/
       accountPageView.contract.ts
       AccountSwitcherView.tsx
       capabilities/
-        AccountsComponent.tsx
-        AccountsComponent.contract.ts
         TransactionsImportComponent.tsx
         TransactionsImportComponent.contract.ts
       sections/
@@ -42,19 +41,13 @@ app/src/
       TransactionEntryComponent.tsx
       TransactionEntryComponent.contract.ts
       useTransactionEntryModel.ts
-      RecentTransactionsComponent.tsx
-      RecentTransactionsComponent.contract.ts
-      useTransactionHistoryModel.ts
       transactionsCore.port.ts
       transactionViewMappers.ts
     domain/
       transactions.types.ts
       transactionView.types.ts
-    infrastructure/
-      transactionsGateway.ts
     ui/
       TransactionComposerView.tsx
-      RecentTransactionsListView.tsx
       CategoryComboboxField.tsx
       TagComboboxField.tsx
     index.ts
@@ -79,9 +72,18 @@ app/src/
 
   ledger/
     application/*
-    domain/*
     infrastructure/*
-    ui/
+
+  expected/
+    infrastructure/*
+
+  scheduling/
+    infrastructure/*
+
+  movements/
+    application/*
+    domain/*
+    ui/*
 
   taxonomy/
     application/*
@@ -91,10 +93,9 @@ app/src/
   shared/
     domain/
       corePort.ts
+      schedulingKind.ts
     infrastructure/
       core/*
-    ui/
-      transactions/components/*
     testing/
       setup.ts
     utils/
@@ -105,10 +106,14 @@ app/src/
 
 - `App.tsx`: bootstrap y routing.
 - `account/application/AccountPage.tsx`: composicion cross-capability.
-- `account/ui/capabilities/*`: capacidades de cuenta e importacion de alto nivel.
-- `transactions/*`: capacidad transaccional completa y autonoma (entry + recent activity + UI + mappers).
+- `account/application/AccountHubComponent.tsx`: seleccion y gestion de cuentas.
+- `account/application/AccountSummaryComponent.tsx`: resumen y acciones sobre cuenta seleccionada.
+- `account/ui/capabilities/*`: importacion de alto nivel.
+- `transactions/*`: composer transaccional y mappers.
+- `movements/*`: monthly overview, posted/scheduled/expected lists, search and edit entrypoints.
 - `imports/*`: capacidad de importacion como caja negra reutilizable.
 - `ledger/*` y `taxonomy/*`: acceso y reglas de backend; no definen la UX por si mismos.
+- `expected/*` y `scheduling/*`: gateways de capacidades nativas/core.
 - `shared/*`: utilidades neutrales.
 
 ## Convencion de contratos
@@ -129,17 +134,24 @@ app/src/
 - Las vistas no llaman a `core.*` ni a hooks de application directamente.
 - `account/ui/*` y `transactions/ui/*` no deben depender de `shared/domain/corePort` (usar view models propios).
 - Coordinacion entre capacidades hermanas se hace via `provided.events` del emisor y `required.config` del receptor
-  (ejemplo: `TransactionEntryComponent.events.onRecorded` -> `RecentTransactionsComponent.config.refreshSignal`).
+  (ejemplo: `TransactionEntryComponent.events.onRecorded` -> `MonthlyMovementsComponent.config.refreshSignal`).
 
 ## Mezcla de dominios y ACL
 
 - La mezcla `ledger + taxonomy` para transacciones ocurre en:
   - `transactions/application/useTransactionEntryModel.ts`
-  - `transactions/application/useTransactionHistoryModel.ts`
-- La mezcla de importacion (`mobillsImport`) ocurre en `account/application/useAccountPageModel.ts`.
+  - `movements/application/useMonthlyMovementsModel.ts`
+  - `movements/application/useMovementsSearchModel.ts`
+- La mezcla de importacion (`mobillsImport`) ocurre en `account/application/AccountPage.tsx` y `imports/*`.
 - Los DTO del backend se traducen a view models en:
   - `account/application/accountViewMappers.ts` (cuentas)
   - `transactions/application/transactionViewMappers.ts` (transacciones)
+
+## Runtime actual
+
+Android es el unico runtime de producto activo. `app/src/shared/infrastructure/core/coreAdapter.ts`
+redirige a `CorePlugin` cuando Capacitor corre en plataforma nativa. El adaptador web queda para pruebas
+y futuro runtime web; iOS queda fuera de alcance por ahora.
 
 ## UX Transferencias FX
 

@@ -1301,7 +1301,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
             : { kind: 'never' };
 
         await schedulingGateway.schedulingCreateMovement({
-          type: 'expense',
+          type: composerMode,
           sourceAccountId: accountId,
           amount: formatAmount(parseAmount(amount)),
           currency: accountCurrency,

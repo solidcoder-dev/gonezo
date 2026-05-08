@@ -11,9 +11,11 @@ Importar exportes Mobills (TSV/CSV, UTF-16/UTF-8) sin mezclar dominios:
 
 ## Ubicacion de codigo
 
-- `core/application/src/main/kotlin/com/gonezo/application/orchestration/mobills`
-- `core/application/src/main/kotlin/com/gonezo/application/services/mobills`
-- `core/infrastructure/src/main/kotlin/com/gonezo/infrastructure/mobills`
+- `core/src/main/kotlin/com/gonezo/application/orchestration/mobills`
+- `core/src/main/kotlin/com/gonezo/application/services/mobills`
+- `core/src/main/kotlin/com/gonezo/infrastructure/mobills`
+- `app/android/app/src/main/java/com/gonezo/multiplatform/plugins/CorePlugin.java`
+- `platforms/android/infrastructure/src/main/java/com/gonezo/multiplatform/core/*`
 
 ## Flujo
 
@@ -27,7 +29,7 @@ Importar exportes Mobills (TSV/CSV, UTF-16/UTF-8) sin mezclar dominios:
    - resolver/crear tags y asignarlos (taxonomy)
 5. Devuelve resultado por fila (`imported | failed | skipped`) con `errorCode/errorMessage` cuando aplica.
 
-## Integracion App (UI + plugin)
+## Integracion App Android (UI + plugin)
 
 Desde la pantalla de cuentas:
 
@@ -52,6 +54,8 @@ En frontend, esta integracion se encapsula en el modulo:
 
 - `app/src/imports/{application,domain,infrastructure,ui}`
 - Proveedor Mobills concreto en `app/src/imports/infrastructure/providers/mobills/*`
+
+El objetivo de runtime actual es Android. `mobillsImport` llega por Capacitor a `CorePlugin`, que usa los adaptadores Android y el core Kotlin. El adaptador web queda como soporte de pruebas y futuro runtime web.
 
 ## Reglas de normalizacion
 

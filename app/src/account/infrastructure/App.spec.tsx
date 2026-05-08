@@ -2789,6 +2789,48 @@ describe('App Accounts UX', () => {
     expect(core.ledgerRecordExpense).not.toHaveBeenCalled();
   });
 
+  it('creates recurring income from composer more options', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Income');
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '2400' } });
+    fireEvent.change(screen.getByLabelText('Source'), { target: { value: 'Consulting' } });
+    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-12-31' } });
+    fireEvent.click(screen.getByLabelText('Repeat this income'));
+    fireEvent.change(screen.getByLabelText('Recurrence frequency'), { target: { value: 'monthly' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(core.recurrenceCreateRecurringMovement).toHaveBeenCalledTimes(1);
+    });
+
+    const recurrenceCall = vi.mocked(core.recurrenceCreateRecurringMovement).mock.calls[0]?.[0];
+    expect(recurrenceCall).toMatchObject({
+      type: 'income',
+      sourceAccountId: 'acc-1',
+      amount: '2400.00',
+      currency: 'USD',
+      description: 'Consulting',
+      merchant: 'Consulting',
+      rule: {
+        frequency: 'monthly',
+      },
+      recurrenceEnd: { kind: 'never' },
+      scheduleKind: 'recurring',
+    });
+    expect(core.ledgerRecordIncome).not.toHaveBeenCalled();
+    expect(core.ledgerRecordExpense).not.toHaveBeenCalled();
+  });
+
   it('creates one-time scheduled expense from composer', async () => {
     const core = makeCore();
 
