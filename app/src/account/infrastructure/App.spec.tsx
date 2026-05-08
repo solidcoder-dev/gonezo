@@ -3,8 +3,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../App';
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
-import type { AccountsCorePort } from '../application/accountsCore.port';
 import type {
+  CorePort,
   LedgerListTransactionsInput,
   LedgerListTransactionsResult,
   LedgerTransactionListItem,
@@ -193,7 +193,7 @@ function emptyExpectedPreview() {
   };
 }
 
-function makeCore(transactionCount = 0): AccountsCorePort {
+function makeCore(transactionCount = 0): CorePort {
   const transactions: LedgerTransactionListItem[] = Array.from({ length: transactionCount }).map((_, index) => ({
     id: `tx-${index + 1}`,
     accountId: 'acc-1',
@@ -209,7 +209,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
   const scheduledMovements: SchedulingMovementItem[] = [];
   const expectedMovements: ExpectedMovementItem[] = [];
 
-  const core: AccountsCorePort = {
+  const core: CorePort = {
     ledgerListSupportedCurrencies: vi.fn(async () => ({ items: ['EUR', 'USD'] })),
     ledgerListAccounts: vi.fn(async () => ({
       items: [
@@ -330,6 +330,7 @@ function makeCore(transactionCount = 0): AccountsCorePort {
         description: input.description,
         merchant: input.merchant,
         categoryId: input.categoryId,
+        originOccurrenceId: (input as { originOccurrenceId?: string }).originOccurrenceId,
         splitItems: (input.splitItems ?? []).map((item: { id: string; name: string; amount: string }) => ({ ...item })),
         status: 'pending',
         createdAt: now,
@@ -2250,10 +2251,6 @@ describe('App Accounts UX', () => {
     await waitFor(() => {
       expect(core.movementsSearch).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          filters: expect.objectContaining({
-            categoryId: 'cat-food',
-            categoryIds: ['cat-food'],
-          }),
           pagination: {
             page: 0,
             size: 100,
@@ -2261,6 +2258,9 @@ describe('App Accounts UX', () => {
         }),
       );
     });
+    const searchInput = vi.mocked(core.movementsSearch).mock.calls.at(-1)?.[0];
+    expect(searchInput?.filters?.categoryId).toBeUndefined();
+    expect(searchInput?.filters?.categoryIds).toBeUndefined();
   });
 
   it('shows split items in advanced-search details for posted movements', async () => {
@@ -2546,7 +2546,7 @@ describe('App Accounts UX', () => {
     const core = makeCore();
     const dueAt = '2026-05-12T10:00:00.000Z';
 
-    await core.schedulingCreateMovement({
+    const scheduled = await core.schedulingCreateMovement({
       type: 'expense',
       sourceAccountId: 'acc-1',
       amount: '33.00',
@@ -2567,8 +2567,9 @@ describe('App Accounts UX', () => {
       expectedAt: dueAt,
       description: 'Shared bill',
       categoryId: 'cat-food',
+      originOccurrenceId: scheduled.id,
       splitItems: [],
-    });
+    } as Parameters<typeof core.expectedCreateMovement>[0] & { originOccurrenceId: string });
 
     render(
       <MemoryRouter>

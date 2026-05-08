@@ -12,7 +12,7 @@ import { mapTransactionHistoryList } from '../../transactions/application/transa
 import type { TransactionsCorePort } from '../../transactions/application/transactionsCore.port';
 import type { ExpectedMovementView, ScheduledMovementView } from '../domain/movementsView.types';
 import type { MonthlyMovementsViewProvided, MonthlyMovementsViewRequired } from '../ui/MonthlyMovementsView.contract';
-import type { ExpectedMovementItem, SchedulingMovementItem } from '../../shared/domain/corePort';
+import { filterProjectedScheduledMovements } from './monthlyMovementProjection';
 
 type UseMonthlyMovementsModelInput = {
   core: TransactionsCorePort;
@@ -75,78 +75,6 @@ function monthLabel(date: Date): string {
 
 function sameMonth(left: Date, right: Date): boolean {
   return left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth();
-}
-
-function normalizeAmount(rawAmount: string): string {
-  const parsed = Number(rawAmount.trim());
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new Error('Amount must be greater than 0.');
-  }
-  return parsed.toFixed(2);
-}
-
-function normalizeText(value?: string): string {
-  return value?.trim().toLowerCase() ?? '';
-}
-
-function normalizeDayKey(value?: string): string {
-  if (!value) {
-    return '';
-  }
-
-  const parsed = Date.parse(value);
-  if (!Number.isFinite(parsed)) {
-    return '';
-  }
-
-  return new Date(parsed).toISOString().slice(0, 10);
-}
-
-function splitSignature(items: Array<{ name: string; amount: string }>): string {
-  return items
-    .map((item) => `${normalizeText(item.name)}:${normalizeAmount(item.amount)}`)
-    .sort()
-    .join('|');
-}
-
-function scheduledSignature(item: SchedulingMovementItem): string {
-  return [
-    normalizeDayKey(item.nextDueAt ?? item.startAt),
-    normalizeText(item.type),
-    normalizeAmount(item.amount),
-    normalizeText(item.currency),
-    normalizeText(item.categoryId),
-    normalizeText(item.merchant),
-    normalizeText(item.description),
-    splitSignature(item.splitItems),
-  ].join('::');
-}
-
-function expectedSignature(item: ExpectedMovementItem): string {
-  return [
-    normalizeDayKey(item.expectedAt),
-    normalizeText(item.type),
-    normalizeAmount(item.amount),
-    normalizeText(item.currency),
-    normalizeText(item.categoryId),
-    normalizeText(item.merchant),
-    normalizeText(item.description),
-    splitSignature(item.splitItems),
-  ].join('::');
-}
-
-function filterDuplicateScheduledItems(
-  scheduledItems: SchedulingMovementItem[],
-  expectedItems: ExpectedMovementItem[],
-): SchedulingMovementItem[] {
-  if (scheduledItems.length === 0 || expectedItems.length === 0) {
-    return scheduledItems;
-  }
-
-  const expectedSignatures = new Set(expectedItems.map((item) => expectedSignature(item)));
-  return scheduledItems
-    .filter((item) => item.status === 'active')
-    .filter((item) => !expectedSignatures.has(scheduledSignature(item)));
 }
 
 export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
@@ -393,7 +321,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       ],
       expectedPreviewSize: 30,
     });
-    const visibleScheduledItems = filterDuplicateScheduledItems(
+    const visibleScheduledItems = filterProjectedScheduledMovements(
       overview.scheduledPreview.items,
       overview.expectedPreview.items,
     );

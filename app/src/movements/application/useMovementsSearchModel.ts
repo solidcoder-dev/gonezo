@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
-  CorePort,
   TaxonomyCategoryItem,
   TaxonomyTagItem,
 } from '../../shared/domain/corePort';
-import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
-import { useCategorySuggestions } from '../../taxonomy/application/useCategorySuggestions';
-import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions';
 import type {
   MovementsPaginationView,
   MovementsSearchFiltersState,
@@ -14,9 +10,15 @@ import type {
   MovementsSearchModelProvided,
   MovementsSearchModelRequired,
 } from '../domain/movementsView.types';
+import {
+  buildPostedTaxonomySearchPage,
+  hasPostedTaxonomyFilters,
+  hydratePostedSearchItems,
+  type PostedTaxonomySearchPort,
+} from './postedTaxonomySearch';
 
 type UseMovementsSearchModelInput = {
-  core: CorePort;
+  core: PostedTaxonomySearchPort;
   accountId: string | null;
   enabled: boolean;
 };
@@ -133,10 +135,6 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
   const [items, setItems] = useState<MovementsSearchItemView[]>([]);
   const previousAccountIdRef = useRef<string | null>(null);
 
-  const taxonomyGateway = useMemo(() => createTaxonomyGateway(core), [core]);
-  const categorySuggestions = useCategorySuggestions(taxonomyGateway);
-  const tagSuggestions = useTagSuggestions(taxonomyGateway);
-
   const categoryOptions = useMemo(
     () => categories.map((category) => ({ id: category.id, label: category.name })),
     [categories],
@@ -157,8 +155,8 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
 
     if (categories.length === 0) {
       operations.push(
-        categorySuggestions
-          .listCategories({ includeArchived: false })
+        core
+          .taxonomyListCategories({ includeArchived: false })
           .then((result) => {
             loadedCategories = result.items;
             setCategories(result.items);
@@ -168,8 +166,8 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
 
     if (tags.length === 0) {
       operations.push(
-        tagSuggestions
-          .listTags({ includeArchived: false })
+        core
+          .taxonomyListTags({ includeArchived: false })
           .then((result) => {
             loadedTags = result.items;
             setTags(result.items);
@@ -191,97 +189,6 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
     await loadFilterOptions();
   }
 
-  async function hydratePostedSearchItems(searchItems: MovementsSearchItemView[]): Promise<MovementsSearchItemView[]> {
-    const transactionIds = [...new Set(
-      searchItems
-        .filter((item) => item.source === 'posted')
-        .map((item) => item.id)
-        .filter((id) => id.trim().length > 0),
-    )];
-    if (transactionIds.length === 0) {
-      return searchItems;
-    }
-
-    const [taxonomyResult, filterOptions] = await Promise.all([
-      core.orchestrationListTransactionTaxonomy({ transactionIds }),
-      loadFilterOptions(),
-    ]);
-    const taxonomyByTransactionId = new Map(taxonomyResult.items.map((item) => [item.transactionId, item]));
-    const categoryNameById = new Map(filterOptions.categories.map((item) => [item.id, item.name] as const));
-    const tagNameById = new Map(filterOptions.tags.map((item) => [item.id, item.name] as const));
-
-    return searchItems.map((item) => {
-      if (item.source !== 'posted') {
-        return item;
-      }
-      const taxonomy = taxonomyByTransactionId.get(item.id);
-      const categoryId = taxonomy?.categoryId ?? item.categoryId ?? item.category?.id;
-      const categoryName = categoryId
-        ? item.category?.name ?? categoryNameById.get(categoryId)
-        : undefined;
-      const fallbackTagMap = new Map(
-        (item.tags ?? [])
-          .map((tag) => [tag.id, tag.name] as const)
-          .filter(([id, name]) => id.trim().length > 0 && name.trim().length > 0),
-      );
-      const tagIds = taxonomy?.tagIds && taxonomy.tagIds.length > 0
-        ? taxonomy.tagIds
-        : (item.tags ?? []).map((tag) => tag.id);
-      const hydratedTags = tagIds
-        .map((tagId) => {
-          const name = tagNameById.get(tagId) ?? fallbackTagMap.get(tagId);
-          if (!name || name.trim().length === 0) {
-            return undefined;
-          }
-          return {
-            id: tagId,
-            name,
-          };
-        })
-        .filter((tag): tag is { id: string; name: string } => tag != null);
-
-      return {
-        ...item,
-        category: categoryId && categoryName
-          ? {
-              id: categoryId,
-              name: categoryName,
-            }
-          : item.category,
-        tags: hydratedTags,
-      };
-    });
-  }
-
-  function applyPostedTaxonomyFilters(searchItems: MovementsSearchItemView[]): MovementsSearchItemView[] {
-    const categoryFilter = normalizeIdentifierList(appliedFilters.categoryIds);
-    const tagFilter = normalizeIdentifierList(appliedFilters.tagIds);
-    if (categoryFilter.length === 0 && tagFilter.length === 0) {
-      return searchItems;
-    }
-
-    const categoryIds = new Set(categoryFilter);
-    const tagIds = new Set(tagFilter);
-    return searchItems.filter((item) => {
-      if (item.source !== 'posted') {
-        return true;
-      }
-      if (categoryIds.size > 0) {
-        const itemCategoryId = item.categoryId ?? item.category?.id;
-        if (!itemCategoryId || !categoryIds.has(itemCategoryId)) {
-          return false;
-        }
-      }
-      if (tagIds.size > 0) {
-        const itemTagIds = new Set((item.tags ?? []).map((tag) => tag.id));
-        if (![...tagIds].some((tagId) => itemTagIds.has(tagId))) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }
-
   async function refreshResults() {
     if (!accountId) {
       setItems(EMPTY_ITEMS);
@@ -289,10 +196,23 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
       return;
     }
 
+    if (hasPostedTaxonomyFilters(appliedFilters)) {
+      const result = await buildPostedTaxonomySearchPage({
+        core,
+        accountId,
+        filters: appliedFilters,
+        page,
+      });
+      setItems(result.items);
+      setPagination(result.pagination);
+      if (page !== result.pagination.page) {
+        setPage(result.pagination.page);
+      }
+      return;
+    }
+
     const normalizedCategoryIds = normalizeIdentifierList(appliedFilters.categoryIds);
     const normalizedTagIds = normalizeIdentifierList(appliedFilters.tagIds);
-    const hasPostedTaxonomyFilters = appliedFilters.source === 'posted'
-      && (normalizedCategoryIds.length > 0 || normalizedTagIds.length > 0);
     let amountMin = normalizeAmount(appliedFilters.amountMin);
     let amountMax = normalizeAmount(appliedFilters.amountMax);
     if (amountMin != null && amountMax != null && Number(amountMin) > Number(amountMax)) {
@@ -315,8 +235,8 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
         types: appliedFilters.types.length > 0 ? appliedFilters.types : undefined,
       },
       pagination: {
-        page: hasPostedTaxonomyFilters ? 0 : page,
-        size: hasPostedTaxonomyFilters ? 100 : appliedFilters.pageSize,
+        page,
+        size: appliedFilters.pageSize,
       },
       sort: [
         {
@@ -327,18 +247,15 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
     });
 
     const hydratedContent = appliedFilters.source === 'posted'
-      ? applyPostedTaxonomyFilters(await hydratePostedSearchItems(result.content))
+      ? await hydratePostedSearchItems(core, result.content)
       : result.content;
-    const filteredTotalElements = hasPostedTaxonomyFilters ? hydratedContent.length : result.totalElements;
     setItems(hydratedContent);
     setPagination({
       page: result.page,
       size: result.size,
-      totalElements: filteredTotalElements,
-      totalPages: hasPostedTaxonomyFilters
-        ? (filteredTotalElements === 0 ? 0 : Math.ceil(filteredTotalElements / result.size))
-        : result.totalPages,
-      hasNext: hasPostedTaxonomyFilters ? false : result.hasNext,
+      totalElements: result.totalElements,
+      totalPages: result.totalPages,
+      hasNext: result.hasNext,
       hasPrevious: result.hasPrevious,
     });
     if (page !== result.page) {

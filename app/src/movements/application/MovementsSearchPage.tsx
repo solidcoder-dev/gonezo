@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { LedgerAccountItem } from '../../shared/domain/corePort';
-import type { AccountsCorePort } from '../../account/application/accountsCore.port';
+import type { MovementsSearchPagePort } from './movementsSearch.port';
 import { useMovementsSearchModel } from './useMovementsSearchModel';
 import { MovementsSearchFilters } from '../ui/MovementsSearchFilters';
 import { MovementsSearchResults } from '../ui/MovementsSearchResults';
 
 type MovementsSearchPageProps = {
   required: {
-    core: AccountsCorePort;
+    core: MovementsSearchPagePort;
   };
 };
 

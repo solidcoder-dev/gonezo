@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { TransactionsImportPolicyInput, TransactionsImportResult } from '../../imports/domain/transactionsImport.types';
-import { TransactionEntryComponent, type TransactionsCorePort } from '../../transactions';
+import { TransactionEntryComponent } from '../../transactions';
 import type { TransactionEntryPrefillRequest } from '../../transactions/application/TransactionEntryComponent.contract';
 import { MonthlyMovementsComponent } from '../../movements';
 import type { ExpectedMovementView, ScheduledMovementView } from '../../movements/domain/movementsView.types';
@@ -8,13 +8,17 @@ import { AccountPageView } from '../ui/AccountPageView';
 import { TransactionsImportComponent } from '../ui/capabilities/TransactionsImportComponent';
 import type { AccountPageViewProvided, AccountPageViewRequired } from '../ui/accountPageView.contract';
 import type { LoadPhase, SubmitPhase } from '../domain/accountPage.types';
-import type { AccountsCorePort } from './accountsCore.port';
-import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
+import type { AccountWorkspacePort } from './accountsCore.port';
 import { AccountHubComponent } from './AccountHubComponent';
 import { AccountSummaryComponent } from './AccountSummaryComponent';
+import {
+  expectedMovementToComposerPrefill,
+  postExpectedMovementToComposerPrefill,
+  scheduledMovementToComposerPrefill,
+} from './movementComposerPrefill';
 
 export type AccountPageRequired = {
-  core: AccountsCorePort;
+  core: AccountWorkspacePort;
 };
 
 type AccountPageProps = {
@@ -26,14 +30,6 @@ function toErrorMessage(error: unknown): string {
     return error.message;
   }
   return 'Unknown error';
-}
-
-function toDateInputValue(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value.slice(0, 10);
-  }
-  return parsed.toISOString().slice(0, 10);
 }
 
 export function AccountPage({ required: pageRequired }: AccountPageProps) {
@@ -95,62 +91,15 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
   }
 
   function editExpectedMovement(movement: ExpectedMovementView, categoryName?: string) {
-    setTransactionEntryPrefill({
-      requestId: Date.now(),
-      editedExpectedMovementId: movement.id,
-      mode: movement.type,
-      amount: movement.amount,
-      date: toDateInputValue(movement.expectedAt),
-      note: movement.merchant || movement.description || '',
-      categoryId: categoryName ?? movement.categoryId,
-      splitItems: movement.splitItems,
-    });
+    setTransactionEntryPrefill(expectedMovementToComposerPrefill(movement, categoryName));
   }
 
   function editScheduledMovement(movement: ScheduledMovementView, categoryName?: string) {
-    const scheduledKind = movement.scheduleKind ?? resolveSchedulingKind(movement);
-    setTransactionEntryPrefill({
-      requestId: Date.now(),
-      editedScheduledMovementId: movement.id,
-      mode: movement.type,
-      amount: movement.amount,
-      date: toDateInputValue(movement.nextDueAt ?? movement.startAt),
-      note: movement.merchant || movement.description || '',
-      categoryId: categoryName ?? movement.categoryId,
-      splitItems: movement.splitItems,
-      transferTargetAccountId: movement.targetAccountId,
-      transferAmountIn: movement.destinationAmount,
-      transferFxRate: movement.exchangeRate,
-      transferFxMode: movement.destinationAmount ? 'auto_destination' : 'auto_rate',
-      transferDestinationCurrency: movement.destinationCurrency,
-      schedulingMode: 'scheduled',
-      schedulingKind: scheduledKind,
-      recurrenceFrequency: movement.rule.frequency,
-      recurrenceInterval: String(movement.rule.interval ?? 1),
-      recurrenceWeeklyDay: String(movement.rule.weeklyDays?.[0] ?? 1),
-      recurrenceMonthlyPattern: movement.rule.monthlyPattern,
-      recurrenceDayOfMonth: String(movement.rule.dayOfMonth ?? 1),
-      recurrenceMonthlyOrdinal: String(movement.rule.monthlyWeekOrdinal ?? 1),
-      recurrenceMonthlyWeekday: String(movement.rule.monthlyWeekday ?? 1),
-      recurrenceEndKind: movement.recurrenceEnd.kind,
-      recurrenceEndDate: movement.recurrenceEnd.kind === 'on_date' ? movement.recurrenceEnd.onDate : '',
-      recurrenceEndCount: movement.recurrenceEnd.kind === 'after_occurrences'
-        ? String(movement.recurrenceEnd.afterOccurrences ?? 1)
-        : '',
-    });
+    setTransactionEntryPrefill(scheduledMovementToComposerPrefill(movement, categoryName));
   }
 
   function postExpectedMovement(movement: ExpectedMovementView, categoryName?: string) {
-    setTransactionEntryPrefill({
-      requestId: Date.now(),
-      postExpectedMovementId: movement.id,
-      mode: movement.type,
-      amount: movement.amount,
-      date: toDateInputValue(movement.expectedAt),
-      note: movement.merchant || movement.description || '',
-      categoryId: categoryName ?? movement.categoryId,
-      splitItems: movement.splitItems,
-    });
+    setTransactionEntryPrefill(postExpectedMovementToComposerPrefill(movement, categoryName));
   }
 
   const accountHub = (
@@ -229,7 +178,7 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
               required={{
                 context: {
                   accountId: selectedAccountId,
-                  core: pageRequired.core as TransactionsCorePort,
+                  core: pageRequired.core,
                 },
                 config: {
                   enabled: hasSelectedAccount,
@@ -254,7 +203,7 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
               required={{
                 context: {
                   accountId: selectedAccountId,
-                  core: pageRequired.core as TransactionsCorePort,
+                  core: pageRequired.core,
                 },
                 config: {
                   enabled: hasSelectedAccount,

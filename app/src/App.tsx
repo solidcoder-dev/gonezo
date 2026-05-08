@@ -1,14 +1,17 @@
 import { Route, Routes } from 'react-router-dom';
 import './App.css';
-import type { AccountsCorePort } from './account/application/accountsCore.port';
+import type { AccountWorkspacePort } from './account/application/accountsCore.port';
 import { AccountPage } from './account/application/AccountPage';
 import { CoreAdapter } from './shared/infrastructure/core/coreAdapter';
 import { MovementsSearchPage } from './movements';
+import type { MovementsSearchPagePort } from './movements/application/movementsSearch.port';
 
 const defaultCore = new CoreAdapter();
 
+export type AppCorePort = AccountWorkspacePort & MovementsSearchPagePort;
+
 export type AppRequired = {
-  core?: AccountsCorePort;
+  core?: AppCorePort;
 };
 
 type AppProps = {
