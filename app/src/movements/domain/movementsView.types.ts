@@ -57,6 +57,8 @@ export type ExpectedMovementView = {
 
 export type MovementsSearchItemView = {
   id: string;
+  accountId?: string;
+  accountName?: string;
   source: MovementsSearchSourceView;
   type: LedgerTransactionTypeView;
   status: 'posted' | 'scheduled' | 'expected' | 'resolved' | 'dismissed' | 'voided' | 'failed' | 'deactivated';

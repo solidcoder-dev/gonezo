@@ -20,16 +20,13 @@ function toErrorMessage(error: unknown): string {
 }
 
 function resolveInitialAccountId(accounts: LedgerAccountItem[], queryValue: string | null): string | null {
-  if (accounts.length === 0) {
-    return null;
-  }
   if (queryValue) {
     const found = accounts.find((account) => account.id === queryValue);
     if (found) {
       return found.id;
     }
   }
-  return accounts[0].id;
+  return null;
 }
 
 export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
@@ -75,8 +72,9 @@ export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
 
   const searchModel = useMovementsSearchModel({
     core: required.core,
+    accounts,
     accountId: selectedAccountId,
-    enabled: Boolean(selectedAccountId),
+    enabled: accounts.length > 0,
   });
 
   return (
@@ -108,6 +106,7 @@ export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
             value={selectedAccountId ?? ''}
             onChange={(event) => setSelectedAccountId(event.target.value || null)}
           >
+            <option value="">All accounts</option>
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
                 {account.name}
@@ -119,7 +118,7 @@ export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
 
       {!loading && !error && accounts.length === 0 ? <p>No accounts available.</p> : null}
 
-      {selectedAccountId ? (
+      {accounts.length > 0 ? (
         <>
           <MovementsSearchFilters
             required={{

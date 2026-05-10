@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
+  LedgerAccountItem,
+  MovementsSearchInput,
   TaxonomyCategoryItem,
   TaxonomyTagItem,
 } from '../../shared/domain/corePort';
@@ -12,16 +14,22 @@ import type {
 } from '../domain/movementsView.types';
 import {
   buildPostedTaxonomySearchPage,
+  collectPostedTaxonomySearchItems,
   hasPostedTaxonomyFilters,
   hydratePostedSearchItems,
   type PostedTaxonomySearchPort,
 } from './postedTaxonomySearch';
 
+type SearchAccount = Pick<LedgerAccountItem, 'id' | 'name'>;
+
 type UseMovementsSearchModelInput = {
   core: PostedTaxonomySearchPort;
+  accounts: SearchAccount[];
   accountId: string | null;
   enabled: boolean;
 };
+
+const SEARCH_COLLECTION_PAGE_SIZE = 100;
 
 const DEFAULT_FILTERS: MovementsSearchFiltersState = {
   source: 'posted',
@@ -92,6 +100,124 @@ function normalizeDate(value: string): string | undefined {
   return normalized;
 }
 
+function buildSearchFilters(filters: MovementsSearchFiltersState): MovementsSearchInput['filters'] {
+  const normalizedCategoryIds = normalizeIdentifierList(filters.categoryIds);
+  const normalizedTagIds = normalizeIdentifierList(filters.tagIds);
+  let amountMin = normalizeAmount(filters.amountMin);
+  let amountMax = normalizeAmount(filters.amountMax);
+  if (amountMin != null && amountMax != null && Number(amountMin) > Number(amountMax)) {
+    [amountMin, amountMax] = [amountMax, amountMin];
+  }
+
+  return {
+    text: filters.text.trim() || undefined,
+    merchant: filters.merchant.trim() || undefined,
+    categoryIds: normalizedCategoryIds.length > 0 ? normalizedCategoryIds : undefined,
+    categoryId: normalizedCategoryIds.length === 1 ? normalizedCategoryIds[0] : undefined,
+    tagIds: normalizedTagIds.length > 0 ? normalizedTagIds : undefined,
+    amountMin,
+    amountMax,
+    fromDate: normalizeDate(filters.fromDate),
+    toDate: normalizeDate(filters.toDate),
+    types: filters.types.length > 0 ? filters.types : undefined,
+  };
+}
+
+function getAccountScope(accounts: SearchAccount[], accountId: string | null): SearchAccount[] {
+  if (!accountId) {
+    return accounts;
+  }
+  return accounts.filter((account) => account.id === accountId);
+}
+
+function withAccountContext(
+  item: MovementsSearchItemView,
+  account: SearchAccount,
+): MovementsSearchItemView {
+  return {
+    ...item,
+    accountId: account.id,
+    accountName: account.name,
+  };
+}
+
+function compareDates(left: string, right: string): number {
+  const leftTime = Date.parse(left);
+  const rightTime = Date.parse(right);
+  if (Number.isFinite(leftTime) && Number.isFinite(rightTime)) {
+    return leftTime - rightTime;
+  }
+  return left.localeCompare(right);
+}
+
+function compareAmounts(left: string, right: string): number {
+  const leftAmount = Number(left);
+  const rightAmount = Number(right);
+  if (Number.isFinite(leftAmount) && Number.isFinite(rightAmount)) {
+    return leftAmount - rightAmount;
+  }
+  return left.localeCompare(right);
+}
+
+function compareSearchItems(
+  left: MovementsSearchItemView,
+  right: MovementsSearchItemView,
+  filters: MovementsSearchFiltersState,
+): number {
+  const direction = filters.sortDirection === 'asc' ? 1 : -1;
+  const primary = filters.sortField === 'amount'
+    ? compareAmounts(left.amount, right.amount)
+    : compareDates(left.occurredAt, right.occurredAt);
+  if (primary !== 0) {
+    return primary * direction;
+  }
+
+  const fallbackDate = compareDates(left.occurredAt, right.occurredAt);
+  if (fallbackDate !== 0) {
+    return fallbackDate * -1;
+  }
+
+  return `${left.accountId ?? ''}:${left.source}:${left.id}`.localeCompare(`${right.accountId ?? ''}:${right.source}:${right.id}`);
+}
+
+function uniqueSearchItems(items: MovementsSearchItemView[]): MovementsSearchItemView[] {
+  const seen = new Set<string>();
+  const unique: MovementsSearchItemView[] = [];
+  for (const item of items) {
+    const key = `${item.accountId ?? ''}:${item.source}:${item.id}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    unique.push(item);
+  }
+  return unique;
+}
+
+function paginateSearchItems(
+  items: MovementsSearchItemView[],
+  filters: MovementsSearchFiltersState,
+  requestedPage: number,
+): { items: MovementsSearchItemView[]; pagination: MovementsPaginationView } {
+  const pageSize = filters.pageSize;
+  const totalElements = items.length;
+  const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / pageSize);
+  const resolvedPage = totalPages === 0 ? 0 : Math.min(requestedPage, totalPages - 1);
+  const start = resolvedPage * pageSize;
+
+  return {
+    items: items.slice(start, start + pageSize),
+    pagination: {
+      page: resolvedPage,
+      size: pageSize,
+      totalElements,
+      totalPages,
+      hasNext: totalPages > 0 && resolvedPage + 1 < totalPages,
+      hasPrevious: resolvedPage > 0,
+    },
+  };
+}
+
 function mergeFilterPatch(
   base: MovementsSearchFiltersState,
   patch: Partial<MovementsSearchFiltersState>,
@@ -119,7 +245,7 @@ function mergeFilterPatch(
 }
 
 export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
-  const { core, accountId, enabled } = input;
+  const { core, accounts, accountId, enabled } = input;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -133,7 +259,7 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
   const [page, setPage] = useState(0);
   const [pagination, setPagination] = useState<MovementsPaginationView>(EMPTY_PAGINATION);
   const [items, setItems] = useState<MovementsSearchItemView[]>([]);
-  const previousAccountIdRef = useRef<string | null>(null);
+  const previousAccountScopeRef = useRef('');
 
   const categoryOptions = useMemo(
     () => categories.map((category) => ({ id: category.id, label: category.name })),
@@ -143,6 +269,16 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
     () => tags.map((tag) => ({ id: tag.id, label: tag.name })),
     [tags],
   );
+  const accountScope = useMemo(
+    () => getAccountScope(accounts, accountId),
+    [accounts, accountId],
+  );
+  const accountScopeKey = useMemo(() => {
+    if (accountId) {
+      return `account:${accountId}`;
+    }
+    return `all:${accountScope.map((account) => `${account.id}:${account.name}`).join('|')}`;
+  }, [accountId, accountScope]);
 
   function reportError(raw: unknown) {
     setError(toErrorMessage(raw));
@@ -189,83 +325,135 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
     await loadFilterOptions();
   }
 
+  async function collectSearchItemsForAccount(account: SearchAccount): Promise<MovementsSearchItemView[]> {
+    const collected: MovementsSearchItemView[] = [];
+    let candidatePage = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const result = await core.movementsSearch({
+        accountId: account.id,
+        source: appliedFilters.source,
+        filters: buildSearchFilters(appliedFilters),
+        pagination: {
+          page: candidatePage,
+          size: SEARCH_COLLECTION_PAGE_SIZE,
+        },
+        sort: [
+          {
+            field: appliedFilters.sortField,
+            direction: appliedFilters.sortDirection,
+          },
+        ],
+      });
+      collected.push(...result.content.map((item) => withAccountContext(item, account)));
+      hasMore = result.hasNext && result.content.length > 0;
+      candidatePage += 1;
+    }
+
+    return collected;
+  }
+
+  async function collectPostedTaxonomyItemsForAccount(account: SearchAccount): Promise<MovementsSearchItemView[]> {
+    const result = await collectPostedTaxonomySearchItems({
+      core,
+      accountId: account.id,
+      filters: appliedFilters,
+    });
+    return result.map((item) => withAccountContext(item, account));
+  }
+
+  function applyAggregatedResults(collected: MovementsSearchItemView[]) {
+    const sortedItems = uniqueSearchItems(collected).sort((left, right) => (
+      compareSearchItems(left, right, appliedFilters)
+    ));
+    const result = paginateSearchItems(sortedItems, appliedFilters, page);
+    setItems(result.items);
+    setPagination(result.pagination);
+    if (page !== result.pagination.page) {
+      setPage(result.pagination.page);
+    }
+  }
+
   async function refreshResults() {
-    if (!accountId) {
+    if (accountScope.length === 0) {
       setItems(EMPTY_ITEMS);
       setPagination(EMPTY_PAGINATION);
       return;
     }
 
-    if (hasPostedTaxonomyFilters(appliedFilters)) {
-      const result = await buildPostedTaxonomySearchPage({
-        core,
-        accountId,
-        filters: appliedFilters,
-        page,
+    const selectedAccount = accountId ? accountScope[0] : undefined;
+
+    if (selectedAccount) {
+      if (hasPostedTaxonomyFilters(appliedFilters)) {
+        const result = await buildPostedTaxonomySearchPage({
+          core,
+          accountId: selectedAccount.id,
+          filters: appliedFilters,
+          page,
+        });
+        setItems(result.items.map((item) => withAccountContext(item, selectedAccount)));
+        setPagination(result.pagination);
+        if (page !== result.pagination.page) {
+          setPage(result.pagination.page);
+        }
+        return;
+      }
+
+      const result = await core.movementsSearch({
+        accountId: selectedAccount.id,
+        source: appliedFilters.source,
+        filters: buildSearchFilters(appliedFilters),
+        pagination: {
+          page,
+          size: appliedFilters.pageSize,
+        },
+        sort: [
+          {
+            field: appliedFilters.sortField,
+            direction: appliedFilters.sortDirection,
+          },
+        ],
       });
-      setItems(result.items);
-      setPagination(result.pagination);
-      if (page !== result.pagination.page) {
-        setPage(result.pagination.page);
+
+      const hydratedContent = appliedFilters.source === 'posted'
+        ? await hydratePostedSearchItems(core, result.content)
+        : result.content;
+      setItems(hydratedContent.map((item) => withAccountContext(item, selectedAccount)));
+      setPagination({
+        page: result.page,
+        size: result.size,
+        totalElements: result.totalElements,
+        totalPages: result.totalPages,
+        hasNext: result.hasNext,
+        hasPrevious: result.hasPrevious,
+      });
+      if (page !== result.page) {
+        setPage(result.page);
       }
       return;
     }
 
-    const normalizedCategoryIds = normalizeIdentifierList(appliedFilters.categoryIds);
-    const normalizedTagIds = normalizeIdentifierList(appliedFilters.tagIds);
-    let amountMin = normalizeAmount(appliedFilters.amountMin);
-    let amountMax = normalizeAmount(appliedFilters.amountMax);
-    if (amountMin != null && amountMax != null && Number(amountMin) > Number(amountMax)) {
-      [amountMin, amountMax] = [amountMax, amountMin];
+    if (hasPostedTaxonomyFilters(appliedFilters)) {
+      const collected = (await Promise.all(
+        accountScope.map((account) => collectPostedTaxonomyItemsForAccount(account)),
+      )).flat();
+      applyAggregatedResults(collected);
+      return;
     }
 
-    const result = await core.movementsSearch({
-      accountId,
-      source: appliedFilters.source,
-      filters: {
-        text: appliedFilters.text.trim() || undefined,
-        merchant: appliedFilters.merchant.trim() || undefined,
-        categoryIds: normalizedCategoryIds.length > 0 ? normalizedCategoryIds : undefined,
-        categoryId: normalizedCategoryIds.length === 1 ? normalizedCategoryIds[0] : undefined,
-        tagIds: normalizedTagIds.length > 0 ? normalizedTagIds : undefined,
-        amountMin,
-        amountMax,
-        fromDate: normalizeDate(appliedFilters.fromDate),
-        toDate: normalizeDate(appliedFilters.toDate),
-        types: appliedFilters.types.length > 0 ? appliedFilters.types : undefined,
-      },
-      pagination: {
-        page,
-        size: appliedFilters.pageSize,
-      },
-      sort: [
-        {
-          field: appliedFilters.sortField,
-          direction: appliedFilters.sortDirection,
-        },
-      ],
-    });
-
-    const hydratedContent = appliedFilters.source === 'posted'
-      ? await hydratePostedSearchItems(core, result.content)
-      : result.content;
-    setItems(hydratedContent);
-    setPagination({
-      page: result.page,
-      size: result.size,
-      totalElements: result.totalElements,
-      totalPages: result.totalPages,
-      hasNext: result.hasNext,
-      hasPrevious: result.hasPrevious,
-    });
-    if (page !== result.page) {
-      setPage(result.page);
-    }
+    const collected = (await Promise.all(
+      accountScope.map((account) => collectSearchItemsForAccount(account)),
+    )).flat();
+    const hydratedItems = appliedFilters.source === 'posted'
+      ? await hydratePostedSearchItems(core, collected)
+      : collected;
+    applyAggregatedResults(hydratedItems);
   }
 
   useEffect(() => {
-    if (!enabled || !accountId) {
-      previousAccountIdRef.current = accountId;
+    if (!enabled || accountScope.length === 0) {
+      previousAccountScopeRef.current = accountScopeKey;
       setLoading(false);
       setError('');
       setItems(EMPTY_ITEMS);
@@ -279,9 +467,9 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
       return;
     }
 
-    const accountChanged = previousAccountIdRef.current !== accountId;
+    const accountChanged = previousAccountScopeRef.current !== accountScopeKey;
     if (accountChanged) {
-      previousAccountIdRef.current = accountId;
+      previousAccountScopeRef.current = accountScopeKey;
       setError('');
       setFiltersOpen(false);
       setFiltersAdvancedOpen(false);
@@ -319,7 +507,7 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, accountId, page, appliedFilters]);
+  }, [enabled, accountScopeKey, page, appliedFilters]);
 
   useEffect(() => {
     void ensureFilterOptionsLoaded().catch(reportError);

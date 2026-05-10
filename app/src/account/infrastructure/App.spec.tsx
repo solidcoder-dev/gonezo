@@ -2131,6 +2131,58 @@ describe('App Accounts UX', () => {
     expect(screen.getAllByRole('list', { name: /Movement results/ })).toHaveLength(3);
   });
 
+  it('searches all accounts when no account is selected and shows account names on result cards', async () => {
+    const core = makeCore();
+    core.movementsSearch = vi.fn(async (input: MovementsSearchInput): Promise<MovementsSearchResult> => {
+      const item = input.accountId === 'acc-1'
+        ? {
+            id: 'main-tx',
+            source: 'posted' as const,
+            type: 'expense' as const,
+            status: 'posted' as const,
+            amount: '12.00',
+            currency: 'USD',
+            occurredAt: isoInCurrentMonth(2, 9, 0),
+            title: 'Main merchant',
+          }
+        : {
+            id: 'savings-tx',
+            source: 'posted' as const,
+            type: 'income' as const,
+            status: 'posted' as const,
+            amount: '22.00',
+            currency: 'USD',
+            occurredAt: isoInCurrentMonth(1, 9, 0),
+            title: 'Savings merchant',
+          };
+
+      return {
+        content: [item],
+        page: input.pagination?.page ?? 0,
+        size: input.pagination?.size ?? 10,
+        totalElements: 1,
+        totalPages: 1,
+        hasNext: false,
+        hasPrevious: false,
+      };
+    });
+
+    const view = render(
+      <MemoryRouter initialEntries={['/movements/search']}>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('2 movements · Grouped by day · Date desc')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Search account' })).toHaveValue('');
+    expect(screen.getByText('Main merchant')).toBeInTheDocument();
+    expect(screen.getByText('Savings merchant')).toBeInTheDocument();
+
+    const accountBadges = [...view.container.querySelectorAll('.compact-account-name')]
+      .map((node) => node.textContent);
+    expect(accountBadges).toEqual(expect.arrayContaining(['Main', 'Savings']));
+  });
+
   it('uses a flat advanced-search list when sorting by amount', async () => {
     const core = makeCore(3);
 

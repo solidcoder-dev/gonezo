@@ -33,6 +33,8 @@ type PostedTaxonomySearchPageInput = {
   page: number;
 };
 
+type PostedTaxonomySearchItemsInput = Omit<PostedTaxonomySearchPageInput, 'page'>;
+
 type PostedTaxonomySearchPageResult = {
   items: MovementsSearchItemView[];
   pagination: MovementsPaginationView;
@@ -201,6 +203,29 @@ function toSearchItemView(item: MovementsSearchItem): MovementsSearchItemView {
 export async function buildPostedTaxonomySearchPage(
   input: PostedTaxonomySearchPageInput,
 ): Promise<PostedTaxonomySearchPageResult> {
+  const filtered = await collectPostedTaxonomySearchItems(input);
+  const pageSize = input.filters.pageSize;
+  const totalElements = filtered.length;
+  const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / pageSize);
+  const resolvedPage = totalPages === 0 ? 0 : Math.min(input.page, totalPages - 1);
+  const start = resolvedPage * pageSize;
+
+  return {
+    items: filtered.slice(start, start + pageSize),
+    pagination: {
+      page: resolvedPage,
+      size: pageSize,
+      totalElements,
+      totalPages,
+      hasNext: totalPages > 0 && resolvedPage + 1 < totalPages,
+      hasPrevious: resolvedPage > 0,
+    },
+  };
+}
+
+export async function collectPostedTaxonomySearchItems(
+  input: PostedTaxonomySearchItemsInput,
+): Promise<MovementsSearchItemView[]> {
   const collected: MovementsSearchItemView[] = [];
   let candidatePage = 0;
   let hasMore = true;
@@ -230,21 +255,5 @@ export async function buildPostedTaxonomySearchPage(
     await hydratePostedSearchItems(input.core, collected),
     input.filters,
   );
-  const pageSize = input.filters.pageSize;
-  const totalElements = filtered.length;
-  const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / pageSize);
-  const resolvedPage = totalPages === 0 ? 0 : Math.min(input.page, totalPages - 1);
-  const start = resolvedPage * pageSize;
-
-  return {
-    items: filtered.slice(start, start + pageSize),
-    pagination: {
-      page: resolvedPage,
-      size: pageSize,
-      totalElements,
-      totalPages,
-      hasNext: totalPages > 0 && resolvedPage + 1 < totalPages,
-      hasPrevious: resolvedPage > 0,
-    },
-  };
+  return filtered;
 }

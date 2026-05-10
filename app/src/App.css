@@ -1095,6 +1095,20 @@ select:focus-visible {
   white-space: nowrap;
 }
 
+.compact-meta-part {
+  white-space: nowrap;
+}
+
+.compact-account-name {
+  color: #3d3d38;
+  font-weight: 800;
+}
+
+.compact-meta-separator {
+  color: #8a8a80;
+  font-weight: 600;
+}
+
 .movement-amount {
   white-space: nowrap;
 }

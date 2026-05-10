@@ -129,12 +129,34 @@ function groupEntriesByDay(
   return groups;
 }
 
-function resultMeta(entry: MovementsSearchItemView, includeDate: boolean): string {
+type ResultMetaPart = {
+  key: string;
+  value: string;
+  primary?: boolean;
+};
+
+function resultMetaParts(entry: MovementsSearchItemView, includeDate: boolean): ResultMetaPart[] {
+  const tags = compactTags(entry.tags);
   return [
-    includeDate ? formatCalendarDay(entry.occurredAt) : undefined,
-    entry.category?.name,
-    compactTags(entry.tags),
-  ].filter((value): value is string => Boolean(value && value.trim().length > 0)).join(' · ');
+    entry.accountName ? { key: 'account', value: entry.accountName, primary: true } : undefined,
+    includeDate ? { key: 'date', value: formatCalendarDay(entry.occurredAt) } : undefined,
+    entry.category?.name ? { key: 'category', value: entry.category.name } : undefined,
+    tags ? { key: 'tags', value: tags } : undefined,
+  ].filter((part): part is ResultMetaPart => Boolean(part && part.value.trim().length > 0));
+}
+
+function ResultMeta({ entry, includeDate }: { entry: MovementsSearchItemView; includeDate: boolean }) {
+  const parts = resultMetaParts(entry, includeDate);
+  return (
+    <span className="hint compact-subline">
+      {parts.map((part, index) => (
+        <span key={part.key} className="compact-meta-part">
+          {index > 0 ? <span className="compact-meta-separator"> · </span> : null}
+          {part.primary ? <strong className="compact-account-name">{part.value}</strong> : part.value}
+        </span>
+      ))}
+    </span>
+  );
 }
 
 function ResultRow({
@@ -169,7 +191,7 @@ function ResultRow({
           </strong>
         </div>
         <div className="expense-bottom-row compact-row">
-          <span className="hint compact-subline">{resultMeta(entry, includeDate)}</span>
+          <ResultMeta entry={entry} includeDate={includeDate} />
         </div>
       </button>
     </li>
@@ -204,7 +226,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
                   <ul className="expense-list expense-list--compact" aria-label={`Movement results ${group.label}`}>
                     {group.items.map((entry) => (
                       <ResultRow
-                        key={`${entry.source}-${entry.id}`}
+                        key={`${entry.accountId ?? 'scope'}-${entry.source}-${entry.id}`}
                         entry={entry}
                         disabled={disabled}
                         includeDate={false}
@@ -219,7 +241,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
             <ul className="expense-list expense-list--compact" aria-label="Movement results">
               {entries.map((entry) => (
                 <ResultRow
-                  key={`${entry.source}-${entry.id}`}
+                  key={`${entry.accountId ?? 'scope'}-${entry.source}-${entry.id}`}
                   entry={entry}
                   disabled={disabled}
                   includeDate
@@ -286,6 +308,12 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
               {txAmount(selectedEntry.amount, selectedEntry.currency)}
             </div>
             <div className="detail-meta-grid">
+              {selectedEntry.accountName ? (
+                <div className="detail-meta-item">
+                  <span className="hint detail-meta-label">Account</span>
+                  <strong>{selectedEntry.accountName}</strong>
+                </div>
+              ) : null}
               <div className="detail-meta-item">
                 <span className="hint detail-meta-label">Date</span>
                 <strong>{formatCalendarDay(selectedEntry.occurredAt)}</strong>
