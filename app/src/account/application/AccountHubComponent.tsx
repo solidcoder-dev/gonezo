@@ -57,21 +57,23 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
       setCreateCurrency(currenciesResult.items[0]);
     }
 
-    const accountSummaries = mapAccountSummaryList(accountsResult.items);
+    const accountSummaries = mapAccountSummaryList(accountsResult.items)
+      .filter((account) => account.status !== 'deleted');
+    const activeAccountSummaries = accountSummaries.filter((account) => account.status === 'active');
     setAccounts(accountSummaries);
-    provided.events?.onAccountsCountChanged?.(accountSummaries.length);
+    provided.events?.onAccountsCountChanged?.(activeAccountSummaries.length);
 
-    if (accountSummaries.length === 0) {
+    if (activeAccountSummaries.length === 0) {
       setSelectedAccountId('');
       provided.events?.onSelectedAccountChanged?.(null);
       return;
     }
 
-    const nextSelectedAccountId = preferredAccountId && accountSummaries.some((item) => item.id === preferredAccountId)
+    const nextSelectedAccountId = preferredAccountId && activeAccountSummaries.some((item) => item.id === preferredAccountId)
       ? preferredAccountId
-      : selectedAccountId && accountSummaries.some((item) => item.id === selectedAccountId)
+      : selectedAccountId && activeAccountSummaries.some((item) => item.id === selectedAccountId)
         ? selectedAccountId
-        : accountSummaries[0].id;
+        : activeAccountSummaries[0].id;
 
     setSelectedAccountId(nextSelectedAccountId);
     provided.events?.onSelectedAccountChanged?.(nextSelectedAccountId);
@@ -154,6 +156,20 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
   function selectAccount(accountId: string) {
     setSelectedAccountId(accountId);
     provided.events?.onSelectedAccountChanged?.(accountId);
+  }
+
+  async function restoreAccount(accountId: string) {
+    setCreating(true);
+    setError('');
+    try {
+      await ledgerAccounts.restoreAccount({ accountId });
+      await refreshAccounts(accountId);
+    } catch (err) {
+      reportError(err);
+      throw err;
+    } finally {
+      setCreating(false);
+    }
   }
 
   if (loading && accounts.length === 0) {
@@ -297,6 +313,7 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
             onSelect: async (accountId) => {
               selectAccount(accountId);
             },
+            onRestoreAccount: restoreAccount,
             onAddAccount: () => setCreateFormOpen(true),
             onImport: provided.events?.onImportRequested ?? (() => undefined),
             onBackup: provided.events?.onBackupRequested ?? (() => undefined),

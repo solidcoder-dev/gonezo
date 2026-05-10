@@ -27,6 +27,13 @@ data class Account(
     return copy(status = AccountStatus.ARCHIVED, archivedAt = at)
   }
 
+  fun restore(): Account {
+    if (status == AccountStatus.ACTIVE) {
+      return this
+    }
+    return copy(status = AccountStatus.ACTIVE, archivedAt = null)
+  }
+
   fun ensureCanRecordTransactions() {
     check(status == AccountStatus.ACTIVE) { "archived accounts cannot accept transactions" }
   }

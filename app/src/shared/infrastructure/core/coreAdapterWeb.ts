@@ -5,6 +5,7 @@ import type {
   LedgerListSupportedCurrenciesResult,
   LedgerRenameAccountInput,
   LedgerArchiveAccountInput,
+  LedgerRestoreAccountInput,
   LedgerDeleteAccountInput,
   LedgerListAccountsResult,
   LedgerGetAccountSummaryInput,
@@ -716,6 +717,12 @@ export class CoreAdapterWeb implements CorePort {
     const account = this.accountOrThrow(input.accountId);
     account.status = 'archived';
     account.archivedAt = input.archivedAt ?? new Date().toISOString();
+  }
+
+  async ledgerRestoreAccount(input: LedgerRestoreAccountInput): Promise<void> {
+    const account = this.accountOrThrow(input.accountId);
+    account.status = 'active';
+    account.archivedAt = undefined;
   }
 
   async ledgerDeleteAccount(input: LedgerDeleteAccountInput): Promise<void> {

@@ -5,6 +5,7 @@ import type {
   LedgerListSupportedCurrenciesResult,
   LedgerRenameAccountInput,
   LedgerArchiveAccountInput,
+  LedgerRestoreAccountInput,
   LedgerDeleteAccountInput,
   LedgerListAccountsResult,
   LedgerGetAccountSummaryInput,
@@ -72,6 +73,7 @@ export interface CorePlugin {
   ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult>;
   ledgerRenameAccount(options: LedgerRenameAccountInput): Promise<void>;
   ledgerArchiveAccount(options: LedgerArchiveAccountInput): Promise<void>;
+  ledgerRestoreAccount(options: LedgerRestoreAccountInput): Promise<void>;
   ledgerDeleteAccount(options: LedgerDeleteAccountInput): Promise<void>;
   ledgerListAccounts(): Promise<LedgerListAccountsResult>;
   ledgerGetAccountSummary(options: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult>;

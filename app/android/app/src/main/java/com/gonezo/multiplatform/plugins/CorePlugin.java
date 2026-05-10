@@ -103,6 +103,19 @@ public class CorePlugin extends Plugin {
   }
 
   @PluginMethod
+  public void ledgerRestoreAccount(PluginCall call) {
+    String accountId = call.getString("accountId");
+
+    try {
+      AndroidLedgerCore core = AndroidLedgerCore.getInstance(getContext());
+      core.restoreAccount(accountId);
+      call.resolve();
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
   public void ledgerDeleteAccount(PluginCall call) {
     String accountId = call.getString("accountId");
 

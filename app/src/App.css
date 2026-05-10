@@ -497,7 +497,7 @@ body {
 
 .account-choice {
   display: grid;
-  grid-template-columns: 16px minmax(0, 1fr) auto;
+  grid-template-columns: 16px minmax(0, 1fr) auto auto auto;
   align-items: center;
   gap: 8px;
   text-align: left;
@@ -513,6 +513,43 @@ body {
   color: inherit;
   opacity: 0.75;
   font-size: 0.78rem;
+}
+
+.account-restore-button {
+  min-width: 28px;
+  width: 28px;
+  min-height: 28px;
+  height: 28px;
+  padding: 0;
+}
+
+.account-archive-toggle {
+  justify-content: flex-start;
+  margin-top: 4px;
+}
+
+.account-archive-toggle .bi {
+  font-size: 0.8rem;
+}
+
+.account-archived-list {
+  gap: 6px;
+}
+
+.account-choice--archived {
+  border-color: #deded6;
+  background: #f7f7f3;
+  color: #6b6b62;
+}
+
+.account-choice-status {
+  border-radius: 999px;
+  background: #e7e7df;
+  color: #56564f;
+  padding: 2px 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0;
 }
 
 .sheet-backdrop {

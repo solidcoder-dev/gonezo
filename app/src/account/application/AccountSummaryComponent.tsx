@@ -233,7 +233,7 @@ export function AccountSummaryComponent({ required, provided = {} }: AccountSumm
                 </button>
               </div>
 
-              <p className="hint">Archived accounts stay visible but cannot accept new transactions.</p>
+              <p className="hint">Archived accounts are hidden from the active list and cannot accept new transactions.</p>
 
               <button
                 type="button"

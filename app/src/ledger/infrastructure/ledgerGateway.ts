@@ -24,6 +24,7 @@ export type LedgerGatewayPort = {
   }): Promise<{ id: string }>;
   ledgerRenameAccount(input: { accountId: string; name: string }): Promise<void>;
   ledgerArchiveAccount(input: { accountId: string; archivedAt?: string }): Promise<void>;
+  ledgerRestoreAccount(input: { accountId: string }): Promise<void>;
   ledgerDeleteAccount(input: { accountId: string }): Promise<void>;
   ledgerRecordExpense(input: {
     accountId: string;
@@ -91,6 +92,7 @@ export function createLedgerGateway(core: LedgerGatewayPort): LedgerGatewayPort 
     ledgerOpenAccount: (input) => core.ledgerOpenAccount(input),
     ledgerRenameAccount: (input) => core.ledgerRenameAccount(input),
     ledgerArchiveAccount: (input) => core.ledgerArchiveAccount(input),
+    ledgerRestoreAccount: (input) => core.ledgerRestoreAccount(input),
     ledgerDeleteAccount: (input) => core.ledgerDeleteAccount(input),
     ledgerRecordExpense: (input) => core.ledgerRecordExpense(input),
     ledgerRecordIncome: (input) => core.ledgerRecordIncome(input),

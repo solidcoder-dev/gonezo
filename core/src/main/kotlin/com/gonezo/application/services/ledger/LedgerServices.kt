@@ -31,6 +31,8 @@ import com.gonezo.ledger.application.RecordLedgerTransferFxUC
 import com.gonezo.ledger.application.RecordLedgerTransferUC
 import com.gonezo.ledger.application.RenameLedgerAccountCommand
 import com.gonezo.ledger.application.RenameLedgerAccountUC
+import com.gonezo.ledger.application.RestoreLedgerAccountCommand
+import com.gonezo.ledger.application.RestoreLedgerAccountUC
 import com.gonezo.ledger.application.VoidLedgerTransactionCommand
 import com.gonezo.ledger.application.VoidLedgerTransactionUC
 import com.gonezo.ledger.domain.Account
@@ -43,6 +45,7 @@ import com.gonezo.ledger.domain.TransactionItemId
 import com.gonezo.ledger.domain.TransactionType
 import com.gonezo.ledger.domain.events.AccountArchived
 import com.gonezo.ledger.domain.events.AccountOpened
+import com.gonezo.ledger.domain.events.AccountRestored
 import com.gonezo.ledger.domain.events.TransactionItemAdded
 import com.gonezo.ledger.domain.events.TransactionRecorded
 import com.gonezo.ledger.domain.events.TransactionVoided
@@ -116,6 +119,17 @@ class ArchiveLedgerAccountService(
     val account = requireAccount(accountRepository, command.accountId)
     accountRepository.save(account.archive(command.archivedAt))
     domainEventPublisher.publish(AccountArchived(command.accountId))
+  }
+}
+
+class RestoreLedgerAccountService(
+  private val accountRepository: LedgerAccountRepository,
+  private val domainEventPublisher: DomainEventPublisher,
+) : RestoreLedgerAccountUC {
+  override fun execute(command: RestoreLedgerAccountCommand) {
+    val account = requireAccount(accountRepository, command.accountId)
+    accountRepository.save(account.restore())
+    domainEventPublisher.publish(AccountRestored(command.accountId))
   }
 }
 

@@ -26,6 +26,10 @@ export function useLedgerAccounts(gateway: LedgerGatewayPort) {
     (input: { accountId: string; archivedAt?: string }) => gateway.ledgerArchiveAccount(input),
     [gateway],
   );
+  const restoreAccount = useCallback(
+    (input: { accountId: string }) => gateway.ledgerRestoreAccount(input),
+    [gateway],
+  );
   const deleteAccount = useCallback(
     (input: { accountId: string }) => gateway.ledgerDeleteAccount(input),
     [gateway],
@@ -38,6 +42,7 @@ export function useLedgerAccounts(gateway: LedgerGatewayPort) {
     openAccount,
     renameAccount,
     archiveAccount,
+    restoreAccount,
     deleteAccount,
   };
 }

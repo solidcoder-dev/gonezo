@@ -240,6 +240,7 @@ function makeCore(transactionCount = 0): CorePort {
     ledgerOpenAccount: vi.fn(async () => ({ id: 'acc-1' })),
     ledgerRenameAccount: vi.fn(async () => undefined),
     ledgerArchiveAccount: vi.fn(async () => undefined),
+    ledgerRestoreAccount: vi.fn(async () => undefined),
     ledgerDeleteAccount: vi.fn(async () => undefined),
     ledgerRecordExpense: vi.fn(async () => ({ id: 'tx-exp' })),
     ledgerRecordIncome: vi.fn(async () => ({ id: 'tx-inc' })),
@@ -708,6 +709,111 @@ describe('App Accounts UX', () => {
     await waitFor(() => {
       expect(core.movementsExportBackup).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('hides archived accounts until the archived section is opened', async () => {
+    const core = makeCore();
+    vi.mocked(core.ledgerListAccounts).mockResolvedValue({
+      items: [
+        {
+          id: 'acc-1',
+          name: 'Main',
+          type: 'cash',
+          currency: 'USD',
+          status: 'active',
+        },
+        {
+          id: 'acc-2',
+          name: 'Savings',
+          type: 'savings',
+          currency: 'USD',
+          status: 'active',
+        },
+        {
+          id: 'acc-old',
+          name: 'Old Wallet',
+          type: 'cash',
+          currency: 'EUR',
+          status: 'archived',
+        },
+      ],
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Select account' });
+    expect(within(dialog).getByRole('button', { name: /^Main/ })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /^Savings/ })).toBeInTheDocument();
+    expect(within(dialog).queryByText('Old Wallet')).not.toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Archived (1)' }));
+
+    expect(within(dialog).getByText('Old Wallet')).toBeInTheDocument();
+    expect(within(dialog).getByText('ARCH')).toBeInTheDocument();
+  });
+
+  it('restores an archived account from the archived account row', async () => {
+    const core = makeCore();
+    const accounts = [
+      {
+        id: 'acc-1',
+        name: 'Main',
+        type: 'cash',
+        currency: 'USD',
+        status: 'active',
+      },
+      {
+        id: 'acc-old',
+        name: 'Old Wallet',
+        type: 'cash',
+        currency: 'EUR',
+        status: 'archived',
+      },
+    ];
+    vi.mocked(core.ledgerListAccounts).mockImplementation(async () => ({ items: accounts }));
+    vi.mocked(core.ledgerGetAccountSummary).mockImplementation(async (input) => {
+      const account = accounts.find((item) => item.id === input.accountId) ?? accounts[0];
+      return {
+        accountId: account.id,
+        name: account.name,
+        type: account.type,
+        currency: account.currency,
+        balanceAmount: '0.00',
+      };
+    });
+    Object.assign(core, {
+      ledgerRestoreAccount: vi.fn(async (input: { accountId: string }) => {
+        const account = accounts.find((item) => item.id === input.accountId);
+        if (account) {
+          account.status = 'active';
+        }
+      }),
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Select account' });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Archived (1)' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Restore account Old Wallet' }));
+
+    await waitFor(() => {
+      expect(core.ledgerRestoreAccount).toHaveBeenCalledWith({ accountId: 'acc-old' });
+    });
+    expect(await screen.findByRole('button', { name: 'Old Wallet' })).toBeInTheDocument();
   });
 
   it('opens add account sheet from accounts menu', async () => {

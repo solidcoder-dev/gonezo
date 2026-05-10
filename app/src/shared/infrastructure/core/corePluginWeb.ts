@@ -5,6 +5,7 @@ import type {
   LedgerListSupportedCurrenciesResult,
   LedgerRenameAccountInput,
   LedgerArchiveAccountInput,
+  LedgerRestoreAccountInput,
   LedgerDeleteAccountInput,
   LedgerListAccountsResult,
   LedgerGetAccountSummaryInput,
@@ -86,6 +87,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async ledgerArchiveAccount(options: LedgerArchiveAccountInput): Promise<void> {
     return this.core.ledgerArchiveAccount(options);
+  }
+
+  async ledgerRestoreAccount(options: LedgerRestoreAccountInput): Promise<void> {
+    return this.core.ledgerRestoreAccount(options);
   }
 
   async ledgerDeleteAccount(options: LedgerDeleteAccountInput): Promise<void> {
