@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
 import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
 import { mapAccountSummaryList } from './accountViewMappers';
@@ -20,6 +21,7 @@ function toErrorMessage(error: unknown): string {
 }
 
 export function AccountHubComponent({ required, provided = {} }: AccountHubComponentProps) {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -315,6 +317,7 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
             },
             onRestoreAccount: restoreAccount,
             onAddAccount: () => setCreateFormOpen(true),
+            onManageTaxonomy: () => navigate('/taxonomy'),
             onImport: provided.events?.onImportRequested ?? (() => undefined),
             onBackup: provided.events?.onBackupRequested ?? (() => undefined),
           }}

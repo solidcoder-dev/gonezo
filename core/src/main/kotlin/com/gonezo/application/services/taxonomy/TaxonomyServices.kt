@@ -9,6 +9,10 @@ import com.gonezo.taxonomy.application.CreateTagUC
 import com.gonezo.taxonomy.application.ListCategoriesUC
 import com.gonezo.taxonomy.application.ReplaceTransactionTagsCommand
 import com.gonezo.taxonomy.application.ReplaceTransactionTagsUC
+import com.gonezo.taxonomy.application.RenameCategoryCommand
+import com.gonezo.taxonomy.application.RenameCategoryUC
+import com.gonezo.taxonomy.application.RenameTagCommand
+import com.gonezo.taxonomy.application.RenameTagUC
 import com.gonezo.taxonomy.application.UnassignCategoryFromTransactionCommand
 import com.gonezo.taxonomy.application.UnassignCategoryFromTransactionUC
 import com.gonezo.taxonomy.domain.Category
@@ -45,6 +49,22 @@ class ListCategoriesService(
   private val categoryRepository: CategoryRepository,
 ) : ListCategoriesUC {
   override fun execute(): List<Category> = categoryRepository.listAll()
+}
+
+class RenameCategoryService(
+  private val categoryRepository: CategoryRepository,
+) : RenameCategoryUC {
+  override fun execute(command: RenameCategoryCommand) {
+    val category = categoryRepository.findById(command.categoryId)
+      ?: throw IllegalStateException("Category not found: ${command.categoryId}")
+    val normalizedName = command.name.trim()
+    require(normalizedName.isNotBlank()) { "category name is required" }
+    val existing = categoryRepository.findByNormalizedNameAndAppliesTo(normalizedName, category.appliesTo)
+    require(existing == null || existing.id == category.id) {
+      "Category already exists for ${category.appliesTo.value}: $normalizedName"
+    }
+    categoryRepository.save(category.rename(normalizedName))
+  }
 }
 
 class AssignCategoryToTransactionService(
@@ -98,6 +118,22 @@ class CreateTagService(
     )
     tagRepository.save(tag)
     return tag.id
+  }
+}
+
+class RenameTagService(
+  private val tagRepository: TagRepository,
+) : RenameTagUC {
+  override fun execute(command: RenameTagCommand) {
+    val tag = tagRepository.findById(command.tagId)
+      ?: throw IllegalStateException("Tag not found: ${command.tagId}")
+    val normalizedName = command.name.trim()
+    require(normalizedName.isNotBlank()) { "tag name is required" }
+    val existing = tagRepository.findByNormalizedName(normalizedName)
+    require(existing == null || existing.id == tag.id) {
+      "Tag already exists: $normalizedName"
+    }
+    tagRepository.save(tag.rename(normalizedName))
   }
 }
 

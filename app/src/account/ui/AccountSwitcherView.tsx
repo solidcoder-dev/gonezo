@@ -11,6 +11,7 @@ export type AccountSwitcherViewProvided = {
   onSelect: (accountId: string) => void;
   onRestoreAccount: (accountId: string) => Promise<void> | void;
   onAddAccount: () => void;
+  onManageTaxonomy: () => void;
   onImport: () => void;
   onBackup: () => void;
 };
@@ -141,6 +142,17 @@ export function AccountSwitcherView({ required, provided }: Props) {
                 }}
               >
                 Import transactions
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                disabled={required.disabled}
+                onClick={() => {
+                  provided.onManageTaxonomy();
+                  setShowAccounts(false);
+                }}
+              >
+                Taxonomy
               </button>
               <button
                 type="button"

@@ -555,6 +555,20 @@ public class CorePlugin extends Plugin {
   }
 
   @PluginMethod
+  public void taxonomyRenameCategory(PluginCall call) {
+    String categoryId = call.getString("categoryId");
+    String name = call.getString("name");
+
+    try {
+      AndroidTaxonomyCore core = AndroidTaxonomyCore.getInstance(getContext());
+      core.renameCategory(categoryId, name);
+      call.resolve();
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
   public void taxonomyListTags(PluginCall call) {
     Boolean includeArchived = call.getBoolean("includeArchived");
 
@@ -572,6 +586,20 @@ public class CorePlugin extends Plugin {
       JSObject result = new JSObject();
       result.put("items", items);
       call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void taxonomyRenameTag(PluginCall call) {
+    String tagId = call.getString("tagId");
+    String name = call.getString("name");
+
+    try {
+      AndroidTaxonomyCore core = AndroidTaxonomyCore.getInstance(getContext());
+      core.renameTag(tagId, name);
+      call.resolve();
     } catch (Exception ex) {
       call.reject(ex.getMessage());
     }

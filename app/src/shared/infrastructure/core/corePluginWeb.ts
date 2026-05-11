@@ -29,8 +29,10 @@ import type {
   TaxonomyListCategoriesResult,
   TaxonomyCreateCategoryInput,
   TaxonomyCreateCategoryResult,
+  TaxonomyRenameCategoryInput,
   TaxonomyListTagsInput,
   TaxonomyListTagsResult,
+  TaxonomyRenameTagInput,
   MobillsImportInput,
   MobillsImportResult,
   OrchestrationCategorizeTransactionInput,
@@ -149,8 +151,16 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
     return this.core.taxonomyCreateCategory(options);
   }
 
+  async taxonomyRenameCategory(options: TaxonomyRenameCategoryInput): Promise<void> {
+    return this.core.taxonomyRenameCategory(options);
+  }
+
   async taxonomyListTags(options?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult> {
     return this.core.taxonomyListTags(options);
+  }
+
+  async taxonomyRenameTag(options: TaxonomyRenameTagInput): Promise<void> {
+    return this.core.taxonomyRenameTag(options);
   }
 
   async mobillsImport(options: MobillsImportInput): Promise<MobillsImportResult> {

@@ -31,8 +31,10 @@ import type {
   TaxonomyListCategoriesResult,
   TaxonomyCreateCategoryInput,
   TaxonomyCreateCategoryResult,
+  TaxonomyRenameCategoryInput,
   TaxonomyListTagsInput,
   TaxonomyListTagsResult,
+  TaxonomyRenameTagInput,
   MobillsImportInput,
   MobillsImportResult,
   OrchestrationCategorizeTransactionInput,
@@ -485,11 +487,27 @@ export class CoreAdapter implements CorePort {
     return this.web.taxonomyCreateCategory(input);
   }
 
+  async taxonomyRenameCategory(input: TaxonomyRenameCategoryInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.taxonomyRenameCategory(input);
+      return;
+    }
+    await this.web.taxonomyRenameCategory(input);
+  }
+
   async taxonomyListTags(input?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult> {
     if (Capacitor.isNativePlatform()) {
       return CorePlugin.taxonomyListTags(input ?? {});
     }
     return this.web.taxonomyListTags(input);
+  }
+
+  async taxonomyRenameTag(input: TaxonomyRenameTagInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.taxonomyRenameTag(input);
+      return;
+    }
+    await this.web.taxonomyRenameTag(input);
   }
 
   async mobillsImport(input: MobillsImportInput): Promise<MobillsImportResult> {

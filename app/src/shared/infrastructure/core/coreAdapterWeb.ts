@@ -29,8 +29,10 @@ import type {
   TaxonomyListCategoriesResult,
   TaxonomyCreateCategoryInput,
   TaxonomyCreateCategoryResult,
+  TaxonomyRenameCategoryInput,
   TaxonomyListTagsInput,
   TaxonomyListTagsResult,
+  TaxonomyRenameTagInput,
   MobillsImportInput,
   MobillsImportResult,
   MobillsImportRowResult,
@@ -1199,6 +1201,28 @@ export class CoreAdapterWeb implements CorePort {
     return { id };
   }
 
+  async taxonomyRenameCategory(input: TaxonomyRenameCategoryInput): Promise<void> {
+    const category = CoreAdapterWeb.taxonomyCategories.find((item) => item.id === input.categoryId);
+    if (!category) {
+      throw new Error(`Category not found: ${input.categoryId}`);
+    }
+    const name = input.name.trim();
+    if (!name) {
+      throw new Error('Category name is required');
+    }
+    const normalizedName = this.normalizeCategoryName(name);
+    const duplicate = CoreAdapterWeb.taxonomyCategories.find(
+      (item) => item.id !== category.id
+        && item.normalizedName === normalizedName
+        && item.appliesTo === category.appliesTo,
+    );
+    if (duplicate) {
+      throw new Error(`Category already exists for ${category.appliesTo}: ${name}`);
+    }
+    category.name = name;
+    category.normalizedName = normalizedName;
+  }
+
   async taxonomyListTags(input?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult> {
     const includeArchived = input?.includeArchived === true;
     const items = CoreAdapterWeb.taxonomyTags
@@ -1211,6 +1235,26 @@ export class CoreAdapterWeb implements CorePort {
       }));
 
     return { items };
+  }
+
+  async taxonomyRenameTag(input: TaxonomyRenameTagInput): Promise<void> {
+    const tag = CoreAdapterWeb.taxonomyTags.find((item) => item.id === input.tagId);
+    if (!tag) {
+      throw new Error(`Tag not found: ${input.tagId}`);
+    }
+    const name = input.name.trim();
+    if (!name) {
+      throw new Error('Tag name is required');
+    }
+    const normalizedName = this.normalizeTagName(name);
+    const duplicate = CoreAdapterWeb.taxonomyTags.find(
+      (item) => item.id !== tag.id && item.normalizedName === normalizedName,
+    );
+    if (duplicate) {
+      throw new Error(`Tag already exists: ${name}`);
+    }
+    tag.name = name;
+    tag.normalizedName = normalizedName;
   }
 
   async mobillsImport(input: MobillsImportInput): Promise<MobillsImportResult> {

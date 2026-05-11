@@ -257,12 +257,14 @@ function makeCore(transactionCount = 0): CorePort {
       ],
     })),
     taxonomyCreateCategory: vi.fn(async () => ({ id: 'cat-created' })),
+    taxonomyRenameCategory: vi.fn(async () => undefined),
     taxonomyListTags: vi.fn(async () => ({
       items: [
         { id: 'tag-home', name: 'home', status: 'active' as const },
         { id: 'tag-london', name: 'london', status: 'active' as const },
       ],
     })),
+    taxonomyRenameTag: vi.fn(async () => undefined),
     mobillsImport: vi.fn(async () => ({
       totalRows: 0,
       importedCount: 0,
@@ -709,6 +711,45 @@ describe('App Accounts UX', () => {
     await waitFor(() => {
       expect(core.movementsExportBackup).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('renames taxonomy entries from global taxonomy management and rejects blank names', async () => {
+    const core = makeCore();
+    const taxonomyCore = core as CorePort & {
+      taxonomyRenameCategory: ReturnType<typeof vi.fn>;
+      taxonomyRenameTag: ReturnType<typeof vi.fn>;
+    };
+    taxonomyCore.taxonomyRenameCategory = vi.fn(async () => undefined);
+    taxonomyCore.taxonomyRenameTag = vi.fn(async () => undefined);
+
+    render(
+      <MemoryRouter>
+        <App required={{ core: taxonomyCore }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Taxonomy' }));
+
+    expect(await screen.findByRole('heading', { name: 'Taxonomy' })).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Rename category Food' }));
+    fireEvent.change(screen.getByLabelText('Taxonomy name'), { target: { value: 'Groceries' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save name' }));
+
+    await waitFor(() => {
+      expect(taxonomyCore.taxonomyRenameCategory).toHaveBeenCalledWith({
+        categoryId: 'cat-food',
+        name: 'Groceries',
+      });
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Tags' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Rename tag home' }));
+    fireEvent.change(screen.getByLabelText('Taxonomy name'), { target: { value: '   ' } });
+
+    expect(screen.getByRole('button', { name: 'Save name' })).toBeDisabled();
+    expect(taxonomyCore.taxonomyRenameTag).not.toHaveBeenCalled();
   });
 
   it('hides archived accounts until the archived section is opened', async () => {

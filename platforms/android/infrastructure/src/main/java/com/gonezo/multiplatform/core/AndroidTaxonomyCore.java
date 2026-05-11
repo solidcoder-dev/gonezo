@@ -12,6 +12,9 @@ import com.gonezo.taxonomy.application.CreateCategoryService;
 import com.gonezo.taxonomy.application.CreateCategoryUC;
 import com.gonezo.taxonomy.application.ListCategoriesService;
 import com.gonezo.taxonomy.application.ListCategoriesUC;
+import com.gonezo.taxonomy.application.RenameCategoryCommand;
+import com.gonezo.taxonomy.application.RenameCategoryService;
+import com.gonezo.taxonomy.application.RenameCategoryUC;
 import com.gonezo.taxonomy.application.UnassignCategoryFromTransactionCommand;
 import com.gonezo.taxonomy.application.UnassignCategoryFromTransactionService;
 import com.gonezo.taxonomy.application.UnassignCategoryFromTransactionUC;
@@ -38,6 +41,8 @@ public final class AndroidTaxonomyCore {
   private final CoreDatabase database;
   private final CreateCategoryUC createCategoryUC;
   private final ListCategoriesUC listCategoriesUC;
+  private final RenameCategoryUC renameCategoryUC;
+  private final AndroidTaxonomyTagRenamer tagRenamer;
   private final AssignCategoryToTransactionUC assignCategoryToTransactionUC;
   private final UnassignCategoryFromTransactionUC unassignCategoryFromTransactionUC;
   private final TransactionCategoryAssignmentRepository categoryAssignmentRepository;
@@ -45,12 +50,15 @@ public final class AndroidTaxonomyCore {
   private AndroidTaxonomyCore(Context context) {
     CoreDatabase database = new CoreDatabase(context.getApplicationContext());
     AndroidTaxonomyCategoryRepository categoryRepository = new AndroidTaxonomyCategoryRepository(database);
+    AndroidTaxonomyTagRepository tagRepository = new AndroidTaxonomyTagRepository(database);
     AndroidTaxonomyTransactionCategoryAssignmentRepository assignmentRepository =
       new AndroidTaxonomyTransactionCategoryAssignmentRepository(database);
 
     this.database = database;
     this.createCategoryUC = new CreateCategoryService(categoryRepository);
     this.listCategoriesUC = new ListCategoriesService(categoryRepository);
+    this.renameCategoryUC = new RenameCategoryService(categoryRepository);
+    this.tagRenamer = new AndroidTaxonomyTagRenamer(tagRepository);
     this.assignCategoryToTransactionUC = new AssignCategoryToTransactionService(categoryRepository, assignmentRepository);
     this.unassignCategoryFromTransactionUC = new UnassignCategoryFromTransactionService(assignmentRepository);
     this.categoryAssignmentRepository = assignmentRepository;
@@ -89,6 +97,15 @@ public final class AndroidTaxonomyCore {
     return id.getValue();
   }
 
+  public void renameCategory(String categoryId, String name) {
+    renameCategoryUC.execute(
+      new RenameCategoryCommand(
+        CategoryId.Companion.from(requireText(categoryId, "categoryId is required")),
+        requireText(name, "Category name is required")
+      )
+    );
+  }
+
   public List<TaxonomyTagView> listTags(Boolean includeArchived) {
     boolean resolvedIncludeArchived = includeArchived != null && includeArchived;
 
@@ -111,6 +128,13 @@ public final class AndroidTaxonomyCore {
     } finally {
       cursor.close();
     }
+  }
+
+  public void renameTag(String tagId, String name) {
+    tagRenamer.rename(
+      requireText(tagId, "tagId is required"),
+      requireText(name, "Tag name is required")
+    );
   }
 
   public TaxonomyCategorizationResultView categorizeTransaction(String transactionId, String transactionType, String categoryId) {

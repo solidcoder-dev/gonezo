@@ -29,8 +29,10 @@ import type {
   TaxonomyListCategoriesResult,
   TaxonomyCreateCategoryInput,
   TaxonomyCreateCategoryResult,
+  TaxonomyRenameCategoryInput,
   TaxonomyListTagsInput,
   TaxonomyListTagsResult,
+  TaxonomyRenameTagInput,
   MobillsImportInput,
   MobillsImportResult,
   OrchestrationCategorizeTransactionInput,
@@ -88,7 +90,9 @@ export interface CorePlugin {
   ledgerListTransactions(options: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult>;
   taxonomyListCategories(options?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult>;
   taxonomyCreateCategory(options: TaxonomyCreateCategoryInput): Promise<TaxonomyCreateCategoryResult>;
+  taxonomyRenameCategory(options: TaxonomyRenameCategoryInput): Promise<void>;
   taxonomyListTags(options?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult>;
+  taxonomyRenameTag(options: TaxonomyRenameTagInput): Promise<void>;
   mobillsImport(options: MobillsImportInput): Promise<MobillsImportResult>;
   orchestrationCategorizeTransaction(
     options: OrchestrationCategorizeTransactionInput,

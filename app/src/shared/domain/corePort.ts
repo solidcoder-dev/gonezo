@@ -614,6 +614,11 @@ export type TaxonomyCreateCategoryResult = {
   id: string;
 };
 
+export type TaxonomyRenameCategoryInput = {
+  categoryId: string;
+  name: string;
+};
+
 export type TaxonomyTagStatus = 'active' | 'archived';
 
 export type TaxonomyTagItem = {
@@ -628,6 +633,11 @@ export type TaxonomyListTagsInput = {
 
 export type TaxonomyListTagsResult = {
   items: TaxonomyTagItem[];
+};
+
+export type TaxonomyRenameTagInput = {
+  tagId: string;
+  name: string;
 };
 
 export type MobillsImportPolicy = {
@@ -719,7 +729,9 @@ export interface CorePort {
   ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult>;
   taxonomyListCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult>;
   taxonomyCreateCategory(input: TaxonomyCreateCategoryInput): Promise<TaxonomyCreateCategoryResult>;
+  taxonomyRenameCategory(input: TaxonomyRenameCategoryInput): Promise<void>;
   taxonomyListTags(input?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult>;
+  taxonomyRenameTag(input: TaxonomyRenameTagInput): Promise<void>;
   mobillsImport(input: MobillsImportInput): Promise<MobillsImportResult>;
   orchestrationCategorizeTransaction(
     input: OrchestrationCategorizeTransactionInput,

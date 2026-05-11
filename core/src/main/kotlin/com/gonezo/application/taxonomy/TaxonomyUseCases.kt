@@ -17,6 +17,15 @@ interface CreateCategoryUC {
   fun execute(command: CreateCategoryCommand): CategoryId
 }
 
+data class RenameCategoryCommand(
+  val categoryId: CategoryId,
+  val name: String,
+)
+
+interface RenameCategoryUC {
+  fun execute(command: RenameCategoryCommand)
+}
+
 interface ListCategoriesUC {
   fun execute(): List<Category>
 }
@@ -47,6 +56,15 @@ data class CreateTagCommand(
 
 interface CreateTagUC {
   fun execute(command: CreateTagCommand): TagId
+}
+
+data class RenameTagCommand(
+  val tagId: TagId,
+  val name: String,
+)
+
+interface RenameTagUC {
+  fun execute(command: RenameTagCommand)
 }
 
 data class ReplaceTransactionTagsCommand(

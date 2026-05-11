@@ -477,6 +477,89 @@ body {
   margin-top: 6px;
 }
 
+.taxonomy-tabs {
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+
+.taxonomy-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 0 8px;
+}
+
+.taxonomy-section-header h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
+.taxonomy-section-header span {
+  color: #575752;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.taxonomy-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.taxonomy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.taxonomy-row-main {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.taxonomy-token {
+  min-height: 38px;
+  padding: 5px 5px 5px 12px;
+  border: 1px solid #d8d8cc;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.taxonomy-token-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+}
+
+.taxonomy-token-meta {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f4f4ef;
+  color: #575752;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.taxonomy-edit-button {
+  flex: 0 0 auto;
+  width: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0;
+  border-radius: 999px;
+}
+
 .account-menu-actions-label {
   margin-top: 12px;
 }

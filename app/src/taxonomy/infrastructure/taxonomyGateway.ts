@@ -9,9 +9,17 @@ export type TaxonomyGatewayPort = {
     name: string;
     appliesTo: 'income' | 'expense';
   }): Promise<{ id: string }>;
+  taxonomyRenameCategory(input: {
+    categoryId: string;
+    name: string;
+  }): Promise<void>;
   taxonomyListTags(input?: {
     includeArchived?: boolean;
   }): Promise<{ items: TaxonomyTagItem[] }>;
+  taxonomyRenameTag(input: {
+    tagId: string;
+    name: string;
+  }): Promise<void>;
   orchestrationCategorizeTransaction(input: {
     transactionId: string;
     transactionType: 'income' | 'expense';
@@ -48,7 +56,9 @@ export function createTaxonomyGateway(core: TaxonomyGatewayPort): TaxonomyGatewa
   return {
     taxonomyListCategories: (input) => core.taxonomyListCategories(input),
     taxonomyCreateCategory: (input) => core.taxonomyCreateCategory(input),
+    taxonomyRenameCategory: (input) => core.taxonomyRenameCategory(input),
     taxonomyListTags: (input) => core.taxonomyListTags(input),
+    taxonomyRenameTag: (input) => core.taxonomyRenameTag(input),
     orchestrationCategorizeTransaction: (input) => core.orchestrationCategorizeTransaction(input),
     orchestrationApplyTransactionTags: (input) => core.orchestrationApplyTransactionTags(input),
     orchestrationListTransactionTaxonomy: (input) => core.orchestrationListTransactionTaxonomy(input),
