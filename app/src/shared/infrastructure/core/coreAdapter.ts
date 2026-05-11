@@ -44,6 +44,8 @@ import type {
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
   MovementsBackupExportResult,
+  MovementsBackupImportInput,
+  MovementsBackupImportResult,
   RecurrenceCreateRecurringMovementInput,
   RecurrenceCreateRecurringMovementResult,
   RecurrenceDeactivateRecurringMovementInput,
@@ -549,6 +551,13 @@ export class CoreAdapter implements CorePort {
       return CorePlugin.movementsExportBackup();
     }
     return this.web.movementsExportBackup();
+  }
+
+  async movementsImportBackup(input: MovementsBackupImportInput): Promise<MovementsBackupImportResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.movementsImportBackup(input);
+    }
+    return this.web.movementsImportBackup(input);
   }
 
   async recurrenceCreateRecurringMovement(

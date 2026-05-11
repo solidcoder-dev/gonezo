@@ -141,7 +141,7 @@ export function AccountSwitcherView({ required, provided }: Props) {
                   setShowAccounts(false);
                 }}
               >
-                Import transactions
+                Import backup
               </button>
               <button
                 type="button"

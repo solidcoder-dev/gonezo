@@ -60,10 +60,10 @@ app/src/
       importFailureSummary.ts
       transactionsImport.types.ts
     infrastructure/
-      readImportFileAsBase64.ts
-      providers/
-        mobills/
-          mobillsFileReader.ts
+        readImportFileAsBase64.ts
+        providers/
+          mobills/
+            mobillsFileReader.ts
     ui/
       TransactionsImportView.tsx
       TransactionsImportView.contract.ts
@@ -111,7 +111,7 @@ app/src/
 - `account/ui/capabilities/*`: importacion de alto nivel.
 - `transactions/*`: composer transaccional y mappers.
 - `movements/*`: monthly overview, posted/scheduled/expected lists, search and edit entrypoints.
-- `imports/*`: capacidad de importacion como caja negra reutilizable.
+- `imports/*`: capacidad de importacion como caja negra reutilizable. El backup Gonezo es el flujo por defecto; Mobills queda como flujo legado activado por checkbox.
 - `ledger/*` y `taxonomy/*`: acceso y reglas de backend; no definen la UX por si mismos.
 - `expected/*` y `scheduling/*`: gateways de capacidades nativas/core.
 - `shared/*`: utilidades neutrales.
@@ -142,7 +142,7 @@ app/src/
   - `transactions/application/useTransactionEntryModel.ts`
   - `movements/application/useMonthlyMovementsModel.ts`
   - `movements/application/useMovementsSearchModel.ts`
-- La mezcla de importacion (`mobillsImport`) ocurre en `account/application/AccountPage.tsx` y `imports/*`.
+- La mezcla de importacion (`movementsImportBackup` y `mobillsImport` legado) ocurre en `account/application/AccountPage.tsx` y `imports/*`.
 - Los DTO del backend se traducen a view models en:
   - `account/application/accountViewMappers.ts` (cuentas)
   - `transactions/application/transactionViewMappers.ts` (transacciones)

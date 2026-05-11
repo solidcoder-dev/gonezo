@@ -226,7 +226,7 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
           </button>
           <div className="quick-row">
             <button type="button" className="text-button" onClick={provided.events?.onImportRequested}>
-              Import from Mobills
+              Import backup
             </button>
             <button type="button" className="text-button" onClick={provided.events?.onBackupRequested}>
               Backup

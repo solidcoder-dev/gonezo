@@ -42,6 +42,8 @@ import type {
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
   MovementsBackupExportResult,
+  MovementsBackupImportInput,
+  MovementsBackupImportResult,
   RecurrenceCreateRecurringMovementInput,
   RecurrenceCreateRecurringMovementResult,
   RecurrenceDeactivateRecurringMovementInput,
@@ -187,6 +189,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async movementsExportBackup(): Promise<MovementsBackupExportResult> {
     return this.core.movementsExportBackup();
+  }
+
+  async movementsImportBackup(options: MovementsBackupImportInput): Promise<MovementsBackupImportResult> {
+    return this.core.movementsImportBackup(options);
   }
 
   async recurrenceCreateRecurringMovement(

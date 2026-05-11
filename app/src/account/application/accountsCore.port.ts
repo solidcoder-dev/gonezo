@@ -2,6 +2,8 @@ import type {
   MobillsImportInput,
   MobillsImportResult,
   MovementsBackupExportResult,
+  MovementsBackupImportInput,
+  MovementsBackupImportResult,
 } from '../../shared/domain/corePort';
 import type { LedgerGatewayPort } from '../../ledger/infrastructure/ledgerGateway';
 import type { TransactionsCorePort } from '../../transactions/application/transactionsCore.port';
@@ -14,6 +16,7 @@ export type TransactionsImportPort = {
 
 export type MovementsBackupPort = {
   movementsExportBackup(): Promise<MovementsBackupExportResult>;
+  movementsImportBackup(input: MovementsBackupImportInput): Promise<MovementsBackupImportResult>;
 };
 
 export type AccountWorkspacePort = AccountsCorePort

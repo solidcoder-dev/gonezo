@@ -1,12 +1,17 @@
 import type { FormEvent } from 'react';
 import type { ImportFailureSummaryItem, ImportRowResult } from '../domain/importFailureSummary';
-import type { TransactionsImportDuplicatePolicy, TransactionsImportResult } from '../domain/transactionsImport.types';
+import type {
+  TransactionsImportDuplicatePolicy,
+  TransactionsImportResult,
+  TransactionsImportSource,
+} from '../domain/transactionsImport.types';
 
 export type TransactionsImportViewRequired = {
   state: {
     accountsCount: number;
     fileName: string;
     result: TransactionsImportResult | null;
+    importSource: TransactionsImportSource;
     policy: {
       createMissingAccounts: boolean;
       createMissingCategories: boolean;
@@ -31,6 +36,7 @@ export type TransactionsImportViewProvided = {
     setCreateMissingCategories: (value: boolean) => void;
     setCreateMissingTags: (value: boolean) => void;
     setDuplicatePolicy: (value: TransactionsImportDuplicatePolicy) => void;
+    setUseMobillsImport: (value: boolean) => void;
     submit: (event: FormEvent) => Promise<void>;
   };
 };

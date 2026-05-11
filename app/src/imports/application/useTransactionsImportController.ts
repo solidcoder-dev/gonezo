@@ -10,6 +10,7 @@ import type {
   TransactionsImportPolicyInput,
   TransactionsImportRequest,
   TransactionsImportResult,
+  TransactionsImportSource,
 } from '../domain/transactionsImport.types';
 import { readImportFileAsBase64 } from '../infrastructure/readImportFileAsBase64';
 
@@ -34,6 +35,7 @@ export function useTransactionsImportController({ port, onCompleted, onFailed }:
   const [createMissingCategories, setCreateMissingCategories] = useState(true);
   const [createMissingTags, setCreateMissingTags] = useState(true);
   const [duplicatePolicy, setDuplicatePolicy] = useState<TransactionsImportDuplicatePolicy>('skip');
+  const [importSource, setImportSource] = useState<TransactionsImportSource>('backup');
 
   const rows = useMemo(() => (result?.rows ?? []) as ImportRowResult[], [result]);
   const failedRows = useMemo(() => rows.filter((row) => row.status === 'failed'), [rows]);
@@ -67,12 +69,21 @@ export function useTransactionsImportController({ port, onCompleted, onFailed }:
     setResult(null);
   }
 
+  function setUseMobillsImport(useMobills: boolean) {
+    setImportSource(useMobills ? 'mobills' : 'backup');
+    setSelectedFile(null);
+    setFileName('');
+    resetResult();
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     resetResult();
 
     if (!selectedFile) {
-      const message = 'Select an import TSV/CSV file first.';
+      const message = importSource === 'mobills'
+        ? 'Select a Mobills TSV/CSV file first.'
+        : 'Select a Gonezo backup JSON file first.';
       setError(message);
       onFailed?.(message);
       return;
@@ -82,13 +93,15 @@ export function useTransactionsImportController({ port, onCompleted, onFailed }:
     setSubmitPhase('submitting');
     try {
       const fileBase64 = await readImportFileAsBase64(selectedFile);
-      const policy: TransactionsImportPolicyInput = {
-        createMissingAccounts,
-        createMissingCategories,
-        createMissingTags,
-        duplicatePolicy,
-      };
-      const nextResult = await port.submitImport({ fileBase64, policy });
+      const policy: TransactionsImportPolicyInput | undefined = importSource === 'mobills'
+        ? {
+            createMissingAccounts,
+            createMissingCategories,
+            createMissingTags,
+            duplicatePolicy,
+          }
+        : undefined;
+      const nextResult = await port.submitImport({ source: importSource, fileBase64, policy });
       setResult(nextResult);
       setSubmitPhase('succeeded');
       onCompleted?.(nextResult);
@@ -113,6 +126,7 @@ export function useTransactionsImportController({ port, onCompleted, onFailed }:
       createMissingCategories,
       createMissingTags,
       duplicatePolicy,
+      importSource,
       failedRows,
       failureSummary,
       accountNotFoundFailures,
@@ -124,6 +138,7 @@ export function useTransactionsImportController({ port, onCompleted, onFailed }:
       setCreateMissingCategories,
       setCreateMissingTags,
       setDuplicatePolicy,
+      setUseMobillsImport,
       submit,
     },
   };
@@ -134,4 +149,5 @@ export type {
   TransactionsImportPolicyInput,
   TransactionsImportRequest,
   TransactionsImportResult,
+  TransactionsImportSource,
 };

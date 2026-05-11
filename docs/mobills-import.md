@@ -1,8 +1,10 @@
-# Mobills Import
+# Mobills Import Legacy
 
 ## Objetivo
 
-Importar exportes Mobills (TSV/CSV, UTF-16/UTF-8) sin mezclar dominios:
+Importar exportes Mobills (TSV/CSV, UTF-16/UTF-8) sin mezclar dominios.
+Este flujo es legado: el import principal es el backup nativo de Gonezo y Mobills se activa con un
+checkbox explicito desde la UI.
 
 - `ledger` solo registra dinero (cuentas + transacciones)
 - `taxonomy` solo clasifica (categorias + tags)
@@ -33,17 +35,18 @@ Importar exportes Mobills (TSV/CSV, UTF-16/UTF-8) sin mezclar dominios:
 
 Desde la pantalla de cuentas:
 
-1. Usuario abre `Import` / `Import from Mobills`.
-2. Selecciona archivo TSV o CSV.
-3. Configura policy:
+1. Usuario abre `Import backup`.
+2. Activa `Import Mobills TSV/CSV`.
+3. Selecciona archivo TSV o CSV.
+4. Configura policy:
    - `createMissingAccounts`
    - `createMissingCategories`
    - `createMissingTags`
    - `duplicatePolicy` (`skip | fail | import_anyway`)
-4. App llama a `mobillsImport` con:
+5. App llama a `mobillsImport` con:
    - `fileBase64`
    - `policy`
-5. UI muestra resumen:
+6. UI muestra resumen:
    - `totalRows`
    - `importedCount`
    - `failedCount`

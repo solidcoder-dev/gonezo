@@ -20,11 +20,11 @@ export function TransactionsImportComponent({ required, provided }: Transactions
         className="sheet-panel import-sheet"
         role="dialog"
         aria-modal="true"
-        aria-label="Import transactions"
+        aria-label="Import backup"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="inline-header">
-          <h3>Import transactions</h3>
+          <h3>Import backup</h3>
           <button
             type="button"
             className="text-button icon-button"

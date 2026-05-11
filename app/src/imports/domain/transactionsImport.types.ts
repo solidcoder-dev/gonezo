@@ -1,5 +1,7 @@
 export type TransactionsImportDuplicatePolicy = 'skip' | 'fail' | 'import_anyway';
 
+export type TransactionsImportSource = 'backup' | 'mobills';
+
 export type TransactionsImportPolicyInput = {
   createMissingAccounts?: boolean;
   createMissingCategories?: boolean;
@@ -8,6 +10,7 @@ export type TransactionsImportPolicyInput = {
 };
 
 export type TransactionsImportRequest = {
+  source: TransactionsImportSource;
   fileBase64: string;
   policy?: TransactionsImportPolicyInput;
 };

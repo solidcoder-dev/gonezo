@@ -9,8 +9,11 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.gonezo.multiplatform.core.AndroidLedgerCore;
 import com.gonezo.multiplatform.core.AndroidExpectedCore;
+import com.gonezo.multiplatform.core.AndroidMovementsBackupCore;
 import com.gonezo.multiplatform.core.AndroidRecurringCore;
 import com.gonezo.multiplatform.core.AndroidTaxonomyCore;
+import com.gonezo.application.orchestration.backup.ImportMovementsBackupResult;
+import com.gonezo.application.orchestration.backup.ImportMovementsBackupRowResult;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.math.BigDecimal;
@@ -475,6 +478,7 @@ public class CorePlugin extends Plugin {
         item.put("occurredAt", tx.occurredAt());
         item.put("description", tx.description());
         item.put("merchant", tx.merchant());
+        item.put("linkedTransactionId", tx.linkedTransactionId());
         AndroidTaxonomyCore.TransactionTaxonomyView taxonomy = taxonomyByTransactionId.get(tx.id());
         String categoryIdValue = taxonomy == null ? null : taxonomy.categoryId();
         if (categoryIdValue == null || categoryIdValue.trim().isEmpty()) {
@@ -755,6 +759,25 @@ public class CorePlugin extends Plugin {
       result.put("categoryCount", export.categories().size());
       result.put("tagCount", export.tags().size());
       call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void movementsImportBackup(PluginCall call) {
+    String fileBase64 = call.getString("fileBase64");
+    if (fileBase64 == null || fileBase64.trim().isEmpty()) {
+      call.reject("fileBase64 is required");
+      return;
+    }
+
+    try {
+      byte[] bytes = Base64.getDecoder().decode(fileBase64);
+      ImportMovementsBackupResult importResult = AndroidMovementsBackupCore
+        .getInstance(getContext())
+        .importBackup(bytes);
+      call.resolve(toJson(importResult));
     } catch (Exception ex) {
       call.reject(ex.getMessage());
     }
@@ -1249,6 +1272,7 @@ public class CorePlugin extends Plugin {
           tx.description(),
           tx.merchant(),
           tx.categoryId(),
+          tx.linkedTransactionId(),
           tx.items().stream()
             .map((item) -> new MovementsBackupSplitItem(
               item.id(),
@@ -1269,7 +1293,7 @@ public class CorePlugin extends Plugin {
 
   private String toJson(MovementsBackupExport export) throws JSONException {
     JSONObject root = new JSONObject();
-    root.put("schemaVersion", 1);
+    root.put("schemaVersion", 2);
     root.put("exportedAt", export.exportedAt());
 
     Map<String, String> categoryNameById = new LinkedHashMap<>();
@@ -1321,6 +1345,7 @@ public class CorePlugin extends Plugin {
       item.put("description", movement.description());
       item.put("merchant", movement.merchant());
       item.put("categoryId", movement.categoryId());
+      item.put("linkedTransactionId", movement.linkedTransactionId());
 
       JSONArray splitItems = new JSONArray();
       for (MovementsBackupSplitItem splitItem : movement.splitItems()) {
@@ -1360,6 +1385,33 @@ public class CorePlugin extends Plugin {
     root.put("postedMovements", movements);
 
     return root.toString(2);
+  }
+
+  private JSObject toJson(ImportMovementsBackupResult importResult) throws JSONException {
+    JSObject result = new JSObject();
+    result.put("totalRows", importResult.getTotalRows());
+    result.put("importedCount", importResult.getImportedCount());
+    result.put("failedCount", importResult.getFailedCount());
+    result.put("skippedCount", importResult.getSkippedCount());
+
+    JSONArray rows = new JSONArray();
+    for (ImportMovementsBackupRowResult row : importResult.getRows()) {
+      JSObject item = new JSObject();
+      item.put("sourceLine", row.getSourceLine());
+      item.put("status", row.getStatus().name().toLowerCase(Locale.ROOT));
+      if (row.getTransactionId() != null) {
+        item.put("transactionId", row.getTransactionId().toString());
+      }
+      if (row.getErrorCode() != null) {
+        item.put("errorCode", row.getErrorCode());
+      }
+      if (row.getErrorMessage() != null) {
+        item.put("errorMessage", row.getErrorMessage());
+      }
+      rows.put(item);
+    }
+    result.put("rows", rows);
+    return result;
   }
 
   private String writeBackupFile(String fileName, String json) throws Exception {
@@ -1426,6 +1478,7 @@ public class CorePlugin extends Plugin {
     String description,
     String merchant,
     String categoryId,
+    String linkedTransactionId,
     List<MovementsBackupSplitItem> splitItems,
     AndroidTaxonomyCore.TransactionTaxonomyView taxonomy
   ) {}

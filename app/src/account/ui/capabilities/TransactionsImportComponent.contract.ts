@@ -1,6 +1,6 @@
 import type { LoadPhase, SubmitPhase } from '../../domain/accountPage.types';
 import type {
-  TransactionsImportPolicyInput,
+  TransactionsImportRequest,
   TransactionsImportResult,
 } from '../../../imports/domain/transactionsImport.types';
 
@@ -19,10 +19,7 @@ export type TransactionsImportComponentProvided = {
   commands: {
     open: () => void;
     close: () => void;
-    submit: (input: {
-      fileBase64: string;
-      policy?: TransactionsImportPolicyInput;
-    }) => Promise<TransactionsImportResult>;
+    submit: (input: TransactionsImportRequest) => Promise<TransactionsImportResult>;
   };
   events?: {
     onImported?: (result: TransactionsImportResult) => void;

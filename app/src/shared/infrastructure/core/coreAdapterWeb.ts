@@ -44,6 +44,8 @@ import type {
   OrchestrationListTransactionTaxonomyResult,
   MovementsBackupExport,
   MovementsBackupExportResult,
+  MovementsBackupImportInput,
+  MovementsBackupImportResult,
   RecurrenceCreateRecurringMovementInput,
   RecurrenceCreateRecurringMovementResult,
   RecurrenceDeactivateRecurringMovementInput,
@@ -1144,6 +1146,7 @@ export class CoreAdapterWeb implements CorePort {
         occurredAt: tx.occurredAt,
         description: tx.description,
         merchant: tx.merchant,
+        linkedTransactionId: tx.linkedTransactionId,
         categoryId: tx.categoryId,
         items: tx.items.map((item) => ({ ...item })),
       }));
@@ -2343,6 +2346,7 @@ export class CoreAdapterWeb implements CorePort {
             currency: transaction.currency,
             description: transaction.description,
             merchant: transaction.merchant,
+            linkedTransactionId: transaction.linkedTransactionId,
             categoryId: transaction.categoryId,
             category: transaction.category,
             tagIds: (transaction.tags ?? []).map((tag) => tag.id),
@@ -2358,7 +2362,7 @@ export class CoreAdapterWeb implements CorePort {
     }
 
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       exportedAt,
       accounts: accountsResult.items,
       categories: categoriesResult.items,
@@ -2393,6 +2397,13 @@ export class CoreAdapterWeb implements CorePort {
       categoryCount: exportData.categories.length,
       tagCount: exportData.tags.length,
     };
+  }
+
+  async movementsImportBackup(input: MovementsBackupImportInput): Promise<MovementsBackupImportResult> {
+    if (!input.fileBase64.trim()) {
+      throw new Error('fileBase64 is required');
+    }
+    throw new Error('Backup import is only available on Android.');
   }
 
   async movementsSearch(input: MovementsSearchInput): Promise<MovementsSearchResult> {

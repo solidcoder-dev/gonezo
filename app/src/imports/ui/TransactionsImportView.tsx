@@ -10,61 +10,78 @@ export type {
 
 export function TransactionsImportView({ required, provided }: TransactionsImportViewProps) {
   const isSubmitting = required.status.submitPhase === 'submitting';
+  const isMobillsImport = required.state.importSource === 'mobills';
+  const fileLabel = isMobillsImport ? 'Mobills file (TSV/CSV)' : 'Backup file (JSON)';
 
   return (
     <div className="import-sheet-content">
       <form className="stack" onSubmit={provided.commands.submit} aria-busy={isSubmitting}>
-        <label className="stack">
-          Import file (TSV/CSV)
+        <label className="inline-checkbox">
           <input
-            aria-label="Import file (TSV/CSV)"
+            type="checkbox"
+            checked={isMobillsImport}
+            onChange={(event) => provided.commands.setUseMobillsImport(event.target.checked)}
+          />
+          Import Mobills TSV/CSV
+        </label>
+
+        <label className="stack">
+          {fileLabel}
+          <input
+            aria-label={fileLabel}
             type="file"
-            accept=".csv,text/csv,.tsv,.txt,text/tab-separated-values"
+            accept={isMobillsImport
+              ? '.csv,text/csv,.tsv,.txt,text/tab-separated-values'
+              : '.json,application/json'}
             onChange={(event) => provided.commands.setFile(event.target.files?.[0] ?? null)}
           />
         </label>
         {required.state.fileName ? <p className="hint">Selected: {required.state.fileName}</p> : null}
 
-        <label className="inline-checkbox">
-          <input
-            type="checkbox"
-            checked={required.state.policy.createMissingAccounts}
-            onChange={(event) => provided.commands.setCreateMissingAccounts(event.target.checked)}
-          />
-          Create missing accounts
-        </label>
-        <label className="inline-checkbox">
-          <input
-            type="checkbox"
-            checked={required.state.policy.createMissingCategories}
-            onChange={(event) => provided.commands.setCreateMissingCategories(event.target.checked)}
-          />
-          Create missing categories
-        </label>
-        <label className="inline-checkbox">
-          <input
-            type="checkbox"
-            checked={required.state.policy.createMissingTags}
-            onChange={(event) => provided.commands.setCreateMissingTags(event.target.checked)}
-          />
-          Create missing tags
-        </label>
+        {isMobillsImport ? (
+          <>
+            <label className="inline-checkbox">
+              <input
+                type="checkbox"
+                checked={required.state.policy.createMissingAccounts}
+                onChange={(event) => provided.commands.setCreateMissingAccounts(event.target.checked)}
+              />
+              Create missing accounts
+            </label>
+            <label className="inline-checkbox">
+              <input
+                type="checkbox"
+                checked={required.state.policy.createMissingCategories}
+                onChange={(event) => provided.commands.setCreateMissingCategories(event.target.checked)}
+              />
+              Create missing categories
+            </label>
+            <label className="inline-checkbox">
+              <input
+                type="checkbox"
+                checked={required.state.policy.createMissingTags}
+                onChange={(event) => provided.commands.setCreateMissingTags(event.target.checked)}
+              />
+              Create missing tags
+            </label>
 
-        <label className="stack">
-          Duplicate transactions
-          <select
-            aria-label="Duplicate transactions"
-            value={required.state.policy.duplicatePolicy}
-            onChange={(event) => provided.commands.setDuplicatePolicy(event.target.value as 'skip' | 'fail' | 'import_anyway')}
-          >
-            <option value="skip">Skip duplicates (recommended)</option>
-            <option value="fail">Mark duplicates as failed</option>
-            <option value="import_anyway">Import duplicates anyway</option>
-          </select>
-        </label>
+            <label className="stack">
+              Duplicate transactions
+              <select
+                aria-label="Duplicate transactions"
+                value={required.state.policy.duplicatePolicy}
+                onChange={(event) => provided.commands.setDuplicatePolicy(event.target.value as 'skip' | 'fail' | 'import_anyway')}
+              >
+                <option value="skip">Skip duplicates (recommended)</option>
+                <option value="fail">Mark duplicates as failed</option>
+                <option value="import_anyway">Import duplicates anyway</option>
+              </select>
+            </label>
+          </>
+        ) : null}
 
         <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Importing...' : 'Import file'}
+          {isSubmitting ? 'Importing...' : isMobillsImport ? 'Import Mobills file' : 'Import backup'}
         </button>
       </form>
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { TransactionsImportPolicyInput, TransactionsImportResult } from '../../imports/domain/transactionsImport.types';
+import type { TransactionsImportRequest, TransactionsImportResult } from '../../imports/domain/transactionsImport.types';
 import { TransactionEntryComponent } from '../../transactions';
 import type { TransactionEntryPrefillRequest } from '../../transactions/application/TransactionEntryComponent.contract';
 import { MonthlyMovementsComponent } from '../../movements';
@@ -62,13 +62,12 @@ export function AccountPage({ required: pageRequired }: AccountPageProps) {
     });
   }
 
-  async function submitTransactionsImport(input: {
-    fileBase64: string;
-    policy?: TransactionsImportPolicyInput;
-  }): Promise<TransactionsImportResult> {
+  async function submitTransactionsImport(input: TransactionsImportRequest): Promise<TransactionsImportResult> {
     setImportSubmitPhase('submitting');
     try {
-      const result = await pageRequired.core.mobillsImport(input);
+      const result = input.source === 'mobills'
+        ? await pageRequired.core.mobillsImport({ fileBase64: input.fileBase64, policy: input.policy })
+        : await pageRequired.core.movementsImportBackup({ fileBase64: input.fileBase64 });
       setImportSubmitPhase('succeeded');
       setToastMessage(`Import finished: ${result.importedCount} imported, ${result.failedCount} failed.`);
       setToastActionLabel('');

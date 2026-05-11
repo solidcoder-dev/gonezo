@@ -537,6 +537,7 @@ public final class AndroidLedgerCore {
       tx.getDescription(),
       tx.getMerchant(),
       null,
+      tx.getLinkedTransactionId() == null ? null : tx.getLinkedTransactionId().toString(),
       items
     );
   }
@@ -605,6 +606,7 @@ public final class AndroidLedgerCore {
     String description,
     String merchant,
     String categoryId,
+    String linkedTransactionId,
     List<LedgerTransactionItemView> items
   ) {}
 

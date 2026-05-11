@@ -281,6 +281,13 @@ function makeCore(transactionCount = 0): CorePort {
       categoryCount: 2,
       tagCount: 2,
     })),
+    movementsImportBackup: vi.fn(async () => ({
+      totalRows: 0,
+      importedCount: 0,
+      failedCount: 0,
+      skippedCount: 0,
+      rows: [],
+    })),
     orchestrationCategorizeTransaction: vi.fn(async () => ({ status: 'assigned' as const })),
     orchestrationApplyTransactionTags: vi.fn(async () => ({ status: 'assigned' as const })),
     orchestrationListTransactionTaxonomy: vi.fn(async () => ({ items: [] })),
@@ -668,7 +675,11 @@ async function expandScheduledMovements() {
 async function openImportSheetFromAccounts() {
   fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
   await screen.findByRole('dialog', { name: 'Select account' });
-  fireEvent.click(screen.getByRole('button', { name: 'Import transactions' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Import backup' }));
+}
+
+async function enableMobillsImport() {
+  fireEvent.click(await screen.findByLabelText('Import Mobills TSV/CSV'));
 }
 
 describe('App Accounts UX', () => {
@@ -706,7 +717,7 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
-    expect(await screen.findByRole('button', { name: 'Import transactions' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Import backup' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Backup' }));
     await waitFor(() => {
       expect(core.movementsExportBackup).toHaveBeenCalledTimes(1);
@@ -987,7 +998,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Create your first account' });
-    expect(screen.getByRole('button', { name: 'Import from Mobills' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Import backup' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Backup' }));
     await waitFor(() => {
       expect(core.movementsExportBackup).toHaveBeenCalledTimes(1);
@@ -1005,14 +1016,14 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openImportSheetFromAccounts();
-    const dialog = await screen.findByRole('dialog', { name: 'Import transactions' });
+    const dialog = await screen.findByRole('dialog', { name: 'Import backup' });
     expect(dialog).toBeInTheDocument();
     expect(dialog).toHaveClass('import-sheet');
     expect(view.container.querySelector('.import-sheet-content')).not.toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Close import sheet' }));
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Import transactions' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'Import backup' })).not.toBeInTheDocument();
     });
   });
 
@@ -1027,9 +1038,73 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openImportSheetFromAccounts();
+    await enableMobillsImport();
 
-    const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
+    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
     expect(fileInput).toHaveAttribute('accept', expect.stringContaining('.csv'));
+  });
+
+  it('imports a Gonezo backup by default and keeps Mobills options hidden', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openImportSheetFromAccounts();
+
+    expect(screen.getByLabelText('Import Mobills TSV/CSV')).not.toBeChecked();
+    expect(screen.queryByLabelText('Create missing accounts')).not.toBeInTheDocument();
+
+    const fileInput = await screen.findByLabelText('Backup file (JSON)');
+    expect(fileInput).toHaveAttribute('accept', expect.stringContaining('.json'));
+
+    const file = new File(
+      [JSON.stringify({ schemaVersion: 2, accounts: [], categories: [], tags: [], postedMovements: [] })],
+      'gonezo-backup.json',
+      { type: 'application/json' },
+    );
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Import backup' }));
+
+    await waitFor(() => {
+      expect(core.movementsImportBackup).toHaveBeenCalledTimes(1);
+    });
+    expect(core.mobillsImport).not.toHaveBeenCalled();
+    expect(await screen.findByText('Imported 0 / 0 rows')).toBeInTheDocument();
+  });
+
+  it('uses the Mobills importer only when the legacy checkbox is enabled', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openImportSheetFromAccounts();
+
+    fireEvent.click(screen.getByLabelText('Import Mobills TSV/CSV'));
+    expect(screen.getByLabelText('Create missing accounts')).toBeInTheDocument();
+
+    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
+    const file = new File(
+      ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
+      'mobills.tsv',
+      { type: 'text/tab-separated-values' },
+    );
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Import Mobills file' }));
+
+    await waitFor(() => {
+      expect(core.mobillsImport).toHaveBeenCalledTimes(1);
+    });
+    expect(core.movementsImportBackup).not.toHaveBeenCalled();
   });
 
   it('imports a mobills file and shows the summary', async () => {
@@ -1053,15 +1128,16 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openImportSheetFromAccounts();
+    await enableMobillsImport();
 
-    const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
+    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
     const file = new File(
       ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
       'mobills.tsv',
       { type: 'text/tab-separated-values' },
     );
     fireEvent.change(fileInput, { target: { files: [file] } });
-    fireEvent.click(screen.getByRole('button', { name: 'Import file' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import Mobills file' }));
 
     await waitFor(() => {
       expect(core.mobillsImport).toHaveBeenCalledTimes(1);
@@ -1104,15 +1180,16 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openImportSheetFromAccounts();
+    await enableMobillsImport();
 
-    const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
+    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
     const file = new File(
       ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
       'mobills.tsv',
       { type: 'text/tab-separated-values' },
     );
     fireEvent.change(fileInput, { target: { files: [file] } });
-    fireEvent.click(screen.getByRole('button', { name: 'Import file' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import Mobills file' }));
 
     await waitFor(() => {
       expect(core.mobillsImport).toHaveBeenCalledTimes(1);
@@ -1134,8 +1211,9 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openImportSheetFromAccounts();
+    await enableMobillsImport();
 
-    const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
+    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
     const file = new File(
       ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
       'mobills.tsv',
@@ -1145,7 +1223,7 @@ describe('App Accounts UX', () => {
 
     fireEvent.click(screen.getByLabelText('Create missing categories'));
     fireEvent.click(screen.getByLabelText('Create missing tags'));
-    fireEvent.click(screen.getByRole('button', { name: 'Import file' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import Mobills file' }));
 
     await waitFor(() => {
       expect(core.mobillsImport).toHaveBeenCalledTimes(1);
@@ -1174,16 +1252,17 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Create your first account' });
-    fireEvent.click(screen.getByRole('button', { name: 'Import from Mobills' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import backup' }));
+    await enableMobillsImport();
 
-    const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
+    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
     const file = new File(
       ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
       'mobills.tsv',
       { type: 'text/tab-separated-values' },
     );
     fireEvent.change(fileInput, { target: { files: [file] } });
-    fireEvent.click(screen.getByRole('button', { name: 'Import file' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import Mobills file' }));
 
     await waitFor(() => {
       expect(core.mobillsImport).toHaveBeenCalledTimes(1);
@@ -1212,8 +1291,9 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openImportSheetFromAccounts();
+    await enableMobillsImport();
 
-    const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
+    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
     const file = new File(
       ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
       'mobills.tsv',
@@ -1222,7 +1302,7 @@ describe('App Accounts UX', () => {
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     fireEvent.change(screen.getByLabelText('Duplicate transactions'), { target: { value: 'fail' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Import file' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import Mobills file' }));
 
     await waitFor(() => {
       expect(core.mobillsImport).toHaveBeenCalledTimes(1);
@@ -1252,18 +1332,19 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openImportSheetFromAccounts();
+    await enableMobillsImport();
 
-    const fileInput = await screen.findByLabelText('Import file (TSV/CSV)');
+    const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
     const file = new File(
       ['date\taccount\tvalue\n2026-03-10\tMain\t-10'],
       'mobills.tsv',
       { type: 'text/tab-separated-values' },
     );
     fireEvent.change(fileInput, { target: { files: [file] } });
-    fireEvent.click(screen.getByRole('button', { name: 'Import file' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import Mobills file' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Import failed hard');
-    expect(screen.getByRole('dialog', { name: 'Import transactions' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Import backup' })).toBeInTheDocument();
   });
 
   it('records quick expense from dedicated expense flow', async () => {
@@ -3043,7 +3124,7 @@ describe('App Accounts UX', () => {
     await screen.findByText('Net balance');
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '25' } });
-    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-05-11' } });
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-12-31' } });
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 

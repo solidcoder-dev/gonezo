@@ -35,6 +35,7 @@ export function TransactionsImportComponent({ required, provided }: Transactions
       accountsCount: required.accountsCount,
       fileName: workspace.state.fileName,
       result: workspace.state.result,
+      importSource: workspace.state.importSource,
       policy: {
         createMissingAccounts: workspace.state.createMissingAccounts,
         createMissingCategories: workspace.state.createMissingCategories,
@@ -59,6 +60,7 @@ export function TransactionsImportComponent({ required, provided }: Transactions
       setCreateMissingCategories: workspace.actions.setCreateMissingCategories,
       setCreateMissingTags: workspace.actions.setCreateMissingTags,
       setDuplicatePolicy: workspace.actions.setDuplicatePolicy,
+      setUseMobillsImport: workspace.actions.setUseMobillsImport,
       submit: workspace.actions.submit,
     },
   };

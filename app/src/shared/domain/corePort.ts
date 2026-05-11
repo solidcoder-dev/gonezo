@@ -205,6 +205,7 @@ export type LedgerTransactionListItem = {
   occurredAt: string;
   description?: string;
   merchant?: string;
+  linkedTransactionId?: string;
   categoryId?: string;
   category?: {
     id: string;
@@ -239,6 +240,7 @@ export type MovementsBackupPostedMovementItem = {
   currency: string;
   description?: string;
   merchant?: string;
+  linkedTransactionId?: string;
   categoryId?: string;
   category?: {
     id: string;
@@ -249,7 +251,7 @@ export type MovementsBackupPostedMovementItem = {
 };
 
 export type MovementsBackupExport = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   exportedAt: string;
   accounts: LedgerAccountItem[];
   categories: TaxonomyCategoryItem[];
@@ -265,6 +267,26 @@ export type MovementsBackupExportResult = {
   accountCount: number;
   categoryCount: number;
   tagCount: number;
+};
+
+export type MovementsBackupImportInput = {
+  fileBase64: string;
+};
+
+export type MovementsBackupImportRowResult = {
+  sourceLine: number;
+  status: 'imported' | 'failed' | 'skipped';
+  transactionId?: string;
+  errorCode?: string;
+  errorMessage?: string;
+};
+
+export type MovementsBackupImportResult = {
+  totalRows: number;
+  importedCount: number;
+  failedCount: number;
+  skippedCount: number;
+  rows: MovementsBackupImportRowResult[];
 };
 
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -743,6 +765,7 @@ export interface CorePort {
     input: OrchestrationListTransactionTaxonomyInput,
   ): Promise<OrchestrationListTransactionTaxonomyResult>;
   movementsExportBackup(): Promise<MovementsBackupExportResult>;
+  movementsImportBackup(input: MovementsBackupImportInput): Promise<MovementsBackupImportResult>;
   recurrenceCreateRecurringMovement(
     input: RecurrenceCreateRecurringMovementInput,
   ): Promise<RecurrenceCreateRecurringMovementResult>;

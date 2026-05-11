@@ -10,4 +10,5 @@ export type {
   TransactionsImportRequest,
   TransactionsImportResult,
   TransactionsImportRowResult,
+  TransactionsImportSource,
 } from './domain/transactionsImport.types';
