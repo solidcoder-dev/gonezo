@@ -80,6 +80,8 @@ import type {
   MovementsGetOverviewInput,
   MovementsGetOverviewResult,
   MovementsSearchFiltersInput,
+  MovementsSearchFacetsInput,
+  MovementsSearchFacetsResult,
   MovementsSearchInput,
   MovementsSearchItem,
   MovementsSearchResult,
@@ -87,6 +89,7 @@ import type {
   MovementsListScheduledResult,
 } from '../../domain/corePort';
 import { resolveSchedulingKind } from '../../domain/schedulingKind';
+import { getMovementsSearchFacets } from './movementsSearchFacets';
 
 type MemoryLedgerAccount = {
   id: string;
@@ -2531,6 +2534,10 @@ export class CoreAdapterWeb implements CorePort {
       hasNext: scheduledResult.hasNext,
       hasPrevious: scheduledResult.hasPrevious,
     };
+  }
+
+  async movementsGetSearchFacets(input: MovementsSearchFacetsInput): Promise<MovementsSearchFacetsResult> {
+    return getMovementsSearchFacets(this, input);
   }
 
   async movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult> {

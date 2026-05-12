@@ -74,6 +74,8 @@ import type {
   MovementsMonthOverviewResult,
   MovementsGetOverviewInput,
   MovementsGetOverviewResult,
+  MovementsSearchFacetsInput,
+  MovementsSearchFacetsResult,
   MovementsSearchInput,
   MovementsSearchItem,
   MovementsSearchResult,
@@ -83,6 +85,7 @@ import type {
 import { resolveSchedulingKind } from '../../domain/schedulingKind';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
+import { getMovementsSearchFacets } from './movementsSearchFacets';
 
 type ScheduledMovementFilters = MovementsSearchInput['filters'] | MovementsListScheduledInput['filters'];
 
@@ -861,6 +864,10 @@ export class CoreAdapter implements CorePort {
       hasNext: scheduledResult.hasNext,
       hasPrevious: scheduledResult.hasPrevious,
     };
+  }
+
+  async movementsGetSearchFacets(input: MovementsSearchFacetsInput): Promise<MovementsSearchFacetsResult> {
+    return getMovementsSearchFacets(this, input);
   }
 
   async movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult> {

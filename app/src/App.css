@@ -1356,6 +1356,11 @@ select:focus-visible {
   font-size: 0.78rem;
 }
 
+.filter-chip-more {
+  border-style: dashed;
+  color: #575752;
+}
+
 .active-filter-row .filter-chip {
   display: inline-flex;
   align-items: center;

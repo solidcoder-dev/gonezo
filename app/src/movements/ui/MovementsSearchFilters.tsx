@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type {
   LedgerTransactionTypeView,
   MovementsSearchFiltersState,
@@ -23,6 +24,7 @@ const TYPE_FILTERS: Array<{ value: LedgerTransactionTypeView; label: string }> =
 ];
 
 const PAGE_SIZES = [5, 10, 20];
+const FILTER_OPTION_COLLAPSE_LIMIT = 6;
 
 function summarizeNames(names: string[]): string {
   if (names.length <= 2) {
@@ -151,8 +153,18 @@ function buildActiveFilterChips(
 export function MovementsSearchFilters({ required, provided }: MovementsSearchFiltersProps) {
   const { filtersOpen, filtersAdvancedOpen, searchApplied, filters, appliedFilters, filterOptions } = required.state;
   const { disabled } = required.status;
+  const [categoriesExpanded, setCategoriesExpanded] = useState(false);
+  const [tagsExpanded, setTagsExpanded] = useState(false);
   const activeFilterChips = buildActiveFilterChips(appliedFilters, filterOptions);
   const filtersButtonLabel = activeFilterChips.length > 0 ? `Filters ${activeFilterChips.length}` : 'Filters';
+  const visibleCategories = categoriesExpanded
+    ? filterOptions.categories
+    : filterOptions.categories.slice(0, FILTER_OPTION_COLLAPSE_LIMIT);
+  const hiddenCategoryCount = filterOptions.categories.length - visibleCategories.length;
+  const visibleTags = tagsExpanded
+    ? filterOptions.tags
+    : filterOptions.tags.slice(0, FILTER_OPTION_COLLAPSE_LIMIT);
+  const hiddenTagCount = filterOptions.tags.length - visibleTags.length;
 
   return (
     <section className="stack search-controls" aria-label="Search controls">
@@ -303,7 +315,7 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
                 <p className="hint">Category</p>
                 {filterOptions.categories.length > 0 ? (
                   <div className="chip-row">
-                    {filterOptions.categories.map((category) => {
+                    {visibleCategories.map((category) => {
                       const selected = filters.categoryIds.includes(category.id);
                       return (
                         <button
@@ -318,6 +330,16 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
                         </button>
                       );
                     })}
+                    {hiddenCategoryCount > 0 ? (
+                      <button
+                        type="button"
+                        className="chip filter-chip filter-chip-more"
+                        onClick={() => setCategoriesExpanded(true)}
+                        disabled={disabled}
+                      >
+                        +{hiddenCategoryCount} categories
+                      </button>
+                    ) : null}
                   </div>
                 ) : (
                   <p className="hint">No categories</p>
@@ -354,7 +376,7 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
                 <p className="hint">Tags</p>
                 {filterOptions.tags.length > 0 ? (
                   <div className="chip-row">
-                    {filterOptions.tags.map((tag) => {
+                    {visibleTags.map((tag) => {
                       const selected = filters.tagIds.includes(tag.id);
                       return (
                         <button
@@ -369,6 +391,16 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
                         </button>
                       );
                     })}
+                    {hiddenTagCount > 0 ? (
+                      <button
+                        type="button"
+                        className="chip filter-chip filter-chip-more"
+                        onClick={() => setTagsExpanded(true)}
+                        disabled={disabled}
+                      >
+                        +{hiddenTagCount} tags
+                      </button>
+                    ) : null}
                   </div>
                 ) : (
                   <p className="hint">No tags</p>

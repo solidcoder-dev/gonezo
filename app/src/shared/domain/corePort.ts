@@ -591,6 +591,26 @@ export type MovementsSearchResult = {
   hasPrevious: boolean;
 };
 
+export type MovementsSearchFacetsInput = {
+  accountIds: string[];
+};
+
+export type MovementsSearchFacetCategory = {
+  id: string;
+  name: string;
+  appliesTo: TaxonomyCategoryAppliesTo;
+};
+
+export type MovementsSearchFacetTag = {
+  id: string;
+  name: string;
+};
+
+export type MovementsSearchFacetsResult = {
+  categories: MovementsSearchFacetCategory[];
+  tags: MovementsSearchFacetTag[];
+};
+
 export type MovementsOverviewFilterInput = MovementsSearchFiltersInput;
 export type MovementsGetOverviewInput = MovementsMonthOverviewInput;
 export type MovementsGetOverviewResult = MovementsMonthOverviewResult;
@@ -795,6 +815,7 @@ export interface CorePort {
   expectedDismissMovement(input: ExpectedDismissMovementInput): Promise<void>;
   movementsGetMonthOverview(input: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;
   movementsSearch(input: MovementsSearchInput): Promise<MovementsSearchResult>;
+  movementsGetSearchFacets(input: MovementsSearchFacetsInput): Promise<MovementsSearchFacetsResult>;
   movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult>;
   movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult>;
 }

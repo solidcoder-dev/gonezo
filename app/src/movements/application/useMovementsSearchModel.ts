@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   LedgerAccountItem,
+  MovementsSearchFacetCategory,
+  MovementsSearchFacetTag,
   MovementsSearchInput,
-  TaxonomyCategoryItem,
-  TaxonomyTagItem,
 } from '../../shared/domain/corePort';
 import type {
   MovementsPaginationView,
@@ -12,6 +12,9 @@ import type {
   MovementsSearchModelProvided,
   MovementsSearchModelRequired,
 } from '../domain/movementsView.types';
+import {
+  type MovementsSearchFacetsPort,
+} from './movementsSearch.port';
 import {
   buildPostedTaxonomySearchPage,
   collectPostedTaxonomySearchItems,
@@ -23,7 +26,7 @@ import {
 type SearchAccount = Pick<LedgerAccountItem, 'id' | 'name'>;
 
 type UseMovementsSearchModelInput = {
-  core: PostedTaxonomySearchPort;
+  core: PostedTaxonomySearchPort & MovementsSearchFacetsPort;
   accounts: SearchAccount[];
   accountId: string | null;
   enabled: boolean;
@@ -249,8 +252,8 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const [categories, setCategories] = useState<TaxonomyCategoryItem[]>([]);
-  const [tags, setTags] = useState<TaxonomyTagItem[]>([]);
+  const [categories, setCategories] = useState<MovementsSearchFacetCategory[]>([]);
+  const [tags, setTags] = useState<MovementsSearchFacetTag[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filtersAdvancedOpen, setFiltersAdvancedOpen] = useState(false);
   const [searchApplied, setSearchApplied] = useState(false);
@@ -260,6 +263,7 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
   const [pagination, setPagination] = useState<MovementsPaginationView>(EMPTY_PAGINATION);
   const [items, setItems] = useState<MovementsSearchItemView[]>([]);
   const previousAccountScopeRef = useRef('');
+  const filterOptionsScopeRef = useRef('');
 
   const categoryOptions = useMemo(
     () => categories.map((category) => ({ id: category.id, label: category.name })),
@@ -284,41 +288,25 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
     setError(toErrorMessage(raw));
   }
 
-  async function loadFilterOptions(): Promise<{ categories: TaxonomyCategoryItem[]; tags: TaxonomyTagItem[] }> {
-    const operations: Promise<void>[] = [];
-    let loadedCategories = categories;
-    let loadedTags = tags;
-
-    if (categories.length === 0) {
-      operations.push(
-        core
-          .taxonomyListCategories({ includeArchived: false })
-          .then((result) => {
-            loadedCategories = result.items;
-            setCategories(result.items);
-          }),
-      );
+  async function loadFilterOptions(): Promise<{ categories: MovementsSearchFacetCategory[]; tags: MovementsSearchFacetTag[] }> {
+    if (accountScope.length === 0) {
+      filterOptionsScopeRef.current = accountScopeKey;
+      setCategories([]);
+      setTags([]);
+      return { categories: [], tags: [] };
     }
 
-    if (tags.length === 0) {
-      operations.push(
-        core
-          .taxonomyListTags({ includeArchived: false })
-          .then((result) => {
-            loadedTags = result.items;
-            setTags(result.items);
-          }),
-      );
+    if (filterOptionsScopeRef.current === accountScopeKey) {
+      return { categories, tags };
     }
 
-    if (operations.length > 0) {
-      await Promise.all(operations);
-    }
-
-    return {
-      categories: loadedCategories,
-      tags: loadedTags,
-    };
+    const result = await core.movementsGetSearchFacets({
+      accountIds: accountScope.map((account) => account.id),
+    });
+    filterOptionsScopeRef.current = accountScopeKey;
+    setCategories(result.categories);
+    setTags(result.tags);
+    return result;
   }
 
   async function ensureFilterOptionsLoaded() {
@@ -479,6 +467,9 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
       setPage(0);
       setPagination(EMPTY_PAGINATION);
       setItems([]);
+      setCategories([]);
+      setTags([]);
+      filterOptionsScopeRef.current = '';
       setLoading(true);
       return;
     }

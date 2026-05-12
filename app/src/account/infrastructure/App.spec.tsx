@@ -589,6 +589,16 @@ function makeCore(transactionCount = 0): CorePort {
         hasPrevious: page > 0,
       };
     }),
+    movementsGetSearchFacets: vi.fn(async () => ({
+      categories: [
+        { id: 'cat-food', name: 'Food', appliesTo: 'expense' as const },
+        { id: 'cat-salary', name: 'Salary', appliesTo: 'income' as const },
+      ],
+      tags: [
+        { id: 'tag-home', name: 'home' },
+        { id: 'tag-london', name: 'london' },
+      ],
+    })),
     movementsListScheduled: vi.fn(async (input: MovementsListScheduledInput) => {
       const source = filterScheduledForOverview(scheduledMovements, input);
       const size = input.pagination?.size ?? 20;
@@ -2423,6 +2433,85 @@ describe('App Accounts UX', () => {
     expect(within(filtersDialog).getByText('Tags')).toBeInTheDocument();
     expect(within(filtersDialog).getByText('Group')).toBeInTheDocument();
     expect(within(filtersDialog).getByRole('button', { name: 'Apply' })).toBeInTheDocument();
+  });
+
+  it('collapses long category and tag filter lists behind expand chips', async () => {
+    const core = makeCore(3);
+    const categories = Array.from({ length: 9 }).map((_, index) => ({
+      id: `cat-${index + 1}`,
+      name: `Category ${index + 1}`,
+      appliesTo: 'expense' as const,
+    }));
+    const tags = Array.from({ length: 9 }).map((_, index) => ({
+      id: `tag-${index + 1}`,
+      name: `tag-${index + 1}`,
+    }));
+    vi.mocked(core.movementsGetSearchFacets).mockResolvedValue({ categories, tags });
+
+    render(
+      <MemoryRouter initialEntries={['/movements/search?accountId=acc-1']}>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('3 movements · Grouped by day · Date desc');
+    fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
+
+    const filtersDialog = await screen.findByRole('dialog', { name: 'Filters' });
+    expect(within(filtersDialog).getByRole('button', { name: 'Category 1' })).toBeInTheDocument();
+    expect(within(filtersDialog).queryByRole('button', { name: 'Category 9' })).not.toBeInTheDocument();
+    expect(within(filtersDialog).getByRole('button', { name: '+3 categories' })).toBeInTheDocument();
+    expect(within(filtersDialog).getByRole('button', { name: '#tag-1' })).toBeInTheDocument();
+    expect(within(filtersDialog).queryByRole('button', { name: '#tag-9' })).not.toBeInTheDocument();
+    expect(within(filtersDialog).getByRole('button', { name: '+3 tags' })).toBeInTheDocument();
+
+    fireEvent.click(within(filtersDialog).getByRole('button', { name: '+3 categories' }));
+    fireEvent.click(within(filtersDialog).getByRole('button', { name: '+3 tags' }));
+
+    expect(within(filtersDialog).getByRole('button', { name: 'Category 9' })).toBeInTheDocument();
+    expect(within(filtersDialog).getByRole('button', { name: '#tag-9' })).toBeInTheDocument();
+  });
+
+  it('uses movement search facets for the selected account instead of global taxonomy', async () => {
+    const core = makeCore(3);
+    vi.mocked(core.taxonomyListCategories).mockResolvedValue({
+      items: [
+        { id: 'cat-food', name: 'Food', appliesTo: 'expense' as const, status: 'active' as const },
+        { id: 'cat-salary', name: 'Salary', appliesTo: 'income' as const, status: 'active' as const },
+      ],
+    });
+    vi.mocked(core.taxonomyListTags).mockResolvedValue({
+      items: [
+        { id: 'tag-home', name: 'home', status: 'active' as const },
+        { id: 'tag-london', name: 'london', status: 'active' as const },
+      ],
+    });
+    vi.mocked(core.movementsGetSearchFacets).mockResolvedValue({
+      categories: [
+        { id: 'cat-food', name: 'Food', appliesTo: 'expense' as const },
+      ],
+      tags: [
+        { id: 'tag-home', name: 'home' },
+      ],
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/movements/search?accountId=acc-1']}>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('3 movements · Grouped by day · Date desc');
+    fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
+
+    const filtersDialog = await screen.findByRole('dialog', { name: 'Filters' });
+    await waitFor(() => {
+      expect(core.movementsGetSearchFacets).toHaveBeenCalledWith({ accountIds: ['acc-1'] });
+    });
+    expect(within(filtersDialog).getByRole('button', { name: 'Food' })).toBeInTheDocument();
+    expect(within(filtersDialog).queryByRole('button', { name: 'Salary' })).not.toBeInTheDocument();
+    expect(within(filtersDialog).getByRole('button', { name: '#home' })).toBeInTheDocument();
+    expect(within(filtersDialog).queryByRole('button', { name: '#london' })).not.toBeInTheDocument();
   });
 
   it('groups date-sorted advanced-search results by day', async () => {

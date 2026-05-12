@@ -143,6 +143,9 @@ app/src/
   - `transactions/application/useTransactionEntryModel.ts`
   - `movements/application/useMonthlyMovementsModel.ts`
   - `movements/application/useMovementsSearchModel.ts`
+- Los filtros de `movements` no leen Taxonomy global directamente como lista de opciones. Usan
+  `movementsGetSearchFacets(accountIds)` para exponer solo categorias/tags referenciados por movimientos
+  del scope de cuentas; Taxonomy conserva la propiedad de nombres y estado.
 - La mezcla de importacion (`movementsImportBackup` y `mobillsImport` legado) ocurre en `account/application/AccountPage.tsx` y `imports/*`.
 - Los DTO del backend se traducen a view models en:
   - `account/application/accountViewMappers.ts` (cuentas)
