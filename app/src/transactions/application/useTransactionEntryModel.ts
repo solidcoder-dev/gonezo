@@ -136,6 +136,34 @@ function cloneExpenseItems(items: Array<{ id: string; name: string; amount: stri
   }));
 }
 
+function normalizeTaxonomyName(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function findActiveCategoryByName(
+  items: TaxonomyCategoryItem[],
+  appliesTo: TaxonomyCategoryAppliesTo,
+  normalizedName: string,
+): TaxonomyCategoryItem | undefined {
+  return items.find(
+    (category) =>
+      category.status === 'active'
+      && category.appliesTo === appliesTo
+      && normalizeTaxonomyName(category.name) === normalizedName,
+  );
+}
+
+function mergeCategories(
+  previous: TaxonomyCategoryItem[],
+  incoming: TaxonomyCategoryItem[],
+): TaxonomyCategoryItem[] {
+  const byScopeAndName = new Map<string, TaxonomyCategoryItem>();
+  for (const category of [...previous, ...incoming]) {
+    byScopeAndName.set(`${category.appliesTo}:${normalizeTaxonomyName(category.name)}`, category);
+  }
+  return [...byScopeAndName.values()].sort((left, right) => left.name.localeCompare(right.name));
+}
+
 export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const { core, accountId, enabled, prefillRequest, onRecorded, onError } = input;
 
@@ -877,37 +905,47 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       return undefined;
     }
 
-    const existing = categories.find(
-      (category) =>
-        category.status === 'active'
-        && category.appliesTo === type
-        && category.name.trim().toLowerCase() === rawInput.toLowerCase(),
-    );
+    const normalizedInput = normalizeTaxonomyName(rawInput);
+    const existing = findActiveCategoryByName(categories, type, normalizedInput);
     if (existing) {
       return existing.id;
     }
 
-    const created = await categorySuggestions.createCategory({
-      name: rawInput,
-      appliesTo: type,
-    });
+    const fresh = await categorySuggestions.listCategories({ appliesTo: type, includeArchived: false });
+    setCategories((previous) => mergeCategories(previous, fresh.items));
 
-    setCategories((previous) => {
-      const next = [
-        ...previous,
+    const existingFromBackend = findActiveCategoryByName(fresh.items, type, normalizedInput);
+    if (existingFromBackend) {
+      return existingFromBackend.id;
+    }
+
+    try {
+      const created = await categorySuggestions.createCategory({
+        name: rawInput,
+        appliesTo: type,
+      });
+
+      setCategories((previous) => mergeCategories(previous, [
+        ...fresh.items,
         {
           id: created.id,
           name: rawInput,
           appliesTo: type,
           status: 'active',
         } as TaxonomyCategoryItem,
-      ];
-      next.sort((left, right) => left.name.localeCompare(right.name));
-      return next;
-    });
+      ]));
 
-    setTransactionCategoryInput(rawInput);
-    return created.id;
+      setTransactionCategoryInput(rawInput);
+      return created.id;
+    } catch (err) {
+      const retry = await categorySuggestions.listCategories({ appliesTo: type, includeArchived: false });
+      setCategories((previous) => mergeCategories(previous, retry.items));
+      const existingAfterRace = findActiveCategoryByName(retry.items, type, normalizedInput);
+      if (existingAfterRace) {
+        return existingAfterRace.id;
+      }
+      throw err;
+    }
   }
 
   function parseTransactionTags(): string[] {

@@ -1741,6 +1741,46 @@ describe('App Accounts UX', () => {
     });
   });
 
+  it('revalidates categories before creating to avoid duplicates from stale cache', async () => {
+    const core = makeCore();
+    vi.mocked(core.taxonomyListCategories).mockImplementation(async (input) => {
+      if (input?.appliesTo === 'expense') {
+        return {
+          items: [
+            { id: 'cat-dining', name: 'Dining out', appliesTo: 'expense' as const, status: 'active' as const },
+          ],
+        };
+      }
+      return { items: [] };
+    });
+    vi.mocked(core.taxonomyCreateCategory).mockRejectedValue(new Error('should not create duplicate category'));
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Expense');
+    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '35' } });
+    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'Dining out' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledTimes(1);
+    });
+
+    expect(core.taxonomyCreateCategory).not.toHaveBeenCalled();
+    expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledWith({
+      transactionId: 'tx-exp',
+      transactionType: 'expense',
+      categoryId: 'cat-dining',
+    });
+  });
+
   it('refreshes categories from backend when opening transaction composer', async () => {
     const core = makeCore();
     const travelCategories = {
