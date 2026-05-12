@@ -4,11 +4,19 @@ import type {
   MovementsBackupExportResult,
   MovementsBackupImportInput,
   MovementsBackupImportResult,
+  PreferencesSetDefaultAccountInput,
+  UserPreferencesResult,
 } from '../../shared/domain/corePort';
 import type { LedgerGatewayPort } from '../../ledger/infrastructure/ledgerGateway';
 import type { TransactionsCorePort } from '../../transactions/application/transactionsCore.port';
 
-export type AccountsCorePort = LedgerGatewayPort;
+export type UserPreferencesPort = {
+  preferencesGet(): Promise<UserPreferencesResult>;
+  preferencesSetDefaultAccount(input: PreferencesSetDefaultAccountInput): Promise<void>;
+  preferencesClearDefaultAccount(): Promise<void>;
+};
+
+export type AccountsCorePort = LedgerGatewayPort & UserPreferencesPort;
 
 export type TransactionsImportPort = {
   mobillsImport(input: MobillsImportInput): Promise<MobillsImportResult>;
@@ -22,4 +30,5 @@ export type MovementsBackupPort = {
 export type AccountWorkspacePort = AccountsCorePort
   & TransactionsCorePort
   & TransactionsImportPort
-  & MovementsBackupPort;
+  & MovementsBackupPort
+  & UserPreferencesPort;

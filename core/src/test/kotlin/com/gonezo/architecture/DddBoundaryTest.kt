@@ -16,7 +16,7 @@ class DddBoundaryTest {
 
   @Test
   fun `bounded context domains do not import each other`() {
-    val boundedContexts = setOf("ledger", "taxonomy", "expected", "recurrence")
+    val boundedContexts = setOf("ledger", "taxonomy", "expected", "recurrence", "preferences")
     boundedContexts.forEach { context ->
       val root = Path.of("src/main/kotlin/com/gonezo/domain/$context")
       val forbiddenImports = boundedContexts

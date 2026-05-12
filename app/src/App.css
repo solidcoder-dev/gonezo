@@ -592,10 +592,50 @@ body {
   text-overflow: ellipsis;
 }
 
+.account-choice--active {
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 6px 6px 6px 12px;
+}
+
+.account-choice-main {
+  min-width: 0;
+  min-height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  font: inherit;
+}
+
+.account-choice-main span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .account-choice-currency {
   color: inherit;
   opacity: 0.75;
   font-size: 0.78rem;
+}
+
+.account-default-button {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  min-height: 30px;
+  color: inherit;
+  opacity: 0.62;
+  border-radius: 999px;
+}
+
+.account-default-button.is-default {
+  opacity: 1;
 }
 
 .account-restore-button {

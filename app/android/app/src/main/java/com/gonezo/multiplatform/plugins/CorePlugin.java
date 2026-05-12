@@ -10,10 +10,12 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.gonezo.multiplatform.core.AndroidLedgerCore;
 import com.gonezo.multiplatform.core.AndroidExpectedCore;
 import com.gonezo.multiplatform.core.AndroidMovementsBackupCore;
+import com.gonezo.multiplatform.core.AndroidPreferencesCore;
 import com.gonezo.multiplatform.core.AndroidRecurringCore;
 import com.gonezo.multiplatform.core.AndroidTaxonomyCore;
 import com.gonezo.application.orchestration.backup.ImportMovementsBackupResult;
 import com.gonezo.application.orchestration.backup.ImportMovementsBackupRowResult;
+import com.gonezo.preferences.domain.UserPreferences;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.math.BigDecimal;
@@ -41,6 +43,47 @@ import android.provider.MediaStore;
 
 @CapacitorPlugin(name = "CorePlugin")
 public class CorePlugin extends Plugin {
+  @PluginMethod
+  public void preferencesGet(PluginCall call) {
+    try {
+      AndroidPreferencesCore core = AndroidPreferencesCore.getInstance(getContext());
+      UserPreferences preferences = core.getPreferences();
+      JSObject result = new JSObject();
+      if (preferences.getDefaultAccountId() == null) {
+        result.put("defaultAccountId", JSONObject.NULL);
+      } else {
+        result.put("defaultAccountId", preferences.getDefaultAccountId().getValue());
+      }
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void preferencesSetDefaultAccount(PluginCall call) {
+    String accountId = call.getString("accountId");
+
+    try {
+      AndroidPreferencesCore core = AndroidPreferencesCore.getInstance(getContext());
+      core.setDefaultAccount(accountId);
+      call.resolve();
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void preferencesClearDefaultAccount(PluginCall call) {
+    try {
+      AndroidPreferencesCore core = AndroidPreferencesCore.getInstance(getContext());
+      core.clearDefaultAccount();
+      call.resolve();
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
   @PluginMethod
   public void ledgerOpenAccount(PluginCall call) {
     String name = call.getString("name");

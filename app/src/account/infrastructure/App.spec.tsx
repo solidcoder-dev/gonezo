@@ -242,6 +242,9 @@ function makeCore(transactionCount = 0): CorePort {
     ledgerArchiveAccount: vi.fn(async () => undefined),
     ledgerRestoreAccount: vi.fn(async () => undefined),
     ledgerDeleteAccount: vi.fn(async () => undefined),
+    preferencesGet: vi.fn(async () => ({ defaultAccountId: null })),
+    preferencesSetDefaultAccount: vi.fn(async () => undefined),
+    preferencesClearDefaultAccount: vi.fn(async () => undefined),
     ledgerRecordExpense: vi.fn(async () => ({ id: 'tx-exp' })),
     ledgerRecordIncome: vi.fn(async () => ({ id: 'tx-inc' })),
     ledgerRecordTransfer: vi.fn(async () => ({ transferOutId: 'tx-tr-out', transferInId: 'tx-tr-in' })),
@@ -721,6 +724,82 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Backup' }));
     await waitFor(() => {
       expect(core.movementsExportBackup).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('opens the preferred active account from user preferences', async () => {
+    const core = makeCore();
+    vi.mocked(core.preferencesGet).mockResolvedValue({ defaultAccountId: 'acc-2' });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('button', { name: 'Savings' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(core.ledgerGetAccountSummary).toHaveBeenCalledWith({ accountId: 'acc-2' });
+    });
+  });
+
+  it('ignores default account preference when the account is archived', async () => {
+    const core = makeCore();
+    vi.mocked(core.preferencesGet).mockResolvedValue({ defaultAccountId: 'acc-old' });
+    vi.mocked(core.ledgerListAccounts).mockResolvedValue({
+      items: [
+        {
+          id: 'acc-1',
+          name: 'Main',
+          type: 'cash',
+          currency: 'USD',
+          status: 'active',
+        },
+        {
+          id: 'acc-old',
+          name: 'Old Wallet',
+          type: 'cash',
+          currency: 'EUR',
+          status: 'archived',
+        },
+      ],
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('button', { name: 'Main' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(core.ledgerGetAccountSummary).toHaveBeenCalledWith({ accountId: 'acc-1' });
+    });
+  });
+
+  it('sets and clears the default account from the accounts menu', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Select account' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Set Savings as default account' }));
+
+    await waitFor(() => {
+      expect(core.preferencesSetDefaultAccount).toHaveBeenCalledWith({ accountId: 'acc-2' });
+    });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Clear default account Savings' }));
+
+    await waitFor(() => {
+      expect(core.preferencesClearDefaultAccount).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -2296,7 +2375,7 @@ describe('App Accounts UX', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
     await screen.findByRole('dialog', { name: 'Select account' });
-    fireEvent.click(screen.getByRole('button', { name: /Savings/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Savings/ }));
 
     await waitFor(() => {
       expect(screen.getByRole('link', { name: 'Search movements' })).toHaveAttribute(
@@ -3022,7 +3101,7 @@ describe('App Accounts UX', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
     await screen.findByRole('dialog', { name: 'Select account' });
-    fireEvent.click(screen.getByRole('button', { name: /Savings/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Savings/ }));
 
     await expandScheduledMovements();
     expect(await screen.findByText('Scheduled transfer')).toBeInTheDocument();

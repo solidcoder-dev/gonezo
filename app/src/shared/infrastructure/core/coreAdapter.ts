@@ -8,6 +8,8 @@ import type {
   LedgerArchiveAccountInput,
   LedgerRestoreAccountInput,
   LedgerDeleteAccountInput,
+  UserPreferencesResult,
+  PreferencesSetDefaultAccountInput,
   LedgerListAccountsResult,
   LedgerGetAccountSummaryInput,
   LedgerGetAccountSummaryResult,
@@ -348,6 +350,29 @@ function mapExpectedMovementToSearchItem(
 
 export class CoreAdapter implements CorePort {
   private readonly web = new CoreAdapterWeb();
+
+  async preferencesGet(): Promise<UserPreferencesResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.preferencesGet();
+    }
+    return this.web.preferencesGet();
+  }
+
+  async preferencesSetDefaultAccount(input: PreferencesSetDefaultAccountInput): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.preferencesSetDefaultAccount(input);
+      return;
+    }
+    await this.web.preferencesSetDefaultAccount(input);
+  }
+
+  async preferencesClearDefaultAccount(): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      await CorePlugin.preferencesClearDefaultAccount();
+      return;
+    }
+    await this.web.preferencesClearDefaultAccount();
+  }
 
   async ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {
     if (Capacitor.isNativePlatform()) {

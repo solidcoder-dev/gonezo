@@ -4,12 +4,15 @@ import type { AccountSummaryView } from '../domain/accountView.types';
 export type AccountSwitcherViewRequired = {
   accounts: AccountSummaryView[];
   selectedAccountId: string;
+  defaultAccountId: string | null;
   disabled: boolean;
 };
 
 export type AccountSwitcherViewProvided = {
   onSelect: (accountId: string) => void;
   onRestoreAccount: (accountId: string) => Promise<void> | void;
+  onSetDefaultAccount: (accountId: string) => Promise<void> | void;
+  onClearDefaultAccount: () => Promise<void> | void;
   onAddAccount: () => void;
   onManageTaxonomy: () => void;
   onImport: () => void;
@@ -25,6 +28,7 @@ export function AccountSwitcherView({ required, provided }: Props) {
   const [showAccounts, setShowAccounts] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [restoringAccountId, setRestoringAccountId] = useState('');
+  const [defaultUpdatingAccountId, setDefaultUpdatingAccountId] = useState('');
   const activeAccounts = required.accounts.filter((account) => account.status === 'active');
   const archivedAccounts = required.accounts.filter((account) => account.status === 'archived');
   const selectedAccount = required.accounts.find((account) => account.id === required.selectedAccountId);
@@ -58,22 +62,49 @@ export function AccountSwitcherView({ required, provided }: Props) {
               </button>
             </div>
             <div className="stack account-menu-list">
-              {activeAccounts.map((account) => (
-                <button
-                  key={account.id}
-                  type="button"
-                  className={account.id === required.selectedAccountId ? 'chip active account-choice' : 'chip account-choice'}
-                  disabled={required.disabled}
-                  onClick={() => {
-                    provided.onSelect(account.id);
-                    setShowAccounts(false);
-                  }}
-                >
-                  <span aria-hidden>{account.id === required.selectedAccountId ? '●' : ''}</span>
-                  <span>{account.name}</span>
-                  <span className="account-choice-currency">{account.currency}</span>
-                </button>
-              ))}
+              {activeAccounts.map((account) => {
+                const isSelected = account.id === required.selectedAccountId;
+                const isDefault = account.id === required.defaultAccountId;
+                return (
+                  <div
+                    key={account.id}
+                    className={isSelected ? 'chip active account-choice account-choice--active' : 'chip account-choice account-choice--active'}
+                  >
+                    <button
+                      type="button"
+                      className="account-choice-main"
+                      disabled={required.disabled}
+                      onClick={() => {
+                        provided.onSelect(account.id);
+                        setShowAccounts(false);
+                      }}
+                    >
+                      <span aria-hidden>{isSelected ? '●' : ''}</span>
+                      <span>{account.name}</span>
+                      <span className="account-choice-currency">{account.currency}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={isDefault ? 'text-button icon-button account-default-button is-default' : 'text-button icon-button account-default-button'}
+                      aria-label={isDefault ? `Clear default account ${account.name}` : `Set ${account.name} as default account`}
+                      title={isDefault ? 'Clear default account' : 'Set as default account'}
+                      disabled={required.disabled || defaultUpdatingAccountId === account.id}
+                      onClick={() => {
+                        setDefaultUpdatingAccountId(account.id);
+                        void Promise.resolve()
+                          .then(() => (
+                            isDefault
+                              ? provided.onClearDefaultAccount()
+                              : provided.onSetDefaultAccount(account.id)
+                          ))
+                          .finally(() => setDefaultUpdatingAccountId(''));
+                      }}
+                    >
+                      <i className={isDefault ? 'bi bi-star-fill' : 'bi bi-star'} aria-hidden />
+                    </button>
+                  </div>
+                );
+              })}
               {archivedAccounts.length > 0 ? (
                 <>
                   <button

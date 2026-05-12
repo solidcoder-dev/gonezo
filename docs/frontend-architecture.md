@@ -112,6 +112,7 @@ app/src/
 - `transactions/*`: composer transaccional y mappers.
 - `movements/*`: monthly overview, posted/scheduled/expected lists, search and edit entrypoints.
 - `imports/*`: capacidad de importacion como caja negra reutilizable. El backup Gonezo es el flujo por defecto; Mobills queda como flujo legado activado por checkbox.
+- `preferences`: no tiene pantalla propia por ahora; se consume desde `account/application` para resolver la cuenta inicial y marcar la cuenta por defecto.
 - `ledger/*` y `taxonomy/*`: acceso y reglas de backend; no definen la UX por si mismos.
 - `expected/*` y `scheduling/*`: gateways de capacidades nativas/core.
 - `shared/*`: utilidades neutrales.

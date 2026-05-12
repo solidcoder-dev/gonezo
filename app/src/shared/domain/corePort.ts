@@ -28,6 +28,14 @@ export type LedgerDeleteAccountInput = {
   accountId: string;
 };
 
+export type UserPreferencesResult = {
+  defaultAccountId: string | null;
+};
+
+export type PreferencesSetDefaultAccountInput = {
+  accountId: string;
+};
+
 export type LedgerAccountItem = {
   id: string;
   name: string;
@@ -732,6 +740,9 @@ export type OrchestrationListTransactionTaxonomyResult = {
 };
 
 export interface CorePort {
+  preferencesGet(): Promise<UserPreferencesResult>;
+  preferencesSetDefaultAccount(input: PreferencesSetDefaultAccountInput): Promise<void>;
+  preferencesClearDefaultAccount(): Promise<void>;
   ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult>;
   ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult>;
   ledgerRenameAccount(input: LedgerRenameAccountInput): Promise<void>;

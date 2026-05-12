@@ -7,6 +7,8 @@ import type {
   LedgerArchiveAccountInput,
   LedgerRestoreAccountInput,
   LedgerDeleteAccountInput,
+  UserPreferencesResult,
+  PreferencesSetDefaultAccountInput,
   LedgerListAccountsResult,
   LedgerGetAccountSummaryInput,
   LedgerGetAccountSummaryResult,
@@ -171,12 +173,30 @@ export class CoreAdapterWeb implements CorePort {
 
   private static expectedMovements: MemoryExpectedMovement[] = [];
 
+  private static defaultAccountId: string | null = null;
+
   private accountOrThrow(accountId: string): MemoryLedgerAccount {
     const account = CoreAdapterWeb.ledgerAccounts.find((item) => item.id === accountId);
     if (!account) {
       throw new Error('Account not found');
     }
     return account;
+  }
+
+  async preferencesGet(): Promise<UserPreferencesResult> {
+    return { defaultAccountId: CoreAdapterWeb.defaultAccountId };
+  }
+
+  async preferencesSetDefaultAccount(input: PreferencesSetDefaultAccountInput): Promise<void> {
+    const accountId = input.accountId.trim();
+    if (!accountId) {
+      throw new Error('accountId is required');
+    }
+    CoreAdapterWeb.defaultAccountId = accountId;
+  }
+
+  async preferencesClearDefaultAccount(): Promise<void> {
+    CoreAdapterWeb.defaultAccountId = null;
   }
 
   private transactionOrThrow(transactionId: string): MemoryLedgerTransaction {

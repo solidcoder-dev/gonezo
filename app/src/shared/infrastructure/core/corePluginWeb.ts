@@ -7,6 +7,8 @@ import type {
   LedgerArchiveAccountInput,
   LedgerRestoreAccountInput,
   LedgerDeleteAccountInput,
+  UserPreferencesResult,
+  PreferencesSetDefaultAccountInput,
   LedgerListAccountsResult,
   LedgerGetAccountSummaryInput,
   LedgerGetAccountSummaryResult,
@@ -76,6 +78,18 @@ import type { CorePlugin } from './corePlugin';
 
 export class CorePluginWeb extends WebPlugin implements CorePlugin {
   private readonly core = new CoreAdapterWeb();
+
+  async preferencesGet(): Promise<UserPreferencesResult> {
+    return this.core.preferencesGet();
+  }
+
+  async preferencesSetDefaultAccount(options: PreferencesSetDefaultAccountInput): Promise<void> {
+    return this.core.preferencesSetDefaultAccount(options);
+  }
+
+  async preferencesClearDefaultAccount(): Promise<void> {
+    return this.core.preferencesClearDefaultAccount();
+  }
 
   async ledgerOpenAccount(options: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {
     return this.core.ledgerOpenAccount(options);

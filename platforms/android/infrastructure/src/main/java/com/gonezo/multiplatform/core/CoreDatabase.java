@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 16;
+  private static final int DB_VERSION = 17;
 
   CoreDatabase(Context context) {
     super(context, DB_NAME, null, DB_VERSION);
@@ -59,6 +59,10 @@ public final class CoreDatabase extends SQLiteOpenHelper {
       createExpectedMovementItemTables(db);
       createRecurringMovementItemTables(db);
     }
+
+    if (oldVersion < 17) {
+      createUserPreferencesTables(db);
+    }
   }
 
   @Override
@@ -76,6 +80,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     createExpectedMovementTables(db);
     createRecurringMovementItemTables(db);
     createExpectedMovementItemTables(db);
+    createUserPreferencesTables(db);
   }
 
   private static void createLedgerTables(SQLiteDatabase db) {
@@ -378,6 +383,16 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     );
   }
 
+  private static void createUserPreferencesTables(SQLiteDatabase db) {
+    db.execSQL(
+      "create table if not exists user_preferences (" +
+        "owner_id text primary key," +
+        "default_account_id text," +
+        "updated_at text not null" +
+      ");"
+    );
+  }
+
   private static void addRecurringMovementCategoryColumn(SQLiteDatabase db) {
     db.execSQL("alter table recurring_movements add column category_id text;");
   }
@@ -389,6 +404,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     db.execSQL("drop table if exists recurring_movement_occurrences");
     db.execSQL("drop table if exists recurring_movements");
     db.execSQL("drop table if exists recurring_movement_items");
+    db.execSQL("drop table if exists user_preferences");
     db.execSQL("drop table if exists mobills_import_fingerprints");
     db.execSQL("drop table if exists taxonomy_transaction_tag_assignments");
     db.execSQL("drop table if exists taxonomy_tags");

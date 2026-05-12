@@ -5,6 +5,7 @@ Current implementation priority is Android. The React UI is still shared, but pr
 - `ledger-domain.md`: especificacion canónica del bounded context Ledger.
 - `taxonomy-domain.md`: especificacion canónica del bounded context Taxonomy (categorias + tags).
 - `ledger-taxonomy-workflow.md`: orquestacion tecnica entre Ledger y Taxonomy (categorizacion + tagging).
+- `user-preferences.md`: preferencias locales del usuario como bounded context independiente.
 - `movements-backup-import.md`: importacion principal de backups Gonezo como orquestacion multi-dominio.
 - `mobills-import.md`: importacion Mobills legado como orquestacion multi-dominio.
 - `frontend-architecture.md`: estructura frontend por dominios/capas (`ledger`, `taxonomy`, `imports`, `account`, `shared`).

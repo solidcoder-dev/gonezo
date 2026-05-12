@@ -7,6 +7,8 @@ import type {
   LedgerArchiveAccountInput,
   LedgerRestoreAccountInput,
   LedgerDeleteAccountInput,
+  UserPreferencesResult,
+  PreferencesSetDefaultAccountInput,
   LedgerListAccountsResult,
   LedgerGetAccountSummaryInput,
   LedgerGetAccountSummaryResult,
@@ -73,6 +75,9 @@ import type {
 } from '../../domain/corePort';
 
 export interface CorePlugin {
+  preferencesGet(): Promise<UserPreferencesResult>;
+  preferencesSetDefaultAccount(options: PreferencesSetDefaultAccountInput): Promise<void>;
+  preferencesClearDefaultAccount(): Promise<void>;
   ledgerOpenAccount(options: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult>;
   ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult>;
   ledgerRenameAccount(options: LedgerRenameAccountInput): Promise<void>;

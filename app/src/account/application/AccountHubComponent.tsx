@@ -29,6 +29,7 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
   const [accounts, setAccounts] = useState<AccountSummaryView[]>([]);
   const [supportedCurrencies, setSupportedCurrencies] = useState<string[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [defaultAccountId, setDefaultAccountId] = useState<string | null>(null);
 
   const [createFormOpen, setCreateFormOpen] = useState(false);
   const [createName, setCreateName] = useState('Main account');
@@ -49,9 +50,10 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
   }
 
   async function refreshAccounts(preferredAccountId?: string) {
-    const [currenciesResult, accountsResult] = await Promise.all([
+    const [currenciesResult, accountsResult, preferencesResult] = await Promise.all([
       ledgerAccounts.listSupportedCurrencies(),
       ledgerAccounts.listAccounts(),
+      required.context.core.preferencesGet(),
     ]);
 
     setSupportedCurrencies(currenciesResult.items);
@@ -62,7 +64,9 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
     const accountSummaries = mapAccountSummaryList(accountsResult.items)
       .filter((account) => account.status !== 'deleted');
     const activeAccountSummaries = accountSummaries.filter((account) => account.status === 'active');
+    const resolvedDefaultAccountId = preferencesResult.defaultAccountId ?? null;
     setAccounts(accountSummaries);
+    setDefaultAccountId(resolvedDefaultAccountId);
     provided.events?.onAccountsCountChanged?.(activeAccountSummaries.length);
 
     if (activeAccountSummaries.length === 0) {
@@ -75,7 +79,9 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
       ? preferredAccountId
       : selectedAccountId && activeAccountSummaries.some((item) => item.id === selectedAccountId)
         ? selectedAccountId
-        : activeAccountSummaries[0].id;
+        : resolvedDefaultAccountId && activeAccountSummaries.some((item) => item.id === resolvedDefaultAccountId)
+          ? resolvedDefaultAccountId
+          : activeAccountSummaries[0].id;
 
     setSelectedAccountId(nextSelectedAccountId);
     provided.events?.onSelectedAccountChanged?.(nextSelectedAccountId);
@@ -171,6 +177,28 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
       throw err;
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function setDefaultAccount(accountId: string) {
+    setError('');
+    try {
+      await required.context.core.preferencesSetDefaultAccount({ accountId });
+      setDefaultAccountId(accountId);
+    } catch (err) {
+      reportError(err);
+      throw err;
+    }
+  }
+
+  async function clearDefaultAccount() {
+    setError('');
+    try {
+      await required.context.core.preferencesClearDefaultAccount();
+      setDefaultAccountId(null);
+    } catch (err) {
+      reportError(err);
+      throw err;
     }
   }
 
@@ -309,6 +337,7 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
           required={{
             accounts,
             selectedAccountId,
+            defaultAccountId,
             disabled: controlsDisabled,
           }}
           provided={{
@@ -316,6 +345,8 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
               selectAccount(accountId);
             },
             onRestoreAccount: restoreAccount,
+            onSetDefaultAccount: setDefaultAccount,
+            onClearDefaultAccount: clearDefaultAccount,
             onAddAccount: () => setCreateFormOpen(true),
             onManageTaxonomy: () => navigate('/taxonomy'),
             onImport: provided.events?.onImportRequested ?? (() => undefined),
