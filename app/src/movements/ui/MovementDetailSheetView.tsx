@@ -14,28 +14,30 @@ export type MovementDetailActionView = {
   onClick: () => void;
 };
 
+export type MovementDetailDataView = {
+  title: string;
+  kicker: string;
+  iconClassName: string;
+  amount: {
+    kind: MovementAmountKindView;
+    sign?: ReactNode;
+    value: string;
+    currency: string;
+  };
+  meta: Array<{
+    label: string;
+    value: ReactNode;
+  }>;
+  splitItems?: MovementSplitItemView[];
+  actions?: MovementDetailActionView[];
+};
+
 export type MovementDetailSheetViewProps = ViewProps<
   {
     ariaLabel: string;
     closeLabel?: string;
   },
-  {
-    title: string;
-    kicker: string;
-    iconClassName: string;
-    amount: {
-      kind: MovementAmountKindView;
-      sign?: ReactNode;
-      value: string;
-      currency: string;
-    };
-    meta: Array<{
-      label: string;
-      value: ReactNode;
-    }>;
-    splitItems?: MovementSplitItemView[];
-    actions?: MovementDetailActionView[];
-  },
+  MovementDetailDataView,
   {
     open: boolean;
   },

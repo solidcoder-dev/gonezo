@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
-import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
-import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
 import { SheetView } from '../../shared/ui/SheetView';
 import type { AccountSummaryComponentProps } from './AccountSummaryComponent.contract';
+import { useAccountSummaryModel } from './useAccountSummaryModel';
 
 export type {
   AccountSummaryComponentProps,
@@ -11,150 +9,34 @@ export type {
   AccountSummaryComponentRequired,
 } from './AccountSummaryComponent.contract';
 
-type AccountSummaryState = {
-  name: string;
-  currency: string;
-  balanceAmount: string;
-};
-
-function toErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return 'Unknown error';
-}
-
 export function AccountSummaryComponent({ required, provided = {} }: AccountSummaryComponentProps) {
   const { accountId, core } = required.context;
-  const [loading, setLoading] = useState(true);
-  const [managing, setManaging] = useState(false);
-  const [error, setError] = useState('');
-  const [summary, setSummary] = useState<AccountSummaryState | null>(null);
-  const [manageOpen, setManageOpen] = useState(false);
-  const [manageName, setManageName] = useState('');
-
-  const ledgerGateway = useMemo(() => createLedgerGateway(core), [core]);
-  const ledgerAccounts = useLedgerAccounts(ledgerGateway);
-
-  function reportError(raw: unknown) {
-    const message = toErrorMessage(raw);
-    setError(message);
-    provided.events?.onError?.({ message });
-  }
-
-  async function refreshSummary() {
-    if (!accountId) {
-      setSummary(null);
-      return;
-    }
-    const nextSummary = await ledgerAccounts.getAccountSummary({ accountId });
-    setSummary({
-      name: nextSummary.name,
-      currency: nextSummary.currency,
-      balanceAmount: nextSummary.balanceAmount,
-    });
-  }
-
-  useEffect(() => {
-    if (!required.config.enabled || !accountId) {
-      setLoading(false);
-      setSummary(null);
-      return;
-    }
-
-    let cancelled = false;
-
-    async function run() {
-      setLoading(true);
-      setError('');
-      try {
-        await refreshSummary();
-      } catch (err) {
-        if (!cancelled) {
-          reportError(err);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void run();
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [required.config.enabled, accountId, required.config.refreshSignal]);
+  const model = useAccountSummaryModel({
+    core,
+    accountId,
+    enabled: required.config.enabled,
+    refreshSignal: required.config.refreshSignal,
+    events: provided.events,
+  });
+  const {
+    loading,
+    managing,
+    error,
+    summary,
+    manageOpen,
+    manageName,
+  } = model.state;
+  const {
+    openManage,
+    closeManage,
+    setManageName,
+    submitRename,
+    archiveAccount,
+    deleteAccount,
+  } = model.commands;
 
   if (!required.config.enabled || !accountId || !summary) {
     return null;
-  }
-
-  const activeAccountId = accountId;
-
-  async function submitRename(event: FormEvent) {
-    event.preventDefault();
-    const name = manageName.trim();
-    if (!name) {
-      setError('Account name is required.');
-      return;
-    }
-
-    setManaging(true);
-    setError('');
-    try {
-      await ledgerAccounts.renameAccount({ accountId: activeAccountId, name });
-      await refreshSummary();
-      setManageOpen(false);
-      provided.events?.onAccountMutated?.(activeAccountId);
-    } catch (err) {
-      reportError(err);
-    } finally {
-      setManaging(false);
-    }
-  }
-
-  async function archiveAccount() {
-    if (!summary) {
-      return;
-    }
-    if (!window.confirm(`Archive account "${summary.name}"?`)) {
-      return;
-    }
-    setManaging(true);
-    setError('');
-    try {
-      await ledgerAccounts.archiveAccount({ accountId: activeAccountId });
-      await refreshSummary();
-      setManageOpen(false);
-      provided.events?.onAccountMutated?.(activeAccountId);
-    } catch (err) {
-      reportError(err);
-    } finally {
-      setManaging(false);
-    }
-  }
-
-  async function deleteAccount() {
-    if (!summary) {
-      return;
-    }
-    if (!window.confirm(`Delete account "${summary.name}" and all its transactions? This cannot be undone.`)) {
-      return;
-    }
-    setManaging(true);
-    setError('');
-    try {
-      await ledgerAccounts.deleteAccount({ accountId: activeAccountId });
-      setManageOpen(false);
-      provided.events?.onAccountDeleted?.(activeAccountId);
-    } catch (err) {
-      reportError(err);
-    } finally {
-      setManaging(false);
-    }
   }
 
   return (
@@ -172,10 +54,7 @@ export function AccountSummaryComponent({ required, provided = {} }: AccountSumm
             type="button"
             className="text-button icon-button summary-menu-button"
             aria-label="Account settings"
-            onClick={() => {
-              setManageName(summary.name);
-              setManageOpen(true);
-            }}
+            onClick={openManage}
             disabled={managing}
           >
             <i className="bi bi-gear" aria-hidden />
@@ -240,7 +119,7 @@ export function AccountSummaryComponent({ required, provided = {} }: AccountSumm
             state: { open: true },
             status: {},
           }}
-          provided={{ commands: { close: () => setManageOpen(false) } }}
+          provided={{ commands: { close: closeManage } }}
         />
       ) : null}
     </>
