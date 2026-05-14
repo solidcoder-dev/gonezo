@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type { TaxonomyCategoryItem, TaxonomyTagItem } from '../../shared/domain/corePort';
+import { SheetView } from '../../shared/ui/SheetView';
 import type { TaxonomyGatewayPort } from '../infrastructure/taxonomyGateway';
 
 export type TaxonomyPagePort = Pick<
@@ -190,53 +191,47 @@ export function TaxonomyPage({ required }: TaxonomyPageProps) {
       ) : null}
 
       {renameTarget ? (
-        <div className="sheet-backdrop" role="presentation" onClick={() => setRenameTarget(null)}>
-          <section
-            className="sheet-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label={renameTarget.kind === 'category' ? 'Rename category' : 'Rename tag'}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="inline-header">
-              <h3>{renameTarget.kind === 'category' ? 'Rename category' : 'Rename tag'}</h3>
-              <button
-                type="button"
-                className="text-button icon-button"
-                aria-label="Close rename"
-                onClick={() => setRenameTarget(null)}
-              >
-                <i className="bi bi-x-lg" aria-hidden />
-              </button>
-            </div>
+        <SheetView
+          required={{
+            config: {
+              ariaLabel: renameTarget.kind === 'category' ? 'Rename category' : 'Rename tag',
+              title: renameTarget.kind === 'category' ? 'Rename category' : 'Rename tag',
+              closeLabel: 'Close rename',
+            },
+            data: {
+              body: (
+                <form className="stack" onSubmit={submitRename} aria-busy={saving}>
+                  <label className="stack">
+                    Name
+                    <input
+                      aria-label="Taxonomy name"
+                      value={renameDraft}
+                      onChange={(event) => setRenameDraft(event.target.value)}
+                      autoComplete="off"
+                    />
+                  </label>
 
-            <form className="stack" onSubmit={submitRename} aria-busy={saving}>
-              <label className="stack">
-                Name
-                <input
-                  aria-label="Taxonomy name"
-                  value={renameDraft}
-                  onChange={(event) => setRenameDraft(event.target.value)}
-                  autoComplete="off"
-                />
-              </label>
-
-              <div className="quick-row">
-                <button type="submit" disabled={saving || renameDraft.trim().length === 0}>
-                  Save name
-                </button>
-                <button
-                  type="button"
-                  className="text-button"
-                  disabled={saving}
-                  onClick={() => setRenameTarget(null)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
+                  <div className="quick-row">
+                    <button type="submit" disabled={saving || renameDraft.trim().length === 0}>
+                      Save name
+                    </button>
+                    <button
+                      type="button"
+                      className="text-button"
+                      disabled={saving}
+                      onClick={() => setRenameTarget(null)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ),
+            },
+            state: { open: true },
+            status: {},
+          }}
+          provided={{ commands: { close: () => setRenameTarget(null) } }}
+        />
       ) : null}
     </section>
   );

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { FormEvent } from 'react';
+import { SheetView } from '../../shared/ui/SheetView';
 import { CategoryComboboxField } from './CategoryComboboxField';
 import { TagComboboxField } from './TagComboboxField';
 import type {
@@ -301,25 +302,16 @@ export function TransactionComposerView({ required, provided }: Props) {
   }
 
   return (
-    <div
-      className="sheet-backdrop"
-      role="presentation"
-      onClick={onClose}
-    >
-      <section className="sheet-panel composer-sheet" role="dialog" aria-modal="true" aria-label="Transaction composer" onClick={(event) => event.stopPropagation()}>
-        <div className="inline-header">
-          <h3>{titleForModeAndPurpose(mode, postExpectedMovementId, editedScheduledMovementId)}</h3>
-          <button
-            type="button"
-            className="text-button icon-button"
-            onClick={onClose}
-            aria-label="Close transaction composer"
-          >
-            <i className="bi bi-x-lg" aria-hidden />
-          </button>
-        </div>
-
-        {mode === 'picker' ? (
+    <SheetView
+      required={{
+        config: {
+          ariaLabel: 'Transaction composer',
+          title: titleForModeAndPurpose(mode, postExpectedMovementId, editedScheduledMovementId),
+          closeLabel: 'Close transaction composer',
+          panelClassName: 'composer-sheet',
+        },
+        data: {
+          body: mode === 'picker' ? (
           <div className="stack">
             <div className="mode-row">
               <button type="button" onClick={() => onSelectMode('expense')} disabled={disabled}>
@@ -927,8 +919,12 @@ export function TransactionComposerView({ required, provided }: Props) {
               </button>
             </div>
           </form>
-        )}
-      </section>
-    </div>
+        ),
+        },
+        state: { open: true },
+        status: {},
+      }}
+      provided={{ commands: { close: onClose } }}
+    />
   );
 }

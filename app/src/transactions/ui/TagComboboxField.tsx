@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { DatalistFieldView } from '../../shared/ui/DatalistFieldView';
 
 type TagOption = {
   id: string;
@@ -21,26 +21,24 @@ type Props = {
 };
 
 export function TagComboboxField({ required, provided }: Props) {
-  const listId = useId();
-
   return (
-    <label className="stack">
-      Tags
-      <input
-        aria-label="Tags"
-        value={required.value}
-        onChange={(event) => provided.onChange(event.target.value)}
-        placeholder="Choose existing or type new tags, separated by commas"
-        list={listId}
-        autoComplete="off"
-        disabled={required.disabled}
-      />
-      <datalist id={listId}>
-        {required.options.map((tag) => (
-          <option key={tag.id} value={tag.name} />
-        ))}
-      </datalist>
-      <span className="hint">Use commas to add multiple tags</span>
-    </label>
+    <DatalistFieldView
+      required={{
+        config: {
+          label: 'Tags',
+          placeholder: 'Choose existing or type new tags, separated by commas',
+          hint: 'Use commas to add multiple tags',
+        },
+        data: {
+          options: required.options.map((tag) => ({
+            id: tag.id,
+            value: tag.name,
+          })),
+        },
+        state: { value: required.value },
+        status: { disabled: required.disabled },
+      }}
+      provided={{ commands: { change: provided.onChange } }}
+    />
   );
 }

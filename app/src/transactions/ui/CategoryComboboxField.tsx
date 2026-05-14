@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { DatalistFieldView } from '../../shared/ui/DatalistFieldView';
 
 type CategoryOption = {
   id: string;
@@ -21,26 +21,24 @@ type Props = {
 };
 
 export function CategoryComboboxField({ required, provided }: Props) {
-  const listId = useId();
-
   return (
-    <label className="stack">
-      Category
-      <input
-        aria-label="Category"
-        value={required.value}
-        onChange={(event) => provided.onChange(event.target.value)}
-        placeholder="Choose or type a category (optional)"
-        list={listId}
-        autoComplete="off"
-        disabled={required.disabled}
-      />
-      <datalist id={listId}>
-        {required.options.map((category) => (
-          <option key={category.id} value={category.name} />
-        ))}
-      </datalist>
-      <span className="hint">Suggestions include all categories</span>
-    </label>
+    <DatalistFieldView
+      required={{
+        config: {
+          label: 'Category',
+          placeholder: 'Choose or type a category (optional)',
+          hint: 'Suggestions include all categories',
+        },
+        data: {
+          options: required.options.map((category) => ({
+            id: category.id,
+            value: category.name,
+          })),
+        },
+        state: { value: required.value },
+        status: { disabled: required.disabled },
+      }}
+      provided={{ commands: { change: provided.onChange } }}
+    />
   );
 }

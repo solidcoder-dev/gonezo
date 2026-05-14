@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
 import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
 import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
+import { SheetView } from '../../shared/ui/SheetView';
 import type { AccountSummaryComponentProps } from './AccountSummaryComponent.contract';
 
 export type {
@@ -187,66 +188,60 @@ export function AccountSummaryComponent({ required, provided = {} }: AccountSumm
       </section>
 
       {manageOpen ? (
-        <div className="sheet-backdrop" role="presentation" onClick={() => setManageOpen(false)}>
-          <section
-            className="sheet-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Manage account"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="inline-header">
-              <h3>Manage account</h3>
-              <button
-                type="button"
-                className="text-button icon-button"
-                aria-label="Close account management"
-                onClick={() => setManageOpen(false)}
-              >
-                <i className="bi bi-x-lg" aria-hidden />
-              </button>
-            </div>
+        <SheetView
+          required={{
+            config: {
+              ariaLabel: 'Manage account',
+              title: 'Manage account',
+              closeLabel: 'Close account management',
+            },
+            data: {
+              body: (
+                <form className="stack" onSubmit={submitRename} aria-busy={managing}>
+                  <label className="stack">
+                    Account name
+                    <input
+                      aria-label="Manage account name"
+                      value={manageName}
+                      onChange={(event) => setManageName(event.target.value)}
+                      placeholder="Account name"
+                      autoComplete="off"
+                    />
+                  </label>
 
-            <form className="stack" onSubmit={submitRename} aria-busy={managing}>
-              <label className="stack">
-                Account name
-                <input
-                  aria-label="Manage account name"
-                  value={manageName}
-                  onChange={(event) => setManageName(event.target.value)}
-                  placeholder="Account name"
-                  autoComplete="off"
-                />
-              </label>
+                  <div className="quick-row">
+                    <button type="submit" disabled={managing}>
+                      Save name
+                    </button>
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={archiveAccount}
+                      disabled={managing}
+                    >
+                      Archive account
+                    </button>
+                  </div>
 
-              <div className="quick-row">
-                <button type="submit" disabled={managing}>
-                  Save name
-                </button>
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={archiveAccount}
-                  disabled={managing}
-                >
-                  Archive account
-                </button>
-              </div>
+                  <p className="hint">Archived accounts are hidden from the active list and cannot accept new transactions.</p>
 
-              <p className="hint">Archived accounts are hidden from the active list and cannot accept new transactions.</p>
-
-              <button
-                type="button"
-                className="danger-button"
-                onClick={deleteAccount}
-                disabled={managing}
-              >
-                Delete account
-              </button>
-              <p className="hint">Delete removes the account and all its transactions permanently.</p>
-            </form>
-          </section>
-        </div>
+                  <button
+                    type="button"
+                    className="danger-button"
+                    onClick={deleteAccount}
+                    disabled={managing}
+                  >
+                    Delete account
+                  </button>
+                  <p className="hint">Delete removes the account and all its transactions permanently.</p>
+                </form>
+              ),
+            },
+            state: { open: true },
+            status: {},
+          }}
+          provided={{ commands: { close: () => setManageOpen(false) } }}
+        />
       ) : null}
     </>
   );

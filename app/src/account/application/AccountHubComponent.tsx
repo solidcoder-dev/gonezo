@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
 import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
+import { SheetView } from '../../shared/ui/SheetView';
 import { mapAccountSummaryList } from './accountViewMappers';
 import { AccountSwitcherView } from '../ui/AccountSwitcherView';
 import type { AccountSummaryView } from '../domain/accountView.types';
@@ -274,62 +275,57 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
       ) : null}
 
       {createFormOpen ? (
-        <div className="sheet-backdrop" role="presentation" onClick={() => setCreateFormOpen(false)}>
-          <section
-            className="sheet-panel import-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Create account"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="inline-header">
-              <h3>Add account</h3>
-              <button
-                type="button"
-                className="text-button icon-button"
-                aria-label="Close add account sheet"
-                onClick={() => setCreateFormOpen(false)}
-              >
-                <i className="bi bi-x-lg" aria-hidden />
-              </button>
-            </div>
-            <div className="import-sheet-content">
-              <form className="stack" onSubmit={submitCreateAccount} aria-busy={creating}>
-                <input
-                  aria-label="Account name"
-                  value={createName}
-                  onChange={(event) => setCreateName(event.target.value)}
-                  placeholder="Account name"
-                  autoComplete="off"
-                />
-                <input
-                  aria-label="Opening balance"
-                  value={createOpeningBalance}
-                  onChange={(event) => setCreateOpeningBalance(event.target.value)}
-                  placeholder="Opening balance (optional)"
-                  inputMode="decimal"
-                />
-                <label className="stack">
-                  Currency
-                  <select
-                    aria-label="Currency"
-                    value={createCurrency}
-                    onChange={(event) => setCreateCurrency(event.target.value)}
-                  >
-                    {supportedCurrencies.map((currency) => (
-                      <option key={currency} value={currency}>
-                        {currency}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button type="submit" disabled={creating}>
-                  {creating ? 'Creating account...' : 'Create account'}
-                </button>
-              </form>
-            </div>
-          </section>
-        </div>
+        <SheetView
+          required={{
+            config: {
+              ariaLabel: 'Create account',
+              title: 'Add account',
+              closeLabel: 'Close add account sheet',
+              panelClassName: 'import-sheet',
+              contentClassName: 'import-sheet-content',
+            },
+            data: {
+              body: (
+                <form className="stack" onSubmit={submitCreateAccount} aria-busy={creating}>
+                  <input
+                    aria-label="Account name"
+                    value={createName}
+                    onChange={(event) => setCreateName(event.target.value)}
+                    placeholder="Account name"
+                    autoComplete="off"
+                  />
+                  <input
+                    aria-label="Opening balance"
+                    value={createOpeningBalance}
+                    onChange={(event) => setCreateOpeningBalance(event.target.value)}
+                    placeholder="Opening balance (optional)"
+                    inputMode="decimal"
+                  />
+                  <label className="stack">
+                    Currency
+                    <select
+                      aria-label="Currency"
+                      value={createCurrency}
+                      onChange={(event) => setCreateCurrency(event.target.value)}
+                    >
+                      {supportedCurrencies.map((currency) => (
+                        <option key={currency} value={currency}>
+                          {currency}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button type="submit" disabled={creating}>
+                    {creating ? 'Creating account...' : 'Create account'}
+                  </button>
+                </form>
+              ),
+            },
+            state: { open: true },
+            status: {},
+          }}
+          provided={{ commands: { close: () => setCreateFormOpen(false) } }}
+        />
       ) : null}
 
       <section className="section-gap account-switcher-section">

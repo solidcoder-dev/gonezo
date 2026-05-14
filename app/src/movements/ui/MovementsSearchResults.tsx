@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
 import { formatCalendarDay } from '../../transactions/ui/postedGrouping';
 import type {
@@ -6,6 +6,7 @@ import type {
   MovementsSearchModelProvided,
   MovementsSearchModelRequired,
 } from '../domain/movementsView.types';
+import { MovementDetailSheetView } from './MovementDetailSheetView';
 
 type MovementsSearchResultsProps = {
   required: Pick<MovementsSearchModelRequired, 'error' | 'state' | 'status'>;
@@ -60,28 +61,6 @@ function sourceLabel(source: MovementsSearchItemView['source']): string {
   if (source === 'posted') return 'Posted';
   if (source === 'scheduled') return 'Scheduled';
   return 'Expected';
-}
-
-function renderSplitItems(items?: MovementsSearchItemView['items']): ReactNode {
-  if (!items || items.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="stack detail-split-list">
-      <span className="hint detail-meta-label">Splits</span>
-      <ul className="expense-list expense-list--compact" aria-label="Split items">
-        {items.map((item) => (
-          <li key={item.id} className="expense-item expense-item--compact">
-            <div className="inline-header">
-              <strong>{item.name}</strong>
-              <span>{item.amount}</span>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
 }
 
 function groupDateLabel(isoDateTime: string, now = new Date()): string {
@@ -278,62 +257,36 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
       ) : null}
 
       {selectedEntry ? (
-        <div className="sheet-backdrop" role="presentation" onClick={() => setSelectedEntry(null)}>
-          <section
-            className="sheet-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Movement details"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="detail-sheet-header">
-              <div className="detail-sheet-title">
-                <span className="detail-sheet-kicker">
-                  <i className={movementIconClass(selectedEntry.type)} aria-hidden />
-                  <span>{movementTypeLabel(selectedEntry.type)} · {sourceLabel(selectedEntry.source)}</span>
-                </span>
-                <h3>{selectedEntry.title}</h3>
-              </div>
-              <button
-                type="button"
-                className="text-button icon-button"
-                aria-label="Close movement details"
-                onClick={() => setSelectedEntry(null)}
-              >
-                <i className="bi bi-x-lg" aria-hidden />
-              </button>
-            </div>
-            <div className={`detail-sheet-amount detail-sheet-amount--${txKind(selectedEntry.type)}`}>
-              {txSign(selectedEntry.type)}
-              {txAmount(selectedEntry.amount, selectedEntry.currency)}
-            </div>
-            <div className="detail-meta-grid">
-              {selectedEntry.accountName ? (
-                <div className="detail-meta-item">
-                  <span className="hint detail-meta-label">Account</span>
-                  <strong>{selectedEntry.accountName}</strong>
-                </div>
-              ) : null}
-              <div className="detail-meta-item">
-                <span className="hint detail-meta-label">Date</span>
-                <strong>{formatCalendarDay(selectedEntry.occurredAt)}</strong>
-              </div>
-              <div className="detail-meta-item">
-                <span className="hint detail-meta-label">Category</span>
-                <strong>{selectedEntry.category?.name ?? 'No category'}</strong>
-              </div>
-              <div className="detail-meta-item">
-                <span className="hint detail-meta-label">Tags</span>
-                <strong>{compactTags(selectedEntry.tags) ?? 'No tags'}</strong>
-              </div>
-              <div className="detail-meta-item">
-                <span className="hint detail-meta-label">Source</span>
-                <strong>{selectedEntry.source}</strong>
-              </div>
-            </div>
-            {renderSplitItems(selectedEntry.items)}
-          </section>
-        </div>
+        <MovementDetailSheetView
+          required={{
+            config: {
+              ariaLabel: 'Movement details',
+              closeLabel: 'Close movement details',
+            },
+            data: {
+              title: selectedEntry.title,
+              kicker: `${movementTypeLabel(selectedEntry.type)} · ${sourceLabel(selectedEntry.source)}`,
+              iconClassName: movementIconClass(selectedEntry.type),
+              amount: {
+                kind: txKind(selectedEntry.type),
+                sign: txSign(selectedEntry.type),
+                value: selectedEntry.amount,
+                currency: selectedEntry.currency,
+              },
+              meta: [
+                selectedEntry.accountName ? { label: 'Account', value: selectedEntry.accountName } : undefined,
+                { label: 'Date', value: formatCalendarDay(selectedEntry.occurredAt) },
+                { label: 'Category', value: selectedEntry.category?.name ?? 'No category' },
+                { label: 'Tags', value: compactTags(selectedEntry.tags) ?? 'No tags' },
+                { label: 'Source', value: selectedEntry.source },
+              ].filter((item): item is { label: string; value: string } => Boolean(item)),
+              splitItems: selectedEntry.items,
+            },
+            state: { open: true },
+            status: { disabled },
+          }}
+          provided={{ commands: { close: () => setSelectedEntry(null) } }}
+        />
       ) : null}
     </section>
   );

@@ -1,6 +1,7 @@
 import {
   TransactionsImportComponent as TransactionsImportFeature,
 } from '../../../imports';
+import { SheetView } from '../../../shared/ui/SheetView';
 import type { TransactionsImportComponentProps } from './TransactionsImportComponent.contract';
 
 export type {
@@ -15,37 +16,32 @@ export function TransactionsImportComponent({ required, provided }: Transactions
   }
 
   return (
-    <div className="sheet-backdrop" role="presentation" onClick={provided.commands.close}>
-      <section
-        className="sheet-panel import-sheet"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Import backup"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="inline-header">
-          <h3>Import backup</h3>
-          <button
-            type="button"
-            className="text-button icon-button"
-            aria-label="Close import sheet"
-            onClick={provided.commands.close}
-          >
-            <i className="bi bi-x-lg" aria-hidden />
-          </button>
-        </div>
-
-        <TransactionsImportFeature
-          required={{
-            accountsCount: required.state.accountsCount,
-          }}
-          provided={{
-            submitImport: provided.commands.submit,
-            onCompleted: provided.events?.onImported,
-            onFailed: provided.events?.onImportFailed,
-          }}
-        />
-      </section>
-    </div>
+    <SheetView
+      required={{
+        config: {
+          ariaLabel: 'Import backup',
+          title: 'Import backup',
+          closeLabel: 'Close import sheet',
+          panelClassName: 'import-sheet',
+        },
+        data: {
+          body: (
+            <TransactionsImportFeature
+              required={{
+                accountsCount: required.state.accountsCount,
+              }}
+              provided={{
+                submitImport: provided.commands.submit,
+                onCompleted: provided.events?.onImported,
+                onFailed: provided.events?.onImportFailed,
+              }}
+            />
+          ),
+        },
+        state: { open: true },
+        status: {},
+      }}
+      provided={{ commands: { close: provided.commands.close } }}
+    />
   );
 }

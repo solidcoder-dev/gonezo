@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { SheetView } from '../../shared/ui/SheetView';
 import type {
   LedgerTransactionTypeView,
   MovementsSearchFiltersState,
@@ -240,29 +241,32 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
       ) : null}
 
       {filtersOpen ? (
-        <div className="sheet-backdrop" role="presentation" onClick={provided.commands.closeFilters}>
-          <section
-            className="sheet-panel search-filter-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Filters"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="detail-sheet-header">
-              <div className="detail-sheet-title">
-                <h3>Filters</h3>
-              </div>
-              <button
-                type="button"
-                className="text-button icon-button"
-                aria-label="Close filters"
-                onClick={provided.commands.closeFilters}
-              >
-                <i className="bi bi-x-lg" aria-hidden />
-              </button>
-            </div>
-
-            <div className="stack search-filter-sheet-content" aria-label="Movement filters">
+        <SheetView
+          required={{
+            config: {
+              ariaLabel: 'Filters',
+              panelClassName: 'search-filter-sheet',
+              contentClassName: 'stack search-filter-sheet-content',
+              contentAriaLabel: 'Movement filters',
+            },
+            data: {
+              header: (
+                <div className="detail-sheet-header">
+                  <div className="detail-sheet-title">
+                    <h3>Filters</h3>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-button icon-button"
+                    aria-label="Close filters"
+                    onClick={provided.commands.closeFilters}
+                  >
+                    <i className="bi bi-x-lg" aria-hidden />
+                  </button>
+                </div>
+              ),
+              body: (
+                <>
               <input
                 type="text"
                 aria-label="Merchant"
@@ -503,18 +507,24 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
                 <span>{filtersAdvancedOpen ? 'Less options' : 'More options'}</span>
                 <i className={filtersAdvancedOpen ? 'bi bi-chevron-up composer-more-options-caret' : 'bi bi-chevron-down composer-more-options-caret'} aria-hidden />
               </button>
-            </div>
-
-            <div className="search-sheet-actions">
-              <button type="button" className="text-button" onClick={provided.commands.resetFilters} disabled={disabled}>
-                Reset
-              </button>
-              <button type="button" className="primary-cta" onClick={provided.commands.applyFilters} disabled={disabled}>
-                Apply
-              </button>
-            </div>
-          </section>
-        </div>
+                </>
+              ),
+              footer: (
+                <div className="search-sheet-actions">
+                  <button type="button" className="text-button" onClick={provided.commands.resetFilters} disabled={disabled}>
+                    Reset
+                  </button>
+                  <button type="button" className="primary-cta" onClick={provided.commands.applyFilters} disabled={disabled}>
+                    Apply
+                  </button>
+                </div>
+              ),
+            },
+            state: { open: true },
+            status: {},
+          }}
+          provided={{ commands: { close: provided.commands.closeFilters } }}
+        />
       ) : null}
     </section>
   );

@@ -1,0 +1,88 @@
+import type { ReactNode } from 'react';
+import type { ViewProps } from './ViewProps';
+
+export type SheetViewProps = ViewProps<
+  {
+    ariaLabel: string;
+    title?: string;
+    closeLabel?: string;
+    panelClassName?: string;
+    contentClassName?: string;
+    contentAriaLabel?: string;
+    closeOnBackdrop?: boolean;
+  },
+  {
+    header?: ReactNode;
+    body: ReactNode;
+    footer?: ReactNode;
+  },
+  {
+    open: boolean;
+  },
+  {
+    disabled?: boolean;
+  },
+  {
+    close: () => void;
+  }
+>;
+
+export function SheetView({ required, provided }: SheetViewProps) {
+  const { config, data, state } = required;
+  const closeOnBackdrop = config.closeOnBackdrop ?? true;
+
+  if (!state.open) {
+    return null;
+  }
+
+  function closeFromBackdrop() {
+    if (!closeOnBackdrop) {
+      return;
+    }
+    provided.commands.close();
+  }
+
+  const panelClassName = config.panelClassName
+    ? `sheet-panel ${config.panelClassName}`
+    : 'sheet-panel';
+  const closeLabel = config.closeLabel ?? 'Close';
+
+  return (
+    <div
+      className="sheet-backdrop"
+      role="presentation"
+      data-testid="sheet-backdrop"
+      onClick={closeFromBackdrop}
+    >
+      <section
+        className={panelClassName}
+        role="dialog"
+        aria-modal="true"
+        aria-label={config.ariaLabel}
+        onClick={(event) => event.stopPropagation()}
+      >
+        {data.header ?? (
+          config.title || config.closeLabel ? (
+            <div className="inline-header">
+              {config.title ? <h3>{config.title}</h3> : <span />}
+              <button
+                type="button"
+                className="text-button icon-button"
+                aria-label={closeLabel}
+                onClick={provided.commands.close}
+              >
+                <i className="bi bi-x-lg" aria-hidden />
+              </button>
+            </div>
+          ) : null
+        )}
+        {config.contentClassName ? (
+          <div className={config.contentClassName} aria-label={config.contentAriaLabel}>
+            {data.body}
+          </div>
+        ) : data.body}
+        {data.footer}
+      </section>
+    </div>
+  );
+}

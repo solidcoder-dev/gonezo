@@ -9,6 +9,11 @@ import { groupScheduledMovementsByDate } from '../../transactions/ui/scheduledGr
 import type { ExpectedMovementView, ScheduledMovementView } from '../domain/movementsView.types';
 import { MonthNavigatorView } from './MonthNavigatorView';
 import { MonthPickerModalView } from './MonthPickerModalView';
+import {
+  MovementDetailSheetView,
+  type MovementAmountKindView,
+  type MovementDetailActionView,
+} from './MovementDetailSheetView';
 import { YearMonthSelectorView } from './YearMonthSelectorView';
 import type { MonthlyMovementsViewProps } from './MonthlyMovementsView.contract';
 
@@ -36,6 +41,16 @@ function txItemTypeClass(type: TransactionHistoryItemView['type']): string {
     return 'expense-item expense-item--transfer';
   }
   return 'expense-item expense-item--expense';
+}
+
+function txAmountKind(type: TransactionHistoryItemView['type']): MovementAmountKindView {
+  if (type === 'income' || type === 'transfer_in') {
+    return 'income';
+  }
+  if (type === 'transfer' || type === 'transfer_out') {
+    return 'transfer';
+  }
+  return 'expense';
 }
 
 type MovementVisualType = ScheduledMovementView['type'] | ExpectedMovementView['type'];
@@ -76,6 +91,20 @@ function txAmount(amount: string, currency: string): string {
   return formatCurrencyAmount(Math.abs(numeric).toString(), currency);
 }
 
+function movementAmountSign(type: MovementVisualType): ReactNode {
+  if (type === 'income') {
+    return '+';
+  }
+  if (type === 'transfer') {
+    return <i className="bi bi-arrow-left-right movement-amount-transfer-icon" aria-hidden />;
+  }
+  return '-';
+}
+
+function movementDetailActions(actions: Array<MovementDetailActionView | undefined>): MovementDetailActionView[] {
+  return actions.filter((action): action is MovementDetailActionView => Boolean(action));
+}
+
 function scheduledStatus(item: ScheduledMovementView): string {
   if (item.status === 'active') return 'scheduled';
   if (item.status === 'deactivated') return 'deactivated';
@@ -112,28 +141,6 @@ function compactTagNames(tags?: string[]): string | undefined {
     visible.push(`+${tags.length - 2}`);
   }
   return visible.join(' ');
-}
-
-function renderSplitItems(items: Array<{ id: string; name: string; amount: string }>): ReactNode {
-  if (items.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="stack detail-split-list">
-      <span className="hint detail-meta-label">Splits</span>
-      <ul className="expense-list expense-list--compact" aria-label="Split items">
-        {items.map((item) => (
-          <li key={item.id} className="expense-item expense-item--compact">
-            <div className="inline-header">
-              <strong>{item.name}</strong>
-              <span>{item.amount}</span>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
 }
 
 function groupExpectedMovementsByDate(items: ExpectedMovementView[]): ExpectedDateGroup[] {
@@ -483,251 +490,195 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
       ) : null}
 
       {selectedTransaction ? (
-        <div className="sheet-backdrop" role="presentation" onClick={() => setSelectedTransaction(null)}>
-          <section
-            className="sheet-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Transaction details"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="inline-header">
-              <h3>{selectedTransaction.merchant || selectedTransaction.description || txLabel(selectedTransaction.type)}</h3>
-              <button
-                type="button"
-                className="text-button icon-button"
-                aria-label="Close transaction details"
-                onClick={() => setSelectedTransaction(null)}
-              >
-                <i className="bi bi-x-lg" aria-hidden />
-              </button>
-            </div>
-            <p className="summary-amount">
-              {txSign(selectedTransaction.type)}
-              {txAmount(selectedTransaction.amount, selectedTransaction.currency)}
-            </p>
-            <div className="stack">
-              <p className="hint">{formatCalendarDay(selectedTransaction.occurredAt)}</p>
-              <p className="hint">{selectedTransaction.category?.name ?? 'No category'}</p>
-              <p className="hint">{compactTags(selectedTransaction.tags) ?? 'No tags'}</p>
-              <p className="hint">Status: {selectedTransaction.status}</p>
-            </div>
-            {renderSplitItems(selectedTransaction.items)}
-            <div className="quick-row">
-              {selectedTransaction.status === 'posted' ? (
-                <button
-                  type="button"
-                  className="danger-button"
-                  disabled={disabled || pendingVoidTransactionId === selectedTransaction.id}
-                  onClick={() => {
+        <MovementDetailSheetView
+          required={{
+            config: {
+              ariaLabel: 'Transaction details',
+              closeLabel: 'Close transaction details',
+            },
+            data: {
+              title: selectedTransaction.merchant || selectedTransaction.description || txLabel(selectedTransaction.type),
+              kicker: txLabel(selectedTransaction.type),
+              iconClassName: txKindIconClass(selectedTransaction.type),
+              amount: {
+                kind: txAmountKind(selectedTransaction.type),
+                sign: txSign(selectedTransaction.type),
+                value: selectedTransaction.amount,
+                currency: selectedTransaction.currency,
+              },
+              meta: [
+                { label: 'Date', value: formatCalendarDay(selectedTransaction.occurredAt) },
+                { label: 'Category', value: selectedTransaction.category?.name ?? 'No category' },
+                { label: 'Tags', value: compactTags(selectedTransaction.tags) ?? 'No tags' },
+                { label: 'Status', value: selectedTransaction.status },
+              ],
+              splitItems: selectedTransaction.items,
+              actions: movementDetailActions([
+                selectedTransaction.status === 'posted' ? {
+                  key: 'void',
+                  label: pendingVoidTransactionId === selectedTransaction.id ? 'Pending...' : 'Void movement',
+                  variant: 'danger',
+                  disabled: pendingVoidTransactionId === selectedTransaction.id,
+                  onClick: () => {
                     provided.commands.requestVoid(selectedTransaction.id);
                     setSelectedTransaction(null);
-                  }}
-                >
-                  {pendingVoidTransactionId === selectedTransaction.id ? 'Pending...' : 'Void movement'}
-                </button>
-              ) : null}
-              <button type="button" className="text-button" onClick={() => setSelectedTransaction(null)}>
-                Close
-              </button>
-            </div>
-          </section>
-        </div>
+                  },
+                } : undefined,
+                {
+                  key: 'close',
+                  label: 'Close',
+                  variant: 'text',
+                  onClick: () => setSelectedTransaction(null),
+                },
+              ]),
+            },
+            state: { open: true },
+            status: { disabled },
+          }}
+          provided={{ commands: { close: () => setSelectedTransaction(null) } }}
+        />
       ) : null}
 
       {selectedExpectedMovement ? (
-        <div className="sheet-backdrop" role="presentation" onClick={() => setSelectedExpectedMovement(null)}>
-          <section
-            className="sheet-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Expected movement details"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="detail-sheet-header">
-              <div className="detail-sheet-title">
-                <span className="detail-sheet-kicker">
-                  <i className={movementKindIconClass(selectedExpectedMovement.type)} aria-hidden />
-                  <span>Expected</span>
-                </span>
-                <h3>{selectedExpectedMovement.merchant || selectedExpectedMovement.description || 'Expected movement'}</h3>
-              </div>
-              <button
-                type="button"
-                className="text-button icon-button"
-                aria-label="Close expected movement details"
-                onClick={() => setSelectedExpectedMovement(null)}
-              >
-                <i className="bi bi-x-lg" aria-hidden />
-              </button>
-            </div>
-            <div className="detail-sheet-amount detail-sheet-amount--scheduled">
-              {selectedExpectedMovement.type === 'income' ? '+' : '-'}
-              {txAmount(selectedExpectedMovement.amount, selectedExpectedMovement.currency)}
-            </div>
-            <div className="detail-meta-grid">
-              <div className="detail-meta-item">
-                <span className="hint detail-meta-label">Expected</span>
-                <strong>{formatCalendarDay(selectedExpectedMovement.expectedAt)}</strong>
-              </div>
-              <div className="detail-meta-item">
-                <span className="hint detail-meta-label">Category</span>
-                <strong>{resolveExpectedCategoryName(selectedExpectedMovement.categoryId) ?? 'No category'}</strong>
-              </div>
-              <div className="detail-meta-item">
-                <span className="hint detail-meta-label">Origin</span>
-                <strong>{expectedOrigin(selectedExpectedMovement)}</strong>
-              </div>
-              <div className="detail-meta-item">
-                <span className="hint detail-meta-label">Status</span>
-                <strong>{selectedExpectedMovement.status}</strong>
-              </div>
-            </div>
-            {renderSplitItems(selectedExpectedMovement.splitItems)}
-            <div className="detail-actions">
-              <button
-                type="button"
-                disabled={disabled}
-                onClick={() => {
-                  void provided.commands.postExpectedMovement(
-                    selectedExpectedMovement,
-                    resolveExpectedCategoryName(selectedExpectedMovement.categoryId),
-                  ).then((posted) => {
-                    if (posted) {
-                      setSelectedExpectedMovement(null);
-                    }
-                  });
-                }}
-              >
-                Post movement
-              </button>
-              <button
-                type="button"
-                className="text-button"
-                disabled={disabled}
-                onClick={() => {
-                  provided.commands.editExpectedMovement(
-                    selectedExpectedMovement,
-                    resolveExpectedCategoryName(selectedExpectedMovement.categoryId),
-                  );
-                  setSelectedExpectedMovement(null);
-                }}
-              >
-                Edit expected
-              </button>
-              <button
-                type="button"
-                className="text-button danger-button"
-                disabled={disabled || pendingDismissExpectedId === selectedExpectedMovement.id}
-                onClick={() => {
-                  void provided.commands.dismissExpectedMovement(selectedExpectedMovement).then((dismissed) => {
-                    if (dismissed) {
-                      setSelectedExpectedMovement(null);
-                    }
-                  });
-                }}
-              >
-                {pendingDismissExpectedId === selectedExpectedMovement.id ? 'Removing...' : 'Remove movement'}
-              </button>
-              <button type="button" className="text-button" onClick={() => setSelectedExpectedMovement(null)}>
-                Close
-              </button>
-            </div>
-          </section>
-        </div>
+        <MovementDetailSheetView
+          required={{
+            config: {
+              ariaLabel: 'Expected movement details',
+              closeLabel: 'Close expected movement details',
+            },
+            data: {
+              title: selectedExpectedMovement.merchant || selectedExpectedMovement.description || 'Expected movement',
+              kicker: 'Expected',
+              iconClassName: movementKindIconClass(selectedExpectedMovement.type),
+              amount: {
+                kind: 'scheduled',
+                sign: movementAmountSign(selectedExpectedMovement.type),
+                value: selectedExpectedMovement.amount,
+                currency: selectedExpectedMovement.currency,
+              },
+              meta: [
+                { label: 'Expected', value: formatCalendarDay(selectedExpectedMovement.expectedAt) },
+                { label: 'Category', value: resolveExpectedCategoryName(selectedExpectedMovement.categoryId) ?? 'No category' },
+                { label: 'Origin', value: expectedOrigin(selectedExpectedMovement) },
+                { label: 'Status', value: selectedExpectedMovement.status },
+              ],
+              splitItems: selectedExpectedMovement.splitItems,
+              actions: [
+                {
+                  key: 'post',
+                  label: 'Post movement',
+                  onClick: () => {
+                    void provided.commands.postExpectedMovement(
+                      selectedExpectedMovement,
+                      resolveExpectedCategoryName(selectedExpectedMovement.categoryId),
+                    ).then((posted) => {
+                      if (posted) {
+                        setSelectedExpectedMovement(null);
+                      }
+                    });
+                  },
+                },
+                {
+                  key: 'edit',
+                  label: 'Edit expected',
+                  variant: 'text',
+                  onClick: () => {
+                    provided.commands.editExpectedMovement(
+                      selectedExpectedMovement,
+                      resolveExpectedCategoryName(selectedExpectedMovement.categoryId),
+                    );
+                    setSelectedExpectedMovement(null);
+                  },
+                },
+                {
+                  key: 'remove',
+                  label: pendingDismissExpectedId === selectedExpectedMovement.id ? 'Removing...' : 'Remove movement',
+                  variant: 'text-danger',
+                  disabled: pendingDismissExpectedId === selectedExpectedMovement.id,
+                  onClick: () => {
+                    void provided.commands.dismissExpectedMovement(selectedExpectedMovement).then((dismissed) => {
+                      if (dismissed) {
+                        setSelectedExpectedMovement(null);
+                      }
+                    });
+                  },
+                },
+                {
+                  key: 'close',
+                  label: 'Close',
+                  variant: 'text',
+                  onClick: () => setSelectedExpectedMovement(null),
+                },
+              ],
+            },
+            state: { open: true },
+            status: { disabled },
+          }}
+          provided={{ commands: { close: () => setSelectedExpectedMovement(null) } }}
+        />
       ) : null}
 
       {showScheduledSection && scheduledHasItems && selectedScheduledMovement ? (
-        <div className="sheet-backdrop" role="presentation" onClick={() => setSelectedScheduledMovement(null)}>
-          <section
-            className="sheet-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Scheduled movement details"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="detail-sheet-header">
-              <div className="detail-sheet-title">
-                <span className="detail-sheet-kicker">
-                  <i className={movementKindIconClass(selectedScheduledMovement.type)} aria-hidden />
-                  <span>Scheduled</span>
-                </span>
-                <h3>{selectedScheduledMovement.merchant || selectedScheduledMovement.description || 'Scheduled movement'}</h3>
-              </div>
-              <button
-                type="button"
-                className="text-button icon-button"
-                aria-label="Close scheduled movement details"
-                onClick={() => setSelectedScheduledMovement(null)}
-              >
-                <i className="bi bi-x-lg" aria-hidden />
-              </button>
-            </div>
-            <div className="detail-sheet-amount detail-sheet-amount--scheduled">
-              {selectedScheduledMovement.type === 'income' ? '+' : null}
-              {selectedScheduledMovement.type === 'transfer' ? <i className="bi bi-arrow-left-right movement-amount-transfer-icon" aria-hidden /> : null}
-              {selectedScheduledMovement.type === 'expense' ? '-' : null}
-              {txAmount(selectedScheduledMovement.amount, selectedScheduledMovement.currency)}
-            </div>
-            <div className="detail-meta-grid">
-              <div className="detail-meta-item">
-                <span className="hint detail-meta-label">Due</span>
-                <strong>{formatCalendarDay(selectedScheduledMovement.nextDueAt ?? selectedScheduledMovement.startAt)}</strong>
-              </div>
-              <div className="detail-meta-item">
-                <span className="hint detail-meta-label">Origin</span>
-                <strong>{scheduledOrigin(selectedScheduledMovement)}</strong>
-              </div>
-              <div className="detail-meta-item">
-                <span className="hint detail-meta-label">Category</span>
-                <strong>{resolveScheduledCategoryName(selectedScheduledMovement.categoryId) ?? 'No category'}</strong>
-              </div>
-              <div className="detail-meta-item">
-                <span className="hint detail-meta-label">Tags</span>
-                <strong>{compactTagNames(resolveScheduledTagNames(selectedScheduledMovement)) ?? 'No tags'}</strong>
-              </div>
-              <div className="detail-meta-item">
-                <span className="hint detail-meta-label">Status</span>
-                <strong>{scheduledStatus(selectedScheduledMovement)}</strong>
-              </div>
-            </div>
-            {renderSplitItems(selectedScheduledMovement.splitItems)}
-            <div className="detail-actions">
-              {selectedScheduledMovement.status === 'active' ? (
-                <button
-                  type="button"
-                  className="text-button"
-                  disabled={disabled}
-                  onClick={() => {
+        <MovementDetailSheetView
+          required={{
+            config: {
+              ariaLabel: 'Scheduled movement details',
+              closeLabel: 'Close scheduled movement details',
+            },
+            data: {
+              title: selectedScheduledMovement.merchant || selectedScheduledMovement.description || 'Scheduled movement',
+              kicker: 'Scheduled',
+              iconClassName: movementKindIconClass(selectedScheduledMovement.type),
+              amount: {
+                kind: 'scheduled',
+                sign: movementAmountSign(selectedScheduledMovement.type),
+                value: selectedScheduledMovement.amount,
+                currency: selectedScheduledMovement.currency,
+              },
+              meta: [
+                { label: 'Due', value: formatCalendarDay(selectedScheduledMovement.nextDueAt ?? selectedScheduledMovement.startAt) },
+                { label: 'Origin', value: scheduledOrigin(selectedScheduledMovement) },
+                { label: 'Category', value: resolveScheduledCategoryName(selectedScheduledMovement.categoryId) ?? 'No category' },
+                { label: 'Tags', value: compactTagNames(resolveScheduledTagNames(selectedScheduledMovement)) ?? 'No tags' },
+                { label: 'Status', value: scheduledStatus(selectedScheduledMovement) },
+              ],
+              splitItems: selectedScheduledMovement.splitItems,
+              actions: movementDetailActions([
+                selectedScheduledMovement.status === 'active' ? {
+                  key: 'edit',
+                  label: 'Edit movement',
+                  variant: 'text',
+                  onClick: () => {
                     provided.commands.editScheduledMovement(
                       selectedScheduledMovement,
                       resolveScheduledCategoryName(selectedScheduledMovement.categoryId),
                     );
                     setSelectedScheduledMovement(null);
-                  }}
-                >
-                  Edit movement
-                </button>
-              ) : null}
-              {selectedScheduledMovement.status === 'active' ? (
-                <button
-                  type="button"
-                  className="danger-button"
-                  disabled={disabled || pendingDeactivateScheduledId === selectedScheduledMovement.id}
-                  onClick={() => {
+                  },
+                } : undefined,
+                selectedScheduledMovement.status === 'active' ? {
+                  key: 'deactivate',
+                  label: pendingDeactivateScheduledId === selectedScheduledMovement.id ? 'Deactivating...' : 'Deactivate movement',
+                  variant: 'danger',
+                  disabled: pendingDeactivateScheduledId === selectedScheduledMovement.id,
+                  onClick: () => {
                     void provided.commands.deactivateScheduledMovement(selectedScheduledMovement.id);
                     setSelectedScheduledMovement(null);
-                  }}
-                >
-                  {pendingDeactivateScheduledId === selectedScheduledMovement.id ? 'Deactivating...' : 'Deactivate movement'}
-                </button>
-              ) : null}
-              <button type="button" className="text-button" onClick={() => setSelectedScheduledMovement(null)}>
-                Close
-              </button>
-            </div>
-          </section>
-        </div>
+                  },
+                } : undefined,
+                {
+                  key: 'close',
+                  label: 'Close',
+                  variant: 'text',
+                  onClick: () => setSelectedScheduledMovement(null),
+                },
+              ]),
+            },
+            state: { open: true },
+            status: { disabled },
+          }}
+          provided={{ commands: { close: () => setSelectedScheduledMovement(null) } }}
+        />
       ) : null}
 
     </section>
