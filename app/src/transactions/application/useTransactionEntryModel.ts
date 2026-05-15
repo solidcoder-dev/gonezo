@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import type {
   LedgerAccountItem,
-  SchedulingCreateMovementInput,
   SchedulingEndInput,
   SchedulingFrequency,
   SchedulingMonthlyPattern,
@@ -11,21 +10,35 @@ import type {
 } from '../../shared/domain/corePort';
 import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
 import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
-import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
-import { createSchedulingGateway } from '../../scheduling/infrastructure/schedulingGateway';
-import { createExpectedGateway } from '../../expected/infrastructure/expectedGateway';
+import type { LedgerGatewayPort } from '../../ledger/infrastructure/ledgerGateway';
+import type { SchedulingGatewayPort } from '../../scheduling/infrastructure/schedulingGateway';
+import type { ExpectedGatewayPort } from '../../expected/infrastructure/expectedGateway';
 import { useCategorySuggestions } from '../../taxonomy/application/useCategorySuggestions';
 import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions';
 import { useTransactionClassification } from '../../taxonomy/application/useTransactionClassification';
 import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.types';
-import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
+import type { TaxonomyGatewayPort } from '../../taxonomy/infrastructure/taxonomyGateway';
 import type { ExpenseItemDraft, TransactionFieldErrors } from '../domain/transactions.types';
 import type { TransactionEntryViewProvided, TransactionEntryViewRequired } from '../ui/TransactionEntryView';
 import type { TransactionEntryPrefillRequest } from './TransactionEntryComponent.contract';
-import type { TransactionsCorePort } from './transactionsCore.port';
+import {
+  buildSchedulingParts,
+  buildTransferAmountParts,
+} from './transactionComposerPayloads';
+import {
+  hasTransactionComposerValidationErrors,
+  validateTransactionComposerSubmission,
+} from './transactionComposerValidation';
+
+export type TransactionEntryModelPorts = {
+  ledger: LedgerGatewayPort;
+  scheduling: SchedulingGatewayPort;
+  expected: ExpectedGatewayPort;
+  taxonomy: TaxonomyGatewayPort;
+};
 
 type UseTransactionEntryModelInput = {
-  core: TransactionsCorePort;
+  ports: TransactionEntryModelPorts;
   accountId: string | null;
   enabled: boolean;
   prefillRequest?: TransactionEntryPrefillRequest;
@@ -94,14 +107,6 @@ function dayOfMonthFromDateInput(dateInput: string): string {
   return String(new Date().getUTCDate());
 }
 
-function isFutureIsoDateInput(dateInput: string): boolean {
-  const trimmed = dateInput.trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    return false;
-  }
-  return trimmed > todayIso();
-}
-
 function weekDayIsoFromDateInput(dateInput: string): string {
   const parsed = /^\d{4}-\d{2}-\d{2}$/.test(dateInput)
     ? new Date(`${dateInput}T12:00:00`)
@@ -165,7 +170,7 @@ function mergeCategories(
 }
 
 export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
-  const { core, accountId, enabled, prefillRequest, onRecorded, onError } = input;
+  const { ports, accountId, enabled, prefillRequest, onRecorded, onError } = input;
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -214,16 +219,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [recurrenceEndCount, setRecurrenceEndCount] = useState('12');
   const [fieldErrors, setFieldErrors] = useState<TransactionFieldErrors>({});
 
-  const ledgerGateway = useMemo(() => createLedgerGateway(core), [core]);
-  const schedulingGateway = useMemo(() => createSchedulingGateway(core), [core]);
-  const expectedGateway = useMemo(() => createExpectedGateway(core), [core]);
-  const taxonomyGateway = useMemo(() => createTaxonomyGateway(core), [core]);
-
-  const ledgerAccounts = useLedgerAccounts(ledgerGateway);
-  const ledgerTransactionCommands = useLedgerTransactionCommands(ledgerGateway);
-  const categorySuggestions = useCategorySuggestions(taxonomyGateway);
-  const tagSuggestions = useTagSuggestions(taxonomyGateway);
-  const transactionClassification = useTransactionClassification(taxonomyGateway);
+  const ledgerAccounts = useLedgerAccounts(ports.ledger);
+  const ledgerTransactionCommands = useLedgerTransactionCommands(ports.ledger);
+  const categorySuggestions = useCategorySuggestions(ports.taxonomy);
+  const tagSuggestions = useTagSuggestions(ports.taxonomy);
+  const transactionClassification = useTransactionClassification(ports.taxonomy);
 
   const transferTargetOptions = useMemo(
     () => accounts.filter((account) => account.id !== accountId),
@@ -1022,132 +1022,51 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       return;
     }
 
-    const amount = transactionAmount.trim();
-    const nextErrors: TransactionFieldErrors = {};
-    if (!amount || Number.isNaN(Number(amount)) || Number(amount) <= 0) {
-      nextErrors.amount = 'Enter a valid amount greater than 0.';
-    }
-
-    const resolvedTransactionDate = transactionDate.trim() || todayIso();
-    const editingScheduledMovement = Boolean(editedScheduledMovementId);
-    const movementExpected = (composerMode === 'expense' || composerMode === 'income') && expectedMovement && !editingScheduledMovement;
-    const movementScheduled = (composerMode === 'expense' || composerMode === 'income')
-      && !movementExpected
-      && !editedExpectedMovementId
-      && !postExpectedMovementId
-      && !editingScheduledMovement
-      && (recurrenceEnabled || isFutureIsoDateInput(resolvedTransactionDate));
-
-    if (!movementExpected && composerMode !== 'expense') {
-      if (schedulingMode === 'now' && transactionDate) {
-        const today = todayIso();
-        if (/^\d{4}-\d{2}-\d{2}$/.test(resolvedTransactionDate)) {
-          if (resolvedTransactionDate > today) {
-            nextErrors.date = 'Manual movements cannot use a future date.';
-          }
-        } else {
-          const parsed = new Date(resolvedTransactionDate);
-          if (!Number.isNaN(parsed.getTime()) && parsed.getTime() > Date.now()) {
-            nextErrors.date = 'Manual movements cannot use a future date.';
-          }
-        }
-      }
-      if (schedulingMode === 'scheduled' && transactionDate) {
-        const today = todayIso();
-        if (/^\d{4}-\d{2}-\d{2}$/.test(resolvedTransactionDate)) {
-          if (resolvedTransactionDate < today) {
-            nextErrors.date = 'Scheduled movements must use today or a future date.';
-          }
-        } else {
-          const parsed = new Date(resolvedTransactionDate);
-          const todayMidnight = new Date(`${today}T00:00:00`);
-          if (!Number.isNaN(parsed.getTime()) && parsed.getTime() < todayMidnight.getTime()) {
-            nextErrors.date = 'Scheduled movements must use today or a future date.';
-          }
-        }
-      }
-    }
-
     const transferTarget = composerMode === 'transfer'
       ? accounts.find((account) => account.id === transferToAccountId)
       : undefined;
 
-    if (composerMode === 'transfer' && !transferToAccountId) {
-      setError('Select a destination account for transfer.');
+    const validation = validateTransactionComposerSubmission({
+      accountId,
+      mode: composerMode,
+      amount: transactionAmount,
+      transactionDate,
+      schedulingMode,
+      recurrenceEnabled,
+      expectedMovement,
+      editedExpectedMovementId,
+      editedScheduledMovementId,
+      postExpectedMovementId,
+      transferToAccountId,
+      transferTarget,
+      accountCurrency,
+      transferAmountIn,
+      transferFxRate,
+      transferFxMode,
+      expenseDetailed,
+      expenseItemsLength: expenseItems.length,
+      expenseRemaining,
+      recurrenceInterval,
+      recurrenceEndKind,
+      recurrenceEndDate,
+      recurrenceEndCount,
+      todayIso: todayIso(),
+    });
+
+    if (validation.blockingError) {
+      setError(validation.blockingError);
       return;
     }
 
-    if (composerMode === 'transfer' && transferToAccountId === accountId) {
-      setError('Source and destination accounts must be different.');
+    if (hasTransactionComposerValidationErrors(validation.errors)) {
+      setFieldErrors(validation.errors);
       return;
     }
 
-    if (composerMode === 'transfer' && !transferTarget) {
-      setError('Select a valid destination account.');
-      return;
-    }
-
-    const transferCrossCurrencySelection = Boolean(
-      composerMode === 'transfer'
-      && transferTarget
-      && transferTarget.currency.toUpperCase() !== accountCurrency.toUpperCase(),
-    );
-
-    if (composerMode === 'transfer' && transferCrossCurrencySelection) {
-      const amountIn = transferAmountIn.trim();
-
-      if (!amountIn || Number.isNaN(Number(amountIn)) || Number(amountIn) <= 0) {
-        nextErrors.transferAmountIn = 'Enter a valid destination amount greater than 0.';
-      }
-
-      if (transferFxMode === 'auto_destination') {
-        const fxRate = transferFxRate.trim();
-        if (!fxRate || Number.isNaN(Number(fxRate)) || Number(fxRate) <= 0) {
-          nextErrors.transferFxRate = 'Enter a valid FX rate greater than 0.';
-        }
-      }
-    }
-
-    if ((composerMode === 'expense' || composerMode === 'income') && expenseDetailed) {
-      if (expenseItems.length === 0) {
-        nextErrors.expenseSplit = 'Add at least one item before publishing.';
-      }
-      if (parseAmount(expenseRemaining) !== 0) {
-        nextErrors.expenseSplit = 'Items must match the total amount before publishing.';
-      }
-    }
-
-    if (recurrenceEnabled) {
-      const interval = Number(recurrenceInterval.trim());
-      if (!Number.isFinite(interval) || interval <= 0 || !Number.isInteger(interval)) {
-        nextErrors.recurrenceInterval = 'Recurrence interval must be a positive integer.';
-      }
-      if (recurrenceEndKind === 'on_date' && !recurrenceEndDate.trim()) {
-        nextErrors.recurrenceEndDate = 'Recurrence end date is required.';
-      }
-      if (recurrenceEndKind === 'after_occurrences') {
-        const count = Number(recurrenceEndCount.trim());
-        if (!Number.isFinite(count) || count <= 0 || !Number.isInteger(count)) {
-          nextErrors.recurrenceEndCount = 'Recurrence count must be a positive integer.';
-        }
-      }
-    }
-
-    if (
-      nextErrors.amount
-      || nextErrors.transferAmountIn
-      || nextErrors.transferFxRate
-      || nextErrors.date
-      || nextErrors.recurrenceInterval
-      || nextErrors.recurrenceEndDate
-      || nextErrors.recurrenceEndCount
-      || nextErrors.expenseItemName
-      || nextErrors.expenseItemAmount
-      || nextErrors.expenseSplit
-    ) {
-      setFieldErrors(nextErrors);
-      return;
-    }
+    const amount = transactionAmount.trim();
+    const resolvedTransactionDate = validation.resolvedTransactionDate;
+    const movementExpected = validation.movementExpected;
+    const movementScheduled = validation.movementScheduled;
 
     setPostingTransaction(true);
     try {
@@ -1156,79 +1075,49 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       const tagIds = resolveTagSelectionIds(tagNames);
       let recorded = false;
       let postedTransactionId = '';
+      const buildCurrentSchedulingParts = (enabled = recurrenceEnabled) => buildSchedulingParts({
+        recurrenceEnabled: enabled,
+        recurrenceFrequency,
+        recurrenceInterval,
+        recurrenceWeeklyDay,
+        recurrenceMonthlyPattern,
+        recurrenceDayOfMonth,
+        recurrenceMonthlyOrdinal,
+        recurrenceMonthlyWeekday,
+        recurrenceEndKind,
+        recurrenceEndDate,
+        recurrenceEndCount,
+        transactionDate,
+      });
 
       if (editedScheduledMovementId) {
         const scheduleKind = schedulingKind;
-        let scheduleRule: SchedulingCreateMovementInput['rule'];
-        let scheduleEnd: SchedulingCreateMovementInput['recurrenceEnd'];
-
-        if (recurrenceEnabled) {
-          const interval = Number(recurrenceInterval.trim());
-          scheduleRule = {
-            frequency: recurrenceFrequency,
-            interval,
-          };
-          if (recurrenceFrequency === 'weekly') {
-            scheduleRule.weeklyDays = [Number(recurrenceWeeklyDay || '1')];
-          }
-          if (recurrenceFrequency === 'monthly') {
-            scheduleRule.monthlyPattern = recurrenceMonthlyPattern;
-            if (recurrenceMonthlyPattern === 'day_of_month') {
-              scheduleRule.dayOfMonth = Number(recurrenceDayOfMonth || dayOfMonthFromDateInput(transactionDate));
-            } else {
-              scheduleRule.monthlyWeekOrdinal = Number(recurrenceMonthlyOrdinal || '1');
-              scheduleRule.monthlyWeekday = Number(recurrenceMonthlyWeekday || weekDayIsoFromDateInput(transactionDate));
-            }
-          }
-
-          scheduleEnd = recurrenceEndKind === 'on_date'
-            ? { kind: 'on_date', onDate: recurrenceEndDate.trim() }
-            : recurrenceEndKind === 'after_occurrences'
-              ? { kind: 'after_occurrences', afterOccurrences: Number(recurrenceEndCount.trim()) }
-              : { kind: 'never' };
-        } else {
-          scheduleRule = {
-            frequency: 'daily',
-            interval: 1,
-          };
-          scheduleEnd = {
-            kind: 'after_occurrences',
-            afterOccurrences: 1,
-          };
-        }
+        const { rule: scheduleRule, recurrenceEnd: scheduleEnd } = buildCurrentSchedulingParts();
 
         if (composerMode === 'transfer') {
           const transferTargetAccount = accounts.find((candidate) => candidate.id === transferToAccountId);
           if (!transferTargetAccount) {
             throw new Error('Destination account not found');
           }
-          const isCrossCurrencyTransfer = transferTargetAccount.currency.toUpperCase() !== accountCurrency.toUpperCase();
-          const sourceAmountNumeric = parseAmount(amount);
-          const sourceAmount = formatAmount(sourceAmountNumeric);
+          const transferAmountParts = buildTransferAmountParts({
+            sourceAmount: amount,
+            sourceCurrency: accountCurrency,
+            targetCurrency: transferTargetAccount.currency,
+            transferAmountIn,
+            transferFxRate,
+            transferFxMode,
+          });
 
-          let destinationAmount: string | undefined;
-          let destinationCurrency: string | undefined;
-          let exchangeRate: string | undefined;
-          if (isCrossCurrencyTransfer) {
-            const destinationAmountNumeric = parseAmount(transferAmountIn);
-            const resolvedRate = transferFxMode === 'auto_rate'
-              ? destinationAmountNumeric / sourceAmountNumeric
-              : parseAmount(transferFxRate);
-            destinationAmount = formatAmount(destinationAmountNumeric);
-            destinationCurrency = transferTargetAccount.currency;
-            exchangeRate = formatFxRate(resolvedRate);
-          }
-
-          await schedulingGateway.schedulingUpdateMovement({
+          await ports.scheduling.schedulingUpdateMovement({
             recurringMovementId: editedScheduledMovementId,
             type: 'transfer',
             sourceAccountId: accountId,
             targetAccountId: transferToAccountId,
-            amount: sourceAmount,
-            currency: accountCurrency,
-            destinationAmount,
-            destinationCurrency,
-            exchangeRate,
+            amount: transferAmountParts.amount,
+            currency: transferAmountParts.currency,
+            destinationAmount: transferAmountParts.destinationAmount,
+            destinationCurrency: transferAmountParts.destinationCurrency,
+            exchangeRate: transferAmountParts.exchangeRate,
             description: transactionNote.trim() || undefined,
             merchant: undefined,
             categoryId: undefined,
@@ -1244,7 +1133,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
         if (composerMode === 'income') {
           const categoryId = await resolveCategorySelection('income');
-          await schedulingGateway.schedulingUpdateMovement({
+          await ports.scheduling.schedulingUpdateMovement({
             recurringMovementId: editedScheduledMovementId,
             type: 'income',
             sourceAccountId: accountId,
@@ -1266,7 +1155,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
         if (composerMode === 'expense') {
           const categoryId = await resolveCategorySelection('expense');
-          await schedulingGateway.schedulingUpdateMovement({
+          await ports.scheduling.schedulingUpdateMovement({
             recurringMovementId: editedScheduledMovementId,
             type: 'expense',
             sourceAccountId: accountId,
@@ -1302,43 +1191,21 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           splitItems: expenseItems,
         };
         if (editedExpectedMovementId) {
-          await expectedGateway.expectedUpdateMovement({
+          await ports.expected.expectedUpdateMovement({
             expectedMovementId: editedExpectedMovementId,
             ...expectedPayload,
           });
         } else {
-          await expectedGateway.expectedCreateMovement(expectedPayload);
+          await ports.expected.expectedCreateMovement(expectedPayload);
         }
         recorded = true;
       }
 
       if (!editedScheduledMovementId && (composerMode === 'expense' || composerMode === 'income') && recurrenceEnabled) {
         const categoryId = await resolveCategorySelection(composerMode);
-        const interval = Number(recurrenceInterval.trim());
-        const scheduleRule: SchedulingCreateMovementInput['rule'] = {
-          frequency: recurrenceFrequency,
-          interval,
-        };
-        if (recurrenceFrequency === 'weekly') {
-          scheduleRule.weeklyDays = [Number(recurrenceWeeklyDay || '1')];
-        }
-        if (recurrenceFrequency === 'monthly') {
-          scheduleRule.monthlyPattern = recurrenceMonthlyPattern;
-          if (recurrenceMonthlyPattern === 'day_of_month') {
-            scheduleRule.dayOfMonth = Number(recurrenceDayOfMonth || dayOfMonthFromDateInput(transactionDate));
-          } else {
-            scheduleRule.monthlyWeekOrdinal = Number(recurrenceMonthlyOrdinal || '1');
-            scheduleRule.monthlyWeekday = Number(recurrenceMonthlyWeekday || weekDayIsoFromDateInput(transactionDate));
-          }
-        }
+        const { rule: scheduleRule, recurrenceEnd: scheduleEnd } = buildCurrentSchedulingParts(true);
 
-        const scheduleEnd: SchedulingCreateMovementInput['recurrenceEnd'] = recurrenceEndKind === 'on_date'
-          ? { kind: 'on_date', onDate: recurrenceEndDate.trim() }
-          : recurrenceEndKind === 'after_occurrences'
-            ? { kind: 'after_occurrences', afterOccurrences: Number(recurrenceEndCount.trim()) }
-            : { kind: 'never' };
-
-        await schedulingGateway.schedulingCreateMovement({
+        await ports.scheduling.schedulingCreateMovement({
           type: composerMode,
           sourceAccountId: accountId,
           amount: formatAmount(parseAmount(amount)),
@@ -1360,7 +1227,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
       if (!recorded && (composerMode === 'expense' || composerMode === 'income') && movementScheduled) {
         const categoryId = await resolveCategorySelection(composerMode);
-        await schedulingGateway.schedulingCreateMovement({
+        const { rule: scheduleRule, recurrenceEnd: scheduleEnd } = buildCurrentSchedulingParts(false);
+        await ports.scheduling.schedulingCreateMovement({
           type: composerMode,
           sourceAccountId: accountId,
           amount: formatAmount(parseAmount(amount)),
@@ -1370,14 +1238,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           categoryId,
           tagIds,
           tagNames,
-          rule: {
-            frequency: 'daily',
-            interval: 1,
-          },
-          recurrenceEnd: {
-            kind: 'after_occurrences',
-            afterOccurrences: 1,
-          },
+          rule: scheduleRule,
+          recurrenceEnd: scheduleEnd,
           startAt: occurredAt,
           zoneId: resolveTimeZoneId(),
           scheduleKind: 'one_shot',
@@ -1389,75 +1251,31 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         const categoryId = composerMode === 'income'
           ? await resolveCategorySelection('income')
           : undefined;
-        let scheduleRule: SchedulingCreateMovementInput['rule'];
-        let scheduleEnd: SchedulingCreateMovementInput['recurrenceEnd'];
-
-        if (recurrenceEnabled) {
-          const interval = Number(recurrenceInterval.trim());
-          scheduleRule = {
-            frequency: recurrenceFrequency,
-            interval,
-          };
-          if (recurrenceFrequency === 'weekly') {
-            scheduleRule.weeklyDays = [Number(recurrenceWeeklyDay || '1')];
-          }
-          if (recurrenceFrequency === 'monthly') {
-            scheduleRule.monthlyPattern = recurrenceMonthlyPattern;
-            if (recurrenceMonthlyPattern === 'day_of_month') {
-              scheduleRule.dayOfMonth = Number(recurrenceDayOfMonth || dayOfMonthFromDateInput(transactionDate));
-            } else {
-              scheduleRule.monthlyWeekOrdinal = Number(recurrenceMonthlyOrdinal || '1');
-              scheduleRule.monthlyWeekday = Number(recurrenceMonthlyWeekday || weekDayIsoFromDateInput(transactionDate));
-            }
-          }
-
-          scheduleEnd = recurrenceEndKind === 'on_date'
-            ? { kind: 'on_date', onDate: recurrenceEndDate.trim() }
-            : recurrenceEndKind === 'after_occurrences'
-              ? { kind: 'after_occurrences', afterOccurrences: Number(recurrenceEndCount.trim()) }
-              : { kind: 'never' };
-        } else {
-          scheduleRule = {
-            frequency: 'daily',
-            interval: 1,
-          };
-          scheduleEnd = {
-            kind: 'after_occurrences',
-            afterOccurrences: 1,
-          };
-        }
+        const { rule: scheduleRule, recurrenceEnd: scheduleEnd } = buildCurrentSchedulingParts();
 
         if (composerMode === 'transfer') {
           const transferTargetAccount = accounts.find((candidate) => candidate.id === transferToAccountId);
           if (!transferTargetAccount) {
             throw new Error('Destination account not found');
           }
-          const isCrossCurrencyTransfer = transferTargetAccount.currency.toUpperCase() !== accountCurrency.toUpperCase();
-          const sourceAmountNumeric = parseAmount(amount);
-          const sourceAmount = formatAmount(sourceAmountNumeric);
+          const transferAmountParts = buildTransferAmountParts({
+            sourceAmount: amount,
+            sourceCurrency: accountCurrency,
+            targetCurrency: transferTargetAccount.currency,
+            transferAmountIn,
+            transferFxRate,
+            transferFxMode,
+          });
 
-          let destinationAmount: string | undefined;
-          let destinationCurrency: string | undefined;
-          let exchangeRate: string | undefined;
-          if (isCrossCurrencyTransfer) {
-            const destinationAmountNumeric = parseAmount(transferAmountIn);
-            const resolvedRate = transferFxMode === 'auto_rate'
-              ? destinationAmountNumeric / sourceAmountNumeric
-              : parseAmount(transferFxRate);
-            destinationAmount = formatAmount(destinationAmountNumeric);
-            destinationCurrency = transferTargetAccount.currency;
-            exchangeRate = formatFxRate(resolvedRate);
-          }
-
-          await schedulingGateway.schedulingCreateMovement({
+          await ports.scheduling.schedulingCreateMovement({
             type: 'transfer',
             sourceAccountId: accountId,
             targetAccountId: transferToAccountId,
-            amount: sourceAmount,
-            currency: accountCurrency,
-            destinationAmount,
-            destinationCurrency,
-            exchangeRate,
+            amount: transferAmountParts.amount,
+            currency: transferAmountParts.currency,
+            destinationAmount: transferAmountParts.destinationAmount,
+            destinationCurrency: transferAmountParts.destinationCurrency,
+            exchangeRate: transferAmountParts.exchangeRate,
             description: transactionNote.trim() || undefined,
             merchant: undefined,
             categoryId: undefined,
@@ -1472,7 +1290,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         }
 
         if (composerMode === 'income') {
-          await schedulingGateway.schedulingCreateMovement({
+          await ports.scheduling.schedulingCreateMovement({
             type: 'income',
             sourceAccountId: accountId,
             amount: formatAmount(parseAmount(amount)),
@@ -1586,53 +1404,36 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           throw new Error('Destination account not found');
         }
 
-        const sourceAmountNumeric = parseAmount(amount);
-        const sourceAmount = formatAmount(sourceAmountNumeric);
-        const isCrossCurrencyTransfer = transferTargetAccount.currency.toUpperCase() !== accountCurrency.toUpperCase();
+        const transferAmountParts = buildTransferAmountParts({
+          sourceAmount: amount,
+          sourceCurrency: accountCurrency,
+          targetCurrency: transferTargetAccount.currency,
+          transferAmountIn,
+          transferFxRate,
+          transferFxMode,
+        });
 
         let result: { transferOutId: string; transferInId: string };
 
-        if (!isCrossCurrencyTransfer) {
+        if (!transferAmountParts.destinationAmount || !transferAmountParts.destinationCurrency) {
           result = await ledgerTransactionCommands.recordTransfer({
             fromAccountId: accountId,
             toAccountId: transferToAccountId,
             occurredAt,
-            amount: sourceAmount,
-            currency: accountCurrency,
+            amount: transferAmountParts.amount,
+            currency: transferAmountParts.currency,
             description: transactionNote.trim() || undefined,
           });
         } else {
-          const destinationAmountNumeric = parseAmount(transferAmountIn);
-          const normalizedDestinationAmount = formatAmount(destinationAmountNumeric);
-          const resolvedRate = transferFxMode === 'auto_rate'
-            ? destinationAmountNumeric / sourceAmountNumeric
-            : parseAmount(transferFxRate);
-
-          if (!Number.isFinite(resolvedRate) || resolvedRate <= 0) {
-            setFieldErrors((previous) => ({
-              ...previous,
-              transferFxRate: 'Enter a valid FX rate greater than 0.',
-            }));
-            return;
-          }
-
-          if (!Number.isFinite(destinationAmountNumeric) || destinationAmountNumeric <= 0) {
-            setFieldErrors((previous) => ({
-              ...previous,
-              transferAmountIn: 'Enter a valid destination amount greater than 0.',
-            }));
-            return;
-          }
-
           result = await ledgerTransactionCommands.recordTransferFx({
             fromAccountId: accountId,
             toAccountId: transferToAccountId,
             occurredAt,
-            sourceAmount,
-            sourceCurrency: accountCurrency,
-            destinationAmount: normalizedDestinationAmount,
-            destinationCurrency: transferTargetAccount.currency,
-            exchangeRate: formatFxRate(resolvedRate),
+            sourceAmount: transferAmountParts.amount,
+            sourceCurrency: transferAmountParts.currency,
+            destinationAmount: transferAmountParts.destinationAmount,
+            destinationCurrency: transferAmountParts.destinationCurrency,
+            exchangeRate: transferAmountParts.exchangeRate,
             description: transactionNote.trim() || undefined,
           });
         }
@@ -1644,13 +1445,13 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
       if (recorded) {
         if (editedExpectedMovementId && postedTransactionId) {
-          await expectedGateway.expectedResolveMovement({
+          await ports.expected.expectedResolveMovement({
             expectedMovementId: editedExpectedMovementId,
             transactionId: postedTransactionId,
             resolvedAt: new Date().toISOString(),
           });
         } else if (postExpectedMovementId && postedTransactionId) {
-          await expectedGateway.expectedResolveMovement({
+          await ports.expected.expectedResolveMovement({
             expectedMovementId: postExpectedMovementId,
             transactionId: postedTransactionId,
             resolvedAt: new Date().toISOString(),

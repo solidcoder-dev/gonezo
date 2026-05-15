@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import type {
   MovementsSearchItemView,
-  MovementsSearchModelProvided,
-  MovementsSearchModelRequired,
+  MovementsPaginationView,
+  MovementsSearchFiltersState,
 } from '../domain/movementsView.types';
 import { MovementDetailSheetView } from './MovementDetailSheetView';
 import { MovementRowView } from './MovementRowView';
@@ -12,9 +12,28 @@ import {
   groupMovementSearchResultsByDay,
 } from './movementsSearchPresentation';
 
+export type MovementsSearchResultsRequired = {
+  state: {
+    appliedFilters: MovementsSearchFiltersState;
+    items: MovementsSearchItemView[];
+    pagination: MovementsPaginationView;
+  };
+  status: {
+    loading: boolean;
+    disabled: boolean;
+  };
+};
+
+export type MovementsSearchResultsProvided = {
+  commands: {
+    goToPreviousPage: () => void;
+    goToNextPage: () => void;
+  };
+};
+
 type MovementsSearchResultsProps = {
-  required: Pick<MovementsSearchModelRequired, 'error' | 'state' | 'status'>;
-  provided: Pick<MovementsSearchModelProvided, 'commands'>;
+  required: MovementsSearchResultsRequired;
+  provided: MovementsSearchResultsProvided;
 };
 
 export function MovementsSearchResults({ required, provided }: MovementsSearchResultsProps) {

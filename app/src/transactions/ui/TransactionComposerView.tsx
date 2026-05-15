@@ -7,6 +7,8 @@ import { ExpenseSplitEditorView } from './ExpenseSplitEditorView';
 import { RecurrenceEditorView } from './RecurrenceEditorView';
 import { SchedulingOptionsView } from './SchedulingOptionsView';
 import { TagComboboxField } from './TagComboboxField';
+import { TransactionComposerActionsView } from './TransactionComposerActionsView';
+import { TransactionMainFieldsView } from './TransactionMainFieldsView';
 import { TransferFxFieldsView } from './TransferFxFieldsView';
 import type {
   RecurrenceEndView as RecurrenceEndInput,
@@ -139,17 +141,6 @@ function titleForModeAndPurpose(
     return 'Edit scheduled movement';
   }
   return titleForMode(mode);
-}
-
-function formatDateInput(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 8);
-  if (digits.length <= 4) {
-    return digits;
-  }
-  if (digits.length <= 6) {
-    return `${digits.slice(0, 4)}-${digits.slice(4)}`;
-  }
-  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
 }
 
 function todayIsoLocal(): string {
@@ -329,131 +320,42 @@ export function TransactionComposerView({ required, provided }: Props) {
           ) : (
           <form className="composer-form" onSubmit={onSubmit} aria-busy={disabled} noValidate>
             <div className="composer-form-content stack">
-              {mode !== 'transfer' ? (
-                <>
-                  <label className="stack">
-                    <span className="visually-hidden">{amountLabel}</span>
-                    <input
-                      ref={amountInputRef}
-                      aria-label="Amount"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={amount}
-                      placeholder="Amount"
-                      onChange={(event) => onSetAmount(event.target.value)}
-                      inputMode="decimal"
-                      aria-invalid={Boolean(amountError)}
-                      aria-describedby={amountError ? 'composer-amount-error' : undefined}
-                    />
-                  </label>
-                  {amountError ? <p id="composer-amount-error" className="field-error">{amountError}</p> : null}
-                </>
-              ) : null}
-
-              {mode === 'transfer' ? (
-                <label className="stack">
-                  <span className="visually-hidden">Destination account</span>
-                  <select
-                    aria-label="Destination account"
-                    value={transferTargetAccountId}
-                    onChange={(event) => onSetTransferTarget(event.target.value)}
-                  >
-                    <option value="">Select account</option>
-                    {transferTargetOptions.map((account) => (
-                      <option key={account.id} value={account.id}>
-                        {account.name} ({account.currency})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-
-              {mode === 'transfer' ? (
-                <>
-                  <label className="stack">
-                    <span className="visually-hidden">{amountLabel}</span>
-                    <input
-                      ref={amountInputRef}
-                      aria-label="Amount"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={amount}
-                      placeholder="Amount"
-                      onChange={(event) => onSetAmount(event.target.value)}
-                      inputMode="decimal"
-                      aria-invalid={Boolean(amountError)}
-                      aria-describedby={amountError ? 'composer-amount-error' : undefined}
-                    />
-                  </label>
-                  {amountError ? <p id="composer-amount-error" className="field-error">{amountError}</p> : null}
-
-                  <label className="stack">
-                    <span className="visually-hidden">Description</span>
-                    <input
-                      aria-label="Description"
-                      value={note}
-                      onChange={(event) => onSetNote(event.target.value)}
-                      placeholder="Description"
-                    />
-                  </label>
-                </>
-              ) : null}
-
-              {mode !== 'transfer' ? (
-                <label className="stack">
-                  <span className="visually-hidden">{mode === 'expense' ? 'Merchant' : 'Source'}</span>
-                  <input
-                    aria-label={mode === 'expense' ? 'Merchant' : 'Source'}
-                    value={note}
-                    onChange={(event) => onSetNote(event.target.value)}
-                    placeholder={mode === 'expense' ? 'Cafe' : 'Salary'}
-                  />
-                </label>
-              ) : null}
-
-              <div className="date-input-row">
-                <label className="stack date-input-field">
-                  <span className="visually-hidden">{dateInputLabel}</span>
-                  <input
-                    aria-label={dateInputLabel}
-                    type="text"
-                    value={date}
-                    placeholder={datePlaceholder}
-                    inputMode="numeric"
-                    onFocus={() => {
-                      if (date === datePlaceholder) {
-                        onSetDate('');
-                      }
-                    }}
-                    onChange={(event) => onSetDate(formatDateInput(event.target.value))}
-                    aria-invalid={Boolean(dateError)}
-                    aria-describedby={dateError ? 'composer-date-error' : undefined}
-                  />
-                  <input
-                    ref={dateInputRef}
-                    className="visually-hidden"
-                    aria-hidden="true"
-                    tabIndex={-1}
-                    type="date"
-                    value={date}
-                    onChange={(event) => onSetDate(event.target.value)}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="text-button icon-button date-picker-button"
-                  aria-label="Open calendar"
-                  onClick={() => {
-                    dateInputRef.current?.showPicker?.();
-                  }}
-                  disabled={disabled}
-                >
-                  <i className="bi bi-calendar3" aria-hidden />
-                </button>
-              </div>
-              {dateError ? <p id="composer-date-error" className="field-error">{dateError}</p> : null}
+              <TransactionMainFieldsView
+                required={{
+                  config: {
+                    amountLabel,
+                    dateInputLabel,
+                    datePlaceholder,
+                    noteLabel: mode === 'transfer' ? 'Description' : mode === 'expense' ? 'Merchant' : 'Source',
+                    notePlaceholder: mode === 'transfer' ? 'Description' : mode === 'expense' ? 'Cafe' : 'Salary',
+                    amountInputRef,
+                    dateInputRef,
+                  },
+                  data: {
+                    transferTargetOptions,
+                  },
+                  state: {
+                    mode,
+                    amount,
+                    date,
+                    note,
+                    transferTargetAccountId,
+                  },
+                  status: {
+                    disabled,
+                    amountError,
+                    dateError,
+                  },
+                }}
+                provided={{
+                  commands: {
+                    changeAmount: onSetAmount,
+                    changeDate: onSetDate,
+                    changeNote: onSetNote,
+                    changeTransferTarget: onSetTransferTarget,
+                  },
+                }}
+              />
 
               {mode === 'transfer' && transferCrossCurrency ? (
                 <TransferFxFieldsView
@@ -660,17 +562,21 @@ export function TransactionComposerView({ required, provided }: Props) {
               ) : null}
             </div>
 
-            <div className="composer-actions">
-              <button type="submit" className="primary-cta" disabled={disabled || !splitReady}>
-                {postExpectedMovement
-                  ? 'Post movement'
-                  : editingScheduledMovement
-                    ? 'Update scheduled'
-                    : expectedAvailable && expected
-                      ? 'Save expected'
-                      : 'Save'}
-              </button>
-            </div>
+            <TransactionComposerActionsView
+              required={{
+                config: {},
+                data: {},
+                state: {
+                  splitReady,
+                  expectedAvailable,
+                  expected,
+                  editingScheduledMovement,
+                  postExpectedMovement,
+                },
+                status: { disabled },
+              }}
+              provided={{ commands: {} }}
+            />
           </form>
         ),
         },

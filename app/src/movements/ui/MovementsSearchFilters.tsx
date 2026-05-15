@@ -1,13 +1,55 @@
 import type {
+  LedgerSortDirectionView,
+  LedgerTransactionTypeView,
+  MovementsFilterOptionsView,
   MovementsSearchFiltersState,
-  MovementsSearchModelProvided,
-  MovementsSearchModelRequired,
+  MovementsSearchSortFieldView,
+  MovementsSearchSourceView,
 } from '../domain/movementsView.types';
 import { MovementsSearchFilterSheetView } from './MovementsSearchFilterSheetView';
 
+export type MovementsSearchFiltersRequired = {
+  state: {
+    filtersOpen: boolean;
+    filtersAdvancedOpen: boolean;
+    searchApplied: boolean;
+    filters: MovementsSearchFiltersState;
+    appliedFilters: MovementsSearchFiltersState;
+    filterOptions: MovementsFilterOptionsView;
+  };
+  status: {
+    disabled: boolean;
+  };
+};
+
+export type MovementsSearchFiltersProvided = {
+  commands: {
+    setSource: (value: MovementsSearchSourceView) => void;
+    openFilters: () => void;
+    closeFilters: () => void;
+    toggleAdvancedFilters: () => void;
+    resetFilters: () => void;
+    setFilterText: (value: string) => void;
+    setFilterMerchant: (value: string) => void;
+    setFilterCategoryIds: (values: string[]) => void;
+    setFilterTagIds: (values: string[]) => void;
+    setFilterAmountMin: (value: string) => void;
+    setFilterAmountMax: (value: string) => void;
+    setFilterFromDate: (value: string) => void;
+    setFilterToDate: (value: string) => void;
+    setFilterTypes: (values: LedgerTransactionTypeView[]) => void;
+    setSortField: (value: MovementsSearchSortFieldView) => void;
+    setSortDirection: (value: LedgerSortDirectionView) => void;
+    setPageSize: (value: number) => void;
+    setGroupByDay: (value: boolean) => void;
+    applyFilterPatch: (patch: Partial<MovementsSearchFiltersState>) => void;
+    applyFilters: () => void;
+  };
+};
+
 type MovementsSearchFiltersProps = {
-  required: Pick<MovementsSearchModelRequired, 'error' | 'state' | 'status'>;
-  provided: Pick<MovementsSearchModelProvided, 'commands'>;
+  required: MovementsSearchFiltersRequired;
+  provided: MovementsSearchFiltersProvided;
 };
 
 type ActiveFilterChip = {
@@ -25,7 +67,7 @@ function summarizeNames(names: string[]): string {
 
 function buildActiveFilterChips(
   filters: MovementsSearchFiltersState,
-  filterOptions: MovementsSearchModelRequired['state']['filterOptions'],
+  filterOptions: MovementsFilterOptionsView,
 ): ActiveFilterChip[] {
   const chips: ActiveFilterChip[] = [];
   const categoryNameById = new Map(filterOptions.categories.map((item) => [item.id, item.label]));

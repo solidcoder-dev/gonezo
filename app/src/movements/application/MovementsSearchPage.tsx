@@ -122,7 +122,6 @@ export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
         <>
           <MovementsSearchFilters
             required={{
-              error: searchModel.required.error,
               state: searchModel.required.state,
               status: searchModel.required.status,
             }}
@@ -133,7 +132,6 @@ export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
 
           <MovementsSearchResults
             required={{
-              error: searchModel.required.error,
               state: searchModel.required.state,
               status: searchModel.required.status,
             }}
