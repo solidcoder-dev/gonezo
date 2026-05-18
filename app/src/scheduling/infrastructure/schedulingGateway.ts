@@ -1,31 +1,6 @@
-import type {
-  SchedulingCreateMovementInput,
-  SchedulingCreateMovementResult,
-  SchedulingDeactivateMovementInput,
-  SchedulingListMovementsInput,
-  SchedulingListMovementsResult,
-  MovementsGetOverviewInput,
-  MovementsGetOverviewResult,
-  MovementsListScheduledInput,
-  MovementsListScheduledResult,
-  SchedulingUpdateMovementInput,
-  SchedulingUpdateMovementResult,
-} from '../../shared/domain/corePort';
+import type { SchedulingGatewayPort } from '../application/schedulingGateway.port';
 
-export type SchedulingGatewayPort = {
-  schedulingCreateMovement(
-    input: SchedulingCreateMovementInput,
-  ): Promise<SchedulingCreateMovementResult>;
-  schedulingUpdateMovement(
-    input: SchedulingUpdateMovementInput,
-  ): Promise<SchedulingUpdateMovementResult>;
-  schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void>;
-  schedulingListMovements(
-    input: SchedulingListMovementsInput,
-  ): Promise<SchedulingListMovementsResult>;
-  movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult>;
-  movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult>;
-};
+export type { SchedulingGatewayPort } from '../application/schedulingGateway.port';
 
 export function createSchedulingGateway(core: SchedulingGatewayPort): SchedulingGatewayPort {
   return {

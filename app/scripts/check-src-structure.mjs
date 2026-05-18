@@ -25,14 +25,14 @@ const EXPECTED_TOP_LEVEL = new Set([
 const EXPECTED_LAYER_DIRS = ['application', 'domain', 'infrastructure', 'ui'];
 const EXPECTED_CONTEXT_DIRS = {
   account: ['application', 'domain', 'infrastructure', 'ui'],
-  expected: ['infrastructure'],
+  expected: ['application', 'infrastructure'],
   ledger: ['application', 'infrastructure', 'ui'],
   movements: ['application', 'domain', 'ui'],
-  scheduling: ['infrastructure'],
+  scheduling: ['application', 'infrastructure'],
   taxonomy: ['application', 'domain', 'infrastructure'],
   transactions: ['application', 'domain', 'ui'],
 };
-const EXPECTED_SHARED_DIRS = ['domain', 'infrastructure', 'testing', 'utils'];
+const EXPECTED_SHARED_DIRS = ['domain', 'infrastructure', 'testing', 'ui', 'utils'];
 const EXPECTED_IMPORTS_INFRASTRUCTURE_DIRS = ['providers'];
 const EXPECTED_IMPORTS_PROVIDER_MODULES = ['mobills'];
 

@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type { TaxonomyCategoryItem, TaxonomyTagItem } from '../../shared/domain/corePort';
 import { SheetView } from '../../shared/ui/SheetView';
-import type { TaxonomyGatewayPort } from '../infrastructure/taxonomyGateway';
+import type { TaxonomyGatewayPort } from './taxonomyGateway.port';
 
 export type TaxonomyPagePort = Pick<
   TaxonomyGatewayPort,

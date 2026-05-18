@@ -1,24 +1,41 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LedgerTransactionListItem, TaxonomyCategoryItem, TaxonomyTagItem } from '../../shared/domain/corePort';
 import { useLedgerTransactions } from '../../ledger/application/useLedgerTransactions';
-import { createExpectedGateway } from '../../expected/infrastructure/expectedGateway';
-import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
-import { createSchedulingGateway } from '../../scheduling/infrastructure/schedulingGateway';
+import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
+import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
+import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
 import { useCategorySuggestions } from '../../taxonomy/application/useCategorySuggestions';
 import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions';
 import { useTransactionClassification } from '../../taxonomy/application/useTransactionClassification';
-import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
+import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
 import { mapTransactionHistoryList } from '../../transactions/application/transactionViewMappers';
-import type { TransactionsCorePort } from '../../transactions/application/transactionsCore.port';
 import type { ExpectedMovementView, ScheduledMovementView } from '../domain/movementsView.types';
 import type { MonthlyMovementsViewProvided, MonthlyMovementsViewRequired } from '../ui/MonthlyMovementsView.contract';
 import { filterProjectedScheduledMovements } from './monthlyMovementProjection';
 
+export type MonthlyMovementsModelPorts = {
+  ledger: LedgerGatewayPort;
+  scheduling: SchedulingGatewayPort;
+  expected: ExpectedGatewayPort;
+  taxonomy: TaxonomyGatewayPort;
+};
+
+export type MonthlyMovementsModelClock = {
+  now(): Date;
+};
+
+export type MonthlyMovementsModelTimers = {
+  setTimeout(handler: () => void, timeoutMs: number): number;
+  clearTimeout(timerId: number): void;
+};
+
 type UseMonthlyMovementsModelInput = {
-  core: TransactionsCorePort;
+  ports: MonthlyMovementsModelPorts;
   accountId: string | null;
   enabled: boolean;
   refreshSignal: boolean;
+  clock: MonthlyMovementsModelClock;
+  timers: MonthlyMovementsModelTimers;
   onVoided?: (transactionId: string) => void;
   onExpectedPosted?: () => void;
   onExpectedDismissed?: () => void;
@@ -79,10 +96,12 @@ function sameMonth(left: Date, right: Date): boolean {
 
 export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const {
-    core,
+    ports,
     accountId,
     enabled,
     refreshSignal,
+    clock,
+    timers,
     onVoided,
     onExpectedDismissed,
     onPostExpectedMovement,
@@ -99,10 +118,10 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const [toastActionLabel, setToastActionLabel] = useState('');
   const [toastAction, setToastAction] = useState<(() => void) | null>(null);
 
-  const [monthCursor, setMonthCursor] = useState<Date>(() => monthStart(new Date()));
+  const [monthCursor, setMonthCursor] = useState<Date>(() => monthStart(clock.now()));
   const [monthMenuOpen, setMonthMenuOpen] = useState(false);
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
-  const [monthPickerYear, setMonthPickerYear] = useState(() => new Date().getFullYear());
+  const [monthPickerYear, setMonthPickerYear] = useState(() => clock.now().getFullYear());
   const [page, setPage] = useState(0);
   const [pagination, setPagination] = useState<PaginationState>(EMPTY_PAGINATION);
 
@@ -127,22 +146,17 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
 
   const monthStartDate = useMemo(() => monthStart(monthCursor), [monthCursor]);
   const monthEndDate = useMemo(() => monthEnd(monthCursor), [monthCursor]);
-  const currentMonth = useMemo(() => monthStart(new Date()), []);
+  const currentMonth = useMemo(() => monthStart(clock.now()), [clock]);
   const isCurrentMonth = sameMonth(monthCursor, currentMonth);
   const viewedMonthIndex = monthCursor.getMonth();
   const viewedYear = monthCursor.getFullYear();
   const currentMonthIndex = currentMonth.getMonth();
   const currentYear = currentMonth.getFullYear();
 
-  const ledgerGateway = useMemo(() => createLedgerGateway(core), [core]);
-  const schedulingGateway = useMemo(() => createSchedulingGateway(core), [core]);
-  const expectedGateway = useMemo(() => createExpectedGateway(core), [core]);
-  const taxonomyGateway = useMemo(() => createTaxonomyGateway(core), [core]);
-
-  const ledgerTransactions = useLedgerTransactions(ledgerGateway);
-  const categorySuggestions = useCategorySuggestions(taxonomyGateway);
-  const tagSuggestions = useTagSuggestions(taxonomyGateway);
-  const transactionClassification = useTransactionClassification(taxonomyGateway);
+  const ledgerTransactions = useLedgerTransactions(ports.ledger);
+  const categorySuggestions = useCategorySuggestions(ports.taxonomy);
+  const tagSuggestions = useTagSuggestions(ports.taxonomy);
+  const transactionClassification = useTransactionClassification(ports.taxonomy);
 
   const categoryNameById = useMemo(() => {
     const mapping = new Map<string, string>();
@@ -213,12 +227,12 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     [transactionsWithTaxonomy],
   );
 
-  function clearPendingVoidTimer() {
+  const clearPendingVoidTimer = useCallback(() => {
     if (pendingVoidTimerRef.current != null) {
-      window.clearTimeout(pendingVoidTimerRef.current);
+      timers.clearTimeout(pendingVoidTimerRef.current);
       pendingVoidTimerRef.current = null;
     }
-  }
+  }, [timers]);
 
   function clearToastState() {
     setToastMessage('');
@@ -303,7 +317,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       return;
     }
 
-    const overview = await schedulingGateway.movementsGetOverview({
+    const overview = await ports.scheduling.movementsGetOverview({
       accountId,
       filters: {
         fromDate: monthStartDate.toISOString(),
@@ -428,7 +442,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
 
   useEffect(() => () => {
     clearPendingVoidTimer();
-  }, []);
+  }, [clearPendingVoidTimer]);
 
   async function executeVoidTransaction(transactionId: string) {
     setPostingTransaction(true);
@@ -461,7 +475,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     setToastActionLabel('Undo');
     setToastAction(() => () => cancelPendingVoid('Void canceled.'));
 
-    pendingVoidTimerRef.current = window.setTimeout(() => {
+    pendingVoidTimerRef.current = timers.setTimeout(() => {
       pendingVoidTimerRef.current = null;
       void executeVoidTransaction(transactionId);
     }, VOID_COMMIT_DELAY_MS);
@@ -472,7 +486,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     setPendingDeactivateScheduledId(scheduledMovementId);
     setError('');
     try {
-      await schedulingGateway.schedulingDeactivateMovement({
+      await ports.scheduling.schedulingDeactivateMovement({
         recurringMovementId: scheduledMovementId,
       });
       await refreshMovements();
@@ -500,9 +514,9 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     setPendingDismissExpectedId(movement.id);
     setError('');
     try {
-      await expectedGateway.expectedDismissMovement({
+      await ports.expected.expectedDismissMovement({
         expectedMovementId: movement.id,
-        dismissedAt: new Date().toISOString(),
+        dismissedAt: clock.now().toISOString(),
       });
       await refreshMovements();
       onExpectedDismissed?.();
@@ -562,7 +576,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
         setPage(0);
       },
       goToCurrentMonth: () => {
-        const target = monthStart(new Date());
+        const target = monthStart(clock.now());
         setMonthCursor(target);
         setMonthPickerYear(target.getFullYear());
         setMonthMenuOpen(false);

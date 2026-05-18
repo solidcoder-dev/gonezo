@@ -1,4 +1,4 @@
-import type { LedgerGatewayPort } from '../../ledger/infrastructure/ledgerGateway';
+import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
 import type { PostedTaxonomySearchPort } from './postedTaxonomySearch';
 import type { MovementsSearchFacetsInput, MovementsSearchFacetsResult } from '../../shared/domain/corePort';
 

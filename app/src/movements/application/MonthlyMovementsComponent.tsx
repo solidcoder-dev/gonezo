@@ -1,7 +1,21 @@
+import { useMemo } from 'react';
+import { createExpectedGateway } from '../../expected/infrastructure/expectedGateway';
+import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
+import { createSchedulingGateway } from '../../scheduling/infrastructure/schedulingGateway';
+import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
 import { MonthlyMovementsView } from '../ui/MonthlyMovementsView';
 import { useMonthlyMovementsModel } from './useMonthlyMovementsModel';
 import type { TransactionsCorePort } from '../../transactions/application/transactionsCore.port';
 import type { ExpectedMovementView, ScheduledMovementView } from '../domain/movementsView.types';
+
+const BROWSER_CLOCK = {
+  now: () => new Date(),
+};
+
+const BROWSER_TIMERS = {
+  setTimeout: (handler: () => void, timeoutMs: number) => window.setTimeout(handler, timeoutMs),
+  clearTimeout: (timerId: number) => window.clearTimeout(timerId),
+};
 
 export type MonthlyMovementsComponentProps = {
   required: {
@@ -28,11 +42,19 @@ export type MonthlyMovementsComponentProps = {
 };
 
 export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMovementsComponentProps) {
+  const ports = useMemo(() => ({
+    ledger: createLedgerGateway(required.context.core),
+    scheduling: createSchedulingGateway(required.context.core),
+    expected: createExpectedGateway(required.context.core),
+    taxonomy: createTaxonomyGateway(required.context.core),
+  }), [required.context.core]);
   const model = useMonthlyMovementsModel({
-    core: required.context.core,
+    ports,
     accountId: required.context.accountId,
     enabled: required.config.enabled,
     refreshSignal: required.config.refreshSignal,
+    clock: BROWSER_CLOCK,
+    timers: BROWSER_TIMERS,
     onVoided: provided.events?.onVoided,
     onExpectedPosted: provided.events?.onExpectedPosted,
     onExpectedDismissed: provided.events?.onExpectedDismissed,

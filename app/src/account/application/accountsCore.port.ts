@@ -7,7 +7,7 @@ import type {
   PreferencesSetDefaultAccountInput,
   UserPreferencesResult,
 } from '../../shared/domain/corePort';
-import type { LedgerGatewayPort } from '../../ledger/infrastructure/ledgerGateway';
+import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
 import type { TransactionsCorePort } from '../../transactions/application/transactionsCore.port';
 
 export type UserPreferencesPort = {

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { TaxonomyGatewayPort } from '../infrastructure/taxonomyGateway';
+import type { TaxonomyGatewayPort } from './taxonomyGateway.port';
 
 export function useTransactionClassification(gateway: TaxonomyGatewayPort) {
   const categorizeTransaction = useCallback(

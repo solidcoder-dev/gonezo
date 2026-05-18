@@ -10,14 +10,14 @@ import type {
 } from '../../shared/domain/corePort';
 import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
 import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
-import type { LedgerGatewayPort } from '../../ledger/infrastructure/ledgerGateway';
-import type { SchedulingGatewayPort } from '../../scheduling/infrastructure/schedulingGateway';
-import type { ExpectedGatewayPort } from '../../expected/infrastructure/expectedGateway';
+import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
+import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
+import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
 import { useCategorySuggestions } from '../../taxonomy/application/useCategorySuggestions';
 import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions';
 import { useTransactionClassification } from '../../taxonomy/application/useTransactionClassification';
 import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.types';
-import type { TaxonomyGatewayPort } from '../../taxonomy/infrastructure/taxonomyGateway';
+import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
 import type { ExpenseItemDraft, TransactionFieldErrors } from '../domain/transactions.types';
 import type { TransactionEntryViewProvided, TransactionEntryViewRequired } from '../ui/TransactionEntryView';
 import type { TransactionEntryPrefillRequest } from './TransactionEntryComponent.contract';

@@ -1,21 +1,6 @@
-import type {
-  ExpectedCreateMovementInput,
-  ExpectedCreateMovementResult,
-  ExpectedDismissMovementInput,
-  ExpectedListMovementsInput,
-  ExpectedListMovementsResult,
-  ExpectedResolveMovementInput,
-  ExpectedUpdateMovementInput,
-  ExpectedUpdateMovementResult,
-} from '../../shared/domain/corePort';
+import type { ExpectedGatewayPort } from '../application/expectedGateway.port';
 
-export type ExpectedGatewayPort = {
-  expectedCreateMovement(input: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult>;
-  expectedUpdateMovement(input: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult>;
-  expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult>;
-  expectedResolveMovement(input: ExpectedResolveMovementInput): Promise<void>;
-  expectedDismissMovement(input: ExpectedDismissMovementInput): Promise<void>;
-};
+export type { ExpectedGatewayPort } from '../application/expectedGateway.port';
 
 export function createExpectedGateway(core: ExpectedGatewayPort): ExpectedGatewayPort {
   return {

@@ -1,9 +1,9 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { AccountsCorePort } from './accountsCore.port';
+import type { AccountHubModelPorts } from './useAccountHubModel';
 import { useAccountHubModel } from './useAccountHubModel';
 
-function account(input: Partial<Awaited<ReturnType<AccountsCorePort['ledgerListAccounts']>>['items'][number]> & { id: string; name: string }) {
+function account(input: Partial<Awaited<ReturnType<AccountHubModelPorts['ledger']['ledgerListAccounts']>>['items'][number]> & { id: string; name: string }) {
   return {
     id: input.id,
     name: input.name,
@@ -13,30 +13,34 @@ function account(input: Partial<Awaited<ReturnType<AccountsCorePort['ledgerListA
   };
 }
 
-function makeCore(overrides: Partial<AccountsCorePort>): AccountsCorePort {
+function makePorts(overrides: Partial<AccountHubModelPorts> = {}): AccountHubModelPorts {
   return {
-    ledgerListSupportedCurrencies: vi.fn().mockResolvedValue({ items: ['USD'] }),
-    ledgerListAccounts: vi.fn().mockResolvedValue({ items: [] }),
-    ledgerGetAccountSummary: vi.fn(),
-    ledgerListTransactions: vi.fn(),
-    ledgerOpenAccount: vi.fn(),
-    ledgerRenameAccount: vi.fn(),
-    ledgerArchiveAccount: vi.fn(),
-    ledgerRestoreAccount: vi.fn(),
-    ledgerDeleteAccount: vi.fn(),
-    ledgerRecordExpense: vi.fn(),
-    ledgerRecordIncome: vi.fn(),
-    ledgerRecordTransfer: vi.fn(),
-    ledgerRecordTransferFx: vi.fn(),
-    ledgerCreateExpenseDraft: vi.fn(),
-    ledgerAddTransactionItem: vi.fn(),
-    ledgerPostDraftTransaction: vi.fn(),
-    ledgerVoidTransaction: vi.fn(),
-    preferencesGet: vi.fn().mockResolvedValue({ defaultAccountId: null }),
-    preferencesSetDefaultAccount: vi.fn(),
-    preferencesClearDefaultAccount: vi.fn(),
+    ledger: {
+      ledgerListSupportedCurrencies: vi.fn().mockResolvedValue({ items: ['USD'] }),
+      ledgerListAccounts: vi.fn().mockResolvedValue({ items: [] }),
+      ledgerGetAccountSummary: vi.fn(),
+      ledgerListTransactions: vi.fn(),
+      ledgerOpenAccount: vi.fn(),
+      ledgerRenameAccount: vi.fn(),
+      ledgerArchiveAccount: vi.fn(),
+      ledgerRestoreAccount: vi.fn(),
+      ledgerDeleteAccount: vi.fn(),
+      ledgerRecordExpense: vi.fn(),
+      ledgerRecordIncome: vi.fn(),
+      ledgerRecordTransfer: vi.fn(),
+      ledgerRecordTransferFx: vi.fn(),
+      ledgerCreateExpenseDraft: vi.fn(),
+      ledgerAddTransactionItem: vi.fn(),
+      ledgerPostDraftTransaction: vi.fn(),
+      ledgerVoidTransaction: vi.fn(),
+    },
+    preferences: {
+      preferencesGet: vi.fn().mockResolvedValue({ defaultAccountId: null }),
+      preferencesSetDefaultAccount: vi.fn(),
+      preferencesClearDefaultAccount: vi.fn(),
+    },
     ...overrides,
-  } as AccountsCorePort;
+  };
 }
 
 describe('useAccountHubModel', () => {
@@ -47,21 +51,27 @@ describe('useAccountHubModel', () => {
       onLoadPhaseChanged: vi.fn(),
       onError: vi.fn(),
     };
-    const core = makeCore({
-      ledgerListSupportedCurrencies: vi.fn().mockResolvedValue({ items: ['USD', 'EUR'] }),
-      ledgerListAccounts: vi.fn().mockResolvedValue({
-        items: [
-          account({ id: 'a', name: 'Checking' }),
-          account({ id: 'b', name: 'Savings' }),
-          account({ id: 'arch', name: 'Archived', status: 'archived' }),
-          account({ id: 'deleted', name: 'Deleted', status: 'deleted' }),
-        ],
-      }),
-      preferencesGet: vi.fn().mockResolvedValue({ defaultAccountId: 'b' }),
+    const ports = makePorts({
+      ledger: {
+        ...makePorts().ledger,
+        ledgerListSupportedCurrencies: vi.fn().mockResolvedValue({ items: ['USD', 'EUR'] }),
+        ledgerListAccounts: vi.fn().mockResolvedValue({
+          items: [
+            account({ id: 'a', name: 'Checking' }),
+            account({ id: 'b', name: 'Savings' }),
+            account({ id: 'arch', name: 'Archived', status: 'archived' }),
+            account({ id: 'deleted', name: 'Deleted', status: 'deleted' }),
+          ],
+        }),
+      },
+      preferences: {
+        ...makePorts().preferences,
+        preferencesGet: vi.fn().mockResolvedValue({ defaultAccountId: 'b' }),
+      },
     });
 
     const { result } = renderHook(() => useAccountHubModel({
-      core,
+      ports,
       refreshSignal: false,
       events,
     }));
@@ -87,14 +97,17 @@ describe('useAccountHubModel', () => {
     const events = {
       onSelectedAccountChanged: vi.fn(),
     };
-    const core = makeCore({
-      ledgerListSupportedCurrencies: vi.fn().mockResolvedValue({ items: ['USD'] }),
-      ledgerListAccounts,
-      ledgerOpenAccount: openAccount,
+    const ports = makePorts({
+      ledger: {
+        ...makePorts().ledger,
+        ledgerListSupportedCurrencies: vi.fn().mockResolvedValue({ items: ['USD'] }),
+        ledgerListAccounts,
+        ledgerOpenAccount: openAccount,
+      },
     });
 
     const { result } = renderHook(() => useAccountHubModel({
-      core,
+      ports,
       refreshSignal: false,
       events,
     }));

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { LedgerGatewayPort } from '../infrastructure/ledgerGateway';
+import type { LedgerGatewayPort } from './ledgerGateway.port';
 
 export function useLedgerAccounts(gateway: LedgerGatewayPort) {
   const listSupportedCurrencies = useCallback(() => gateway.ledgerListSupportedCurrencies(), [gateway]);

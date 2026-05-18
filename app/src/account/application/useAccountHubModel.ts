@@ -1,20 +1,25 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
-import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
+import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
 import type { LoadPhase } from '../domain/accountPage.types';
 import type { AccountSummaryView } from '../domain/accountView.types';
 import { mapAccountSummaryList } from './accountViewMappers';
 import type { AccountHubComponentProvided } from './AccountHubComponent.contract';
-import type { AccountsCorePort } from './accountsCore.port';
+import type { UserPreferencesPort } from './accountsCore.port';
 
 type FormEventLike = {
   preventDefault: () => void;
 };
 
 export type AccountHubModelInput = {
-  core: AccountsCorePort;
+  ports: AccountHubModelPorts;
   refreshSignal: boolean;
   events?: AccountHubComponentProvided['events'];
+};
+
+export type AccountHubModelPorts = {
+  ledger: LedgerGatewayPort;
+  preferences: UserPreferencesPort;
 };
 
 export type AccountHubModel = {
@@ -53,7 +58,7 @@ function toErrorMessage(error: unknown): string {
   return 'Unknown error';
 }
 
-export function useAccountHubModel({ core, refreshSignal, events }: AccountHubModelInput): AccountHubModel {
+export function useAccountHubModel({ ports, refreshSignal, events }: AccountHubModelInput): AccountHubModel {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -84,13 +89,12 @@ export function useAccountHubModel({ core, refreshSignal, events }: AccountHubMo
     createCurrencyRef.current = createCurrency;
   }, [createCurrency]);
 
-  const ledgerGateway = useMemo(() => createLedgerGateway(core), [core]);
   const {
     listSupportedCurrencies,
     listAccounts,
     openAccount,
     restoreAccount: restoreLedgerAccount,
-  } = useLedgerAccounts(ledgerGateway);
+  } = useLedgerAccounts(ports.ledger);
 
   const reportLoadPhase = useCallback((phase: LoadPhase) => {
     eventsRef.current?.onLoadPhaseChanged?.(phase);
@@ -106,7 +110,7 @@ export function useAccountHubModel({ core, refreshSignal, events }: AccountHubMo
     const [currenciesResult, accountsResult, preferencesResult] = await Promise.all([
       listSupportedCurrencies(),
       listAccounts(),
-      core.preferencesGet(),
+      ports.preferences.preferencesGet(),
     ]);
 
     setSupportedCurrencies(currenciesResult.items);
@@ -143,7 +147,7 @@ export function useAccountHubModel({ core, refreshSignal, events }: AccountHubMo
     selectedAccountIdRef.current = nextSelectedAccountId;
     setSelectedAccountId(nextSelectedAccountId);
     eventsRef.current?.onSelectedAccountChanged?.(nextSelectedAccountId);
-  }, [core, listAccounts, listSupportedCurrencies]);
+  }, [listAccounts, listSupportedCurrencies, ports.preferences]);
 
   useEffect(() => {
     let cancelled = false;
@@ -239,24 +243,24 @@ export function useAccountHubModel({ core, refreshSignal, events }: AccountHubMo
   const setDefaultAccount = useCallback(async (accountId: string) => {
     setError('');
     try {
-      await core.preferencesSetDefaultAccount({ accountId });
+      await ports.preferences.preferencesSetDefaultAccount({ accountId });
       setDefaultAccountId(accountId);
     } catch (err) {
       reportError(err);
       throw err;
     }
-  }, [core, reportError]);
+  }, [ports.preferences, reportError]);
 
   const clearDefaultAccount = useCallback(async () => {
     setError('');
     try {
-      await core.preferencesClearDefaultAccount();
+      await ports.preferences.preferencesClearDefaultAccount();
       setDefaultAccountId(null);
     } catch (err) {
       reportError(err);
       throw err;
     }
-  }, [core, reportError]);
+  }, [ports.preferences, reportError]);
 
   return {
     state: {

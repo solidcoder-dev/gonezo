@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
 import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
-import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
 import type { AccountSummaryComponentProvided } from './AccountSummaryComponent.contract';
-import type { AccountsCorePort } from './accountsCore.port';
 
 type FormEventLike = {
   preventDefault: () => void;
@@ -15,11 +14,16 @@ export type AccountSummaryState = {
 };
 
 export type AccountSummaryModelInput = {
-  core: AccountsCorePort;
+  ports: AccountSummaryModelPorts;
   accountId: string | null;
   enabled: boolean;
   refreshSignal: boolean;
+  confirm: (message: string) => boolean;
   events?: AccountSummaryComponentProvided['events'];
+};
+
+export type AccountSummaryModelPorts = {
+  ledger: LedgerGatewayPort;
 };
 
 export type AccountSummaryModel = {
@@ -49,10 +53,11 @@ function toErrorMessage(error: unknown): string {
 }
 
 export function useAccountSummaryModel({
-  core,
+  ports,
   accountId,
   enabled,
   refreshSignal,
+  confirm,
   events,
 }: AccountSummaryModelInput): AccountSummaryModel {
   const [loading, setLoading] = useState(true);
@@ -68,13 +73,12 @@ export function useAccountSummaryModel({
     eventsRef.current = events;
   }, [events]);
 
-  const ledgerGateway = useMemo(() => createLedgerGateway(core), [core]);
   const {
     getAccountSummary,
     renameAccount,
     archiveAccount: archiveLedgerAccount,
     deleteAccount: deleteLedgerAccount,
-  } = useLedgerAccounts(ledgerGateway);
+  } = useLedgerAccounts(ports.ledger);
 
   const reportError = useCallback((raw: unknown) => {
     const message = toErrorMessage(raw);
@@ -156,7 +160,7 @@ export function useAccountSummaryModel({
     if (!summary || !accountId) {
       return;
     }
-    if (!window.confirm(`Archive account "${summary.name}"?`)) {
+    if (!confirm(`Archive account "${summary.name}"?`)) {
       return;
     }
     setManaging(true);
@@ -171,13 +175,13 @@ export function useAccountSummaryModel({
     } finally {
       setManaging(false);
     }
-  }, [accountId, archiveLedgerAccount, refreshSummary, reportError, summary]);
+  }, [accountId, archiveLedgerAccount, confirm, refreshSummary, reportError, summary]);
 
   const deleteAccount = useCallback(async () => {
     if (!summary || !accountId) {
       return;
     }
-    if (!window.confirm(`Delete account "${summary.name}" and all its transactions? This cannot be undone.`)) {
+    if (!confirm(`Delete account "${summary.name}" and all its transactions? This cannot be undone.`)) {
       return;
     }
     setManaging(true);
@@ -191,7 +195,7 @@ export function useAccountSummaryModel({
     } finally {
       setManaging(false);
     }
-  }, [accountId, deleteLedgerAccount, reportError, summary]);
+  }, [accountId, confirm, deleteLedgerAccount, reportError, summary]);
 
   const openManage = useCallback(() => {
     if (summary) {
