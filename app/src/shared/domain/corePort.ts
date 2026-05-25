@@ -759,10 +759,13 @@ export type OrchestrationListTransactionTaxonomyResult = {
   items: OrchestrationTransactionTaxonomyItem[];
 };
 
-export interface CorePort {
+export interface PreferencesCorePort {
   preferencesGet(): Promise<UserPreferencesResult>;
   preferencesSetDefaultAccount(input: PreferencesSetDefaultAccountInput): Promise<void>;
   preferencesClearDefaultAccount(): Promise<void>;
+}
+
+export interface LedgerCorePort {
   ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult>;
   ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult>;
   ledgerRenameAccount(input: LedgerRenameAccountInput): Promise<void>;
@@ -780,12 +783,14 @@ export interface CorePort {
   ledgerPostDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void>;
   ledgerVoidTransaction(input: LedgerVoidTransactionInput): Promise<void>;
   ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult>;
+}
+
+export interface TaxonomyCorePort {
   taxonomyListCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult>;
   taxonomyCreateCategory(input: TaxonomyCreateCategoryInput): Promise<TaxonomyCreateCategoryResult>;
   taxonomyRenameCategory(input: TaxonomyRenameCategoryInput): Promise<void>;
   taxonomyListTags(input?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult>;
   taxonomyRenameTag(input: TaxonomyRenameTagInput): Promise<void>;
-  mobillsImport(input: MobillsImportInput): Promise<MobillsImportResult>;
   orchestrationCategorizeTransaction(
     input: OrchestrationCategorizeTransactionInput,
   ): Promise<OrchestrationCategorizeTransactionResult>;
@@ -795,8 +800,18 @@ export interface CorePort {
   orchestrationListTransactionTaxonomy(
     input: OrchestrationListTransactionTaxonomyInput,
   ): Promise<OrchestrationListTransactionTaxonomyResult>;
+}
+
+export interface MobillsImportCorePort {
+  mobillsImport(input: MobillsImportInput): Promise<MobillsImportResult>;
+}
+
+export interface MovementsBackupCorePort {
   movementsExportBackup(): Promise<MovementsBackupExportResult>;
   movementsImportBackup(input: MovementsBackupImportInput): Promise<MovementsBackupImportResult>;
+}
+
+export interface RecurrenceCorePort {
   recurrenceCreateRecurringMovement(
     input: RecurrenceCreateRecurringMovementInput,
   ): Promise<RecurrenceCreateRecurringMovementResult>;
@@ -804,18 +819,38 @@ export interface CorePort {
   recurrenceListRecurringMovements(
     input: RecurrenceListRecurringMovementsInput,
   ): Promise<RecurrenceListRecurringMovementsResult>;
+}
+
+export interface SchedulingCorePort {
   schedulingCreateMovement(input: SchedulingCreateMovementInput): Promise<SchedulingCreateMovementResult>;
   schedulingUpdateMovement(input: SchedulingUpdateMovementInput): Promise<SchedulingUpdateMovementResult>;
   schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void>;
   schedulingListMovements(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult>;
+}
+
+export interface ExpectedCorePort {
   expectedCreateMovement(input: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult>;
   expectedUpdateMovement(input: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult>;
   expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult>;
   expectedResolveMovement(input: ExpectedResolveMovementInput): Promise<void>;
   expectedDismissMovement(input: ExpectedDismissMovementInput): Promise<void>;
+}
+
+export interface MovementsQueryCorePort {
   movementsGetMonthOverview(input: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;
   movementsSearch(input: MovementsSearchInput): Promise<MovementsSearchResult>;
   movementsGetSearchFacets(input: MovementsSearchFacetsInput): Promise<MovementsSearchFacetsResult>;
   movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult>;
   movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult>;
 }
+
+export interface CorePort
+  extends PreferencesCorePort,
+    LedgerCorePort,
+    TaxonomyCorePort,
+    MobillsImportCorePort,
+    MovementsBackupCorePort,
+    RecurrenceCorePort,
+    SchedulingCorePort,
+    ExpectedCorePort,
+    MovementsQueryCorePort {}

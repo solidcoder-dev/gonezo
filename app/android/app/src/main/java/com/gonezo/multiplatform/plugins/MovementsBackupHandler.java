@@ -10,6 +10,7 @@ import android.provider.MediaStore;
 import com.getcapacitor.JSObject;
 import com.gonezo.application.orchestration.backup.ImportMovementsBackupResult;
 import com.gonezo.application.orchestration.backup.ImportMovementsBackupRowResult;
+import com.gonezo.multiplatform.core.AndroidMovementsBackupCore;
 import com.gonezo.multiplatform.core.AndroidLedgerCore;
 import com.gonezo.multiplatform.core.AndroidTaxonomyCore;
 import java.io.File;
@@ -17,6 +18,7 @@ import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -47,6 +49,12 @@ final class MovementsBackupHandler {
     result.put("categoryCount", export.categories().size());
     result.put("tagCount", export.tags().size());
     return result;
+  }
+
+  JSObject importBase64(String fileBase64) throws Exception {
+    byte[] bytes = Base64.getDecoder().decode(fileBase64);
+    ImportMovementsBackupResult importResult = AndroidMovementsBackupCore.getInstance(context).importBackup(bytes);
+    return toJson(importResult);
   }
 
   static JSObject toJson(ImportMovementsBackupResult importResult) throws JSONException {

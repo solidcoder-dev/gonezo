@@ -22,6 +22,13 @@ import type { ExpenseItemDraft, TransactionFieldErrors } from '../domain/transac
 import type { TransactionEntryViewProvided, TransactionEntryViewRequired } from '../ui/TransactionEntryView';
 import type { TransactionEntryPrefillRequest } from './TransactionEntryComponent.contract';
 import {
+  findActiveCategoryByName,
+  mergeCategories,
+  normalizeTaxonomyName,
+  parseTransactionTagInput,
+  resolveKnownTagSelectionIds,
+} from './transactionTaxonomySelection';
+import {
   hasTransactionComposerValidationErrors,
   validateTransactionComposerSubmission,
 } from './transactionComposerValidation';
@@ -85,34 +92,6 @@ function toErrorMessage(error: unknown): string {
     return error.message;
   }
   return 'Unknown error';
-}
-
-function normalizeTaxonomyName(value: string): string {
-  return value.trim().toLowerCase();
-}
-
-function findActiveCategoryByName(
-  items: TaxonomyCategoryItem[],
-  appliesTo: TaxonomyCategoryAppliesTo,
-  normalizedName: string,
-): TaxonomyCategoryItem | undefined {
-  return items.find(
-    (category) =>
-      category.status === 'active'
-      && category.appliesTo === appliesTo
-      && normalizeTaxonomyName(category.name) === normalizedName,
-  );
-}
-
-function mergeCategories(
-  previous: TaxonomyCategoryItem[],
-  incoming: TaxonomyCategoryItem[],
-): TaxonomyCategoryItem[] {
-  const byScopeAndName = new Map<string, TaxonomyCategoryItem>();
-  for (const category of [...previous, ...incoming]) {
-    byScopeAndName.set(`${category.appliesTo}:${normalizeTaxonomyName(category.name)}`, category);
-  }
-  return [...byScopeAndName.values()].sort((left, right) => left.name.localeCompare(right.name));
 }
 
 export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
@@ -874,36 +853,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   }
 
   function parseTransactionTags(): string[] {
-    const uniqueByNormalizedName = new Map<string, string>();
-    for (const rawTag of transactionTagInput.split(',')) {
-      const tag = rawTag.trim();
-      if (!tag) {
-        continue;
-      }
-      const normalized = tag.toLowerCase();
-      if (!uniqueByNormalizedName.has(normalized)) {
-        uniqueByNormalizedName.set(normalized, tag);
-      }
-    }
-    return [...uniqueByNormalizedName.values()];
+    return parseTransactionTagInput(transactionTagInput);
   }
 
   function resolveTagSelectionIds(tagNames: string[]): string[] {
-    if (tagNames.length === 0) {
-      return [];
-    }
-    const knownByNormalizedName = new Map<string, string>();
-    for (const tag of tags) {
-      if (tag.status !== 'active') {
-        continue;
-      }
-      knownByNormalizedName.set(tag.name.trim().toLowerCase(), tag.id);
-    }
-    return [...new Set(
-      tagNames
-        .map((name) => knownByNormalizedName.get(name.trim().toLowerCase()))
-        .filter((value): value is string => Boolean(value)),
-    )];
+    return resolveKnownTagSelectionIds(tagNames, tags);
   }
 
   async function categorizeTransaction(
