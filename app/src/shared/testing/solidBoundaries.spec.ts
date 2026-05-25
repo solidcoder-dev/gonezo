@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const srcDir = resolve(__dirname, '..', '..');
+const appDir = resolve(srcDir, '..');
 
 function listSourceFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -59,5 +60,40 @@ describe('SOLID frontend boundaries', () => {
     }
 
     expect(violations).toEqual([]);
+  });
+
+  it('keeps native Capacitor plugin responsibilities in focused collaborators', () => {
+    const androidPluginDir = resolve(appDir, 'android/app/src/main/java/com/gonezo/multiplatform/plugins');
+    const corePlugin = readFileSync(join(androidPluginDir, 'CorePlugin.java'), 'utf8');
+    const mobillsImport = readFileSync(join(androidPluginDir, 'MobillsImportHandler.java'), 'utf8');
+    const backup = readFileSync(join(androidPluginDir, 'MovementsBackupHandler.java'), 'utf8');
+    const tagging = readFileSync(join(androidPluginDir, 'TransactionTaggingBridge.java'), 'utf8');
+
+    expect(corePlugin).toContain('new MobillsImportHandler(getContext()).importBase64');
+    expect(corePlugin).toContain('new MovementsBackupHandler(getContext()).exportBackup');
+    expect(corePlugin).toContain('TransactionTaggingBridge.applyTagsToTransaction');
+    expect(corePlugin).not.toContain('private JSObject importMobillsText');
+    expect(corePlugin).not.toContain('private String writeBackupFile');
+    expect(corePlugin).not.toContain('MediaStore');
+    expect(corePlugin.split('\n').length).toBeLessThanOrEqual(1400);
+
+    expect(mobillsImport).toContain('final class MobillsImportHandler');
+    expect(backup).toContain('final class MovementsBackupHandler');
+    expect(tagging).toContain('final class TransactionTaggingBridge');
+  });
+
+  it('keeps native movement composition out of the platform adapter shell', () => {
+    const coreAdapter = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapter.ts'), 'utf8');
+    const nativeMovements = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterNativeMovements.ts'), 'utf8');
+
+    expect(coreAdapter).toContain('getNativeMovementsMonthOverview(this, input)');
+    expect(coreAdapter).toContain('searchNativeMovements(this, input)');
+    expect(coreAdapter).toContain('listNativeScheduledMovements(this, input)');
+    expect(coreAdapter).not.toContain('function filterScheduledMovementItems');
+    expect(coreAdapter).not.toContain('function mapPostedTransactionToSearchItem');
+    expect(coreAdapter.split('\n').length).toBeLessThanOrEqual(550);
+
+    expect(nativeMovements).toContain('function filterScheduledMovementItems');
+    expect(nativeMovements).toContain('function mapPostedTransactionToSearchItem');
   });
 });
