@@ -22,13 +22,23 @@ import type { ExpenseItemDraft, TransactionFieldErrors } from '../domain/transac
 import type { TransactionEntryViewProvided, TransactionEntryViewRequired } from '../ui/TransactionEntryView';
 import type { TransactionEntryPrefillRequest } from './TransactionEntryComponent.contract';
 import {
-  buildSchedulingParts,
-  buildTransferAmountParts,
-} from './transactionComposerPayloads';
-import {
   hasTransactionComposerValidationErrors,
   validateTransactionComposerSubmission,
 } from './transactionComposerValidation';
+import { runTransactionSubmissionPlan } from './transactionSubmissionPlan';
+import {
+  calculateSplitRemaining,
+  cloneSplitItems,
+  createRemainingSplitItem,
+  formatSplitTotal,
+  sumSplitItems,
+  upsertSplitItem,
+} from './transactionSplitItems';
+import {
+  calculateTransferDestinationAmount,
+  calculateTransferFxRate,
+  normalizePositiveFxRate,
+} from './transactionTransferFx';
 
 export type TransactionEntryModelPorts = {
   ledger: LedgerGatewayPort;
@@ -37,18 +47,29 @@ export type TransactionEntryModelPorts = {
   taxonomy: TaxonomyGatewayPort;
 };
 
+export type TransactionEntryModelClock = {
+  now(): Date;
+  todayIso(): string;
+  resolveOccurredAt(dateInput: string): string;
+  dayOfMonthFromDateInput(dateInput: string): string;
+  weekDayIsoFromDateInput(dateInput: string): string;
+  resolveTimeZoneId(): string;
+};
+
+export type TransactionEntryModelIdGenerator = {
+  nextId(): string;
+};
+
 type UseTransactionEntryModelInput = {
   ports: TransactionEntryModelPorts;
+  clock: TransactionEntryModelClock;
+  idGenerator: TransactionEntryModelIdGenerator;
   accountId: string | null;
   enabled: boolean;
   prefillRequest?: TransactionEntryPrefillRequest;
   onRecorded?: () => void;
   onError?: (error: { message: string }) => void;
 };
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function parseAmount(value: string): number {
   const parsed = Number(value.trim());
@@ -59,86 +80,11 @@ function formatAmount(value: number): string {
   return value.toFixed(2);
 }
 
-function formatFxRate(value: number): string {
-  if (!Number.isFinite(value)) {
-    return '';
-  }
-  const normalized = value.toFixed(8).replace(/0+$/, '').replace(/\.$/, '');
-  return normalized || '0';
-}
-
-function resolveOccurredAt(dateInput: string): string {
-  const raw = dateInput.trim();
-  if (!raw) {
-    return new Date().toISOString();
-  }
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-    const [year, month, day] = raw.split('-').map((value) => Number(value));
-    const now = new Date();
-    const localDateTime = new Date(
-      year,
-      month - 1,
-      day,
-      now.getHours(),
-      now.getMinutes(),
-      now.getSeconds(),
-      now.getMilliseconds(),
-    );
-    return localDateTime.toISOString();
-  }
-
-  const parsed = new Date(raw);
-  if (!Number.isNaN(parsed.getTime())) {
-    return parsed.toISOString();
-  }
-
-  return new Date().toISOString();
-}
-
-function dayOfMonthFromDateInput(dateInput: string): string {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
-    return String(Number(dateInput.slice(8, 10)));
-  }
-  const parsed = new Date(dateInput);
-  if (!Number.isNaN(parsed.getTime())) {
-    return String(parsed.getUTCDate());
-  }
-  return String(new Date().getUTCDate());
-}
-
-function weekDayIsoFromDateInput(dateInput: string): string {
-  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(dateInput)
-    ? new Date(`${dateInput}T12:00:00`)
-    : new Date(dateInput);
-  if (Number.isNaN(parsed.getTime())) {
-    return '1';
-  }
-  const day = parsed.getDay();
-  return String(day === 0 ? 7 : day);
-}
-
-function resolveTimeZoneId(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  } catch {
-    return 'UTC';
-  }
-}
-
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
   return 'Unknown error';
-}
-
-function cloneExpenseItems(items: Array<{ id: string; name: string; amount: string }>): ExpenseItemDraft[] {
-  return items.map((item) => ({
-    id: crypto.randomUUID(),
-    name: item.name,
-    amount: item.amount,
-  }));
 }
 
 function normalizeTaxonomyName(value: string): string {
@@ -170,7 +116,8 @@ function mergeCategories(
 }
 
 export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
-  const { ports, accountId, enabled, prefillRequest, onRecorded, onError } = input;
+  const { ports, clock, idGenerator, accountId, enabled, prefillRequest, onRecorded, onError } = input;
+  const initialToday = clock.todayIso();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -184,7 +131,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [composerMode, setComposerMode] = useState<'picker' | 'expense' | 'income' | 'transfer'>('picker');
   const [composerAdvancedOpen, setComposerAdvancedOpen] = useState(false);
   const [transactionAmount, setTransactionAmount] = useState('');
-  const [transactionDate, setTransactionDate] = useState(todayIso());
+  const [transactionDate, setTransactionDate] = useState(initialToday);
   const [transactionNote, setTransactionNote] = useState('');
   const [transactionCategoryInput, setTransactionCategoryInput] = useState('');
   const [transactionTagInput, setTransactionTagInput] = useState('');
@@ -209,11 +156,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [schedulingKind, setSchedulingKind] = useState<'one_shot' | 'recurring'>('one_shot');
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<SchedulingFrequency>('monthly');
   const [recurrenceInterval, setRecurrenceInterval] = useState('1');
-  const [recurrenceWeeklyDay, setRecurrenceWeeklyDay] = useState(weekDayIsoFromDateInput(todayIso()));
+  const [recurrenceWeeklyDay, setRecurrenceWeeklyDay] = useState(clock.weekDayIsoFromDateInput(initialToday));
   const [recurrenceMonthlyPattern, setRecurrenceMonthlyPattern] = useState<SchedulingMonthlyPattern>('day_of_month');
-  const [recurrenceDayOfMonth, setRecurrenceDayOfMonth] = useState(dayOfMonthFromDateInput(todayIso()));
+  const [recurrenceDayOfMonth, setRecurrenceDayOfMonth] = useState(clock.dayOfMonthFromDateInput(initialToday));
   const [recurrenceMonthlyOrdinal, setRecurrenceMonthlyOrdinal] = useState('1');
-  const [recurrenceMonthlyWeekday, setRecurrenceMonthlyWeekday] = useState(weekDayIsoFromDateInput(todayIso()));
+  const [recurrenceMonthlyWeekday, setRecurrenceMonthlyWeekday] = useState(clock.weekDayIsoFromDateInput(initialToday));
   const [recurrenceEndKind, setRecurrenceEndKind] = useState<SchedulingEndInput['kind']>('never');
   const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
   const [recurrenceEndCount, setRecurrenceEndCount] = useState('12');
@@ -258,15 +205,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     [tags],
   );
 
-  const expenseAssigned = useMemo(
-    () => expenseItems.reduce((acc, item) => acc + parseAmount(item.amount), 0),
-    [expenseItems],
+  const expenseRemaining = useMemo(
+    () => calculateSplitRemaining(transactionAmount, expenseItems),
+    [transactionAmount, expenseItems],
   );
-
-  const expenseRemaining = useMemo(() => {
-    const total = parseAmount(transactionAmount);
-    return (Math.round((total - expenseAssigned) * 100) / 100).toFixed(2);
-  }, [transactionAmount, expenseAssigned]);
   const recurrenceEnabled = schedulingMode === 'scheduled' && schedulingKind === 'recurring';
 
   function reportError(raw: unknown) {
@@ -276,7 +218,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   }
 
   function resetComposerState() {
-    const today = todayIso();
+    const today = clock.todayIso();
     setComposerMode('picker');
     setComposerAdvancedOpen(false);
     setTransactionAmount('');
@@ -300,11 +242,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setSchedulingKind('one_shot');
     setRecurrenceFrequency('monthly');
     setRecurrenceInterval('1');
-    setRecurrenceWeeklyDay(weekDayIsoFromDateInput(today));
+    setRecurrenceWeeklyDay(clock.weekDayIsoFromDateInput(today));
     setRecurrenceMonthlyPattern('day_of_month');
-    setRecurrenceDayOfMonth(dayOfMonthFromDateInput(today));
+    setRecurrenceDayOfMonth(clock.dayOfMonthFromDateInput(today));
     setRecurrenceMonthlyOrdinal('1');
-    setRecurrenceMonthlyWeekday(weekDayIsoFromDateInput(today));
+    setRecurrenceMonthlyWeekday(clock.weekDayIsoFromDateInput(today));
     setRecurrenceEndKind('never');
     setRecurrenceEndDate('');
     setRecurrenceEndCount('12');
@@ -437,7 +379,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     }
     setExpectedMovement(isExpectedEdit && !isPostExpected && !isScheduledEdit);
     setExpenseDetailed((prefillRequest.splitItems?.length ?? 0) > 0);
-    setExpenseItems(cloneExpenseItems(prefillRequest.splitItems ?? []));
+    setExpenseItems(cloneSplitItems(prefillRequest.splitItems ?? [], idGenerator.nextId));
     setEditingExpenseItemId('');
     setEditedExpectedMovementId(prefillRequest.postExpectedMovementId ? '' : (prefillRequest.editedExpectedMovementId ?? ''));
     setEditedScheduledMovementId(prefillRequest.editedScheduledMovementId ?? '');
@@ -488,7 +430,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     }
 
     if (mode === 'transfer') {
-      const sourceAmount = parseAmount(transactionAmount);
       const target = accounts.find((account) => account.id === transferToAccountId);
       const crossCurrency = Boolean(
         target
@@ -502,17 +443,18 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       }
 
       if (transferFxMode === 'auto_destination') {
-        const rate = parseAmount(transferFxRate) > 0 ? parseAmount(transferFxRate) : 1;
-        setTransferFxRate(formatFxRate(rate));
-        if (sourceAmount > 0) {
-          setTransferAmountIn(formatAmount(sourceAmount * rate));
+        const nextRate = normalizePositiveFxRate(transferFxRate);
+        setTransferFxRate(nextRate);
+        const destinationAmount = calculateTransferDestinationAmount(transactionAmount, nextRate);
+        if (destinationAmount) {
+          setTransferAmountIn(destinationAmount);
         }
         return;
       }
 
-      const destination = parseAmount(transferAmountIn);
-      if (sourceAmount > 0 && destination > 0) {
-        setTransferFxRate(formatFxRate(destination / sourceAmount));
+      const nextRate = calculateTransferFxRate(transactionAmount, transferAmountIn);
+      if (nextRate) {
+        setTransferFxRate(nextRate);
       }
     }
   }
@@ -540,7 +482,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       return;
     }
 
-    const sourceAmount = parseAmount(normalized);
     if (!isTransferCrossCurrency(transferToAccountId)) {
       setTransferAmountIn(normalized);
       setTransferFxRate('1');
@@ -548,16 +489,16 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     }
 
     if (transferFxMode === 'auto_destination') {
-      const rate = parseAmount(transferFxRate);
-      if (sourceAmount > 0 && rate > 0) {
-        setTransferAmountIn(formatAmount(sourceAmount * rate));
+      const destinationAmount = calculateTransferDestinationAmount(normalized, transferFxRate);
+      if (destinationAmount) {
+        setTransferAmountIn(destinationAmount);
       }
       return;
     }
 
-    const destination = parseAmount(transferAmountIn);
-    if (sourceAmount > 0 && destination > 0) {
-      setTransferFxRate(formatFxRate(destination / sourceAmount));
+    const nextRate = calculateTransferFxRate(normalized, transferAmountIn);
+    if (nextRate) {
+      setTransferFxRate(nextRate);
     }
   }
 
@@ -575,7 +516,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       return;
     }
 
-    const sourceAmount = parseAmount(transactionAmount);
     if (!isTransferCrossCurrency(value)) {
       setTransferAmountIn(transactionAmount);
       setTransferFxRate('1');
@@ -583,17 +523,18 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     }
 
     if (transferFxMode === 'auto_destination') {
-      const rate = parseAmount(transferFxRate) > 0 ? parseAmount(transferFxRate) : 1;
-      setTransferFxRate(formatFxRate(rate));
-      if (sourceAmount > 0) {
-        setTransferAmountIn(formatAmount(sourceAmount * rate));
+      const nextRate = normalizePositiveFxRate(transferFxRate);
+      setTransferFxRate(nextRate);
+      const destinationAmount = calculateTransferDestinationAmount(transactionAmount, nextRate);
+      if (destinationAmount) {
+        setTransferAmountIn(destinationAmount);
       }
       return;
     }
 
-    const destination = parseAmount(transferAmountIn);
-    if (sourceAmount > 0 && destination > 0) {
-      setTransferFxRate(formatFxRate(destination / sourceAmount));
+    const nextRate = calculateTransferFxRate(transactionAmount, transferAmountIn);
+    if (nextRate) {
+      setTransferFxRate(nextRate);
     }
   }
 
@@ -612,10 +553,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       return;
     }
 
-    const sourceAmount = parseAmount(transactionAmount);
-    const destination = parseAmount(normalized);
-    if (sourceAmount > 0 && destination > 0) {
-      setTransferFxRate(formatFxRate(destination / sourceAmount));
+    const nextRate = calculateTransferFxRate(transactionAmount, normalized);
+    if (nextRate) {
+      setTransferFxRate(nextRate);
     }
   }
 
@@ -636,10 +576,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       return;
     }
 
-    const sourceAmount = parseAmount(transactionAmount);
-    const rate = parseAmount(normalized);
-    if (sourceAmount > 0 && rate > 0) {
-      setTransferAmountIn(formatAmount(sourceAmount * rate));
+    const destinationAmount = calculateTransferDestinationAmount(transactionAmount, normalized);
+    if (destinationAmount) {
+      setTransferAmountIn(destinationAmount);
     }
   }
 
@@ -656,18 +595,17 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       return;
     }
 
-    const sourceAmount = parseAmount(transactionAmount);
     if (value === 'auto_destination') {
-      const rate = parseAmount(transferFxRate);
-      if (sourceAmount > 0 && rate > 0) {
-        setTransferAmountIn(formatAmount(sourceAmount * rate));
+      const destinationAmount = calculateTransferDestinationAmount(transactionAmount, transferFxRate);
+      if (destinationAmount) {
+        setTransferAmountIn(destinationAmount);
       }
       return;
     }
 
-    const destination = parseAmount(transferAmountIn);
-    if (sourceAmount > 0 && destination > 0) {
-      setTransferFxRate(formatFxRate(destination / sourceAmount));
+    const nextRate = calculateTransferFxRate(transactionAmount, transferAmountIn);
+    if (nextRate) {
+      setTransferFxRate(nextRate);
     }
   }
 
@@ -681,10 +619,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     if (!recurrenceEnabled) {
       return;
     }
-    setRecurrenceWeeklyDay(weekDayIsoFromDateInput(value));
-    setRecurrenceMonthlyWeekday(weekDayIsoFromDateInput(value));
+    setRecurrenceWeeklyDay(clock.weekDayIsoFromDateInput(value));
+    setRecurrenceMonthlyWeekday(clock.weekDayIsoFromDateInput(value));
     if (recurrenceMonthlyPattern === 'day_of_month') {
-      setRecurrenceDayOfMonth(dayOfMonthFromDateInput(value));
+      setRecurrenceDayOfMonth(clock.dayOfMonthFromDateInput(value));
     }
   }
 
@@ -785,8 +723,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   }
 
   function syncTransactionAmountWithSplitTotal(items: ExpenseItemDraft[], mode: 'raise' | 'set') {
-    const total = items.reduce((acc, item) => acc + parseAmount(item.amount), 0);
-    const normalizedTotal = formatAmount(total);
+    const total = sumSplitItems(items);
+    const normalizedTotal = formatSplitTotal(items);
     if (mode === 'set') {
       setTransactionAmount(normalizedTotal);
       return;
@@ -802,19 +740,16 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   }
 
   function addExpenseItem() {
-    const name = expenseItemName.trim();
-    const amount = parseAmount(expenseItemAmount);
+    const result = upsertSplitItem({
+      items: expenseItems,
+      editingItemId: editingExpenseItemId,
+      nameInput: expenseItemName,
+      amountInput: expenseItemAmount,
+      nextId: idGenerator.nextId,
+    });
 
-    const nextErrors: TransactionFieldErrors = {};
-    if (!name) {
-      nextErrors.expenseItemName = 'Item name is required.';
-    }
-    if (amount <= 0) {
-      nextErrors.expenseItemAmount = 'Item amount must be greater than 0.';
-    }
-
-    if (nextErrors.expenseItemName || nextErrors.expenseItemAmount) {
-      setFieldErrors((previous) => ({ ...previous, ...nextErrors }));
+    if (result.errors.expenseItemName || result.errors.expenseItemAmount) {
+      setFieldErrors((previous) => ({ ...previous, ...result.errors }));
       return;
     }
 
@@ -824,18 +759,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       expenseItemAmount: undefined,
       expenseSplit: undefined,
     }));
-    setExpenseItems((previous) => {
-      const nextItem = {
-        id: editingExpenseItemId || crypto.randomUUID(),
-        name,
-        amount: amount.toFixed(2),
-      };
-      const next = editingExpenseItemId
-        ? previous.map((item) => (item.id === editingExpenseItemId ? nextItem : item))
-        : [...previous, nextItem];
-      syncTransactionAmountWithSplitTotal(next, 'raise');
-      return next;
-    });
+    setExpenseItems(result.items);
+    syncTransactionAmountWithSplitTotal(result.items, 'raise');
     setExpenseItemName('');
     setExpenseItemAmount('');
     setEditingExpenseItemId('');
@@ -872,23 +797,23 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   }
 
   function assignRemaining() {
-    const remaining = parseAmount(expenseRemaining);
-    if (remaining <= 0) {
+    const nextItem = createRemainingSplitItem({
+      itemsLength: expenseItems.length,
+      remaining: expenseRemaining,
+      nameInput: expenseItemName,
+      nextId: idGenerator.nextId,
+    });
+    if (!nextItem) {
       return;
     }
 
-    const fallbackName = `Item ${expenseItems.length + 1}`;
     setExpenseItems((previous) => [
       ...previous,
-      {
-        id: crypto.randomUUID(),
-        name: expenseItemName.trim() || fallbackName,
-        amount: remaining.toFixed(2),
-      },
+      nextItem,
     ]);
     setTransactionAmount((previous) => {
       const current = parseAmount(previous);
-      const nextTotal = parseAmount(transactionAmount) - remaining + remaining;
+      const nextTotal = parseAmount(transactionAmount);
       if (!previous.trim() || current < nextTotal) {
         return formatAmount(nextTotal);
       }
@@ -1050,7 +975,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       recurrenceEndKind,
       recurrenceEndDate,
       recurrenceEndCount,
-      todayIso: todayIso(),
+      todayIso: clock.todayIso(),
     });
 
     if (validation.blockingError) {
@@ -1070,13 +995,27 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
     setPostingTransaction(true);
     try {
-      const occurredAt = resolveOccurredAt(resolvedTransactionDate);
-      const tagNames = parseTransactionTags();
-      const tagIds = resolveTagSelectionIds(tagNames);
-      let recorded = false;
-      let postedTransactionId = '';
-      const buildCurrentSchedulingParts = (enabled = recurrenceEnabled) => buildSchedulingParts({
-        recurrenceEnabled: enabled,
+      const result = await runTransactionSubmissionPlan({
+        ports: {
+          scheduling: ports.scheduling,
+          expected: ports.expected,
+        },
+        ledgerTransactionCommands,
+        clock,
+        accountId,
+        accounts,
+        accountCurrency,
+        composerMode,
+        amount,
+        resolvedTransactionDate,
+        transactionNote,
+        transferToAccountId,
+        transferAmountIn,
+        transferFxRate,
+        transferFxMode,
+        schedulingMode,
+        schedulingKind,
+        recurrenceEnabled,
         recurrenceFrequency,
         recurrenceInterval,
         recurrenceWeeklyDay,
@@ -1087,376 +1026,21 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         recurrenceEndKind,
         recurrenceEndDate,
         recurrenceEndCount,
-        transactionDate,
+        movementExpected,
+        movementScheduled,
+        expenseDetailed,
+        expenseItems,
+        editedScheduledMovementId,
+        editedExpectedMovementId,
+        postExpectedMovementId,
+        resolveCategorySelection,
+        parseTransactionTags,
+        resolveTagSelectionIds,
+        categorizeTransaction,
+        applyTransactionTags,
       });
 
-      if (editedScheduledMovementId) {
-        const scheduleKind = schedulingKind;
-        const { rule: scheduleRule, recurrenceEnd: scheduleEnd } = buildCurrentSchedulingParts();
-
-        if (composerMode === 'transfer') {
-          const transferTargetAccount = accounts.find((candidate) => candidate.id === transferToAccountId);
-          if (!transferTargetAccount) {
-            throw new Error('Destination account not found');
-          }
-          const transferAmountParts = buildTransferAmountParts({
-            sourceAmount: amount,
-            sourceCurrency: accountCurrency,
-            targetCurrency: transferTargetAccount.currency,
-            transferAmountIn,
-            transferFxRate,
-            transferFxMode,
-          });
-
-          await ports.scheduling.schedulingUpdateMovement({
-            recurringMovementId: editedScheduledMovementId,
-            type: 'transfer',
-            sourceAccountId: accountId,
-            targetAccountId: transferToAccountId,
-            amount: transferAmountParts.amount,
-            currency: transferAmountParts.currency,
-            destinationAmount: transferAmountParts.destinationAmount,
-            destinationCurrency: transferAmountParts.destinationCurrency,
-            exchangeRate: transferAmountParts.exchangeRate,
-            description: transactionNote.trim() || undefined,
-            merchant: undefined,
-            categoryId: undefined,
-            tagIds,
-            tagNames,
-            rule: scheduleRule,
-            recurrenceEnd: scheduleEnd,
-            startAt: occurredAt,
-            zoneId: resolveTimeZoneId(),
-            scheduleKind,
-          });
-        }
-
-        if (composerMode === 'income') {
-          const categoryId = await resolveCategorySelection('income');
-          await ports.scheduling.schedulingUpdateMovement({
-            recurringMovementId: editedScheduledMovementId,
-            type: 'income',
-            sourceAccountId: accountId,
-            amount: formatAmount(parseAmount(amount)),
-            currency: accountCurrency,
-            description: transactionNote.trim() || undefined,
-            merchant: transactionNote.trim() || undefined,
-            categoryId,
-            splitItems: expenseItems,
-            tagIds,
-            tagNames,
-            rule: scheduleRule,
-            recurrenceEnd: scheduleEnd,
-            startAt: occurredAt,
-            zoneId: resolveTimeZoneId(),
-            scheduleKind,
-          });
-        }
-
-        if (composerMode === 'expense') {
-          const categoryId = await resolveCategorySelection('expense');
-          await ports.scheduling.schedulingUpdateMovement({
-            recurringMovementId: editedScheduledMovementId,
-            type: 'expense',
-            sourceAccountId: accountId,
-            amount: formatAmount(parseAmount(amount)),
-            currency: accountCurrency,
-            description: transactionNote.trim() || undefined,
-            merchant: transactionNote.trim() || undefined,
-            categoryId,
-            splitItems: expenseItems,
-            tagIds,
-            tagNames,
-            rule: scheduleRule,
-            recurrenceEnd: scheduleEnd,
-            startAt: occurredAt,
-            zoneId: resolveTimeZoneId(),
-            scheduleKind,
-          });
-        }
-        recorded = true;
-      }
-
-      if (movementExpected && (composerMode === 'expense' || composerMode === 'income')) {
-        const categoryId = await resolveCategorySelection(composerMode);
-        const expectedPayload = {
-          accountId,
-          type: composerMode,
-          amount: formatAmount(parseAmount(amount)),
-          currency: accountCurrency,
-          expectedAt: occurredAt,
-          description: transactionNote.trim() || undefined,
-          merchant: transactionNote.trim() || undefined,
-          categoryId,
-          splitItems: expenseItems,
-        };
-        if (editedExpectedMovementId) {
-          await ports.expected.expectedUpdateMovement({
-            expectedMovementId: editedExpectedMovementId,
-            ...expectedPayload,
-          });
-        } else {
-          await ports.expected.expectedCreateMovement(expectedPayload);
-        }
-        recorded = true;
-      }
-
-      if (!editedScheduledMovementId && (composerMode === 'expense' || composerMode === 'income') && recurrenceEnabled) {
-        const categoryId = await resolveCategorySelection(composerMode);
-        const { rule: scheduleRule, recurrenceEnd: scheduleEnd } = buildCurrentSchedulingParts(true);
-
-        await ports.scheduling.schedulingCreateMovement({
-          type: composerMode,
-          sourceAccountId: accountId,
-          amount: formatAmount(parseAmount(amount)),
-          currency: accountCurrency,
-          description: transactionNote.trim() || undefined,
-          merchant: transactionNote.trim() || undefined,
-          categoryId,
-          splitItems: expenseItems,
-          tagIds,
-          tagNames,
-          rule: scheduleRule,
-          recurrenceEnd: scheduleEnd,
-          startAt: occurredAt,
-          zoneId: resolveTimeZoneId(),
-          scheduleKind: 'recurring',
-        });
-        recorded = true;
-      }
-
-      if (!recorded && (composerMode === 'expense' || composerMode === 'income') && movementScheduled) {
-        const categoryId = await resolveCategorySelection(composerMode);
-        const { rule: scheduleRule, recurrenceEnd: scheduleEnd } = buildCurrentSchedulingParts(false);
-        await ports.scheduling.schedulingCreateMovement({
-          type: composerMode,
-          sourceAccountId: accountId,
-          amount: formatAmount(parseAmount(amount)),
-          currency: accountCurrency,
-          description: transactionNote.trim() || undefined,
-          merchant: transactionNote.trim() || undefined,
-          categoryId,
-          tagIds,
-          tagNames,
-          rule: scheduleRule,
-          recurrenceEnd: scheduleEnd,
-          startAt: occurredAt,
-          zoneId: resolveTimeZoneId(),
-          scheduleKind: 'one_shot',
-        });
-        recorded = true;
-      }
-
-      if (!recorded && composerMode !== 'expense' && schedulingMode === 'scheduled') {
-        const categoryId = composerMode === 'income'
-          ? await resolveCategorySelection('income')
-          : undefined;
-        const { rule: scheduleRule, recurrenceEnd: scheduleEnd } = buildCurrentSchedulingParts();
-
-        if (composerMode === 'transfer') {
-          const transferTargetAccount = accounts.find((candidate) => candidate.id === transferToAccountId);
-          if (!transferTargetAccount) {
-            throw new Error('Destination account not found');
-          }
-          const transferAmountParts = buildTransferAmountParts({
-            sourceAmount: amount,
-            sourceCurrency: accountCurrency,
-            targetCurrency: transferTargetAccount.currency,
-            transferAmountIn,
-            transferFxRate,
-            transferFxMode,
-          });
-
-          await ports.scheduling.schedulingCreateMovement({
-            type: 'transfer',
-            sourceAccountId: accountId,
-            targetAccountId: transferToAccountId,
-            amount: transferAmountParts.amount,
-            currency: transferAmountParts.currency,
-            destinationAmount: transferAmountParts.destinationAmount,
-            destinationCurrency: transferAmountParts.destinationCurrency,
-            exchangeRate: transferAmountParts.exchangeRate,
-            description: transactionNote.trim() || undefined,
-            merchant: undefined,
-            categoryId: undefined,
-            tagIds,
-            tagNames,
-            rule: scheduleRule,
-            recurrenceEnd: scheduleEnd,
-            startAt: occurredAt,
-            zoneId: resolveTimeZoneId(),
-            scheduleKind: schedulingKind,
-          });
-        }
-
-        if (composerMode === 'income') {
-          await ports.scheduling.schedulingCreateMovement({
-            type: 'income',
-            sourceAccountId: accountId,
-            amount: formatAmount(parseAmount(amount)),
-            currency: accountCurrency,
-            description: transactionNote.trim() || undefined,
-            merchant: transactionNote.trim() || undefined,
-            categoryId,
-            splitItems: expenseItems,
-            tagIds,
-            tagNames,
-            rule: scheduleRule,
-            recurrenceEnd: scheduleEnd,
-            startAt: occurredAt,
-            zoneId: resolveTimeZoneId(),
-            scheduleKind: schedulingKind,
-          });
-        }
-        recorded = true;
-      }
-
-      if (!recorded && composerMode === 'expense') {
-        const categoryId = await resolveCategorySelection('expense');
-        if (!expenseDetailed) {
-          const result = await ledgerTransactionCommands.recordExpense({
-            accountId,
-            occurredAt,
-            amount,
-            currency: accountCurrency,
-            description: transactionNote.trim() || undefined,
-            merchant: transactionNote.trim() || undefined,
-            categoryId,
-          });
-          postedTransactionId = result.id;
-          await categorizeTransaction(result.id, 'expense', categoryId);
-          await applyTransactionTags(result.id, tagNames);
-          recorded = true;
-        } else {
-          const draft = await ledgerTransactionCommands.createExpenseDraft({
-            accountId,
-            occurredAt,
-            amount,
-            currency: accountCurrency,
-            description: transactionNote.trim() || undefined,
-            merchant: transactionNote.trim() || undefined,
-          });
-
-          for (const item of expenseItems) {
-            await ledgerTransactionCommands.addTransactionItem({
-              transactionId: draft.id,
-              name: item.name,
-              amount: item.amount,
-              currency: accountCurrency,
-            });
-          }
-
-          await ledgerTransactionCommands.postDraftTransaction({ transactionId: draft.id });
-          postedTransactionId = draft.id;
-          await categorizeTransaction(draft.id, 'expense', categoryId);
-          await applyTransactionTags(draft.id, tagNames);
-          recorded = true;
-        }
-      }
-
-      if (!recorded && composerMode === 'income') {
-        const categoryId = await resolveCategorySelection('income');
-        if (!expenseDetailed) {
-          const result = await ledgerTransactionCommands.recordIncome({
-            accountId,
-            occurredAt,
-            amount,
-            currency: accountCurrency,
-            description: transactionNote.trim() || undefined,
-            merchant: transactionNote.trim() || undefined,
-            categoryId,
-          });
-          postedTransactionId = result.id;
-          await categorizeTransaction(result.id, 'income', categoryId);
-          await applyTransactionTags(result.id, tagNames);
-          recorded = true;
-        } else {
-          const draft = await ledgerTransactionCommands.createExpenseDraft({
-            accountId,
-            occurredAt,
-            amount,
-            currency: accountCurrency,
-            type: 'income',
-            description: transactionNote.trim() || undefined,
-            merchant: transactionNote.trim() || undefined,
-          });
-
-          for (const item of expenseItems) {
-            await ledgerTransactionCommands.addTransactionItem({
-              transactionId: draft.id,
-              name: item.name,
-              amount: item.amount,
-              currency: accountCurrency,
-            });
-          }
-
-          await ledgerTransactionCommands.postDraftTransaction({ transactionId: draft.id });
-          postedTransactionId = draft.id;
-          await categorizeTransaction(draft.id, 'income', categoryId);
-          await applyTransactionTags(draft.id, tagNames);
-          recorded = true;
-        }
-      }
-
-      if (!recorded && schedulingMode === 'now' && composerMode === 'transfer') {
-        const transferTargetAccount = accounts.find((candidate) => candidate.id === transferToAccountId);
-        if (!transferTargetAccount) {
-          throw new Error('Destination account not found');
-        }
-
-        const transferAmountParts = buildTransferAmountParts({
-          sourceAmount: amount,
-          sourceCurrency: accountCurrency,
-          targetCurrency: transferTargetAccount.currency,
-          transferAmountIn,
-          transferFxRate,
-          transferFxMode,
-        });
-
-        let result: { transferOutId: string; transferInId: string };
-
-        if (!transferAmountParts.destinationAmount || !transferAmountParts.destinationCurrency) {
-          result = await ledgerTransactionCommands.recordTransfer({
-            fromAccountId: accountId,
-            toAccountId: transferToAccountId,
-            occurredAt,
-            amount: transferAmountParts.amount,
-            currency: transferAmountParts.currency,
-            description: transactionNote.trim() || undefined,
-          });
-        } else {
-          result = await ledgerTransactionCommands.recordTransferFx({
-            fromAccountId: accountId,
-            toAccountId: transferToAccountId,
-            occurredAt,
-            sourceAmount: transferAmountParts.amount,
-            sourceCurrency: transferAmountParts.currency,
-            destinationAmount: transferAmountParts.destinationAmount,
-            destinationCurrency: transferAmountParts.destinationCurrency,
-            exchangeRate: transferAmountParts.exchangeRate,
-            description: transactionNote.trim() || undefined,
-          });
-        }
-
-        await applyTransactionTags(result.transferOutId, tagNames);
-        await applyTransactionTags(result.transferInId, tagNames);
-        recorded = true;
-      }
-
-      if (recorded) {
-        if (editedExpectedMovementId && postedTransactionId) {
-          await ports.expected.expectedResolveMovement({
-            expectedMovementId: editedExpectedMovementId,
-            transactionId: postedTransactionId,
-            resolvedAt: new Date().toISOString(),
-          });
-        } else if (postExpectedMovementId && postedTransactionId) {
-          await ports.expected.expectedResolveMovement({
-            expectedMovementId: postExpectedMovementId,
-            transactionId: postedTransactionId,
-            resolvedAt: new Date().toISOString(),
-          });
-        }
+      if (result.recorded) {
         onRecorded?.();
         setComposerOpen(false);
         resetComposerState();
