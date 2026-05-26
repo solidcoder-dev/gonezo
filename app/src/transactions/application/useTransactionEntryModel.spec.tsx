@@ -55,11 +55,11 @@ function makePorts(): TransactionEntryModelPorts {
       expectedResolveMovement: vi.fn().mockResolvedValue(undefined),
       expectedDismissMovement: vi.fn(),
     },
-    taxonomy: {
-      taxonomyListCategories: vi.fn().mockResolvedValue({ items: [] }),
-      taxonomyCreateCategory: vi.fn(),
-      taxonomyRenameCategory: vi.fn(),
-      taxonomyListTags: vi.fn().mockResolvedValue({ items: [] }),
+      taxonomy: {
+        taxonomyListCategories: vi.fn().mockResolvedValue({ items: [] }),
+        taxonomyCreateCategory: vi.fn().mockResolvedValue({ id: 'cat-1' }),
+        taxonomyRenameCategory: vi.fn(),
+        taxonomyListTags: vi.fn().mockResolvedValue({ items: [] }),
       taxonomyRenameTag: vi.fn(),
       orchestrationCategorizeTransaction: vi.fn().mockResolvedValue({ status: 'assigned' }),
       orchestrationApplyTransactionTags: vi.fn().mockResolvedValue({ status: 'assigned', tagIds: [] }),
@@ -174,6 +174,76 @@ describe('useTransactionEntryModel', () => {
       categoryId: undefined,
     });
     expect(onRecorded).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps cross-currency transfer FX fields synchronized through composer commands', async () => {
+    const ports = makePorts();
+
+    const { result } = renderHook(() => useTransactionEntryModel({
+      ports,
+      clock: makeClock(),
+      idGenerator: makeIdGenerator([]),
+      accountId: 'account-1',
+      enabled: true,
+    }));
+
+    await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
+
+    act(() => {
+      result.current.provided.commands.open();
+      result.current.provided.commands.selectMode('transfer');
+    });
+    act(() => {
+      result.current.provided.commands.setAmount('10');
+    });
+
+    expect(result.current.required.state.transferTargetAccountId).toBe('account-2');
+    expect(result.current.required.state.transferCrossCurrency).toBe(true);
+    expect(result.current.required.state.transferAmountIn).toBe('10.00');
+
+    act(() => {
+      result.current.provided.commands.setTransferFxRate('1.5');
+    });
+
+    expect(result.current.required.state.transferFxRate).toBe('1.5');
+    expect(result.current.required.state.transferAmountIn).toBe('15.00');
+  });
+
+  it('creates a missing expense category before recording a posted expense', async () => {
+    const ports = makePorts();
+
+    const { result } = renderHook(() => useTransactionEntryModel({
+      ports,
+      clock: makeClock(),
+      idGenerator: makeIdGenerator([]),
+      accountId: 'account-1',
+      enabled: true,
+    }));
+
+    await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
+
+    act(() => {
+      result.current.provided.commands.open();
+      result.current.provided.commands.selectMode('expense');
+      result.current.provided.commands.setAmount('12');
+      result.current.provided.commands.setCategoryInput('Food');
+    });
+    await act(async () => {
+      await result.current.provided.commands.submit(formEvent());
+    });
+
+    expect(ports.taxonomy.taxonomyCreateCategory).toHaveBeenCalledWith({
+      name: 'Food',
+      appliesTo: 'expense',
+    });
+    expect(ports.ledger.ledgerRecordExpense).toHaveBeenCalledWith(expect.objectContaining({
+      categoryId: 'cat-1',
+    }));
+    expect(ports.taxonomy.orchestrationCategorizeTransaction).toHaveBeenCalledWith({
+      transactionId: 'tx-1',
+      transactionType: 'expense',
+      categoryId: 'cat-1',
+    });
   });
 
   it('resolves posted expected movements using the injected clock', async () => {
