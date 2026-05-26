@@ -192,6 +192,11 @@ describe('SOLID frontend boundaries', () => {
     const ledgerGuards = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebLedgerGuards.ts'), 'utf8');
     const schedulingService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebSchedulingService.ts'), 'utf8');
     const movementsService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMovementsService.ts'), 'utf8');
+    const movementsOverviewService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMovementsOverviewService.ts'), 'utf8');
+    const movementsSearchService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMovementsSearchService.ts'), 'utf8');
+    const movementsFacetsService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMovementsFacetsService.ts'), 'utf8');
+    const scheduledListService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebScheduledMovementsListService.ts'), 'utf8');
+    const pagination = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebPagination.ts'), 'utf8');
 
     expect(coreAdapterWeb).toContain("from './coreAdapterWebLedgerService'");
     expect(coreAdapterWeb).toContain("from './coreAdapterWebSchedulingService'");
@@ -235,7 +240,26 @@ describe('SOLID frontend boundaries', () => {
     expect(ledgerGuards).toContain('export function getWebLedgerAccountOrThrow');
     expect(ledgerGuards).toContain('export function ensureWebAccountCanPost');
     expect(schedulingService).toContain("from './coreAdapterWebRecurrence'");
-    expect(movementsService).toContain("from './coreAdapterWebMovementQueries'");
+    expect(schedulingService).not.toContain('listScheduledPage');
+    expect(movementsService).toContain("from './coreAdapterWebMovementsOverviewService'");
+    expect(movementsService).toContain("from './coreAdapterWebMovementsSearchService'");
+    expect(movementsService).toContain("from './coreAdapterWebMovementsFacetsService'");
+    expect(movementsService).toContain("from './coreAdapterWebScheduledMovementsListService'");
+    expect(movementsService).not.toContain("from './coreAdapterWebMovementQueries'");
+    expect(movementsService).not.toContain('while (hasMorePosted)');
+    expect(movementsService).not.toContain('mapPostedTransactionToSearchItem');
+    expect(movementsService).not.toContain('Math.ceil(totalElements /');
+    expect(movementsService.split('\n').length).toBeLessThanOrEqual(120);
+    expect(movementsOverviewService).toContain('export class WebMovementsOverviewService');
+    expect(movementsOverviewService).toContain('while (hasMorePosted)');
+    expect(movementsSearchService).toContain('export class WebMovementsSearchService');
+    expect(movementsSearchService).toContain('mapPostedTransactionToSearchItem');
+    expect(movementsFacetsService).toContain('export class WebMovementsFacetsService');
+    expect(movementsFacetsService).toContain('getMovementsSearchFacets');
+    expect(scheduledListService).toContain('export class WebScheduledMovementsListService');
+    expect(scheduledListService).toContain('filterScheduledMovements');
+    expect(pagination).toContain('export function normalizeWebPagination');
+    expect(pagination).toContain('export function paginateWebItems');
   });
 
   it('keeps web adapter state and browser effects behind injected boundaries', () => {

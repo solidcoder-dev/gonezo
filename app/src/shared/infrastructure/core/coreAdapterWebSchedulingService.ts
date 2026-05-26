@@ -4,8 +4,6 @@ import type {
   RecurrenceDeactivateRecurringMovementInput,
   RecurrenceListRecurringMovementsInput,
   RecurrenceListRecurringMovementsResult,
-  MovementsListScheduledInput,
-  MovementsListScheduledResult,
   SchedulingCreateMovementInput,
   SchedulingCreateMovementResult,
   SchedulingDeactivateMovementInput,
@@ -20,7 +18,6 @@ import type { CoreAdapterWebDependencies } from './coreAdapterWebEffects';
 import type { WebLedgerService } from './coreAdapterWebLedgerService';
 import {
   compareScheduledMovementByDue,
-  filterScheduledMovements,
   isScheduledMovementVisibleForAccount,
 } from './coreAdapterWebMovementQueries';
 import {
@@ -248,58 +245,5 @@ export class WebSchedulingService {
 
   async listScheduled(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult> {
     return this.listMovements(input);
-  }
-
-  async listScheduledPage(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult> {
-    const requestedPage = input.pagination?.page ?? 0;
-    const requestedSize = input.pagination?.size ?? 20;
-    const page = Number.isFinite(requestedPage) && requestedPage >= 0 ? Math.trunc(requestedPage) : 0;
-    const size = Number.isFinite(requestedSize) && requestedSize > 0 ? Math.min(Math.trunc(requestedSize), 100) : 20;
-
-    const sorted = [...filterScheduledMovements(this.state.recurringMovements, {
-      accountId: input.accountId,
-      filters: input.filters,
-    })];
-
-    const sort = input.sort && input.sort.length > 0
-      ? input.sort
-      : [{ field: 'nextDueAt' as const, direction: 'asc' as const }];
-
-    sorted.sort((left, right) => {
-      for (const criterion of sort) {
-        let comparison = 0;
-        if (criterion.field === 'amount') {
-          const leftAmount = Number(left.amount);
-          const rightAmount = Number(right.amount);
-          const safeLeft = Number.isFinite(leftAmount) ? leftAmount : 0;
-          const safeRight = Number.isFinite(rightAmount) ? rightAmount : 0;
-          comparison = safeLeft - safeRight;
-        } else {
-          const leftDue = left.nextDueAt ?? left.startAt;
-          const rightDue = right.nextDueAt ?? right.startAt;
-          comparison = leftDue.localeCompare(rightDue);
-        }
-        if (comparison !== 0) {
-          return criterion.direction === 'asc' ? comparison : -comparison;
-        }
-      }
-      return left.id.localeCompare(right.id);
-    });
-
-    const totalElements = sorted.length;
-    const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / size);
-    const resolvedPage = totalPages === 0 ? 0 : Math.min(page, totalPages - 1);
-    const startIndex = resolvedPage * size;
-    const content = sorted.slice(startIndex, startIndex + size).map((item) => ({ ...item }));
-
-    return {
-      content,
-      page: resolvedPage,
-      size,
-      totalElements,
-      totalPages,
-      hasNext: totalPages > 0 && resolvedPage + 1 < totalPages,
-      hasPrevious: resolvedPage > 0,
-    };
   }
 }
