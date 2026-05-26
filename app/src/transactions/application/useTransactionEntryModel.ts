@@ -41,11 +41,7 @@ import {
   sumSplitItems,
   upsertSplitItem,
 } from './transactionSplitItems';
-import {
-  calculateTransferDestinationAmount,
-  calculateTransferFxRate,
-  normalizePositiveFxRate,
-} from './transactionTransferFx';
+import { syncTransferFxFields, type SyncedTransferFxFields } from './transactionTransferFx';
 
 export type TransactionEntryModelPorts = {
   ledger: LedgerGatewayPort;
@@ -415,26 +411,14 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         && target.currency.toUpperCase() !== accountCurrency.toUpperCase(),
       );
 
-      if (!crossCurrency) {
-        setTransferAmountIn(transactionAmount);
-        setTransferFxRate('1');
-        return;
-      }
-
-      if (transferFxMode === 'auto_destination') {
-        const nextRate = normalizePositiveFxRate(transferFxRate);
-        setTransferFxRate(nextRate);
-        const destinationAmount = calculateTransferDestinationAmount(transactionAmount, nextRate);
-        if (destinationAmount) {
-          setTransferAmountIn(destinationAmount);
-        }
-        return;
-      }
-
-      const nextRate = calculateTransferFxRate(transactionAmount, transferAmountIn);
-      if (nextRate) {
-        setTransferFxRate(nextRate);
-      }
+      applyTransferFxFields(syncTransferFxFields({
+        sourceAmount: transactionAmount,
+        destinationAmount: transferAmountIn,
+        rate: transferFxRate,
+        mode: transferFxMode,
+        crossCurrency,
+        normalizeRate: transferFxMode === 'auto_destination',
+      }));
     }
   }
 
@@ -444,6 +428,15 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       return false;
     }
     return target.currency.toUpperCase() !== accountCurrency.toUpperCase();
+  }
+
+  function applyTransferFxFields(fields: SyncedTransferFxFields) {
+    if (fields.transferAmountIn !== undefined) {
+      setTransferAmountIn(fields.transferAmountIn);
+    }
+    if (fields.transferFxRate !== undefined) {
+      setTransferFxRate(fields.transferFxRate);
+    }
   }
 
   function setTransactionAmountValue(value: string) {
@@ -461,24 +454,13 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       return;
     }
 
-    if (!isTransferCrossCurrency(transferToAccountId)) {
-      setTransferAmountIn(normalized);
-      setTransferFxRate('1');
-      return;
-    }
-
-    if (transferFxMode === 'auto_destination') {
-      const destinationAmount = calculateTransferDestinationAmount(normalized, transferFxRate);
-      if (destinationAmount) {
-        setTransferAmountIn(destinationAmount);
-      }
-      return;
-    }
-
-    const nextRate = calculateTransferFxRate(normalized, transferAmountIn);
-    if (nextRate) {
-      setTransferFxRate(nextRate);
-    }
+    applyTransferFxFields(syncTransferFxFields({
+      sourceAmount: normalized,
+      destinationAmount: transferAmountIn,
+      rate: transferFxRate,
+      mode: transferFxMode,
+      crossCurrency: isTransferCrossCurrency(transferToAccountId),
+    }));
   }
 
   function setTransferTargetValue(value: string) {
@@ -495,26 +477,14 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       return;
     }
 
-    if (!isTransferCrossCurrency(value)) {
-      setTransferAmountIn(transactionAmount);
-      setTransferFxRate('1');
-      return;
-    }
-
-    if (transferFxMode === 'auto_destination') {
-      const nextRate = normalizePositiveFxRate(transferFxRate);
-      setTransferFxRate(nextRate);
-      const destinationAmount = calculateTransferDestinationAmount(transactionAmount, nextRate);
-      if (destinationAmount) {
-        setTransferAmountIn(destinationAmount);
-      }
-      return;
-    }
-
-    const nextRate = calculateTransferFxRate(transactionAmount, transferAmountIn);
-    if (nextRate) {
-      setTransferFxRate(nextRate);
-    }
+    applyTransferFxFields(syncTransferFxFields({
+      sourceAmount: transactionAmount,
+      destinationAmount: transferAmountIn,
+      rate: transferFxRate,
+      mode: transferFxMode,
+      crossCurrency: isTransferCrossCurrency(value),
+      normalizeRate: transferFxMode === 'auto_destination',
+    }));
   }
 
   function setTransferAmountInValue(value: string) {
@@ -531,11 +501,13 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     if (transferFxMode !== 'auto_rate') {
       return;
     }
-
-    const nextRate = calculateTransferFxRate(transactionAmount, normalized);
-    if (nextRate) {
-      setTransferFxRate(nextRate);
-    }
+    applyTransferFxFields(syncTransferFxFields({
+      sourceAmount: transactionAmount,
+      destinationAmount: normalized,
+      rate: transferFxRate,
+      mode: transferFxMode,
+      crossCurrency: true,
+    }));
   }
 
   function setTransferFxRateValue(value: string) {
@@ -547,18 +519,25 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       return;
     }
     if (!isTransferCrossCurrency(transferToAccountId)) {
-      setTransferFxRate('1');
-      setTransferAmountIn(transactionAmount);
+      applyTransferFxFields(syncTransferFxFields({
+        sourceAmount: transactionAmount,
+        destinationAmount: transferAmountIn,
+        rate: normalized,
+        mode: transferFxMode,
+        crossCurrency: false,
+      }));
       return;
     }
     if (transferFxMode !== 'auto_destination') {
       return;
     }
-
-    const destinationAmount = calculateTransferDestinationAmount(transactionAmount, normalized);
-    if (destinationAmount) {
-      setTransferAmountIn(destinationAmount);
-    }
+    applyTransferFxFields(syncTransferFxFields({
+      sourceAmount: transactionAmount,
+      destinationAmount: transferAmountIn,
+      rate: normalized,
+      mode: transferFxMode,
+      crossCurrency: true,
+    }));
   }
 
   function setTransferFxModeValue(value: 'auto_destination' | 'auto_rate') {
@@ -568,24 +547,13 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     if (composerMode !== 'transfer') {
       return;
     }
-    if (!isTransferCrossCurrency(transferToAccountId)) {
-      setTransferFxRate('1');
-      setTransferAmountIn(transactionAmount);
-      return;
-    }
-
-    if (value === 'auto_destination') {
-      const destinationAmount = calculateTransferDestinationAmount(transactionAmount, transferFxRate);
-      if (destinationAmount) {
-        setTransferAmountIn(destinationAmount);
-      }
-      return;
-    }
-
-    const nextRate = calculateTransferFxRate(transactionAmount, transferAmountIn);
-    if (nextRate) {
-      setTransferFxRate(nextRate);
-    }
+    applyTransferFxFields(syncTransferFxFields({
+      sourceAmount: transactionAmount,
+      destinationAmount: transferAmountIn,
+      rate: transferFxRate,
+      mode: value,
+      crossCurrency: isTransferCrossCurrency(transferToAccountId),
+    }));
   }
 
   function setTransactionDateValue(value: string) {

@@ -40,3 +40,38 @@ export function calculateTransferFxRate(
   }
   return formatFxRate(destinationAmount / sourceAmount);
 }
+
+export type TransferFxMode = 'auto_destination' | 'auto_rate';
+
+export type SyncedTransferFxFields = {
+  transferAmountIn?: string;
+  transferFxRate?: string;
+};
+
+export function syncTransferFxFields(input: {
+  sourceAmount: string;
+  destinationAmount: string;
+  rate: string;
+  mode: TransferFxMode;
+  crossCurrency: boolean;
+  normalizeRate?: boolean;
+}): SyncedTransferFxFields {
+  if (!input.crossCurrency) {
+    return {
+      transferAmountIn: input.sourceAmount,
+      transferFxRate: '1',
+    };
+  }
+
+  if (input.mode === 'auto_destination') {
+    const rate = input.normalizeRate ? normalizePositiveFxRate(input.rate) : input.rate;
+    const destinationAmount = calculateTransferDestinationAmount(input.sourceAmount, rate);
+    return {
+      ...(input.normalizeRate ? { transferFxRate: rate } : {}),
+      ...(destinationAmount ? { transferAmountIn: destinationAmount } : {}),
+    };
+  }
+
+  const rate = calculateTransferFxRate(input.sourceAmount, input.destinationAmount);
+  return rate ? { transferFxRate: rate } : {};
+}

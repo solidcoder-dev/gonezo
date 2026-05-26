@@ -85,6 +85,7 @@ describe('SOLID frontend boundaries', () => {
     const backup = readFileSync(join(androidPluginDir, 'MovementsBackupHandler.java'), 'utf8');
     const preferences = readFileSync(join(androidPluginDir, 'PreferencesPluginHandler.java'), 'utf8');
     const ledger = readFileSync(join(androidPluginDir, 'LedgerPluginHandler.java'), 'utf8');
+    const ledgerTransactions = readFileSync(join(androidPluginDir, 'LedgerTransactionsQueryHandler.java'), 'utf8');
     const taxonomy = readFileSync(join(androidPluginDir, 'TaxonomyPluginHandler.java'), 'utf8');
     const recurrence = readFileSync(join(androidPluginDir, 'RecurringPluginHandler.java'), 'utf8');
     const expected = readFileSync(join(androidPluginDir, 'ExpectedPluginHandler.java'), 'utf8');
@@ -109,7 +110,11 @@ describe('SOLID frontend boundaries', () => {
     expect(backup).toContain('JSObject importBase64');
     expect(preferences).toContain('final class PreferencesPluginHandler');
     expect(ledger).toContain('final class LedgerPluginHandler');
-    expect(ledger).toContain('private JSObject toTransactionJson');
+    expect(ledger).toContain('new LedgerTransactionsQueryHandler(context).ledgerListTransactions(call)');
+    expect(ledger).not.toContain('private JSObject toTransactionJson');
+    expect(ledger).not.toContain('AndroidTaxonomyCore');
+    expect(ledgerTransactions).toContain('final class LedgerTransactionsQueryHandler');
+    expect(ledgerTransactions).toContain('private JSObject toTransactionJson');
     expect(taxonomy).toContain('final class TaxonomyPluginHandler');
     expect(taxonomy).toContain('TransactionTaggingBridge.applyTagsToTransaction');
     expect(recurrence).toContain('final class RecurringPluginHandler');
@@ -150,18 +155,46 @@ describe('SOLID frontend boundaries', () => {
     expect(parser).toContain('export function parseMobillsTransferDescriptor');
   });
 
+  it('keeps web recurrence and movement query rules out of the in-memory adapter shell', () => {
+    const coreAdapterWeb = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWeb.ts'), 'utf8');
+    const recurrence = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebRecurrence.ts'), 'utf8');
+    const movementQueries = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMovementQueries.ts'), 'utf8');
+
+    expect(coreAdapterWeb).toContain("from './coreAdapterWebRecurrence'");
+    expect(coreAdapterWeb).toContain("from './coreAdapterWebMovementQueries'");
+    expect(coreAdapterWeb).not.toContain('private normalizeRecurrenceRule');
+    expect(coreAdapterWeb).not.toContain('private firstDueAtForRule');
+    expect(coreAdapterWeb).not.toContain('private filterScheduledMovements');
+    expect(coreAdapterWeb).not.toContain('private filterExpectedMovements');
+    expect(coreAdapterWeb).not.toContain('private mapExpectedMovementToSearchItem');
+    expect(coreAdapterWeb.split('\n').length).toBeLessThanOrEqual(2000);
+
+    expect(recurrence).toContain('export function normalizeWebRecurrenceRule');
+    expect(recurrence).toContain('export function firstDueAtForWebRecurrence');
+    expect(movementQueries).toContain('export function filterScheduledMovements');
+    expect(movementQueries).toContain('export function filterExpectedMovements');
+    expect(movementQueries).toContain('export function mapScheduledMovementToSearchItem');
+  });
+
   it('keeps transaction taxonomy selection logic out of the React model hook', () => {
     const hook = readFileSync(resolve(srcDir, 'transactions/application/useTransactionEntryModel.ts'), 'utf8');
     const selection = readFileSync(resolve(srcDir, 'transactions/application/transactionTaxonomySelection.ts'), 'utf8');
+    const transferFx = readFileSync(resolve(srcDir, 'transactions/application/transactionTransferFx.ts'), 'utf8');
 
     expect(hook).toContain("from './transactionTaxonomySelection'");
+    expect(hook).toContain('syncTransferFxFields');
     expect(hook).not.toContain('function findActiveCategoryByName');
     expect(hook).not.toContain('function mergeCategories');
     expect(hook).not.toContain('const knownByNormalizedName = new Map');
+    expect(hook).not.toContain('calculateTransferDestinationAmount');
+    expect(hook).not.toContain('calculateTransferFxRate');
+    expect(hook).not.toContain('normalizePositiveFxRate');
+    expect(hook.split('\n').length).toBeLessThanOrEqual(1100);
 
     expect(selection).toContain('export function findActiveCategoryByName');
     expect(selection).toContain('export function mergeCategories');
     expect(selection).toContain('export function parseTransactionTagInput');
     expect(selection).toContain('export function resolveKnownTagSelectionIds');
+    expect(transferFx).toContain('export function syncTransferFxFields');
   });
 });

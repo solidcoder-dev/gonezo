@@ -3,6 +3,7 @@ import {
   calculateTransferDestinationAmount,
   calculateTransferFxRate,
   normalizePositiveFxRate,
+  syncTransferFxFields,
 } from './transactionTransferFx';
 
 describe('transaction transfer FX helpers', () => {
@@ -28,5 +29,53 @@ describe('transaction transfer FX helpers', () => {
     expect(normalizePositiveFxRate('1.50000000')).toBe('1.5');
     expect(normalizePositiveFxRate('0')).toBe('1');
     expect(normalizePositiveFxRate('abc')).toBe('1');
+  });
+
+  it('syncs non-cross-currency transfer fields to source amount and rate one', () => {
+    expect(syncTransferFxFields({
+      sourceAmount: '100',
+      destinationAmount: '50',
+      rate: '0.5',
+      mode: 'auto_rate',
+      crossCurrency: false,
+    })).toEqual({
+      transferAmountIn: '100',
+      transferFxRate: '1',
+    });
+  });
+
+  it('syncs cross-currency destination or rate based on selected mode', () => {
+    expect(syncTransferFxFields({
+      sourceAmount: '100',
+      destinationAmount: '',
+      rate: '0.85',
+      mode: 'auto_destination',
+      crossCurrency: true,
+    })).toEqual({
+      transferAmountIn: '85.00',
+    });
+    expect(syncTransferFxFields({
+      sourceAmount: '100',
+      destinationAmount: '85',
+      rate: '',
+      mode: 'auto_rate',
+      crossCurrency: true,
+    })).toEqual({
+      transferFxRate: '0.85',
+    });
+  });
+
+  it('normalizes cross-currency rate when requested', () => {
+    expect(syncTransferFxFields({
+      sourceAmount: '100',
+      destinationAmount: '',
+      rate: '0',
+      mode: 'auto_destination',
+      crossCurrency: true,
+      normalizeRate: true,
+    })).toEqual({
+      transferAmountIn: '100.00',
+      transferFxRate: '1',
+    });
   });
 });

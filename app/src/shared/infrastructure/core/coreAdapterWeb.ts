@@ -51,12 +51,9 @@ import type {
   RecurrenceCreateRecurringMovementInput,
   RecurrenceCreateRecurringMovementResult,
   RecurrenceDeactivateRecurringMovementInput,
-  RecurrenceEndInput,
-  RecurrenceFrequency,
   RecurrenceListRecurringMovementsInput,
   RecurrenceListRecurringMovementsResult,
   RecurrenceMovementItem,
-  RecurrenceRuleInput,
   SchedulingCreateMovementInput,
   SchedulingCreateMovementResult,
   SchedulingDeactivateMovementInput,
@@ -79,11 +76,9 @@ import type {
   MovementsMonthOverviewResult,
   MovementsGetOverviewInput,
   MovementsGetOverviewResult,
-  MovementsSearchFiltersInput,
   MovementsSearchFacetsInput,
   MovementsSearchFacetsResult,
   MovementsSearchInput,
-  MovementsSearchItem,
   MovementsSearchResult,
   MovementsListScheduledInput,
   MovementsListScheduledResult,
@@ -99,6 +94,20 @@ import {
   parseMobillsValue,
   splitDelimitedLine,
 } from './coreAdapterWebMobillsImportParser';
+import {
+  compareScheduledMovementByDue,
+  filterExpectedMovements,
+  filterScheduledMovements,
+  isScheduledMovementVisibleForAccount,
+  mapExpectedMovementToSearchItem,
+  mapPostedTransactionToSearchItem,
+  mapScheduledMovementToSearchItem,
+} from './coreAdapterWebMovementQueries';
+import {
+  firstDueAtForWebRecurrence,
+  normalizeWebRecurrenceEnd,
+  normalizeWebRecurrenceRule,
+} from './coreAdapterWebRecurrence';
 import { getMovementsSearchFacets } from './movementsSearchFacets';
 
 type MemoryLedgerAccount = {
@@ -294,194 +303,6 @@ export class CoreAdapterWeb implements CorePort {
       throw new Error(`Account not found: ${normalizedName}`);
     }
     return account;
-  }
-
-  private resolveFrequency(rule: RecurrenceRuleInput): RecurrenceFrequency {
-    const normalized = (rule.frequency ?? '').trim().toLowerCase();
-    if (normalized === 'daily' || normalized === 'weekly' || normalized === 'monthly' || normalized === 'yearly') {
-      return normalized;
-    }
-    throw new Error(`Unsupported recurrence frequency: ${rule.frequency}`);
-  }
-
-  private normalizeRecurrenceRule(rule: RecurrenceRuleInput): RecurrenceRuleInput {
-    const frequency = this.resolveFrequency(rule);
-    const interval = Math.max(1, Number(rule.interval ?? 1));
-
-    if (frequency === 'daily') {
-      return { frequency, interval };
-    }
-
-    if (frequency === 'weekly') {
-      const weeklyDays = [...new Set((rule.weeklyDays ?? []).map((day) => Number(day)).filter((day) => day >= 1 && day <= 7))];
-      if (weeklyDays.length === 0) {
-        throw new Error('Weekly recurrence requires at least one weekday');
-      }
-      return { frequency, interval, weeklyDays };
-    }
-
-    if (frequency === 'monthly') {
-      const monthlyPattern = rule.monthlyPattern === 'nth_weekday' ? 'nth_weekday' : 'day_of_month';
-      if (monthlyPattern === 'day_of_month') {
-        const day = rule.dayOfMonth == null ? undefined : Number(rule.dayOfMonth);
-        if (day != null && (day < 1 || day > 31)) {
-          throw new Error('Monthly dayOfMonth must be between 1 and 31');
-        }
-        return {
-          frequency,
-          interval,
-          monthlyPattern,
-          dayOfMonth: day,
-        };
-      }
-      const ordinal = Number(rule.monthlyWeekOrdinal ?? 1);
-      const weekday = Number(rule.monthlyWeekday ?? 1);
-      if (ordinal < 1 || ordinal > 5) {
-        throw new Error('Monthly ordinal must be between 1 and 5');
-      }
-      if (weekday < 1 || weekday > 7) {
-        throw new Error('Monthly weekday must be between 1 and 7');
-      }
-      return {
-        frequency,
-        interval,
-        monthlyPattern,
-        monthlyWeekOrdinal: ordinal,
-        monthlyWeekday: weekday,
-      };
-    }
-
-    return { frequency, interval };
-  }
-
-  private normalizeRecurrenceEnd(input: RecurrenceEndInput): RecurrenceEndInput {
-    if (input.kind === 'never') {
-      return { kind: 'never' };
-    }
-    if (input.kind === 'on_date') {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(input.onDate.trim())) {
-        throw new Error('Recurrence end date must use YYYY-MM-DD');
-      }
-      return {
-        kind: 'on_date',
-        onDate: input.onDate.trim(),
-      };
-    }
-    const afterOccurrences = Number(input.afterOccurrences);
-    if (!Number.isFinite(afterOccurrences) || afterOccurrences <= 0) {
-      throw new Error('Recurrence end count must be greater than 0');
-    }
-    return {
-      kind: 'after_occurrences',
-      afterOccurrences,
-    };
-  }
-
-  private nthWeekdayOfMonth(year: number, monthZeroBased: number, weekdayIso: number, ordinal: number): Date {
-    const firstOfMonth = new Date(year, monthZeroBased, 1);
-    const jsTargetDay = weekdayIso % 7;
-    const offset = (jsTargetDay - firstOfMonth.getDay() + 7) % 7;
-    const firstMatch = new Date(year, monthZeroBased, 1 + offset);
-    const candidate = new Date(firstMatch);
-    candidate.setDate(firstMatch.getDate() + (ordinal - 1) * 7);
-    if (candidate.getMonth() !== monthZeroBased) {
-      candidate.setDate(candidate.getDate() - 7);
-    }
-    return candidate;
-  }
-
-  private firstDueAtForRule(input: {
-    startAt: string;
-    zoneId: string;
-    rule: RecurrenceRuleInput;
-    recurrenceEnd: RecurrenceEndInput;
-  }): string | undefined {
-    if (!input.zoneId.trim()) {
-      throw new Error('zoneId is required');
-    }
-    const start = new Date(input.startAt);
-    if (Number.isNaN(start.getTime())) {
-      throw new Error('startAt must be a valid ISO datetime');
-    }
-    const rule = this.normalizeRecurrenceRule(input.rule);
-    const end = this.normalizeRecurrenceEnd(input.recurrenceEnd);
-
-    const anchor = new Date(start);
-    const anchorHour = anchor.getHours();
-    const anchorMinutes = anchor.getMinutes();
-    const anchorSeconds = anchor.getSeconds();
-    const anchorMs = anchor.getMilliseconds();
-    let candidate = new Date(start);
-
-    const frequency = this.resolveFrequency(rule);
-    if (frequency === 'weekly') {
-      const weeklyDays = [...new Set((rule.weeklyDays ?? []).map((day) => Number(day)).filter((day) => day >= 1 && day <= 7))]
-        .sort((left, right) => left - right);
-      const startOfWeek = new Date(anchor);
-      const currentIsoDay = ((startOfWeek.getDay() + 6) % 7) + 1;
-      startOfWeek.setDate(startOfWeek.getDate() - (currentIsoDay - 1));
-      startOfWeek.setHours(anchorHour, anchorMinutes, anchorSeconds, anchorMs);
-
-      let found: Date | undefined;
-      for (const day of weeklyDays) {
-        const maybe = new Date(startOfWeek);
-        maybe.setDate(startOfWeek.getDate() + (day - 1));
-        if (maybe.getTime() >= anchor.getTime()) {
-          found = maybe;
-          break;
-        }
-      }
-      if (!found) {
-        const cycleStart = new Date(startOfWeek);
-        cycleStart.setDate(cycleStart.getDate() + (rule.interval ?? 1) * 7);
-        found = new Date(cycleStart);
-        found.setDate(cycleStart.getDate() + (weeklyDays[0] - 1));
-      }
-      candidate = found;
-    }
-
-    if (frequency === 'monthly') {
-      const interval = rule.interval ?? 1;
-      const monthlyPattern = rule.monthlyPattern === 'nth_weekday' ? 'nth_weekday' : 'day_of_month';
-      const iterateCandidate = (year: number, monthZeroBased: number): Date => {
-        if (monthlyPattern === 'nth_weekday') {
-          const ordinal = Number(rule.monthlyWeekOrdinal ?? 1);
-          const weekday = Number(rule.monthlyWeekday ?? 1);
-          const date = this.nthWeekdayOfMonth(year, monthZeroBased, weekday, ordinal);
-          date.setHours(anchorHour, anchorMinutes, anchorSeconds, anchorMs);
-          return date;
-        }
-        const preferredDay = Number(rule.dayOfMonth ?? anchor.getDate());
-        const monthLastDay = new Date(year, monthZeroBased + 1, 0).getDate();
-        const date = new Date(year, monthZeroBased, Math.min(preferredDay, monthLastDay));
-        date.setHours(anchorHour, anchorMinutes, anchorSeconds, anchorMs);
-        return date;
-      };
-
-      let year = anchor.getFullYear();
-      let month = anchor.getMonth();
-      let maybe = iterateCandidate(year, month);
-      while (maybe.getTime() < anchor.getTime()) {
-        month += interval;
-        year += Math.floor(month / 12);
-        month %= 12;
-        maybe = iterateCandidate(year, month);
-      }
-      candidate = maybe;
-    }
-
-    if (frequency === 'yearly') {
-      candidate = new Date(anchor);
-    }
-
-    if (end.kind === 'on_date') {
-      const candidateDay = candidate.toISOString().slice(0, 10);
-      if (candidateDay > end.onDate) {
-        return undefined;
-      }
-    }
-
-    return candidate.toISOString();
   }
 
   async ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {
@@ -1498,9 +1319,9 @@ export class CoreAdapterWeb implements CorePort {
     if (destinationAmount != null && (!Number.isFinite(destinationAmount) || destinationAmount <= 0)) {
       throw new Error('Recurring destination amount must be greater than 0');
     }
-    const normalizedRule = this.normalizeRecurrenceRule(input.rule);
-    const normalizedEnd = this.normalizeRecurrenceEnd(input.recurrenceEnd);
-    const nextDueAt = this.firstDueAtForRule({
+    const normalizedRule = normalizeWebRecurrenceRule(input.rule);
+    const normalizedEnd = normalizeWebRecurrenceEnd(input.recurrenceEnd);
+    const nextDueAt = firstDueAtForWebRecurrence({
       startAt: input.startAt,
       zoneId: input.zoneId,
       rule: normalizedRule,
@@ -1560,19 +1381,8 @@ export class CoreAdapterWeb implements CorePort {
     input: RecurrenceListRecurringMovementsInput,
   ): Promise<RecurrenceListRecurringMovementsResult> {
     const items = CoreAdapterWeb.recurringMovements
-      .filter((movement) => this.isMovementVisibleForAccount(movement, input.sourceAccountId))
-      .sort((left, right) => {
-        if (!left.nextDueAt && !right.nextDueAt) {
-          return left.createdAt.localeCompare(right.createdAt);
-        }
-        if (!left.nextDueAt) {
-          return 1;
-        }
-        if (!right.nextDueAt) {
-          return -1;
-        }
-        return left.nextDueAt.localeCompare(right.nextDueAt);
-      })
+      .filter((movement) => isScheduledMovementVisibleForAccount(movement, input.sourceAccountId))
+      .sort(compareScheduledMovementByDue)
       .map((movement) => ({ ...movement }));
     return { items };
   }
@@ -1612,10 +1422,10 @@ export class CoreAdapterWeb implements CorePort {
       throw new Error('Recurring destination amount must be greater than 0');
     }
 
-    const normalizedRule = this.normalizeRecurrenceRule(input.rule);
-    const normalizedEnd = this.normalizeRecurrenceEnd(input.recurrenceEnd);
+    const normalizedRule = normalizeWebRecurrenceRule(input.rule);
+    const normalizedEnd = normalizeWebRecurrenceEnd(input.recurrenceEnd);
     const nextDueAt = movement.generatedOccurrences === 0
-      ? this.firstDueAtForRule({
+      ? firstDueAtForWebRecurrence({
           startAt: input.startAt,
           zoneId: input.zoneId,
           rule: normalizedRule,
@@ -1666,134 +1476,6 @@ export class CoreAdapterWeb implements CorePort {
     };
   }
 
-  private movementDateEpoch(movement: MemoryRecurringMovement): number | undefined {
-    const candidate = movement.nextDueAt ?? movement.startAt;
-    const parsed = candidate ? Date.parse(candidate) : Number.NaN;
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
-
-  private isMovementVisibleForAccount(movement: MemoryRecurringMovement, accountId: string): boolean {
-    if (movement.sourceAccountId === accountId) {
-      return true;
-    }
-    return movement.type === 'transfer' && movement.targetAccountId === accountId;
-  }
-
-  private filterScheduledMovements(input: {
-    accountId: string;
-    filters?: MovementsSearchFiltersInput;
-  }): SchedulingMovementItem[] {
-    const filters = input.filters ?? {};
-    const text = filters.text?.trim().toLowerCase();
-    const merchant = filters.merchant?.trim().toLowerCase();
-    const categoryIds = filters.categoryIds && filters.categoryIds.length > 0
-      ? filters.categoryIds
-      : filters.categoryId
-        ? [filters.categoryId]
-        : [];
-    const categoryFilter = categoryIds.length > 0
-      ? new Set(categoryIds.map((value) => value.trim()).filter((value) => value.length > 0))
-      : null;
-    const tagFilter = filters.tagIds && filters.tagIds.length > 0
-      ? new Set(filters.tagIds.map((value) => value.trim()).filter((value) => value.length > 0))
-      : null;
-    const parsedAmountMin = filters.amountMin == null ? undefined : Number(filters.amountMin);
-    const parsedAmountMax = filters.amountMax == null ? undefined : Number(filters.amountMax);
-    const hasAmountMin = typeof parsedAmountMin === 'number' && Number.isFinite(parsedAmountMin);
-    const hasAmountMax = typeof parsedAmountMax === 'number' && Number.isFinite(parsedAmountMax);
-    const fromDateEpoch = filters.fromDate ? Date.parse(filters.fromDate) : undefined;
-    const toDateEpoch = filters.toDate ? Date.parse(filters.toDate) : undefined;
-    const hasFromDateEpoch = typeof fromDateEpoch === 'number' && Number.isFinite(fromDateEpoch);
-    const hasToDateEpoch = typeof toDateEpoch === 'number' && Number.isFinite(toDateEpoch);
-    const typeFilter = filters.types && filters.types.length > 0
-      ? new Set(filters.types.filter((value) => value === 'expense' || value === 'income' || value === 'transfer'))
-      : null;
-
-    const filtered = CoreAdapterWeb.recurringMovements
-      .filter((movement) => this.isMovementVisibleForAccount(movement, input.accountId))
-      .filter((movement) => (typeFilter ? typeFilter.has(movement.type) : true))
-      .filter((movement) => {
-        if (!categoryFilter) {
-          return true;
-        }
-        return Boolean(movement.categoryId && categoryFilter.has(movement.categoryId));
-      })
-      .filter((movement) => {
-        if (!tagFilter) {
-          return true;
-        }
-        const movementTags = movement.tagIds ?? [];
-        return movementTags.some((tagId) => tagFilter.has(tagId));
-      })
-      .filter((movement) => {
-        if (!hasAmountMin && !hasAmountMax) {
-          return true;
-        }
-        const amount = Number(movement.amount);
-        if (!Number.isFinite(amount)) {
-          return false;
-        }
-        if (hasAmountMin && amount < parsedAmountMin!) {
-          return false;
-        }
-        if (hasAmountMax && amount > parsedAmountMax!) {
-          return false;
-        }
-        return true;
-      })
-      .filter((movement) => {
-        if (!hasFromDateEpoch && !hasToDateEpoch) {
-          return true;
-        }
-        const dueEpoch = this.movementDateEpoch(movement);
-        if (dueEpoch == null) {
-          return false;
-        }
-        if (hasFromDateEpoch && dueEpoch < fromDateEpoch!) {
-          return false;
-        }
-        if (hasToDateEpoch && dueEpoch > toDateEpoch!) {
-          return false;
-        }
-        return true;
-      })
-      .filter((movement) => {
-        if (!merchant) {
-          return true;
-        }
-        return (movement.merchant ?? '').toLowerCase().includes(merchant);
-      })
-      .filter((movement) => {
-        if (!text) {
-          return true;
-        }
-        const merchantText = movement.merchant?.toLowerCase() ?? '';
-        const descriptionText = movement.description?.toLowerCase() ?? '';
-        return merchantText.includes(text) || descriptionText.includes(text);
-      })
-      .sort((left, right) => {
-        if (!left.nextDueAt && !right.nextDueAt) {
-          return left.createdAt.localeCompare(right.createdAt);
-        }
-        if (!left.nextDueAt) {
-          return 1;
-        }
-        if (!right.nextDueAt) {
-          return -1;
-        }
-        return left.nextDueAt.localeCompare(right.nextDueAt);
-      });
-
-    return filtered.map((item) => {
-      const kind = resolveSchedulingKind(item);
-      return {
-        ...item,
-        scheduleKind: kind,
-        origin: kind,
-      };
-    }) as SchedulingMovementItem[];
-  }
-
   async movementsGetMonthOverview(input: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> {
     const expectedPreviewSize = input.expectedPreviewSize != null && input.expectedPreviewSize > 0
       ? Math.min(Math.trunc(input.expectedPreviewSize), 20)
@@ -1801,14 +1483,14 @@ export class CoreAdapterWeb implements CorePort {
     const fromDate = input.fromDate ?? input.filters?.fromDate;
     const toDate = input.toDate ?? input.filters?.toDate;
 
-    const scheduledFiltered = this.filterScheduledMovements({
+    const scheduledFiltered = filterScheduledMovements(CoreAdapterWeb.recurringMovements, {
       accountId: input.accountId,
       filters: {
         fromDate,
         toDate,
       },
     });
-    const expectedFiltered = this.filterExpectedMovements({
+    const expectedFiltered = filterExpectedMovements(CoreAdapterWeb.expectedMovements, {
       accountId: input.accountId,
       filters: {
         fromDate,
@@ -1878,147 +1560,6 @@ export class CoreAdapterWeb implements CorePort {
 
   async movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult> {
     return this.movementsGetMonthOverview(input);
-  }
-
-  private mapPostedTransactionToSearchItem(transaction: LedgerTransactionListItem): MovementsSearchItem {
-    return {
-      id: transaction.id,
-      source: 'posted',
-      type: transaction.type,
-      status: transaction.status === 'voided' ? 'voided' : 'posted',
-      amount: transaction.amount,
-      currency: transaction.currency,
-      occurredAt: transaction.occurredAt,
-      title: transaction.merchant || transaction.description || 'Movement',
-      description: transaction.description,
-      merchant: transaction.merchant,
-      categoryId: transaction.categoryId,
-      category: transaction.category,
-      tags: transaction.tags,
-      items: transaction.items,
-    };
-  }
-
-  private mapScheduledMovementToSearchItem(movement: SchedulingMovementItem): MovementsSearchItem {
-    const tags = (movement.tagNames ?? movement.tagIds ?? [])
-      .map((tag) => tag.trim())
-      .filter((tag) => tag.length > 0)
-      .map((tag) => ({ id: tag, name: tag }));
-    return {
-      id: movement.id,
-      source: 'scheduled',
-      type: movement.type,
-      status: movement.status === 'active' ? 'scheduled' : movement.status === 'deactivated' ? 'deactivated' : 'failed',
-      amount: movement.amount,
-      currency: movement.currency,
-      occurredAt: movement.nextDueAt ?? movement.startAt,
-      title: movement.merchant || movement.description || 'Scheduled movement',
-      description: movement.description,
-      merchant: movement.merchant,
-      category: movement.categoryId ? { id: movement.categoryId, name: this.categoryNameById(movement.categoryId) ?? movement.categoryId } : undefined,
-      tags,
-      items: movement.splitItems,
-    };
-  }
-
-  private filterExpectedMovements(input: {
-    accountId: string;
-    filters?: MovementsSearchFiltersInput;
-    includeClosed?: boolean;
-  }): ExpectedMovementItem[] {
-    const filters = input.filters ?? {};
-    const text = filters.text?.trim().toLowerCase();
-    const merchant = filters.merchant?.trim().toLowerCase();
-    const categoryIds = filters.categoryIds && filters.categoryIds.length > 0
-      ? filters.categoryIds
-      : filters.categoryId
-        ? [filters.categoryId]
-        : [];
-    const categoryFilter = categoryIds.length > 0
-      ? new Set(categoryIds.map((value) => value.trim()).filter((value) => value.length > 0))
-      : null;
-    const typeFilter = filters.types && filters.types.length > 0
-      ? new Set(filters.types.filter((value) => value === 'expense' || value === 'income'))
-      : null;
-    const parsedAmountMin = filters.amountMin == null ? undefined : Number(filters.amountMin);
-    const parsedAmountMax = filters.amountMax == null ? undefined : Number(filters.amountMax);
-    const hasAmountMin = typeof parsedAmountMin === 'number' && Number.isFinite(parsedAmountMin);
-    const hasAmountMax = typeof parsedAmountMax === 'number' && Number.isFinite(parsedAmountMax);
-    const fromDateEpoch = filters.fromDate ? Date.parse(filters.fromDate) : undefined;
-    const toDateEpoch = filters.toDate ? Date.parse(filters.toDate) : undefined;
-    const hasFromDateEpoch = typeof fromDateEpoch === 'number' && Number.isFinite(fromDateEpoch);
-    const hasToDateEpoch = typeof toDateEpoch === 'number' && Number.isFinite(toDateEpoch);
-
-    return CoreAdapterWeb.expectedMovements
-      .filter((movement) => movement.accountId === input.accountId)
-      .filter((movement) => input.includeClosed || movement.status === 'pending')
-      .filter((movement) => (typeFilter ? typeFilter.has(movement.type) : true))
-      .filter((movement) => (categoryFilter ? Boolean(movement.categoryId && categoryFilter.has(movement.categoryId)) : true))
-      .filter((movement) => {
-        if (!hasAmountMin && !hasAmountMax) {
-          return true;
-        }
-        const amount = Number(movement.amount);
-        if (!Number.isFinite(amount)) {
-          return false;
-        }
-        if (hasAmountMin && amount < parsedAmountMin!) {
-          return false;
-        }
-        if (hasAmountMax && amount > parsedAmountMax!) {
-          return false;
-        }
-        return true;
-      })
-      .filter((movement) => {
-        if (!hasFromDateEpoch && !hasToDateEpoch) {
-          return true;
-        }
-        const expectedAtEpoch = Date.parse(movement.expectedAt);
-        if (!Number.isFinite(expectedAtEpoch)) {
-          return false;
-        }
-        if (hasFromDateEpoch && expectedAtEpoch < fromDateEpoch!) {
-          return false;
-        }
-        if (hasToDateEpoch && expectedAtEpoch > toDateEpoch!) {
-          return false;
-        }
-        return true;
-      })
-      .filter((movement) => {
-        if (!merchant) {
-          return true;
-        }
-        return (movement.merchant ?? '').toLowerCase().includes(merchant);
-      })
-      .filter((movement) => {
-        if (!text) {
-          return true;
-        }
-        const merchantText = movement.merchant?.toLowerCase() ?? '';
-        const descriptionText = movement.description?.toLowerCase() ?? '';
-        return merchantText.includes(text) || descriptionText.includes(text);
-      });
-  }
-
-  private mapExpectedMovementToSearchItem(movement: ExpectedMovementItem): MovementsSearchItem {
-    return {
-      id: movement.id,
-      source: 'expected',
-      type: movement.type,
-      status: movement.status === 'pending' ? 'expected' : movement.status,
-      amount: movement.amount,
-      currency: movement.currency,
-      occurredAt: movement.expectedAt,
-      title: movement.merchant || movement.description || 'Expected movement',
-      description: movement.description,
-      merchant: movement.merchant,
-      categoryId: movement.categoryId,
-      category: movement.categoryId ? { id: movement.categoryId, name: this.categoryNameById(movement.categoryId) ?? movement.categoryId } : undefined,
-      tags: [],
-      items: movement.splitItems,
-    };
   }
 
   async expectedCreateMovement(input: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult> {
@@ -2094,7 +1635,7 @@ export class CoreAdapterWeb implements CorePort {
   async expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult> {
     this.accountOrThrow(input.accountId);
     return {
-      items: this.filterExpectedMovements({
+      items: filterExpectedMovements(CoreAdapterWeb.expectedMovements, {
         accountId: input.accountId,
         includeClosed: input.includeClosed === true,
       }),
@@ -2259,7 +1800,7 @@ export class CoreAdapterWeb implements CorePort {
         })) ?? [{ field: 'occurredAt', direction: 'desc' }],
       });
       return {
-        content: result.content.map((transaction) => this.mapPostedTransactionToSearchItem(transaction)),
+        content: result.content.map((transaction) => mapPostedTransactionToSearchItem(transaction)),
         page: result.page,
         size: result.size,
         totalElements: result.totalElements,
@@ -2273,7 +1814,7 @@ export class CoreAdapterWeb implements CorePort {
       const sort = input.sort && input.sort.length > 0
         ? input.sort
         : [{ field: 'date' as const, direction: 'desc' as const }];
-      const sorted = [...this.filterExpectedMovements({
+      const sorted = [...filterExpectedMovements(CoreAdapterWeb.expectedMovements, {
         accountId: input.accountId,
         filters,
       })].sort((left, right) => {
@@ -2299,7 +1840,7 @@ export class CoreAdapterWeb implements CorePort {
       const startIndex = resolvedPage * pageSize;
       const content = sorted.slice(startIndex, startIndex + pageSize);
       return {
-        content: content.map((movement) => this.mapExpectedMovementToSearchItem(movement)),
+        content: content.map((movement) => mapExpectedMovementToSearchItem(movement, (categoryId) => this.categoryNameById(categoryId))),
         page: resolvedPage,
         size: pageSize,
         totalElements,
@@ -2323,7 +1864,10 @@ export class CoreAdapterWeb implements CorePort {
     });
 
     return {
-      content: scheduledResult.content.map((movement) => this.mapScheduledMovementToSearchItem(movement)),
+      content: scheduledResult.content.map((movement) => mapScheduledMovementToSearchItem(
+        movement,
+        (categoryId) => this.categoryNameById(categoryId),
+      )),
       page: scheduledResult.page,
       size: scheduledResult.size,
       totalElements: scheduledResult.totalElements,
@@ -2343,7 +1887,7 @@ export class CoreAdapterWeb implements CorePort {
     const page = Number.isFinite(requestedPage) && requestedPage >= 0 ? Math.trunc(requestedPage) : 0;
     const size = Number.isFinite(requestedSize) && requestedSize > 0 ? Math.min(Math.trunc(requestedSize), 100) : 20;
 
-    const sorted = [...this.filterScheduledMovements({
+    const sorted = [...filterScheduledMovements(CoreAdapterWeb.recurringMovements, {
       accountId: input.accountId,
       filters: input.filters,
     })];
