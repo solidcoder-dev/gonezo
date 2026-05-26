@@ -141,15 +141,23 @@ describe('SOLID frontend boundaries', () => {
 
   it('keeps Mobills parsing out of the in-memory web adapter orchestration', () => {
     const coreAdapterWeb = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWeb.ts'), 'utf8');
+    const workflow = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMobillsImportWorkflow.ts'), 'utf8');
     const parser = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMobillsImportParser.ts'), 'utf8');
 
-    expect(coreAdapterWeb).toContain("from './coreAdapterWebMobillsImportParser'");
+    expect(coreAdapterWeb).toContain("from './coreAdapterWebMobillsImportWorkflow'");
+    expect(coreAdapterWeb).not.toContain("from './coreAdapterWebMobillsImportParser'");
+    expect(coreAdapterWeb).not.toContain('decodeMobillsImportBase64');
+    expect(coreAdapterWeb).not.toContain('splitDelimitedLine');
+    expect(coreAdapterWeb).not.toContain('parseMobillsTransferDescriptor');
     expect(coreAdapterWeb).not.toContain('private decodeBase64ToText');
     expect(coreAdapterWeb).not.toContain('private detectDelimiter');
     expect(coreAdapterWeb).not.toContain('private splitDelimited');
     expect(coreAdapterWeb).not.toContain('private parseMobillsDate');
     expect(coreAdapterWeb).not.toContain('private parseTransferDescriptor');
+    expect(coreAdapterWeb).not.toContain('for (let index = 1; index < lines.length');
 
+    expect(workflow).toContain("from './coreAdapterWebMobillsImportParser'");
+    expect(workflow).toContain('export class WebMobillsImportWorkflow');
     expect(parser).toContain('export function decodeMobillsImportBase64');
     expect(parser).toContain('export function splitDelimitedLine');
     expect(parser).toContain('export function parseMobillsTransferDescriptor');
@@ -160,18 +168,28 @@ describe('SOLID frontend boundaries', () => {
     const recurrence = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebRecurrence.ts'), 'utf8');
     const movementQueries = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMovementQueries.ts'), 'utf8');
     const ledgerQueries = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebLedgerQueries.ts'), 'utf8');
+    const ledgerService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebLedgerService.ts'), 'utf8');
+    const schedulingService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebSchedulingService.ts'), 'utf8');
+    const movementsService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMovementsService.ts'), 'utf8');
 
-    expect(coreAdapterWeb).toContain("from './coreAdapterWebRecurrence'");
-    expect(coreAdapterWeb).toContain("from './coreAdapterWebMovementQueries'");
-    expect(coreAdapterWeb).toContain("from './coreAdapterWebLedgerQueries'");
+    expect(coreAdapterWeb).toContain("from './coreAdapterWebLedgerService'");
+    expect(coreAdapterWeb).toContain("from './coreAdapterWebSchedulingService'");
+    expect(coreAdapterWeb).toContain("from './coreAdapterWebMovementsService'");
+    expect(coreAdapterWeb).not.toContain("from './coreAdapterWebRecurrence'");
+    expect(coreAdapterWeb).not.toContain("from './coreAdapterWebMovementQueries'");
+    expect(coreAdapterWeb).not.toContain("from './coreAdapterWebLedgerQueries'");
     expect(coreAdapterWeb).not.toContain('private normalizeRecurrenceRule');
     expect(coreAdapterWeb).not.toContain('private firstDueAtForRule');
     expect(coreAdapterWeb).not.toContain('private filterScheduledMovements');
     expect(coreAdapterWeb).not.toContain('private filterExpectedMovements');
     expect(coreAdapterWeb).not.toContain('private mapExpectedMovementToSearchItem');
+    expect(coreAdapterWeb).not.toContain('filterExpectedMovements');
+    expect(coreAdapterWeb).not.toContain('filterScheduledMovements');
+    expect(coreAdapterWeb).not.toContain('normalizeWebRecurrenceRule');
+    expect(coreAdapterWeb).not.toContain('listWebLedgerTransactions');
     expect(coreAdapterWeb).not.toContain('const fromDateEpoch = filters.fromDate');
     expect(coreAdapterWeb).not.toContain('const statusesFilter = filters.statuses');
-    expect(coreAdapterWeb.split('\n').length).toBeLessThanOrEqual(2000);
+    expect(coreAdapterWeb.split('\n').length).toBeLessThanOrEqual(450);
 
     expect(recurrence).toContain('export function normalizeWebRecurrenceRule');
     expect(recurrence).toContain('export function firstDueAtForWebRecurrence');
@@ -179,6 +197,9 @@ describe('SOLID frontend boundaries', () => {
     expect(movementQueries).toContain('export function filterExpectedMovements');
     expect(movementQueries).toContain('export function mapScheduledMovementToSearchItem');
     expect(ledgerQueries).toContain('export function listWebLedgerTransactions');
+    expect(ledgerService).toContain("from './coreAdapterWebLedgerQueries'");
+    expect(schedulingService).toContain("from './coreAdapterWebRecurrence'");
+    expect(movementsService).toContain("from './coreAdapterWebMovementQueries'");
   });
 
   it('keeps web adapter state and browser effects behind injected boundaries', () => {
@@ -190,9 +211,14 @@ describe('SOLID frontend boundaries', () => {
     expect(coreAdapterWeb).toContain("from './coreAdapterWebState'");
     expect(coreAdapterWeb).toContain("from './coreAdapterWebEffects'");
     expect(coreAdapterWeb).toContain("from './coreAdapterWebBackup'");
+    expect(coreAdapterWeb).toContain("from './coreAdapterWebLedgerService'");
+    expect(coreAdapterWeb).toContain("from './coreAdapterWebTaxonomyService'");
+    expect(coreAdapterWeb).toContain("from './coreAdapterWebExpectedService'");
     expect(coreAdapterWeb).toContain('constructor(options: CoreAdapterWebOptions = {})');
     expect(coreAdapterWeb).toContain('this.state = options.state ?? defaultWebCoreState');
     expect(coreAdapterWeb).not.toContain('private async collectMovementsBackupExport');
+    expect(coreAdapterWeb).not.toContain('private nowIso()');
+    expect(coreAdapterWeb).not.toContain('private nextId()');
     expect(coreAdapterWeb).not.toContain('private static ledgerAccounts');
     expect(coreAdapterWeb).not.toContain('private static ledgerTransactions');
     expect(coreAdapterWeb).not.toContain('private static taxonomyCategories');
