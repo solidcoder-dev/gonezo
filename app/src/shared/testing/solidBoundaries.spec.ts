@@ -186,6 +186,10 @@ describe('SOLID frontend boundaries', () => {
     const movementQueries = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMovementQueries.ts'), 'utf8');
     const ledgerQueries = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebLedgerQueries.ts'), 'utf8');
     const ledgerService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebLedgerService.ts'), 'utf8');
+    const ledgerAccountService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebLedgerAccountService.ts'), 'utf8');
+    const ledgerTransactionService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebLedgerTransactionService.ts'), 'utf8');
+    const ledgerTransferService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebLedgerTransferService.ts'), 'utf8');
+    const ledgerGuards = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebLedgerGuards.ts'), 'utf8');
     const schedulingService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebSchedulingService.ts'), 'utf8');
     const movementsService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMovementsService.ts'), 'utf8');
 
@@ -214,7 +218,22 @@ describe('SOLID frontend boundaries', () => {
     expect(movementQueries).toContain('export function filterExpectedMovements');
     expect(movementQueries).toContain('export function mapScheduledMovementToSearchItem');
     expect(ledgerQueries).toContain('export function listWebLedgerTransactions');
-    expect(ledgerService).toContain("from './coreAdapterWebLedgerQueries'");
+    expect(ledgerService).toContain("from './coreAdapterWebLedgerAccountService'");
+    expect(ledgerService).toContain("from './coreAdapterWebLedgerTransactionService'");
+    expect(ledgerService).toContain("from './coreAdapterWebLedgerTransferService'");
+    expect(ledgerService).not.toContain("from './coreAdapterWebLedgerQueries'");
+    expect(ledgerService).not.toContain('private netForAccount');
+    expect(ledgerService).not.toContain('const resolvedExchangeRate');
+    expect(ledgerService).not.toContain('Same-currency transfer must keep equal source and destination amounts');
+    expect(ledgerService.split('\n').length).toBeLessThanOrEqual(180);
+    expect(ledgerAccountService).toContain('export class WebLedgerAccountService');
+    expect(ledgerAccountService).toContain('calculateWebAccountNet');
+    expect(ledgerTransactionService).toContain('export class WebLedgerTransactionService');
+    expect(ledgerTransactionService).toContain("from './coreAdapterWebLedgerQueries'");
+    expect(ledgerTransferService).toContain('export class WebLedgerTransferService');
+    expect(ledgerTransferService).toContain('const resolvedExchangeRate');
+    expect(ledgerGuards).toContain('export function getWebLedgerAccountOrThrow');
+    expect(ledgerGuards).toContain('export function ensureWebAccountCanPost');
     expect(schedulingService).toContain("from './coreAdapterWebRecurrence'");
     expect(movementsService).toContain("from './coreAdapterWebMovementQueries'");
   });
