@@ -299,6 +299,41 @@ describe('SOLID frontend boundaries', () => {
     expect(backup).toContain('export function webMovementsBackupFileName');
   });
 
+  it('keeps monthly movements model responsibilities split by collaborator hooks', () => {
+    const hook = readFileSync(resolve(srcDir, 'movements/application/useMonthlyMovementsModel.ts'), 'utf8');
+    const navigation = readFileSync(resolve(srcDir, 'movements/application/useMonthlyMovementNavigationModel.ts'), 'utf8');
+    const overview = readFileSync(resolve(srcDir, 'movements/application/useMonthlyMovementsOverviewModel.ts'), 'utf8');
+    const taxonomy = readFileSync(resolve(srcDir, 'movements/application/useMonthlyMovementsTaxonomyModel.ts'), 'utf8');
+    const mutations = readFileSync(resolve(srcDir, 'movements/application/useMonthlyMovementMutationsModel.ts'), 'utf8');
+    const feedback = readFileSync(resolve(srcDir, 'movements/application/useMonthlyMovementsFeedbackModel.ts'), 'utf8');
+    const calendar = readFileSync(resolve(srcDir, 'movements/application/monthlyMovementCalendar.ts'), 'utf8');
+
+    expect(hook).toContain("from './useMonthlyMovementNavigationModel'");
+    expect(hook).toContain("from './useMonthlyMovementsOverviewModel'");
+    expect(hook).toContain("from './useMonthlyMovementsTaxonomyModel'");
+    expect(hook).toContain("from './useMonthlyMovementMutationsModel'");
+    expect(hook).toContain("from './useMonthlyMovementsFeedbackModel'");
+    expect(hook).not.toContain("from './monthlyMovementProjection'");
+    expect(hook).not.toContain('filterProjectedScheduledMovements');
+    expect(hook).not.toContain('mapTransactionHistoryList');
+    expect(hook).not.toContain('useLedgerTransactions');
+    expect(hook).not.toContain('useCategorySuggestions');
+    expect(hook).not.toContain('pendingVoidTimerRef');
+    expect(hook).not.toContain('function monthStart');
+    expect(hook.split('\n').length).toBeLessThanOrEqual(300);
+
+    expect(navigation).toContain("from './monthlyMovementCalendar'");
+    expect(navigation).toContain('goToPreviousMonth');
+    expect(overview).toContain("from './monthlyMovementProjection'");
+    expect(overview).toContain('filterProjectedScheduledMovements');
+    expect(taxonomy).toContain('mapTransactionHistoryList');
+    expect(taxonomy).toContain('useTransactionClassification');
+    expect(mutations).toContain('useLedgerTransactions');
+    expect(mutations).toContain('pendingVoidTimerRef');
+    expect(feedback).toContain('showAction');
+    expect(calendar).toContain('export function monthStart');
+  });
+
   it('keeps transaction taxonomy selection logic out of the React model hook', () => {
     const hook = readFileSync(resolve(srcDir, 'transactions/application/useTransactionEntryModel.ts'), 'utf8');
     const selection = readFileSync(resolve(srcDir, 'transactions/application/transactionTaxonomySelection.ts'), 'utf8');
