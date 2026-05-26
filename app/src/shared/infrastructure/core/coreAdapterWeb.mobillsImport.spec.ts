@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CoreAdapterWeb } from './coreAdapterWeb';
+import { createWebCoreState } from './coreAdapterWebState';
 
 function toUtf16Base64(text: string): string {
   const bytes: number[] = [];
@@ -12,8 +13,12 @@ function toUtf16Base64(text: string): string {
 }
 
 describe('CoreAdapterWeb mobillsImport', () => {
+  function createCore(): CoreAdapterWeb {
+    return new CoreAdapterWeb({ state: createWebCoreState() });
+  }
+
   it('imports transfer rows as ledger transfers and skips mirrored inbound row', async () => {
-    const core = new CoreAdapterWeb();
+    const core = createCore();
     const csv = [
       '"Date";"Description";"Value";"Account";"Category";"Subcategory";"Tags"',
       '"01/06/2024";"Transfer BBVA Trade republic";"-100";"BBVA";"Transferencia";"";"invest"',
@@ -58,7 +63,7 @@ describe('CoreAdapterWeb mobillsImport', () => {
   });
 
   it('imports csv content with quoted commas', async () => {
-    const core = new CoreAdapterWeb();
+    const core = createCore();
     const csv = [
       'date,account,value,currency,description,merchant,category,subcategory,tags',
       '2026-03-20,"Cash, Wallet",-12.50,EUR,"Lunch, team",Cafe,Food,Eating Out,"trip,london,Trip"',
@@ -84,7 +89,7 @@ describe('CoreAdapterWeb mobillsImport', () => {
   });
 
   it('imports semicolon-separated csv with quoted headers and values', async () => {
-    const core = new CoreAdapterWeb();
+    const core = createCore();
     const csv = [
       '"Date";"Description";"Value";"Account";"Category";"Subcategory";"Tags"',
       '"31/07/2018";"Limpiar coche";"-1.10";"Billetera";"Transporte";"";""',
@@ -109,7 +114,7 @@ describe('CoreAdapterWeb mobillsImport', () => {
   });
 
   it('skips duplicates by default on repeated import', async () => {
-    const core = new CoreAdapterWeb();
+    const core = createCore();
     const csv = [
       '"Date";"Description";"Value";"Account";"Category";"Subcategory";"Tags"',
       '"31/07/2018";"Lunch";"-8.30";"Billetera";"Food";"";"trip"',
@@ -143,7 +148,7 @@ describe('CoreAdapterWeb mobillsImport', () => {
   });
 
   it('fails duplicates when duplicate policy is fail', async () => {
-    const core = new CoreAdapterWeb();
+    const core = createCore();
     const csv = [
       '"Date";"Description";"Value";"Account";"Category";"Subcategory";"Tags"',
       '"31/07/2018";"Lunch";"-8.30";"Billetera";"Food";"";"trip"',
@@ -176,7 +181,7 @@ describe('CoreAdapterWeb mobillsImport', () => {
   });
 
   it('imports duplicates when duplicate policy is import_anyway', async () => {
-    const core = new CoreAdapterWeb();
+    const core = createCore();
     const csv = [
       '"Date";"Description";"Value";"Account";"Category";"Subcategory";"Tags"',
       '"31/07/2018";"Lunch";"-8.30";"Billetera";"Food";"";"trip"',

@@ -159,14 +159,18 @@ describe('SOLID frontend boundaries', () => {
     const coreAdapterWeb = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWeb.ts'), 'utf8');
     const recurrence = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebRecurrence.ts'), 'utf8');
     const movementQueries = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMovementQueries.ts'), 'utf8');
+    const ledgerQueries = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebLedgerQueries.ts'), 'utf8');
 
     expect(coreAdapterWeb).toContain("from './coreAdapterWebRecurrence'");
     expect(coreAdapterWeb).toContain("from './coreAdapterWebMovementQueries'");
+    expect(coreAdapterWeb).toContain("from './coreAdapterWebLedgerQueries'");
     expect(coreAdapterWeb).not.toContain('private normalizeRecurrenceRule');
     expect(coreAdapterWeb).not.toContain('private firstDueAtForRule');
     expect(coreAdapterWeb).not.toContain('private filterScheduledMovements');
     expect(coreAdapterWeb).not.toContain('private filterExpectedMovements');
     expect(coreAdapterWeb).not.toContain('private mapExpectedMovementToSearchItem');
+    expect(coreAdapterWeb).not.toContain('const fromDateEpoch = filters.fromDate');
+    expect(coreAdapterWeb).not.toContain('const statusesFilter = filters.statuses');
     expect(coreAdapterWeb.split('\n').length).toBeLessThanOrEqual(2000);
 
     expect(recurrence).toContain('export function normalizeWebRecurrenceRule');
@@ -174,6 +178,39 @@ describe('SOLID frontend boundaries', () => {
     expect(movementQueries).toContain('export function filterScheduledMovements');
     expect(movementQueries).toContain('export function filterExpectedMovements');
     expect(movementQueries).toContain('export function mapScheduledMovementToSearchItem');
+    expect(ledgerQueries).toContain('export function listWebLedgerTransactions');
+  });
+
+  it('keeps web adapter state and browser effects behind injected boundaries', () => {
+    const coreAdapterWeb = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWeb.ts'), 'utf8');
+    const state = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebState.ts'), 'utf8');
+    const effects = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebEffects.ts'), 'utf8');
+    const backup = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebBackup.ts'), 'utf8');
+
+    expect(coreAdapterWeb).toContain("from './coreAdapterWebState'");
+    expect(coreAdapterWeb).toContain("from './coreAdapterWebEffects'");
+    expect(coreAdapterWeb).toContain("from './coreAdapterWebBackup'");
+    expect(coreAdapterWeb).toContain('constructor(options: CoreAdapterWebOptions = {})');
+    expect(coreAdapterWeb).toContain('this.state = options.state ?? defaultWebCoreState');
+    expect(coreAdapterWeb).not.toContain('private async collectMovementsBackupExport');
+    expect(coreAdapterWeb).not.toContain('private static ledgerAccounts');
+    expect(coreAdapterWeb).not.toContain('private static ledgerTransactions');
+    expect(coreAdapterWeb).not.toContain('private static taxonomyCategories');
+    expect(coreAdapterWeb).not.toContain('private static recurringMovements');
+    expect(coreAdapterWeb).not.toContain('private static expectedMovements');
+    expect(coreAdapterWeb).not.toContain('crypto.randomUUID()');
+    expect(coreAdapterWeb).not.toContain('new Date().toISOString()');
+    expect(coreAdapterWeb).not.toContain('document.createElement');
+    expect(coreAdapterWeb).not.toContain('URL.createObjectURL');
+
+    expect(state).toContain('export type WebCoreState');
+    expect(state).toContain('export function createWebCoreState');
+    expect(state).toContain('export const defaultWebCoreState = createWebCoreState()');
+    expect(effects).toContain('export type CoreAdapterWebDependencies');
+    expect(effects).toContain('downloadJsonInBrowser');
+    expect(effects).toContain('URL.createObjectURL');
+    expect(backup).toContain('export async function collectWebMovementsBackupExport');
+    expect(backup).toContain('export function webMovementsBackupFileName');
   });
 
   it('keeps transaction taxonomy selection logic out of the React model hook', () => {

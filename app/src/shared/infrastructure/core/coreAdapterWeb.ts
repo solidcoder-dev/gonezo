@@ -44,7 +44,6 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
-  MovementsBackupExport,
   MovementsBackupExportResult,
   MovementsBackupImportInput,
   MovementsBackupImportResult,
@@ -53,7 +52,6 @@ import type {
   RecurrenceDeactivateRecurringMovementInput,
   RecurrenceListRecurringMovementsInput,
   RecurrenceListRecurringMovementsResult,
-  RecurrenceMovementItem,
   SchedulingCreateMovementInput,
   SchedulingCreateMovementResult,
   SchedulingDeactivateMovementInput,
@@ -69,7 +67,6 @@ import type {
   ExpectedDismissMovementInput,
   ExpectedListMovementsInput,
   ExpectedListMovementsResult,
-  ExpectedMovementItem,
   ExpectedResolveMovementInput,
   LedgerTransactionListItem,
   MovementsMonthOverviewInput,
@@ -85,6 +82,15 @@ import type {
 } from '../../domain/corePort';
 import { resolveSchedulingKind } from '../../domain/schedulingKind';
 import {
+  defaultCoreAdapterWebDependencies,
+  type CoreAdapterWebDependencies,
+} from './coreAdapterWebEffects';
+import {
+  collectWebMovementsBackupExport,
+  summarizeWebMovementsBackupExport,
+  webMovementsBackupFileName,
+} from './coreAdapterWebBackup';
+import {
   buildMobillsFingerprint,
   decodeMobillsImportBase64,
   detectDelimitedHeaderDelimiter,
@@ -94,6 +100,7 @@ import {
   parseMobillsValue,
   splitDelimitedLine,
 } from './coreAdapterWebMobillsImportParser';
+import { listWebLedgerTransactions } from './coreAdapterWebLedgerQueries';
 import {
   compareScheduledMovementByDue,
   filterExpectedMovements,
@@ -108,97 +115,44 @@ import {
   normalizeWebRecurrenceEnd,
   normalizeWebRecurrenceRule,
 } from './coreAdapterWebRecurrence';
+import {
+  defaultWebCoreState,
+  type WebCoreState,
+  type WebLedgerAccount,
+  type WebLedgerTransaction,
+  type WebRecurringMovement,
+} from './coreAdapterWebState';
 import { getMovementsSearchFacets } from './movementsSearchFacets';
 
-type MemoryLedgerAccount = {
-  id: string;
-  name: string;
-  type: string;
-  currency: string;
-  status: 'active' | 'archived';
-  createdAt: string;
-  archivedAt?: string;
+export type CoreAdapterWebOptions = {
+  state?: WebCoreState;
+  dependencies?: Partial<CoreAdapterWebDependencies>;
 };
-
-type MemoryLedgerTransactionItem = {
-  id: string;
-  name: string;
-  amount: string;
-  currency: string;
-  categoryId?: string;
-  note?: string;
-};
-
-type MemoryLedgerTransaction = {
-  id: string;
-  accountId: string;
-  type: 'income' | 'expense' | 'transfer' | 'transfer_out' | 'transfer_in';
-  status: 'draft' | 'posted' | 'voided';
-  amount: string;
-  currency: string;
-  occurredAt: string;
-  description?: string;
-  merchant?: string;
-  categoryId?: string;
-  linkedTransactionId?: string;
-  items: MemoryLedgerTransactionItem[];
-};
-
-type MemoryTaxonomyCategory = {
-  id: string;
-  name: string;
-  normalizedName: string;
-  appliesTo: 'income' | 'expense';
-  status: 'active' | 'archived';
-  createdAt: string;
-  archivedAt?: string;
-};
-
-type MemoryTaxonomyTag = {
-  id: string;
-  name: string;
-  normalizedName: string;
-  status: 'active' | 'archived';
-  createdAt: string;
-  archivedAt?: string;
-};
-
-type MemoryRecurringMovement = RecurrenceMovementItem & {
-  categoryId?: string;
-  tagIds?: string[];
-  tagNames?: string[];
-  scheduleKind?: 'recurring' | 'one_shot';
-  origin?: 'recurring' | 'one_shot';
-  createdAt: string;
-  deactivatedAt?: string;
-  completedAt?: string;
-};
-
-type MemoryExpectedMovement = ExpectedMovementItem;
 
 export class CoreAdapterWeb implements CorePort {
-  private static readonly supportedCurrencies = ['AUD', 'BRL', 'CAD', 'CHF', 'EUR', 'GBP', 'JPY', 'MXN', 'NZD', 'USD'];
+  private readonly state: WebCoreState;
 
-  private static ledgerAccounts: MemoryLedgerAccount[] = [];
+  private readonly dependencies: CoreAdapterWebDependencies;
 
-  private static ledgerTransactions: MemoryLedgerTransaction[] = [];
+  constructor(options: CoreAdapterWebOptions = {}) {
+    this.state = options.state ?? defaultWebCoreState;
+    this.dependencies = {
+      clock: options.dependencies?.clock ?? defaultCoreAdapterWebDependencies.clock,
+      idGenerator: options.dependencies?.idGenerator ?? defaultCoreAdapterWebDependencies.idGenerator,
+      backupDownloader: options.dependencies?.backupDownloader ?? defaultCoreAdapterWebDependencies.backupDownloader,
+    };
+  }
 
-  private static taxonomyCategories: MemoryTaxonomyCategory[] = [];
+  private nowIso(): string {
+    return this.dependencies.clock.nowIso();
+  }
 
-  private static taxonomyTags: MemoryTaxonomyTag[] = [];
+  private nextId(): string {
+    return this.dependencies.idGenerator.nextId();
+  }
 
-  private static taxonomyTransactionTags: Map<string, string[]> = new Map();
-
-  private static mobillsImportFingerprintToTransactionId: Map<string, string> = new Map();
-
-  private static recurringMovements: MemoryRecurringMovement[] = [];
-
-  private static expectedMovements: MemoryExpectedMovement[] = [];
-
-  private static defaultAccountId: string | null = null;
-
-  private accountOrThrow(accountId: string): MemoryLedgerAccount {
-    const account = CoreAdapterWeb.ledgerAccounts.find((item) => item.id === accountId);
+  private accountOrThrow(accountId: string): WebLedgerAccount {
+    const account = this.state.ledgerAccounts.find((item) => item.id === accountId);
     if (!account) {
       throw new Error('Account not found');
     }
@@ -206,7 +160,7 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async preferencesGet(): Promise<UserPreferencesResult> {
-    return { defaultAccountId: CoreAdapterWeb.defaultAccountId };
+    return { defaultAccountId: this.state.defaultAccountId };
   }
 
   async preferencesSetDefaultAccount(input: PreferencesSetDefaultAccountInput): Promise<void> {
@@ -214,15 +168,15 @@ export class CoreAdapterWeb implements CorePort {
     if (!accountId) {
       throw new Error('accountId is required');
     }
-    CoreAdapterWeb.defaultAccountId = accountId;
+    this.state.defaultAccountId = accountId;
   }
 
   async preferencesClearDefaultAccount(): Promise<void> {
-    CoreAdapterWeb.defaultAccountId = null;
+    this.state.defaultAccountId = null;
   }
 
-  private transactionOrThrow(transactionId: string): MemoryLedgerTransaction {
-    const transaction = CoreAdapterWeb.ledgerTransactions.find((item) => item.id === transactionId);
+  private transactionOrThrow(transactionId: string): WebLedgerTransaction {
+    const transaction = this.state.ledgerTransactions.find((item) => item.id === transactionId);
     if (!transaction) {
       throw new Error('Transaction not found');
     }
@@ -233,7 +187,7 @@ export class CoreAdapterWeb implements CorePort {
     if (!categoryId) {
       return undefined;
     }
-    return CoreAdapterWeb.taxonomyCategories.find((category) => category.id === categoryId)?.name;
+    return this.state.taxonomyCategories.find((category) => category.id === categoryId)?.name;
   }
 
   private normalizeCategoryName(name: string): string {
@@ -244,7 +198,7 @@ export class CoreAdapterWeb implements CorePort {
     return name.trim().toLowerCase();
   }
 
-  private ensureAccountCanPost(account: MemoryLedgerAccount, currency: string) {
+  private ensureAccountCanPost(account: WebLedgerAccount, currency: string) {
     if (account.status !== 'active') {
       throw new Error('Archived accounts cannot accept transactions');
     }
@@ -255,7 +209,7 @@ export class CoreAdapterWeb implements CorePort {
 
   private netForAccount(accountId: string): number {
     let net = 0;
-    for (const tx of CoreAdapterWeb.ledgerTransactions) {
+    for (const tx of this.state.ledgerTransactions) {
       if (tx.accountId !== accountId || tx.status !== 'posted') {
         continue;
       }
@@ -283,9 +237,9 @@ export class CoreAdapterWeb implements CorePort {
     accountName: string,
     currency: string,
     createMissingAccounts: boolean,
-  ): Promise<MemoryLedgerAccount> {
+  ): Promise<WebLedgerAccount> {
     const normalizedName = accountName.trim();
-    let account = CoreAdapterWeb.ledgerAccounts.find(
+    let account = this.state.ledgerAccounts.find(
       (item) => item.name.toLowerCase() === normalizedName.toLowerCase() && item.currency === currency,
     );
     if (!account) {
@@ -297,7 +251,7 @@ export class CoreAdapterWeb implements CorePort {
         type: 'cash',
         currency,
       });
-      account = CoreAdapterWeb.ledgerAccounts.find((item) => item.id === opened.id);
+      account = this.state.ledgerAccounts.find((item) => item.id === opened.id);
     }
     if (!account) {
       throw new Error(`Account not found: ${normalizedName}`);
@@ -306,13 +260,13 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {
-    const id = crypto.randomUUID();
+    const id = this.nextId();
     const name = input.name.trim();
     if (!name) {
       throw new Error('name is required');
     }
     const currency = input.currency.toUpperCase();
-    if (!CoreAdapterWeb.supportedCurrencies.includes(currency)) {
+    if (!this.state.supportedCurrencies.includes(currency)) {
       throw new Error(`unsupported currency code: ${currency}`);
     }
     const openingBalanceRaw = input.openingBalanceAmount?.trim();
@@ -321,23 +275,23 @@ export class CoreAdapterWeb implements CorePort {
       throw new Error('opening balance must be a valid number');
     }
 
-    CoreAdapterWeb.ledgerAccounts.push({
+    this.state.ledgerAccounts.push({
       id,
       name,
       type: (input.type ?? 'cash').toLowerCase(),
       currency,
       status: 'active',
-      createdAt: input.createdAt ?? new Date().toISOString(),
+      createdAt: input.createdAt ?? this.nowIso(),
     });
     if (openingBalance !== 0) {
-      CoreAdapterWeb.ledgerTransactions.push({
-        id: crypto.randomUUID(),
+      this.state.ledgerTransactions.push({
+        id: this.nextId(),
         accountId: id,
         type: openingBalance > 0 ? 'income' : 'expense',
         status: 'posted',
         amount: Math.abs(openingBalance).toFixed(2),
         currency,
-        occurredAt: input.createdAt ?? new Date().toISOString(),
+        occurredAt: input.createdAt ?? this.nowIso(),
         description: 'Opening balance',
         items: [],
       });
@@ -346,7 +300,7 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult> {
-    return { items: [...CoreAdapterWeb.supportedCurrencies] };
+    return { items: [...this.state.supportedCurrencies] };
   }
 
   async ledgerRenameAccount(input: LedgerRenameAccountInput): Promise<void> {
@@ -361,7 +315,7 @@ export class CoreAdapterWeb implements CorePort {
   async ledgerArchiveAccount(input: LedgerArchiveAccountInput): Promise<void> {
     const account = this.accountOrThrow(input.accountId);
     account.status = 'archived';
-    account.archivedAt = input.archivedAt ?? new Date().toISOString();
+    account.archivedAt = input.archivedAt ?? this.nowIso();
   }
 
   async ledgerRestoreAccount(input: LedgerRestoreAccountInput): Promise<void> {
@@ -378,22 +332,22 @@ export class CoreAdapterWeb implements CorePort {
     this.accountOrThrow(accountId);
 
     const deletedTransactionIds = new Set(
-      CoreAdapterWeb.ledgerTransactions
+      this.state.ledgerTransactions
         .filter((tx) => tx.accountId === accountId)
         .map((tx) => tx.id),
     );
 
-    CoreAdapterWeb.ledgerTransactions = CoreAdapterWeb.ledgerTransactions
+    this.state.ledgerTransactions = this.state.ledgerTransactions
       .filter((tx) => tx.accountId !== accountId);
-    CoreAdapterWeb.ledgerAccounts = CoreAdapterWeb.ledgerAccounts
+    this.state.ledgerAccounts = this.state.ledgerAccounts
       .filter((account) => account.id !== accountId);
 
     for (const transactionId of deletedTransactionIds) {
-      CoreAdapterWeb.taxonomyTransactionTags.delete(transactionId);
+      this.state.taxonomyTransactionTags.delete(transactionId);
     }
     if (deletedTransactionIds.size > 0) {
-      CoreAdapterWeb.mobillsImportFingerprintToTransactionId = new Map(
-        [...CoreAdapterWeb.mobillsImportFingerprintToTransactionId.entries()]
+      this.state.mobillsImportFingerprintToTransactionId = new Map(
+        [...this.state.mobillsImportFingerprintToTransactionId.entries()]
           .filter(([, transactionId]) => !deletedTransactionIds.has(transactionId)),
       );
     }
@@ -401,7 +355,7 @@ export class CoreAdapterWeb implements CorePort {
 
   async ledgerListAccounts(): Promise<LedgerListAccountsResult> {
     return {
-      items: CoreAdapterWeb.ledgerAccounts.map((account) => ({
+      items: this.state.ledgerAccounts.map((account) => ({
         id: account.id,
         name: account.name,
         type: account.type,
@@ -425,8 +379,8 @@ export class CoreAdapterWeb implements CorePort {
   async ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {
     const account = this.accountOrThrow(input.accountId);
     this.ensureAccountCanPost(account, input.currency);
-    const id = crypto.randomUUID();
-    CoreAdapterWeb.ledgerTransactions.push({
+    const id = this.nextId();
+    this.state.ledgerTransactions.push({
       id,
       accountId: input.accountId,
       type: 'expense',
@@ -445,8 +399,8 @@ export class CoreAdapterWeb implements CorePort {
   async ledgerRecordIncome(input: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult> {
     const account = this.accountOrThrow(input.accountId);
     this.ensureAccountCanPost(account, input.currency);
-    const id = crypto.randomUUID();
-    CoreAdapterWeb.ledgerTransactions.push({
+    const id = this.nextId();
+    this.state.ledgerTransactions.push({
       id,
       accountId: input.accountId,
       type: 'income',
@@ -471,11 +425,11 @@ export class CoreAdapterWeb implements CorePort {
     this.ensureAccountCanPost(fromAccount, input.currency);
     this.ensureAccountCanPost(toAccount, input.currency);
 
-    const transferOutId = crypto.randomUUID();
-    const transferInId = crypto.randomUUID();
+    const transferOutId = this.nextId();
+    const transferInId = this.nextId();
     const currency = input.currency.toUpperCase();
 
-    CoreAdapterWeb.ledgerTransactions.push({
+    this.state.ledgerTransactions.push({
       id: transferOutId,
       accountId: fromAccount.id,
       type: 'transfer_out',
@@ -487,7 +441,7 @@ export class CoreAdapterWeb implements CorePort {
       linkedTransactionId: transferInId,
       items: [],
     });
-    CoreAdapterWeb.ledgerTransactions.push({
+    this.state.ledgerTransactions.push({
       id: transferInId,
       accountId: toAccount.id,
       type: 'transfer_in',
@@ -551,10 +505,10 @@ export class CoreAdapterWeb implements CorePort {
       }
     }
 
-    const transferOutId = crypto.randomUUID();
-    const transferInId = crypto.randomUUID();
+    const transferOutId = this.nextId();
+    const transferInId = this.nextId();
 
-    CoreAdapterWeb.ledgerTransactions.push({
+    this.state.ledgerTransactions.push({
       id: transferOutId,
       accountId: fromAccount.id,
       type: 'transfer_out',
@@ -566,7 +520,7 @@ export class CoreAdapterWeb implements CorePort {
       linkedTransactionId: transferInId,
       items: [],
     });
-    CoreAdapterWeb.ledgerTransactions.push({
+    this.state.ledgerTransactions.push({
       id: transferInId,
       accountId: toAccount.id,
       type: 'transfer_in',
@@ -588,8 +542,8 @@ export class CoreAdapterWeb implements CorePort {
   async ledgerCreateExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult> {
     const account = this.accountOrThrow(input.accountId);
     this.ensureAccountCanPost(account, input.currency);
-    const id = crypto.randomUUID();
-    CoreAdapterWeb.ledgerTransactions.push({
+    const id = this.nextId();
+    this.state.ledgerTransactions.push({
       id,
       accountId: input.accountId,
       type: input.type ?? 'expense',
@@ -606,7 +560,7 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async ledgerAddTransactionItem(input: LedgerAddTransactionItemInput): Promise<void> {
-    const tx = CoreAdapterWeb.ledgerTransactions.find((item) => item.id === input.transactionId);
+    const tx = this.state.ledgerTransactions.find((item) => item.id === input.transactionId);
     if (!tx) {
       throw new Error('Transaction not found');
     }
@@ -617,7 +571,7 @@ export class CoreAdapterWeb implements CorePort {
       throw new Error('Item currency must match transaction currency');
     }
     tx.items.push({
-      id: crypto.randomUUID(),
+      id: this.nextId(),
       name: input.name,
       amount: input.amount,
       currency: input.currency.toUpperCase(),
@@ -627,7 +581,7 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async ledgerPostDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void> {
-    const tx = CoreAdapterWeb.ledgerTransactions.find((item) => item.id === input.transactionId);
+    const tx = this.state.ledgerTransactions.find((item) => item.id === input.transactionId);
     if (!tx) {
       throw new Error('Transaction not found');
     }
@@ -644,7 +598,7 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async ledgerVoidTransaction(input: LedgerVoidTransactionInput): Promise<void> {
-    const tx = CoreAdapterWeb.ledgerTransactions.find((item) => item.id === input.transactionId);
+    const tx = this.state.ledgerTransactions.find((item) => item.id === input.transactionId);
     if (!tx) {
       throw new Error('Transaction not found');
     }
@@ -653,7 +607,7 @@ export class CoreAdapterWeb implements CorePort {
     }
     tx.status = 'voided';
     if (tx.linkedTransactionId) {
-      const linked = CoreAdapterWeb.ledgerTransactions.find((item) => item.id === tx.linkedTransactionId);
+      const linked = this.state.ledgerTransactions.find((item) => item.id === tx.linkedTransactionId);
       if (linked?.status === 'posted') {
         linked.status = 'voided';
       }
@@ -661,151 +615,16 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult> {
-    const filters = input.filters ?? {};
-    const requestedPage = input.pagination?.page ?? 0;
-    const requestedSize = input.pagination?.size ?? 20;
-    const page = Number.isFinite(requestedPage) && requestedPage >= 0 ? Math.trunc(requestedPage) : 0;
-    const size = Number.isFinite(requestedSize) && requestedSize > 0 ? Math.min(Math.trunc(requestedSize), 100) : 20;
-
-    const fromDateEpoch = filters.fromDate ? Date.parse(filters.fromDate) : undefined;
-    const toDateEpoch = filters.toDate ? Date.parse(filters.toDate) : undefined;
-    const hasFromDateEpoch = typeof fromDateEpoch === 'number' && Number.isFinite(fromDateEpoch);
-    const hasToDateEpoch = typeof toDateEpoch === 'number' && Number.isFinite(toDateEpoch);
-    const textFilter = filters.text?.trim().toLowerCase();
-    const merchantFilter = filters.merchant?.trim().toLowerCase();
-    const statusesFilter = filters.statuses && filters.statuses.length > 0 ? new Set(filters.statuses) : null;
-    const typesFilter = filters.types && filters.types.length > 0 ? new Set(filters.types) : null;
-    const categoryIds = filters.categoryIds && filters.categoryIds.length > 0
-      ? filters.categoryIds
-      : filters.categoryId
-        ? [filters.categoryId]
-        : [];
-    const categoryIdsFilter = categoryIds.length > 0
-      ? new Set(categoryIds.map((value) => value.trim()).filter((value) => value.length > 0))
-      : null;
-    const tagIdsFilter = filters.tagIds && filters.tagIds.length > 0
-      ? new Set(filters.tagIds.map((value) => value.trim()).filter((value) => value.length > 0))
-      : null;
-    const parsedAmountMin = filters.amountMin == null ? undefined : Number(filters.amountMin);
-    const parsedAmountMax = filters.amountMax == null ? undefined : Number(filters.amountMax);
-    const hasAmountMin = typeof parsedAmountMin === 'number' && Number.isFinite(parsedAmountMin);
-    const hasAmountMax = typeof parsedAmountMax === 'number' && Number.isFinite(parsedAmountMax);
-
-    const sort = input.sort && input.sort.length > 0
-      ? input.sort
-      : [{ field: 'occurredAt', direction: 'desc' as const }];
-
-    const filtered = CoreAdapterWeb.ledgerTransactions
-      .filter((tx) => tx.accountId === input.accountId)
-      .filter((tx) => (statusesFilter ? statusesFilter.has(tx.status) : true))
-      .filter((tx) => (typesFilter ? typesFilter.has(tx.type) : true))
-      .filter((tx) => (categoryIdsFilter ? Boolean(tx.categoryId && categoryIdsFilter.has(tx.categoryId)) : true))
-      .filter((tx) => {
-        if (!tagIdsFilter) {
-          return true;
-        }
-        const txTagIds = CoreAdapterWeb.taxonomyTransactionTags.get(tx.id) ?? [];
-        return txTagIds.some((tagId) => tagIdsFilter.has(tagId));
-      })
-      .filter((tx) => {
-        if (!hasAmountMin && !hasAmountMax) {
-          return true;
-        }
-        const amount = Number(tx.amount);
-        if (!Number.isFinite(amount)) {
-          return false;
-        }
-        if (hasAmountMin && amount < parsedAmountMin!) {
-          return false;
-        }
-        if (hasAmountMax && amount > parsedAmountMax!) {
-          return false;
-        }
-        return true;
-      })
-      .filter((tx) => {
-        if (!hasFromDateEpoch) {
-          return true;
-        }
-        const occurredAtEpoch = Date.parse(tx.occurredAt);
-        return Number.isFinite(occurredAtEpoch) && occurredAtEpoch >= fromDateEpoch!;
-      })
-      .filter((tx) => {
-        if (!hasToDateEpoch) {
-          return true;
-        }
-        const occurredAtEpoch = Date.parse(tx.occurredAt);
-        return Number.isFinite(occurredAtEpoch) && occurredAtEpoch <= toDateEpoch!;
-      })
-      .filter((tx) => {
-        if (!merchantFilter) {
-          return true;
-        }
-        return (tx.merchant ?? '').toLowerCase().includes(merchantFilter);
-      })
-      .filter((tx) => {
-        if (!textFilter) {
-          return true;
-        }
-        const merchant = tx.merchant?.toLowerCase() ?? '';
-        const description = tx.description?.toLowerCase() ?? '';
-        return merchant.includes(textFilter) || description.includes(textFilter);
-      });
-
-    const sorted = [...filtered].sort((left, right) => {
-      for (const criterion of sort) {
-        let comparison = 0;
-
-        if (criterion.field === 'amount') {
-          const leftAmount = Number(left.amount);
-          const rightAmount = Number(right.amount);
-          const safeLeft = Number.isFinite(leftAmount) ? leftAmount : 0;
-          const safeRight = Number.isFinite(rightAmount) ? rightAmount : 0;
-          comparison = safeLeft - safeRight;
-        } else {
-          comparison = left.occurredAt.localeCompare(right.occurredAt);
-        }
-
-        if (comparison !== 0) {
-          return criterion.direction === 'asc' ? comparison : -comparison;
-        }
-      }
-      return right.id.localeCompare(left.id);
-    });
-
-    const totalElements = sorted.length;
-    const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / size);
-    const resolvedPage = totalPages === 0 ? 0 : Math.min(page, totalPages - 1);
-    const startIndex = resolvedPage * size;
-    const content = sorted.slice(startIndex, startIndex + size).map((tx) => ({
-        id: tx.id,
-        accountId: tx.accountId,
-        type: tx.type,
-        status: tx.status,
-        amount: tx.amount,
-        currency: tx.currency,
-        occurredAt: tx.occurredAt,
-        description: tx.description,
-        merchant: tx.merchant,
-        linkedTransactionId: tx.linkedTransactionId,
-        categoryId: tx.categoryId,
-        items: tx.items.map((item) => ({ ...item })),
-      }));
-
-    return {
-      content,
-      page: resolvedPage,
-      size,
-      totalElements,
-      totalPages,
-      hasNext: totalPages > 0 && resolvedPage + 1 < totalPages,
-      hasPrevious: resolvedPage > 0,
-    };
+    return listWebLedgerTransactions(
+      input,
+      this.state.ledgerTransactions,
+      this.state.taxonomyTransactionTags,
+    );
   }
 
   async taxonomyListCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult> {
     const includeArchived = input?.includeArchived === true;
-    const items = CoreAdapterWeb.taxonomyCategories
+    const items = this.state.taxonomyCategories
       .filter((category) => includeArchived || category.status !== 'archived')
       .filter((category) => !input?.appliesTo || category.appliesTo === input.appliesTo)
       .sort((a, b) => a.name.localeCompare(b.name))
@@ -826,27 +645,27 @@ export class CoreAdapterWeb implements CorePort {
     }
     const normalizedName = this.normalizeCategoryName(name);
     const appliesTo = input.appliesTo;
-    const existing = CoreAdapterWeb.taxonomyCategories.find(
+    const existing = this.state.taxonomyCategories.find(
       (category) => category.normalizedName === normalizedName && category.appliesTo === appliesTo,
     );
     if (existing) {
       throw new Error(`Category already exists for ${appliesTo}: ${name}`);
     }
 
-    const id = crypto.randomUUID();
-    CoreAdapterWeb.taxonomyCategories.push({
+    const id = this.nextId();
+    this.state.taxonomyCategories.push({
       id,
       name,
       normalizedName,
       appliesTo,
       status: 'active',
-      createdAt: new Date().toISOString(),
+      createdAt: this.nowIso(),
     });
     return { id };
   }
 
   async taxonomyRenameCategory(input: TaxonomyRenameCategoryInput): Promise<void> {
-    const category = CoreAdapterWeb.taxonomyCategories.find((item) => item.id === input.categoryId);
+    const category = this.state.taxonomyCategories.find((item) => item.id === input.categoryId);
     if (!category) {
       throw new Error(`Category not found: ${input.categoryId}`);
     }
@@ -855,7 +674,7 @@ export class CoreAdapterWeb implements CorePort {
       throw new Error('Category name is required');
     }
     const normalizedName = this.normalizeCategoryName(name);
-    const duplicate = CoreAdapterWeb.taxonomyCategories.find(
+    const duplicate = this.state.taxonomyCategories.find(
       (item) => item.id !== category.id
         && item.normalizedName === normalizedName
         && item.appliesTo === category.appliesTo,
@@ -869,7 +688,7 @@ export class CoreAdapterWeb implements CorePort {
 
   async taxonomyListTags(input?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult> {
     const includeArchived = input?.includeArchived === true;
-    const items = CoreAdapterWeb.taxonomyTags
+    const items = this.state.taxonomyTags
       .filter((tag) => includeArchived || tag.status !== 'archived')
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((tag) => ({
@@ -882,7 +701,7 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async taxonomyRenameTag(input: TaxonomyRenameTagInput): Promise<void> {
-    const tag = CoreAdapterWeb.taxonomyTags.find((item) => item.id === input.tagId);
+    const tag = this.state.taxonomyTags.find((item) => item.id === input.tagId);
     if (!tag) {
       throw new Error(`Tag not found: ${input.tagId}`);
     }
@@ -891,7 +710,7 @@ export class CoreAdapterWeb implements CorePort {
       throw new Error('Tag name is required');
     }
     const normalizedName = this.normalizeTagName(name);
-    const duplicate = CoreAdapterWeb.taxonomyTags.find(
+    const duplicate = this.state.taxonomyTags.find(
       (item) => item.id !== tag.id && item.normalizedName === normalizedName,
     );
     if (duplicate) {
@@ -1014,7 +833,7 @@ export class CoreAdapterWeb implements CorePort {
         description,
         merchant,
       });
-      const duplicateOfTransactionId = CoreAdapterWeb.mobillsImportFingerprintToTransactionId.get(fingerprint);
+      const duplicateOfTransactionId = this.state.mobillsImportFingerprintToTransactionId.get(fingerprint);
       if (duplicateOfTransactionId && policy.duplicatePolicy !== 'import_anyway') {
         rows.push({
           sourceLine,
@@ -1091,7 +910,7 @@ export class CoreAdapterWeb implements CorePort {
 
           if (categoryName) {
             const transactionType = rawValue < 0 ? 'expense' : 'income';
-            let category = CoreAdapterWeb.taxonomyCategories.find(
+            let category = this.state.taxonomyCategories.find(
               (item) =>
                 item.status === 'active'
                 && item.appliesTo === transactionType
@@ -1105,7 +924,7 @@ export class CoreAdapterWeb implements CorePort {
                 name: categoryName,
                 appliesTo: transactionType,
               });
-              category = CoreAdapterWeb.taxonomyCategories.find((item) => item.id === created.id);
+              category = this.state.taxonomyCategories.find((item) => item.id === created.id);
             }
             if (!category) {
               throw new Error(`Category not found: ${categoryName}`);
@@ -1139,8 +958,8 @@ export class CoreAdapterWeb implements CorePort {
           status: 'imported',
           transactionId,
         });
-        if (!CoreAdapterWeb.mobillsImportFingerprintToTransactionId.has(fingerprint)) {
-          CoreAdapterWeb.mobillsImportFingerprintToTransactionId.set(fingerprint, transactionId);
+        if (!this.state.mobillsImportFingerprintToTransactionId.has(fingerprint)) {
+          this.state.mobillsImportFingerprintToTransactionId.set(fingerprint, transactionId);
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Import failed';
@@ -1186,7 +1005,7 @@ export class CoreAdapterWeb implements CorePort {
       return { status: 'none' };
     }
 
-    const category = CoreAdapterWeb.taxonomyCategories.find((item) => item.id === input.categoryId);
+    const category = this.state.taxonomyCategories.find((item) => item.id === input.categoryId);
     if (!category) {
       return {
         status: 'failed',
@@ -1234,13 +1053,13 @@ export class CoreAdapterWeb implements CorePort {
     }
 
     if (uniqueByNormalizedName.size === 0) {
-      CoreAdapterWeb.taxonomyTransactionTags.set(input.transactionId, []);
+      this.state.taxonomyTransactionTags.set(input.transactionId, []);
       return { status: 'none' };
     }
 
     const tagIds: string[] = [];
     for (const [normalizedName, originalName] of uniqueByNormalizedName) {
-      const existing = CoreAdapterWeb.taxonomyTags.find((tag) => tag.normalizedName === normalizedName);
+      const existing = this.state.taxonomyTags.find((tag) => tag.normalizedName === normalizedName);
       if (existing) {
         if (existing.status !== 'active') {
           return {
@@ -1253,18 +1072,18 @@ export class CoreAdapterWeb implements CorePort {
         continue;
       }
 
-      const id = crypto.randomUUID();
-      CoreAdapterWeb.taxonomyTags.push({
+      const id = this.nextId();
+      this.state.taxonomyTags.push({
         id,
         name: originalName,
         normalizedName,
         status: 'active',
-        createdAt: new Date().toISOString(),
+        createdAt: this.nowIso(),
       });
       tagIds.push(id);
     }
 
-    CoreAdapterWeb.taxonomyTransactionTags.set(input.transactionId, tagIds);
+    this.state.taxonomyTransactionTags.set(input.transactionId, tagIds);
     return {
       status: 'assigned',
       tagIds: [...tagIds],
@@ -1276,8 +1095,8 @@ export class CoreAdapterWeb implements CorePort {
   ): Promise<OrchestrationListTransactionTaxonomyResult> {
     const uniqueTransactionIds = [...new Set(input.transactionIds.map((id) => id.trim()).filter((id) => id.length > 0))];
     const items: OrchestrationListTransactionTaxonomyResult['items'] = uniqueTransactionIds.map((transactionId) => {
-      const transaction = CoreAdapterWeb.ledgerTransactions.find((item) => item.id === transactionId);
-      const tagIds = CoreAdapterWeb.taxonomyTransactionTags.get(transactionId) ?? [];
+      const transaction = this.state.ledgerTransactions.find((item) => item.id === transactionId);
+      const tagIds = this.state.taxonomyTransactionTags.get(transactionId) ?? [];
       const categoryId = transaction?.categoryId;
       return {
         transactionId,
@@ -1327,8 +1146,8 @@ export class CoreAdapterWeb implements CorePort {
       rule: normalizedRule,
       recurrenceEnd: normalizedEnd,
     });
-    const id = crypto.randomUUID();
-    const movement: MemoryRecurringMovement = {
+    const id = this.nextId();
+    const movement: WebRecurringMovement = {
       id,
       type: input.type,
       sourceAccountId: input.sourceAccountId,
@@ -1357,15 +1176,15 @@ export class CoreAdapterWeb implements CorePort {
       generatedOccurrences: 0,
       rule: normalizedRule,
       recurrenceEnd: normalizedEnd,
-      createdAt: new Date().toISOString(),
-      completedAt: nextDueAt ? undefined : new Date().toISOString(),
+      createdAt: this.nowIso(),
+      completedAt: nextDueAt ? undefined : this.nowIso(),
     };
-    CoreAdapterWeb.recurringMovements.push(movement);
+    this.state.recurringMovements.push(movement);
     return { id };
   }
 
   async recurrenceDeactivateRecurringMovement(input: RecurrenceDeactivateRecurringMovementInput): Promise<void> {
-    const movement = CoreAdapterWeb.recurringMovements.find((item) => item.id === input.recurringMovementId);
+    const movement = this.state.recurringMovements.find((item) => item.id === input.recurringMovementId);
     if (!movement) {
       throw new Error(`Recurring movement not found: ${input.recurringMovementId}`);
     }
@@ -1374,13 +1193,13 @@ export class CoreAdapterWeb implements CorePort {
     }
     movement.status = 'deactivated';
     movement.nextDueAt = undefined;
-    movement.deactivatedAt = input.deactivatedAt ? new Date(input.deactivatedAt).toISOString() : new Date().toISOString();
+    movement.deactivatedAt = input.deactivatedAt ? new Date(input.deactivatedAt).toISOString() : this.nowIso();
   }
 
   async recurrenceListRecurringMovements(
     input: RecurrenceListRecurringMovementsInput,
   ): Promise<RecurrenceListRecurringMovementsResult> {
-    const items = CoreAdapterWeb.recurringMovements
+    const items = this.state.recurringMovements
       .filter((movement) => isScheduledMovementVisibleForAccount(movement, input.sourceAccountId))
       .sort(compareScheduledMovementByDue)
       .map((movement) => ({ ...movement }));
@@ -1392,7 +1211,7 @@ export class CoreAdapterWeb implements CorePort {
   ): Promise<SchedulingCreateMovementResult> {
     const result = await this.recurrenceCreateRecurringMovement(input);
     if (input.scheduleKind === 'one_shot') {
-      const movement = CoreAdapterWeb.recurringMovements.find((item) => item.id === result.id);
+      const movement = this.state.recurringMovements.find((item) => item.id === result.id);
       if (movement) {
         movement.scheduleKind = 'one_shot';
         movement.origin = 'one_shot';
@@ -1404,7 +1223,7 @@ export class CoreAdapterWeb implements CorePort {
   async schedulingUpdateMovement(
     input: SchedulingUpdateMovementInput,
   ): Promise<SchedulingUpdateMovementResult> {
-    const movement = CoreAdapterWeb.recurringMovements.find((item) => item.id === input.recurringMovementId);
+    const movement = this.state.recurringMovements.find((item) => item.id === input.recurringMovementId);
     if (!movement) {
       throw new Error(`Recurring movement not found: ${input.recurringMovementId}`);
     }
@@ -1459,7 +1278,7 @@ export class CoreAdapterWeb implements CorePort {
     movement.zoneId = input.zoneId.trim();
     movement.nextDueAt = nextDueAt;
     movement.deactivatedAt = undefined;
-    movement.completedAt = nextDueAt ? undefined : new Date().toISOString();
+    movement.completedAt = nextDueAt ? undefined : this.nowIso();
     movement.status = nextDueAt ? 'active' : 'completed';
 
     return { id: movement.id };
@@ -1483,14 +1302,14 @@ export class CoreAdapterWeb implements CorePort {
     const fromDate = input.fromDate ?? input.filters?.fromDate;
     const toDate = input.toDate ?? input.filters?.toDate;
 
-    const scheduledFiltered = filterScheduledMovements(CoreAdapterWeb.recurringMovements, {
+    const scheduledFiltered = filterScheduledMovements(this.state.recurringMovements, {
       accountId: input.accountId,
       filters: {
         fromDate,
         toDate,
       },
     });
-    const expectedFiltered = filterExpectedMovements(CoreAdapterWeb.expectedMovements, {
+    const expectedFiltered = filterExpectedMovements(this.state.expectedMovements, {
       accountId: input.accountId,
       filters: {
         fromDate,
@@ -1569,10 +1388,10 @@ export class CoreAdapterWeb implements CorePort {
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new Error('Expected movement amount must be greater than 0');
     }
-    const expectedAt = input.expectedAt.trim() || new Date().toISOString();
-    const now = new Date().toISOString();
-    const id = crypto.randomUUID();
-    CoreAdapterWeb.expectedMovements.push({
+    const expectedAt = input.expectedAt.trim() || this.nowIso();
+    const now = this.nowIso();
+    const id = this.nextId();
+    this.state.expectedMovements.push({
       id,
       accountId: input.accountId,
       type: input.type,
@@ -1596,11 +1415,11 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async expectedUpdateMovement(input: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult> {
-    const movementIndex = CoreAdapterWeb.expectedMovements.findIndex((item) => item.id === input.expectedMovementId);
+    const movementIndex = this.state.expectedMovements.findIndex((item) => item.id === input.expectedMovementId);
     if (movementIndex < 0) {
       throw new Error(`Expected movement not found: ${input.expectedMovementId}`);
     }
-    const current = CoreAdapterWeb.expectedMovements[movementIndex];
+    const current = this.state.expectedMovements[movementIndex];
     if (current.status !== 'pending') {
       throw new Error('Only pending expected movements can be changed');
     }
@@ -1610,9 +1429,9 @@ export class CoreAdapterWeb implements CorePort {
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new Error('Expected movement amount must be greater than 0');
     }
-    const expectedAt = input.expectedAt.trim() || new Date().toISOString();
-    const now = new Date().toISOString();
-    CoreAdapterWeb.expectedMovements[movementIndex] = {
+    const expectedAt = input.expectedAt.trim() || this.nowIso();
+    const now = this.nowIso();
+    this.state.expectedMovements[movementIndex] = {
       ...current,
       accountId: input.accountId,
       type: input.type,
@@ -1635,7 +1454,7 @@ export class CoreAdapterWeb implements CorePort {
   async expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult> {
     this.accountOrThrow(input.accountId);
     return {
-      items: filterExpectedMovements(CoreAdapterWeb.expectedMovements, {
+      items: filterExpectedMovements(this.state.expectedMovements, {
         accountId: input.accountId,
         includeClosed: input.includeClosed === true,
       }),
@@ -1643,7 +1462,7 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async expectedResolveMovement(input: ExpectedResolveMovementInput): Promise<void> {
-    const movement = CoreAdapterWeb.expectedMovements.find((item) => item.id === input.expectedMovementId);
+    const movement = this.state.expectedMovements.find((item) => item.id === input.expectedMovementId);
     if (!movement) {
       throw new Error(`Expected movement not found: ${input.expectedMovementId}`);
     }
@@ -1653,111 +1472,27 @@ export class CoreAdapterWeb implements CorePort {
     }
     movement.status = 'resolved';
     movement.resolvedTransactionId = transactionId;
-    movement.resolvedAt = input.resolvedAt ?? new Date().toISOString();
+    movement.resolvedAt = input.resolvedAt ?? this.nowIso();
     movement.updatedAt = movement.resolvedAt;
   }
 
   async expectedDismissMovement(input: ExpectedDismissMovementInput): Promise<void> {
-    const movement = CoreAdapterWeb.expectedMovements.find((item) => item.id === input.expectedMovementId);
+    const movement = this.state.expectedMovements.find((item) => item.id === input.expectedMovementId);
     if (!movement) {
       throw new Error(`Expected movement not found: ${input.expectedMovementId}`);
     }
     movement.status = 'dismissed';
-    movement.dismissedAt = input.dismissedAt ?? new Date().toISOString();
+    movement.dismissedAt = input.dismissedAt ?? this.nowIso();
     movement.updatedAt = movement.dismissedAt;
   }
 
-  private async collectMovementsBackupExport(): Promise<MovementsBackupExport> {
-    const exportedAt = new Date().toISOString();
-    const [accountsResult, categoriesResult, tagsResult] = await Promise.all([
-      this.ledgerListAccounts(),
-      this.taxonomyListCategories({ includeArchived: true }),
-      this.taxonomyListTags({ includeArchived: true }),
-    ]);
-
-    const postedMovements: MovementsBackupExport['postedMovements'] = [];
-    for (const account of accountsResult.items) {
-      let page = 0;
-      while (true) {
-        const result = await this.ledgerListTransactions({
-          accountId: account.id,
-          filters: {
-            statuses: ['posted'],
-          },
-          pagination: {
-            page,
-            size: 100,
-          },
-          sort: [
-            {
-              field: 'occurredAt',
-              direction: 'desc',
-            },
-          ],
-        });
-
-        postedMovements.push(
-          ...result.content.map((transaction) => ({
-            id: transaction.id,
-            accountId: transaction.accountId,
-            type: transaction.type,
-            status: 'posted' as const,
-            occurredAt: transaction.occurredAt,
-            amount: transaction.amount,
-            currency: transaction.currency,
-            description: transaction.description,
-            merchant: transaction.merchant,
-            linkedTransactionId: transaction.linkedTransactionId,
-            categoryId: transaction.categoryId,
-            category: transaction.category,
-            tagIds: (transaction.tags ?? []).map((tag) => tag.id),
-            splitItems: transaction.items,
-          })),
-        );
-
-        if (!result.hasNext || result.content.length === 0) {
-          break;
-        }
-        page += 1;
-      }
-    }
-
-    return {
-      schemaVersion: 2,
-      exportedAt,
-      accounts: accountsResult.items,
-      categories: categoriesResult.items,
-      tags: tagsResult.items,
-      postedMovements,
-    };
-  }
-
   async movementsExportBackup(): Promise<MovementsBackupExportResult> {
-    const exportData = await this.collectMovementsBackupExport();
-    const fileName = `gonezo-backup-${exportData.exportedAt.replace(/[:]/g, '-').replace(/\.\d{3}Z$/, 'Z')}.json`;
+    const exportData = await collectWebMovementsBackupExport(this, this.nowIso());
+    const fileName = webMovementsBackupFileName(exportData.exportedAt);
     const json = JSON.stringify(exportData, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    try {
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = fileName;
-      anchor.rel = 'noopener';
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-    } finally {
-      URL.revokeObjectURL(url);
-    }
+    this.dependencies.backupDownloader.downloadJson(fileName, json);
 
-    return {
-      fileName,
-      exportedAt: exportData.exportedAt,
-      postedMovementCount: exportData.postedMovements.length,
-      accountCount: exportData.accounts.length,
-      categoryCount: exportData.categories.length,
-      tagCount: exportData.tags.length,
-    };
+    return summarizeWebMovementsBackupExport(exportData, fileName);
   }
 
   async movementsImportBackup(input: MovementsBackupImportInput): Promise<MovementsBackupImportResult> {
@@ -1814,7 +1549,7 @@ export class CoreAdapterWeb implements CorePort {
       const sort = input.sort && input.sort.length > 0
         ? input.sort
         : [{ field: 'date' as const, direction: 'desc' as const }];
-      const sorted = [...filterExpectedMovements(CoreAdapterWeb.expectedMovements, {
+      const sorted = [...filterExpectedMovements(this.state.expectedMovements, {
         accountId: input.accountId,
         filters,
       })].sort((left, right) => {
@@ -1887,7 +1622,7 @@ export class CoreAdapterWeb implements CorePort {
     const page = Number.isFinite(requestedPage) && requestedPage >= 0 ? Math.trunc(requestedPage) : 0;
     const size = Number.isFinite(requestedSize) && requestedSize > 0 ? Math.min(Math.trunc(requestedSize), 100) : 20;
 
-    const sorted = [...filterScheduledMovements(CoreAdapterWeb.recurringMovements, {
+    const sorted = [...filterScheduledMovements(this.state.recurringMovements, {
       accountId: input.accountId,
       filters: input.filters,
     })];
