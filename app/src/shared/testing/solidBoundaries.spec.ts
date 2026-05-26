@@ -142,6 +142,10 @@ describe('SOLID frontend boundaries', () => {
   it('keeps Mobills parsing out of the in-memory web adapter orchestration', () => {
     const coreAdapterWeb = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWeb.ts'), 'utf8');
     const workflow = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMobillsImportWorkflow.ts'), 'utf8');
+    const rows = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMobillsImportRows.ts'), 'utf8');
+    const rowImporter = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMobillsRowImporter.ts'), 'utf8');
+    const duplicateTracker = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMobillsDuplicateTracker.ts'), 'utf8');
+    const policy = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMobillsImportPolicy.ts'), 'utf8');
     const parser = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMobillsImportParser.ts'), 'utf8');
 
     expect(coreAdapterWeb).toContain("from './coreAdapterWebMobillsImportWorkflow'");
@@ -156,8 +160,21 @@ describe('SOLID frontend boundaries', () => {
     expect(coreAdapterWeb).not.toContain('private parseTransferDescriptor');
     expect(coreAdapterWeb).not.toContain('for (let index = 1; index < lines.length');
 
-    expect(workflow).toContain("from './coreAdapterWebMobillsImportParser'");
+    expect(workflow).toContain("from './coreAdapterWebMobillsImportRows'");
+    expect(workflow).toContain("from './coreAdapterWebMobillsImportPolicy'");
+    expect(workflow).toContain("from './coreAdapterWebMobillsDuplicateTracker'");
+    expect(workflow).toContain("from './coreAdapterWebMobillsRowImporter'");
+    expect(workflow).not.toContain("from './coreAdapterWebMobillsImportParser'");
+    expect(workflow).not.toContain('splitDelimitedLine');
+    expect(workflow).not.toContain('parseMobillsTransferDescriptor');
+    expect(workflow).not.toContain('recordTransfer({');
+    expect(workflow).not.toContain('categorizeTransaction({');
     expect(workflow).toContain('export class WebMobillsImportWorkflow');
+    expect(rows).toContain("from './coreAdapterWebMobillsImportParser'");
+    expect(rows).toContain('export function readWebMobillsImportRows');
+    expect(rowImporter).toContain('export class WebMobillsRowImporter');
+    expect(duplicateTracker).toContain('export class WebMobillsDuplicateTracker');
+    expect(policy).toContain('export function normalizeWebMobillsImportPolicy');
     expect(parser).toContain('export function decodeMobillsImportBase64');
     expect(parser).toContain('export function splitDelimitedLine');
     expect(parser).toContain('export function parseMobillsTransferDescriptor');
