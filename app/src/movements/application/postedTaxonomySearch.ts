@@ -14,6 +14,10 @@ import type {
   MovementsSearchFiltersState,
   MovementsSearchItemView,
 } from '../domain/movementsView.types';
+import {
+  buildPostedTaxonomyCandidateFilters,
+  normalizeMovementSearchIdentifierList,
+} from './movementsSearchFilters';
 
 const TAXONOMY_CANDIDATE_PAGE_SIZE = 100;
 
@@ -40,60 +44,11 @@ type PostedTaxonomySearchPageResult = {
   pagination: MovementsPaginationView;
 };
 
-function normalizeIdentifierList(values: string[]): string[] {
-  const seen = new Set<string>();
-  const normalized: string[] = [];
-  for (const rawValue of values) {
-    const value = rawValue.trim();
-    if (!value || seen.has(value)) {
-      continue;
-    }
-    seen.add(value);
-    normalized.push(value);
-  }
-  return normalized;
-}
-
-function normalizeAmount(value: string): string | undefined {
-  const normalized = value.trim().replace(',', '.');
-  if (!normalized) {
-    return undefined;
-  }
-  const numeric = Number(normalized);
-  if (!Number.isFinite(numeric) || numeric < 0) {
-    return undefined;
-  }
-  return numeric.toString();
-}
-
-function normalizeDate(value: string): string | undefined {
-  const normalized = value.trim();
-  return normalized || undefined;
-}
-
-function postedCandidateFilters(filters: MovementsSearchFiltersState): MovementsSearchInput['filters'] {
-  let amountMin = normalizeAmount(filters.amountMin);
-  let amountMax = normalizeAmount(filters.amountMax);
-  if (amountMin != null && amountMax != null && Number(amountMin) > Number(amountMax)) {
-    [amountMin, amountMax] = [amountMax, amountMin];
-  }
-
-  return {
-    text: filters.text.trim() || undefined,
-    merchant: filters.merchant.trim() || undefined,
-    amountMin,
-    amountMax,
-    fromDate: normalizeDate(filters.fromDate),
-    toDate: normalizeDate(filters.toDate),
-    types: filters.types.length > 0 ? filters.types : undefined,
-  };
-}
-
 export function hasPostedTaxonomyFilters(filters: MovementsSearchFiltersState): boolean {
   return filters.source === 'posted'
     && (
-      normalizeIdentifierList(filters.categoryIds).length > 0
-      || normalizeIdentifierList(filters.tagIds).length > 0
+      normalizeMovementSearchIdentifierList(filters.categoryIds).length > 0
+      || normalizeMovementSearchIdentifierList(filters.tagIds).length > 0
     );
 }
 
@@ -168,8 +123,8 @@ function applyPostedTaxonomyFilters(
   searchItems: MovementsSearchItemView[],
   filters: MovementsSearchFiltersState,
 ): MovementsSearchItemView[] {
-  const categoryFilter = normalizeIdentifierList(filters.categoryIds);
-  const tagFilter = normalizeIdentifierList(filters.tagIds);
+  const categoryFilter = normalizeMovementSearchIdentifierList(filters.categoryIds);
+  const tagFilter = normalizeMovementSearchIdentifierList(filters.tagIds);
   if (categoryFilter.length === 0 && tagFilter.length === 0) {
     return searchItems;
   }
@@ -234,7 +189,7 @@ export async function collectPostedTaxonomySearchItems(
     const result = await input.core.movementsSearch({
       accountId: input.accountId,
       source: 'posted',
-      filters: postedCandidateFilters(input.filters),
+      filters: buildPostedTaxonomyCandidateFilters(input.filters),
       pagination: {
         page: candidatePage,
         size: TAXONOMY_CANDIDATE_PAGE_SIZE,

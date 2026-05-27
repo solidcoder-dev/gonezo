@@ -334,6 +334,40 @@ describe('SOLID frontend boundaries', () => {
     expect(calendar).toContain('export function monthStart');
   });
 
+  it('keeps movements search model responsibilities split by focused collaborators', () => {
+    const hook = readFileSync(resolve(srcDir, 'movements/application/useMovementsSearchModel.ts'), 'utf8');
+    const filters = readFileSync(resolve(srcDir, 'movements/application/movementsSearchFilters.ts'), 'utf8');
+    const results = readFileSync(resolve(srcDir, 'movements/application/movementsSearchResults.ts'), 'utf8');
+    const queryRunner = readFileSync(resolve(srcDir, 'movements/application/movementsSearchQueryRunner.ts'), 'utf8');
+    const filtersModel = readFileSync(resolve(srcDir, 'movements/application/useMovementsSearchFiltersModel.ts'), 'utf8');
+    const facetsModel = readFileSync(resolve(srcDir, 'movements/application/useMovementsSearchFacetsModel.ts'), 'utf8');
+
+    expect(hook).toContain("from './useMovementsSearchFiltersModel'");
+    expect(hook).toContain("from './useMovementsSearchFacetsModel'");
+    expect(hook).toContain("from './movementsSearchQueryRunner'");
+    expect(hook).toContain("from './movementsSearchResults'");
+    expect(hook).not.toContain('core.movementsSearch');
+    expect(hook).not.toContain('core.movementsGetSearchFacets');
+    expect(hook).not.toContain('buildMovementsSearchFilters');
+    expect(hook).not.toContain('compareMovementsSearchItems');
+    expect(hook).not.toContain('normalizeMovementSearchIdentifierList');
+    expect(hook).not.toContain('Math.ceil(totalElements /');
+    expect(hook.split('\n').length).toBeLessThanOrEqual(240);
+
+    expect(filters).toContain('export function buildMovementsSearchFilters');
+    expect(filters).toContain('export function mergeMovementsSearchFilterPatch');
+    expect(filters).toContain('export function buildPostedTaxonomyCandidateFilters');
+    expect(results).toContain('export function aggregateMovementsSearchResults');
+    expect(results).toContain('export function getMovementsSearchAccountScope');
+    expect(queryRunner).toContain('export const movementsSearchQueryStrategies');
+    expect(queryRunner).toContain('export async function runMovementsSearchQuery');
+    expect(queryRunner).toContain('input.core.movementsSearch');
+    expect(filtersModel).toContain('export function useMovementsSearchFiltersModel');
+    expect(filtersModel).toContain('mergeMovementsSearchFilterPatch');
+    expect(facetsModel).toContain('export function useMovementsSearchFacetsModel');
+    expect(facetsModel).toContain('core.movementsGetSearchFacets');
+  });
+
   it('keeps transaction taxonomy selection logic out of the React model hook', () => {
     const hook = readFileSync(resolve(srcDir, 'transactions/application/useTransactionEntryModel.ts'), 'utf8');
     const selection = readFileSync(resolve(srcDir, 'transactions/application/transactionTaxonomySelection.ts'), 'utf8');
