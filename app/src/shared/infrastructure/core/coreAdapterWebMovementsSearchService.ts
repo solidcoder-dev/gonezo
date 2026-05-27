@@ -12,12 +12,12 @@ import {
 import { normalizeWebPagination, paginateWebItems } from './coreAdapterWebPagination';
 import type { WebScheduledMovementsListService } from './coreAdapterWebScheduledMovementsListService';
 import type { WebCoreState } from './coreAdapterWebState';
-import type { WebTaxonomyService } from './coreAdapterWebTaxonomyService';
+import type { WebMovementsTaxonomyPort } from './coreAdapterWebTaxonomyService';
 
 export type WebMovementsSearchServiceOptions = {
   state: WebCoreState;
   ledger: WebLedgerService;
-  taxonomy: WebTaxonomyService;
+  taxonomy: WebMovementsTaxonomyPort;
   scheduledList: WebScheduledMovementsListService;
 };
 
@@ -26,7 +26,7 @@ export class WebMovementsSearchService {
 
   private readonly ledger: WebLedgerService;
 
-  private readonly taxonomy: WebTaxonomyService;
+  private readonly taxonomy: WebMovementsTaxonomyPort;
 
   private readonly scheduledList: WebScheduledMovementsListService;
 

@@ -299,6 +299,82 @@ describe('SOLID frontend boundaries', () => {
     expect(backup).toContain('export function webMovementsBackupFileName');
   });
 
+  it('keeps web taxonomy orchestration split behind focused ports', () => {
+    const taxonomyService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebTaxonomyService.ts'), 'utf8');
+    const categories = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebCategoryRepository.ts'), 'utf8');
+    const tags = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebTagRepository.ts'), 'utf8');
+    const transactionTaxonomy = readFileSync(
+      resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebTransactionTaxonomyService.ts'),
+      'utf8',
+    );
+    const names = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebTaxonomyNames.ts'), 'utf8');
+    const rowImporter = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMobillsRowImporter.ts'), 'utf8');
+    const importWorkflow = readFileSync(
+      resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMobillsImportWorkflow.ts'),
+      'utf8',
+    );
+    const movementsService = readFileSync(resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMovementsService.ts'), 'utf8');
+    const movementsSearch = readFileSync(
+      resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMovementsSearchService.ts'),
+      'utf8',
+    );
+    const movementsFacets = readFileSync(
+      resolve(srcDir, 'shared/infrastructure/core/coreAdapterWebMovementsFacetsService.ts'),
+      'utf8',
+    );
+
+    expect(taxonomyService).toContain('new WebCategoryRepository');
+    expect(taxonomyService).toContain('new WebTagRepository');
+    expect(taxonomyService).toContain('new WebTransactionTaxonomyService');
+    expect(taxonomyService).toContain('export type WebMobillsTaxonomyPort');
+    expect(taxonomyService).toContain('export type WebMovementsTaxonomyPort');
+    expect(taxonomyService).toContain('export type WebSearchFacetsTaxonomyPort');
+    expect(taxonomyService).not.toContain('this.state.taxonomyCategories.find');
+    expect(taxonomyService).not.toContain('this.state.taxonomyTags.find');
+    expect(taxonomyService).not.toContain('uniqueByNormalizedName');
+    expect(taxonomyService).not.toContain('transactionOrThrow');
+    expect(taxonomyService.split('\n').length).toBeLessThanOrEqual(150);
+
+    expect(categories).toContain('export class WebCategoryRepository');
+    expect(categories).toContain('export type WebCategoryLookupPort');
+    expect(categories).toContain('export type WebCategoryImportPort');
+    expect(categories).toContain('findActiveCategoryByName');
+    expect(categories).toContain('createCategory');
+    expect(categories).toContain('renameCategory');
+    expect(categories).not.toContain('applyTransactionTags');
+
+    expect(tags).toContain('export class WebTagRepository');
+    expect(tags).toContain('export type WebTagAssignmentPort');
+    expect(tags).toContain('assignActiveTagNames');
+    expect(tags).toContain('renameTag');
+    expect(tags).not.toContain('categorizeTransaction');
+
+    expect(transactionTaxonomy).toContain('export class WebTransactionTaxonomyService');
+    expect(transactionTaxonomy).toContain('export type WebTransactionTaxonomyPort');
+    expect(transactionTaxonomy).toContain('transactionOrThrow');
+    expect(transactionTaxonomy).toContain('categorizeTransaction');
+    expect(transactionTaxonomy).toContain('applyTransactionTags');
+    expect(transactionTaxonomy).toContain('listTransactionTaxonomy');
+    expect(transactionTaxonomy).not.toContain('createCategory');
+    expect(transactionTaxonomy).not.toContain('renameTag');
+
+    expect(names).toContain('export function normalizeWebTaxonomyCategoryName');
+    expect(names).toContain('export function normalizeWebTaxonomyTagName');
+    expect(names).toContain('export function uniqueWebTaxonomyTagNames');
+
+    expect(rowImporter).toContain('WebMobillsTaxonomyPort');
+    expect(importWorkflow).toContain('WebMobillsTaxonomyPort');
+    expect(movementsService).toContain('WebMovementsTaxonomyPort');
+    expect(movementsService).toContain('WebSearchFacetsTaxonomyPort');
+    expect(movementsSearch).toContain('WebMovementsTaxonomyPort');
+    expect(movementsFacets).toContain('WebSearchFacetsTaxonomyPort');
+    for (const consumer of [rowImporter, importWorkflow, movementsService, movementsSearch, movementsFacets]) {
+      expect(consumer).not.toContain('type { WebTaxonomyService');
+      expect(consumer).not.toContain('taxonomy: WebTaxonomyService');
+      expect(consumer).not.toContain('readonly taxonomy: WebTaxonomyService');
+    }
+  });
+
   it('keeps monthly movements model responsibilities split by collaborator hooks', () => {
     const hook = readFileSync(resolve(srcDir, 'movements/application/useMonthlyMovementsModel.ts'), 'utf8');
     const navigation = readFileSync(resolve(srcDir, 'movements/application/useMonthlyMovementNavigationModel.ts'), 'utf8');

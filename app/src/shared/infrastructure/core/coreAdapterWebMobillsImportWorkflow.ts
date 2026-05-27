@@ -9,12 +9,12 @@ import { normalizeWebMobillsImportPolicy } from './coreAdapterWebMobillsImportPo
 import { readWebMobillsImportRows } from './coreAdapterWebMobillsImportRows';
 import { WebMobillsRowImporter } from './coreAdapterWebMobillsRowImporter';
 import type { WebCoreState } from './coreAdapterWebState';
-import type { WebTaxonomyService } from './coreAdapterWebTaxonomyService';
+import type { WebMobillsTaxonomyPort } from './coreAdapterWebTaxonomyService';
 
 export type WebMobillsImportWorkflowOptions = {
   state: WebCoreState;
   ledger: WebLedgerService;
-  taxonomy: WebTaxonomyService;
+  taxonomy: WebMobillsTaxonomyPort;
 };
 
 export class WebMobillsImportWorkflow {

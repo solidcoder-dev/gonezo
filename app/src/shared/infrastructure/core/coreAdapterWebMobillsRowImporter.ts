@@ -1,17 +1,17 @@
 import type { WebLedgerService } from './coreAdapterWebLedgerService';
 import type { WebMobillsImportPolicy } from './coreAdapterWebMobillsImportPolicy';
 import type { WebMobillsImportReadyRow } from './coreAdapterWebMobillsImportRows';
-import type { WebTaxonomyService } from './coreAdapterWebTaxonomyService';
+import type { WebMobillsTaxonomyPort } from './coreAdapterWebTaxonomyService';
 
 export type WebMobillsRowImporterOptions = {
   ledger: WebLedgerService;
-  taxonomy: WebTaxonomyService;
+  taxonomy: WebMobillsTaxonomyPort;
 };
 
 export class WebMobillsRowImporter {
   private readonly ledger: WebLedgerService;
 
-  private readonly taxonomy: WebTaxonomyService;
+  private readonly taxonomy: WebMobillsTaxonomyPort;
 
   constructor(options: WebMobillsRowImporterOptions) {
     this.ledger = options.ledger;

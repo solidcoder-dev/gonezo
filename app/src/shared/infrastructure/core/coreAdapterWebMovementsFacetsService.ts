@@ -5,12 +5,12 @@ import type {
 import type { WebExpectedMovementsService } from './coreAdapterWebExpectedService';
 import type { WebLedgerService } from './coreAdapterWebLedgerService';
 import type { WebSchedulingService } from './coreAdapterWebSchedulingService';
-import type { WebTaxonomyService } from './coreAdapterWebTaxonomyService';
+import type { WebSearchFacetsTaxonomyPort } from './coreAdapterWebTaxonomyService';
 import { getMovementsSearchFacets } from './movementsSearchFacets';
 
 export type WebMovementsFacetsServiceOptions = {
   ledger: WebLedgerService;
-  taxonomy: WebTaxonomyService;
+  taxonomy: WebSearchFacetsTaxonomyPort;
   scheduling: WebSchedulingService;
   expected: WebExpectedMovementsService;
 };
@@ -18,7 +18,7 @@ export type WebMovementsFacetsServiceOptions = {
 export class WebMovementsFacetsService {
   private readonly ledger: WebLedgerService;
 
-  private readonly taxonomy: WebTaxonomyService;
+  private readonly taxonomy: WebSearchFacetsTaxonomyPort;
 
   private readonly scheduling: WebSchedulingService;
 

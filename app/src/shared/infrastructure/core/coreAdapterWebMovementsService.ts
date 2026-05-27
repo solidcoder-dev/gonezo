@@ -18,12 +18,17 @@ import { WebMovementsSearchService } from './coreAdapterWebMovementsSearchServic
 import type { WebSchedulingService } from './coreAdapterWebSchedulingService';
 import { WebScheduledMovementsListService } from './coreAdapterWebScheduledMovementsListService';
 import type { WebCoreState } from './coreAdapterWebState';
-import type { WebTaxonomyService } from './coreAdapterWebTaxonomyService';
+import type {
+  WebMovementsTaxonomyPort,
+  WebSearchFacetsTaxonomyPort,
+} from './coreAdapterWebTaxonomyService';
+
+type WebMovementsServiceTaxonomyPort = WebMovementsTaxonomyPort & WebSearchFacetsTaxonomyPort;
 
 export type WebMovementsServiceOptions = {
   state: WebCoreState;
   ledger: WebLedgerService;
-  taxonomy: WebTaxonomyService;
+  taxonomy: WebMovementsServiceTaxonomyPort;
   scheduling: WebSchedulingService;
   expected: WebExpectedMovementsService;
 };
