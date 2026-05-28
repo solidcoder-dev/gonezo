@@ -3,7 +3,7 @@ import type {
   SchedulingEndInput,
   SchedulingFrequency,
   SchedulingMonthlyPattern,
-} from '../../shared/domain/corePort';
+} from '../../scheduling/application/schedulingCore.port';
 
 export type SchedulingPartsInput = {
   recurrenceEnabled: boolean;

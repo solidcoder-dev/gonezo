@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { LedgerAccountItem } from '../../shared/domain/corePort';
+import type { LedgerAccountItem } from '../../ledger/application/ledgerCore.port';
 import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
 import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
 import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
-import type { ComposerMode, TransactionFieldErrors } from '../domain/transactions.types';
-import type { TransactionEntryViewProvided, TransactionEntryViewRequired } from '../ui/TransactionEntryView';
+import type { ComposerMode, TransactionFieldErrors } from './transactions.types';
+import type { TransactionEntryViewProvided, TransactionEntryViewRequired } from '../ui/TransactionComposer/TransactionEntryView';
 import type { TransactionEntryPrefillRequest } from './TransactionEntryComponent.contract';
 import {
   hasTransactionComposerValidationErrors,

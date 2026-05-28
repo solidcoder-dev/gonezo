@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { LedgerAccountItem } from '../../shared/domain/corePort';
-import type { ComposerMode, TransactionFieldErrors } from '../domain/transactions.types';
-import { syncTransferFxFields, type SyncedTransferFxFields, type TransferFxMode } from './transactionTransferFx';
+import type { LedgerAccountItem } from '../../ledger/application/ledgerCore.port';
+import type { ComposerMode, TransactionFieldErrors } from './transactions.types';
+import { syncTransferFxFields, type SyncedTransferFxFields, type TransferFxMode } from '../domain/transferFx';
 
 type UseTransactionTransferFxModelInput = {
   accounts: LedgerAccountItem[];

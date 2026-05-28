@@ -4,14 +4,14 @@ import {
   normalizeImportErrorCode,
   summarizeImportFailures,
   type ImportRowResult,
-} from '../domain/importFailureSummary';
+} from './importFailureSummary';
 import type {
   TransactionsImportDuplicatePolicy,
   TransactionsImportPolicyInput,
   TransactionsImportRequest,
   TransactionsImportResult,
   TransactionsImportSource,
-} from '../domain/transactionsImport.types';
+} from './transactionsImport.types';
 import { readImportFileAsBase64 } from '../infrastructure/readImportFileAsBase64';
 
 export type TransactionsImportPort = {

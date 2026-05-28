@@ -23,8 +23,87 @@ function normalizePath(path: string): string {
 }
 
 describe('SOLID frontend boundaries', () => {
+  it('keeps domain modules independent from application, UI, infrastructure, and React', () => {
+    const violations: string[] = [];
+    const forbiddenLayerImportPattern = /from\s+['"][^'"]*\/(?:application|ui|infrastructure)(?:\/[^'"]*)?['"]/;
+    const reactImportPattern = /from\s+['"]react['"]/;
+
+    for (const file of listSourceFiles(srcDir)) {
+      const normalized = normalizePath(file);
+      if (!normalized.includes('/domain/')) {
+        continue;
+      }
+
+      const source = readFileSync(file, 'utf8');
+      if (forbiddenLayerImportPattern.test(source)) {
+        violations.push(`${normalized}: domain imports an outer layer`);
+      }
+      if (reactImportPattern.test(source)) {
+        violations.push(`${normalized}: domain imports React`);
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it('keeps feature UI modules from importing another feature UI layer', () => {
+    const violations: string[] = [];
+    const crossFeatureUiImportPattern = /from\s+['"](?:\.\.\/)+([^/'"]+)\/ui(?:\/[^'"]*)?['"]/g;
+
+    for (const file of listSourceFiles(srcDir)) {
+      const normalized = normalizePath(file);
+      const matchContext = normalized.match(/\/src\/([^/]+)\/ui\//);
+      if (!matchContext) {
+        continue;
+      }
+
+      const currentContext = matchContext[1];
+      const source = readFileSync(file, 'utf8');
+      for (const match of source.matchAll(crossFeatureUiImportPattern)) {
+        const importedContext = match[1];
+        if (importedContext !== currentContext && importedContext !== 'shared') {
+          violations.push(`${normalized}: imports ${importedContext}/ui`);
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it('keeps multi-file component clusters colocated in component folders', () => {
+    const expectedClusterFiles = [
+      'account/application/AccountHub/AccountHubComponent.tsx',
+      'account/application/AccountHub/AccountHubComponent.contract.ts',
+      'account/application/AccountHub/useAccountHubModel.ts',
+      'account/application/AccountHub/useAccountHubModel.spec.tsx',
+      'account/application/AccountSummary/AccountSummaryComponent.tsx',
+      'account/application/AccountSummary/AccountSummaryComponent.contract.ts',
+      'account/application/AccountSummary/useAccountSummaryModel.ts',
+      'account/application/AccountSummary/useAccountSummaryModel.spec.tsx',
+      'movements/ui/MonthlyMovements/MonthlyMovementsView.tsx',
+      'movements/ui/MonthlyMovements/MonthlyMovementsView.contract.ts',
+      'movements/ui/MonthlyMovements/monthlyMovementPresentation.tsx',
+      'movements/ui/MovementsSearch/MovementsSearchResults.tsx',
+      'movements/ui/MovementsSearch/MovementsSearchFilters.tsx',
+      'transactions/ui/TransactionComposer/TransactionComposerView.tsx',
+      'transactions/ui/TransactionComposer/TransactionEntryView.tsx',
+      'transactions/ui/TransactionComposer/TransactionEntryView.contract.ts',
+      'transactions/ui/ExpenseSplitEditor/ExpenseSplitEditorView.tsx',
+      'transactions/ui/ExpenseSplitEditor/ExpenseSplitEditorView.spec.tsx',
+    ];
+
+    for (const relativePath of expectedClusterFiles) {
+      expect(readFileSync(resolve(srcDir, relativePath), 'utf8')).toBeTruthy();
+    }
+  });
+
   it('keeps the shared core port composed from focused capability ports', () => {
     const corePort = readFileSync(resolve(srcDir, 'shared/domain/corePort.ts'), 'utf8');
+    const ledgerPort = readFileSync(resolve(srcDir, 'ledger/application/ledgerCore.port.ts'), 'utf8');
+    const taxonomyPort = readFileSync(resolve(srcDir, 'taxonomy/application/taxonomyCore.port.ts'), 'utf8');
+    const schedulingPort = readFileSync(resolve(srcDir, 'scheduling/application/schedulingCore.port.ts'), 'utf8');
+    const expectedPort = readFileSync(resolve(srcDir, 'expected/application/expectedCore.port.ts'), 'utf8');
+    const movementsPort = readFileSync(resolve(srcDir, 'movements/application/movementsCore.port.ts'), 'utf8');
 
     expect(corePort).toContain('export interface PreferencesCorePort');
     expect(corePort).toContain('export interface LedgerCorePort');
@@ -37,6 +116,11 @@ describe('SOLID frontend boundaries', () => {
     expect(corePort).toContain('export interface MovementsQueryCorePort');
     expect(corePort).toMatch(/export interface CorePort\s+extends\s+PreferencesCorePort,/);
     expect(corePort).toMatch(/MovementsQueryCorePort \{\}/);
+    expect(ledgerPort).toContain('LedgerCorePort');
+    expect(taxonomyPort).toContain('TaxonomyCorePort');
+    expect(schedulingPort).toContain('SchedulingCorePort');
+    expect(expectedPort).toContain('ExpectedCorePort');
+    expect(movementsPort).toContain('MovementsQueryCorePort');
   });
 
   it('keeps gateway adapters and browser effects out of application hooks and ports', () => {
@@ -447,7 +531,7 @@ describe('SOLID frontend boundaries', () => {
   it('keeps transaction taxonomy selection logic out of the React model hook', () => {
     const hook = readFileSync(resolve(srcDir, 'transactions/application/useTransactionEntryModel.ts'), 'utf8');
     const selection = readFileSync(resolve(srcDir, 'transactions/application/transactionTaxonomySelection.ts'), 'utf8');
-    const transferFx = readFileSync(resolve(srcDir, 'transactions/application/transactionTransferFx.ts'), 'utf8');
+    const transferFx = readFileSync(resolve(srcDir, 'transactions/domain/transferFx.ts'), 'utf8');
     const transferModel = readFileSync(resolve(srcDir, 'transactions/application/useTransactionTransferFxModel.ts'), 'utf8');
     const splitModel = readFileSync(resolve(srcDir, 'transactions/application/useExpenseSplitEditorModel.ts'), 'utf8');
     const schedulingModel = readFileSync(resolve(srcDir, 'transactions/application/useTransactionSchedulingModel.ts'), 'utf8');
@@ -458,8 +542,8 @@ describe('SOLID frontend boundaries', () => {
     expect(hook).toContain("from './useTransactionSchedulingModel'");
     expect(hook).toContain("from './useTransactionTaxonomyModel'");
     expect(hook).not.toContain("from './transactionTaxonomySelection'");
-    expect(hook).not.toContain("from './transactionSplitItems'");
-    expect(hook).not.toContain("from './transactionTransferFx'");
+    expect(hook).not.toContain("from '../domain/expenseSplit'");
+    expect(hook).not.toContain("from '../domain/transferFx'");
     expect(hook).not.toContain('syncTransferFxFields');
     expect(hook).not.toContain('function findActiveCategoryByName');
     expect(hook).not.toContain('function mergeCategories');
@@ -478,9 +562,9 @@ describe('SOLID frontend boundaries', () => {
     expect(selection).toContain('export function parseTransactionTagInput');
     expect(selection).toContain('export function resolveKnownTagSelectionIds');
     expect(transferFx).toContain('export function syncTransferFxFields');
-    expect(transferModel).toContain("from './transactionTransferFx'");
+    expect(transferModel).toContain("from '../domain/transferFx'");
     expect(transferModel).toContain('function setTransferFxRateValue');
-    expect(splitModel).toContain("from './transactionSplitItems'");
+    expect(splitModel).toContain("from '../domain/expenseSplit'");
     expect(splitModel).toContain('function addExpenseItem');
     expect(schedulingModel).toContain('function setSchedulingModeValue');
     expect(taxonomyModel).toContain("from './transactionTaxonomySelection'");

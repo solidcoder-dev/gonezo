@@ -7,9 +7,9 @@ export type {
 
 export type { TransactionsCorePort } from './application/transactionsCore.port';
 
-export { TransactionEntryView } from './ui/TransactionEntryView';
+export { TransactionEntryView } from './ui/TransactionComposer/TransactionEntryView';
 export type {
   TransactionEntryViewProps,
   TransactionEntryViewProvided,
   TransactionEntryViewRequired,
-} from './ui/TransactionEntryView';
+} from './ui/TransactionComposer/TransactionEntryView';

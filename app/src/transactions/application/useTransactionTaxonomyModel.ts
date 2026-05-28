@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
-import type { TaxonomyCategoryItem, TaxonomyTagItem } from '../../shared/domain/corePort';
+import type { TaxonomyCategoryItem, TaxonomyTagItem } from '../../taxonomy/application/taxonomyCore.port';
 import { useCategorySuggestions } from '../../taxonomy/application/useCategorySuggestions';
 import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions';
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
 import { useTransactionClassification } from '../../taxonomy/application/useTransactionClassification';
 import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.types';
-import type { ComposerMode } from '../domain/transactions.types';
+import type { ComposerMode } from './transactions.types';
 import {
   findActiveCategoryByName,
   mergeCategories,

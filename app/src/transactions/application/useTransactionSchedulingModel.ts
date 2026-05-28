@@ -4,8 +4,8 @@ import type {
   SchedulingEndInput,
   SchedulingFrequency,
   SchedulingMonthlyPattern,
-} from '../../shared/domain/corePort';
-import type { TransactionFieldErrors } from '../domain/transactions.types';
+} from '../../scheduling/application/schedulingCore.port';
+import type { TransactionFieldErrors } from './transactions.types';
 import type { TransactionEntryPrefillRequest } from './TransactionEntryComponent.contract';
 
 type TransactionSchedulingClock = {

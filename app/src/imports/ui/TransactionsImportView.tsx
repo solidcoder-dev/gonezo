@@ -1,4 +1,4 @@
-import { normalizeImportErrorCode } from '../domain/importFailureSummary';
+import { normalizeImportErrorCode } from '../application/importFailureSummary';
 import { TransactionsImportSummaryView } from './TransactionsImportSummaryView';
 import type { TransactionsImportViewProps } from './TransactionsImportView.contract';
 

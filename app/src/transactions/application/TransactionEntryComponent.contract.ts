@@ -1,10 +1,10 @@
-import type { ComposerMode } from '../domain/transactions.types';
+import type { ComposerMode } from './transactions.types';
 import type { TransactionsCorePort } from './transactionsCore.port';
 import type {
   RecurrenceEndInput,
   RecurrenceFrequency,
   RecurrenceMonthlyPattern,
-} from '../../shared/domain/corePort';
+} from '../../scheduling/application/schedulingCore.port';
 
 export type TransactionEntryPrefillRequest = {
   requestId: number;

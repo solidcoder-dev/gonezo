@@ -11,4 +11,4 @@ export type {
   TransactionsImportResult,
   TransactionsImportRowResult,
   TransactionsImportSource,
-} from './domain/transactionsImport.types';
+} from './application/transactionsImport.types';

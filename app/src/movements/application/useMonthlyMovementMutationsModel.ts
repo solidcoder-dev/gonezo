@@ -3,7 +3,7 @@ import { useLedgerTransactions } from '../../ledger/application/useLedgerTransac
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
 import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
-import type { ExpectedMovementView } from '../domain/movementsView.types';
+import type { ExpectedMovementView } from './movementsView.types';
 
 const VOID_COMMIT_DELAY_MS = 5000;
 

@@ -1,5 +1,5 @@
-import type { LedgerTransactionListItem } from '../../shared/domain/corePort';
-import type { TransactionHistoryItemView } from '../domain/transactionView.types';
+import type { LedgerTransactionListItem } from '../../ledger/application/ledgerCore.port';
+import type { TransactionHistoryItemView } from './transactionView.types';
 
 function toTransactionStatus(status: LedgerTransactionListItem['status']): TransactionHistoryItemView['status'] {
   if (status === 'draft') {

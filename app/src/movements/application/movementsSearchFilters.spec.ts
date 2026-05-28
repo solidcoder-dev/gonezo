@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { MovementsSearchFiltersState } from '../domain/movementsView.types';
+import type { MovementsSearchFiltersState } from './movementsView.types';
 import {
   buildMovementsSearchFilters,
   buildPostedTaxonomyCandidateFilters,

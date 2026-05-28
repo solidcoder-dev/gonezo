@@ -1,14 +1,14 @@
+import type { LedgerAccountItem } from '../../ledger/application/ledgerCore.port';
 import type {
-  LedgerAccountItem,
   SchedulingEndInput,
   SchedulingFrequency,
   SchedulingMonthlyPattern,
-} from '../../shared/domain/corePort';
+} from '../../scheduling/application/schedulingCore.port';
 import type { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
 import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.types';
-import type { ComposerMode, ExpenseItemDraft } from '../domain/transactions.types';
+import type { ComposerMode, ExpenseItemDraft } from './transactions.types';
 import {
   buildSchedulingParts,
   buildTransferAmountParts,

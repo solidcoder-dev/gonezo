@@ -4,9 +4,8 @@ import type {
   MovementsBackupExportResult,
   MovementsBackupImportInput,
   MovementsBackupImportResult,
-  PreferencesSetDefaultAccountInput,
-  UserPreferencesResult,
-} from '../../shared/domain/corePort';
+} from '../../imports/application/importsCore.port';
+import type { PreferencesSetDefaultAccountInput, UserPreferencesResult } from './preferencesCore.port';
 import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
 import type { TransactionsCorePort } from '../../transactions/application/transactionsCore.port';
 

@@ -3,7 +3,7 @@ import { createExpectedGateway } from '../../expected/infrastructure/expectedGat
 import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
 import { createSchedulingGateway } from '../../scheduling/infrastructure/schedulingGateway';
 import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
-import { TransactionEntryView } from '../ui/TransactionEntryView';
+import { TransactionEntryView } from '../ui/TransactionComposer/TransactionEntryView';
 import type { TransactionEntryComponentProps } from './TransactionEntryComponent.contract';
 import type { TransactionEntryModelClock, TransactionEntryModelIdGenerator } from './useTransactionEntryModel';
 import { useTransactionEntryModel } from './useTransactionEntryModel';

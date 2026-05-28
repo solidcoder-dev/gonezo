@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ExpectedMovementView, ScheduledMovementView } from '../../movements/domain/movementsView.types';
+import type { ExpectedMovementView, ScheduledMovementView } from '../../movements/application/movementsView.types';
 import {
   expectedMovementToComposerPrefill,
   postExpectedMovementToComposerPrefill,

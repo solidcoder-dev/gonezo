@@ -20,6 +20,7 @@ const EXPECTED_TOP_LEVEL = new Set([
   'shared',
   'taxonomy',
   'transactions',
+  'workspace',
 ]);
 
 const EXPECTED_LAYER_DIRS = ['application', 'domain', 'infrastructure', 'ui'];
@@ -31,6 +32,7 @@ const EXPECTED_CONTEXT_DIRS = {
   scheduling: ['application', 'infrastructure'],
   taxonomy: ['application', 'domain', 'infrastructure'],
   transactions: ['application', 'domain', 'ui'],
+  workspace: ['application'],
 };
 const EXPECTED_SHARED_DIRS = ['domain', 'infrastructure', 'testing', 'ui', 'utils'];
 const EXPECTED_IMPORTS_INFRASTRUCTURE_DIRS = ['providers'];

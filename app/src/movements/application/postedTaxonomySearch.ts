@@ -2,18 +2,20 @@ import type {
   MovementsSearchInput,
   MovementsSearchItem,
   MovementsSearchResult,
+} from './movementsCore.port';
+import type {
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
   TaxonomyListCategoriesInput,
   TaxonomyListCategoriesResult,
   TaxonomyListTagsInput,
   TaxonomyListTagsResult,
-} from '../../shared/domain/corePort';
+} from '../../taxonomy/application/taxonomyCore.port';
 import type {
   MovementsPaginationView,
   MovementsSearchFiltersState,
   MovementsSearchItemView,
-} from '../domain/movementsView.types';
+} from './movementsView.types';
 import {
   buildPostedTaxonomyCandidateFilters,
   normalizeMovementSearchIdentifierList,

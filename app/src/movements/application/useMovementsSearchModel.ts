@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { LedgerAccountItem } from '../../shared/domain/corePort';
+import type { LedgerAccountItem } from '../../ledger/application/ledgerCore.port';
 import type {
   MovementsPaginationView,
   MovementsSearchItemView,
   MovementsSearchModelProvided,
   MovementsSearchModelRequired,
-} from '../domain/movementsView.types';
+} from './movementsView.types';
 import { type MovementsSearchFacetsPort } from './movementsSearch.port';
 import { type PostedTaxonomySearchPort } from './postedTaxonomySearch';
 import { runMovementsSearchQuery } from './movementsSearchQueryRunner';

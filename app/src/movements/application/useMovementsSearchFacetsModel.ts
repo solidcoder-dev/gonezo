@@ -2,8 +2,8 @@ import { useMemo, useRef, useState } from 'react';
 import type {
   MovementsSearchFacetCategory,
   MovementsSearchFacetTag,
-} from '../../shared/domain/corePort';
-import type { MovementsFilterOptionsView } from '../domain/movementsView.types';
+} from './movementsCore.port';
+import type { MovementsFilterOptionsView } from './movementsView.types';
 import type { MovementsSearchFacetsPort } from './movementsSearch.port';
 import type { MovementsSearchAccount } from './movementsSearchResults';
 

@@ -1,9 +1,9 @@
-import type { MovementsSearchResult } from '../../shared/domain/corePort';
+import type { MovementsSearchResult } from './movementsCore.port';
 import type {
   MovementsPaginationView,
   MovementsSearchFiltersState,
   MovementsSearchItemView,
-} from '../domain/movementsView.types';
+} from './movementsView.types';
 import {
   buildPostedTaxonomySearchPage,
   collectPostedTaxonomySearchItems,

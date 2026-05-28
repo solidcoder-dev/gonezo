@@ -1,4 +1,4 @@
-import type { TransactionsImportRequest, TransactionsImportResult } from '../domain/transactionsImport.types';
+import type { TransactionsImportRequest, TransactionsImportResult } from './transactionsImport.types';
 import { useTransactionsImportController } from './useTransactionsImportController';
 import {
   TransactionsImportView,

@@ -3,10 +3,10 @@ import { createExpectedGateway } from '../../expected/infrastructure/expectedGat
 import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
 import { createSchedulingGateway } from '../../scheduling/infrastructure/schedulingGateway';
 import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
-import { MonthlyMovementsView } from '../ui/MonthlyMovementsView';
+import { MonthlyMovementsView } from '../ui/MonthlyMovements/MonthlyMovementsView';
 import { useMonthlyMovementsModel } from './useMonthlyMovementsModel';
 import type { TransactionsCorePort } from '../../transactions/application/transactionsCore.port';
-import type { ExpectedMovementView, ScheduledMovementView } from '../domain/movementsView.types';
+import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
 
 const BROWSER_CLOCK = {
   now: () => new Date(),

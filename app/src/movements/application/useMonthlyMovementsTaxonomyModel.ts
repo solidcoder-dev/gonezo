@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import type { LedgerTransactionListItem, TaxonomyCategoryItem, TaxonomyTagItem } from '../../shared/domain/corePort';
+import type { LedgerTransactionListItem } from '../../ledger/application/ledgerCore.port';
+import type { TaxonomyCategoryItem, TaxonomyTagItem } from '../../taxonomy/application/taxonomyCore.port';
 import { useCategorySuggestions } from '../../taxonomy/application/useCategorySuggestions';
 import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions';
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';

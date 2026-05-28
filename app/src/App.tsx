@@ -1,7 +1,7 @@
 import { Route, Routes } from 'react-router-dom';
 import './App.css';
 import type { AccountWorkspacePort } from './account/application/accountsCore.port';
-import { AccountPage } from './account/application/AccountPage';
+import { WorkspacePage } from './workspace/application/WorkspacePage';
 import { CoreAdapter } from './shared/infrastructure/core/coreAdapter';
 import { MovementsSearchPage } from './movements';
 import type { MovementsSearchPagePort } from './movements/application/movementsSearch.port';
@@ -24,8 +24,8 @@ export function App({ required }: AppProps) {
 
   return (
     <Routes>
-      <Route path="/" element={<AccountPage required={{ core: resolvedCore }} />} />
-      <Route path="/accounts" element={<AccountPage required={{ core: resolvedCore }} />} />
+      <Route path="/" element={<WorkspacePage required={{ core: resolvedCore }} />} />
+      <Route path="/accounts" element={<WorkspacePage required={{ core: resolvedCore }} />} />
       <Route path="/movements/search" element={<MovementsSearchPage required={{ core: resolvedCore }} />} />
       <Route path="/taxonomy" element={<TaxonomyPage required={{ core: resolvedCore }} />} />
     </Routes>

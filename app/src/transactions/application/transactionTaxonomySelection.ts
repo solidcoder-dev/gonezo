@@ -1,4 +1,4 @@
-import type { TaxonomyCategoryItem, TaxonomyTagItem } from '../../shared/domain/corePort';
+import type { TaxonomyCategoryItem, TaxonomyTagItem } from '../../taxonomy/application/taxonomyCore.port';
 import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.types';
 
 export function normalizeTaxonomyName(value: string): string {

@@ -1,5 +1,5 @@
-import type { LedgerAccountItem } from '../../shared/domain/corePort';
-import type { AccountSummaryView } from '../domain/accountView.types';
+import type { LedgerAccountItem } from '../../ledger/application/ledgerCore.port';
+import type { AccountSummaryView } from './accountView.types';
 
 function toAccountStatus(status: LedgerAccountItem['status']): AccountSummaryView['status'] {
   if (status === 'archived') {

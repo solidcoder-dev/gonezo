@@ -1,4 +1,4 @@
-import type { TransactionsImportResult } from '../domain/transactionsImport.types';
+import type { TransactionsImportResult } from '../application/transactionsImport.types';
 
 export type TransactionsImportSummaryViewRequired = {
   result: TransactionsImportResult;

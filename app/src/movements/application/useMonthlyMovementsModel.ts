@@ -3,8 +3,8 @@ import type { ExpectedGatewayPort } from '../../expected/application/expectedGat
 import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
-import type { ExpectedMovementView, ScheduledMovementView } from '../domain/movementsView.types';
-import type { MonthlyMovementsViewProvided, MonthlyMovementsViewRequired } from '../ui/MonthlyMovementsView.contract';
+import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
+import type { MonthlyMovementsViewProvided, MonthlyMovementsViewRequired } from '../ui/MonthlyMovements/MonthlyMovementsView.contract';
 import { useMonthlyMovementMutationsModel } from './useMonthlyMovementMutationsModel';
 import { useMonthlyMovementNavigationModel } from './useMonthlyMovementNavigationModel';
 import { useMonthlyMovementsFeedbackModel } from './useMonthlyMovementsFeedbackModel';

@@ -1,5 +1,5 @@
-import type { SchedulingEndInput } from '../../shared/domain/corePort';
-import type { ComposerMode, TransactionFieldErrors } from '../domain/transactions.types';
+import type { SchedulingEndInput } from '../../scheduling/application/schedulingCore.port';
+import type { ComposerMode, TransactionFieldErrors } from './transactions.types';
 
 export type TransactionComposerValidationInput = {
   accountId: string | null;

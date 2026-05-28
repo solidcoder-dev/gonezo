@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { ExpectedMovementItem, SchedulingMovementItem } from '../../shared/domain/corePort';
+import type { ExpectedMovementItem } from '../../expected/application/expectedCore.port';
+import type { SchedulingMovementItem } from '../../scheduling/application/schedulingCore.port';
 import { filterProjectedScheduledMovements } from './monthlyMovementProjection';
 
 function scheduledMovement(id: string): SchedulingMovementItem {

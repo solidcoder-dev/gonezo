@@ -1,5 +1,5 @@
-import type { MovementsSearchInput } from '../../shared/domain/corePort';
-import type { MovementsSearchFiltersState } from '../domain/movementsView.types';
+import type { MovementsSearchInput } from './movementsCore.port';
+import type { MovementsSearchFiltersState } from './movementsView.types';
 
 export const DEFAULT_MOVEMENTS_SEARCH_FILTERS: MovementsSearchFiltersState = {
   source: 'posted',

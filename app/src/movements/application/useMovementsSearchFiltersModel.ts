@@ -5,7 +5,7 @@ import type {
   MovementsSearchSourceView,
   LedgerSortDirectionView,
   LedgerTransactionTypeView,
-} from '../domain/movementsView.types';
+} from './movementsView.types';
 import {
   createDefaultMovementsSearchFilters,
   DEFAULT_MOVEMENTS_SEARCH_FILTERS,

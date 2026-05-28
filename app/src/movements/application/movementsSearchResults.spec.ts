@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { MovementsSearchFiltersState, MovementsSearchItemView } from '../domain/movementsView.types';
+import type { MovementsSearchFiltersState, MovementsSearchItemView } from './movementsView.types';
 import { createDefaultMovementsSearchFilters } from './movementsSearchFilters';
 import {
   aggregateMovementsSearchResults,

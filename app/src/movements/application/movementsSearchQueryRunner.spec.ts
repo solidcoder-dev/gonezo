@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import type {
   MovementsSearchItem,
   MovementsSearchResult,
-  OrchestrationListTransactionTaxonomyInput,
-} from '../../shared/domain/corePort';
-import type { MovementsSearchFiltersState } from '../domain/movementsView.types';
+} from './movementsCore.port';
+import type { OrchestrationListTransactionTaxonomyInput } from '../../taxonomy/application/taxonomyCore.port';
+import type { MovementsSearchFiltersState } from './movementsView.types';
 import { createDefaultMovementsSearchFilters } from './movementsSearchFilters';
 import { runMovementsSearchQuery, type MovementsSearchQueryRunnerInput } from './movementsSearchQueryRunner';
 import type { PostedTaxonomySearchPort } from './postedTaxonomySearch';

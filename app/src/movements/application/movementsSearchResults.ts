@@ -1,9 +1,9 @@
-import type { LedgerAccountItem } from '../../shared/domain/corePort';
+import type { LedgerAccountItem } from '../../ledger/application/ledgerCore.port';
 import type {
   MovementsPaginationView,
   MovementsSearchFiltersState,
   MovementsSearchItemView,
-} from '../domain/movementsView.types';
+} from './movementsView.types';
 import { DEFAULT_MOVEMENTS_SEARCH_FILTERS } from './movementsSearchFilters';
 
 export type MovementsSearchAccount = Pick<LedgerAccountItem, 'id' | 'name'>;

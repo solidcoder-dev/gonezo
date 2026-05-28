@@ -1,10 +1,10 @@
 import type { FormEvent } from 'react';
-import type { ImportFailureSummaryItem, ImportRowResult } from '../domain/importFailureSummary';
+import type { ImportFailureSummaryItem, ImportRowResult } from '../application/importFailureSummary';
 import type {
   TransactionsImportDuplicatePolicy,
   TransactionsImportResult,
   TransactionsImportSource,
-} from '../domain/transactionsImport.types';
+} from '../application/transactionsImport.types';
 
 export type TransactionsImportViewRequired = {
   state: {

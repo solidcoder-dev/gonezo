@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { ExpenseItemDraft, TransactionFieldErrors } from '../domain/transactions.types';
+import type { ExpenseItemDraft, TransactionFieldErrors } from './transactions.types';
 import {
   calculateSplitRemaining,
   cloneSplitItems,
@@ -8,7 +8,7 @@ import {
   formatSplitTotal,
   sumSplitItems,
   upsertSplitItem,
-} from './transactionSplitItems';
+} from '../domain/expenseSplit';
 
 type UseExpenseSplitEditorModelInput = {
   transactionAmount: string;

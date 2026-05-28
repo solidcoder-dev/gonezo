@@ -1,4 +1,4 @@
-import type { ExpectedMovementView, ScheduledMovementView } from '../../movements/domain/movementsView.types';
+import type { ExpectedMovementView, ScheduledMovementView } from '../../movements/application/movementsView.types';
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
 import type { TransactionEntryPrefillRequest } from '../../transactions/application/TransactionEntryComponent.contract';
 
