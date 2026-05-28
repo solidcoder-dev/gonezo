@@ -2,7 +2,7 @@ import type {
   MovementsListScheduledInput,
   MovementsListScheduledResult,
 } from '../application/movementsCore.port';
-import { filterScheduledMovements } from './coreAdapterWebMovementQueries';
+import { filterScheduledMovements } from '../../scheduling/application/scheduledMovementFilters';
 import { paginateWebItems } from './coreAdapterWebPagination';
 import type { WebCoreState } from '../../core/infrastructure/coreAdapterWebState';
 

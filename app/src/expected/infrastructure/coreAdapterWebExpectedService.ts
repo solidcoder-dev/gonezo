@@ -8,15 +8,15 @@ import type {
   ExpectedUpdateMovementInput,
   ExpectedUpdateMovementResult,
 } from '../application/expectedCore.port';
+import { filterExpectedMovements } from '../application/expectedMovementFilters';
+import type { ExpectedLedgerPort } from '../application/expectedLedger.port';
 import type { CoreAdapterWebDependencies } from '../../core/infrastructure/coreAdapterWebEffects';
-import type { WebLedgerService } from '../../ledger/infrastructure/coreAdapterWebLedgerService';
-import { filterExpectedMovements } from '../../movements/infrastructure/coreAdapterWebMovementQueries';
 import type { WebCoreState } from '../../core/infrastructure/coreAdapterWebState';
 
 export type WebExpectedMovementsServiceOptions = {
   state: WebCoreState;
   dependencies: CoreAdapterWebDependencies;
-  ledger: WebLedgerService;
+  ledger: ExpectedLedgerPort;
 };
 
 export class WebExpectedMovementsService {
@@ -24,7 +24,7 @@ export class WebExpectedMovementsService {
 
   private readonly dependencies: CoreAdapterWebDependencies;
 
-  private readonly ledger: WebLedgerService;
+  private readonly ledger: ExpectedLedgerPort;
 
   constructor(options: WebExpectedMovementsServiceOptions) {
     this.state = options.state;

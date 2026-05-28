@@ -2,9 +2,12 @@ import type {
   MovementsSearchInput,
   MovementsSearchResult,
 } from '../application/movementsCore.port';
-import type { WebLedgerService } from '../../ledger/infrastructure/coreAdapterWebLedgerService';
+import { filterExpectedMovements } from '../../expected/application/expectedMovementFilters';
+import type {
+  MovementsLedgerReader,
+  MovementsTaxonomyReader,
+} from '../application/movementsReaderPorts';
 import {
-  filterExpectedMovements,
   mapExpectedMovementToSearchItem,
   mapPostedTransactionToSearchItem,
   mapScheduledMovementToSearchItem,
@@ -12,21 +15,20 @@ import {
 import { normalizeWebPagination, paginateWebItems } from './coreAdapterWebPagination';
 import type { WebScheduledMovementsListService } from './coreAdapterWebScheduledMovementsListService';
 import type { WebCoreState } from '../../core/infrastructure/coreAdapterWebState';
-import type { WebMovementsTaxonomyPort } from '../../taxonomy/infrastructure/coreAdapterWebTaxonomyService';
 
 export type WebMovementsSearchServiceOptions = {
   state: WebCoreState;
-  ledger: WebLedgerService;
-  taxonomy: WebMovementsTaxonomyPort;
+  ledger: MovementsLedgerReader;
+  taxonomy: MovementsTaxonomyReader;
   scheduledList: WebScheduledMovementsListService;
 };
 
 export class WebMovementsSearchService {
   private readonly state: WebCoreState;
 
-  private readonly ledger: WebLedgerService;
+  private readonly ledger: MovementsLedgerReader;
 
-  private readonly taxonomy: WebMovementsTaxonomyPort;
+  private readonly taxonomy: MovementsTaxonomyReader;
 
   private readonly scheduledList: WebScheduledMovementsListService;
 

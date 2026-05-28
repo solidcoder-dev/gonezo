@@ -1,36 +1,87 @@
-import { describe, expect, it, vi } from 'vitest';
-import type { CoreAdapterWebDependencies } from '../../core/infrastructure/coreAdapterWebEffects';
-import { WebExpectedMovementsService } from '../../expected/infrastructure/coreAdapterWebExpectedService';
-import { WebLedgerService } from '../../ledger/infrastructure/coreAdapterWebLedgerService';
+import { describe, expect, it } from 'vitest';
+import type { LedgerListTransactionsInput } from '../../ledger/application/ledgerCore.port';
 import { WebMovementsService } from './coreAdapterWebMovementsService';
-import { WebSchedulingService } from '../../scheduling/infrastructure/coreAdapterWebSchedulingService';
 import { createWebCoreState, type WebCoreState } from '../../core/infrastructure/coreAdapterWebState';
-import { WebTaxonomyService } from '../../taxonomy/infrastructure/coreAdapterWebTaxonomyService';
-
-function createDependencies(): CoreAdapterWebDependencies {
-  let next = 0;
-  return {
-    clock: {
-      nowIso: () => '2026-05-26T09:00:00.000Z',
-    },
-    idGenerator: {
-      nextId: () => {
-        next += 1;
-        return `id-${next}`;
-      },
-    },
-    backupDownloader: {
-      downloadJson: vi.fn(),
-    },
-  };
-}
 
 function createSubject(state: WebCoreState = createWebCoreState()) {
-  const dependencies = createDependencies();
-  const ledger = new WebLedgerService({ state, dependencies });
-  const taxonomy = new WebTaxonomyService({ state, dependencies });
-  const scheduling = new WebSchedulingService({ state, dependencies, ledger });
-  const expected = new WebExpectedMovementsService({ state, dependencies, ledger });
+  const ledger = {
+    async listTransactions(input: LedgerListTransactionsInput) {
+      const statuses = input.filters?.statuses ?? [];
+      const text = input.filters?.text?.toLowerCase();
+      const transactions = state.ledgerTransactions
+        .filter((transaction) => transaction.accountId === input.accountId)
+        .filter((transaction) => statuses.length === 0 || statuses.includes(transaction.status))
+        .filter((transaction) => !text
+          || (transaction.merchant ?? '').toLowerCase().includes(text)
+          || (transaction.description ?? '').toLowerCase().includes(text));
+      const page = input.pagination?.page ?? 0;
+      const size = input.pagination?.size ?? 20;
+      const start = page * size;
+      const content = transactions.slice(start, start + size).map((transaction) => ({
+        ...transaction,
+        items: transaction.items,
+      }));
+      return {
+        content,
+        page,
+        size,
+        totalElements: transactions.length,
+        totalPages: transactions.length === 0 ? 0 : Math.ceil(transactions.length / size),
+        hasNext: start + size < transactions.length,
+        hasPrevious: page > 0,
+      };
+    },
+  };
+  const taxonomy = {
+    categoryNameById: (categoryId?: string) => state.taxonomyCategories.find((category) => category.id === categoryId)?.name,
+    async listTransactionTaxonomy(input: { transactionIds: string[] }) {
+      return {
+        items: input.transactionIds.map((transactionId) => {
+          const transaction = state.ledgerTransactions.find((item) => item.id === transactionId);
+          return {
+            transactionId,
+            categoryId: transaction?.categoryId,
+            tagIds: state.taxonomyTransactionTags.get(transactionId) ?? [],
+            categorizationStatus: transaction?.categoryId ? 'assigned' as const : 'none' as const,
+            taggingStatus: state.taxonomyTransactionTags.has(transactionId) ? 'assigned' as const : 'none' as const,
+          };
+        }),
+      };
+    },
+    async listCategories() {
+      return {
+        items: state.taxonomyCategories.map((category) => ({
+          id: category.id,
+          name: category.name,
+          appliesTo: category.appliesTo,
+          status: category.status,
+        })),
+      };
+    },
+    async listTags() {
+      return {
+        items: state.taxonomyTags.map((tag) => ({
+          id: tag.id,
+          name: tag.name,
+          status: tag.status,
+        })),
+      };
+    },
+  };
+  const scheduling = {
+    async listMovements(input: { sourceAccountId: string }) {
+      return {
+        items: state.recurringMovements.filter((movement) => movement.sourceAccountId === input.sourceAccountId),
+      };
+    },
+  };
+  const expected = {
+    async listMovements(input: { accountId: string }) {
+      return {
+        items: state.expectedMovements.filter((movement) => movement.accountId === input.accountId),
+      };
+    },
+  };
   const movements = new WebMovementsService({ state, ledger, taxonomy, scheduling, expected });
   return {
     state,

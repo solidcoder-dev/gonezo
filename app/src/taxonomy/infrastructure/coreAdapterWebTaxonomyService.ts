@@ -21,15 +21,10 @@ import type {
 } from '../../core/infrastructure/coreAdapterWebState';
 import {
   WebCategoryRepository,
-  type WebCategoryImportPort,
-  type WebCategoryLookupPort,
 } from './coreAdapterWebCategoryRepository';
-import {
-  WebTagRepository,
-} from './coreAdapterWebTagRepository';
+import { WebTagRepository } from './coreAdapterWebTagRepository';
 import {
   WebTransactionTaxonomyService,
-  type WebTransactionTaxonomyPort,
 } from './coreAdapterWebTransactionTaxonomyService';
 
 export type WebTaxonomyServiceOptions = {
@@ -37,22 +32,7 @@ export type WebTaxonomyServiceOptions = {
   dependencies: CoreAdapterWebDependencies;
 };
 
-export type WebMovementsTaxonomyPort = WebCategoryLookupPort & Pick<
-  WebTransactionTaxonomyPort,
-  'listTransactionTaxonomy'
->;
-
-export type WebMobillsTaxonomyPort = WebCategoryImportPort & Pick<
-  WebTransactionTaxonomyPort,
-  'categorizeTransaction' | 'applyTransactionTags'
->;
-
-export type WebSearchFacetsTaxonomyPort =
-  & Pick<WebCategoryRepository, 'listCategories'>
-  & Pick<WebTagRepository, 'listTags'>
-  & Pick<WebTransactionTaxonomyPort, 'listTransactionTaxonomy'>;
-
-export class WebTaxonomyService implements WebMobillsTaxonomyPort, WebMovementsTaxonomyPort, WebSearchFacetsTaxonomyPort {
+export class WebTaxonomyService {
   private readonly categories: WebCategoryRepository;
 
   private readonly tags: WebTagRepository;

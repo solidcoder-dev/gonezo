@@ -3,18 +3,20 @@ import type {
   MobillsImportResult,
   MobillsImportRowResult,
 } from '../../../application/importsCore.port';
-import type { WebLedgerService } from '../../../../ledger/infrastructure/coreAdapterWebLedgerService';
+import type {
+  MobillsLedgerPort,
+  MobillsTaxonomyPort,
+} from '../../../application/mobillsImportPorts';
 import { WebMobillsDuplicateTracker } from './coreAdapterWebMobillsDuplicateTracker';
 import { normalizeWebMobillsImportPolicy } from './coreAdapterWebMobillsImportPolicy';
 import { readWebMobillsImportRows } from './coreAdapterWebMobillsImportRows';
 import { WebMobillsRowImporter } from './coreAdapterWebMobillsRowImporter';
 import type { WebCoreState } from '../../../../core/infrastructure/coreAdapterWebState';
-import type { WebMobillsTaxonomyPort } from '../../../../taxonomy/infrastructure/coreAdapterWebTaxonomyService';
 
 export type WebMobillsImportWorkflowOptions = {
   state: WebCoreState;
-  ledger: WebLedgerService;
-  taxonomy: WebMobillsTaxonomyPort;
+  ledger: MobillsLedgerPort;
+  taxonomy: MobillsTaxonomyPort;
 };
 
 export class WebMobillsImportWorkflow {

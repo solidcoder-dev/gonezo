@@ -13,13 +13,13 @@ import type {
   SchedulingUpdateMovementInput,
   SchedulingUpdateMovementResult,
 } from '../application/schedulingCore.port';
-import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
-import type { CoreAdapterWebDependencies } from '../../core/infrastructure/coreAdapterWebEffects';
-import type { WebLedgerService } from '../../ledger/infrastructure/coreAdapterWebLedgerService';
 import {
   compareScheduledMovementByDue,
   isScheduledMovementVisibleForAccount,
-} from '../../movements/infrastructure/coreAdapterWebMovementQueries';
+} from '../application/scheduledMovementFilters';
+import type { SchedulingLedgerPort } from '../application/schedulingLedger.port';
+import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
+import type { CoreAdapterWebDependencies } from '../../core/infrastructure/coreAdapterWebEffects';
 import {
   firstDueAtForWebRecurrence,
   normalizeWebRecurrenceEnd,
@@ -33,7 +33,7 @@ import type {
 export type WebSchedulingServiceOptions = {
   state: WebCoreState;
   dependencies: CoreAdapterWebDependencies;
-  ledger: WebLedgerService;
+  ledger: SchedulingLedgerPort;
 };
 
 export class WebSchedulingService {
@@ -41,7 +41,7 @@ export class WebSchedulingService {
 
   private readonly dependencies: CoreAdapterWebDependencies;
 
-  private readonly ledger: WebLedgerService;
+  private readonly ledger: SchedulingLedgerPort;
 
   constructor(options: WebSchedulingServiceOptions) {
     this.state = options.state;

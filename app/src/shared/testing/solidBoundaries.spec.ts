@@ -160,6 +160,35 @@ describe('SOLID frontend boundaries', () => {
     expect(violations).toEqual([]);
   });
 
+  it('keeps bounded-context infrastructure from depending on another context infrastructure', () => {
+    const violations: string[] = [];
+    const contexts = new Set(['account', 'expected', 'imports', 'ledger', 'movements', 'scheduling', 'taxonomy']);
+    const crossContextInfrastructureImportPattern =
+      /from\s+['"](?:\.\.\/)+(account|expected|imports|ledger|movements|scheduling|taxonomy)\/infrastructure(?:\/[^'"]*)?['"]/g;
+
+    for (const file of listSourceFiles(srcDir)) {
+      const normalized = normalizePath(file);
+      if (normalized.endsWith('.spec.ts') || normalized.endsWith('.spec.tsx')) {
+        continue;
+      }
+      const matchContext = normalized.match(/\/src\/([^/]+)\/infrastructure\//);
+      if (!matchContext || !contexts.has(matchContext[1])) {
+        continue;
+      }
+
+      const currentContext = matchContext[1];
+      const source = readFileSync(file, 'utf8');
+      for (const match of source.matchAll(crossContextInfrastructureImportPattern)) {
+        const importedContext = match[1];
+        if (importedContext !== currentContext) {
+          violations.push(`${normalized}: imports ${importedContext}/infrastructure`);
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
   it('keeps native Capacitor plugin responsibilities in focused collaborators', () => {
     const androidPluginDir = resolve(appDir, 'android/app/src/main/java/com/gonezo/multiplatform/plugins');
     const corePlugin = readFileSync(join(androidPluginDir, 'CorePlugin.java'), 'utf8');
@@ -265,6 +294,8 @@ describe('SOLID frontend boundaries', () => {
   it('keeps web recurrence and movement query rules out of the in-memory adapter shell', () => {
     const coreAdapterWeb = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWeb.ts'), 'utf8');
     const recurrence = readFileSync(resolve(srcDir, 'scheduling/infrastructure/coreAdapterWebRecurrence.ts'), 'utf8');
+    const expectedFilters = readFileSync(resolve(srcDir, 'expected/application/expectedMovementFilters.ts'), 'utf8');
+    const scheduledFilters = readFileSync(resolve(srcDir, 'scheduling/application/scheduledMovementFilters.ts'), 'utf8');
     const movementQueries = readFileSync(resolve(srcDir, 'movements/infrastructure/coreAdapterWebMovementQueries.ts'), 'utf8');
     const ledgerQueries = readFileSync(resolve(srcDir, 'ledger/infrastructure/coreAdapterWebLedgerQueries.ts'), 'utf8');
     const ledgerService = readFileSync(resolve(srcDir, 'ledger/infrastructure/coreAdapterWebLedgerService.ts'), 'utf8');
@@ -301,8 +332,10 @@ describe('SOLID frontend boundaries', () => {
 
     expect(recurrence).toContain('export function normalizeWebRecurrenceRule');
     expect(recurrence).toContain('export function firstDueAtForWebRecurrence');
-    expect(movementQueries).toContain('export function filterScheduledMovements');
-    expect(movementQueries).toContain('export function filterExpectedMovements');
+    expect(expectedFilters).toContain('export function filterExpectedMovements');
+    expect(scheduledFilters).toContain('export function filterScheduledMovements');
+    expect(movementQueries).not.toContain('export function filterScheduledMovements');
+    expect(movementQueries).not.toContain('export function filterExpectedMovements');
     expect(movementQueries).toContain('export function mapScheduledMovementToSearchItem');
     expect(ledgerQueries).toContain('export function listWebLedgerTransactions');
     expect(ledgerService).toContain("from './coreAdapterWebLedgerAccountService'");
@@ -408,9 +441,9 @@ describe('SOLID frontend boundaries', () => {
     expect(taxonomyService).toContain('new WebCategoryRepository');
     expect(taxonomyService).toContain('new WebTagRepository');
     expect(taxonomyService).toContain('new WebTransactionTaxonomyService');
-    expect(taxonomyService).toContain('export type WebMobillsTaxonomyPort');
-    expect(taxonomyService).toContain('export type WebMovementsTaxonomyPort');
-    expect(taxonomyService).toContain('export type WebSearchFacetsTaxonomyPort');
+    expect(taxonomyService).not.toContain('export type WebMobillsTaxonomyPort');
+    expect(taxonomyService).not.toContain('export type WebMovementsTaxonomyPort');
+    expect(taxonomyService).not.toContain('export type WebSearchFacetsTaxonomyPort');
     expect(taxonomyService).not.toContain('this.state.taxonomyCategories.find');
     expect(taxonomyService).not.toContain('this.state.taxonomyTags.find');
     expect(taxonomyService).not.toContain('uniqueByNormalizedName');
@@ -444,12 +477,11 @@ describe('SOLID frontend boundaries', () => {
     expect(names).toContain('export function normalizeWebTaxonomyTagName');
     expect(names).toContain('export function uniqueWebTaxonomyTagNames');
 
-    expect(rowImporter).toContain('WebMobillsTaxonomyPort');
-    expect(importWorkflow).toContain('WebMobillsTaxonomyPort');
-    expect(movementsService).toContain('WebMovementsTaxonomyPort');
-    expect(movementsService).toContain('WebSearchFacetsTaxonomyPort');
-    expect(movementsSearch).toContain('WebMovementsTaxonomyPort');
-    expect(movementsFacets).toContain('WebSearchFacetsTaxonomyPort');
+    expect(rowImporter).toContain('MobillsTaxonomyPort');
+    expect(importWorkflow).toContain('MobillsTaxonomyPort');
+    expect(movementsService).toContain('MovementsTaxonomyReader');
+    expect(movementsSearch).toContain('MovementsTaxonomyReader');
+    expect(movementsFacets).toContain('MovementsTaxonomyReader');
     for (const consumer of [rowImporter, importWorkflow, movementsService, movementsSearch, movementsFacets]) {
       expect(consumer).not.toContain('type { WebTaxonomyService');
       expect(consumer).not.toContain('taxonomy: WebTaxonomyService');

@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import { createExpectedGateway } from '../../expected/infrastructure/expectedGateway';
-import { createLedgerGateway } from '../../ledger/infrastructure/ledgerGateway';
-import { createSchedulingGateway } from '../../scheduling/infrastructure/schedulingGateway';
-import { createTaxonomyGateway } from '../../taxonomy/infrastructure/taxonomyGateway';
+import { createExpectedGateway } from '../../expected/application/expectedGateway';
+import { createLedgerGateway } from '../../ledger/application/ledgerGateway';
+import { createSchedulingGateway } from '../../scheduling/application/schedulingGateway';
+import { createTaxonomyGateway } from '../../taxonomy/application/taxonomyGateway';
 import { TransactionEntryView } from '../ui/TransactionComposer/TransactionEntryView';
 import type { TransactionEntryComponentProps } from './TransactionEntryComponent.contract';
 import type { TransactionEntryModelClock, TransactionEntryModelIdGenerator } from './useTransactionEntryModel';

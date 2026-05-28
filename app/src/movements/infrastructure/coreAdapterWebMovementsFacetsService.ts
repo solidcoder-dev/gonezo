@@ -2,27 +2,29 @@ import type {
   MovementsSearchFacetsInput,
   MovementsSearchFacetsResult,
 } from '../application/movementsCore.port';
-import type { WebExpectedMovementsService } from '../../expected/infrastructure/coreAdapterWebExpectedService';
-import type { WebLedgerService } from '../../ledger/infrastructure/coreAdapterWebLedgerService';
-import type { WebSchedulingService } from '../../scheduling/infrastructure/coreAdapterWebSchedulingService';
-import type { WebSearchFacetsTaxonomyPort } from '../../taxonomy/infrastructure/coreAdapterWebTaxonomyService';
+import type {
+  MovementsExpectedReader,
+  MovementsLedgerReader,
+  MovementsSchedulingReader,
+  MovementsTaxonomyReader,
+} from '../application/movementsReaderPorts';
 import { getMovementsSearchFacets } from './movementsSearchFacets';
 
 export type WebMovementsFacetsServiceOptions = {
-  ledger: WebLedgerService;
-  taxonomy: WebSearchFacetsTaxonomyPort;
-  scheduling: WebSchedulingService;
-  expected: WebExpectedMovementsService;
+  ledger: MovementsLedgerReader;
+  taxonomy: MovementsTaxonomyReader;
+  scheduling: MovementsSchedulingReader;
+  expected: MovementsExpectedReader;
 };
 
 export class WebMovementsFacetsService {
-  private readonly ledger: WebLedgerService;
+  private readonly ledger: MovementsLedgerReader;
 
-  private readonly taxonomy: WebSearchFacetsTaxonomyPort;
+  private readonly taxonomy: MovementsTaxonomyReader;
 
-  private readonly scheduling: WebSchedulingService;
+  private readonly scheduling: MovementsSchedulingReader;
 
-  private readonly expected: WebExpectedMovementsService;
+  private readonly expected: MovementsExpectedReader;
 
   constructor(options: WebMovementsFacetsServiceOptions) {
     this.ledger = options.ledger;

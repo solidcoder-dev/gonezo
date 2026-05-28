@@ -10,27 +10,24 @@ import type {
   MovementsSearchInput,
   MovementsSearchResult,
 } from '../application/movementsCore.port';
-import type { WebExpectedMovementsService } from '../../expected/infrastructure/coreAdapterWebExpectedService';
-import type { WebLedgerService } from '../../ledger/infrastructure/coreAdapterWebLedgerService';
+import type {
+  MovementsExpectedReader,
+  MovementsLedgerReader,
+  MovementsSchedulingReader,
+  MovementsTaxonomyReader,
+} from '../application/movementsReaderPorts';
 import { WebMovementsFacetsService } from './coreAdapterWebMovementsFacetsService';
 import { WebMovementsOverviewService } from './coreAdapterWebMovementsOverviewService';
 import { WebMovementsSearchService } from './coreAdapterWebMovementsSearchService';
-import type { WebSchedulingService } from '../../scheduling/infrastructure/coreAdapterWebSchedulingService';
 import { WebScheduledMovementsListService } from './coreAdapterWebScheduledMovementsListService';
 import type { WebCoreState } from '../../core/infrastructure/coreAdapterWebState';
-import type {
-  WebMovementsTaxonomyPort,
-  WebSearchFacetsTaxonomyPort,
-} from '../../taxonomy/infrastructure/coreAdapterWebTaxonomyService';
-
-type WebMovementsServiceTaxonomyPort = WebMovementsTaxonomyPort & WebSearchFacetsTaxonomyPort;
 
 export type WebMovementsServiceOptions = {
   state: WebCoreState;
-  ledger: WebLedgerService;
-  taxonomy: WebMovementsServiceTaxonomyPort;
-  scheduling: WebSchedulingService;
-  expected: WebExpectedMovementsService;
+  ledger: MovementsLedgerReader;
+  taxonomy: MovementsTaxonomyReader;
+  scheduling: MovementsSchedulingReader;
+  expected: MovementsExpectedReader;
 };
 
 export class WebMovementsService {

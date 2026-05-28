@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { createLedgerGateway } from '../../../ledger/infrastructure/ledgerGateway';
+import { createLedgerGateway } from '../../../ledger/application/ledgerGateway';
 import { formatCurrencyAmount } from '../../../shared/utils/formatting';
 import { SheetView } from '../../../shared/ui/SheetView';
 import type { AccountSummaryComponentProps } from './AccountSummaryComponent.contract';

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createLedgerGateway } from '../../../ledger/infrastructure/ledgerGateway';
+import { createLedgerGateway } from '../../../ledger/application/ledgerGateway';
 import { SheetView } from '../../../shared/ui/SheetView';
 import { AccountSwitcherView } from '../../ui/AccountSwitcher/AccountSwitcherView';
 import type { AccountHubComponentProps } from './AccountHubComponent.contract';

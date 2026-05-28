@@ -8,22 +8,20 @@ import type {
   MovementsMonthOverviewInput,
   MovementsMonthOverviewResult,
 } from '../application/movementsCore.port';
-import type { WebLedgerService } from '../../ledger/infrastructure/coreAdapterWebLedgerService';
-import {
-  filterExpectedMovements,
-  filterScheduledMovements,
-} from './coreAdapterWebMovementQueries';
+import type { MovementsLedgerReader } from '../application/movementsReaderPorts';
+import { filterExpectedMovements } from '../../expected/application/expectedMovementFilters';
+import { filterScheduledMovements } from '../../scheduling/application/scheduledMovementFilters';
 import type { WebCoreState } from '../../core/infrastructure/coreAdapterWebState';
 
 export type WebMovementsOverviewServiceOptions = {
   state: WebCoreState;
-  ledger: WebLedgerService;
+  ledger: MovementsLedgerReader;
 };
 
 export class WebMovementsOverviewService {
   private readonly state: WebCoreState;
 
-  private readonly ledger: WebLedgerService;
+  private readonly ledger: MovementsLedgerReader;
 
   constructor(options: WebMovementsOverviewServiceOptions) {
     this.state = options.state;

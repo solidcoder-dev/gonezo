@@ -2,13 +2,15 @@ import { describe, expect, it } from 'vitest';
 import type { LedgerTransactionListItem } from '../../ledger/application/ledgerCore.port';
 import type { SchedulingMovementItem } from '../../scheduling/application/schedulingCore.port';
 import type { ExpectedMovementItem } from '../../expected/application/expectedCore.port';
+import { filterExpectedMovements } from '../../expected/application/expectedMovementFilters';
 import {
-  filterExpectedMovements,
   filterScheduledMovements,
+  type StoredScheduledMovement,
+} from '../../scheduling/application/scheduledMovementFilters';
+import {
   mapExpectedMovementToSearchItem,
   mapPostedTransactionToSearchItem,
   mapScheduledMovementToSearchItem,
-  type StoredScheduledMovement,
 } from './coreAdapterWebMovementQueries';
 
 function scheduled(overrides: Partial<StoredScheduledMovement> = {}): StoredScheduledMovement {
