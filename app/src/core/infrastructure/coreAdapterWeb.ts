@@ -1,0 +1,390 @@
+import type { CorePort } from '../application/corePort';
+import type {
+  PreferencesSetDefaultAccountInput,
+  UserPreferencesResult,
+} from '../../account/application/preferencesCore.port';
+import type {
+  LedgerAddTransactionItemInput,
+  LedgerArchiveAccountInput,
+  LedgerCreateExpenseDraftInput,
+  LedgerCreateExpenseDraftResult,
+  LedgerDeleteAccountInput,
+  LedgerGetAccountSummaryInput,
+  LedgerGetAccountSummaryResult,
+  LedgerListAccountsResult,
+  LedgerListSupportedCurrenciesResult,
+  LedgerListTransactionsInput,
+  LedgerListTransactionsResult,
+  LedgerOpenAccountInput,
+  LedgerOpenAccountResult,
+  LedgerPostDraftTransactionInput,
+  LedgerRecordExpenseInput,
+  LedgerRecordExpenseResult,
+  LedgerRecordIncomeInput,
+  LedgerRecordIncomeResult,
+  LedgerRecordTransferFxInput,
+  LedgerRecordTransferFxResult,
+  LedgerRecordTransferInput,
+  LedgerRecordTransferResult,
+  LedgerRenameAccountInput,
+  LedgerRestoreAccountInput,
+  LedgerVoidTransactionInput,
+} from '../../ledger/application/ledgerCore.port';
+import type {
+  OrchestrationApplyTransactionTagsInput,
+  OrchestrationApplyTransactionTagsResult,
+  OrchestrationCategorizeTransactionInput,
+  OrchestrationCategorizeTransactionResult,
+  OrchestrationListTransactionTaxonomyInput,
+  OrchestrationListTransactionTaxonomyResult,
+  TaxonomyCreateCategoryInput,
+  TaxonomyCreateCategoryResult,
+  TaxonomyListCategoriesInput,
+  TaxonomyListCategoriesResult,
+  TaxonomyListTagsInput,
+  TaxonomyListTagsResult,
+  TaxonomyRenameCategoryInput,
+  TaxonomyRenameTagInput,
+} from '../../taxonomy/application/taxonomyCore.port';
+import type {
+  MobillsImportInput,
+  MobillsImportResult,
+  MovementsBackupExportResult,
+  MovementsBackupImportInput,
+  MovementsBackupImportResult,
+} from '../../imports/application/importsCore.port';
+import type {
+  RecurrenceCreateRecurringMovementInput,
+  RecurrenceCreateRecurringMovementResult,
+  RecurrenceDeactivateRecurringMovementInput,
+  RecurrenceListRecurringMovementsInput,
+  RecurrenceListRecurringMovementsResult,
+  SchedulingCreateMovementInput,
+  SchedulingCreateMovementResult,
+  SchedulingDeactivateMovementInput,
+  SchedulingListMovementsInput,
+  SchedulingListMovementsResult,
+  SchedulingUpdateMovementInput,
+  SchedulingUpdateMovementResult,
+} from '../../scheduling/application/schedulingCore.port';
+import type {
+  ExpectedCreateMovementInput,
+  ExpectedCreateMovementResult,
+  ExpectedDismissMovementInput,
+  ExpectedListMovementsInput,
+  ExpectedListMovementsResult,
+  ExpectedResolveMovementInput,
+  ExpectedUpdateMovementInput,
+  ExpectedUpdateMovementResult,
+} from '../../expected/application/expectedCore.port';
+import type {
+  MovementsGetOverviewInput,
+  MovementsGetOverviewResult,
+  MovementsListScheduledInput,
+  MovementsListScheduledResult,
+  MovementsMonthOverviewInput,
+  MovementsMonthOverviewResult,
+  MovementsSearchFacetsInput,
+  MovementsSearchFacetsResult,
+  MovementsSearchInput,
+  MovementsSearchResult,
+} from '../../movements/application/movementsCore.port';
+import {
+  collectWebMovementsBackupExport,
+  summarizeWebMovementsBackupExport,
+  webMovementsBackupFileName,
+} from './coreAdapterWebBackup';
+import {
+  defaultCoreAdapterWebDependencies,
+  type CoreAdapterWebDependencies,
+} from './coreAdapterWebEffects';
+import { WebExpectedMovementsService } from './coreAdapterWebExpectedService';
+import { WebLedgerService } from './coreAdapterWebLedgerService';
+import { WebMobillsImportWorkflow } from './coreAdapterWebMobillsImportWorkflow';
+import { WebMovementsService } from './coreAdapterWebMovementsService';
+import { WebSchedulingService } from './coreAdapterWebSchedulingService';
+import {
+  defaultWebCoreState,
+  type WebCoreState,
+} from './coreAdapterWebState';
+import { WebTaxonomyService } from './coreAdapterWebTaxonomyService';
+
+export type CoreAdapterWebOptions = {
+  state?: WebCoreState;
+  dependencies?: Partial<CoreAdapterWebDependencies>;
+};
+
+export class CoreAdapterWeb implements CorePort {
+  private readonly state: WebCoreState;
+
+  private readonly dependencies: CoreAdapterWebDependencies;
+
+  private readonly ledgerService: WebLedgerService;
+
+  private readonly taxonomyService: WebTaxonomyService;
+
+  private readonly mobillsImportWorkflow: WebMobillsImportWorkflow;
+
+  private readonly schedulingService: WebSchedulingService;
+
+  private readonly expectedMovementsService: WebExpectedMovementsService;
+
+  private readonly movementsService: WebMovementsService;
+
+  constructor(options: CoreAdapterWebOptions = {}) {
+    this.state = options.state ?? defaultWebCoreState;
+    this.dependencies = {
+      clock: options.dependencies?.clock ?? defaultCoreAdapterWebDependencies.clock,
+      idGenerator: options.dependencies?.idGenerator ?? defaultCoreAdapterWebDependencies.idGenerator,
+      backupDownloader: options.dependencies?.backupDownloader ?? defaultCoreAdapterWebDependencies.backupDownloader,
+    };
+    this.ledgerService = new WebLedgerService({
+      state: this.state,
+      dependencies: this.dependencies,
+    });
+    this.taxonomyService = new WebTaxonomyService({
+      state: this.state,
+      dependencies: this.dependencies,
+    });
+    this.mobillsImportWorkflow = new WebMobillsImportWorkflow({
+      state: this.state,
+      ledger: this.ledgerService,
+      taxonomy: this.taxonomyService,
+    });
+    this.schedulingService = new WebSchedulingService({
+      state: this.state,
+      dependencies: this.dependencies,
+      ledger: this.ledgerService,
+    });
+    this.expectedMovementsService = new WebExpectedMovementsService({
+      state: this.state,
+      dependencies: this.dependencies,
+      ledger: this.ledgerService,
+    });
+    this.movementsService = new WebMovementsService({
+      state: this.state,
+      ledger: this.ledgerService,
+      taxonomy: this.taxonomyService,
+      scheduling: this.schedulingService,
+      expected: this.expectedMovementsService,
+    });
+  }
+
+  async preferencesGet(): Promise<UserPreferencesResult> {
+    return { defaultAccountId: this.state.defaultAccountId };
+  }
+
+  async preferencesSetDefaultAccount(input: PreferencesSetDefaultAccountInput): Promise<void> {
+    const accountId = input.accountId.trim();
+    if (!accountId) {
+      throw new Error('accountId is required');
+    }
+    this.state.defaultAccountId = accountId;
+  }
+
+  async preferencesClearDefaultAccount(): Promise<void> {
+    this.state.defaultAccountId = null;
+  }
+
+  async ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {
+    return this.ledgerService.openAccount(input);
+  }
+
+  async ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult> {
+    return this.ledgerService.listSupportedCurrencies();
+  }
+
+  async ledgerRenameAccount(input: LedgerRenameAccountInput): Promise<void> {
+    return this.ledgerService.renameAccount(input);
+  }
+
+  async ledgerArchiveAccount(input: LedgerArchiveAccountInput): Promise<void> {
+    return this.ledgerService.archiveAccount(input);
+  }
+
+  async ledgerRestoreAccount(input: LedgerRestoreAccountInput): Promise<void> {
+    return this.ledgerService.restoreAccount(input);
+  }
+
+  async ledgerDeleteAccount(input: LedgerDeleteAccountInput): Promise<void> {
+    return this.ledgerService.deleteAccount(input);
+  }
+
+  async ledgerListAccounts(): Promise<LedgerListAccountsResult> {
+    return this.ledgerService.listAccounts();
+  }
+
+  async ledgerGetAccountSummary(input: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult> {
+    return this.ledgerService.getAccountSummary(input);
+  }
+
+  async ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {
+    return this.ledgerService.recordExpense(input);
+  }
+
+  async ledgerRecordIncome(input: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult> {
+    return this.ledgerService.recordIncome(input);
+  }
+
+  async ledgerRecordTransfer(input: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult> {
+    return this.ledgerService.recordTransfer(input);
+  }
+
+  async ledgerRecordTransferFx(input: LedgerRecordTransferFxInput): Promise<LedgerRecordTransferFxResult> {
+    return this.ledgerService.recordTransferFx(input);
+  }
+
+  async ledgerCreateExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult> {
+    return this.ledgerService.createExpenseDraft(input);
+  }
+
+  async ledgerAddTransactionItem(input: LedgerAddTransactionItemInput): Promise<void> {
+    return this.ledgerService.addTransactionItem(input);
+  }
+
+  async ledgerPostDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void> {
+    return this.ledgerService.postDraftTransaction(input);
+  }
+
+  async ledgerVoidTransaction(input: LedgerVoidTransactionInput): Promise<void> {
+    return this.ledgerService.voidTransaction(input);
+  }
+
+  async ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult> {
+    return this.ledgerService.listTransactions(input);
+  }
+
+  async taxonomyListCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult> {
+    return this.taxonomyService.listCategories(input);
+  }
+
+  async taxonomyCreateCategory(input: TaxonomyCreateCategoryInput): Promise<TaxonomyCreateCategoryResult> {
+    return this.taxonomyService.createCategory(input);
+  }
+
+  async taxonomyRenameCategory(input: TaxonomyRenameCategoryInput): Promise<void> {
+    return this.taxonomyService.renameCategory(input);
+  }
+
+  async taxonomyListTags(input?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult> {
+    return this.taxonomyService.listTags(input);
+  }
+
+  async taxonomyRenameTag(input: TaxonomyRenameTagInput): Promise<void> {
+    return this.taxonomyService.renameTag(input);
+  }
+
+  async mobillsImport(input: MobillsImportInput): Promise<MobillsImportResult> {
+    return this.mobillsImportWorkflow.import(input);
+  }
+
+  async orchestrationCategorizeTransaction(
+    input: OrchestrationCategorizeTransactionInput,
+  ): Promise<OrchestrationCategorizeTransactionResult> {
+    return this.taxonomyService.categorizeTransaction(input);
+  }
+
+  async orchestrationApplyTransactionTags(
+    input: OrchestrationApplyTransactionTagsInput,
+  ): Promise<OrchestrationApplyTransactionTagsResult> {
+    return this.taxonomyService.applyTransactionTags(input);
+  }
+
+  async orchestrationListTransactionTaxonomy(
+    input: OrchestrationListTransactionTaxonomyInput,
+  ): Promise<OrchestrationListTransactionTaxonomyResult> {
+    return this.taxonomyService.listTransactionTaxonomy(input);
+  }
+
+  async recurrenceCreateRecurringMovement(
+    input: RecurrenceCreateRecurringMovementInput,
+  ): Promise<RecurrenceCreateRecurringMovementResult> {
+    return this.schedulingService.createRecurringMovement(input);
+  }
+
+  async recurrenceDeactivateRecurringMovement(input: RecurrenceDeactivateRecurringMovementInput): Promise<void> {
+    return this.schedulingService.deactivateRecurringMovement(input);
+  }
+
+  async recurrenceListRecurringMovements(
+    input: RecurrenceListRecurringMovementsInput,
+  ): Promise<RecurrenceListRecurringMovementsResult> {
+    return this.schedulingService.listRecurringMovements(input);
+  }
+
+  async schedulingCreateMovement(
+    input: SchedulingCreateMovementInput,
+  ): Promise<SchedulingCreateMovementResult> {
+    return this.schedulingService.createMovement(input);
+  }
+
+  async schedulingUpdateMovement(
+    input: SchedulingUpdateMovementInput,
+  ): Promise<SchedulingUpdateMovementResult> {
+    return this.schedulingService.updateMovement(input);
+  }
+
+  async schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void> {
+    return this.schedulingService.deactivateMovement(input);
+  }
+
+  async schedulingListMovements(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult> {
+    return this.schedulingService.listMovements(input);
+  }
+
+  async movementsGetMonthOverview(input: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> {
+    return this.movementsService.getMonthOverview(input);
+  }
+
+  async movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult> {
+    return this.movementsService.getOverview(input);
+  }
+
+  async expectedCreateMovement(input: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult> {
+    return this.expectedMovementsService.createMovement(input);
+  }
+
+  async expectedUpdateMovement(input: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult> {
+    return this.expectedMovementsService.updateMovement(input);
+  }
+
+  async expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult> {
+    return this.expectedMovementsService.listMovements(input);
+  }
+
+  async expectedResolveMovement(input: ExpectedResolveMovementInput): Promise<void> {
+    return this.expectedMovementsService.resolveMovement(input);
+  }
+
+  async expectedDismissMovement(input: ExpectedDismissMovementInput): Promise<void> {
+    return this.expectedMovementsService.dismissMovement(input);
+  }
+
+  async movementsExportBackup(): Promise<MovementsBackupExportResult> {
+    const exportData = await collectWebMovementsBackupExport(this, this.dependencies.clock.nowIso());
+    const fileName = webMovementsBackupFileName(exportData.exportedAt);
+    const json = JSON.stringify(exportData, null, 2);
+    this.dependencies.backupDownloader.downloadJson(fileName, json);
+
+    return summarizeWebMovementsBackupExport(exportData, fileName);
+  }
+
+  async movementsImportBackup(input: MovementsBackupImportInput): Promise<MovementsBackupImportResult> {
+    if (!input.fileBase64.trim()) {
+      throw new Error('fileBase64 is required');
+    }
+    throw new Error('Backup import is only available on Android.');
+  }
+
+  async movementsSearch(input: MovementsSearchInput): Promise<MovementsSearchResult> {
+    return this.movementsService.search(input);
+  }
+
+  async movementsGetSearchFacets(input: MovementsSearchFacetsInput): Promise<MovementsSearchFacetsResult> {
+    return this.movementsService.getSearchFacets(input);
+  }
+
+  async movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult> {
+    return this.movementsService.listScheduled(input);
+  }
+}

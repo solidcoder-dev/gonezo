@@ -2,7 +2,7 @@ import { Route, Routes } from 'react-router-dom';
 import './App.css';
 import type { AccountWorkspacePort } from './account/application/accountsCore.port';
 import { WorkspacePage } from './workspace/application/WorkspacePage';
-import { CoreAdapter } from './shared/infrastructure/core/coreAdapter';
+import { CoreAdapter } from './core/infrastructure/coreAdapter';
 import { MovementsSearchPage } from './movements';
 import type { MovementsSearchPagePort } from './movements/application/movementsSearch.port';
 import { TaxonomyPage, type TaxonomyPagePort } from './taxonomy/application/TaxonomyPage';

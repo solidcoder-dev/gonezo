@@ -3,19 +3,21 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../App';
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
+import type { CorePort } from '../../core/application/corePort';
 import type {
-  CorePort,
   LedgerListTransactionsInput,
   LedgerListTransactionsResult,
   LedgerTransactionListItem,
+} from '../../ledger/application/ledgerCore.port';
+import type { SchedulingMovementItem } from '../../scheduling/application/schedulingCore.port';
+import type { ExpectedMovementItem } from '../../expected/application/expectedCore.port';
+import type {
   MovementsMonthOverviewInput,
   MovementsSearchFiltersInput,
   MovementsSearchInput,
   MovementsSearchResult,
   MovementsListScheduledInput,
-  ExpectedMovementItem,
-  SchedulingMovementItem,
-} from '../../shared/domain/corePort';
+} from '../../movements/application/movementsCore.port';
 
 function toPagedResult(
   source: LedgerTransactionListItem[],

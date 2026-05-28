@@ -10,6 +10,7 @@ const EXPECTED_TOP_LEVEL = new Set([
   'App.css',
   'App.tsx',
   'account',
+  'core',
   'expected',
   'imports',
   'index.css',
@@ -25,16 +26,17 @@ const EXPECTED_TOP_LEVEL = new Set([
 
 const EXPECTED_LAYER_DIRS = ['application', 'domain', 'infrastructure', 'ui'];
 const EXPECTED_CONTEXT_DIRS = {
-  account: ['application', 'domain', 'infrastructure', 'ui'],
+  account: ['application', 'infrastructure', 'ui'],
+  core: ['application', 'infrastructure'],
   expected: ['application', 'infrastructure'],
   ledger: ['application', 'infrastructure', 'ui'],
-  movements: ['application', 'domain', 'ui'],
+  movements: ['application', 'ui'],
   scheduling: ['application', 'infrastructure'],
   taxonomy: ['application', 'domain', 'infrastructure'],
   transactions: ['application', 'domain', 'ui'],
   workspace: ['application'],
 };
-const EXPECTED_SHARED_DIRS = ['domain', 'infrastructure', 'testing', 'ui', 'utils'];
+const EXPECTED_SHARED_DIRS = ['domain', 'testing', 'ui', 'utils'];
 const EXPECTED_IMPORTS_INFRASTRUCTURE_DIRS = ['providers'];
 const EXPECTED_IMPORTS_PROVIDER_MODULES = ['mobills'];
 
