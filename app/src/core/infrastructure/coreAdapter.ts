@@ -97,8 +97,8 @@ import {
   getNativeMovementsMonthOverview,
   listNativeScheduledMovements,
   searchNativeMovements,
-} from './coreAdapterNativeMovements';
-import { getMovementsSearchFacets } from './movementsSearchFacets';
+} from '../../movements/infrastructure/coreAdapterNativeMovements';
+import { getMovementsSearchFacets } from '../../movements/infrastructure/movementsSearchFacets';
 
 export class CoreAdapter implements CorePort {
   private readonly web = new CoreAdapterWeb();

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { MovementRowView } from '../MovementRow/MovementRowView';
+import { MovementRowView } from './MovementRowView';
 
 describe('MovementRowView', () => {
   it('renders a compact movement row and dispatches selection', () => {

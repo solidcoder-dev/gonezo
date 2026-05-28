@@ -30,7 +30,7 @@ const EXPECTED_CONTEXT_DIRS = {
   core: ['application', 'infrastructure'],
   expected: ['application', 'infrastructure'],
   ledger: ['application', 'infrastructure', 'ui'],
-  movements: ['application', 'ui'],
+  movements: ['application', 'infrastructure', 'ui'],
   scheduling: ['application', 'infrastructure'],
   taxonomy: ['application', 'domain', 'infrastructure'],
   transactions: ['application', 'domain', 'ui'],

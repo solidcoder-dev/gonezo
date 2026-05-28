@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { MovementDetailSheetView } from '../MovementDetailSheet/MovementDetailSheetView';
+import { MovementDetailSheetView } from './MovementDetailSheetView';
 
 describe('MovementDetailSheetView', () => {
   it('renders movement details, meta, splits and actions', () => {

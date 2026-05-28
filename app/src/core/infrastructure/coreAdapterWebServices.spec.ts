@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { CoreAdapterWebDependencies } from './coreAdapterWebEffects';
-import { WebLedgerService } from './coreAdapterWebLedgerService';
-import { WebMobillsImportWorkflow } from './coreAdapterWebMobillsImportWorkflow';
+import { WebLedgerService } from '../../ledger/infrastructure/coreAdapterWebLedgerService';
+import { WebMobillsImportWorkflow } from '../../imports/infrastructure/providers/mobills/coreAdapterWebMobillsImportWorkflow';
 import { createWebCoreState } from './coreAdapterWebState';
-import { WebTaxonomyService } from './coreAdapterWebTaxonomyService';
+import { WebTaxonomyService } from '../../taxonomy/infrastructure/coreAdapterWebTaxonomyService';
 
 function toUtf16Base64(text: string): string {
   const bytes: number[] = [];

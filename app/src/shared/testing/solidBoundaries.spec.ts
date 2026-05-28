@@ -208,7 +208,7 @@ describe('SOLID frontend boundaries', () => {
 
   it('keeps native movement composition out of the platform adapter shell', () => {
     const coreAdapter = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapter.ts'), 'utf8');
-    const nativeMovements = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterNativeMovements.ts'), 'utf8');
+    const nativeMovements = readFileSync(resolve(srcDir, 'movements/infrastructure/coreAdapterNativeMovements.ts'), 'utf8');
 
     expect(coreAdapter).toContain('getNativeMovementsMonthOverview(this, input)');
     expect(coreAdapter).toContain('searchNativeMovements(this, input)');
@@ -223,14 +223,14 @@ describe('SOLID frontend boundaries', () => {
 
   it('keeps Mobills parsing out of the in-memory web adapter orchestration', () => {
     const coreAdapterWeb = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWeb.ts'), 'utf8');
-    const workflow = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebMobillsImportWorkflow.ts'), 'utf8');
-    const rows = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebMobillsImportRows.ts'), 'utf8');
-    const rowImporter = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebMobillsRowImporter.ts'), 'utf8');
-    const duplicateTracker = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebMobillsDuplicateTracker.ts'), 'utf8');
-    const policy = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebMobillsImportPolicy.ts'), 'utf8');
-    const parser = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebMobillsImportParser.ts'), 'utf8');
+    const workflow = readFileSync(resolve(srcDir, 'imports/infrastructure/providers/mobills/coreAdapterWebMobillsImportWorkflow.ts'), 'utf8');
+    const rows = readFileSync(resolve(srcDir, 'imports/infrastructure/providers/mobills/coreAdapterWebMobillsImportRows.ts'), 'utf8');
+    const rowImporter = readFileSync(resolve(srcDir, 'imports/infrastructure/providers/mobills/coreAdapterWebMobillsRowImporter.ts'), 'utf8');
+    const duplicateTracker = readFileSync(resolve(srcDir, 'imports/infrastructure/providers/mobills/coreAdapterWebMobillsDuplicateTracker.ts'), 'utf8');
+    const policy = readFileSync(resolve(srcDir, 'imports/infrastructure/providers/mobills/coreAdapterWebMobillsImportPolicy.ts'), 'utf8');
+    const parser = readFileSync(resolve(srcDir, 'imports/infrastructure/providers/mobills/coreAdapterWebMobillsImportParser.ts'), 'utf8');
 
-    expect(coreAdapterWeb).toContain("from './coreAdapterWebMobillsImportWorkflow'");
+    expect(coreAdapterWeb).toContain("from '../../imports/infrastructure/providers/mobills/coreAdapterWebMobillsImportWorkflow'");
     expect(coreAdapterWeb).not.toContain("from './coreAdapterWebMobillsImportParser'");
     expect(coreAdapterWeb).not.toContain('decodeMobillsImportBase64');
     expect(coreAdapterWeb).not.toContain('splitDelimitedLine');
@@ -264,25 +264,25 @@ describe('SOLID frontend boundaries', () => {
 
   it('keeps web recurrence and movement query rules out of the in-memory adapter shell', () => {
     const coreAdapterWeb = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWeb.ts'), 'utf8');
-    const recurrence = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebRecurrence.ts'), 'utf8');
-    const movementQueries = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebMovementQueries.ts'), 'utf8');
-    const ledgerQueries = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebLedgerQueries.ts'), 'utf8');
-    const ledgerService = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebLedgerService.ts'), 'utf8');
-    const ledgerAccountService = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebLedgerAccountService.ts'), 'utf8');
-    const ledgerTransactionService = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebLedgerTransactionService.ts'), 'utf8');
-    const ledgerTransferService = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebLedgerTransferService.ts'), 'utf8');
-    const ledgerGuards = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebLedgerGuards.ts'), 'utf8');
-    const schedulingService = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebSchedulingService.ts'), 'utf8');
-    const movementsService = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebMovementsService.ts'), 'utf8');
-    const movementsOverviewService = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebMovementsOverviewService.ts'), 'utf8');
-    const movementsSearchService = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebMovementsSearchService.ts'), 'utf8');
-    const movementsFacetsService = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebMovementsFacetsService.ts'), 'utf8');
-    const scheduledListService = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebScheduledMovementsListService.ts'), 'utf8');
-    const pagination = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebPagination.ts'), 'utf8');
+    const recurrence = readFileSync(resolve(srcDir, 'scheduling/infrastructure/coreAdapterWebRecurrence.ts'), 'utf8');
+    const movementQueries = readFileSync(resolve(srcDir, 'movements/infrastructure/coreAdapterWebMovementQueries.ts'), 'utf8');
+    const ledgerQueries = readFileSync(resolve(srcDir, 'ledger/infrastructure/coreAdapterWebLedgerQueries.ts'), 'utf8');
+    const ledgerService = readFileSync(resolve(srcDir, 'ledger/infrastructure/coreAdapterWebLedgerService.ts'), 'utf8');
+    const ledgerAccountService = readFileSync(resolve(srcDir, 'ledger/infrastructure/coreAdapterWebLedgerAccountService.ts'), 'utf8');
+    const ledgerTransactionService = readFileSync(resolve(srcDir, 'ledger/infrastructure/coreAdapterWebLedgerTransactionService.ts'), 'utf8');
+    const ledgerTransferService = readFileSync(resolve(srcDir, 'ledger/infrastructure/coreAdapterWebLedgerTransferService.ts'), 'utf8');
+    const ledgerGuards = readFileSync(resolve(srcDir, 'ledger/infrastructure/coreAdapterWebLedgerGuards.ts'), 'utf8');
+    const schedulingService = readFileSync(resolve(srcDir, 'scheduling/infrastructure/coreAdapterWebSchedulingService.ts'), 'utf8');
+    const movementsService = readFileSync(resolve(srcDir, 'movements/infrastructure/coreAdapterWebMovementsService.ts'), 'utf8');
+    const movementsOverviewService = readFileSync(resolve(srcDir, 'movements/infrastructure/coreAdapterWebMovementsOverviewService.ts'), 'utf8');
+    const movementsSearchService = readFileSync(resolve(srcDir, 'movements/infrastructure/coreAdapterWebMovementsSearchService.ts'), 'utf8');
+    const movementsFacetsService = readFileSync(resolve(srcDir, 'movements/infrastructure/coreAdapterWebMovementsFacetsService.ts'), 'utf8');
+    const scheduledListService = readFileSync(resolve(srcDir, 'movements/infrastructure/coreAdapterWebScheduledMovementsListService.ts'), 'utf8');
+    const pagination = readFileSync(resolve(srcDir, 'movements/infrastructure/coreAdapterWebPagination.ts'), 'utf8');
 
-    expect(coreAdapterWeb).toContain("from './coreAdapterWebLedgerService'");
-    expect(coreAdapterWeb).toContain("from './coreAdapterWebSchedulingService'");
-    expect(coreAdapterWeb).toContain("from './coreAdapterWebMovementsService'");
+    expect(coreAdapterWeb).toContain("from '../../ledger/infrastructure/coreAdapterWebLedgerService'");
+    expect(coreAdapterWeb).toContain("from '../../scheduling/infrastructure/coreAdapterWebSchedulingService'");
+    expect(coreAdapterWeb).toContain("from '../../movements/infrastructure/coreAdapterWebMovementsService'");
     expect(coreAdapterWeb).not.toContain("from './coreAdapterWebRecurrence'");
     expect(coreAdapterWeb).not.toContain("from './coreAdapterWebMovementQueries'");
     expect(coreAdapterWeb).not.toContain("from './coreAdapterWebLedgerQueries'");
@@ -348,14 +348,14 @@ describe('SOLID frontend boundaries', () => {
     const coreAdapterWeb = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWeb.ts'), 'utf8');
     const state = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebState.ts'), 'utf8');
     const effects = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebEffects.ts'), 'utf8');
-    const backup = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebBackup.ts'), 'utf8');
+    const backup = readFileSync(resolve(srcDir, 'imports/infrastructure/coreAdapterWebBackup.ts'), 'utf8');
 
     expect(coreAdapterWeb).toContain("from './coreAdapterWebState'");
     expect(coreAdapterWeb).toContain("from './coreAdapterWebEffects'");
-    expect(coreAdapterWeb).toContain("from './coreAdapterWebBackup'");
-    expect(coreAdapterWeb).toContain("from './coreAdapterWebLedgerService'");
-    expect(coreAdapterWeb).toContain("from './coreAdapterWebTaxonomyService'");
-    expect(coreAdapterWeb).toContain("from './coreAdapterWebExpectedService'");
+    expect(coreAdapterWeb).toContain("from '../../imports/infrastructure/coreAdapterWebBackup'");
+    expect(coreAdapterWeb).toContain("from '../../ledger/infrastructure/coreAdapterWebLedgerService'");
+    expect(coreAdapterWeb).toContain("from '../../taxonomy/infrastructure/coreAdapterWebTaxonomyService'");
+    expect(coreAdapterWeb).toContain("from '../../expected/infrastructure/coreAdapterWebExpectedService'");
     expect(coreAdapterWeb).toContain('constructor(options: CoreAdapterWebOptions = {})');
     expect(coreAdapterWeb).toContain('this.state = options.state ?? defaultWebCoreState');
     expect(coreAdapterWeb).not.toContain('private async collectMovementsBackupExport');
@@ -382,26 +382,26 @@ describe('SOLID frontend boundaries', () => {
   });
 
   it('keeps web taxonomy orchestration split behind focused ports', () => {
-    const taxonomyService = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebTaxonomyService.ts'), 'utf8');
-    const categories = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebCategoryRepository.ts'), 'utf8');
-    const tags = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebTagRepository.ts'), 'utf8');
+    const taxonomyService = readFileSync(resolve(srcDir, 'taxonomy/infrastructure/coreAdapterWebTaxonomyService.ts'), 'utf8');
+    const categories = readFileSync(resolve(srcDir, 'taxonomy/infrastructure/coreAdapterWebCategoryRepository.ts'), 'utf8');
+    const tags = readFileSync(resolve(srcDir, 'taxonomy/infrastructure/coreAdapterWebTagRepository.ts'), 'utf8');
     const transactionTaxonomy = readFileSync(
-      resolve(srcDir, 'core/infrastructure/coreAdapterWebTransactionTaxonomyService.ts'),
+      resolve(srcDir, 'taxonomy/infrastructure/coreAdapterWebTransactionTaxonomyService.ts'),
       'utf8',
     );
-    const names = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebTaxonomyNames.ts'), 'utf8');
-    const rowImporter = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebMobillsRowImporter.ts'), 'utf8');
+    const names = readFileSync(resolve(srcDir, 'taxonomy/infrastructure/coreAdapterWebTaxonomyNames.ts'), 'utf8');
+    const rowImporter = readFileSync(resolve(srcDir, 'imports/infrastructure/providers/mobills/coreAdapterWebMobillsRowImporter.ts'), 'utf8');
     const importWorkflow = readFileSync(
-      resolve(srcDir, 'core/infrastructure/coreAdapterWebMobillsImportWorkflow.ts'),
+      resolve(srcDir, 'imports/infrastructure/providers/mobills/coreAdapterWebMobillsImportWorkflow.ts'),
       'utf8',
     );
-    const movementsService = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWebMovementsService.ts'), 'utf8');
+    const movementsService = readFileSync(resolve(srcDir, 'movements/infrastructure/coreAdapterWebMovementsService.ts'), 'utf8');
     const movementsSearch = readFileSync(
-      resolve(srcDir, 'core/infrastructure/coreAdapterWebMovementsSearchService.ts'),
+      resolve(srcDir, 'movements/infrastructure/coreAdapterWebMovementsSearchService.ts'),
       'utf8',
     );
     const movementsFacets = readFileSync(
-      resolve(srcDir, 'core/infrastructure/coreAdapterWebMovementsFacetsService.ts'),
+      resolve(srcDir, 'movements/infrastructure/coreAdapterWebMovementsFacetsService.ts'),
       'utf8',
     );
 

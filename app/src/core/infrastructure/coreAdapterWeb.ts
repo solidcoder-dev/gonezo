@@ -93,21 +93,21 @@ import {
   collectWebMovementsBackupExport,
   summarizeWebMovementsBackupExport,
   webMovementsBackupFileName,
-} from './coreAdapterWebBackup';
+} from '../../imports/infrastructure/coreAdapterWebBackup';
 import {
   defaultCoreAdapterWebDependencies,
   type CoreAdapterWebDependencies,
 } from './coreAdapterWebEffects';
-import { WebExpectedMovementsService } from './coreAdapterWebExpectedService';
-import { WebLedgerService } from './coreAdapterWebLedgerService';
-import { WebMobillsImportWorkflow } from './coreAdapterWebMobillsImportWorkflow';
-import { WebMovementsService } from './coreAdapterWebMovementsService';
-import { WebSchedulingService } from './coreAdapterWebSchedulingService';
+import { WebExpectedMovementsService } from '../../expected/infrastructure/coreAdapterWebExpectedService';
+import { WebLedgerService } from '../../ledger/infrastructure/coreAdapterWebLedgerService';
+import { WebMobillsImportWorkflow } from '../../imports/infrastructure/providers/mobills/coreAdapterWebMobillsImportWorkflow';
+import { WebMovementsService } from '../../movements/infrastructure/coreAdapterWebMovementsService';
+import { WebSchedulingService } from '../../scheduling/infrastructure/coreAdapterWebSchedulingService';
 import {
   defaultWebCoreState,
   type WebCoreState,
 } from './coreAdapterWebState';
-import { WebTaxonomyService } from './coreAdapterWebTaxonomyService';
+import { WebTaxonomyService } from '../../taxonomy/infrastructure/coreAdapterWebTaxonomyService';
 
 export type CoreAdapterWebOptions = {
   state?: WebCoreState;

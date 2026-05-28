@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { TransactionsImportRequest, TransactionsImportResult } from '../../imports/application/transactionsImport.types';
-import { TransactionEntryComponent } from '../../transactions';
+import { TransactionEntryComponent } from '../../transactions/index';
 import type { TransactionEntryPrefillRequest } from '../../transactions/application/TransactionEntryComponent.contract';
-import { MonthlyMovementsComponent } from '../../movements';
+import { MonthlyMovementsComponent } from '../../movements/index';
 import type { ExpectedMovementView, ScheduledMovementView } from '../../movements/application/movementsView.types';
 import { AccountPageView } from '../../account/ui/AccountPageView/AccountPageView';
 import { TransactionsImportComponent } from '../../account/ui/capabilities/TransactionsImport/TransactionsImportComponent';

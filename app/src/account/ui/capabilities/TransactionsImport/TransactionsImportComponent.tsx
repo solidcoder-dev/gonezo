@@ -1,6 +1,6 @@
 import {
   TransactionsImportComponent as TransactionsImportFeature,
-} from '../../../../imports';
+} from '../../../../imports/index';
 import { SheetView } from '../../../../shared/ui/SheetView';
 import type { TransactionsImportComponentProps } from './TransactionsImportComponent.contract';
 
