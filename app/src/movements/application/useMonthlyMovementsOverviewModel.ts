@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { LedgerTransactionListItem } from '../../ledger/application/ledgerCore.port';
+import type { LedgerTransactionListItem } from '../../ledger/application/ledger.port';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
 import type { MonthlyMovementsViewRequired } from '../ui/MonthlyMovements/MonthlyMovementsView.contract';
 import { filterProjectedScheduledMovements } from './monthlyMovementProjection';

@@ -1,14 +1,14 @@
 import type {
-  SchedulingCorePort,
-} from './schedulingCore.port';
+  SchedulingPort,
+} from './scheduling.port';
 import type {
   MovementsGetOverviewInput,
   MovementsGetOverviewResult,
   MovementsListScheduledInput,
   MovementsListScheduledResult,
-} from '../../movements/application/movementsCore.port';
+} from '../../movements/application/movements.port';
 
-export type SchedulingGatewayPort = SchedulingCorePort & {
+export type SchedulingGatewayPort = SchedulingPort & {
   movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult>;
   movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult>;
 };

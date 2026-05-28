@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CoreAdapterWeb } from './coreAdapterWeb';
-import { createWebCoreState } from './coreAdapterWebState';
+import { createWebAppState } from './webAppState';
 
 function toUtf16Base64(text: string): string {
   const bytes: number[] = [];
@@ -14,7 +14,7 @@ function toUtf16Base64(text: string): string {
 
 describe('CoreAdapterWeb mobillsImport', () => {
   function createCore(): CoreAdapterWeb {
-    return new CoreAdapterWeb({ state: createWebCoreState() });
+    return new CoreAdapterWeb({ state: createWebAppState() });
   }
 
   it('imports transfer rows as ledger transfers and skips mirrored inbound row', async () => {

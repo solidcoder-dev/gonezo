@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
-import type { AccountsCorePort } from '../accountsCore.port';
+import type { AccountsPort } from '../accounts.port';
 
 export type AccountSummaryComponentRequired = {
   context: {
-    core: AccountsCorePort;
+    core: AccountsPort;
     accountId: string | null;
   };
   config: {

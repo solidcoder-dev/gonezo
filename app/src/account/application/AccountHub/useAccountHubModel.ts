@@ -5,7 +5,7 @@ import type { LoadPhase } from '../accountPage.types';
 import type { AccountSummaryView } from '../accountView.types';
 import { mapAccountSummaryList } from '../accountViewMappers';
 import type { AccountHubComponentProvided } from './AccountHubComponent.contract';
-import type { UserPreferencesPort } from '../accountsCore.port';
+import type { UserPreferencesPort } from '../accounts.port';
 
 type FormEventLike = {
   preventDefault: () => void;

@@ -1,9 +1,9 @@
 import type { LoadPhase } from '../accountPage.types';
-import type { AccountsCorePort } from '../accountsCore.port';
+import type { AccountsPort } from '../accounts.port';
 
 export type AccountHubComponentRequired = {
   context: {
-    core: AccountsCorePort;
+    core: AccountsPort;
   };
   config: {
     refreshSignal: boolean;

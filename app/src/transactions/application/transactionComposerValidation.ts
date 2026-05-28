@@ -1,4 +1,4 @@
-import type { SchedulingEndInput } from '../../scheduling/application/schedulingCore.port';
+import type { SchedulingEndInput } from '../../scheduling/application/scheduling.port';
 import type { ComposerMode, TransactionFieldErrors } from './transactions.types';
 
 export type TransactionComposerValidationInput = {

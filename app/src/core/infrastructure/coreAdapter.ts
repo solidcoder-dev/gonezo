@@ -3,7 +3,7 @@ import type { CorePort } from '../application/corePort';
 import type {
   UserPreferencesResult,
   PreferencesSetDefaultAccountInput,
-} from '../../account/application/preferencesCore.port';
+} from '../../account/application/preferences.port';
 import type {
   LedgerOpenAccountInput,
   LedgerOpenAccountResult,
@@ -30,7 +30,7 @@ import type {
   LedgerVoidTransactionInput,
   LedgerListTransactionsInput,
   LedgerListTransactionsResult,
-} from '../../ledger/application/ledgerCore.port';
+} from '../../ledger/application/ledger.port';
 import type {
   TaxonomyListCategoriesInput,
   TaxonomyListCategoriesResult,
@@ -46,14 +46,14 @@ import type {
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
-} from '../../taxonomy/application/taxonomyCore.port';
+} from '../../taxonomy/application/taxonomy.port';
 import type {
   MobillsImportInput,
   MobillsImportResult,
   MovementsBackupExportResult,
   MovementsBackupImportInput,
   MovementsBackupImportResult,
-} from '../../imports/application/importsCore.port';
+} from '../../imports/application/imports.port';
 import type {
   RecurrenceCreateRecurringMovementInput,
   RecurrenceCreateRecurringMovementResult,
@@ -67,7 +67,7 @@ import type {
   SchedulingListMovementsResult,
   SchedulingUpdateMovementInput,
   SchedulingUpdateMovementResult,
-} from '../../scheduling/application/schedulingCore.port';
+} from '../../scheduling/application/scheduling.port';
 import type {
   ExpectedCreateMovementInput,
   ExpectedCreateMovementResult,
@@ -77,7 +77,7 @@ import type {
   ExpectedListMovementsInput,
   ExpectedListMovementsResult,
   ExpectedResolveMovementInput,
-} from '../../expected/application/expectedCore.port';
+} from '../../expected/application/expected.port';
 import type {
   MovementsMonthOverviewInput,
   MovementsMonthOverviewResult,
@@ -89,7 +89,7 @@ import type {
   MovementsSearchResult,
   MovementsListScheduledInput,
   MovementsListScheduledResult,
-} from '../../movements/application/movementsCore.port';
+} from '../../movements/application/movements.port';
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
@@ -97,8 +97,8 @@ import {
   getNativeMovementsMonthOverview,
   listNativeScheduledMovements,
   searchNativeMovements,
-} from '../../movements/infrastructure/coreAdapterNativeMovements';
-import { getMovementsSearchFacets } from '../../movements/infrastructure/movementsSearchFacets';
+} from '../../movements/infrastructure/nativeMovements';
+import { getMovementsSearchFacets } from '../../movements/infrastructure/searchFacets';
 
 export class CoreAdapter implements CorePort {
   private readonly web = new CoreAdapterWeb();

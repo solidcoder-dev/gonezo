@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { MovementsSearchItem, MovementsSearchResult } from './movementsCore.port';
+import type { MovementsSearchItem, MovementsSearchResult } from './movements.port';
 import { buildPostedTaxonomySearchPage, type PostedTaxonomySearchPort } from './postedTaxonomySearch';
 
 function movement(id: string, categoryId: string): MovementsSearchItem {

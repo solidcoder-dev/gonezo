@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CoreAdapterWeb } from './coreAdapterWeb';
-import { createWebCoreState } from './coreAdapterWebState';
+import { createWebAppState } from './webAppState';
 
 describe('CoreAdapterWeb state and effects boundaries', () => {
   it('isolates in-memory state when a state instance is injected', async () => {
-    const first = new CoreAdapterWeb({ state: createWebCoreState() });
-    const second = new CoreAdapterWeb({ state: createWebCoreState() });
+    const first = new CoreAdapterWeb({ state: createWebAppState() });
+    const second = new CoreAdapterWeb({ state: createWebAppState() });
 
     await first.ledgerOpenAccount({
       name: 'Wallet',
@@ -35,7 +35,7 @@ describe('CoreAdapterWeb state and effects boundaries', () => {
   it('delegates backup downloads to the injected effect boundary', async () => {
     const downloadJson = vi.fn();
     const core = new CoreAdapterWeb({
-      state: createWebCoreState(),
+      state: createWebAppState(),
       dependencies: {
         clock: { nowIso: () => '2026-05-26T10:11:12.123Z' },
         idGenerator: { nextId: () => 'fixed-id' },

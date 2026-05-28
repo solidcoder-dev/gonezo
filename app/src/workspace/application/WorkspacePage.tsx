@@ -8,7 +8,7 @@ import { AccountPageView } from '../../account/ui/AccountPageView/AccountPageVie
 import { TransactionsImportComponent } from '../../account/ui/capabilities/TransactionsImport/TransactionsImportComponent';
 import type { AccountPageViewProvided, AccountPageViewRequired } from '../../account/ui/AccountPageView/accountPageView.contract';
 import type { LoadPhase, SubmitPhase } from '../../account/application/accountPage.types';
-import type { AccountWorkspacePort } from '../../account/application/accountsCore.port';
+import type { AccountWorkspacePort } from '../../account/application/accounts.port';
 import { AccountHubComponent } from '../../account/application/AccountHub/AccountHubComponent';
 import { AccountSummaryComponent } from '../../account/application/AccountSummary/AccountSummaryComponent';
 import {

@@ -1,1 +1,1 @@
-export type { TaxonomyCorePort as TaxonomyGatewayPort } from './taxonomyCore.port';
+export type { TaxonomyPort as TaxonomyGatewayPort } from './taxonomy.port';

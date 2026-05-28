@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import type { LedgerAccountItem } from '../../ledger/application/ledgerCore.port';
+import type { LedgerAccountItem } from '../../ledger/application/ledger.port';
 import type { MovementsSearchPagePort } from './movementsSearch.port';
 import { useMovementsSearchModel } from './useMovementsSearchModel';
 import { MovementsSearchFilters } from '../ui/MovementsSearch/MovementsSearchFilters';

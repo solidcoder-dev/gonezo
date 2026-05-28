@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { LedgerListTransactionsInput } from './ledgerCore.port';
+import type { LedgerListTransactionsInput } from './ledger.port';
 import type { LedgerGatewayPort } from './ledgerGateway.port';
 
 export function useLedgerTransactions(gateway: LedgerGatewayPort) {

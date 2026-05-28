@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import type {
   MovementsSearchFacetCategory,
   MovementsSearchFacetTag,
-} from './movementsCore.port';
+} from './movements.port';
 import type { MovementsFilterOptionsView } from './movementsView.types';
 import type { MovementsSearchFacetsPort } from './movementsSearch.port';
 import type { MovementsSearchAccount } from './movementsSearchResults';

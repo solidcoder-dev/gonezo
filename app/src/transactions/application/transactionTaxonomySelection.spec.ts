@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { TaxonomyCategoryItem, TaxonomyTagItem } from '../../taxonomy/application/taxonomyCore.port';
+import type { TaxonomyCategoryItem, TaxonomyTagItem } from '../../taxonomy/application/taxonomy.port';
 import {
   findActiveCategoryByName,
   mergeCategories,

@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type {
   MovementsSearchItem,
   MovementsSearchResult,
-} from './movementsCore.port';
-import type { OrchestrationListTransactionTaxonomyInput } from '../../taxonomy/application/taxonomyCore.port';
+} from './movements.port';
+import type { OrchestrationListTransactionTaxonomyInput } from '../../taxonomy/application/taxonomy.port';
 import type { MovementsSearchFiltersState } from './movementsView.types';
 import { createDefaultMovementsSearchFilters } from './movementsSearchFilters';
 import { runMovementsSearchQuery, type MovementsSearchQueryRunnerInput } from './movementsSearchQueryRunner';

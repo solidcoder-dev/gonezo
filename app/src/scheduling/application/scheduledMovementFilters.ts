@@ -1,5 +1,5 @@
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
-import type { SchedulingMovementItem } from './schedulingCore.port';
+import type { SchedulingMovementItem } from './scheduling.port';
 
 export type StoredScheduledMovement = SchedulingMovementItem & {
   createdAt: string;

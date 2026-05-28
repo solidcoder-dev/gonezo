@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { CoreAdapterWebDependencies } from './coreAdapterWebEffects';
-import { WebLedgerService } from '../../ledger/infrastructure/coreAdapterWebLedgerService';
-import { WebMobillsImportWorkflow } from '../../imports/infrastructure/providers/mobills/coreAdapterWebMobillsImportWorkflow';
-import { createWebCoreState } from './coreAdapterWebState';
-import { WebTaxonomyService } from '../../taxonomy/infrastructure/coreAdapterWebTaxonomyService';
+import type { WebRuntimeDependencies } from './webRuntimeDependencies';
+import { WebLedgerService } from '../../ledger/infrastructure/webLedgerService';
+import { WebMobillsImportWorkflow } from '../../imports/infrastructure/providers/mobills/webMobillsImportWorkflow';
+import { createWebAppState } from './webAppState';
+import { WebTaxonomyService } from '../../taxonomy/infrastructure/webTaxonomyService';
 
 function toUtf16Base64(text: string): string {
   const bytes: number[] = [];
@@ -15,7 +15,7 @@ function toUtf16Base64(text: string): string {
   return btoa(String.fromCharCode(...bytes));
 }
 
-function createDependencies(): CoreAdapterWebDependencies {
+function createDependencies(): WebRuntimeDependencies {
   let next = 0;
   return {
     clock: {
@@ -35,7 +35,7 @@ function createDependencies(): CoreAdapterWebDependencies {
 
 describe('coreAdapterWeb service composition', () => {
   it('runs Mobills import through ledger and taxonomy services without depending on the adapter facade', async () => {
-    const state = createWebCoreState();
+    const state = createWebAppState();
     const dependencies = createDependencies();
     const ledger = new WebLedgerService({ state, dependencies });
     const taxonomy = new WebTaxonomyService({ state, dependencies });

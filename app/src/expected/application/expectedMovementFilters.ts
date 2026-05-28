@@ -1,4 +1,4 @@
-import type { ExpectedMovementItem } from './expectedCore.port';
+import type { ExpectedMovementItem } from './expected.port';
 
 export type ExpectedMovementFilterInput = {
   text?: string;

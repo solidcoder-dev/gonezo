@@ -1,15 +1,15 @@
 import type {
   ExpectedListMovementsInput,
   ExpectedListMovementsResult,
-} from '../../expected/application/expectedCore.port';
+} from '../../expected/application/expected.port';
 import type {
   LedgerListTransactionsInput,
   LedgerListTransactionsResult,
-} from '../../ledger/application/ledgerCore.port';
+} from '../../ledger/application/ledger.port';
 import type {
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
-} from '../../scheduling/application/schedulingCore.port';
+} from '../../scheduling/application/scheduling.port';
 import type {
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
@@ -17,7 +17,7 @@ import type {
   TaxonomyListCategoriesResult,
   TaxonomyListTagsInput,
   TaxonomyListTagsResult,
-} from '../../taxonomy/application/taxonomyCore.port';
+} from '../../taxonomy/application/taxonomy.port';
 
 export type MovementsLedgerReader = {
   listTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult>;

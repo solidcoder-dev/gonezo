@@ -1,4 +1,4 @@
-import type { LedgerAccountItem } from '../../ledger/application/ledgerCore.port';
+import type { LedgerAccountItem } from '../../ledger/application/ledger.port';
 import type {
   MovementsPaginationView,
   MovementsSearchFiltersState,

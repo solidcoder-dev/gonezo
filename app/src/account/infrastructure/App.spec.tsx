@@ -1,23 +1,25 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { App } from '../../App';
+import { App, type AppPort } from '../../App';
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
-import type { CorePort } from '../../core/application/corePort';
 import type {
   LedgerListTransactionsInput,
   LedgerListTransactionsResult,
   LedgerTransactionListItem,
-} from '../../ledger/application/ledgerCore.port';
-import type { SchedulingMovementItem } from '../../scheduling/application/schedulingCore.port';
-import type { ExpectedMovementItem } from '../../expected/application/expectedCore.port';
+} from '../../ledger/application/ledger.port';
+import type { RecurrencePort, SchedulingMovementItem, SchedulingPort } from '../../scheduling/application/scheduling.port';
+import type { ExpectedMovementItem, ExpectedPort } from '../../expected/application/expected.port';
 import type {
   MovementsMonthOverviewInput,
+  MovementsQueryPort,
   MovementsSearchFiltersInput,
   MovementsSearchInput,
   MovementsSearchResult,
   MovementsListScheduledInput,
-} from '../../movements/application/movementsCore.port';
+} from '../../movements/application/movements.port';
+
+type AppTestPort = AppPort & RecurrencePort & SchedulingPort & ExpectedPort & MovementsQueryPort;
 
 function toPagedResult(
   source: LedgerTransactionListItem[],
@@ -195,7 +197,7 @@ function emptyExpectedPreview() {
   };
 }
 
-function makeCore(transactionCount = 0): CorePort {
+function makeCore(transactionCount = 0): AppTestPort {
   const transactions: LedgerTransactionListItem[] = Array.from({ length: transactionCount }).map((_, index) => ({
     id: `tx-${index + 1}`,
     accountId: 'acc-1',
@@ -211,7 +213,7 @@ function makeCore(transactionCount = 0): CorePort {
   const scheduledMovements: SchedulingMovementItem[] = [];
   const expectedMovements: ExpectedMovementItem[] = [];
 
-  const core: CorePort = {
+  const core: AppTestPort = {
     ledgerListSupportedCurrencies: vi.fn(async () => ({ items: ['EUR', 'USD'] })),
     ledgerListAccounts: vi.fn(async () => ({
       items: [
@@ -817,16 +819,16 @@ describe('App Accounts UX', () => {
 
   it('renames taxonomy entries from global taxonomy management and rejects blank names', async () => {
     const core = makeCore();
-    const taxonomyCore = core as CorePort & {
+    const taxonomyPort = core as AppTestPort & {
       taxonomyRenameCategory: ReturnType<typeof vi.fn>;
       taxonomyRenameTag: ReturnType<typeof vi.fn>;
     };
-    taxonomyCore.taxonomyRenameCategory = vi.fn(async () => undefined);
-    taxonomyCore.taxonomyRenameTag = vi.fn(async () => undefined);
+    taxonomyPort.taxonomyRenameCategory = vi.fn(async () => undefined);
+    taxonomyPort.taxonomyRenameTag = vi.fn(async () => undefined);
 
     render(
       <MemoryRouter>
-        <App required={{ core: taxonomyCore }} />
+        <App required={{ core: taxonomyPort }} />
       </MemoryRouter>
     );
 
@@ -840,7 +842,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save name' }));
 
     await waitFor(() => {
-      expect(taxonomyCore.taxonomyRenameCategory).toHaveBeenCalledWith({
+      expect(taxonomyPort.taxonomyRenameCategory).toHaveBeenCalledWith({
         categoryId: 'cat-food',
         name: 'Groceries',
       });
@@ -851,7 +853,7 @@ describe('App Accounts UX', () => {
     fireEvent.change(screen.getByLabelText('Taxonomy name'), { target: { value: '   ' } });
 
     expect(screen.getByRole('button', { name: 'Save name' })).toBeDisabled();
-    expect(taxonomyCore.taxonomyRenameTag).not.toHaveBeenCalled();
+    expect(taxonomyPort.taxonomyRenameTag).not.toHaveBeenCalled();
   });
 
   it('hides archived accounts until the archived section is opened', async () => {

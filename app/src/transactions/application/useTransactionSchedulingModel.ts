@@ -4,7 +4,7 @@ import type {
   SchedulingEndInput,
   SchedulingFrequency,
   SchedulingMonthlyPattern,
-} from '../../scheduling/application/schedulingCore.port';
+} from '../../scheduling/application/scheduling.port';
 import type { TransactionFieldErrors } from './transactions.types';
 import type { TransactionEntryPrefillRequest } from './TransactionEntryComponent.contract';
 

@@ -1,4 +1,4 @@
-import type { LedgerTransactionListItem } from '../../ledger/application/ledgerCore.port';
+import type { LedgerTransactionListItem } from '../../ledger/application/ledger.port';
 import type { TransactionHistoryItemView } from './transactionView.types';
 
 function toTransactionStatus(status: LedgerTransactionListItem['status']): TransactionHistoryItemView['status'] {

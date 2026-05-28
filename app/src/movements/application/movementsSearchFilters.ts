@@ -1,4 +1,4 @@
-import type { MovementsSearchInput } from './movementsCore.port';
+import type { MovementsSearchInput } from './movements.port';
 import type { MovementsSearchFiltersState } from './movementsView.types';
 
 export const DEFAULT_MOVEMENTS_SEARCH_FILTERS: MovementsSearchFiltersState = {

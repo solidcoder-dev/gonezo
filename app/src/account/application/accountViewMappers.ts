@@ -1,4 +1,4 @@
-import type { LedgerAccountItem } from '../../ledger/application/ledgerCore.port';
+import type { LedgerAccountItem } from '../../ledger/application/ledger.port';
 import type { AccountSummaryView } from './accountView.types';
 
 function toAccountStatus(status: LedgerAccountItem['status']): AccountSummaryView['status'] {

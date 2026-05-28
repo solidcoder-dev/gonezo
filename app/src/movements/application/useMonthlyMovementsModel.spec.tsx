@@ -3,10 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 import type {
   LedgerListTransactionsResult,
   LedgerTransactionListItem,
-} from '../../ledger/application/ledgerCore.port';
+} from '../../ledger/application/ledger.port';
 import type {
   MovementsMonthOverviewResult,
-} from './movementsCore.port';
+} from './movements.port';
 import type { ExpectedMovementView } from './movementsView.types';
 import type {
   MonthlyMovementsModelClock,

@@ -1,10 +1,10 @@
 import type { ComposerMode } from './transactions.types';
-import type { TransactionsCorePort } from './transactionsCore.port';
+import type { TransactionsPort } from './transactions.port';
 import type {
   RecurrenceEndInput,
   RecurrenceFrequency,
   RecurrenceMonthlyPattern,
-} from '../../scheduling/application/schedulingCore.port';
+} from '../../scheduling/application/scheduling.port';
 
 export type TransactionEntryPrefillRequest = {
   requestId: number;
@@ -39,7 +39,7 @@ export type TransactionEntryPrefillRequest = {
 export type TransactionEntryComponentRequired = {
   context: {
     accountId: string | null;
-    core: TransactionsCorePort;
+    core: TransactionsPort;
   };
   config: {
     enabled: boolean;

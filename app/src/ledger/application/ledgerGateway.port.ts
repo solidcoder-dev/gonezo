@@ -1,1 +1,1 @@
-export type { LedgerCorePort as LedgerGatewayPort } from './ledgerCore.port';
+export type { LedgerPort as LedgerGatewayPort } from './ledger.port';

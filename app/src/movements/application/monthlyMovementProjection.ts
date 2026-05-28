@@ -1,5 +1,5 @@
-import type { ExpectedMovementItem } from '../../expected/application/expectedCore.port';
-import type { SchedulingMovementItem } from '../../scheduling/application/schedulingCore.port';
+import type { ExpectedMovementItem } from '../../expected/application/expected.port';
+import type { SchedulingMovementItem } from '../../scheduling/application/scheduling.port';
 
 export function filterProjectedScheduledMovements(
   scheduledItems: SchedulingMovementItem[],

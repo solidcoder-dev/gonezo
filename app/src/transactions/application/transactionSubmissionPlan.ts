@@ -1,9 +1,9 @@
-import type { LedgerAccountItem } from '../../ledger/application/ledgerCore.port';
+import type { LedgerAccountItem } from '../../ledger/application/ledger.port';
 import type {
   SchedulingEndInput,
   SchedulingFrequency,
   SchedulingMonthlyPattern,
-} from '../../scheduling/application/schedulingCore.port';
+} from '../../scheduling/application/scheduling.port';
 import type { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';

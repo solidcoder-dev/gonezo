@@ -2,7 +2,7 @@ import type {
   MovementsSearchInput,
   MovementsSearchItem,
   MovementsSearchResult,
-} from './movementsCore.port';
+} from './movements.port';
 import type {
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
@@ -10,7 +10,7 @@ import type {
   TaxonomyListCategoriesResult,
   TaxonomyListTagsInput,
   TaxonomyListTagsResult,
-} from '../../taxonomy/application/taxonomyCore.port';
+} from '../../taxonomy/application/taxonomy.port';
 import type {
   MovementsPaginationView,
   MovementsSearchFiltersState,

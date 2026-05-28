@@ -1,6 +1,6 @@
 import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
 import type { PostedTaxonomySearchPort } from './postedTaxonomySearch';
-import type { MovementsSearchFacetsInput, MovementsSearchFacetsResult } from './movementsCore.port';
+import type { MovementsSearchFacetsInput, MovementsSearchFacetsResult } from './movements.port';
 
 export type MovementsSearchFacetsPort = {
   movementsGetSearchFacets(input: MovementsSearchFacetsInput): Promise<MovementsSearchFacetsResult>;

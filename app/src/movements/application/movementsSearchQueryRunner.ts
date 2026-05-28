@@ -1,4 +1,4 @@
-import type { MovementsSearchResult } from './movementsCore.port';
+import type { MovementsSearchResult } from './movements.port';
 import type {
   MovementsPaginationView,
   MovementsSearchFiltersState,

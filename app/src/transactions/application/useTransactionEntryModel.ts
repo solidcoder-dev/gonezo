@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { LedgerAccountItem } from '../../ledger/application/ledgerCore.port';
+import type { LedgerAccountItem } from '../../ledger/application/ledger.port';
 import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
 import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
 import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';

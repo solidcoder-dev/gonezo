@@ -1,18 +1,18 @@
-import type { PreferencesCorePort } from '../../account/application/preferencesCore.port';
-import type { ExpectedCorePort } from '../../expected/application/expectedCore.port';
-import type { MobillsImportCorePort, MovementsBackupCorePort } from '../../imports/application/importsCore.port';
-import type { LedgerCorePort } from '../../ledger/application/ledgerCore.port';
-import type { MovementsQueryCorePort } from '../../movements/application/movementsCore.port';
-import type { RecurrenceCorePort, SchedulingCorePort } from '../../scheduling/application/schedulingCore.port';
-import type { TaxonomyCorePort } from '../../taxonomy/application/taxonomyCore.port';
+import type { PreferencesPort } from '../../account/application/preferences.port';
+import type { ExpectedPort } from '../../expected/application/expected.port';
+import type { MobillsImportPort, MovementsBackupPort } from '../../imports/application/imports.port';
+import type { LedgerPort } from '../../ledger/application/ledger.port';
+import type { MovementsQueryPort } from '../../movements/application/movements.port';
+import type { RecurrencePort, SchedulingPort } from '../../scheduling/application/scheduling.port';
+import type { TaxonomyPort } from '../../taxonomy/application/taxonomy.port';
 
 export interface CorePort
-  extends PreferencesCorePort,
-    LedgerCorePort,
-    TaxonomyCorePort,
-    MobillsImportCorePort,
-    MovementsBackupCorePort,
-    RecurrenceCorePort,
-    SchedulingCorePort,
-    ExpectedCorePort,
-    MovementsQueryCorePort {}
+  extends PreferencesPort,
+    LedgerPort,
+    TaxonomyPort,
+    MobillsImportPort,
+    MovementsBackupPort,
+    RecurrencePort,
+    SchedulingPort,
+    ExpectedPort,
+    MovementsQueryPort {}

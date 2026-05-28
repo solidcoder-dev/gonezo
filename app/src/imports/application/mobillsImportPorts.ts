@@ -5,7 +5,7 @@ import type {
   LedgerRecordIncomeResult,
   LedgerRecordTransferInput,
   LedgerRecordTransferResult,
-} from '../../ledger/application/ledgerCore.port';
+} from '../../ledger/application/ledger.port';
 import type {
   OrchestrationApplyTransactionTagsInput,
   OrchestrationApplyTransactionTagsResult,
@@ -13,7 +13,7 @@ import type {
   OrchestrationCategorizeTransactionResult,
   TaxonomyCreateCategoryInput,
   TaxonomyCreateCategoryResult,
-} from '../../taxonomy/application/taxonomyCore.port';
+} from '../../taxonomy/application/taxonomy.port';
 
 export type MobillsImportAccount = {
   id: string;

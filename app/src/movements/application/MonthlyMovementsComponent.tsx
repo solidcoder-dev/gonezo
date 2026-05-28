@@ -5,7 +5,7 @@ import { createSchedulingGateway } from '../../scheduling/application/scheduling
 import { createTaxonomyGateway } from '../../taxonomy/application/taxonomyGateway';
 import { MonthlyMovementsView } from '../ui/MonthlyMovements/MonthlyMovementsView';
 import { useMonthlyMovementsModel } from './useMonthlyMovementsModel';
-import type { TransactionsCorePort } from '../../transactions/application/transactionsCore.port';
+import type { TransactionsPort } from '../../transactions/application/transactions.port';
 import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
 
 const BROWSER_CLOCK = {
@@ -21,7 +21,7 @@ export type MonthlyMovementsComponentProps = {
   required: {
     context: {
       accountId: string | null;
-      core: TransactionsCorePort;
+      core: TransactionsPort;
     };
     config: {
       enabled: boolean;

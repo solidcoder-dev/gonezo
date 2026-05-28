@@ -5,7 +5,7 @@ export type {
   TransactionEntryComponentRequired,
 } from './application/TransactionEntryComponent';
 
-export type { TransactionsCorePort } from './application/transactionsCore.port';
+export type { TransactionsPort } from './application/transactions.port';
 
 export { TransactionEntryView } from './ui/TransactionComposer/TransactionEntryView';
 export type {

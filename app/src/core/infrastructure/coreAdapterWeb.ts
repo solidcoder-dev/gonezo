@@ -2,7 +2,7 @@ import type { CorePort } from '../application/corePort';
 import type {
   PreferencesSetDefaultAccountInput,
   UserPreferencesResult,
-} from '../../account/application/preferencesCore.port';
+} from '../../account/application/preferences.port';
 import type {
   LedgerAddTransactionItemInput,
   LedgerArchiveAccountInput,
@@ -29,7 +29,7 @@ import type {
   LedgerRenameAccountInput,
   LedgerRestoreAccountInput,
   LedgerVoidTransactionInput,
-} from '../../ledger/application/ledgerCore.port';
+} from '../../ledger/application/ledger.port';
 import type {
   OrchestrationApplyTransactionTagsInput,
   OrchestrationApplyTransactionTagsResult,
@@ -45,14 +45,14 @@ import type {
   TaxonomyListTagsResult,
   TaxonomyRenameCategoryInput,
   TaxonomyRenameTagInput,
-} from '../../taxonomy/application/taxonomyCore.port';
+} from '../../taxonomy/application/taxonomy.port';
 import type {
   MobillsImportInput,
   MobillsImportResult,
   MovementsBackupExportResult,
   MovementsBackupImportInput,
   MovementsBackupImportResult,
-} from '../../imports/application/importsCore.port';
+} from '../../imports/application/imports.port';
 import type {
   RecurrenceCreateRecurringMovementInput,
   RecurrenceCreateRecurringMovementResult,
@@ -66,7 +66,7 @@ import type {
   SchedulingListMovementsResult,
   SchedulingUpdateMovementInput,
   SchedulingUpdateMovementResult,
-} from '../../scheduling/application/schedulingCore.port';
+} from '../../scheduling/application/scheduling.port';
 import type {
   ExpectedCreateMovementInput,
   ExpectedCreateMovementResult,
@@ -76,7 +76,7 @@ import type {
   ExpectedResolveMovementInput,
   ExpectedUpdateMovementInput,
   ExpectedUpdateMovementResult,
-} from '../../expected/application/expectedCore.port';
+} from '../../expected/application/expected.port';
 import type {
   MovementsGetOverviewInput,
   MovementsGetOverviewResult,
@@ -88,36 +88,36 @@ import type {
   MovementsSearchFacetsResult,
   MovementsSearchInput,
   MovementsSearchResult,
-} from '../../movements/application/movementsCore.port';
+} from '../../movements/application/movements.port';
 import {
   collectWebMovementsBackupExport,
   summarizeWebMovementsBackupExport,
   webMovementsBackupFileName,
-} from '../../imports/infrastructure/coreAdapterWebBackup';
+} from '../../imports/infrastructure/webBackup';
 import {
-  defaultCoreAdapterWebDependencies,
-  type CoreAdapterWebDependencies,
-} from './coreAdapterWebEffects';
-import { WebExpectedMovementsService } from '../../expected/infrastructure/coreAdapterWebExpectedService';
-import { WebLedgerService } from '../../ledger/infrastructure/coreAdapterWebLedgerService';
-import { WebMobillsImportWorkflow } from '../../imports/infrastructure/providers/mobills/coreAdapterWebMobillsImportWorkflow';
-import { WebMovementsService } from '../../movements/infrastructure/coreAdapterWebMovementsService';
-import { WebSchedulingService } from '../../scheduling/infrastructure/coreAdapterWebSchedulingService';
+  defaultWebRuntimeDependencies,
+  type WebRuntimeDependencies,
+} from './webRuntimeDependencies';
+import { WebExpectedMovementsService } from '../../expected/infrastructure/webExpectedService';
+import { WebLedgerService } from '../../ledger/infrastructure/webLedgerService';
+import { WebMobillsImportWorkflow } from '../../imports/infrastructure/providers/mobills/webMobillsImportWorkflow';
+import { WebMovementsService } from '../../movements/infrastructure/webMovementsService';
+import { WebSchedulingService } from '../../scheduling/infrastructure/webSchedulingService';
 import {
-  defaultWebCoreState,
-  type WebCoreState,
-} from './coreAdapterWebState';
-import { WebTaxonomyService } from '../../taxonomy/infrastructure/coreAdapterWebTaxonomyService';
+  defaultWebAppState,
+  type WebAppState,
+} from './webAppState';
+import { WebTaxonomyService } from '../../taxonomy/infrastructure/webTaxonomyService';
 
 export type CoreAdapterWebOptions = {
-  state?: WebCoreState;
-  dependencies?: Partial<CoreAdapterWebDependencies>;
+  state?: WebAppState;
+  dependencies?: Partial<WebRuntimeDependencies>;
 };
 
 export class CoreAdapterWeb implements CorePort {
-  private readonly state: WebCoreState;
+  private readonly state: WebAppState;
 
-  private readonly dependencies: CoreAdapterWebDependencies;
+  private readonly dependencies: WebRuntimeDependencies;
 
   private readonly ledgerService: WebLedgerService;
 
@@ -132,11 +132,11 @@ export class CoreAdapterWeb implements CorePort {
   private readonly movementsService: WebMovementsService;
 
   constructor(options: CoreAdapterWebOptions = {}) {
-    this.state = options.state ?? defaultWebCoreState;
+    this.state = options.state ?? defaultWebAppState;
     this.dependencies = {
-      clock: options.dependencies?.clock ?? defaultCoreAdapterWebDependencies.clock,
-      idGenerator: options.dependencies?.idGenerator ?? defaultCoreAdapterWebDependencies.idGenerator,
-      backupDownloader: options.dependencies?.backupDownloader ?? defaultCoreAdapterWebDependencies.backupDownloader,
+      clock: options.dependencies?.clock ?? defaultWebRuntimeDependencies.clock,
+      idGenerator: options.dependencies?.idGenerator ?? defaultWebRuntimeDependencies.idGenerator,
+      backupDownloader: options.dependencies?.backupDownloader ?? defaultWebRuntimeDependencies.backupDownloader,
     };
     this.ledgerService = new WebLedgerService({
       state: this.state,

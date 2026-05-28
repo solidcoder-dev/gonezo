@@ -1,6 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import './App.css';
-import type { AccountWorkspacePort } from './account/application/accountsCore.port';
+import type { AccountWorkspacePort } from './account/application/accounts.port';
 import { WorkspacePage } from './workspace/application/WorkspacePage';
 import { CoreAdapter } from './core/infrastructure/coreAdapter';
 import { MovementsSearchPage } from './movements/index';
@@ -9,10 +9,10 @@ import { TaxonomyPage, type TaxonomyPagePort } from './taxonomy/application/Taxo
 
 const defaultCore = new CoreAdapter();
 
-export type AppCorePort = AccountWorkspacePort & MovementsSearchPagePort & TaxonomyPagePort;
+export type AppPort = AccountWorkspacePort & MovementsSearchPagePort & TaxonomyPagePort;
 
 export type AppRequired = {
-  core?: AppCorePort;
+  core?: AppPort;
 };
 
 type AppProps = {

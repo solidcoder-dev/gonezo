@@ -1,1 +1,1 @@
-export type { ExpectedCorePort as ExpectedGatewayPort } from './expectedCore.port';
+export type { ExpectedPort as ExpectedGatewayPort } from './expected.port';
