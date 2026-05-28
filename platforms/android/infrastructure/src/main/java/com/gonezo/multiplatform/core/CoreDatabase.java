@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 17;
+  private static final int DB_VERSION = 18;
 
   CoreDatabase(Context context) {
     super(context, DB_NAME, null, DB_VERSION);
@@ -62,6 +62,10 @@ public final class CoreDatabase extends SQLiteOpenHelper {
 
     if (oldVersion < 17) {
       createUserPreferencesTables(db);
+    }
+
+    if (oldVersion < 18) {
+      createLedgerIndexes(db);
     }
   }
 
@@ -124,6 +128,27 @@ public final class CoreDatabase extends SQLiteOpenHelper {
         "note text," +
         "foreign key(transaction_id) references ledger_transactions(id) on delete cascade" +
       ");"
+    );
+
+    createLedgerIndexes(db);
+  }
+
+  private static void createLedgerIndexes(SQLiteDatabase db) {
+    db.execSQL(
+      "create index if not exists idx_ledger_transactions_account_occurred " +
+        "on ledger_transactions(account_id, occurred_at desc);"
+    );
+    db.execSQL(
+      "create index if not exists idx_ledger_transactions_account_status_occurred " +
+        "on ledger_transactions(account_id, status, occurred_at desc);"
+    );
+    db.execSQL(
+      "create index if not exists idx_ledger_transactions_account_merchant " +
+        "on ledger_transactions(account_id, merchant);"
+    );
+    db.execSQL(
+      "create index if not exists idx_ledger_items_transaction_id " +
+        "on ledger_transaction_items(transaction_id);"
     );
   }
 

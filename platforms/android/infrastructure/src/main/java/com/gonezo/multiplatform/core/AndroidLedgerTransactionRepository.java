@@ -17,6 +17,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 final class AndroidLedgerTransactionRepository implements LedgerTransactionRepository {
@@ -136,6 +137,119 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
     );
     return mapTransactions(cursor, database);
   }
+
+  TransactionPage findByAccountPage(
+    AccountId accountId,
+    Instant from,
+    Instant to,
+    Set<String> statuses,
+    Set<String> types,
+    String merchant,
+    String text,
+    String sortField,
+    String sortDirection,
+    int page,
+    int size
+  ) {
+    SQLiteDatabase database = db.getReadableDatabase();
+    List<String> args = new ArrayList<>();
+    String whereClause = buildPageWhereClause(accountId, from, to, statuses, types, merchant, text, args);
+
+    int totalElements = countTransactions(database, whereClause, args);
+    String orderBy = "amount".equalsIgnoreCase(sortField)
+      ? "cast(amount as real)"
+      : "occurred_at";
+    String direction = "asc".equalsIgnoreCase(sortDirection) ? "asc" : "desc";
+    int resolvedPage = totalElements == 0 ? 0 : Math.min(Math.max(page, 0), (int) Math.ceil((double) totalElements / size) - 1);
+    int offset = resolvedPage * size;
+
+    List<String> pageArgs = new ArrayList<>(args);
+    pageArgs.add(String.valueOf(size));
+    pageArgs.add(String.valueOf(offset));
+    Cursor cursor = database.rawQuery(
+      "select id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id " +
+        "from ledger_transactions where " + whereClause +
+        " order by " + orderBy + " " + direction + ", id desc limit ? offset ?",
+      pageArgs.toArray(new String[0])
+    );
+
+    return new TransactionPage(mapTransactions(cursor, database), totalElements);
+  }
+
+  private static String buildPageWhereClause(
+    AccountId accountId,
+    Instant from,
+    Instant to,
+    Set<String> statuses,
+    Set<String> types,
+    String merchant,
+    String text,
+    List<String> args
+  ) {
+    List<String> clauses = new ArrayList<>();
+    clauses.add("account_id = ?");
+    args.add(accountId.toString());
+    if (from != null) {
+      clauses.add("occurred_at >= ?");
+      args.add(from.toString());
+    }
+    if (to != null) {
+      clauses.add("occurred_at <= ?");
+      args.add(to.toString());
+    }
+    appendInClause("lower(status)", statuses, clauses, args);
+    appendInClause("lower(type)", types, clauses, args);
+    if (merchant != null && !merchant.isBlank()) {
+      clauses.add("lower(merchant) like ?");
+      args.add("%" + merchant.trim().toLowerCase(java.util.Locale.ROOT) + "%");
+    }
+    if (text != null && !text.isBlank()) {
+      String normalizedText = "%" + text.trim().toLowerCase(java.util.Locale.ROOT) + "%";
+      clauses.add("(lower(coalesce(merchant, '')) like ? or lower(coalesce(description, '')) like ?)");
+      args.add(normalizedText);
+      args.add(normalizedText);
+    }
+    return String.join(" and ", clauses);
+  }
+
+  private static void appendInClause(
+    String column,
+    Set<String> values,
+    List<String> clauses,
+    List<String> args
+  ) {
+    if (values == null || values.isEmpty()) {
+      return;
+    }
+    List<String> placeholders = new ArrayList<>();
+    for (String value : values) {
+      if (value == null || value.isBlank()) {
+        continue;
+      }
+      placeholders.add("?");
+      args.add(value.trim().toLowerCase(java.util.Locale.ROOT));
+    }
+    if (!placeholders.isEmpty()) {
+      clauses.add(column + " in (" + String.join(",", placeholders) + ")");
+    }
+  }
+
+  private static int countTransactions(SQLiteDatabase database, String whereClause, List<String> args) {
+    Cursor cursor = database.rawQuery(
+      "select count(*) from ledger_transactions where " + whereClause,
+      args.toArray(new String[0])
+    );
+    try {
+      return cursor.moveToFirst() ? cursor.getInt(0) : 0;
+    } finally {
+      cursor.close();
+    }
+  }
+
+  record TransactionPage(
+    List<Transaction> content,
+    int totalElements
+  ) {}
 
   private static List<Transaction> mapTransactions(Cursor cursor, SQLiteDatabase database) {
     try {

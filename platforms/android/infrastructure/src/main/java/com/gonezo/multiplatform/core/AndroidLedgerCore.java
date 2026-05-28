@@ -91,6 +91,7 @@ public final class AndroidLedgerCore {
   private final ListLedgerTransactionsUC listTransactionsUC;
   private final GetLedgerAccountBalanceUC getAccountBalanceUC;
   private final AndroidLedgerAccountRepository accountRepository;
+  private final AndroidLedgerTransactionRepository transactionRepository;
   private final AndroidMobillsImportFingerprintRepository mobillsImportFingerprintRepository;
 
   private AndroidLedgerCore(Context context) {
@@ -136,6 +137,7 @@ public final class AndroidLedgerCore {
     this.listTransactionsUC = new ListLedgerTransactionsService(transactionRepository);
     this.getAccountBalanceUC = new GetLedgerAccountBalanceService(accountRepository, transactionRepository, new BalanceCalculator());
     this.accountRepository = accountRepository;
+    this.transactionRepository = transactionRepository;
     this.mobillsImportFingerprintRepository = new AndroidMobillsImportFingerprintRepository(database);
   }
 
@@ -409,6 +411,40 @@ public final class AndroidLedgerCore {
     }
     final String textFilter = textFilterValue;
 
+    List<LedgerTransactionSortInput> resolvedSort = sort == null || sort.isEmpty()
+      ? List.of(new LedgerTransactionSortInput("occurredAt", "desc"))
+      : sort;
+    LedgerTransactionSortInput primarySort = resolvedSort.get(0);
+    String primarySortField = blankToNull(primarySort.field()) == null ? "occurredAt" : primarySort.field();
+    String primarySortDirection = blankToNull(primarySort.direction()) == null ? "desc" : primarySort.direction();
+
+    if (blankToNull(resolvedFilters.categoryId()) == null) {
+      AndroidLedgerTransactionRepository.TransactionPage page = transactionRepository.findByAccountPage(
+        new AccountId(UUID.fromString(requireText(accountId, "accountId is required"))),
+        fromInstant,
+        toInstant,
+        statusesFilter,
+        typesFilter,
+        merchantFilter,
+        textFilter,
+        primarySortField,
+        primarySortDirection,
+        requestedPage,
+        pageSize
+      );
+      int totalPages = page.totalElements() == 0 ? 0 : (int) Math.ceil((double) page.totalElements() / pageSize);
+      int resolvedPage = totalPages == 0 ? 0 : Math.min(requestedPage, totalPages - 1);
+      return new LedgerTransactionPageView(
+        page.content().stream().map(AndroidLedgerCore::toTransactionView).toList(),
+        resolvedPage,
+        pageSize,
+        page.totalElements(),
+        totalPages,
+        totalPages > 0 && resolvedPage + 1 < totalPages,
+        resolvedPage > 0
+      );
+    }
+
     ListLedgerTransactionsQuery query = new ListLedgerTransactionsQuery(
       new AccountId(UUID.fromString(requireText(accountId, "accountId is required"))),
       null,
@@ -437,10 +473,6 @@ public final class AndroidLedgerCore {
         return merchantValue.contains(textFilter) || descriptionValue.contains(textFilter);
       })
       .toList();
-
-    List<LedgerTransactionSortInput> resolvedSort = sort == null || sort.isEmpty()
-      ? List.of(new LedgerTransactionSortInput("occurredAt", "desc"))
-      : sort;
 
     List<Transaction> sorted = new java.util.ArrayList<>(filtered);
     Comparator<Transaction> comparator = (left, right) -> {

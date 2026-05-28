@@ -1,8 +1,4 @@
 import type {
-  LedgerListTransactionsResult,
-  LedgerTransactionListItem,
-} from '../../ledger/application/ledger.port';
-import type {
   MovementsGetOverviewInput,
   MovementsGetOverviewResult,
   MovementsMonthOverviewInput,
@@ -53,7 +49,16 @@ export class WebMovementsOverviewService {
       return dateComparison !== 0 ? dateComparison : left.id.localeCompare(right.id);
     });
 
-    const postedPage = await this.collectPostedPage(input.accountId, fromDate, toDate);
+    const postedPage = await this.ledger.listTransactions({
+      accountId: input.accountId,
+      filters: {
+        fromDate,
+        toDate,
+        statuses: ['posted'],
+      },
+      pagination: input.postedPagination ?? input.executedPagination,
+      sort: input.sort ?? [{ field: 'occurredAt', direction: 'desc' }],
+    });
 
     return {
       scheduledPreview: {
@@ -73,51 +78,5 @@ export class WebMovementsOverviewService {
 
   async getOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult> {
     return this.getMonthOverview(input);
-  }
-
-  private async collectPostedPage(
-    accountId: string,
-    fromDate?: string,
-    toDate?: string,
-  ): Promise<LedgerListTransactionsResult> {
-    const allPosted: LedgerTransactionListItem[] = [];
-    let postedPageIndex = 0;
-    let hasMorePosted = true;
-    while (hasMorePosted) {
-      const pageResult = await this.ledger.listTransactions({
-        accountId,
-        filters: {
-          fromDate,
-          toDate,
-          statuses: ['posted'],
-        },
-        pagination: {
-          page: postedPageIndex,
-          size: 100,
-        },
-        sort: [
-          {
-            field: 'occurredAt',
-            direction: 'desc',
-          },
-        ],
-      });
-      allPosted.push(...pageResult.content);
-      hasMorePosted = pageResult.hasNext;
-      postedPageIndex += 1;
-      if (!hasMorePosted || pageResult.content.length === 0) {
-        break;
-      }
-    }
-
-    return {
-      content: allPosted,
-      page: 0,
-      size: allPosted.length,
-      totalElements: allPosted.length,
-      totalPages: allPosted.length === 0 ? 0 : 1,
-      hasNext: false,
-      hasPrevious: false,
-    };
   }
 }

@@ -53,6 +53,46 @@ final class LedgerTransactionsQueryHandler {
 
       AndroidLedgerCore ledgerCore = AndroidLedgerCore.getInstance(context);
       AndroidTaxonomyCore taxonomyCore = AndroidTaxonomyCore.getInstance(context);
+
+      java.util.Set<String> categoryFilter = categoryIds == null || categoryIds.isEmpty()
+        ? null
+        : new java.util.HashSet<>(categoryIds);
+      java.util.Set<String> tagFilter = tagIds == null || tagIds.isEmpty()
+        ? null
+        : new java.util.HashSet<>(tagIds);
+
+      boolean needsPostFiltering = categoryFilter != null || tagFilter != null || amountMin != null || amountMax != null;
+      if (!needsPostFiltering) {
+        AndroidLedgerCore.LedgerTransactionPageView pageResult = ledgerCore.listTransactions(
+          accountId,
+          new AndroidLedgerCore.LedgerTransactionFilterInput(
+            text,
+            merchant,
+            null,
+            fromDate,
+            toDate,
+            statuses,
+            types
+          ),
+          new AndroidLedgerCore.LedgerPageRequestInput(requestedPage, pageSize),
+          resolvedSort
+        );
+        List<String> transactionIds = pageResult.content().stream().map(AndroidLedgerCore.LedgerTransactionView::id).toList();
+        Map<String, AndroidTaxonomyCore.TransactionTaxonomyView> taxonomyByTransactionId =
+          taxonomyCore.listTransactionTaxonomy(transactionIds);
+        call.resolve(toTransactionPageJson(
+          pageResult.content(),
+          taxonomyByTransactionId,
+          pageResult.page(),
+          pageResult.size(),
+          pageResult.totalElements(),
+          pageResult.totalPages(),
+          pageResult.hasNext(),
+          pageResult.hasPrevious()
+        ));
+        return;
+      }
+
       List<AndroidLedgerCore.LedgerTransactionView> allTransactions = listAllTransactions(
         ledgerCore,
         accountId,
@@ -67,13 +107,6 @@ final class LedgerTransactionsQueryHandler {
         ),
         resolvedSort
       );
-
-      java.util.Set<String> categoryFilter = categoryIds == null || categoryIds.isEmpty()
-        ? null
-        : new java.util.HashSet<>(categoryIds);
-      java.util.Set<String> tagFilter = tagIds == null || tagIds.isEmpty()
-        ? null
-        : new java.util.HashSet<>(tagIds);
       List<String> transactionIds = allTransactions.stream().map(AndroidLedgerCore.LedgerTransactionView::id).toList();
       Map<String, AndroidTaxonomyCore.TransactionTaxonomyView> taxonomyByTransactionId =
         taxonomyCore.listTransactionTaxonomy(transactionIds);
@@ -133,21 +166,16 @@ final class LedgerTransactionsQueryHandler {
       int end = Math.min(start + pageSize, totalElements);
       List<AndroidLedgerCore.LedgerTransactionView> pageTransactions = filteredTransactions.subList(start, end);
 
-      JSONArray items = new JSONArray();
-      for (AndroidLedgerCore.LedgerTransactionView tx : pageTransactions) {
-        items.put(toTransactionJson(tx, taxonomyByTransactionId.get(tx.id())));
-      }
-
-      JSObject result = new JSObject();
-      result.put("content", items);
-      result.put("items", items);
-      result.put("page", resolvedPage);
-      result.put("size", pageSize);
-      result.put("totalElements", totalElements);
-      result.put("totalPages", totalPages);
-      result.put("hasNext", totalPages > 0 && resolvedPage + 1 < totalPages);
-      result.put("hasPrevious", resolvedPage > 0);
-      call.resolve(result);
+      call.resolve(toTransactionPageJson(
+        pageTransactions,
+        taxonomyByTransactionId,
+        resolvedPage,
+        pageSize,
+        totalElements,
+        totalPages,
+        totalPages > 0 && resolvedPage + 1 < totalPages,
+        resolvedPage > 0
+      ));
     } catch (Exception ex) {
       call.reject(ex.getMessage());
     }
@@ -187,6 +215,33 @@ final class LedgerTransactionsQueryHandler {
     }
     item.put("items", txItems);
     return item;
+  }
+
+  private JSObject toTransactionPageJson(
+    List<AndroidLedgerCore.LedgerTransactionView> transactions,
+    Map<String, AndroidTaxonomyCore.TransactionTaxonomyView> taxonomyByTransactionId,
+    int page,
+    int size,
+    int totalElements,
+    int totalPages,
+    boolean hasNext,
+    boolean hasPrevious
+  ) {
+    JSONArray items = new JSONArray();
+    for (AndroidLedgerCore.LedgerTransactionView tx : transactions) {
+      items.put(toTransactionJson(tx, taxonomyByTransactionId.get(tx.id())));
+    }
+
+    JSObject result = new JSObject();
+    result.put("content", items);
+    result.put("items", items);
+    result.put("page", page);
+    result.put("size", size);
+    result.put("totalElements", totalElements);
+    result.put("totalPages", totalPages);
+    result.put("hasNext", hasNext);
+    result.put("hasPrevious", hasPrevious);
+    return result;
   }
 
   private List<AndroidLedgerCore.LedgerTransactionView> listAllTransactions(

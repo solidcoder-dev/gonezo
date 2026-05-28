@@ -366,7 +366,8 @@ describe('SOLID frontend boundaries', () => {
     expect(movementsService).not.toContain('Math.ceil(totalElements /');
     expect(movementsService.split('\n').length).toBeLessThanOrEqual(120);
     expect(movementsOverviewService).toContain('export class WebMovementsOverviewService');
-    expect(movementsOverviewService).toContain('while (hasMorePosted)');
+    expect(movementsOverviewService).toContain('pagination: input.postedPagination ?? input.executedPagination');
+    expect(movementsOverviewService).not.toContain('while (hasMorePosted)');
     expect(movementsSearchService).toContain('export class WebMovementsSearchService');
     expect(movementsSearchService).toContain('mapPostedTransactionToSearchItem');
     expect(movementsFacetsService).toContain('export class WebMovementsFacetsService');

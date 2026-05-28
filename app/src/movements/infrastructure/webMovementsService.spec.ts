@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { LedgerListTransactionsInput } from '../../ledger/application/ledger.port';
 import { WebMovementsService } from './webMovementsService';
 import { createWebAppState, type WebAppState } from '../../core/infrastructure/webAppState';
 
 function createSubject(state: WebAppState = createWebAppState()) {
   const ledger = {
-    async listTransactions(input: LedgerListTransactionsInput) {
+    listTransactions: vi.fn(async (input: LedgerListTransactionsInput) => {
       const statuses = input.filters?.statuses ?? [];
       const text = input.filters?.text?.toLowerCase();
       const transactions = state.ledgerTransactions
@@ -30,7 +30,7 @@ function createSubject(state: WebAppState = createWebAppState()) {
         hasNext: start + size < transactions.length,
         hasPrevious: page > 0,
       };
-    },
+    }),
   };
   const taxonomy = {
     categoryNameById: (categoryId?: string) => state.taxonomyCategories.find((category) => category.id === categoryId)?.name,
@@ -169,6 +169,44 @@ describe('WebMovementsService', () => {
     expect(result.scheduledPreview.items.map((item) => item.id)).toEqual(['scheduled-1']);
     expect(result.expectedPreview.items.map((item) => item.id)).toEqual(['expected-1']);
     expect(result.expectedPreview.hasMore).toBe(false);
+  });
+
+  it('loads only the requested posted movement page for month overview', async () => {
+    const transactions = Array.from({ length: 25 }, (_, index) => ({
+      id: `posted-${index + 1}`,
+      accountId: 'acc-1',
+      type: 'expense' as const,
+      status: 'posted' as const,
+      amount: `${index + 1}.00`,
+      currency: 'EUR',
+      occurredAt: `2026-05-${String((index % 28) + 1).padStart(2, '0')}T00:00:00.000Z`,
+      merchant: `Merchant ${index + 1}`,
+      items: [],
+    }));
+    const { ledger, movements } = createSubject(createWebAppState({
+      ledgerTransactions: transactions,
+    }));
+
+    const result = await movements.getMonthOverview({
+      accountId: 'acc-1',
+      fromDate: '2026-05-01T00:00:00.000Z',
+      toDate: '2026-05-31T23:59:59.999Z',
+      executedPagination: {
+        page: 1,
+        size: 10,
+      },
+    });
+
+    expect(ledger.listTransactions).toHaveBeenCalledTimes(1);
+    expect(ledger.listTransactions).toHaveBeenCalledWith(expect.objectContaining({
+      pagination: {
+        page: 1,
+        size: 10,
+      },
+    }));
+    expect(result.executedPage.page).toBe(1);
+    expect(result.executedPage.content).toHaveLength(10);
+    expect(result.executedPage.hasNext).toBe(true);
   });
 
   it('searches posted, expected and scheduled sources with source-specific mapping', async () => {
