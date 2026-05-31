@@ -209,6 +209,34 @@ describe('useTransactionEntryModel', () => {
     expect(result.current.required.state.transferAmountIn).toBe('15.00');
   });
 
+  it('splits an amount into equal parts while preserving cents', async () => {
+    const ports = makePorts();
+
+    const { result } = renderHook(() => useTransactionEntryModel({
+      ports,
+      clock: makeClock(),
+      idGenerator: makeIdGenerator(['split-1', 'split-2', 'split-3']),
+      accountId: 'account-1',
+      enabled: true,
+    }));
+
+    await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
+
+    act(() => {
+      result.current.provided.commands.open();
+      result.current.provided.commands.selectMode('expense');
+      result.current.provided.commands.setSplitEnabled(true);
+      result.current.provided.commands.splitByParts('10.00', '3');
+    });
+
+    expect(result.current.required.state.amount).toBe('10.00');
+    expect(result.current.required.state.splitItems).toEqual([
+      { id: 'split-1', name: 'Part 1', amount: '3.33' },
+      { id: 'split-2', name: 'Part 2', amount: '3.33' },
+      { id: 'split-3', name: 'Part 3', amount: '3.34' },
+    ]);
+  });
+
   it('creates a missing expense category before recording a posted expense', async () => {
     const ports = makePorts();
 

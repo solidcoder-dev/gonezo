@@ -681,6 +681,10 @@ async function openMode(mode: 'Expense' | 'Income' | 'Transfer') {
   fireEvent.click(await screen.findByRole('button', { name: mode }));
 }
 
+function openNewSplitItemDialog() {
+  fireEvent.click(screen.getByRole('button', { name: 'Add split item' }));
+}
+
 async function expandExpectedMovements() {
   fireEvent.click(await screen.findByRole('button', { name: /Expand expected movements/i }));
 }
@@ -1846,6 +1850,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More options' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Split into items' }));
 
+    openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Bonus' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
@@ -2164,6 +2169,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More options' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Split into items' }));
 
+    openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Groceries' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
@@ -2192,6 +2198,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More options' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Split into items' }));
 
+    openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Water' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '20' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
@@ -2199,6 +2206,7 @@ describe('App Accounts UX', () => {
     expect(screen.getByLabelText('Amount')).toHaveValue(20);
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
+    openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Electricity' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '40' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
@@ -2207,20 +2215,22 @@ describe('App Accounts UX', () => {
 
     const waterItem = screen.getByText('Water').closest('li');
     expect(waterItem).not.toBeNull();
-    fireEvent.click(within(waterItem!).getByRole('button', { name: 'Edit' }));
+    fireEvent.click(within(waterItem!).getByRole('button', { name: 'Item actions for Water' }));
+    fireEvent.click(within(waterItem!).getByRole('menuitem', { name: 'Edit item Water' }));
 
     expect(screen.getByLabelText('Item name')).toHaveValue('Water');
     expect(screen.getByLabelText('Item amount')).toHaveValue(20);
 
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '25' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
 
     expect(screen.getByLabelText('Amount')).toHaveValue(65);
     expect(screen.getByText('25.00')).toBeInTheDocument();
 
     const electricityItem = screen.getByText('Electricity').closest('li');
     expect(electricityItem).not.toBeNull();
-    fireEvent.click(within(electricityItem!).getByRole('button', { name: 'Remove' }));
+    fireEvent.click(within(electricityItem!).getByRole('button', { name: 'Item actions for Electricity' }));
+    fireEvent.click(within(electricityItem!).getByRole('menuitem', { name: 'Remove item Electricity' }));
 
     await waitFor(() => {
       expect(screen.getByLabelText('Amount')).toHaveValue(25);
@@ -2247,6 +2257,7 @@ describe('App Accounts UX', () => {
     const saveButton = screen.getByRole('button', { name: 'Save' });
     expect(saveButton).toBeDisabled();
 
+    openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Groceries' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));

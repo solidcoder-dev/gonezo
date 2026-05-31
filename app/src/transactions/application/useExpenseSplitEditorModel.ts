@@ -26,6 +26,23 @@ function formatAmount(value: number): string {
   return value.toFixed(2);
 }
 
+function splitAmountIntoParts(amountInput: string, partsInput: string): string[] {
+  const amount = Number(amountInput.trim());
+  const parts = Math.trunc(Number(partsInput.trim()));
+  if (!Number.isFinite(amount) || !Number.isFinite(parts) || amount <= 0 || parts < 2) {
+    return [];
+  }
+
+  const totalCents = Math.round(amount * 100);
+  const baseCents = Math.floor(totalCents / parts);
+  const remainderCents = totalCents - baseCents * parts;
+
+  return Array.from({ length: parts }, (_, index) => {
+    const cents = index === parts - 1 ? baseCents + remainderCents : baseCents;
+    return (cents / 100).toFixed(2);
+  });
+}
+
 export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInput) {
   const {
     transactionAmount,
@@ -97,7 +114,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     });
   }
 
-  function addExpenseItem() {
+  function addExpenseItem(): boolean {
     const result = upsertSplitItem({
       items: expenseItems,
       editingItemId: editingExpenseItemId,
@@ -108,7 +125,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
 
     if (result.errors.expenseItemName || result.errors.expenseItemAmount) {
       setFieldErrors((previous) => ({ ...previous, ...result.errors }));
-      return;
+      return false;
     }
 
     setFieldErrors((previous) => ({
@@ -122,6 +139,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setExpenseItemName('');
     setExpenseItemAmount('');
     setEditingExpenseItemId('');
+    return true;
   }
 
   function editExpenseItem(itemId: string) {
@@ -138,6 +156,28 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       expenseItemName: undefined,
       expenseItemAmount: undefined,
       expenseSplit: undefined,
+    }));
+  }
+
+  function startExpenseItem() {
+    setEditingExpenseItemId('');
+    setExpenseItemName('');
+    setExpenseItemAmount('');
+    setFieldErrors((previous) => ({
+      ...previous,
+      expenseItemName: undefined,
+      expenseItemAmount: undefined,
+    }));
+  }
+
+  function cancelExpenseItem() {
+    setEditingExpenseItemId('');
+    setExpenseItemName('');
+    setExpenseItemAmount('');
+    setFieldErrors((previous) => ({
+      ...previous,
+      expenseItemName: undefined,
+      expenseItemAmount: undefined,
     }));
   }
 
@@ -182,11 +222,36 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setFieldErrors((previous) => ({ ...previous, expenseSplit: undefined }));
   }
 
+  function splitExpenseByParts(amountInput: string, partsInput: string) {
+    const partAmounts = splitAmountIntoParts(amountInput, partsInput);
+    if (partAmounts.length === 0) {
+      return;
+    }
+
+    const startIndex = expenseItems.length;
+    const nextItems = [
+      ...expenseItems,
+      ...partAmounts.map((amount, index) => ({
+        id: nextId(),
+        name: `Part ${startIndex + index + 1}`,
+        amount,
+      })),
+    ];
+
+    setExpenseItems(nextItems);
+    syncTransactionAmountWithSplitTotal(nextItems, 'raise');
+    setExpenseItemName('');
+    setExpenseItemAmount('');
+    setEditingExpenseItemId('');
+    setFieldErrors((previous) => ({ ...previous, expenseSplit: undefined }));
+  }
+
   return {
     state: {
       expenseDetailed,
       expenseItemName,
       expenseItemAmount,
+      editingExpenseItemId,
       expenseItems,
       expenseRemaining,
     },
@@ -197,9 +262,12 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       setExpenseItemNameValue,
       setExpenseItemAmountValue,
       addExpenseItem,
+      startExpenseItem,
+      cancelExpenseItem,
       editExpenseItem,
       removeExpenseItem,
       assignRemaining,
+      splitExpenseByParts,
     },
   };
 }

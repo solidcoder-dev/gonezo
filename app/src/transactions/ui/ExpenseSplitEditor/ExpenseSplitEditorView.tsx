@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
 import type { ComposerExpenseItem } from '../TransactionComposer/TransactionComposerView';
 
@@ -10,6 +11,7 @@ export type ExpenseSplitEditorViewProps = ViewProps<
     enabled: boolean;
     itemName: string;
     itemAmount: string;
+    editingItemId: string;
     remaining: string;
     currencyCode?: string;
     itemNameError?: string;
@@ -23,15 +25,63 @@ export type ExpenseSplitEditorViewProps = ViewProps<
     toggleEnabled: () => void;
     changeItemName: (value: string) => void;
     changeItemAmount: (value: string) => void;
-    addItem: () => void;
+    startItem: () => void;
+    cancelItem: () => void;
+    addItem: () => boolean;
     assignRemaining: () => void;
+    splitByParts: (amount: string, parts: string) => void;
     editItem: (itemId: string) => void;
     removeItem: (itemId: string) => void;
   }
 >;
 
+type SplitEditorMode = 'new' | 'edit';
+
 export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEditorViewProps) {
   const { data, state, status } = required;
+  const [editorMode, setEditorMode] = useState<SplitEditorMode | null>(null);
+  const [splitPartsOpen, setSplitPartsOpen] = useState(false);
+  const [splitPartsAmount, setSplitPartsAmount] = useState('');
+  const [splitPartsCount, setSplitPartsCount] = useState('2');
+  const remainingClassName = state.remaining === '0.00' ? 'hint success split-manager-remaining' : 'hint split-manager-remaining';
+  const editorTitle = editorMode === 'edit' ? 'Edit split item' : 'New split item';
+  const submitLabel = editorMode === 'edit' ? 'Save item' : 'Add item';
+  const splitPartPreviewAmount = useMemo(() => {
+    const amount = Number(splitPartsAmount);
+    const count = Number(splitPartsCount);
+    if (!Number.isFinite(amount) || !Number.isFinite(count) || count <= 0) {
+      return '0.00';
+    }
+    return (amount / count).toFixed(2);
+  }, [splitPartsAmount, splitPartsCount]);
+
+  function openNewEditor() {
+    provided.commands.startItem();
+    setEditorMode('new');
+  }
+
+  function closeEditor() {
+    provided.commands.cancelItem();
+    setEditorMode(null);
+  }
+
+  function submitEditor() {
+    const saved = provided.commands.addItem();
+    if (saved) {
+      setEditorMode(null);
+    }
+  }
+
+  function openSplitParts() {
+    setSplitPartsAmount(state.remaining === '0.00' ? '' : state.remaining);
+    setSplitPartsCount('2');
+    setSplitPartsOpen(true);
+  }
+
+  function applySplitParts() {
+    provided.commands.splitByParts(splitPartsAmount, splitPartsCount);
+    setSplitPartsOpen(false);
+  }
 
   return (
     <div className="stack composer-expense-split-block">
@@ -39,74 +89,246 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
         <input
           type="checkbox"
           checked={state.enabled}
-          onChange={provided.commands.toggleEnabled}
+          onChange={() => {
+            if (state.enabled) {
+              setEditorMode(null);
+              setSplitPartsOpen(false);
+            }
+            provided.commands.toggleEnabled();
+          }}
           disabled={status.disabled}
         />
         Split into items
       </label>
       {state.enabled ? (
-        <div className="stack item-editor">
-          <div className="inline-header">
-            <strong>Items</strong>
-            <span className={state.remaining === '0.00' ? 'hint success' : 'hint'}>
-              Remaining: {state.remaining} {state.currencyCode ?? ''}
-            </span>
+        <div className="stack item-editor composer-split-manager">
+          <div className="split-manager-toolbar">
+            <div className="split-manager-title">
+              <strong>Splits</strong>
+              <span className={remainingClassName}>
+                Remaining: {state.remaining} {state.currencyCode ?? ''}
+              </span>
+            </div>
+            <div className="split-manager-toolbar-actions">
+              <button
+                type="button"
+                className="text-button split-manager-action-button split-manager-primary-action"
+                aria-label="Add split item"
+                disabled={status.disabled}
+                onClick={openNewEditor}
+              >
+                <i className="bi bi-plus-lg" aria-hidden />
+                Add
+              </button>
+              <button
+                type="button"
+                className="text-button split-manager-action-button"
+                disabled={status.disabled}
+                onClick={provided.commands.assignRemaining}
+              >
+                Assign remaining
+              </button>
+              <button
+                type="button"
+                className="text-button split-manager-action-button"
+                disabled={status.disabled}
+                onClick={openSplitParts}
+              >
+                <i className="bi bi-diagram-3" aria-hidden />
+                Split by parts
+              </button>
+            </div>
           </div>
-          <div className="quick-row">
-            <input
-              aria-label="Item name"
-              value={state.itemName}
-              onChange={(event) => provided.commands.changeItemName(event.target.value)}
-              placeholder="Item name"
-              aria-invalid={Boolean(state.itemNameError)}
-              aria-describedby={state.itemNameError ? 'composer-item-name-error' : undefined}
-            />
-            <input
-              aria-label="Item amount"
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={state.itemAmount}
-              onChange={(event) => provided.commands.changeItemAmount(event.target.value)}
-              placeholder="Amount"
-              inputMode="decimal"
-              aria-invalid={Boolean(state.itemAmountError)}
-              aria-describedby={state.itemAmountError ? 'composer-item-amount-error' : undefined}
-            />
-          </div>
-          {state.itemNameError ? <p id="composer-item-name-error" className="field-error">{state.itemNameError}</p> : null}
-          {state.itemAmountError ? <p id="composer-item-amount-error" className="field-error">{state.itemAmountError}</p> : null}
-          <div className="quick-row">
-            <button type="button" className="text-button" onClick={provided.commands.addItem}>
-              Add item
-            </button>
-            <button type="button" className="text-button" onClick={provided.commands.assignRemaining}>
-              Assign remaining
-            </button>
-          </div>
-          <ul className="expense-list" aria-label="Expense items">
-            {data.items.map((item) => (
-              <li key={item.id} className="expense-item">
-                <div className="inline-header">
-                  <strong>{item.name}</strong>
-                  <span>{item.amount}</span>
-                </div>
-                <div className="quick-row">
-                  <button type="button" className="text-button" onClick={() => provided.commands.editItem(item.id)}>
-                    Edit
-                  </button>
-                  <button type="button" className="text-button" onClick={() => provided.commands.removeItem(item.id)}>
-                    Remove
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+
+          {data.items.length > 0 ? (
+            <ul className="split-manager-list" aria-label="Expense items">
+              {data.items.map((item) => (
+                <li key={item.id} className="split-manager-item">
+                  <strong className="split-manager-item-name">{item.name}</strong>
+                  <span className="split-manager-item-amount">{item.amount}</span>
+                  <span className="split-manager-item-status" aria-hidden />
+                  <details className="split-row-actions">
+                    <summary
+                      className="text-button icon-button split-row-menu-button"
+                      role="button"
+                      aria-label={`Item actions for ${item.name}`}
+                      aria-disabled={status.disabled}
+                      onClick={(event) => {
+                        if (status.disabled) {
+                          event.preventDefault();
+                        }
+                      }}
+                    >
+                      <i className="bi bi-three-dots" aria-hidden />
+                    </summary>
+                    <div className="split-row-menu" role="menu">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        disabled={status.disabled}
+                        aria-label={`Edit item ${item.name}`}
+                        onClick={() => {
+                          provided.commands.editItem(item.id);
+                          setEditorMode('edit');
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="danger-menuitem"
+                        disabled={status.disabled}
+                        aria-label={`Remove item ${item.name}`}
+                        onClick={() => provided.commands.removeItem(item.id)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </details>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="hint split-manager-empty">No split items yet.</p>
+          )}
+
           {state.splitError ? (
             <p className="field-error">{state.splitError}</p>
           ) : (
             <p className="hint">Publish becomes available when Remaining is 0.00.</p>
           )}
+
+          {editorMode ? (
+            <div className="split-editor-popup-backdrop" role="presentation">
+              <section className="split-editor-popup" role="dialog" aria-modal="true" aria-label={editorTitle}>
+                <div className="inline-header">
+                  <h3>{editorTitle}</h3>
+                  <button
+                    type="button"
+                    className="text-button icon-button"
+                    aria-label="Cancel split item edit"
+                    onClick={closeEditor}
+                  >
+                    <i className="bi bi-x-lg" aria-hidden />
+                  </button>
+                </div>
+                <div className="composer-split-form">
+                  <label>
+                    Name
+                    <input
+                      aria-label="Item name"
+                      value={state.itemName}
+                      onChange={(event) => provided.commands.changeItemName(event.target.value)}
+                      placeholder="Item name"
+                      aria-invalid={Boolean(state.itemNameError)}
+                      aria-describedby={state.itemNameError ? 'composer-item-name-error' : undefined}
+                    />
+                  </label>
+                  {state.itemNameError ? <p id="composer-item-name-error" className="field-error">{state.itemNameError}</p> : null}
+                  <label>
+                    Amount
+                    <input
+                      aria-label="Item amount"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={state.itemAmount}
+                      onChange={(event) => provided.commands.changeItemAmount(event.target.value)}
+                      placeholder="Amount"
+                      inputMode="decimal"
+                      aria-invalid={Boolean(state.itemAmountError)}
+                      aria-describedby={state.itemAmountError ? 'composer-item-amount-error' : undefined}
+                    />
+                  </label>
+                  {state.itemAmountError ? <p id="composer-item-amount-error" className="field-error">{state.itemAmountError}</p> : null}
+                  <div className="split-editor-option-list">
+                    <label className="inline-checkbox">
+                      <input type="checkbox" disabled />
+                      <i className="bi bi-arrow-return-left" aria-hidden />
+                      Expected repayment
+                    </label>
+                    <label className="inline-checkbox">
+                      <input type="checkbox" disabled />
+                      <i className="bi bi-ban" aria-hidden />
+                      Ignore in analytics
+                    </label>
+                  </div>
+                  <div className="composer-split-form-actions">
+                    <button type="button" className="text-button" onClick={closeEditor}>
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="split-manager-primary-action"
+                      disabled={status.disabled}
+                      onClick={submitEditor}
+                    >
+                      {submitLabel}
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          ) : null}
+
+          {splitPartsOpen ? (
+            <div className="split-editor-popup-backdrop" role="presentation">
+              <section className="split-editor-popup" role="dialog" aria-modal="true" aria-label="Split by parts">
+                <div className="inline-header">
+                  <h3>Split by parts</h3>
+                  <button
+                    type="button"
+                    className="text-button icon-button"
+                    aria-label="Close split by parts"
+                    onClick={() => setSplitPartsOpen(false)}
+                  >
+                    <i className="bi bi-x-lg" aria-hidden />
+                  </button>
+                </div>
+                <div className="composer-split-form">
+                  <label>
+                    Amount to split
+                    <input
+                      aria-label="Amount to split"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={splitPartsAmount}
+                      inputMode="decimal"
+                      onChange={(event) => setSplitPartsAmount(event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Parts
+                    <input
+                      aria-label="Parts"
+                      type="number"
+                      min="2"
+                      step="1"
+                      value={splitPartsCount}
+                      onChange={(event) => setSplitPartsCount(event.target.value)}
+                    />
+                  </label>
+                  <div className="split-parts-preview">
+                    <span className="hint detail-meta-label">Preview</span>
+                    <div className="inline-header">
+                      <span>Each part</span>
+                      <strong>{splitPartPreviewAmount}</strong>
+                    </div>
+                  </div>
+                  <div className="composer-split-form-actions">
+                    <button type="button" className="text-button" onClick={() => setSplitPartsOpen(false)}>
+                      Cancel
+                    </button>
+                    <button type="button" disabled={!splitPartsAmount || Number(splitPartsCount) < 2} onClick={applySplitParts}>
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

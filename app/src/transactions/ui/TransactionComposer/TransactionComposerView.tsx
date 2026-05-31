@@ -47,6 +47,7 @@ export type TransactionComposerViewRequired = {
   expenseItems: ComposerExpenseItem[];
   expenseItemName: string;
   expenseItemAmount: string;
+  editingExpenseItemId: string;
   expenseRemaining: string;
   schedulingMode: 'now' | 'scheduled';
   schedulingKind: 'one_shot' | 'recurring';
@@ -94,10 +95,13 @@ export type TransactionComposerViewProvided = {
   onToggleExpenseDetailed: () => void;
   onSetExpenseItemName: (value: string) => void;
   onSetExpenseItemAmount: (value: string) => void;
-  onAddExpenseItem: () => void;
+  onStartExpenseItem: () => void;
+  onCancelExpenseItem: () => void;
+  onAddExpenseItem: () => boolean;
   onEditExpenseItem: (itemId: string) => void;
   onRemoveExpenseItem: (itemId: string) => void;
   onAssignRemaining: () => void;
+  onSplitByParts: (amount: string, parts: string) => void;
   onSetSchedulingMode: (value: 'now' | 'scheduled') => void;
   onSetSchedulingKind: (value: 'one_shot' | 'recurring') => void;
   onSetRecurrenceFrequency: (value: RecurrenceFrequency) => void;
@@ -175,6 +179,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     expenseItems,
     expenseItemName,
     expenseItemAmount,
+    editingExpenseItemId,
     expenseRemaining,
     schedulingMode,
     schedulingKind,
@@ -221,10 +226,13 @@ export function TransactionComposerView({ required, provided }: Props) {
     onToggleExpenseDetailed,
     onSetExpenseItemName,
     onSetExpenseItemAmount,
+    onStartExpenseItem,
+    onCancelExpenseItem,
     onAddExpenseItem,
     onEditExpenseItem,
     onRemoveExpenseItem,
     onAssignRemaining,
+    onSplitByParts,
     onSetSchedulingMode,
     onSetSchedulingKind,
     onSetRecurrenceFrequency,
@@ -504,6 +512,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                             enabled: expenseDetailed,
                             itemName: expenseItemName,
                             itemAmount: expenseItemAmount,
+                            editingItemId: editingExpenseItemId,
                             remaining: expenseRemaining,
                             currencyCode,
                             itemNameError: expenseItemNameError,
@@ -517,10 +526,13 @@ export function TransactionComposerView({ required, provided }: Props) {
                             toggleEnabled: onToggleExpenseDetailed,
                             changeItemName: onSetExpenseItemName,
                             changeItemAmount: onSetExpenseItemAmount,
+                            startItem: onStartExpenseItem,
+                            cancelItem: onCancelExpenseItem,
                             addItem: onAddExpenseItem,
                             assignRemaining: onAssignRemaining,
                             editItem: onEditExpenseItem,
                             removeItem: onRemoveExpenseItem,
+                            splitByParts: onSplitByParts,
                           },
                         }}
                       />

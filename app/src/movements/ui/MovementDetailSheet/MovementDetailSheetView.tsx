@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { formatCurrencyAmount } from '../../../shared/utils/formatting';
 import { SheetView } from '../../../shared/ui/SheetView';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
-import { MovementSplitItemsView, type MovementSplitItemView } from './MovementSplitItemsView';
+import { MovementSplitManagerView, type MovementSplitItemView } from './MovementSplitManagerView';
 
 export type MovementAmountKindView = 'income' | 'expense' | 'transfer' | 'scheduled';
 
@@ -115,12 +115,12 @@ export function MovementDetailSheetView({ required, provided }: MovementDetailSh
                   </div>
                 ))}
               </div>
-              <MovementSplitItemsView
+              <MovementSplitManagerView
                 required={{
                   config: {},
                   data: { items: data.splitItems ?? [] },
                   state: {},
-                  status: {},
+                  status,
                 }}
                 provided={{ commands: {} }}
               />

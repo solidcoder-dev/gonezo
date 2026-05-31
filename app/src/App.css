@@ -347,6 +347,10 @@ body {
   .month-picker-backdrop {
     align-items: center;
   }
+
+  .composer-split-input-grid {
+    grid-template-columns: minmax(0, 1.3fr) minmax(96px, 0.7fr);
+  }
 }
 
 .mode-row {
@@ -800,6 +804,192 @@ body {
   flex-wrap: wrap;
 }
 
+.split-manager {
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.split-manager-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.split-manager-title {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.split-manager-remaining {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.82rem;
+}
+
+.split-manager-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.split-manager-action-button {
+  min-height: 32px;
+  padding: 5px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+  line-height: 1;
+}
+
+.split-manager-primary-action {
+  font-weight: 800;
+}
+
+.split-manager-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1px;
+  border: 1px solid #e4e4d8;
+  border-radius: 10px;
+  background: #e4e4d8;
+  overflow: visible;
+}
+
+.split-manager-item {
+  position: relative;
+  min-height: 40px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(34px, auto) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px 6px 10px;
+  background: #fbfbf7;
+}
+
+.split-manager-item:first-child {
+  border-radius: 9px 9px 0 0;
+}
+
+.split-manager-item:last-child {
+  border-radius: 0 0 9px 9px;
+}
+
+.split-manager-item:only-child {
+  border-radius: 9px;
+}
+
+.split-manager-item-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.92rem;
+}
+
+.split-manager-item-amount {
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.split-manager-item-status {
+  min-width: 0;
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.split-status-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.split-status-icon--expected {
+  color: #245a36;
+  background: #e9f6ed;
+}
+
+.split-status-icon--ignored {
+  color: #6d3d3d;
+  background: #f7eeee;
+}
+
+.split-row-actions {
+  position: relative;
+  display: inline-flex;
+  justify-content: flex-end;
+}
+
+.split-row-menu-button.icon-button {
+  min-width: 30px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+}
+
+.split-row-menu-button::-webkit-details-marker {
+  display: none;
+}
+
+.split-row-menu-button::marker {
+  content: '';
+}
+
+.split-row-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 160px;
+  display: grid;
+  padding: 5px;
+  border: 1px solid #d8d8cc;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 24px rgba(29, 29, 27, 0.16);
+}
+
+.split-row-menu button {
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #1d1d1b;
+  text-align: left;
+}
+
+.split-row-menu button:hover:not(:disabled),
+.split-row-menu button:focus-visible {
+  background: #f1f1eb;
+}
+
+.split-row-menu .danger-menuitem {
+  color: #8a2020;
+}
+
+.split-manager-empty {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px dashed #d8d8cc;
+  border-radius: 10px;
+  background: #fbfbf7;
+}
+
 .composer-sheet {
   padding-bottom: max(16px, var(--app-safe-area-bottom));
   max-height: min(92dvh, 760px);
@@ -909,6 +1099,82 @@ body {
 
 .composer-expense-split-block {
   margin-top: 2px;
+}
+
+.composer-split-manager {
+  gap: 10px;
+}
+
+.composer-split-form {
+  display: grid;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.composer-split-form label:not(.inline-checkbox) {
+  display: grid;
+  gap: 5px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.composer-split-input-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.composer-split-form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.split-editor-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(29, 29, 27, 0.28);
+}
+
+.split-editor-popup {
+  width: min(100%, 420px);
+  max-height: min(86dvh, 560px);
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 18px 36px rgba(29, 29, 27, 0.2);
+}
+
+.split-editor-popup h3 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.split-editor-option-list {
+  display: grid;
+  gap: 8px;
+  padding: 8px 0 2px;
+}
+
+.split-editor-option-list .inline-checkbox {
+  color: #56564f;
+}
+
+.split-parts-preview {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid #e4e4d8;
+  border-radius: 10px;
+  background: #fbfbf7;
 }
 
 .composer-recurring-row {
