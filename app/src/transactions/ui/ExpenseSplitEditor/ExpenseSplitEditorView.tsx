@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
 import type { ComposerExpenseItem } from '../TransactionComposer/TransactionComposerView';
 
@@ -37,15 +38,24 @@ export type ExpenseSplitEditorViewProps = ViewProps<
 
 type SplitEditorMode = 'new' | 'edit';
 
+type SplitRowMenuState = {
+  itemId: string;
+  top?: number;
+  bottom?: number;
+  right: number;
+};
+
 export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEditorViewProps) {
   const { data, state, status } = required;
   const [editorMode, setEditorMode] = useState<SplitEditorMode | null>(null);
+  const [rowMenu, setRowMenu] = useState<SplitRowMenuState | null>(null);
   const [splitPartsOpen, setSplitPartsOpen] = useState(false);
   const [splitPartsAmount, setSplitPartsAmount] = useState('');
   const [splitPartsCount, setSplitPartsCount] = useState('2');
   const remainingClassName = state.remaining === '0.00' ? 'hint success split-manager-remaining' : 'hint split-manager-remaining';
   const editorTitle = editorMode === 'edit' ? 'Edit split item' : 'New split item';
   const submitLabel = editorMode === 'edit' ? 'Save item' : 'Add item';
+  const rowMenuItem = rowMenu ? data.items.find((item) => item.id === rowMenu.itemId) : undefined;
   const splitPartPreviewAmount = useMemo(() => {
     const amount = Number(splitPartsAmount);
     const count = Number(splitPartsCount);
@@ -83,6 +93,26 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
     setSplitPartsOpen(false);
   }
 
+  function toggleRowMenu(itemId: string, button: HTMLButtonElement) {
+    if (status.disabled) {
+      return;
+    }
+    if (rowMenu?.itemId === itemId) {
+      setRowMenu(null);
+      return;
+    }
+
+    const rect = button.getBoundingClientRect();
+    const openAbove = window.innerHeight - rect.bottom < 104;
+    setRowMenu({
+      itemId,
+      right: Math.max(8, window.innerWidth - rect.right),
+      ...(openAbove
+        ? { bottom: Math.max(8, window.innerHeight - rect.top + 4) }
+        : { top: rect.bottom + 4 }),
+    });
+  }
+
   return (
     <div className="stack composer-expense-split-block">
       <label className="inline-checkbox">
@@ -92,6 +122,7 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
           onChange={() => {
             if (state.enabled) {
               setEditorMode(null);
+              setRowMenu(null);
               setSplitPartsOpen(false);
             }
             provided.commands.toggleEnabled();
@@ -147,45 +178,19 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
                   <strong className="split-manager-item-name">{item.name}</strong>
                   <span className="split-manager-item-amount">{item.amount}</span>
                   <span className="split-manager-item-status" aria-hidden />
-                  <details className="split-row-actions">
-                    <summary
+                  <div className="split-row-actions">
+                    <button
+                      type="button"
                       className="text-button icon-button split-row-menu-button"
-                      role="button"
                       aria-label={`Item actions for ${item.name}`}
-                      aria-disabled={status.disabled}
-                      onClick={(event) => {
-                        if (status.disabled) {
-                          event.preventDefault();
-                        }
-                      }}
+                      aria-expanded={rowMenu?.itemId === item.id}
+                      aria-haspopup="menu"
+                      disabled={status.disabled}
+                      onClick={(event) => toggleRowMenu(item.id, event.currentTarget)}
                     >
                       <i className="bi bi-three-dots" aria-hidden />
-                    </summary>
-                    <div className="split-row-menu" role="menu">
-                      <button
-                        type="button"
-                        role="menuitem"
-                        disabled={status.disabled}
-                        aria-label={`Edit item ${item.name}`}
-                        onClick={() => {
-                          provided.commands.editItem(item.id);
-                          setEditorMode('edit');
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        className="danger-menuitem"
-                        disabled={status.disabled}
-                        aria-label={`Remove item ${item.name}`}
-                        onClick={() => provided.commands.removeItem(item.id)}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </details>
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -242,18 +247,6 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
                     />
                   </label>
                   {state.itemAmountError ? <p id="composer-item-amount-error" className="field-error">{state.itemAmountError}</p> : null}
-                  <div className="split-editor-option-list">
-                    <label className="inline-checkbox">
-                      <input type="checkbox" disabled />
-                      <i className="bi bi-arrow-return-left" aria-hidden />
-                      Expected repayment
-                    </label>
-                    <label className="inline-checkbox">
-                      <input type="checkbox" disabled />
-                      <i className="bi bi-ban" aria-hidden />
-                      Ignore in analytics
-                    </label>
-                  </div>
                   <div className="composer-split-form-actions">
                     <button type="button" className="text-button" onClick={closeEditor}>
                       Cancel
@@ -330,6 +323,50 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
             </div>
           ) : null}
         </div>
+      ) : null}
+      {rowMenu && rowMenuItem ? createPortal(
+        <>
+          <button
+            type="button"
+            className="split-row-menu-backdrop"
+            aria-label="Close split item actions"
+            onClick={() => setRowMenu(null)}
+          />
+          <div
+            className="split-row-menu split-row-menu--portal"
+            role="menu"
+            aria-label={`Item actions for ${rowMenuItem.name}`}
+            style={{ top: rowMenu.top, bottom: rowMenu.bottom, right: rowMenu.right }}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              disabled={status.disabled}
+              aria-label={`Edit item ${rowMenuItem.name}`}
+              onClick={() => {
+                provided.commands.editItem(rowMenuItem.id);
+                setRowMenu(null);
+                setEditorMode('edit');
+              }}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="danger-menuitem"
+              disabled={status.disabled}
+              aria-label={`Remove item ${rowMenuItem.name}`}
+              onClick={() => {
+                provided.commands.removeItem(rowMenuItem.id);
+                setRowMenu(null);
+              }}
+            >
+              Remove
+            </button>
+          </div>
+        </>,
+        document.body,
       ) : null}
     </div>
   );

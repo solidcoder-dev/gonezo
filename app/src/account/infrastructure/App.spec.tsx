@@ -2216,7 +2216,7 @@ describe('App Accounts UX', () => {
     const waterItem = screen.getByText('Water').closest('li');
     expect(waterItem).not.toBeNull();
     fireEvent.click(within(waterItem!).getByRole('button', { name: 'Item actions for Water' }));
-    fireEvent.click(within(waterItem!).getByRole('menuitem', { name: 'Edit item Water' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit item Water' }));
 
     expect(screen.getByLabelText('Item name')).toHaveValue('Water');
     expect(screen.getByLabelText('Item amount')).toHaveValue(20);
@@ -2230,7 +2230,7 @@ describe('App Accounts UX', () => {
     const electricityItem = screen.getByText('Electricity').closest('li');
     expect(electricityItem).not.toBeNull();
     fireEvent.click(within(electricityItem!).getByRole('button', { name: 'Item actions for Electricity' }));
-    fireEvent.click(within(electricityItem!).getByRole('menuitem', { name: 'Remove item Electricity' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Remove item Electricity' }));
 
     await waitFor(() => {
       expect(screen.getByLabelText('Amount')).toHaveValue(25);

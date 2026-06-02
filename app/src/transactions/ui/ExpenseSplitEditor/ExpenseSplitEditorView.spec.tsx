@@ -56,8 +56,8 @@ describe('ExpenseSplitEditorView', () => {
     fireEvent.click(screen.getByLabelText('Split into items'));
     fireEvent.click(screen.getByRole('button', { name: 'Add split item' }));
     expect(screen.getByRole('dialog', { name: 'New split item' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Expected repayment')).toBeDisabled();
-    expect(screen.getByLabelText('Ignore in analytics')).toBeDisabled();
+    expect(screen.queryByLabelText('Expected repayment')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Ignore in analytics')).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Tea' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '2.50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
@@ -72,11 +72,13 @@ describe('ExpenseSplitEditorView', () => {
     expect(row).not.toBeNull();
     expect(row).toHaveClass('split-manager-item');
     fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Item actions for Coffee' }));
-    fireEvent.click(within(row as HTMLElement).getByRole('menuitem', { name: 'Edit item Coffee' }));
+    const menu = screen.getByRole('menu', { name: 'Item actions for Coffee' });
+    expect(row).not.toContainElement(menu);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit item Coffee' }));
     expect(screen.getByRole('dialog', { name: 'Edit split item' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel split item edit' }));
     fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Item actions for Coffee' }));
-    fireEvent.click(within(row as HTMLElement).getByRole('menuitem', { name: 'Remove item Coffee' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Remove item Coffee' }));
 
     expect(toggleEnabled).toHaveBeenCalledTimes(1);
     expect(startItem).toHaveBeenCalledTimes(1);

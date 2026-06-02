@@ -963,6 +963,20 @@ body {
   box-shadow: 0 12px 24px rgba(29, 29, 27, 0.16);
 }
 
+.split-row-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 69;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.split-row-menu--portal {
+  position: fixed;
+  z-index: 70;
+}
+
 .split-row-menu button {
   min-height: 32px;
   padding: 6px 8px;
@@ -1156,16 +1170,6 @@ body {
   margin: 0;
   font-size: 1rem;
   line-height: 1.2;
-}
-
-.split-editor-option-list {
-  display: grid;
-  gap: 8px;
-  padding: 8px 0 2px;
-}
-
-.split-editor-option-list .inline-checkbox {
-  color: #56564f;
 }
 
 .split-parts-preview {
