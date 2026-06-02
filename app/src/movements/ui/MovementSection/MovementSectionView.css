@@ -1,0 +1,42 @@
+.movement-section-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1d1d1b;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  font-weight: 700;
+  text-align: left;
+}
+
+.movement-section-trigger > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.movement-section-trigger .bi {
+  flex: 0 0 auto;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.movement-section-trigger .movement-section-count {
+  flex: 0 0 auto;
+  min-width: auto;
+  margin-left: auto;
+  overflow: visible;
+  color: #6f6f67;
+  text-overflow: clip;
+  white-space: nowrap;
+  font-size: 0.95rem;
+  font-weight: 600;
+}

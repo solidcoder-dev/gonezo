@@ -1,4 +1,5 @@
 import type { ViewProps } from '../../../shared/ui/ViewProps';
+import styles from '../../../shared/ui/SplitManager/SplitManager.module.css';
 
 export type MovementSplitItemView = {
   id: string;
@@ -73,18 +74,18 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
   }
 
   return (
-    <section className="split-manager" aria-labelledby="movement-splits-heading">
-      <div className="split-manager-toolbar">
-        <div className="split-manager-title">
+    <section className={styles.manager} aria-labelledby="movement-splits-heading">
+      <div className={styles.toolbar}>
+        <div className={styles.title}>
           <span id="movement-splits-heading" className="hint detail-meta-label">{label}</span>
-          {remaining ? <span className="hint split-manager-remaining">{remaining}</span> : null}
+          {remaining ? <span className={`hint ${styles.remaining}`}>{remaining}</span> : null}
         </div>
         {showToolbar ? (
-          <div className="split-manager-toolbar-actions">
+          <div className={styles.toolbarActions}>
             {commands.assignRemaining ? (
               <button
                 type="button"
-                className="text-button split-manager-action-button"
+                className={`text-button ${styles.actionButton}`}
                 disabled={status.disabled}
                 onClick={commands.assignRemaining}
               >
@@ -94,7 +95,7 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
             {commands.splitParts ? (
               <button
                 type="button"
-                className="text-button split-manager-action-button"
+                className={`text-button ${styles.actionButton}`}
                 disabled={status.disabled}
                 onClick={commands.splitParts}
               >
@@ -105,7 +106,7 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
             {commands.addSplit ? (
               <button
                 type="button"
-                className="text-button split-manager-action-button split-manager-primary-action"
+                className={`text-button ${styles.actionButton} ${styles.primaryAction}`}
                 disabled={status.disabled}
                 onClick={commands.addSplit}
               >
@@ -118,27 +119,27 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
       </div>
 
       {data.items.length > 0 ? (
-        <ul className="split-manager-list" aria-label="Split items">
+        <ul className={styles.list} aria-label="Split items">
           {data.items.map((item) => (
-            <li key={item.id} className="split-manager-item">
-              <strong className="split-manager-item-name">{item.name}</strong>
-              <span className="split-manager-item-amount">{item.amount}</span>
-              <span className="split-manager-item-status">
+            <li key={item.id} className={styles.item}>
+              <strong className={styles.itemName}>{item.name}</strong>
+              <span className={styles.itemAmount}>{item.amount}</span>
+              <span className={styles.itemStatus}>
                 {item.expected ? (
-                  <span className="split-status-icon split-status-icon--expected" aria-label={expectedStatusLabel} title={expectedStatusLabel}>
+                  <span className={`${styles.statusIcon} ${styles.expectedStatus}`} aria-label={expectedStatusLabel} title={expectedStatusLabel}>
                     <i className="bi bi-arrow-return-left" aria-hidden />
                   </span>
                 ) : null}
                 {item.ignored ? (
-                  <span className="split-status-icon split-status-icon--ignored" aria-label={ignoredStatusLabel} title={ignoredStatusLabel}>
+                  <span className={`${styles.statusIcon} ${styles.ignoredStatus}`} aria-label={ignoredStatusLabel} title={ignoredStatusLabel}>
                     <i className="bi bi-ban" aria-hidden />
                   </span>
                 ) : null}
               </span>
               {showRowActions ? (
-                <details className="split-row-actions">
+                <details className={styles.rowActions}>
                   <summary
-                    className="text-button icon-button split-row-menu-button"
+                    className={`text-button icon-button ${styles.menuButton}`}
                     role="button"
                     aria-label={`Split actions for ${item.name}`}
                     aria-disabled={status.disabled}
@@ -150,7 +151,7 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
                   >
                     <i className="bi bi-three-dots" aria-hidden />
                   </summary>
-                  <div className="split-row-menu" role="menu">
+                  <div className={styles.menu} role="menu">
                     {commands.editSplit ? (
                       <button
                         type="button"
@@ -188,7 +189,7 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
                       <button
                         type="button"
                         role="menuitem"
-                        className="danger-menuitem"
+                        className={styles.dangerMenuItem}
                         disabled={status.disabled}
                         aria-label={`Remove split ${item.name}`}
                         onClick={() => commands.removeSplit?.(item.id)}
@@ -203,7 +204,7 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
           ))}
         </ul>
       ) : (
-        <p className="hint split-manager-empty">{emptyLabel}</p>
+        <p className={`hint ${styles.empty}`}>{emptyLabel}</p>
       )}
     </section>
   );

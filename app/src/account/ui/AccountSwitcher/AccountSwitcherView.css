@@ -1,0 +1,162 @@
+.account-actions {
+  margin-top: 0;
+  min-width: 0;
+}
+
+.account-switcher-section {
+  min-width: 0;
+}
+
+.summary-header .account-switcher-section {
+  flex: 1 1 auto;
+  margin-top: 0;
+}
+
+.account-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1d1d1b;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  font-weight: 700;
+  text-align: left;
+}
+
+.account-menu-trigger span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-menu-trigger .bi {
+  flex: 0 0 auto;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.account-menu-actions {
+  margin-top: 6px;
+}
+
+.account-menu-actions-label {
+  margin-top: 12px;
+}
+
+.account-menu-sheet {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: min(92dvh, 760px);
+  overflow: hidden;
+}
+
+.account-menu-list {
+  min-height: 0;
+  padding-right: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.account-choice {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+
+.account-choice span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-choice--active {
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 6px 6px 6px 12px;
+}
+
+.account-choice-main {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+}
+
+.account-choice-main span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-choice-currency {
+  color: inherit;
+  opacity: 0.75;
+  font-size: 0.78rem;
+}
+
+.account-default-button {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  min-height: 30px;
+  border-radius: 999px;
+  color: inherit;
+  opacity: 0.62;
+}
+
+.account-default-button.is-default {
+  opacity: 1;
+}
+
+.account-restore-button {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+}
+
+.account-archive-toggle {
+  justify-content: flex-start;
+  margin-top: 4px;
+}
+
+.account-archive-toggle .bi {
+  font-size: 0.8rem;
+}
+
+.account-archived-list {
+  gap: 6px;
+}
+
+.account-choice--archived {
+  border-color: #deded6;
+  background: #f7f7f3;
+  color: #6b6b62;
+}
+
+.account-choice-status {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #e7e7df;
+  color: #56564f;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}

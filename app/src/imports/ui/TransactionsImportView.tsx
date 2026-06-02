@@ -1,6 +1,7 @@
 import { normalizeImportErrorCode } from '../application/importFailureSummary';
 import { TransactionsImportSummaryView } from './TransactionsImportSummaryView';
 import type { TransactionsImportViewProps } from './TransactionsImportView.contract';
+import './TransactionsImportView.css';
 
 export type {
   TransactionsImportViewProps,

@@ -1,0 +1,9 @@
+.transactions-section {
+  padding-bottom: calc(92px + var(--app-safe-area-bottom));
+}
+
+@media (min-width: 900px) {
+  .transactions-section {
+    padding-bottom: calc(24px + var(--app-safe-area-bottom));
+  }
+}

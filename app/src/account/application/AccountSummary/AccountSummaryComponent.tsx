@@ -4,6 +4,7 @@ import { formatCurrencyAmount } from '../../../shared/utils/formatting';
 import { SheetView } from '../../../shared/ui/SheetView';
 import type { AccountSummaryComponentProps } from './AccountSummaryComponent.contract';
 import { useAccountSummaryModel } from './useAccountSummaryModel';
+import './AccountSummaryComponent.css';
 
 export type {
   AccountSummaryComponentProps,

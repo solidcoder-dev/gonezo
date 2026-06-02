@@ -97,6 +97,32 @@ describe('SOLID frontend boundaries', () => {
     }
   });
 
+  it('keeps split component styles out of the global app stylesheet', () => {
+    const appCss = readFileSync(resolve(srcDir, 'App.css'), 'utf8');
+    const forbiddenSplitSelector = /\.(?:split-|composer-split-|composer-expense-split)/;
+
+    expect(appCss).not.toMatch(forbiddenSplitSelector);
+    expect(readFileSync(resolve(srcDir, 'shared/ui/SplitManager/SplitManager.module.css'), 'utf8')).toBeTruthy();
+    expect(readFileSync(resolve(srcDir, 'transactions/ui/ExpenseSplitEditor/ExpenseSplitEditorView.module.css'), 'utf8')).toBeTruthy();
+  });
+
+  it('keeps shared visual foundations out of the feature stylesheet', () => {
+    const appCss = readFileSync(resolve(srcDir, 'App.css'), 'utf8');
+    const forbiddenSharedSelector =
+      /^\.(?:sheet-(?:backdrop|panel)|card|nested-card|stack|chip-row|chip|segmented(?:-2)?|segment|quick-row|inline-header|text-button|icon-button|inline-checkbox|item-editor|visually-hidden|hint|field-error|primary-cta)(?:[.{,: ])/m;
+
+    expect(appCss).not.toMatch(forbiddenSharedSelector);
+    expect(readFileSync(resolve(srcDir, 'shared/ui/SheetView.module.css'), 'utf8')).toBeTruthy();
+    expect(readFileSync(resolve(srcDir, 'shared/ui/primitives.css'), 'utf8')).toBeTruthy();
+  });
+
+  it('keeps the app stylesheet limited to the root screen shell', () => {
+    const appCss = readFileSync(resolve(srcDir, 'App.css'), 'utf8');
+    const selectors = [...appCss.matchAll(/\.([a-z][a-z0-9-]*)/g)].map((match) => match[1]);
+
+    expect([...new Set(selectors)]).toEqual(['app-screen']);
+  });
+
   it('keeps the shared core port composed from focused capability ports', () => {
     const corePort = readFileSync(resolve(srcDir, 'core/application/corePort.ts'), 'utf8');
     const ledgerPort = readFileSync(resolve(srcDir, 'ledger/application/ledger.port.ts'), 'utf8');

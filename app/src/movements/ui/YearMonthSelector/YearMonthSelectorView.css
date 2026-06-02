@@ -1,0 +1,63 @@
+.month-selector {
+  margin-top: 0;
+}
+
+.month-selector-year-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 8px;
+}
+
+.month-selector-year-button {
+  width: 100%;
+}
+
+.month-selector-year-button .bi {
+  line-height: 1;
+}
+
+.month-selector-year-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin: 0;
+  border: 1px solid #d8d8cc;
+  border-radius: 10px;
+  background: #f8f8f3;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.month-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.month-selector-month-button {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #c9c9c0;
+  border-radius: 10px;
+  background: #fff;
+  color: #1d1d1b;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.month-selector-month-button--viewed {
+  border-color: #1d1d1b;
+  background: #1d1d1b;
+  color: #fff;
+}
+
+.month-selector-month-button--current {
+  border-color: #1d1d1b;
+  box-shadow: inset 0 0 0 1px #1d1d1b;
+}
+
+.month-selector-month-button--viewed-current {
+  box-shadow: inset 0 0 0 1px #fff;
+}

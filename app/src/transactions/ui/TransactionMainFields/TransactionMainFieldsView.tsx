@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
 import type { ComposerMode } from '../../application/transactions.types';
+import './TransactionMainFieldsView.css';
 
 export type TransactionMainFieldsViewProps = ViewProps<
   {

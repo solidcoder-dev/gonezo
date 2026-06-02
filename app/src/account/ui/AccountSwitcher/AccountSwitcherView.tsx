@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { SheetView } from '../../../shared/ui/SheetView';
 import type { AccountSummaryView } from '../../application/accountView.types';
+import './AccountSwitcherView.css';
 
 export type AccountSwitcherViewRequired = {
   accounts: AccountSummaryView[];

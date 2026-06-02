@@ -1,0 +1,41 @@
+.summary-card {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #e2e2d8;
+  border-radius: 12px;
+  background: #f4f4ef;
+}
+
+.summary-card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summary-menu-button {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.summary-label {
+  margin: 8px 0 4px;
+  color: #585852;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.summary-amount {
+  font-size: 1.35rem;
+  font-weight: 700;
+}

@@ -4,6 +4,7 @@ import type {
   RecurrenceMonthlyPatternView as RecurrenceMonthlyPattern,
 } from '../../../shared/domain/schedulingView.types';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
+import './RecurrenceEditorView.css';
 
 export type RecurrenceEditorViewProps = ViewProps<
   Record<string, never>,

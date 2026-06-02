@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ViewProps } from './ViewProps';
+import styles from './SheetView.module.css';
 
 export type SheetViewProps = ViewProps<
   {
@@ -43,13 +44,13 @@ export function SheetView({ required, provided }: SheetViewProps) {
   }
 
   const panelClassName = config.panelClassName
-    ? `sheet-panel ${config.panelClassName}`
-    : 'sheet-panel';
+    ? `${styles.panel} ${config.panelClassName}`
+    : styles.panel;
   const closeLabel = config.closeLabel ?? 'Close';
 
   return (
     <div
-      className="sheet-backdrop"
+      className={styles.backdrop}
       role="presentation"
       data-testid="sheet-backdrop"
       onClick={closeFromBackdrop}

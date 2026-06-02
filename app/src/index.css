@@ -1,3 +1,49 @@
+:root {
+  color-scheme: light;
+  --safe-area-inset-top: 0px;
+  --safe-area-inset-right: 0px;
+  --safe-area-inset-bottom: 0px;
+  --safe-area-inset-left: 0px;
+  --android-safe-area-top: 0px;
+  --android-safe-area-right: 0px;
+  --android-safe-area-bottom: 0px;
+  --android-safe-area-left: 0px;
+  --android-navigation-bar-bottom: 0px;
+  --app-safe-area-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top), var(--android-safe-area-top));
+  --app-safe-area-right: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right), var(--android-safe-area-right));
+  --app-safe-area-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom), var(--android-safe-area-bottom), var(--android-navigation-bar-bottom));
+  --app-safe-area-left: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left), var(--android-safe-area-left));
+  --color-background-surface: #fff;
+  --color-background-muted: #fbfbf7;
+  --color-background-hover: #f1f1eb;
+  --color-border-subtle: #e4e4d8;
+  --color-border-strong: #d8d8cc;
+  --color-text-primary: #1d1d1b;
+  --color-status-success-text: #245a36;
+  --color-status-success-background: #e9f6ed;
+  --color-status-danger-text: #8a2020;
+  --color-status-danger-muted-text: #6d3d3d;
+  --color-status-danger-muted-background: #f7eeee;
+  --spacing-0-5: 2px;
+  --spacing-1: 4px;
+  --spacing-1-5: 6px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+  --shadow-menu: 0 12px 24px rgba(29, 29, 27, 0.16);
+  --shadow-modal: 0 18px 36px rgba(29, 29, 27, 0.2);
+  --shadow-sheet: 0 20px 40px rgba(0, 0, 0, 0.18);
+  --z-sheet-backdrop: 50;
+  --z-menu-backdrop: 69;
+  --z-menu: 70;
+  --z-modal-backdrop: 60;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -12,6 +58,9 @@ body,
 }
 
 body {
+  color: var(--color-text-primary);
+  font-family: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  background: var(--color-background-surface);
   min-width: 0;
   overflow-x: hidden;
 }

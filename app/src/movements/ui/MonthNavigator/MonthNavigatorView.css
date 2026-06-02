@@ -1,0 +1,82 @@
+.month-nav {
+  display: grid;
+  gap: 6px;
+}
+
+.month-nav-main {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 6px;
+}
+
+.month-nav-arrow {
+  width: 100%;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.month-nav-arrow .bi {
+  line-height: 1;
+}
+
+.month-nav-center {
+  position: relative;
+  min-width: 0;
+}
+
+.month-nav-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #f7f7f1;
+  color: #1d1d1b;
+}
+
+.month-nav-trigger-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.92rem;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.month-nav-trigger-caret {
+  font-size: 0.72rem;
+  line-height: 1;
+  transform: translateY(0);
+}
+
+.month-nav-trigger-caret .bi {
+  line-height: 1;
+}
+
+.month-nav-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  z-index: 30;
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid #d8d8cc;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.month-nav-menu-item {
+  width: 100%;
+}

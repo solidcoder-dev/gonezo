@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
+import '../movements.css';
 
 export type MovementRowDetailView = string | {
   key: string;

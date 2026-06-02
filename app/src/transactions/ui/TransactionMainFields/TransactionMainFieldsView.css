@@ -1,0 +1,22 @@
+.date-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-input-field {
+  min-width: 0;
+}
+
+.date-input-field input {
+  width: 100%;
+}
+
+.date-picker-button {
+  align-self: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  padding-inline: 10px;
+}

@@ -7,6 +7,7 @@ import type {
   MovementsSearchSourceView,
 } from '../../application/movementsView.types';
 import { MovementsSearchFilterSheetView } from './MovementsSearchFilterSheetView';
+import './MovementsSearch.css';
 
 export type MovementsSearchFiltersRequired = {
   state: {

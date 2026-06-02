@@ -8,6 +8,8 @@ import type {
   MovementsSearchSortFieldView,
   LedgerSortDirectionView,
 } from '../../application/movementsView.types';
+import '../../../shared/ui/detailSheet.css';
+import './MovementsSearch.css';
 
 type FilterOptionView = {
   value: LedgerTransactionTypeView;

@@ -1,0 +1,23 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet-backdrop);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 12px 12px calc(12px + var(--app-safe-area-bottom));
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.panel {
+  width: 100%;
+  max-width: 720px;
+  padding: var(--spacing-4);
+  box-sizing: border-box;
+  border-radius: var(--radius-xl);
+  background: var(--color-background-surface);
+  box-shadow: var(--shadow-sheet);
+}

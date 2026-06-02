@@ -15,6 +15,7 @@ import type {
   RecurrenceFrequencyView as RecurrenceFrequency,
   RecurrenceMonthlyPatternView as RecurrenceMonthlyPattern,
 } from '../../../shared/domain/schedulingView.types';
+import './TransactionComposerView.css';
 
 export type ComposerMode = 'picker' | 'expense' | 'income' | 'transfer';
 

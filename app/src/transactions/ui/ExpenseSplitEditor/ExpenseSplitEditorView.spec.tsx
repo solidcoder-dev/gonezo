@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import splitStyles from '../../../shared/ui/SplitManager/SplitManager.module.css';
 import { ExpenseSplitEditorView } from './ExpenseSplitEditorView';
 
 describe('ExpenseSplitEditorView', () => {
@@ -70,7 +71,7 @@ describe('ExpenseSplitEditorView', () => {
 
     const row = screen.getByText('Coffee').closest('li');
     expect(row).not.toBeNull();
-    expect(row).toHaveClass('split-manager-item');
+    expect(row).toHaveClass(splitStyles.item);
     fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Item actions for Coffee' }));
     const menu = screen.getByRole('menu', { name: 'Item actions for Coffee' });
     expect(row).not.toContainElement(menu);

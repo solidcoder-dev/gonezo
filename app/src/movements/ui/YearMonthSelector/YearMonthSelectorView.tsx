@@ -1,3 +1,5 @@
+import './YearMonthSelectorView.css';
+
 const MONTH_ABBREVIATIONS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'] as const;
 
 export type YearMonthSelectorViewRequired = {

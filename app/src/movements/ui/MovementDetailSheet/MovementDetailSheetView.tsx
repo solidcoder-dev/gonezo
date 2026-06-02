@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { formatCurrencyAmount } from '../../../shared/utils/formatting';
 import { SheetView } from '../../../shared/ui/SheetView';
+import '../../../shared/ui/detailSheet.css';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
 import { MovementSplitManagerView, type MovementSplitItemView } from './MovementSplitManagerView';
 

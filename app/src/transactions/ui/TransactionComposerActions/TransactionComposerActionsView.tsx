@@ -1,4 +1,5 @@
 import type { ViewProps } from '../../../shared/ui/ViewProps';
+import './TransactionComposerActionsView.css';
 
 export type TransactionComposerActionsViewProps = ViewProps<
   Record<string, never>,

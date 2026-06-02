@@ -1,0 +1,18 @@
+.composer-recurring-panel {
+  margin-inline-start: 12px;
+  border-color: #d6e0ee;
+  background: #f2f6fb;
+}
+
+.composer-recurring-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 1fr) minmax(0, 1.4fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.composer-recurring-row > span {
+  color: #4d4d4d;
+  font-size: 0.86rem;
+  font-weight: 600;
+}

@@ -22,6 +22,8 @@ import {
   buildScheduledMovementRowData,
   groupExpectedMovementsByDate,
 } from './monthlyMovementPresentation';
+import '../movements.css';
+import './MonthlyMovementsView.css';
 import type { MonthlyMovementsViewProps } from './MonthlyMovementsView.contract';
 
 export type { MonthlyMovementsViewProps } from './MonthlyMovementsView.contract';

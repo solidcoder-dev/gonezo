@@ -1,3 +1,5 @@
+import './MonthNavigatorView.css';
+
 export type MonthNavigatorViewRequired = {
   monthLabel: string;
   disabled: boolean;

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
+import './MovementSectionView.css';
 
 export type MovementSectionViewProps = ViewProps<
   {
@@ -33,7 +34,7 @@ export function MovementSectionView({ required, provided }: MovementSectionViewP
       {state.collapsible && hasItems ? (
         <button
           type="button"
-          className="account-menu-trigger movement-section-trigger"
+          className="movement-section-trigger"
           aria-label={`${state.expanded ? 'Collapse' : 'Expand'} ${config.toggleLabel ?? config.title.toLowerCase()} (${data.count})`}
           aria-expanded={state.expanded}
           onClick={provided.commands.toggle}

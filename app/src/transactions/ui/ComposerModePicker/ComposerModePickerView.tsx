@@ -1,5 +1,6 @@
 import type { ViewProps } from '../../../shared/ui/ViewProps';
 import type { ComposerMode } from '../TransactionComposer/TransactionComposerView';
+import './ComposerModePickerView.css';
 
 type SelectableComposerMode = Exclude<ComposerMode, 'picker'>;
 

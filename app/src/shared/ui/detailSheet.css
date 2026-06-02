@@ -1,0 +1,94 @@
+.detail-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.detail-sheet-title {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.detail-sheet-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #63635b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.detail-sheet-kicker .bi {
+  line-height: 1;
+}
+
+.detail-sheet-title h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  line-height: 1.2;
+}
+
+.detail-sheet-amount {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.detail-sheet-amount--expense {
+  background: #fff3f3;
+  color: #8a2020;
+}
+
+.detail-sheet-amount--income {
+  background: #ecf8ef;
+  color: #1b5b28;
+}
+
+.detail-sheet-amount--transfer {
+  background: #f4f4ef;
+  color: #2f2f2a;
+}
+
+.detail-sheet-amount--scheduled {
+  background: #f3f6ff;
+  color: #223c8b;
+}
+
+.detail-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.detail-meta-item {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #e6e6da;
+  border-radius: 10px;
+  background: #fafaf6;
+}
+
+.detail-meta-item strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}

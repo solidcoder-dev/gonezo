@@ -1,0 +1,7 @@
+.mode-row {
+  display: block;
+}
+
+.mode-row > button {
+  width: 100%;
+}

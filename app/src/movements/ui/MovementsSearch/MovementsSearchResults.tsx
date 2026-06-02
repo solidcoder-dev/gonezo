@@ -11,6 +11,8 @@ import {
   buildMovementSearchRowData,
   groupMovementSearchResultsByDay,
 } from './movementsSearchPresentation';
+import '../movements.css';
+import './MovementsSearch.css';
 
 export type MovementsSearchResultsRequired = {
   state: {

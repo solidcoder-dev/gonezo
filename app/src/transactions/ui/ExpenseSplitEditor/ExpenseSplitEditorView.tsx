@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
+import splitStyles from '../../../shared/ui/SplitManager/SplitManager.module.css';
 import type { ComposerExpenseItem } from '../TransactionComposer/TransactionComposerView';
+import styles from './ExpenseSplitEditorView.module.css';
 
 export type ExpenseSplitEditorViewProps = ViewProps<
   Record<string, never>,
@@ -52,7 +54,7 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
   const [splitPartsOpen, setSplitPartsOpen] = useState(false);
   const [splitPartsAmount, setSplitPartsAmount] = useState('');
   const [splitPartsCount, setSplitPartsCount] = useState('2');
-  const remainingClassName = state.remaining === '0.00' ? 'hint success split-manager-remaining' : 'hint split-manager-remaining';
+  const remainingClassName = state.remaining === '0.00' ? `hint success ${splitStyles.remaining}` : `hint ${splitStyles.remaining}`;
   const editorTitle = editorMode === 'edit' ? 'Edit split item' : 'New split item';
   const submitLabel = editorMode === 'edit' ? 'Save item' : 'Add item';
   const rowMenuItem = rowMenu ? data.items.find((item) => item.id === rowMenu.itemId) : undefined;
@@ -114,7 +116,7 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
   }
 
   return (
-    <div className="stack composer-expense-split-block">
+    <div className={`stack ${styles.block}`}>
       <label className="inline-checkbox">
         <input
           type="checkbox"
@@ -132,18 +134,18 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
         Split into items
       </label>
       {state.enabled ? (
-        <div className="stack item-editor composer-split-manager">
-          <div className="split-manager-toolbar">
-            <div className="split-manager-title">
+        <div className={`stack item-editor ${styles.manager}`}>
+          <div className={splitStyles.toolbar}>
+            <div className={splitStyles.title}>
               <strong>Splits</strong>
               <span className={remainingClassName}>
                 Remaining: {state.remaining} {state.currencyCode ?? ''}
               </span>
             </div>
-            <div className="split-manager-toolbar-actions">
+            <div className={splitStyles.toolbarActions}>
               <button
                 type="button"
-                className="text-button split-manager-action-button split-manager-primary-action"
+                className={`text-button ${splitStyles.actionButton} ${splitStyles.primaryAction}`}
                 aria-label="Add split item"
                 disabled={status.disabled}
                 onClick={openNewEditor}
@@ -153,7 +155,7 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
               </button>
               <button
                 type="button"
-                className="text-button split-manager-action-button"
+                className={`text-button ${splitStyles.actionButton}`}
                 disabled={status.disabled}
                 onClick={provided.commands.assignRemaining}
               >
@@ -161,7 +163,7 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
               </button>
               <button
                 type="button"
-                className="text-button split-manager-action-button"
+                className={`text-button ${splitStyles.actionButton}`}
                 disabled={status.disabled}
                 onClick={openSplitParts}
               >
@@ -172,16 +174,16 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
           </div>
 
           {data.items.length > 0 ? (
-            <ul className="split-manager-list" aria-label="Expense items">
+            <ul className={splitStyles.list} aria-label="Expense items">
               {data.items.map((item) => (
-                <li key={item.id} className="split-manager-item">
-                  <strong className="split-manager-item-name">{item.name}</strong>
-                  <span className="split-manager-item-amount">{item.amount}</span>
-                  <span className="split-manager-item-status" aria-hidden />
-                  <div className="split-row-actions">
+                <li key={item.id} className={splitStyles.item}>
+                  <strong className={splitStyles.itemName}>{item.name}</strong>
+                  <span className={splitStyles.itemAmount}>{item.amount}</span>
+                  <span className={splitStyles.itemStatus} aria-hidden />
+                  <div className={splitStyles.rowActions}>
                     <button
                       type="button"
-                      className="text-button icon-button split-row-menu-button"
+                      className={`text-button icon-button ${splitStyles.menuButton}`}
                       aria-label={`Item actions for ${item.name}`}
                       aria-expanded={rowMenu?.itemId === item.id}
                       aria-haspopup="menu"
@@ -195,7 +197,7 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
               ))}
             </ul>
           ) : (
-            <p className="hint split-manager-empty">No split items yet.</p>
+            <p className={`hint ${splitStyles.empty}`}>No split items yet.</p>
           )}
 
           {state.splitError ? (
@@ -205,8 +207,8 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
           )}
 
           {editorMode ? (
-            <div className="split-editor-popup-backdrop" role="presentation">
-              <section className="split-editor-popup" role="dialog" aria-modal="true" aria-label={editorTitle}>
+            <div className={styles.popupBackdrop} role="presentation">
+              <section className={styles.popup} role="dialog" aria-modal="true" aria-label={editorTitle}>
                 <div className="inline-header">
                   <h3>{editorTitle}</h3>
                   <button
@@ -218,7 +220,7 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
                     <i className="bi bi-x-lg" aria-hidden />
                   </button>
                 </div>
-                <div className="composer-split-form">
+                <div className={styles.form}>
                   <label>
                     Name
                     <input
@@ -247,13 +249,13 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
                     />
                   </label>
                   {state.itemAmountError ? <p id="composer-item-amount-error" className="field-error">{state.itemAmountError}</p> : null}
-                  <div className="composer-split-form-actions">
+                  <div className={styles.formActions}>
                     <button type="button" className="text-button" onClick={closeEditor}>
                       Cancel
                     </button>
                     <button
                       type="button"
-                      className="split-manager-primary-action"
+                      className={splitStyles.primaryAction}
                       disabled={status.disabled}
                       onClick={submitEditor}
                     >
@@ -266,8 +268,8 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
           ) : null}
 
           {splitPartsOpen ? (
-            <div className="split-editor-popup-backdrop" role="presentation">
-              <section className="split-editor-popup" role="dialog" aria-modal="true" aria-label="Split by parts">
+            <div className={styles.popupBackdrop} role="presentation">
+              <section className={styles.popup} role="dialog" aria-modal="true" aria-label="Split by parts">
                 <div className="inline-header">
                   <h3>Split by parts</h3>
                   <button
@@ -279,7 +281,7 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
                     <i className="bi bi-x-lg" aria-hidden />
                   </button>
                 </div>
-                <div className="composer-split-form">
+                <div className={styles.form}>
                   <label>
                     Amount to split
                     <input
@@ -303,14 +305,14 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
                       onChange={(event) => setSplitPartsCount(event.target.value)}
                     />
                   </label>
-                  <div className="split-parts-preview">
+                  <div className={styles.partsPreview}>
                     <span className="hint detail-meta-label">Preview</span>
                     <div className="inline-header">
                       <span>Each part</span>
                       <strong>{splitPartPreviewAmount}</strong>
                     </div>
                   </div>
-                  <div className="composer-split-form-actions">
+                  <div className={styles.formActions}>
                     <button type="button" className="text-button" onClick={() => setSplitPartsOpen(false)}>
                       Cancel
                     </button>
@@ -328,12 +330,12 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
         <>
           <button
             type="button"
-            className="split-row-menu-backdrop"
+            className={styles.menuBackdrop}
             aria-label="Close split item actions"
             onClick={() => setRowMenu(null)}
           />
           <div
-            className="split-row-menu split-row-menu--portal"
+            className={`${splitStyles.menu} ${styles.portalMenu}`}
             role="menu"
             aria-label={`Item actions for ${rowMenuItem.name}`}
             style={{ top: rowMenu.top, bottom: rowMenu.bottom, right: rowMenu.right }}
@@ -354,7 +356,7 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
             <button
               type="button"
               role="menuitem"
-              className="danger-menuitem"
+              className={splitStyles.dangerMenuItem}
               disabled={status.disabled}
               aria-label={`Remove item ${rowMenuItem.name}`}
               onClick={() => {

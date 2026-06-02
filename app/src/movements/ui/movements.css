@@ -1,0 +1,185 @@
+.expense-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.expense-list--compact {
+  gap: 6px;
+}
+
+.expense-item {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-left: 4px solid #b0b0a5;
+  border-radius: 10px;
+  background: #f4f4ef;
+}
+
+.expense-item--compact {
+  gap: 3px;
+  padding: 9px 10px;
+  border-radius: 9px;
+}
+
+.expense-item-button {
+  display: grid;
+  gap: inherit;
+  width: 100%;
+  padding: 0;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.expense-item-button:focus-visible {
+  border-radius: 8px;
+  outline: 2px solid #1d1d1b;
+  outline-offset: 2px;
+}
+
+.expense-item-button:disabled {
+  cursor: default;
+}
+
+.expense-item--income {
+  border-left-color: #1b5b28;
+}
+
+.expense-item--expense {
+  border-left-color: #8a2020;
+}
+
+.expense-item--transfer {
+  border-left-color: #4a4a44;
+}
+
+.expense-top-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.compact-row {
+  align-items: center;
+}
+
+.compact-main {
+  min-width: 0;
+  gap: 6px;
+}
+
+.compact-title {
+  display: inline-block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-meta {
+  margin-top: 2px;
+}
+
+.expense-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.compact-subline {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-meta-part {
+  white-space: nowrap;
+}
+
+.compact-account-name {
+  color: #3d3d38;
+  font-weight: 800;
+}
+
+.compact-meta-separator {
+  color: #8a8a80;
+  font-weight: 600;
+}
+
+.movement-amount {
+  white-space: nowrap;
+}
+
+.movement-amount--income {
+  color: #1b5b28;
+}
+
+.movement-amount--expense {
+  color: #8a2020;
+}
+
+.movement-amount--transfer {
+  color: #2f2f2a;
+}
+
+.compact-action {
+  min-width: 0;
+  min-height: 32px;
+  padding: 4px 10px;
+  line-height: 1;
+}
+
+.date-group-label {
+  margin: 2px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid #e6e6da;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.tx-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tx-head .bi {
+  line-height: 1;
+}
+
+.movement-amount-transfer-icon {
+  margin-right: 4px;
+  font-size: 0.92em;
+  vertical-align: -1px;
+}
+
+.tx-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.tx-badge.income {
+  background: #e8f7ec;
+  color: #176434;
+}
+
+.tx-badge.expense {
+  background: #f9ebeb;
+  color: #8a2020;
+}

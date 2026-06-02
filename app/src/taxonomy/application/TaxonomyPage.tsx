@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { TaxonomyCategoryItem, TaxonomyTagItem } from './taxonomy.port';
 import { SheetView } from '../../shared/ui/SheetView';
 import type { TaxonomyGatewayPort } from './taxonomyGateway.port';
+import './TaxonomyPage.css';
 
 export type TaxonomyPagePort = Pick<
   TaxonomyGatewayPort,
