@@ -31,6 +31,7 @@ export type TransactionComposerViewRequired = {
   disabled: boolean;
   amount: string;
   date: string;
+  nextScheduledOccurrenceDate?: string;
   note: string;
   categoryInput: string;
   categoryOptions: Array<{ id: string; name: string }>;
@@ -163,6 +164,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     disabled,
     amount,
     date,
+    nextScheduledOccurrenceDate,
     note,
     categoryInput,
     categoryOptions,
@@ -280,13 +282,13 @@ export function TransactionComposerView({ required, provided }: Props) {
     && schedulingMode === 'scheduled'
     && schedulingKind === 'recurring';
   const scheduledMovementVisible = mode !== 'expense' && schedulingMode === 'scheduled';
-  const recurringMovementVisible = scheduledMovementVisible && schedulingKind === 'recurring';
-  const dateInputLabel = expected
+  const schedulerControlsDate = schedulingMode === 'scheduled' && schedulingKind === 'recurring';
+  const dateInputLabel = schedulerControlsDate
+    ? 'Next execution date'
+    : expected
     ? 'Expected date'
     : mode === 'expense'
       ? 'Date'
-    : recurringMovementVisible
-      ? 'First execution date'
       : scheduledMovementVisible
         ? 'Execution date'
         : 'Date';
@@ -352,6 +354,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                   },
                   status: {
                     disabled,
+                    dateDisabled: schedulerControlsDate,
                     amountError,
                     dateError,
                   },
@@ -481,6 +484,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                               endKind: recurrenceEndKind,
                               endDate: recurrenceEndDate,
                               endCount: recurrenceEndCount,
+                              nextOccurrenceDate: nextScheduledOccurrenceDate ?? date,
                             },
                             status: {
                               intervalError: recurrenceIntervalError,

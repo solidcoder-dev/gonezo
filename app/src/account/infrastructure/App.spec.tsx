@@ -1657,6 +1657,9 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More options' }));
     fireEvent.click(screen.getByLabelText('Expected'));
     fireEvent.click(screen.getByLabelText('Repeat this expense'));
+    const nextExecutionDate = screen.getByLabelText('Next execution date');
+    expect(nextExecutionDate).toBeDisabled();
+    expect(screen.getByText(`Next occurrence: ${(nextExecutionDate as HTMLInputElement).value}`)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Save expected' }));
 
     await waitFor(() => {
@@ -1669,7 +1672,7 @@ describe('App Accounts UX', () => {
       type: 'expense',
       amount: '55.00',
       currency: 'USD',
-      expectedAt: expect.stringMatching(/^2026-05-04T/),
+      expectedAt: expect.stringMatching(new RegExp(`^${(nextExecutionDate as HTMLInputElement).value}T`)),
       merchant: 'Gym',
       description: 'Gym',
     }));
@@ -1680,6 +1683,7 @@ describe('App Accounts UX', () => {
       currency: 'USD',
       scheduleKind: 'recurring',
       recurrenceEnd: { kind: 'never' },
+      startAt: expect.stringMatching(new RegExp(`^${(nextExecutionDate as HTMLInputElement).value}T`)),
     }));
     expect(core.ledgerRecordExpense).not.toHaveBeenCalled();
   });
@@ -3269,6 +3273,9 @@ describe('App Accounts UX', () => {
     fireEvent.change(screen.getByLabelText('Recurrence frequency'), { target: { value: 'monthly' } });
     fireEvent.change(screen.getByLabelText('Recurrence interval'), { target: { value: '2' } });
     fireEvent.change(screen.getByLabelText('Monthly day of month'), { target: { value: '11' } });
+    const nextExecutionDate = screen.getByLabelText('Next execution date');
+    expect(nextExecutionDate).toBeDisabled();
+    expect(screen.getByText(`Next occurrence: ${(nextExecutionDate as HTMLInputElement).value}`)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -3289,6 +3296,7 @@ describe('App Accounts UX', () => {
       },
       recurrenceEnd: { kind: 'never' },
       scheduleKind: 'recurring',
+      startAt: expect.stringMatching(new RegExp(`^${(nextExecutionDate as HTMLInputElement).value}T`)),
     });
     expect(core.ledgerRecordExpense).not.toHaveBeenCalled();
   });

@@ -108,4 +108,45 @@ describe('TransactionMainFieldsView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open calendar' }));
     expect(showPicker).toHaveBeenCalledTimes(1);
   });
+
+  it('disables manual date editing and the calendar action when the scheduler controls the date', () => {
+    render(
+      <TransactionMainFieldsView
+        required={{
+          config: {
+            amountLabel: 'Amount',
+            dateInputLabel: 'Next execution date',
+            datePlaceholder: '2026-05-18',
+            noteLabel: 'Merchant',
+            notePlaceholder: 'Cafe',
+          },
+          data: {
+            transferTargetOptions: [],
+          },
+          state: {
+            mode: 'expense',
+            amount: '12',
+            date: '2026-06-11',
+            note: 'Gym',
+            transferTargetAccountId: '',
+          },
+          status: {
+            disabled: false,
+            dateDisabled: true,
+          },
+        }}
+        provided={{
+          commands: {
+            changeAmount: vi.fn(),
+            changeDate: vi.fn(),
+            changeNote: vi.fn(),
+            changeTransferTarget: vi.fn(),
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText('Next execution date')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Open calendar' })).toBeDisabled();
+  });
 });

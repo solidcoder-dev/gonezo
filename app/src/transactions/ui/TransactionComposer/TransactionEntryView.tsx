@@ -16,6 +16,7 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         disabled: required.status.disabled,
         amount: required.state.amount,
         date: required.state.date,
+        nextScheduledOccurrenceDate: required.state.nextScheduledOccurrenceDate,
         note: required.state.note,
         categoryInput: required.state.categoryInput,
         categoryOptions: required.state.categoryOptions,

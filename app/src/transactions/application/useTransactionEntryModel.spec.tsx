@@ -237,6 +237,46 @@ describe('useTransactionEntryModel', () => {
     ]);
   });
 
+  it('uses the nearest scheduler occurrence instead of the manually selected date for recurring movements', async () => {
+    const ports = makePorts();
+    vi.mocked(ports.scheduling.schedulingCreateMovement).mockResolvedValue({ id: 'scheduled-1' });
+
+    const { result } = renderHook(() => useTransactionEntryModel({
+      ports,
+      clock: makeClock(),
+      idGenerator: makeIdGenerator([]),
+      accountId: 'account-1',
+      enabled: true,
+    }));
+
+    await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
+
+    act(() => {
+      result.current.provided.commands.open();
+      result.current.provided.commands.selectMode('expense');
+      result.current.provided.commands.setAmount('37.50');
+      result.current.provided.commands.setDate('2026-05-04');
+      result.current.provided.commands.setSchedulingMode('scheduled');
+      result.current.provided.commands.setSchedulingKind('recurring');
+      result.current.provided.commands.setRecurrenceFrequency('monthly');
+      result.current.provided.commands.setRecurrenceDayOfMonth('11');
+    });
+
+    await waitFor(() => expect(result.current.required.state.date).toBe('2026-06-11'));
+
+    await act(async () => {
+      await result.current.provided.commands.submit(formEvent());
+    });
+
+    expect(ports.scheduling.schedulingCreateMovement).toHaveBeenCalledWith(expect.objectContaining({
+      startAt: '2026-06-11T10:20:30.000Z',
+      rule: expect.objectContaining({
+        frequency: 'monthly',
+        dayOfMonth: 11,
+      }),
+    }));
+  });
+
   it('creates a missing expense category before recording a posted expense', async () => {
     const ports = makePorts();
 

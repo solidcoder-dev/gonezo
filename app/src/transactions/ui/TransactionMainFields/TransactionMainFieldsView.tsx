@@ -25,6 +25,7 @@ export type TransactionMainFieldsViewProps = ViewProps<
   },
   {
     disabled?: boolean;
+    dateDisabled?: boolean;
     amountError?: string;
     dateError?: string;
   },
@@ -155,6 +156,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
             value={state.date}
             placeholder={datePlaceholder}
             inputMode="numeric"
+            disabled={status.dateDisabled}
             onFocus={() => {
               if (state.date === datePlaceholder) {
                 provided.commands.changeDate('');
@@ -171,6 +173,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
             tabIndex={-1}
             type="date"
             value={state.date}
+            disabled={status.dateDisabled}
             onChange={(event) => provided.commands.changeDate(event.target.value)}
           />
         </label>
@@ -181,7 +184,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
           onClick={() => {
             dateInputRef?.current?.showPicker?.();
           }}
-          disabled={status.disabled}
+          disabled={status.disabled || status.dateDisabled}
         >
           <i className="bi bi-calendar3" aria-hidden />
         </button>

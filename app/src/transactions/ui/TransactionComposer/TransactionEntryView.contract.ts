@@ -13,6 +13,7 @@ export type TransactionEntryViewRequired = {
     advancedOpen: boolean;
     amount: string;
     date: string;
+    nextScheduledOccurrenceDate?: string;
     note: string;
     categoryInput: string;
     categoryOptions: Array<{ id: string; name: string }>;

@@ -25,6 +25,7 @@ describe('RecurrenceEditorView', () => {
             endKind: 'never',
             endDate: '',
             endCount: '12',
+            nextOccurrenceDate: '2026-06-15',
           },
           status: { intervalError: 'Interval is required' },
         }}
@@ -52,6 +53,7 @@ describe('RecurrenceEditorView', () => {
     fireEvent.change(screen.getByLabelText('Recurrence end'), { target: { value: 'on_date' } });
 
     expect(screen.getByText('Interval is required')).toBeInTheDocument();
+    expect(screen.getByText('Next occurrence: 2026-06-15')).toBeInTheDocument();
     expect(setFrequency).toHaveBeenCalledWith('weekly');
     expect(setInterval).toHaveBeenCalledWith('2');
     expect(setMonthlyPattern).toHaveBeenCalledWith('nth_weekday');
@@ -76,6 +78,7 @@ describe('RecurrenceEditorView', () => {
             endKind: 'after_occurrences',
             endDate: '',
             endCount: '6',
+            nextOccurrenceDate: '2026-05-22',
           },
           status: { endCountError: 'Count is required' },
         }}

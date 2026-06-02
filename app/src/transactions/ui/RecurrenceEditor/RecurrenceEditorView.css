@@ -4,6 +4,11 @@
   background: #f2f6fb;
 }
 
+.composer-recurring-next {
+  margin: 0;
+  font-weight: 700;
+}
+
 .composer-recurring-row {
   display: grid;
   grid-template-columns: minmax(96px, 1fr) minmax(0, 1.4fr);

@@ -20,6 +20,7 @@ export type RecurrenceEditorViewProps = ViewProps<
     endKind: RecurrenceEndInput['kind'];
     endDate: string;
     endCount: string;
+    nextOccurrenceDate: string;
   },
   {
     intervalError?: string;
@@ -45,6 +46,9 @@ export function RecurrenceEditorView({ required, provided }: RecurrenceEditorVie
 
   return (
     <div className="stack item-editor composer-recurring-panel">
+      <p className="hint composer-recurring-next" aria-live="polite">
+        Next occurrence: {state.nextOccurrenceDate}
+      </p>
       <div className="composer-recurring-row">
         <span>Frequency</span>
         <select

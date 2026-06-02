@@ -19,6 +19,7 @@ import { useExpenseSplitEditorModel } from './useExpenseSplitEditorModel';
 import { useTransactionSchedulingModel } from './useTransactionSchedulingModel';
 import { useTransactionTaxonomyModel } from './useTransactionTaxonomyModel';
 import { useTransactionTransferFxModel } from './useTransactionTransferFxModel';
+import { nextRecurrenceDateIso } from '../../shared/domain/nextRecurrenceDate';
 
 export type TransactionEntryModelPorts = {
   ledger: LedgerGatewayPort;
@@ -190,6 +191,19 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setExpectedMovement,
     setExpectedMovementValue,
   } = schedulingModel.actions;
+  const nextScheduledOccurrenceDate = recurrenceEnabled
+    ? nextRecurrenceDateIso({
+      fromDate: clock.todayIso(),
+      frequency: recurrenceFrequency,
+      interval: recurrenceInterval,
+      weeklyDay: recurrenceWeeklyDay,
+      monthlyPattern: recurrenceMonthlyPattern,
+      dayOfMonth: recurrenceDayOfMonth,
+      monthlyOrdinal: recurrenceMonthlyOrdinal,
+      monthlyWeekday: recurrenceMonthlyWeekday,
+    })
+    : undefined;
+  const effectiveTransactionDate = nextScheduledOccurrenceDate ?? transactionDate;
 
   const {
     transactionCategoryInput,
@@ -397,7 +411,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       accountId,
       mode: composerMode,
       amount: transactionAmount,
-      transactionDate,
+      transactionDate: effectiveTransactionDate,
       schedulingMode,
       recurrenceEnabled,
       expectedMovement,
@@ -507,7 +521,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       mode: composerMode,
       advancedOpen: composerAdvancedOpen,
       amount: transactionAmount,
-      date: transactionDate,
+      date: effectiveTransactionDate,
+      nextScheduledOccurrenceDate,
       note: transactionNote,
       categoryInput: transactionCategoryInput,
       categoryOptions,
