@@ -16,10 +16,10 @@ export type ComposerModePickerViewProps = ViewProps<
   }
 >;
 
-const MODES: Array<{ value: SelectableComposerMode; label: string }> = [
-  { value: 'expense', label: 'Expense' },
-  { value: 'income', label: 'Income' },
-  { value: 'transfer', label: 'Transfer' },
+const MODES: Array<{ value: SelectableComposerMode; label: string; iconClassName: string }> = [
+  { value: 'expense', label: 'Expense', iconClassName: 'bi bi-arrow-down-left' },
+  { value: 'income', label: 'Income', iconClassName: 'bi bi-arrow-up-right' },
+  { value: 'transfer', label: 'Transfer', iconClassName: 'bi bi-arrow-left-right' },
 ];
 
 export function ComposerModePickerView({ required, provided }: ComposerModePickerViewProps) {
@@ -29,9 +29,11 @@ export function ComposerModePickerView({ required, provided }: ComposerModePicke
         <div key={mode.value} className="mode-row">
           <button
             type="button"
+            className={`mode-button mode-button--${mode.value}`}
             onClick={() => provided.commands.selectMode(mode.value)}
             disabled={required.status.disabled}
           >
+            <i className={mode.iconClassName} aria-hidden />
             {mode.label}
           </button>
         </div>

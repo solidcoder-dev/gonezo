@@ -5,3 +5,48 @@
 .mode-row > button {
   width: 100%;
 }
+
+.mode-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  text-align: left;
+}
+
+.mode-button .bi {
+  line-height: 1;
+}
+
+.mode-button--expense {
+  border-color: #edcccc;
+  background: #fff3f3;
+  color: #8a2020;
+}
+
+.mode-button--expense:hover:not(:disabled),
+.mode-button--expense:active:not(:disabled) {
+  background: #fbe5e5;
+}
+
+.mode-button--income {
+  border-color: #c8e1cf;
+  background: #ecf8ef;
+  color: #1b5b28;
+}
+
+.mode-button--income:hover:not(:disabled),
+.mode-button--income:active:not(:disabled) {
+  background: #dff1e4;
+}
+
+.mode-button--transfer {
+  border-color: #d4ddf5;
+  background: #f3f6ff;
+  color: #223c8b;
+}
+
+.mode-button--transfer:hover:not(:disabled),
+.mode-button--transfer:active:not(:disabled) {
+  background: #e5ebfc;
+}
