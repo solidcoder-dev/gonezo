@@ -9,6 +9,7 @@ import com.gonezo.recurrence.domain.RecurrenceFrequency
 import com.gonezo.recurrence.domain.RecurrenceRule
 import com.gonezo.recurrence.domain.RecurringMovement
 import com.gonezo.recurrence.domain.RecurringMovementId
+import com.gonezo.recurrence.domain.RecurringMovementReviewPolicy
 import com.gonezo.recurrence.domain.RecurringMovementStatus
 import com.gonezo.recurrence.domain.RecurringMovementType
 import com.gonezo.recurrence.domain.ports.RecurringMovementRepository
@@ -43,6 +44,7 @@ internal class AndroidRecurringMovementRepository(
     values.putNullable("description", movement.description)
     values.putNullable("merchant", movement.merchant)
     values.putNullable("category_id", movement.categoryId)
+    values.put("review_policy", movement.reviewPolicy.value)
     values.put("rule_frequency", movement.rule.frequency.value)
     values.put("rule_interval", movement.rule.interval)
     values.put("rule_weekdays", movement.rule.weeklyDays.sortedBy { it.value }.joinToString(",") { it.name })
@@ -190,6 +192,7 @@ internal class AndroidRecurringMovementRepository(
       description = cursor.stringOrNull("description"),
       merchant = cursor.stringOrNull("merchant"),
       categoryId = cursor.stringOrNull("category_id"),
+      reviewPolicy = RecurringMovementReviewPolicy.from(cursor.string("review_policy")),
       splitItems = loadSplitItems(cursor.string("id")),
       rule = rule,
       recurrenceEnd = recurrenceEnd,
@@ -278,6 +281,7 @@ internal class AndroidRecurringMovementRepository(
       "description",
       "merchant",
       "category_id",
+      "review_policy",
       "rule_frequency",
       "rule_interval",
       "rule_weekdays",

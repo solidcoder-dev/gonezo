@@ -8,6 +8,7 @@ import com.gonezo.recurrence.domain.RecurrenceFrequency
 import com.gonezo.recurrence.domain.RecurrenceRule
 import com.gonezo.recurrence.domain.RecurringMovement
 import com.gonezo.recurrence.domain.RecurringMovementId
+import com.gonezo.recurrence.domain.RecurringMovementReviewPolicy
 import com.gonezo.recurrence.domain.RecurringMovementStatus
 import com.gonezo.recurrence.domain.RecurringMovementType
 import com.gonezo.recurrence.domain.ports.RecurringMovementRepository
@@ -64,6 +65,7 @@ class AndroidRecurringCore internal constructor(
       description = input.description,
       merchant = input.merchant,
       categoryId = input.categoryId,
+      reviewPolicy = RecurringMovementReviewPolicy.from(input.reviewPolicy ?: "automatic"),
       splitItems = parseSplitItems(input.splitItemsJson),
       rule = toDomainRule(input.rule ?: RecurrenceRuleInput(frequency = "daily", interval = 1)),
       recurrenceEnd = toDomainEnd(input.recurrenceEnd ?: RecurrenceEndInput(kind = "never")),
@@ -116,6 +118,7 @@ class AndroidRecurringCore internal constructor(
       description = input.description,
       merchant = input.merchant,
       categoryId = input.categoryId,
+      reviewPolicy = RecurringMovementReviewPolicy.from(input.reviewPolicy ?: existing.reviewPolicy.value),
       splitItems = parseSplitItems(input.splitItemsJson),
       rule = toDomainRule(input.rule ?: RecurrenceRuleInput(frequency = "daily", interval = 1)),
       recurrenceEnd = toDomainEnd(input.recurrenceEnd ?: RecurrenceEndInput(kind = "never")),
@@ -174,6 +177,7 @@ class AndroidRecurringCore internal constructor(
       description = movement.description,
       merchant = movement.merchant,
       categoryId = movement.categoryId,
+      reviewPolicy = movement.reviewPolicy.value,
       splitItems = movement.splitItems.map {
         SplitItem(
           id = it.id,
@@ -298,6 +302,7 @@ class AndroidRecurringCore internal constructor(
     val description: String?,
     val merchant: String?,
     val categoryId: String? = null,
+    val reviewPolicy: String? = "automatic",
     val splitItemsJson: String? = null,
     val rule: RecurrenceRuleInput?,
     val recurrenceEnd: RecurrenceEndInput?,
@@ -318,6 +323,7 @@ class AndroidRecurringCore internal constructor(
     val description: String?,
     val merchant: String?,
     val categoryId: String? = null,
+    val reviewPolicy: String? = null,
     val splitItemsJson: String? = null,
     val rule: RecurrenceRuleInput?,
     val recurrenceEnd: RecurrenceEndInput?,
@@ -354,6 +360,7 @@ class AndroidRecurringCore internal constructor(
     val description: String?,
     val merchant: String?,
     val categoryId: String?,
+    val reviewPolicy: String,
     val splitItems: List<SplitItem>,
     val status: String,
     val startAt: String,

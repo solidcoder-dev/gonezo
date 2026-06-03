@@ -15,6 +15,7 @@ data class CreateExpectedMovementCommand(
   val merchant: String?,
   val categoryId: String?,
   val originOccurrenceId: String? = null,
+  val originRecurringMovementId: String? = null,
   val splitItems: List<ExpectedMovement.SplitItem> = emptyList(),
   val createdAt: Instant,
 )
@@ -76,6 +77,7 @@ data class ExpectedMovementView(
   val merchant: String?,
   val categoryId: String?,
   val originOccurrenceId: String?,
+  val originRecurringMovementId: String?,
   val splitItems: List<SplitItem>,
   val status: String,
   val resolvedTransactionId: String?,

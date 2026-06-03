@@ -7,6 +7,8 @@ export type ExpectedCreateMovementInput = {
   description?: string;
   merchant?: string;
   categoryId?: string;
+  originOccurrenceId?: string;
+  originRecurringMovementId?: string;
   splitItems?: Array<{ id: string; name: string; amount: string }>;
 };
 
@@ -44,6 +46,7 @@ export type ExpectedMovementItem = {
   merchant?: string;
   categoryId?: string;
   originOccurrenceId?: string;
+  originRecurringMovementId?: string;
   splitItems: Array<{ id: string; name: string; amount: string }>;
   status: ExpectedMovementStatus;
   resolvedTransactionId?: string;

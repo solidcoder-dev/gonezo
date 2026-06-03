@@ -63,6 +63,7 @@ class RecurringExpectedOrchestrationServiceTest {
     assertThat(stored!!.status).isEqualTo(ExpectedMovementStatus.PENDING)
     assertThat(stored.expectedAt).isEqualTo(Instant.parse(event.dueAt))
     assertThat(stored.originOccurrenceId).isEqualTo(event.occurrenceId)
+    assertThat(stored.originRecurringMovementId).isEqualTo(event.recurringMovementId)
     assertThat(stored.categoryId).isEqualTo("cat-rent")
   }
 
@@ -93,6 +94,31 @@ class RecurringExpectedOrchestrationServiceTest {
     assertThat(second.created).isFalse()
     assertThat(second.expectedMovementId).isEqualTo(first.expectedMovementId)
     assertThat(expectedRepository.storage).hasSize(1)
+  }
+
+  @Test
+  fun `automatic recurring event is not projected as expected`() {
+    val expectedRepository = InMemoryExpectedMovementRepository()
+    val service = HandleRecurringMovementDueForExpectedService(
+      createExpectedMovementUC = CreateExpectedMovementService(expectedRepository),
+      expectedMovementRepository = expectedRepository,
+    )
+    val event = recurringDueEvent(occurrenceId = UUID.randomUUID().toString()).copy(
+      reviewPolicy = "automatic",
+    )
+
+    assertThatThrownBy {
+      service.execute(
+        HandleRecurringMovementDueForExpectedCommand(
+          event = event,
+          handledAt = Instant.parse("2026-06-10T09:01:00Z"),
+        ),
+      )
+    }
+      .isInstanceOf(IllegalArgumentException::class.java)
+      .hasMessageContaining("does not require expected confirmation")
+
+    assertThat(expectedRepository.storage).isEmpty()
   }
 
   @Test
@@ -298,7 +324,8 @@ class RecurringExpectedOrchestrationServiceTest {
     exchangeRate = null,
     description = "Recurring",
     merchant = "Merchant",
-    categoryId = categoryId,
+      categoryId = categoryId,
+      reviewPolicy = "require_user_confirmation",
   )
 
   private class InMemoryExpectedMovementRepository : ExpectedMovementRepository {

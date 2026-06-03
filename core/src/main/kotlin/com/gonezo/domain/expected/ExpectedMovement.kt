@@ -14,6 +14,7 @@ data class ExpectedMovement(
   val merchant: String?,
   val categoryId: String?,
   val originOccurrenceId: String?,
+  val originRecurringMovementId: String?,
   val splitItems: List<SplitItem> = emptyList(),
   val status: ExpectedMovementStatus,
   val resolvedTransactionId: String?,
@@ -33,6 +34,9 @@ data class ExpectedMovement(
     require(amount > BigDecimal.ZERO) { "amount must be greater than 0" }
     require(currency.matches(Regex("^[A-Z]{3}$"))) { "currency must be 3 uppercase letters" }
     require(originOccurrenceId == null || originOccurrenceId.isNotBlank()) { "originOccurrenceId cannot be blank" }
+    require(originRecurringMovementId == null || originRecurringMovementId.isNotBlank()) {
+      "originRecurringMovementId cannot be blank"
+    }
     require(splitItems.all { it.id.isNotBlank() }) { "split item id is required" }
     require(splitItems.all { it.name.isNotBlank() }) { "split item name is required" }
     require(splitItems.all { it.amount > BigDecimal.ZERO }) { "split item amount must be greater than 0" }
@@ -139,6 +143,7 @@ data class ExpectedMovement(
       merchant: String?,
       categoryId: String?,
       originOccurrenceId: String? = null,
+      originRecurringMovementId: String? = null,
       splitItems: List<SplitItem> = emptyList(),
       createdAt: Instant,
     ): ExpectedMovement = ExpectedMovement(
@@ -152,6 +157,7 @@ data class ExpectedMovement(
       merchant = merchant?.trim()?.ifBlank { null },
       categoryId = categoryId?.trim()?.ifBlank { null },
       originOccurrenceId = originOccurrenceId?.trim()?.ifBlank { null },
+      originRecurringMovementId = originRecurringMovementId?.trim()?.ifBlank { null },
       splitItems = splitItems.map {
         SplitItem(
           id = it.id.trim(),

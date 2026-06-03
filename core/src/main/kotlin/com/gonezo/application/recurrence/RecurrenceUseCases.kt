@@ -6,6 +6,7 @@ import com.gonezo.recurrence.domain.RecurringMovementId
 import com.gonezo.recurrence.domain.RecurringMovement
 import com.gonezo.recurrence.domain.RecurringMovementOccurrence
 import com.gonezo.recurrence.domain.RecurringMovementType
+import com.gonezo.recurrence.domain.RecurringMovementReviewPolicy
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
@@ -22,6 +23,7 @@ data class CreateRecurringMovementCommand(
   val description: String?,
   val merchant: String?,
   val categoryId: String? = null,
+  val reviewPolicy: RecurringMovementReviewPolicy = RecurringMovementReviewPolicy.AUTOMATIC,
   val splitItems: List<RecurringMovement.SplitItem> = emptyList(),
   val rule: RecurrenceRule,
   val recurrenceEnd: RecurrenceEnd,
@@ -112,6 +114,7 @@ data class RecurringMovementView(
   val description: String?,
   val merchant: String?,
   val categoryId: String?,
+  val reviewPolicy: String,
   val splitItems: List<SplitItem>,
   val nextDueAt: Instant?,
   val status: String,

@@ -30,6 +30,8 @@ class AndroidExpectedCore internal constructor(
     description: String?,
     merchant: String?,
     categoryId: String?,
+    originOccurrenceId: String? = null,
+    originRecurringMovementId: String? = null,
     splitItemsJson: String? = null,
   ): UUID {
     val resolvedAccountId = requireText(accountId, "accountId is required")
@@ -57,6 +59,8 @@ class AndroidExpectedCore internal constructor(
     putNullable(values, "description", description)
     putNullable(values, "merchant", merchant)
     putNullable(values, "category_id", categoryId)
+    putNullable(values, "origin_occurrence_id", originOccurrenceId)
+    putNullable(values, "origin_recurring_movement_id", originRecurringMovementId)
     values.put("status", "pending")
     values.putNull("resolved_transaction_id")
     values.put("created_at", now.toString())
@@ -253,12 +257,14 @@ class AndroidExpectedCore internal constructor(
           description = cursor.getStringOrNull(6),
           merchant = cursor.getStringOrNull(7),
           categoryId = cursor.getStringOrNull(8),
-          status = cursor.getString(9),
-          resolvedTransactionId = cursor.getStringOrNull(10),
-          createdAt = cursor.getString(11),
-          updatedAt = cursor.getString(12),
-          resolvedAt = cursor.getStringOrNull(13),
-          dismissedAt = cursor.getStringOrNull(14),
+          originOccurrenceId = cursor.getStringOrNull(9),
+          originRecurringMovementId = cursor.getStringOrNull(10),
+          status = cursor.getString(11),
+          resolvedTransactionId = cursor.getStringOrNull(12),
+          createdAt = cursor.getString(13),
+          updatedAt = cursor.getString(14),
+          resolvedAt = cursor.getStringOrNull(15),
+          dismissedAt = cursor.getStringOrNull(16),
           splitItems = loadSplitItems(movementId),
         ),
       )
@@ -375,6 +381,8 @@ class AndroidExpectedCore internal constructor(
     val description: String?,
     val merchant: String?,
     val categoryId: String?,
+    val originOccurrenceId: String?,
+    val originRecurringMovementId: String?,
     val status: String,
     val resolvedTransactionId: String?,
     val createdAt: String,
@@ -407,6 +415,8 @@ class AndroidExpectedCore internal constructor(
       "description",
       "merchant",
       "category_id",
+      "origin_occurrence_id",
+      "origin_recurring_movement_id",
       "status",
       "resolved_transaction_id",
       "created_at",

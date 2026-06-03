@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import type { ExpectedMovementItem } from '../../expected/application/expected.port';
 import type { SchedulingMovementItem } from '../../scheduling/application/scheduling.port';
 import { filterProjectedScheduledMovements } from './monthlyMovementProjection';
 
@@ -28,36 +27,20 @@ function scheduledMovement(id: string): SchedulingMovementItem {
   };
 }
 
-function expectedMovement(originOccurrenceId?: string): ExpectedMovementItem {
-  return {
-    id: 'expected-1',
-    accountId: 'account-1',
-    type: 'expense',
-    amount: '25.00',
-    currency: 'EUR',
-    expectedAt: '2026-05-10T00:00:00.000Z',
-    description: 'Internet',
-    merchant: 'Provider',
-    categoryId: undefined,
-    originOccurrenceId,
-    splitItems: [],
-    status: 'pending',
-    createdAt: '2026-05-01T00:00:00.000Z',
-    updatedAt: '2026-05-01T00:00:00.000Z',
-  };
-}
-
 describe('monthlyMovementProjection', () => {
-  it('removes scheduled projections already represented by an expected occurrence', () => {
-    const scheduled = scheduledMovement('scheduled-1');
+  it('removes confirmation-required schedules because their occurrences belong in expected', () => {
+    const scheduled = {
+      ...scheduledMovement('scheduled-1'),
+      reviewPolicy: 'require_user_confirmation' as const,
+    };
 
-    expect(filterProjectedScheduledMovements([scheduled], [expectedMovement('scheduled-1')])).toEqual([]);
+    expect(filterProjectedScheduledMovements([scheduled])).toEqual([]);
   });
 
-  it('keeps equal-looking movements when there is no explicit occurrence relation', () => {
+  it('keeps automatic schedules visible', () => {
     const scheduled = scheduledMovement('scheduled-1');
 
-    expect(filterProjectedScheduledMovements([scheduled], [expectedMovement()])).toEqual([scheduled]);
+    expect(filterProjectedScheduledMovements([scheduled])).toEqual([scheduled]);
   });
 
   it('does not show inactive scheduled movements', () => {
@@ -66,6 +49,6 @@ describe('monthlyMovementProjection', () => {
       status: 'deactivated' as const,
     };
 
-    expect(filterProjectedScheduledMovements([scheduled], [])).toEqual([]);
+    expect(filterProjectedScheduledMovements([scheduled])).toEqual([]);
   });
 });

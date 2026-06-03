@@ -315,13 +315,17 @@ export class CoreAdapterWeb implements CorePort {
   async schedulingCreateMovement(
     input: SchedulingCreateMovementInput,
   ): Promise<SchedulingCreateMovementResult> {
-    return this.schedulingService.createMovement(input);
+    const result = await this.schedulingService.createMovement(input);
+    await this.projectNextConfirmationRequiredOccurrence(result.id);
+    return result;
   }
 
   async schedulingUpdateMovement(
     input: SchedulingUpdateMovementInput,
   ): Promise<SchedulingUpdateMovementResult> {
-    return this.schedulingService.updateMovement(input);
+    const result = await this.schedulingService.updateMovement(input);
+    await this.projectNextConfirmationRequiredOccurrence(result.id);
+    return result;
   }
 
   async schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void> {
@@ -353,11 +357,19 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async expectedResolveMovement(input: ExpectedResolveMovementInput): Promise<void> {
-    return this.expectedMovementsService.resolveMovement(input);
+    const movement = this.state.expectedMovements.find((item) => item.id === input.expectedMovementId);
+    await this.expectedMovementsService.resolveMovement(input);
+    if (movement?.originRecurringMovementId) {
+      await this.projectNextConfirmationRequiredOccurrence(movement.originRecurringMovementId);
+    }
   }
 
   async expectedDismissMovement(input: ExpectedDismissMovementInput): Promise<void> {
-    return this.expectedMovementsService.dismissMovement(input);
+    const movement = this.state.expectedMovements.find((item) => item.id === input.expectedMovementId);
+    await this.expectedMovementsService.dismissMovement(input);
+    if (movement?.originRecurringMovementId) {
+      await this.projectNextConfirmationRequiredOccurrence(movement.originRecurringMovementId);
+    }
   }
 
   async movementsExportBackup(): Promise<MovementsBackupExportResult> {
@@ -386,5 +398,25 @@ export class CoreAdapterWeb implements CorePort {
 
   async movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult> {
     return this.movementsService.listScheduled(input);
+  }
+
+  private async projectNextConfirmationRequiredOccurrence(recurringMovementId: string): Promise<void> {
+    const occurrence = this.schedulingService.projectNextConfirmationRequiredOccurrence(recurringMovementId);
+    if (!occurrence || occurrence.movement.type === 'transfer') {
+      return;
+    }
+    await this.expectedMovementsService.createMovement({
+      accountId: occurrence.movement.sourceAccountId,
+      type: occurrence.movement.type,
+      amount: occurrence.movement.amount,
+      currency: occurrence.movement.currency,
+      expectedAt: occurrence.dueAt,
+      description: occurrence.movement.description,
+      merchant: occurrence.movement.merchant,
+      categoryId: occurrence.movement.categoryId,
+      splitItems: occurrence.movement.splitItems,
+      originOccurrenceId: occurrence.id,
+      originRecurringMovementId: occurrence.recurringMovementId,
+    });
   }
 }

@@ -156,7 +156,7 @@ describe('transaction submission plan', () => {
     expect(input.ledgerTransactionCommands.recordExpense).not.toHaveBeenCalled();
   });
 
-  it('keeps expected and recurring as combined side effects', async () => {
+  it('creates expected recurring expenses through a confirmation-required schedule', async () => {
     const input = {
       ...baseInput(),
       recurrenceEnabled: true,
@@ -168,8 +168,12 @@ describe('transaction submission plan', () => {
       postedTransactionId: '',
     });
 
-    expect(input.ports.expected.expectedCreateMovement).toHaveBeenCalledTimes(1);
-    expect(input.ports.scheduling.schedulingCreateMovement).toHaveBeenCalledTimes(1);
+    expect(input.ports.expected.expectedCreateMovement).not.toHaveBeenCalled();
+    expect(input.ports.scheduling.schedulingCreateMovement).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'expense',
+      reviewPolicy: 'require_user_confirmation',
+      scheduleKind: 'recurring',
+    }));
     expect(input.ledgerTransactionCommands.recordExpense).not.toHaveBeenCalled();
   });
 });

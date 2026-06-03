@@ -24,6 +24,7 @@ export type ScheduledMovementView = {
   startAt: string;
   nextDueAt?: string;
   zoneId: string;
+  reviewPolicy?: 'automatic' | 'require_user_confirmation';
   generatedOccurrences: number;
   splitItems: Array<{ id: string; name: string; amount: string }>;
   rule: RecurrenceRuleView;
@@ -46,6 +47,7 @@ export type ExpectedMovementView = {
   merchant?: string;
   categoryId?: string;
   originOccurrenceId?: string;
+  originRecurringMovementId?: string;
   splitItems: Array<{ id: string; name: string; amount: string }>;
   status: 'pending' | 'resolved' | 'dismissed';
   resolvedTransactionId?: string;

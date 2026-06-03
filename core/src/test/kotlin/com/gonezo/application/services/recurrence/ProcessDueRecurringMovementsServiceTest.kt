@@ -11,6 +11,7 @@ import com.gonezo.recurrence.domain.RecurringMovement
 import com.gonezo.recurrence.domain.RecurringMovementId
 import com.gonezo.recurrence.domain.RecurringMovementOccurrence
 import com.gonezo.recurrence.domain.RecurringMovementStatus
+import com.gonezo.recurrence.domain.RecurringMovementReviewPolicy
 import com.gonezo.recurrence.domain.RecurringMovementType
 import com.gonezo.recurrence.domain.ports.RecurrenceOutboxRepository
 import com.gonezo.recurrence.domain.ports.RecurringMovementOccurrenceRepository
@@ -69,6 +70,7 @@ class ProcessDueRecurringMovementsServiceTest {
     assertThat(event.occurrenceId).isEqualTo(occurrences.first().id.toString())
     assertThat(event.eventId).isNotNull()
     assertThat(event.categoryId).isEqualTo("cat-streaming")
+    assertThat(event.reviewPolicy).isEqualTo(RecurringMovementReviewPolicy.REQUIRE_USER_CONFIRMATION.value)
   }
 
   @Test
@@ -130,6 +132,7 @@ class ProcessDueRecurringMovementsServiceTest {
       description = "Streaming",
       merchant = "Streaming",
       categoryId = "cat-streaming",
+      reviewPolicy = RecurringMovementReviewPolicy.REQUIRE_USER_CONFIRMATION,
       rule = RecurrenceRule(
         frequency = com.gonezo.recurrence.domain.RecurrenceFrequency.DAILY,
         interval = 1,

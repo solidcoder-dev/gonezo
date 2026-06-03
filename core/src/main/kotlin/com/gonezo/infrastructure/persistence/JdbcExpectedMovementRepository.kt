@@ -21,11 +21,11 @@ class JdbcExpectedMovementRepository(
     val sql = """
       insert into expected_movements (
         id, account_id, movement_type, amount, currency, expected_at,
-        description, merchant, category_id, origin_occurrence_id, status, resolved_transaction_id,
+        description, merchant, category_id, origin_occurrence_id, origin_recurring_movement_id, status, resolved_transaction_id,
         created_at, updated_at, resolved_at, dismissed_at
       ) values (
         :id, :account_id, :movement_type, :amount, :currency, :expected_at,
-        :description, :merchant, :category_id, :origin_occurrence_id, :status, :resolved_transaction_id,
+        :description, :merchant, :category_id, :origin_occurrence_id, :origin_recurring_movement_id, :status, :resolved_transaction_id,
         :created_at, :updated_at, :resolved_at, :dismissed_at
       )
       on conflict(id) do update set
@@ -38,6 +38,7 @@ class JdbcExpectedMovementRepository(
         merchant = excluded.merchant,
         category_id = excluded.category_id,
         origin_occurrence_id = excluded.origin_occurrence_id,
+        origin_recurring_movement_id = excluded.origin_recurring_movement_id,
         status = excluded.status,
         resolved_transaction_id = excluded.resolved_transaction_id,
         created_at = excluded.created_at,
@@ -131,6 +132,7 @@ class JdbcExpectedMovementRepository(
       merchant = rs.getString("merchant"),
       categoryId = rs.getString("category_id"),
       originOccurrenceId = rs.getString("origin_occurrence_id"),
+      originRecurringMovementId = rs.getString("origin_recurring_movement_id"),
       status = ExpectedMovementStatus.from(rs.getString("status")),
       resolvedTransactionId = rs.getString("resolved_transaction_id"),
       createdAt = Instant.parse(rs.getString("created_at")),
@@ -152,6 +154,7 @@ class JdbcExpectedMovementRepository(
       .addValue("merchant", movement.merchant)
       .addValue("category_id", movement.categoryId)
       .addValue("origin_occurrence_id", movement.originOccurrenceId)
+      .addValue("origin_recurring_movement_id", movement.originRecurringMovementId)
       .addValue("status", movement.status.value)
       .addValue("resolved_transaction_id", movement.resolvedTransactionId)
       .addValue("created_at", movement.createdAt.toString())
@@ -170,6 +173,7 @@ class JdbcExpectedMovementRepository(
     merchant = merchant,
     categoryId = categoryId,
     originOccurrenceId = originOccurrenceId,
+    originRecurringMovementId = originRecurringMovementId,
     splitItems = loadSplitItems(id.toString()),
     status = status,
     resolvedTransactionId = resolvedTransactionId,
@@ -210,6 +214,7 @@ class JdbcExpectedMovementRepository(
     val merchant: String?,
     val categoryId: String?,
     val originOccurrenceId: String?,
+    val originRecurringMovementId: String?,
     val status: ExpectedMovementStatus,
     val resolvedTransactionId: String?,
     val createdAt: Instant,

@@ -4,6 +4,7 @@ import android.content.Context;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import com.gonezo.multiplatform.core.AndroidRecurringCore;
+import com.gonezo.multiplatform.core.AndroidRecurringExpectedRuntime;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +35,7 @@ final class RecurringPluginHandler {
           nullIfBlank(call.getString("description")),
           nullIfBlank(call.getString("merchant")),
           nullIfBlank(call.getString("categoryId")),
+          call.getString("reviewPolicy", "automatic"),
           toJsonStringOrNull(call.getArray("splitItems")),
           toRecurringRuleInput(call.getObject("rule")),
           toRecurrenceEndInput(call.getObject("recurrenceEnd")),
@@ -41,6 +43,7 @@ final class RecurringPluginHandler {
           defaultZoneId(call.getString("zoneId", "UTC"))
         )
       );
+      AndroidRecurringExpectedRuntime.getInstance(context).projectNext(id.toString());
 
       JSObject result = new JSObject();
       result.put("id", id.toString());
@@ -66,6 +69,7 @@ final class RecurringPluginHandler {
           nullIfBlank(call.getString("description")),
           nullIfBlank(call.getString("merchant")),
           nullIfBlank(call.getString("categoryId")),
+          call.getString("reviewPolicy"),
           toJsonStringOrNull(call.getArray("splitItems")),
           toRecurringRuleInput(call.getObject("rule")),
           toRecurrenceEndInput(call.getObject("recurrenceEnd")),
@@ -73,6 +77,7 @@ final class RecurringPluginHandler {
           defaultZoneId(call.getString("zoneId", "UTC"))
         )
       );
+      AndroidRecurringExpectedRuntime.getInstance(context).projectNext(id.toString());
 
       JSObject result = new JSObject();
       result.put("id", id.toString());
@@ -172,6 +177,7 @@ final class RecurringPluginHandler {
     result.put("description", movement.getDescription());
     result.put("merchant", movement.getMerchant());
     result.put("categoryId", movement.getCategoryId());
+    result.put("reviewPolicy", movement.getReviewPolicy());
     JSONArray splitItems = new JSONArray();
     for (AndroidRecurringCore.SplitItem item : movement.getSplitItems()) {
       JSObject split = new JSObject();

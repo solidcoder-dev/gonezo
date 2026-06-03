@@ -67,6 +67,12 @@ export type WebRecurringMovement = RecurrenceMovementItem & {
 
 export type WebExpectedMovement = ExpectedMovementItem;
 
+export type WebRecurringMovementOccurrence = {
+  id: string;
+  recurringMovementId: string;
+  dueAt: string;
+};
+
 export type WebAppState = {
   supportedCurrencies: readonly string[];
   ledgerAccounts: WebLedgerAccount[];
@@ -76,6 +82,7 @@ export type WebAppState = {
   taxonomyTransactionTags: Map<string, string[]>;
   mobillsImportFingerprintToTransactionId: Map<string, string>;
   recurringMovements: WebRecurringMovement[];
+  recurringMovementOccurrences: WebRecurringMovementOccurrence[];
   expectedMovements: WebExpectedMovement[];
   defaultAccountId: string | null;
 };
@@ -103,6 +110,7 @@ export function createWebAppState(overrides: Partial<WebAppState> = {}): WebAppS
     taxonomyTransactionTags: new Map(),
     mobillsImportFingerprintToTransactionId: new Map(),
     recurringMovements: [],
+    recurringMovementOccurrences: [],
     expectedMovements: [],
     defaultAccountId: null,
     ...overrides,

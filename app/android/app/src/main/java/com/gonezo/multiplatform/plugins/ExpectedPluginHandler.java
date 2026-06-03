@@ -4,6 +4,8 @@ import android.content.Context;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import com.gonezo.multiplatform.core.AndroidExpectedCore;
+import com.gonezo.multiplatform.core.AndroidRecurringExpectedRuntime;
+import java.time.Instant;
 import java.util.UUID;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -26,6 +28,8 @@ final class ExpectedPluginHandler {
         call.getString("description"),
         call.getString("merchant"),
         call.getString("categoryId"),
+        call.getString("originOccurrenceId"),
+        call.getString("originRecurringMovementId"),
         toJsonStringOrNull(call.getArray("splitItems"))
       );
       JSObject result = new JSObject();
@@ -80,10 +84,18 @@ final class ExpectedPluginHandler {
 
   void expectedResolveMovement(PluginCall call) {
     try {
+      String resolvedAt = call.getString("resolvedAt", Instant.now().toString());
+      String expectedMovementId = call.getString("expectedMovementId");
+      String transactionId = call.getString("transactionId");
       AndroidExpectedCore.getInstance(context).resolveMovement(
-        call.getString("expectedMovementId"),
-        call.getString("transactionId"),
-        call.getString("resolvedAt")
+        expectedMovementId,
+        transactionId,
+        resolvedAt
+      );
+      AndroidRecurringExpectedRuntime.getInstance(context).continueAfterResolution(
+        expectedMovementId,
+        transactionId,
+        resolvedAt
       );
       call.resolve();
     } catch (Exception ex) {
@@ -93,10 +105,13 @@ final class ExpectedPluginHandler {
 
   void expectedDismissMovement(PluginCall call) {
     try {
+      String dismissedAt = call.getString("dismissedAt", Instant.now().toString());
+      String expectedMovementId = call.getString("expectedMovementId");
       AndroidExpectedCore.getInstance(context).dismissMovement(
-        call.getString("expectedMovementId"),
-        call.getString("dismissedAt")
+        expectedMovementId,
+        dismissedAt
       );
+      AndroidRecurringExpectedRuntime.getInstance(context).continueAfterDismissal(expectedMovementId, dismissedAt);
       call.resolve();
     } catch (Exception ex) {
       call.reject(ex.getMessage());
@@ -114,7 +129,8 @@ final class ExpectedPluginHandler {
     result.put("description", movement.getDescription());
     result.put("merchant", movement.getMerchant());
     result.put("categoryId", movement.getCategoryId());
-    result.put("originOccurrenceId", JSONObject.NULL);
+    result.put("originOccurrenceId", movement.getOriginOccurrenceId());
+    result.put("originRecurringMovementId", movement.getOriginRecurringMovementId());
     JSONArray splitItems = new JSONArray();
     for (AndroidExpectedCore.SplitItem item : movement.getSplitItems()) {
       JSObject split = new JSObject();

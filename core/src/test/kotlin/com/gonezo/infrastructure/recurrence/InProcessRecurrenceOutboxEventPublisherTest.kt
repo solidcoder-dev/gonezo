@@ -51,6 +51,7 @@ class InProcessRecurrenceOutboxEventPublisherTest {
       exchangeRate = null,
       description = "Recurring",
       merchant = "Merchant",
+      reviewPolicy = "require_user_confirmation",
     )
 
     publisher.publish(
@@ -71,6 +72,55 @@ class InProcessRecurrenceOutboxEventPublisherTest {
     assertThat(captured).hasSize(1)
     assertThat(captured.first().handledAt).isEqualTo(Instant.parse("2026-06-10T09:02:00Z"))
     assertThat(captured.first().event.occurrenceId).isEqualTo(event.occurrenceId)
+  }
+
+  @Test
+  fun `ignores automatic recurring due event for expected handler`() {
+    val captured = mutableListOf<HandleRecurringMovementDueForExpectedCommand>()
+    val uc = object : HandleRecurringMovementDueForExpectedUC {
+      override fun execute(command: HandleRecurringMovementDueForExpectedCommand): HandleRecurringMovementDueForExpectedResult {
+        captured += command
+        return HandleRecurringMovementDueForExpectedResult(
+          expectedMovementId = ExpectedMovementId.random(),
+          created = true,
+        )
+      }
+    }
+    val publisher = InProcessRecurrenceOutboxEventPublisher(uc)
+    val event = RecurringMovementDueIntegrationEvent(
+      eventId = UUID.randomUUID(),
+      recurringMovementId = UUID.randomUUID().toString(),
+      occurrenceId = UUID.randomUUID().toString(),
+      dueAt = "2026-06-10T09:00:00Z",
+      movementType = "expense",
+      sourceAccountId = UUID.randomUUID().toString(),
+      targetAccountId = null,
+      amount = "15.00",
+      currency = "USD",
+      destinationAmount = null,
+      destinationCurrency = null,
+      exchangeRate = null,
+      description = "Recurring",
+      merchant = "Merchant",
+      reviewPolicy = "automatic",
+    )
+
+    publisher.publish(
+      RecurrenceOutboxMessage(
+        id = UUID.randomUUID(),
+        aggregateId = RecurringMovementId.random(),
+        occurrenceId = UUID.fromString(event.occurrenceId),
+        eventType = RecurringMovementDueIntegrationEvent.EVENT_TYPE,
+        payloadJson = event.toJson(),
+        status = RecurrenceOutboxStatus.PENDING,
+        attempts = 0,
+        lastError = null,
+        createdAt = Instant.parse("2026-06-10T09:00:01Z"),
+        publishedAt = null,
+      ),
+    )
+
+    assertThat(captured).isEmpty()
   }
 
   @Test

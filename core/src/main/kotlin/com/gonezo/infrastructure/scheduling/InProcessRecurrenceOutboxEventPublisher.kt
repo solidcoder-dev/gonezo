@@ -5,6 +5,7 @@ import com.gonezo.application.orchestration.HandleRecurringMovementDueForExpecte
 import com.gonezo.recurrence.application.RecurrenceOutboxEventPublisher
 import com.gonezo.recurrence.application.RecurringMovementDueIntegrationEvent
 import com.gonezo.recurrence.domain.RecurrenceOutboxMessage
+import com.gonezo.recurrence.domain.RecurringMovementReviewPolicy
 import java.time.Clock
 
 class InProcessRecurrenceOutboxEventPublisher(
@@ -14,12 +15,18 @@ class InProcessRecurrenceOutboxEventPublisher(
   override fun publish(message: RecurrenceOutboxMessage) {
     when (message.eventType) {
       RecurringMovementDueIntegrationEvent.EVENT_TYPE -> {
-        handleRecurringMovementDueForExpectedUC.execute(
-          HandleRecurringMovementDueForExpectedCommand(
-            event = RecurringMovementDueIntegrationEvent.fromJson(message.payloadJson),
-            handledAt = clock.instant(),
-          ),
-        )
+        val event = RecurringMovementDueIntegrationEvent.fromJson(message.payloadJson)
+        when (RecurringMovementReviewPolicy.from(event.reviewPolicy)) {
+          RecurringMovementReviewPolicy.AUTOMATIC -> Unit
+          RecurringMovementReviewPolicy.REQUIRE_USER_CONFIRMATION -> {
+            handleRecurringMovementDueForExpectedUC.execute(
+              HandleRecurringMovementDueForExpectedCommand(
+                event = event,
+                handledAt = clock.instant(),
+              ),
+            )
+          }
+        }
       }
 
       else -> throw IllegalArgumentException("Unsupported recurrence outbox event type: ${message.eventType}")

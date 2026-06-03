@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 18;
+  private static final int DB_VERSION = 19;
 
   CoreDatabase(Context context) {
     super(context, DB_NAME, null, DB_VERSION);
@@ -66,6 +66,14 @@ public final class CoreDatabase extends SQLiteOpenHelper {
 
     if (oldVersion < 18) {
       createLedgerIndexes(db);
+    }
+
+    if (oldVersion >= 12 && oldVersion < 19) {
+      addRecurringMovementReviewPolicyColumn(db);
+    }
+
+    if (oldVersion >= 14 && oldVersion < 19) {
+      addExpectedMovementOriginColumns(db);
     }
   }
 
@@ -250,6 +258,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
         "description text," +
         "merchant text," +
         "category_id text," +
+        "review_policy text not null default 'automatic'," +
         "rule_frequency text not null," +
         "rule_interval integer not null," +
         "rule_weekdays text," +
@@ -341,6 +350,8 @@ public final class CoreDatabase extends SQLiteOpenHelper {
         "description text," +
         "merchant text," +
         "category_id text," +
+        "origin_occurrence_id text," +
+        "origin_recurring_movement_id text," +
         "status text not null," +
         "resolved_transaction_id text," +
         "created_at text not null," +
@@ -359,6 +370,33 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     db.execSQL(
       "create index if not exists idx_expected_movements_resolved_transaction " +
         "on expected_movements(resolved_transaction_id);"
+    );
+
+    db.execSQL(
+      "create unique index if not exists uq_expected_movements_origin_occurrence " +
+        "on expected_movements(origin_occurrence_id) where origin_occurrence_id is not null;"
+    );
+
+    db.execSQL(
+      "create index if not exists idx_expected_movements_origin_recurring " +
+        "on expected_movements(origin_recurring_movement_id) where origin_recurring_movement_id is not null;"
+    );
+  }
+
+  private static void addRecurringMovementReviewPolicyColumn(SQLiteDatabase db) {
+    db.execSQL("alter table recurring_movements add column review_policy text not null default 'automatic';");
+  }
+
+  private static void addExpectedMovementOriginColumns(SQLiteDatabase db) {
+    db.execSQL("alter table expected_movements add column origin_occurrence_id text;");
+    db.execSQL("alter table expected_movements add column origin_recurring_movement_id text;");
+    db.execSQL(
+      "create unique index if not exists uq_expected_movements_origin_occurrence " +
+        "on expected_movements(origin_occurrence_id) where origin_occurrence_id is not null;"
+    );
+    db.execSQL(
+      "create index if not exists idx_expected_movements_origin_recurring " +
+        "on expected_movements(origin_recurring_movement_id) where origin_recurring_movement_id is not null;"
     );
   }
 

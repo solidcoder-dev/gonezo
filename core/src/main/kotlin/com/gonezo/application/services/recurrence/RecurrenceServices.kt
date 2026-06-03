@@ -34,6 +34,7 @@ class CreateRecurringMovementService(
       description = command.description,
       merchant = command.merchant,
       categoryId = command.categoryId,
+      reviewPolicy = command.reviewPolicy,
       splitItems = command.splitItems,
       rule = command.rule,
       recurrenceEnd = command.recurrenceEnd,
@@ -74,6 +75,7 @@ class ListRecurringMovementsByAccountService(
         description = movement.description,
         merchant = movement.merchant,
         categoryId = movement.categoryId,
+        reviewPolicy = movement.reviewPolicy.value,
         splitItems = movement.splitItems.map {
           RecurringMovementView.SplitItem(
             id = it.id,
@@ -138,6 +140,7 @@ class ProcessDueRecurringMovementsService(
                 description = movement.description,
                 merchant = movement.merchant,
                 categoryId = movement.categoryId,
+                reviewPolicy = movement.reviewPolicy.value,
                 splitItems = movement.splitItems.map {
                   RecurringMovementDueIntegrationEvent.SplitItem(
                     id = it.id,

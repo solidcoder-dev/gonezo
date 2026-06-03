@@ -82,7 +82,6 @@ export function useMonthlyMovementsOverviewModel(input: UseMonthlyMovementsOverv
     });
     const visibleScheduledItems = filterProjectedScheduledMovements(
       overview.scheduledPreview.items,
-      overview.expectedPreview.items,
     );
 
     setTransactions(overview.executedPage.content);

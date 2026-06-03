@@ -1,5 +1,7 @@
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
+export type RecurrenceReviewPolicy = 'automatic' | 'require_user_confirmation';
+
 export type RecurrenceMonthlyPattern = 'day_of_month' | 'nth_weekday';
 
 export type RecurrenceRuleInput = {
@@ -44,6 +46,7 @@ export type RecurrenceCreateRecurringMovementInput = {
   recurrenceEnd: RecurrenceEndInput;
   startAt: string;
   zoneId: string;
+  reviewPolicy?: RecurrenceReviewPolicy;
 };
 
 export type RecurrenceCreateRecurringMovementResult = {
@@ -75,6 +78,7 @@ export type RecurrenceMovementItem = {
   startAt: string;
   nextDueAt?: string;
   zoneId: string;
+  reviewPolicy?: RecurrenceReviewPolicy;
   generatedOccurrences: number;
   splitItems: Array<{ id: string; name: string; amount: string }>;
   rule: RecurrenceRuleInput;

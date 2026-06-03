@@ -181,6 +181,29 @@ export function firstDueAtForWebRecurrence(input: FirstDueAtInput): string | und
   return candidate.toISOString();
 }
 
+export function nextDueAtForWebRecurrence(input: FirstDueAtInput & { previousDueAt: string }): string | undefined {
+  const previousDue = new Date(input.previousDueAt);
+  if (Number.isNaN(previousDue.getTime())) {
+    throw new Error('previousDueAt must be a valid ISO datetime');
+  }
+  const rule = normalizeWebRecurrenceRule(input.rule);
+  const frequency = resolveRecurrenceFrequency(rule);
+  const nextAnchor = new Date(previousDue);
+
+  if (frequency === 'daily') {
+    nextAnchor.setDate(nextAnchor.getDate() + (rule.interval ?? 1));
+  } else if (frequency === 'yearly') {
+    nextAnchor.setFullYear(nextAnchor.getFullYear() + (rule.interval ?? 1));
+  } else {
+    nextAnchor.setDate(nextAnchor.getDate() + 1);
+  }
+
+  return firstDueAtForWebRecurrence({
+    ...input,
+    startAt: nextAnchor.toISOString(),
+  });
+}
+
 function nthWeekdayOfMonth(year: number, monthZeroBased: number, weekdayIso: number, ordinal: number): Date {
   const firstOfMonth = new Date(year, monthZeroBased, 1);
   const jsTargetDay = weekdayIso % 7;

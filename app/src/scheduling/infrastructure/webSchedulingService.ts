@@ -22,6 +22,7 @@ import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
 import type { WebRuntimeDependencies } from '../../core/infrastructure/webRuntimeDependencies';
 import {
   firstDueAtForWebRecurrence,
+  nextDueAtForWebRecurrence,
   normalizeWebRecurrenceEnd,
   normalizeWebRecurrenceRule,
 } from './webRecurrence';
@@ -34,6 +35,13 @@ export type WebSchedulingServiceOptions = {
   state: WebAppState;
   dependencies: WebRuntimeDependencies;
   ledger: SchedulingLedgerPort;
+};
+
+export type WebConfirmationRequiredOccurrence = {
+  id: string;
+  recurringMovementId: string;
+  dueAt: string;
+  movement: WebRecurringMovement;
 };
 
 export class WebSchedulingService {
@@ -121,6 +129,7 @@ export class WebSchedulingService {
       startAt: new Date(input.startAt).toISOString(),
       nextDueAt,
       zoneId: input.zoneId.trim(),
+      reviewPolicy: input.reviewPolicy ?? 'automatic',
       generatedOccurrences: 0,
       rule: normalizedRule,
       recurrenceEnd: normalizedEnd,
@@ -129,6 +138,56 @@ export class WebSchedulingService {
     };
     this.state.recurringMovements.push(movement);
     return { id };
+  }
+
+  projectNextConfirmationRequiredOccurrence(
+    recurringMovementId: string,
+  ): WebConfirmationRequiredOccurrence | undefined {
+    const movement = this.state.recurringMovements.find((item) => item.id === recurringMovementId);
+    if (!movement || movement.status !== 'active' || movement.reviewPolicy !== 'require_user_confirmation') {
+      return undefined;
+    }
+    const pendingExpected = this.state.expectedMovements.find((item) => (
+      item.originRecurringMovementId === movement.id && item.status === 'pending'
+    ));
+    if (pendingExpected) {
+      return undefined;
+    }
+    const dueAt = movement.nextDueAt;
+    if (!dueAt) {
+      return undefined;
+    }
+    const existing = this.state.recurringMovementOccurrences.find((item) => (
+      item.recurringMovementId === movement.id && item.dueAt === dueAt
+    ));
+    if (existing) {
+      return { ...existing, movement: { ...movement } };
+    }
+
+    const occurrence = {
+      id: this.nextId(),
+      recurringMovementId: movement.id,
+      dueAt,
+    };
+    this.state.recurringMovementOccurrences.push(occurrence);
+    const generatedOccurrences = movement.generatedOccurrences + 1;
+    const completedByCount = movement.recurrenceEnd.kind === 'after_occurrences'
+      && generatedOccurrences >= movement.recurrenceEnd.afterOccurrences;
+    const nextDueAt = completedByCount
+      ? undefined
+      : nextDueAtForWebRecurrence({
+        startAt: movement.startAt,
+        previousDueAt: dueAt,
+        zoneId: movement.zoneId,
+        rule: movement.rule,
+        recurrenceEnd: movement.recurrenceEnd,
+      });
+    movement.generatedOccurrences = generatedOccurrences;
+    movement.nextDueAt = nextDueAt;
+    movement.status = nextDueAt ? 'active' : 'completed';
+    movement.completedAt = nextDueAt ? undefined : this.nowIso();
+
+    return { ...occurrence, movement: { ...movement } };
   }
 
   async deactivateRecurringMovement(input: RecurrenceDeactivateRecurringMovementInput): Promise<void> {
@@ -224,6 +283,7 @@ export class WebSchedulingService {
     movement.recurrenceEnd = normalizedEnd;
     movement.startAt = new Date(input.startAt).toISOString();
     movement.zoneId = input.zoneId.trim();
+    movement.reviewPolicy = input.reviewPolicy ?? movement.reviewPolicy ?? 'automatic';
     movement.nextDueAt = nextDueAt;
     movement.deactivatedAt = undefined;
     movement.completedAt = nextDueAt ? undefined : this.nowIso();

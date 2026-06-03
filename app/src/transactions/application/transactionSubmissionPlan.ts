@@ -229,7 +229,11 @@ async function handleExpectedMovement(
   context: TransactionSubmissionContext,
   state: TransactionSubmissionState,
 ) {
-  if (!context.movementExpected || (context.composerMode !== 'expense' && context.composerMode !== 'income')) {
+  if (
+    !context.movementExpected
+    || context.recurrenceEnabled
+    || (context.composerMode !== 'expense' && context.composerMode !== 'income')
+  ) {
     return;
   }
 
@@ -287,6 +291,7 @@ async function handleRecurringIncomeExpense(
     startAt: context.occurredAt,
     zoneId: context.clock.resolveTimeZoneId(),
     scheduleKind: 'recurring',
+    reviewPolicy: context.movementExpected ? 'require_user_confirmation' : 'automatic',
   });
   state.recorded = true;
 }

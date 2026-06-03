@@ -3,6 +3,124 @@ import { CoreAdapterWeb } from './coreAdapterWeb';
 import { createWebAppState } from './webAppState';
 
 describe('CoreAdapterWeb state and effects boundaries', () => {
+  it('projects the first confirmation-required recurring occurrence as expected', async () => {
+    let nextId = 0;
+    const core = new CoreAdapterWeb({
+      state: createWebAppState(),
+      dependencies: {
+        clock: { nowIso: () => '2026-06-02T09:00:00.000Z' },
+        idGenerator: { nextId: () => `id-${++nextId}` },
+        backupDownloader: { downloadJson: vi.fn() },
+      },
+    });
+    const account = await core.ledgerOpenAccount({
+      name: 'Wallet',
+      type: 'cash',
+      currency: 'EUR',
+    });
+
+    const scheduled = await core.schedulingCreateMovement({
+      type: 'expense',
+      sourceAccountId: account.id,
+      amount: '25.00',
+      currency: 'EUR',
+      description: 'Internet',
+      merchant: 'Provider',
+      rule: { frequency: 'monthly', interval: 1, dayOfMonth: 10 },
+      recurrenceEnd: { kind: 'never' },
+      startAt: '2026-06-10T09:00:00.000Z',
+      zoneId: 'UTC',
+      scheduleKind: 'recurring',
+      reviewPolicy: 'require_user_confirmation',
+    });
+    await core.schedulingUpdateMovement({
+      recurringMovementId: scheduled.id,
+      type: 'expense',
+      sourceAccountId: account.id,
+      amount: '25.00',
+      currency: 'EUR',
+      description: 'Internet',
+      merchant: 'Provider',
+      rule: { frequency: 'monthly', interval: 1, dayOfMonth: 10 },
+      recurrenceEnd: { kind: 'never' },
+      startAt: '2026-06-10T09:00:00.000Z',
+      zoneId: 'UTC',
+      scheduleKind: 'recurring',
+      reviewPolicy: 'require_user_confirmation',
+    });
+
+    await expect(core.expectedListMovements({ accountId: account.id })).resolves.toMatchObject({
+      items: [{
+        expectedAt: '2026-06-10T09:00:00.000Z',
+        originRecurringMovementId: scheduled.id,
+        originOccurrenceId: expect.any(String),
+        status: 'pending',
+      }],
+    });
+    await expect(core.schedulingListMovements({ sourceAccountId: account.id })).resolves.toMatchObject({
+      items: [{
+        id: scheduled.id,
+        reviewPolicy: 'require_user_confirmation',
+        generatedOccurrences: 1,
+        nextDueAt: '2026-07-10T09:00:00.000Z',
+      }],
+    });
+  });
+
+  it('projects the first expected occurrence when an automatic schedule starts requiring confirmation', async () => {
+    let nextId = 0;
+    const core = new CoreAdapterWeb({
+      state: createWebAppState(),
+      dependencies: {
+        clock: { nowIso: () => '2026-06-02T09:00:00.000Z' },
+        idGenerator: { nextId: () => `id-${++nextId}` },
+        backupDownloader: { downloadJson: vi.fn() },
+      },
+    });
+    const account = await core.ledgerOpenAccount({
+      name: 'Wallet',
+      type: 'cash',
+      currency: 'EUR',
+    });
+    const scheduled = await core.schedulingCreateMovement({
+      type: 'expense',
+      sourceAccountId: account.id,
+      amount: '25.00',
+      currency: 'EUR',
+      description: 'Internet',
+      merchant: 'Provider',
+      rule: { frequency: 'monthly', interval: 1, dayOfMonth: 10 },
+      recurrenceEnd: { kind: 'never' },
+      startAt: '2026-06-10T09:00:00.000Z',
+      zoneId: 'UTC',
+      scheduleKind: 'recurring',
+    });
+
+    await core.schedulingUpdateMovement({
+      recurringMovementId: scheduled.id,
+      type: 'expense',
+      sourceAccountId: account.id,
+      amount: '25.00',
+      currency: 'EUR',
+      description: 'Internet',
+      merchant: 'Provider',
+      rule: { frequency: 'monthly', interval: 1, dayOfMonth: 10 },
+      recurrenceEnd: { kind: 'never' },
+      startAt: '2026-06-10T09:00:00.000Z',
+      zoneId: 'UTC',
+      scheduleKind: 'recurring',
+      reviewPolicy: 'require_user_confirmation',
+    });
+
+    await expect(core.expectedListMovements({ accountId: account.id })).resolves.toMatchObject({
+      items: [{
+        expectedAt: '2026-06-10T09:00:00.000Z',
+        originRecurringMovementId: scheduled.id,
+        originOccurrenceId: expect.any(String),
+      }],
+    });
+  });
+
   it('isolates in-memory state when a state instance is injected', async () => {
     const first = new CoreAdapterWeb({ state: createWebAppState() });
     const second = new CoreAdapterWeb({ state: createWebAppState() });

@@ -19,6 +19,7 @@ import com.gonezo.ledger.domain.AccountId
 import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceCommand
 import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceStatus
 import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceUC
+import com.gonezo.recurrence.domain.RecurringMovementReviewPolicy
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
@@ -30,6 +31,9 @@ class HandleRecurringMovementDueForExpectedService(
   override fun execute(command: HandleRecurringMovementDueForExpectedCommand): HandleRecurringMovementDueForExpectedResult {
     val occurrenceId = command.event.occurrenceId.trim()
     require(occurrenceId.isNotBlank()) { "occurrenceId is required" }
+    require(command.event.reviewPolicy == RecurringMovementReviewPolicy.REQUIRE_USER_CONFIRMATION.value) {
+      "Recurring movement does not require expected confirmation"
+    }
 
     val existing = expectedMovementRepository.findByOriginOccurrenceId(occurrenceId)
     if (existing != null) {
@@ -59,6 +63,7 @@ class HandleRecurringMovementDueForExpectedService(
           merchant = command.event.merchant,
           categoryId = command.event.categoryId,
           originOccurrenceId = occurrenceId,
+          originRecurringMovementId = command.event.recurringMovementId,
           splitItems = command.event.splitItems.map {
             com.gonezo.expected.domain.ExpectedMovement.SplitItem(
               id = it.id,

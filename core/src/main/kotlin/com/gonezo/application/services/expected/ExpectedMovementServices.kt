@@ -20,6 +20,7 @@ class CreateExpectedMovementService(
       merchant = command.merchant,
       categoryId = command.categoryId,
       originOccurrenceId = command.originOccurrenceId,
+      originRecurringMovementId = command.originRecurringMovementId,
       splitItems = command.splitItems,
       createdAt = command.createdAt,
     )
@@ -84,6 +85,7 @@ class ListExpectedMovementsService(
         merchant = movement.merchant,
         categoryId = movement.categoryId,
         originOccurrenceId = movement.originOccurrenceId,
+        originRecurringMovementId = movement.originRecurringMovementId,
         splitItems = movement.splitItems.map {
           ExpectedMovementView.SplitItem(
             id = it.id,

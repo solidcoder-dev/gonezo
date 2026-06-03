@@ -318,6 +318,7 @@ function makeCore(transactionCount = 0): AppTestPort {
       movement.description = input.description;
       movement.merchant = input.merchant;
       movement.categoryId = input.categoryId;
+      movement.reviewPolicy = input.reviewPolicy ?? movement.reviewPolicy;
       movement.tagIds = input.tagIds;
       movement.tagNames = input.tagNames;
       movement.splitItems = (input.splitItems ?? []).map((item: { id: string; name: string; amount: string }) => ({ ...item }));
@@ -347,7 +348,8 @@ function makeCore(transactionCount = 0): AppTestPort {
         description: input.description,
         merchant: input.merchant,
         categoryId: input.categoryId,
-        originOccurrenceId: (input as { originOccurrenceId?: string }).originOccurrenceId,
+        originOccurrenceId: input.originOccurrenceId,
+        originRecurringMovementId: input.originRecurringMovementId,
         splitItems: (input.splitItems ?? []).map((item: { id: string; name: string; amount: string }) => ({ ...item })),
         status: 'pending',
         createdAt: now,
@@ -647,6 +649,7 @@ function makeCore(transactionCount = 0): AppTestPort {
       description: input.description,
       merchant: input.merchant,
       categoryId: input.categoryId,
+      reviewPolicy: input.reviewPolicy,
       tagIds: input.tagIds,
       tagNames: input.tagNames,
       splitItems: (input.splitItems ?? []).map((item: { id: string; name: string; amount: string }) => ({ ...item })),
@@ -660,6 +663,21 @@ function makeCore(transactionCount = 0): AppTestPort {
       scheduleKind: scheduledKind,
       origin: scheduledKind,
     });
+    if (input.reviewPolicy === 'require_user_confirmation' && input.type !== 'transfer') {
+      await core.expectedCreateMovement({
+        accountId: input.sourceAccountId,
+        type: input.type,
+        amount: input.amount,
+        currency: input.currency,
+        expectedAt: input.startAt,
+        description: input.description,
+        merchant: input.merchant,
+        categoryId: input.categoryId,
+        originOccurrenceId: `occ-${id}-1`,
+        originRecurringMovementId: id,
+        splitItems: input.splitItems,
+      });
+    }
     return { id };
   });
   vi.mocked(core.recurrenceDeactivateRecurringMovement).mockImplementation(async (input) => {
@@ -1652,7 +1670,7 @@ describe('App Accounts UX', () => {
     await screen.findByText('Net balance');
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '55' } });
-    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-05-04' } });
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: isoInCurrentMonth(4).slice(0, 10) } });
     fireEvent.change(screen.getByLabelText('Merchant'), { target: { value: 'Gym' } });
     fireEvent.click(screen.getByRole('button', { name: 'More options' }));
     fireEvent.click(screen.getByLabelText('Expected'));
@@ -1682,6 +1700,7 @@ describe('App Accounts UX', () => {
       amount: '55.00',
       currency: 'USD',
       scheduleKind: 'recurring',
+      reviewPolicy: 'require_user_confirmation',
       recurrenceEnd: { kind: 'never' },
       startAt: expect.stringMatching(new RegExp(`^${(nextExecutionDate as HTMLInputElement).value}T`)),
     }));
@@ -3051,9 +3070,9 @@ describe('App Accounts UX', () => {
 
   it('hides scheduled rows when the month already has the matching expected movement', async () => {
     const core = makeCore();
-    const dueAt = '2026-05-12T10:00:00.000Z';
+    const dueAt = isoInCurrentMonth(12, 10);
 
-    const scheduled = await core.schedulingCreateMovement({
+    await core.schedulingCreateMovement({
       type: 'expense',
       sourceAccountId: 'acc-1',
       amount: '33.00',
@@ -3065,18 +3084,8 @@ describe('App Accounts UX', () => {
       startAt: dueAt,
       zoneId: 'UTC',
       scheduleKind: 'one_shot',
+      reviewPolicy: 'require_user_confirmation',
     });
-    await core.expectedCreateMovement({
-      accountId: 'acc-1',
-      type: 'expense',
-      amount: '33.00',
-      currency: 'USD',
-      expectedAt: dueAt,
-      description: 'Shared bill',
-      categoryId: 'cat-food',
-      originOccurrenceId: scheduled.id,
-      splitItems: [],
-    } as Parameters<typeof core.expectedCreateMovement>[0] & { originOccurrenceId: string });
 
     render(
       <MemoryRouter>
@@ -3100,7 +3109,7 @@ describe('App Accounts UX', () => {
       type: 'expense',
       amount: '42.00',
       currency: 'USD',
-      expectedAt: '2026-05-02T10:00:00.000Z',
+      expectedAt: isoInCurrentMonth(2, 10),
       description: 'Expected rent',
       categoryId: 'cat-food',
       splitItems: [
@@ -3124,7 +3133,7 @@ describe('App Accounts UX', () => {
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
     expect(within(composer).getByRole('heading', { name: 'New expense' })).toBeInTheDocument();
     expect(within(composer).getByLabelText('Amount')).toHaveValue(42);
-    expect(within(composer).getByLabelText('Expected date')).toHaveValue('2026-05-02');
+    expect(within(composer).getByLabelText('Expected date')).toHaveValue(isoInCurrentMonth(2, 10).slice(0, 10));
     expect(within(composer).getByLabelText('Merchant')).toHaveValue('Expected rent');
     expect(within(composer).getByLabelText('Category')).toHaveValue('Food');
     expect(within(composer).getByLabelText('Split into items')).toBeChecked();
@@ -3140,7 +3149,7 @@ describe('App Accounts UX', () => {
       type: 'expense',
       amount: '42.00',
       currency: 'USD',
-      expectedAt: '2026-05-02T10:00:00.000Z',
+      expectedAt: isoInCurrentMonth(2, 10),
       description: 'Expected rent',
       categoryId: 'cat-food',
       splitItems: [
@@ -3190,7 +3199,7 @@ describe('App Accounts UX', () => {
       type: 'expense',
       amount: '42.00',
       currency: 'USD',
-      expectedAt: '2026-05-02T10:00:00.000Z',
+      expectedAt: isoInCurrentMonth(2, 10),
       description: 'Expected rent',
       categoryId: 'cat-food',
       splitItems: [
@@ -3467,7 +3476,7 @@ describe('App Accounts UX', () => {
       categoryId: 'cat-food',
       rule: { frequency: 'daily', interval: 1 },
       recurrenceEnd: { kind: 'after_occurrences', afterOccurrences: 1 },
-      startAt: '2026-05-11T10:00:00.000Z',
+      startAt: isoInCurrentMonth(11, 10),
       zoneId: 'UTC',
       scheduleKind: 'one_shot',
     });
@@ -3489,7 +3498,7 @@ describe('App Accounts UX', () => {
       expect(within(composer).getByRole('heading', { name: 'Edit scheduled expense' })).toBeInTheDocument();
     });
     expect(within(composer).getByLabelText('Amount')).toHaveValue(15);
-    expect(within(composer).getByLabelText('Date')).toHaveValue('2026-05-11');
+    expect(within(composer).getByLabelText('Date')).toHaveValue(isoInCurrentMonth(11, 10).slice(0, 10));
     expect(within(composer).getByLabelText('Merchant')).toHaveValue('Scheduled rent');
     expect(within(composer).getByLabelText('Category')).toHaveValue('Food');
 

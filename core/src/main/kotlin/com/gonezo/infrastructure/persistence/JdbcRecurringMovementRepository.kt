@@ -7,6 +7,7 @@ import com.gonezo.recurrence.domain.RecurrenceRule
 import com.gonezo.recurrence.domain.RecurringMovement
 import com.gonezo.recurrence.domain.RecurringMovementId
 import com.gonezo.recurrence.domain.RecurringMovementStatus
+import com.gonezo.recurrence.domain.RecurringMovementReviewPolicy
 import com.gonezo.recurrence.domain.RecurringMovementType
 import com.gonezo.recurrence.domain.ports.RecurringMovementRepository
 import org.springframework.jdbc.core.RowMapper
@@ -27,14 +28,14 @@ class JdbcRecurringMovementRepository(
     val sql = """
       insert into recurring_movements (
         id, movement_type, source_account_id, target_account_id, amount, currency,
-        destination_amount, destination_currency, exchange_rate, description, merchant, category_id,
+        destination_amount, destination_currency, exchange_rate, description, merchant, category_id, review_policy,
         rule_frequency, rule_interval, rule_weekdays, rule_day_of_month, rule_monthly_pattern, rule_monthly_nth, rule_monthly_weekday,
         end_kind, end_on_date, end_after_occurrences,
         start_at, zone_id, next_due_at, status, generated_occurrences,
         created_at, updated_at, deactivated_at, completed_at
       ) values (
         :id, :movement_type, :source_account_id, :target_account_id, :amount, :currency,
-        :destination_amount, :destination_currency, :exchange_rate, :description, :merchant, :category_id,
+        :destination_amount, :destination_currency, :exchange_rate, :description, :merchant, :category_id, :review_policy,
         :rule_frequency, :rule_interval, :rule_weekdays, :rule_day_of_month, :rule_monthly_pattern, :rule_monthly_nth, :rule_monthly_weekday,
         :end_kind, :end_on_date, :end_after_occurrences,
         :start_at, :zone_id, :next_due_at, :status, :generated_occurrences,
@@ -52,6 +53,7 @@ class JdbcRecurringMovementRepository(
         description = excluded.description,
         merchant = excluded.merchant,
         category_id = excluded.category_id,
+        review_policy = excluded.review_policy,
         rule_frequency = excluded.rule_frequency,
         rule_interval = excluded.rule_interval,
         rule_weekdays = excluded.rule_weekdays,
@@ -189,6 +191,7 @@ class JdbcRecurringMovementRepository(
       description = rs.getString("description"),
       merchant = rs.getString("merchant"),
       categoryId = rs.getString("category_id"),
+      reviewPolicy = RecurringMovementReviewPolicy.from(rs.getString("review_policy")),
       rule = rule,
       recurrenceEnd = recurrenceEnd,
       startAt = Instant.parse(rs.getString("start_at")),
@@ -223,6 +226,7 @@ class JdbcRecurringMovementRepository(
       .addValue("description", movement.description)
       .addValue("merchant", movement.merchant)
       .addValue("category_id", movement.categoryId)
+      .addValue("review_policy", movement.reviewPolicy.value)
       .addValue("rule_frequency", movement.rule.frequency.value)
       .addValue("rule_interval", movement.rule.interval)
       .addValue("rule_weekdays", movement.rule.weeklyDays.joinToString(",") { it.name })
@@ -277,6 +281,7 @@ class JdbcRecurringMovementRepository(
     description = description,
     merchant = merchant,
     categoryId = categoryId,
+    reviewPolicy = reviewPolicy,
     splitItems = loadSplitItems(id.toString()),
     rule = rule,
     recurrenceEnd = recurrenceEnd,
@@ -304,6 +309,7 @@ class JdbcRecurringMovementRepository(
     val description: String?,
     val merchant: String?,
     val categoryId: String?,
+    val reviewPolicy: RecurringMovementReviewPolicy,
     val rule: RecurrenceRule,
     val recurrenceEnd: RecurrenceEnd,
     val startAt: Instant,

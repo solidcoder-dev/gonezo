@@ -60,7 +60,8 @@ export class WebExpectedMovementsService {
       description: input.description,
       merchant: input.merchant,
       categoryId: input.categoryId,
-      originOccurrenceId: undefined,
+      originOccurrenceId: input.originOccurrenceId?.trim() || undefined,
+      originRecurringMovementId: input.originRecurringMovementId?.trim() || undefined,
       splitItems: (input.splitItems ?? []).map((item) => ({
         id: item.id,
         name: item.name,
