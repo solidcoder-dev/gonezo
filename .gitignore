@@ -2,3 +2,5 @@
 **/.gradle/
 **/build/
 core/bin/
+**/.idea
+**/nvim.log
