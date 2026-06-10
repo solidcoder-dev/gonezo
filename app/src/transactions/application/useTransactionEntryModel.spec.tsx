@@ -306,7 +306,7 @@ describe('useTransactionEntryModel', () => {
     expect(result.current.required.state.date).toBe('2026-05-18');
   });
 
-  it('creates a missing expense category before recording a posted expense', async () => {
+  it('uses a selected master expense category without creating categories', async () => {
     const ports = makePorts();
 
     const { result } = renderHook(() => useTransactionEntryModel({
@@ -323,23 +323,20 @@ describe('useTransactionEntryModel', () => {
       result.current.provided.commands.open();
       result.current.provided.commands.selectMode('expense');
       result.current.provided.commands.setAmount('12');
-      result.current.provided.commands.setCategoryInput('Food');
+      result.current.provided.commands.setCategoryId('expense:groceries');
     });
     await act(async () => {
       await result.current.provided.commands.submit(formEvent());
     });
 
-    expect(ports.taxonomy.taxonomyCreateCategory).toHaveBeenCalledWith({
-      name: 'Food',
-      appliesTo: 'expense',
-    });
+    expect(ports.taxonomy.taxonomyCreateCategory).not.toHaveBeenCalled();
     expect(ports.ledger.ledgerRecordExpense).toHaveBeenCalledWith(expect.objectContaining({
-      categoryId: 'cat-1',
+      categoryId: 'expense:groceries',
     }));
     expect(ports.taxonomy.orchestrationCategorizeTransaction).toHaveBeenCalledWith({
       transactionId: 'tx-1',
       transactionType: 'expense',
-      categoryId: 'cat-1',
+      categoryId: 'expense:groceries',
     });
   });
 

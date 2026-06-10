@@ -843,13 +843,11 @@ describe('App Accounts UX', () => {
     });
   });
 
-  it('renames taxonomy entries from global taxonomy management and rejects blank names', async () => {
+  it('renames tags from global taxonomy management and rejects blank names', async () => {
     const core = makeCore();
     const taxonomyPort = core as AppTestPort & {
-      taxonomyRenameCategory: ReturnType<typeof vi.fn>;
       taxonomyRenameTag: ReturnType<typeof vi.fn>;
     };
-    taxonomyPort.taxonomyRenameCategory = vi.fn(async () => undefined);
     taxonomyPort.taxonomyRenameTag = vi.fn(async () => undefined);
 
     render(
@@ -863,18 +861,6 @@ describe('App Accounts UX', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Taxonomy' }));
 
     expect(await screen.findByRole('heading', { name: 'Taxonomy' })).toBeInTheDocument();
-    fireEvent.click(await screen.findByRole('button', { name: 'Rename category Food' }));
-    fireEvent.change(screen.getByLabelText('Taxonomy name'), { target: { value: 'Groceries' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save name' }));
-
-    await waitFor(() => {
-      expect(taxonomyPort.taxonomyRenameCategory).toHaveBeenCalledWith({
-        categoryId: 'cat-food',
-        name: 'Groceries',
-      });
-    });
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Tags' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Rename tag home' }));
     fireEvent.change(screen.getByLabelText('Taxonomy name'), { target: { value: '   ' } });
 
@@ -1713,7 +1699,7 @@ describe('App Accounts UX', () => {
 
   it('categorizes quick expense with an existing category', async () => {
     const core = makeCore();
-    const view = render(
+    render(
       <MemoryRouter>
         <App required={{ core }} />
       </MemoryRouter>
@@ -1721,13 +1707,12 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openMode('Expense');
-    expect(screen.queryByLabelText('Category')).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Category' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'More options' }));
-    expect(view.container.querySelector('datalist option[value="Food"]')).not.toBeNull();
-    expect(view.container.querySelector('datalist option[value="Salary"]')).not.toBeNull();
+    expect(screen.queryByRole('textbox', { name: 'Category' })).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
-    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'Food' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Select category Groceries' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => {
@@ -1737,14 +1722,13 @@ describe('App Accounts UX', () => {
     expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledWith({
       transactionId: 'tx-exp',
       transactionType: 'expense',
-      categoryId: 'cat-food',
+      categoryId: 'expense:groceries',
     });
   });
 
-  it('creates and uses a new category when expense selects create option', async () => {
+  it('does not create categories from the expense composer', async () => {
     const core = makeCore();
     vi.mocked(core.taxonomyListCategories).mockResolvedValueOnce({ items: [] });
-    vi.mocked(core.taxonomyCreateCategory).mockResolvedValueOnce({ id: 'cat-new-expense' });
 
     render(
       <MemoryRouter>
@@ -1757,62 +1741,42 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More options' }));
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '35' } });
-    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'Dining out' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => {
-      expect(core.taxonomyCreateCategory).toHaveBeenCalledTimes(1);
-      expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledTimes(1);
-    });
-
-    expect(core.taxonomyCreateCategory).toHaveBeenCalledWith({
-      name: 'Dining out',
-      appliesTo: 'expense',
-    });
-    expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledWith({
-      transactionId: 'tx-exp',
-      transactionType: 'expense',
-      categoryId: 'cat-new-expense',
-    });
-  });
-
-  it('revalidates categories before creating to avoid duplicates from stale cache', async () => {
-    const core = makeCore();
-    vi.mocked(core.taxonomyListCategories).mockImplementation(async (input) => {
-      if (input?.appliesTo === 'expense') {
-        return {
-          items: [
-            { id: 'cat-dining', name: 'Dining out', appliesTo: 'expense' as const, status: 'active' as const },
-          ],
-        };
-      }
-      return { items: [] };
-    });
-    vi.mocked(core.taxonomyCreateCategory).mockRejectedValue(new Error('should not create duplicate category'));
-
-    render(
-      <MemoryRouter>
-        <App required={{ core }} />
-      </MemoryRouter>
-    );
-
-    await screen.findByText('Net balance');
-    await openMode('Expense');
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
-
-    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '35' } });
-    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'Dining out' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-
-    await waitFor(() => {
-      expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledTimes(1);
+      expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
     });
 
     expect(core.taxonomyCreateCategory).not.toHaveBeenCalled();
+    expect(core.orchestrationCategorizeTransaction).not.toHaveBeenCalled();
+  });
+
+  it('selects categories from the all-categories search', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    await openMode('Expense');
+    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '35' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Show more categories' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select category Travel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledTimes(1);
+    });
+
     expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledWith({
       transactionId: 'tx-exp',
       transactionType: 'expense',
-      categoryId: 'cat-dining',
+      categoryId: 'expense:travel',
     });
   });
 
@@ -1825,7 +1789,7 @@ describe('App Accounts UX', () => {
       .mockResolvedValueOnce({ items: [] })
       .mockResolvedValue(travelCategories);
 
-    const view = render(
+    render(
       <MemoryRouter>
         <App required={{ core }} />
       </MemoryRouter>
@@ -1838,7 +1802,8 @@ describe('App Accounts UX', () => {
     await waitFor(() => {
       expect(vi.mocked(core.taxonomyListCategories).mock.calls.length).toBeGreaterThanOrEqual(2);
     });
-    expect(view.container.querySelector('datalist option[value="Travel"]')).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Show more categories' }));
+    expect(await screen.findByRole('button', { name: 'Select category Travel' })).toBeInTheDocument();
   });
 
   it('records income from dedicated income flow', async () => {
@@ -3145,7 +3110,7 @@ describe('App Accounts UX', () => {
     expect(within(composer).getByLabelText('Amount')).toHaveValue(42);
     expect(within(composer).getByLabelText('Expected date')).toHaveValue(isoInCurrentMonth(2, 10).slice(0, 10));
     expect(within(composer).getByLabelText('Merchant')).toHaveValue('Expected rent');
-    expect(within(composer).getByLabelText('Category')).toHaveValue('Food');
+    expect(within(composer).getByRole('button', { name: 'Select category Food' })).toHaveTextContent('Food');
     expect(within(composer).getByText('2 items · 42.00 USD')).toBeInTheDocument();
     fireEvent.click(within(composer).getByRole('button', { name: 'Edit split' }));
     const splitItemsList = within(await screen.findByRole('dialog', { name: 'Split amount' })).getByRole('list', { name: 'Expense items' });
@@ -3510,7 +3475,7 @@ describe('App Accounts UX', () => {
     expect(within(composer).getByLabelText('Amount')).toHaveValue(15);
     expect(within(composer).getByLabelText('Date')).toHaveValue(isoInCurrentMonth(11, 10).slice(0, 10));
     expect(within(composer).getByLabelText('Merchant')).toHaveValue('Scheduled rent');
-    expect(within(composer).getByLabelText('Category')).toHaveValue('Food');
+    expect(within(composer).getByRole('button', { name: 'Select category Food' })).toHaveTextContent('Food');
 
     fireEvent.change(within(composer).getByLabelText('Amount'), { target: { value: '17' } });
     fireEvent.click(within(composer).getByRole('button', { name: 'Update scheduled' }));

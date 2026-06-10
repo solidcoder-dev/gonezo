@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { SheetView } from '../../../shared/ui/SheetView';
-import { CategoryComboboxField } from '../CategoryComboboxField';
+import {
+  FREQUENT_EXPENSE_CATEGORY_IDS,
+  FREQUENT_INCOME_CATEGORY_IDS,
+} from '../../../taxonomy/domain/masterCategories';
+import { CategoryPickerField } from '../CategoryPickerField/CategoryPickerField';
 import { ComposerModePickerView } from '../ComposerModePicker/ComposerModePickerView';
 import { ExpenseSplitEditorView } from '../ExpenseSplitEditor/ExpenseSplitEditorView';
 import { RecurrenceEditorView } from '../RecurrenceEditor/RecurrenceEditorView';
@@ -37,7 +41,7 @@ export type TransactionComposerViewRequired = {
   date: string;
   nextScheduledOccurrenceDate?: string;
   note: string;
-  categoryInput: string;
+  categoryId: string;
   categoryOptions: Array<{ id: string; name: string }>;
   tagInput: string;
   tagOptions: Array<{ id: string; name: string }>;
@@ -95,7 +99,7 @@ export type TransactionComposerViewProvided = {
   onSetAmount: (value: string) => void;
   onSetDate: (value: string) => void;
   onSetNote: (value: string) => void;
-  onSetCategoryInput: (value: string) => void;
+  onSetCategoryId: (value: string) => void;
   onSetTagInput: (value: string) => void;
   onSetTransferTarget: (value: string) => void;
   onSetTransferAmountIn: (value: string) => void;
@@ -202,7 +206,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     date,
     nextScheduledOccurrenceDate,
     note,
-    categoryInput,
+    categoryId,
     categoryOptions,
     tagInput,
     tagOptions,
@@ -259,7 +263,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     onSetAmount,
     onSetDate,
     onSetNote,
-    onSetCategoryInput,
+    onSetCategoryId,
     onSetTagInput,
     onSetTransferTarget,
     onSetTransferAmountIn,
@@ -330,6 +334,9 @@ export function TransactionComposerView({ required, provided }: Props) {
   const recurringScheduleAvailable = mode === 'expense' || mode === 'income';
   const recurringScheduleConfigured = recurringScheduleAvailable && repeatEnabled;
   const splitAvailable = mode === 'expense' || mode === 'income';
+  const frequentCategoryIds = mode === 'income'
+    ? FREQUENT_INCOME_CATEGORY_IDS
+    : FREQUENT_EXPENSE_CATEGORY_IDS;
   const scheduledMovementVisible = mode !== 'expense' && schedulingMode === 'scheduled';
   const dateInputLabel = recurringScheduleConfigured
     ? 'Next execution date'
@@ -543,14 +550,15 @@ export function TransactionComposerView({ required, provided }: Props) {
                 <div id="composer-advanced-options" className="stack composer-advanced">
                   {mode === 'expense' || mode === 'income' ? (
                     <>
-                      <CategoryComboboxField
+                      <CategoryPickerField
                         required={{
-                          value: categoryInput,
+                          selectedCategoryId: categoryId,
                           options: categoryOptions,
+                          frequentCategoryIds,
                           disabled,
                         }}
                         provided={{
-                          onChange: onSetCategoryInput,
+                          onSelect: onSetCategoryId,
                         }}
                       />
 

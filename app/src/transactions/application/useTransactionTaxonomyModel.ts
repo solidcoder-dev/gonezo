@@ -5,11 +5,10 @@ import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions'
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
 import { useTransactionClassification } from '../../taxonomy/application/useTransactionClassification';
 import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.types';
+import { listMasterCategories } from '../../taxonomy/domain/masterCategories';
 import type { ComposerMode } from './transactions.types';
 import {
-  findActiveCategoryByName,
   mergeCategories,
-  normalizeTaxonomyName,
   parseTransactionTagInput,
   resolveKnownTagSelectionIds,
 } from './transactionTaxonomySelection';
@@ -23,7 +22,7 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
   const { taxonomy, composerMode } = input;
   const [categories, setCategories] = useState<TaxonomyCategoryItem[]>([]);
   const [tags, setTags] = useState<TaxonomyTagItem[]>([]);
-  const [transactionCategoryInput, setTransactionCategoryInput] = useState('');
+  const [transactionCategoryId, setTransactionCategoryId] = useState('');
   const [transactionTagInput, setTransactionTagInput] = useState('');
 
   const categorySuggestions = useCategorySuggestions(taxonomy);
@@ -34,11 +33,22 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
     if (composerMode !== 'expense' && composerMode !== 'income') {
       return [] as Array<{ id: string; name: string }>;
     }
-    return categories
+    const scope = composerMode === 'expense' || composerMode === 'income' ? composerMode : undefined;
+    const selectedExistingCategory = categories.find(
+      (category) =>
+        category.id === transactionCategoryId
+        && category.status === 'active'
+        && category.appliesTo === composerMode,
+    );
+    return mergeCategories(
+      listMasterCategories(scope),
+      selectedExistingCategory ? [selectedExistingCategory] : [],
+    )
       .filter((category) => category.status === 'active')
+      .filter((category) => category.appliesTo === composerMode)
       .map((category) => ({ id: category.id, name: category.name }))
       .sort((left, right) => left.name.localeCompare(right.name));
-  }, [categories, composerMode]);
+  }, [categories, composerMode, transactionCategoryId]);
 
   const tagOptions = useMemo(
     () => tags
@@ -49,7 +59,7 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
   );
 
   function resetInputs() {
-    setTransactionCategoryInput('');
+    setTransactionCategoryId('');
     setTransactionTagInput('');
   }
 
@@ -66,52 +76,33 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
   }
 
   async function resolveCategorySelection(type: TaxonomyCategoryAppliesTo): Promise<string | undefined> {
-    const rawInput = transactionCategoryInput.trim();
-    if (!rawInput) {
+    const selectedCategoryId = transactionCategoryId.trim();
+    if (!selectedCategoryId) {
       return undefined;
     }
 
-    const normalizedInput = normalizeTaxonomyName(rawInput);
-    const existing = findActiveCategoryByName(categories, type, normalizedInput);
+    const existing = mergeCategories(listMasterCategories(type), categories).find(
+      (category) =>
+        category.id === selectedCategoryId
+        && category.status === 'active'
+        && category.appliesTo === type,
+    );
     if (existing) {
       return existing.id;
     }
 
     const fresh = await categorySuggestions.listCategories({ appliesTo: type, includeArchived: false });
     setCategories((previous) => mergeCategories(previous, fresh.items));
-
-    const existingFromBackend = findActiveCategoryByName(fresh.items, type, normalizedInput);
+    const existingFromBackend = mergeCategories(listMasterCategories(type), fresh.items).find(
+      (category) =>
+        category.id === selectedCategoryId
+        && category.status === 'active'
+        && category.appliesTo === type,
+    );
     if (existingFromBackend) {
       return existingFromBackend.id;
     }
-
-    try {
-      const created = await categorySuggestions.createCategory({
-        name: rawInput,
-        appliesTo: type,
-      });
-
-      setCategories((previous) => mergeCategories(previous, [
-        ...fresh.items,
-        {
-          id: created.id,
-          name: rawInput,
-          appliesTo: type,
-          status: 'active',
-        } as TaxonomyCategoryItem,
-      ]));
-
-      setTransactionCategoryInput(rawInput);
-      return created.id;
-    } catch (err) {
-      const retry = await categorySuggestions.listCategories({ appliesTo: type, includeArchived: false });
-      setCategories((previous) => mergeCategories(previous, retry.items));
-      const existingAfterRace = findActiveCategoryByName(retry.items, type, normalizedInput);
-      if (existingAfterRace) {
-        return existingAfterRace.id;
-      }
-      throw err;
-    }
+    return undefined;
   }
 
   function parseTransactionTags(): string[] {
@@ -157,7 +148,7 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
     state: {
       categories,
       tags,
-      transactionCategoryInput,
+      transactionCategoryId,
       transactionTagInput,
       categoryOptions,
       tagOptions,
@@ -166,7 +157,7 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
       resetInputs,
       refreshLookups,
       refreshCategories,
-      setTransactionCategoryInput,
+      setTransactionCategoryId,
       setTransactionTagInput,
       resolveCategorySelection,
       parseTransactionTags,

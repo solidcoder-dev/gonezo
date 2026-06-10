@@ -1,13 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import type { TaxonomyCategoryItem, TaxonomyTagItem } from './taxonomy.port';
+import type { TaxonomyTagItem } from './taxonomy.port';
 import { SheetView } from '../../shared/ui/SheetView';
 import type { TaxonomyGatewayPort } from './taxonomyGateway.port';
 import './TaxonomyPage.css';
 
 export type TaxonomyPagePort = Pick<
   TaxonomyGatewayPort,
-  'taxonomyListCategories' | 'taxonomyRenameCategory' | 'taxonomyListTags' | 'taxonomyRenameTag'
+  'taxonomyListTags' | 'taxonomyRenameTag'
 >;
 
 type TaxonomyPageProps = {
@@ -16,11 +16,7 @@ type TaxonomyPageProps = {
   };
 };
 
-type TaxonomyTab = 'categories' | 'tags';
-
-type RenameTarget =
-  | { kind: 'category'; item: TaxonomyCategoryItem }
-  | { kind: 'tag'; item: TaxonomyTagItem };
+type RenameTarget = { kind: 'tag'; item: TaxonomyTagItem };
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -29,13 +25,7 @@ function toErrorMessage(error: unknown): string {
   return 'Unknown error';
 }
 
-function categoryScopeLabel(appliesTo: TaxonomyCategoryItem['appliesTo']): string {
-  return appliesTo === 'income' ? 'Income' : 'Expense';
-}
-
 export function TaxonomyPage({ required }: TaxonomyPageProps) {
-  const [activeTab, setActiveTab] = useState<TaxonomyTab>('categories');
-  const [categories, setCategories] = useState<TaxonomyCategoryItem[]>([]);
   const [tags, setTags] = useState<TaxonomyTagItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -47,11 +37,7 @@ export function TaxonomyPage({ required }: TaxonomyPageProps) {
     setLoading(true);
     setError('');
     try {
-      const [categoriesResult, tagsResult] = await Promise.all([
-        required.core.taxonomyListCategories({ includeArchived: false }),
-        required.core.taxonomyListTags({ includeArchived: false }),
-      ]);
-      setCategories(categoriesResult.items);
+      const tagsResult = await required.core.taxonomyListTags({ includeArchived: false });
       setTags(tagsResult.items);
     } catch (err) {
       setError(toErrorMessage(err));
@@ -80,17 +66,10 @@ export function TaxonomyPage({ required }: TaxonomyPageProps) {
     setSaving(true);
     setError('');
     try {
-      if (renameTarget.kind === 'category') {
-        await required.core.taxonomyRenameCategory({
-          categoryId: renameTarget.item.id,
-          name: renameDraft.trim(),
-        });
-      } else {
-        await required.core.taxonomyRenameTag({
-          tagId: renameTarget.item.id,
-          name: renameDraft.trim(),
-        });
-      }
+      await required.core.taxonomyRenameTag({
+        tagId: renameTarget.item.id,
+        name: renameDraft.trim(),
+      });
       setRenameTarget(null);
       await loadTaxonomy();
     } catch (err) {
@@ -99,9 +78,6 @@ export function TaxonomyPage({ required }: TaxonomyPageProps) {
       setSaving(false);
     }
   }
-
-  const visibleItems = activeTab === 'categories' ? categories : tags;
-  const activeLabel = activeTab === 'categories' ? 'Categories' : 'Tags';
 
   return (
     <section className="app-screen">
@@ -112,27 +88,6 @@ export function TaxonomyPage({ required }: TaxonomyPageProps) {
         </Link>
       </div>
 
-      <div className="segmented taxonomy-tabs" role="tablist" aria-label="Taxonomy sections">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'categories'}
-          className={activeTab === 'categories' ? 'selected' : ''}
-          onClick={() => setActiveTab('categories')}
-        >
-          Categories
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'tags'}
-          className={activeTab === 'tags' ? 'selected' : ''}
-          onClick={() => setActiveTab('tags')}
-        >
-          Tags
-        </button>
-      </div>
-
       {error ? (
         <div className="banner error" role="alert">
           {error}
@@ -140,37 +95,16 @@ export function TaxonomyPage({ required }: TaxonomyPageProps) {
       ) : null}
 
       {loading ? <p role="status">Loading taxonomy...</p> : null}
-      {!loading && visibleItems.length === 0 ? <p>No {activeTab} available.</p> : null}
+      {!loading && tags.length === 0 ? <p>No tags available.</p> : null}
 
-      {!loading && visibleItems.length > 0 ? (
+      {!loading && tags.length > 0 ? (
         <div className="taxonomy-section-header">
-          <h3 id="taxonomy-list-title">{activeLabel}</h3>
-          <span>{visibleItems.length}</span>
+          <h3 id="taxonomy-list-title">Tags</h3>
+          <span>{tags.length}</span>
         </div>
       ) : null}
 
-      {!loading && activeTab === 'categories' && categories.length > 0 ? (
-        <ul className="taxonomy-list" aria-labelledby="taxonomy-list-title">
-          {categories.map((category) => (
-            <li key={category.id} className="taxonomy-token taxonomy-row">
-              <div className="taxonomy-row-main">
-                <strong className="taxonomy-token-name">{category.name}</strong>
-                <span className="taxonomy-token-meta">{categoryScopeLabel(category.appliesTo)} category</span>
-              </div>
-              <button
-                type="button"
-                className="text-button icon-button taxonomy-edit-button"
-                aria-label={`Rename category ${category.name}`}
-                onClick={() => openRename({ kind: 'category', item: category })}
-              >
-                <i className="bi bi-pencil" aria-hidden />
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
-      {!loading && activeTab === 'tags' && tags.length > 0 ? (
+      {!loading && tags.length > 0 ? (
         <ul className="taxonomy-list" aria-labelledby="taxonomy-list-title">
           {tags.map((tag) => (
             <li key={tag.id} className="taxonomy-token taxonomy-row">
@@ -195,8 +129,8 @@ export function TaxonomyPage({ required }: TaxonomyPageProps) {
         <SheetView
           required={{
             config: {
-              ariaLabel: renameTarget.kind === 'category' ? 'Rename category' : 'Rename tag',
-              title: renameTarget.kind === 'category' ? 'Rename category' : 'Rename tag',
+              ariaLabel: 'Rename tag',
+              title: 'Rename tag',
               closeLabel: 'Close rename',
             },
             data: {

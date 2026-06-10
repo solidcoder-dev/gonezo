@@ -15,7 +15,7 @@ export type TransactionEntryViewRequired = {
     date: string;
     nextScheduledOccurrenceDate?: string;
     note: string;
-    categoryInput: string;
+    categoryId: string;
     categoryOptions: Array<{ id: string; name: string }>;
     tagInput: string;
     tagOptions: Array<{ id: string; name: string }>;
@@ -68,7 +68,7 @@ export type TransactionEntryViewProvided = {
     setAmount: (value: string) => void;
     setDate: (value: string) => void;
     setNote: (value: string) => void;
-    setCategoryInput: (value: string) => void;
+    setCategoryId: (value: string) => void;
     setTagInput: (value: string) => void;
     setTransferTarget: (value: string) => void;
     setTransferAmountIn: (value: string) => void;

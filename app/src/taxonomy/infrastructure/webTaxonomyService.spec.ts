@@ -67,16 +67,16 @@ describe('WebTaxonomyService', () => {
       ],
     }));
 
-    await expect(taxonomy.listCategories()).resolves.toEqual({
-      items: [
-        { id: 'cat-a', name: 'Alpha', appliesTo: 'income', status: 'active' },
-      ],
+    await expect(taxonomy.listCategories({ appliesTo: 'expense' })).resolves.toMatchObject({
+      items: expect.arrayContaining([
+        { id: 'expense:bills', name: 'Bills', appliesTo: 'expense', status: 'active' },
+        { id: 'expense:groceries', name: 'Groceries', appliesTo: 'expense', status: 'active' },
+      ]),
     });
-    await expect(taxonomy.listCategories({ includeArchived: true })).resolves.toEqual({
-      items: [
-        { id: 'cat-a', name: 'Alpha', appliesTo: 'income', status: 'active' },
-        { id: 'cat-z', name: 'Zed', appliesTo: 'expense', status: 'archived' },
-      ],
+    await expect(taxonomy.listCategories({ appliesTo: 'income' })).resolves.toMatchObject({
+      items: expect.arrayContaining([
+        { id: 'income:work-income', name: 'Work Income', appliesTo: 'income', status: 'active' },
+      ]),
     });
     await expect(taxonomy.listTags()).resolves.toEqual({
       items: [
@@ -85,16 +85,11 @@ describe('WebTaxonomyService', () => {
     });
   });
 
-  it('creates and renames categories and tags with normalized duplicate checks', async () => {
+  it('blocks category creation and renaming because categories are master data', async () => {
     const taxonomy = createSubject();
 
-    await expect(taxonomy.createCategory({ name: ' Food ', appliesTo: 'expense' })).resolves.toEqual({ id: 'id-1' });
-    await expect(taxonomy.createCategory({ name: 'food', appliesTo: 'expense' })).rejects.toThrow('Category already exists');
-    await expect(taxonomy.createCategory({ name: 'Food', appliesTo: 'income' })).resolves.toEqual({ id: 'id-2' });
-    await expect(taxonomy.createCategory({ name: ' ', appliesTo: 'income' })).rejects.toThrow('Category name is required');
-
-    await expect(taxonomy.renameCategory({ categoryId: 'id-2', name: ' Salary ' })).resolves.toBeUndefined();
-    await expect(taxonomy.renameCategory({ categoryId: 'id-2', name: 'Food' })).resolves.toBeUndefined();
+    await expect(taxonomy.createCategory({ name: ' Food ', appliesTo: 'expense' })).rejects.toThrow('master data');
+    await expect(taxonomy.renameCategory({ categoryId: 'expense:bills', name: 'Housing' })).rejects.toThrow('master data');
 
     await expect(taxonomy.applyTransactionTags({
       transactionId: 'tx-missing',

@@ -218,7 +218,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const effectiveTransactionDate = nextScheduledOccurrenceDate ?? transactionDate;
 
   const {
-    transactionCategoryInput,
+    transactionCategoryId,
     transactionTagInput,
     categoryOptions,
     tagOptions,
@@ -227,7 +227,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     resetInputs: resetTaxonomyInputs,
     refreshLookups: refreshTaxonomyLookups,
     refreshCategories: refreshTaxonomyCategories,
-    setTransactionCategoryInput,
+    setTransactionCategoryId,
     setTransactionTagInput,
     resolveCategorySelection,
     parseTransactionTags,
@@ -326,7 +326,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setTransactionAmount(prefillRequest.amount.replace('-', ''));
     setTransactionDate(prefillRequest.date);
     setTransactionNote(prefillRequest.note ?? '');
-    setTransactionCategoryInput(prefillRequest.categoryId ?? '');
+    setTransactionCategoryId(prefillRequest.categoryId ?? '');
     if (prefillRequest.mode === 'transfer') {
       setTransferToAccountId(prefillRequest.transferTargetAccountId ?? '');
       setTransferAmountIn(prefillRequest.transferAmountIn ?? '');
@@ -556,7 +556,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       date: effectiveTransactionDate,
       nextScheduledOccurrenceDate,
       note: transactionNote,
-      categoryInput: transactionCategoryInput,
+      categoryId: transactionCategoryId,
       categoryOptions,
       tagInput: transactionTagInput,
       tagOptions,
@@ -609,7 +609,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       setAmount: setTransactionAmountValue,
       setDate: setTransactionDateValue,
       setNote: setTransactionNote,
-      setCategoryInput: setTransactionCategoryInput,
+      setCategoryId: setTransactionCategoryId,
       setTagInput: setTransactionTagInput,
       setTransferTarget: setTransferTargetValue,
       setTransferAmountIn: setTransferAmountInValue,
