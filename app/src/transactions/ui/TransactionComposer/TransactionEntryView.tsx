@@ -37,7 +37,6 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         expenseItemName: required.state.splitItemName,
         expenseItemAmount: required.state.splitItemAmount,
         editingExpenseItemId: required.state.editingSplitItemId,
-        expenseRemaining: required.state.splitRemaining,
         expenseSplitTotal: required.state.splitTotal,
         schedulingMode: required.state.schedulingMode,
         schedulingKind: required.state.schedulingKind,

@@ -7,7 +7,6 @@ export type SplitSummaryViewProps = ViewProps<
   {
     itemsCount: number;
     total: string;
-    remaining: string;
     currencyCode?: string;
   },
   {
@@ -40,9 +39,6 @@ export function SplitSummaryView({ required, provided }: SplitSummaryViewProps) 
           <span className="split-summary-line">
             <i className="bi bi-shuffle" aria-hidden />
             <span>{state.itemsCount} {itemLabel} · {formatCurrencyAmount(state.total, state.currencyCode)}</span>
-          </span>
-          <span className="split-summary-remaining">
-            Remaining: {formatCurrencyAmount(state.remaining, state.currencyCode)}
           </span>
         </button>
         <div className="split-summary-actions">

@@ -1875,16 +1875,18 @@ describe('App Accounts UX', () => {
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
     openSplitAmountEditor();
+    expect(within(screen.getByRole('dialog', { name: 'Split amount' })).getByText('0.00 USD')).toBeInTheDocument();
 
     openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Bonus' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
     openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Base' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '30' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply split' }));
+    expect(screen.queryByLabelText('Amount')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -2201,11 +2203,11 @@ describe('App Accounts UX', () => {
     openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Groceries' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
     openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Household' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '30' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply split' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -2234,14 +2236,14 @@ describe('App Accounts UX', () => {
     openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Water' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '20' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
 
     expect(screen.getByLabelText('Amount')).toHaveValue(80);
 
     openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Electricity' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '40' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
 
     expect(screen.getByLabelText('Amount')).toHaveValue(80);
 
@@ -2254,7 +2256,7 @@ describe('App Accounts UX', () => {
     expect(screen.getByLabelText('Item amount')).toHaveValue(20);
 
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '25' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
 
     expect(screen.getByLabelText('Amount')).toHaveValue(80);
     expect(screen.getByText('25.00')).toBeInTheDocument();
@@ -2270,7 +2272,7 @@ describe('App Accounts UX', () => {
     expect(screen.queryByText('Electricity')).not.toBeInTheDocument();
   });
 
-  it('keeps detailed expense publish disabled until split reaches zero', async () => {
+  it('keeps detailed expense publish disabled until split is applied', async () => {
     const core = makeCore();
 
     render(
@@ -2291,14 +2293,9 @@ describe('App Accounts UX', () => {
     openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Groceries' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
     expect(saveButton).toBeDisabled();
 
-    openNewSplitItemDialog();
-    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Household' } });
-    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '30' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
-    expect(saveButton).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Apply split' }));
     expect(saveButton).toBeEnabled();
   });

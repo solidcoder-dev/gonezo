@@ -149,4 +149,46 @@ describe('TransactionMainFieldsView', () => {
     expect(screen.getByLabelText('Next execution date')).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Open calendar' })).toBeDisabled();
   });
+
+  it('hides the amount input while keeping the after amount content visible', () => {
+    render(
+      <TransactionMainFieldsView
+        required={{
+          config: {
+            amountLabel: 'Amount',
+            dateInputLabel: 'Date',
+            datePlaceholder: '2026-05-14',
+            noteLabel: 'Merchant',
+            notePlaceholder: 'Cafe',
+            afterAmount: <div>Split summary</div>,
+          },
+          data: {
+            transferTargetOptions: [],
+          },
+          state: {
+            mode: 'expense',
+            amount: '12',
+            date: '2026-05-10',
+            note: 'Coffee',
+            transferTargetAccountId: '',
+          },
+          status: {
+            amountVisible: false,
+          },
+        }}
+        provided={{
+          commands: {
+            changeAmount: vi.fn(),
+            changeDate: vi.fn(),
+            changeNote: vi.fn(),
+            changeTransferTarget: vi.fn(),
+          },
+        }}
+      />,
+    );
+
+    expect(screen.queryByLabelText('Amount')).not.toBeInTheDocument();
+    expect(screen.getByText('Split summary')).toBeInTheDocument();
+    expect(screen.getByLabelText('Merchant')).toBeInTheDocument();
+  });
 });

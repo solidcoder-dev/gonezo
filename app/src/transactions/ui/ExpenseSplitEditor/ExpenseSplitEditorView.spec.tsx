@@ -26,7 +26,6 @@ describe('ExpenseSplitEditorView', () => {
             itemName: 'Cake',
             itemAmount: '6.00',
             editingItemId: '',
-            remaining: '0.00',
             currencyCode: 'USD',
           },
           status: { disabled: false },
@@ -48,24 +47,27 @@ describe('ExpenseSplitEditorView', () => {
     );
 
     expect(screen.getByLabelText('Split into items')).toBeChecked();
-    expect(screen.getByText('Remaining: 0.00 USD')).toHaveClass('success');
+    expect(screen.queryByText(/Remaining/i)).not.toBeInTheDocument();
     expect(screen.getByRole('list', { name: 'Expense items' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Item name')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText('Split into items'));
     fireEvent.click(screen.getByRole('button', { name: 'Add split item' }));
-    expect(screen.getByRole('dialog', { name: 'New split item' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'New split item' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Item name')).toBeInTheDocument();
     expect(screen.queryByLabelText('Expected repayment')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Ignore in analytics')).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Tea' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '2.50' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
     expect(screen.queryByRole('button', { name: 'Assign remaining' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Split by parts' }));
-    expect(screen.getByRole('dialog', { name: 'Split by parts' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Split by parts' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Amount to split')).toHaveValue(0);
+    expect(screen.getByRole('button', { name: 'Confirm split by parts' })).toBeDisabled();
     fireEvent.change(screen.getByLabelText('Amount to split'), { target: { value: '9.00' } });
     fireEvent.change(screen.getByLabelText('Parts'), { target: { value: '3' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm split by parts' }));
 
     const row = screen.getByText('Coffee').closest('li');
     expect(row).not.toBeNull();
@@ -74,8 +76,7 @@ describe('ExpenseSplitEditorView', () => {
     const menu = screen.getByRole('menu', { name: 'Item actions for Coffee' });
     expect(row).not.toContainElement(menu);
     fireEvent.click(screen.getByRole('menuitem', { name: 'Edit item Coffee' }));
-    expect(screen.getByRole('dialog', { name: 'Edit split item' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel split item edit' }));
+    expect(screen.queryByRole('dialog', { name: 'Edit split item' })).not.toBeInTheDocument();
     fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Item actions for Coffee' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Remove item Coffee' }));
 
@@ -86,8 +87,118 @@ describe('ExpenseSplitEditorView', () => {
     expect(addItem).toHaveBeenCalledTimes(1);
     expect(splitByParts).toHaveBeenCalledWith('9.00', '3');
     expect(editItem).toHaveBeenCalledWith('item-1');
-    expect(cancelItem).toHaveBeenCalledTimes(1);
     expect(removeItem).toHaveBeenCalledWith('item-1');
+  });
+
+  it('cancels inline split item and split by parts without applying commands', () => {
+    const addItem = vi.fn(() => true);
+    const splitByParts = vi.fn();
+    const cancelItem = vi.fn();
+
+    render(
+      <ExpenseSplitEditorView
+        required={{
+          config: {},
+          data: { items: [] },
+          state: {
+            enabled: true,
+            itemName: '',
+            itemAmount: '',
+            editingItemId: '',
+          },
+          status: { disabled: false },
+        }}
+        provided={{
+          commands: {
+            toggleEnabled: vi.fn(),
+            changeItemName: vi.fn(),
+            changeItemAmount: vi.fn(),
+            addItem,
+            splitByParts,
+            editItem: vi.fn(),
+            removeItem: vi.fn(),
+            startItem: vi.fn(),
+            cancelItem,
+          },
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add split item' }));
+    expect(screen.getByLabelText('Item name')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel split item' }));
+    expect(screen.queryByLabelText('Item name')).not.toBeInTheDocument();
+    expect(cancelItem).toHaveBeenCalledTimes(1);
+    expect(addItem).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Split by parts' }));
+    expect(screen.getByLabelText('Amount to split')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel split by parts' }));
+    expect(screen.queryByLabelText('Amount to split')).not.toBeInTheDocument();
+    expect(splitByParts).not.toHaveBeenCalled();
+  });
+
+  it('edits an existing split item inline', () => {
+    const editItem = vi.fn();
+    const addItem = vi.fn(() => true);
+    const commands = {
+      toggleEnabled: vi.fn(),
+      changeItemName: vi.fn(),
+      changeItemAmount: vi.fn(),
+      addItem,
+      splitByParts: vi.fn(),
+      editItem,
+      removeItem: vi.fn(),
+      startItem: vi.fn(),
+      cancelItem: vi.fn(),
+    };
+
+    const { rerender } = render(
+      <ExpenseSplitEditorView
+        required={{
+          config: {},
+          data: { items: [{ id: 'item-1', name: 'Coffee', amount: '4.00' }] },
+          state: {
+            enabled: true,
+            itemName: '',
+            itemAmount: '',
+            editingItemId: '',
+          },
+          status: { disabled: false },
+        }}
+        provided={{ commands }}
+      />,
+    );
+
+    const row = screen.getByText('Coffee').closest('li');
+    expect(row).not.toBeNull();
+    fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Item actions for Coffee' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit item Coffee' }));
+
+    rerender(
+      <ExpenseSplitEditorView
+        required={{
+          config: {},
+          data: { items: [{ id: 'item-1', name: 'Coffee', amount: '4.00' }] },
+          state: {
+            enabled: true,
+            itemName: 'Coffee',
+            itemAmount: '4.00',
+            editingItemId: 'item-1',
+          },
+          status: { disabled: false },
+        }}
+        provided={{ commands }}
+      />,
+    );
+
+    expect(screen.getByLabelText('Item name')).toHaveValue('Coffee');
+    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '5.00' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
+
+    expect(editItem).toHaveBeenCalledWith('item-1');
+    expect(commands.changeItemAmount).toHaveBeenCalledWith('5.00');
+    expect(addItem).toHaveBeenCalledTimes(1);
   });
 
   it('renders validation feedback and hides editor body when disabled by state', () => {
@@ -101,7 +212,6 @@ describe('ExpenseSplitEditorView', () => {
             itemName: '',
             itemAmount: '',
             editingItemId: '',
-            remaining: '3.00',
             itemNameError: 'Item name is required',
             splitError: 'Split must match amount',
           },

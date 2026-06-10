@@ -26,6 +26,7 @@ export type TransactionMainFieldsViewProps = ViewProps<
   },
   {
     disabled?: boolean;
+    amountVisible?: boolean;
     dateDisabled?: boolean;
     dateVisible?: boolean;
     amountError?: string;
@@ -63,11 +64,12 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
     afterAmount,
   } = config;
   const showTransferFields = state.mode === 'transfer';
+  const amountVisible = status.amountVisible ?? true;
   const dateVisible = status.dateVisible ?? true;
 
   return (
     <>
-      {!showTransferFields ? (
+      {!showTransferFields && amountVisible ? (
         <>
           <label className="stack">
             <span className="visually-hidden">{amountLabel}</span>
@@ -86,9 +88,10 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
             />
           </label>
           {status.amountError ? <p id="composer-amount-error" className="field-error">{status.amountError}</p> : null}
-          {afterAmount}
         </>
       ) : null}
+
+      {!showTransferFields ? afterAmount : null}
 
       {showTransferFields ? (
         <label className="stack">
@@ -108,7 +111,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
         </label>
       ) : null}
 
-      {showTransferFields ? (
+      {showTransferFields && amountVisible ? (
         <>
           <label className="stack">
             <span className="visually-hidden">{amountLabel}</span>

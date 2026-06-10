@@ -6,61 +6,36 @@
   gap: var(--spacing-3);
 }
 
-.form {
-  display: grid;
-  gap: var(--spacing-2);
-  padding-top: 2px;
-}
-
-.form label {
-  display: grid;
-  gap: 5px;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.formActions {
-  display: flex;
-  gap: var(--spacing-2);
-  justify-content: flex-end;
-}
-
-.popupBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-modal-backdrop);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-4);
-  background: rgba(29, 29, 27, 0.28);
-}
-
-.popup {
-  width: min(100%, 420px);
-  max-height: min(86dvh, 560px);
-  overflow-y: auto;
-  display: grid;
-  gap: var(--spacing-3);
-  padding: 14px;
-  border-radius: var(--radius-lg);
-  background: var(--color-background-surface);
-  box-shadow: var(--shadow-modal);
-}
-
-.popup h3 {
-  margin: 0;
-  font-size: 1rem;
-  line-height: 1.2;
-}
-
-.partsPreview {
+.inlineEditor {
   display: grid;
   gap: 6px;
-  padding: 10px;
+}
+
+.inlineEditorItem {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--color-background-muted);
+}
+
+.inlineEditorRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(5.5rem, 0.9fr) 2rem 2rem;
+  align-items: center;
+  gap: 6px;
+}
+
+.inlineEditorRow input {
+  min-width: 0;
+  height: 2rem;
+  padding-inline: 8px;
+}
+
+.inlineAction {
+  width: 2rem;
+  height: 2rem;
 }
 
 .menuBackdrop {

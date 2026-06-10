@@ -33,7 +33,6 @@ export type TransactionEntryViewRequired = {
     splitItemName: string;
     splitItemAmount: string;
     editingSplitItemId: string;
-    splitRemaining: string;
     splitTotal: string;
     schedulingMode: 'now' | 'scheduled';
     schedulingKind: 'one_shot' | 'recurring';

@@ -19,7 +19,6 @@ const baseInput = {
   transferFxMode: 'auto_destination' as const,
   expenseDetailed: false,
   expenseItemsLength: 0,
-  expenseRemaining: '0',
   recurrenceInterval: '1',
   recurrenceEndKind: 'never' as const,
   recurrenceEndDate: '',
@@ -39,13 +38,12 @@ describe('transaction composer validation', () => {
       recurrenceEndCount: '0',
       expenseDetailed: true,
       expenseItemsLength: 0,
-      expenseRemaining: '4.00',
     });
 
     expect(result.blockingError).toBeUndefined();
     expect(result.errors).toEqual({
       amount: 'Enter a valid amount greater than 0.',
-      expenseSplit: 'Items must match the total amount before publishing.',
+      expenseSplit: 'Add at least one item before publishing.',
       recurrenceInterval: 'Recurrence interval must be a positive integer.',
       recurrenceEndCount: 'Recurrence count must be a positive integer.',
     });

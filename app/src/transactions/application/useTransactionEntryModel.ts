@@ -137,7 +137,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     expenseItemAmount,
     editingExpenseItemId,
     expenseItems,
-    expenseRemaining,
     expenseSplitTotal,
   } = splitEditorModel.state;
   const {
@@ -417,6 +416,16 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     removeRecurringSchedule();
   }
 
+  function applySplitValue() {
+    setTransactionAmount(expenseSplitTotal);
+    setFieldErrors((previous) => ({
+      ...previous,
+      amount: undefined,
+      expenseSplit: undefined,
+    }));
+    applySplit();
+  }
+
   async function submitTransaction(event: FormEvent) {
     event.preventDefault();
     setError('');
@@ -450,7 +459,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       transferFxMode,
       expenseDetailed,
       expenseItemsLength: expenseItems.length,
-      expenseRemaining,
       recurrenceInterval,
       recurrenceEndKind,
       recurrenceEndDate,
@@ -566,7 +574,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       splitItemName: expenseItemName,
       splitItemAmount: expenseItemAmount,
       editingSplitItemId: editingExpenseItemId,
-      splitRemaining: expenseRemaining,
       splitTotal: expenseSplitTotal,
       schedulingMode,
       schedulingKind,
@@ -611,7 +618,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       setSplitEnabled: setExpenseDetailedValue,
       openSplitEditor,
       closeSplitEditor,
-      applySplit,
+      applySplit: applySplitValue,
       removeSplit,
       setSplitItemName: setExpenseItemNameValue,
       setSplitItemAmount: setExpenseItemAmountValue,

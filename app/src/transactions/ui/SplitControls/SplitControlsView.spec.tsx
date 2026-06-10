@@ -36,7 +36,6 @@ describe('SplitControlsView', () => {
           state: {
             itemsCount: 2,
             total: '100.00',
-            remaining: '0.00',
             currencyCode: 'EUR',
           },
           status: {},
@@ -47,7 +46,7 @@ describe('SplitControlsView', () => {
 
     expect(screen.getByText('Split')).toBeInTheDocument();
     expect(screen.getByText('2 items · 100.00 EUR')).toBeInTheDocument();
-    expect(screen.getByText('Remaining: 0.00 EUR')).toBeInTheDocument();
+    expect(screen.queryByText(/Remaining/i)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /edit split/i }));
     fireEvent.click(screen.getByRole('button', { name: /remove split/i }));

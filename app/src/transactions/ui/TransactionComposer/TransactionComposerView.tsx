@@ -56,7 +56,6 @@ export type TransactionComposerViewRequired = {
   expenseItemName: string;
   expenseItemAmount: string;
   editingExpenseItemId: string;
-  expenseRemaining: string;
   expenseSplitTotal: string;
   schedulingMode: 'now' | 'scheduled';
   schedulingKind: 'one_shot' | 'recurring';
@@ -222,7 +221,6 @@ export function TransactionComposerView({ required, provided }: Props) {
     expenseItemName,
     expenseItemAmount,
     editingExpenseItemId,
-    expenseRemaining,
     expenseSplitTotal,
     schedulingMode,
     schedulingKind,
@@ -356,8 +354,8 @@ export function TransactionComposerView({ required, provided }: Props) {
     if ((mode !== 'expense' && mode !== 'income') || !expenseDetailed) {
       return true;
     }
-    return expenseItems.length > 0 && Number(expenseRemaining) === 0;
-  }, [expenseDetailed, expenseItems.length, expenseRemaining, mode, splitEditorOpen]);
+    return expenseItems.length > 0;
+  }, [expenseDetailed, expenseItems.length, mode, splitEditorOpen]);
   const splitControl = splitAvailable
     ? splitApplied
       ? (
@@ -368,7 +366,6 @@ export function TransactionComposerView({ required, provided }: Props) {
             state: {
               itemsCount: expenseItems.length,
               total: expenseSplitTotal,
-              remaining: expenseRemaining,
               currencyCode,
             },
             status: { disabled },
@@ -450,6 +447,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                   },
                   status: {
                     disabled,
+                    amountVisible: !splitApplied,
                     dateDisabled: recurringScheduleConfigured,
                     dateVisible: !recurringScheduleConfigured,
                     amountError,
@@ -719,7 +717,7 @@ export function TransactionComposerView({ required, provided }: Props) {
               <div className="stack">
                 <div className="stack">
                   <span className="hint detail-meta-label">Total amount</span>
-                  <strong>{amount || '0.00'} {currencyCode ?? ''}</strong>
+                  <strong>{expenseSplitTotal || '0.00'} {currencyCode ?? ''}</strong>
                 </div>
                 <ExpenseSplitEditorView
                   required={{
@@ -730,7 +728,6 @@ export function TransactionComposerView({ required, provided }: Props) {
                       itemName: expenseItemName,
                       itemAmount: expenseItemAmount,
                       editingItemId: editingExpenseItemId,
-                      remaining: expenseRemaining,
                       currencyCode,
                       itemNameError: expenseItemNameError,
                       itemAmountError: expenseItemAmountError,

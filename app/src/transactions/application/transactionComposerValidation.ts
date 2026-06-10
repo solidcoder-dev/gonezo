@@ -20,7 +20,6 @@ export type TransactionComposerValidationInput = {
   transferFxMode: 'auto_destination' | 'auto_rate';
   expenseDetailed: boolean;
   expenseItemsLength: number;
-  expenseRemaining: string;
   recurrenceInterval: string;
   recurrenceEndKind: SchedulingEndInput['kind'];
   recurrenceEndDate: string;
@@ -37,11 +36,6 @@ export type TransactionComposerValidationResult = {
   movementScheduled: boolean;
   transferCrossCurrencySelection: boolean;
 };
-
-function parseAmount(value: string): number {
-  const parsed = Number(value.trim());
-  return Number.isNaN(parsed) ? 0 : parsed;
-}
 
 function isFutureIsoDateInput(dateInput: string, todayIso: string): boolean {
   const trimmed = dateInput.trim();
@@ -187,9 +181,6 @@ export function validateTransactionComposerSubmission(
   if ((input.mode === 'expense' || input.mode === 'income') && input.expenseDetailed) {
     if (input.expenseItemsLength === 0) {
       errors.expenseSplit = 'Add at least one item before publishing.';
-    }
-    if (parseAmount(input.expenseRemaining) !== 0) {
-      errors.expenseSplit = 'Items must match the total amount before publishing.';
     }
   }
 
