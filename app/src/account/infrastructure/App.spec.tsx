@@ -1672,12 +1672,12 @@ describe('App Accounts UX', () => {
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '55' } });
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: isoInCurrentMonth(4).slice(0, 10) } });
     fireEvent.change(screen.getByLabelText('Merchant'), { target: { value: 'Gym' } });
+    fireEvent.click(screen.getByRole('button', { name: /Schedule recurring/i }));
+    const nextOccurrence = screen.getByText(/Next occurrence:/).textContent?.replace('Next occurrence: ', '') ?? '';
+    fireEvent.click(screen.getByRole('button', { name: 'Apply schedule' }));
     fireEvent.click(screen.getByRole('button', { name: 'More options' }));
     fireEvent.click(screen.getByLabelText('Expected'));
-    fireEvent.click(screen.getByLabelText('Repeat this expense'));
-    const nextExecutionDate = screen.getByLabelText('Next execution date');
-    expect(nextExecutionDate).toBeDisabled();
-    expect(screen.getByText(`Next occurrence: ${(nextExecutionDate as HTMLInputElement).value}`)).toBeInTheDocument();
+    expect(screen.getByText(`Next: ${nextOccurrence}`)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Save expected' }));
 
     await waitFor(() => {
@@ -1690,7 +1690,7 @@ describe('App Accounts UX', () => {
       type: 'expense',
       amount: '55.00',
       currency: 'USD',
-      expectedAt: expect.stringMatching(new RegExp(`^${(nextExecutionDate as HTMLInputElement).value}T`)),
+      expectedAt: expect.stringMatching(new RegExp(`^${nextOccurrence}T`)),
       merchant: 'Gym',
       description: 'Gym',
     }));
@@ -1702,7 +1702,7 @@ describe('App Accounts UX', () => {
       scheduleKind: 'recurring',
       reviewPolicy: 'require_user_confirmation',
       recurrenceEnd: { kind: 'never' },
-      startAt: expect.stringMatching(new RegExp(`^${(nextExecutionDate as HTMLInputElement).value}T`)),
+      startAt: expect.stringMatching(new RegExp(`^${nextOccurrence}T`)),
     }));
     expect(core.ledgerRecordExpense).not.toHaveBeenCalled();
   });
@@ -3276,15 +3276,14 @@ describe('App Accounts UX', () => {
     await screen.findByText('Net balance');
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '37.5' } });
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-05-04' } });
-    fireEvent.click(screen.getByLabelText('Repeat this expense'));
+    fireEvent.click(screen.getByRole('button', { name: /Schedule recurring/i }));
     fireEvent.change(screen.getByLabelText('Recurrence frequency'), { target: { value: 'monthly' } });
     fireEvent.change(screen.getByLabelText('Recurrence interval'), { target: { value: '2' } });
     fireEvent.change(screen.getByLabelText('Monthly day of month'), { target: { value: '11' } });
-    const nextExecutionDate = screen.getByLabelText('Next execution date');
-    expect(nextExecutionDate).toBeDisabled();
-    expect(screen.getByText(`Next occurrence: ${(nextExecutionDate as HTMLInputElement).value}`)).toBeInTheDocument();
+    const nextOccurrence = screen.getByText(/Next occurrence:/).textContent?.replace('Next occurrence: ', '') ?? '';
+    fireEvent.click(screen.getByRole('button', { name: 'Apply schedule' }));
+    expect(screen.getByText(`Next: ${nextOccurrence}`)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -3305,7 +3304,7 @@ describe('App Accounts UX', () => {
       },
       recurrenceEnd: { kind: 'never' },
       scheduleKind: 'recurring',
-      startAt: expect.stringMatching(new RegExp(`^${(nextExecutionDate as HTMLInputElement).value}T`)),
+      startAt: expect.stringMatching(new RegExp(`^${nextOccurrence}T`)),
     });
     expect(core.ledgerRecordExpense).not.toHaveBeenCalled();
   });
@@ -3323,10 +3322,10 @@ describe('App Accounts UX', () => {
     await openMode('Income');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '2400' } });
     fireEvent.change(screen.getByLabelText('Source'), { target: { value: 'Consulting' } });
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-12-31' } });
-    fireEvent.click(screen.getByLabelText('Repeat this income'));
+    fireEvent.click(screen.getByRole('button', { name: /Schedule recurring/i }));
     fireEvent.change(screen.getByLabelText('Recurrence frequency'), { target: { value: 'monthly' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply schedule' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 

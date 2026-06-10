@@ -26,6 +26,7 @@ export type TransactionMainFieldsViewProps = ViewProps<
   {
     disabled?: boolean;
     dateDisabled?: boolean;
+    dateVisible?: boolean;
     amountError?: string;
     dateError?: string;
   },
@@ -60,6 +61,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
     notePlaceholder,
   } = config;
   const showTransferFields = state.mode === 'transfer';
+  const dateVisible = status.dateVisible ?? true;
 
   return (
     <>
@@ -147,49 +149,53 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
         </label>
       ) : null}
 
-      <div className="date-input-row">
-        <label className="stack date-input-field">
-          <span className="visually-hidden">{dateInputLabel}</span>
-          <input
-            aria-label={dateInputLabel}
-            type="text"
-            value={state.date}
-            placeholder={datePlaceholder}
-            inputMode="numeric"
-            disabled={status.dateDisabled}
-            onFocus={() => {
-              if (state.date === datePlaceholder) {
-                provided.commands.changeDate('');
-              }
-            }}
-            onChange={(event) => provided.commands.changeDate(formatDateInput(event.target.value))}
-            aria-invalid={Boolean(status.dateError)}
-            aria-describedby={status.dateError ? 'composer-date-error' : undefined}
-          />
-          <input
-            ref={dateInputRef}
-            className="visually-hidden"
-            aria-hidden="true"
-            tabIndex={-1}
-            type="date"
-            value={state.date}
-            disabled={status.dateDisabled}
-            onChange={(event) => provided.commands.changeDate(event.target.value)}
-          />
-        </label>
-        <button
-          type="button"
-          className="text-button icon-button date-picker-button"
-          aria-label="Open calendar"
-          onClick={() => {
-            dateInputRef?.current?.showPicker?.();
-          }}
-          disabled={status.disabled || status.dateDisabled}
-        >
-          <i className="bi bi-calendar3" aria-hidden />
-        </button>
-      </div>
-      {status.dateError ? <p id="composer-date-error" className="field-error">{status.dateError}</p> : null}
+      {dateVisible ? (
+        <>
+          <div className="date-input-row">
+            <label className="stack date-input-field">
+              <span className="visually-hidden">{dateInputLabel}</span>
+              <input
+                aria-label={dateInputLabel}
+                type="text"
+                value={state.date}
+                placeholder={datePlaceholder}
+                inputMode="numeric"
+                disabled={status.dateDisabled}
+                onFocus={() => {
+                  if (state.date === datePlaceholder) {
+                    provided.commands.changeDate('');
+                  }
+                }}
+                onChange={(event) => provided.commands.changeDate(formatDateInput(event.target.value))}
+                aria-invalid={Boolean(status.dateError)}
+                aria-describedby={status.dateError ? 'composer-date-error' : undefined}
+              />
+              <input
+                ref={dateInputRef}
+                className="visually-hidden"
+                aria-hidden="true"
+                tabIndex={-1}
+                type="date"
+                value={state.date}
+                disabled={status.dateDisabled}
+                onChange={(event) => provided.commands.changeDate(event.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              className="text-button icon-button date-picker-button"
+              aria-label="Open calendar"
+              onClick={() => {
+                dateInputRef?.current?.showPicker?.();
+              }}
+              disabled={status.disabled || status.dateDisabled}
+            >
+              <i className="bi bi-calendar3" aria-hidden />
+            </button>
+          </div>
+          {status.dateError ? <p id="composer-date-error" className="field-error">{status.dateError}</p> : null}
+        </>
+      ) : null}
     </>
   );
 }

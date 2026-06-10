@@ -256,10 +256,10 @@ describe('useTransactionEntryModel', () => {
       result.current.provided.commands.selectMode('expense');
       result.current.provided.commands.setAmount('37.50');
       result.current.provided.commands.setDate('2026-05-04');
-      result.current.provided.commands.setSchedulingMode('scheduled');
-      result.current.provided.commands.setSchedulingKind('recurring');
+      result.current.provided.commands.openRecurringScheduleEditor();
       result.current.provided.commands.setRecurrenceFrequency('monthly');
       result.current.provided.commands.setRecurrenceDayOfMonth('11');
+      result.current.provided.commands.applyRecurringSchedule();
     });
 
     await waitFor(() => expect(result.current.required.state.date).toBe('2026-06-11'));
@@ -275,6 +275,35 @@ describe('useTransactionEntryModel', () => {
         dayOfMonth: 11,
       }),
     }));
+  });
+
+  it('uses today as schedule base when the date field is empty', async () => {
+    const ports = makePorts();
+
+    const { result } = renderHook(() => useTransactionEntryModel({
+      ports,
+      clock: makeClock(),
+      idGenerator: makeIdGenerator([]),
+      accountId: 'account-1',
+      enabled: true,
+    }));
+
+    await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
+
+    act(() => {
+      result.current.provided.commands.open();
+      result.current.provided.commands.selectMode('expense');
+      result.current.provided.commands.setDate('');
+      result.current.provided.commands.openRecurringScheduleEditor();
+    });
+
+    expect(result.current.required.state.nextScheduledOccurrenceDate).toBe('2026-05-18');
+
+    act(() => {
+      result.current.provided.commands.applyRecurringSchedule();
+    });
+
+    expect(result.current.required.state.date).toBe('2026-05-18');
   });
 
   it('creates a missing expense category before recording a posted expense', async () => {

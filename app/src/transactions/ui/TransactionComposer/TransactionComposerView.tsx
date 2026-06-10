@@ -5,6 +5,8 @@ import { CategoryComboboxField } from '../CategoryComboboxField';
 import { ComposerModePickerView } from '../ComposerModePicker/ComposerModePickerView';
 import { ExpenseSplitEditorView } from '../ExpenseSplitEditor/ExpenseSplitEditorView';
 import { RecurrenceEditorView } from '../RecurrenceEditor/RecurrenceEditorView';
+import { ScheduleSummaryView } from '../ScheduleControls/ScheduleSummaryView';
+import { ScheduleTriggerView } from '../ScheduleControls/ScheduleTriggerView';
 import { SchedulingOptionsView } from '../SchedulingOptions/SchedulingOptionsView';
 import { TagComboboxField } from '../TagComboboxField';
 import { TransactionComposerActionsView } from '../TransactionComposerActions/TransactionComposerActionsView';
@@ -61,12 +63,13 @@ export type TransactionComposerViewRequired = {
   recurrenceMonthlyOrdinal: string;
   recurrenceMonthlyWeekday: string;
   recurrenceEndKind: RecurrenceEndInput['kind'];
-    recurrenceEndDate: string;
-    recurrenceEndCount: string;
-    expected: boolean;
-    editedScheduledMovementId?: string;
-    postExpectedMovementId?: string;
-    currencyCode?: string;
+  recurrenceEndDate: string;
+  recurrenceEndCount: string;
+  scheduleEditorOpen: boolean;
+  expected: boolean;
+  editedScheduledMovementId?: string;
+  postExpectedMovementId?: string;
+  currencyCode?: string;
   expenseItemNameError?: string;
   expenseItemAmountError?: string;
   expenseSplitError?: string;
@@ -106,6 +109,10 @@ export type TransactionComposerViewProvided = {
   onSplitByParts: (amount: string, parts: string) => void;
   onSetSchedulingMode: (value: 'now' | 'scheduled') => void;
   onSetSchedulingKind: (value: 'one_shot' | 'recurring') => void;
+  onOpenRecurringScheduleEditor: () => void;
+  onApplyRecurringSchedule: () => void;
+  onCloseRecurringScheduleEditor: () => void;
+  onRemoveRecurringSchedule: () => void;
   onSetRecurrenceFrequency: (value: RecurrenceFrequency) => void;
   onSetRecurrenceInterval: (value: string) => void;
   onSetRecurrenceWeeklyDay: (value: string) => void;
@@ -157,6 +164,28 @@ function todayIsoLocal(): string {
   return `${year}-${month}-${day}`;
 }
 
+function titleCase(value: string): string {
+  return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
+}
+
+function recurrenceSummary(
+  frequency: RecurrenceFrequency,
+  interval: string,
+  monthlyPattern: RecurrenceMonthlyPattern,
+  dayOfMonth: string,
+): string {
+  const normalizedInterval = interval.trim() || '1';
+  if (frequency === 'monthly' && monthlyPattern === 'day_of_month') {
+    return normalizedInterval === '1'
+      ? `Monthly · day ${dayOfMonth || '1'}`
+      : `Monthly · every ${normalizedInterval} months · day ${dayOfMonth || '1'}`;
+  }
+  if (normalizedInterval === '1') {
+    return titleCase(frequency);
+  }
+  return `${titleCase(frequency)} · every ${normalizedInterval}`;
+}
+
 export function TransactionComposerView({ required, provided }: Props) {
   const {
     open,
@@ -196,6 +225,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     recurrenceEndKind,
     recurrenceEndDate,
     recurrenceEndCount,
+    scheduleEditorOpen,
     expected,
     editedScheduledMovementId,
     postExpectedMovementId,
@@ -238,6 +268,10 @@ export function TransactionComposerView({ required, provided }: Props) {
     onSplitByParts,
     onSetSchedulingMode,
     onSetSchedulingKind,
+    onOpenRecurringScheduleEditor,
+    onApplyRecurringSchedule,
+    onCloseRecurringScheduleEditor,
+    onRemoveRecurringSchedule,
     onSetRecurrenceFrequency,
     onSetRecurrenceInterval,
     onSetRecurrenceWeeklyDay,
@@ -281,9 +315,10 @@ export function TransactionComposerView({ required, provided }: Props) {
   const repeatEnabled = (mode === 'expense' || mode === 'income')
     && schedulingMode === 'scheduled'
     && schedulingKind === 'recurring';
+  const recurringScheduleAvailable = mode === 'expense' || mode === 'income';
+  const recurringScheduleConfigured = recurringScheduleAvailable && repeatEnabled;
   const scheduledMovementVisible = mode !== 'expense' && schedulingMode === 'scheduled';
-  const schedulerControlsDate = schedulingMode === 'scheduled' && schedulingKind === 'recurring';
-  const dateInputLabel = schedulerControlsDate
+  const dateInputLabel = recurringScheduleConfigured
     ? 'Next execution date'
     : expected
     ? 'Expected date'
@@ -292,6 +327,12 @@ export function TransactionComposerView({ required, provided }: Props) {
       : scheduledMovementVisible
         ? 'Execution date'
         : 'Date';
+  const scheduleSummary = recurrenceSummary(
+    recurrenceFrequency,
+    recurrenceInterval,
+    recurrenceMonthlyPattern,
+    recurrenceDayOfMonth,
+  );
 
   const splitReady = useMemo(() => {
     if ((mode !== 'expense' && mode !== 'income') || !expenseDetailed) {
@@ -309,27 +350,28 @@ export function TransactionComposerView({ required, provided }: Props) {
   }
 
   return (
-    <SheetView
-      required={{
-        config: {
-          ariaLabel: 'Transaction composer',
-          title: titleForModeAndPurpose(mode, postExpectedMovementId, editedScheduledMovementId),
-          closeLabel: 'Close transaction composer',
-          panelClassName: 'composer-sheet',
-        },
-        data: {
-          body: mode === 'picker' ? (
-            <ComposerModePickerView
-              required={{
-                config: {},
-                data: {},
-                state: {},
-                status: { disabled },
-              }}
-              provided={{ commands: { selectMode: onSelectMode } }}
-            />
-          ) : (
-          <form className="composer-form" onSubmit={onSubmit} aria-busy={disabled} noValidate>
+    <>
+      <SheetView
+        required={{
+          config: {
+            ariaLabel: 'Transaction composer',
+            title: titleForModeAndPurpose(mode, postExpectedMovementId, editedScheduledMovementId),
+            closeLabel: 'Close transaction composer',
+            panelClassName: 'composer-sheet',
+          },
+          data: {
+            body: mode === 'picker' ? (
+              <ComposerModePickerView
+                required={{
+                  config: {},
+                  data: {},
+                  state: {},
+                  status: { disabled },
+                }}
+                provided={{ commands: { selectMode: onSelectMode } }}
+              />
+            ) : (
+            <form className="composer-form" onSubmit={onSubmit} aria-busy={disabled} noValidate>
             <div className="composer-form-content stack">
               <TransactionMainFieldsView
                 required={{
@@ -354,7 +396,8 @@ export function TransactionComposerView({ required, provided }: Props) {
                   },
                   status: {
                     disabled,
-                    dateDisabled: schedulerControlsDate,
+                    dateDisabled: recurringScheduleConfigured,
+                    dateVisible: !recurringScheduleConfigured,
                     amountError,
                     dateError,
                   },
@@ -368,6 +411,38 @@ export function TransactionComposerView({ required, provided }: Props) {
                   },
                 }}
               />
+
+              {recurringScheduleAvailable ? (
+                recurringScheduleConfigured ? (
+                  <ScheduleSummaryView
+                    required={{
+                      config: {},
+                      data: {},
+                      state: {
+                        summary: scheduleSummary,
+                        nextDate: nextScheduledOccurrenceDate ?? date,
+                      },
+                      status: { disabled },
+                    }}
+                    provided={{
+                      commands: {
+                        edit: onOpenRecurringScheduleEditor,
+                        remove: onRemoveRecurringSchedule,
+                      },
+                    }}
+                  />
+                ) : (
+                  <ScheduleTriggerView
+                    required={{
+                      config: {},
+                      data: {},
+                      state: {},
+                      status: { disabled },
+                    }}
+                    provided={{ commands: { open: onOpenRecurringScheduleEditor } }}
+                  />
+                )
+              ) : null}
 
               {mode === 'transfer' && transferCrossCurrency ? (
                 <TransferFxFieldsView
@@ -449,65 +524,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                       </label>
                       {expectedConflictError ? <p className="field-error">{expectedConflictError}</p> : null}
 
-                      <label className="inline-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={repeatEnabled}
-                          onChange={() => {
-                            if (repeatEnabled) {
-                              onSetSchedulingKind('one_shot');
-                              onSetSchedulingMode('now');
-                              return;
-                            }
-                            onSetSchedulingMode('scheduled');
-                            onSetSchedulingKind('recurring');
-                          }}
-                          disabled={disabled}
-                        />
-                        {mode === 'expense' ? 'Repeat this expense' : 'Repeat this income'}
-                      </label>
                       {expected ? <p className="hint">Expected movements stay out of ledger balance until posted.</p> : null}
-
-                      {repeatEnabled ? (
-                        <RecurrenceEditorView
-                          required={{
-                            config: {},
-                            data: {},
-                            state: {
-                              frequency: recurrenceFrequency,
-                              interval: recurrenceInterval,
-                              weeklyDay: recurrenceWeeklyDay,
-                              monthlyPattern: recurrenceMonthlyPattern,
-                              dayOfMonth: recurrenceDayOfMonth,
-                              monthlyOrdinal: recurrenceMonthlyOrdinal,
-                              monthlyWeekday: recurrenceMonthlyWeekday,
-                              endKind: recurrenceEndKind,
-                              endDate: recurrenceEndDate,
-                              endCount: recurrenceEndCount,
-                              nextOccurrenceDate: nextScheduledOccurrenceDate ?? date,
-                            },
-                            status: {
-                              intervalError: recurrenceIntervalError,
-                              endDateError: recurrenceEndDateError,
-                              endCountError: recurrenceEndCountError,
-                            },
-                          }}
-                          provided={{
-                            commands: {
-                              setFrequency: onSetRecurrenceFrequency,
-                              setInterval: onSetRecurrenceInterval,
-                              setWeeklyDay: onSetRecurrenceWeeklyDay,
-                              setMonthlyPattern: onSetRecurrenceMonthlyPattern,
-                              setDayOfMonth: onSetRecurrenceDayOfMonth,
-                              setMonthlyOrdinal: onSetRecurrenceMonthlyOrdinal,
-                              setMonthlyWeekday: onSetRecurrenceMonthlyWeekday,
-                              setEndKind: onSetRecurrenceEndKind,
-                              setEndDate: onSetRecurrenceEndDate,
-                              setEndCount: onSetRecurrenceEndCount,
-                            },
-                          }}
-                        />
-                      ) : null}
 
                       <ExpenseSplitEditorView
                         required={{
@@ -594,13 +611,79 @@ export function TransactionComposerView({ required, provided }: Props) {
               }}
               provided={{ commands: {} }}
             />
-          </form>
-        ),
-        },
-        state: { open: true },
-        status: {},
-      }}
-      provided={{ commands: { close: onClose } }}
-    />
+            </form>
+          ),
+          },
+          state: { open: true },
+          status: {},
+        }}
+        provided={{ commands: { close: onClose } }}
+      />
+      <SheetView
+        required={{
+          config: {
+            ariaLabel: 'Recurring schedule',
+            title: 'Recurring Schedule',
+            closeLabel: 'Close recurring schedule',
+            panelClassName: 'composer-sheet',
+          },
+          data: {
+            body: (
+              <div className="stack">
+                <RecurrenceEditorView
+                  required={{
+                    config: {},
+                    data: {},
+                    state: {
+                      frequency: recurrenceFrequency,
+                      interval: recurrenceInterval,
+                      weeklyDay: recurrenceWeeklyDay,
+                      monthlyPattern: recurrenceMonthlyPattern,
+                      dayOfMonth: recurrenceDayOfMonth,
+                      monthlyOrdinal: recurrenceMonthlyOrdinal,
+                      monthlyWeekday: recurrenceMonthlyWeekday,
+                      endKind: recurrenceEndKind,
+                      endDate: recurrenceEndDate,
+                      endCount: recurrenceEndCount,
+                      nextOccurrenceDate: nextScheduledOccurrenceDate ?? date,
+                    },
+                    status: {
+                      intervalError: recurrenceIntervalError,
+                      endDateError: recurrenceEndDateError,
+                      endCountError: recurrenceEndCountError,
+                    },
+                  }}
+                  provided={{
+                    commands: {
+                      setFrequency: onSetRecurrenceFrequency,
+                      setInterval: onSetRecurrenceInterval,
+                      setWeeklyDay: onSetRecurrenceWeeklyDay,
+                      setMonthlyPattern: onSetRecurrenceMonthlyPattern,
+                      setDayOfMonth: onSetRecurrenceDayOfMonth,
+                      setMonthlyOrdinal: onSetRecurrenceMonthlyOrdinal,
+                      setMonthlyWeekday: onSetRecurrenceMonthlyWeekday,
+                      setEndKind: onSetRecurrenceEndKind,
+                      setEndDate: onSetRecurrenceEndDate,
+                      setEndCount: onSetRecurrenceEndCount,
+                    },
+                  }}
+                />
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={onApplyRecurringSchedule}
+                  disabled={disabled}
+                >
+                  Apply schedule
+                </button>
+              </div>
+            ),
+          },
+          state: { open: scheduleEditorOpen },
+          status: { disabled },
+        }}
+        provided={{ commands: { close: onCloseRecurringScheduleEditor } }}
+      />
+    </>
   );
 }

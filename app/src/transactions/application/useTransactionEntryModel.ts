@@ -171,10 +171,15 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     recurrenceEndDate,
     recurrenceEndCount,
     recurrenceEnabled,
+    scheduleEditorOpen,
   } = schedulingModel.state;
   const {
     reset: resetScheduling,
     prefill: prefillScheduling,
+    openRecurringScheduleEditor,
+    applyRecurringSchedule,
+    closeRecurringScheduleEditor,
+    removeRecurringSchedule,
     syncDateFields,
     setSchedulingModeValue,
     setSchedulingKindValue,
@@ -191,9 +196,12 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setExpectedMovement,
     setExpectedMovementValue,
   } = schedulingModel.actions;
-  const nextScheduledOccurrenceDate = recurrenceEnabled
+  const scheduleBaseDate = /^\d{4}-\d{2}-\d{2}$/.test(transactionDate)
+    ? transactionDate
+    : clock.todayIso();
+  const nextScheduledOccurrenceDate = (recurrenceEnabled || scheduleEditorOpen)
     ? nextRecurrenceDateIso({
-      fromDate: clock.todayIso(),
+      fromDate: scheduleBaseDate,
       frequency: recurrenceFrequency,
       interval: recurrenceInterval,
       weeklyDay: recurrenceWeeklyDay,
@@ -393,6 +401,17 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     syncDateFields(value);
   }
 
+  function applyRecurringScheduleValue() {
+    const nextDate = nextScheduledOccurrenceDate ?? scheduleBaseDate;
+    setTransactionDate(nextDate);
+    applyRecurringSchedule();
+  }
+
+  function removeRecurringScheduleValue() {
+    setTransactionDate(effectiveTransactionDate);
+    removeRecurringSchedule();
+  }
+
   async function submitTransaction(event: FormEvent) {
     event.preventDefault();
     setError('');
@@ -553,6 +572,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       recurrenceEndKind,
       recurrenceEndDate,
       recurrenceEndCount,
+      scheduleEditorOpen,
       expected: expectedMovement,
       editedScheduledMovementId: editedScheduledMovementId || undefined,
       postExpectedMovementId: postExpectedMovementId || undefined,
@@ -592,6 +612,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         splitByParts: splitExpenseByParts,
       setSchedulingMode: setSchedulingModeValue,
       setSchedulingKind: setSchedulingKindValue,
+      openRecurringScheduleEditor: () => openRecurringScheduleEditor(scheduleBaseDate),
+      applyRecurringSchedule: applyRecurringScheduleValue,
+      closeRecurringScheduleEditor,
+      removeRecurringSchedule: removeRecurringScheduleValue,
       setRecurrenceFrequency: setRecurrenceFrequencyValue,
       setRecurrenceInterval: setRecurrenceIntervalValue,
       setRecurrenceWeeklyDay,

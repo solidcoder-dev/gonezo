@@ -44,6 +44,7 @@ export type TransactionEntryViewRequired = {
     recurrenceEndKind: RecurrenceEndInput['kind'];
     recurrenceEndDate: string;
     recurrenceEndCount: string;
+    scheduleEditorOpen: boolean;
     expected: boolean;
     editedScheduledMovementId?: string;
     postExpectedMovementId?: string;
@@ -83,6 +84,10 @@ export type TransactionEntryViewProvided = {
     splitByParts: (amount: string, parts: string) => void;
     setSchedulingMode: (value: 'now' | 'scheduled') => void;
     setSchedulingKind: (value: 'one_shot' | 'recurring') => void;
+    openRecurringScheduleEditor: () => void;
+    applyRecurringSchedule: () => void;
+    closeRecurringScheduleEditor: () => void;
+    removeRecurringSchedule: () => void;
     setRecurrenceFrequency: (value: RecurrenceFrequency) => void;
     setRecurrenceInterval: (value: string) => void;
     setRecurrenceWeeklyDay: (value: string) => void;

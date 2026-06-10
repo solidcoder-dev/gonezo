@@ -1,0 +1,88 @@
+.schedule-trigger {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.125rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-color, #2563eb);
+  font: inherit;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.schedule-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.schedule-summary {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.schedule-summary-heading {
+  color: var(--muted-text-color, #64748b);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.schedule-summary-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border-color, #d8dee8);
+  border-radius: 8px;
+  padding: 0.65rem;
+  background: var(--surface-color, #fff);
+}
+
+.schedule-summary-main {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.schedule-summary-main:disabled {
+  cursor: not-allowed;
+}
+
+.schedule-summary-line {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.schedule-summary-line span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schedule-summary-next {
+  color: var(--muted-text-color, #64748b);
+  font-size: 0.9rem;
+}
+
+.schedule-summary-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.schedule-summary-action {
+  width: 2rem;
+  height: 2rem;
+}

@@ -19,6 +19,19 @@ type UseTransactionSchedulingModelInput = {
   setFieldErrors: Dispatch<SetStateAction<TransactionFieldErrors>>;
 };
 
+type RecurrenceEditorSnapshot = {
+  frequency: SchedulingFrequency;
+  interval: string;
+  weeklyDay: string;
+  monthlyPattern: SchedulingMonthlyPattern;
+  dayOfMonth: string;
+  monthlyOrdinal: string;
+  monthlyWeekday: string;
+  endKind: SchedulingEndInput['kind'];
+  endDate: string;
+  endCount: string;
+} | null;
+
 export function useTransactionSchedulingModel(input: UseTransactionSchedulingModelInput) {
   const { clock, initialToday, setFieldErrors } = input;
   const [schedulingMode, setSchedulingMode] = useState<'now' | 'scheduled'>('now');
@@ -37,6 +50,8 @@ export function useTransactionSchedulingModel(input: UseTransactionSchedulingMod
   const [recurrenceEndKind, setRecurrenceEndKind] = useState<SchedulingEndInput['kind']>('never');
   const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
   const [recurrenceEndCount, setRecurrenceEndCount] = useState('12');
+  const [scheduleEditorOpen, setScheduleEditorOpen] = useState(false);
+  const [scheduleEditorSnapshot, setScheduleEditorSnapshot] = useState<RecurrenceEditorSnapshot>(null);
   const recurrenceEnabled = schedulingMode === 'scheduled' && schedulingKind === 'recurring';
 
   function reset(today: string) {
@@ -56,6 +71,8 @@ export function useTransactionSchedulingModel(input: UseTransactionSchedulingMod
     setRecurrenceEndKind('never');
     setRecurrenceEndDate('');
     setRecurrenceEndCount('12');
+    setScheduleEditorOpen(false);
+    setScheduleEditorSnapshot(null);
   }
 
   function prefill(prefillRequest: TransactionEntryPrefillRequest) {
@@ -98,6 +115,67 @@ export function useTransactionSchedulingModel(input: UseTransactionSchedulingMod
     setEditedExpectedMovementId(prefillRequest.postExpectedMovementId ? '' : (prefillRequest.editedExpectedMovementId ?? ''));
     setEditedScheduledMovementId(prefillRequest.editedScheduledMovementId ?? '');
     setPostExpectedMovementId(prefillRequest.postExpectedMovementId ?? '');
+    setScheduleEditorOpen(false);
+    setScheduleEditorSnapshot(null);
+  }
+
+  function openRecurringScheduleEditor(movementDate: string) {
+    setScheduleEditorSnapshot({
+      frequency: recurrenceFrequency,
+      interval: recurrenceInterval,
+      weeklyDay: recurrenceWeeklyDay,
+      monthlyPattern: recurrenceMonthlyPattern,
+      dayOfMonth: recurrenceDayOfMonth,
+      monthlyOrdinal: recurrenceMonthlyOrdinal,
+      monthlyWeekday: recurrenceMonthlyWeekday,
+      endKind: recurrenceEndKind,
+      endDate: recurrenceEndDate,
+      endCount: recurrenceEndCount,
+    });
+    if (!recurrenceEnabled) {
+      setRecurrenceFrequency('monthly');
+      setRecurrenceInterval('1');
+      setRecurrenceWeeklyDay(clock.weekDayIsoFromDateInput(movementDate));
+      setRecurrenceMonthlyPattern('day_of_month');
+      setRecurrenceDayOfMonth(clock.dayOfMonthFromDateInput(movementDate));
+      setRecurrenceMonthlyOrdinal('1');
+      setRecurrenceMonthlyWeekday(clock.weekDayIsoFromDateInput(movementDate));
+      setRecurrenceEndKind('never');
+      setRecurrenceEndDate('');
+      setRecurrenceEndCount('12');
+    }
+    setScheduleEditorOpen(true);
+  }
+
+  function applyRecurringSchedule() {
+    setSchedulingMode('scheduled');
+    setSchedulingKind('recurring');
+    setScheduleEditorOpen(false);
+    setScheduleEditorSnapshot(null);
+  }
+
+  function closeRecurringScheduleEditor() {
+    if (scheduleEditorSnapshot) {
+      setRecurrenceFrequency(scheduleEditorSnapshot.frequency);
+      setRecurrenceInterval(scheduleEditorSnapshot.interval);
+      setRecurrenceWeeklyDay(scheduleEditorSnapshot.weeklyDay);
+      setRecurrenceMonthlyPattern(scheduleEditorSnapshot.monthlyPattern);
+      setRecurrenceDayOfMonth(scheduleEditorSnapshot.dayOfMonth);
+      setRecurrenceMonthlyOrdinal(scheduleEditorSnapshot.monthlyOrdinal);
+      setRecurrenceMonthlyWeekday(scheduleEditorSnapshot.monthlyWeekday);
+      setRecurrenceEndKind(scheduleEditorSnapshot.endKind);
+      setRecurrenceEndDate(scheduleEditorSnapshot.endDate);
+      setRecurrenceEndCount(scheduleEditorSnapshot.endCount);
+    }
+    setScheduleEditorOpen(false);
+    setScheduleEditorSnapshot(null);
+  }
+
+  function removeRecurringSchedule() {
+    setSchedulingMode('now');
+    setSchedulingKind('one_shot');
+    setScheduleEditorOpen(false);
+    setScheduleEditorSnapshot(null);
   }
 
   function syncDateFields(value: string) {
@@ -204,10 +282,15 @@ export function useTransactionSchedulingModel(input: UseTransactionSchedulingMod
       recurrenceEndDate,
       recurrenceEndCount,
       recurrenceEnabled,
+      scheduleEditorOpen,
     },
     actions: {
       reset,
       prefill,
+      openRecurringScheduleEditor,
+      applyRecurringSchedule,
+      closeRecurringScheduleEditor,
+      removeRecurringSchedule,
       syncDateFields,
       setSchedulingModeValue,
       setSchedulingKindValue,
