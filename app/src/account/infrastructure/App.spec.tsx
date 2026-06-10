@@ -703,6 +703,10 @@ function openNewSplitItemDialog() {
   fireEvent.click(screen.getByRole('button', { name: 'Add split item' }));
 }
 
+function openSplitAmountEditor() {
+  fireEvent.click(screen.getByRole('button', { name: 'Split amount' }));
+}
+
 async function expandExpectedMovements() {
   fireEvent.click(await screen.findByRole('button', { name: /Expand expected movements/i }));
 }
@@ -1870,14 +1874,14 @@ describe('App Accounts UX', () => {
     await openMode('Income');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Split into items' }));
+    openSplitAmountEditor();
 
     openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Bonus' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     fireEvent.click(screen.getByRole('button', { name: 'Assign remaining' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply split' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -2189,14 +2193,14 @@ describe('App Accounts UX', () => {
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Split into items' }));
+    openSplitAmountEditor();
 
     openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Groceries' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     fireEvent.click(screen.getByRole('button', { name: 'Assign remaining' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply split' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -2218,23 +2222,22 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openMode('Expense');
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Split into items' }));
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
+    openSplitAmountEditor();
 
     openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Water' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '20' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
 
-    expect(screen.getByLabelText('Amount')).toHaveValue(20);
+    expect(screen.getByLabelText('Amount')).toHaveValue(80);
 
-    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
     openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Electricity' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '40' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
 
-    expect(screen.getByLabelText('Amount')).toHaveValue(60);
+    expect(screen.getByLabelText('Amount')).toHaveValue(80);
 
     const waterItem = screen.getByText('Water').closest('li');
     expect(waterItem).not.toBeNull();
@@ -2247,7 +2250,7 @@ describe('App Accounts UX', () => {
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '25' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
 
-    expect(screen.getByLabelText('Amount')).toHaveValue(65);
+    expect(screen.getByLabelText('Amount')).toHaveValue(80);
     expect(screen.getByText('25.00')).toBeInTheDocument();
 
     const electricityItem = screen.getByText('Electricity').closest('li');
@@ -2256,7 +2259,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Remove item Electricity' }));
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Amount')).toHaveValue(25);
+      expect(screen.getByLabelText('Amount')).toHaveValue(80);
     });
     expect(screen.queryByText('Electricity')).not.toBeInTheDocument();
   });
@@ -2274,8 +2277,7 @@ describe('App Accounts UX', () => {
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Split into items' }));
+    openSplitAmountEditor();
 
     const saveButton = screen.getByRole('button', { name: 'Save' });
     expect(saveButton).toBeDisabled();
@@ -2287,6 +2289,8 @@ describe('App Accounts UX', () => {
     expect(saveButton).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Assign remaining' }));
+    expect(saveButton).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Apply split' }));
     expect(saveButton).toBeEnabled();
   });
 
@@ -3136,8 +3140,9 @@ describe('App Accounts UX', () => {
     expect(within(composer).getByLabelText('Expected date')).toHaveValue(isoInCurrentMonth(2, 10).slice(0, 10));
     expect(within(composer).getByLabelText('Merchant')).toHaveValue('Expected rent');
     expect(within(composer).getByLabelText('Category')).toHaveValue('Food');
-    expect(within(composer).getByLabelText('Split into items')).toBeChecked();
-    const splitItemsList = within(composer).getByRole('list', { name: 'Expense items' });
+    expect(within(composer).getByText('2 items · 42.00 USD')).toBeInTheDocument();
+    fireEvent.click(within(composer).getByRole('button', { name: 'Edit split' }));
+    const splitItemsList = within(await screen.findByRole('dialog', { name: 'Split amount' })).getByRole('list', { name: 'Expense items' });
     expect(within(splitItemsList).getByText('Water')).toBeInTheDocument();
     expect(within(splitItemsList).getByText('Electricity')).toBeInTheDocument();
   });

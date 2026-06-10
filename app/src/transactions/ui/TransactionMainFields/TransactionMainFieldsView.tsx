@@ -1,4 +1,4 @@
-import type { RefObject } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
 import type { ComposerMode } from '../../application/transactions.types';
 import './TransactionMainFieldsView.css';
@@ -10,6 +10,7 @@ export type TransactionMainFieldsViewProps = ViewProps<
     datePlaceholder: string;
     noteLabel: string;
     notePlaceholder: string;
+    afterAmount?: ReactNode;
     amountInputRef?: RefObject<HTMLInputElement | null>;
     dateInputRef?: RefObject<HTMLInputElement | null>;
   },
@@ -59,6 +60,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
     datePlaceholder,
     noteLabel,
     notePlaceholder,
+    afterAmount,
   } = config;
   const showTransferFields = state.mode === 'transfer';
   const dateVisible = status.dateVisible ?? true;
@@ -84,6 +86,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
             />
           </label>
           {status.amountError ? <p id="composer-amount-error" className="field-error">{status.amountError}</p> : null}
+          {afterAmount}
         </>
       ) : null}
 
@@ -124,6 +127,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
             />
           </label>
           {status.amountError ? <p id="composer-amount-error" className="field-error">{status.amountError}</p> : null}
+          {afterAmount}
 
           <label className="stack">
             <span className="visually-hidden">{noteLabel}</span>

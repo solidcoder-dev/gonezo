@@ -6,25 +6,23 @@ import {
   cloneSplitItems,
   createRemainingSplitItem,
   formatSplitTotal,
-  sumSplitItems,
   upsertSplitItem,
 } from '../domain/expenseSplit';
 
 type UseExpenseSplitEditorModelInput = {
   transactionAmount: string;
-  setTransactionAmount: Dispatch<SetStateAction<string>>;
   nextId: () => string;
   setFieldErrors: Dispatch<SetStateAction<TransactionFieldErrors>>;
 };
 
-function parseAmount(value: string): number {
-  const parsed = Number(value.trim());
-  return Number.isNaN(parsed) ? 0 : parsed;
-}
-
-function formatAmount(value: number): string {
-  return value.toFixed(2);
-}
+type SplitEditorSnapshot = {
+  expenseDetailed: boolean;
+  splitApplied: boolean;
+  expenseItemName: string;
+  expenseItemAmount: string;
+  expenseItems: ExpenseItemDraft[];
+  editingExpenseItemId: string;
+};
 
 function splitAmountIntoParts(amountInput: string, partsInput: string): string[] {
   const amount = Number(amountInput.trim());
@@ -46,11 +44,13 @@ function splitAmountIntoParts(amountInput: string, partsInput: string): string[]
 export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInput) {
   const {
     transactionAmount,
-    setTransactionAmount,
     nextId,
     setFieldErrors,
   } = input;
   const [expenseDetailed, setExpenseDetailed] = useState(false);
+  const [splitEditorOpen, setSplitEditorOpen] = useState(false);
+  const [splitApplied, setSplitApplied] = useState(false);
+  const [splitEditorSnapshot, setSplitEditorSnapshot] = useState<SplitEditorSnapshot | null>(null);
   const [expenseItemName, setExpenseItemName] = useState('');
   const [expenseItemAmount, setExpenseItemAmount] = useState('');
   const [expenseItems, setExpenseItems] = useState<ExpenseItemDraft[]>([]);
@@ -60,9 +60,13 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     () => calculateSplitRemaining(transactionAmount, expenseItems),
     [transactionAmount, expenseItems],
   );
+  const expenseSplitTotal = useMemo(() => formatSplitTotal(expenseItems), [expenseItems]);
 
   function reset() {
     setExpenseDetailed(false);
+    setSplitEditorOpen(false);
+    setSplitApplied(false);
+    setSplitEditorSnapshot(null);
     setExpenseItemName('');
     setExpenseItemAmount('');
     setExpenseItems([]);
@@ -71,12 +75,16 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
 
   function prefill(items: Array<{ id: string; name: string; amount: string }>) {
     setExpenseDetailed(items.length > 0);
+    setSplitApplied(items.length > 0);
+    setSplitEditorOpen(false);
+    setSplitEditorSnapshot(null);
     setExpenseItems(cloneSplitItems(items, nextId));
     setEditingExpenseItemId('');
   }
 
   function setExpenseDetailedValue(value: boolean) {
     setExpenseDetailed(value);
+    setSplitApplied(value);
     if (!value) {
       setFieldErrors((previous) => ({
         ...previous,
@@ -95,23 +103,6 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
   function setExpenseItemAmountValue(value: string) {
     setExpenseItemAmount(value);
     setFieldErrors((previous) => ({ ...previous, expenseItemAmount: undefined }));
-  }
-
-  function syncTransactionAmountWithSplitTotal(items: ExpenseItemDraft[], mode: 'raise' | 'set') {
-    const total = sumSplitItems(items);
-    const normalizedTotal = formatSplitTotal(items);
-    if (mode === 'set') {
-      setTransactionAmount(normalizedTotal);
-      return;
-    }
-
-    setTransactionAmount((previous) => {
-      const current = parseAmount(previous);
-      if (!previous.trim() || current < total) {
-        return normalizedTotal;
-      }
-      return previous;
-    });
   }
 
   function addExpenseItem(): boolean {
@@ -135,7 +126,6 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       expenseSplit: undefined,
     }));
     setExpenseItems(result.items);
-    syncTransactionAmountWithSplitTotal(result.items, 'raise');
     setExpenseItemName('');
     setExpenseItemAmount('');
     setEditingExpenseItemId('');
@@ -183,9 +173,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
 
   function removeExpenseItem(itemId: string) {
     setExpenseItems((previous) => {
-      const next = previous.filter((item) => item.id !== itemId);
-      syncTransactionAmountWithSplitTotal(next, 'set');
-      return next;
+      return previous.filter((item) => item.id !== itemId);
     });
     if (editingExpenseItemId === itemId) {
       setEditingExpenseItemId('');
@@ -209,14 +197,6 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       ...previous,
       nextItem,
     ]);
-    setTransactionAmount((previous) => {
-      const current = parseAmount(previous);
-      const nextTotal = parseAmount(transactionAmount);
-      if (!previous.trim() || current < nextTotal) {
-        return formatAmount(nextTotal);
-      }
-      return previous;
-    });
     setExpenseItemName('');
     setExpenseItemAmount('');
     setFieldErrors((previous) => ({ ...previous, expenseSplit: undefined }));
@@ -239,25 +219,82 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     ];
 
     setExpenseItems(nextItems);
-    syncTransactionAmountWithSplitTotal(nextItems, 'raise');
     setExpenseItemName('');
     setExpenseItemAmount('');
     setEditingExpenseItemId('');
     setFieldErrors((previous) => ({ ...previous, expenseSplit: undefined }));
   }
 
+  function openSplitEditor() {
+    setSplitEditorSnapshot({
+      expenseDetailed,
+      splitApplied,
+      expenseItemName,
+      expenseItemAmount,
+      expenseItems,
+      editingExpenseItemId,
+    });
+    setExpenseDetailed(true);
+    setSplitEditorOpen(true);
+  }
+
+  function closeSplitEditor() {
+    if (splitEditorSnapshot) {
+      setExpenseDetailed(splitEditorSnapshot.expenseDetailed);
+      setSplitApplied(splitEditorSnapshot.splitApplied);
+      setExpenseItemName(splitEditorSnapshot.expenseItemName);
+      setExpenseItemAmount(splitEditorSnapshot.expenseItemAmount);
+      setExpenseItems(splitEditorSnapshot.expenseItems);
+      setEditingExpenseItemId(splitEditorSnapshot.editingExpenseItemId);
+    }
+    setSplitEditorOpen(false);
+    setSplitEditorSnapshot(null);
+  }
+
+  function applySplit() {
+    setExpenseDetailed(true);
+    setSplitApplied(true);
+    setSplitEditorOpen(false);
+    setSplitEditorSnapshot(null);
+    setFieldErrors((previous) => ({ ...previous, expenseSplit: undefined }));
+  }
+
+  function removeSplit() {
+    setExpenseDetailed(false);
+    setSplitApplied(false);
+    setSplitEditorOpen(false);
+    setSplitEditorSnapshot(null);
+    setExpenseItemName('');
+    setExpenseItemAmount('');
+    setExpenseItems([]);
+    setEditingExpenseItemId('');
+    setFieldErrors((previous) => ({
+      ...previous,
+      expenseItemName: undefined,
+      expenseItemAmount: undefined,
+      expenseSplit: undefined,
+    }));
+  }
+
   return {
     state: {
       expenseDetailed,
+      splitEditorOpen,
+      splitApplied,
       expenseItemName,
       expenseItemAmount,
       editingExpenseItemId,
       expenseItems,
       expenseRemaining,
+      expenseSplitTotal,
     },
     actions: {
       reset,
       prefill,
+      openSplitEditor,
+      closeSplitEditor,
+      applySplit,
+      removeSplit,
       setExpenseDetailedValue,
       setExpenseItemNameValue,
       setExpenseItemAmountValue,

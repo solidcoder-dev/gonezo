@@ -27,11 +27,14 @@ export type TransactionEntryViewRequired = {
     transferDestinationCurrency?: string;
     transferCrossCurrency: boolean;
     splitEnabled: boolean;
+    splitEditorOpen: boolean;
+    splitApplied: boolean;
     splitItems: Array<{ id: string; name: string; amount: string }>;
     splitItemName: string;
     splitItemAmount: string;
     editingSplitItemId: string;
     splitRemaining: string;
+    splitTotal: string;
     schedulingMode: 'now' | 'scheduled';
     schedulingKind: 'one_shot' | 'recurring';
     recurrenceFrequency: RecurrenceFrequency;
@@ -73,6 +76,10 @@ export type TransactionEntryViewProvided = {
     setTransferFxRate: (value: string) => void;
     setTransferFxMode: (value: 'auto_destination' | 'auto_rate') => void;
     setSplitEnabled: (value: boolean) => void;
+    openSplitEditor: () => void;
+    closeSplitEditor: () => void;
+    applySplit: () => void;
+    removeSplit: () => void;
     setSplitItemName: (value: string) => void;
     setSplitItemAmount: (value: string) => void;
     startSplitItem: () => void;

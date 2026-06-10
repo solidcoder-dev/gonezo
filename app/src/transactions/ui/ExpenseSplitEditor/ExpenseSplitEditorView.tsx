@@ -23,6 +23,7 @@ export type ExpenseSplitEditorViewProps = ViewProps<
   },
   {
     disabled?: boolean;
+    hideToggle?: boolean;
   },
   {
     toggleEnabled: () => void;
@@ -58,6 +59,7 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
   const editorTitle = editorMode === 'edit' ? 'Edit split item' : 'New split item';
   const submitLabel = editorMode === 'edit' ? 'Save item' : 'Add item';
   const rowMenuItem = rowMenu ? data.items.find((item) => item.id === rowMenu.itemId) : undefined;
+  const managerVisible = status.hideToggle || state.enabled;
   const splitPartPreviewAmount = useMemo(() => {
     const amount = Number(splitPartsAmount);
     const count = Number(splitPartsCount);
@@ -117,23 +119,25 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
 
   return (
     <div className={`stack ${styles.block}`}>
-      <label className="inline-checkbox">
-        <input
-          type="checkbox"
-          checked={state.enabled}
-          onChange={() => {
-            if (state.enabled) {
-              setEditorMode(null);
-              setRowMenu(null);
-              setSplitPartsOpen(false);
-            }
-            provided.commands.toggleEnabled();
-          }}
-          disabled={status.disabled}
-        />
-        Split into items
-      </label>
-      {state.enabled ? (
+      {status.hideToggle ? null : (
+        <label className="inline-checkbox">
+          <input
+            type="checkbox"
+            checked={state.enabled}
+            onChange={() => {
+              if (state.enabled) {
+                setEditorMode(null);
+                setRowMenu(null);
+                setSplitPartsOpen(false);
+              }
+              provided.commands.toggleEnabled();
+            }}
+            disabled={status.disabled}
+          />
+          Split into items
+        </label>
+      )}
+      {managerVisible ? (
         <div className={`stack item-editor ${styles.manager}`}>
           <div className={splitStyles.toolbar}>
             <div className={splitStyles.title}>

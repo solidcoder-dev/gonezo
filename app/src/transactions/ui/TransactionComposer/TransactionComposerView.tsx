@@ -8,6 +8,8 @@ import { RecurrenceEditorView } from '../RecurrenceEditor/RecurrenceEditorView';
 import { ScheduleSummaryView } from '../ScheduleControls/ScheduleSummaryView';
 import { ScheduleTriggerView } from '../ScheduleControls/ScheduleTriggerView';
 import { SchedulingOptionsView } from '../SchedulingOptions/SchedulingOptionsView';
+import { SplitSummaryView } from '../SplitControls/SplitSummaryView';
+import { SplitTriggerView } from '../SplitControls/SplitTriggerView';
 import { TagComboboxField } from '../TagComboboxField';
 import { TransactionComposerActionsView } from '../TransactionComposerActions/TransactionComposerActionsView';
 import { TransactionMainFieldsView } from '../TransactionMainFields/TransactionMainFieldsView';
@@ -48,11 +50,14 @@ export type TransactionComposerViewRequired = {
   transferDestinationCurrency?: string;
   transferCrossCurrency: boolean;
   expenseDetailed: boolean;
+  splitEditorOpen: boolean;
+  splitApplied: boolean;
   expenseItems: ComposerExpenseItem[];
   expenseItemName: string;
   expenseItemAmount: string;
   editingExpenseItemId: string;
   expenseRemaining: string;
+  expenseSplitTotal: string;
   schedulingMode: 'now' | 'scheduled';
   schedulingKind: 'one_shot' | 'recurring';
   recurrenceFrequency: RecurrenceFrequency;
@@ -98,6 +103,10 @@ export type TransactionComposerViewProvided = {
   onSetTransferFxRate: (value: string) => void;
   onSetTransferFxMode: (value: 'auto_destination' | 'auto_rate') => void;
   onToggleExpenseDetailed: () => void;
+  onOpenSplitEditor: () => void;
+  onCloseSplitEditor: () => void;
+  onApplySplit: () => void;
+  onRemoveSplit: () => void;
   onSetExpenseItemName: (value: string) => void;
   onSetExpenseItemAmount: (value: string) => void;
   onStartExpenseItem: () => void;
@@ -208,11 +217,14 @@ export function TransactionComposerView({ required, provided }: Props) {
     transferDestinationCurrency,
     transferCrossCurrency,
     expenseDetailed,
+    splitEditorOpen,
+    splitApplied,
     expenseItems,
     expenseItemName,
     expenseItemAmount,
     editingExpenseItemId,
     expenseRemaining,
+    expenseSplitTotal,
     schedulingMode,
     schedulingKind,
     recurrenceFrequency,
@@ -257,6 +269,10 @@ export function TransactionComposerView({ required, provided }: Props) {
     onSetTransferFxRate,
     onSetTransferFxMode,
     onToggleExpenseDetailed,
+    onOpenSplitEditor,
+    onCloseSplitEditor,
+    onApplySplit,
+    onRemoveSplit,
     onSetExpenseItemName,
     onSetExpenseItemAmount,
     onStartExpenseItem,
@@ -317,6 +333,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     && schedulingKind === 'recurring';
   const recurringScheduleAvailable = mode === 'expense' || mode === 'income';
   const recurringScheduleConfigured = recurringScheduleAvailable && repeatEnabled;
+  const splitAvailable = mode === 'expense' || mode === 'income';
   const scheduledMovementVisible = mode !== 'expense' && schedulingMode === 'scheduled';
   const dateInputLabel = recurringScheduleConfigured
     ? 'Next execution date'
@@ -335,11 +352,49 @@ export function TransactionComposerView({ required, provided }: Props) {
   );
 
   const splitReady = useMemo(() => {
+    if (splitEditorOpen) {
+      return false;
+    }
     if ((mode !== 'expense' && mode !== 'income') || !expenseDetailed) {
       return true;
     }
     return expenseItems.length > 0 && Number(expenseRemaining) === 0;
-  }, [expenseDetailed, expenseItems.length, expenseRemaining, mode]);
+  }, [expenseDetailed, expenseItems.length, expenseRemaining, mode, splitEditorOpen]);
+  const splitControl = splitAvailable
+    ? splitApplied
+      ? (
+        <SplitSummaryView
+          required={{
+            config: {},
+            data: {},
+            state: {
+              itemsCount: expenseItems.length,
+              total: expenseSplitTotal,
+              remaining: expenseRemaining,
+              currencyCode,
+            },
+            status: { disabled },
+          }}
+          provided={{
+            commands: {
+              edit: onOpenSplitEditor,
+              remove: onRemoveSplit,
+            },
+          }}
+        />
+      )
+      : (
+        <SplitTriggerView
+          required={{
+            config: {},
+            data: {},
+            state: {},
+            status: { disabled },
+          }}
+          provided={{ commands: { open: onOpenSplitEditor } }}
+        />
+      )
+    : null;
 
   if (!open) {
     return (
@@ -381,6 +436,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                     datePlaceholder,
                     noteLabel: mode === 'transfer' ? 'Description' : mode === 'expense' ? 'Merchant' : 'Source',
                     notePlaceholder: mode === 'transfer' ? 'Description' : mode === 'expense' ? 'Cafe' : 'Salary',
+                    afterAmount: splitControl,
                     amountInputRef,
                     dateInputRef,
                   },
@@ -526,38 +582,6 @@ export function TransactionComposerView({ required, provided }: Props) {
 
                       {expected ? <p className="hint">Expected movements stay out of ledger balance until posted.</p> : null}
 
-                      <ExpenseSplitEditorView
-                        required={{
-                          config: {},
-                          data: { items: expenseItems },
-                          state: {
-                            enabled: expenseDetailed,
-                            itemName: expenseItemName,
-                            itemAmount: expenseItemAmount,
-                            editingItemId: editingExpenseItemId,
-                            remaining: expenseRemaining,
-                            currencyCode,
-                            itemNameError: expenseItemNameError,
-                            itemAmountError: expenseItemAmountError,
-                            splitError: expenseSplitError,
-                          },
-                          status: { disabled },
-                        }}
-                        provided={{
-                          commands: {
-                            toggleEnabled: onToggleExpenseDetailed,
-                            changeItemName: onSetExpenseItemName,
-                            changeItemAmount: onSetExpenseItemAmount,
-                            startItem: onStartExpenseItem,
-                            cancelItem: onCancelExpenseItem,
-                            addItem: onAddExpenseItem,
-                            assignRemaining: onAssignRemaining,
-                            editItem: onEditExpenseItem,
-                            removeItem: onRemoveExpenseItem,
-                            splitByParts: onSplitByParts,
-                          },
-                        }}
-                      />
                     </>
                   ) : (
                     <>
@@ -683,6 +707,69 @@ export function TransactionComposerView({ required, provided }: Props) {
           status: { disabled },
         }}
         provided={{ commands: { close: onCloseRecurringScheduleEditor } }}
+      />
+      <SheetView
+        required={{
+          config: {
+            ariaLabel: 'Split amount',
+            title: 'Split Amount',
+            closeLabel: 'Close split amount',
+            panelClassName: 'composer-sheet',
+          },
+          data: {
+            body: (
+              <div className="stack">
+                <div className="stack">
+                  <span className="hint detail-meta-label">Total amount</span>
+                  <strong>{amount || '0.00'} {currencyCode ?? ''}</strong>
+                </div>
+                <ExpenseSplitEditorView
+                  required={{
+                    config: {},
+                    data: { items: expenseItems },
+                    state: {
+                      enabled: true,
+                      itemName: expenseItemName,
+                      itemAmount: expenseItemAmount,
+                      editingItemId: editingExpenseItemId,
+                      remaining: expenseRemaining,
+                      currencyCode,
+                      itemNameError: expenseItemNameError,
+                      itemAmountError: expenseItemAmountError,
+                      splitError: expenseSplitError,
+                    },
+                    status: { disabled, hideToggle: true },
+                  }}
+                  provided={{
+                    commands: {
+                      toggleEnabled: onToggleExpenseDetailed,
+                      changeItemName: onSetExpenseItemName,
+                      changeItemAmount: onSetExpenseItemAmount,
+                      startItem: onStartExpenseItem,
+                      cancelItem: onCancelExpenseItem,
+                      addItem: onAddExpenseItem,
+                      assignRemaining: onAssignRemaining,
+                      editItem: onEditExpenseItem,
+                      removeItem: onRemoveExpenseItem,
+                      splitByParts: onSplitByParts,
+                    },
+                  }}
+                />
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={onApplySplit}
+                  disabled={disabled}
+                >
+                  Apply split
+                </button>
+              </div>
+            ),
+          },
+          state: { open: splitEditorOpen },
+          status: { disabled },
+        }}
+        provided={{ commands: { close: onCloseSplitEditor } }}
       />
     </>
   );
