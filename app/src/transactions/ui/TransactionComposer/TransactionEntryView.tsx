@@ -94,7 +94,6 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         onAddExpenseItem: provided.commands.addSplitItem,
         onEditExpenseItem: provided.commands.editSplitItem,
         onRemoveExpenseItem: provided.commands.removeSplitItem,
-        onAssignRemaining: provided.commands.assignSplitRemaining,
         onSplitByParts: provided.commands.splitByParts,
         onSetSchedulingMode: provided.commands.setSchedulingMode,
         onSetSchedulingKind: provided.commands.setSchedulingKind,

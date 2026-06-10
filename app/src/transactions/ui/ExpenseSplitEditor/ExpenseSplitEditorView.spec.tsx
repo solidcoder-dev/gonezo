@@ -9,7 +9,6 @@ describe('ExpenseSplitEditorView', () => {
     const changeItemName = vi.fn();
     const changeItemAmount = vi.fn();
     const addItem = vi.fn(() => true);
-    const assignRemaining = vi.fn();
     const splitByParts = vi.fn();
     const editItem = vi.fn();
     const removeItem = vi.fn();
@@ -38,7 +37,6 @@ describe('ExpenseSplitEditorView', () => {
             changeItemName,
             changeItemAmount,
             addItem,
-            assignRemaining,
             splitByParts,
             editItem,
             removeItem,
@@ -62,7 +60,7 @@ describe('ExpenseSplitEditorView', () => {
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Tea' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '2.50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Assign remaining' }));
+    expect(screen.queryByRole('button', { name: 'Assign remaining' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Split by parts' }));
     expect(screen.getByRole('dialog', { name: 'Split by parts' })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Amount to split'), { target: { value: '9.00' } });
@@ -86,7 +84,6 @@ describe('ExpenseSplitEditorView', () => {
     expect(changeItemName).toHaveBeenCalledWith('Tea');
     expect(changeItemAmount).toHaveBeenCalledWith('2.50');
     expect(addItem).toHaveBeenCalledTimes(1);
-    expect(assignRemaining).toHaveBeenCalledTimes(1);
     expect(splitByParts).toHaveBeenCalledWith('9.00', '3');
     expect(editItem).toHaveBeenCalledWith('item-1');
     expect(cancelItem).toHaveBeenCalledTimes(1);
@@ -116,7 +113,6 @@ describe('ExpenseSplitEditorView', () => {
             changeItemName: vi.fn(),
             changeItemAmount: vi.fn(),
             addItem: vi.fn(() => false),
-            assignRemaining: vi.fn(),
             splitByParts: vi.fn(),
             editItem: vi.fn(),
             removeItem: vi.fn(),

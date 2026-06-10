@@ -155,7 +155,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     cancelExpenseItem,
     editExpenseItem,
     removeExpenseItem,
-    assignRemaining,
     splitExpenseByParts,
   } = splitEditorModel.actions;
 
@@ -621,7 +620,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       cancelSplitItem: cancelExpenseItem,
       editSplitItem: editExpenseItem,
       removeSplitItem: removeExpenseItem,
-      assignSplitRemaining: assignRemaining,
       splitByParts: splitExpenseByParts,
       setSchedulingMode: setSchedulingModeValue,
       setSchedulingKind: setSchedulingKindValue,

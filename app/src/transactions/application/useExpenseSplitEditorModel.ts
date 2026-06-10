@@ -4,7 +4,6 @@ import type { ExpenseItemDraft, TransactionFieldErrors } from './transactions.ty
 import {
   calculateSplitRemaining,
   cloneSplitItems,
-  createRemainingSplitItem,
   formatSplitTotal,
   upsertSplitItem,
 } from '../domain/expenseSplit';
@@ -182,26 +181,6 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     }
   }
 
-  function assignRemaining() {
-    const nextItem = createRemainingSplitItem({
-      itemsLength: expenseItems.length,
-      remaining: expenseRemaining,
-      nameInput: expenseItemName,
-      nextId,
-    });
-    if (!nextItem) {
-      return;
-    }
-
-    setExpenseItems((previous) => [
-      ...previous,
-      nextItem,
-    ]);
-    setExpenseItemName('');
-    setExpenseItemAmount('');
-    setFieldErrors((previous) => ({ ...previous, expenseSplit: undefined }));
-  }
-
   function splitExpenseByParts(amountInput: string, partsInput: string) {
     const partAmounts = splitAmountIntoParts(amountInput, partsInput);
     if (partAmounts.length === 0) {
@@ -303,7 +282,6 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       cancelExpenseItem,
       editExpenseItem,
       removeExpenseItem,
-      assignRemaining,
       splitExpenseByParts,
     },
   };

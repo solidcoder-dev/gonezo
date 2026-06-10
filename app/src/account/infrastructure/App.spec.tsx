@@ -1880,7 +1880,10 @@ describe('App Accounts UX', () => {
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Bonus' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Assign remaining' }));
+    openNewSplitItemDialog();
+    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Base' } });
+    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply split' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -2199,7 +2202,10 @@ describe('App Accounts UX', () => {
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Groceries' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Assign remaining' }));
+    openNewSplitItemDialog();
+    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Household' } });
+    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply split' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -2288,7 +2294,10 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     expect(saveButton).toBeDisabled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Assign remaining' }));
+    openNewSplitItemDialog();
+    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Household' } });
+    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     expect(saveButton).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Apply split' }));
     expect(saveButton).toBeEnabled();

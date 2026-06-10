@@ -114,7 +114,6 @@ export type TransactionComposerViewProvided = {
   onAddExpenseItem: () => boolean;
   onEditExpenseItem: (itemId: string) => void;
   onRemoveExpenseItem: (itemId: string) => void;
-  onAssignRemaining: () => void;
   onSplitByParts: (amount: string, parts: string) => void;
   onSetSchedulingMode: (value: 'now' | 'scheduled') => void;
   onSetSchedulingKind: (value: 'one_shot' | 'recurring') => void;
@@ -280,7 +279,6 @@ export function TransactionComposerView({ required, provided }: Props) {
     onAddExpenseItem,
     onEditExpenseItem,
     onRemoveExpenseItem,
-    onAssignRemaining,
     onSplitByParts,
     onSetSchedulingMode,
     onSetSchedulingKind,
@@ -748,7 +746,6 @@ export function TransactionComposerView({ required, provided }: Props) {
                       startItem: onStartExpenseItem,
                       cancelItem: onCancelExpenseItem,
                       addItem: onAddExpenseItem,
-                      assignRemaining: onAssignRemaining,
                       editItem: onEditExpenseItem,
                       removeItem: onRemoveExpenseItem,
                       splitByParts: onSplitByParts,

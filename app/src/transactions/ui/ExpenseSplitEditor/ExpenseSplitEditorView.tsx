@@ -32,7 +32,6 @@ export type ExpenseSplitEditorViewProps = ViewProps<
     startItem: () => void;
     cancelItem: () => void;
     addItem: () => boolean;
-    assignRemaining: () => void;
     splitByParts: (amount: string, parts: string) => void;
     editItem: (itemId: string) => void;
     removeItem: (itemId: string) => void;
@@ -156,14 +155,6 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
               >
                 <i className="bi bi-plus-lg" aria-hidden />
                 Add
-              </button>
-              <button
-                type="button"
-                className={`text-button ${splitStyles.actionButton}`}
-                disabled={status.disabled}
-                onClick={provided.commands.assignRemaining}
-              >
-                Assign remaining
               </button>
               <button
                 type="button"
