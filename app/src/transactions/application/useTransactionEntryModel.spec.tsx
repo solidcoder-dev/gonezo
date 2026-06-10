@@ -86,8 +86,17 @@ function makeIdGenerator(ids: string[]): TransactionEntryModelIdGenerator {
   };
 }
 
-function formEvent(): FormEvent {
-  return { preventDefault: vi.fn() } as unknown as FormEvent;
+function formEvent(intent?: 'post' | 'expected'): FormEvent {
+  if (!intent) {
+    return { preventDefault: vi.fn() } as unknown as FormEvent;
+  }
+  const submitter = document.createElement('button');
+  submitter.name = 'transactionIntent';
+  submitter.value = intent;
+  return {
+    preventDefault: vi.fn(),
+    nativeEvent: { submitter },
+  } as unknown as FormEvent;
 }
 
 describe('useTransactionEntryModel', () => {
@@ -338,6 +347,40 @@ describe('useTransactionEntryModel', () => {
       transactionType: 'expense',
       categoryId: 'expense:groceries',
     });
+  });
+
+  it('creates an expected movement from the expected submit action', async () => {
+    const ports = makePorts();
+
+    const { result } = renderHook(() => useTransactionEntryModel({
+      ports,
+      clock: makeClock(),
+      idGenerator: makeIdGenerator([]),
+      accountId: 'account-1',
+      enabled: true,
+    }));
+
+    await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
+
+    act(() => {
+      result.current.provided.commands.open();
+      result.current.provided.commands.selectMode('expense');
+      result.current.provided.commands.setAmount('12');
+      result.current.provided.commands.setDate('2026-05-14');
+      result.current.provided.commands.setNote('Lunch');
+    });
+    await act(async () => {
+      await result.current.provided.commands.submit(formEvent('expected'));
+    });
+
+    expect(ports.expected.expectedCreateMovement).toHaveBeenCalledWith(expect.objectContaining({
+      accountId: 'account-1',
+      type: 'expense',
+      amount: '12.00',
+      expectedAt: '2026-05-14T10:20:30.000Z',
+      merchant: 'Lunch',
+    }));
+    expect(ports.ledger.ledgerRecordExpense).not.toHaveBeenCalled();
   });
 
   it('resolves posted expected movements using the injected clock', async () => {

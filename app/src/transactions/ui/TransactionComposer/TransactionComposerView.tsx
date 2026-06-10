@@ -143,30 +143,6 @@ type Props = {
   provided: TransactionComposerViewProvided;
 };
 
-function titleForMode(mode: ComposerMode): string {
-  if (mode === 'expense') return 'New expense';
-  if (mode === 'income') return 'New income';
-  if (mode === 'transfer') return 'New transfer';
-  return 'Add movement';
-}
-
-function titleForModeAndPurpose(
-  mode: ComposerMode,
-  postExpectedMovementId?: string,
-  editedScheduledMovementId?: string,
-): string {
-  if (postExpectedMovementId) {
-    if (mode === 'expense') return 'Post expense';
-    if (mode === 'income') return 'Post income';
-  }
-  if (editedScheduledMovementId) {
-    if (mode === 'expense') return 'Edit scheduled expense';
-    if (mode === 'income') return 'Edit scheduled income';
-    return 'Edit scheduled movement';
-  }
-  return titleForMode(mode);
-}
-
 function todayIsoLocal(): string {
   const now = new Date();
   const year = now.getFullYear();
@@ -210,7 +186,6 @@ export function TransactionComposerView({ required, provided }: Props) {
     categoryOptions,
     tagInput,
     tagOptions,
-    advancedOpen,
     transferTargetAccountId,
     transferTargetOptions,
     transferAmountIn,
@@ -259,7 +234,6 @@ export function TransactionComposerView({ required, provided }: Props) {
     onOpen,
     onClose,
     onSelectMode,
-    onToggleAdvanced,
     onSetAmount,
     onSetDate,
     onSetNote,
@@ -298,7 +272,6 @@ export function TransactionComposerView({ required, provided }: Props) {
     onSetRecurrenceEndKind,
     onSetRecurrenceEndDate,
     onSetRecurrenceEndCount,
-    onSetExpected,
     onSubmit,
   } = provided;
 
@@ -412,9 +385,8 @@ export function TransactionComposerView({ required, provided }: Props) {
         required={{
           config: {
             ariaLabel: 'Transaction composer',
-            title: titleForModeAndPurpose(mode, postExpectedMovementId, editedScheduledMovementId),
-            closeLabel: 'Close transaction composer',
             panelClassName: 'composer-sheet',
+            showHandle: true,
           },
           data: {
             body: mode === 'picker' ? (
@@ -532,96 +504,69 @@ export function TransactionComposerView({ required, provided }: Props) {
                 />
               ) : null}
 
-              <button
-                type="button"
-                className="composer-more-options"
-                onClick={onToggleAdvanced}
-                aria-expanded={advancedOpen}
-                aria-controls="composer-advanced-options"
-              >
-                <span>More options</span>
-                <i
-                  className={advancedOpen ? 'bi bi-chevron-up composer-more-options-caret' : 'bi bi-chevron-down composer-more-options-caret'}
-                  aria-hidden
-                />
-              </button>
+              <div className="stack composer-advanced">
+                {mode === 'expense' || mode === 'income' ? (
+                  <>
+                    <CategoryPickerField
+                      required={{
+                        selectedCategoryId: categoryId,
+                        options: categoryOptions,
+                        frequentCategoryIds,
+                        disabled,
+                      }}
+                      provided={{
+                        onSelect: onSetCategoryId,
+                      }}
+                    />
 
-              {advancedOpen ? (
-                <div id="composer-advanced-options" className="stack composer-advanced">
-                  {mode === 'expense' || mode === 'income' ? (
-                    <>
-                      <CategoryPickerField
-                        required={{
-                          selectedCategoryId: categoryId,
-                          options: categoryOptions,
-                          frequentCategoryIds,
-                          disabled,
-                        }}
-                        provided={{
-                          onSelect: onSetCategoryId,
-                        }}
-                      />
+                    <TagComboboxField
+                      required={{
+                        value: tagInput,
+                        options: tagOptions,
+                        disabled,
+                      }}
+                      provided={{
+                        onChange: onSetTagInput,
+                      }}
+                    />
 
-                      <TagComboboxField
-                        required={{
-                          value: tagInput,
-                          options: tagOptions,
-                          disabled,
-                        }}
-                        provided={{
-                          onChange: onSetTagInput,
-                        }}
-                      />
+                    {expectedConflictError ? <p className="field-error">{expectedConflictError}</p> : null}
 
-                      <label className="inline-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={expected}
-                          onChange={() => onSetExpected(!expected)}
-                          disabled={disabled || editingScheduledMovement}
-                        />
-                        Expected
-                      </label>
-                      {expectedConflictError ? <p className="field-error">{expectedConflictError}</p> : null}
+                  </>
+                ) : (
+                  <>
+                    <SchedulingOptionsView
+                      required={{
+                        config: {},
+                        data: {},
+                        state: {
+                          schedulingMode,
+                          schedulingKind,
+                          scheduledMovementVisible,
+                        },
+                        status: { disabled },
+                      }}
+                      provided={{
+                        commands: {
+                          setSchedulingMode: onSetSchedulingMode,
+                          setSchedulingKind: onSetSchedulingKind,
+                        },
+                      }}
+                    />
 
-                      {expected ? <p className="hint">Expected movements stay out of ledger balance until posted.</p> : null}
-
-                    </>
-                  ) : (
-                    <>
-                      <SchedulingOptionsView
-                        required={{
-                          config: {},
-                          data: {},
-                          state: {
-                            schedulingMode,
-                            schedulingKind,
-                            scheduledMovementVisible,
-                          },
-                          status: { disabled },
-                        }}
-                        provided={{
-                          commands: {
-                            setSchedulingMode: onSetSchedulingMode,
-                            setSchedulingKind: onSetSchedulingKind,
-                          },
-                        }}
-                      />
-
-                      <TagComboboxField
-                        required={{
-                          value: tagInput,
-                          options: tagOptions,
-                          disabled,
-                        }}
-                        provided={{
-                          onChange: onSetTagInput,
-                        }}
-                      />
-                    </>
-                  )}
-                </div>
-              ) : null}
+                    <TagComboboxField
+                      required={{
+                        value: tagInput,
+                        options: tagOptions,
+                        disabled,
+                      }}
+                      provided={{
+                        onChange: onSetTagInput,
+                      }}
+                    />
+                  </>
+                )}
+              </div>
             </div>
 
             <TransactionComposerActionsView

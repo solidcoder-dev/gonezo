@@ -51,6 +51,23 @@ describe('SheetView', () => {
     expect(close).toHaveBeenCalledTimes(1);
   });
 
+  it('renders a handle without a close button when configured as a bottom sheet', () => {
+    render(
+      <SheetView
+        required={{
+          config: { ariaLabel: 'Composer', showHandle: true },
+          data: { body: <p>Content</p> },
+          state: { open: true },
+          status: {},
+        }}
+        provided={{ commands: { close: vi.fn() } }}
+      />,
+    );
+
+    expect(screen.getByRole('dialog', { name: 'Composer' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
+  });
+
   it('renders nothing when closed', () => {
     render(
       <SheetView

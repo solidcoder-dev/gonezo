@@ -27,19 +27,42 @@ function submitLabel(state: TransactionComposerActionsViewProps['required']['sta
   if (state.expectedAvailable && state.expected) {
     return 'Save expected';
   }
+  if (state.expectedAvailable) {
+    return 'Post now';
+  }
   return 'Save';
 }
 
 export function TransactionComposerActionsView({ required }: TransactionComposerActionsViewProps) {
+  const disabled = required.status.disabled || !required.state.splitReady;
+  const showExpectedAction = required.state.expectedAvailable
+    && !required.state.editingScheduledMovement
+    && !required.state.postExpectedMovement
+    && !required.state.expected;
+  const primaryIntent = required.state.expected ? 'expected' : 'post';
+
   return (
     <div className="composer-actions">
       <button
         type="submit"
+        name="transactionIntent"
+        value={primaryIntent}
         className="primary-cta"
-        disabled={required.status.disabled || !required.state.splitReady}
+        disabled={disabled}
       >
         {submitLabel(required.state)}
       </button>
+      {showExpectedAction ? (
+        <button
+          type="submit"
+          name="transactionIntent"
+          value="expected"
+          className="composer-secondary-cta"
+          disabled={disabled}
+        >
+          Save expected
+        </button>
+      ) : null}
     </div>
   );
 }

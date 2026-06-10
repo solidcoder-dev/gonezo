@@ -426,6 +426,21 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     applySplit();
   }
 
+  function resolveSubmitExpectedIntent(event: FormEvent): boolean {
+    const nativeEvent = event.nativeEvent;
+    const submitter = 'submitter' in nativeEvent
+      ? (nativeEvent as Event & { submitter?: EventTarget | null }).submitter
+      : undefined;
+    if (
+      typeof HTMLButtonElement !== 'undefined'
+      && submitter instanceof HTMLButtonElement
+      && submitter.name === 'transactionIntent'
+    ) {
+      return submitter.value === 'expected';
+    }
+    return expectedMovement;
+  }
+
   async function submitTransaction(event: FormEvent) {
     event.preventDefault();
     setError('');
@@ -447,7 +462,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       transactionDate: effectiveTransactionDate,
       schedulingMode,
       recurrenceEnabled,
-      expectedMovement,
+      expectedMovement: resolveSubmitExpectedIntent(event),
       editedExpectedMovementId,
       editedScheduledMovementId,
       postExpectedMovementId,

@@ -1465,7 +1465,7 @@ describe('App Accounts UX', () => {
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
       expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
@@ -1519,7 +1519,7 @@ describe('App Accounts UX', () => {
 
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
       expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
@@ -1557,7 +1557,7 @@ describe('App Accounts UX', () => {
 
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
       expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
@@ -1578,11 +1578,10 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openMode('Expense');
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
 
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-03-10' } });
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
       expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
@@ -1606,7 +1605,7 @@ describe('App Accounts UX', () => {
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-12-31' } });
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
       expect(core.recurrenceCreateRecurringMovement).toHaveBeenCalledTimes(1);
@@ -1628,8 +1627,6 @@ describe('App Accounts UX', () => {
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '1200' } });
     fireEvent.change(screen.getByLabelText('Source'), { target: { value: 'Client invoice' } });
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-12-31' } });
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
-    fireEvent.click(screen.getByLabelText('Expected'));
     fireEvent.click(screen.getByRole('button', { name: 'Save expected' }));
 
     await waitFor(() => {
@@ -1665,8 +1662,6 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: /Schedule recurring/i }));
     const nextOccurrence = screen.getByText(/Next occurrence:/).textContent?.replace('Next occurrence: ', '') ?? '';
     fireEvent.click(screen.getByRole('button', { name: 'Apply schedule' }));
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
-    fireEvent.click(screen.getByLabelText('Expected'));
     expect(screen.getByText(`Next: ${nextOccurrence}`)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Save expected' }));
 
@@ -1707,13 +1702,12 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openMode('Expense');
-    expect(screen.queryByRole('group', { name: 'Category' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
+    expect(screen.getByRole('group', { name: 'Category' })).toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: 'Category' })).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Select category Groceries' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
       expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
@@ -1738,10 +1732,9 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openMode('Expense');
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '35' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
       expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
@@ -1762,12 +1755,11 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openMode('Expense');
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '35' } });
     fireEvent.click(screen.getByRole('button', { name: 'Show more categories' }));
     fireEvent.click(screen.getByRole('button', { name: 'Select category Travel' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
       expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledTimes(1);
@@ -1797,7 +1789,6 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openMode('Expense');
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
 
     await waitFor(() => {
       expect(vi.mocked(core.taxonomyListCategories).mock.calls.length).toBeGreaterThanOrEqual(2);
@@ -1819,7 +1810,7 @@ describe('App Accounts UX', () => {
     await openMode('Income');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '30' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
       expect(core.ledgerRecordIncome).toHaveBeenCalledTimes(1);
@@ -1853,7 +1844,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Apply split' }));
     expect(screen.queryByLabelText('Amount')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
       expect(core.ledgerCreateExpenseDraft).toHaveBeenCalledTimes(1);
@@ -1865,7 +1856,7 @@ describe('App Accounts UX', () => {
     });
   });
 
-  it('shows tags input only in advanced options', async () => {
+  it('shows tags input in the composer', async () => {
     const core = makeCore();
     const view = render(
       <MemoryRouter>
@@ -1875,8 +1866,6 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openMode('Expense');
-    expect(screen.queryByLabelText('Tags')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
     expect(screen.getByLabelText('Tags')).toBeInTheDocument();
     expect(view.container.querySelector('datalist option[value="home"]')).not.toBeNull();
     expect(view.container.querySelector('datalist option[value="london"]')).not.toBeNull();
@@ -1896,11 +1885,10 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openMode('Expense');
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '20' } });
     fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'london, trip-2026, london' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
       expect(core.orchestrationApplyTransactionTags).toHaveBeenCalledTimes(1);
@@ -1922,7 +1910,6 @@ describe('App Accounts UX', () => {
 
     await screen.findByText('Net balance');
     await openMode('Transfer');
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
     fireEvent.change(screen.getByLabelText('Destination account'), { target: { value: 'acc-2' } });
@@ -1958,7 +1945,6 @@ describe('App Accounts UX', () => {
     await openMode('Transfer');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '5' } });
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
     fireEvent.change(screen.getByLabelText('Destination account'), { target: { value: 'acc-2' } });
     const saveTransferButton = screen.getByRole('button', { name: 'Save' });
     const transferForm = saveTransferButton.closest('form');
@@ -2008,7 +1994,6 @@ describe('App Accounts UX', () => {
     await openMode('Transfer');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
     fireEvent.change(screen.getByLabelText('Destination account'), { target: { value: 'acc-2' } });
     fireEvent.change(screen.getByLabelText(/FX rate/), { target: { value: '0.9' } });
 
@@ -2074,7 +2059,6 @@ describe('App Accounts UX', () => {
     await openMode('Transfer');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
     fireEvent.change(screen.getByLabelText('Destination account'), { target: { value: 'acc-2' } });
     fireEvent.click(screen.getByRole('radio', { name: 'Auto FX rate' }));
     fireEvent.change(screen.getByLabelText('Amount in (EUR)'), { target: { value: '8.50' } });
@@ -2140,7 +2124,6 @@ describe('App Accounts UX', () => {
     await openMode('Transfer');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
-    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
     fireEvent.change(screen.getByLabelText('Destination account'), { target: { value: 'acc-2' } });
 
     const amountIn = screen.getByLabelText('Amount in (EUR)');
@@ -2175,7 +2158,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply split' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
       expect(core.ledgerCreateExpenseDraft).toHaveBeenCalledTimes(1);
@@ -2252,7 +2235,7 @@ describe('App Accounts UX', () => {
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
     openSplitAmountEditor();
 
-    const saveButton = screen.getByRole('button', { name: 'Save' });
+    const saveButton = screen.getByRole('button', { name: 'Post now' });
     expect(saveButton).toBeDisabled();
 
     openNewSplitItemDialog();
@@ -2279,7 +2262,7 @@ describe('App Accounts UX', () => {
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
       expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
@@ -3018,7 +3001,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(within(detailDialog).getByRole('button', { name: 'Post movement' }));
 
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
-    expect(within(composer).getByRole('heading', { name: 'Post expense' })).toBeInTheDocument();
+    expect(within(composer).getByRole('button', { name: 'Post movement' })).toBeInTheDocument();
     fireEvent.click(within(composer).getByRole('button', { name: 'Post movement' }));
 
     await waitFor(() => {
@@ -3106,7 +3089,6 @@ describe('App Accounts UX', () => {
     fireEvent.click(within(detailDialog).getByRole('button', { name: 'Edit expected' }));
 
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
-    expect(within(composer).getByRole('heading', { name: 'New expense' })).toBeInTheDocument();
     expect(within(composer).getByLabelText('Amount')).toHaveValue(42);
     expect(within(composer).getByLabelText('Expected date')).toHaveValue(isoInCurrentMonth(2, 10).slice(0, 10));
     expect(within(composer).getByLabelText('Merchant')).toHaveValue('Expected rent');
@@ -3261,7 +3243,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Apply schedule' }));
     expect(screen.getByText(`Next: ${nextOccurrence}`)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
       expect(core.recurrenceCreateRecurringMovement).toHaveBeenCalledTimes(1);
@@ -3303,7 +3285,7 @@ describe('App Accounts UX', () => {
     fireEvent.change(screen.getByLabelText('Recurrence frequency'), { target: { value: 'monthly' } });
     fireEvent.click(screen.getByRole('button', { name: 'Apply schedule' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
       expect(core.recurrenceCreateRecurringMovement).toHaveBeenCalledTimes(1);
@@ -3341,7 +3323,7 @@ describe('App Accounts UX', () => {
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '25' } });
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-12-31' } });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
       expect(core.recurrenceCreateRecurringMovement).toHaveBeenCalledTimes(1);
@@ -3470,7 +3452,7 @@ describe('App Accounts UX', () => {
 
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
     await waitFor(() => {
-      expect(within(composer).getByRole('heading', { name: 'Edit scheduled expense' })).toBeInTheDocument();
+      expect(within(composer).getByRole('button', { name: 'Update scheduled' })).toBeInTheDocument();
     });
     expect(within(composer).getByLabelText('Amount')).toHaveValue(15);
     expect(within(composer).getByLabelText('Date')).toHaveValue(isoInCurrentMonth(11, 10).slice(0, 10));

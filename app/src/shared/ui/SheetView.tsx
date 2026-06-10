@@ -11,6 +11,7 @@ export type SheetViewProps = ViewProps<
     contentClassName?: string;
     contentAriaLabel?: string;
     closeOnBackdrop?: boolean;
+    showHandle?: boolean;
   },
   {
     header?: ReactNode;
@@ -63,17 +64,20 @@ export function SheetView({ required, provided }: SheetViewProps) {
         onClick={(event) => event.stopPropagation()}
       >
         {data.header ?? (
-          config.title || config.closeLabel ? (
+          config.title || config.closeLabel || config.showHandle ? (
             <div className="inline-header">
-              {config.title ? <h3>{config.title}</h3> : <span />}
-              <button
-                type="button"
-                className="text-button icon-button"
-                aria-label={closeLabel}
-                onClick={provided.commands.close}
-              >
-                <i className="bi bi-x-lg" aria-hidden />
-              </button>
+              {config.showHandle ? <span className={styles.handle} aria-hidden /> : null}
+              {config.title ? <h3>{config.title}</h3> : null}
+              {config.closeLabel ? (
+                <button
+                  type="button"
+                  className="text-button icon-button"
+                  aria-label={closeLabel}
+                  onClick={provided.commands.close}
+                >
+                  <i className="bi bi-x-lg" aria-hidden />
+                </button>
+              ) : null}
             </div>
           ) : null
         )}

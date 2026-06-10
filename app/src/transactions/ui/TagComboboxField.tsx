@@ -27,7 +27,6 @@ export function TagComboboxField({ required, provided }: Props) {
         config: {
           label: 'Tags',
           placeholder: 'Choose existing or type new tags, separated by commas',
-          hint: 'Use commas to add multiple tags',
         },
         data: {
           options: required.options.map((tag) => ({
