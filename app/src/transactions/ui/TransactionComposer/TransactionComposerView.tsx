@@ -387,6 +387,7 @@ export function TransactionComposerView({ required, provided }: Props) {
             ariaLabel: 'Transaction composer',
             panelClassName: 'composer-sheet',
             showHandle: true,
+            dragToClose: true,
           },
           data: {
             body: mode === 'picker' ? (

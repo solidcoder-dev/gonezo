@@ -20,6 +20,19 @@
   border-radius: var(--radius-xl);
   background: var(--color-background-surface);
   box-shadow: var(--shadow-sheet);
+  transition: transform 140ms ease-out;
+  will-change: transform;
+}
+
+.dragging {
+  transition: none;
+}
+
+.handleHeader {
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
 }
 
 .handle {

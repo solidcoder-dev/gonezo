@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { ViewProps } from './ViewProps';
 import styles from './SheetView.module.css';
+import { useSheetDragToClose } from './useSheetDragToClose';
 
 export type SheetViewProps = ViewProps<
   {
@@ -12,6 +13,7 @@ export type SheetViewProps = ViewProps<
     contentAriaLabel?: string;
     closeOnBackdrop?: boolean;
     showHandle?: boolean;
+    dragToClose?: boolean;
   },
   {
     header?: ReactNode;
@@ -32,6 +34,7 @@ export type SheetViewProps = ViewProps<
 export function SheetView({ required, provided }: SheetViewProps) {
   const { config, data, state } = required;
   const closeOnBackdrop = config.closeOnBackdrop ?? true;
+  const drag = useSheetDragToClose(Boolean(config.dragToClose), provided.commands.close);
 
   if (!state.open) {
     return null;
@@ -45,9 +48,15 @@ export function SheetView({ required, provided }: SheetViewProps) {
   }
 
   const panelClassName = config.panelClassName
-    ? `${styles.panel} ${config.panelClassName}`
-    : styles.panel;
+    ? `${styles.panel} ${config.panelClassName}${drag.dragging ? ` ${styles.dragging}` : ''}`
+    : `${styles.panel}${drag.dragging ? ` ${styles.dragging}` : ''}`;
   const closeLabel = config.closeLabel ?? 'Close';
+  const panelStyle = config.dragToClose && drag.offset > 0
+    ? { transform: `translateY(${drag.offset}px)` }
+    : undefined;
+  const handleHeaderClassName = config.showHandle && !config.title && !config.closeLabel
+    ? `${styles.handleHeader} inline-header`
+    : 'inline-header';
 
   return (
     <div
@@ -61,12 +70,22 @@ export function SheetView({ required, provided }: SheetViewProps) {
         role="dialog"
         aria-modal="true"
         aria-label={config.ariaLabel}
+        style={panelStyle}
         onClick={(event) => event.stopPropagation()}
       >
         {data.header ?? (
           config.title || config.closeLabel || config.showHandle ? (
-            <div className="inline-header">
-              {config.showHandle ? <span className={styles.handle} aria-hidden /> : null}
+            <div
+              className={handleHeaderClassName}
+              {...drag.handlers}
+            >
+              {config.showHandle ? (
+                <span
+                  className={styles.handle}
+                  aria-hidden
+                  data-testid={config.dragToClose ? 'sheet-drag-handle' : undefined}
+                />
+              ) : null}
               {config.title ? <h3>{config.title}</h3> : null}
               {config.closeLabel ? (
                 <button

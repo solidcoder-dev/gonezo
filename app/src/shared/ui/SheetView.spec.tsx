@@ -68,6 +68,32 @@ describe('SheetView', () => {
     expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
   });
 
+  it('closes a draggable sheet when pulled down beyond the threshold', () => {
+    const close = vi.fn();
+    render(
+      <SheetView
+        required={{
+          config: { ariaLabel: 'Composer', showHandle: true, dragToClose: true },
+          data: { body: <p>Content</p> },
+          state: { open: true },
+          status: {},
+        }}
+        provided={{ commands: { close } }}
+      />,
+    );
+
+    const handle = screen.getByTestId('sheet-drag-handle');
+    fireEvent.pointerDown(handle, { clientY: 100, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerMove(handle, { clientY: 150, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerUp(handle, { clientY: 150, pointerId: 1, pointerType: 'touch' });
+    expect(close).not.toHaveBeenCalled();
+
+    fireEvent.pointerDown(handle, { clientY: 100, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerMove(handle, { clientY: 220, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerUp(handle, { clientY: 220, pointerId: 1, pointerType: 'touch' });
+    expect(close).toHaveBeenCalledTimes(1);
+  });
+
   it('renders nothing when closed', () => {
     render(
       <SheetView
