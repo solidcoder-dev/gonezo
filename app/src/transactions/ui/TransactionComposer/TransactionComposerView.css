@@ -14,11 +14,16 @@
 }
 
 .composer-form-content {
+  gap: 8px;
   min-height: 0;
   padding-right: 4px;
   padding-bottom: 8px;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.composer-form-content > .stack {
+  margin-top: 0;
 }
 
 .composer-advanced {
