@@ -64,6 +64,8 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
+  SchedulingProcessDueMovementsInput,
+  SchedulingProcessDueMovementsResult,
   SchedulingUpdateMovementInput,
   SchedulingUpdateMovementResult,
 } from '../../scheduling/application/scheduling.port';
@@ -144,6 +146,9 @@ export interface CorePlugin {
   schedulingListMovements(
     options: SchedulingListMovementsInput,
   ): Promise<SchedulingListMovementsResult>;
+  schedulingProcessDueMovements(
+    options?: SchedulingProcessDueMovementsInput,
+  ): Promise<SchedulingProcessDueMovementsResult>;
   expectedCreateMovement(options: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult>;
   expectedUpdateMovement(options: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult>;
   expectedListMovements(options: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult>;

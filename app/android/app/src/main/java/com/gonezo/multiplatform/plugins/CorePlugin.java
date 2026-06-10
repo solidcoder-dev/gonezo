@@ -207,6 +207,11 @@ public class CorePlugin extends Plugin {
   }
 
   @PluginMethod
+  public void schedulingProcessDueMovements(PluginCall call) {
+    new RecurringPluginHandler(getContext()).schedulingProcessDueMovements(call);
+  }
+
+  @PluginMethod
   public void expectedCreateMovement(PluginCall call) {
     new ExpectedPluginHandler(getContext()).expectedCreateMovement(call);
   }

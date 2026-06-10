@@ -65,6 +65,8 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
+  SchedulingProcessDueMovementsInput,
+  SchedulingProcessDueMovementsResult,
   SchedulingUpdateMovementInput,
   SchedulingUpdateMovementResult,
 } from '../../scheduling/application/scheduling.port';
@@ -404,6 +406,21 @@ export class CoreAdapter implements CorePort {
       };
     }
     return this.web.schedulingListMovements(input);
+  }
+
+  async schedulingProcessDueMovements(
+    input: SchedulingProcessDueMovementsInput = {},
+  ): Promise<SchedulingProcessDueMovementsResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.schedulingProcessDueMovements(input);
+    }
+    return this.web.schedulingProcessDueMovements?.(input) ?? {
+      scanned: 0,
+      posted: 0,
+      expectedCreated: 0,
+      failed: 0,
+      advancedSchedules: 0,
+    };
   }
 
   async expectedCreateMovement(input: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult> {

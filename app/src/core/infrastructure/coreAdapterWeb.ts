@@ -64,6 +64,8 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
+  SchedulingProcessDueMovementsInput,
+  SchedulingProcessDueMovementsResult,
   SchedulingUpdateMovementInput,
   SchedulingUpdateMovementResult,
 } from '../../scheduling/application/scheduling.port';
@@ -334,6 +336,18 @@ export class CoreAdapterWeb implements CorePort {
 
   async schedulingListMovements(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult> {
     return this.schedulingService.listMovements(input);
+  }
+
+  async schedulingProcessDueMovements(
+    _input: SchedulingProcessDueMovementsInput = {},
+  ): Promise<SchedulingProcessDueMovementsResult> {
+    return {
+      scanned: 0,
+      posted: 0,
+      expectedCreated: 0,
+      failed: 0,
+      advancedSchedules: 0,
+    };
   }
 
   async movementsGetMonthOverview(input: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> {

@@ -62,6 +62,8 @@ export function useMonthlyMovementsOverviewModel(input: UseMonthlyMovementsOverv
       return [];
     }
 
+    await scheduling.schedulingProcessDueMovements?.();
+
     const overview = await scheduling.movementsGetOverview({
       accountId,
       filters: {

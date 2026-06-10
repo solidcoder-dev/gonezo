@@ -5,6 +5,8 @@ import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import com.gonezo.multiplatform.core.AndroidRecurringCore;
 import com.gonezo.multiplatform.core.AndroidRecurringExpectedRuntime;
+import com.gonezo.multiplatform.core.AndroidScheduledProcessingRuntime;
+import com.gonezo.application.orchestration.ProcessDueScheduledMovementsResult;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -113,6 +115,28 @@ final class RecurringPluginHandler {
       }
       JSObject result = new JSObject();
       result.put("items", array);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  void schedulingProcessDueMovements(PluginCall call) {
+    try {
+      String nowInput = nullIfBlank(call.getString("now"));
+      Integer limitInput = nullableInteger(call.getData(), "limit");
+      ProcessDueScheduledMovementsResult processed =
+        AndroidScheduledProcessingRuntime.getInstance(context).processDue(
+          nowInput == null ? Instant.now() : Instant.parse(nowInput),
+          limitInput == null ? 100 : limitInput
+        );
+
+      JSObject result = new JSObject();
+      result.put("scanned", processed.getScanned());
+      result.put("posted", processed.getPosted());
+      result.put("expectedCreated", processed.getExpectedCreated());
+      result.put("failed", processed.getFailed());
+      result.put("advancedSchedules", processed.getAdvancedSchedules());
       call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());

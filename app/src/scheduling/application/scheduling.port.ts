@@ -125,6 +125,19 @@ export type SchedulingListMovementsResult = {
   items: SchedulingMovementItem[];
 };
 
+export type SchedulingProcessDueMovementsInput = {
+  now?: string;
+  limit?: number;
+};
+
+export type SchedulingProcessDueMovementsResult = {
+  scanned: number;
+  posted: number;
+  expectedCreated: number;
+  failed: number;
+  advancedSchedules: number;
+};
+
 export interface RecurrencePort {
   recurrenceCreateRecurringMovement(
     input: RecurrenceCreateRecurringMovementInput,
@@ -140,4 +153,5 @@ export interface SchedulingPort {
   schedulingUpdateMovement(input: SchedulingUpdateMovementInput): Promise<SchedulingUpdateMovementResult>;
   schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void>;
   schedulingListMovements(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult>;
+  schedulingProcessDueMovements?(input?: SchedulingProcessDueMovementsInput): Promise<SchedulingProcessDueMovementsResult>;
 }
