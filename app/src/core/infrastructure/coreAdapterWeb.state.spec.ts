@@ -165,14 +165,19 @@ describe('CoreAdapterWeb state and effects boundaries', () => {
 
     expect(downloadJson).toHaveBeenCalledTimes(1);
     expect(downloadJson.mock.calls[0]?.[0]).toBe('gonezo-backup-2026-05-26T10-11-12Z.json');
-    expect(JSON.parse(downloadJson.mock.calls[0]?.[1] ?? '{}')).toMatchObject({
+    const backup = JSON.parse(downloadJson.mock.calls[0]?.[1] ?? '{}');
+    expect(backup).toMatchObject({
       schemaVersion: 2,
       exportedAt: '2026-05-26T10:11:12.123Z',
       accounts: [],
-      categories: [],
       tags: [],
       postedMovements: [],
     });
+    expect(backup.categories).toContainEqual(expect.objectContaining({
+      id: '00000000-0000-4000-8000-000000000109',
+      name: 'Other',
+      appliesTo: 'expense',
+    }));
     expect(result).toMatchObject({
       fileName: 'gonezo-backup-2026-05-26T10-11-12Z.json',
       exportedAt: '2026-05-26T10:11:12.123Z',

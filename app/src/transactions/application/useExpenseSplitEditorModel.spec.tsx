@@ -25,6 +25,8 @@ describe('useExpenseSplitEditorModel', () => {
     act(() => {
       result.current.model.actions.setExpenseItemNameValue('Food');
       result.current.model.actions.setExpenseItemAmountValue('60.00');
+    });
+    act(() => {
       result.current.model.actions.addExpenseItem();
     });
 
@@ -38,9 +40,15 @@ describe('useExpenseSplitEditorModel', () => {
     act(() => {
       result.current.model.actions.setExpenseItemNameValue('Food');
       result.current.model.actions.setExpenseItemAmountValue('60.00');
+    });
+    act(() => {
       result.current.model.actions.addExpenseItem();
+    });
+    act(() => {
       result.current.model.actions.setExpenseItemNameValue('Drinks');
       result.current.model.actions.setExpenseItemAmountValue('40.00');
+    });
+    act(() => {
       result.current.model.actions.addExpenseItem();
     });
 
@@ -57,9 +65,15 @@ describe('useExpenseSplitEditorModel', () => {
 
     act(() => {
       result.current.model.actions.openSplitEditor();
+    });
+    act(() => {
       result.current.model.actions.setExpenseItemNameValue('Food');
       result.current.model.actions.setExpenseItemAmountValue('60.00');
+    });
+    act(() => {
       result.current.model.actions.addExpenseItem();
+    });
+    act(() => {
       result.current.model.actions.applySplit();
     });
 

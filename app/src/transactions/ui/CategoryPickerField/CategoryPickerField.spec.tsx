@@ -67,6 +67,8 @@ describe('CategoryPickerField', () => {
       'Select category Bills',
       'Select category Groceries',
       'Select category Dining',
+      'Select category Transport',
+      'Select category Health',
     ]);
     fireEvent.click(screen.getByRole('button', { name: 'Select category Bills' }));
 

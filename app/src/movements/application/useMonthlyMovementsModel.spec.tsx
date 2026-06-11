@@ -5,6 +5,7 @@ import type {
   LedgerTransactionListItem,
 } from '../../ledger/application/ledger.port';
 import type {
+  MovementsMonthOverviewInput,
   MovementsMonthOverviewResult,
 } from './movements.port';
 import type { ExpectedMovementView } from './movementsView.types';
@@ -269,39 +270,41 @@ describe('useMonthlyMovementsModel', () => {
   it('loads monthly posted movements as an accumulated 100 item page', async () => {
     const firstPage = postedTransaction({ id: 'tx-1', description: 'First' });
     const secondPage = postedTransaction({ id: 'tx-2', description: 'Second' });
-    const movementsGetOverview = vi.fn()
-      .mockResolvedValueOnce(emptyOverview({
-        postedPage: pageWith([firstPage], {
-          page: 0,
-          size: 100,
-          totalElements: 101,
-          totalPages: 2,
-          hasNext: true,
+    const movementsGetOverview = vi.fn((input: MovementsMonthOverviewInput) => Promise.resolve(
+      input.executedPagination?.page === 1
+        ? emptyOverview({
+          postedPage: pageWith([secondPage], {
+            page: 1,
+            size: 100,
+            totalElements: 101,
+            totalPages: 2,
+            hasPrevious: true,
+          }),
+          executedPage: pageWith([secondPage], {
+            page: 1,
+            size: 100,
+            totalElements: 101,
+            totalPages: 2,
+            hasPrevious: true,
+          }),
+        })
+        : emptyOverview({
+          postedPage: pageWith([firstPage], {
+            page: 0,
+            size: 100,
+            totalElements: 101,
+            totalPages: 2,
+            hasNext: true,
+          }),
+          executedPage: pageWith([firstPage], {
+            page: 0,
+            size: 100,
+            totalElements: 101,
+            totalPages: 2,
+            hasNext: true,
+          }),
         }),
-        executedPage: pageWith([firstPage], {
-          page: 0,
-          size: 100,
-          totalElements: 101,
-          totalPages: 2,
-          hasNext: true,
-        }),
-      }))
-      .mockResolvedValueOnce(emptyOverview({
-        postedPage: pageWith([secondPage], {
-          page: 1,
-          size: 100,
-          totalElements: 101,
-          totalPages: 2,
-          hasPrevious: true,
-        }),
-        executedPage: pageWith([secondPage], {
-          page: 1,
-          size: 100,
-          totalElements: 101,
-          totalPages: 2,
-          hasPrevious: true,
-        }),
-      }));
+    ));
     const ports = makePorts({
       scheduling: {
         ...makePorts().scheduling,
@@ -319,7 +322,7 @@ describe('useMonthlyMovementsModel', () => {
     }));
 
     await waitFor(() => expect(result.current.required.state.items.map((item) => item.id)).toEqual(['tx-1']));
-    expect(movementsGetOverview).toHaveBeenLastCalledWith(expect.objectContaining({
+    expect(movementsGetOverview).toHaveBeenCalledWith(expect.objectContaining({
       executedPagination: { page: 0, size: 100 },
     }));
 
@@ -328,7 +331,7 @@ describe('useMonthlyMovementsModel', () => {
     });
 
     await waitFor(() => expect(result.current.required.state.items.map((item) => item.id)).toEqual(['tx-1', 'tx-2']));
-    expect(movementsGetOverview).toHaveBeenLastCalledWith(expect.objectContaining({
+    expect(movementsGetOverview).toHaveBeenCalledWith(expect.objectContaining({
       executedPagination: { page: 1, size: 100 },
     }));
   });

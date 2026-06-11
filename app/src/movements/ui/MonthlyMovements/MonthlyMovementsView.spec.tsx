@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import type { TransactionHistoryItemView } from '../../../transactions/application/transactionView.types';
 import { MonthlyMovementsView } from './MonthlyMovementsView';
@@ -84,7 +85,11 @@ describe('MonthlyMovementsView', () => {
   it('renders a posted movement load more control', () => {
     const props = makeProps();
 
-    render(<MonthlyMovementsView {...props} />);
+    render(
+      <MemoryRouter>
+        <MonthlyMovementsView {...props} />
+      </MemoryRouter>,
+    );
 
     expect(screen.queryByText('Page 1 of 2')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Previous' })).not.toBeInTheDocument();

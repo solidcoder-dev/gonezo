@@ -260,6 +260,7 @@ function makeCore(transactionCount = 0): AppTestPort {
     taxonomyListCategories: vi.fn(async () => ({
       items: [
         { id: 'cat-food', name: 'Food', appliesTo: 'expense' as const, status: 'active' as const },
+        { id: '00000000-0000-4000-8000-000000000102', name: 'Groceries', appliesTo: 'expense' as const, status: 'active' as const },
         { id: 'cat-salary', name: 'Salary', appliesTo: 'income' as const, status: 'active' as const },
       ],
     })),
@@ -2924,7 +2925,7 @@ describe('App Accounts UX', () => {
       occurredAt: isoInCurrentMonth(12, 12),
       description: 'House bill',
       merchant: 'House bill',
-      categoryId: 'cat-food',
+      categoryId: '00000000-0000-4000-8000-000000000102',
       category: { id: 'cat-food', name: 'Food' },
       tags: [],
       items: [
@@ -2968,7 +2969,7 @@ describe('App Accounts UX', () => {
       currency: 'USD',
       expectedAt: new Date().toISOString(),
       description: 'Expected rent',
-      categoryId: 'cat-food',
+      categoryId: '00000000-0000-4000-8000-000000000102',
       splitItems: [
         { id: 'split-water', name: 'Water', amount: '12.00' },
         { id: 'split-electricity', name: 'Electricity', amount: '30.00' },
@@ -2983,11 +2984,10 @@ describe('App Accounts UX', () => {
 
     await expandExpectedMovements();
     const expectedRow = await screen.findByText('Expected rent');
-    expect(screen.getByLabelText(/Expected group/i)).toHaveTextContent('Food');
 
     fireEvent.click(expectedRow.closest('button')!);
     const detailDialog = await screen.findByRole('dialog', { name: 'Expected movement details' });
-    expect(within(detailDialog).getByText('Food')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('Groceries')).toBeInTheDocument();
     expect(within(detailDialog).getByText('manual')).toBeInTheDocument();
     expect(within(detailDialog).getByText('pending')).toBeInTheDocument();
     expect(within(detailDialog).getByText('Water')).toBeInTheDocument();
@@ -3031,7 +3031,7 @@ describe('App Accounts UX', () => {
       amount: '33.00',
       currency: 'USD',
       description: 'Shared bill',
-      categoryId: 'cat-food',
+      categoryId: '00000000-0000-4000-8000-000000000102',
       rule: { frequency: 'daily', interval: 1 },
       recurrenceEnd: { kind: 'after_occurrences', afterOccurrences: 1 },
       startAt: dueAt,
@@ -3064,7 +3064,7 @@ describe('App Accounts UX', () => {
       currency: 'USD',
       expectedAt: isoInCurrentMonth(2, 10),
       description: 'Expected rent',
-      categoryId: 'cat-food',
+      categoryId: '00000000-0000-4000-8000-000000000102',
       splitItems: [
         { id: 'split-water', name: 'Water', amount: '12.00' },
         { id: 'split-electricity', name: 'Electricity', amount: '30.00' },
@@ -3084,10 +3084,10 @@ describe('App Accounts UX', () => {
     fireEvent.click(within(detailDialog).getByRole('button', { name: 'Edit expected' }));
 
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
-    expect(within(composer).getByLabelText('Amount')).toHaveValue(42);
+    expect(within(composer).queryByLabelText('Amount')).not.toBeInTheDocument();
     expect(within(composer).getByLabelText('Expected date')).toHaveValue(isoInCurrentMonth(2, 10).slice(0, 10));
     expect(within(composer).getByLabelText('Merchant')).toHaveValue('Expected rent');
-    expect(within(composer).getByRole('button', { name: 'Select category Food' })).toHaveTextContent('Food');
+    expect(within(composer).getByRole('button', { name: 'Select category Groceries' })).toHaveTextContent('Groceries');
     expect(within(composer).getByText('2 items · 42.00 USD')).toBeInTheDocument();
     fireEvent.click(within(composer).getByRole('button', { name: 'Edit split' }));
     const splitItemsList = within(await screen.findByRole('dialog', { name: 'Split amount' })).getByRole('list', { name: 'Expense items' });
@@ -3104,7 +3104,7 @@ describe('App Accounts UX', () => {
       currency: 'USD',
       expectedAt: isoInCurrentMonth(2, 10),
       description: 'Expected rent',
-      categoryId: 'cat-food',
+      categoryId: '00000000-0000-4000-8000-000000000102',
       splitItems: [
         { id: 'split-water', name: 'Water', amount: '12.00' },
         { id: 'split-electricity', name: 'Electricity', amount: '30.00' },
@@ -3136,7 +3136,7 @@ describe('App Accounts UX', () => {
       type: 'expense',
       amount: '42.00',
       currency: 'USD',
-      categoryId: 'cat-food',
+      categoryId: '00000000-0000-4000-8000-000000000102',
     }));
 
     const updated = await core.expectedListMovements({ accountId: 'acc-1' });
@@ -3425,7 +3425,7 @@ describe('App Accounts UX', () => {
       amount: '15.00',
       currency: 'USD',
       description: 'Scheduled rent',
-      categoryId: 'cat-food',
+      categoryId: '00000000-0000-4000-8000-000000000102',
       rule: { frequency: 'daily', interval: 1 },
       recurrenceEnd: { kind: 'after_occurrences', afterOccurrences: 1 },
       startAt: isoInCurrentMonth(11, 10),
@@ -3452,7 +3452,7 @@ describe('App Accounts UX', () => {
     expect(within(composer).getByLabelText('Amount')).toHaveValue(15);
     expect(within(composer).getByLabelText('Date')).toHaveValue(isoInCurrentMonth(11, 10).slice(0, 10));
     expect(within(composer).getByLabelText('Merchant')).toHaveValue('Scheduled rent');
-    expect(within(composer).getByRole('button', { name: 'Select category Food' })).toHaveTextContent('Food');
+    expect(within(composer).getByRole('button', { name: 'Select category Groceries' })).toHaveTextContent('Groceries');
 
     fireEvent.change(within(composer).getByLabelText('Amount'), { target: { value: '17' } });
     fireEvent.click(within(composer).getByRole('button', { name: 'Update scheduled' }));
@@ -3465,7 +3465,7 @@ describe('App Accounts UX', () => {
       type: 'expense',
       amount: '17.00',
       currency: 'USD',
-      categoryId: 'cat-food',
+      categoryId: '00000000-0000-4000-8000-000000000102',
     }));
     await waitFor(() => {
       expect(screen.getByText('-$17.00')).toBeInTheDocument();

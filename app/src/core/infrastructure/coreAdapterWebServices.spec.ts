@@ -81,7 +81,7 @@ describe('coreAdapterWeb service composition', () => {
       id: 'id-2',
       type: 'expense',
       amount: '12.50',
-      categoryId: 'id-3',
+      categoryId: '00000000-0000-4000-8000-000000000109',
     });
 
     const assignedTaxonomy = await taxonomy.listTransactionTaxonomy({
@@ -90,8 +90,8 @@ describe('coreAdapterWeb service composition', () => {
     expect(assignedTaxonomy.items).toEqual([
       {
         transactionId: 'id-2',
-        categoryId: 'id-3',
-        tagIds: ['id-4'],
+        categoryId: '00000000-0000-4000-8000-000000000109',
+        tagIds: ['id-3'],
         categorizationStatus: 'assigned',
         taggingStatus: 'assigned',
       },

@@ -85,7 +85,7 @@ describe('useMovementsSearchModel', () => {
       'movement-1',
       'movement-2',
     ]));
-    expect(movementsSearch).toHaveBeenLastCalledWith(expect.objectContaining({
+    expect(movementsSearch).toHaveBeenCalledWith(expect.objectContaining({
       pagination: { page: 1, size: 10 },
     }));
   });

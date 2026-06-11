@@ -16,7 +16,7 @@ function nextRequestId(requestId?: number): number {
 
 export function expectedMovementToComposerPrefill(
   movement: ExpectedMovementView,
-  categoryName?: string,
+  _categoryName?: string,
   requestId?: number,
 ): TransactionEntryPrefillRequest {
   return {
@@ -26,14 +26,14 @@ export function expectedMovementToComposerPrefill(
     amount: movement.amount,
     date: toDateInputValue(movement.expectedAt),
     note: movement.merchant || movement.description || '',
-    categoryId: categoryName ?? movement.categoryId,
+    categoryId: movement.categoryId,
     splitItems: movement.splitItems,
   };
 }
 
 export function postExpectedMovementToComposerPrefill(
   movement: ExpectedMovementView,
-  categoryName?: string,
+  _categoryName?: string,
   requestId?: number,
 ): TransactionEntryPrefillRequest {
   return {
@@ -43,14 +43,14 @@ export function postExpectedMovementToComposerPrefill(
     amount: movement.amount,
     date: toDateInputValue(movement.expectedAt),
     note: movement.merchant || movement.description || '',
-    categoryId: categoryName ?? movement.categoryId,
+    categoryId: movement.categoryId,
     splitItems: movement.splitItems,
   };
 }
 
 export function scheduledMovementToComposerPrefill(
   movement: ScheduledMovementView,
-  categoryName?: string,
+  _categoryName?: string,
   requestId?: number,
 ): TransactionEntryPrefillRequest {
   const scheduledKind = movement.scheduleKind ?? resolveSchedulingKind(movement);
@@ -61,7 +61,7 @@ export function scheduledMovementToComposerPrefill(
     amount: movement.amount,
     date: toDateInputValue(movement.nextDueAt ?? movement.startAt),
     note: movement.merchant || movement.description || '',
-    categoryId: categoryName ?? movement.categoryId,
+    categoryId: movement.categoryId,
     splitItems: movement.splitItems,
     transferTargetAccountId: movement.targetAccountId,
     transferAmountIn: movement.destinationAmount,

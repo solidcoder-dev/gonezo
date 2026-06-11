@@ -46,7 +46,7 @@ describe('movements search presentation', () => {
       },
       details: [
         { key: 'account', value: 'Checking', primary: true },
-        { key: 'date', value: 'Jan 15' },
+        { key: 'date', value: '15 ene' },
         { key: 'category', value: 'Food' },
         { key: 'tags', value: '#work #client +1' },
       ],
@@ -71,7 +71,7 @@ describe('movements search presentation', () => {
     });
     expect(detail.meta).toEqual([
       { label: 'Account', value: 'Checking' },
-      { label: 'Date', value: 'Jan 15' },
+      { label: 'Date', value: '15 ene' },
       { label: 'Category', value: 'Food' },
       { label: 'Tags', value: '#work #client +1' },
       { label: 'Source', value: 'scheduled' },
@@ -89,7 +89,7 @@ describe('movements search presentation', () => {
     expect(groups).toEqual([
       {
         key: '2026-5-14',
-        label: 'MAY 14 · TODAY',
+        label: '14 MAY · TODAY',
         items: [
           expect.objectContaining({ id: 'b' }),
           expect.objectContaining({ id: 'a' }),
@@ -97,7 +97,7 @@ describe('movements search presentation', () => {
       },
       {
         key: '2026-5-13',
-        label: 'MAY 13 · YESTERDAY',
+        label: '13 MAY · YESTERDAY',
         items: [expect.objectContaining({ id: 'c' })],
       },
     ]);

@@ -10,10 +10,7 @@ import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGat
 import type { ComposerMode, TransactionFieldErrors } from './transactions.types';
 import type { TransactionEntryViewProvided, TransactionEntryViewRequired } from '../ui/TransactionComposer/TransactionEntryView';
 import type { TransactionEntryPrefillRequest } from './TransactionEntryComponent.contract';
-import {
-  hasTransactionComposerValidationErrors,
-  validateTransactionComposerSubmission,
-} from './transactionComposerValidation';
+import { hasTransactionComposerValidationErrors, validateTransactionComposerSubmission } from './transactionComposerValidation';
 import { runTransactionSubmissionPlan } from './transactionSubmissionPlan';
 import { useExpenseSplitEditorModel } from './useExpenseSplitEditorModel';
 import { useTransactionSchedulingModel } from './useTransactionSchedulingModel';
@@ -22,10 +19,7 @@ import { useTransactionTransferFxModel } from './useTransactionTransferFxModel';
 import { nextRecurrenceDateIso } from '../../shared/domain/nextRecurrenceDate';
 
 export type TransactionEntryModelPorts = {
-  ledger: LedgerGatewayPort;
-  scheduling: SchedulingGatewayPort;
-  expected: ExpectedGatewayPort;
-  taxonomy: TaxonomyGatewayPort;
+  ledger: LedgerGatewayPort; scheduling: SchedulingGatewayPort; expected: ExpectedGatewayPort; taxonomy: TaxonomyGatewayPort;
 };
 
 export type TransactionEntryModelClock = {
@@ -57,6 +51,21 @@ function toErrorMessage(error: unknown): string {
     return error.message;
   }
   return 'Unknown error';
+}
+
+function resolveSubmitExpectedIntent(event: FormEvent, fallback: boolean): boolean {
+  const nativeEvent = event.nativeEvent;
+  const submitter = nativeEvent && 'submitter' in nativeEvent
+    ? (nativeEvent as Event & { submitter?: EventTarget | null }).submitter
+    : undefined;
+  if (
+    typeof HTMLButtonElement !== 'undefined'
+    && submitter instanceof HTMLButtonElement
+    && submitter.name === 'transactionIntent'
+  ) {
+    return submitter.value === 'expected';
+  }
+  return fallback;
 }
 
 export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
@@ -105,15 +114,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     composerMode,
   });
 
-  const {
-    transferToAccountId,
-    transferTargetOptions,
-    transferAmountIn,
-    transferFxRate,
-    transferFxMode,
-    transferDestinationCurrency,
-    transferCrossCurrency,
-  } = transferFxModel.state;
+  const { transferToAccountId, transferTargetOptions, transferAmountIn, transferFxRate, transferFxMode, transferDestinationCurrency, transferCrossCurrency } = transferFxModel.state;
   const {
     reset: resetTransferFx,
     setTransferToAccountId,
@@ -129,16 +130,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setTransferFxModeValue,
   } = transferFxModel.actions;
 
-  const {
-    expenseDetailed,
-    splitEditorOpen,
-    splitApplied,
-    expenseItemName,
-    expenseItemAmount,
-    editingExpenseItemId,
-    expenseItems,
-    expenseSplitTotal,
-  } = splitEditorModel.state;
+  const { expenseDetailed, splitEditorOpen, splitApplied, expenseItemName, expenseItemAmount, editingExpenseItemId, expenseItems, expenseSplitTotal } = splitEditorModel.state;
   const {
     reset: resetExpenseSplit,
     prefill: prefillExpenseSplit,
@@ -217,12 +209,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     : undefined;
   const effectiveTransactionDate = nextScheduledOccurrenceDate ?? transactionDate;
 
-  const {
-    transactionCategoryId,
-    transactionTagInput,
-    categoryOptions,
-    tagOptions,
-  } = taxonomyModel.state;
+  const { transactionCategoryId, transactionTagInput, categoryOptions, tagOptions } = taxonomyModel.state;
   const {
     resetInputs: resetTaxonomyInputs,
     refreshLookups: refreshTaxonomyLookups,
@@ -426,21 +413,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     applySplit();
   }
 
-  function resolveSubmitExpectedIntent(event: FormEvent): boolean {
-    const nativeEvent = event.nativeEvent;
-    const submitter = 'submitter' in nativeEvent
-      ? (nativeEvent as Event & { submitter?: EventTarget | null }).submitter
-      : undefined;
-    if (
-      typeof HTMLButtonElement !== 'undefined'
-      && submitter instanceof HTMLButtonElement
-      && submitter.name === 'transactionIntent'
-    ) {
-      return submitter.value === 'expected';
-    }
-    return expectedMovement;
-  }
-
   async function submitTransaction(event: FormEvent) {
     event.preventDefault();
     setError('');
@@ -462,7 +434,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       transactionDate: effectiveTransactionDate,
       schedulingMode,
       recurrenceEnabled,
-      expectedMovement: resolveSubmitExpectedIntent(event),
+      expectedMovement: resolveSubmitExpectedIntent(event, expectedMovement),
       editedExpectedMovementId,
       editedScheduledMovementId,
       postExpectedMovementId,

@@ -62,7 +62,7 @@ describe('movementComposerPrefill', () => {
       amount: '12.50',
       date: '2026-05-20',
       note: 'Market',
-      categoryId: 'Food',
+      categoryId: 'cat-food',
       splitItems: [{ id: 'item-1', name: 'Fruit', amount: '12.50' }],
     });
   });

@@ -116,19 +116,10 @@ export class WebMobillsRowImporter {
     policy: WebMobillsImportPolicy,
   ) {
     const transactionType = row.rawValue < 0 ? 'expense' : 'income';
-    let category = this.taxonomy.findActiveCategoryByName(row.categoryName, transactionType);
+    const category = this.taxonomy.findActiveCategoryByName(row.categoryName, transactionType)
+      ?? this.taxonomy.findActiveCategoryByName('Other', transactionType);
     if (!category) {
-      if (!policy.createMissingCategories) {
-        throw new Error('CATEGORY_AUTOCREATE_DISABLED');
-      }
-      const created = await this.taxonomy.createCategory({
-        name: row.categoryName,
-        appliesTo: transactionType,
-      });
-      category = this.taxonomy.findCategoryById(created.id);
-    }
-    if (!category) {
-      throw new Error(`Category not found: ${row.categoryName}`);
+      throw new Error(policy.createMissingCategories ? 'CATEGORY_MASTER_FALLBACK_NOT_FOUND' : 'CATEGORY_AUTOCREATE_DISABLED');
     }
     const categorized = await this.taxonomy.categorizeTransaction({
       transactionId,

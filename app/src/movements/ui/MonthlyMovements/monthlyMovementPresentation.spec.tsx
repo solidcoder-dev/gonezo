@@ -76,7 +76,7 @@ describe('monthly movement detail builders', () => {
     expect(data.iconClassName).toBe('bi bi-arrow-down-right');
     expect(data.amount).toEqual({ kind: 'expense', sign: '-', value: '12.50', currency: 'USD' });
     expect(data.meta).toEqual([
-      { label: 'Date', value: 'Jan 15' },
+      { label: 'Date', value: '15 ene' },
       { label: 'Category', value: 'Food' },
       { label: 'Tags', value: '#work' },
       { label: 'Status', value: 'posted' },
@@ -95,7 +95,7 @@ describe('monthly movement detail builders', () => {
     expect(data.amount.kind).toBe('scheduled');
     expect(data.amount.sign).toBe('+');
     expect(data.meta).toEqual([
-      { label: 'Expected', value: 'Feb 1' },
+      { label: 'Expected', value: '1 feb' },
       { label: 'Category', value: 'Income' },
       { label: 'Origin', value: 'recurring' },
       { label: 'Status', value: 'pending' },
@@ -113,7 +113,7 @@ describe('monthly movement detail builders', () => {
     expect(data.kicker).toBe('Scheduled');
     expect(data.amount.kind).toBe('scheduled');
     expect(data.meta).toEqual([
-      { label: 'Due', value: 'Mar 10' },
+      { label: 'Due', value: '10 mar' },
       { label: 'Origin', value: 'one-shot' },
       { label: 'Category', value: 'Transfers' },
       { label: 'Tags', value: '#cash #monthly +1' },

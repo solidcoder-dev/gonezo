@@ -234,16 +234,22 @@ describe('useTransactionEntryModel', () => {
     act(() => {
       result.current.provided.commands.open();
       result.current.provided.commands.selectMode('expense');
-      result.current.provided.commands.setSplitEnabled(true);
+      result.current.provided.commands.openSplitEditor();
       result.current.provided.commands.splitByParts('10.00', '3');
     });
 
-    expect(result.current.required.state.amount).toBe('10.00');
+    expect(result.current.required.state.amount).toBe('');
     expect(result.current.required.state.splitItems).toEqual([
       { id: 'split-1', name: 'Part 1', amount: '3.33' },
       { id: 'split-2', name: 'Part 2', amount: '3.33' },
       { id: 'split-3', name: 'Part 3', amount: '3.34' },
     ]);
+
+    act(() => {
+      result.current.provided.commands.applySplit();
+    });
+
+    expect(result.current.required.state.amount).toBe('10.00');
   });
 
   it('uses the nearest scheduler occurrence instead of the manually selected date for recurring movements', async () => {
