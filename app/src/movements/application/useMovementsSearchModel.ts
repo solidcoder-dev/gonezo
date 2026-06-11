@@ -82,7 +82,16 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
       filters: filtersModel.appliedFilters,
       page,
     });
-    setItems(result.items);
+    setItems((previous) => {
+      if (result.page === 0) {
+        return result.items;
+      }
+      const knownKeys = new Set(previous.map((item) => `${item.accountId ?? 'scope'}:${item.source}:${item.id}`));
+      return [
+        ...previous,
+        ...result.items.filter((item) => !knownKeys.has(`${item.accountId ?? 'scope'}:${item.source}:${item.id}`)),
+      ];
+    });
     setPagination(result.pagination);
     if (page !== result.page) {
       setPage(result.page);

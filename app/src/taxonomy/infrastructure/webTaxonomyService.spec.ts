@@ -69,13 +69,13 @@ describe('WebTaxonomyService', () => {
 
     await expect(taxonomy.listCategories({ appliesTo: 'expense' })).resolves.toMatchObject({
       items: expect.arrayContaining([
-        { id: 'expense:bills', name: 'Bills', appliesTo: 'expense', status: 'active' },
-        { id: 'expense:groceries', name: 'Groceries', appliesTo: 'expense', status: 'active' },
+        { id: '00000000-0000-4000-8000-000000000101', name: 'Bills', appliesTo: 'expense', status: 'active' },
+        { id: '00000000-0000-4000-8000-000000000102', name: 'Groceries', appliesTo: 'expense', status: 'active' },
       ]),
     });
     await expect(taxonomy.listCategories({ appliesTo: 'income' })).resolves.toMatchObject({
       items: expect.arrayContaining([
-        { id: 'income:work-income', name: 'Work Income', appliesTo: 'income', status: 'active' },
+        { id: '00000000-0000-4000-8000-000000000201', name: 'Work Income', appliesTo: 'income', status: 'active' },
       ]),
     });
     await expect(taxonomy.listTags()).resolves.toEqual({
@@ -89,7 +89,7 @@ describe('WebTaxonomyService', () => {
     const taxonomy = createSubject();
 
     await expect(taxonomy.createCategory({ name: ' Food ', appliesTo: 'expense' })).rejects.toThrow('master data');
-    await expect(taxonomy.renameCategory({ categoryId: 'expense:bills', name: 'Housing' })).rejects.toThrow('master data');
+    await expect(taxonomy.renameCategory({ categoryId: '00000000-0000-4000-8000-000000000101', name: 'Housing' })).rejects.toThrow('master data');
 
     await expect(taxonomy.applyTransactionTags({
       transactionId: 'tx-missing',

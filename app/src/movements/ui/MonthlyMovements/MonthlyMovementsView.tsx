@@ -308,6 +308,18 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
                       </ul>
                     </div>
                   ))}
+                  {pagination.hasNext ? (
+                    <div className="quick-row">
+                      <button
+                        type="button"
+                        className="text-button"
+                        disabled={disabled}
+                        onClick={provided.commands.goToNextPage}
+                      >
+                        Load more
+                      </button>
+                    </div>
+                  ) : null}
                 </>
               ),
             },

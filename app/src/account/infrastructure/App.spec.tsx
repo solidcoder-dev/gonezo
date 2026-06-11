@@ -1711,13 +1711,11 @@ describe('App Accounts UX', () => {
 
     await waitFor(() => {
       expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
-      expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledTimes(1);
     });
-    expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledWith({
-      transactionId: 'tx-exp',
-      transactionType: 'expense',
-      categoryId: 'expense:groceries',
-    });
+    expect(core.ledgerRecordExpense).toHaveBeenCalledWith(expect.objectContaining({
+      categoryId: '00000000-0000-4000-8000-000000000102',
+    }));
+    expect(core.orchestrationCategorizeTransaction).not.toHaveBeenCalled();
   });
 
   it('does not create categories from the expense composer', async () => {
@@ -1762,14 +1760,11 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
-      expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledTimes(1);
+      expect(core.ledgerRecordExpense).toHaveBeenCalledWith(expect.objectContaining({
+        categoryId: '00000000-0000-4000-8000-000000000108',
+      }));
     });
-
-    expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledWith({
-      transactionId: 'tx-exp',
-      transactionType: 'expense',
-      categoryId: 'expense:travel',
-    });
+    expect(core.orchestrationCategorizeTransaction).not.toHaveBeenCalled();
   });
 
   it('refreshes categories from backend when opening transaction composer', async () => {

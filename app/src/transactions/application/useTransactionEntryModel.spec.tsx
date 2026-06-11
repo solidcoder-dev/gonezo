@@ -332,7 +332,7 @@ describe('useTransactionEntryModel', () => {
       result.current.provided.commands.open();
       result.current.provided.commands.selectMode('expense');
       result.current.provided.commands.setAmount('12');
-      result.current.provided.commands.setCategoryId('expense:groceries');
+      result.current.provided.commands.setCategoryId('00000000-0000-4000-8000-000000000102');
     });
     await act(async () => {
       await result.current.provided.commands.submit(formEvent());
@@ -340,13 +340,9 @@ describe('useTransactionEntryModel', () => {
 
     expect(ports.taxonomy.taxonomyCreateCategory).not.toHaveBeenCalled();
     expect(ports.ledger.ledgerRecordExpense).toHaveBeenCalledWith(expect.objectContaining({
-      categoryId: 'expense:groceries',
+      categoryId: '00000000-0000-4000-8000-000000000102',
     }));
-    expect(ports.taxonomy.orchestrationCategorizeTransaction).toHaveBeenCalledWith({
-      transactionId: 'tx-1',
-      transactionType: 'expense',
-      categoryId: 'expense:groceries',
-    });
+    expect(ports.taxonomy.orchestrationCategorizeTransaction).not.toHaveBeenCalled();
   });
 
   it('creates an expected movement from the expected submit action', async () => {

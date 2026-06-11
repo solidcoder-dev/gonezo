@@ -6,7 +6,7 @@ import { filterProjectedScheduledMovements } from './monthlyMovementProjection';
 
 export type MonthlyMovementsPaginationState = MonthlyMovementsViewRequired['state']['pagination'];
 
-export const MONTHLY_MOVEMENTS_PAGE_SIZE = 10;
+export const MONTHLY_MOVEMENTS_PAGE_SIZE = 100;
 
 export const EMPTY_MONTHLY_MOVEMENTS_PAGINATION: MonthlyMovementsPaginationState = {
   page: 0,
@@ -86,7 +86,16 @@ export function useMonthlyMovementsOverviewModel(input: UseMonthlyMovementsOverv
       overview.scheduledPreview.items,
     );
 
-    setTransactions(overview.executedPage.content);
+    setTransactions((previous) => {
+      if (overview.executedPage.page === 0) {
+        return overview.executedPage.content;
+      }
+      const knownIds = new Set(previous.map((item) => item.id));
+      return [
+        ...previous,
+        ...overview.executedPage.content.filter((item) => !knownIds.has(item.id)),
+      ];
+    });
     setScheduledItems(visibleScheduledItems);
     setScheduledTotal(visibleScheduledItems.length);
     setScheduledHasMore(false);

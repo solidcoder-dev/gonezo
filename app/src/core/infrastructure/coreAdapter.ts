@@ -101,6 +101,48 @@ import {
   searchNativeMovements,
 } from '../../movements/infrastructure/nativeMovements';
 import { getMovementsSearchFacets } from '../../movements/infrastructure/searchFacets';
+import { listMasterCategories } from '../../taxonomy/domain/masterCategories';
+
+function normalizeMasterCategoryKey(name: string, appliesTo: string): string {
+  return `${appliesTo}:${name.trim().toLowerCase()}`;
+}
+
+async function listNativeMasterCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult> {
+  const nativeCategories = await CorePlugin.taxonomyListCategories({ includeArchived: true });
+  const nativeByNameAndType = new Map(
+    nativeCategories.items.map((category) => [
+      normalizeMasterCategoryKey(category.name, category.appliesTo),
+      category,
+    ]),
+  );
+
+  const items: TaxonomyListCategoriesResult['items'] = [];
+  for (const master of listMasterCategories(input?.appliesTo)) {
+    const key = normalizeMasterCategoryKey(master.name, master.appliesTo);
+    const existing = nativeByNameAndType.get(key);
+    if (existing) {
+      if (input?.includeArchived === true || existing.status !== 'archived') {
+        items.push(existing);
+      }
+      continue;
+    }
+
+    const created = await CorePlugin.taxonomyCreateCategory({
+      name: master.name,
+      appliesTo: master.appliesTo,
+    });
+    items.push({
+      id: created.id,
+      name: master.name,
+      appliesTo: master.appliesTo,
+      status: 'active',
+    });
+  }
+
+  return {
+    items: items.sort((left, right) => left.name.localeCompare(right.name)),
+  };
+}
 
 export class CoreAdapter implements CorePort {
   private readonly web = new CoreAdapterWeb();
@@ -256,7 +298,7 @@ export class CoreAdapter implements CorePort {
 
   async taxonomyListCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult> {
     if (Capacitor.isNativePlatform()) {
-      return CorePlugin.taxonomyListCategories(input ?? {});
+      return listNativeMasterCategories(input);
     }
     return this.web.taxonomyListCategories(input);
   }

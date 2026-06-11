@@ -3,13 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { CategoryPickerField } from './CategoryPickerField';
 
 const options = [
-  { id: 'expense:bills', name: 'Bills' },
-  { id: 'expense:groceries', name: 'Groceries' },
-  { id: 'expense:dining', name: 'Dining' },
-  { id: 'expense:transport', name: 'Transport' },
-  { id: 'expense:health', name: 'Health' },
-  { id: 'expense:shopping', name: 'Shopping' },
-  { id: 'expense:travel', name: 'Travel' },
+  { id: '00000000-0000-4000-8000-000000000101', name: 'Bills' },
+  { id: '00000000-0000-4000-8000-000000000102', name: 'Groceries' },
+  { id: '00000000-0000-4000-8000-000000000103', name: 'Dining' },
+  { id: '00000000-0000-4000-8000-000000000104', name: 'Transport' },
+  { id: '00000000-0000-4000-8000-000000000105', name: 'Health' },
+  { id: '00000000-0000-4000-8000-000000000106', name: 'Shopping' },
+  { id: '00000000-0000-4000-8000-000000000108', name: 'Travel' },
 ];
 
 describe('CategoryPickerField', () => {
@@ -22,13 +22,13 @@ describe('CategoryPickerField', () => {
           selectedCategoryId: '',
           options,
           frequentCategoryIds: [
-            'expense:bills',
-            'expense:groceries',
-            'expense:dining',
-            'expense:transport',
-            'expense:health',
-            'expense:shopping',
-            'expense:travel',
+            '00000000-0000-4000-8000-000000000101',
+            '00000000-0000-4000-8000-000000000102',
+            '00000000-0000-4000-8000-000000000103',
+            '00000000-0000-4000-8000-000000000104',
+            '00000000-0000-4000-8000-000000000105',
+            '00000000-0000-4000-8000-000000000106',
+            '00000000-0000-4000-8000-000000000108',
           ],
           disabled: false,
         }}
@@ -52,9 +52,9 @@ describe('CategoryPickerField', () => {
     render(
       <CategoryPickerField
         required={{
-          selectedCategoryId: 'expense:groceries',
+          selectedCategoryId: '00000000-0000-4000-8000-000000000102',
           options,
-          frequentCategoryIds: ['expense:bills', 'expense:groceries', 'expense:dining'],
+          frequentCategoryIds: ['00000000-0000-4000-8000-000000000101', '00000000-0000-4000-8000-000000000102', '00000000-0000-4000-8000-000000000103'],
           disabled: false,
         }}
         provided={{ onSelect }}
@@ -70,23 +70,23 @@ describe('CategoryPickerField', () => {
     ]);
     fireEvent.click(screen.getByRole('button', { name: 'Select category Bills' }));
 
-    expect(onSelect).toHaveBeenCalledWith('expense:bills');
+    expect(onSelect).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000101');
   });
 
   it('keeps a selected hidden category visible while collapsed', () => {
     render(
       <CategoryPickerField
         required={{
-          selectedCategoryId: 'expense:travel',
+          selectedCategoryId: '00000000-0000-4000-8000-000000000108',
           options,
           frequentCategoryIds: [
-            'expense:bills',
-            'expense:groceries',
-            'expense:dining',
-            'expense:transport',
-            'expense:health',
-            'expense:shopping',
-            'expense:travel',
+            '00000000-0000-4000-8000-000000000101',
+            '00000000-0000-4000-8000-000000000102',
+            '00000000-0000-4000-8000-000000000103',
+            '00000000-0000-4000-8000-000000000104',
+            '00000000-0000-4000-8000-000000000105',
+            '00000000-0000-4000-8000-000000000106',
+            '00000000-0000-4000-8000-000000000108',
           ],
           disabled: false,
         }}

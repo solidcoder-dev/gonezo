@@ -6,63 +6,63 @@ export type MasterCategoryDefinition = TaxonomyCategoryView & {
 
 export const MASTER_EXPENSE_CATEGORIES: MasterCategoryDefinition[] = [
   {
-    id: 'expense:bills',
+    id: '00000000-0000-4000-8000-000000000101',
     name: 'Bills',
     appliesTo: 'expense',
     status: 'active',
     keywords: ['rent', 'mortgage', 'electricity', 'water', 'internet', 'phone', 'insurance', 'community fees', 'subscriptions', 'loans', 'credit cards', 'repayments'],
   },
   {
-    id: 'expense:groceries',
+    id: '00000000-0000-4000-8000-000000000102',
     name: 'Groceries',
     appliesTo: 'expense',
     status: 'active',
     keywords: ['supermarket', 'food for home', 'household essentials'],
   },
   {
-    id: 'expense:dining',
+    id: '00000000-0000-4000-8000-000000000103',
     name: 'Dining',
     appliesTo: 'expense',
     status: 'active',
     keywords: ['restaurants', 'cafes', 'takeaway', 'delivery'],
   },
   {
-    id: 'expense:transport',
+    id: '00000000-0000-4000-8000-000000000104',
     name: 'Transport',
     appliesTo: 'expense',
     status: 'active',
     keywords: ['fuel', 'bus', 'taxi', 'parking', 'car costs', 'public transport'],
   },
   {
-    id: 'expense:health',
+    id: '00000000-0000-4000-8000-000000000105',
     name: 'Health',
     appliesTo: 'expense',
     status: 'active',
     keywords: ['pharmacy', 'doctor', 'dentist', 'medical costs'],
   },
   {
-    id: 'expense:shopping',
+    id: '00000000-0000-4000-8000-000000000106',
     name: 'Shopping',
     appliesTo: 'expense',
     status: 'active',
     keywords: ['clothes', 'tech', 'personal purchases'],
   },
   {
-    id: 'expense:entertainment',
+    id: '00000000-0000-4000-8000-000000000107',
     name: 'Entertainment',
     appliesTo: 'expense',
     status: 'active',
     keywords: ['cinema', 'hobbies', 'events', 'leisure', 'games'],
   },
   {
-    id: 'expense:travel',
+    id: '00000000-0000-4000-8000-000000000108',
     name: 'Travel',
     appliesTo: 'expense',
     status: 'active',
     keywords: ['flights', 'hotels', 'trips', 'holidays'],
   },
   {
-    id: 'expense:other',
+    id: '00000000-0000-4000-8000-000000000109',
     name: 'Other',
     appliesTo: 'expense',
     status: 'active',
@@ -72,35 +72,35 @@ export const MASTER_EXPENSE_CATEGORIES: MasterCategoryDefinition[] = [
 
 export const MASTER_INCOME_CATEGORIES: MasterCategoryDefinition[] = [
   {
-    id: 'income:work-income',
+    id: '00000000-0000-4000-8000-000000000201',
     name: 'Work Income',
     appliesTo: 'income',
     status: 'active',
     keywords: ['salary', 'freelance', 'side jobs', 'client work', 'business income'],
   },
   {
-    id: 'income:investments',
+    id: '00000000-0000-4000-8000-000000000202',
     name: 'Investments',
     appliesTo: 'income',
     status: 'active',
     keywords: ['dividends', 'interest', 'investment returns'],
   },
   {
-    id: 'income:reimbursements',
+    id: '00000000-0000-4000-8000-000000000203',
     name: 'Reimbursements',
     appliesTo: 'income',
     status: 'active',
     keywords: ['someone pays you back their part', 'shared expenses', 'work expenses paid back'],
   },
   {
-    id: 'income:gifts-benefits',
+    id: '00000000-0000-4000-8000-000000000204',
     name: 'Gifts & Benefits',
     appliesTo: 'income',
     status: 'active',
     keywords: ['gifts', 'grants', 'government aid', 'subsidies'],
   },
   {
-    id: 'income:other',
+    id: '00000000-0000-4000-8000-000000000205',
     name: 'Other',
     appliesTo: 'income',
     status: 'active',
@@ -114,23 +114,23 @@ export const MASTER_CATEGORIES = [
 ];
 
 export const FREQUENT_EXPENSE_CATEGORY_IDS = [
-  'expense:bills',
-  'expense:groceries',
-  'expense:dining',
-  'expense:transport',
-  'expense:health',
-  'expense:shopping',
-  'expense:entertainment',
-  'expense:travel',
-  'expense:other',
+  '00000000-0000-4000-8000-000000000101',
+  '00000000-0000-4000-8000-000000000102',
+  '00000000-0000-4000-8000-000000000103',
+  '00000000-0000-4000-8000-000000000104',
+  '00000000-0000-4000-8000-000000000105',
+  '00000000-0000-4000-8000-000000000106',
+  '00000000-0000-4000-8000-000000000107',
+  '00000000-0000-4000-8000-000000000108',
+  '00000000-0000-4000-8000-000000000109',
 ];
 
 export const FREQUENT_INCOME_CATEGORY_IDS = [
-  'income:work-income',
-  'income:investments',
-  'income:reimbursements',
-  'income:gifts-benefits',
-  'income:other',
+  '00000000-0000-4000-8000-000000000201',
+  '00000000-0000-4000-8000-000000000202',
+  '00000000-0000-4000-8000-000000000203',
+  '00000000-0000-4000-8000-000000000204',
+  '00000000-0000-4000-8000-000000000205',
 ];
 
 export function listMasterCategories(appliesTo?: TaxonomyCategoryAppliesTo): MasterCategoryDefinition[] {

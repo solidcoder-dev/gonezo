@@ -5,7 +5,7 @@ import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions'
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
 import { useTransactionClassification } from '../../taxonomy/application/useTransactionClassification';
 import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.types';
-import { listMasterCategories } from '../../taxonomy/domain/masterCategories';
+import { findMasterCategoryById, listMasterCategories } from '../../taxonomy/domain/masterCategories';
 import type { ComposerMode } from './transactions.types';
 import {
   mergeCategories,
@@ -34,6 +34,15 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
       return [] as Array<{ id: string; name: string }>;
     }
     const scope = composerMode === 'expense' || composerMode === 'income' ? composerMode : undefined;
+    const masterCategories = listMasterCategories(scope);
+    const backendMasterCategoriesByName = new Map(
+      categories
+        .filter((category) => category.status === 'active' && category.appliesTo === composerMode)
+        .map((category) => [category.name.trim().toLowerCase(), category]),
+    );
+    const selectableMasterCategories = masterCategories.map(
+      (master) => backendMasterCategoriesByName.get(master.name.trim().toLowerCase()) ?? master,
+    );
     const selectedExistingCategory = categories.find(
       (category) =>
         category.id === transactionCategoryId
@@ -41,7 +50,7 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
         && category.appliesTo === composerMode,
     );
     return mergeCategories(
-      listMasterCategories(scope),
+      selectableMasterCategories,
       selectedExistingCategory ? [selectedExistingCategory] : [],
     )
       .filter((category) => category.status === 'active')
@@ -119,6 +128,9 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
     categoryId?: string,
   ) {
     if (!categoryId) {
+      return;
+    }
+    if (findMasterCategoryById(categoryId)) {
       return;
     }
     const result = await transactionClassification.categorizeTransaction({

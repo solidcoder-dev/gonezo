@@ -266,6 +266,73 @@ describe('useMonthlyMovementsModel', () => {
     expect(result.current.required.state.viewedMonthIndex).toBe(5);
   });
 
+  it('loads monthly posted movements as an accumulated 100 item page', async () => {
+    const firstPage = postedTransaction({ id: 'tx-1', description: 'First' });
+    const secondPage = postedTransaction({ id: 'tx-2', description: 'Second' });
+    const movementsGetOverview = vi.fn()
+      .mockResolvedValueOnce(emptyOverview({
+        postedPage: pageWith([firstPage], {
+          page: 0,
+          size: 100,
+          totalElements: 101,
+          totalPages: 2,
+          hasNext: true,
+        }),
+        executedPage: pageWith([firstPage], {
+          page: 0,
+          size: 100,
+          totalElements: 101,
+          totalPages: 2,
+          hasNext: true,
+        }),
+      }))
+      .mockResolvedValueOnce(emptyOverview({
+        postedPage: pageWith([secondPage], {
+          page: 1,
+          size: 100,
+          totalElements: 101,
+          totalPages: 2,
+          hasPrevious: true,
+        }),
+        executedPage: pageWith([secondPage], {
+          page: 1,
+          size: 100,
+          totalElements: 101,
+          totalPages: 2,
+          hasPrevious: true,
+        }),
+      }));
+    const ports = makePorts({
+      scheduling: {
+        ...makePorts().scheduling,
+        movementsGetOverview,
+      },
+    });
+
+    const { result } = renderHook(() => useMonthlyMovementsModel({
+      ports,
+      accountId: 'account-1',
+      enabled: true,
+      refreshSignal: false,
+      clock: { now: () => new Date(2026, 4, 15, 9, 30, 0, 0) },
+      timers: makeTimers(),
+    }));
+
+    await waitFor(() => expect(result.current.required.state.items.map((item) => item.id)).toEqual(['tx-1']));
+    expect(movementsGetOverview).toHaveBeenLastCalledWith(expect.objectContaining({
+      executedPagination: { page: 0, size: 100 },
+    }));
+
+    act(() => {
+      result.current.provided.commands.goToNextPage();
+    });
+
+    await waitFor(() => expect(result.current.required.state.items.map((item) => item.id)).toEqual(['tx-1', 'tx-2']));
+    expect(movementsGetOverview).toHaveBeenLastCalledWith(expect.objectContaining({
+      executedPagination: { page: 1, size: 100 },
+    }));
+  });
+
   it('supports undoing and committing a delayed void request', async () => {
     const { timers, handlers } = makeControllableTimers();
     const ledgerVoidTransaction = vi.fn().mockResolvedValue(undefined);

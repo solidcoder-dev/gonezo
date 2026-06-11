@@ -52,11 +52,11 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
 
   return (
     <section className="stack" aria-label="Search results">
-      {loading ? <p role="status">Loading movements...</p> : null}
-      {!loading ? <p className="hint search-results-summary">{summaryLabel}</p> : null}
+      {loading && entries.length === 0 ? <p role="status">Loading movements...</p> : null}
+      {!loading || entries.length > 0 ? <p className="hint search-results-summary">{summaryLabel}</p> : null}
       {!loading && entries.length === 0 ? <p>No movements match these filters.</p> : null}
 
-      {!loading && entries.length > 0 ? (
+      {entries.length > 0 ? (
         <>
           {groupedByDay ? (
             <div className="stack">
@@ -97,26 +97,15 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
             </ul>
           )}
 
-          {pagination.totalPages > 1 ? (
+          {pagination.hasNext ? (
             <div className="quick-row">
               <button
                 type="button"
                 className="text-button"
-                disabled={!pagination.hasPrevious || disabled}
-                onClick={provided.commands.goToPreviousPage}
-              >
-                Previous
-              </button>
-              <span className="hint">
-                Page {pagination.page + 1} of {pagination.totalPages}
-              </span>
-              <button
-                type="button"
-                className="text-button"
-                disabled={!pagination.hasNext || disabled}
+                disabled={disabled}
                 onClick={provided.commands.goToNextPage}
               >
-                Next
+                {loading ? 'Loading...' : 'Load more'}
               </button>
             </div>
           ) : null}
