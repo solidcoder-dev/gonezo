@@ -4,7 +4,7 @@ import './SplitFloatingActionView.css';
 export type { SplitFloatingActionViewProps } from './SplitFloatingActionView.contract';
 
 export function SplitFloatingActionView({ required, provided }: SplitFloatingActionViewProps) {
-  const { config, status } = required;
+  const { config, data, status } = required;
   const disabled = Boolean(status.disabled);
   const rootClassName = disabled
     ? 'split-floating-action is-disabled'
@@ -19,7 +19,7 @@ export function SplitFloatingActionView({ required, provided }: SplitFloatingAct
         disabled={disabled}
         onClick={provided.commands.primary}
       >
-        {config.primaryLabel}
+        {data.primaryContent ?? config.primaryLabel}
       </button>
       <span className="split-floating-action-divider" aria-hidden />
       <button

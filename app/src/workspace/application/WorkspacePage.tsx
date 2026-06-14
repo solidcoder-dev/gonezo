@@ -50,6 +50,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const [movementQuickActionRefreshSignal, setMovementQuickActionRefreshSignal] = useState(false);
   const [transactionEntryPrefill, setTransactionEntryPrefill] = useState<TransactionEntryPrefillRequest | undefined>();
   const [movementEntryAccountId, setMovementEntryAccountId] = useState<string | null>(null);
+  const [movementEntryAccountName, setMovementEntryAccountName] = useState<string | null>(null);
   const [movementEntryOpenSignal, setMovementEntryOpenSignal] = useState(0);
 
   const hasSelectedAccount = Boolean(selectedAccountId);
@@ -96,21 +97,30 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
 
   function editExpectedMovement(movement: ExpectedMovementView, categoryName?: string) {
     setMovementEntryAccountId(movement.accountId);
+    setMovementEntryAccountName(null);
     setTransactionEntryPrefill(expectedMovementToComposerPrefill(movement, categoryName));
   }
 
   function editScheduledMovement(movement: ScheduledMovementView, categoryName?: string) {
     setMovementEntryAccountId(movement.sourceAccountId);
+    setMovementEntryAccountName(null);
     setTransactionEntryPrefill(scheduledMovementToComposerPrefill(movement, categoryName));
   }
 
   function postExpectedMovement(movement: ExpectedMovementView, categoryName?: string) {
     setMovementEntryAccountId(movement.accountId);
+    setMovementEntryAccountName(null);
     setTransactionEntryPrefill(postExpectedMovementToComposerPrefill(movement, categoryName));
   }
 
-  function createMovementForAccount(accountId: string) {
-    setMovementEntryAccountId(accountId);
+  function clearMovementEntryAccount() {
+    setMovementEntryAccountId(null);
+    setMovementEntryAccountName(null);
+  }
+
+  function createMovementForAccount(account: { id: string; name: string }) {
+    setMovementEntryAccountId(account.id);
+    setMovementEntryAccountName(account.name);
     setTransactionEntryPrefill(undefined);
     setMovementEntryOpenSignal((previous) => previous + 1);
   }
@@ -205,6 +215,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
                     enabled: hasSelectedAccount,
                     prefillRequest: transactionEntryPrefill,
                     openSignal: movementEntryOpenSignal,
+                    movementAccountContext: movementEntryAccountName ? { name: movementEntryAccountName } : undefined,
                   },
                 }}
                 provided={{
@@ -213,7 +224,9 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
                       setRecentTransactionsRefreshSignal((previous) => !previous);
                       setAccountSummaryRefreshSignal((previous) => !previous);
                       setTransactionEntryPrefill(undefined);
+                      clearMovementEntryAccount();
                     },
+                    onClosed: clearMovementEntryAccount,
                   },
                 }}
               />

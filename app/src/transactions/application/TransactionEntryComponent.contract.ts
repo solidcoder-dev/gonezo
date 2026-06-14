@@ -45,12 +45,16 @@ export type TransactionEntryComponentRequired = {
     enabled: boolean;
     prefillRequest?: TransactionEntryPrefillRequest;
     openSignal?: number;
+    movementAccountContext?: {
+      name: string;
+    };
   };
 };
 
 export type TransactionEntryComponentProvided = {
   events?: {
     onRecorded?: () => void;
+    onClosed?: () => void;
     onError?: (error: { message: string }) => void;
   };
 };

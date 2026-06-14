@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { ViewProps } from '../ViewProps';
 
 export type SplitFloatingActionViewProps = ViewProps<
@@ -10,7 +11,9 @@ export type SplitFloatingActionViewProps = ViewProps<
     open?: boolean;
     placement?: 'bottom-right';
   },
-  Record<string, never>,
+  {
+    primaryContent?: ReactNode;
+  },
   Record<string, never>,
   {
     disabled?: boolean;

@@ -158,8 +158,8 @@ export function useMovementQuickActionModel({
     provided: {
       commands: {
         createMovement: () => {
-          if (!disabled) {
-            eventsRef.current?.onCreateMovementRequested?.(selectedAccountId);
+          if (!disabled && selectedAccount) {
+            eventsRef.current?.onCreateMovementRequested?.({ id: selectedAccount.id, name: selectedAccount.name });
           }
         },
         toggleAccountSelector: () => {
@@ -169,10 +169,10 @@ export function useMovementQuickActionModel({
         },
         closeAccountSelector: () => setAccountSelectorOpen(false),
         selectAccount: (accountId) => {
-          if (accounts.some((account) => account.id === accountId)) {
-            selectedAccountIdRef.current = accountId;
-            setSelectedAccountId(accountId);
+          const account = accounts.find((item) => item.id === accountId);
+          if (account) {
             setAccountSelectorOpen(false);
+            eventsRef.current?.onCreateMovementRequested?.({ id: account.id, name: account.name });
           }
         },
       },

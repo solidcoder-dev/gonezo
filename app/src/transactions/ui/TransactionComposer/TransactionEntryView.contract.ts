@@ -51,6 +51,9 @@ export type TransactionEntryViewRequired = {
     editedScheduledMovementId?: string;
     postExpectedMovementId?: string;
     currencyCode?: string;
+    movementAccountContext?: {
+      name: string;
+    };
   };
   status: {
     submitting: boolean;

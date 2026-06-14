@@ -93,7 +93,9 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
     enabled: required.config.enabled,
     prefillRequest: required.config.prefillRequest,
     openSignal: required.config.openSignal,
+    movementAccountContext: required.config.movementAccountContext,
     onRecorded: provided.events?.onRecorded,
+    onClosed: provided.events?.onClosed,
     onError: provided.events?.onError,
   });
 

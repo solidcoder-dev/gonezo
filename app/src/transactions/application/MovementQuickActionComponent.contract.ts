@@ -22,7 +22,7 @@ export type MovementQuickActionComponentRequired = {
 
 export type MovementQuickActionComponentProvided = {
   events?: {
-    onCreateMovementRequested?: (accountId: string) => void;
+    onCreateMovementRequested?: (account: { id: string; name: string }) => void;
     onError?: (error: { message: string }) => void;
   };
 };

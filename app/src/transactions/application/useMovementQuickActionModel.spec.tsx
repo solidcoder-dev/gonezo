@@ -31,7 +31,7 @@ describe('useMovementQuickActionModel', () => {
     expect(result.current.required.state.selectedAccountName).toBe('billetera');
   });
 
-  it('selects another account without creating a movement', async () => {
+  it('selects another account for the next movement without changing the resting favorite', async () => {
     const onCreateMovementRequested = vi.fn();
     const ports = makePorts();
     const { result } = renderHook(() => useMovementQuickActionModel({
@@ -46,14 +46,15 @@ describe('useMovementQuickActionModel', () => {
       result.current.provided.commands.selectAccount('acc-1');
     });
 
-    expect(result.current.required.state.selectedAccountId).toBe('acc-1');
+    expect(result.current.required.state.selectedAccountId).toBe('acc-2');
+    expect(result.current.required.state.selectedAccountName).toBe('billetera');
     expect(result.current.required.state.accountSelectorOpen).toBe(false);
-    expect(onCreateMovementRequested).not.toHaveBeenCalled();
+    expect(onCreateMovementRequested).toHaveBeenCalledWith({ id: 'acc-1', name: 'Main' });
 
     act(() => {
       result.current.provided.commands.createMovement();
     });
 
-    expect(onCreateMovementRequested).toHaveBeenCalledWith('acc-1');
+    expect(onCreateMovementRequested).toHaveBeenLastCalledWith({ id: 'acc-2', name: 'billetera' });
   });
 });

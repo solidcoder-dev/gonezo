@@ -784,7 +784,7 @@ describe('App Accounts UX', () => {
     });
   });
 
-  it('uses the preferred account in the movement split action and lets the next movement account change independently', async () => {
+  it('opens movement type selection for the chosen account and resets the button to the favorite after save', async () => {
     const core = makeCore();
     vi.mocked(core.preferencesGet).mockResolvedValue({ defaultAccountId: 'acc-2' });
 
@@ -797,15 +797,18 @@ describe('App Accounts UX', () => {
     const quickAction = await screen.findByRole('group', { name: 'New movement action' });
     expect(within(quickAction).getByText('Savings')).toBeInTheDocument();
 
-    fireEvent.click(within(quickAction).getByRole('button', { name: 'Choose account for new movement' }));
+    fireEvent.click(within(quickAction).getByRole('button', { name: 'Choose account for new movement: Savings' }));
     const selector = await screen.findByRole('dialog', { name: 'Account for new movement' });
     fireEvent.click(within(selector).getByRole('button', { name: 'Main' }));
 
-    expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
-    expect(within(quickAction).getByText('Main')).toBeInTheDocument();
+    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    expect(within(composer).getByText('Movement for')).toBeInTheDocument();
+    expect(within(composer).getByText('Main')).toBeInTheDocument();
+    expect(within(composer).getByRole('button', { name: 'Expense' })).toBeInTheDocument();
+    expect(within(quickAction).getByText('Savings')).toBeInTheDocument();
 
-    fireEvent.click(within(quickAction).getByRole('button', { name: 'Add movement' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Expense' }));
+    expect(await screen.findByText('Main')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
@@ -814,6 +817,34 @@ describe('App Accounts UX', () => {
         accountId: 'acc-1',
       }));
     });
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
+    });
+    expect(within(quickAction).getByText('Savings')).toBeInTheDocument();
+  });
+
+  it('resets the movement split action to the favorite after closing without saving', async () => {
+    const core = makeCore();
+    vi.mocked(core.preferencesGet).mockResolvedValue({ defaultAccountId: 'acc-2' });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    const quickAction = await screen.findByRole('group', { name: 'New movement action' });
+    fireEvent.click(within(quickAction).getByRole('button', { name: 'Choose account for new movement: Savings' }));
+    const selector = await screen.findByRole('dialog', { name: 'Account for new movement' });
+    fireEvent.click(within(selector).getByRole('button', { name: 'Main' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Transaction composer' })).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('sheet-backdrop'));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
+    });
+    expect(within(quickAction).getByText('Savings')).toBeInTheDocument();
   });
 
   it('refreshes the movement split action accounts after creating an account', async () => {
@@ -876,7 +907,7 @@ describe('App Accounts UX', () => {
     expect(await screen.findByRole('button', { name: 'Travel' })).toBeInTheDocument();
 
     const quickAction = await screen.findByRole('group', { name: 'New movement action' });
-    fireEvent.click(within(quickAction).getByRole('button', { name: 'Choose account for new movement' }));
+    fireEvent.click(within(quickAction).getByRole('button', { name: 'Choose account for new movement: Main' }));
     const selector = await screen.findByRole('dialog', { name: 'Account for new movement' });
 
     expect(within(selector).getByRole('button', { name: 'Travel' })).toBeInTheDocument();

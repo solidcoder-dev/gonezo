@@ -55,6 +55,7 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         editedScheduledMovementId: required.state.editedScheduledMovementId,
         postExpectedMovementId: required.state.postExpectedMovementId,
         currencyCode: required.state.currencyCode,
+        movementAccountContext: required.state.movementAccountContext,
         expenseItemNameError: required.status.errors.expenseItemName,
         expenseItemAmountError: required.status.errors.expenseItemAmount,
         expenseSplitError: required.status.errors.expenseSplit,

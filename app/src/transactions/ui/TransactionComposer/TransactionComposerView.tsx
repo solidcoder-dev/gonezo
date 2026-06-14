@@ -78,6 +78,9 @@ export type TransactionComposerViewRequired = {
   editedScheduledMovementId?: string;
   postExpectedMovementId?: string;
   currencyCode?: string;
+  movementAccountContext?: {
+    name: string;
+  };
   expenseItemNameError?: string;
   expenseItemAmountError?: string;
   expenseSplitError?: string;
@@ -218,6 +221,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     editedScheduledMovementId,
     postExpectedMovementId,
     currencyCode,
+    movementAccountContext,
     expenseItemNameError,
     expenseItemAmountError,
     expenseSplitError,
@@ -386,18 +390,32 @@ export function TransactionComposerView({ required, provided }: Props) {
           },
           data: {
             body: mode === 'picker' ? (
-              <ComposerModePickerView
-                required={{
-                  config: {},
-                  data: {},
-                  state: {},
-                  status: { disabled },
-                }}
-                provided={{ commands: { selectMode: onSelectMode } }}
-              />
+              <div className="composer-form-content stack">
+                {movementAccountContext?.name ? (
+                  <div className="composer-account-context">
+                    <span>Movement for</span>
+                    <strong>{movementAccountContext.name}</strong>
+                  </div>
+                ) : null}
+                <ComposerModePickerView
+                  required={{
+                    config: {},
+                    data: {},
+                    state: {},
+                    status: { disabled },
+                  }}
+                  provided={{ commands: { selectMode: onSelectMode } }}
+                />
+              </div>
             ) : (
             <form className="composer-form" onSubmit={onSubmit} aria-busy={disabled} noValidate>
             <div className="composer-form-content stack">
+              {movementAccountContext?.name ? (
+                <div className="composer-account-context composer-account-context--compact">
+                  <span>Movement for</span>
+                  <strong>{movementAccountContext.name}</strong>
+                </div>
+              ) : null}
               <TransactionMainFieldsView
                 required={{
                   config: {

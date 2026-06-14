@@ -1,14 +1,16 @@
 .split-floating-action {
   position: fixed;
-  right: 16px;
+  left: 50%;
+  right: auto;
   bottom: calc(20px + var(--app-safe-area-bottom));
   z-index: 40;
   display: inline-grid;
-  grid-template-columns: minmax(0, 3fr) auto minmax(0, 2fr);
+  grid-template-columns: 52px 1px minmax(0, 1fr);
   align-items: center;
-  width: min(280px, calc(100vw - 32px));
-  height: 54px;
+  width: min(172px, calc(100vw - 32px));
+  height: 52px;
   overflow: hidden;
+  transform: translateX(-50%);
   border-radius: 999px;
   background: #20201e;
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
@@ -48,6 +50,8 @@
 
 .split-floating-action-primary {
   gap: 6px;
+  padding: 0;
+  font-size: 20px;
 }
 
 .split-floating-action-secondary {
@@ -65,10 +69,4 @@
   width: 1px;
   height: 26px;
   background: rgba(255, 255, 255, 0.18);
-}
-
-@media (min-width: 900px) {
-  .split-floating-action {
-    right: 20px;
-  }
 }

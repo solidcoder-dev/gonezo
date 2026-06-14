@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { SplitFloatingActionView } from './SplitFloatingActionView';
 
@@ -34,6 +35,30 @@ describe('SplitFloatingActionView', () => {
     expect(secondary).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Main wallet')).toHaveClass('split-floating-action-secondary-label');
     expect(screen.getByTestId('split-floating-action-chevron')).toHaveClass('bi-chevron-down');
+  });
+
+  it('renders custom primary content while keeping the accessible primary label', () => {
+    const primaryContent: ReactNode = <i className="bi bi-plus-circle" aria-hidden data-testid="primary-icon" />;
+
+    render(
+      <SplitFloatingActionView
+        required={{
+          config: {
+            ariaLabel: 'New movement action',
+            primaryLabel: 'Add movement',
+            secondaryLabel: 'billetera',
+          },
+          data: { primaryContent },
+          state: {},
+          status: { disabled: false },
+        }}
+        provided={{ commands: { primary: vi.fn(), secondary: vi.fn() } }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Add movement' })).toBeInTheDocument();
+    expect(screen.getByTestId('primary-icon')).toHaveClass('bi-plus-circle');
+    expect(screen.queryByText('Add movement')).not.toBeInTheDocument();
   });
 
   it('shows open state and prevents interaction while disabled', () => {

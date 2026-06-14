@@ -16,6 +16,7 @@ import { useExpenseSplitEditorModel } from './useExpenseSplitEditorModel';
 import { useTransactionSchedulingModel } from './useTransactionSchedulingModel';
 import { useTransactionTaxonomyModel } from './useTransactionTaxonomyModel';
 import { useTransactionTransferFxModel } from './useTransactionTransferFxModel';
+import { useTransactionEntryOpenSignal } from './useTransactionEntryOpenSignal';
 import { nextRecurrenceDateIso } from '../../shared/domain/nextRecurrenceDate';
 
 export type TransactionEntryModelPorts = {
@@ -41,9 +42,8 @@ type UseTransactionEntryModelInput = {
   idGenerator: TransactionEntryModelIdGenerator;
   accountId: string | null;
   enabled: boolean;
-  prefillRequest?: TransactionEntryPrefillRequest;
-  openSignal?: number;
-  onRecorded?: () => void;
+  prefillRequest?: TransactionEntryPrefillRequest; openSignal?: number; movementAccountContext?: { name: string };
+  onRecorded?: () => void; onClosed?: () => void;
   onError?: (error: { message: string }) => void;
 };
 
@@ -70,7 +70,7 @@ function resolveSubmitExpectedIntent(event: FormEvent, fallback: boolean): boole
 }
 
 export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
-  const { ports, clock, idGenerator, accountId, enabled, prefillRequest, openSignal, onRecorded, onError } = input;
+  const { ports, clock, idGenerator, accountId, enabled, prefillRequest, openSignal, movementAccountContext, onRecorded, onClosed, onError } = input;
   const initialToday = clock.todayIso();
 
   const [loading, setLoading] = useState(true);
@@ -353,12 +353,12 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     })();
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (enabled && accountId && openSignal) openTransactionComposer(); }, [accountId, enabled, openSignal]);
+  useTransactionEntryOpenSignal(openSignal, enabled, accountId, openTransactionComposer);
 
   function closeTransactionComposer() {
     setComposerOpen(false);
     resetComposerState();
+    onClosed?.();
   }
 
   function selectComposerMode(mode: Exclude<ComposerMode, 'picker'>) {
@@ -583,6 +583,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       editedScheduledMovementId: editedScheduledMovementId || undefined,
       postExpectedMovementId: postExpectedMovementId || undefined,
       currencyCode: accountCurrency,
+      movementAccountContext,
     },
     status: {
       submitting: postingTransaction,
