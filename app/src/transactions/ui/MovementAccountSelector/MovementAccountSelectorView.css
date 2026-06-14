@@ -1,0 +1,54 @@
+.movement-account-selector-content {
+  display: grid;
+  gap: 8px;
+}
+
+.movement-account-selector-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.movement-account-selector-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.movement-account-selector-row:disabled {
+  opacity: 0.64;
+}
+
+.movement-account-selector-row:active:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.movement-account-selector-check {
+  color: var(--accent, #111);
+  text-align: center;
+}
+
+.movement-account-selector-name {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.movement-account-selector-balance {
+  color: var(--muted, #6b7280);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

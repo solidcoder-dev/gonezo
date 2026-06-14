@@ -30,26 +30,3 @@
 .composer-advanced {
   margin-top: 4px;
 }
-
-.fab-button {
-  position: fixed;
-  right: 16px;
-  bottom: calc(16px + var(--app-safe-area-bottom));
-  z-index: 40;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 18px;
-  border-radius: 999px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-}
-
-.fab-button .bi {
-  line-height: 1;
-}
-
-@media (min-width: 900px) {
-  .fab-button {
-    right: 16px;
-  }
-}

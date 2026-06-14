@@ -700,12 +700,12 @@ async function openMode(mode: 'Expense' | 'Income' | 'Transfer') {
   fireEvent.click(await screen.findByRole('button', { name: mode }));
 }
 
-function openNewSplitItemDialog() {
-  fireEvent.click(screen.getByRole('button', { name: 'Add split item' }));
+async function openNewSplitItemDialog() {
+  fireEvent.click(await screen.findByRole('button', { name: 'Add split item' }));
 }
 
-function openSplitAmountEditor() {
-  fireEvent.click(screen.getByRole('button', { name: 'Split amount' }));
+async function openSplitAmountEditor() {
+  fireEvent.click(await screen.findByRole('button', { name: 'Split amount' }));
 }
 
 async function expandExpectedMovements() {
@@ -782,6 +782,104 @@ describe('App Accounts UX', () => {
     await waitFor(() => {
       expect(core.ledgerGetAccountSummary).toHaveBeenCalledWith({ accountId: 'acc-2' });
     });
+  });
+
+  it('uses the preferred account in the movement split action and lets the next movement account change independently', async () => {
+    const core = makeCore();
+    vi.mocked(core.preferencesGet).mockResolvedValue({ defaultAccountId: 'acc-2' });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    const quickAction = await screen.findByRole('group', { name: 'New movement action' });
+    expect(within(quickAction).getByText('Savings')).toBeInTheDocument();
+
+    fireEvent.click(within(quickAction).getByRole('button', { name: 'Choose account for new movement' }));
+    const selector = await screen.findByRole('dialog', { name: 'Account for new movement' });
+    fireEvent.click(within(selector).getByRole('button', { name: 'Main' }));
+
+    expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
+    expect(within(quickAction).getByText('Main')).toBeInTheDocument();
+
+    fireEvent.click(within(quickAction).getByRole('button', { name: 'Add movement' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Expense' }));
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
+
+    await waitFor(() => {
+      expect(core.ledgerRecordExpense).toHaveBeenCalledWith(expect.objectContaining({
+        accountId: 'acc-1',
+      }));
+    });
+  });
+
+  it('refreshes the movement split action accounts after creating an account', async () => {
+    const core = makeCore();
+    const accounts = [
+      {
+        id: 'acc-1',
+        name: 'Main',
+        type: 'cash',
+        currency: 'USD',
+        status: 'active',
+      },
+      {
+        id: 'acc-2',
+        name: 'Savings',
+        type: 'savings',
+        currency: 'USD',
+        status: 'active',
+      },
+    ];
+    vi.mocked(core.ledgerListAccounts).mockImplementation(async () => ({ items: accounts }));
+    vi.mocked(core.ledgerOpenAccount).mockImplementation(async (input) => {
+      const id = 'acc-3';
+      accounts.push({
+        id,
+        name: input.name,
+        type: input.type ?? 'cash',
+        currency: input.currency,
+        status: 'active',
+      });
+      return { id };
+    });
+    vi.mocked(core.ledgerGetAccountSummary).mockImplementation(async (input) => {
+      const account = accounts.find((item) => item.id === input.accountId) ?? accounts[0];
+      return {
+        accountId: account.id,
+        name: account.name,
+        type: account.type,
+        currency: account.currency,
+        balanceAmount: '0.00',
+      };
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Net balance');
+    fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add account' }));
+    const createDialog = await screen.findByRole('dialog', { name: 'Create account' });
+    fireEvent.change(within(createDialog).getByLabelText('Account name'), { target: { value: 'Travel' } });
+    fireEvent.click(within(createDialog).getByRole('button', { name: 'Create account' }));
+
+    await waitFor(() => {
+      expect(core.ledgerOpenAccount).toHaveBeenCalledWith(expect.objectContaining({ name: 'Travel' }));
+    });
+    expect(await screen.findByRole('button', { name: 'Travel' })).toBeInTheDocument();
+
+    const quickAction = await screen.findByRole('group', { name: 'New movement action' });
+    fireEvent.click(within(quickAction).getByRole('button', { name: 'Choose account for new movement' }));
+    const selector = await screen.findByRole('dialog', { name: 'Account for new movement' });
+
+    expect(within(selector).getByRole('button', { name: 'Travel' })).toBeInTheDocument();
   });
 
   it('ignores default account preference when the account is archived', async () => {
@@ -1826,14 +1924,14 @@ describe('App Accounts UX', () => {
     await openMode('Income');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
-    openSplitAmountEditor();
+    await openSplitAmountEditor();
     expect(within(screen.getByRole('dialog', { name: 'Split amount' })).getByText('0.00 USD')).toBeInTheDocument();
 
-    openNewSplitItemDialog();
+    await openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Bonus' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
-    openNewSplitItemDialog();
+    await openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Base' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '30' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
@@ -2142,13 +2240,13 @@ describe('App Accounts UX', () => {
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
-    openSplitAmountEditor();
+    await openSplitAmountEditor();
 
-    openNewSplitItemDialog();
+    await openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Groceries' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
-    openNewSplitItemDialog();
+    await openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Household' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '30' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
@@ -2175,16 +2273,16 @@ describe('App Accounts UX', () => {
     await screen.findByText('Net balance');
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
-    openSplitAmountEditor();
+    await openSplitAmountEditor();
 
-    openNewSplitItemDialog();
+    await openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Water' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '20' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
 
     expect(screen.getByLabelText('Amount')).toHaveValue(80);
 
-    openNewSplitItemDialog();
+    await openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Electricity' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '40' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
@@ -2229,12 +2327,12 @@ describe('App Accounts UX', () => {
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
-    openSplitAmountEditor();
+    await openSplitAmountEditor();
 
     const saveButton = screen.getByRole('button', { name: 'Post now' });
     expect(saveButton).toBeDisabled();
 
-    openNewSplitItemDialog();
+    await openNewSplitItemDialog();
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Groceries' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));

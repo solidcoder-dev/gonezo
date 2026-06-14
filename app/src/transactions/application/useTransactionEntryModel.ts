@@ -42,6 +42,7 @@ type UseTransactionEntryModelInput = {
   accountId: string | null;
   enabled: boolean;
   prefillRequest?: TransactionEntryPrefillRequest;
+  openSignal?: number;
   onRecorded?: () => void;
   onError?: (error: { message: string }) => void;
 };
@@ -69,7 +70,7 @@ function resolveSubmitExpectedIntent(event: FormEvent, fallback: boolean): boole
 }
 
 export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
-  const { ports, clock, idGenerator, accountId, enabled, prefillRequest, onRecorded, onError } = input;
+  const { ports, clock, idGenerator, accountId, enabled, prefillRequest, openSignal, onRecorded, onError } = input;
   const initialToday = clock.todayIso();
 
   const [loading, setLoading] = useState(true);
@@ -351,6 +352,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       }
     })();
   }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (enabled && accountId && openSignal) openTransactionComposer(); }, [accountId, enabled, openSignal]);
 
   function closeTransactionComposer() {
     setComposerOpen(false);

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { TransactionsImportRequest, TransactionsImportResult } from '../../imports/application/transactionsImport.types';
-import { TransactionEntryComponent } from '../../transactions/index';
+import { MovementQuickActionComponent, TransactionEntryComponent } from '../../transactions/index';
 import type { TransactionEntryPrefillRequest } from '../../transactions/application/TransactionEntryComponent.contract';
 import { MonthlyMovementsComponent } from '../../movements/index';
 import type { ExpectedMovementView, ScheduledMovementView } from '../../movements/application/movementsView.types';
@@ -47,9 +47,13 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const [accountHubRefreshSignal, setAccountHubRefreshSignal] = useState(false);
   const [accountSummaryRefreshSignal, setAccountSummaryRefreshSignal] = useState(false);
   const [recentTransactionsRefreshSignal, setRecentTransactionsRefreshSignal] = useState(false);
+  const [movementQuickActionRefreshSignal, setMovementQuickActionRefreshSignal] = useState(false);
   const [transactionEntryPrefill, setTransactionEntryPrefill] = useState<TransactionEntryPrefillRequest | undefined>();
+  const [movementEntryAccountId, setMovementEntryAccountId] = useState<string | null>(null);
+  const [movementEntryOpenSignal, setMovementEntryOpenSignal] = useState(0);
 
   const hasSelectedAccount = Boolean(selectedAccountId);
+  const transactionEntryAccountId = movementEntryAccountId ?? selectedAccountId;
 
   function handleSelectedAccountChanged(accountId: string | null) {
     setSelectedAccountId((previousAccountId) => {
@@ -73,6 +77,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       setToastActionLabel('');
       setToastAction(null);
       setAccountHubRefreshSignal((previous) => !previous);
+      setMovementQuickActionRefreshSignal((previous) => !previous);
       setAccountSummaryRefreshSignal((previous) => !previous);
       setRecentTransactionsRefreshSignal((previous) => !previous);
       return result;
@@ -90,15 +95,24 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   }
 
   function editExpectedMovement(movement: ExpectedMovementView, categoryName?: string) {
+    setMovementEntryAccountId(movement.accountId);
     setTransactionEntryPrefill(expectedMovementToComposerPrefill(movement, categoryName));
   }
 
   function editScheduledMovement(movement: ScheduledMovementView, categoryName?: string) {
+    setMovementEntryAccountId(movement.sourceAccountId);
     setTransactionEntryPrefill(scheduledMovementToComposerPrefill(movement, categoryName));
   }
 
   function postExpectedMovement(movement: ExpectedMovementView, categoryName?: string) {
+    setMovementEntryAccountId(movement.accountId);
     setTransactionEntryPrefill(postExpectedMovementToComposerPrefill(movement, categoryName));
+  }
+
+  function createMovementForAccount(accountId: string) {
+    setMovementEntryAccountId(accountId);
+    setTransactionEntryPrefill(undefined);
+    setMovementEntryOpenSignal((previous) => previous + 1);
   }
 
   const accountHub = (
@@ -115,7 +129,14 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         events: {
           onLoadPhaseChanged: setScreenLoadPhase,
           onSelectedAccountChanged: handleSelectedAccountChanged,
-          onAccountsCountChanged: setAccountsCount,
+          onAccountsCountChanged: (count) => {
+            setAccountsCount((previousCount) => {
+              if (previousCount > 0 && previousCount !== count) {
+                setMovementQuickActionRefreshSignal((previous) => !previous);
+              }
+              return count;
+            });
+          },
           onImportRequested: () => setImportSheetOpen(true),
           onBackupRequested: () => {
             void requestMovementsBackup().catch((err) => {
@@ -173,27 +194,46 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       ) : null,
       transactionEntry: hasSelectedAccount
         ? (
-            <TransactionEntryComponent
-              required={{
-                context: {
-                  accountId: selectedAccountId,
-                  core: pageRequired.core,
-                },
-                config: {
-                  enabled: hasSelectedAccount,
-                  prefillRequest: transactionEntryPrefill,
-                },
-              }}
-              provided={{
-                events: {
-                  onRecorded: () => {
-                    setRecentTransactionsRefreshSignal((previous) => !previous);
-                    setAccountSummaryRefreshSignal((previous) => !previous);
-                    setTransactionEntryPrefill(undefined);
+            <>
+              <TransactionEntryComponent
+                required={{
+                  context: {
+                    accountId: transactionEntryAccountId,
+                    core: pageRequired.core,
                   },
-                },
-              }}
-            />
+                  config: {
+                    enabled: hasSelectedAccount,
+                    prefillRequest: transactionEntryPrefill,
+                    openSignal: movementEntryOpenSignal,
+                  },
+                }}
+                provided={{
+                  events: {
+                    onRecorded: () => {
+                      setRecentTransactionsRefreshSignal((previous) => !previous);
+                      setAccountSummaryRefreshSignal((previous) => !previous);
+                      setTransactionEntryPrefill(undefined);
+                    },
+                  },
+                }}
+              />
+              <MovementQuickActionComponent
+                required={{
+                  context: {
+                    core: pageRequired.core,
+                  },
+                  config: {
+                    enabled: hasSelectedAccount,
+                    refreshSignal: movementQuickActionRefreshSignal,
+                  },
+                }}
+                provided={{
+                  events: {
+                    onCreateMovementRequested: createMovementForAccount,
+                  },
+                }}
+              />
+            </>
           )
         : null,
       recentTransactions: hasSelectedAccount

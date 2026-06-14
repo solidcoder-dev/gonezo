@@ -44,6 +44,7 @@ export type TransactionEntryComponentRequired = {
   config: {
     enabled: boolean;
     prefillRequest?: TransactionEntryPrefillRequest;
+    openSignal?: number;
   };
 };
 

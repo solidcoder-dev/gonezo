@@ -231,7 +231,6 @@ export function TransactionComposerView({ required, provided }: Props) {
     expectedConflictError,
   } = required;
   const {
-    onOpen,
     onClose,
     onSelectMode,
     onSetAmount,
@@ -372,11 +371,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     : null;
 
   if (!open) {
-    return (
-      <button type="button" className="fab-button" onClick={onOpen} aria-label="Add movement">
-        <i className="bi bi-plus-lg" aria-hidden /> Movement
-      </button>
-    );
+    return null;
   }
 
   return (
