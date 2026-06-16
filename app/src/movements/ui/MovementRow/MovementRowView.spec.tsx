@@ -54,4 +54,30 @@ describe('MovementRowView', () => {
 
     expect(screen.getByRole('button', { name: /Salary/i })).toBeDisabled();
   });
+
+  it('keeps long movement text inside truncation containers', () => {
+    const longText = 'Very long merchant name that should never resize the movement card horizontally or push actions away';
+    const { container } = render(
+      <MovementRowView
+        required={{
+          config: {},
+          data: {
+            itemClassName: 'expense-item expense-item--expense',
+            iconClassName: 'bi bi-arrow-down-right',
+            title: longText,
+            amount: { sign: '-', label: '$40.00', className: 'movement-amount movement-amount--expense' },
+            details: [`${longText} detail`, '#very-long-tag-name'],
+          },
+          state: {},
+          status: { disabled: false },
+        }}
+        provided={{ commands: { select: vi.fn() } }}
+      />,
+    );
+
+    expect(screen.getByText(longText)).toHaveClass('compact-title');
+    expect(container.querySelector('.compact-main')).toHaveClass('compact-main');
+    expect(container.querySelector('.compact-subline')).toHaveClass('compact-subline');
+    expect(screen.getByText('-$40.00')).toHaveClass('movement-amount');
+  });
 });

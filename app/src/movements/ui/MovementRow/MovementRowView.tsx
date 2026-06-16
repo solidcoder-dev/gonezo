@@ -56,6 +56,7 @@ function renderDetails(details: MovementRowDetailView[]) {
 
 export function MovementRowView({ required, provided }: MovementRowViewProps) {
   const { data, status } = required;
+  const amountClassName = ['movement-amount', data.amount.className].filter(Boolean).join(' ');
 
   return (
     <li className={`${data.itemClassName} expense-item--compact`}>
@@ -70,7 +71,7 @@ export function MovementRowView({ required, provided }: MovementRowViewProps) {
             <i className={data.iconClassName} aria-hidden />
             <strong className="compact-title">{data.title}</strong>
           </div>
-          <strong className={data.amount.className}>
+          <strong className={amountClassName}>
             {data.amount.sign}
             {data.amount.label}
           </strong>

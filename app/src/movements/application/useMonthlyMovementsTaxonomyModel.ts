@@ -115,6 +115,11 @@ export function useMonthlyMovementsTaxonomyModel(input: UseMonthlyMovementsTaxon
         tagIds: [...(item.tagIds ?? [])],
       };
     }
+    const hasAssignedTags = result.items.some((item) => (item.tagIds ?? []).length > 0);
+    if (hasAssignedTags) {
+      const taxonomyTags = await tagSuggestions.listTags({ includeArchived: false });
+      setTags([...taxonomyTags.items]);
+    }
     setTaxonomyByTransactionId(next);
   }
 

@@ -2033,14 +2033,37 @@ describe('App Accounts UX', () => {
 
   it('applies selected and newly created tags when saving expense', async () => {
     const core = makeCore();
+    const transactions: LedgerTransactionListItem[] = [];
     const tags = [{ id: 'tag-london', name: 'london', status: 'active' as const }];
+    vi.mocked(core.ledgerListTransactions).mockImplementation(async (input) => toPagedResult(transactions, input));
+    vi.mocked(core.ledgerRecordExpense).mockImplementation(async (input) => {
+      transactions.unshift({
+        id: 'tx-exp',
+        accountId: input.accountId,
+        occurredAt: input.occurredAt,
+        description: input.description,
+        merchant: input.merchant,
+        amount: input.amount,
+        currency: input.currency,
+        type: 'expense',
+        status: 'posted',
+        categoryId: input.categoryId,
+        items: [],
+      });
+      return { id: 'tx-exp' };
+    });
     vi.mocked(core.taxonomyListTags).mockImplementation(async () => ({ items: tags }));
     vi.mocked(core.orchestrationApplyTransactionTags).mockImplementation(async (input) => {
       if (input.tagNames.includes('trip-2026') && !tags.some((tag) => tag.name === 'trip-2026')) {
-        tags.push({ id: 'tag-trip', name: 'trip-2026', status: 'active' as const });
+        tags.push({ id: 'tag-trip-2026', name: 'trip-2026', status: 'active' as const });
       }
       return { status: 'assigned' as const, tagIds: input.tagNames.map((name) => `tag-${name}`) };
     });
+    vi.mocked(core.orchestrationListTransactionTaxonomy).mockImplementation(async (input) => ({
+      items: input.transactionIds.includes('tx-exp')
+        ? [{ transactionId: 'tx-exp', categoryId: undefined, tagIds: ['tag-london', 'tag-trip-2026'] }]
+        : [],
+    }));
 
     render(
       <MemoryRouter>
@@ -2065,6 +2088,7 @@ describe('App Accounts UX', () => {
       transactionId: 'tx-exp',
       tagNames: ['london', 'trip-2026'],
     });
+    expect(await screen.findByText('#london #trip-2026')).toBeInTheDocument();
 
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'trip' } });
