@@ -803,8 +803,8 @@ describe('App Accounts UX', () => {
   function dragComposerDown(composer: HTMLElement) {
     const handle = within(composer).getByTestId('sheet-drag-handle');
     fireEvent.pointerDown(handle, { clientY: 240, pointerId: 1, pointerType: 'touch' });
-    fireEvent.pointerMove(handle, { clientY: 360, pointerId: 1, pointerType: 'touch' });
-    fireEvent.pointerUp(handle, { clientY: 360, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerMove(handle, { clientY: 400, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerUp(handle, { clientY: 400, pointerId: 1, pointerType: 'touch' });
   }
 
   it('opens an expense composer for the chosen account and resets the draft defaults after save', async () => {

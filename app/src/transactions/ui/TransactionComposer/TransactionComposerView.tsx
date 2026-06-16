@@ -397,6 +397,7 @@ export function TransactionComposerView({ required, provided }: Props) {
             showHandle: true,
             dragToClose: !onCollapse,
             dragDownToCollapse: Boolean(onCollapse),
+            dragSurface: onCollapse ? 'panel' : 'handle',
           },
           data: {
             body: mode === 'picker' ? (

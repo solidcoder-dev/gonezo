@@ -31,6 +31,7 @@ export function MovementDraftPickerView({ required, provided }: MovementDraftPic
           panelClassName: 'movement-draft-picker-panel',
           showHandle: true,
           dragUpToExpand: true,
+          dragSurface: 'panel',
           closeOnBackdrop: true,
           contentClassName: 'movement-draft-picker-content',
         },

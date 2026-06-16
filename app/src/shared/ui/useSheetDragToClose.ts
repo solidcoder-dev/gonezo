@@ -1,8 +1,10 @@
 import type { PointerEvent } from 'react';
 import { useRef, useState } from 'react';
 
-const DRAG_CLOSE_THRESHOLD_PX = 96;
-const DRAG_UP_THRESHOLD_PX = 56;
+const DRAG_CLOSE_THRESHOLD_PX = 140;
+const DRAG_UP_THRESHOLD_PX = 72;
+const DRAG_ACTIVATION_THRESHOLD_PX = 12;
+const INTERACTIVE_DRAG_SELECTOR = 'button, input, textarea, select, a, [role="button"], [contenteditable="true"]';
 
 export function useSheetDragToClose(enabled: boolean, close: () => void, dragUp?: () => void, dragDown?: () => void) {
   const dragStartY = useRef<number | null>(null);
@@ -11,6 +13,9 @@ export function useSheetDragToClose(enabled: boolean, close: () => void, dragUp?
 
   function start(event: PointerEvent<HTMLElement>) {
     if (!enabled || (event.pointerType === 'mouse' && event.button !== 0)) {
+      return;
+    }
+    if (event.target instanceof Element && event.target.closest(INTERACTIVE_DRAG_SELECTOR)) {
       return;
     }
     dragStartY.current = event.clientY;
@@ -26,6 +31,10 @@ export function useSheetDragToClose(enabled: boolean, close: () => void, dragUp?
       return;
     }
     const nextOffset = event.clientY - dragStartY.current;
+    if (Math.abs(nextOffset) <= DRAG_ACTIVATION_THRESHOLD_PX) {
+      setOffset(0);
+      return;
+    }
     setOffset(dragUp ? nextOffset : Math.max(0, nextOffset));
     event.preventDefault();
   }

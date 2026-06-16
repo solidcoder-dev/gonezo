@@ -16,6 +16,7 @@ export type SheetViewProps = ViewProps<
     dragToClose?: boolean;
     dragUpToExpand?: boolean;
     dragDownToCollapse?: boolean;
+    dragSurface?: 'handle' | 'panel';
   },
   {
     header?: ReactNode;
@@ -66,6 +67,8 @@ export function SheetView({ required, provided }: SheetViewProps) {
   const handleHeaderClassName = config.showHandle && !config.title && !config.closeLabel
     ? `${styles.handleHeader} inline-header`
     : 'inline-header';
+  const panelDragHandlers = config.dragSurface === 'panel' ? drag.handlers : {};
+  const handleDragHandlers = config.dragSurface === 'panel' ? {} : drag.handlers;
 
   return (
     <div
@@ -81,12 +84,13 @@ export function SheetView({ required, provided }: SheetViewProps) {
         aria-label={config.ariaLabel}
         style={panelStyle}
         onClick={(event) => event.stopPropagation()}
+        {...panelDragHandlers}
       >
         {data.header ?? (
           config.title || config.closeLabel || config.showHandle ? (
             <div
               className={handleHeaderClassName}
-              {...drag.handlers}
+              {...handleDragHandlers}
             >
               {config.showHandle ? (
                 <span

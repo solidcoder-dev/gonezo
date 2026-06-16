@@ -89,8 +89,8 @@ describe('SheetView', () => {
     expect(close).not.toHaveBeenCalled();
 
     fireEvent.pointerDown(handle, { clientY: 100, pointerId: 1, pointerType: 'touch' });
-    fireEvent.pointerMove(handle, { clientY: 220, pointerId: 1, pointerType: 'touch' });
-    fireEvent.pointerUp(handle, { clientY: 220, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerMove(handle, { clientY: 260, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerUp(handle, { clientY: 260, pointerId: 1, pointerType: 'touch' });
     expect(close).toHaveBeenCalledTimes(1);
   });
 
@@ -111,11 +111,124 @@ describe('SheetView', () => {
 
     const handle = screen.getByTestId('sheet-drag-handle');
     fireEvent.pointerDown(handle, { clientY: 100, pointerId: 1, pointerType: 'touch' });
-    fireEvent.pointerMove(handle, { clientY: 220, pointerId: 1, pointerType: 'touch' });
-    fireEvent.pointerUp(handle, { clientY: 220, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerMove(handle, { clientY: 260, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerUp(handle, { clientY: 260, pointerId: 1, pointerType: 'touch' });
 
     expect(collapse).toHaveBeenCalledTimes(1);
     expect(close).not.toHaveBeenCalled();
+  });
+
+  it('supports dragging from the whole panel when panel drag surface is configured', () => {
+    const expand = vi.fn();
+    render(
+      <SheetView
+        required={{
+          config: {
+            ariaLabel: 'Draft',
+            showHandle: true,
+            dragUpToExpand: true,
+            dragSurface: 'panel',
+          },
+          data: { body: <p>Drag surface</p> },
+          state: { open: true },
+          status: {},
+        }}
+        provided={{ commands: { close: vi.fn(), expand } }}
+      />,
+    );
+
+    const panel = screen.getByRole('dialog', { name: 'Draft' });
+    fireEvent.pointerDown(panel, { clientY: 320, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerMove(panel, { clientY: 240, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerUp(panel, { clientY: 240, pointerId: 1, pointerType: 'touch' });
+
+    expect(expand).toHaveBeenCalledTimes(1);
+  });
+
+  it('supports dragging from non-interactive panel content', () => {
+    const expand = vi.fn();
+    render(
+      <SheetView
+        required={{
+          config: {
+            ariaLabel: 'Draft',
+            showHandle: true,
+            dragUpToExpand: true,
+            dragSurface: 'panel',
+          },
+          data: { body: <p>Drag from content</p> },
+          state: { open: true },
+          status: {},
+        }}
+        provided={{ commands: { close: vi.fn(), expand } }}
+      />,
+    );
+
+    const content = screen.getByText('Drag from content');
+    fireEvent.pointerDown(content, { clientY: 320, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerMove(content, { clientY: 240, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerUp(content, { clientY: 240, pointerId: 1, pointerType: 'touch' });
+
+    expect(expand).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not visually drag until the gesture passes the activation threshold', () => {
+    render(
+      <SheetView
+        required={{
+          config: {
+            ariaLabel: 'Composer',
+            showHandle: true,
+            dragDownToCollapse: true,
+            dragSurface: 'panel',
+          },
+          data: { body: <p>Content</p> },
+          state: { open: true },
+          status: {},
+        }}
+        provided={{ commands: { close: vi.fn(), collapse: vi.fn() } }}
+      />,
+    );
+
+    const panel = screen.getByRole('dialog', { name: 'Composer' });
+    fireEvent.pointerDown(panel, { clientY: 100, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerMove(panel, { clientY: 108, pointerId: 1, pointerType: 'touch' });
+
+    expect(panel).not.toHaveStyle({ transform: 'translateY(8px)' });
+  });
+
+  it('does not start panel dragging from interactive controls', () => {
+    const collapse = vi.fn();
+    render(
+      <SheetView
+        required={{
+          config: {
+            ariaLabel: 'Composer',
+            showHandle: true,
+            dragDownToCollapse: true,
+            dragSurface: 'panel',
+          },
+          data: {
+            body: (
+              <label>
+                Amount
+                <input aria-label="Amount" />
+              </label>
+            ),
+          },
+          state: { open: true },
+          status: {},
+        }}
+        provided={{ commands: { close: vi.fn(), collapse } }}
+      />,
+    );
+
+    const input = screen.getByLabelText('Amount');
+    fireEvent.pointerDown(input, { clientY: 100, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerMove(input, { clientY: 220, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerUp(input, { clientY: 220, pointerId: 1, pointerType: 'touch' });
+
+    expect(collapse).not.toHaveBeenCalled();
   });
 
   it('renders nothing when closed', () => {
