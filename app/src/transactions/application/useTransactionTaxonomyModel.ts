@@ -9,8 +9,8 @@ import { findMasterCategoryById, listMasterCategories } from '../../taxonomy/dom
 import type { ComposerMode } from './transactions.types';
 import {
   mergeCategories,
-  parseTransactionTagInput,
   resolveKnownTagSelectionIds,
+  normalizeTaxonomyName,
 } from './transactionTaxonomySelection';
 
 type UseTransactionTaxonomyModelInput = {
@@ -23,10 +23,11 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
   const [categories, setCategories] = useState<TaxonomyCategoryItem[]>([]);
   const [tags, setTags] = useState<TaxonomyTagItem[]>([]);
   const [transactionCategoryId, setTransactionCategoryId] = useState('');
-  const [transactionTagInput, setTransactionTagInput] = useState('');
+  const [selectedTagNames, setSelectedTagNames] = useState<string[]>([]);
+  const [tagQuery, setTagQuery] = useState('');
 
   const categorySuggestions = useCategorySuggestions(taxonomy);
-  const tagSuggestions = useTagSuggestions(taxonomy);
+  const tagSuggestionSource = useTagSuggestions(taxonomy);
   const transactionClassification = useTransactionClassification(taxonomy);
 
   const categoryOptions = useMemo(() => {
@@ -66,17 +67,40 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
       .sort((left, right) => left.name.localeCompare(right.name)),
     [tags],
   );
+  const selectedTagOptions = useMemo(() => selectedTagNames.map((name) => {
+    const existing = tagOptions.find((tag) => normalizeTaxonomyName(tag.name) === normalizeTaxonomyName(name));
+    return existing ?? { id: `new:${normalizeTaxonomyName(name)}`, name };
+  }), [selectedTagNames, tagOptions]);
+  const normalizedSelectedTagNames = useMemo(
+    () => new Set(selectedTagNames.map(normalizeTaxonomyName)),
+    [selectedTagNames],
+  );
+  const normalizedTagQuery = normalizeTaxonomyName(tagQuery);
+  const tagSuggestions = useMemo(
+    () => normalizedTagQuery
+      ? tagOptions.filter((tag) =>
+        !normalizedSelectedTagNames.has(normalizeTaxonomyName(tag.name))
+        && normalizeTaxonomyName(tag.name).includes(normalizedTagQuery))
+      : [],
+    [normalizedSelectedTagNames, normalizedTagQuery, tagOptions],
+  );
+  const tagCreateCandidate = tagQuery.trim()
+    && !tagOptions.some((tag) => normalizeTaxonomyName(tag.name) === normalizedTagQuery)
+    && !normalizedSelectedTagNames.has(normalizedTagQuery)
+    ? tagQuery.trim()
+    : undefined;
 
   function resetInputs() {
     setTransactionCategoryId('');
-    setTransactionTagInput('');
+    setSelectedTagNames([]);
+    setTagQuery('');
   }
 
   async function refreshLookups() {
     const taxonomyCategories = await categorySuggestions.listCategories({ includeArchived: false });
     setCategories(taxonomyCategories.items);
-    const taxonomyTags = await tagSuggestions.listTags({ includeArchived: false });
-    setTags(taxonomyTags.items);
+    const taxonomyTags = await tagSuggestionSource.listTags({ includeArchived: false });
+    setTags([...taxonomyTags.items]);
   }
 
   async function refreshCategories() {
@@ -115,7 +139,7 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
   }
 
   function parseTransactionTags(): string[] {
-    return parseTransactionTagInput(transactionTagInput);
+    return selectedTagNames;
   }
 
   function resolveTagSelectionIds(tagNames: string[]): string[] {
@@ -154,6 +178,40 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
     if (result.status === 'failed') {
       throw new Error(result.errorCode ?? result.errorMessage ?? 'Tag assignment failed');
     }
+    const fresh = await tagSuggestionSource.listTags({ includeArchived: false });
+    setTags([...fresh.items]);
+  }
+
+  function addSelectedTagName(name: string) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return;
+    }
+    const normalizedName = normalizeTaxonomyName(trimmedName);
+    setSelectedTagNames((previous) =>
+      previous.some((tag) => normalizeTaxonomyName(tag) === normalizedName)
+        ? previous
+        : [...previous, trimmedName]);
+    setTagQuery('');
+  }
+
+  function selectTag(tagId: string) {
+    const tag = tagOptions.find((item) => item.id === tagId);
+    if (tag) {
+      addSelectedTagName(tag.name);
+    }
+  }
+
+  function removeTag(tagId: string) {
+    const normalizedId = tagId.startsWith('new:') ? tagId.slice(4) : undefined;
+    setSelectedTagNames((previous) => previous.filter((name) => {
+      const existing = tagOptions.find((tag) => normalizeTaxonomyName(tag.name) === normalizeTaxonomyName(name));
+      return existing ? existing.id !== tagId : normalizeTaxonomyName(name) !== normalizedId;
+    }));
+  }
+
+  function removeLastTag() {
+    setSelectedTagNames((previous) => previous.slice(0, -1));
   }
 
   return {
@@ -161,7 +219,10 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
       categories,
       tags,
       transactionCategoryId,
-      transactionTagInput,
+      transactionTagInput: tagQuery,
+      selectedTagOptions,
+      tagSuggestions,
+      tagCreateCandidate,
       categoryOptions,
       tagOptions,
     },
@@ -170,7 +231,11 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
       refreshLookups,
       refreshCategories,
       setTransactionCategoryId,
-      setTransactionTagInput,
+      setTransactionTagInput: setTagQuery,
+      selectTag,
+      createTag: addSelectedTagName,
+      removeTag,
+      removeLastTag,
       resolveCategorySelection,
       parseTransactionTags,
       resolveTagSelectionIds,

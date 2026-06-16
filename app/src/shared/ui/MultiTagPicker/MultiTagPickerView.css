@@ -1,0 +1,119 @@
+.multi-tag-picker {
+  position: relative;
+  display: grid;
+  gap: 5px;
+}
+
+.multi-tag-picker-label {
+  font-weight: 650;
+}
+
+.multi-tag-picker-field {
+  display: flex;
+  align-items: center;
+  height: 42px;
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-subtle, #deded6);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-background-surface, #fff);
+}
+
+.multi-tag-picker-selected {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 28px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.multi-tag-picker-selected::-webkit-scrollbar {
+  display: none;
+}
+
+.multi-tag-picker-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  max-width: 120px;
+  min-width: 0;
+  min-height: 26px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  color: inherit;
+  font: inherit;
+  font-size: 0.84rem;
+  gap: 4px;
+}
+
+.multi-tag-picker-chip-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multi-tag-picker-chip-remove {
+  opacity: 0.66;
+}
+
+.multi-tag-picker-input {
+  flex: 1 1 auto;
+  min-width: 72px;
+  height: 40px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.multi-tag-picker-input:disabled {
+  opacity: 0.64;
+}
+
+.multi-tag-picker-list {
+  position: absolute;
+  bottom: 46px;
+  left: 0;
+  z-index: 4;
+  display: grid;
+  width: min(100%, 360px);
+  max-height: 188px;
+  margin: 0;
+  padding: 6px 0;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-subtle, #deded6);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-background-surface, #fff);
+  box-shadow: var(--shadow-sheet, 0 12px 24px rgba(0, 0, 0, 0.12));
+  list-style: none;
+}
+
+.multi-tag-picker-option {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 10px;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multi-tag-picker-option:active:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.multi-tag-picker-create {
+  font-weight: 650;
+}

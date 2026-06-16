@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { SheetView } from '../../../shared/ui/SheetView';
+import { MultiTagPickerView } from '../../../shared/ui/MultiTagPicker/MultiTagPickerView';
 import {
   FREQUENT_EXPENSE_CATEGORY_IDS,
   FREQUENT_INCOME_CATEGORY_IDS,
@@ -14,7 +15,6 @@ import { ScheduleTriggerView } from '../ScheduleControls/ScheduleTriggerView';
 import { SchedulingOptionsView } from '../SchedulingOptions/SchedulingOptionsView';
 import { SplitSummaryView } from '../SplitControls/SplitSummaryView';
 import { SplitTriggerView } from '../SplitControls/SplitTriggerView';
-import { TagComboboxField } from '../TagComboboxField';
 import { TransactionComposerActionsView } from '../TransactionComposerActions/TransactionComposerActionsView';
 import { TransactionMainFieldsView } from '../TransactionMainFields/TransactionMainFieldsView';
 import { TransferFxFieldsView } from '../TransferFxFields/TransferFxFieldsView';
@@ -44,7 +44,9 @@ export type TransactionComposerViewRequired = {
   categoryId: string;
   categoryOptions: Array<{ id: string; name: string }>;
   tagInput: string;
-  tagOptions: Array<{ id: string; name: string }>;
+  selectedTagOptions: Array<{ id: string; name: string }>;
+  tagSuggestions: Array<{ id: string; name: string }>;
+  tagCreateCandidate?: string;
   advancedOpen: boolean;
   transferTargetAccountId: string;
   transferTargetOptions: Array<{ id: string; name: string; currency: string }>;
@@ -106,6 +108,10 @@ export type TransactionComposerViewProvided = {
   onSetNote: (value: string) => void;
   onSetCategoryId: (value: string) => void;
   onSetTagInput: (value: string) => void;
+  onSelectTag: (tagId: string) => void;
+  onCreateTag: (name: string) => void;
+  onRemoveTag: (tagId: string) => void;
+  onRemoveLastTag: () => void;
   onSetTransferTarget: (value: string) => void;
   onSetTransferAmountIn: (value: string) => void;
   onSetTransferFxRate: (value: string) => void;
@@ -190,7 +196,9 @@ export function TransactionComposerView({ required, provided }: Props) {
     categoryId,
     categoryOptions,
     tagInput,
-    tagOptions,
+    selectedTagOptions,
+    tagSuggestions,
+    tagCreateCandidate,
     transferTargetAccountId,
     transferTargetOptions,
     transferAmountIn,
@@ -245,6 +253,10 @@ export function TransactionComposerView({ required, provided }: Props) {
     onSetNote,
     onSetCategoryId,
     onSetTagInput,
+    onSelectTag,
+    onCreateTag,
+    onRemoveTag,
+    onRemoveLastTag,
     onSetTransferTarget,
     onSetTransferAmountIn,
     onSetTransferFxRate,
@@ -546,14 +558,27 @@ export function TransactionComposerView({ required, provided }: Props) {
                       }}
                     />
 
-                    <TagComboboxField
+                    <MultiTagPickerView
                       required={{
-                        value: tagInput,
-                        options: tagOptions,
-                        disabled,
+                        config: { label: 'Tags', placeholder: 'Add tag...' },
+                        data: {
+                          selectedTags: selectedTagOptions,
+                          suggestions: tagSuggestions,
+                        },
+                        state: {
+                          query: tagInput,
+                          createCandidate: tagCreateCandidate,
+                        },
+                        status: { disabled },
                       }}
                       provided={{
-                        onChange: onSetTagInput,
+                        commands: {
+                          changeQuery: onSetTagInput,
+                          selectTag: onSelectTag,
+                          createTag: onCreateTag,
+                          removeTag: onRemoveTag,
+                          removeLastTag: onRemoveLastTag,
+                        },
                       }}
                     />
 
@@ -581,14 +606,27 @@ export function TransactionComposerView({ required, provided }: Props) {
                       }}
                     />
 
-                    <TagComboboxField
+                    <MultiTagPickerView
                       required={{
-                        value: tagInput,
-                        options: tagOptions,
-                        disabled,
+                        config: { label: 'Tags', placeholder: 'Add tag...' },
+                        data: {
+                          selectedTags: selectedTagOptions,
+                          suggestions: tagSuggestions,
+                        },
+                        state: {
+                          query: tagInput,
+                          createCandidate: tagCreateCandidate,
+                        },
+                        status: { disabled },
                       }}
                       provided={{
-                        onChange: onSetTagInput,
+                        commands: {
+                          changeQuery: onSetTagInput,
+                          selectTag: onSelectTag,
+                          createTag: onCreateTag,
+                          removeTag: onRemoveTag,
+                          removeLastTag: onRemoveLastTag,
+                        },
                       }}
                     />
                   </>

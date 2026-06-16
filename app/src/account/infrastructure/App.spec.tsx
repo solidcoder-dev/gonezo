@@ -2020,7 +2020,7 @@ describe('App Accounts UX', () => {
 
   it('shows tags input in the composer', async () => {
     const core = makeCore();
-    const view = render(
+    render(
       <MemoryRouter>
         <App required={{ core }} />
       </MemoryRouter>
@@ -2029,14 +2029,19 @@ describe('App Accounts UX', () => {
     await screen.findByText('Net balance');
     await openMode('Expense');
     expect(screen.getByLabelText('Tags')).toBeInTheDocument();
-    expect(view.container.querySelector('datalist option[value="home"]')).not.toBeNull();
-    expect(view.container.querySelector('datalist option[value="london"]')).not.toBeNull();
+    fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'ho' } });
+    expect(await screen.findByRole('button', { name: '#home' })).toBeInTheDocument();
   });
 
-  it('applies tags when saving expense with typed tags', async () => {
+  it('applies selected and newly created tags when saving expense', async () => {
     const core = makeCore();
-    vi.mocked(core.taxonomyListTags).mockResolvedValueOnce({
-      items: [{ id: 'tag-london', name: 'london', status: 'active' as const }],
+    const tags = [{ id: 'tag-london', name: 'london', status: 'active' as const }];
+    vi.mocked(core.taxonomyListTags).mockImplementation(async () => ({ items: tags }));
+    vi.mocked(core.orchestrationApplyTransactionTags).mockImplementation(async (input) => {
+      if (input.tagNames.includes('trip-2026') && !tags.some((tag) => tag.name === 'trip-2026')) {
+        tags.push({ id: 'tag-trip', name: 'trip-2026', status: 'active' as const });
+      }
+      return { status: 'assigned' as const, tagIds: input.tagNames.map((name) => `tag-${name}`) };
     });
 
     render(
@@ -2049,7 +2054,10 @@ describe('App Accounts UX', () => {
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '20' } });
-    fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'london, trip-2026, london' } });
+    fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'lon' } });
+    fireEvent.click(await screen.findByRole('button', { name: '#london' }));
+    fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'trip-2026' } });
+    fireEvent.click(await screen.findByRole('button', { name: '+ trip-2026' }));
     fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
@@ -2059,6 +2067,10 @@ describe('App Accounts UX', () => {
       transactionId: 'tx-exp',
       tagNames: ['london', 'trip-2026'],
     });
+
+    await openMode('Expense');
+    fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'trip' } });
+    expect(await screen.findByRole('button', { name: '#trip-2026' })).toBeInTheDocument();
   });
 
   it('applies tags to both transfer sides', async () => {
@@ -2075,7 +2087,10 @@ describe('App Accounts UX', () => {
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
     fireEvent.change(screen.getByLabelText('Destination account'), { target: { value: 'acc-2' } });
-    fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'trip, shared' } });
+    fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'trip' } });
+    fireEvent.click(await screen.findByRole('button', { name: '+ trip' }));
+    fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'shared' } });
+    fireEvent.click(await screen.findByRole('button', { name: '+ shared' }));
     const saveTransferButton = screen.getByRole('button', { name: 'Save' });
     const transferForm = saveTransferButton.closest('form');
     expect(transferForm).not.toBeNull();

@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import type { LedgerAccountItem } from '../../ledger/application/ledger.port';
 import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
 import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
@@ -35,9 +34,8 @@ type UseTransactionEntryModelInput = {
   ports: TransactionEntryModelPorts;
   clock: TransactionEntryModelClock;
   idGenerator: TransactionEntryModelIdGenerator;
-  accountId: string | null;
-  enabled: boolean;
-  prefillRequest?: TransactionEntryPrefillRequest; openSignal?: number; initialMode?: TransactionEntryInitialMode; movementAccountContext?: { name: string; type?: TransactionEntryInitialMode };
+  accountId: string | null; enabled: boolean; prefillRequest?: TransactionEntryPrefillRequest; openSignal?: number;
+  initialMode?: TransactionEntryInitialMode; movementAccountContext?: { name: string; type?: TransactionEntryInitialMode };
   onRecorded?: () => void; onClosed?: () => void; onCollapsed?: () => void; onError?: (error: { message: string }) => void;
 };
 
@@ -109,39 +107,20 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     composerMode,
   });
 
-  const { transferToAccountId, transferTargetOptions, transferAmountIn, transferFxRate, transferFxMode, transferDestinationCurrency, transferCrossCurrency } = transferFxModel.state;
+  const { transferToAccountId, transferTargetOptions, transferAmountIn, transferFxRate, transferFxMode, transferDestinationCurrency, transferCrossCurrency } =
+    transferFxModel.state;
   const {
-    reset: resetTransferFx,
-    setTransferToAccountId,
-    setTransferAmountIn,
-    setTransferFxRate,
-    setTransferFxMode,
-    setDefaultTargetForAccounts,
-    syncForTransferMode,
-    syncSourceAmount,
-    setTransferTargetValue,
-    setTransferAmountInValue,
-    setTransferFxRateValue,
-    setTransferFxModeValue,
+    reset: resetTransferFx, setTransferToAccountId, setTransferAmountIn, setTransferFxRate, setTransferFxMode,
+    setDefaultTargetForAccounts, syncForTransferMode, syncSourceAmount, setTransferTargetValue,
+    setTransferAmountInValue, setTransferFxRateValue, setTransferFxModeValue,
   } = transferFxModel.actions;
 
-  const { expenseDetailed, splitEditorOpen, splitApplied, expenseItemName, expenseItemAmount, editingExpenseItemId, expenseItems, expenseSplitTotal } = splitEditorModel.state;
+  const { expenseDetailed, splitEditorOpen, splitApplied, expenseItemName, expenseItemAmount, editingExpenseItemId, expenseItems, expenseSplitTotal } =
+    splitEditorModel.state;
   const {
-    reset: resetExpenseSplit,
-    prefill: prefillExpenseSplit,
-    openSplitEditor,
-    closeSplitEditor,
-    applySplit,
-    removeSplit,
-    setExpenseDetailedValue,
-    setExpenseItemNameValue,
-    setExpenseItemAmountValue,
-    addExpenseItem,
-    startExpenseItem,
-    cancelExpenseItem,
-    editExpenseItem,
-    removeExpenseItem,
-    splitExpenseByParts,
+    reset: resetExpenseSplit, prefill: prefillExpenseSplit, openSplitEditor, closeSplitEditor, applySplit, removeSplit,
+    setExpenseDetailedValue, setExpenseItemNameValue, setExpenseItemAmountValue, addExpenseItem, startExpenseItem,
+    cancelExpenseItem, editExpenseItem, removeExpenseItem, splitExpenseByParts,
   } = splitEditorModel.actions;
 
   const {
@@ -204,13 +183,24 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     : undefined;
   const effectiveTransactionDate = nextScheduledOccurrenceDate ?? transactionDate;
 
-  const { transactionCategoryId, transactionTagInput, categoryOptions, tagOptions } = taxonomyModel.state;
+  const {
+    transactionCategoryId,
+    transactionTagInput,
+    selectedTagOptions,
+    tagSuggestions,
+    tagCreateCandidate,
+    categoryOptions,
+  } = taxonomyModel.state;
   const {
     resetInputs: resetTaxonomyInputs,
     refreshLookups: refreshTaxonomyLookups,
     refreshCategories: refreshTaxonomyCategories,
     setTransactionCategoryId,
     setTransactionTagInput,
+    selectTag,
+    createTag,
+    removeTag,
+    removeLastTag,
     resolveCategorySelection,
     parseTransactionTags,
     resolveTagSelectionIds,
@@ -548,7 +538,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       categoryId: transactionCategoryId,
       categoryOptions,
       tagInput: transactionTagInput,
-      tagOptions,
+      selectedTagOptions,
+      tagSuggestions,
+      tagCreateCandidate,
       transferTargetAccountId: transferToAccountId,
       transferTargetOptions,
       transferAmountIn,
@@ -602,6 +594,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       setNote: setTransactionNote,
       setCategoryId: setTransactionCategoryId,
       setTagInput: setTransactionTagInput,
+      selectTag,
+      createTag,
+      removeTag,
+      removeLastTag,
       setTransferTarget: setTransferTargetValue,
       setTransferAmountIn: setTransferAmountInValue,
       setTransferFxRate: setTransferFxRateValue,

@@ -18,7 +18,9 @@ export type TransactionEntryViewRequired = {
     categoryId: string;
     categoryOptions: Array<{ id: string; name: string }>;
     tagInput: string;
-    tagOptions: Array<{ id: string; name: string }>;
+    selectedTagOptions: Array<{ id: string; name: string }>;
+    tagSuggestions: Array<{ id: string; name: string }>;
+    tagCreateCandidate?: string;
     transferTargetAccountId: string;
     transferTargetOptions: Array<{ id: string; name: string; currency: string }>;
     transferAmountIn: string;
@@ -75,6 +77,10 @@ export type TransactionEntryViewProvided = {
     setNote: (value: string) => void;
     setCategoryId: (value: string) => void;
     setTagInput: (value: string) => void;
+    selectTag: (tagId: string) => void;
+    createTag: (name: string) => void;
+    removeTag: (tagId: string) => void;
+    removeLastTag: () => void;
     setTransferTarget: (value: string) => void;
     setTransferAmountIn: (value: string) => void;
     setTransferFxRate: (value: string) => void;
