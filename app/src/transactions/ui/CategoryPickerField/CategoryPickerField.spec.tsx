@@ -13,7 +13,7 @@ const options = [
 ];
 
 describe('CategoryPickerField', () => {
-  it('expands hidden categories inline with three dots', () => {
+  it('renders all categories as a horizontal chip list with names', () => {
     const onSelect = vi.fn();
 
     render(
@@ -38,12 +38,9 @@ describe('CategoryPickerField', () => {
 
     expect(screen.queryByRole('textbox', { name: 'Category' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Select category Health' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Select category Shopping' })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Show more categories' }));
-
     expect(screen.getByRole('button', { name: 'Select category Shopping' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Show fewer categories' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Select category Travel' })).toHaveTextContent('Travel');
+    expect(screen.queryByRole('button', { name: 'Show more categories' })).not.toBeInTheDocument();
   });
 
   it('keeps category order stable when one is selected', () => {
@@ -69,13 +66,15 @@ describe('CategoryPickerField', () => {
       'Select category Dining',
       'Select category Transport',
       'Select category Health',
+      'Select category Shopping',
+      'Select category Travel',
     ]);
     fireEvent.click(screen.getByRole('button', { name: 'Select category Bills' }));
 
     expect(onSelect).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000101');
   });
 
-  it('keeps a selected hidden category visible while collapsed', () => {
+  it('keeps a selected category highlighted in the horizontal list', () => {
     render(
       <CategoryPickerField
         required={{
@@ -97,5 +96,6 @@ describe('CategoryPickerField', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Select category Travel' })).toHaveTextContent('Travel');
+    expect(screen.getByRole('button', { name: 'Select category Travel' })).toHaveClass('selected');
   });
 });

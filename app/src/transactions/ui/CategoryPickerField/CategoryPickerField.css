@@ -13,10 +13,20 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.category-picker-row::-webkit-scrollbar {
+  display: none;
 }
 
 .category-chip {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -31,9 +41,11 @@
   color: #1d1d1b;
 }
 
-.category-chip.icon-only {
-  width: 42px;
-  padding: 0;
+.category-chip span {
+  max-width: 108px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .category-chip.selected {

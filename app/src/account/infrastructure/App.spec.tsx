@@ -1922,7 +1922,6 @@ describe('App Accounts UX', () => {
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '35' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Show more categories' }));
     fireEvent.click(screen.getByRole('button', { name: 'Select category Travel' }));
     fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
@@ -1955,7 +1954,6 @@ describe('App Accounts UX', () => {
     await waitFor(() => {
       expect(vi.mocked(core.taxonomyListCategories).mock.calls.length).toBeGreaterThanOrEqual(2);
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Show more categories' }));
     expect(await screen.findByRole('button', { name: 'Select category Travel' })).toBeInTheDocument();
   });
 
