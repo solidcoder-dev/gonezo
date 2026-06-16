@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { TransactionsImportRequest, TransactionsImportResult } from '../../imports/application/transactionsImport.types';
 import { MovementQuickActionComponent, TransactionEntryComponent } from '../../transactions/index';
 import type { TransactionEntryPrefillRequest } from '../../transactions/application/TransactionEntryComponent.contract';
+import type { TransactionType } from '../../transactions/application/transactions.types';
 import { MonthlyMovementsComponent } from '../../movements/index';
 import type { ExpectedMovementView, ScheduledMovementView } from '../../movements/application/movementsView.types';
 import { AccountPageView } from '../../account/ui/AccountPageView/AccountPageView';
@@ -51,7 +52,13 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const [transactionEntryPrefill, setTransactionEntryPrefill] = useState<TransactionEntryPrefillRequest | undefined>();
   const [movementEntryAccountId, setMovementEntryAccountId] = useState<string | null>(null);
   const [movementEntryAccountName, setMovementEntryAccountName] = useState<string | null>(null);
+  const [movementEntryType, setMovementEntryType] = useState<TransactionType | undefined>();
   const [movementEntryOpenSignal, setMovementEntryOpenSignal] = useState(0);
+  const [movementDraftRequest, setMovementDraftRequest] = useState<{
+    requestId: number;
+    account: { id: string; name: string };
+    type: TransactionType;
+  } | undefined>();
 
   const hasSelectedAccount = Boolean(selectedAccountId);
   const transactionEntryAccountId = movementEntryAccountId ?? selectedAccountId;
@@ -116,13 +123,29 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   function clearMovementEntryAccount() {
     setMovementEntryAccountId(null);
     setMovementEntryAccountName(null);
+    setMovementEntryType(undefined);
   }
 
-  function createMovementForAccount(account: { id: string; name: string }) {
-    setMovementEntryAccountId(account.id);
-    setMovementEntryAccountName(account.name);
+  function createMovementForAccount(movement: { account: { id: string; name: string }; type: TransactionType }) {
+    setMovementEntryAccountId(movement.account.id);
+    setMovementEntryAccountName(movement.account.name);
+    setMovementEntryType(movement.type);
     setTransactionEntryPrefill(undefined);
     setMovementEntryOpenSignal((previous) => previous + 1);
+  }
+
+  function collapseMovementComposerToDraft() {
+    if (!movementEntryAccountId || !movementEntryAccountName || !movementEntryType) {
+      clearMovementEntryAccount();
+      return;
+    }
+
+    setMovementDraftRequest((previous) => ({
+      requestId: (previous?.requestId ?? 0) + 1,
+      account: { id: movementEntryAccountId, name: movementEntryAccountName },
+      type: movementEntryType,
+    }));
+    clearMovementEntryAccount();
   }
 
   const accountHub = (
@@ -215,7 +238,8 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
                     enabled: hasSelectedAccount,
                     prefillRequest: transactionEntryPrefill,
                     openSignal: movementEntryOpenSignal,
-                    movementAccountContext: movementEntryAccountName ? { name: movementEntryAccountName } : undefined,
+                    initialMode: movementEntryType,
+                    movementAccountContext: movementEntryAccountName ? { name: movementEntryAccountName, type: movementEntryType } : undefined,
                   },
                 }}
                 provided={{
@@ -227,6 +251,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
                       clearMovementEntryAccount();
                     },
                     onClosed: clearMovementEntryAccount,
+                    onCollapsed: collapseMovementComposerToDraft,
                   },
                 }}
               />
@@ -238,6 +263,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
                   config: {
                     enabled: hasSelectedAccount,
                     refreshSignal: movementQuickActionRefreshSignal,
+                    draftRequest: movementDraftRequest,
                   },
                 }}
                 provided={{

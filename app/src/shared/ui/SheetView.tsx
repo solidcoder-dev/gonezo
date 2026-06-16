@@ -14,6 +14,8 @@ export type SheetViewProps = ViewProps<
     closeOnBackdrop?: boolean;
     showHandle?: boolean;
     dragToClose?: boolean;
+    dragUpToExpand?: boolean;
+    dragDownToCollapse?: boolean;
   },
   {
     header?: ReactNode;
@@ -28,13 +30,20 @@ export type SheetViewProps = ViewProps<
   },
   {
     close: () => void;
+    expand?: () => void;
+    collapse?: () => void;
   }
 >;
 
 export function SheetView({ required, provided }: SheetViewProps) {
   const { config, data, state } = required;
   const closeOnBackdrop = config.closeOnBackdrop ?? true;
-  const drag = useSheetDragToClose(Boolean(config.dragToClose), provided.commands.close);
+  const drag = useSheetDragToClose(
+    Boolean(config.dragToClose || config.dragUpToExpand || config.dragDownToCollapse),
+    provided.commands.close,
+    config.dragUpToExpand ? provided.commands.expand : undefined,
+    config.dragDownToCollapse ? provided.commands.collapse : undefined,
+  );
 
   if (!state.open) {
     return null;
@@ -51,7 +60,7 @@ export function SheetView({ required, provided }: SheetViewProps) {
     ? `${styles.panel} ${config.panelClassName}${drag.dragging ? ` ${styles.dragging}` : ''}`
     : `${styles.panel}${drag.dragging ? ` ${styles.dragging}` : ''}`;
   const closeLabel = config.closeLabel ?? 'Close';
-  const panelStyle = config.dragToClose && drag.offset > 0
+  const panelStyle = (config.dragToClose || config.dragUpToExpand || config.dragDownToCollapse) && drag.offset !== 0
     ? { transform: `translateY(${drag.offset}px)` }
     : undefined;
   const handleHeaderClassName = config.showHandle && !config.title && !config.closeLabel
@@ -83,7 +92,7 @@ export function SheetView({ required, provided }: SheetViewProps) {
                 <span
                   className={styles.handle}
                   aria-hidden
-                  data-testid={config.dragToClose ? 'sheet-drag-handle' : undefined}
+                  data-testid={config.dragToClose || config.dragUpToExpand || config.dragDownToCollapse ? 'sheet-drag-handle' : undefined}
                 />
               ) : null}
               {config.title ? <h3>{config.title}</h3> : null}

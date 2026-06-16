@@ -49,3 +49,40 @@
 .composer-account-context--compact {
   padding-bottom: 0;
 }
+
+.composer-movement-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.composer-movement-context::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  content: "";
+}
+
+.composer-movement-context--expense {
+  color: #b42318;
+}
+
+.composer-movement-context--expense::before {
+  background: #b42318;
+}
+
+.composer-movement-context--income {
+  color: #027a48;
+}
+
+.composer-movement-context--income::before {
+  background: #027a48;
+}
+
+.composer-movement-context--transfer {
+  color: #175cd3;
+}
+
+.composer-movement-context--transfer::before {
+  background: #175cd3;
+}

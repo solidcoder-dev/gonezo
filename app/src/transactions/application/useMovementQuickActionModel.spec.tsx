@@ -31,7 +31,22 @@ describe('useMovementQuickActionModel', () => {
     expect(result.current.required.state.selectedAccountName).toBe('billetera');
   });
 
-  it('selects another account for the next movement without changing the resting favorite', async () => {
+  it('opens a compact draft with default expense and favorite account', async () => {
+    const ports = makePorts();
+    const { result } = renderHook(() => useMovementQuickActionModel({ ports, enabled: true }));
+
+    await waitFor(() => expect(result.current.required.status.loading).toBe(false));
+
+    act(() => {
+      result.current.provided.commands.openDraft();
+    });
+
+    expect(result.current.required.state.draftOpen).toBe(true);
+    expect(result.current.required.state.selectedAccountId).toBe('acc-2');
+    expect(result.current.required.state.selectedMovementType).toBe('expense');
+  });
+
+  it('selects account and type locally before expanding the draft', async () => {
     const onCreateMovementRequested = vi.fn();
     const ports = makePorts();
     const { result } = renderHook(() => useMovementQuickActionModel({
@@ -43,18 +58,27 @@ describe('useMovementQuickActionModel', () => {
     await waitFor(() => expect(result.current.required.status.loading).toBe(false));
 
     act(() => {
+      result.current.provided.commands.openDraft();
       result.current.provided.commands.selectAccount('acc-1');
+      result.current.provided.commands.selectMovementType('income');
     });
 
-    expect(result.current.required.state.selectedAccountId).toBe('acc-2');
-    expect(result.current.required.state.selectedAccountName).toBe('billetera');
+    expect(result.current.required.state.selectedAccountId).toBe('acc-1');
+    expect(result.current.required.state.selectedAccountName).toBe('Main');
+    expect(result.current.required.state.selectedMovementType).toBe('income');
     expect(result.current.required.state.accountSelectorOpen).toBe(false);
-    expect(onCreateMovementRequested).toHaveBeenCalledWith({ id: 'acc-1', name: 'Main' });
+    expect(onCreateMovementRequested).not.toHaveBeenCalled();
 
     act(() => {
-      result.current.provided.commands.createMovement();
+      result.current.provided.commands.expandDraft();
     });
 
-    expect(onCreateMovementRequested).toHaveBeenLastCalledWith({ id: 'acc-2', name: 'billetera' });
+    expect(onCreateMovementRequested).toHaveBeenCalledWith({
+      account: { id: 'acc-1', name: 'Main' },
+      type: 'income',
+    });
+    expect(result.current.required.state.draftOpen).toBe(false);
+    expect(result.current.required.state.selectedAccountId).toBe('acc-2');
+    expect(result.current.required.state.selectedMovementType).toBe('expense');
   });
 });

@@ -71,6 +71,7 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
       provided={{
         onOpen: provided.commands.open,
         onClose: provided.commands.close,
+        onCollapse: provided.commands.collapse,
         onSelectMode: provided.commands.selectMode,
         onToggleAdvanced: provided.commands.toggleAdvanced,
         onSetAmount: provided.commands.setAmount,

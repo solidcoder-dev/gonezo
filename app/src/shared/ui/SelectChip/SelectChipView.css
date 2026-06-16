@@ -1,0 +1,53 @@
+.select-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-subtle, #deded6);
+  border-radius: 999px;
+  background: var(--color-background-surface, #fff);
+  color: inherit;
+  font: inherit;
+  font-weight: 650;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.select-chip--expense {
+  border-color: rgba(180, 35, 24, 0.3);
+  background: #fef3f2;
+  color: #b42318;
+}
+
+.select-chip--income {
+  border-color: rgba(2, 122, 72, 0.3);
+  background: #ecfdf3;
+  color: #027a48;
+}
+
+.select-chip--transfer {
+  border-color: rgba(23, 92, 211, 0.3);
+  background: #eff8ff;
+  color: #175cd3;
+}
+
+.select-chip:disabled {
+  opacity: 0.64;
+}
+
+.select-chip:active:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.select-chip:focus-visible {
+  outline: 2px solid var(--accent, #111);
+  outline-offset: 2px;
+}
+
+.select-chip-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

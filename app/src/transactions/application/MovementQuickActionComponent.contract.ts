@@ -1,4 +1,5 @@
 import type { LedgerListAccountsResult } from '../../ledger/application/ledger.port';
+import type { TransactionType } from './transactions.types';
 
 export type MovementQuickActionPreferencesPort = {
   preferencesGet(): Promise<{ defaultAccountId?: string | null }>;
@@ -17,12 +18,17 @@ export type MovementQuickActionComponentRequired = {
   config: {
     enabled: boolean;
     refreshSignal: boolean;
+    draftRequest?: {
+      requestId: number;
+      account: { id: string; name: string };
+      type: TransactionType;
+    };
   };
 };
 
 export type MovementQuickActionComponentProvided = {
   events?: {
-    onCreateMovementRequested?: (account: { id: string; name: string }) => void;
+    onCreateMovementRequested?: (movement: { account: { id: string; name: string }; type: TransactionType }) => void;
     onError?: (error: { message: string }) => void;
   };
 };

@@ -45,8 +45,10 @@ export type TransactionEntryComponentRequired = {
     enabled: boolean;
     prefillRequest?: TransactionEntryPrefillRequest;
     openSignal?: number;
+    initialMode?: Exclude<ComposerMode, 'picker'>;
     movementAccountContext?: {
       name: string;
+      type?: Exclude<ComposerMode, 'picker'>;
     };
   };
 };
@@ -55,6 +57,7 @@ export type TransactionEntryComponentProvided = {
   events?: {
     onRecorded?: () => void;
     onClosed?: () => void;
+    onCollapsed?: () => void;
     onError?: (error: { message: string }) => void;
   };
 };

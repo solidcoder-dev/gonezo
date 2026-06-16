@@ -94,6 +94,30 @@ describe('SheetView', () => {
     expect(close).toHaveBeenCalledTimes(1);
   });
 
+  it('collapses instead of closing when drag down collapse is configured', () => {
+    const close = vi.fn();
+    const collapse = vi.fn();
+    render(
+      <SheetView
+        required={{
+          config: { ariaLabel: 'Composer', showHandle: true, dragDownToCollapse: true },
+          data: { body: <p>Content</p> },
+          state: { open: true },
+          status: {},
+        }}
+        provided={{ commands: { close, collapse } }}
+      />,
+    );
+
+    const handle = screen.getByTestId('sheet-drag-handle');
+    fireEvent.pointerDown(handle, { clientY: 100, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerMove(handle, { clientY: 220, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerUp(handle, { clientY: 220, pointerId: 1, pointerType: 'touch' });
+
+    expect(collapse).toHaveBeenCalledTimes(1);
+    expect(close).not.toHaveBeenCalled();
+  });
+
   it('renders nothing when closed', () => {
     render(
       <SheetView

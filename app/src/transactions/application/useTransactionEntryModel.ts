@@ -18,23 +18,18 @@ import { useTransactionTaxonomyModel } from './useTransactionTaxonomyModel';
 import { useTransactionTransferFxModel } from './useTransactionTransferFxModel';
 import { useTransactionEntryOpenSignal } from './useTransactionEntryOpenSignal';
 import { nextRecurrenceDateIso } from '../../shared/domain/nextRecurrenceDate';
+import { applyTransactionEntryInitialMode, type TransactionEntryInitialMode } from './transactionEntryInitialMode';
 
 export type TransactionEntryModelPorts = {
   ledger: LedgerGatewayPort; scheduling: SchedulingGatewayPort; expected: ExpectedGatewayPort; taxonomy: TaxonomyGatewayPort;
 };
 
 export type TransactionEntryModelClock = {
-  now(): Date;
-  todayIso(): string;
-  resolveOccurredAt(dateInput: string): string;
-  dayOfMonthFromDateInput(dateInput: string): string;
-  weekDayIsoFromDateInput(dateInput: string): string;
-  resolveTimeZoneId(): string;
+  now(): Date; todayIso(): string; resolveOccurredAt(dateInput: string): string;
+  dayOfMonthFromDateInput(dateInput: string): string; weekDayIsoFromDateInput(dateInput: string): string; resolveTimeZoneId(): string;
 };
 
-export type TransactionEntryModelIdGenerator = {
-  nextId(): string;
-};
+export type TransactionEntryModelIdGenerator = { nextId(): string };
 
 type UseTransactionEntryModelInput = {
   ports: TransactionEntryModelPorts;
@@ -42,9 +37,8 @@ type UseTransactionEntryModelInput = {
   idGenerator: TransactionEntryModelIdGenerator;
   accountId: string | null;
   enabled: boolean;
-  prefillRequest?: TransactionEntryPrefillRequest; openSignal?: number; movementAccountContext?: { name: string };
-  onRecorded?: () => void; onClosed?: () => void;
-  onError?: (error: { message: string }) => void;
+  prefillRequest?: TransactionEntryPrefillRequest; openSignal?: number; initialMode?: TransactionEntryInitialMode; movementAccountContext?: { name: string; type?: TransactionEntryInitialMode };
+  onRecorded?: () => void; onClosed?: () => void; onCollapsed?: () => void; onError?: (error: { message: string }) => void;
 };
 
 function toErrorMessage(error: unknown): string {
@@ -70,7 +64,7 @@ function resolveSubmitExpectedIntent(event: FormEvent, fallback: boolean): boole
 }
 
 export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
-  const { ports, clock, idGenerator, accountId, enabled, prefillRequest, openSignal, movementAccountContext, onRecorded, onClosed, onError } = input;
+  const { ports, clock, idGenerator, accountId, enabled, prefillRequest, openSignal, initialMode, movementAccountContext, onRecorded, onClosed, onCollapsed, onError } = input;
   const initialToday = clock.todayIso();
 
   const [loading, setLoading] = useState(true);
@@ -343,6 +337,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setError('');
     setComposerOpen(true);
     resetComposerState();
+    applyTransactionEntryInitialMode(initialMode, setComposerMode, () => {
+      setExpectedMovement(false);
+      syncForTransferMode();
+    });
 
     void (async () => {
       try {
@@ -355,10 +353,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
   useTransactionEntryOpenSignal(openSignal, enabled, accountId, openTransactionComposer);
 
-  function closeTransactionComposer() {
+  function finishTransactionComposer(callback?: () => void) {
     setComposerOpen(false);
     resetComposerState();
-    onClosed?.();
+    callback?.();
   }
 
   function selectComposerMode(mode: Exclude<ComposerMode, 'picker'>) {
@@ -595,7 +593,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const provided: TransactionEntryViewProvided = {
     commands: {
       open: openTransactionComposer,
-      close: closeTransactionComposer,
+      close: () => finishTransactionComposer(onClosed),
+      collapse: () => finishTransactionComposer(onCollapsed),
       selectMode: selectComposerMode,
       toggleAdvanced: () => setComposerAdvancedOpen((previous) => !previous),
       setAmount: setTransactionAmountValue,

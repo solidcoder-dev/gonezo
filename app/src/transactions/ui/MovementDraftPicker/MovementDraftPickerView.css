@@ -1,0 +1,32 @@
+.movement-draft-picker-panel {
+  max-width: 420px;
+}
+
+.movement-draft-picker-content {
+  display: grid;
+  gap: 16px;
+}
+
+.movement-draft-picker-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 750;
+}
+
+.movement-draft-picker-chips {
+  display: grid;
+  grid-template-columns: minmax(112px, 1fr) minmax(112px, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.movement-draft-picker-chips .select-chip {
+  width: 100%;
+}
+
+.movement-draft-picker-hint {
+  margin: 0;
+  color: var(--muted, #6b7280);
+  font-size: 0.82rem;
+  text-align: center;
+}

@@ -53,6 +53,7 @@ export type TransactionEntryViewRequired = {
     currencyCode?: string;
     movementAccountContext?: {
       name: string;
+      type?: Exclude<ComposerMode, 'picker'>;
     };
   };
   status: {
@@ -66,6 +67,7 @@ export type TransactionEntryViewProvided = {
   commands: {
     open: () => void;
     close: () => void;
+    collapse?: () => void;
     selectMode: (mode: Exclude<ComposerMode, 'picker'>) => void;
     toggleAdvanced: () => void;
     setAmount: (value: string) => void;

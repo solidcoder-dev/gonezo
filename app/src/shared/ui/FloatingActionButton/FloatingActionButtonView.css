@@ -1,0 +1,31 @@
+.floating-action-button {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + var(--app-safe-area-bottom));
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  transform: translateX(-50%);
+  border: 0;
+  border-radius: 999px;
+  background: #20201e;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+  color: #fff;
+  font-size: 24px;
+}
+
+.floating-action-button:disabled {
+  opacity: 0.68;
+}
+
+.floating-action-button:active:not(:disabled) {
+  background: #2b2b28;
+}
+
+.floating-action-button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.72);
+  outline-offset: -4px;
+}

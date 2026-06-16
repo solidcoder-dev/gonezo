@@ -80,6 +80,7 @@ export type TransactionComposerViewRequired = {
   currencyCode?: string;
   movementAccountContext?: {
     name: string;
+    type?: Exclude<ComposerMode, 'picker'>;
   };
   expenseItemNameError?: string;
   expenseItemAmountError?: string;
@@ -97,6 +98,7 @@ export type TransactionComposerViewRequired = {
 export type TransactionComposerViewProvided = {
   onOpen: () => void;
   onClose: () => void;
+  onCollapse?: () => void;
   onSelectMode: (mode: Exclude<ComposerMode, 'picker'>) => void;
   onToggleAdvanced: () => void;
   onSetAmount: (value: string) => void;
@@ -236,6 +238,7 @@ export function TransactionComposerView({ required, provided }: Props) {
   } = required;
   const {
     onClose,
+    onCollapse,
     onSelectMode,
     onSetAmount,
     onSetDate,
@@ -280,6 +283,12 @@ export function TransactionComposerView({ required, provided }: Props) {
 
   const amountInputRef = useRef<HTMLInputElement | null>(null);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
+  const movementContextType = movementAccountContext?.type && mode !== 'picker'
+    ? movementAccountContext.type
+    : undefined;
+  const movementContextLabel = movementContextType
+    ? `${titleCase(movementContextType)} · ${movementAccountContext?.name ?? ''}`
+    : movementAccountContext?.name;
 
   useEffect(() => {
     if (open && mode !== 'picker') {
@@ -386,7 +395,8 @@ export function TransactionComposerView({ required, provided }: Props) {
             ariaLabel: 'Transaction composer',
             panelClassName: 'composer-sheet',
             showHandle: true,
-            dragToClose: true,
+            dragToClose: !onCollapse,
+            dragDownToCollapse: Boolean(onCollapse),
           },
           data: {
             body: mode === 'picker' ? (
@@ -412,8 +422,10 @@ export function TransactionComposerView({ required, provided }: Props) {
             <div className="composer-form-content stack">
               {movementAccountContext?.name ? (
                 <div className="composer-account-context composer-account-context--compact">
-                  <span>Movement for</span>
-                  <strong>{movementAccountContext.name}</strong>
+                  <span>New movement</span>
+                  <strong className={movementContextType ? `composer-movement-context composer-movement-context--${movementContextType}` : undefined}>
+                    {movementContextLabel}
+                  </strong>
                 </div>
               ) : null}
               <TransactionMainFieldsView
@@ -604,7 +616,7 @@ export function TransactionComposerView({ required, provided }: Props) {
           state: { open: true },
           status: {},
         }}
-        provided={{ commands: { close: onClose } }}
+        provided={{ commands: { close: onClose, collapse: onCollapse } }}
       />
       <SheetView
         required={{

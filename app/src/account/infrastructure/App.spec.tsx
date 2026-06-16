@@ -697,7 +697,16 @@ function makeCore(transactionCount = 0): AppTestPort {
 
 async function openMode(mode: 'Expense' | 'Income' | 'Transfer') {
   fireEvent.click(screen.getByRole('button', { name: 'Add movement' }));
-  fireEvent.click(await screen.findByRole('button', { name: mode }));
+  const draft = await screen.findByRole('dialog', { name: 'New movement draft' });
+  if (mode !== 'Expense') {
+    fireEvent.click(within(draft).getByRole('button', { name: 'Choose movement type: Expense' }));
+    const typeSelector = await screen.findByRole('dialog', { name: 'Movement type' });
+    fireEvent.click(within(typeSelector).getByRole('button', { name: mode }));
+  }
+  const handle = screen.getByTestId('sheet-drag-handle');
+  fireEvent.pointerDown(handle, { clientY: 320, pointerId: 1, pointerType: 'touch' });
+  fireEvent.pointerMove(handle, { clientY: 240, pointerId: 1, pointerType: 'touch' });
+  fireEvent.pointerUp(handle, { clientY: 240, pointerId: 1, pointerType: 'touch' });
 }
 
 async function openNewSplitItemDialog() {
@@ -784,7 +793,21 @@ describe('App Accounts UX', () => {
     });
   });
 
-  it('opens movement type selection for the chosen account and resets the button to the favorite after save', async () => {
+  function dragMovementDraftUp() {
+    const handle = screen.getByTestId('sheet-drag-handle');
+    fireEvent.pointerDown(handle, { clientY: 320, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerMove(handle, { clientY: 240, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerUp(handle, { clientY: 240, pointerId: 1, pointerType: 'touch' });
+  }
+
+  function dragComposerDown(composer: HTMLElement) {
+    const handle = within(composer).getByTestId('sheet-drag-handle');
+    fireEvent.pointerDown(handle, { clientY: 240, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerMove(handle, { clientY: 360, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerUp(handle, { clientY: 360, pointerId: 1, pointerType: 'touch' });
+  }
+
+  it('opens an expense composer for the chosen account and resets the draft defaults after save', async () => {
     const core = makeCore();
     vi.mocked(core.preferencesGet).mockResolvedValue({ defaultAccountId: 'acc-2' });
 
@@ -794,21 +817,21 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    const quickAction = await screen.findByRole('group', { name: 'New movement action' });
-    expect(within(quickAction).getByText('Savings')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
+    const draft = await screen.findByRole('dialog', { name: 'New movement draft' });
+    expect(within(draft).getByRole('button', { name: 'Choose account: Savings' })).toBeInTheDocument();
+    expect(within(draft).getByRole('button', { name: 'Choose movement type: Expense' })).toBeInTheDocument();
 
-    fireEvent.click(within(quickAction).getByRole('button', { name: 'Choose account for new movement: Savings' }));
+    fireEvent.click(within(draft).getByRole('button', { name: 'Choose account: Savings' }));
     const selector = await screen.findByRole('dialog', { name: 'Account for new movement' });
     fireEvent.click(within(selector).getByRole('button', { name: 'Main' }));
+    dragMovementDraftUp();
 
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
-    expect(within(composer).getByText('Movement for')).toBeInTheDocument();
-    expect(within(composer).getByText('Main')).toBeInTheDocument();
-    expect(within(composer).getByRole('button', { name: 'Expense' })).toBeInTheDocument();
-    expect(within(quickAction).getByText('Savings')).toBeInTheDocument();
+    expect(within(composer).getByText('New movement')).toBeInTheDocument();
+    expect(within(composer).getByText('Expense · Main')).toHaveClass('composer-movement-context--expense');
+    expect(within(composer).queryByRole('button', { name: 'Expense' })).not.toBeInTheDocument();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Expense' }));
-    expect(await screen.findByText('Main')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
@@ -820,10 +843,13 @@ describe('App Accounts UX', () => {
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
     });
-    expect(within(quickAction).getByText('Savings')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
+    const resetDraft = await screen.findByRole('dialog', { name: 'New movement draft' });
+    expect(within(resetDraft).getByRole('button', { name: 'Choose account: Savings' })).toBeInTheDocument();
+    expect(within(resetDraft).getByRole('button', { name: 'Choose movement type: Expense' })).toBeInTheDocument();
   });
 
-  it('resets the movement split action to the favorite after closing without saving', async () => {
+  it('resets the movement draft defaults after closing without saving', async () => {
     const core = makeCore();
     vi.mocked(core.preferencesGet).mockResolvedValue({ defaultAccountId: 'acc-2' });
 
@@ -833,18 +859,28 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    const quickAction = await screen.findByRole('group', { name: 'New movement action' });
-    fireEvent.click(within(quickAction).getByRole('button', { name: 'Choose account for new movement: Savings' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
+    const draft = await screen.findByRole('dialog', { name: 'New movement draft' });
+    fireEvent.click(within(draft).getByRole('button', { name: 'Choose account: Savings' }));
     const selector = await screen.findByRole('dialog', { name: 'Account for new movement' });
     fireEvent.click(within(selector).getByRole('button', { name: 'Main' }));
+    dragMovementDraftUp();
 
-    expect(await screen.findByRole('dialog', { name: 'Transaction composer' })).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('sheet-backdrop'));
+    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    expect(within(composer).getByText('Expense · Main')).toBeInTheDocument();
+    dragComposerDown(composer);
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
     });
-    expect(within(quickAction).getByText('Savings')).toBeInTheDocument();
+    const restoredDraft = await screen.findByRole('dialog', { name: 'New movement draft' });
+    expect(within(restoredDraft).getByRole('button', { name: 'Choose account: Main' })).toBeInTheDocument();
+    expect(within(restoredDraft).getByRole('button', { name: 'Choose movement type: Expense' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('sheet-backdrop'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
+    const resetDraft = await screen.findByRole('dialog', { name: 'New movement draft' });
+    expect(within(resetDraft).getByRole('button', { name: 'Choose account: Savings' })).toBeInTheDocument();
   });
 
   it('refreshes the movement split action accounts after creating an account', async () => {
@@ -906,8 +942,9 @@ describe('App Accounts UX', () => {
     });
     expect(await screen.findByRole('button', { name: 'Travel' })).toBeInTheDocument();
 
-    const quickAction = await screen.findByRole('group', { name: 'New movement action' });
-    fireEvent.click(within(quickAction).getByRole('button', { name: 'Choose account for new movement: Main' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
+    const draft = await screen.findByRole('dialog', { name: 'New movement draft' });
+    fireEvent.click(within(draft).getByRole('button', { name: 'Choose account: Main' }));
     const selector = await screen.findByRole('dialog', { name: 'Account for new movement' });
 
     expect(within(selector).getByRole('button', { name: 'Travel' })).toBeInTheDocument();
