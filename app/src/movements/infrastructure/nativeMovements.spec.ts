@@ -4,11 +4,12 @@ import type { LedgerPort } from '../../ledger/application/ledger.port';
 import type { MovementsQueryPort } from '../application/movements.port';
 import type { SchedulingMovementItem, SchedulingPort } from '../../scheduling/application/scheduling.port';
 import type { TaxonomyPort } from '../../taxonomy/application/taxonomy.port';
-import { listNativeScheduledMovements, searchNativeMovements } from './nativeMovements';
+import { getNativeMovementsMonthOverview, listNativeScheduledMovements, searchNativeMovements } from './nativeMovements';
 
 type NativeMovementsPort = Pick<
   LedgerPort & ExpectedPort & TaxonomyPort & MovementsQueryPort & SchedulingPort,
   | 'ledgerListTransactions'
+  | 'ledgerListAccounts'
   | 'expectedListMovements'
   | 'taxonomyListCategories'
   | 'movementsListScheduled'
@@ -45,6 +46,7 @@ function scheduledMovement(
 function nativeMovementsPort(overrides: Partial<NativeMovementsPort> = {}): NativeMovementsPort {
   return {
     ledgerListTransactions: vi.fn(),
+    ledgerListAccounts: vi.fn(async () => ({ items: [] })),
     expectedListMovements: vi.fn(),
     taxonomyListCategories: vi.fn(),
     movementsListScheduled: vi.fn(),
@@ -54,6 +56,74 @@ function nativeMovementsPort(overrides: Partial<NativeMovementsPort> = {}): Nati
 }
 
 describe('nativeMovements', () => {
+  it('builds all-account month overview by collecting each native account', async () => {
+    const core = nativeMovementsPort({
+      ledgerListAccounts: vi.fn(async () => ({
+        items: [
+          { id: 'account-1', name: 'Main', type: 'cash', currency: 'USD', status: 'active' },
+          { id: 'account-2', name: 'Savings', type: 'cash', currency: 'USD', status: 'active' },
+        ],
+      })),
+      ledgerListTransactions: vi.fn(async (input) => ({
+        content: input.accountId === 'account-1'
+          ? [{
+            id: 'tx-main',
+            accountId: 'account-1',
+            type: 'expense' as const,
+            status: 'posted' as const,
+            amount: '12.00',
+            currency: 'USD',
+            occurredAt: '2026-06-10T12:00:00.000Z',
+            merchant: 'Main market',
+            items: [],
+          }]
+          : [{
+            id: 'tx-savings',
+            accountId: 'account-2',
+            type: 'income' as const,
+            status: 'posted' as const,
+            amount: '5.00',
+            currency: 'USD',
+            occurredAt: '2026-06-11T12:00:00.000Z',
+            merchant: 'Savings bank',
+            items: [],
+          }],
+        page: 0,
+        size: 100,
+        totalElements: 1,
+        totalPages: 1,
+        hasNext: false,
+        hasPrevious: false,
+      })),
+      movementsListScheduled: vi.fn(async () => ({
+        content: [],
+        page: 0,
+        size: 100,
+        totalElements: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
+      })),
+      expectedListMovements: vi.fn(async () => ({ items: [] })),
+    });
+
+    const result = await getNativeMovementsMonthOverview(core, {
+      filters: {
+        fromDate: '2026-06-01',
+        toDate: '2026-06-30',
+      },
+      executedPagination: {
+        page: 0,
+        size: 100,
+      },
+    });
+
+    expect(core.ledgerListAccounts).toHaveBeenCalled();
+    expect(core.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({ accountId: 'account-1' }));
+    expect(core.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({ accountId: 'account-2' }));
+    expect(result.executedPage.content.map((item) => item.id)).toEqual(['tx-savings', 'tx-main']);
+  });
+
   it('filters and paginates scheduled movements through the focused native helper', async () => {
     const core = nativeMovementsPort({
       schedulingListMovements: vi.fn(async () => ({

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { TransactionHistoryItemView } from '../../../transactions/application/transactionView.types';
 import type { ExpectedMovementView, ScheduledMovementView } from '../../application/movementsView.types';
 import {
+  buildPostedMovementRowData,
   buildExpectedMovementDetailData,
   buildPostedMovementDetailData,
   buildScheduledMovementDetailData,
@@ -67,6 +68,16 @@ function scheduled(input: Partial<ScheduledMovementView> = {}): ScheduledMovemen
 
 describe('monthly movement detail builders', () => {
   const now = new Date('2026-05-14T00:00:00');
+
+  it('builds posted row data with account metadata as the primary detail', () => {
+    const data = buildPostedMovementRowData(posted({ accountName: 'Main wallet' }));
+
+    expect(data.details).toEqual([
+      { key: 'account', value: 'Main wallet', primary: true },
+      'Food',
+      '#work',
+    ]);
+  });
 
   it('builds posted transaction detail data', () => {
     const data = buildPostedMovementDetailData(posted(), { now });

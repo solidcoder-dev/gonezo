@@ -10,7 +10,7 @@ import type { SchedulingMovementItem } from '../../scheduling/application/schedu
 import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/application/taxonomy.port';
 
 export type MovementsMonthOverviewInput = {
-  accountId: string;
+  accountId?: string;
   fromDate?: string;
   toDate?: string;
   postedPagination?: LedgerPageRequestInput;

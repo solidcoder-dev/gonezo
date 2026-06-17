@@ -140,6 +140,17 @@ export function compactTagNames(tags?: string[]): string | undefined {
   return visible.join(' ');
 }
 
+function compactRowDetails(
+  details: Array<MovementRowDataView['details'][number] | undefined>,
+): MovementRowDataView['details'] {
+  return details.filter((value): value is MovementRowDataView['details'][number] => {
+    if (!value) {
+      return false;
+    }
+    return typeof value !== 'string' || value.trim().length > 0;
+  });
+}
+
 export function groupExpectedMovementsByDate(items: ExpectedMovementView[], now = new Date()): ExpectedDateGroup[] {
   const sorted = [...items].sort((left, right) => {
     const dateComparison = left.expectedAt.localeCompare(right.expectedAt);
@@ -172,10 +183,11 @@ export function buildPostedMovementRowData(transaction: TransactionHistoryItemVi
       sign: txSign(transaction.type),
       label: txAmount(transaction.amount, transaction.currency),
     },
-    details: [
+    details: compactRowDetails([
+      transaction.accountName ? { key: 'account', value: transaction.accountName, primary: true } : undefined,
       transaction.category?.name,
       compactTags(transaction.tags),
-    ].filter((value): value is string => Boolean(value && value.trim().length > 0)),
+    ]),
   };
 }
 
@@ -191,12 +203,13 @@ export function buildExpectedMovementRowData(
       sign: movement.type === 'income' ? '+' : '-',
       label: txAmount(movement.amount, movement.currency),
     },
-    details: [
+    details: compactRowDetails([
+      movement.accountName ? { key: 'account', value: movement.accountName, primary: true } : undefined,
       `expected ${formatCalendarDay(movement.expectedAt, options.now)}`,
       expectedOrigin(movement),
       options.categoryName,
       movement.status,
-    ].filter((value): value is string => Boolean(value && value.trim().length > 0)),
+    ]),
   };
 }
 
@@ -212,11 +225,12 @@ export function buildScheduledMovementRowData(
       sign: movementAmountSign(movement.type),
       label: txAmount(movement.amount, movement.currency),
     },
-    details: [
+    details: compactRowDetails([
+      movement.accountName ? { key: 'account', value: movement.accountName, primary: true } : undefined,
       `${scheduledOrigin(movement)} · due ${formatCalendarDay(movement.nextDueAt ?? movement.startAt, options.now)}`,
       options.categoryName,
       compactTagNames(options.tagNames),
-    ].filter((value): value is string => Boolean(value && value.trim().length > 0)),
+    ]),
   };
 }
 

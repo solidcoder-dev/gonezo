@@ -3,6 +3,7 @@ import type {
   LedgerListTransactionsResult,
 } from '../application/ledger.port';
 import type { WebLedgerTransaction } from '../../core/infrastructure/webAppState';
+import { parseDateFilterEpoch } from '../../shared/domain/dateFilterRange';
 
 export function listWebLedgerTransactions(
   input: LedgerListTransactionsInput,
@@ -15,8 +16,8 @@ export function listWebLedgerTransactions(
   const page = Number.isFinite(requestedPage) && requestedPage >= 0 ? Math.trunc(requestedPage) : 0;
   const size = Number.isFinite(requestedSize) && requestedSize > 0 ? Math.min(Math.trunc(requestedSize), 100) : 20;
 
-  const fromDateEpoch = filters.fromDate ? Date.parse(filters.fromDate) : undefined;
-  const toDateEpoch = filters.toDate ? Date.parse(filters.toDate) : undefined;
+  const fromDateEpoch = parseDateFilterEpoch(filters.fromDate, 'start');
+  const toDateEpoch = parseDateFilterEpoch(filters.toDate, 'end');
   const hasFromDateEpoch = typeof fromDateEpoch === 'number' && Number.isFinite(fromDateEpoch);
   const hasToDateEpoch = typeof toDateEpoch === 'number' && Number.isFinite(toDateEpoch);
   const textFilter = filters.text?.trim().toLowerCase();

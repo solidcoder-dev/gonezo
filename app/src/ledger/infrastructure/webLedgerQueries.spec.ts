@@ -90,4 +90,21 @@ describe('listWebLedgerTransactions', () => {
     expect(result.content[0]?.id).toBe('tx-2');
     expect(transactions.map((transaction) => transaction.id)).toEqual(['tx-1', 'tx-2', 'tx-3']);
   });
+
+  it('treats a date-only toDate filter as the end of that calendar day', () => {
+    const result = listWebLedgerTransactions(
+      {
+        accountId: 'account-1',
+        filters: {
+          fromDate: '2026-05-03',
+          toDate: '2026-05-03',
+          statuses: ['posted'],
+        },
+      },
+      transactions,
+      new Map(),
+    );
+
+    expect(result.content.map((transaction) => transaction.id)).toEqual(['tx-2']);
+  });
 });

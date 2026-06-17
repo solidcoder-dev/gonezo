@@ -1,4 +1,5 @@
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
+import { parseDateFilterEpoch } from '../../shared/domain/dateFilterRange';
 import type { SchedulingMovementItem } from './scheduling.port';
 
 export type StoredScheduledMovement = SchedulingMovementItem & {
@@ -149,8 +150,8 @@ function matchesAmountRange(
 }
 
 function parseDateRange(fromDate?: string, toDate?: string) {
-  const fromDateEpoch = fromDate ? Date.parse(fromDate) : undefined;
-  const toDateEpoch = toDate ? Date.parse(toDate) : undefined;
+  const fromDateEpoch = parseDateFilterEpoch(fromDate, 'start');
+  const toDateEpoch = parseDateFilterEpoch(toDate, 'end');
   return {
     fromDateEpoch,
     toDateEpoch,

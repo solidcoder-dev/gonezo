@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import type { TransactionsImportRequest, TransactionsImportResult } from '../../imports/application/transactionsImport.types';
-import { MovementQuickActionComponent, TransactionEntryComponent } from '../../transactions/index';
+import { MovementDockNavigationComponent, TransactionEntryComponent } from '../../transactions/index';
 import type { TransactionEntryPrefillRequest } from '../../transactions/application/TransactionEntryComponent.contract';
 import type { TransactionType } from '../../transactions/application/transactions.types';
 import { MonthlyMovementsComponent } from '../../movements/index';
@@ -17,6 +18,7 @@ import {
   postExpectedMovementToComposerPrefill,
   scheduledMovementToComposerPrefill,
 } from '../../account/application/movementComposerPrefill';
+import { ProfilePage } from './ProfilePage';
 
 export type WorkspacePageRequired = {
   core: AccountWorkspacePort;
@@ -34,6 +36,7 @@ function toErrorMessage(error: unknown): string {
 }
 
 export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
+  const location = useLocation();
   const [screenLoadPhase, setScreenLoadPhase] = useState<LoadPhase>('loading');
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [accountsCount, setAccountsCount] = useState(0);
@@ -62,6 +65,13 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
 
   const hasSelectedAccount = Boolean(selectedAccountId);
   const transactionEntryAccountId = movementEntryAccountId ?? selectedAccountId;
+  const currentPage = location.pathname.startsWith('/analytics')
+    ? 'analytics'
+    : location.pathname.startsWith('/movements') && !location.pathname.startsWith('/movements/search')
+      ? 'movements'
+      : location.pathname.startsWith('/profile')
+        ? 'profile'
+        : 'home';
 
   function handleSelectedAccountChanged(accountId: string | null) {
     setSelectedAccountId((previousAccountId) => {
@@ -183,6 +193,167 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     />
   );
 
+  const transactionEntry = transactionEntryAccountId
+    ? (
+        <TransactionEntryComponent
+          required={{
+            context: {
+              accountId: transactionEntryAccountId,
+              core: pageRequired.core,
+            },
+            config: {
+              enabled: Boolean(transactionEntryAccountId),
+              prefillRequest: transactionEntryPrefill,
+              openSignal: movementEntryOpenSignal,
+              initialMode: movementEntryType,
+              movementAccountContext: movementEntryAccountName ? { name: movementEntryAccountName, type: movementEntryType } : undefined,
+            },
+          }}
+          provided={{
+            events: {
+              onRecorded: () => {
+                setRecentTransactionsRefreshSignal((previous) => !previous);
+                setAccountSummaryRefreshSignal((previous) => !previous);
+                setTransactionEntryPrefill(undefined);
+                clearMovementEntryAccount();
+              },
+              onClosed: clearMovementEntryAccount,
+              onCollapsed: collapseMovementComposerToDraft,
+            },
+          }}
+        />
+      )
+    : null;
+
+  const dockNavigation = (
+    <MovementDockNavigationComponent
+      required={{
+        context: {
+          core: pageRequired.core,
+        },
+        config: {
+          enabled: true,
+          refreshSignal: movementQuickActionRefreshSignal,
+          draftRequest: movementDraftRequest,
+        },
+      }}
+      provided={{
+        events: {
+          onCreateMovementRequested: createMovementForAccount,
+        },
+      }}
+    />
+  );
+
+  const homeAccountSummary = hasSelectedAccount ? (
+    <AccountSummaryComponent
+      required={{
+        context: {
+          core: pageRequired.core,
+          accountId: selectedAccountId,
+        },
+        config: {
+          enabled: hasSelectedAccount,
+          refreshSignal: accountSummaryRefreshSignal,
+          headerSlot: accountHub,
+        },
+      }}
+      provided={{
+        events: {
+          onAccountMutated: () => {
+            setAccountHubRefreshSignal((previous) => !previous);
+            setAccountSummaryRefreshSignal((previous) => !previous);
+          },
+          onAccountDeleted: (accountId) => {
+            if (selectedAccountId === accountId) {
+              setSelectedAccountId(null);
+            }
+            setAccountHubRefreshSignal((previous) => !previous);
+            setAccountSummaryRefreshSignal((previous) => !previous);
+            setRecentTransactionsRefreshSignal((previous) => !previous);
+          },
+        },
+      }}
+    />
+  ) : null;
+
+  const movementsPage = (
+    <MonthlyMovementsComponent
+      required={{
+        context: {
+          accountId: null,
+          scope: 'all',
+          core: pageRequired.core,
+        },
+        config: {
+          enabled: true,
+          refreshSignal: recentTransactionsRefreshSignal,
+        },
+      }}
+      provided={{
+        events: {
+          onVoided: () => {
+            setAccountSummaryRefreshSignal((previous) => !previous);
+          },
+          onExpectedPosted: () => {
+            setAccountSummaryRefreshSignal((previous) => !previous);
+          },
+          onExpectedDismissed: () => {
+            setAccountSummaryRefreshSignal((previous) => !previous);
+          },
+          onPostExpectedMovement: postExpectedMovement,
+          onEditExpectedMovement: editExpectedMovement,
+          onEditScheduledMovement: editScheduledMovement,
+        },
+      }}
+    />
+  );
+
+  const profilePage = (
+    <ProfilePage
+      required={{
+        context: {
+          core: pageRequired.core,
+        },
+        config: {
+          refreshSignal: accountHubRefreshSignal,
+        },
+      }}
+      provided={{
+        events: {
+          onLoadPhaseChanged: setScreenLoadPhase,
+          onSelectedAccountChanged: handleSelectedAccountChanged,
+          onAccountsCountChanged: setAccountsCount,
+          onImportRequested: () => setImportSheetOpen(true),
+          onBackupRequested: () => {
+            void requestMovementsBackup().catch((err) => {
+              setToastMessage(toErrorMessage(err));
+              setToastActionLabel('');
+              setToastAction(null);
+            });
+          },
+          onAccountMutated: () => {
+            setAccountHubRefreshSignal((previous) => !previous);
+            setMovementQuickActionRefreshSignal((previous) => !previous);
+            setAccountSummaryRefreshSignal((previous) => !previous);
+          },
+          onError: (error) => {
+            setToastMessage(error.message);
+            setToastActionLabel('');
+            setToastAction(null);
+          },
+        },
+      }}
+    />
+  );
+
+  const analyticsPage = (
+    <section className="section-gap">
+      <h1>Analytics</h1>
+      <p className="hint">Coming soon</p>
+    </section>
+  );
+
   const required: AccountPageViewRequired = {
     screen: {
       loadPhase: screenLoadPhase,
@@ -193,120 +364,21 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       actionLabel: toastActionLabel,
     },
     sections: {
-      accountHub: hasSelectedAccount ? null : accountHub,
-      accountSummary: hasSelectedAccount ? (
-        <AccountSummaryComponent
-          required={{
-            context: {
-              core: pageRequired.core,
-              accountId: selectedAccountId,
-            },
-            config: {
-              enabled: hasSelectedAccount,
-              refreshSignal: accountSummaryRefreshSignal,
-              headerSlot: accountHub,
-            },
-          }}
-          provided={{
-            events: {
-              onAccountMutated: () => {
-                setAccountHubRefreshSignal((previous) => !previous);
-                setAccountSummaryRefreshSignal((previous) => !previous);
-              },
-              onAccountDeleted: (accountId) => {
-                if (selectedAccountId === accountId) {
-                  setSelectedAccountId(null);
-                }
-                setAccountHubRefreshSignal((previous) => !previous);
-                setAccountSummaryRefreshSignal((previous) => !previous);
-                setRecentTransactionsRefreshSignal((previous) => !previous);
-              },
-            },
-          }}
-        />
-      ) : null,
-      transactionEntry: hasSelectedAccount
-        ? (
-            <>
-              <TransactionEntryComponent
-                required={{
-                  context: {
-                    accountId: transactionEntryAccountId,
-                    core: pageRequired.core,
-                  },
-                  config: {
-                    enabled: hasSelectedAccount,
-                    prefillRequest: transactionEntryPrefill,
-                    openSignal: movementEntryOpenSignal,
-                    initialMode: movementEntryType,
-                    movementAccountContext: movementEntryAccountName ? { name: movementEntryAccountName, type: movementEntryType } : undefined,
-                  },
-                }}
-                provided={{
-                  events: {
-                    onRecorded: () => {
-                      setRecentTransactionsRefreshSignal((previous) => !previous);
-                      setAccountSummaryRefreshSignal((previous) => !previous);
-                      setTransactionEntryPrefill(undefined);
-                      clearMovementEntryAccount();
-                    },
-                    onClosed: clearMovementEntryAccount,
-                    onCollapsed: collapseMovementComposerToDraft,
-                  },
-                }}
-              />
-              <MovementQuickActionComponent
-                required={{
-                  context: {
-                    core: pageRequired.core,
-                  },
-                  config: {
-                    enabled: hasSelectedAccount,
-                    refreshSignal: movementQuickActionRefreshSignal,
-                    draftRequest: movementDraftRequest,
-                  },
-                }}
-                provided={{
-                  events: {
-                    onCreateMovementRequested: createMovementForAccount,
-                  },
-                }}
-              />
-            </>
-          )
-        : null,
-      recentTransactions: hasSelectedAccount
-        ? (
-            <MonthlyMovementsComponent
-              required={{
-                context: {
-                  accountId: selectedAccountId,
-                  core: pageRequired.core,
-                },
-                config: {
-                  enabled: hasSelectedAccount,
-                  refreshSignal: recentTransactionsRefreshSignal,
-                },
-              }}
-              provided={{
-                events: {
-                  onVoided: () => {
-                    setAccountSummaryRefreshSignal((previous) => !previous);
-                  },
-                  onExpectedPosted: () => {
-                    setAccountSummaryRefreshSignal((previous) => !previous);
-                  },
-                  onExpectedDismissed: () => {
-                    setAccountSummaryRefreshSignal((previous) => !previous);
-                  },
-                  onPostExpectedMovement: postExpectedMovement,
-                  onEditExpectedMovement: editExpectedMovement,
-                  onEditScheduledMovement: editScheduledMovement,
-                },
-              }}
-            />
-          )
-        : null,
+      accountHub: currentPage === 'home' && !hasSelectedAccount ? accountHub : null,
+      accountSummary: currentPage === 'home'
+        ? homeAccountSummary
+        : currentPage === 'analytics'
+          ? analyticsPage
+          : currentPage === 'profile'
+            ? profilePage
+            : null,
+      transactionEntry: (
+        <>
+          {transactionEntry}
+          {dockNavigation}
+        </>
+      ),
+      recentTransactions: currentPage === 'movements' ? movementsPage : null,
       transactionsImport: (
         <TransactionsImportComponent
           required={{

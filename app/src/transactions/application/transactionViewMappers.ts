@@ -31,6 +31,7 @@ export function mapTransactionHistoryList(input: LedgerTransactionListItem[]): T
   return input.map((item) => ({
     id: item.id,
     accountId: item.accountId,
+    accountName: item.accountName,
     occurredAt: item.occurredAt,
     description: item.description,
     merchant: item.merchant,

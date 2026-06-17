@@ -209,6 +209,70 @@ describe('WebMovementsService', () => {
     expect(result.executedPage.hasNext).toBe(true);
   });
 
+  it('includes archived account transactions in all-account month overview', async () => {
+    const { movements } = createSubject(createWebAppState({
+      ledgerAccounts: [
+        {
+          id: 'acc-active',
+          name: 'Cash',
+          type: 'cash',
+          currency: 'EUR',
+          status: 'active',
+          createdAt: '2026-06-01T00:00:00.000Z',
+        },
+        {
+          id: 'acc-archived',
+          name: 'Old wallet',
+          type: 'cash',
+          currency: 'EUR',
+          status: 'archived',
+          createdAt: '2026-06-01T00:00:00.000Z',
+          archivedAt: '2026-06-20T00:00:00.000Z',
+        },
+      ],
+      ledgerTransactions: [
+        {
+          id: 'posted-active',
+          accountId: 'acc-active',
+          type: 'expense',
+          status: 'posted',
+          amount: '12.00',
+          currency: 'EUR',
+          occurredAt: '2026-06-10T12:00:00.000Z',
+          merchant: 'Active cafe',
+          items: [],
+        },
+        {
+          id: 'posted-archived',
+          accountId: 'acc-archived',
+          type: 'expense',
+          status: 'posted',
+          amount: '9.00',
+          currency: 'EUR',
+          occurredAt: '2026-06-11T12:00:00.000Z',
+          merchant: 'Archived cafe',
+          items: [],
+        },
+      ],
+    }));
+
+    const result = await movements.getMonthOverview({
+      filters: {
+        fromDate: '2026-06-01T00:00:00.000Z',
+        toDate: '2026-06-30T23:59:59.999Z',
+      },
+      executedPagination: {
+        page: 0,
+        size: 10,
+      },
+    });
+
+    expect(result.executedPage.content.map((item) => item.id)).toEqual([
+      'posted-archived',
+      'posted-active',
+    ]);
+  });
+
   it('searches posted, expected and scheduled sources with source-specific mapping', async () => {
     const { movements } = createSubject(createWebAppState({
       ledgerAccounts: [

@@ -198,6 +198,7 @@ export type LedgerTransactionBreakdownItem = {
 export type LedgerTransactionListItem = {
   id: string;
   accountId: string;
+  accountName?: string;
   type: LedgerTransactionType;
   status: LedgerTransactionStatus;
   amount: string;

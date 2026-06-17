@@ -25,7 +25,11 @@ export function App({ required }: AppProps) {
   return (
     <Routes>
       <Route path="/" element={<WorkspacePage required={{ core: resolvedCore }} />} />
+      <Route path="/home" element={<WorkspacePage required={{ core: resolvedCore }} />} />
       <Route path="/accounts" element={<WorkspacePage required={{ core: resolvedCore }} />} />
+      <Route path="/analytics" element={<WorkspacePage required={{ core: resolvedCore }} />} />
+      <Route path="/movements" element={<WorkspacePage required={{ core: resolvedCore }} />} />
+      <Route path="/profile" element={<WorkspacePage required={{ core: resolvedCore }} />} />
       <Route path="/movements/search" element={<MovementsSearchPage required={{ core: resolvedCore }} />} />
       <Route path="/taxonomy" element={<TaxonomyPage required={{ core: resolvedCore }} />} />
     </Routes>

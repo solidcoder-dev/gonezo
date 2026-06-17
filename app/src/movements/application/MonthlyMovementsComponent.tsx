@@ -21,6 +21,7 @@ export type MonthlyMovementsComponentProps = {
   required: {
     context: {
       accountId: string | null;
+      scope?: 'account' | 'all';
       core: TransactionsPort;
     };
     config: {
@@ -51,6 +52,7 @@ export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMo
   const model = useMonthlyMovementsModel({
     ports,
     accountId: required.context.accountId,
+    scope: required.context.scope ?? 'account',
     enabled: required.config.enabled,
     refreshSignal: required.config.refreshSignal,
     clock: BROWSER_CLOCK,
@@ -64,7 +66,7 @@ export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMo
     onError: provided.events?.onError,
   });
 
-  if (!required.config.enabled || !required.context.accountId) {
+  if (!required.config.enabled || ((required.context.scope ?? 'account') === 'account' && !required.context.accountId)) {
     return null;
   }
 

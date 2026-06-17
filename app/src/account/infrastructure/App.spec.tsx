@@ -21,6 +21,24 @@ import type {
 
 type AppTestPort = AppPort & RecurrencePort & SchedulingPort & ExpectedPort & MovementsQueryPort;
 
+function uniqueById<T extends { id: string }>(items: T[]): T[] {
+  return Array.from(new Map(items.map((item) => [item.id, item])).values());
+}
+
+function parseDateFilterEpoch(value: string | undefined, boundary: 'start' | 'end'): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const normalized = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    const suffix = boundary === 'start' ? 'T00:00:00.000' : 'T23:59:59.999';
+    const epoch = Date.parse(`${normalized}${suffix}`);
+    return Number.isFinite(epoch) ? epoch : undefined;
+  }
+  const epoch = Date.parse(normalized);
+  return Number.isFinite(epoch) ? epoch : undefined;
+}
+
 function toPagedResult(
   source: LedgerTransactionListItem[],
   input: LedgerListTransactionsInput,
@@ -36,12 +54,14 @@ function toPagedResult(
   const parsedMaxAmount = filters.amountMax == null ? undefined : Number(filters.amountMax);
   const hasMinAmount = typeof parsedMinAmount === 'number' && Number.isFinite(parsedMinAmount);
   const hasMaxAmount = typeof parsedMaxAmount === 'number' && Number.isFinite(parsedMaxAmount);
+  const fromDateEpoch = parseDateFilterEpoch(filters.fromDate, 'start');
+  const toDateEpoch = parseDateFilterEpoch(filters.toDate, 'end');
   const size = input.pagination?.size ?? 20;
   const requestedPage = input.pagination?.page ?? 0;
   const sort = input.sort && input.sort.length > 0 ? input.sort : [{ field: 'occurredAt', direction: 'desc' as const }];
 
   const filtered = source
-    .filter((item) => item.accountId === input.accountId)
+    .filter((item) => input.accountId === '__all__' || item.accountId === input.accountId)
     .filter((item) => !filters.statuses || filters.statuses.length === 0 || filters.statuses.includes(item.status))
     .filter((item) => !filters.types || filters.types.length === 0 || filters.types.includes(item.type))
     .filter((item) => categoryIds.length === 0 || (item.categoryId != null && categoryIds.includes(item.categoryId)))
@@ -62,8 +82,8 @@ function toPagedResult(
       }
       return true;
     })
-    .filter((item) => !filters.fromDate || item.occurredAt >= filters.fromDate)
-    .filter((item) => !filters.toDate || item.occurredAt <= filters.toDate)
+    .filter((item) => fromDateEpoch == null || Date.parse(item.occurredAt) >= fromDateEpoch)
+    .filter((item) => toDateEpoch == null || Date.parse(item.occurredAt) <= toDateEpoch)
     .filter((item) => !filters.merchant || (item.merchant ?? '').toLowerCase().includes(filters.merchant.toLowerCase()))
     .filter((item) => {
       if (!filters.text) {
@@ -106,6 +126,20 @@ function toPagedResult(
   };
 }
 
+function toPagedResultForAccounts(
+  source: LedgerTransactionListItem[],
+  accountIds: string[],
+  input: Omit<LedgerListTransactionsInput, 'accountId'>,
+): LedgerListTransactionsResult {
+  return toPagedResult(
+    source.filter((item) => accountIds.includes(item.accountId)),
+    {
+      ...input,
+      accountId: '__all__',
+    },
+  );
+}
+
 function isoInCurrentMonth(day: number, hour = 12, minute = 0): string {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), day, hour, minute, 0, 0).toISOString();
@@ -126,16 +160,16 @@ function isScheduledVisibleForAccount(item: SchedulingMovementItem, accountId: s
 
 function filterScheduledForOverview(
   items: SchedulingMovementItem[],
-  input: { accountId: string; filters?: MovementsSearchFiltersInput } | MovementsListScheduledInput,
+  input: { accountId?: string; filters?: MovementsSearchFiltersInput } | MovementsListScheduledInput,
 ): SchedulingMovementItem[] {
   const filters = input.filters ?? {};
-  const fromDateEpoch = filters.fromDate ? Date.parse(filters.fromDate) : undefined;
-  const toDateEpoch = filters.toDate ? Date.parse(filters.toDate) : undefined;
+  const fromDateEpoch = parseDateFilterEpoch(filters.fromDate, 'start');
+  const toDateEpoch = parseDateFilterEpoch(filters.toDate, 'end');
   const hasFromDateEpoch = typeof fromDateEpoch === 'number' && Number.isFinite(fromDateEpoch);
   const hasToDateEpoch = typeof toDateEpoch === 'number' && Number.isFinite(toDateEpoch);
 
   return items
-    .filter((item) => isScheduledVisibleForAccount(item, input.accountId))
+    .filter((item) => !input.accountId || isScheduledVisibleForAccount(item, input.accountId))
     .filter((item) => {
       if (!hasFromDateEpoch && !hasToDateEpoch) {
         return true;
@@ -156,16 +190,16 @@ function filterScheduledForOverview(
 
 function filterExpectedForOverview(
   items: ExpectedMovementItem[],
-  input: { accountId: string; filters?: MovementsSearchFiltersInput },
+  input: { accountId?: string; filters?: MovementsSearchFiltersInput },
 ): ExpectedMovementItem[] {
   const filters = input.filters ?? {};
-  const fromDateEpoch = filters.fromDate ? Date.parse(filters.fromDate) : undefined;
-  const toDateEpoch = filters.toDate ? Date.parse(filters.toDate) : undefined;
+  const fromDateEpoch = parseDateFilterEpoch(filters.fromDate, 'start');
+  const toDateEpoch = parseDateFilterEpoch(filters.toDate, 'end');
   const hasFromDateEpoch = typeof fromDateEpoch === 'number' && Number.isFinite(fromDateEpoch);
   const hasToDateEpoch = typeof toDateEpoch === 'number' && Number.isFinite(toDateEpoch);
 
   return items
-    .filter((movement) => movement.accountId === input.accountId)
+    .filter((movement) => !input.accountId || movement.accountId === input.accountId)
     .filter((movement) => movement.status === 'pending')
     .filter((movement) => {
       if (!hasFromDateEpoch && !hasToDateEpoch) {
@@ -401,7 +435,7 @@ function makeCore(transactionCount = 0): AppTestPort {
     movementsGetMonthOverview: vi.fn(async (input: MovementsMonthOverviewInput) => {
       const fromDate = input.fromDate ?? input.filters?.fromDate;
       const toDate = input.toDate ?? input.filters?.toDate;
-      const postedPage = await core.ledgerListTransactions({
+      const postedPage = await (input.accountId ? core.ledgerListTransactions({
         accountId: input.accountId,
         filters: {
           fromDate,
@@ -413,7 +447,35 @@ function makeCore(transactionCount = 0): AppTestPort {
           size: 100,
         },
         sort: [{ field: 'occurredAt', direction: 'desc' as const }],
-      });
+      }) : (async () => {
+        const accountsResult = await core.ledgerListAccounts();
+        const accountIds = accountsResult.items.map((account) => account.id);
+        return Promise.all(accountIds.map((accountId) => core.ledgerListTransactions({
+          accountId,
+          filters: {
+            fromDate,
+            toDate,
+            statuses: ['posted' as const],
+          },
+          pagination: {
+            page: 0,
+            size: 100,
+          },
+          sort: [{ field: 'occurredAt', direction: 'desc' as const }],
+        }))).then((pages) => {
+          const content = uniqueById(pages.flatMap((page) => page?.content ?? []))
+            .sort((left, right) => right.occurredAt.localeCompare(left.occurredAt) || right.id.localeCompare(left.id));
+          return {
+            content,
+            page: 0,
+            size: content.length,
+            totalElements: content.length,
+            totalPages: content.length === 0 ? 0 : 1,
+            hasNext: false,
+            hasPrevious: false,
+          };
+        });
+      })());
 
       const allPosted = postedPage.content;
 
@@ -718,11 +780,21 @@ async function openSplitAmountEditor() {
 }
 
 async function expandExpectedMovements() {
+  await goToMovementsPage();
   fireEvent.click(await screen.findByRole('button', { name: /Expand expected movements/i }));
 }
 
 async function expandScheduledMovements() {
+  await goToMovementsPage();
   fireEvent.click(await screen.findByRole('button', { name: /Expand scheduled movements/i }));
+}
+
+async function goToMovementsPage() {
+  if (!screen.queryByRole('heading', { name: 'Movements' })) {
+    await screen.findByText('Net balance');
+    fireEvent.click(await screen.findByRole('button', { name: 'Movements' }));
+  }
+  await screen.findByRole('heading', { name: 'Movements' });
 }
 
 async function openImportSheetFromAccounts() {
@@ -791,6 +863,171 @@ describe('App Accounts UX', () => {
     await waitFor(() => {
       expect(core.ledgerGetAccountSummary).toHaveBeenCalledWith({ accountId: 'acc-2' });
     });
+  });
+
+  it('routes home, analytics, movements and profile from the bottom dock', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter initialEntries={['/home']}>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Net balance')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Primary navigation' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Analytics' }));
+    expect(await screen.findByRole('heading', { name: 'Analytics' })).toBeInTheDocument();
+    expect(screen.getByText('Coming soon')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Profile' }));
+    expect(await screen.findByText('Favorite account')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Import backup' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Movements' }));
+    expect(await screen.findByText('Posted')).toBeInTheDocument();
+  });
+
+  it('shows monthly movements across all accounts on movements page', async () => {
+    const core = makeCore();
+    const allTransactions: LedgerTransactionListItem[] = [
+      {
+        id: 'tx-main',
+        accountId: 'acc-1',
+        occurredAt: isoInCurrentMonth(3),
+        description: 'Main groceries',
+        merchant: 'Main market',
+        amount: '21.00',
+        currency: 'USD',
+        type: 'expense',
+        status: 'posted',
+        items: [],
+      },
+      {
+        id: 'tx-savings',
+        accountId: 'acc-2',
+        occurredAt: isoInCurrentMonth(4),
+        description: 'Savings interest',
+        merchant: 'Savings bank',
+        amount: '3.00',
+        currency: 'USD',
+        type: 'income',
+        status: 'posted',
+        items: [],
+      },
+    ];
+    core.movementsGetMonthOverview = vi.fn(async (input: MovementsMonthOverviewInput) => {
+      const accountIds = input.accountId ? [input.accountId] : ['acc-1', 'acc-2'];
+      const postedPage = toPagedResultForAccounts(allTransactions, accountIds, {
+        filters: {
+          fromDate: input.filters?.fromDate,
+          toDate: input.filters?.toDate,
+          statuses: ['posted'],
+        },
+        pagination: {
+          page: 0,
+          size: 100,
+        },
+        sort: [{ field: 'occurredAt', direction: 'desc' as const }],
+      });
+
+      return {
+        scheduledPreview: { items: [], total: 0, hasMore: false },
+        expectedPreview: emptyExpectedPreview(),
+        postedPage,
+        executedPage: postedPage,
+      };
+    });
+    core.movementsGetOverview = vi.fn(async (input: MovementsMonthOverviewInput) => core.movementsGetMonthOverview(input));
+
+    render(
+      <MemoryRouter initialEntries={['/movements']}>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Main market')).toBeInTheDocument();
+    expect(await screen.findByText('Savings bank')).toBeInTheDocument();
+    expect(await screen.findByText('Main')).toBeInTheDocument();
+    expect(await screen.findByText('Savings')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(core.movementsGetOverview).toHaveBeenCalledWith(expect.not.objectContaining({
+        accountId: expect.any(String),
+      }));
+    });
+  });
+
+  it('shows monthly movements from archived accounts on movements page', async () => {
+    const core = makeCore();
+    const allTransactions: LedgerTransactionListItem[] = [
+      {
+        id: 'tx-archived-june',
+        accountId: 'acc-archived',
+        occurredAt: isoInCurrentMonth(8),
+        description: 'Archived account movement',
+        merchant: 'Archived merchant',
+        amount: '14.00',
+        currency: 'USD',
+        type: 'expense',
+        status: 'posted',
+        items: [],
+      },
+    ];
+    vi.mocked(core.ledgerListAccounts).mockResolvedValue({
+      items: [
+        {
+          id: 'acc-1',
+          name: 'Main',
+          type: 'cash',
+          currency: 'USD',
+          status: 'active',
+        },
+        {
+          id: 'acc-archived',
+          name: 'Archived wallet',
+          type: 'cash',
+          currency: 'USD',
+          status: 'archived',
+        },
+      ],
+    });
+    vi.mocked(core.ledgerListTransactions).mockImplementation(async (input) => toPagedResult(allTransactions, input));
+
+    render(
+      <MemoryRouter initialEntries={['/movements']}>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Archived merchant')).toBeInTheDocument();
+  });
+
+  it('shows end-of-month posted movements in the monthly list', async () => {
+    const core = makeCore();
+    const allTransactions: LedgerTransactionListItem[] = [
+      {
+        id: 'tx-month-end',
+        accountId: 'acc-1',
+        occurredAt: isoInCurrentMonth(30, 23, 30),
+        description: 'Late month movement',
+        merchant: 'Late merchant',
+        amount: '18.00',
+        currency: 'USD',
+        type: 'expense',
+        status: 'posted',
+        items: [],
+      },
+    ];
+    vi.mocked(core.ledgerListTransactions).mockImplementation(async (input) => toPagedResult(allTransactions, input));
+
+    render(
+      <MemoryRouter initialEntries={['/movements']}>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Late merchant')).toBeInTheDocument();
   });
 
   function dragMovementDraftUp() {
@@ -1679,10 +1916,11 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Movements' });
+    await goToMovementsPage();
     await waitFor(() => {
-      expect(core.ledgerListTransactions).toHaveBeenCalledTimes(1);
+      expect(core.ledgerListTransactions).toHaveBeenCalled();
     });
+    const initialListCalls = vi.mocked(core.ledgerListTransactions).mock.calls.length;
 
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
@@ -1692,7 +1930,7 @@ describe('App Accounts UX', () => {
       expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
     });
     await waitFor(() => {
-      expect(core.ledgerListTransactions).toHaveBeenCalledTimes(2);
+      expect(core.ledgerListTransactions).toHaveBeenCalledTimes(initialListCalls * 2);
     });
     expect(await screen.findByText('Auto refresh merchant')).toBeInTheDocument();
   });
@@ -2088,6 +2326,7 @@ describe('App Accounts UX', () => {
       transactionId: 'tx-exp',
       tagNames: ['london', 'trip-2026'],
     });
+    await goToMovementsPage();
     expect(await screen.findByText('#london #trip-2026')).toBeInTheDocument();
 
     await openMode('Expense');
@@ -2481,7 +2720,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Movements' });
+    await goToMovementsPage();
     const movementRow = await screen.findByText('Merchant 1');
     fireEvent.click(movementRow.closest('button')!);
     const detailDialog = await screen.findByRole('dialog', { name: 'Transaction details' });
@@ -2502,7 +2741,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Movements' });
+    await goToMovementsPage();
     const movementRow = await screen.findByText('Merchant 1');
     fireEvent.click(movementRow.closest('button')!);
     const detailDialog = await screen.findByRole('dialog', { name: 'Transaction details' });
@@ -2560,7 +2799,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Movements' });
+    await goToMovementsPage();
 
     await waitFor(() => {
       expect(listTransactionTaxonomy).toHaveBeenCalledWith({ transactionIds: ['tx-1'] });
@@ -2583,11 +2822,11 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Movements' });
+    await goToMovementsPage();
     expect(screen.getByRole('link', { name: 'Search movements' })).toBeInTheDocument();
   });
 
-  it('links to advanced search with the current account id', async () => {
+  it('links to advanced search without an account filter from movements', async () => {
     const coreWithThree = makeCore(3);
 
     render(
@@ -2596,14 +2835,14 @@ describe('App Accounts UX', () => {
       </MemoryRouter>,
     );
 
-    await screen.findByRole('heading', { name: 'Movements' });
+    await goToMovementsPage();
     expect(screen.getByRole('link', { name: 'Search movements' })).toHaveAttribute(
       'href',
-      '/movements/search?accountId=acc-1',
+      '/movements/search?accountId=',
     );
   });
 
-  it('updates advanced-search link when switching account', async () => {
+  it('keeps the movements search link aggregated when switching account on home', async () => {
     const coreWithThree = makeCore(3);
 
     render(
@@ -2612,20 +2851,23 @@ describe('App Accounts UX', () => {
       </MemoryRouter>,
     );
 
-    await screen.findByRole('heading', { name: 'Movements' });
+    await goToMovementsPage();
     expect(screen.getByRole('link', { name: 'Search movements' })).toHaveAttribute(
       'href',
-      '/movements/search?accountId=acc-1',
+      '/movements/search?accountId=',
     );
 
+    fireEvent.click(screen.getByRole('button', { name: 'Home' }));
+    await screen.findByText('Net balance');
     fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
     await screen.findByRole('dialog', { name: 'Select account' });
     fireEvent.click(screen.getByRole('button', { name: /^Savings/ }));
+    await goToMovementsPage();
 
     await waitFor(() => {
       expect(screen.getByRole('link', { name: 'Search movements' })).toHaveAttribute(
         'href',
-        '/movements/search?accountId=acc-2',
+        '/movements/search?accountId=',
       );
     });
   });
@@ -3072,7 +3314,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>,
     );
 
-    await screen.findByRole('heading', { name: 'Movements' });
+    await goToMovementsPage();
     expect(screen.queryByRole('button', { name: 'More filters' })).not.toBeInTheDocument();
     const expectedSection = await screen.findByLabelText('Expected movements');
     expect(within(expectedSection).getByRole('heading', { name: 'Expected' })).toBeInTheDocument();
@@ -3155,6 +3397,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>,
     );
 
+    await goToMovementsPage();
     const postedRow = await screen.findByText('House bill');
     fireEvent.click(postedRow.closest('button')!);
 
@@ -3412,6 +3655,8 @@ describe('App Accounts UX', () => {
     await expandScheduledMovements();
     expect(await screen.findByText('Scheduled transfer')).toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole('button', { name: 'Home' }));
+    await screen.findByText('Net balance');
     fireEvent.click(await screen.findByRole('button', { name: 'Main' }));
     await screen.findByRole('dialog', { name: 'Select account' });
     fireEvent.click(screen.getByRole('button', { name: /^Savings/ }));

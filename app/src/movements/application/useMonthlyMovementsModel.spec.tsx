@@ -192,8 +192,8 @@ describe('useMonthlyMovementsModel', () => {
     expect(movementsGetOverview).toHaveBeenCalledWith(expect.objectContaining({
       accountId: 'account-1',
       filters: {
-        fromDate: new Date(2026, 4, 1, 0, 0, 0, 0).toISOString(),
-        toDate: new Date(2026, 4, 31, 23, 59, 59, 999).toISOString(),
+        fromDate: '2026-05-01',
+        toDate: '2026-05-31',
       },
     }));
     expect(ports.taxonomy.taxonomyListCategories).toHaveBeenCalledWith({ includeArchived: false });
@@ -260,8 +260,8 @@ describe('useMonthlyMovementsModel', () => {
 
     await waitFor(() => expect(movementsGetOverview).toHaveBeenCalledWith(expect.objectContaining({
       filters: {
-        fromDate: new Date(2026, 5, 1, 0, 0, 0, 0).toISOString(),
-        toDate: new Date(2026, 5, 30, 23, 59, 59, 999).toISOString(),
+        fromDate: '2026-06-01',
+        toDate: '2026-06-30',
       },
     })));
     expect(result.current.required.state.viewedMonthIndex).toBe(5);
@@ -334,6 +334,43 @@ describe('useMonthlyMovementsModel', () => {
     expect(movementsGetOverview).toHaveBeenCalledWith(expect.objectContaining({
       executedPagination: { page: 1, size: 100 },
     }));
+  });
+
+  it('hydrates account names for all-account monthly posted movements', async () => {
+    const transaction = postedTransaction({ accountId: 'account-2' });
+    const ports = makePorts({
+      ledger: {
+        ...makePorts().ledger,
+        ledgerListAccounts: vi.fn().mockResolvedValue({
+          items: [
+            { id: 'account-1', name: 'Main', type: 'cash', currency: 'USD', status: 'active' },
+            { id: 'account-2', name: 'Savings', type: 'cash', currency: 'USD', status: 'active' },
+          ],
+        }),
+      },
+      scheduling: {
+        ...makePorts().scheduling,
+        movementsGetOverview: vi.fn().mockResolvedValue(emptyOverview({
+          postedPage: pageWith([transaction]),
+          executedPage: pageWith([transaction]),
+        })),
+      },
+    });
+
+    const { result } = renderHook(() => useMonthlyMovementsModel({
+      ports,
+      accountId: null,
+      scope: 'all',
+      enabled: true,
+      refreshSignal: false,
+      clock: { now: () => new Date(2026, 4, 15, 9, 30, 0, 0) },
+      timers: makeTimers(),
+    }));
+
+    await waitFor(() => expect(result.current.required.state.items).toHaveLength(1));
+
+    expect(ports.ledger.ledgerListAccounts).toHaveBeenCalled();
+    expect(result.current.required.state.items[0].accountName).toBe('Savings');
   });
 
   it('supports undoing and committing a delayed void request', async () => {

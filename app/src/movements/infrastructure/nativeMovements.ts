@@ -2,6 +2,7 @@ import type { ExpectedMovementItem, ExpectedPort } from '../../expected/applicat
 import type { LedgerPort, LedgerTransactionListItem } from '../../ledger/application/ledger.port';
 import type { SchedulingMovementItem, SchedulingPort } from '../../scheduling/application/scheduling.port';
 import type { TaxonomyListCategoriesResult, TaxonomyPort } from '../../taxonomy/application/taxonomy.port';
+import { parseDateFilterEpoch } from '../../shared/domain/dateFilterRange';
 import type {
   MovementsListScheduledInput,
   MovementsListScheduledResult,
@@ -18,6 +19,7 @@ type ScheduledMovementFilters = MovementsSearchInput['filters'] | MovementsListS
 type NativeMovementsPort = Pick<
   LedgerPort & ExpectedPort & TaxonomyPort & MovementsQueryPort & SchedulingPort,
   | 'ledgerListTransactions'
+  | 'ledgerListAccounts'
   | 'expectedListMovements'
   | 'taxonomyListCategories'
   | 'movementsListScheduled'
@@ -55,8 +57,8 @@ function filterScheduledMovementItems(
   const parsedAmountMax = resolvedFilters.amountMax == null ? undefined : Number(resolvedFilters.amountMax);
   const hasAmountMin = typeof parsedAmountMin === 'number' && Number.isFinite(parsedAmountMin);
   const hasAmountMax = typeof parsedAmountMax === 'number' && Number.isFinite(parsedAmountMax);
-  const fromDateEpoch = resolvedFilters.fromDate ? Date.parse(resolvedFilters.fromDate) : undefined;
-  const toDateEpoch = resolvedFilters.toDate ? Date.parse(resolvedFilters.toDate) : undefined;
+  const fromDateEpoch = parseDateFilterEpoch(resolvedFilters.fromDate, 'start');
+  const toDateEpoch = parseDateFilterEpoch(resolvedFilters.toDate, 'end');
   const hasFromDateEpoch = typeof fromDateEpoch === 'number' && Number.isFinite(fromDateEpoch);
   const hasToDateEpoch = typeof toDateEpoch === 'number' && Number.isFinite(toDateEpoch);
 
@@ -187,8 +189,8 @@ function filterExpectedMovementItems(
   const parsedAmountMax = resolvedFilters.amountMax == null ? undefined : Number(resolvedFilters.amountMax);
   const hasAmountMin = typeof parsedAmountMin === 'number' && Number.isFinite(parsedAmountMin);
   const hasAmountMax = typeof parsedAmountMax === 'number' && Number.isFinite(parsedAmountMax);
-  const fromDateEpoch = resolvedFilters.fromDate ? Date.parse(resolvedFilters.fromDate) : undefined;
-  const toDateEpoch = resolvedFilters.toDate ? Date.parse(resolvedFilters.toDate) : undefined;
+  const fromDateEpoch = parseDateFilterEpoch(resolvedFilters.fromDate, 'start');
+  const toDateEpoch = parseDateFilterEpoch(resolvedFilters.toDate, 'end');
   const hasFromDateEpoch = typeof fromDateEpoch === 'number' && Number.isFinite(fromDateEpoch);
   const hasToDateEpoch = typeof toDateEpoch === 'number' && Number.isFinite(toDateEpoch);
 
@@ -286,63 +288,128 @@ function mapExpectedMovementToSearchItem(
   };
 }
 
+function uniqueById<T extends { id: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (seen.has(item.id)) {
+      return false;
+    }
+    seen.add(item.id);
+    return true;
+  });
+}
+
+function compareTransactions(direction: 'asc' | 'desc') {
+  return (left: LedgerTransactionListItem, right: LedgerTransactionListItem) => {
+    const comparison = left.occurredAt.localeCompare(right.occurredAt) || left.id.localeCompare(right.id);
+    return direction === 'asc' ? comparison : -comparison;
+  };
+}
+
+async function listPostedTransactionsForNativeAccounts(
+  core: NativeMovementsPort,
+  accountIds: string[],
+  input: MovementsMonthOverviewInput,
+  fromDate?: string,
+  toDate?: string,
+) {
+  const pageRequest = input.postedPagination ?? input.executedPagination;
+  const requestedPage = pageRequest?.page ?? 0;
+  const requestedSize = pageRequest?.size ?? 100;
+  const pages = await Promise.all(accountIds.map((accountId) => core.ledgerListTransactions({
+    accountId,
+    filters: {
+      fromDate,
+      toDate,
+      statuses: ['posted'],
+    },
+    pagination: {
+      page: 0,
+      size: requestedSize,
+    },
+    sort: input.sort ?? [{ field: 'occurredAt', direction: 'desc' }],
+  })));
+  const sorted = uniqueById(pages.flatMap((page) => page.content))
+    .sort(compareTransactions(input.sort?.[0]?.direction ?? 'desc'));
+  const totalElements = sorted.length;
+  const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / requestedSize);
+  const page = totalPages === 0 ? 0 : Math.min(Math.max(requestedPage, 0), totalPages - 1);
+  const start = page * requestedSize;
+
+  return {
+    content: sorted.slice(start, start + requestedSize),
+    page,
+    size: requestedSize,
+    totalElements,
+    totalPages,
+    hasNext: totalPages > 0 && page + 1 < totalPages,
+    hasPrevious: page > 0,
+  };
+}
+
 export async function getNativeMovementsMonthOverview(
   core: NativeMovementsPort,
   input: MovementsMonthOverviewInput,
 ): Promise<MovementsMonthOverviewResult> {
   const fromDate = input.fromDate ?? input.filters?.fromDate;
   const toDate = input.toDate ?? input.filters?.toDate;
+  const accountIds = input.accountId
+    ? [input.accountId]
+    : (await core.ledgerListAccounts()).items.map((account) => account.id);
   const expectedPreviewSize = input.expectedPreviewSize != null && input.expectedPreviewSize > 0
     ? Math.min(Math.trunc(input.expectedPreviewSize), 20)
     : 5;
   const scheduledItems: SchedulingMovementItem[] = [];
-  let scheduledPageIndex = 0;
-  let hasMoreScheduled = true;
-  while (hasMoreScheduled) {
-    const pageResult = await core.movementsListScheduled({
-      accountId: input.accountId,
-      filters: {
-        fromDate,
-        toDate,
-      },
-      pagination: {
-        page: scheduledPageIndex,
-        size: 100,
-      },
-    });
-    scheduledItems.push(...pageResult.content);
-    hasMoreScheduled = pageResult.hasNext;
-    scheduledPageIndex += 1;
-    if (!hasMoreScheduled || pageResult.content.length === 0) {
-      break;
+
+  for (const accountId of accountIds) {
+    let scheduledPageIndex = 0;
+    let hasMoreScheduled = true;
+    while (hasMoreScheduled) {
+      const pageResult = await core.movementsListScheduled({
+        accountId,
+        filters: {
+          fromDate,
+          toDate,
+        },
+        pagination: {
+          page: scheduledPageIndex,
+          size: 100,
+        },
+      });
+      scheduledItems.push(...pageResult.content);
+      hasMoreScheduled = pageResult.hasNext;
+      scheduledPageIndex += 1;
+      if (!hasMoreScheduled || pageResult.content.length === 0) {
+        break;
+      }
     }
   }
-  const expectedResult = await core.expectedListMovements({
-    accountId: input.accountId,
-  });
+  const expectedResults = await Promise.all(accountIds.map((accountId) => core.expectedListMovements({ accountId })));
   const expectedFiltered = sortExpectedMovementItems(
-    filterExpectedMovementItems(expectedResult.items, {
+    filterExpectedMovementItems(uniqueById(expectedResults.flatMap((result) => result.items)), {
       fromDate,
       toDate,
     }),
     [{ field: 'date', direction: 'asc' }],
   );
 
-  const postedPage = await core.ledgerListTransactions({
-    accountId: input.accountId,
-    filters: {
-      fromDate,
-      toDate,
-      statuses: ['posted'],
-    },
-    pagination: input.postedPagination ?? input.executedPagination,
-    sort: input.sort ?? [{ field: 'occurredAt', direction: 'desc' }],
-  });
+  const postedPage = input.accountId
+    ? await core.ledgerListTransactions({
+      accountId: input.accountId,
+      filters: {
+        fromDate,
+        toDate,
+        statuses: ['posted'],
+      },
+      pagination: input.postedPagination ?? input.executedPagination,
+      sort: input.sort ?? [{ field: 'occurredAt', direction: 'desc' }],
+    })
+    : await listPostedTransactionsForNativeAccounts(core, accountIds, input, fromDate, toDate);
 
   return {
     scheduledPreview: {
-      items: scheduledItems,
-      total: scheduledItems.length,
+      items: uniqueById(scheduledItems),
+      total: uniqueById(scheduledItems).length,
       hasMore: false,
     },
     expectedPreview: {

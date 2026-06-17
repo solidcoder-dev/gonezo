@@ -22,6 +22,7 @@ export type TransactionHistoryItemTypeView =
 export type TransactionHistoryItemView = {
   id: string;
   accountId: string;
+  accountName?: string;
   occurredAt: string;
   description?: string;
   merchant?: string;

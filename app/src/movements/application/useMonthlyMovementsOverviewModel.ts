@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import type { LedgerTransactionListItem } from '../../ledger/application/ledger.port';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
+import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
 import type { MonthlyMovementsViewRequired } from '../ui/MonthlyMovements/MonthlyMovementsView.contract';
+import { calendarDateKey } from './monthlyMovementCalendar';
 import { filterProjectedScheduledMovements } from './monthlyMovementProjection';
 
 export type MonthlyMovementsPaginationState = MonthlyMovementsViewRequired['state']['pagination'];
@@ -20,16 +22,59 @@ export const EMPTY_MONTHLY_MOVEMENTS_PAGINATION: MonthlyMovementsPaginationState
 type UseMonthlyMovementsOverviewModelInput = {
   scheduling: SchedulingGatewayPort;
   accountId: string | null;
+  scope?: 'account' | 'all';
   page: number;
   setPage(page: number): void;
   monthStartDate: Date;
   monthEndDate: Date;
 };
 
+type AccountNameById = ReadonlyMap<string, string>;
+
+function enrichPostedTransactions(
+  items: LedgerTransactionListItem[],
+  accountNameById: AccountNameById,
+): LedgerTransactionListItem[] {
+  if (accountNameById.size === 0) {
+    return items;
+  }
+  return items.map((item) => ({
+    ...item,
+    accountName: accountNameById.get(item.accountId),
+  }));
+}
+
+function enrichExpectedMovements(
+  items: ExpectedMovementView[],
+  accountNameById: AccountNameById,
+): ExpectedMovementView[] {
+  if (accountNameById.size === 0) {
+    return items;
+  }
+  return items.map((item) => ({
+    ...item,
+    accountName: accountNameById.get(item.accountId),
+  }));
+}
+
+function enrichScheduledMovements(
+  items: ScheduledMovementView[],
+  accountNameById: AccountNameById,
+): ScheduledMovementView[] {
+  if (accountNameById.size === 0) {
+    return items;
+  }
+  return items.map((item) => ({
+    ...item,
+    accountName: accountNameById.get(item.sourceAccountId),
+  }));
+}
+
 export function useMonthlyMovementsOverviewModel(input: UseMonthlyMovementsOverviewModelInput) {
   const {
     scheduling,
     accountId,
+    scope = 'account',
     page,
     setPage,
     monthStartDate,
@@ -56,8 +101,8 @@ export function useMonthlyMovementsOverviewModel(input: UseMonthlyMovementsOverv
     setPagination(EMPTY_MONTHLY_MOVEMENTS_PAGINATION);
   }
 
-  async function refresh(): Promise<LedgerTransactionListItem[]> {
-    if (!accountId) {
+  async function refresh(accountNameById: AccountNameById = new Map()): Promise<LedgerTransactionListItem[]> {
+    if (scope === 'account' && !accountId) {
       reset();
       return [];
     }
@@ -65,10 +110,10 @@ export function useMonthlyMovementsOverviewModel(input: UseMonthlyMovementsOverv
     await scheduling.schedulingProcessDueMovements?.();
 
     const overview = await scheduling.movementsGetOverview({
-      accountId,
+      ...(scope === 'account' && accountId ? { accountId } : {}),
       filters: {
-        fromDate: monthStartDate.toISOString(),
-        toDate: monthEndDate.toISOString(),
+        fromDate: calendarDateKey(monthStartDate),
+        toDate: calendarDateKey(monthEndDate),
       },
       executedPagination: {
         page,
@@ -82,24 +127,26 @@ export function useMonthlyMovementsOverviewModel(input: UseMonthlyMovementsOverv
       ],
       expectedPreviewSize: 30,
     });
-    const visibleScheduledItems = filterProjectedScheduledMovements(
+    const visibleScheduledItems = enrichScheduledMovements(filterProjectedScheduledMovements(
       overview.scheduledPreview.items,
-    );
+    ), accountNameById);
+    const visibleExpectedItems = enrichExpectedMovements(overview.expectedPreview.items, accountNameById);
+    const visiblePostedItems = enrichPostedTransactions(overview.executedPage.content, accountNameById);
 
     setTransactions((previous) => {
       if (overview.executedPage.page === 0) {
-        return overview.executedPage.content;
+        return visiblePostedItems;
       }
       const knownIds = new Set(previous.map((item) => item.id));
       return [
         ...previous,
-        ...overview.executedPage.content.filter((item) => !knownIds.has(item.id)),
+        ...visiblePostedItems.filter((item) => !knownIds.has(item.id)),
       ];
     });
     setScheduledItems(visibleScheduledItems);
     setScheduledTotal(visibleScheduledItems.length);
     setScheduledHasMore(false);
-    setExpectedItems(overview.expectedPreview.items);
+    setExpectedItems(visibleExpectedItems);
     setExpectedTotal(overview.expectedPreview.total);
     setExpectedHasMore(overview.expectedPreview.hasMore);
     setPagination({
@@ -113,7 +160,7 @@ export function useMonthlyMovementsOverviewModel(input: UseMonthlyMovementsOverv
     if (page !== overview.executedPage.page) {
       setPage(overview.executedPage.page);
     }
-    return overview.executedPage.content;
+    return visiblePostedItems;
   }
 
   return {

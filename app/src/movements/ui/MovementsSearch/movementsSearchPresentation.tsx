@@ -39,7 +39,7 @@ function groupDateLabel(isoDateTime: string, now = new Date()): string {
   }
 
   const sameYear = parsed.getFullYear() === now.getFullYear();
-  const datePart = new Intl.DateTimeFormat(undefined, sameYear
+  const datePart = new Intl.DateTimeFormat('es-ES', sameYear
     ? { month: 'short', day: 'numeric' }
     : { month: 'short', day: 'numeric', year: 'numeric' }).format(parsed).toUpperCase();
   const relative = formatCalendarDay(isoDateTime, now);

@@ -30,6 +30,7 @@ export type MonthlyMovementsModelTimers = {
 type UseMonthlyMovementsModelInput = {
   ports: MonthlyMovementsModelPorts;
   accountId: string | null;
+  scope?: 'account' | 'all';
   enabled: boolean;
   refreshSignal: boolean;
   clock: MonthlyMovementsModelClock;
@@ -54,6 +55,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const {
     ports,
     accountId,
+    scope = 'account',
     enabled,
     refreshSignal,
     clock,
@@ -79,6 +81,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const overviewModel = useMonthlyMovementsOverviewModel({
     scheduling: ports.scheduling,
     accountId,
+    scope,
     page,
     setPage,
     monthStartDate: navigationModel.state.monthStartDate,
@@ -101,8 +104,17 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     onError?.({ message });
   }
 
+  async function loadAccountNameById(): Promise<Map<string, string>> {
+    if (scope !== 'all') {
+      return new Map();
+    }
+    const result = await ports.ledger.ledgerListAccounts();
+    return new Map(result.items.map((account) => [account.id, account.name]));
+  }
+
   async function refreshMovements() {
-    const loadedTransactions = await overviewModel.actions.refresh();
+    const accountNameById = await loadAccountNameById();
+    const loadedTransactions = await overviewModel.actions.refresh(accountNameById);
     await taxonomyModel.actions.refreshAssignments(loadedTransactions);
   }
 
@@ -138,7 +150,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   }
 
   useEffect(() => {
-    if (!enabled || !accountId) {
+    if (!enabled || (scope === 'account' && !accountId)) {
       previousAccountIdRef.current = accountId;
       resetTransientState();
       setLoading(false);
@@ -181,6 +193,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   }, [
     enabled,
     accountId,
+    scope,
     refreshSignal,
     page,
     monthStartTime,

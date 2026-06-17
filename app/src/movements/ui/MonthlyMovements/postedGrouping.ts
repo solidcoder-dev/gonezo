@@ -34,7 +34,7 @@ export function formatCalendarDay(isoDateTime: string, now = new Date()): string
   }
 
   const sameYear = parsed.getFullYear() === now.getFullYear();
-  return new Intl.DateTimeFormat(undefined, sameYear
+  return new Intl.DateTimeFormat('es-ES', sameYear
     ? { month: 'short', day: 'numeric' }
     : { month: 'short', day: 'numeric', year: 'numeric' }).format(parsed);
 }
@@ -81,4 +81,3 @@ export function groupPostedTransactionsByDate(
 
   return groups;
 }
-

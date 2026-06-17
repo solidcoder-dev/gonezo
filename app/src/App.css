@@ -3,6 +3,6 @@
   max-width: 720px;
   min-height: 100dvh;
   margin: 0 auto;
-  padding: calc(20px + var(--app-safe-area-top)) calc(20px + var(--app-safe-area-right)) calc(20px + var(--app-safe-area-bottom)) calc(20px + var(--app-safe-area-left));
+  padding: calc(20px + var(--app-safe-area-top)) calc(20px + var(--app-safe-area-right)) calc(104px + var(--app-safe-area-bottom)) calc(20px + var(--app-safe-area-left));
   box-sizing: border-box;
 }

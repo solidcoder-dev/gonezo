@@ -1,4 +1,5 @@
 export { MovementQuickActionComponent } from './application/MovementQuickActionComponent';
+export { MovementDockNavigationComponent } from './application/MovementDockNavigationComponent';
 export { TransactionEntryComponent } from './application/TransactionEntryComponent';
 export type {
   MovementQuickActionComponentProps,

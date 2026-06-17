@@ -12,6 +12,7 @@ export type ScheduledMovementView = {
   id: string;
   type: 'expense' | 'income' | 'transfer';
   sourceAccountId: string;
+  accountName?: string;
   targetAccountId?: string;
   amount: string;
   currency: string;
@@ -39,6 +40,7 @@ export type ScheduledMovementView = {
 export type ExpectedMovementView = {
   id: string;
   accountId: string;
+  accountName?: string;
   type: 'expense' | 'income';
   amount: string;
   currency: string;
