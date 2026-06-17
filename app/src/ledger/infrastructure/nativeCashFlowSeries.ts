@@ -19,9 +19,8 @@ export async function getNativeCashFlowSeries(
   input: LedgerGetCashFlowSeriesInput,
 ): Promise<LedgerGetCashFlowSeriesResult> {
   const accounts = await reader.ledgerListAccounts();
-  const activeAccounts = accounts.items.filter((account) => account.status === 'active');
   const transactionResults = await Promise.all(
-    activeAccounts.map((account) => reader.ledgerListTransactions({
+    accounts.items.map((account) => reader.ledgerListTransactions({
       accountId: account.id,
       pagination: { page: 0, size: 500 },
     })),
@@ -32,6 +31,7 @@ export async function getNativeCashFlowSeries(
     transactions: transactionResults.flatMap((result) => result.content),
     currency: input.currency,
     granularity: input.granularity,
+    periodOffset: input.periodOffset,
     now: new Date(),
   });
 }

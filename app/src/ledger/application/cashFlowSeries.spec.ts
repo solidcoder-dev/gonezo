@@ -34,7 +34,7 @@ describe('buildCashFlowSeries', () => {
       now: new Date('2026-06-17T12:00:00.000Z'),
     });
 
-    expect(result.currencies).toEqual(['EUR', 'USD']);
+    expect(result.currencies).toEqual(['EUR', 'GBP', 'USD']);
     expect(result.selectedCurrency).toBe('EUR');
     expect(result.totals).toEqual({ incomeAmount: '1000.00', expenseAmount: '250.00' });
     expect(result.points.at(-1)).toMatchObject({
@@ -54,5 +54,68 @@ describe('buildCashFlowSeries', () => {
     });
 
     expect(result.points.map((point) => point.periodKey)).toEqual(['2022', '2023', '2024', '2025', '2026']);
+  });
+
+  it('moves the visible window by granularity-sized ranges', () => {
+    const result = buildCashFlowSeries({
+      accounts,
+      transactions: [],
+      currency: 'EUR',
+      granularity: 'monthly',
+      periodOffset: -1,
+      now: new Date('2026-06-17T12:00:00.000Z'),
+    });
+
+    expect(result.window).toEqual({
+      label: 'Jul 2025 - Dec 2025',
+      periodOffset: -1,
+      canGoNext: true,
+    });
+    expect(result.points.map((point) => point.periodKey)).toEqual([
+      '2025-07',
+      '2025-08',
+      '2025-09',
+      '2025-10',
+      '2025-11',
+      '2025-12',
+    ]);
+  });
+
+  it('does not allow navigating after the current window', () => {
+    const result = buildCashFlowSeries({
+      accounts,
+      transactions: [],
+      currency: 'EUR',
+      granularity: 'weekly',
+      periodOffset: 0,
+      now: new Date('2026-06-17T12:00:00.000Z'),
+    });
+
+    expect(result.window.canGoNext).toBe(false);
+  });
+
+  it('includes historical movements from archived accounts', () => {
+    const result = buildCashFlowSeries({
+      accounts,
+      transactions: [
+        transaction({
+          id: 'archived-2019',
+          accountId: 'acc-archived',
+          type: 'expense',
+          amount: '99',
+          currency: 'GBP',
+          occurredAt: '2019-06-10T10:00:00.000Z',
+        }),
+      ],
+      currency: 'GBP',
+      granularity: 'yearly',
+      periodOffset: -1,
+      now: new Date('2026-06-17T12:00:00.000Z'),
+    });
+
+    expect(result.currencies).toContain('GBP');
+    expect(result.points.find((point) => point.periodKey === '2019')).toMatchObject({
+      expenseAmount: '99.00',
+    });
   });
 });

@@ -70,6 +70,7 @@ export type LedgerCashFlowGranularity = 'daily' | 'weekly' | 'monthly' | 'yearly
 export type LedgerGetCashFlowSeriesInput = {
   currency?: string;
   granularity: LedgerCashFlowGranularity;
+  periodOffset?: number;
 };
 
 export type LedgerCashFlowSeriesPoint = {
@@ -86,6 +87,11 @@ export type LedgerGetCashFlowSeriesResult = {
   totals: {
     incomeAmount: string;
     expenseAmount: string;
+  };
+  window: {
+    label: string;
+    periodOffset: number;
+    canGoNext: boolean;
   };
   points: LedgerCashFlowSeriesPoint[];
 };

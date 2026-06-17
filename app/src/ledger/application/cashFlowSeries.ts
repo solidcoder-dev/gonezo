@@ -10,6 +10,7 @@ type BuildCashFlowSeriesInput = {
   transactions: LedgerTransactionListItem[];
   currency?: string;
   granularity: LedgerCashFlowGranularity;
+  periodOffset?: number;
   now: Date;
 };
 
@@ -61,6 +62,17 @@ function weekLabel(date: Date): string {
   return `${month} ${day}`;
 }
 
+function rangeLabel(start: Date, end: Date, granularity: LedgerCashFlowGranularity): string {
+  const last = addUtcDays(end, -1);
+  if (granularity === 'yearly') {
+    return `${start.getUTCFullYear()} - ${last.getUTCFullYear()}`;
+  }
+  if (granularity === 'monthly') {
+    return `${monthLabel(start)} ${start.getUTCFullYear()} - ${monthLabel(last)} ${last.getUTCFullYear()}`;
+  }
+  return `${dayLabel(start)} - ${dayLabel(last)}`;
+}
+
 function periodKey(date: Date, granularity: LedgerCashFlowGranularity): string {
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
@@ -77,37 +89,48 @@ function periodKey(date: Date, granularity: LedgerCashFlowGranularity): string {
   return String(year);
 }
 
-function buildPeriods(granularity: LedgerCashFlowGranularity, now: Date): PeriodBucket[] {
+function buildPeriods(
+  granularity: LedgerCashFlowGranularity,
+  now: Date,
+  periodOffset: number,
+): { periods: PeriodBucket[]; label: string } {
   if (granularity === 'daily') {
-    const end = addUtcDays(startOfUtcDay(now), 1);
+    const end = addUtcDays(startOfUtcDay(now), 1 + periodOffset * 7);
     const first = addUtcDays(end, -7);
-    return Array.from({ length: 7 }, (_, index) => {
+    const periods = Array.from({ length: 7 }, (_, index) => {
       const start = addUtcDays(first, index);
       return { periodKey: periodKey(start, granularity), label: dayLabel(start), start, end: addUtcDays(start, 1) };
     });
+    return { periods, label: rangeLabel(first, end, granularity) };
   }
   if (granularity === 'weekly') {
-    const current = startOfUtcWeek(now);
+    const current = addUtcDays(startOfUtcWeek(now), periodOffset * 8 * 7);
     const first = addUtcDays(current, -7 * 7);
-    return Array.from({ length: 8 }, (_, index) => {
+    const end = addUtcDays(first, 8 * 7);
+    const periods = Array.from({ length: 8 }, (_, index) => {
       const start = addUtcDays(first, index * 7);
       return { periodKey: periodKey(start, granularity), label: weekLabel(start), start, end: addUtcDays(start, 7) };
     });
+    return { periods, label: rangeLabel(first, end, granularity) };
   }
   if (granularity === 'monthly') {
-    const current = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const current = addUtcMonths(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)), periodOffset * 6);
     const first = addUtcMonths(current, -5);
-    return Array.from({ length: 6 }, (_, index) => {
+    const end = addUtcMonths(first, 6);
+    const periods = Array.from({ length: 6 }, (_, index) => {
       const start = addUtcMonths(first, index);
       return { periodKey: periodKey(start, granularity), label: monthLabel(start), start, end: addUtcMonths(start, 1) };
     });
+    return { periods, label: rangeLabel(first, end, granularity) };
   }
-  const current = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+  const current = addUtcYears(new Date(Date.UTC(now.getUTCFullYear(), 0, 1)), periodOffset * 5);
   const first = addUtcYears(current, -4);
-  return Array.from({ length: 5 }, (_, index) => {
+  const end = addUtcYears(first, 5);
+  const periods = Array.from({ length: 5 }, (_, index) => {
     const start = addUtcYears(first, index);
     return { periodKey: periodKey(start, granularity), label: String(start.getUTCFullYear()), start, end: addUtcYears(start, 1) };
   });
+  return { periods, label: rangeLabel(first, end, granularity) };
 }
 
 function findPeriod(periods: PeriodBucket[], occurredAt: string): PeriodBucket | undefined {
@@ -119,18 +142,19 @@ function findPeriod(periods: PeriodBucket[], occurredAt: string): PeriodBucket |
 }
 
 export function buildCashFlowSeries(input: BuildCashFlowSeriesInput): LedgerGetCashFlowSeriesResult {
-  const activeAccounts = input.accounts.filter((account) => account.status === 'active');
-  const currencies = [...new Set(activeAccounts.map((account) => account.currency.toUpperCase()))].sort();
+  const ledgerAccounts = input.accounts;
+  const currencies = [...new Set(ledgerAccounts.map((account) => account.currency.toUpperCase()))].sort();
   const requestedCurrency = input.currency?.trim().toUpperCase();
   const selectedCurrency = requestedCurrency && currencies.includes(requestedCurrency)
     ? requestedCurrency
     : currencies[0] ?? '';
-  const activeAccountIds = new Set(
-    activeAccounts
+  const accountIds = new Set(
+    ledgerAccounts
       .filter((account) => account.currency.toUpperCase() === selectedCurrency)
       .map((account) => account.id),
   );
-  const periods = buildPeriods(input.granularity, input.now);
+  const periodOffset = Math.min(0, Math.trunc(input.periodOffset ?? 0));
+  const { periods, label } = buildPeriods(input.granularity, input.now, periodOffset);
   const pointByPeriod = new Map(periods.map((period) => [
     period.periodKey,
     {
@@ -146,7 +170,7 @@ export function buildCashFlowSeries(input: BuildCashFlowSeriesInput): LedgerGetC
       transaction.status !== 'posted'
       || (transaction.type !== 'income' && transaction.type !== 'expense')
       || transaction.currency.toUpperCase() !== selectedCurrency
-      || !activeAccountIds.has(transaction.accountId)
+      || !accountIds.has(transaction.accountId)
     ) {
       continue;
     }
@@ -177,6 +201,11 @@ export function buildCashFlowSeries(input: BuildCashFlowSeriesInput): LedgerGetC
       }),
       { incomeAmount: '0.00', expenseAmount: '0.00' },
     ),
+    window: {
+      label,
+      periodOffset,
+      canGoNext: periodOffset < 0,
+    },
     points,
   };
 }

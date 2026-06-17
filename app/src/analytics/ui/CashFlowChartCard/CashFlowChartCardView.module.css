@@ -74,6 +74,41 @@
   white-space: nowrap;
 }
 
+.windowNav {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  color: #74746b;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.windowNav span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: #20201e;
+  cursor: pointer;
+}
+
+.iconButton:disabled {
+  color: rgba(32, 32, 30, 0.28);
+  cursor: default;
+}
+
 .chartFrame {
   min-width: 0;
 }

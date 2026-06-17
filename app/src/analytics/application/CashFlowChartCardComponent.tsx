@@ -37,16 +37,18 @@ function toErrorMessage(error: unknown): string {
 
 export function CashFlowChartCardComponent({ required, provided }: CashFlowChartCardComponentProps) {
   const { core } = required.context;
-  const [selectedCurrency, setSelectedCurrency] = useState('');
+  const [requestedCurrency, setRequestedCurrency] = useState('');
   const [granularity, setGranularity] = useState<LedgerCashFlowGranularity>('monthly');
   const [result, setResult] = useState<LedgerGetCashFlowSeriesResult>({
     currencies: [],
     selectedCurrency: '',
     granularity: 'monthly',
     totals: { incomeAmount: '0.00', expenseAmount: '0.00' },
+    window: { label: '', periodOffset: 0, canGoNext: false },
     points: [],
   });
   const [loading, setLoading] = useState(true);
+  const [periodOffset, setPeriodOffset] = useState(0);
 
   useEffect(() => {
     if (!required.config.enabled) {
@@ -56,6 +58,7 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
         selectedCurrency: '',
         granularity,
         totals: { incomeAmount: '0.00', expenseAmount: '0.00' },
+        window: { label: '', periodOffset, canGoNext: false },
         points: [],
       });
       return;
@@ -67,14 +70,12 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
       setLoading(true);
       try {
         const nextResult = await core.ledgerGetCashFlowSeries({
-          currency: selectedCurrency || undefined,
+          currency: requestedCurrency || undefined,
           granularity,
+          periodOffset,
         });
         if (!cancelled) {
           setResult(nextResult);
-          if (nextResult.selectedCurrency && nextResult.selectedCurrency !== selectedCurrency) {
-            setSelectedCurrency(nextResult.selectedCurrency);
-          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -92,7 +93,7 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
     return () => {
       cancelled = true;
     };
-  }, [core, granularity, required.config.enabled, required.config.refreshSignal, selectedCurrency]);
+  }, [core, granularity, periodOffset, requestedCurrency, required.config.enabled, required.config.refreshSignal]);
 
   const chartPoints = useMemo(
     () => result.points.map((point) => ({
@@ -118,15 +119,24 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
           expenseTotalLabel: result.selectedCurrency
             ? formatCurrencyAmount(result.totals.expenseAmount, result.selectedCurrency)
             : result.totals.expenseAmount,
+          windowLabel: result.window.label,
           points: chartPoints,
         },
-        state: { granularity },
+        state: { granularity, canGoNextWindow: result.window.canGoNext },
         status: { loading },
       }}
       provided={{
         commands: {
-          selectCurrency: setSelectedCurrency,
-          selectGranularity: setGranularity,
+          selectCurrency: (currency) => {
+            setRequestedCurrency(currency);
+            setPeriodOffset(0);
+          },
+          selectGranularity: (nextGranularity) => {
+            setGranularity(nextGranularity);
+            setPeriodOffset(0);
+          },
+          goToPreviousWindow: () => setPeriodOffset((current) => current - 1),
+          goToNextWindow: () => setPeriodOffset((current) => Math.min(0, current + 1)),
         },
       }}
     />

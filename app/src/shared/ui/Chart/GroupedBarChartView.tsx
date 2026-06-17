@@ -44,6 +44,7 @@ export function GroupedBarChartView({ points, valuePrefix }: GroupedBarChartView
           <CartesianGrid vertical={false} stroke="rgba(32, 32, 30, 0.08)" />
           <XAxis
             dataKey="label"
+            interval={0}
             axisLine={false}
             tickLine={false}
             tick={{ fill: '#74746b', fontSize: 11 }}

@@ -126,6 +126,7 @@ export class WebLedgerService {
       })),
       currency: input.currency,
       granularity: input.granularity,
+      periodOffset: input.periodOffset,
       now: new Date(),
     });
   }

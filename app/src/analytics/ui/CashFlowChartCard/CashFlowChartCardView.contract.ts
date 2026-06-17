@@ -8,10 +8,12 @@ export type CashFlowChartCardViewProps = {
       selectedCurrency: string;
       incomeTotalLabel: string;
       expenseTotalLabel: string;
+      windowLabel: string;
       points: GroupedBarChartPointView[];
     };
     state: {
       granularity: LedgerCashFlowGranularity;
+      canGoNextWindow: boolean;
     };
     status: {
       loading: boolean;
@@ -22,6 +24,8 @@ export type CashFlowChartCardViewProps = {
     commands: {
       selectCurrency: (currency: string) => void;
       selectGranularity: (granularity: LedgerCashFlowGranularity) => void;
+      goToPreviousWindow: () => void;
+      goToNextWindow: () => void;
     };
   };
 };

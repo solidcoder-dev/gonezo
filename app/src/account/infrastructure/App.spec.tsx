@@ -285,6 +285,11 @@ function makeCore(transactionCount = 0): AppTestPort {
       selectedCurrency: 'USD',
       granularity: input.granularity,
       totals: { incomeAmount: '0.00', expenseAmount: '0.00' },
+      window: {
+        label: 'Jan 2026 - Jun 2026',
+        periodOffset: input.periodOffset ?? 0,
+        canGoNext: (input.periodOffset ?? 0) < 0,
+      },
       points: [],
     })),
     ledgerListTransactions: vi.fn(async (input) => toPagedResult(transactions, input)),

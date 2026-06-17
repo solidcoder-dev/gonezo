@@ -216,6 +216,40 @@ describe('WebLedgerService', () => {
     });
   });
 
+  it('passes the cash flow period offset to the series builder', async () => {
+    const state = createWebAppState();
+    const ledger = new WebLedgerService({ state, dependencies: createDependencies() });
+    const currentYear = new Date().getUTCFullYear();
+    const firstYear = currentYear - 9;
+    const lastYear = currentYear - 5;
+
+    await ledger.openAccount({
+      name: 'EUR',
+      type: 'cash',
+      currency: 'EUR',
+      openingBalanceAmount: '100.00',
+    });
+
+    await expect(ledger.getCashFlowSeries({
+      currency: 'EUR',
+      granularity: 'yearly',
+      periodOffset: -1,
+    })).resolves.toMatchObject({
+      window: {
+        label: `${firstYear} - ${lastYear}`,
+        periodOffset: -1,
+        canGoNext: true,
+      },
+      points: [
+        { periodKey: String(firstYear) },
+        { periodKey: String(firstYear + 1) },
+        { periodKey: String(firstYear + 2) },
+        { periodKey: String(firstYear + 3) },
+        { periodKey: String(lastYear) },
+      ],
+    });
+  });
+
   it('creates draft transactions, validates item totals and posts drafts', async () => {
     const state = createWebAppState();
     const ledger = new WebLedgerService({ state, dependencies: createDependencies() });

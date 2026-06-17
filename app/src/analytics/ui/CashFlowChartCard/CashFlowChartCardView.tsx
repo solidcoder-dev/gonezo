@@ -13,6 +13,7 @@ const GRANULARITIES: Array<{ value: LedgerCashFlowGranularity; label: string }> 
 
 export function CashFlowChartCardView({ required, provided }: CashFlowChartCardViewProps) {
   const { data, state, status } = required;
+  const showCurrencySelector = data.currencies.length > 1;
 
   return (
     <section className={styles.card} aria-label="Cash flow" aria-busy={status.loading}>
@@ -20,20 +21,22 @@ export function CashFlowChartCardView({ required, provided }: CashFlowChartCardV
         <h2>Cash flow</h2>
       </div>
 
-      <div className={styles.chips} aria-label="Currencies">
-        {data.currencies.map((currency) => (
-          <button
-            key={currency}
-            type="button"
-            className={styles.chip}
-            aria-pressed={currency === data.selectedCurrency}
-            disabled={status.disabled}
-            onClick={() => provided.commands.selectCurrency(currency)}
-          >
-            {currency}
-          </button>
-        ))}
-      </div>
+      {showCurrencySelector ? (
+        <div className={styles.chips} aria-label="Currencies">
+          {data.currencies.map((currency) => (
+            <button
+              key={currency}
+              type="button"
+              className={styles.chip}
+              aria-pressed={currency === data.selectedCurrency}
+              disabled={status.disabled}
+              onClick={() => provided.commands.selectCurrency(currency)}
+            >
+              {currency}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <div className={styles.totals}>
         <div className={styles.totalRow}>
@@ -44,6 +47,28 @@ export function CashFlowChartCardView({ required, provided }: CashFlowChartCardV
           <span>Expense</span>
           <strong>{data.expenseTotalLabel}</strong>
         </div>
+      </div>
+
+      <div className={styles.windowNav}>
+        <button
+          type="button"
+          className={styles.iconButton}
+          aria-label="Previous cash flow window"
+          disabled={status.disabled || status.loading}
+          onClick={provided.commands.goToPreviousWindow}
+        >
+          <i className="bi bi-chevron-left" aria-hidden />
+        </button>
+        <span>{data.windowLabel}</span>
+        <button
+          type="button"
+          className={styles.iconButton}
+          aria-label="Next cash flow window"
+          disabled={status.disabled || status.loading || !state.canGoNextWindow}
+          onClick={provided.commands.goToNextWindow}
+        >
+          <i className="bi bi-chevron-right" aria-hidden />
+        </button>
       </div>
 
       <div className={styles.chartFrame}>

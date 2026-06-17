@@ -15,6 +15,7 @@ describe('CashFlowChartCardView', () => {
             selectedCurrency: 'EUR',
             incomeTotalLabel: '€1,200.00',
             expenseTotalLabel: '€500.00',
+            windowLabel: 'Jan 2026 - Jun 2026',
             points: [
               {
                 key: '2026-06',
@@ -26,10 +27,17 @@ describe('CashFlowChartCardView', () => {
               },
             ],
           },
-          state: { granularity: 'monthly' },
+          state: { granularity: 'monthly', canGoNextWindow: false },
           status: { loading: false },
         }}
-        provided={{ commands: { selectCurrency, selectGranularity } }}
+        provided={{
+          commands: {
+            selectCurrency,
+            selectGranularity,
+            goToPreviousWindow: vi.fn(),
+            goToNextWindow: vi.fn(),
+          },
+        }}
       />,
     );
 
@@ -44,6 +52,45 @@ describe('CashFlowChartCardView', () => {
     expect(selectGranularity).toHaveBeenCalledWith('weekly');
   });
 
+  it('renders window navigation and hides the currency selector when there is only one currency', () => {
+    const goToPreviousWindow = vi.fn();
+    const goToNextWindow = vi.fn();
+
+    render(
+      <CashFlowChartCardView
+        required={{
+          data: {
+            currencies: ['EUR'],
+            selectedCurrency: 'EUR',
+            incomeTotalLabel: '€1,200.00',
+            expenseTotalLabel: '€500.00',
+            windowLabel: 'Jan 2026 - Jun 2026',
+            points: [],
+          },
+          state: { granularity: 'monthly', canGoNextWindow: true },
+          status: { loading: false },
+        }}
+        provided={{
+          commands: {
+            selectCurrency: vi.fn(),
+            selectGranularity: vi.fn(),
+            goToPreviousWindow,
+            goToNextWindow,
+          },
+        }}
+      />,
+    );
+
+    expect(screen.queryByLabelText('Currencies')).not.toBeInTheDocument();
+    expect(screen.getByText('Jan 2026 - Jun 2026')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Previous cash flow window' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next cash flow window' }));
+
+    expect(goToPreviousWindow).toHaveBeenCalledTimes(1);
+    expect(goToNextWindow).toHaveBeenCalledTimes(1);
+  });
+
   it('renders a chart skeleton while loading to keep the card height stable', () => {
     render(
       <CashFlowChartCardView
@@ -53,12 +100,20 @@ describe('CashFlowChartCardView', () => {
             selectedCurrency: 'EUR',
             incomeTotalLabel: '€0.00',
             expenseTotalLabel: '€0.00',
+            windowLabel: 'Jan 2026 - Jun 2026',
             points: [],
           },
-          state: { granularity: 'monthly' },
+          state: { granularity: 'monthly', canGoNextWindow: false },
           status: { loading: true },
         }}
-        provided={{ commands: { selectCurrency: vi.fn(), selectGranularity: vi.fn() } }}
+        provided={{
+          commands: {
+            selectCurrency: vi.fn(),
+            selectGranularity: vi.fn(),
+            goToPreviousWindow: vi.fn(),
+            goToNextWindow: vi.fn(),
+          },
+        }}
       />,
     );
 
