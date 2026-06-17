@@ -8,6 +8,7 @@ export function createLedgerGateway(core: LedgerGatewayPort): LedgerGatewayPort 
     ledgerListAccounts: () => core.ledgerListAccounts(),
     ledgerGetAccountSummary: (input) => core.ledgerGetAccountSummary(input),
     ledgerGetNetWorthByCurrency: () => core.ledgerGetNetWorthByCurrency(),
+    ledgerGetCashFlowSeries: (input) => core.ledgerGetCashFlowSeries(input),
     ledgerListTransactions: (input) => core.ledgerListTransactions(input),
     ledgerOpenAccount: (input) => core.ledgerOpenAccount(input),
     ledgerRenameAccount: (input) => core.ledgerRenameAccount(input),

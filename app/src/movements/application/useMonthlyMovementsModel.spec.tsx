@@ -72,6 +72,7 @@ function makePorts(overrides: Partial<MonthlyMovementsModelPorts> = {}): Monthly
       ledgerListAccounts: vi.fn(),
       ledgerGetAccountSummary: vi.fn(),
       ledgerGetNetWorthByCurrency: vi.fn().mockResolvedValue({ items: [] }),
+      ledgerGetCashFlowSeries: vi.fn(),
       ledgerListTransactions: vi.fn(),
       ledgerOpenAccount: vi.fn(),
       ledgerRenameAccount: vi.fn(),

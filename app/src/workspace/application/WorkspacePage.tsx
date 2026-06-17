@@ -20,6 +20,7 @@ import {
 import { ProfilePage } from './ProfilePage';
 import { NetWorthSummaryComponent } from './NetWorthSummaryComponent';
 import { ExpectedMovementsCardComponent } from '../../movements/application/ExpectedMovementsCardComponent';
+import { CashFlowChartCardComponent } from '../../analytics/application/CashFlowChartCardComponent';
 
 export type WorkspacePageRequired = {
   core: AccountWorkspacePort;
@@ -346,7 +347,26 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const analyticsPage = (
     <section className="section-gap">
       <h1>Analytics</h1>
-      <p className="hint">Coming soon</p>
+      <CashFlowChartCardComponent
+        required={{
+          context: {
+            core: pageRequired.core,
+          },
+          config: {
+            enabled: true,
+            refreshSignal: recentTransactionsRefreshSignal,
+          },
+        }}
+        provided={{
+          events: {
+            onError: (error) => {
+              setToastMessage(error.message);
+              setToastActionLabel('');
+              setToastAction(null);
+            },
+          },
+        }}
+      />
     </section>
   );
 

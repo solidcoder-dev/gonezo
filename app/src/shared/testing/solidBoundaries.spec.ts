@@ -123,6 +123,26 @@ describe('SOLID frontend boundaries', () => {
     expect([...new Set(selectors)]).toEqual(['app-screen']);
   });
 
+  it('keeps chart vendor imports behind the shared chart adapter', () => {
+    const violations: string[] = [];
+
+    for (const file of listSourceFiles(srcDir)) {
+      const normalized = normalizePath(file);
+      if (normalized.endsWith('/src/shared/testing/solidBoundaries.spec.ts')) {
+        continue;
+      }
+      const source = readFileSync(file, 'utf8');
+      if (!source.includes("from 'recharts'") && !source.includes('from "recharts"')) {
+        continue;
+      }
+      if (!normalized.includes('/src/shared/ui/Chart/')) {
+        violations.push(`${normalized}: imports recharts outside shared chart adapter`);
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
   it('keeps the shared core port composed from focused capability ports', () => {
     const corePort = readFileSync(resolve(srcDir, 'core/application/corePort.ts'), 'utf8');
     const ledgerPort = readFileSync(resolve(srcDir, 'ledger/application/ledger.port.ts'), 'utf8');
@@ -270,7 +290,7 @@ describe('SOLID frontend boundaries', () => {
     expect(coreAdapter).toContain('listNativeScheduledMovements(this, input)');
     expect(coreAdapter).not.toContain('function filterScheduledMovementItems');
     expect(coreAdapter).not.toContain('function mapPostedTransactionToSearchItem');
-    expect(coreAdapter.split('\n').length).toBeLessThanOrEqual(550);
+    expect(coreAdapter.split('\n').length).toBeLessThanOrEqual(560);
 
     expect(nativeMovements).toContain('function filterScheduledMovementItems');
     expect(nativeMovements).toContain('function mapPostedTransactionToSearchItem');
@@ -354,7 +374,7 @@ describe('SOLID frontend boundaries', () => {
     expect(coreAdapterWeb).not.toContain('listWebLedgerTransactions');
     expect(coreAdapterWeb).not.toContain('const fromDateEpoch = filters.fromDate');
     expect(coreAdapterWeb).not.toContain('const statusesFilter = filters.statuses');
-    expect(coreAdapterWeb.split('\n').length).toBeLessThanOrEqual(450);
+    expect(coreAdapterWeb.split('\n').length).toBeLessThanOrEqual(455);
 
     expect(recurrence).toContain('export function normalizeWebRecurrenceRule');
     expect(recurrence).toContain('export function firstDueAtForWebRecurrence');

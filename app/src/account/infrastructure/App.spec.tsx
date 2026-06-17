@@ -280,6 +280,13 @@ function makeCore(transactionCount = 0): AppTestPort {
         { currency: 'USD', balanceAmount: '250.00' },
       ],
     })),
+    ledgerGetCashFlowSeries: vi.fn(async (input) => ({
+      currencies: ['USD'],
+      selectedCurrency: 'USD',
+      granularity: input.granularity,
+      totals: { incomeAmount: '0.00', expenseAmount: '0.00' },
+      points: [],
+    })),
     ledgerListTransactions: vi.fn(async (input) => toPagedResult(transactions, input)),
     ledgerOpenAccount: vi.fn(async () => ({ id: 'acc-1' })),
     ledgerRenameAccount: vi.fn(async () => undefined),
@@ -930,7 +937,7 @@ describe('App Accounts UX', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Analytics' }));
     expect(await screen.findByRole('heading', { name: 'Analytics' })).toBeInTheDocument();
-    expect(screen.getByText('Coming soon')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Cash flow' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Profile' }));
     expect(await screen.findByText('Favorite account')).toBeInTheDocument();

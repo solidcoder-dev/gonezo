@@ -6,6 +6,8 @@ import type {
   LedgerDeleteAccountInput,
   LedgerGetAccountSummaryInput,
   LedgerGetAccountSummaryResult,
+  LedgerGetCashFlowSeriesInput,
+  LedgerGetCashFlowSeriesResult,
   LedgerGetNetWorthByCurrencyResult,
   LedgerListAccountsResult,
   LedgerListSupportedCurrenciesResult,
@@ -26,6 +28,7 @@ import type {
   LedgerRestoreAccountInput,
   LedgerVoidTransactionInput,
 } from '../application/ledger.port';
+import { buildCashFlowSeries } from '../application/cashFlowSeries';
 import type { WebRuntimeDependencies } from '../../core/infrastructure/webRuntimeDependencies';
 import { WebLedgerAccountService } from './webLedgerAccountService';
 import {
@@ -53,11 +56,8 @@ function addLedgerAmount(left: string, right: string): string {
 
 export class WebLedgerService {
   private readonly state: WebAppState;
-
   private readonly accountService: WebLedgerAccountService;
-
   private readonly transactionService: WebLedgerTransactionService;
-
   private readonly transferService: WebLedgerTransferService;
 
   constructor(options: WebLedgerServiceOptions) {
@@ -67,13 +67,9 @@ export class WebLedgerService {
     this.transferService = new WebLedgerTransferService(options);
   }
 
-  getAccountOrThrow(accountId: string): WebLedgerAccount {
-    return getWebLedgerAccountOrThrow(this.state, accountId);
-  }
+  getAccountOrThrow(accountId: string): WebLedgerAccount { return getWebLedgerAccountOrThrow(this.state, accountId); }
 
-  getTransactionOrThrow(transactionId: string): WebLedgerTransaction {
-    return getWebLedgerTransactionOrThrow(this.state, transactionId);
-  }
+  getTransactionOrThrow(transactionId: string): WebLedgerTransaction { return getWebLedgerTransactionOrThrow(this.state, transactionId); }
 
   ensureAccountCanPost(account: WebLedgerAccount, currency: string) {
     ensureWebAccountCanPost(account, currency);
@@ -87,37 +83,21 @@ export class WebLedgerService {
     return this.accountService.resolveImportAccount(accountName, currency, createMissingAccounts);
   }
 
-  async openAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {
-    return this.accountService.openAccount(input);
-  }
+  async openAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> { return this.accountService.openAccount(input); }
 
-  async listSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult> {
-    return this.accountService.listSupportedCurrencies();
-  }
+  async listSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult> { return this.accountService.listSupportedCurrencies(); }
 
-  async renameAccount(input: LedgerRenameAccountInput): Promise<void> {
-    return this.accountService.renameAccount(input);
-  }
+  async renameAccount(input: LedgerRenameAccountInput): Promise<void> { return this.accountService.renameAccount(input); }
 
-  async archiveAccount(input: LedgerArchiveAccountInput): Promise<void> {
-    return this.accountService.archiveAccount(input);
-  }
+  async archiveAccount(input: LedgerArchiveAccountInput): Promise<void> { return this.accountService.archiveAccount(input); }
 
-  async restoreAccount(input: LedgerRestoreAccountInput): Promise<void> {
-    return this.accountService.restoreAccount(input);
-  }
+  async restoreAccount(input: LedgerRestoreAccountInput): Promise<void> { return this.accountService.restoreAccount(input); }
 
-  async deleteAccount(input: LedgerDeleteAccountInput): Promise<void> {
-    return this.accountService.deleteAccount(input);
-  }
+  async deleteAccount(input: LedgerDeleteAccountInput): Promise<void> { return this.accountService.deleteAccount(input); }
 
-  async listAccounts(): Promise<LedgerListAccountsResult> {
-    return this.accountService.listAccounts();
-  }
+  async listAccounts(): Promise<LedgerListAccountsResult> { return this.accountService.listAccounts(); }
 
-  async getAccountSummary(input: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult> {
-    return this.accountService.getAccountSummary(input);
-  }
+  async getAccountSummary(input: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult> { return this.accountService.getAccountSummary(input); }
 
   async getNetWorthByCurrency(): Promise<LedgerGetNetWorthByCurrencyResult> {
     const accounts = await this.listAccounts();
@@ -136,39 +116,35 @@ export class WebLedgerService {
     };
   }
 
-  async recordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {
-    return this.transactionService.recordExpense(input);
+  async getCashFlowSeries(input: LedgerGetCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> {
+    const accounts = await this.listAccounts();
+    return buildCashFlowSeries({
+      accounts: accounts.items,
+      transactions: this.state.ledgerTransactions.map((transaction) => ({
+        ...transaction,
+        items: transaction.items,
+      })),
+      currency: input.currency,
+      granularity: input.granularity,
+      now: new Date(),
+    });
   }
 
-  async recordIncome(input: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult> {
-    return this.transactionService.recordIncome(input);
-  }
+  async recordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> { return this.transactionService.recordExpense(input); }
 
-  async recordTransfer(input: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult> {
-    return this.transferService.recordTransfer(input);
-  }
+  async recordIncome(input: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult> { return this.transactionService.recordIncome(input); }
 
-  async recordTransferFx(input: LedgerRecordTransferFxInput): Promise<LedgerRecordTransferFxResult> {
-    return this.transferService.recordTransferFx(input);
-  }
+  async recordTransfer(input: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult> { return this.transferService.recordTransfer(input); }
 
-  async createExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult> {
-    return this.transactionService.createExpenseDraft(input);
-  }
+  async recordTransferFx(input: LedgerRecordTransferFxInput): Promise<LedgerRecordTransferFxResult> { return this.transferService.recordTransferFx(input); }
 
-  async addTransactionItem(input: LedgerAddTransactionItemInput): Promise<void> {
-    return this.transactionService.addTransactionItem(input);
-  }
+  async createExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult> { return this.transactionService.createExpenseDraft(input); }
 
-  async postDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void> {
-    return this.transactionService.postDraftTransaction(input);
-  }
+  async addTransactionItem(input: LedgerAddTransactionItemInput): Promise<void> { return this.transactionService.addTransactionItem(input); }
 
-  async voidTransaction(input: LedgerVoidTransactionInput): Promise<void> {
-    return this.transactionService.voidTransaction(input);
-  }
+  async postDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void> { return this.transactionService.postDraftTransaction(input); }
 
-  async listTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult> {
-    return this.transactionService.listTransactions(input);
-  }
+  async voidTransaction(input: LedgerVoidTransactionInput): Promise<void> { return this.transactionService.voidTransaction(input); }
+
+  async listTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult> { return this.transactionService.listTransactions(input); }
 }

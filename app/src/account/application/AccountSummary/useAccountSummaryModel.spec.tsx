@@ -16,6 +16,7 @@ function makePorts(overrides: Partial<AccountSummaryModelPorts> = {}): AccountSu
         balanceAmount: '12.00',
       }),
       ledgerGetNetWorthByCurrency: vi.fn().mockResolvedValue({ items: [] }),
+      ledgerGetCashFlowSeries: vi.fn(),
       ledgerListTransactions: vi.fn(),
       ledgerOpenAccount: vi.fn(),
       ledgerRenameAccount: vi.fn(),

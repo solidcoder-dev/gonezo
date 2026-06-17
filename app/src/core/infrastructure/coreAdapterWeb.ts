@@ -12,6 +12,8 @@ import type {
   LedgerDeleteAccountInput,
   LedgerGetAccountSummaryInput,
   LedgerGetAccountSummaryResult,
+  LedgerGetCashFlowSeriesInput,
+  LedgerGetCashFlowSeriesResult,
   LedgerGetNetWorthByCurrencyResult,
   LedgerListAccountsResult,
   LedgerListSupportedCurrenciesResult,
@@ -230,6 +232,10 @@ export class CoreAdapterWeb implements CorePort {
     return {
       items: sortNetWorthCurrencies(result.items, defaultAccount?.currency),
     };
+  }
+
+  async ledgerGetCashFlowSeries(input: LedgerGetCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> {
+    return this.ledgerService.getCashFlowSeries(input);
   }
 
   async ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {

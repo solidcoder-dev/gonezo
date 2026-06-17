@@ -17,6 +17,8 @@ import type {
   LedgerListAccountsResult,
   LedgerGetAccountSummaryInput,
   LedgerGetAccountSummaryResult,
+  LedgerGetCashFlowSeriesInput,
+  LedgerGetCashFlowSeriesResult,
   LedgerGetNetWorthByCurrencyResult,
   LedgerRecordExpenseInput,
   LedgerRecordExpenseResult,
@@ -106,6 +108,7 @@ export interface CorePlugin {
   ledgerListAccounts(): Promise<LedgerListAccountsResult>;
   ledgerGetAccountSummary(options: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult>;
   ledgerGetNetWorthByCurrency(): Promise<LedgerGetNetWorthByCurrencyResult>;
+  ledgerGetCashFlowSeries(options: LedgerGetCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult>;
   ledgerRecordExpense(options: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult>;
   ledgerRecordIncome(options: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult>;
   ledgerRecordTransfer(options: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult>;

@@ -65,6 +65,31 @@ export type LedgerGetNetWorthByCurrencyResult = {
   items: LedgerNetWorthCurrencyItem[];
 };
 
+export type LedgerCashFlowGranularity = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export type LedgerGetCashFlowSeriesInput = {
+  currency?: string;
+  granularity: LedgerCashFlowGranularity;
+};
+
+export type LedgerCashFlowSeriesPoint = {
+  periodKey: string;
+  label: string;
+  incomeAmount: string;
+  expenseAmount: string;
+};
+
+export type LedgerGetCashFlowSeriesResult = {
+  currencies: string[];
+  selectedCurrency: string;
+  granularity: LedgerCashFlowGranularity;
+  totals: {
+    incomeAmount: string;
+    expenseAmount: string;
+  };
+  points: LedgerCashFlowSeriesPoint[];
+};
+
 export type LedgerRecordExpenseInput = {
   accountId: string;
   occurredAt: string;
@@ -250,6 +275,7 @@ export interface LedgerPort {
   ledgerListAccounts(): Promise<LedgerListAccountsResult>;
   ledgerGetAccountSummary(input: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult>;
   ledgerGetNetWorthByCurrency(): Promise<LedgerGetNetWorthByCurrencyResult>;
+  ledgerGetCashFlowSeries(input: LedgerGetCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult>;
   ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult>;
   ledgerRecordIncome(input: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult>;
   ledgerRecordTransfer(input: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult>;
