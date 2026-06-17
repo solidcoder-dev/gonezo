@@ -1,5 +1,8 @@
 import { WebPlugin } from '@capacitor/core';
 import type {
+  AccountsListBalancesResult,
+} from '../../account/application/accountBalances.port';
+import type {
   UserPreferencesResult,
   PreferencesSetDefaultAccountInput,
 } from '../../account/application/preferences.port';
@@ -104,6 +107,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async preferencesClearDefaultAccount(): Promise<void> {
     return this.core.preferencesClearDefaultAccount();
+  }
+
+  async accountsListBalances(): Promise<AccountsListBalancesResult> {
+    return this.core.accountsListBalances();
   }
 
   async ledgerOpenAccount(options: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {

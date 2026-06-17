@@ -1,0 +1,108 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid rgba(32, 32, 30, 0.08);
+  border-radius: 24px;
+  background: #fbfaf6;
+  box-shadow: 0 14px 34px rgba(24, 24, 22, 0.08);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header h2 {
+  margin: 0;
+  color: #20201e;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.addButton,
+.settingsButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  color: #20201e;
+  cursor: pointer;
+}
+
+.rail {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.rail::-webkit-scrollbar {
+  display: none;
+}
+
+.accountCard {
+  flex: 0 0 158px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(32, 32, 30, 0.08);
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.accountHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.accountNameButton,
+.balanceButton {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #20201e;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.accountNameButton {
+  flex: 1;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.accountNameButton span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.balanceButton {
+  overflow: hidden;
+  font-size: 1rem;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settingsButton {
+  flex: 0 0 auto;
+}

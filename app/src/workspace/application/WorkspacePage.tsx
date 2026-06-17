@@ -11,8 +11,7 @@ import { TransactionsImportComponent } from '../../account/ui/capabilities/Trans
 import type { AccountPageViewProvided, AccountPageViewRequired } from '../../account/ui/AccountPageView/accountPageView.contract';
 import type { LoadPhase, SubmitPhase } from '../../account/application/accountPage.types';
 import type { AccountWorkspacePort } from '../../account/application/accounts.port';
-import { AccountHubComponent } from '../../account/application/AccountHub/AccountHubComponent';
-import { AccountSummaryComponent } from '../../account/application/AccountSummary/AccountSummaryComponent';
+import { AccountsRailComponent } from '../../account/application/AccountsRail/AccountsRailComponent';
 import {
   expectedMovementToComposerPrefill,
   postExpectedMovementToComposerPrefill,
@@ -65,7 +64,6 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     type: TransactionType;
   } | undefined>();
 
-  const hasSelectedAccount = Boolean(selectedAccountId);
   const transactionEntryAccountId = movementEntryAccountId ?? selectedAccountId;
   const currentPage = location.pathname.startsWith('/analytics')
     ? 'analytics'
@@ -83,6 +81,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       setAccountSummaryRefreshSignal((previous) => !previous);
       setNetWorthRefreshSignal((previous) => !previous);
       setRecentTransactionsRefreshSignal((previous) => !previous);
+      setMovementQuickActionRefreshSignal((previous) => !previous);
       return accountId;
     });
   }
@@ -162,42 +161,6 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     clearMovementEntryAccount();
   }
 
-  const accountHub = (
-    <AccountHubComponent
-      required={{
-        context: {
-          core: pageRequired.core,
-        },
-        config: {
-          refreshSignal: accountHubRefreshSignal,
-        },
-      }}
-      provided={{
-        events: {
-          onLoadPhaseChanged: setScreenLoadPhase,
-          onSelectedAccountChanged: handleSelectedAccountChanged,
-          onAccountsCountChanged: (count) => {
-            setAccountsCount((previousCount) => {
-              if (previousCount > 0 && previousCount !== count) {
-                setMovementQuickActionRefreshSignal((previous) => !previous);
-                setNetWorthRefreshSignal((previous) => !previous);
-              }
-              return count;
-            });
-          },
-          onImportRequested: () => setImportSheetOpen(true),
-          onBackupRequested: () => {
-            void requestMovementsBackup().catch((err) => {
-              setToastMessage(toErrorMessage(err));
-              setToastActionLabel('');
-              setToastAction(null);
-            });
-          },
-        },
-      }}
-    />
-  );
-
   const transactionEntry = transactionEntryAccountId
     ? (
         <TransactionEntryComponent
@@ -251,34 +214,47 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     />
   );
 
-  const homeAccountSummary = hasSelectedAccount ? (
-    <AccountSummaryComponent
+  const homeAccountsRail = currentPage === 'home' ? (
+    <AccountsRailComponent
       required={{
         context: {
           core: pageRequired.core,
-          accountId: selectedAccountId,
         },
         config: {
-          enabled: hasSelectedAccount,
+          enabled: true,
           refreshSignal: accountSummaryRefreshSignal,
-          headerSlot: accountHub,
         },
       }}
       provided={{
         events: {
+          onSelectedAccountChanged: handleSelectedAccountChanged,
+          onAccountsCountChanged: (count) => {
+            setAccountsCount((previousCount) => {
+              if (previousCount > 0 && previousCount !== count) {
+                setMovementQuickActionRefreshSignal((previous) => !previous);
+                setNetWorthRefreshSignal((previous) => !previous);
+              }
+              return count;
+            });
+          },
           onAccountMutated: () => {
-            setAccountHubRefreshSignal((previous) => !previous);
             setAccountSummaryRefreshSignal((previous) => !previous);
             setNetWorthRefreshSignal((previous) => !previous);
+            setMovementQuickActionRefreshSignal((previous) => !previous);
           },
           onAccountDeleted: (accountId) => {
             if (selectedAccountId === accountId) {
               setSelectedAccountId(null);
             }
-            setAccountHubRefreshSignal((previous) => !previous);
             setAccountSummaryRefreshSignal((previous) => !previous);
             setNetWorthRefreshSignal((previous) => !previous);
             setRecentTransactionsRefreshSignal((previous) => !previous);
+            setMovementQuickActionRefreshSignal((previous) => !previous);
+          },
+          onError: (error) => {
+            setToastMessage(error.message);
+            setToastActionLabel('');
+            setToastAction(null);
           },
         },
       }}
@@ -399,9 +375,9 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     },
     sections: {
       netWorthSummary,
-      accountHub: currentPage === 'home' && !hasSelectedAccount ? accountHub : null,
+      accountHub: null,
       accountSummary: currentPage === 'home'
-        ? homeAccountSummary
+        ? homeAccountsRail
         : currentPage === 'analytics'
           ? analyticsPage
           : currentPage === 'profile'

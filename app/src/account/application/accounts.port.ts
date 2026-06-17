@@ -8,6 +8,7 @@ import type {
 import type { PreferencesSetDefaultAccountInput, UserPreferencesResult } from './preferences.port';
 import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
 import type { TransactionsPort } from '../../transactions/application/transactions.port';
+import type { AccountBalancesPort } from './accountBalances.port';
 
 export type UserPreferencesPort = {
   preferencesGet(): Promise<UserPreferencesResult>;
@@ -27,6 +28,7 @@ export type MovementsBackupPort = {
 };
 
 export type AccountWorkspacePort = AccountsPort
+  & AccountBalancesPort
   & TransactionsPort
   & TransactionsImportPort
   & MovementsBackupPort

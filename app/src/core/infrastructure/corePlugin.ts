@@ -1,5 +1,8 @@
 import { registerPlugin } from '@capacitor/core';
 import type {
+  AccountsListBalancesResult,
+} from '../../account/application/accountBalances.port';
+import type {
   UserPreferencesResult,
   PreferencesSetDefaultAccountInput,
 } from '../../account/application/preferences.port';
@@ -93,6 +96,7 @@ export interface CorePlugin {
   preferencesGet(): Promise<UserPreferencesResult>;
   preferencesSetDefaultAccount(options: PreferencesSetDefaultAccountInput): Promise<void>;
   preferencesClearDefaultAccount(): Promise<void>;
+  accountsListBalances(): Promise<AccountsListBalancesResult>;
   ledgerOpenAccount(options: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult>;
   ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult>;
   ledgerRenameAccount(options: LedgerRenameAccountInput): Promise<void>;

@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import type { CorePort } from '../application/corePort';
+import type { AccountsListBalancesResult } from '../../account/application/accountBalances.port';
 import type {
   UserPreferencesResult,
   PreferencesSetDefaultAccountInput,
@@ -104,6 +105,7 @@ import {
 import { getNativeNetWorthByCurrency } from './nativeNetWorth';
 import { getMovementsSearchFacets } from '../../movements/infrastructure/searchFacets';
 import { listMasterCategories } from '../../taxonomy/domain/masterCategories';
+import { listAccountBalances } from './accountBalancesQuery';
 
 function normalizeMasterCategoryKey(name: string, appliesTo: string): string {
   return `${appliesTo}:${name.trim().toLowerCase()}`;
@@ -165,11 +167,11 @@ export class CoreAdapter implements CorePort {
   }
 
   async preferencesClearDefaultAccount(): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      await CorePlugin.preferencesClearDefaultAccount();
-      return;
-    }
-    await this.web.preferencesClearDefaultAccount();
+    return Capacitor.isNativePlatform() ? CorePlugin.preferencesClearDefaultAccount() : this.web.preferencesClearDefaultAccount();
+  }
+
+  async accountsListBalances(): Promise<AccountsListBalancesResult> {
+    return Capacitor.isNativePlatform() ? listAccountBalances(CorePlugin) : this.web.accountsListBalances();
   }
 
   async ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {

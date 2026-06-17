@@ -1,4 +1,5 @@
 import type { CorePort } from '../application/corePort';
+import type { AccountsListBalancesResult } from '../../account/application/accountBalances.port';
 import type {
   PreferencesSetDefaultAccountInput,
   UserPreferencesResult,
@@ -112,6 +113,7 @@ import {
 } from './webAppState';
 import { WebTaxonomyService } from '../../taxonomy/infrastructure/webTaxonomyService';
 import { sortNetWorthCurrencies } from '../../ledger/application/netWorthOrdering';
+import { listAccountBalances } from './accountBalancesQuery';
 
 export type CoreAdapterWebOptions = {
   state?: WebAppState;
@@ -174,9 +176,7 @@ export class CoreAdapterWeb implements CorePort {
     });
   }
 
-  async preferencesGet(): Promise<UserPreferencesResult> {
-    return { defaultAccountId: this.state.defaultAccountId };
-  }
+  async preferencesGet(): Promise<UserPreferencesResult> { return { defaultAccountId: this.state.defaultAccountId }; }
 
   async preferencesSetDefaultAccount(input: PreferencesSetDefaultAccountInput): Promise<void> {
     const accountId = input.accountId.trim();
@@ -186,9 +186,9 @@ export class CoreAdapterWeb implements CorePort {
     this.state.defaultAccountId = accountId;
   }
 
-  async preferencesClearDefaultAccount(): Promise<void> {
-    this.state.defaultAccountId = null;
-  }
+  async preferencesClearDefaultAccount(): Promise<void> { this.state.defaultAccountId = null; }
+
+  async accountsListBalances(): Promise<AccountsListBalancesResult> { return listAccountBalances(this); }
 
   async ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {
     return this.ledgerService.openAccount(input);
