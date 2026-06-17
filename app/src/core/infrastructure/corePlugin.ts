@@ -14,6 +14,7 @@ import type {
   LedgerListAccountsResult,
   LedgerGetAccountSummaryInput,
   LedgerGetAccountSummaryResult,
+  LedgerGetNetWorthByCurrencyResult,
   LedgerRecordExpenseInput,
   LedgerRecordExpenseResult,
   LedgerRecordIncomeInput,
@@ -100,6 +101,7 @@ export interface CorePlugin {
   ledgerDeleteAccount(options: LedgerDeleteAccountInput): Promise<void>;
   ledgerListAccounts(): Promise<LedgerListAccountsResult>;
   ledgerGetAccountSummary(options: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult>;
+  ledgerGetNetWorthByCurrency(): Promise<LedgerGetNetWorthByCurrencyResult>;
   ledgerRecordExpense(options: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult>;
   ledgerRecordIncome(options: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult>;
   ledgerRecordTransfer(options: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult>;

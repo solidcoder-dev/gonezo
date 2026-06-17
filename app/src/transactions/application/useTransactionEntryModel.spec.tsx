@@ -25,6 +25,7 @@ function makePorts(): TransactionEntryModelPorts {
         currency: 'USD',
         balanceAmount: '100.00',
       }),
+      ledgerGetNetWorthByCurrency: vi.fn().mockResolvedValue({ items: [] }),
       ledgerListTransactions: vi.fn(),
       ledgerOpenAccount: vi.fn(),
       ledgerRenameAccount: vi.fn(),

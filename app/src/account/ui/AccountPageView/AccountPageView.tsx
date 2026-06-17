@@ -14,6 +14,7 @@ export function AccountPageView({ required, provided }: AccountPageViewProps) {
         provided={provided.toast}
       />
 
+      {required.sections.netWorthSummary}
       {required.sections.accountHub}
       {required.sections.accountSummary}
       {required.sections.transactionEntry}

@@ -11,6 +11,7 @@ import type {
   LedgerDeleteAccountInput,
   LedgerGetAccountSummaryInput,
   LedgerGetAccountSummaryResult,
+  LedgerGetNetWorthByCurrencyResult,
   LedgerListAccountsResult,
   LedgerListSupportedCurrenciesResult,
   LedgerListTransactionsInput,
@@ -110,6 +111,7 @@ import {
   type WebAppState,
 } from './webAppState';
 import { WebTaxonomyService } from '../../taxonomy/infrastructure/webTaxonomyService';
+import { sortNetWorthCurrencies } from '../../ledger/application/netWorthOrdering';
 
 export type CoreAdapterWebOptions = {
   state?: WebAppState;
@@ -218,6 +220,16 @@ export class CoreAdapterWeb implements CorePort {
 
   async ledgerGetAccountSummary(input: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult> {
     return this.ledgerService.getAccountSummary(input);
+  }
+
+  async ledgerGetNetWorthByCurrency(): Promise<LedgerGetNetWorthByCurrencyResult> {
+    const result = await this.ledgerService.getNetWorthByCurrency();
+    const defaultAccount = this.state.defaultAccountId
+      ? this.state.ledgerAccounts.find((account) => account.id === this.state.defaultAccountId)
+      : undefined;
+    return {
+      items: sortNetWorthCurrencies(result.items, defaultAccount?.currency),
+    };
   }
 
   async ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {

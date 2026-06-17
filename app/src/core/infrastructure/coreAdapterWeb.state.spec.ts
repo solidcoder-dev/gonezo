@@ -150,6 +150,45 @@ describe('CoreAdapterWeb state and effects boundaries', () => {
     await expect(second.preferencesGet()).resolves.toEqual({ defaultAccountId: 'second-default' });
   });
 
+  it('orders net worth with the default account currency first', async () => {
+    let nextId = 0;
+    const core = new CoreAdapterWeb({
+      state: createWebAppState(),
+      dependencies: {
+        clock: { nowIso: () => '2026-06-02T09:00:00.000Z' },
+        idGenerator: { nextId: () => `id-${++nextId}` },
+        backupDownloader: { downloadJson: vi.fn() },
+      },
+    });
+    await core.ledgerOpenAccount({
+      name: 'USD',
+      type: 'cash',
+      currency: 'USD',
+      openingBalanceAmount: '300.00',
+    });
+    const favorite = await core.ledgerOpenAccount({
+      name: 'EUR favorite',
+      type: 'cash',
+      currency: 'EUR',
+      openingBalanceAmount: '50.00',
+    });
+    await core.ledgerOpenAccount({
+      name: 'GBP',
+      type: 'cash',
+      currency: 'GBP',
+      openingBalanceAmount: '200.00',
+    });
+    await core.preferencesSetDefaultAccount({ accountId: favorite.id });
+
+    await expect(core.ledgerGetNetWorthByCurrency()).resolves.toEqual({
+      items: [
+        { currency: 'EUR', balanceAmount: '50.00' },
+        { currency: 'USD', balanceAmount: '300.00' },
+        { currency: 'GBP', balanceAmount: '200.00' },
+      ],
+    });
+  });
+
   it('delegates backup downloads to the injected effect boundary', async () => {
     const downloadJson = vi.fn();
     const core = new CoreAdapterWeb({

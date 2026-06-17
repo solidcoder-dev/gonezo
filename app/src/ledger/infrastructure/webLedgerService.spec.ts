@@ -147,6 +147,75 @@ describe('WebLedgerService', () => {
     expect(state.ledgerTransactions.find((tx) => tx.id === fxTransfer.transferInId)?.status).toBe('voided');
   });
 
+  it('aggregates total net worth by currency across accounts', async () => {
+    const state = createWebAppState();
+    const ledger = new WebLedgerService({ state, dependencies: createDependencies() });
+    const eurA = await ledger.openAccount({
+      name: 'Main EUR',
+      type: 'cash',
+      currency: 'EUR',
+      openingBalanceAmount: '100.25',
+    });
+    await ledger.openAccount({
+      name: 'Savings EUR',
+      type: 'savings',
+      currency: 'EUR',
+      openingBalanceAmount: '200.75',
+    });
+    await ledger.openAccount({
+      name: 'USD',
+      type: 'cash',
+      currency: 'USD',
+      openingBalanceAmount: '50.10',
+    });
+
+    await ledger.recordExpense({
+      accountId: eurA.id,
+      amount: '10.30',
+      currency: 'EUR',
+      occurredAt: '2026-03-02T00:00:00.000Z',
+    });
+
+    await expect(ledger.getNetWorthByCurrency()).resolves.toEqual({
+      items: [
+        { currency: 'EUR', balanceAmount: '290.70' },
+        { currency: 'USD', balanceAmount: '50.10' },
+      ],
+    });
+  });
+
+  it('orders net worth currencies by highest net balance', async () => {
+    const state = createWebAppState();
+    const ledger = new WebLedgerService({ state, dependencies: createDependencies() });
+
+    await ledger.openAccount({
+      name: 'EUR',
+      type: 'cash',
+      currency: 'EUR',
+      openingBalanceAmount: '100.00',
+    });
+    await ledger.openAccount({
+      name: 'USD',
+      type: 'cash',
+      currency: 'USD',
+      openingBalanceAmount: '300.00',
+    });
+    await ledger.openAccount({
+      name: 'GBP',
+      type: 'cash',
+      currency: 'GBP',
+      openingBalanceAmount: '200.00',
+    });
+
+    await expect(ledger.getNetWorthByCurrency()).resolves.toEqual({
+      items: [
+        { currency: 'USD', balanceAmount: '300.00' },
+        { currency: 'GBP', balanceAmount: '200.00' },
+        { currency: 'EUR', balanceAmount: '100.00' },
+      ],
+    });
+  });
+
   it('creates draft transactions, validates item totals and posts drafts', async () => {
     const state = createWebAppState();
     const ledger = new WebLedgerService({ state, dependencies: createDependencies() });

@@ -7,6 +7,7 @@ export function createLedgerGateway(core: LedgerGatewayPort): LedgerGatewayPort 
     ledgerListSupportedCurrencies: () => core.ledgerListSupportedCurrencies(),
     ledgerListAccounts: () => core.ledgerListAccounts(),
     ledgerGetAccountSummary: (input) => core.ledgerGetAccountSummary(input),
+    ledgerGetNetWorthByCurrency: () => core.ledgerGetNetWorthByCurrency(),
     ledgerListTransactions: (input) => core.ledgerListTransactions(input),
     ledgerOpenAccount: (input) => core.ledgerOpenAccount(input),
     ledgerRenameAccount: (input) => core.ledgerRenameAccount(input),

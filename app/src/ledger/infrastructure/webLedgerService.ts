@@ -6,6 +6,7 @@ import type {
   LedgerDeleteAccountInput,
   LedgerGetAccountSummaryInput,
   LedgerGetAccountSummaryResult,
+  LedgerGetNetWorthByCurrencyResult,
   LedgerListAccountsResult,
   LedgerListSupportedCurrenciesResult,
   LedgerListTransactionsInput,
@@ -39,11 +40,16 @@ import type {
   WebLedgerAccount,
   WebLedgerTransaction,
 } from '../../core/infrastructure/webAppState';
+import { sortNetWorthCurrencies } from '../application/netWorthOrdering';
 
 export type WebLedgerServiceOptions = {
   state: WebAppState;
   dependencies: WebRuntimeDependencies;
 };
+
+function addLedgerAmount(left: string, right: string): string {
+  return (Number(left) + Number(right)).toFixed(2);
+}
 
 export class WebLedgerService {
   private readonly state: WebAppState;
@@ -111,6 +117,23 @@ export class WebLedgerService {
 
   async getAccountSummary(input: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult> {
     return this.accountService.getAccountSummary(input);
+  }
+
+  async getNetWorthByCurrency(): Promise<LedgerGetNetWorthByCurrencyResult> {
+    const accounts = await this.listAccounts();
+    const balanceByCurrency = new Map<string, string>();
+
+    for (const account of accounts.items) {
+      const summary = await this.getAccountSummary({ accountId: account.id });
+      const previous = balanceByCurrency.get(summary.currency) ?? '0.00';
+      balanceByCurrency.set(summary.currency, addLedgerAmount(previous, summary.balanceAmount));
+    }
+
+    return {
+      items: sortNetWorthCurrencies(
+        [...balanceByCurrency.entries()].map(([currency, balanceAmount]) => ({ currency, balanceAmount })),
+      ),
+    };
   }
 
   async recordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {

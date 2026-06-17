@@ -15,6 +15,7 @@ import type {
   LedgerListAccountsResult,
   LedgerGetAccountSummaryInput,
   LedgerGetAccountSummaryResult,
+  LedgerGetNetWorthByCurrencyResult,
   LedgerRecordExpenseInput,
   LedgerRecordExpenseResult,
   LedgerRecordIncomeInput,
@@ -100,6 +101,7 @@ import {
   listNativeScheduledMovements,
   searchNativeMovements,
 } from '../../movements/infrastructure/nativeMovements';
+import { getNativeNetWorthByCurrency } from './nativeNetWorth';
 import { getMovementsSearchFacets } from '../../movements/infrastructure/searchFacets';
 import { listMasterCategories } from '../../taxonomy/domain/masterCategories';
 
@@ -228,6 +230,14 @@ export class CoreAdapter implements CorePort {
       return CorePlugin.ledgerGetAccountSummary(input);
     }
     return this.web.ledgerGetAccountSummary(input);
+  }
+
+  async ledgerGetNetWorthByCurrency(): Promise<LedgerGetNetWorthByCurrencyResult> {
+    if (!Capacitor.isNativePlatform()) {
+      return this.web.ledgerGetNetWorthByCurrency();
+    }
+    const preferences = await CorePlugin.preferencesGet();
+    return getNativeNetWorthByCurrency(CorePlugin, preferences.defaultAccountId);
   }
 
   async ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {

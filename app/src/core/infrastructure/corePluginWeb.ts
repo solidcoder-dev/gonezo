@@ -14,6 +14,7 @@ import type {
   LedgerListAccountsResult,
   LedgerGetAccountSummaryInput,
   LedgerGetAccountSummaryResult,
+  LedgerGetNetWorthByCurrencyResult,
   LedgerRecordExpenseInput,
   LedgerRecordExpenseResult,
   LedgerRecordIncomeInput,
@@ -135,6 +136,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async ledgerGetAccountSummary(options: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult> {
     return this.core.ledgerGetAccountSummary(options);
+  }
+
+  async ledgerGetNetWorthByCurrency(): Promise<LedgerGetNetWorthByCurrencyResult> {
+    return this.core.ledgerGetNetWorthByCurrency();
   }
 
   async ledgerRecordExpense(options: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {

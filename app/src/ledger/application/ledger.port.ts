@@ -56,6 +56,15 @@ export type LedgerGetAccountSummaryResult = {
   balanceAmount: string;
 };
 
+export type LedgerNetWorthCurrencyItem = {
+  currency: string;
+  balanceAmount: string;
+};
+
+export type LedgerGetNetWorthByCurrencyResult = {
+  items: LedgerNetWorthCurrencyItem[];
+};
+
 export type LedgerRecordExpenseInput = {
   accountId: string;
   occurredAt: string;
@@ -240,6 +249,7 @@ export interface LedgerPort {
   ledgerDeleteAccount(input: LedgerDeleteAccountInput): Promise<void>;
   ledgerListAccounts(): Promise<LedgerListAccountsResult>;
   ledgerGetAccountSummary(input: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult>;
+  ledgerGetNetWorthByCurrency(): Promise<LedgerGetNetWorthByCurrencyResult>;
   ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult>;
   ledgerRecordIncome(input: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult>;
   ledgerRecordTransfer(input: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult>;

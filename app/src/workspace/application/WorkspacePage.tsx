@@ -19,6 +19,7 @@ import {
   scheduledMovementToComposerPrefill,
 } from '../../account/application/movementComposerPrefill';
 import { ProfilePage } from './ProfilePage';
+import { NetWorthSummaryComponent } from './NetWorthSummaryComponent';
 
 export type WorkspacePageRequired = {
   core: AccountWorkspacePort;
@@ -50,6 +51,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
 
   const [accountHubRefreshSignal, setAccountHubRefreshSignal] = useState(false);
   const [accountSummaryRefreshSignal, setAccountSummaryRefreshSignal] = useState(false);
+  const [netWorthRefreshSignal, setNetWorthRefreshSignal] = useState(false);
   const [recentTransactionsRefreshSignal, setRecentTransactionsRefreshSignal] = useState(false);
   const [movementQuickActionRefreshSignal, setMovementQuickActionRefreshSignal] = useState(false);
   const [transactionEntryPrefill, setTransactionEntryPrefill] = useState<TransactionEntryPrefillRequest | undefined>();
@@ -79,6 +81,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         return previousAccountId;
       }
       setAccountSummaryRefreshSignal((previous) => !previous);
+      setNetWorthRefreshSignal((previous) => !previous);
       setRecentTransactionsRefreshSignal((previous) => !previous);
       return accountId;
     });
@@ -97,6 +100,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       setAccountHubRefreshSignal((previous) => !previous);
       setMovementQuickActionRefreshSignal((previous) => !previous);
       setAccountSummaryRefreshSignal((previous) => !previous);
+      setNetWorthRefreshSignal((previous) => !previous);
       setRecentTransactionsRefreshSignal((previous) => !previous);
       return result;
     } catch (err) {
@@ -176,6 +180,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             setAccountsCount((previousCount) => {
               if (previousCount > 0 && previousCount !== count) {
                 setMovementQuickActionRefreshSignal((previous) => !previous);
+                setNetWorthRefreshSignal((previous) => !previous);
               }
               return count;
             });
@@ -214,6 +219,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
               onRecorded: () => {
                 setRecentTransactionsRefreshSignal((previous) => !previous);
                 setAccountSummaryRefreshSignal((previous) => !previous);
+                setNetWorthRefreshSignal((previous) => !previous);
                 setTransactionEntryPrefill(undefined);
                 clearMovementEntryAccount();
               },
@@ -263,6 +269,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           onAccountMutated: () => {
             setAccountHubRefreshSignal((previous) => !previous);
             setAccountSummaryRefreshSignal((previous) => !previous);
+            setNetWorthRefreshSignal((previous) => !previous);
           },
           onAccountDeleted: (accountId) => {
             if (selectedAccountId === accountId) {
@@ -270,6 +277,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             }
             setAccountHubRefreshSignal((previous) => !previous);
             setAccountSummaryRefreshSignal((previous) => !previous);
+            setNetWorthRefreshSignal((previous) => !previous);
             setRecentTransactionsRefreshSignal((previous) => !previous);
           },
         },
@@ -294,9 +302,11 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         events: {
           onVoided: () => {
             setAccountSummaryRefreshSignal((previous) => !previous);
+            setNetWorthRefreshSignal((previous) => !previous);
           },
           onExpectedPosted: () => {
             setAccountSummaryRefreshSignal((previous) => !previous);
+            setNetWorthRefreshSignal((previous) => !previous);
           },
           onExpectedDismissed: () => {
             setAccountSummaryRefreshSignal((previous) => !previous);
@@ -336,6 +346,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             setAccountHubRefreshSignal((previous) => !previous);
             setMovementQuickActionRefreshSignal((previous) => !previous);
             setAccountSummaryRefreshSignal((previous) => !previous);
+            setNetWorthRefreshSignal((previous) => !previous);
           },
           onError: (error) => {
             setToastMessage(error.message);
@@ -354,6 +365,29 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     </section>
   );
 
+  const netWorthSummary = currentPage === 'home' ? (
+    <NetWorthSummaryComponent
+      required={{
+        context: {
+          core: pageRequired.core,
+        },
+        config: {
+          enabled: true,
+          refreshSignal: netWorthRefreshSignal,
+        },
+      }}
+      provided={{
+        events: {
+          onError: (error) => {
+            setToastMessage(error.message);
+            setToastActionLabel('');
+            setToastAction(null);
+          },
+        },
+      }}
+    />
+  ) : null;
+
   const required: AccountPageViewRequired = {
     screen: {
       loadPhase: screenLoadPhase,
@@ -364,6 +398,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       actionLabel: toastActionLabel,
     },
     sections: {
+      netWorthSummary,
       accountHub: currentPage === 'home' && !hasSelectedAccount ? accountHub : null,
       accountSummary: currentPage === 'home'
         ? homeAccountSummary

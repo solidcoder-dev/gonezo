@@ -274,6 +274,11 @@ function makeCore(transactionCount = 0): AppTestPort {
       currency: 'USD',
       balanceAmount: '100.00',
     })),
+    ledgerGetNetWorthByCurrency: vi.fn(async () => ({
+      items: [
+        { currency: 'USD', balanceAmount: '250.00' },
+      ],
+    })),
     ledgerListTransactions: vi.fn(async (input) => toPagedResult(transactions, input)),
     ledgerOpenAccount: vi.fn(async () => ({ id: 'acc-1' })),
     ledgerRenameAccount: vi.fn(async () => undefined),
@@ -829,6 +834,27 @@ describe('App Accounts UX', () => {
     expect(await screen.findByText('Net balance')).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: 'Main' })).toBeInTheDocument();
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+  });
+
+  it('shows total net worth by currency on the home page', async () => {
+    const core = makeCore();
+    vi.mocked(core.ledgerGetNetWorthByCurrency).mockResolvedValue({
+      items: [
+        { currency: 'EUR', balanceAmount: '290.70' },
+        { currency: 'USD', balanceAmount: '100.00' },
+      ],
+    });
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Total net worth' })).toBeInTheDocument();
+    expect(screen.getByText('EUR')).toBeInTheDocument();
+    expect(screen.getByText('USD')).toBeInTheDocument();
+    expect(core.ledgerGetNetWorthByCurrency).toHaveBeenCalled();
   });
 
   it('shows import action inside accounts menu when accounts exist', async () => {
