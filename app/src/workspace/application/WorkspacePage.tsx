@@ -19,6 +19,7 @@ import {
 } from '../../account/application/movementComposerPrefill';
 import { ProfilePage } from './ProfilePage';
 import { NetWorthSummaryComponent } from './NetWorthSummaryComponent';
+import { ExpectedMovementsCardComponent } from '../../movements/application/ExpectedMovementsCardComponent';
 
 export type WorkspacePageRequired = {
   core: AccountWorkspacePort;
@@ -51,6 +52,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const [accountHubRefreshSignal, setAccountHubRefreshSignal] = useState(false);
   const [accountSummaryRefreshSignal, setAccountSummaryRefreshSignal] = useState(false);
   const [netWorthRefreshSignal, setNetWorthRefreshSignal] = useState(false);
+  const [expectedMovementsRefreshSignal, setExpectedMovementsRefreshSignal] = useState(false);
   const [recentTransactionsRefreshSignal, setRecentTransactionsRefreshSignal] = useState(false);
   const [movementQuickActionRefreshSignal, setMovementQuickActionRefreshSignal] = useState(false);
   const [transactionEntryPrefill, setTransactionEntryPrefill] = useState<TransactionEntryPrefillRequest | undefined>();
@@ -101,6 +103,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       setAccountSummaryRefreshSignal((previous) => !previous);
       setNetWorthRefreshSignal((previous) => !previous);
       setRecentTransactionsRefreshSignal((previous) => !previous);
+      setExpectedMovementsRefreshSignal((previous) => !previous);
       return result;
     } catch (err) {
       setImportSubmitPhase('failed');
@@ -183,6 +186,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
                 setRecentTransactionsRefreshSignal((previous) => !previous);
                 setAccountSummaryRefreshSignal((previous) => !previous);
                 setNetWorthRefreshSignal((previous) => !previous);
+                setExpectedMovementsRefreshSignal((previous) => !previous);
                 setTransactionEntryPrefill(undefined);
                 clearMovementEntryAccount();
               },
@@ -241,6 +245,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             setAccountSummaryRefreshSignal((previous) => !previous);
             setNetWorthRefreshSignal((previous) => !previous);
             setMovementQuickActionRefreshSignal((previous) => !previous);
+            setExpectedMovementsRefreshSignal((previous) => !previous);
           },
           onAccountDeleted: (accountId) => {
             if (selectedAccountId === accountId) {
@@ -250,6 +255,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             setNetWorthRefreshSignal((previous) => !previous);
             setRecentTransactionsRefreshSignal((previous) => !previous);
             setMovementQuickActionRefreshSignal((previous) => !previous);
+            setExpectedMovementsRefreshSignal((previous) => !previous);
           },
           onError: (error) => {
             setToastMessage(error.message);
@@ -283,9 +289,11 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           onExpectedPosted: () => {
             setAccountSummaryRefreshSignal((previous) => !previous);
             setNetWorthRefreshSignal((previous) => !previous);
+            setExpectedMovementsRefreshSignal((previous) => !previous);
           },
           onExpectedDismissed: () => {
             setAccountSummaryRefreshSignal((previous) => !previous);
+            setExpectedMovementsRefreshSignal((previous) => !previous);
           },
           onPostExpectedMovement: postExpectedMovement,
           onEditExpectedMovement: editExpectedMovement,
@@ -323,6 +331,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             setMovementQuickActionRefreshSignal((previous) => !previous);
             setAccountSummaryRefreshSignal((previous) => !previous);
             setNetWorthRefreshSignal((previous) => !previous);
+            setExpectedMovementsRefreshSignal((previous) => !previous);
           },
           onError: (error) => {
             setToastMessage(error.message);
@@ -364,6 +373,35 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     />
   ) : null;
 
+  const homeExpectedMovements = currentPage === 'home' ? (
+    <ExpectedMovementsCardComponent
+      required={{
+        context: {
+          core: pageRequired.core,
+        },
+        config: {
+          enabled: true,
+          refreshSignal: expectedMovementsRefreshSignal,
+        },
+      }}
+      provided={{
+        events: {
+          onExpectedDismissed: () => {
+            setAccountSummaryRefreshSignal((previous) => !previous);
+            setExpectedMovementsRefreshSignal((previous) => !previous);
+          },
+          onPostExpectedMovement: postExpectedMovement,
+          onEditExpectedMovement: editExpectedMovement,
+          onError: (error) => {
+            setToastMessage(error.message);
+            setToastActionLabel('');
+            setToastAction(null);
+          },
+        },
+      }}
+    />
+  ) : null;
+
   const required: AccountPageViewRequired = {
     screen: {
       loadPhase: screenLoadPhase,
@@ -377,7 +415,12 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       netWorthSummary,
       accountHub: null,
       accountSummary: currentPage === 'home'
-        ? homeAccountsRail
+        ? (
+            <>
+              {homeAccountsRail}
+              {homeExpectedMovements}
+            </>
+          )
         : currentPage === 'analytics'
           ? analyticsPage
           : currentPage === 'profile'
