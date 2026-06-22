@@ -1,14 +1,21 @@
 import { formatCalendarDay } from '../MonthlyMovements/postedGrouping';
-import type { MovementsSearchItemView } from '../../application/movementsView.types';
+import type {
+  ExpectedMovementView,
+  MovementsSearchItemView,
+  ScheduledMovementView,
+} from '../../application/movementsView.types';
+import type { TransactionHistoryItemView } from '../../../transactions/application/transactionView.types';
 import type { MovementDetailDataView, MovementAmountKindView } from '../MovementDetailSheet/MovementDetailSheetView';
 import type { MovementRowDataView } from '../MovementRow/MovementRowView';
 import {
+  buildExpectedMovementDetailData,
+  buildPostedMovementDetailData,
+  buildScheduledMovementDetailData,
   compactTags,
   txAmount,
   txAmountKind,
   txItemTypeClass,
   txKindIconClass,
-  txLabel,
   txSign,
 } from '../MonthlyMovements/monthlyMovementPresentation';
 
@@ -119,24 +126,80 @@ export function buildMovementSearchDetailData(
   entry: MovementsSearchItemView,
   options: SearchPresentationOptions = {},
 ): MovementDetailDataView {
-  const amountKind = txAmountKind(entry.type);
+  if (entry.source === 'expected') {
+    return buildExpectedMovementDetailData(searchEntryToExpectedMovement(entry), {
+      ...options,
+      categoryName: entry.category?.name,
+    });
+  }
+  if (entry.source === 'scheduled') {
+    return buildScheduledMovementDetailData(searchEntryToScheduledMovement(entry), {
+      ...options,
+      categoryName: entry.category?.name,
+      tagNames: entry.tags?.map((tag) => tag.name),
+    });
+  }
+  return buildPostedMovementDetailData(searchEntryToPostedTransaction(entry), options);
+}
+
+function searchEntryToPostedTransaction(entry: MovementsSearchItemView): TransactionHistoryItemView {
   return {
-    title: entry.title,
-    kicker: `${txLabel(entry.type)} · ${sourceLabel(entry.source)}`,
-    iconClassName: txKindIconClass(entry.type),
-    amount: {
-      kind: amountKind,
-      sign: txSign(entry.type),
-      value: entry.amount,
-      currency: entry.currency,
-    },
-    meta: [
-      entry.accountName ? { label: 'Account', value: entry.accountName } : undefined,
-      { label: 'Date', value: formatCalendarDay(entry.occurredAt, options.now) },
-      { label: 'Category', value: entry.category?.name ?? 'No category' },
-      { label: 'Tags', value: compactTags(entry.tags) ?? 'No tags' },
-      { label: 'Source', value: entry.source },
-    ].filter((item): item is { label: string; value: string } => Boolean(item)),
-    splitItems: entry.items,
+    id: entry.id,
+    accountId: entry.accountId ?? '',
+    accountName: entry.accountName,
+    occurredAt: entry.occurredAt,
+    description: entry.description,
+    merchant: entry.merchant || entry.title,
+    amount: entry.amount,
+    currency: entry.currency,
+    type: entry.type,
+    status: entry.status === 'voided' ? 'voided' : 'posted',
+    categoryId: entry.categoryId,
+    category: entry.category,
+    tags: entry.tags,
+    items: entry.items ?? [],
+  };
+}
+
+function searchEntryToExpectedMovement(entry: MovementsSearchItemView): ExpectedMovementView {
+  return {
+    id: entry.id,
+    accountId: entry.accountId ?? '',
+    accountName: entry.accountName,
+    type: entry.type === 'income' ? 'income' : 'expense',
+    amount: entry.amount,
+    currency: entry.currency,
+    expectedAt: entry.occurredAt,
+    description: entry.description,
+    merchant: entry.merchant || entry.title,
+    categoryId: entry.categoryId ?? entry.category?.id,
+    splitItems: entry.items ?? [],
+    status: entry.status === 'resolved' || entry.status === 'dismissed' ? entry.status : 'pending',
+    createdAt: entry.occurredAt,
+    updatedAt: entry.occurredAt,
+  };
+}
+
+function searchEntryToScheduledMovement(entry: MovementsSearchItemView): ScheduledMovementView {
+  return {
+    id: entry.id,
+    type: entry.type === 'income' || entry.type === 'transfer' ? entry.type : 'expense',
+    sourceAccountId: entry.accountId ?? '',
+    accountName: entry.accountName,
+    amount: entry.amount,
+    currency: entry.currency,
+    description: entry.description,
+    merchant: entry.merchant || entry.title,
+    status: entry.status === 'deactivated' ? 'deactivated' : 'active',
+    startAt: entry.occurredAt,
+    nextDueAt: entry.occurredAt,
+    zoneId: 'UTC',
+    generatedOccurrences: 0,
+    splitItems: entry.items ?? [],
+    rule: { frequency: 'monthly', interval: 1 },
+    recurrenceEnd: { kind: 'never' },
+    categoryId: entry.categoryId ?? entry.category?.id,
+    tagIds: entry.tags?.map((tag) => tag.id),
+    tagNames: entry.tags?.map((tag) => tag.name),
   };
 }

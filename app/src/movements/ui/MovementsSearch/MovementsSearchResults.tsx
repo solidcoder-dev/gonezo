@@ -4,7 +4,10 @@ import type {
   MovementsPaginationView,
   MovementsSearchFiltersState,
 } from '../../application/movementsView.types';
-import { MovementDetailSheetView } from '../MovementDetailSheet/MovementDetailSheetView';
+import {
+  MovementDetailSheetView,
+  type MovementDetailActionView,
+} from '../MovementDetailSheet/MovementDetailSheetView';
 import { MovementRowView } from '../MovementRow/MovementRowView';
 import {
   buildMovementSearchDetailData,
@@ -30,6 +33,7 @@ export type MovementsSearchResultsProvided = {
   commands: {
     goToPreviousPage: () => void;
     goToNextPage: () => void;
+    voidPostedMovement: (transactionId: string) => Promise<void>;
   };
 };
 
@@ -37,6 +41,10 @@ type MovementsSearchResultsProps = {
   required: MovementsSearchResultsRequired;
   provided: MovementsSearchResultsProvided;
 };
+
+function movementDetailActions(actions: Array<MovementDetailActionView | undefined>): MovementDetailActionView[] {
+  return actions.filter((action): action is MovementDetailActionView => Boolean(action));
+}
 
 export function MovementsSearchResults({ required, provided }: MovementsSearchResultsProps) {
   const { appliedFilters, items, pagination } = required.state;
@@ -119,7 +127,27 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
               ariaLabel: 'Movement details',
               closeLabel: 'Close movement details',
             },
-            data: buildMovementSearchDetailData(selectedEntry),
+            data: {
+              ...buildMovementSearchDetailData(selectedEntry),
+              actions: movementDetailActions([
+                selectedEntry.source === 'posted' && selectedEntry.status === 'posted' ? {
+                  key: 'void',
+                  label: 'Void movement',
+                  variant: 'danger',
+                  onClick: () => {
+                    void provided.commands.voidPostedMovement(selectedEntry.id).then(() => {
+                      setSelectedEntry(null);
+                    });
+                  },
+                } : undefined,
+                {
+                  key: 'close',
+                  label: 'Close',
+                  variant: 'text',
+                  onClick: () => setSelectedEntry(null),
+                },
+              ]),
+            },
             state: { open: true },
             status: { disabled },
           }}

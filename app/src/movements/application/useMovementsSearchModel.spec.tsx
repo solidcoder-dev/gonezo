@@ -6,7 +6,9 @@ import type { MovementsSearchFacetsPort } from './movementsSearch.port';
 import type { PostedTaxonomySearchPort } from './postedTaxonomySearch';
 import { useMovementsSearchModel } from './useMovementsSearchModel';
 
-type SearchCore = PostedTaxonomySearchPort & MovementsSearchFacetsPort;
+type SearchCore = PostedTaxonomySearchPort & MovementsSearchFacetsPort & {
+  ledgerVoidTransaction(input: { transactionId: string }): Promise<void>;
+};
 
 function searchItem(input: Partial<MovementsSearchItemView> = {}): MovementsSearchItemView {
   return {
@@ -45,6 +47,7 @@ function makeCore(overrides: Partial<SearchCore> = {}): SearchCore {
     taxonomyListCategories: vi.fn().mockResolvedValue({ items: [] }),
     taxonomyListTags: vi.fn().mockResolvedValue({ items: [] }),
     movementsGetSearchFacets: vi.fn().mockResolvedValue({ categories: [], tags: [] }),
+    ledgerVoidTransaction: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -88,5 +91,31 @@ describe('useMovementsSearchModel', () => {
     expect(movementsSearch).toHaveBeenCalledWith(expect.objectContaining({
       pagination: { page: 1, size: 10 },
     }));
+  });
+
+  it('voids a posted movement and refreshes results', async () => {
+    const posted = searchItem({ id: 'posted-1', status: 'posted' });
+    const ledgerVoidTransaction = vi.fn().mockResolvedValue(undefined);
+    const movementsSearch = vi.fn()
+      .mockResolvedValueOnce(searchResult([posted]))
+      .mockResolvedValueOnce(searchResult([]));
+    const core = makeCore({ ledgerVoidTransaction, movementsSearch });
+
+    const { result } = renderHook(() => useMovementsSearchModel({
+      core,
+      accounts: [{ id: 'account-1', name: 'Checking' }],
+      accountId: 'account-1',
+      enabled: true,
+    }));
+
+    await waitFor(() => expect(result.current.required.state.items.map((item) => item.id)).toEqual(['posted-1']));
+
+    await act(async () => {
+      await result.current.provided.commands.voidPostedMovement('posted-1');
+    });
+
+    expect(ledgerVoidTransaction).toHaveBeenCalledWith({ transactionId: 'posted-1' });
+    expect(movementsSearch).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(result.current.required.state.items).toEqual([]));
   });
 });

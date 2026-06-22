@@ -61,20 +61,17 @@ describe('movements search presentation', () => {
     }), { now });
 
     expect(detail.title).toBe('Move cash');
-    expect(detail.kicker).toBe('Transfer · Scheduled');
+    expect(detail.kicker).toBe('Scheduled');
     expect(detail.iconClassName).toBe('bi bi-arrow-left-right');
-    expect(detail.amount).toEqual({
-      kind: 'transfer',
-      sign: '',
-      value: '12.50',
-      currency: 'USD',
-    });
+    expect(detail.amount.kind).toBe('scheduled');
+    expect(detail.amount.value).toBe('12.50');
+    expect(detail.amount.currency).toBe('USD');
     expect(detail.meta).toEqual([
-      { label: 'Account', value: 'Checking' },
-      { label: 'Date', value: '15 ene' },
+      { label: 'Due', value: '15 ene' },
+      { label: 'Origin', value: 'recurring' },
       { label: 'Category', value: 'Food' },
       { label: 'Tags', value: '#work #client +1' },
-      { label: 'Source', value: 'scheduled' },
+      { label: 'Status', value: 'scheduled' },
     ]);
     expect(detail.splitItems).toEqual([{ id: 'item-1', name: 'Espresso', amount: '12.50' }]);
   });

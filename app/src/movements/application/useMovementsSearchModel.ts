@@ -6,7 +6,7 @@ import type {
   MovementsSearchModelProvided,
   MovementsSearchModelRequired,
 } from './movementsView.types';
-import { type MovementsSearchFacetsPort } from './movementsSearch.port';
+import { type MovementsSearchFacetsPort, type MovementsSearchMutationPort } from './movementsSearch.port';
 import { type PostedTaxonomySearchPort } from './postedTaxonomySearch';
 import { runMovementsSearchQuery } from './movementsSearchQueryRunner';
 import {
@@ -21,7 +21,7 @@ import { useMovementsSearchFiltersModel } from './useMovementsSearchFiltersModel
 type SearchAccount = Pick<LedgerAccountItem, 'id' | 'name'>;
 
 type UseMovementsSearchModelInput = {
-  core: PostedTaxonomySearchPort & MovementsSearchFacetsPort;
+  core: PostedTaxonomySearchPort & MovementsSearchFacetsPort & MovementsSearchMutationPort;
   accounts: SearchAccount[];
   accountId: string | null;
   enabled: boolean;
@@ -100,6 +100,28 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
 
   function ensureFilterOptionsLoaded() {
     void facetsModel.ensureLoaded().catch(reportError);
+  }
+
+  async function voidPostedMovement(transactionId: string) {
+    setLoading(true);
+    setError('');
+    try {
+      await core.ledgerVoidTransaction({ transactionId });
+      setPage(0);
+      const result = await runMovementsSearchQuery({
+        core,
+        accountScope,
+        accountId,
+        filters: filtersModel.appliedFilters,
+        page: 0,
+      });
+      setItems(result.items);
+      setPagination(result.pagination);
+    } catch (err) {
+      reportError(err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -207,6 +229,7 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
       goToNextPage: () => {
         setPage((previous) => Math.max(0, previous + 1));
       },
+      voidPostedMovement,
     },
   };
 

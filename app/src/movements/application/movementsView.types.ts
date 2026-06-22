@@ -162,5 +162,6 @@ export type MovementsSearchModelProvided = {
     applyFilters: () => void;
     goToPreviousPage: () => void;
     goToNextPage: () => void;
+    voidPostedMovement: (transactionId: string) => Promise<void>;
   };
 };

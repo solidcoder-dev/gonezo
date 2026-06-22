@@ -6,6 +6,9 @@ export type MovementsSearchFacetsPort = {
   movementsGetSearchFacets(input: MovementsSearchFacetsInput): Promise<MovementsSearchFacetsResult>;
 };
 
+export type MovementsSearchMutationPort = Pick<LedgerGatewayPort, 'ledgerVoidTransaction'>;
+
 export type MovementsSearchPagePort = Pick<LedgerGatewayPort, 'ledgerListAccounts'>
+  & MovementsSearchMutationPort
   & PostedTaxonomySearchPort
   & MovementsSearchFacetsPort;
