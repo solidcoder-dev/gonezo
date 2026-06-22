@@ -49,31 +49,6 @@
   color: #9a3412;
 }
 
-.totals {
-  display: grid;
-  gap: 6px;
-}
-
-.totalRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: #20201e;
-  font-size: 0.9rem;
-}
-
-.totalRow span {
-  color: #74746b;
-  font-weight: 700;
-}
-
-.totalRow strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .windowNav {
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr) 32px;

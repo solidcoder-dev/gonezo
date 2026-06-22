@@ -169,8 +169,9 @@ function expectedMovement(): ExpectedMovementView {
 
 describe('useMonthlyMovementsModel', () => {
   it('loads monthly movements through injected ports using the injected clock', async () => {
+    const currentMonth = new Date(2026, 4, 15, 9, 30, 0, 0);
     const clock: MonthlyMovementsModelClock = {
-      now: () => new Date(2026, 4, 15, 9, 30, 0, 0),
+      now: () => currentMonth,
     };
     const movementsGetOverview = vi.fn().mockResolvedValue(emptyOverview());
     const ports = makePorts({
@@ -194,8 +195,8 @@ describe('useMonthlyMovementsModel', () => {
     expect(movementsGetOverview).toHaveBeenCalledWith(expect.objectContaining({
       accountId: 'account-1',
       filters: {
-        fromDate: '2026-05-01',
-        toDate: '2026-05-31',
+        fromDate: new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1, 0, 0, 0, 0).toISOString(),
+        toDate: new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0, 23, 59, 59, 999).toISOString(),
       },
     }));
     expect(ports.taxonomy.taxonomyListCategories).toHaveBeenCalledWith({ includeArchived: false });
@@ -234,8 +235,9 @@ describe('useMonthlyMovementsModel', () => {
   });
 
   it('moves between months and refreshes the requested month range', async () => {
+    const currentMonth = new Date(2026, 4, 15, 9, 30, 0, 0);
     const clock: MonthlyMovementsModelClock = {
-      now: () => new Date(2026, 4, 15, 9, 30, 0, 0),
+      now: () => currentMonth,
     };
     const movementsGetOverview = vi.fn().mockResolvedValue(emptyOverview());
     const ports = makePorts({
@@ -262,8 +264,8 @@ describe('useMonthlyMovementsModel', () => {
 
     await waitFor(() => expect(movementsGetOverview).toHaveBeenCalledWith(expect.objectContaining({
       filters: {
-        fromDate: '2026-06-01',
-        toDate: '2026-06-30',
+        fromDate: new Date(2026, 5, 1, 0, 0, 0, 0).toISOString(),
+        toDate: new Date(2026, 6, 0, 23, 59, 59, 999).toISOString(),
       },
     })));
     expect(result.current.required.state.viewedMonthIndex).toBe(5);

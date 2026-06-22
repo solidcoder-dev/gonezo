@@ -4,7 +4,6 @@ import type {
   LedgerGetCashFlowSeriesInput,
   LedgerGetCashFlowSeriesResult,
 } from '../../ledger/application/ledger.port';
-import { formatCurrencyAmount } from '../../shared/utils/formatting';
 import { CashFlowChartCardView } from '../ui/CashFlowChartCard/CashFlowChartCardView';
 
 export type CashFlowChartCardPort = {
@@ -113,12 +112,6 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
         data: {
           currencies: result.currencies,
           selectedCurrency: result.selectedCurrency,
-          incomeTotalLabel: result.selectedCurrency
-            ? formatCurrencyAmount(result.totals.incomeAmount, result.selectedCurrency)
-            : result.totals.incomeAmount,
-          expenseTotalLabel: result.selectedCurrency
-            ? formatCurrencyAmount(result.totals.expenseAmount, result.selectedCurrency)
-            : result.totals.expenseAmount,
           windowLabel: result.window.label,
           points: chartPoints,
         },

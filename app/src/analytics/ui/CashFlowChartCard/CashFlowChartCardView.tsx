@@ -38,17 +38,6 @@ export function CashFlowChartCardView({ required, provided }: CashFlowChartCardV
         </div>
       ) : null}
 
-      <div className={styles.totals}>
-        <div className={styles.totalRow}>
-          <span>Income</span>
-          <strong>{data.incomeTotalLabel}</strong>
-        </div>
-        <div className={styles.totalRow}>
-          <span>Expense</span>
-          <strong>{data.expenseTotalLabel}</strong>
-        </div>
-      </div>
-
       <div className={styles.windowNav}>
         <button
           type="button"

@@ -21,6 +21,8 @@ type PeriodBucket = {
   end: Date;
 };
 
+const OPENING_BALANCE_DESCRIPTION = 'opening balance';
+
 function addAmount(left: string, right: string): string {
   return (Number(left) + Number(right)).toFixed(2);
 }
@@ -141,6 +143,25 @@ function findPeriod(periods: PeriodBucket[], occurredAt: string): PeriodBucket |
   return periods.find((period) => parsed >= period.start && parsed < period.end);
 }
 
+function isAutomaticOpeningBalance(transaction: LedgerTransactionListItem): boolean {
+  return transaction.description?.trim().toLowerCase() === OPENING_BALANCE_DESCRIPTION
+    && !transaction.merchant
+    && !transaction.categoryId
+    && transaction.items.length === 0;
+}
+
+function isCashFlowTransaction(
+  transaction: LedgerTransactionListItem,
+  selectedCurrency: string,
+  accountIds: Set<string>,
+): boolean {
+  return transaction.status === 'posted'
+    && (transaction.type === 'income' || transaction.type === 'expense')
+    && transaction.currency.toUpperCase() === selectedCurrency
+    && accountIds.has(transaction.accountId)
+    && !isAutomaticOpeningBalance(transaction);
+}
+
 export function buildCashFlowSeries(input: BuildCashFlowSeriesInput): LedgerGetCashFlowSeriesResult {
   const ledgerAccounts = input.accounts;
   const currencies = [...new Set(ledgerAccounts.map((account) => account.currency.toUpperCase()))].sort();
@@ -166,12 +187,7 @@ export function buildCashFlowSeries(input: BuildCashFlowSeriesInput): LedgerGetC
   ]));
 
   for (const transaction of input.transactions) {
-    if (
-      transaction.status !== 'posted'
-      || (transaction.type !== 'income' && transaction.type !== 'expense')
-      || transaction.currency.toUpperCase() !== selectedCurrency
-      || !accountIds.has(transaction.accountId)
-    ) {
+    if (!isCashFlowTransaction(transaction, selectedCurrency, accountIds)) {
       continue;
     }
     const period = findPeriod(periods, transaction.occurredAt);

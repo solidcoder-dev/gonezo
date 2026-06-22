@@ -14,29 +14,43 @@ describe('getNativeCashFlowSeries', () => {
           { id: 'acc-archived', name: 'Old', type: 'cash', currency: 'EUR', status: 'archived' },
         ],
       })),
-      ledgerListTransactions: vi.fn(async (input: { accountId: string }): Promise<LedgerListTransactionsResult> => {
+      ledgerListTransactions: vi.fn(async (input: { accountId: string; pagination?: { page?: number; size?: number } }): Promise<LedgerListTransactionsResult> => {
+        const page = input.pagination?.page ?? 0;
         const content: LedgerListTransactionsResult['content'] = input.accountId === 'acc-archived'
-          ? [
-              {
-                id: 'tx-2019',
-                accountId: 'acc-archived',
-                type: 'expense',
-                status: 'posted',
-                amount: '42.00',
-                currency: 'EUR',
-                occurredAt: `${firstYear + 2}-06-01T00:00:00.000Z`,
-                items: [],
-              },
-            ]
+          ? page === 1
+            ? [
+                {
+                  id: 'tx-2019',
+                  accountId: 'acc-archived',
+                  type: 'expense',
+                  status: 'posted',
+                  amount: '42.00',
+                  currency: 'EUR',
+                  occurredAt: `${firstYear + 2}-06-01T00:00:00.000Z`,
+                  items: [],
+                },
+              ]
+            : [
+                {
+                  id: 'tx-newer',
+                  accountId: 'acc-archived',
+                  type: 'expense',
+                  status: 'posted',
+                  amount: '10.00',
+                  currency: 'EUR',
+                  occurredAt: `${lastYear + 1}-06-01T00:00:00.000Z`,
+                  items: [],
+                },
+              ]
           : [];
         return {
           content,
-          page: 0,
-          size: 500,
-          totalElements: content.length,
-          totalPages: content.length > 0 ? 1 : 0,
-          hasNext: false,
-          hasPrevious: false,
+          page,
+          size: input.pagination?.size ?? 100,
+          totalElements: input.accountId === 'acc-archived' ? 101 : 0,
+          totalPages: input.accountId === 'acc-archived' ? 2 : 0,
+          hasNext: input.accountId === 'acc-archived' && page === 0,
+          hasPrevious: page > 0,
         };
       }),
     };
@@ -57,5 +71,9 @@ describe('getNativeCashFlowSeries', () => {
     expect(result.points.find((point) => point.periodKey === String(firstYear + 2))).toMatchObject({
       expenseAmount: '42.00',
     });
+    expect(reader.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({
+      accountId: 'acc-archived',
+      pagination: { page: 1, size: 100 },
+    }));
   });
 });

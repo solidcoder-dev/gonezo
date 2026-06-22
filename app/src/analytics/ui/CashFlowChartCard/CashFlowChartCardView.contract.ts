@@ -6,8 +6,6 @@ export type CashFlowChartCardViewProps = {
     data: {
       currencies: string[];
       selectedCurrency: string;
-      incomeTotalLabel: string;
-      expenseTotalLabel: string;
       windowLabel: string;
       points: GroupedBarChartPointView[];
     };

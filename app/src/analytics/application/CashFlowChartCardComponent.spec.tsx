@@ -42,13 +42,13 @@ describe('CashFlowChartCardComponent', () => {
       />,
     );
 
-    expect(await screen.findByText(/1,200.00/)).toBeInTheDocument();
+    expect(await screen.findByText('Expense 500; Income 1200')).toBeInTheDocument();
     expect(core.ledgerGetCashFlowSeries).toHaveBeenCalledWith({ currency: undefined, granularity: 'monthly', periodOffset: 0 });
     expect(core.ledgerGetCashFlowSeries).toHaveBeenCalledTimes(1);
 
     fireEvent.click(within(screen.getByLabelText('Currencies')).getByRole('button', { name: 'USD' }));
     await waitFor(() => expect(core.ledgerGetCashFlowSeries).toHaveBeenCalledWith({ currency: 'USD', granularity: 'monthly', periodOffset: 0 }));
-    expect(await screen.findByText(/\$300.00/)).toBeInTheDocument();
+    expect(await screen.findByText('Expense 100; Income 300')).toBeInTheDocument();
 
     fireEvent.click(within(screen.getByLabelText('Cash flow duration')).getByRole('button', { name: 'Weekly' }));
     await waitFor(() => expect(core.ledgerGetCashFlowSeries).toHaveBeenCalledWith({ currency: 'USD', granularity: 'weekly', periodOffset: 0 }));

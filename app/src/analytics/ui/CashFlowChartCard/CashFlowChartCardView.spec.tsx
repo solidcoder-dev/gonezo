@@ -13,8 +13,6 @@ describe('CashFlowChartCardView', () => {
           data: {
             currencies: ['EUR', 'USD'],
             selectedCurrency: 'EUR',
-            incomeTotalLabel: '€1,200.00',
-            expenseTotalLabel: '€500.00',
             windowLabel: 'Jan 2026 - Jun 2026',
             points: [
               {
@@ -42,8 +40,8 @@ describe('CashFlowChartCardView', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Cash flow' })).toBeInTheDocument();
-    expect(screen.getByText('€1,200.00')).toBeInTheDocument();
-    expect(screen.getByText('€500.00')).toBeInTheDocument();
+    expect(screen.queryByText('€1,200.00')).not.toBeInTheDocument();
+    expect(screen.queryByText('€500.00')).not.toBeInTheDocument();
 
     fireEvent.click(within(screen.getByLabelText('Currencies')).getByRole('button', { name: 'USD' }));
     fireEvent.click(within(screen.getByLabelText('Cash flow duration')).getByRole('button', { name: 'Weekly' }));
@@ -62,8 +60,6 @@ describe('CashFlowChartCardView', () => {
           data: {
             currencies: ['EUR'],
             selectedCurrency: 'EUR',
-            incomeTotalLabel: '€1,200.00',
-            expenseTotalLabel: '€500.00',
             windowLabel: 'Jan 2026 - Jun 2026',
             points: [],
           },
@@ -91,6 +87,52 @@ describe('CashFlowChartCardView', () => {
     expect(goToNextWindow).toHaveBeenCalledTimes(1);
   });
 
+  it('renders chart values as period values instead of accumulated totals', () => {
+    render(
+      <CashFlowChartCardView
+        required={{
+          data: {
+            currencies: ['EUR'],
+            selectedCurrency: 'EUR',
+            windowLabel: '2018 - 2022',
+            points: [
+              {
+                key: '2018',
+                label: '2018',
+                values: [
+                  { key: 'expense', value: 0 },
+                  { key: 'income', value: 100 },
+                ],
+              },
+              {
+                key: '2019',
+                label: '2019',
+                values: [
+                  { key: 'expense', value: 20 },
+                  { key: 'income', value: 50 },
+                ],
+              },
+            ],
+          },
+          state: { granularity: 'yearly', canGoNextWindow: true },
+          status: { loading: false },
+        }}
+        provided={{
+          commands: {
+            selectCurrency: vi.fn(),
+            selectGranularity: vi.fn(),
+            goToPreviousWindow: vi.fn(),
+            goToNextWindow: vi.fn(),
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Expense 0; Income 100')).toBeInTheDocument();
+    expect(screen.getByText('Expense 20; Income 50')).toBeInTheDocument();
+    expect(screen.queryByText('Expense 20; Income 150')).not.toBeInTheDocument();
+  });
+
   it('renders a chart skeleton while loading to keep the card height stable', () => {
     render(
       <CashFlowChartCardView
@@ -98,8 +140,6 @@ describe('CashFlowChartCardView', () => {
           data: {
             currencies: ['EUR'],
             selectedCurrency: 'EUR',
-            incomeTotalLabel: '€0.00',
-            expenseTotalLabel: '€0.00',
             windowLabel: 'Jan 2026 - Jun 2026',
             points: [],
           },

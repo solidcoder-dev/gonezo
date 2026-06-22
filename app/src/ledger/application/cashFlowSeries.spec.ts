@@ -118,4 +118,125 @@ describe('buildCashFlowSeries', () => {
       expenseAmount: '99.00',
     });
   });
+
+  it('does not accumulate income or expenses across periods', () => {
+    const result = buildCashFlowSeries({
+      accounts,
+      transactions: [
+        transaction({
+          id: 'income-2018',
+          accountId: 'acc-eur-1',
+          type: 'income',
+          amount: '100',
+          currency: 'EUR',
+          occurredAt: '2018-02-01T00:00:00.000Z',
+        }),
+        transaction({
+          id: 'income-2019',
+          accountId: 'acc-eur-1',
+          type: 'income',
+          amount: '50',
+          currency: 'EUR',
+          occurredAt: '2019-02-01T00:00:00.000Z',
+        }),
+        transaction({
+          id: 'expense-2019',
+          accountId: 'acc-eur-1',
+          type: 'expense',
+          amount: '20',
+          currency: 'EUR',
+          occurredAt: '2019-03-01T00:00:00.000Z',
+        }),
+      ],
+      currency: 'EUR',
+      granularity: 'yearly',
+      periodOffset: -1,
+      now: new Date('2026-06-17T12:00:00.000Z'),
+    });
+
+    expect(result.points.find((point) => point.periodKey === '2018')).toMatchObject({
+      incomeAmount: '100.00',
+      expenseAmount: '0.00',
+    });
+    expect(result.points.find((point) => point.periodKey === '2019')).toMatchObject({
+      incomeAmount: '50.00',
+      expenseAmount: '20.00',
+    });
+    expect(result.totals).toEqual({
+      incomeAmount: '150.00',
+      expenseAmount: '20.00',
+    });
+  });
+
+  it('keeps empty periods at zero instead of carrying earlier values forward', () => {
+    const result = buildCashFlowSeries({
+      accounts,
+      transactions: [
+        transaction({
+          id: 'income-2018',
+          accountId: 'acc-eur-1',
+          type: 'income',
+          amount: '100',
+          currency: 'EUR',
+          occurredAt: '2018-02-01T00:00:00.000Z',
+        }),
+        transaction({
+          id: 'income-2020',
+          accountId: 'acc-eur-1',
+          type: 'income',
+          amount: '300',
+          currency: 'EUR',
+          occurredAt: '2020-02-01T00:00:00.000Z',
+        }),
+      ],
+      currency: 'EUR',
+      granularity: 'yearly',
+      periodOffset: -1,
+      now: new Date('2026-06-17T12:00:00.000Z'),
+    });
+
+    expect(result.points.find((point) => point.periodKey === '2019')).toMatchObject({
+      incomeAmount: '0.00',
+      expenseAmount: '0.00',
+    });
+  });
+
+  it('excludes automatic opening balance entries from cash flow', () => {
+    const result = buildCashFlowSeries({
+      accounts,
+      transactions: [
+        transaction({
+          id: 'opening-balance',
+          accountId: 'acc-eur-1',
+          type: 'income',
+          amount: '1000',
+          currency: 'EUR',
+          occurredAt: '2026-06-01T00:00:00.000Z',
+          description: 'Opening balance',
+        }),
+        transaction({
+          id: 'salary',
+          accountId: 'acc-eur-1',
+          type: 'income',
+          amount: '250',
+          currency: 'EUR',
+          occurredAt: '2026-06-02T00:00:00.000Z',
+          description: 'Salary',
+        }),
+      ],
+      currency: 'EUR',
+      granularity: 'monthly',
+      now: new Date('2026-06-17T12:00:00.000Z'),
+    });
+
+    expect(result.totals).toEqual({
+      incomeAmount: '250.00',
+      expenseAmount: '0.00',
+    });
+    expect(result.points.at(-1)).toMatchObject({
+      periodKey: '2026-06',
+      incomeAmount: '250.00',
+      expenseAmount: '0.00',
+    });
+  });
 });

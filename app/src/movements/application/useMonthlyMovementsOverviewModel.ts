@@ -3,7 +3,6 @@ import type { LedgerTransactionListItem } from '../../ledger/application/ledger.
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
 import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
 import type { MonthlyMovementsViewRequired } from '../ui/MonthlyMovements/MonthlyMovementsView.contract';
-import { calendarDateKey } from './monthlyMovementCalendar';
 import { filterProjectedScheduledMovements } from './monthlyMovementProjection';
 
 export type MonthlyMovementsPaginationState = MonthlyMovementsViewRequired['state']['pagination'];
@@ -112,8 +111,8 @@ export function useMonthlyMovementsOverviewModel(input: UseMonthlyMovementsOverv
     const overview = await scheduling.movementsGetOverview({
       ...(scope === 'account' && accountId ? { accountId } : {}),
       filters: {
-        fromDate: calendarDateKey(monthStartDate),
-        toDate: calendarDateKey(monthEndDate),
+        fromDate: monthStartDate.toISOString(),
+        toDate: monthEndDate.toISOString(),
       },
       executedPagination: {
         page,
