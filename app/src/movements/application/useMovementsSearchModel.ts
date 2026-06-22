@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LedgerAccountItem } from '../../ledger/application/ledger.port';
-import type {
-  MovementsPaginationView,
-  MovementsSearchItemView,
-  MovementsSearchModelProvided,
-  MovementsSearchModelRequired,
-} from './movementsView.types';
+import type { MovementsPaginationView, MovementsSearchItemView, MovementsSearchModelProvided, MovementsSearchModelRequired } from './movementsView.types';
 import { type MovementsSearchFacetsPort, type MovementsSearchMutationPort } from './movementsSearch.port';
 import { type PostedTaxonomySearchPort } from './postedTaxonomySearch';
 import { runMovementsSearchQuery } from './movementsSearchQueryRunner';
@@ -17,6 +12,7 @@ import {
 } from './movementsSearchResults';
 import { useMovementsSearchFacetsModel } from './useMovementsSearchFacetsModel';
 import { useMovementsSearchFiltersModel } from './useMovementsSearchFiltersModel';
+import { voidPostedMovementAndReload } from './movementsSearchMutations';
 
 type SearchAccount = Pick<LedgerAccountItem, 'id' | 'name'>;
 
@@ -106,15 +102,14 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
     setLoading(true);
     setError('');
     try {
-      await core.ledgerVoidTransaction({ transactionId });
-      setPage(0);
-      const result = await runMovementsSearchQuery({
+      const result = await voidPostedMovementAndReload({
         core,
         accountScope,
         accountId,
         filters: filtersModel.appliedFilters,
-        page: 0,
+        transactionId,
       });
+      setPage(0);
       setItems(result.items);
       setPagination(result.pagination);
     } catch (err) {
@@ -233,9 +228,5 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
     },
   };
 
-  return {
-    error,
-    required,
-    provided,
-  };
+  return { error, required, provided };
 }
