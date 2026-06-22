@@ -281,6 +281,16 @@ describe('SOLID frontend boundaries', () => {
     expect(tagging).toContain('final class TransactionTaggingBridge');
   });
 
+  it('keeps Android Capacitor commands explicit from the app package', () => {
+    const packageJson = JSON.parse(readFileSync(resolve(appDir, 'package.json'), 'utf8')) as {
+      scripts: Record<string, string>;
+    };
+
+    expect(packageJson.scripts['android:sync']).toBe('npm run build && cap sync android');
+    expect(packageJson.scripts['android:open']).toBe('cap open android');
+    expect(readFileSync(resolve(appDir, 'android/settings.gradle'), 'utf8')).toContain(':app');
+  });
+
   it('keeps native movement composition out of the platform adapter shell', () => {
     const coreAdapter = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapter.ts'), 'utf8');
     const nativeMovements = readFileSync(resolve(srcDir, 'movements/infrastructure/nativeMovements.ts'), 'utf8');

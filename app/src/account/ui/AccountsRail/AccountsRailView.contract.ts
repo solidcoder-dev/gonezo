@@ -3,7 +3,12 @@ import type { ViewProps } from '../../../shared/ui/ViewProps';
 export type AccountsRailAccountView = {
   accountId: string;
   name: string;
+  type?: string;
   formattedBalance: string;
+  trend?: {
+    points: Array<{ value: number }>;
+    ariaLabel: string;
+  };
   isDefault: boolean;
 };
 

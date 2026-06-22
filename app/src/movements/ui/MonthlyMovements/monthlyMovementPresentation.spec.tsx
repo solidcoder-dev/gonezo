@@ -79,6 +79,15 @@ describe('monthly movement detail builders', () => {
     ]);
   });
 
+  it('renders transfer in movements with transfer styling and a positive sign', () => {
+    const data = buildPostedMovementRowData(posted({ type: 'transfer_in' }));
+
+    expect(data.itemClassName).toBe('expense-item expense-item--transfer');
+    expect(data.iconClassName).toBe('bi bi-arrow-left-right');
+    expect(data.amount.sign).toBe('+');
+    expect(data.amount.className).toBe('movement-amount movement-amount--transfer');
+  });
+
   it('builds posted transaction detail data', () => {
     const data = buildPostedMovementDetailData(posted(), { now });
 

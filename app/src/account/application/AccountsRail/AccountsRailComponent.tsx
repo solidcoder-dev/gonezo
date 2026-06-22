@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AccountWorkspacePort } from '../accounts.port';
+import type { AccountBalanceItem } from '../accountBalances.port';
 import { formatCurrencyAmount } from '../../../shared/utils/formatting';
 import { SheetView } from '../../../shared/ui/SheetView';
 import { AccountsRailView } from '../../ui/AccountsRail/AccountsRailView';
@@ -26,15 +27,7 @@ export type AccountsRailComponentProps = {
   };
 };
 
-type AccountRailItem = {
-  accountId: string;
-  name: string;
-  type: string;
-  currency: string;
-  status: string;
-  balanceAmount: string;
-  isDefault: boolean;
-};
+type AccountRailItem = AccountBalanceItem;
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -47,7 +40,14 @@ function toAccountView(account: AccountRailItem): AccountsRailAccountView {
   return {
     accountId: account.accountId,
     name: account.name,
+    type: account.type,
     formattedBalance: formatCurrencyAmount(account.balanceAmount, account.currency),
+    trend: account.trend && account.trend.length >= 2
+      ? {
+          ariaLabel: `${account.name} balance trend`,
+          points: account.trend.map((point) => ({ value: Number(point.balanceAmount) })),
+        }
+      : undefined,
     isDefault: account.isDefault,
   };
 }

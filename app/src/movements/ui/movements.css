@@ -15,14 +15,14 @@
   gap: 4px;
   padding: 12px;
   border-left: 4px solid #b0b0a5;
-  border-radius: 10px;
-  background: #f4f4ef;
+  border-radius: 14px;
+  background: #fff;
 }
 
 .expense-item--compact {
   gap: 3px;
-  padding: 9px 10px;
-  border-radius: 9px;
+  padding: 16px 18px;
+  border-radius: 16px;
 }
 
 .expense-item-button {
@@ -51,15 +51,15 @@
 }
 
 .expense-item--income {
-  border-left-color: #1b5b28;
+  border-left-color: var(--color-brand);
 }
 
 .expense-item--expense {
-  border-left-color: #8a2020;
+  border-left-color: var(--color-status-danger-text);
 }
 
 .expense-item--transfer {
-  border-left-color: #4a4a44;
+  border-left-color: #2563eb;
 }
 
 .expense-top-row {
@@ -131,15 +131,15 @@
 }
 
 .movement-amount--income {
-  color: #1b5b28;
+  color: var(--color-brand-strong);
 }
 
 .movement-amount--expense {
-  color: #8a2020;
+  color: var(--color-status-danger-text);
 }
 
 .movement-amount--transfer {
-  color: #2f2f2a;
+  color: #2563eb;
 }
 
 .compact-action {

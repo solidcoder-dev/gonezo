@@ -178,8 +178,16 @@ describe('WebLedgerService', () => {
 
     await expect(ledger.getNetWorthByCurrency()).resolves.toEqual({
       items: [
-        { currency: 'EUR', balanceAmount: '290.70' },
-        { currency: 'USD', balanceAmount: '50.10' },
+        expect.objectContaining({
+          currency: 'EUR',
+          balanceAmount: '290.70',
+          trend: expect.arrayContaining([expect.objectContaining({ balanceAmount: '290.70' })]),
+        }),
+        expect.objectContaining({
+          currency: 'USD',
+          balanceAmount: '50.10',
+          trend: expect.arrayContaining([expect.objectContaining({ balanceAmount: '50.10' })]),
+        }),
       ],
     });
   });
@@ -209,9 +217,9 @@ describe('WebLedgerService', () => {
 
     await expect(ledger.getNetWorthByCurrency()).resolves.toEqual({
       items: [
-        { currency: 'USD', balanceAmount: '300.00' },
-        { currency: 'GBP', balanceAmount: '200.00' },
-        { currency: 'EUR', balanceAmount: '100.00' },
+        expect.objectContaining({ currency: 'USD', balanceAmount: '300.00' }),
+        expect.objectContaining({ currency: 'GBP', balanceAmount: '200.00' }),
+        expect.objectContaining({ currency: 'EUR', balanceAmount: '100.00' }),
       ],
     });
   });

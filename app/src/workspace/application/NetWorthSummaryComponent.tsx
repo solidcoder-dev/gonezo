@@ -35,6 +35,12 @@ function toCurrencyView(item: LedgerNetWorthCurrencyItem): NetWorthCurrencyView 
   return {
     ...item,
     formattedBalance: formatCurrencyAmount(item.balanceAmount, item.currency),
+    trend: item.trend && item.trend.length >= 2
+      ? {
+          ariaLabel: `${item.currency} net worth trend`,
+          points: item.trend.map((point) => ({ value: Number(point.balanceAmount) })),
+        }
+      : undefined,
   };
 }
 

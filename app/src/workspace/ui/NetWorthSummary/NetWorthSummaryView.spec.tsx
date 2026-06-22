@@ -58,4 +58,58 @@ describe('NetWorthSummaryView', () => {
     expect(screen.getByRole('dialog', { name: 'All net worth currencies' })).toBeInTheDocument();
     expect(screen.getByText('BRL')).toBeInTheDocument();
   });
+
+  it('renders optional net worth trends per currency without requiring backend data today', () => {
+    render(
+      <NetWorthSummaryView
+        required={{
+          config: { visibleLimit: 3 },
+          data: {
+            items: [
+              {
+                currency: 'EUR',
+                balanceAmount: '21560.66',
+                formattedBalance: '€21,560.66',
+                trend: {
+                  points: [
+                    { value: 18000 },
+                    { value: 19000 },
+                    { value: 18500 },
+                    { value: 21560.66 },
+                  ],
+                  ariaLabel: 'EUR net worth trend',
+                },
+              },
+              {
+                currency: 'USD',
+                balanceAmount: '1200.00',
+                formattedBalance: '$1,200.00',
+                trend: {
+                  points: [
+                    { value: 900 },
+                    { value: 1100 },
+                    { value: 1050 },
+                    { value: 1200 },
+                  ],
+                  ariaLabel: 'USD net worth trend',
+                },
+              },
+              {
+                currency: 'GBP',
+                balanceAmount: '800.00',
+                formattedBalance: '£800.00',
+              },
+            ],
+          },
+          state: { allCurrenciesOpen: false },
+          status: { loadPhase: 'succeeded' },
+        }}
+        provided={{ commands: { openAll: vi.fn(), closeAll: vi.fn() } }}
+      />,
+    );
+
+    expect(screen.getByLabelText('EUR net worth trend')).toBeInTheDocument();
+    expect(screen.getByLabelText('USD net worth trend')).toBeInTheDocument();
+    expect(screen.queryByLabelText('GBP net worth trend')).not.toBeInTheDocument();
+  });
 });

@@ -1,13 +1,13 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
-  padding: 12px;
-  border: 1px solid rgba(32, 32, 30, 0.08);
-  border-radius: 24px;
-  background: #fbfaf6;
-  box-shadow: 0 14px 34px rgba(24, 24, 22, 0.08);
+  gap: 16px;
+  margin-top: 18px;
+  padding: 22px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 28px;
+  background: var(--color-card-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .header {
@@ -19,20 +19,25 @@
 
 .header h2 {
   margin: 0;
-  color: #20201e;
-  font-size: 1rem;
+  color: var(--color-text-primary);
+  font-size: 1.35rem;
   font-weight: 700;
   letter-spacing: 0;
 }
 
 .count {
-  color: #74746b;
-  font-size: 0.78rem;
+  min-width: 38px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+  font-size: 1rem;
   font-weight: 700;
+  text-align: center;
 }
 
 .list {
-  max-height: 228px;
+  max-height: 204px;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: 2px;
@@ -40,6 +45,6 @@
 
 .empty {
   margin: 4px 0 2px;
-  color: #74746b;
+  color: var(--color-text-muted);
   font-size: 0.86rem;
 }

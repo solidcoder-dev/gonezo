@@ -1,13 +1,13 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
-  padding: 12px;
-  border: 1px solid rgba(32, 32, 30, 0.08);
-  border-radius: 24px;
-  background: #fbfaf6;
-  box-shadow: 0 14px 34px rgba(24, 24, 22, 0.08);
+  gap: 18px;
+  margin-top: 14px;
+  padding: 22px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 28px;
+  background: var(--color-card-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .header {
@@ -19,28 +19,29 @@
 
 .header h2 {
   margin: 0;
-  color: #20201e;
-  font-size: 1rem;
+  color: var(--color-text-primary);
+  font-size: 1.35rem;
   font-weight: 700;
   letter-spacing: 0;
 }
 
-.addButton,
-.settingsButton {
+.addButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 46px;
+  height: 46px;
   border: 0;
-  background: transparent;
-  color: #20201e;
+  border-radius: 999px;
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
   cursor: pointer;
+  font-size: 1.35rem;
 }
 
 .rail {
   display: flex;
-  gap: 8px;
+  gap: 14px;
   overflow-x: auto;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
@@ -51,58 +52,105 @@
 }
 
 .accountCard {
-  flex: 0 0 158px;
+  appearance: none;
+  position: relative;
+  overflow: hidden;
+  flex: 0 0 232px;
   scroll-snap-align: start;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 16px;
+  min-height: 138px;
   min-width: 0;
-  padding: 10px;
-  border: 1px solid rgba(32, 32, 30, 0.08);
-  border-radius: 16px;
-  background: #ffffff;
-}
-
-.accountHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.accountNameButton,
-.balanceButton {
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #20201e;
+  padding: 22px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 24px;
+  background: var(--color-card-inner);
+  color: inherit;
   cursor: pointer;
   font: inherit;
   text-align: left;
 }
 
-.accountNameButton {
-  flex: 1;
-  font-size: 0.86rem;
-  font-weight: 700;
+.accountCard:disabled {
+  cursor: default;
+  opacity: 0.62;
 }
 
-.accountNameButton span {
+.accountCard:focus-visible {
+  outline: 2px solid var(--color-brand-strong);
+  outline-offset: 3px;
+}
+
+.accountHeader {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.accountIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+  font-size: 1.35rem;
+}
+
+.accountName {
   display: block;
   overflow: hidden;
+  min-width: 0;
+  color: var(--color-text-primary);
+  font-size: 1.15rem;
+  font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.balanceButton {
+.balance {
+  display: block;
   overflow: hidden;
-  font-size: 1rem;
+  position: relative;
+  z-index: 1;
+  color: var(--color-text-primary);
+  font-size: 1.42rem;
   font-weight: 760;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.settingsButton {
-  flex: 0 0 auto;
+.trend {
+  position: absolute;
+  right: -10px;
+  bottom: -12px;
+  left: 34%;
+  z-index: 0;
+  height: 70px;
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.trend svg {
+  width: 100%;
+  height: 100%;
+}
+
+.trendArea {
+  fill: var(--color-chart-soft);
+}
+
+.trendLine {
+  fill: none;
+  stroke: var(--color-chart-line);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }

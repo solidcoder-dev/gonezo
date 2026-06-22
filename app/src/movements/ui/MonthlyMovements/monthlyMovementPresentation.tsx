@@ -43,23 +43,37 @@ export function txSign(type: TransactionHistoryItemView['type']): string {
 }
 
 export function txItemTypeClass(type: TransactionHistoryItemView['type']): string {
-  if (type === 'income' || type === 'transfer_in') {
+  if (type === 'income') {
     return 'expense-item expense-item--income';
   }
-  if (type === 'transfer' || type === 'transfer_out') {
+  if (type === 'transfer' || type === 'transfer_in' || type === 'transfer_out') {
     return 'expense-item expense-item--transfer';
   }
   return 'expense-item expense-item--expense';
 }
 
 export function txAmountKind(type: TransactionHistoryItemView['type']): MovementAmountKindView {
-  if (type === 'income' || type === 'transfer_in') {
+  if (type === 'income') {
     return 'income';
   }
-  if (type === 'transfer' || type === 'transfer_out') {
+  if (type === 'transfer' || type === 'transfer_in' || type === 'transfer_out') {
     return 'transfer';
   }
   return 'expense';
+}
+
+function movementAmountKind(type: MovementVisualType): MovementAmountKindView {
+  if (type === 'income') {
+    return 'income';
+  }
+  if (type === 'transfer') {
+    return 'transfer';
+  }
+  return 'expense';
+}
+
+export function movementAmountClassName(kind: MovementAmountKindView): string {
+  return `movement-amount movement-amount--${kind}`;
 }
 
 export function movementTypeClass(type: MovementVisualType): string {
@@ -73,8 +87,8 @@ export function movementTypeClass(type: MovementVisualType): string {
 }
 
 export function txKindIconClass(type: TransactionHistoryItemView['type']): string {
-  if (type === 'income' || type === 'transfer_in') return 'bi bi-arrow-up-right';
-  if (type === 'transfer' || type === 'transfer_out') return 'bi bi-arrow-left-right';
+  if (type === 'income') return 'bi bi-arrow-up-right';
+  if (type === 'transfer' || type === 'transfer_in' || type === 'transfer_out') return 'bi bi-arrow-left-right';
   return 'bi bi-arrow-down-right';
 }
 
@@ -182,6 +196,7 @@ export function buildPostedMovementRowData(transaction: TransactionHistoryItemVi
     amount: {
       sign: txSign(transaction.type),
       label: txAmount(transaction.amount, transaction.currency),
+      className: movementAmountClassName(txAmountKind(transaction.type)),
     },
     details: compactRowDetails([
       transaction.accountName ? { key: 'account', value: transaction.accountName, primary: true } : undefined,
@@ -202,6 +217,7 @@ export function buildExpectedMovementRowData(
     amount: {
       sign: movement.type === 'income' ? '+' : '-',
       label: txAmount(movement.amount, movement.currency),
+      className: movementAmountClassName(movementAmountKind(movement.type)),
     },
     details: compactRowDetails([
       movement.accountName ? { key: 'account', value: movement.accountName, primary: true } : undefined,
@@ -224,6 +240,7 @@ export function buildScheduledMovementRowData(
     amount: {
       sign: movementAmountSign(movement.type),
       label: txAmount(movement.amount, movement.currency),
+      className: movementAmountClassName(movementAmountKind(movement.type)),
     },
     details: compactRowDetails([
       movement.accountName ? { key: 'account', value: movement.accountName, primary: true } : undefined,

@@ -1,3 +1,5 @@
+import type { LedgerNetWorthTrendPoint } from '../../ledger/application/ledger.port';
+
 export type AccountBalanceItem = {
   accountId: string;
   name: string;
@@ -5,6 +7,7 @@ export type AccountBalanceItem = {
   currency: string;
   status: string;
   balanceAmount: string;
+  trend?: LedgerNetWorthTrendPoint[];
   isDefault: boolean;
 };
 

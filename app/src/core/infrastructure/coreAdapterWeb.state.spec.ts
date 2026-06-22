@@ -182,9 +182,9 @@ describe('CoreAdapterWeb state and effects boundaries', () => {
 
     await expect(core.ledgerGetNetWorthByCurrency()).resolves.toEqual({
       items: [
-        { currency: 'EUR', balanceAmount: '50.00' },
-        { currency: 'USD', balanceAmount: '300.00' },
-        { currency: 'GBP', balanceAmount: '200.00' },
+        expect.objectContaining({ currency: 'EUR', balanceAmount: '50.00' }),
+        expect.objectContaining({ currency: 'USD', balanceAmount: '300.00' }),
+        expect.objectContaining({ currency: 'GBP', balanceAmount: '200.00' }),
       ],
     });
   });

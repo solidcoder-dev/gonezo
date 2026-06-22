@@ -59,6 +59,13 @@ export type LedgerGetAccountSummaryResult = {
 export type LedgerNetWorthCurrencyItem = {
   currency: string;
   balanceAmount: string;
+  trend?: LedgerNetWorthTrendPoint[];
+};
+
+export type LedgerNetWorthTrendPoint = {
+  periodKey: string;
+  label: string;
+  balanceAmount: string;
 };
 
 export type LedgerGetNetWorthByCurrencyResult = {

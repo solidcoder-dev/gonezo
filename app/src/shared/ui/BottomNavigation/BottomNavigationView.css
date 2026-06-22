@@ -1,16 +1,17 @@
 .bottom-navigation {
   position: fixed;
   left: 50%;
-  bottom: calc(16px + var(--app-safe-area-bottom));
+  bottom: calc(12px + var(--app-safe-area-bottom));
   z-index: 40;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  gap: 10px;
+  width: min(88vw, 560px);
+  padding: 12px 16px;
+  border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
-  background: #20201e;
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.24);
+  background: rgba(255, 255, 252, 0.96);
+  box-shadow: var(--shadow-card);
   transform: translateX(-50%);
 }
 
@@ -18,17 +19,18 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: #fff;
+  color: var(--color-text-muted);
   font: inherit;
+  font-size: 1.25rem;
   line-height: 1;
   cursor: pointer;
-  transition: width 160ms ease, background-color 160ms ease, opacity 160ms ease;
+  transition: width 160ms ease, background-color 160ms ease, color 160ms ease, opacity 160ms ease;
 }
 
 .bottom-navigation-item:disabled {
@@ -37,36 +39,49 @@
 }
 
 .bottom-navigation-item:not(:disabled):active {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-brand-soft);
 }
 
 .bottom-navigation-item--active {
-  width: 54px;
-  background: rgba(255, 255, 255, 0.14);
+  width: 72px;
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
 }
 
 .bottom-navigation-item--primary {
-  background: #fff;
-  color: #20201e;
+  width: 66px;
+  height: 66px;
+  min-width: 66px;
+  margin: -14px 2px;
+  background: var(--color-brand);
+  color: #fff;
+  font-size: 1.7rem;
+  box-shadow: 0 14px 28px rgba(22, 117, 46, 0.26);
 }
 
 .bottom-navigation-item--primary.bottom-navigation-item--active {
-  width: 58px;
+  width: 66px;
 }
 
 @media (max-width: 360px) {
   .bottom-navigation {
-    gap: 6px;
-    padding: 7px;
+    gap: 8px;
+    padding: 12px;
   }
 
   .bottom-navigation-item {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
   }
 
   .bottom-navigation-item--active {
-    width: 50px;
+    width: 64px;
+  }
+
+  .bottom-navigation-item--primary {
+    width: 64px;
+    height: 64px;
+    min-width: 64px;
   }
 }

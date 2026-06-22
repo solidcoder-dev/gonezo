@@ -10,7 +10,9 @@
     "check:structure": "node ./scripts/check-src-structure.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "android:sync": "npm run build && cap sync android",
+    "android:open": "cap open android"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.2",

@@ -14,11 +14,19 @@
   --app-safe-area-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom), var(--android-safe-area-bottom), var(--android-navigation-bar-bottom));
   --app-safe-area-left: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left), var(--android-safe-area-left));
   --color-background-surface: #fff;
-  --color-background-muted: #fbfbf7;
-  --color-background-hover: #f1f1eb;
-  --color-border-subtle: #e4e4d8;
-  --color-border-strong: #d8d8cc;
-  --color-text-primary: #1d1d1b;
+  --color-background-muted: #fbfaf6;
+  --color-background-hover: #eef5ec;
+  --color-border-subtle: #e6e1d7;
+  --color-border-strong: #d8d2c6;
+  --color-text-primary: #111411;
+  --color-text-muted: #5f625b;
+  --color-brand: var(--bs-primary, #16752e);
+  --color-brand-strong: #0f6427;
+  --color-brand-soft: #edf5ea;
+  --color-card-surface: rgba(255, 255, 252, 0.94);
+  --color-card-inner: rgba(255, 255, 255, 0.92);
+  --color-chart-soft: rgba(22, 117, 46, 0.12);
+  --color-chart-line: rgba(22, 117, 46, 0.42);
   --color-status-success-text: #245a36;
   --color-status-success-background: #e9f6ed;
   --color-status-danger-text: #8a2020;
@@ -38,6 +46,7 @@
   --shadow-menu: 0 12px 24px rgba(29, 29, 27, 0.16);
   --shadow-modal: 0 18px 36px rgba(29, 29, 27, 0.2);
   --shadow-sheet: 0 20px 40px rgba(0, 0, 0, 0.18);
+  --shadow-card: 0 20px 44px rgba(24, 24, 22, 0.08);
   --z-sheet-backdrop: 50;
   --z-menu-backdrop: 69;
   --z-menu: 70;
@@ -60,7 +69,7 @@ body,
 body {
   color: var(--color-text-primary);
   font-family: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  background: var(--color-background-surface);
+  background: radial-gradient(circle at 50% -10%, #fff 0, var(--color-background-muted) 58%, #f5f1ea 100%);
   min-width: 0;
   overflow-x: hidden;
 }
