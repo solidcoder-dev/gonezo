@@ -1,12 +1,19 @@
 import type { LedgerCashFlowGranularity } from '../../../ledger/application/ledger.port';
-import type { GroupedBarChartPointView } from '../../../shared/ui/Chart/GroupedBarChartView';
 
-export type CashFlowChartCardViewProps = {
+export type SpendingOverviewCategoryView = {
+  key: string;
+  name: string;
+  amount: string;
+  percentage: number;
+  color: string;
+};
+
+export type SpendingOverviewCardViewProps = {
   required: {
     data: {
-      selectedCurrency: string;
+      totalAmount: string;
       windowLabel: string;
-      points: GroupedBarChartPointView[];
+      categories: SpendingOverviewCategoryView[];
     };
     state: {
       granularity: LedgerCashFlowGranularity;

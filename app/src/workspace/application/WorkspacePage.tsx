@@ -11,6 +11,7 @@ import { TransactionsImportComponent } from '../../account/ui/capabilities/Trans
 import type { AccountPageViewProvided, AccountPageViewRequired } from '../../account/ui/AccountPageView/accountPageView.contract';
 import type { LoadPhase, SubmitPhase } from '../../account/application/accountPage.types';
 import type { AccountWorkspacePort } from '../../account/application/accounts.port';
+import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 import { AccountsRailComponent } from '../../account/application/AccountsRail/AccountsRailComponent';
 import {
   expectedMovementToComposerPrefill,
@@ -20,10 +21,10 @@ import {
 import { ProfilePage } from './ProfilePage';
 import { NetWorthSummaryComponent } from './NetWorthSummaryComponent';
 import { ExpectedMovementsCardComponent } from '../../movements/application/ExpectedMovementsCardComponent';
-import { CashFlowChartCardComponent } from '../../analytics/application/CashFlowChartCardComponent';
+import { AnalyticsPageComponent } from '../../analytics/application/AnalyticsPageComponent';
 
 export type WorkspacePageRequired = {
-  core: AccountWorkspacePort;
+  core: AccountWorkspacePort & AnalyticsPort;
 };
 
 type WorkspacePageProps = {
@@ -345,29 +346,26 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   );
 
   const analyticsPage = (
-    <section className="section-gap">
-      <h1>Analytics</h1>
-      <CashFlowChartCardComponent
-        required={{
-          context: {
-            core: pageRequired.core,
+    <AnalyticsPageComponent
+      required={{
+        context: {
+          core: pageRequired.core,
+        },
+        config: {
+          enabled: true,
+          refreshSignal: recentTransactionsRefreshSignal,
+        },
+      }}
+      provided={{
+        events: {
+          onError: (error) => {
+            setToastMessage(error.message);
+            setToastActionLabel('');
+            setToastAction(null);
           },
-          config: {
-            enabled: true,
-            refreshSignal: recentTransactionsRefreshSignal,
-          },
-        }}
-        provided={{
-          events: {
-            onError: (error) => {
-              setToastMessage(error.message);
-              setToastActionLabel('');
-              setToastAction(null);
-            },
-          },
-        }}
-      />
-    </section>
+        },
+      }}
+    />
   );
 
   const netWorthSummary = currentPage === 'home' ? (

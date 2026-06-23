@@ -43,12 +43,13 @@ describe('AccountsRailView', () => {
     expect(screen.getByLabelText('Main balance trend')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Add account' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Account settings' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Account settings for Savings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Main' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Savings' }));
 
     expect(createAccount).toHaveBeenCalledTimes(1);
+    expect(selectAccount).toHaveBeenCalledWith('acc-1');
+    expect(selectAccount).toHaveBeenCalledWith('acc-2');
     expect(manageAccount).toHaveBeenCalledWith('acc-1');
     expect(manageAccount).toHaveBeenCalledWith('acc-2');
-    expect(selectAccount).not.toHaveBeenCalled();
   });
 });

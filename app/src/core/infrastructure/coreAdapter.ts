@@ -2,6 +2,13 @@ import { Capacitor } from '@capacitor/core';
 import type { CorePort } from '../application/corePort';
 import type { AccountsListBalancesResult } from '../../account/application/accountBalances.port';
 import type {
+  AnalyticsCashFlowSeriesInput,
+  AnalyticsCashFlowSummaryResult,
+  AnalyticsListCurrenciesResult,
+  AnalyticsSpendingOverviewInput,
+  AnalyticsSpendingOverviewResult,
+} from '../../analytics/application/analytics.port';
+import type {
   UserPreferencesResult,
   PreferencesSetDefaultAccountInput,
 } from '../../account/application/preferences.port';
@@ -109,6 +116,12 @@ import { getNativeCashFlowSeries } from '../../ledger/infrastructure/nativeCashF
 import { getMovementsSearchFacets } from '../../movements/infrastructure/searchFacets';
 import { listMasterCategories } from '../../taxonomy/domain/masterCategories';
 import { listAccountBalances } from './accountBalancesQuery';
+import {
+  analyticsGetCashFlowSeries,
+  analyticsGetPeriodCashFlowSummary,
+  analyticsGetSpendingOverview,
+  analyticsListCurrencies,
+} from '../../analytics/infrastructure/analyticsQueries';
 
 function normalizeMasterCategoryKey(name: string, appliesTo: string): string {
   return `${appliesTo}:${name.trim().toLowerCase()}`;
@@ -250,6 +263,34 @@ export class CoreAdapter implements CorePort {
       return this.web.ledgerGetCashFlowSeries(input);
     }
     return getNativeCashFlowSeries(CorePlugin, input);
+  }
+
+  async analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult> {
+    if (!Capacitor.isNativePlatform()) {
+      return this.web.analyticsListCurrencies();
+    }
+    return analyticsListCurrencies(this);
+  }
+
+  async analyticsGetCashFlowSeries(input: AnalyticsCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> {
+    if (!Capacitor.isNativePlatform()) {
+      return this.web.analyticsGetCashFlowSeries(input);
+    }
+    return analyticsGetCashFlowSeries(this, input);
+  }
+
+  async analyticsGetPeriodCashFlowSummary(input: { currency: string }): Promise<AnalyticsCashFlowSummaryResult> {
+    if (!Capacitor.isNativePlatform()) {
+      return this.web.analyticsGetPeriodCashFlowSummary(input);
+    }
+    return analyticsGetPeriodCashFlowSummary(this, input);
+  }
+
+  async analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult> {
+    if (!Capacitor.isNativePlatform()) {
+      return this.web.analyticsGetSpendingOverview(input);
+    }
+    return analyticsGetSpendingOverview(this, input);
   }
 
   async ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {

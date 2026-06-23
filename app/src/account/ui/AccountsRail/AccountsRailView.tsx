@@ -37,8 +37,11 @@ export function AccountsRailView({ required, provided }: AccountsRailViewProps) 
             type="button"
             className={styles.accountCard}
             key={account.accountId}
-            aria-label={account.isDefault ? 'Account settings' : `Account settings for ${account.name}`}
-            onClick={() => provided.commands.manageAccount(account.accountId)}
+            aria-label={account.name}
+            onClick={() => {
+              provided.commands.selectAccount(account.accountId);
+              provided.commands.manageAccount(account.accountId);
+            }}
             disabled={required.status.disabled}
           >
             <div className={styles.accountHeader}>

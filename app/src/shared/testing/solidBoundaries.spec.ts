@@ -150,7 +150,9 @@ describe('SOLID frontend boundaries', () => {
     const schedulingPort = readFileSync(resolve(srcDir, 'scheduling/application/scheduling.port.ts'), 'utf8');
     const expectedPort = readFileSync(resolve(srcDir, 'expected/application/expected.port.ts'), 'utf8');
     const movementsPort = readFileSync(resolve(srcDir, 'movements/application/movements.port.ts'), 'utf8');
+    const analyticsPort = readFileSync(resolve(srcDir, 'analytics/application/analytics.port.ts'), 'utf8');
 
+    expect(corePort).toContain("from '../../analytics/application/analytics.port'");
     expect(corePort).toContain("from '../../account/application/preferences.port'");
     expect(corePort).toContain("from '../../ledger/application/ledger.port'");
     expect(corePort).toContain("from '../../taxonomy/application/taxonomy.port'");
@@ -159,12 +161,13 @@ describe('SOLID frontend boundaries', () => {
     expect(corePort).toContain("from '../../expected/application/expected.port'");
     expect(corePort).toContain("from '../../movements/application/movements.port'");
     expect(corePort).toMatch(/export interface CorePort\s+extends\s+PreferencesPort,/);
-    expect(corePort).toMatch(/MovementsQueryPort \{\}/);
+    expect(corePort).toMatch(/MovementsQueryPort,\s+AnalyticsPort \{\}/);
     expect(ledgerPort).toContain('LedgerPort');
     expect(taxonomyPort).toContain('TaxonomyPort');
     expect(schedulingPort).toContain('SchedulingPort');
     expect(expectedPort).toContain('ExpectedPort');
     expect(movementsPort).toContain('MovementsQueryPort');
+    expect(analyticsPort).toContain('AnalyticsPort');
   });
 
   it('keeps gateway adapters and browser effects out of application hooks and ports', () => {
@@ -300,7 +303,9 @@ describe('SOLID frontend boundaries', () => {
     expect(coreAdapter).toContain('listNativeScheduledMovements(this, input)');
     expect(coreAdapter).not.toContain('function filterScheduledMovementItems');
     expect(coreAdapter).not.toContain('function mapPostedTransactionToSearchItem');
-    expect(coreAdapter.split('\n').length).toBeLessThanOrEqual(560);
+    expect(coreAdapter).toContain("from '../../analytics/infrastructure/analyticsQueries'");
+    expect(coreAdapter).not.toContain('function buildSpendingOverview');
+    expect(coreAdapter.split('\n').length).toBeLessThanOrEqual(600);
 
     expect(nativeMovements).toContain('function filterScheduledMovementItems');
     expect(nativeMovements).toContain('function mapPostedTransactionToSearchItem');
@@ -384,7 +389,9 @@ describe('SOLID frontend boundaries', () => {
     expect(coreAdapterWeb).not.toContain('listWebLedgerTransactions');
     expect(coreAdapterWeb).not.toContain('const fromDateEpoch = filters.fromDate');
     expect(coreAdapterWeb).not.toContain('const statusesFilter = filters.statuses');
-    expect(coreAdapterWeb.split('\n').length).toBeLessThanOrEqual(455);
+    expect(coreAdapterWeb).toContain("from '../../analytics/infrastructure/analyticsQueries'");
+    expect(coreAdapterWeb).not.toContain('function buildSpendingOverview');
+    expect(coreAdapterWeb.split('\n').length).toBeLessThanOrEqual(490);
 
     expect(recurrence).toContain('export function normalizeWebRecurrenceRule');
     expect(recurrence).toContain('export function firstDueAtForWebRecurrence');

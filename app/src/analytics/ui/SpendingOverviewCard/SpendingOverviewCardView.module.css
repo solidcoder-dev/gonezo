@@ -1,0 +1,144 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 28px;
+  background: var(--color-card-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 1.25rem;
+}
+
+.header span {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.windowNav {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.windowNav span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.iconButton:disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+  opacity: 0.45;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(132px, 0.42fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 22px;
+}
+
+.donut {
+  width: 148px;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: conic-gradient(var(--color-brand-soft) 0 100%);
+  position: relative;
+}
+
+.donut::after {
+  position: absolute;
+  inset: 32%;
+  border-radius: 999px;
+  background: var(--color-card-surface);
+  content: "";
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.name {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.amount,
+.percentage {
+  color: var(--color-text-primary);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.percentage {
+  color: var(--color-text-muted);
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 520px) {
+  .body {
+    grid-template-columns: 1fr;
+  }
+
+  .donut {
+    justify-self: center;
+  }
+}

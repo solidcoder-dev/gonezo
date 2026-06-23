@@ -1,3 +1,4 @@
+import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 import type { PreferencesPort } from '../../account/application/preferences.port';
 import type { AccountBalancesPort } from '../../account/application/accountBalances.port';
 import type { ExpectedPort } from '../../expected/application/expected.port';
@@ -17,4 +18,5 @@ export interface CorePort
     RecurrencePort,
     SchedulingPort,
     ExpectedPort,
-    MovementsQueryPort {}
+    MovementsQueryPort,
+    AnalyticsPort {}

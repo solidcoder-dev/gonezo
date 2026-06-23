@@ -292,6 +292,34 @@ function makeCore(transactionCount = 0): AppTestPort {
       },
       points: [],
     })),
+    analyticsListCurrencies: vi.fn(async () => ({ items: ['USD'] })),
+    analyticsGetCashFlowSeries: vi.fn(async (input) => ({
+      currencies: ['USD'],
+      selectedCurrency: input.currency,
+      granularity: input.granularity,
+      totals: { incomeAmount: '0.00', expenseAmount: '0.00' },
+      window: {
+        label: 'Jan 2026 - Jun 2026',
+        periodOffset: input.periodOffset ?? 0,
+        canGoNext: (input.periodOffset ?? 0) < 0,
+      },
+      points: [],
+    })),
+    analyticsGetPeriodCashFlowSummary: vi.fn(async () => ({
+      incomeAmount: '0.00',
+      expenseAmount: '0.00',
+      netFlowAmount: '0.00',
+    })),
+    analyticsGetSpendingOverview: vi.fn(async (input) => ({
+      granularity: input.granularity,
+      window: {
+        label: 'Jun 2026 - Jun 2026',
+        periodOffset: input.periodOffset ?? 0,
+        canGoNext: (input.periodOffset ?? 0) < 0,
+      },
+      totalExpenseAmount: '0.00',
+      categories: [],
+    })),
     ledgerListTransactions: vi.fn(async (input) => toPagedResult(transactions, input)),
     ledgerOpenAccount: vi.fn(async () => ({ id: 'acc-1' })),
     ledgerRenameAccount: vi.fn(async () => undefined),
@@ -1446,7 +1474,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Accounts' });
-    fireEvent.click(screen.getByRole('button', { name: 'Account settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Main' }));
     expect(await screen.findByRole('dialog', { name: 'Manage account' })).toBeInTheDocument();
   });
 
@@ -1460,7 +1488,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Accounts' });
-    fireEvent.click(screen.getByRole('button', { name: 'Account settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Main' }));
     fireEvent.change(await screen.findByLabelText('Manage account name'), { target: { value: 'Wallet renamed' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save name' }));
 
@@ -1484,7 +1512,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Accounts' });
-    fireEvent.click(screen.getByRole('button', { name: 'Account settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Main' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Archive account' }));
 
     await waitFor(() => {
@@ -1507,7 +1535,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Accounts' });
-    fireEvent.click(screen.getByRole('button', { name: 'Account settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Main' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Delete account' }));
 
     await waitFor(() => {
@@ -1530,7 +1558,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Accounts' });
-    fireEvent.click(screen.getByRole('button', { name: 'Account settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Main' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Delete account' }));
 
     expect(core.ledgerDeleteAccount).not.toHaveBeenCalled();

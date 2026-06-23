@@ -1,6 +1,13 @@
 import type { CorePort } from '../application/corePort';
 import type { AccountsListBalancesResult } from '../../account/application/accountBalances.port';
 import type {
+  AnalyticsCashFlowSeriesInput,
+  AnalyticsCashFlowSummaryResult,
+  AnalyticsListCurrenciesResult,
+  AnalyticsSpendingOverviewInput,
+  AnalyticsSpendingOverviewResult,
+} from '../../analytics/application/analytics.port';
+import type {
   PreferencesSetDefaultAccountInput,
   UserPreferencesResult,
 } from '../../account/application/preferences.port';
@@ -116,6 +123,12 @@ import {
 import { WebTaxonomyService } from '../../taxonomy/infrastructure/webTaxonomyService';
 import { sortNetWorthCurrencies } from '../../ledger/application/netWorthOrdering';
 import { listAccountBalances } from './accountBalancesQuery';
+import {
+  analyticsGetCashFlowSeries,
+  analyticsGetPeriodCashFlowSummary,
+  analyticsGetSpendingOverview,
+  analyticsListCurrencies,
+} from '../../analytics/infrastructure/analyticsQueries';
 
 export type CoreAdapterWebOptions = {
   state?: WebAppState;
@@ -236,6 +249,22 @@ export class CoreAdapterWeb implements CorePort {
 
   async ledgerGetCashFlowSeries(input: LedgerGetCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> {
     return this.ledgerService.getCashFlowSeries(input);
+  }
+
+  async analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult> {
+    return analyticsListCurrencies(this);
+  }
+
+  async analyticsGetCashFlowSeries(input: AnalyticsCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> {
+    return analyticsGetCashFlowSeries(this, input);
+  }
+
+  async analyticsGetPeriodCashFlowSummary(input: { currency: string }): Promise<AnalyticsCashFlowSummaryResult> {
+    return analyticsGetPeriodCashFlowSummary(this, input);
+  }
+
+  async analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult> {
+    return analyticsGetSpendingOverview(this, input);
   }
 
   async ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {

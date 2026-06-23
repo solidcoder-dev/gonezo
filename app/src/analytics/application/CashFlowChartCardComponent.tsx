@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import type {
   LedgerCashFlowGranularity,
-  LedgerGetCashFlowSeriesInput,
   LedgerGetCashFlowSeriesResult,
 } from '../../ledger/application/ledger.port';
+import type { AnalyticsCashFlowSeriesInput } from './analytics.port';
 import { CashFlowChartCardView } from '../ui/CashFlowChartCard/CashFlowChartCardView';
 
 export type CashFlowChartCardPort = {
-  ledgerGetCashFlowSeries(input: LedgerGetCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult>;
+  analyticsGetCashFlowSeries(input: AnalyticsCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult>;
 };
 
 export type CashFlowChartCardComponentProps = {
@@ -17,6 +17,7 @@ export type CashFlowChartCardComponentProps = {
     };
     config: {
       enabled: boolean;
+      currency: string;
       refreshSignal: boolean;
     };
   };
@@ -36,7 +37,6 @@ function toErrorMessage(error: unknown): string {
 
 export function CashFlowChartCardComponent({ required, provided }: CashFlowChartCardComponentProps) {
   const { core } = required.context;
-  const [requestedCurrency, setRequestedCurrency] = useState('');
   const [granularity, setGranularity] = useState<LedgerCashFlowGranularity>('monthly');
   const [result, setResult] = useState<LedgerGetCashFlowSeriesResult>({
     currencies: [],
@@ -50,7 +50,11 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
   const [periodOffset, setPeriodOffset] = useState(0);
 
   useEffect(() => {
-    if (!required.config.enabled) {
+    setPeriodOffset(0);
+  }, [required.config.currency]);
+
+  useEffect(() => {
+    if (!required.config.enabled || !required.config.currency) {
       setLoading(false);
       setResult({
         currencies: [],
@@ -68,8 +72,8 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
     async function run() {
       setLoading(true);
       try {
-        const nextResult = await core.ledgerGetCashFlowSeries({
-          currency: requestedCurrency || undefined,
+        const nextResult = await core.analyticsGetCashFlowSeries({
+          currency: required.config.currency,
           granularity,
           periodOffset,
         });
@@ -92,7 +96,7 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
     return () => {
       cancelled = true;
     };
-  }, [core, granularity, periodOffset, requestedCurrency, required.config.enabled, required.config.refreshSignal]);
+  }, [core, granularity, periodOffset, required.config.currency, required.config.enabled, required.config.refreshSignal]);
 
   const chartPoints = useMemo(
     () => result.points.map((point) => ({
@@ -110,7 +114,6 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
     <CashFlowChartCardView
       required={{
         data: {
-          currencies: result.currencies,
           selectedCurrency: result.selectedCurrency,
           windowLabel: result.window.label,
           points: chartPoints,
@@ -120,10 +123,6 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
       }}
       provided={{
         commands: {
-          selectCurrency: (currency) => {
-            setRequestedCurrency(currency);
-            setPeriodOffset(0);
-          },
           selectGranularity: (nextGranularity) => {
             setGranularity(nextGranularity);
             setPeriodOffset(0);

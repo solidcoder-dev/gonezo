@@ -1,17 +1,15 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { CashFlowChartCardView } from './CashFlowChartCardView';
 
 describe('CashFlowChartCardView', () => {
-  it('renders currency and granularity chips and dispatches selections', () => {
-    const selectCurrency = vi.fn();
+  it('renders period menu and dispatches selections', () => {
     const selectGranularity = vi.fn();
 
     render(
       <CashFlowChartCardView
         required={{
           data: {
-            currencies: ['EUR', 'USD'],
             selectedCurrency: 'EUR',
             windowLabel: 'Jan 2026 - Jun 2026',
             points: [
@@ -30,7 +28,6 @@ describe('CashFlowChartCardView', () => {
         }}
         provided={{
           commands: {
-            selectCurrency,
             selectGranularity,
             goToPreviousWindow: vi.fn(),
             goToNextWindow: vi.fn(),
@@ -43,14 +40,13 @@ describe('CashFlowChartCardView', () => {
     expect(screen.queryByText('€1,200.00')).not.toBeInTheDocument();
     expect(screen.queryByText('€500.00')).not.toBeInTheDocument();
 
-    fireEvent.click(within(screen.getByLabelText('Currencies')).getByRole('button', { name: 'USD' }));
-    fireEvent.click(within(screen.getByLabelText('Cash flow duration')).getByRole('button', { name: 'Weekly' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select period' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Weekly' }));
 
-    expect(selectCurrency).toHaveBeenCalledWith('USD');
     expect(selectGranularity).toHaveBeenCalledWith('weekly');
   });
 
-  it('renders window navigation and hides the currency selector when there is only one currency', () => {
+  it('renders window navigation without a card-level currency selector', () => {
     const goToPreviousWindow = vi.fn();
     const goToNextWindow = vi.fn();
 
@@ -58,7 +54,6 @@ describe('CashFlowChartCardView', () => {
       <CashFlowChartCardView
         required={{
           data: {
-            currencies: ['EUR'],
             selectedCurrency: 'EUR',
             windowLabel: 'Jan 2026 - Jun 2026',
             points: [],
@@ -68,7 +63,6 @@ describe('CashFlowChartCardView', () => {
         }}
         provided={{
           commands: {
-            selectCurrency: vi.fn(),
             selectGranularity: vi.fn(),
             goToPreviousWindow,
             goToNextWindow,
@@ -92,7 +86,6 @@ describe('CashFlowChartCardView', () => {
       <CashFlowChartCardView
         required={{
           data: {
-            currencies: ['EUR'],
             selectedCurrency: 'EUR',
             windowLabel: '2018 - 2022',
             points: [
@@ -119,7 +112,6 @@ describe('CashFlowChartCardView', () => {
         }}
         provided={{
           commands: {
-            selectCurrency: vi.fn(),
             selectGranularity: vi.fn(),
             goToPreviousWindow: vi.fn(),
             goToNextWindow: vi.fn(),
@@ -138,7 +130,6 @@ describe('CashFlowChartCardView', () => {
       <CashFlowChartCardView
         required={{
           data: {
-            currencies: ['EUR'],
             selectedCurrency: 'EUR',
             windowLabel: 'Jan 2026 - Jun 2026',
             points: [],
@@ -148,7 +139,6 @@ describe('CashFlowChartCardView', () => {
         }}
         provided={{
           commands: {
-            selectCurrency: vi.fn(),
             selectGranularity: vi.fn(),
             goToPreviousWindow: vi.fn(),
             goToNextWindow: vi.fn(),
