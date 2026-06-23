@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
+  min-height: 390px;
   padding: 22px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 28px;
@@ -66,9 +67,11 @@
 
 .body {
   display: grid;
-  grid-template-columns: minmax(132px, 0.42fr) minmax(0, 1fr);
+  flex: 1;
+  grid-template-columns: 1fr;
   align-items: center;
-  gap: 22px;
+  justify-items: center;
+  min-height: 170px;
 }
 
 .donut {
@@ -91,6 +94,13 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.sheetList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 10px;
 }
 
 .row {
@@ -128,9 +138,66 @@
 }
 
 .empty {
+  display: grid;
+  flex: 1;
+  place-items: center;
   margin: 0;
   color: var(--color-text-muted);
   font-size: 0.9rem;
+}
+
+.breakdownButton {
+  min-height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.breakdownButton:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.skeleton {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  gap: 16px;
+  min-height: 170px;
+}
+
+.skeletonDonut,
+.skeletonLine {
+  display: block;
+  background: linear-gradient(90deg, rgba(32, 32, 30, 0.06), rgba(32, 32, 30, 0.12), rgba(32, 32, 30, 0.06));
+  background-size: 180% 100%;
+  animation: skeletonPulse 1.2s ease-in-out infinite;
+}
+
+.skeletonDonut {
+  width: 148px;
+  aspect-ratio: 1;
+  border-radius: 999px;
+}
+
+.skeletonLine {
+  width: min(180px, 72%);
+  height: 14px;
+  border-radius: 999px;
+}
+
+@keyframes skeletonPulse {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 @media (max-width: 520px) {

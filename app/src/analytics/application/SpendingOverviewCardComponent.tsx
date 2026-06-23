@@ -59,6 +59,7 @@ export function SpendingOverviewCardComponent({ required, provided }: SpendingOv
   const [overview, setOverview] = useState<AnalyticsSpendingOverviewResult>(emptyOverview);
   const [granularity, setGranularity] = useState<LedgerCashFlowGranularity>('monthly');
   const [periodOffset, setPeriodOffset] = useState(0);
+  const [categoryBreakdownOpen, setCategoryBreakdownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { core } = required.context;
   const { currency, enabled, refreshSignal } = required.config;
@@ -111,7 +112,7 @@ export function SpendingOverviewCardComponent({ required, provided }: SpendingOv
           windowLabel: overview.window.label,
           categories,
         },
-        state: { granularity, canGoNextWindow: overview.window.canGoNext },
+        state: { granularity, canGoNextWindow: overview.window.canGoNext, categoryBreakdownOpen },
         status: { loading },
       }}
       provided={{
@@ -122,6 +123,8 @@ export function SpendingOverviewCardComponent({ required, provided }: SpendingOv
           },
           goToPreviousWindow: () => setPeriodOffset((current) => current - 1),
           goToNextWindow: () => setPeriodOffset((current) => Math.min(0, current + 1)),
+          openCategoryBreakdown: () => setCategoryBreakdownOpen(true),
+          closeCategoryBreakdown: () => setCategoryBreakdownOpen(false),
         },
       }}
     />

@@ -70,6 +70,9 @@ function rangeLabel(start: Date, end: Date, granularity: LedgerCashFlowGranulari
     return `${start.getUTCFullYear()} - ${last.getUTCFullYear()}`;
   }
   if (granularity === 'monthly') {
+    if (start.getUTCFullYear() === last.getUTCFullYear() && start.getUTCMonth() === last.getUTCMonth()) {
+      return `${monthLabel(start)} ${start.getUTCFullYear()}`;
+    }
     return `${monthLabel(start)} ${start.getUTCFullYear()} - ${monthLabel(last)} ${last.getUTCFullYear()}`;
   }
   return `${dayLabel(start)} - ${dayLabel(last)}`;

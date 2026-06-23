@@ -88,7 +88,7 @@ describe('analytics builders', () => {
     expect(result).toEqual({
       granularity: 'monthly',
       window: {
-        label: 'Jun 2026 - Jun 2026',
+        label: 'Jun 2026',
         periodOffset: 0,
         canGoNext: false,
       },

@@ -18,6 +18,7 @@ export type SpendingOverviewCardViewProps = {
     state: {
       granularity: LedgerCashFlowGranularity;
       canGoNextWindow: boolean;
+      categoryBreakdownOpen: boolean;
     };
     status: {
       loading: boolean;
@@ -29,6 +30,8 @@ export type SpendingOverviewCardViewProps = {
       selectGranularity: (granularity: LedgerCashFlowGranularity) => void;
       goToPreviousWindow: () => void;
       goToNextWindow: () => void;
+      openCategoryBreakdown: () => void;
+      closeCategoryBreakdown: () => void;
     };
   };
 };

@@ -7,7 +7,7 @@ function createCore(): SpendingOverviewCardPort {
     analyticsGetSpendingOverview: vi.fn(async (input) => ({
       granularity: input.granularity,
       window: {
-        label: input.periodOffset === -1 ? 'May 2026 - May 2026' : 'Jun 2026 - Jun 2026',
+        label: input.periodOffset === -1 ? 'May 2026' : 'Jun 2026',
         periodOffset: input.periodOffset ?? 0,
         canGoNext: (input.periodOffset ?? 0) < 0,
       },
@@ -37,7 +37,7 @@ describe('SpendingOverviewCardComponent', () => {
       />,
     );
 
-    expect(await screen.findByText('Jun 2026 - Jun 2026')).toBeInTheDocument();
+    expect(await screen.findByText('Jun 2026')).toBeInTheDocument();
     expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith({ currency: 'EUR', granularity: 'monthly', periodOffset: 0 });
 
     fireEvent.click(screen.getByRole('button', { name: 'Select period' }));
@@ -62,7 +62,7 @@ describe('SpendingOverviewCardComponent', () => {
       />,
     );
 
-    expect(await screen.findByText('Jun 2026 - Jun 2026')).toBeInTheDocument();
+    expect(await screen.findByText('Jun 2026')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Previous spending overview window' }));
 
@@ -71,6 +71,6 @@ describe('SpendingOverviewCardComponent', () => {
       granularity: 'monthly',
       periodOffset: -1,
     }));
-    expect(await screen.findByText('May 2026 - May 2026')).toBeInTheDocument();
+    expect(await screen.findByText('May 2026')).toBeInTheDocument();
   });
 });
