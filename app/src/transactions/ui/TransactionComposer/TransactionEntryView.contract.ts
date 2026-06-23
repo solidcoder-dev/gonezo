@@ -33,6 +33,7 @@ export type TransactionEntryViewRequired = {
     splitEnabled: boolean;
     splitEditorOpen: boolean;
     splitApplied: boolean;
+    splitDraftMode: 'items' | 'parts';
     splitItems: Array<{ id: string; name: string; amount: string }>;
     splitItemName: string;
     splitItemAmount: string;
@@ -101,6 +102,7 @@ export type TransactionEntryViewProvided = {
     editSplitItem: (itemId: string) => void;
     removeSplitItem: (itemId: string) => void;
     splitByParts: (amount: string, parts: string) => void;
+    selectSplitMode: (mode: 'items' | 'parts') => void;
     setSchedulingMode: (value: 'now' | 'scheduled') => void;
     setSchedulingKind: (value: 'one_shot' | 'recurring') => void;
     openRecurringScheduleEditor: () => void;

@@ -9,6 +9,11 @@ export type ExpenseSplitFieldErrors = {
   expenseItemAmount?: string;
 };
 
+function parseCents(value: string): number {
+  const parsed = Number(value.trim());
+  return Number.isFinite(parsed) ? Math.round(parsed * 100) : Number.NaN;
+}
+
 function parseAmount(value: string): number {
   const parsed = Number(value.trim());
   return Number.isNaN(parsed) ? 0 : parsed;
@@ -16,6 +21,10 @@ function parseAmount(value: string): number {
 
 function formatAmount(value: number): string {
   return value.toFixed(2);
+}
+
+function formatCents(value: number): string {
+  return (value / 100).toFixed(2);
 }
 
 export function cloneSplitItems(
@@ -101,4 +110,43 @@ export function createRemainingSplitItem(input: {
     name: input.nameInput.trim() || `Item ${input.itemsLength + 1}`,
     amount: formatAmount(remaining),
   };
+}
+
+export function rebalanceEditedPartSplit(input: {
+  items: ExpenseItemDraft[];
+  editedItemId: string;
+  totalAmount: string;
+}): {
+  items: ExpenseItemDraft[];
+  errors: ExpenseSplitFieldErrors;
+} {
+  const editedItem = input.items.find((item) => item.id === input.editedItemId);
+  const remainingItemCount = input.items.length - 1;
+  if (!editedItem || remainingItemCount <= 0) {
+    return { items: input.items, errors: {} };
+  }
+
+  const totalCents = parseCents(input.totalAmount);
+  const editedCents = parseCents(editedItem.amount);
+  const remainingCents = totalCents - editedCents;
+  if (!Number.isFinite(totalCents) || !Number.isFinite(editedCents) || remainingCents < remainingItemCount) {
+    return {
+      items: input.items,
+      errors: { expenseItemAmount: 'Part amount must leave room for the other parts.' },
+    };
+  }
+
+  const baseCents = Math.floor(remainingCents / remainingItemCount);
+  const remainderCents = remainingCents - baseCents * remainingItemCount;
+  let remainingIndex = 0;
+  const items = input.items.map((item) => {
+    if (item.id === input.editedItemId) {
+      return item;
+    }
+    const cents = baseCents + (remainingIndex === remainingItemCount - 1 ? remainderCents : 0);
+    remainingIndex += 1;
+    return { ...item, amount: formatCents(cents) };
+  });
+
+  return { items, errors: {} };
 }

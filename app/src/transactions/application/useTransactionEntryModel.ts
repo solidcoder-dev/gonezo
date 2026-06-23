@@ -115,11 +115,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setTransferAmountInValue, setTransferFxRateValue, setTransferFxModeValue,
   } = transferFxModel.actions;
 
-  const { expenseDetailed, splitEditorOpen, splitApplied, expenseItemName, expenseItemAmount, editingExpenseItemId, expenseItems, expenseSplitTotal } =
-    splitEditorModel.state;
+  const { expenseDetailed, splitEditorOpen, splitApplied, splitDraftMode, expenseItemName, expenseItemAmount, editingExpenseItemId, expenseItems, expenseSplitTotal } = splitEditorModel.state;
   const {
     reset: resetExpenseSplit, prefill: prefillExpenseSplit, openSplitEditor, closeSplitEditor, applySplit, removeSplit,
-    setExpenseDetailedValue, setExpenseItemNameValue, setExpenseItemAmountValue, addExpenseItem, startExpenseItem,
+    setSplitDraftMode, setExpenseDetailedValue, setExpenseItemNameValue, setExpenseItemAmountValue, addExpenseItem, startExpenseItem,
     cancelExpenseItem, editExpenseItem, removeExpenseItem, splitExpenseByParts,
   } = splitEditorModel.actions;
 
@@ -559,7 +558,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       splitEnabled: expenseDetailed,
       splitEditorOpen,
       splitApplied,
-      splitItems: expenseItems,
+      splitDraftMode, splitItems: expenseItems,
       splitItemName: expenseItemName,
       splitItemAmount: expenseItemAmount,
       editingSplitItemId: editingExpenseItemId,
@@ -624,6 +623,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       editSplitItem: editExpenseItem,
       removeSplitItem: removeExpenseItem,
       splitByParts: splitExpenseByParts,
+      selectSplitMode: setSplitDraftMode,
       setSchedulingMode: setSchedulingModeValue,
       setSchedulingKind: setSchedulingKindValue,
       openRecurringScheduleEditor: () => openRecurringScheduleEditor(scheduleBaseDate),

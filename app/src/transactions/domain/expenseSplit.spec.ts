@@ -3,6 +3,7 @@ import {
   calculateSplitRemaining,
   cloneSplitItems,
   createRemainingSplitItem,
+  rebalanceEditedPartSplit,
   sumSplitItems,
   upsertSplitItem,
 } from './expenseSplit';
@@ -82,6 +83,27 @@ describe('transaction split item helpers', () => {
       id: 'remaining-id',
       name: 'Item 2',
       amount: '7.50',
+    });
+  });
+
+  it('rebalances the other parts after editing one part amount', () => {
+    expect(rebalanceEditedPartSplit({
+      totalAmount: '100.00',
+      editedItemId: 'part-1',
+      items: [
+        { id: 'part-1', name: 'Part 1', amount: '40.00' },
+        { id: 'part-2', name: 'Part 2', amount: '25.00' },
+        { id: 'part-3', name: 'Part 3', amount: '25.00' },
+        { id: 'part-4', name: 'Part 4', amount: '25.00' },
+      ],
+    })).toEqual({
+      errors: {},
+      items: [
+        { id: 'part-1', name: 'Part 1', amount: '40.00' },
+        { id: 'part-2', name: 'Part 2', amount: '20.00' },
+        { id: 'part-3', name: 'Part 3', amount: '20.00' },
+        { id: 'part-4', name: 'Part 4', amount: '20.00' },
+      ],
     });
   });
 });

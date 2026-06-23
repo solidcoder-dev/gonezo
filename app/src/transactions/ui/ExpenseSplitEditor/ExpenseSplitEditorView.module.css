@@ -3,7 +3,306 @@
 }
 
 .manager {
-  gap: var(--spacing-3);
+  gap: 14px;
+}
+
+.modeTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 3px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.modeTabs button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 760;
+}
+
+.modeTabs .activeModeTab {
+  background: var(--color-status-success-text);
+  color: #fff;
+}
+
+.summaryCard {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--color-status-success-text) 16%, var(--color-border-subtle));
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-status-success-background) 65%, #fff) 0%, #fff 100%);
+}
+
+.summaryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summaryLabel {
+  color: var(--color-status-success-text);
+  font-weight: 800;
+}
+
+.summaryCount {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--color-status-success-text) 14%, var(--color-border-subtle));
+  border-radius: 10px;
+  background: color-mix(in srgb, #fff 72%, var(--color-status-success-background));
+  color: var(--color-text-primary);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.summaryAmount {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+
+.summaryAmount strong {
+  min-width: 0;
+  font-size: clamp(2.1rem, 10vw, 3rem);
+  font-weight: 780;
+  line-height: 0.95;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.summaryAmount span {
+  color: var(--color-status-success-text);
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.summaryCard p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.96rem;
+  font-weight: 650;
+}
+
+.itemsBlock {
+  display: grid;
+  gap: 12px;
+}
+
+.itemsBlock h3 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  height: 190px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  background: var(--color-background-surface);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.item {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: #fff;
+}
+
+.itemIcon {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--color-status-success-background);
+  color: var(--color-status-success-text);
+  font-size: 1.2rem;
+}
+
+.itemName {
+  min-width: 0;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemAmount {
+  color: var(--color-text-primary);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.rowActions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.rowActionButton {
+  min-width: 34px;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: transparent;
+}
+
+.dangerActionButton {
+  color: var(--color-status-danger-text);
+}
+
+.emptyState {
+  min-height: 188px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: var(--color-text-muted);
+  font-weight: 700;
+  text-align: center;
+}
+
+.quickActions {
+  display: flex;
+  justify-content: center;
+}
+
+.quickActionButton {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.addItemRow {
+  position: sticky;
+  bottom: 0;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1px dashed var(--color-border-subtle);
+  background: #fff;
+}
+
+.addItemRow button {
+  width: calc(100% - 20px);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px dashed var(--color-border-subtle);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-status-success-text);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.partsCard {
+  display: grid;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.partsControlRow {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+}
+
+.partsControlRow + .partsControlRow {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.partsStepper {
+  display: inline-grid;
+  grid-template-columns: 36px 44px 36px;
+  align-items: center;
+  justify-items: center;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.partsStepper button {
+  width: 36px;
+  height: 36px;
+  border-radius: 0;
+  color: var(--color-status-success-text);
+}
+
+.partsStepper span {
+  font-weight: 800;
+}
+
+.partsList {
+  height: 150px;
+}
+
+.partItem {
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: #fff;
+}
+
+.partIndex {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--color-status-success-background);
+  color: var(--color-status-success-text);
+  font-weight: 800;
 }
 
 .inlineEditor {
@@ -14,10 +313,9 @@
 .inlineEditorItem {
   display: grid;
   gap: 6px;
-  padding: 8px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--color-background-muted);
+  padding: 10px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: #fff;
 }
 
 .inlineEditorRow {
@@ -29,25 +327,34 @@
 
 .inlineEditorRow input {
   min-width: 0;
-  height: 2rem;
+  height: 1.85rem;
   padding-inline: 8px;
+  font-size: 0.92rem;
 }
 
 .inlineAction {
-  width: 2rem;
-  height: 2rem;
+  width: 1.85rem;
+  height: 1.85rem;
 }
 
-.menuBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-menu-backdrop);
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
+@media (max-width: 380px) {
+  .item {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
 
-.portalMenu {
-  position: fixed;
-  z-index: var(--z-menu);
+  .itemAmount {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: 0.9rem;
+  }
+
+  .itemName {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .rowActions {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
 }

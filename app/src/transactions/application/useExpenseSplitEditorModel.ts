@@ -5,6 +5,7 @@ import {
   calculateSplitRemaining,
   cloneSplitItems,
   formatSplitTotal,
+  rebalanceEditedPartSplit,
   upsertSplitItem,
 } from '../domain/expenseSplit';
 
@@ -17,11 +18,16 @@ type UseExpenseSplitEditorModelInput = {
 type SplitEditorSnapshot = {
   expenseDetailed: boolean;
   splitApplied: boolean;
+  splitDraftMode: SplitDraftMode;
   expenseItemName: string;
   expenseItemAmount: string;
-  expenseItems: ExpenseItemDraft[];
+  manualExpenseItems: ExpenseItemDraft[];
+  partsExpenseItems: ExpenseItemDraft[];
+  partsBaseAmount: string;
   editingExpenseItemId: string;
 };
+
+type SplitDraftMode = 'items' | 'parts';
 
 function splitAmountIntoParts(amountInput: string, partsInput: string): string[] {
   const amount = Number(amountInput.trim());
@@ -50,10 +56,14 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
   const [splitEditorOpen, setSplitEditorOpen] = useState(false);
   const [splitApplied, setSplitApplied] = useState(false);
   const [splitEditorSnapshot, setSplitEditorSnapshot] = useState<SplitEditorSnapshot | null>(null);
+  const [splitDraftMode, setSplitDraftMode] = useState<SplitDraftMode>('items');
   const [expenseItemName, setExpenseItemName] = useState('');
   const [expenseItemAmount, setExpenseItemAmount] = useState('');
-  const [expenseItems, setExpenseItems] = useState<ExpenseItemDraft[]>([]);
+  const [manualExpenseItems, setManualExpenseItems] = useState<ExpenseItemDraft[]>([]);
+  const [partsExpenseItems, setPartsExpenseItems] = useState<ExpenseItemDraft[]>([]);
+  const [partsBaseAmount, setPartsBaseAmount] = useState('');
   const [editingExpenseItemId, setEditingExpenseItemId] = useState('');
+  const expenseItems = splitDraftMode === 'parts' ? partsExpenseItems : manualExpenseItems;
 
   const expenseRemaining = useMemo(
     () => calculateSplitRemaining(transactionAmount, expenseItems),
@@ -66,9 +76,12 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setSplitEditorOpen(false);
     setSplitApplied(false);
     setSplitEditorSnapshot(null);
+    setSplitDraftMode('items');
     setExpenseItemName('');
     setExpenseItemAmount('');
-    setExpenseItems([]);
+    setManualExpenseItems([]);
+    setPartsExpenseItems([]);
+    setPartsBaseAmount('');
     setEditingExpenseItemId('');
   }
 
@@ -77,8 +90,19 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setSplitApplied(items.length > 0);
     setSplitEditorOpen(false);
     setSplitEditorSnapshot(null);
-    setExpenseItems(cloneSplitItems(items, nextId));
+    setSplitDraftMode('items');
+    setManualExpenseItems(cloneSplitItems(items, nextId));
+    setPartsExpenseItems([]);
+    setPartsBaseAmount('');
     setEditingExpenseItemId('');
+  }
+
+  function setActiveExpenseItems(items: ExpenseItemDraft[]) {
+    if (splitDraftMode === 'parts') {
+      setPartsExpenseItems(items);
+      return;
+    }
+    setManualExpenseItems(items);
   }
 
   function setExpenseDetailedValue(value: boolean) {
@@ -118,13 +142,26 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       return false;
     }
 
+    const nextItems = splitDraftMode === 'parts' && editingExpenseItemId
+      ? rebalanceEditedPartSplit({
+        items: result.items,
+        editedItemId: editingExpenseItemId,
+        totalAmount: partsBaseAmount || transactionAmount,
+      })
+      : result;
+
+    if (nextItems.errors.expenseItemAmount) {
+      setFieldErrors((previous) => ({ ...previous, ...nextItems.errors }));
+      return false;
+    }
+
     setFieldErrors((previous) => ({
       ...previous,
       expenseItemName: undefined,
       expenseItemAmount: undefined,
       expenseSplit: undefined,
     }));
-    setExpenseItems(result.items);
+    setActiveExpenseItems(nextItems.items);
     setExpenseItemName('');
     setExpenseItemAmount('');
     setEditingExpenseItemId('');
@@ -171,9 +208,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
   }
 
   function removeExpenseItem(itemId: string) {
-    setExpenseItems((previous) => {
-      return previous.filter((item) => item.id !== itemId);
-    });
+    setActiveExpenseItems(expenseItems.filter((item) => item.id !== itemId));
     if (editingExpenseItemId === itemId) {
       setEditingExpenseItemId('');
       setExpenseItemName('');
@@ -187,17 +222,15 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       return;
     }
 
-    const startIndex = expenseItems.length;
-    const nextItems = [
-      ...expenseItems,
-      ...partAmounts.map((amount, index) => ({
-        id: nextId(),
-        name: `Part ${startIndex + index + 1}`,
-        amount,
-      })),
-    ];
+    const nextItems = partAmounts.map((amount, index) => ({
+      id: nextId(),
+      name: `Part ${index + 1}`,
+      amount,
+    }));
 
-    setExpenseItems(nextItems);
+    setSplitDraftMode('parts');
+    setPartsExpenseItems(nextItems);
+    setPartsBaseAmount(amountInput.trim());
     setExpenseItemName('');
     setExpenseItemAmount('');
     setEditingExpenseItemId('');
@@ -208,9 +241,12 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setSplitEditorSnapshot({
       expenseDetailed,
       splitApplied,
+      splitDraftMode,
       expenseItemName,
       expenseItemAmount,
-      expenseItems,
+      manualExpenseItems,
+      partsExpenseItems,
+      partsBaseAmount,
       editingExpenseItemId,
     });
     setExpenseDetailed(true);
@@ -221,9 +257,12 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     if (splitEditorSnapshot) {
       setExpenseDetailed(splitEditorSnapshot.expenseDetailed);
       setSplitApplied(splitEditorSnapshot.splitApplied);
+      setSplitDraftMode(splitEditorSnapshot.splitDraftMode);
       setExpenseItemName(splitEditorSnapshot.expenseItemName);
       setExpenseItemAmount(splitEditorSnapshot.expenseItemAmount);
-      setExpenseItems(splitEditorSnapshot.expenseItems);
+      setManualExpenseItems(splitEditorSnapshot.manualExpenseItems);
+      setPartsExpenseItems(splitEditorSnapshot.partsExpenseItems);
+      setPartsBaseAmount(splitEditorSnapshot.partsBaseAmount);
       setEditingExpenseItemId(splitEditorSnapshot.editingExpenseItemId);
     }
     setSplitEditorOpen(false);
@@ -243,9 +282,12 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setSplitApplied(false);
     setSplitEditorOpen(false);
     setSplitEditorSnapshot(null);
+    setSplitDraftMode('items');
     setExpenseItemName('');
     setExpenseItemAmount('');
-    setExpenseItems([]);
+    setManualExpenseItems([]);
+    setPartsExpenseItems([]);
+    setPartsBaseAmount('');
     setEditingExpenseItemId('');
     setFieldErrors((previous) => ({
       ...previous,
@@ -260,6 +302,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       expenseDetailed,
       splitEditorOpen,
       splitApplied,
+      splitDraftMode,
       expenseItemName,
       expenseItemAmount,
       editingExpenseItemId,
@@ -274,6 +317,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       closeSplitEditor,
       applySplit,
       removeSplit,
+      setSplitDraftMode,
       setExpenseDetailedValue,
       setExpenseItemNameValue,
       setExpenseItemAmountValue,

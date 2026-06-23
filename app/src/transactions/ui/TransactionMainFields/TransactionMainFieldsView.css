@@ -12,11 +12,11 @@
 .composer-amount-field input[aria-label='Amount'] {
   width: 100%;
   min-width: 0;
-  min-height: 92px;
+  min-height: 78px;
   box-sizing: border-box;
-  padding: 20px 64px 20px 18px;
-  border-radius: 20px;
-  font-size: clamp(2.75rem, 10vw, 4rem);
+  padding: 16px 60px 16px 18px;
+  border-radius: 18px;
+  font-size: clamp(2.25rem, 8.5vw, 3.25rem);
   font-weight: 780;
   line-height: 1;
   letter-spacing: 0;
@@ -25,24 +25,24 @@
 .composer-amount-currency {
   position: absolute;
   right: 22px;
-  bottom: 31px;
+  bottom: 27px;
   color: var(--color-text-muted);
-  font-size: 1.25rem;
+  font-size: 1.12rem;
   font-weight: 760;
   pointer-events: none;
 }
 
 @media (max-width: 360px) {
   .composer-amount-field input[aria-label='Amount'] {
-    min-height: 84px;
+    min-height: 72px;
     padding-right: 56px;
-    font-size: clamp(2.35rem, 9vw, 3.25rem);
+    font-size: clamp(2rem, 8vw, 2.75rem);
   }
 
   .composer-amount-currency {
     right: 18px;
-    bottom: 29px;
-    font-size: 1rem;
+    bottom: 25px;
+    font-size: 0.95rem;
   }
 }
 
