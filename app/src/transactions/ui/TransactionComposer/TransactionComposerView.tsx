@@ -11,7 +11,6 @@ import { ExpenseSplitEditorView } from '../ExpenseSplitEditor/ExpenseSplitEditor
 import { RecurrenceEditorView } from '../RecurrenceEditor/RecurrenceEditorView';
 import { ScheduleSummaryView } from '../ScheduleControls/ScheduleSummaryView';
 import { ScheduleTriggerView } from '../ScheduleControls/ScheduleTriggerView';
-import { SchedulingOptionsView } from '../SchedulingOptions/SchedulingOptionsView';
 import { SplitSummaryView } from '../SplitControls/SplitSummaryView';
 import { SplitTriggerView } from '../SplitControls/SplitTriggerView';
 import { TransactionComposerActionsView } from '../TransactionComposerActions/TransactionComposerActionsView';
@@ -282,8 +281,6 @@ export function TransactionComposerView({ required, provided }: Props) {
     onEditExpenseItem,
     onRemoveExpenseItem,
     onSplitByParts,
-    onSetSchedulingMode,
-    onSetSchedulingKind,
     onOpenRecurringScheduleEditor,
     onApplyRecurringSchedule,
     onCloseRecurringScheduleEditor,
@@ -335,14 +332,17 @@ export function TransactionComposerView({ required, provided }: Props) {
   const frequentCategoryIds = mode === 'income'
     ? FREQUENT_INCOME_CATEGORY_IDS
     : FREQUENT_EXPENSE_CATEGORY_IDS;
-  const scheduledMovementVisible = mode !== 'expense' && schedulingMode === 'scheduled';
+  const transferScheduleAvailable = mode === 'transfer';
+  const transferScheduleConfigured = transferScheduleAvailable && schedulingMode === 'scheduled';
+  const scheduleControlsDate = recurringScheduleConfigured || transferScheduleConfigured;
+  const scheduleEditorTitle = transferScheduleAvailable ? 'Schedule Rule' : 'Recurring Schedule';
   const dateInputLabel = recurringScheduleConfigured
     ? 'Next execution date'
     : expected
     ? 'Expected date'
     : mode === 'expense'
       ? 'Date'
-      : scheduledMovementVisible
+      : transferScheduleConfigured
         ? 'Execution date'
         : 'Date';
   const scheduleSummary = recurrenceSummary(
@@ -473,7 +473,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                     disabled,
                     amountVisible: !splitApplied,
                     dateDisabled: recurringScheduleConfigured,
-                    dateVisible: !recurringScheduleConfigured,
+                    dateVisible: !scheduleControlsDate,
                     amountError,
                     dateError,
                   },
@@ -511,6 +511,38 @@ export function TransactionComposerView({ required, provided }: Props) {
                   <ScheduleTriggerView
                     required={{
                       config: {},
+                      data: {},
+                      state: {},
+                      status: { disabled },
+                    }}
+                    provided={{ commands: { open: onOpenRecurringScheduleEditor } }}
+                  />
+                )
+              ) : null}
+
+              {transferScheduleAvailable ? (
+                transferScheduleConfigured ? (
+                  <ScheduleSummaryView
+                    required={{
+                      config: {},
+                      data: {},
+                      state: {
+                        summary: scheduleSummary,
+                        nextDate: nextScheduledOccurrenceDate ?? date,
+                      },
+                      status: { disabled },
+                    }}
+                    provided={{
+                      commands: {
+                        edit: onOpenRecurringScheduleEditor,
+                        remove: onRemoveRecurringSchedule,
+                      },
+                    }}
+                  />
+                ) : (
+                  <ScheduleTriggerView
+                    required={{
+                      config: { label: 'Schedule' },
                       data: {},
                       state: {},
                       status: { disabled },
@@ -593,25 +625,6 @@ export function TransactionComposerView({ required, provided }: Props) {
                   </>
                 ) : (
                   <>
-                    <SchedulingOptionsView
-                      required={{
-                        config: {},
-                        data: {},
-                        state: {
-                          schedulingMode,
-                          schedulingKind,
-                          scheduledMovementVisible,
-                        },
-                        status: { disabled },
-                      }}
-                      provided={{
-                        commands: {
-                          setSchedulingMode: onSetSchedulingMode,
-                          setSchedulingKind: onSetSchedulingKind,
-                        },
-                      }}
-                    />
-
                     <MultiTagPickerView
                       required={{
                         config: { label: 'Tags', placeholder: 'Add tag...' },
@@ -666,9 +679,9 @@ export function TransactionComposerView({ required, provided }: Props) {
       <SheetView
         required={{
           config: {
-            ariaLabel: 'Recurring schedule',
-            title: 'Recurring Schedule',
-            closeLabel: 'Close recurring schedule',
+            ariaLabel: scheduleEditorTitle,
+            title: scheduleEditorTitle,
+            closeLabel: `Close ${scheduleEditorTitle.toLowerCase()}`,
             panelClassName: 'composer-sheet',
           },
           data: {

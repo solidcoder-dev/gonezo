@@ -24,6 +24,23 @@ describe('ScheduleControlsView', () => {
     expect(open).toHaveBeenCalledTimes(1);
   });
 
+  it('uses a custom trigger label when provided', () => {
+    render(
+      <ScheduleTriggerView
+        required={{
+          config: { label: 'Schedule' },
+          data: {},
+          state: {},
+          status: {},
+        }}
+        provided={{ commands: { open: vi.fn() } }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /schedule/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /schedule recurring/i })).not.toBeInTheDocument();
+  });
+
   it('shows schedule summary and exposes edit and remove actions', () => {
     const edit = vi.fn();
     const remove = vi.fn();

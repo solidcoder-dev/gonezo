@@ -2,7 +2,9 @@ import type { ViewProps } from '../../../shared/ui/ViewProps';
 import './ScheduleControlsView.css';
 
 export type ScheduleTriggerViewProps = ViewProps<
-  Record<string, never>,
+  {
+    label?: string;
+  },
   Record<string, never>,
   Record<string, never>,
   {
@@ -14,6 +16,8 @@ export type ScheduleTriggerViewProps = ViewProps<
 >;
 
 export function ScheduleTriggerView({ required, provided }: ScheduleTriggerViewProps) {
+  const label = required.config.label ?? 'Schedule recurring';
+
   return (
     <button
       type="button"
@@ -22,7 +26,7 @@ export function ScheduleTriggerView({ required, provided }: ScheduleTriggerViewP
       disabled={required.status.disabled}
     >
       <i className="bi bi-arrow-repeat" aria-hidden />
-      <span>Schedule recurring</span>
+      <span>{label}</span>
     </button>
   );
 }
