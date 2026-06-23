@@ -27,6 +27,73 @@
   margin-top: 0;
 }
 
+.composer-context-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.composer-context-select {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  background: var(--color-card-surface);
+  color: var(--color-text-primary);
+  box-shadow: 0 6px 18px rgba(24, 24, 22, 0.04);
+}
+
+.composer-context-select select {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 760;
+  outline: 0;
+  appearance: none;
+}
+
+.composer-context-select > .bi:first-child {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+  font-size: 1.1rem;
+}
+
+.composer-context-select--expense {
+  border-color: rgba(220, 38, 38, 0.16);
+  background: rgba(254, 242, 242, 0.9);
+  color: #dc2626;
+}
+
+.composer-context-select--expense > .bi:first-child {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.composer-context-select--income {
+  color: var(--color-brand-strong);
+}
+
+.composer-context-select--transfer {
+  color: #175cd3;
+}
+
 .composer-advanced {
   margin-top: 4px;
 }
@@ -85,4 +152,20 @@
 
 .composer-movement-context--transfer::before {
   background: #175cd3;
+}
+
+@media (max-width: 360px) {
+  .composer-context-select {
+    gap: 6px;
+    padding: 0 8px;
+  }
+
+  .composer-context-select > .bi:first-child {
+    width: 28px;
+    height: 28px;
+  }
+
+  .composer-context-select select {
+    font-size: 0.84rem;
+  }
 }

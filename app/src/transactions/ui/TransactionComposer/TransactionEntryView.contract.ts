@@ -22,6 +22,8 @@ export type TransactionEntryViewRequired = {
     tagSuggestions: Array<{ id: string; name: string }>;
     tagCreateCandidate?: string;
     transferTargetAccountId: string;
+    sourceAccountId: string;
+    sourceAccountOptions: Array<{ id: string; name: string; currency: string; type?: string }>;
     transferTargetOptions: Array<{ id: string; name: string; currency: string }>;
     transferAmountIn: string;
     transferFxRate: string;
@@ -71,6 +73,7 @@ export type TransactionEntryViewProvided = {
     close: () => void;
     collapse?: () => void;
     selectMode: (mode: Exclude<ComposerMode, 'picker'>) => void;
+    selectSourceAccount: (accountId: string) => void;
     toggleAdvanced: () => void;
     setAmount: (value: string) => void;
     setDate: (value: string) => void;

@@ -31,22 +31,7 @@ describe('useMovementQuickActionModel', () => {
     expect(result.current.required.state.selectedAccountName).toBe('billetera');
   });
 
-  it('opens a compact draft with default expense and favorite account', async () => {
-    const ports = makePorts();
-    const { result } = renderHook(() => useMovementQuickActionModel({ ports, enabled: true }));
-
-    await waitFor(() => expect(result.current.required.status.loading).toBe(false));
-
-    act(() => {
-      result.current.provided.commands.openDraft();
-    });
-
-    expect(result.current.required.state.draftOpen).toBe(true);
-    expect(result.current.required.state.selectedAccountId).toBe('acc-2');
-    expect(result.current.required.state.selectedMovementType).toBe('expense');
-  });
-
-  it('selects account and type locally before expanding the draft', async () => {
+  it('requests a default expense for the favorite account directly', async () => {
     const onCreateMovementRequested = vi.fn();
     const ports = makePorts();
     const { result } = renderHook(() => useMovementQuickActionModel({
@@ -59,9 +44,30 @@ describe('useMovementQuickActionModel', () => {
 
     act(() => {
       result.current.provided.commands.openDraft();
-      result.current.provided.commands.selectAccount('acc-1');
-      result.current.provided.commands.selectMovementType('income');
     });
+
+    expect(onCreateMovementRequested).toHaveBeenCalledWith({
+      account: { id: 'acc-2', name: 'billetera' },
+      type: 'expense',
+    });
+    expect(result.current.required.state.draftOpen).toBe(false);
+    expect(result.current.required.state.selectedAccountId).toBe('acc-2');
+    expect(result.current.required.state.selectedMovementType).toBe('expense');
+  });
+
+  it('keeps legacy local draft commands available for restored draft requests', async () => {
+    const onCreateMovementRequested = vi.fn();
+    const ports = makePorts();
+    const { result } = renderHook(() => useMovementQuickActionModel({
+      ports,
+      enabled: true,
+      events: { onCreateMovementRequested },
+    }));
+
+    await waitFor(() => expect(result.current.required.status.loading).toBe(false));
+
+    act(() => result.current.provided.commands.selectAccount('acc-1'));
+    act(() => result.current.provided.commands.selectMovementType('income'));
 
     expect(result.current.required.state.selectedAccountId).toBe('acc-1');
     expect(result.current.required.state.selectedAccountName).toBe('Main');

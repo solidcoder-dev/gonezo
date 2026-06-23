@@ -2,9 +2,6 @@ import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { BottomNavigationView } from '../../shared/ui/BottomNavigation/BottomNavigationView';
 import type { BottomNavigationItemView } from '../../shared/ui/BottomNavigation/BottomNavigationView.contract';
-import { MovementAccountSelectorView } from '../ui/MovementAccountSelector/MovementAccountSelectorView';
-import { MovementDraftPickerView } from '../ui/MovementDraftPicker/MovementDraftPickerView';
-import { MovementTypeSelectorView } from '../ui/MovementTypeSelector/MovementTypeSelectorView';
 import type { MovementQuickActionComponentProps } from './MovementQuickActionComponent.contract';
 import { useMovementQuickActionModel } from './useMovementQuickActionModel';
 
@@ -77,65 +74,6 @@ export function MovementDockNavigationComponent({ required, provided = {} }: Mov
         provided={{
           commands: {
             select: selectItem,
-          },
-        }}
-      />
-      <MovementDraftPickerView
-        required={{
-          state: {
-            open: model.required.state.draftOpen,
-            accountName: model.required.state.selectedAccountName,
-            movementType: model.required.state.selectedMovementType,
-            accountSelectorOpen: model.required.state.accountSelectorOpen,
-            typeSelectorOpen: model.required.state.typeSelectorOpen,
-          },
-          status: {
-            disabled: model.required.status.disabled,
-          },
-        }}
-        provided={{
-          commands: {
-            close: model.provided.commands.closeDraft,
-            expand: model.provided.commands.expandDraft,
-            toggleAccountSelector: model.provided.commands.toggleAccountSelector,
-            toggleTypeSelector: model.provided.commands.toggleTypeSelector,
-          },
-        }}
-      />
-      <MovementAccountSelectorView
-        required={{
-          data: {
-            accounts: model.required.state.accounts,
-          },
-          state: {
-            open: model.required.state.accountSelectorOpen,
-            selectedAccountId: model.required.state.selectedAccountId,
-          },
-          status: {
-            disabled: model.required.status.disabled,
-          },
-        }}
-        provided={{
-          commands: {
-            close: model.provided.commands.closeAccountSelector,
-            selectAccount: model.provided.commands.selectAccount,
-          },
-        }}
-      />
-      <MovementTypeSelectorView
-        required={{
-          state: {
-            open: model.required.state.typeSelectorOpen,
-            selectedType: model.required.state.selectedMovementType,
-          },
-          status: {
-            disabled: model.required.status.disabled,
-          },
-        }}
-        provided={{
-          commands: {
-            close: model.provided.commands.closeTypeSelector,
-            selectType: model.provided.commands.selectMovementType,
           },
         }}
       />

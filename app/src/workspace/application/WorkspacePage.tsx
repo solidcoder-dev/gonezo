@@ -62,11 +62,6 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const [movementEntryAccountName, setMovementEntryAccountName] = useState<string | null>(null);
   const [movementEntryType, setMovementEntryType] = useState<TransactionType | undefined>();
   const [movementEntryOpenSignal, setMovementEntryOpenSignal] = useState(0);
-  const [movementDraftRequest, setMovementDraftRequest] = useState<{
-    requestId: number;
-    account: { id: string; name: string };
-    type: TransactionType;
-  } | undefined>();
 
   const transactionEntryAccountId = movementEntryAccountId ?? selectedAccountId;
   const currentPage = location.pathname.startsWith('/analytics')
@@ -153,17 +148,12 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   }
 
   function collapseMovementComposerToDraft() {
-    if (!movementEntryAccountId || !movementEntryAccountName || !movementEntryType) {
-      clearMovementEntryAccount();
-      return;
-    }
-
-    setMovementDraftRequest((previous) => ({
-      requestId: (previous?.requestId ?? 0) + 1,
-      account: { id: movementEntryAccountId, name: movementEntryAccountName },
-      type: movementEntryType,
-    }));
     clearMovementEntryAccount();
+  }
+
+  function changeMovementComposerAccount(account: { id: string; name: string }) {
+    setMovementEntryAccountId(account.id);
+    setMovementEntryAccountName(account.name);
   }
 
   const transactionEntry = transactionEntryAccountId
@@ -194,6 +184,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
               },
               onClosed: clearMovementEntryAccount,
               onCollapsed: collapseMovementComposerToDraft,
+              onAccountChanged: changeMovementComposerAccount,
             },
           }}
         />
@@ -209,7 +200,6 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         config: {
           enabled: true,
           refreshSignal: movementQuickActionRefreshSignal,
-          draftRequest: movementDraftRequest,
         },
       }}
       provided={{

@@ -827,16 +827,12 @@ function makeCore(transactionCount = 0): AppTestPort {
 
 async function openMode(mode: 'Expense' | 'Income' | 'Transfer') {
   fireEvent.click(screen.getByRole('button', { name: 'Add movement' }));
-  const draft = await screen.findByRole('dialog', { name: 'New movement draft' });
+  const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
   if (mode !== 'Expense') {
-    fireEvent.click(within(draft).getByRole('button', { name: 'Choose movement type: Expense' }));
-    const typeSelector = await screen.findByRole('dialog', { name: 'Movement type' });
-    fireEvent.click(within(typeSelector).getByRole('button', { name: mode }));
+    fireEvent.change(within(composer).getByLabelText('Movement type'), {
+      target: { value: mode.toLowerCase() },
+    });
   }
-  const handle = screen.getByTestId('sheet-drag-handle');
-  fireEvent.pointerDown(handle, { clientY: 320, pointerId: 1, pointerType: 'touch' });
-  fireEvent.pointerMove(handle, { clientY: 240, pointerId: 1, pointerType: 'touch' });
-  fireEvent.pointerUp(handle, { clientY: 240, pointerId: 1, pointerType: 'touch' });
 }
 
 async function openNewSplitItemDialog() {
@@ -1121,13 +1117,6 @@ describe('App Accounts UX', () => {
     expect(await screen.findByText('Late merchant')).toBeInTheDocument();
   });
 
-  function dragMovementDraftUp() {
-    const handle = screen.getByTestId('sheet-drag-handle');
-    fireEvent.pointerDown(handle, { clientY: 320, pointerId: 1, pointerType: 'touch' });
-    fireEvent.pointerMove(handle, { clientY: 240, pointerId: 1, pointerType: 'touch' });
-    fireEvent.pointerUp(handle, { clientY: 240, pointerId: 1, pointerType: 'touch' });
-  }
-
   function dragComposerDown(composer: HTMLElement) {
     const handle = within(composer).getByTestId('sheet-drag-handle');
     fireEvent.pointerDown(handle, { clientY: 240, pointerId: 1, pointerType: 'touch' });
@@ -1146,19 +1135,11 @@ describe('App Accounts UX', () => {
     );
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
-    const draft = await screen.findByRole('dialog', { name: 'New movement draft' });
-    expect(within(draft).getByRole('button', { name: 'Choose account: Savings' })).toBeInTheDocument();
-    expect(within(draft).getByRole('button', { name: 'Choose movement type: Expense' })).toBeInTheDocument();
-
-    fireEvent.click(within(draft).getByRole('button', { name: 'Choose account: Savings' }));
-    const selector = await screen.findByRole('dialog', { name: 'Account for new movement' });
-    fireEvent.click(within(selector).getByRole('button', { name: 'Main' }));
-    dragMovementDraftUp();
-
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
-    expect(within(composer).getByText('New movement')).toBeInTheDocument();
-    expect(within(composer).getByText('Expense · Main')).toHaveClass('composer-movement-context--expense');
-    expect(within(composer).queryByRole('button', { name: 'Expense' })).not.toBeInTheDocument();
+    expect(within(composer).getByLabelText('Movement type')).toHaveValue('expense');
+    expect(within(composer).getByLabelText('Source account')).toHaveValue('acc-2');
+    fireEvent.change(within(composer).getByLabelText('Source account'), { target: { value: 'acc-1' } });
+    await waitFor(() => expect(within(composer).getByLabelText('Source account')).toHaveValue('acc-1'));
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
@@ -1172,9 +1153,9 @@ describe('App Accounts UX', () => {
       expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
     });
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
-    const resetDraft = await screen.findByRole('dialog', { name: 'New movement draft' });
-    expect(within(resetDraft).getByRole('button', { name: 'Choose account: Savings' })).toBeInTheDocument();
-    expect(within(resetDraft).getByRole('button', { name: 'Choose movement type: Expense' })).toBeInTheDocument();
+    const resetComposer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    expect(within(resetComposer).getByLabelText('Source account')).toHaveValue('acc-2');
+    expect(within(resetComposer).getByLabelText('Movement type')).toHaveValue('expense');
   });
 
   it('resets the movement draft defaults after closing without saving', async () => {
@@ -1188,27 +1169,18 @@ describe('App Accounts UX', () => {
     );
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
-    const draft = await screen.findByRole('dialog', { name: 'New movement draft' });
-    fireEvent.click(within(draft).getByRole('button', { name: 'Choose account: Savings' }));
-    const selector = await screen.findByRole('dialog', { name: 'Account for new movement' });
-    fireEvent.click(within(selector).getByRole('button', { name: 'Main' }));
-    dragMovementDraftUp();
-
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
-    expect(within(composer).getByText('Expense · Main')).toBeInTheDocument();
+    expect(within(composer).getByLabelText('Source account')).toHaveValue('acc-2');
+    fireEvent.change(within(composer).getByLabelText('Source account'), { target: { value: 'acc-1' } });
+    await waitFor(() => expect(within(composer).getByLabelText('Source account')).toHaveValue('acc-1'));
     dragComposerDown(composer);
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
     });
-    const restoredDraft = await screen.findByRole('dialog', { name: 'New movement draft' });
-    expect(within(restoredDraft).getByRole('button', { name: 'Choose account: Main' })).toBeInTheDocument();
-    expect(within(restoredDraft).getByRole('button', { name: 'Choose movement type: Expense' })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId('sheet-backdrop'));
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
-    const resetDraft = await screen.findByRole('dialog', { name: 'New movement draft' });
-    expect(within(resetDraft).getByRole('button', { name: 'Choose account: Savings' })).toBeInTheDocument();
+    const resetComposer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    expect(within(resetComposer).getByLabelText('Source account')).toHaveValue('acc-2');
   });
 
   it('refreshes the movement split action accounts after creating an account', async () => {
@@ -1271,11 +1243,10 @@ describe('App Accounts UX', () => {
     expect(await screen.findByRole('button', { name: 'Travel' })).toBeInTheDocument();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
-    const draft = await screen.findByRole('dialog', { name: 'New movement draft' });
-    fireEvent.click(within(draft).getByRole('button', { name: 'Choose account: Main' }));
-    const selector = await screen.findByRole('dialog', { name: 'Account for new movement' });
+    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    const selector = within(composer).getByLabelText('Source account');
 
-    expect(within(selector).getByRole('button', { name: 'Travel' })).toBeInTheDocument();
+    expect(within(selector).getByRole('option', { name: 'Travel' })).toBeInTheDocument();
   });
 
   it('ignores default account preference when the account is archived', async () => {

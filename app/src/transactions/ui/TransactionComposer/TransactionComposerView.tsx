@@ -7,7 +7,6 @@ import {
   FREQUENT_INCOME_CATEGORY_IDS,
 } from '../../../taxonomy/domain/masterCategories';
 import { CategoryPickerField } from '../CategoryPickerField/CategoryPickerField';
-import { ComposerModePickerView } from '../ComposerModePicker/ComposerModePickerView';
 import { ExpenseSplitEditorView } from '../ExpenseSplitEditor/ExpenseSplitEditorView';
 import { RecurrenceEditorView } from '../RecurrenceEditor/RecurrenceEditorView';
 import { ScheduleSummaryView } from '../ScheduleControls/ScheduleSummaryView';
@@ -49,6 +48,8 @@ export type TransactionComposerViewRequired = {
   tagCreateCandidate?: string;
   advancedOpen: boolean;
   transferTargetAccountId: string;
+  sourceAccountId: string;
+  sourceAccountOptions: Array<{ id: string; name: string; currency: string; type?: string }>;
   transferTargetOptions: Array<{ id: string; name: string; currency: string }>;
   transferAmountIn: string;
   transferFxRate: string;
@@ -102,6 +103,7 @@ export type TransactionComposerViewProvided = {
   onClose: () => void;
   onCollapse?: () => void;
   onSelectMode: (mode: Exclude<ComposerMode, 'picker'>) => void;
+  onSelectSourceAccount: (accountId: string) => void;
   onToggleAdvanced: () => void;
   onSetAmount: (value: string) => void;
   onSetDate: (value: string) => void;
@@ -184,6 +186,12 @@ function recurrenceSummary(
   return `${titleCase(frequency)} · every ${normalizedInterval}`;
 }
 
+const COMPOSER_MODES: Array<{ value: Exclude<ComposerMode, 'picker'>; label: string; iconClassName: string }> = [
+  { value: 'expense', label: 'Expense', iconClassName: 'bi bi-person-fill-down' },
+  { value: 'income', label: 'Income', iconClassName: 'bi bi-arrow-up-right' },
+  { value: 'transfer', label: 'Transfer', iconClassName: 'bi bi-arrow-left-right' },
+];
+
 export function TransactionComposerView({ required, provided }: Props) {
   const {
     open,
@@ -231,7 +239,6 @@ export function TransactionComposerView({ required, provided }: Props) {
     editedScheduledMovementId,
     postExpectedMovementId,
     currencyCode,
-    movementAccountContext,
     expenseItemNameError,
     expenseItemAmountError,
     expenseSplitError,
@@ -248,6 +255,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     onClose,
     onCollapse,
     onSelectMode,
+    onSelectSourceAccount,
     onSetAmount,
     onSetDate,
     onSetNote,
@@ -295,13 +303,6 @@ export function TransactionComposerView({ required, provided }: Props) {
 
   const amountInputRef = useRef<HTMLInputElement | null>(null);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
-  const movementContextType = movementAccountContext?.type && mode !== 'picker'
-    ? movementAccountContext.type
-    : undefined;
-  const movementContextLabel = movementContextType
-    ? `${titleCase(movementContextType)} · ${movementAccountContext?.name ?? ''}`
-    : movementAccountContext?.name;
-
   useEffect(() => {
     if (open && mode !== 'picker') {
       const timer = window.setTimeout(() => {
@@ -319,8 +320,8 @@ export function TransactionComposerView({ required, provided }: Props) {
   const amountLabel = mode === 'transfer'
     ? `Amount out${currencyCode ? ` (${currencyCode})` : ''}`
     : expected
-      ? 'Estimated amount'
-      : 'Amount';
+      ? `Estimated amount${currencyCode ? ` (${currencyCode})` : ''}`
+      : `Amount${currencyCode ? ` (${currencyCode})` : ''}`;
 
   const amountInLabel = `Amount in${transferDestinationCurrency ? ` (${transferDestinationCurrency})` : ''}`;
   const fxLabel = `FX rate${transferDestinationCurrency && currencyCode ? ` (${transferDestinationCurrency}/${currencyCode})` : ''}`;
@@ -398,6 +399,7 @@ export function TransactionComposerView({ required, provided }: Props) {
   if (!open) {
     return null;
   }
+  const selectedMode: Exclude<ComposerMode, 'picker'> = mode === 'picker' ? 'expense' : mode;
 
   return (
     <>
@@ -412,35 +414,39 @@ export function TransactionComposerView({ required, provided }: Props) {
             dragSurface: onCollapse ? 'panel' : 'handle',
           },
           data: {
-            body: mode === 'picker' ? (
-              <div className="composer-form-content stack">
-                {movementAccountContext?.name ? (
-                  <div className="composer-account-context">
-                    <span>Movement for</span>
-                    <strong>{movementAccountContext.name}</strong>
-                  </div>
-                ) : null}
-                <ComposerModePickerView
-                  required={{
-                    config: {},
-                    data: {},
-                    state: {},
-                    status: { disabled },
-                  }}
-                  provided={{ commands: { selectMode: onSelectMode } }}
-                />
-              </div>
-            ) : (
+            body: (
             <form className="composer-form" onSubmit={onSubmit} aria-busy={disabled} noValidate>
             <div className="composer-form-content stack">
-              {movementAccountContext?.name ? (
-                <div className="composer-account-context composer-account-context--compact">
-                  <span>New movement</span>
-                  <strong className={movementContextType ? `composer-movement-context composer-movement-context--${movementContextType}` : undefined}>
-                    {movementContextLabel}
-                  </strong>
-                </div>
-              ) : null}
+              <div className="composer-context-controls">
+                <label className={`composer-context-select composer-context-select--${selectedMode}`}>
+                  <i className={COMPOSER_MODES.find((item) => item.value === selectedMode)?.iconClassName ?? 'bi bi-arrow-down-left'} aria-hidden />
+                  <select
+                    aria-label="Movement type"
+                    value={selectedMode}
+                    disabled={disabled}
+                    onChange={(event) => onSelectMode(event.target.value as Exclude<ComposerMode, 'picker'>)}
+                  >
+                    {COMPOSER_MODES.map((item) => (
+                      <option key={item.value} value={item.value}>{item.label}</option>
+                    ))}
+                  </select>
+                  <i className="bi bi-chevron-down" aria-hidden />
+                </label>
+                <label className="composer-context-select composer-context-select--account">
+                  <i className="bi bi-wallet2" aria-hidden />
+                  <select
+                    aria-label="Source account"
+                    value={required.sourceAccountId}
+                    disabled={disabled}
+                    onChange={(event) => onSelectSourceAccount(event.target.value)}
+                  >
+                    {required.sourceAccountOptions.map((account) => (
+                      <option key={account.id} value={account.id}>{account.name}</option>
+                    ))}
+                  </select>
+                  <i className="bi bi-chevron-down" aria-hidden />
+                </label>
+              </div>
               <TransactionMainFieldsView
                 required={{
                   config: {
@@ -457,7 +463,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                     transferTargetOptions,
                   },
                   state: {
-                    mode,
+                    mode: selectedMode,
                     amount,
                     date,
                     note,

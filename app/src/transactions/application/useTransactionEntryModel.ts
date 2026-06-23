@@ -36,7 +36,7 @@ type UseTransactionEntryModelInput = {
   idGenerator: TransactionEntryModelIdGenerator;
   accountId: string | null; enabled: boolean; prefillRequest?: TransactionEntryPrefillRequest; openSignal?: number;
   initialMode?: TransactionEntryInitialMode; movementAccountContext?: { name: string; type?: TransactionEntryInitialMode };
-  onRecorded?: () => void; onClosed?: () => void; onCollapsed?: () => void; onError?: (error: { message: string }) => void;
+  onRecorded?: () => void; onClosed?: () => void; onCollapsed?: () => void; onAccountChanged?: (account: { id: string; name: string }) => void; onError?: (error: { message: string }) => void;
 };
 
 function toErrorMessage(error: unknown): string {
@@ -62,7 +62,7 @@ function resolveSubmitExpectedIntent(event: FormEvent, fallback: boolean): boole
 }
 
 export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
-  const { ports, clock, idGenerator, accountId, enabled, prefillRequest, openSignal, initialMode, movementAccountContext, onRecorded, onClosed, onCollapsed, onError } = input;
+  const { ports, clock, idGenerator, accountId, enabled, prefillRequest, openSignal, initialMode, movementAccountContext, onRecorded, onClosed, onCollapsed, onAccountChanged, onError } = input;
   const initialToday = clock.todayIso();
 
   const [loading, setLoading] = useState(true);
@@ -216,7 +216,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
   function resetComposerState() {
     const today = clock.todayIso();
-    setComposerMode('picker');
+    setComposerMode('expense');
     setComposerAdvancedOpen(false);
     setTransactionAmount('');
     setTransactionDate(today);
@@ -327,7 +327,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setError('');
     setComposerOpen(true);
     resetComposerState();
-    applyTransactionEntryInitialMode(initialMode, setComposerMode, () => {
+    applyTransactionEntryInitialMode(initialMode ?? 'expense', setComposerMode, () => {
       setExpectedMovement(false);
       syncForTransferMode();
     });
@@ -359,6 +359,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
     setExpectedMovement(false);
     syncForTransferMode();
+  }
+
+  function selectSourceAccount(accountIdValue: string) {
+    const account = accounts.find((item) => item.id === accountIdValue);
+    if (account && account.id !== accountId) onAccountChanged?.({ id: account.id, name: account.name });
   }
 
   function setTransactionAmountValue(value: string) {
@@ -542,6 +547,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       tagSuggestions,
       tagCreateCandidate,
       transferTargetAccountId: transferToAccountId,
+      sourceAccountId: accountId ?? '',
+      sourceAccountOptions: accounts.filter((account) => account.status === 'active')
+        .map((account) => ({ id: account.id, name: account.name, currency: account.currency, type: account.type })),
       transferTargetOptions,
       transferAmountIn,
       transferFxRate,
@@ -588,6 +596,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       close: () => finishTransactionComposer(onClosed),
       collapse: () => finishTransactionComposer(onCollapsed),
       selectMode: selectComposerMode,
+      selectSourceAccount,
       toggleAdvanced: () => setComposerAdvancedOpen((previous) => !previous),
       setAmount: setTransactionAmountValue,
       setDate: setTransactionDateValue,
@@ -636,9 +645,5 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     },
   };
 
-  return {
-    error,
-    required,
-    provided,
-  };
+  return { error, required, provided };
 }

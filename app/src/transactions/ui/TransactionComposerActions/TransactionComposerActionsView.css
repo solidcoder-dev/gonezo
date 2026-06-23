@@ -10,12 +10,14 @@
 }
 
 .composer-actions .primary-cta {
-  flex: 1;
+  flex: 1.7 1 0;
+  min-width: 0;
   width: 100%;
 }
 
 .composer-secondary-cta {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   min-height: 44px;
   border: 1px solid #1d1d1b;
   background: #fff;

@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from 'react';
+import { useId, type ReactNode, type RefObject } from 'react';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
 import type { ComposerMode } from '../../application/transactions.types';
 import './TransactionMainFieldsView.css';
@@ -51,6 +51,11 @@ function formatDateInput(value: string): string {
   return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
 }
 
+function currencyFromAmountLabel(label: string): string {
+  const match = label.match(/\(([^)]+)\)/);
+  return match?.[1] ?? '';
+}
+
 export function TransactionMainFieldsView({ required, provided }: TransactionMainFieldsViewProps) {
   const { config, data, state, status } = required;
   const {
@@ -66,12 +71,14 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
   const showTransferFields = state.mode === 'transfer';
   const amountVisible = status.amountVisible ?? true;
   const dateVisible = status.dateVisible ?? true;
+  const amountCurrency = currencyFromAmountLabel(amountLabel);
+  const dateFieldId = useId();
 
   return (
     <>
       {!showTransferFields && amountVisible ? (
         <>
-          <label className="stack">
+          <label className="stack composer-amount-field">
             <span className="visually-hidden">{amountLabel}</span>
             <input
               ref={amountInputRef}
@@ -86,6 +93,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
               aria-invalid={Boolean(status.amountError)}
               aria-describedby={status.amountError ? 'composer-amount-error' : undefined}
             />
+            {amountCurrency ? <span className="composer-amount-currency">{amountCurrency}</span> : null}
           </label>
           {status.amountError ? <p id="composer-amount-error" className="field-error">{status.amountError}</p> : null}
         </>
@@ -113,7 +121,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
 
       {showTransferFields && amountVisible ? (
         <>
-          <label className="stack">
+          <label className="stack composer-amount-field">
             <span className="visually-hidden">{amountLabel}</span>
             <input
               ref={amountInputRef}
@@ -128,6 +136,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
               aria-invalid={Boolean(status.amountError)}
               aria-describedby={status.amountError ? 'composer-amount-error' : undefined}
             />
+            {amountCurrency ? <span className="composer-amount-currency">{amountCurrency}</span> : null}
           </label>
           {status.amountError ? <p id="composer-amount-error" className="field-error">{status.amountError}</p> : null}
           {afterAmount}
@@ -159,9 +168,10 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
       {dateVisible ? (
         <>
           <div className="date-input-row">
-            <label className="stack date-input-field">
-              <span className="visually-hidden">{dateInputLabel}</span>
+            <div className="date-input-field">
+              <label className="visually-hidden" htmlFor={dateFieldId}>{dateInputLabel}</label>
               <input
+                id={dateFieldId}
                 aria-label={dateInputLabel}
                 type="text"
                 value={state.date}
@@ -187,18 +197,18 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
                 disabled={status.dateDisabled}
                 onChange={(event) => provided.commands.changeDate(event.target.value)}
               />
-            </label>
-            <button
-              type="button"
-              className="text-button icon-button date-picker-button"
-              aria-label="Open calendar"
-              onClick={() => {
-                dateInputRef?.current?.showPicker?.();
-              }}
-              disabled={status.disabled || status.dateDisabled}
-            >
-              <i className="bi bi-calendar3" aria-hidden />
-            </button>
+              <button
+                type="button"
+                className="text-button icon-button date-picker-button"
+                aria-label="Open calendar"
+                onClick={() => {
+                  dateInputRef?.current?.showPicker?.();
+                }}
+                disabled={status.disabled || status.dateDisabled}
+              >
+                <i className="bi bi-calendar3" aria-hidden />
+              </button>
+            </div>
           </div>
           {status.dateError ? <p id="composer-date-error" className="field-error">{status.dateError}</p> : null}
         </>

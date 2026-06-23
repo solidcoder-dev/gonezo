@@ -212,9 +212,13 @@ export function useMovementQuickActionModel({
     provided: {
       commands: {
         openDraft: () => {
-          if (!disabled) {
+          if (!disabled && selectedAccount) {
+            const movement = {
+              account: { id: selectedAccount.id, name: selectedAccount.name },
+              type: 'expense' as const,
+            };
             resetDraftContext();
-            setDraftOpen(true);
+            eventsRef.current?.onCreateMovementRequested?.(movement);
           }
         },
         closeDraft: () => {
