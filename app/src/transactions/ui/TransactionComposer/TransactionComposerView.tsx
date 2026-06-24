@@ -339,7 +339,7 @@ export function TransactionComposerView({ required, provided }: Props) {
   const transferScheduleAvailable = mode === 'transfer';
   const transferScheduleConfigured = transferScheduleAvailable && schedulingMode === 'scheduled';
   const scheduleControlsDate = recurringScheduleConfigured || transferScheduleConfigured;
-  const scheduleEditorTitle = transferScheduleAvailable ? 'Schedule Rule' : 'Recurring Schedule';
+  const scheduleEditorTitle = transferScheduleAvailable ? 'Schedule rule' : 'Recurring schedule';
   const dateInputLabel = recurringScheduleConfigured
     ? 'Next execution date'
     : expected
@@ -684,60 +684,50 @@ export function TransactionComposerView({ required, provided }: Props) {
         required={{
           config: {
             ariaLabel: scheduleEditorTitle,
-            title: scheduleEditorTitle,
-            closeLabel: `Close ${scheduleEditorTitle.toLowerCase()}`,
-            panelClassName: 'composer-sheet',
+            panelClassName: 'composer-sheet composer-schedule-sheet',
           },
           data: {
             body: (
-              <div className="stack">
-                <RecurrenceEditorView
-                  required={{
-                    config: {},
-                    data: {},
-                    state: {
-                      frequency: recurrenceFrequency,
-                      interval: recurrenceInterval,
-                      weeklyDay: recurrenceWeeklyDay,
-                      monthlyPattern: recurrenceMonthlyPattern,
-                      dayOfMonth: recurrenceDayOfMonth,
-                      monthlyOrdinal: recurrenceMonthlyOrdinal,
-                      monthlyWeekday: recurrenceMonthlyWeekday,
-                      endKind: recurrenceEndKind,
-                      endDate: recurrenceEndDate,
-                      endCount: recurrenceEndCount,
-                      nextOccurrenceDate: nextScheduledOccurrenceDate ?? date,
-                    },
-                    status: {
-                      intervalError: recurrenceIntervalError,
-                      endDateError: recurrenceEndDateError,
-                      endCountError: recurrenceEndCountError,
-                    },
-                  }}
-                  provided={{
-                    commands: {
-                      setFrequency: onSetRecurrenceFrequency,
-                      setInterval: onSetRecurrenceInterval,
-                      setWeeklyDay: onSetRecurrenceWeeklyDay,
-                      setMonthlyPattern: onSetRecurrenceMonthlyPattern,
-                      setDayOfMonth: onSetRecurrenceDayOfMonth,
-                      setMonthlyOrdinal: onSetRecurrenceMonthlyOrdinal,
-                      setMonthlyWeekday: onSetRecurrenceMonthlyWeekday,
-                      setEndKind: onSetRecurrenceEndKind,
-                      setEndDate: onSetRecurrenceEndDate,
-                      setEndCount: onSetRecurrenceEndCount,
-                    },
-                  }}
-                />
-                <button
-                  type="button"
-                  className="primary-button"
-                  onClick={onApplyRecurringSchedule}
-                  disabled={disabled}
-                >
-                  Apply schedule
-                </button>
-              </div>
+              <RecurrenceEditorView
+                required={{
+                  config: { title: scheduleEditorTitle },
+                  data: {},
+                  state: {
+                    frequency: recurrenceFrequency,
+                    interval: recurrenceInterval,
+                    weeklyDay: recurrenceWeeklyDay,
+                    monthlyPattern: recurrenceMonthlyPattern,
+                    dayOfMonth: recurrenceDayOfMonth,
+                    monthlyOrdinal: recurrenceMonthlyOrdinal,
+                    monthlyWeekday: recurrenceMonthlyWeekday,
+                    endKind: recurrenceEndKind,
+                    endDate: recurrenceEndDate,
+                    endCount: recurrenceEndCount,
+                    nextOccurrenceDate: nextScheduledOccurrenceDate ?? date,
+                  },
+                  status: {
+                    intervalError: recurrenceIntervalError,
+                    endDateError: recurrenceEndDateError,
+                    endCountError: recurrenceEndCountError,
+                  },
+                }}
+                provided={{
+                  commands: {
+                    closeEditor: onCloseRecurringScheduleEditor,
+                    applySchedule: onApplyRecurringSchedule,
+                    setFrequency: onSetRecurrenceFrequency,
+                    setInterval: onSetRecurrenceInterval,
+                    setWeeklyDay: onSetRecurrenceWeeklyDay,
+                    setMonthlyPattern: onSetRecurrenceMonthlyPattern,
+                    setDayOfMonth: onSetRecurrenceDayOfMonth,
+                    setMonthlyOrdinal: onSetRecurrenceMonthlyOrdinal,
+                    setMonthlyWeekday: onSetRecurrenceMonthlyWeekday,
+                    setEndKind: onSetRecurrenceEndKind,
+                    setEndDate: onSetRecurrenceEndDate,
+                    setEndCount: onSetRecurrenceEndCount,
+                  },
+                }}
+              />
             ),
           },
           state: { open: scheduleEditorOpen },

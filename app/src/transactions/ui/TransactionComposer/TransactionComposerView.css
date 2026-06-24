@@ -6,6 +6,11 @@
   overflow: hidden;
 }
 
+.composer-schedule-sheet {
+  grid-template-rows: minmax(0, 1fr);
+  max-width: 520px;
+}
+
 .composer-form {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
