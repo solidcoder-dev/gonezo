@@ -48,7 +48,6 @@ export function NetWorthSummaryComponent({ required, provided }: NetWorthSummary
   const [items, setItems] = useState<LedgerNetWorthCurrencyItem[]>([]);
   const [loadPhase, setLoadPhase] = useState<LoadPhase>('idle');
   const [error, setError] = useState('');
-  const [allCurrenciesOpen, setAllCurrenciesOpen] = useState(false);
 
   useEffect(() => {
     if (!required.config.enabled) {
@@ -90,16 +89,13 @@ export function NetWorthSummaryComponent({ required, provided }: NetWorthSummary
   return (
     <NetWorthSummaryView
       required={{
-        config: { visibleLimit: 3 },
+        config: {},
         data: { items: viewItems },
-        state: { allCurrenciesOpen },
+        state: {},
         status: { loadPhase, error },
       }}
       provided={{
-        commands: {
-          openAll: () => setAllCurrenciesOpen(true),
-          closeAll: () => setAllCurrenciesOpen(false),
-        },
+        commands: {},
       }}
     />
   );

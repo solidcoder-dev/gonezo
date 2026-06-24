@@ -1,0 +1,92 @@
+.list {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  background: var(--color-card-surface);
+  list-style: none;
+}
+
+.item {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.item:last-child {
+  border-bottom: 0;
+}
+
+.itemButton {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: left;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+  font-size: 1rem;
+}
+
+.text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.text strong,
+.text span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text strong {
+  font-weight: 760;
+}
+
+.text span {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.amount {
+  white-space: nowrap;
+  font-size: 0.93rem;
+}
+
+.income,
+.expected {
+  color: var(--color-brand-strong);
+}
+
+.expense {
+  color: var(--color-status-danger-text);
+}
+
+.transfer {
+  color: #2563eb;
+}
+
+.chevron {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}

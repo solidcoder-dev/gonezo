@@ -14,13 +14,11 @@ describe('ExpectedMovementsCardView', () => {
             movements: [
               {
                 id: 'expected-1',
-                row: {
-                  itemClassName: 'expense-item expense-item--expense',
-                  iconClassName: 'bi bi-arrow-down-right',
-                  title: 'Rent',
-                  amount: { sign: '-', label: '$950.00' },
-                  details: [{ key: 'account', value: 'Main', primary: true }, 'expected Today'],
-                },
+                iconClassName: 'bi bi-arrow-up-right',
+                title: 'Rent',
+                subtitle: 'Main · Today · pending',
+                amountLabel: '-$950.00',
+                amountTone: 'expense',
               },
             ],
           },

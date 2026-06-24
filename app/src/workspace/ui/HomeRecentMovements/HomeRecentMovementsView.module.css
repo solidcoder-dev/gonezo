@@ -1,0 +1,67 @@
+.section {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 1.08rem;
+  font-weight: 780;
+}
+
+.seeAllButton {
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-brand-strong);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 760;
+}
+
+.empty {
+  margin: 0;
+  padding: 13px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 13px;
+  background: var(--color-card-surface);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.skeleton {
+  min-height: 148px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.68), transparent),
+    linear-gradient(#ecece6 0 0) 16px 18px / 46px 46px no-repeat,
+    linear-gradient(#ecece6 0 0) 72px 22px / 120px 14px no-repeat,
+    linear-gradient(#f4f4ef 0 0) 72px 44px / 90px 12px no-repeat,
+    linear-gradient(#ecece6 0 0) calc(100% - 96px) 26px / 80px 14px no-repeat,
+    linear-gradient(#ecece6 0 0) 16px 84px / 46px 46px no-repeat,
+    linear-gradient(#ecece6 0 0) 72px 88px / 120px 14px no-repeat,
+    linear-gradient(#f4f4ef 0 0) 72px 110px / 90px 12px no-repeat,
+    linear-gradient(#ecece6 0 0) calc(100% - 96px) 92px / 80px 14px no-repeat,
+    var(--color-card-surface);
+  background-size:
+    80px 100%,
+    46px 46px,
+    120px 14px,
+    90px 12px,
+    80px 14px,
+    46px 46px,
+    120px 14px,
+    90px 12px,
+    80px 14px;
+}

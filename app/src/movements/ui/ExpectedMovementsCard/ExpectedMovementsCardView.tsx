@@ -1,7 +1,6 @@
-import { MovementRowView } from '../MovementRow/MovementRowView';
+import { HomeMovementListView } from '../../../shared/ui/HomeMovementList/HomeMovementListView';
 import type { ExpectedMovementsCardViewProps } from './ExpectedMovementsCardView.contract';
 import styles from './ExpectedMovementsCardView.module.css';
-import '../movements.css';
 
 export function ExpectedMovementsCardView({ required, provided }: ExpectedMovementsCardViewProps) {
   const { movements } = required.data;
@@ -20,20 +19,12 @@ export function ExpectedMovementsCardView({ required, provided }: ExpectedMoveme
 
       {!loading && movements.length > 0 ? (
         <div className={styles.list}>
-          <ul className="expense-list expense-list--compact" aria-label="Expected movements list">
-            {movements.map((movement) => (
-              <MovementRowView
-                key={movement.id}
-                required={{
-                  config: {},
-                  data: movement.row,
-                  state: {},
-                  status: { disabled },
-                }}
-                provided={{ commands: { select: () => provided.commands.selectMovement(movement.id) } }}
-              />
-            ))}
-          </ul>
+          <HomeMovementListView
+            ariaLabel="Expected movements list"
+            movements={movements}
+            disabled={disabled}
+            selectMovement={provided.commands.selectMovement}
+          />
         </div>
       ) : null}
     </section>

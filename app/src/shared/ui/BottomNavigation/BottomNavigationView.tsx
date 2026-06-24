@@ -25,6 +25,7 @@ export function BottomNavigationView({ required, provided }: BottomNavigationVie
             onClick={() => provided.commands.select(item.id)}
           >
             <i className={item.iconClassName} aria-hidden />
+            <span>{item.id === 'analytics' ? 'Stats' : item.label === 'Add movement' ? '' : item.label}</span>
           </button>
         );
       })}

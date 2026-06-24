@@ -1,0 +1,31 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.header h1 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 1.65rem;
+  font-weight: 820;
+  letter-spacing: 0;
+}
+
+.notificationButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 1.18rem;
+}

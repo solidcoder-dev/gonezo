@@ -1,13 +1,13 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 10px;
   margin-top: 14px;
-  padding: 22px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 28px;
-  background: var(--color-card-surface);
-  box-shadow: var(--shadow-card);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .header {
@@ -20,56 +20,73 @@
 .header h2 {
   margin: 0;
   color: var(--color-text-primary);
-  font-size: 1.35rem;
-  font-weight: 700;
+  font-size: 1.08rem;
+  font-weight: 780;
   letter-spacing: 0;
+}
+
+.seeAllButton {
+  min-height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-brand-strong);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 740;
+  cursor: pointer;
+}
+
+.seeAllButton:disabled {
+  cursor: default;
+  opacity: 0.54;
+}
+
+.seeAllButton:focus-visible {
+  border-radius: 8px;
+  outline: 2px solid var(--color-brand-strong);
+  outline-offset: 3px;
 }
 
 .addButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--color-brand-soft);
   color: var(--color-brand-strong);
-  cursor: pointer;
-  font-size: 1.35rem;
 }
 
 .rail {
-  display: flex;
-  gap: 14px;
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  scrollbar-width: none;
-}
-
-.rail::-webkit-scrollbar {
-  display: none;
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 13px;
+  background: var(--color-card-surface);
 }
 
 .accountCard {
   appearance: none;
   position: relative;
   overflow: hidden;
-  flex: 0 0 232px;
-  scroll-snap-align: start;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-height: 138px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
   min-width: 0;
-  padding: 22px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 24px;
-  background: var(--color-card-inner);
+  padding: 8px 12px 8px 8px;
+  border: 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-radius: 0;
+  background: var(--color-card-surface);
   color: inherit;
   cursor: pointer;
   font: inherit;
   text-align: left;
+}
+
+.accountCard:last-child {
+  border-bottom: 0;
 }
 
 .accountCard:disabled {
@@ -87,7 +104,7 @@
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -95,13 +112,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 999px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   flex: 0 0 auto;
   background: var(--color-brand-soft);
   color: var(--color-brand-strong);
-  font-size: 1.35rem;
+  font-size: 1.18rem;
 }
 
 .accountName {
@@ -109,7 +126,7 @@
   overflow: hidden;
   min-width: 0;
   color: var(--color-text-primary);
-  font-size: 1.15rem;
+  font-size: 0.98rem;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -121,21 +138,14 @@
   position: relative;
   z-index: 1;
   color: var(--color-text-primary);
-  font-size: 1.42rem;
+  font-size: 0.96rem;
   font-weight: 760;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .trend {
-  position: absolute;
-  right: -10px;
-  bottom: -12px;
-  left: 34%;
-  z-index: 0;
-  height: 70px;
-  opacity: 0.72;
-  pointer-events: none;
+  display: none;
 }
 
 .trend svg {
@@ -153,4 +163,24 @@
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.sheetPanel {
+  max-width: 520px;
+}
+
+.sheetContent {
+  padding-top: 6px;
+}
+
+.sheetList {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  background: var(--color-card-surface);
+}
+
+.sheetList .accountCard {
+  min-height: 64px;
 }

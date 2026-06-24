@@ -64,6 +64,7 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
   const [createOpeningBalance, setCreateOpeningBalance] = useState('');
   const [manageAccountId, setManageAccountId] = useState<string | null>(null);
   const [manageName, setManageName] = useState('');
+  const [allAccountsOpen, setAllAccountsOpen] = useState(false);
 
   const activeAccounts = useMemo(() => accounts.filter((account) => account.status === 'active'), [accounts]);
   const selectedManageAccount = manageAccountId
@@ -208,14 +209,15 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
     <>
       <AccountsRailView
         required={{
-          config: {},
+          config: { previewLimit: 3 },
           data: { accounts: activeAccounts.map(toAccountView) },
-          state: {},
+          state: { allAccountsOpen },
           status: { loading, disabled: submitting },
         }}
         provided={{
           commands: {
-            createAccount: () => setCreateOpen(true),
+            openAllAccounts: () => setAllAccountsOpen(true),
+            closeAllAccounts: () => setAllAccountsOpen(false),
             selectAccount: (accountId) => provided?.events?.onSelectedAccountChanged?.(accountId),
             manageAccount: (accountId) => {
               const account = accounts.find((item) => item.accountId === accountId);

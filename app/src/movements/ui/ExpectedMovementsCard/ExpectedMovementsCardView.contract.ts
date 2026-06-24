@@ -1,10 +1,9 @@
 import type { ViewProps } from '../../../shared/ui/ViewProps';
-import type { MovementRowDataView } from '../MovementRow/MovementRowView';
+import type { HomeMovementRowView } from '../../../shared/ui/HomeMovementList/HomeMovementListView';
 
 export type ExpectedMovementCardItemView = {
   id: string;
-  row: MovementRowDataView;
-};
+} & HomeMovementRowView;
 
 export type ExpectedMovementsCardViewProps = ViewProps<
   Record<string, never>,

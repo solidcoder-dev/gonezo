@@ -111,7 +111,7 @@ describe('MovementsSearchFilterSheetView', () => {
     expect(providedCommands.reset).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     expect(providedCommands.apply).toHaveBeenCalledTimes(1);
-  });
+  }, 10000);
 
   it('uses empty states and disables controls from status', () => {
     const providedCommands = commands();

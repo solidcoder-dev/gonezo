@@ -92,8 +92,8 @@ describe('ExpectedMovementsCardComponent', () => {
 
     expect(await screen.findByText('Interest')).toBeInTheDocument();
     expect(screen.getByText('Market')).toBeInTheDocument();
-    expect(screen.getByText('Savings')).toBeInTheDocument();
-    expect(screen.getByText('Main')).toBeInTheDocument();
+    expect(screen.getByText(/Savings · .* · pending/)).toBeInTheDocument();
+    expect(screen.getByText(/Main · .* · pending/)).toBeInTheDocument();
 
     await waitFor(() => {
       expect(core.expectedListMovements).toHaveBeenCalledWith({ accountId: 'acc-1' });

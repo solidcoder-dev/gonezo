@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AccountBalancesPort } from '../../account/application/accountBalances.port';
 import type { ExpectedPort } from '../../expected/application/expected.port';
+import { formatCurrencyAmount } from '../../shared/utils/formatting';
+import type { HomeMovementRowView } from '../../shared/ui/HomeMovementList/HomeMovementListView';
 import { ExpectedMovementsCardView } from '../ui/ExpectedMovementsCard/ExpectedMovementsCardView';
 import { MovementDetailSheetView } from '../ui/MovementDetailSheet/MovementDetailSheetView';
 import type { ExpectedMovementView } from './movementsView.types';
 import {
   buildExpectedMovementDetailData,
-  buildExpectedMovementRowData,
 } from '../ui/MonthlyMovements/monthlyMovementPresentation';
 
 export type ExpectedMovementsCardPort = Pick<AccountBalancesPort, 'accountsListBalances'>
@@ -44,6 +45,40 @@ function sortExpectedMovements(items: ExpectedMovementView[]): ExpectedMovementV
     const dateComparison = right.expectedAt.localeCompare(left.expectedAt);
     return dateComparison !== 0 ? dateComparison : left.id.localeCompare(right.id);
   });
+}
+
+function shortDateLabel(dateIso: string): string {
+  try {
+    const date = new Date(dateIso);
+    if (Number.isNaN(date.getTime())) {
+      return dateIso.slice(0, 10);
+    }
+    return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' }).format(date);
+  } catch {
+    return dateIso.slice(0, 10);
+  }
+}
+
+function expectedTitle(movement: ExpectedMovementView): string {
+  if (movement.merchant) {
+    return movement.merchant;
+  }
+  if (movement.description) {
+    return movement.description;
+  }
+  return movement.type === 'income' ? 'Expected income' : 'Expected expense';
+}
+
+function buildHomeExpectedMovementRow(movement: ExpectedMovementView): HomeMovementRowView {
+  const sign = movement.type === 'income' ? '+' : '-';
+  return {
+    id: movement.id,
+    title: expectedTitle(movement),
+    subtitle: [movement.accountName, shortDateLabel(movement.expectedAt), movement.status].filter(Boolean).join(' · '),
+    iconClassName: movement.type === 'income' ? 'bi bi-arrow-down-left' : 'bi bi-arrow-up-right',
+    amountLabel: `${sign}${formatCurrencyAmount(movement.amount, movement.currency)}`,
+    amountTone: movement.type === 'income' ? 'income' : 'expense',
+  };
 }
 
 export function ExpectedMovementsCardComponent({ required, provided }: ExpectedMovementsCardComponentProps) {
@@ -101,8 +136,7 @@ export function ExpectedMovementsCardComponent({ required, provided }: ExpectedM
 
   const rows = useMemo(
     () => movements.map((movement) => ({
-      id: movement.id,
-      row: buildExpectedMovementRowData(movement),
+      ...buildHomeExpectedMovementRow(movement),
     })),
     [movements],
   );

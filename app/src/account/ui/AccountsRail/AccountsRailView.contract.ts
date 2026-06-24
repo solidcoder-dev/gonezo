@@ -13,17 +13,22 @@ export type AccountsRailAccountView = {
 };
 
 export type AccountsRailViewProps = ViewProps<
-  Record<string, never>,
+  {
+    previewLimit: number;
+  },
   {
     accounts: AccountsRailAccountView[];
   },
-  Record<string, never>,
+  {
+    allAccountsOpen: boolean;
+  },
   {
     loading: boolean;
     disabled?: boolean;
   },
   {
-    createAccount: () => void;
+    openAllAccounts: () => void;
+    closeAllAccounts: () => void;
     selectAccount: (accountId: string) => void;
     manageAccount: (accountId: string) => void;
   }

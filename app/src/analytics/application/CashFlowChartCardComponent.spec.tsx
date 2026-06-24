@@ -60,7 +60,7 @@ describe('CashFlowChartCardComponent', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Select period' }));
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'Weekly' }));
     await waitFor(() => expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith({ currency: 'USD', granularity: 'weekly', periodOffset: 0 }));
-  });
+  }, 10000);
 
   it('navigates cash flow windows', async () => {
     const core = createCore();

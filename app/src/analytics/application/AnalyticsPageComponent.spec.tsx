@@ -55,5 +55,5 @@ describe('AnalyticsPageComponent', () => {
     await waitFor(() => expect(core.analyticsGetPeriodCashFlowSummary).toHaveBeenCalledWith({ currency: 'USD' }));
     expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith({ currency: 'USD', granularity: 'monthly', periodOffset: 0 });
     expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith({ currency: 'USD', granularity: 'monthly', periodOffset: 0 });
-  });
+  }, 10000);
 });

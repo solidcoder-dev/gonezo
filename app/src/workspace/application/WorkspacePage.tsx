@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { TransactionsImportRequest, TransactionsImportResult } from '../../imports/application/transactionsImport.types';
 import { MovementDockNavigationComponent, TransactionEntryComponent } from '../../transactions/index';
 import type { TransactionEntryPrefillRequest } from '../../transactions/application/TransactionEntryComponent.contract';
@@ -22,9 +22,11 @@ import { ProfilePage } from './ProfilePage';
 import { NetWorthSummaryComponent } from './NetWorthSummaryComponent';
 import { ExpectedMovementsCardComponent } from '../../movements/application/ExpectedMovementsCardComponent';
 import { AnalyticsPageComponent } from '../../analytics/application/AnalyticsPageComponent';
+import { HomeRecentMovementsComponent, type HomeRecentMovementsPort } from './HomeRecentMovementsComponent';
+import { HomeHeaderView } from '../ui/HomeHeader/HomeHeaderView';
 
 export type WorkspacePageRequired = {
-  core: AccountWorkspacePort & AnalyticsPort;
+  core: AccountWorkspacePort & AnalyticsPort & HomeRecentMovementsPort;
 };
 
 type WorkspacePageProps = {
@@ -40,6 +42,7 @@ function toErrorMessage(error: unknown): string {
 
 export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [screenLoadPhase, setScreenLoadPhase] = useState<LoadPhase>('loading');
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [accountsCount, setAccountsCount] = useState(0);
@@ -359,26 +362,29 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   );
 
   const netWorthSummary = currentPage === 'home' ? (
-    <NetWorthSummaryComponent
-      required={{
-        context: {
-          core: pageRequired.core,
-        },
-        config: {
-          enabled: true,
-          refreshSignal: netWorthRefreshSignal,
-        },
-      }}
-      provided={{
-        events: {
-          onError: (error) => {
-            setToastMessage(error.message);
-            setToastActionLabel('');
-            setToastAction(null);
+    <>
+      <HomeHeaderView provided={{ commands: { openNotifications: () => undefined } }} />
+      <NetWorthSummaryComponent
+        required={{
+          context: {
+            core: pageRequired.core,
           },
-        },
-      }}
-    />
+          config: {
+            enabled: true,
+            refreshSignal: netWorthRefreshSignal,
+          },
+        }}
+        provided={{
+          events: {
+            onError: (error) => {
+              setToastMessage(error.message);
+              setToastActionLabel('');
+              setToastAction(null);
+            },
+          },
+        }}
+      />
+    </>
   ) : null;
 
   const homeExpectedMovements = currentPage === 'home' ? (
@@ -410,6 +416,32 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     />
   ) : null;
 
+  const homeRecentMovements = currentPage === 'home' ? (
+    <HomeRecentMovementsComponent
+      required={{
+        context: {
+          core: pageRequired.core,
+        },
+        config: {
+          enabled: true,
+          refreshSignal: recentTransactionsRefreshSignal,
+        },
+      }}
+      provided={{
+        events: {
+          onSeeAll: () => {
+            void navigate('/movements');
+          },
+          onError: (error) => {
+            setToastMessage(error.message);
+            setToastActionLabel('');
+            setToastAction(null);
+          },
+        },
+      }}
+    />
+  ) : null;
+
   const required: AccountPageViewRequired = {
     screen: {
       loadPhase: screenLoadPhase,
@@ -427,6 +459,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             <>
               {homeAccountsRail}
               {homeExpectedMovements}
+              {homeRecentMovements}
             </>
           )
         : currentPage === 'analytics'

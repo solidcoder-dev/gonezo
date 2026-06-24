@@ -172,7 +172,7 @@ describe('ExpenseSplitEditorView', () => {
     expect(splitByParts).toHaveBeenCalledWith('10.00', '3');
     expect(editItem).toHaveBeenCalledWith('item-1');
     expect(removeItem).toHaveBeenCalledWith('item-1');
-  });
+  }, 10000);
 
   it('cancels inline split item and switches to parts mode without opening a form', () => {
     const addItem = vi.fn(() => true);

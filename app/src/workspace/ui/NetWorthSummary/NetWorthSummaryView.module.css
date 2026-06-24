@@ -3,13 +3,13 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  min-height: 164px;
-  padding: 24px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 28px;
-  background: var(--color-card-surface);
-  box-shadow: var(--shadow-card);
+  gap: 10px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .header {
@@ -22,13 +22,11 @@
 .header h2 {
   margin: 0;
   color: var(--color-text-primary);
-  font-size: 1.35rem;
-  font-weight: 700;
+  font-size: 1.08rem;
+  font-weight: 780;
   letter-spacing: 0;
 }
 
-.header span,
-.footer span,
 .hint,
 .currencyCode {
   color: #74746b;
@@ -39,35 +37,50 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(132px, 0.42fr);
-  align-items: end;
-  gap: 16px;
+  gap: 10px;
 }
 
 .primaryCurrency {
   position: relative;
+  overflow: hidden;
   min-width: 0;
-  padding: 2px 0 4px;
+  min-height: 138px;
+  padding: 17px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 16px;
+  background: var(--color-card-surface);
+  box-shadow: 0 8px 22px rgba(24, 24, 22, 0.04);
 }
 
 .secondaryList {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin-inline: -2px;
+  padding: 0 2px 4px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.secondaryList::-webkit-scrollbar {
+  display: none;
 }
 
 .secondaryCurrency {
   position: relative;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  min-width: 0;
-  padding: 9px 12px;
+  display: grid;
+  gap: 8px;
+  flex: 0 0 126px;
+  width: 126px;
+  min-width: 126px;
+  min-height: 82px;
+  padding: 12px;
   border: 1px solid rgba(32, 32, 30, 0.06);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.62);
+  border-radius: 14px;
+  background: var(--color-card-surface);
+  scroll-snap-align: start;
 }
 
 .secondaryCurrencyText {
@@ -90,18 +103,32 @@
 .primaryCurrency strong {
   position: relative;
   z-index: 1;
-  font-size: clamp(2.35rem, 7vw, 3.15rem);
+  font-size: clamp(1.78rem, 6.5vw, 2.28rem);
 }
 
 .secondaryCurrency strong {
-  font-size: clamp(1rem, 3vw, 1.2rem);
+  font-size: 0.94rem;
 }
 
 .currencyCode {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 8px;
   font-weight: 700;
   letter-spacing: 0;
+}
+
+.currencyCode::before {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--color-brand);
+  color: #fff;
+  content: attr(data-currency-symbol);
 }
 
 .secondaryCurrency .currencyCode {
@@ -111,11 +138,11 @@
 
 .trend {
   position: absolute;
-  right: -12px;
-  bottom: -12px;
-  left: 32%;
+  right: 14px;
+  bottom: 14px;
+  left: 52%;
   z-index: 0;
-  height: 112px;
+  height: 78px;
   opacity: 0.9;
   pointer-events: none;
 }
@@ -159,73 +186,7 @@
   margin: 0;
 }
 
-.footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: -2px;
-}
-
-.viewAllButton {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #2f6f66;
-  font: inherit;
-  font-size: 0.84rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.sheetPanel {
-  max-width: 520px;
-}
-
-.sheetContent {
-  padding-top: 6px;
-}
-
-.sheetList {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.sheetRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 42px;
-  border-bottom: 1px solid rgba(32, 32, 30, 0.08);
-  color: #20201e;
-}
-
-.sheetRow:last-child {
-  border-bottom: 0;
-}
-
-.sheetRow span {
-  color: #74746b;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.sheetRow strong {
-  overflow: hidden;
-  font-size: 0.98rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 @media (max-width: 430px) {
-  .card {
-    min-height: 150px;
-    padding: 20px;
-    border-radius: 24px;
-  }
-
   .summaryBody {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -235,9 +196,10 @@
     font-size: 2.35rem;
   }
 
-  .secondaryList {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .secondaryCurrency {
+    flex-basis: 124px;
+    width: 124px;
+    min-width: 124px;
   }
 
   .secondaryCurrency {

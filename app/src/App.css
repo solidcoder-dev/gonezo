@@ -3,6 +3,6 @@
   max-width: 720px;
   min-height: 100dvh;
   margin: 0 auto;
-  padding: calc(22px + var(--app-safe-area-top)) calc(18px + var(--app-safe-area-right)) calc(108px + var(--app-safe-area-bottom)) calc(18px + var(--app-safe-area-left));
+  padding: calc(18px + var(--app-safe-area-top)) calc(18px + var(--app-safe-area-right)) calc(96px + var(--app-safe-area-bottom)) calc(18px + var(--app-safe-area-left));
   box-sizing: border-box;
 }

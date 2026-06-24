@@ -1,13 +1,13 @@
 .bottom-navigation {
   position: fixed;
   left: 50%;
-  bottom: calc(12px + var(--app-safe-area-bottom));
+  bottom: calc(10px + var(--app-safe-area-bottom));
   z-index: 40;
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: min(88vw, 560px);
-  padding: 12px 16px;
+  gap: 6px;
+  width: min(90vw, 520px);
+  padding: 10px 14px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
   background: rgba(255, 255, 252, 0.96);
@@ -16,18 +16,19 @@
 }
 
 .bottom-navigation-item {
-  display: inline-flex;
+  display: inline-grid;
+  justify-items: center;
   align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
+  gap: 3px;
+  width: 60px;
+  height: 52px;
+  min-width: 52px;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--color-text-muted);
   font: inherit;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   line-height: 1;
   cursor: pointer;
   transition: width 160ms ease, background-color 160ms ease, color 160ms ease, opacity 160ms ease;
@@ -43,45 +44,49 @@
 }
 
 .bottom-navigation-item--active {
-  width: 72px;
   background: var(--color-brand-soft);
   color: var(--color-brand-strong);
 }
 
 .bottom-navigation-item--primary {
-  width: 66px;
-  height: 66px;
-  min-width: 66px;
-  margin: -14px 2px;
-  background: var(--color-brand);
+  width: 62px;
+  height: 62px;
+  min-width: 62px;
+  margin: -13px 2px;
+  background: radial-gradient(circle at 35% 30%, #2fbd5a, #087a2f 72%);
   color: #fff;
-  font-size: 1.7rem;
-  box-shadow: 0 14px 28px rgba(22, 117, 46, 0.26);
+  font-size: 1.58rem;
+  box-shadow: 0 12px 24px rgba(8, 122, 47, 0.28);
+}
+
+.bottom-navigation-item span {
+  font-size: 0.68rem;
+  font-weight: 680;
+  line-height: 1;
+}
+
+.bottom-navigation-item--primary span {
+  display: none;
 }
 
 .bottom-navigation-item--primary.bottom-navigation-item--active {
-  width: 66px;
+  width: 62px;
 }
 
 @media (max-width: 360px) {
   .bottom-navigation {
-    gap: 8px;
-    padding: 12px;
+    gap: 5px;
+    padding: 10px;
   }
 
   .bottom-navigation-item {
-    width: 46px;
-    height: 46px;
+    width: 50px;
     min-width: 46px;
   }
 
-  .bottom-navigation-item--active {
-    width: 64px;
-  }
-
   .bottom-navigation-item--primary {
-    width: 64px;
-    height: 64px;
-    min-width: 64px;
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
   }
 }
