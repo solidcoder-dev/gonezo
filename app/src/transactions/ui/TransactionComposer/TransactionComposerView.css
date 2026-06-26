@@ -103,6 +103,20 @@
   margin-top: 4px;
 }
 
+.composer-split-share {
+  gap: 10px;
+  margin-top: 0;
+}
+
+.composer-split-share-apply {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 10px;
+  background: #060606;
+  color: #fff;
+  font-weight: 860;
+}
+
 .composer-account-context {
   display: grid;
   gap: 2px;

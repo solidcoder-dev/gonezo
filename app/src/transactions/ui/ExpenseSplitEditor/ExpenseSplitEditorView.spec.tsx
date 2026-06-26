@@ -51,7 +51,11 @@ describe('ExpenseSplitEditorView', () => {
     );
 
     expect(screen.getByLabelText('Split into items')).toBeChecked();
-    expect(screen.getByText('Split total')).toBeInTheDocument();
+    expect(screen.getByText('Paid')).toBeInTheDocument();
+    expect(screen.getByText('Your share')).toBeInTheDocument();
+    expect(screen.getByText('Expected back')).toBeInTheDocument();
+    expect(screen.getByText('Shared with 2 people')).toBeInTheDocument();
+    expect(screen.getByText('1 item')).toBeInTheDocument();
     expect(screen.getByText('1 item')).toBeInTheDocument();
     expect(screen.getByText('4.00')).toBeInTheDocument();
     expect(screen.getByText('USD')).toBeInTheDocument();
@@ -62,6 +66,8 @@ describe('ExpenseSplitEditorView', () => {
     expect(screen.getByRole('button', { name: 'Add split item' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Split by parts' })).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Items' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Sharing' })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByText('Items are optional. Add any details you have.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText('Split into items'));
     fireEvent.click(screen.getByRole('button', { name: 'Add split item' }));
@@ -73,7 +79,7 @@ describe('ExpenseSplitEditorView', () => {
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '2.50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
     expect(screen.queryByRole('button', { name: 'Assign remaining' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('tab', { name: 'Parts' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Sharing' }));
     expect(splitByParts).toHaveBeenCalledWith('10.00', '2');
     rerender(
       <ExpenseSplitEditorView
@@ -113,9 +119,12 @@ describe('ExpenseSplitEditorView', () => {
         }}
       />,
     );
-    expect(screen.getByRole('tab', { name: 'Parts' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Sharing' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: 'Equal parts' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Percentage' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Amount' })).toBeInTheDocument();
     expect(screen.getByText('2 parts')).toBeInTheDocument();
-    expect(screen.getByText('Each part')).toBeInTheDocument();
+    expect(screen.getByText('Each person')).toBeInTheDocument();
     expect(screen.getAllByText('5.00 USD')).toHaveLength(3);
     expect(screen.getByRole('button', { name: 'Edit part 1' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Increase parts' }));
@@ -213,7 +222,7 @@ describe('ExpenseSplitEditorView', () => {
       />,
     );
 
-    expect(screen.getByText('Add split items to build the breakdown.')).toBeInTheDocument();
+    expect(screen.getByText('Items are optional. Add them when you need a receipt breakdown.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Add split item' }));
     expect(screen.getByLabelText('Item name')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel split item' }));
@@ -221,7 +230,7 @@ describe('ExpenseSplitEditorView', () => {
     expect(cancelItem).toHaveBeenCalledTimes(1);
     expect(addItem).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Parts' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Sharing' }));
     expect(screen.queryByLabelText('Amount to split')).not.toBeInTheDocument();
     expect(splitByParts).toHaveBeenCalledWith('0.00', '2');
   });

@@ -3,26 +3,27 @@
 }
 
 .manager {
-  gap: 14px;
+  gap: 10px;
 }
 
 .modeTabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 4px;
   padding: 3px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 14px;
-  background: #fff;
+  border: 0;
+  border-radius: 10px;
+  background: #f3f4f1;
 }
 
 .modeTabs button {
-  min-height: 38px;
+  min-height: 30px;
   border: 0;
-  border-radius: 11px;
+  border-radius: 8px;
   background: transparent;
   color: var(--color-text-primary);
-  font: inherit;
-  font-weight: 760;
+  font-size: 0.82rem;
+  font-weight: 800;
 }
 
 .modeTabs .activeModeTab {
@@ -32,24 +33,64 @@
 
 .summaryCard {
   display: grid;
-  gap: 10px;
-  padding: 16px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
   border: 1px solid color-mix(in srgb, var(--color-status-success-text) 16%, var(--color-border-subtle));
-  border-radius: 18px;
+  border-radius: 16px;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--color-status-success-background) 65%, #fff) 0%, #fff 100%);
+    linear-gradient(110deg, color-mix(in srgb, var(--color-status-success-background) 72%, #fff) 0%, #fff 92%);
 }
 
-.summaryHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+.paidSummary {
+  min-width: 0;
 }
 
 .summaryLabel {
+  display: block;
   color: var(--color-status-success-text);
+  font-size: 0.78rem;
   font-weight: 800;
+}
+
+.summaryMetric {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  column-gap: 8px;
+  row-gap: 2px;
+  align-items: center;
+  padding-left: 12px;
+  border-left: 1px solid color-mix(in srgb, var(--color-status-success-text) 18%, transparent);
+}
+
+.summaryMetric i {
+  grid-row: 1 / span 2;
+  color: var(--color-status-success-text);
+  font-size: 1.12rem;
+}
+
+.summaryMetric span {
+  color: var(--color-text-primary);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.summaryMetric strong {
+  min-width: 0;
+  color: var(--color-text-primary);
+  font-size: 0.8rem;
+  font-weight: 860;
+  overflow-wrap: anywhere;
+}
+
+.summaryChips {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  flex-wrap: wrap;
 }
 
 .summaryCount {
@@ -57,6 +98,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   padding: 0 12px;
   border: 1px solid color-mix(in srgb, var(--color-status-success-text) 14%, var(--color-border-subtle));
   border-radius: 10px;
@@ -69,14 +111,14 @@
 .summaryAmount {
   display: flex;
   align-items: baseline;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
 }
 
 .summaryAmount strong {
   min-width: 0;
-  font-size: clamp(2.1rem, 10vw, 3rem);
-  font-weight: 780;
+  font-size: clamp(2rem, 9vw, 2.9rem);
+  font-weight: 860;
   line-height: 0.95;
   letter-spacing: 0;
   overflow-wrap: anywhere;
@@ -88,23 +130,16 @@
   font-weight: 800;
 }
 
-.summaryCard p {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: 0.96rem;
-  font-weight: 650;
-}
-
 .itemsBlock {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
-.itemsBlock h3 {
+.panelHint {
   margin: 0;
-  color: var(--color-text-primary);
-  font-size: 1rem;
-  font-weight: 800;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .list {
@@ -112,21 +147,21 @@
   margin: 0;
   padding: 0;
   display: grid;
-  height: 190px;
+  max-height: 190px;
   border: 1px solid var(--color-border-subtle);
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--color-background-surface);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
 .item {
-  min-height: 58px;
+  min-height: 54px;
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto auto;
+  grid-template-columns: 34px minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 10px;
+  padding: 9px 10px;
   border-bottom: 1px solid var(--color-border-subtle);
   background: #fff;
 }
@@ -137,7 +172,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 50%;
   background: var(--color-status-success-background);
   color: var(--color-status-success-text);
   font-size: 1.2rem;
@@ -179,7 +214,7 @@
 }
 
 .emptyState {
-  min-height: 188px;
+  min-height: 118px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -223,7 +258,7 @@
 
 .addItemRow button {
   width: calc(100% - 20px);
-  min-height: 44px;
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -239,18 +274,18 @@
 .partsCard {
   display: grid;
   border: 1px solid var(--color-border-subtle);
-  border-radius: 14px;
+  border-radius: 12px;
   background: #fff;
   overflow: hidden;
 }
 
 .partsControlRow {
-  min-height: 52px;
+  min-height: 46px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 8px 12px;
 }
 
 .partsControlRow + .partsControlRow {
@@ -263,7 +298,7 @@
   align-items: center;
   justify-items: center;
   border: 1px solid var(--color-border-subtle);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
 }
 
@@ -279,11 +314,11 @@
 }
 
 .partsList {
-  height: 150px;
+  max-height: 160px;
 }
 
 .partItem {
-  min-height: 50px;
+  min-height: 54px;
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) auto auto;
   align-items: center;
@@ -294,15 +329,63 @@
 }
 
 .partIndex {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 50%;
   background: var(--color-status-success-background);
   color: var(--color-status-success-text);
   font-weight: 800;
+}
+
+.personText {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.personText strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.personText span {
+  color: var(--color-text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.sharingMethods {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sharingMethods button {
+  min-width: 0;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--color-text-primary);
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.sharingMethods .activeSharingMethod {
+  border-color: var(--color-status-success-text);
+  background: color-mix(in srgb, var(--color-status-success-background) 50%, #fff);
+  color: var(--color-status-success-text);
 }
 
 .inlineEditor {
@@ -338,6 +421,21 @@
 }
 
 @media (max-width: 380px) {
+  .summaryCard {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryMetric {
+    padding-left: 0;
+    padding-top: 8px;
+    border-left: 0;
+    border-top: 1px solid color-mix(in srgb, var(--color-status-success-text) 18%, transparent);
+  }
+
+  .sharingMethods {
+    grid-template-columns: 1fr;
+  }
+
   .item {
     grid-template-columns: 40px minmax(0, 1fr) auto;
   }

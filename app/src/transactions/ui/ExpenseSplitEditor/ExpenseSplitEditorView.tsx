@@ -41,6 +41,13 @@ export type ExpenseSplitEditorViewProps = ViewProps<
 
 type SplitEditorMode = 'new' | 'edit';
 type SplitMode = 'items' | 'parts';
+type SharingMethod = 'equal' | 'percentage' | 'amount';
+
+const SHARING_METHODS: Array<{ value: SharingMethod; label: string; iconClassName: string }> = [
+  { value: 'equal', label: 'Equal parts', iconClassName: 'bi bi-people' },
+  { value: 'percentage', label: 'Percentage', iconClassName: 'bi bi-percent' },
+  { value: 'amount', label: 'Amount', iconClassName: 'bi bi-credit-card' },
+];
 
 function SplitItemForm({
   state,
@@ -105,6 +112,7 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
   const { data, state, status } = required;
   const [editorMode, setEditorMode] = useState<SplitEditorMode | null>(null);
   const [splitPartsCount, setSplitPartsCount] = useState('2');
+  const [sharingMethod, setSharingMethod] = useState<SharingMethod>('equal');
   const managerVisible = status.hideToggle || state.enabled;
   const partsCount = Math.max(2, Number(splitPartsCount) || 2);
   const splitCountLabel = state.splitMode === 'parts'
@@ -116,6 +124,7 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
   const splitTotalNumber = Number(splitTotal) || 0;
   const amountPerPart = splitTotalNumber / partsCount;
   const amountPerPartLabel = amountPerPart.toFixed(2);
+  const expectedBackLabel = '0.00';
 
   function openNewEditor() {
     provided.commands.startItem();
@@ -194,31 +203,49 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
               onClick={() => selectSplitMode('parts')}
               disabled={status.disabled}
             >
-              Parts
+              Sharing
             </button>
           </div>
 
           <div className={styles.summaryCard}>
-            <div className={styles.summaryHeader}>
-              <span className={styles.summaryLabel}>Split total</span>
-              <span className={styles.summaryCount}>{splitCountLabel}</span>
+            <div className={styles.paidSummary}>
+              <span className={styles.summaryLabel}>Paid</span>
+              <div className={styles.summaryAmount}>
+                <strong>{splitTotal}</strong>
+                {state.currencyCode ? <span>{state.currencyCode}</span> : null}
+              </div>
             </div>
-            <div className={styles.summaryAmount}>
-              <strong>{splitTotal}</strong>
-              {state.currencyCode ? <span>{state.currencyCode}</span> : null}
+            <div className={styles.summaryMetric}>
+              <i className="bi bi-person" aria-hidden />
+              <span>Your share</span>
+              <strong>{splitTotal} {state.currencyCode ?? ''}</strong>
             </div>
-            <p>This updates the movement amount</p>
+            <div className={styles.summaryMetric}>
+              <i className="bi bi-arrow-repeat" aria-hidden />
+              <span>Expected back</span>
+              <strong>{expectedBackLabel} {state.currencyCode ?? ''}</strong>
+            </div>
+            <div className={styles.summaryChips}>
+              <span className={styles.summaryCount}>
+                <i className="bi bi-people" aria-hidden />
+                Shared with 2 people
+              </span>
+              <span className={styles.summaryCount}>
+                <i className="bi bi-bag" aria-hidden />
+                {splitCountLabel}
+              </span>
+            </div>
           </div>
 
           {state.splitMode === 'items' ? (
             <>
               <div className={styles.itemsBlock}>
-                <h3>Items</h3>
+                <p className={styles.panelHint}>Items are optional. Add any details you have.</p>
                 <ul className={styles.list} aria-label="Expense items">
                   {data.items.map((item) => (
                     <li key={item.id} className={styles.item}>
                       <span className={styles.itemIcon} aria-hidden>
-                        <i className="bi bi-fork-knife" />
+                        <i className="bi bi-bag" />
                       </span>
                       <strong className={styles.itemName}>{item.name}</strong>
                       <span className={styles.itemAmount}>
@@ -247,7 +274,7 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
                     </li>
                   ))}
                   {data.items.length === 0 ? (
-                    <li className={styles.emptyState}>Add split items to build the breakdown.</li>
+                    <li className={styles.emptyState}>Items are optional. Add them when you need a receipt breakdown.</li>
                   ) : null}
                   <li className={styles.addItemRow}>
                     <button
@@ -267,10 +294,24 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
             </>
           ) : (
             <div className={styles.itemsBlock}>
-              <h3>Parts</h3>
+              <div className={styles.sharingMethods} role="group" aria-label="Sharing method">
+                {SHARING_METHODS.map((method) => (
+                  <button
+                    key={method.value}
+                    type="button"
+                    className={sharingMethod === method.value ? styles.activeSharingMethod : undefined}
+                    aria-pressed={sharingMethod === method.value}
+                    disabled={status.disabled}
+                    onClick={() => setSharingMethod(method.value)}
+                  >
+                    <i className={method.iconClassName} aria-hidden />
+                    {method.label}
+                  </button>
+                ))}
+              </div>
               <div className={styles.partsCard}>
                 <div className={styles.partsControlRow}>
-                  <strong>Number of parts</strong>
+                  <strong>People</strong>
                   <div className={styles.partsStepper}>
                     <button
                       type="button"
@@ -294,7 +335,7 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
                   </div>
                 </div>
                 <div className={styles.partsControlRow}>
-                  <strong>Each part</strong>
+                  <strong>Each person</strong>
                   <span>{amountPerPartLabel} {state.currencyCode ?? ''}</span>
                 </div>
               </div>
@@ -302,10 +343,14 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
                 {Array.from({ length: partsCount }, (_, index) => {
                   const generatedItem = data.items[index];
                   const partAmount = generatedItem?.amount ?? amountPerPartLabel;
+                  const personName = index === 0 ? 'Me' : generatedItem?.name || `Person ${index + 1}`;
                   return (
                     <li key={index + 1} className={styles.partItem}>
-                      <span className={styles.partIndex}>{index + 1}</span>
-                      <strong>{generatedItem?.name || `Part ${index + 1}`}</strong>
+                      <span className={styles.partIndex}>{index === 0 ? 'ME' : index + 1}</span>
+                      <div className={styles.personText}>
+                        <strong>{personName}</strong>
+                        <span>{index === 0 ? 'Counts as your expense' : 'Expected reimbursement'}</span>
+                      </div>
                       <span>{partAmount} {state.currencyCode ?? ''}</span>
                       {generatedItem ? (
                         <button

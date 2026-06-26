@@ -739,13 +739,13 @@ export function TransactionComposerView({ required, provided }: Props) {
         required={{
           config: {
             ariaLabel: 'Split amount',
-            title: 'Split Amount',
+            title: 'Split & share',
             closeLabel: 'Close split amount',
             panelClassName: 'composer-sheet',
           },
           data: {
             body: (
-              <div className="stack">
+              <div className="stack composer-split-share">
                 <ExpenseSplitEditorView
                   required={{
                     config: {},
@@ -782,7 +782,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                 />
                 <button
                   type="button"
-                  className="primary-button"
+                  className="primary-button composer-split-share-apply"
                   onClick={onApplySplit}
                   disabled={disabled}
                 >

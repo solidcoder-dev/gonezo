@@ -5,9 +5,10 @@
   z-index: 40;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 4px;
   width: min(90vw, 520px);
-  padding: 10px 14px;
+  padding: 9px 13px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
   background: rgba(255, 255, 252, 0.96);
@@ -20,9 +21,9 @@
   justify-items: center;
   align-items: center;
   gap: 3px;
-  width: 60px;
-  height: 52px;
-  min-width: 52px;
+  width: 58px;
+  height: 50px;
+  min-width: 50px;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -48,21 +49,30 @@
   color: var(--color-brand-strong);
 }
 
+.bottom-navigation-item:not(.bottom-navigation-item--primary).bottom-navigation-item--active {
+  width: 82px;
+}
+
 .bottom-navigation-item--primary {
-  width: 62px;
-  height: 62px;
-  min-width: 62px;
-  margin: -13px 2px;
-  background: radial-gradient(circle at 35% 30%, #2fbd5a, #087a2f 72%);
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  margin: -18px 4px -8px;
+  background: radial-gradient(circle at 34% 26%, #6fd984 0%, #1f9f51 48%, #087934 100%);
   color: #fff;
-  font-size: 1.58rem;
-  box-shadow: 0 12px 24px rgba(8, 122, 47, 0.28);
+  font-size: 1.46rem;
+  box-shadow: 0 10px 20px rgba(8, 121, 52, 0.22);
 }
 
 .bottom-navigation-item span {
+  max-width: 100%;
+  overflow: hidden;
   font-size: 0.68rem;
   font-weight: 680;
   line-height: 1;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bottom-navigation-item--primary span {
@@ -70,23 +80,27 @@
 }
 
 .bottom-navigation-item--primary.bottom-navigation-item--active {
-  width: 62px;
+  width: 56px;
 }
 
 @media (max-width: 360px) {
   .bottom-navigation {
-    gap: 5px;
-    padding: 10px;
+    gap: 3px;
+    padding: 9px;
   }
 
   .bottom-navigation-item {
-    width: 50px;
+    width: 48px;
     min-width: 46px;
   }
 
+  .bottom-navigation-item:not(.bottom-navigation-item--primary).bottom-navigation-item--active {
+    width: 76px;
+  }
+
   .bottom-navigation-item--primary {
-    width: 60px;
-    height: 60px;
-    min-width: 60px;
+    width: 54px;
+    height: 54px;
+    min-width: 54px;
   }
 }
