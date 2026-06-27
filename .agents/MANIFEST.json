@@ -1,0 +1,24 @@
+{
+  "name": "gonezo-codex-skills-optimized",
+  "skill_count": 17,
+  "skills": [
+    "adapter-contracts",
+    "agent-working-agreement",
+    "android-runtime-boundaries",
+    "architecture-tests",
+    "financial-domain-rules",
+    "frontend-architecture",
+    "import-backup-migration-rules",
+    "native-bridge-contracts",
+    "ports-and-adapters",
+    "pragmatic-refactoring",
+    "project-structure-contract",
+    "repo-hygiene",
+    "required-provided-capabilities",
+    "scheduling-expected-posted-rules",
+    "self-explanatory-code",
+    "strict-ddd",
+    "testing-strategy"
+  ],
+  "layout": "repo-scoped Codex skills under .agents/skills"
+}
