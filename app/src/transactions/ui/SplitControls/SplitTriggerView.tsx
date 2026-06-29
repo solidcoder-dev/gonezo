@@ -21,8 +21,8 @@ export function SplitTriggerView({ required, provided }: SplitTriggerViewProps) 
       onClick={provided.commands.open}
       disabled={required.status.disabled}
     >
-      <i className="bi bi-shuffle" aria-hidden />
-      Split amount
+      <i className="bi bi-receipt" aria-hidden />
+      Split
     </button>
   );
 }

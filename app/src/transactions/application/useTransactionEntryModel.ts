@@ -64,15 +64,12 @@ function resolveSubmitExpectedIntent(event: FormEvent, fallback: boolean): boole
 export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const { ports, clock, idGenerator, accountId, enabled, prefillRequest, openSignal, initialMode, movementAccountContext, onRecorded, onClosed, onCollapsed, onAccountChanged, onError } = input;
   const initialToday = clock.todayIso();
-
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [postingTransaction, setPostingTransaction] = useState(false);
   const [error, setError] = useState('');
-
   const [accounts, setAccounts] = useState<LedgerAccountItem[]>([]);
   const [accountCurrency, setAccountCurrency] = useState('USD');
-
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerMode, setComposerMode] = useState<ComposerMode>('picker');
   const [composerAdvancedOpen, setComposerAdvancedOpen] = useState(false);
@@ -80,10 +77,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [transactionDate, setTransactionDate] = useState(initialToday);
   const [transactionNote, setTransactionNote] = useState('');
   const [fieldErrors, setFieldErrors] = useState<TransactionFieldErrors>({});
-
   const ledgerAccounts = useLedgerAccounts(ports.ledger);
   const ledgerTransactionCommands = useLedgerTransactionCommands(ports.ledger);
-
   const transferFxModel = useTransactionTransferFxModel({
     accounts,
     accountId,
@@ -106,7 +101,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     taxonomy: ports.taxonomy,
     composerMode,
   });
-
   const { transferToAccountId, transferTargetOptions, transferAmountIn, transferFxRate, transferFxMode, transferDestinationCurrency, transferCrossCurrency } =
     transferFxModel.state;
   const {
@@ -114,14 +108,15 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setDefaultTargetForAccounts, syncForTransferMode, syncSourceAmount, setTransferTargetValue,
     setTransferAmountInValue, setTransferFxRateValue, setTransferFxModeValue,
   } = transferFxModel.actions;
-
-  const { expenseDetailed, splitEditorOpen, splitApplied, splitDraftMode, expenseItemName, expenseItemAmount, editingExpenseItemId, expenseItems, expenseSplitTotal } = splitEditorModel.state;
+  const {
+    expenseDetailed, splitEditorOpen, splitApplied, splitDraftMode, expenseItemName, expenseItemAmount,
+    editingExpenseItemId, expenseItems, expenseItemOptions, expenseRemaining, expenseSplitTotal,
+  } = splitEditorModel.state;
   const {
     reset: resetExpenseSplit, prefill: prefillExpenseSplit, openSplitEditor, closeSplitEditor, applySplit, removeSplit,
     setSplitDraftMode, setExpenseDetailedValue, setExpenseItemNameValue, setExpenseItemAmountValue, addExpenseItem, startExpenseItem,
     cancelExpenseItem, editExpenseItem, removeExpenseItem, splitExpenseByParts,
   } = splitEditorModel.actions;
-
   const {
     schedulingMode,
     expectedMovement,
@@ -206,7 +201,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     categorizeTransaction,
     applyTransactionTags,
   } = taxonomyModel.actions;
-
   function reportError(raw: unknown) {
     const message = toErrorMessage(raw);
     setError(message);
@@ -230,13 +224,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   async function refreshAccountSnapshot() {
     const accountResult = await ledgerAccounts.listAccounts();
     setAccounts(accountResult.items);
-
     if (!accountId) {
       setAccountCurrency('USD');
       setTransferToAccountId('');
       return;
     }
-
     const selectedAccount = accountResult.items.find((item) => item.id === accountId);
     if (!selectedAccount) {
       setAccountCurrency('USD');
@@ -256,9 +248,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       setError('');
       return;
     }
-
     let cancelled = false;
-
     async function run() {
       setLoading(true);
       setError('');
@@ -275,9 +265,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         }
       }
     }
-
     void run();
-
     return () => {
       cancelled = true;
     };
@@ -288,7 +276,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     if (!enabled || !accountId || !prefillRequest) {
       return;
     }
-
     setError('');
     resetComposerState();
     setComposerOpen(true);
@@ -306,7 +293,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     }
     prefillScheduling(prefillRequest);
     prefillExpenseSplit(prefillRequest.splitItems ?? []);
-
     void (async () => {
       try {
         await refreshTaxonomyLookups();
@@ -322,7 +308,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       setError('Select an account first.');
       return;
     }
-
     setError('');
     setComposerOpen(true);
     resetComposerState();
@@ -330,7 +315,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       setExpectedMovement(false);
       syncForTransferMode();
     });
-
     void (async () => {
       try {
         await refreshTaxonomyCategories();
@@ -400,12 +384,25 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   }
 
   function applySplitValue() {
-    setTransactionAmount(expenseSplitTotal);
+    if (expenseItems.length === 0) {
+      setFieldErrors((previous) => ({
+        ...previous,
+        amount: undefined,
+        expenseSplit: undefined,
+      }));
+      removeSplit();
+      return;
+    }
+
     setFieldErrors((previous) => ({
       ...previous,
       amount: undefined,
       expenseSplit: undefined,
     }));
+    if (Number(expenseSplitTotal) > 0) {
+      setTransactionAmount(expenseSplitTotal);
+      syncSourceAmount(expenseSplitTotal);
+    }
     applySplit();
   }
 
@@ -559,10 +556,12 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       splitEditorOpen,
       splitApplied,
       splitDraftMode, splitItems: expenseItems,
+      splitItemOptions: expenseItemOptions,
       splitItemName: expenseItemName,
       splitItemAmount: expenseItemAmount,
       editingSplitItemId: editingExpenseItemId,
       splitTotal: expenseSplitTotal,
+      splitRemaining: expenseRemaining,
       schedulingMode,
       schedulingKind,
       recurrenceFrequency,
@@ -623,6 +622,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       editSplitItem: editExpenseItem,
       removeSplitItem: removeExpenseItem,
       splitByParts: splitExpenseByParts,
+      splitByWeightedParts: splitEditorModel.actions.splitExpenseByWeightedParts,
       selectSplitMode: setSplitDraftMode,
       setSchedulingMode: setSchedulingModeValue,
       setSchedulingKind: setSchedulingKindValue,

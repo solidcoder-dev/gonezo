@@ -6,8 +6,10 @@ import {
   cloneSplitItems,
   formatSplitTotal,
   rebalanceEditedPartSplit,
+  splitAmountByWeightedParts,
   upsertSplitItem,
 } from '../domain/expenseSplit';
+import type { WeightedSplitPart } from '../domain/expenseSplit';
 
 type UseExpenseSplitEditorModelInput = {
   transactionAmount: string;
@@ -208,6 +210,25 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
   }
 
   function removeExpenseItem(itemId: string) {
+    if (splitDraftMode === 'parts') {
+      const remainingItems = expenseItems.filter((item) => item.id !== itemId);
+      if (remainingItems.length <= 1) {
+        setPartsExpenseItems([]);
+      } else {
+        const partAmounts = splitAmountIntoParts(partsBaseAmount || transactionAmount, String(remainingItems.length));
+        setPartsExpenseItems(remainingItems.map((item, index) => ({
+          ...item,
+          amount: partAmounts[index] ?? item.amount,
+        })));
+      }
+      if (editingExpenseItemId === itemId) {
+        setEditingExpenseItemId('');
+        setExpenseItemName('');
+        setExpenseItemAmount('');
+      }
+      return;
+    }
+
     setActiveExpenseItems(expenseItems.filter((item) => item.id !== itemId));
     if (editingExpenseItemId === itemId) {
       setEditingExpenseItemId('');
@@ -216,17 +237,44 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     }
   }
 
-  function splitExpenseByParts(amountInput: string, partsInput: string) {
+  function splitExpenseByParts(amountInput: string, partsInput: string, addedPersonName = '') {
+    const parts = Math.trunc(Number(partsInput.trim()));
+    if (!Number.isFinite(parts) || parts <= 1) {
+      setSplitDraftMode('parts');
+      setPartsExpenseItems([]);
+      setPartsBaseAmount(amountInput.trim());
+      setExpenseItemName('');
+      setExpenseItemAmount('');
+      setEditingExpenseItemId('');
+      setFieldErrors((previous) => ({ ...previous, expenseSplit: undefined }));
+      return;
+    }
+
     const partAmounts = splitAmountIntoParts(amountInput, partsInput);
     if (partAmounts.length === 0) {
       return;
     }
 
-    const nextItems = partAmounts.map((amount, index) => ({
-      id: nextId(),
-      name: `Part ${index + 1}`,
-      amount,
-    }));
+    const addedName = addedPersonName.trim();
+    const insertingNamedPerson = Boolean(addedName) && partAmounts.length > partsExpenseItems.length;
+    const orderedExistingItems = insertingNamedPerson
+      ? [
+        partsExpenseItems[0] ?? { id: nextId(), name: 'Me', amount: '' },
+        { id: nextId(), name: addedName, amount: '' },
+        ...partsExpenseItems.slice(1),
+      ]
+      : partsExpenseItems;
+
+    const nextItems = partAmounts.map((amount, index) => {
+      const existingItem = orderedExistingItems[index];
+      const fallbackName = index === 0 ? 'Me' : `Person ${index + 1}`;
+      const name = existingItem?.name ?? fallbackName;
+      return {
+        id: existingItem?.id ?? nextId(),
+        name,
+        amount,
+      };
+    });
 
     setSplitDraftMode('parts');
     setPartsExpenseItems(nextItems);
@@ -235,6 +283,39 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setExpenseItemAmount('');
     setEditingExpenseItemId('');
     setFieldErrors((previous) => ({ ...previous, expenseSplit: undefined }));
+  }
+
+  function splitExpenseByWeightedParts(amountInput: string, weightedParts: WeightedSplitPart[]) {
+    const normalizedParts = weightedParts
+      .map((part, index) => ({
+        id: part.id,
+        name: part.name.trim() || (index === 0 ? 'Me' : `Person ${index + 1}`),
+        parts: Math.trunc(part.parts),
+      }))
+      .filter((part) => part.parts > 0);
+    const partAmounts = splitAmountByWeightedParts(amountInput, normalizedParts);
+    if (partAmounts.length <= 1) {
+      return;
+    }
+
+    const nextItems = normalizedParts.map((part, index) => ({
+      id: part.id || partsExpenseItems[index]?.id || nextId(),
+      name: part.name,
+      amount: partAmounts[index] ?? '0.00',
+    }));
+
+    setSplitDraftMode('parts');
+    setPartsExpenseItems(nextItems);
+    setPartsBaseAmount(amountInput.trim());
+    setExpenseItemName('');
+    setExpenseItemAmount('');
+    setEditingExpenseItemId('');
+    setFieldErrors((previous) => ({
+      ...previous,
+      expenseItemName: undefined,
+      expenseItemAmount: undefined,
+      expenseSplit: undefined,
+    }));
   }
 
   function openSplitEditor() {
@@ -307,6 +388,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       expenseItemAmount,
       editingExpenseItemId,
       expenseItems,
+      expenseItemOptions: manualExpenseItems,
       expenseRemaining,
       expenseSplitTotal,
     },
@@ -327,6 +409,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       editExpenseItem,
       removeExpenseItem,
       splitExpenseByParts,
+      splitExpenseByWeightedParts,
     },
   };
 }

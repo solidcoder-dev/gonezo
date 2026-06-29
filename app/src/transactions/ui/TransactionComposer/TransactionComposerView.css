@@ -1,7 +1,7 @@
 .composer-sheet {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  max-height: min(96dvh, 840px);
+  max-height: min(calc(100dvh - var(--app-safe-area-top) - var(--app-safe-area-bottom) - 24px), 840px);
   padding-bottom: max(16px, var(--app-safe-area-bottom));
   overflow: hidden;
 }
@@ -11,19 +11,62 @@
   max-width: 520px;
 }
 
+.composer-split-sheet {
+  width: min(100%, 760px);
+  height: min(88dvh, 780px);
+}
+
+.composer-share-sheet {
+  width: min(100%, 760px);
+  height: min(74dvh, 620px);
+}
+
+.composer-split-content {
+  min-height: 0;
+  display: grid;
+  overflow: hidden;
+}
+
+.composer-share-content {
+  min-height: 0;
+  display: grid;
+  padding: 0 2px 2px;
+  overflow: hidden;
+}
+
+.composer-amount-accessory {
+  display: grid;
+  gap: 6px;
+}
+
+.composer-details-title {
+  color: var(--color-text-primary);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.composer-details-chips {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: 8px;
+  padding: 1px 1px 3px;
+}
+
 .composer-form {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
-  gap: 12px;
+  gap: 8px;
   min-height: 0;
 }
 
 .composer-form-content {
-  gap: 8px;
+  gap: 12px;
   min-height: 0;
-  padding-top: 6px;
+  align-content: start;
+  padding-top: 10px;
   padding-right: 4px;
-  padding-bottom: 8px;
+  padding-bottom: 10px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -35,7 +78,7 @@
 .composer-context-controls {
   display: grid;
   grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 10px;
 }
 
@@ -46,8 +89,8 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
-  min-height: 46px;
-  padding: 0 10px;
+  min-height: 54px;
+  padding: 0 14px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
   background: var(--color-card-surface);
@@ -62,7 +105,7 @@
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 0.92rem;
+  font-size: 0.96rem;
   font-weight: 760;
   outline: 0;
   appearance: none;
@@ -72,12 +115,24 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 11px;
   background: var(--color-brand-soft);
   color: var(--color-brand-strong);
-  font-size: 1.1rem;
+  font-size: 1.12rem;
+}
+
+.composer-form-content input:not([aria-label='Amount']):not(.visually-hidden),
+.composer-form-content select {
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.96rem;
+}
+
+.composer-form-content .field-error {
+  margin-top: -2px;
 }
 
 .composer-context-select--expense {
@@ -100,15 +155,20 @@
 }
 
 .composer-advanced {
-  margin-top: 4px;
+  margin-top: 8px;
+  gap: 12px;
 }
 
-.composer-split-share {
+.composer-split-editor {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 10px;
   margin-top: 0;
+  overflow: hidden;
 }
 
-.composer-split-share-apply {
+.composer-split-apply {
   width: 100%;
   min-height: 44px;
   border-radius: 10px;
@@ -175,16 +235,17 @@
 
 @media (max-width: 360px) {
   .composer-context-select {
-    gap: 6px;
-    padding: 0 8px;
+    gap: 7px;
+    min-height: 50px;
+    padding: 0 12px;
   }
 
   .composer-context-select > .bi:first-child {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
   }
 
   .composer-context-select select {
-    font-size: 0.84rem;
+    font-size: 0.9rem;
   }
 }

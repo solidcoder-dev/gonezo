@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { SheetView } from '../../../shared/ui/SheetView';
 import { MultiTagPickerView } from '../../../shared/ui/MultiTagPicker/MultiTagPickerView';
@@ -11,6 +11,8 @@ import { ExpenseSplitEditorView } from '../ExpenseSplitEditor/ExpenseSplitEditor
 import { RecurrenceEditorView } from '../RecurrenceEditor/RecurrenceEditorView';
 import { ScheduleSummaryView } from '../ScheduleControls/ScheduleSummaryView';
 import { ScheduleTriggerView } from '../ScheduleControls/ScheduleTriggerView';
+import { ShareControlsView } from '../ShareControls/ShareControlsView';
+import { ShareExpenseEditorView } from '../ShareExpenseEditor/ShareExpenseEditorView';
 import { SplitSummaryView } from '../SplitControls/SplitSummaryView';
 import { SplitTriggerView } from '../SplitControls/SplitTriggerView';
 import { TransactionComposerActionsView } from '../TransactionComposerActions/TransactionComposerActionsView';
@@ -60,10 +62,12 @@ export type TransactionComposerViewRequired = {
   splitApplied: boolean;
   splitDraftMode: 'items' | 'parts';
   expenseItems: ComposerExpenseItem[];
+  expenseItemOptions: ComposerExpenseItem[];
   expenseItemName: string;
   expenseItemAmount: string;
   editingExpenseItemId: string;
   expenseSplitTotal: string;
+  expenseSplitRemaining: string;
   schedulingMode: 'now' | 'scheduled';
   schedulingKind: 'one_shot' | 'recurring';
   recurrenceFrequency: RecurrenceFrequency;
@@ -130,7 +134,8 @@ export type TransactionComposerViewProvided = {
   onAddExpenseItem: () => boolean;
   onEditExpenseItem: (itemId: string) => void;
   onRemoveExpenseItem: (itemId: string) => void;
-  onSplitByParts: (amount: string, parts: string) => void;
+  onSplitByParts: (amount: string, parts: string, addedPersonName?: string) => void;
+  onSplitByWeightedParts: (amount: string, parts: Array<{ id?: string; name: string; parts: number }>) => void;
   onSelectSplitMode: (mode: 'items' | 'parts') => void;
   onSetSchedulingMode: (value: 'now' | 'scheduled') => void;
   onSetSchedulingKind: (value: 'one_shot' | 'recurring') => void;
@@ -220,10 +225,12 @@ export function TransactionComposerView({ required, provided }: Props) {
     splitApplied,
     splitDraftMode,
     expenseItems,
+    expenseItemOptions,
     expenseItemName,
     expenseItemAmount,
     editingExpenseItemId,
     expenseSplitTotal,
+    expenseSplitRemaining,
     schedulingMode,
     schedulingKind,
     recurrenceFrequency,
@@ -284,6 +291,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     onEditExpenseItem,
     onRemoveExpenseItem,
     onSplitByParts,
+    onSplitByWeightedParts,
     onSelectSplitMode,
     onOpenRecurringScheduleEditor,
     onApplyRecurringSchedule,
@@ -301,6 +309,8 @@ export function TransactionComposerView({ required, provided }: Props) {
     onSetRecurrenceEndCount,
     onSubmit,
   } = provided;
+  const [shareEditorOpen, setShareEditorOpen] = useState(false);
+  const [shareSummary, setShareSummary] = useState<{ peopleCount: number; total: string } | null>(null);
 
   const amountInputRef = useRef<HTMLInputElement | null>(null);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
@@ -333,6 +343,10 @@ export function TransactionComposerView({ required, provided }: Props) {
   const recurringScheduleAvailable = mode === 'expense' || mode === 'income';
   const recurringScheduleConfigured = recurringScheduleAvailable && repeatEnabled;
   const splitAvailable = mode === 'expense' || mode === 'income';
+  const shareAvailable = mode === 'expense';
+  const shareEnabled = Number(amount) > 0;
+  const visibleShareSummary = shareEnabled ? shareSummary : null;
+  const amountLocked = splitApplied || Boolean(visibleShareSummary);
   const frequentCategoryIds = mode === 'income'
     ? FREQUENT_INCOME_CATEGORY_IDS
     : FREQUENT_EXPENSE_CATEGORY_IDS;
@@ -399,6 +413,36 @@ export function TransactionComposerView({ required, provided }: Props) {
         />
       )
     : null;
+  const shareControl = shareAvailable ? (
+    <ShareControlsView
+      required={{
+        config: {},
+        data: {},
+        state: {
+          applied: Boolean(visibleShareSummary),
+          peopleCount: visibleShareSummary?.peopleCount ?? 0,
+          total: visibleShareSummary?.total ?? amount,
+          currencyCode,
+        },
+        status: { disabled: disabled || !shareEnabled },
+      }}
+      provided={{
+        commands: {
+          open: () => setShareEditorOpen(true),
+          remove: () => setShareSummary(null),
+        },
+      }}
+    />
+  ) : null;
+  const amountAccessory = splitControl || shareControl ? (
+    <div className="composer-amount-accessory">
+      <div className="composer-details-title">Details</div>
+      <div className="composer-details-chips">
+        {shareControl}
+        {splitControl}
+      </div>
+    </div>
+  ) : null;
 
   if (!open) {
     return null;
@@ -459,7 +503,6 @@ export function TransactionComposerView({ required, provided }: Props) {
                     datePlaceholder,
                     noteLabel: mode === 'transfer' ? 'Description' : mode === 'expense' ? 'Merchant' : 'Source',
                     notePlaceholder: mode === 'transfer' ? 'Description' : mode === 'expense' ? 'Cafe' : 'Salary',
-                    afterAmount: splitControl,
                     amountInputRef,
                     dateInputRef,
                   },
@@ -475,7 +518,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                   },
                   status: {
                     disabled,
-                    amountVisible: !splitApplied,
+                    amountDisabled: amountLocked,
                     dateDisabled: recurringScheduleConfigured,
                     dateVisible: !scheduleControlsDate,
                     amountError,
@@ -655,6 +698,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                   </>
                 )}
               </div>
+              {amountAccessory}
             </div>
 
             <TransactionComposerActionsView
@@ -739,17 +783,18 @@ export function TransactionComposerView({ required, provided }: Props) {
         required={{
           config: {
             ariaLabel: 'Split amount',
-            title: 'Split & share',
+            title: 'Split amount',
             closeLabel: 'Close split amount',
-            panelClassName: 'composer-sheet',
+            panelClassName: 'composer-sheet composer-split-sheet',
+            contentClassName: 'composer-split-content',
           },
           data: {
             body: (
-              <div className="stack composer-split-share">
+              <div className="stack composer-split-editor">
                 <ExpenseSplitEditorView
                   required={{
                     config: {},
-                    data: { items: expenseItems },
+                    data: { items: expenseItems, itemOptions: expenseItemOptions },
                     state: {
                       enabled: true,
                       itemName: expenseItemName,
@@ -758,6 +803,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                       splitMode: splitDraftMode,
                       splitTotal: expenseSplitTotal,
                       splitBaseAmount: amount,
+                      splitRemaining: expenseSplitRemaining,
                       currencyCode,
                       itemNameError: expenseItemNameError,
                       itemAmountError: expenseItemAmountError,
@@ -776,13 +822,14 @@ export function TransactionComposerView({ required, provided }: Props) {
                       editItem: onEditExpenseItem,
                       removeItem: onRemoveExpenseItem,
                       splitByParts: onSplitByParts,
+                      splitByWeightedParts: onSplitByWeightedParts,
                       selectMode: onSelectSplitMode,
                     },
                   }}
                 />
                 <button
                   type="button"
-                  className="primary-button composer-split-share-apply"
+                  className="primary-button composer-split-apply"
                   onClick={onApplySplit}
                   disabled={disabled}
                 >
@@ -795,6 +842,43 @@ export function TransactionComposerView({ required, provided }: Props) {
           status: { disabled },
         }}
         provided={{ commands: { close: onCloseSplitEditor } }}
+      />
+      <SheetView
+        required={{
+          config: {
+            ariaLabel: 'Share expense',
+            title: 'Share expense',
+            closeLabel: 'Close share expense',
+            panelClassName: 'composer-sheet composer-share-sheet',
+            contentClassName: 'composer-share-content',
+          },
+          data: {
+            body: (
+              <ShareExpenseEditorView
+                required={{
+                  config: {},
+                  data: {},
+                  state: {
+                    amount,
+                    currencyCode,
+                  },
+                  status: { disabled },
+                }}
+                provided={{
+                  commands: {
+                    applyShare: (summary) => {
+                      setShareSummary(summary);
+                      setShareEditorOpen(false);
+                    },
+                  },
+                }}
+              />
+            ),
+          },
+          state: { open: shareEnabled && shareEditorOpen },
+          status: { disabled },
+        }}
+        provided={{ commands: { close: () => setShareEditorOpen(false) } }}
       />
     </>
   );

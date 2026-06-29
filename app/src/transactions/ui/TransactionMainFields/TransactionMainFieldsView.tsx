@@ -27,6 +27,7 @@ export type TransactionMainFieldsViewProps = ViewProps<
   {
     disabled?: boolean;
     amountVisible?: boolean;
+    amountDisabled?: boolean;
     dateDisabled?: boolean;
     dateVisible?: boolean;
     amountError?: string;
@@ -70,6 +71,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
   } = config;
   const showTransferFields = state.mode === 'transfer';
   const amountVisible = status.amountVisible ?? true;
+  const amountDisabled = status.disabled || status.amountDisabled;
   const dateVisible = status.dateVisible ?? true;
   const amountCurrency = currencyFromAmountLabel(amountLabel);
   const dateFieldId = useId();
@@ -88,6 +90,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
               step="0.01"
               value={state.amount}
               placeholder="Amount"
+              disabled={amountDisabled}
               onChange={(event) => provided.commands.changeAmount(event.target.value)}
               inputMode="decimal"
               aria-invalid={Boolean(status.amountError)}
@@ -131,6 +134,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
               step="0.01"
               value={state.amount}
               placeholder="Amount"
+              disabled={amountDisabled}
               onChange={(event) => provided.commands.changeAmount(event.target.value)}
               inputMode="decimal"
               aria-invalid={Boolean(status.amountError)}

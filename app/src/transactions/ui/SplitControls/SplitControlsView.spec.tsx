@@ -19,7 +19,7 @@ describe('SplitControlsView', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /split amount/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Split' }));
 
     expect(open).toHaveBeenCalledTimes(1);
   });
@@ -44,14 +44,12 @@ describe('SplitControlsView', () => {
       />,
     );
 
-    expect(screen.getByText('Split')).toBeInTheDocument();
-    expect(screen.getByText('2 items · 100.00 EUR')).toBeInTheDocument();
-    expect(screen.queryByText(/Remaining/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit split, 2 items, 100.00 EUR' })).toBeInTheDocument();
+    expect(screen.getByText('2 items')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /edit split/i }));
-    fireEvent.click(screen.getByRole('button', { name: /remove split/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit split, 2 items, 100.00 EUR' }));
 
     expect(edit).toHaveBeenCalledTimes(1);
-    expect(remove).toHaveBeenCalledTimes(1);
+    expect(remove).not.toHaveBeenCalled();
   });
 });

@@ -191,4 +191,44 @@ describe('TransactionMainFieldsView', () => {
     expect(screen.getByText('Split summary')).toBeInTheDocument();
     expect(screen.getByLabelText('Merchant')).toBeInTheDocument();
   });
+
+  it('keeps the amount visible but disabled when amount editing is locked', () => {
+    render(
+      <TransactionMainFieldsView
+        required={{
+          config: {
+            amountLabel: 'Amount',
+            dateInputLabel: 'Date',
+            datePlaceholder: '2026-05-14',
+            noteLabel: 'Merchant',
+            notePlaceholder: 'Cafe',
+          },
+          data: {
+            transferTargetOptions: [],
+          },
+          state: {
+            mode: 'expense',
+            amount: '42',
+            date: '2026-05-10',
+            note: 'Coffee',
+            transferTargetAccountId: '',
+          },
+          status: {
+            amountDisabled: true,
+          },
+        }}
+        provided={{
+          commands: {
+            changeAmount: vi.fn(),
+            changeDate: vi.fn(),
+            changeNote: vi.fn(),
+            changeTransferTarget: vi.fn(),
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText('Amount')).toHaveValue(42);
+    expect(screen.getByLabelText('Amount')).toBeDisabled();
+  });
 });

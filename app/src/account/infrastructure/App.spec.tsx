@@ -836,11 +836,11 @@ async function openMode(mode: 'Expense' | 'Income' | 'Transfer') {
 }
 
 async function openNewSplitItemDialog() {
-  fireEvent.click(await screen.findByRole('button', { name: 'Add split item' }));
+  await screen.findByLabelText('Description');
 }
 
 async function openSplitAmountEditor() {
-  fireEvent.click(await screen.findByRole('button', { name: 'Split amount' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Split' }));
 }
 
 function scheduleButton(name: RegExp | string) {
@@ -2293,19 +2293,22 @@ describe('App Accounts UX', () => {
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
     await openSplitAmountEditor();
-    expect(within(screen.getByRole('dialog', { name: 'Split amount' })).getByText('0.00')).toBeInTheDocument();
-    expect(within(screen.getByRole('dialog', { name: 'Split amount' })).getByText('USD')).toBeInTheDocument();
+    const splitDialog = within(screen.getByRole('dialog', { name: 'Split amount' }));
+    expect(splitDialog.getByText('80.00')).toBeInTheDocument();
+    expect(splitDialog.getAllByText('USD').length).toBeGreaterThan(0);
+    expect(splitDialog.getByText('No items yet')).toBeInTheDocument();
 
     await openNewSplitItemDialog();
-    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Bonus' } });
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Bonus' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     await openNewSplitItemDialog();
-    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Base' } });
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Base' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '30' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply split' }));
-    expect(screen.queryByLabelText('Amount')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Amount')).toHaveValue(80);
+    expect(screen.getByLabelText('Amount')).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
@@ -2652,13 +2655,13 @@ describe('App Accounts UX', () => {
     await openSplitAmountEditor();
 
     await openNewSplitItemDialog();
-    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Groceries' } });
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Groceries' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     await openNewSplitItemDialog();
-    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Household' } });
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Household' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '30' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply split' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
@@ -2667,6 +2670,43 @@ describe('App Accounts UX', () => {
       expect(core.ledgerCreateExpenseDraft).toHaveBeenCalledTimes(1);
       expect(core.ledgerAddTransactionItem).toHaveBeenCalledTimes(2);
       expect(core.ledgerPostDraftTransaction).toHaveBeenCalledTimes(1);
+    });
+  }, 10000);
+
+  it('uses the split total when items are added before entering an amount', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { name: 'Accounts' });
+    await openMode('Expense');
+    await openSplitAmountEditor();
+
+    await openNewSplitItemDialog();
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Groceries' } });
+    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '22' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+
+    expect(screen.queryByText('Enter an amount before adding split items.')).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Amount before split: 0.00 USD. Split amount: 22.00 USD.');
+    fireEvent.click(screen.getByRole('button', { name: 'Apply split' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Split amount' })).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: 'Edit split, 1 item, 22.00 USD' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
+
+    await waitFor(() => {
+      expect(core.ledgerCreateExpenseDraft).toHaveBeenCalledWith(expect.objectContaining({
+        amount: '22.00',
+        currency: 'USD',
+      }));
     });
   }, 10000);
 
@@ -2685,28 +2725,28 @@ describe('App Accounts UX', () => {
     await openSplitAmountEditor();
 
     await openNewSplitItemDialog();
-    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Water' } });
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Water' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '20' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
 
     expect(screen.getByLabelText('Amount')).toHaveValue(80);
 
     await openNewSplitItemDialog();
-    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Electricity' } });
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Electricity' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '40' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
 
     expect(screen.getByLabelText('Amount')).toHaveValue(80);
 
     const waterItem = screen.getByText('Water').closest('li');
     expect(waterItem).not.toBeNull();
-    fireEvent.click(within(waterItem!).getByRole('button', { name: 'Edit item Water' }));
+    fireEvent.click(waterItem!);
 
-    expect(screen.getByLabelText('Item name')).toHaveValue('Water');
+    expect(screen.getByLabelText('Description')).toHaveValue('Water');
     expect(screen.getByLabelText('Item amount')).toHaveValue(20);
 
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '25' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
 
     expect(screen.getByLabelText('Amount')).toHaveValue(80);
     expect(screen.getByText(/25\.00/)).toBeInTheDocument();
@@ -2740,9 +2780,9 @@ describe('App Accounts UX', () => {
     expect(saveButton).toBeDisabled();
 
     await openNewSplitItemDialog();
-    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Groceries' } });
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Groceries' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     expect(saveButton).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Apply split' }));
@@ -3591,12 +3631,13 @@ describe('App Accounts UX', () => {
     fireEvent.click(within(detailDialog).getByRole('button', { name: 'Edit expected' }));
 
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
-    expect(within(composer).queryByLabelText('Amount')).not.toBeInTheDocument();
+    expect(within(composer).getByLabelText('Amount')).toHaveValue(42);
+    expect(within(composer).getByLabelText('Amount')).toBeDisabled();
     expect(within(composer).getByLabelText('Expected date')).toHaveValue(isoInCurrentMonth(2, 10).slice(0, 10));
     expect(within(composer).getByLabelText('Merchant')).toHaveValue('Expected rent');
     expect(within(composer).getByRole('button', { name: 'Select category Groceries' })).toHaveTextContent('Groceries');
-    expect(within(composer).getByText('2 items · 42.00 USD')).toBeInTheDocument();
-    fireEvent.click(within(composer).getByRole('button', { name: 'Edit split' }));
+    expect(within(composer).getByRole('button', { name: 'Edit split, 2 items, 42.00 USD' })).toBeInTheDocument();
+    fireEvent.click(within(composer).getByRole('button', { name: 'Edit split, 2 items, 42.00 USD' }));
     const splitItemsList = within(await screen.findByRole('dialog', { name: 'Split amount' })).getByRole('list', { name: 'Expense items' });
     expect(within(splitItemsList).getByText('Water')).toBeInTheDocument();
     expect(within(splitItemsList).getByText('Electricity')).toBeInTheDocument();

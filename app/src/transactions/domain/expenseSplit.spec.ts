@@ -4,6 +4,7 @@ import {
   cloneSplitItems,
   createRemainingSplitItem,
   rebalanceEditedPartSplit,
+  splitAmountByWeightedParts,
   sumSplitItems,
   upsertSplitItem,
 } from './expenseSplit';
@@ -45,6 +46,34 @@ describe('transaction split item helpers', () => {
 
     expect(edited.errors).toEqual({});
     expect(edited.items).toEqual([{ id: 'new-id', name: 'Groceries', amount: '15.50' }]);
+  });
+
+  it('places new split items first while keeping edited items in place', () => {
+    const added = upsertSplitItem({
+      items: [{ id: 'existing-id', name: 'Existing', amount: '5.00' }],
+      editingItemId: '',
+      nameInput: 'New',
+      amountInput: '7',
+      nextId: () => 'new-id',
+    });
+
+    expect(added.items).toEqual([
+      { id: 'new-id', name: 'New', amount: '7.00' },
+      { id: 'existing-id', name: 'Existing', amount: '5.00' },
+    ]);
+
+    const edited = upsertSplitItem({
+      items: added.items,
+      editingItemId: 'existing-id',
+      nameInput: 'Edited',
+      amountInput: '6',
+      nextId: () => 'unused',
+    });
+
+    expect(edited.items).toEqual([
+      { id: 'new-id', name: 'New', amount: '7.00' },
+      { id: 'existing-id', name: 'Edited', amount: '6.00' },
+    ]);
   });
 
   it('keeps existing validation messages for invalid split items', () => {
@@ -105,5 +134,24 @@ describe('transaction split item helpers', () => {
         { id: 'part-4', name: 'Part 4', amount: '20.00' },
       ],
     });
+  });
+
+  it('splits an amount by positive weighted parts while preserving cents', () => {
+    expect(splitAmountByWeightedParts('100.00', [
+      { name: 'Me', parts: 1 },
+      { name: 'Ana', parts: 2 },
+      { name: 'Tom', parts: 1 },
+    ])).toEqual(['25.00', '50.00', '25.00']);
+
+    expect(splitAmountByWeightedParts('10.00', [
+      { name: 'Me', parts: 1 },
+      { name: 'Ana', parts: 1 },
+      { name: 'Tom', parts: 1 },
+    ])).toEqual(['3.33', '3.33', '3.34']);
+
+    expect(splitAmountByWeightedParts('10.00', [
+      { name: 'Me', parts: 1 },
+      { name: 'Ana', parts: 0 },
+    ])).toEqual([]);
   });
 });

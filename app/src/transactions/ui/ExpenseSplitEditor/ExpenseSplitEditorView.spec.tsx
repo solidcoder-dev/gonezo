@@ -1,20 +1,30 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ExpenseSplitEditorView } from './ExpenseSplitEditorView';
+import type { ExpenseSplitEditorViewProps } from './ExpenseSplitEditorView';
+
+function makeCommands(overrides: Partial<ExpenseSplitEditorViewProps['provided']['commands']> = {}) {
+  return {
+    toggleEnabled: vi.fn(),
+    changeItemName: vi.fn(),
+    changeItemAmount: vi.fn(),
+    addItem: vi.fn(() => true),
+    splitByParts: vi.fn(),
+    splitByWeightedParts: vi.fn(),
+    editItem: vi.fn(),
+    removeItem: vi.fn(),
+    startItem: vi.fn(),
+    cancelItem: vi.fn(),
+    selectMode: vi.fn(),
+    ...overrides,
+  };
+}
 
 describe('ExpenseSplitEditorView', () => {
-  it('renders enabled split editor and dispatches item commands', () => {
-    const toggleEnabled = vi.fn();
-    const changeItemName = vi.fn();
-    const changeItemAmount = vi.fn();
-    const addItem = vi.fn(() => true);
-    const splitByParts = vi.fn();
-    const editItem = vi.fn();
-    const removeItem = vi.fn();
-    const startItem = vi.fn();
-    const cancelItem = vi.fn();
-    const selectMode = vi.fn();
-    const { rerender } = render(
+  it('renders item split rows and dispatches item commands', () => {
+    const commands = makeCommands();
+
+    render(
       <ExpenseSplitEditorView
         required={{
           config: {},
@@ -29,167 +39,37 @@ describe('ExpenseSplitEditorView', () => {
             splitMode: 'items',
             splitTotal: '4.00',
             splitBaseAmount: '10.00',
+            splitRemaining: '6.00',
             currencyCode: 'USD',
           },
           status: { disabled: false },
         }}
-        provided={{
-          commands: {
-            toggleEnabled,
-            changeItemName,
-            changeItemAmount,
-            addItem,
-            splitByParts,
-            editItem,
-            removeItem,
-            startItem,
-            cancelItem,
-            selectMode,
-          },
-        }}
+        provided={{ commands }}
       />,
     );
 
-    expect(screen.getByLabelText('Split into items')).toBeChecked();
-    expect(screen.getByText('Paid')).toBeInTheDocument();
-    expect(screen.getByText('Your share')).toBeInTheDocument();
-    expect(screen.getByText('Expected back')).toBeInTheDocument();
-    expect(screen.getByText('Shared with 2 people')).toBeInTheDocument();
-    expect(screen.getByText('1 item')).toBeInTheDocument();
-    expect(screen.getByText('1 item')).toBeInTheDocument();
-    expect(screen.getByText('4.00')).toBeInTheDocument();
-    expect(screen.getByText('USD')).toBeInTheDocument();
-    expect(screen.queryByText(/Remaining/i)).not.toBeInTheDocument();
-    expect(screen.getByRole('list', { name: 'Expense items' })).toBeInTheDocument();
-    expect(screen.queryByLabelText('Item name')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Sharing' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Remaining auto 6.00 USD')).toBeInTheDocument();
     expect(within(screen.getByRole('list', { name: 'Expense items' })).getByText('4.00 USD')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add split item' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Split by parts' })).not.toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Items' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tab', { name: 'Sharing' })).toHaveAttribute('aria-selected', 'false');
-    expect(screen.getByText('Items are optional. Add any details you have.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText('Split into items'));
-    fireEvent.click(screen.getByRole('button', { name: 'Add split item' }));
-    expect(screen.queryByRole('dialog', { name: 'New split item' })).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Item name')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Expected repayment')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Ignore in analytics')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Tea' } });
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Tea' } });
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '2.50' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
-    expect(screen.queryByRole('button', { name: 'Assign remaining' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('tab', { name: 'Sharing' }));
-    expect(splitByParts).toHaveBeenCalledWith('10.00', '2');
-    rerender(
-      <ExpenseSplitEditorView
-        required={{
-          config: {},
-          data: {
-            items: [
-              { id: 'part-1', name: 'Part 1', amount: '5.00' },
-              { id: 'part-2', name: 'Part 2', amount: '5.00' },
-            ],
-          },
-          state: {
-            enabled: true,
-            itemName: '',
-            itemAmount: '',
-            editingItemId: '',
-            splitMode: 'parts',
-            splitTotal: '10.00',
-            splitBaseAmount: '10.00',
-            currencyCode: 'USD',
-          },
-          status: { disabled: false },
-        }}
-        provided={{
-          commands: {
-            toggleEnabled,
-            changeItemName,
-            changeItemAmount,
-            addItem,
-            splitByParts,
-            editItem,
-            removeItem,
-            startItem,
-            cancelItem,
-            selectMode,
-          },
-        }}
-      />,
-    );
-    expect(screen.getByRole('tab', { name: 'Sharing' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('button', { name: 'Equal parts' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Percentage' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Amount' })).toBeInTheDocument();
-    expect(screen.getByText('2 parts')).toBeInTheDocument();
-    expect(screen.getByText('Each person')).toBeInTheDocument();
-    expect(screen.getAllByText('5.00 USD')).toHaveLength(3);
-    expect(screen.getByRole('button', { name: 'Edit part 1' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Increase parts' }));
-    expect(screen.getByText('3 parts')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    expect(commands.changeItemName).toHaveBeenCalledWith('Tea');
+    expect(commands.changeItemAmount).toHaveBeenCalledWith('2.50');
+    expect(commands.addItem).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Items' }));
-    expect(selectMode).toHaveBeenCalledWith('items');
-    rerender(
-      <ExpenseSplitEditorView
-        required={{
-          config: {},
-          data: {
-            items: [{ id: 'item-1', name: 'Coffee', amount: '4.00' }],
-          },
-          state: {
-            enabled: true,
-            itemName: '',
-            itemAmount: '',
-            editingItemId: '',
-            splitMode: 'items',
-            splitTotal: '4.00',
-            splitBaseAmount: '10.00',
-            currencyCode: 'USD',
-          },
-          status: { disabled: false },
-        }}
-        provided={{
-          commands: {
-            toggleEnabled,
-            changeItemName,
-            changeItemAmount,
-            addItem,
-            splitByParts,
-            editItem,
-            removeItem,
-            startItem,
-            cancelItem,
-            selectMode,
-          },
-        }}
-      />,
-    );
     const row = screen.getByText('Coffee').closest('li');
     expect(row).not.toBeNull();
-    fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Edit item Coffee' }));
-    expect(screen.queryByRole('dialog', { name: 'Edit split item' })).not.toBeInTheDocument();
+    fireEvent.click(row as HTMLElement);
     fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Remove item Coffee' }));
+    expect(commands.editItem).toHaveBeenCalledWith('item-1');
+    expect(commands.removeItem).toHaveBeenCalledWith('item-1');
+  });
 
-    expect(toggleEnabled).toHaveBeenCalledTimes(1);
-    expect(startItem).toHaveBeenCalledTimes(1);
-    expect(changeItemName).toHaveBeenCalledWith('Tea');
-    expect(changeItemAmount).toHaveBeenCalledWith('2.50');
-    expect(addItem).toHaveBeenCalledTimes(1);
-    expect(splitByParts).toHaveBeenCalledWith('10.00', '3');
-    expect(editItem).toHaveBeenCalledWith('item-1');
-    expect(removeItem).toHaveBeenCalledWith('item-1');
-  }, 10000);
-
-  it('cancels inline split item and switches to parts mode without opening a form', () => {
-    const addItem = vi.fn(() => true);
-    const splitByParts = vi.fn();
-    const cancelItem = vi.fn();
-    const selectMode = vi.fn();
-
-    render(
+  it('renders empty, remaining and over-base split states', () => {
+    const commands = makeCommands();
+    const { rerender } = render(
       <ExpenseSplitEditorView
         required={{
           config: {},
@@ -200,57 +80,73 @@ describe('ExpenseSplitEditorView', () => {
             itemAmount: '',
             editingItemId: '',
             splitMode: 'items',
-            splitTotal: '',
-            splitBaseAmount: '0.00',
+            splitTotal: '0.00',
+            splitBaseAmount: '20.00',
+            splitRemaining: '20.00',
+            currencyCode: 'EUR',
           },
           status: { disabled: false },
         }}
-        provided={{
-          commands: {
-            toggleEnabled: vi.fn(),
-            changeItemName: vi.fn(),
-            changeItemAmount: vi.fn(),
-            addItem,
-            splitByParts,
-            editItem: vi.fn(),
-            removeItem: vi.fn(),
-            startItem: vi.fn(),
-            cancelItem,
-            selectMode,
-          },
-        }}
+        provided={{ commands }}
       />,
     );
 
-    expect(screen.getByText('Items are optional. Add them when you need a receipt breakdown.')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Add split item' }));
-    expect(screen.getByLabelText('Item name')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel split item' }));
-    expect(screen.queryByLabelText('Item name')).not.toBeInTheDocument();
-    expect(cancelItem).toHaveBeenCalledTimes(1);
-    expect(addItem).not.toHaveBeenCalled();
+    expect(screen.getByText('No items yet')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Remaining auto/i)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Sharing' }));
-    expect(screen.queryByLabelText('Amount to split')).not.toBeInTheDocument();
-    expect(splitByParts).toHaveBeenCalledWith('0.00', '2');
+    rerender(
+      <ExpenseSplitEditorView
+        required={{
+          config: {},
+          data: { items: [{ id: 'item-food', name: 'Food', amount: '7.00' }] },
+          state: {
+            enabled: true,
+            itemName: '',
+            itemAmount: '',
+            editingItemId: '',
+            splitMode: 'items',
+            splitTotal: '7.00',
+            splitBaseAmount: '20.00',
+            splitRemaining: '13.00',
+            currencyCode: 'EUR',
+          },
+          status: { disabled: false },
+        }}
+        provided={{ commands }}
+      />,
+    );
+
+    expect(screen.getByLabelText('Remaining auto 13.00 EUR')).toBeInTheDocument();
+
+    rerender(
+      <ExpenseSplitEditorView
+        required={{
+          config: {},
+          data: { items: [{ id: 'item-food', name: 'Food', amount: '22.00' }] },
+          state: {
+            enabled: true,
+            itemName: '',
+            itemAmount: '',
+            editingItemId: '',
+            splitMode: 'items',
+            splitTotal: '22.00',
+            splitBaseAmount: '20.00',
+            splitRemaining: '-2.00',
+            currencyCode: 'EUR',
+          },
+          status: { disabled: false },
+        }}
+        provided={{ commands }}
+      />,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Amount before split: 20.00 EUR. Split amount: 22.00 EUR.');
   });
 
   it('edits an existing split item inline', () => {
     const editItem = vi.fn();
     const addItem = vi.fn(() => true);
-    const commands = {
-      toggleEnabled: vi.fn(),
-      changeItemName: vi.fn(),
-      changeItemAmount: vi.fn(),
-      addItem,
-      splitByParts: vi.fn(),
-      selectMode: vi.fn(),
-      editItem,
-      removeItem: vi.fn(),
-      startItem: vi.fn(),
-      cancelItem: vi.fn(),
-    };
-
+    const commands = makeCommands({ editItem, addItem });
     const { rerender } = render(
       <ExpenseSplitEditorView
         required={{
@@ -264,6 +160,7 @@ describe('ExpenseSplitEditorView', () => {
             splitMode: 'items',
             splitTotal: '4.00',
             splitBaseAmount: '10.00',
+            splitRemaining: '6.00',
           },
           status: { disabled: false },
         }}
@@ -273,7 +170,7 @@ describe('ExpenseSplitEditorView', () => {
 
     const row = screen.getByText('Coffee').closest('li');
     expect(row).not.toBeNull();
-    fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Edit item Coffee' }));
+    fireEvent.click(row as HTMLElement);
 
     rerender(
       <ExpenseSplitEditorView
@@ -288,6 +185,7 @@ describe('ExpenseSplitEditorView', () => {
             splitMode: 'items',
             splitTotal: '4.00',
             splitBaseAmount: '10.00',
+            splitRemaining: '6.00',
           },
           status: { disabled: false },
         }}
@@ -295,9 +193,9 @@ describe('ExpenseSplitEditorView', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Item name')).toHaveValue('Coffee');
+    expect(screen.getByLabelText('Description')).toHaveValue('Coffee');
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '5.00' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm split item' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
 
     expect(editItem).toHaveBeenCalledWith('item-1');
     expect(commands.changeItemAmount).toHaveBeenCalledWith('5.00');
@@ -318,30 +216,18 @@ describe('ExpenseSplitEditorView', () => {
             splitMode: 'items',
             splitTotal: '',
             splitBaseAmount: '0.00',
+            splitRemaining: '0.00',
             itemNameError: 'Item name is required',
             splitError: 'Split must match amount',
           },
           status: { disabled: true },
         }}
-        provided={{
-          commands: {
-            toggleEnabled: vi.fn(),
-            changeItemName: vi.fn(),
-            changeItemAmount: vi.fn(),
-            addItem: vi.fn(() => false),
-            splitByParts: vi.fn(),
-            editItem: vi.fn(),
-            removeItem: vi.fn(),
-            startItem: vi.fn(),
-            cancelItem: vi.fn(),
-            selectMode: vi.fn(),
-          },
-        }}
+        provided={{ commands: makeCommands() }}
       />,
     );
 
     expect(screen.getByLabelText('Split into items')).toBeDisabled();
-    expect(screen.queryByLabelText('Item name')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Description')).not.toBeInTheDocument();
     expect(screen.queryByText('Item name is required')).not.toBeInTheDocument();
     expect(screen.queryByText('Split must match amount')).not.toBeInTheDocument();
   });

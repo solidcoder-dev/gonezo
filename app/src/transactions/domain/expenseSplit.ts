@@ -9,6 +9,12 @@ export type ExpenseSplitFieldErrors = {
   expenseItemAmount?: string;
 };
 
+export type WeightedSplitPart = {
+  id?: string;
+  name: string;
+  parts: number;
+};
+
 function parseCents(value: string): number {
   const parsed = Number(value.trim());
   return Number.isFinite(parsed) ? Math.round(parsed * 100) : Number.NaN;
@@ -25,6 +31,25 @@ function formatAmount(value: number): string {
 
 function formatCents(value: number): string {
   return (value / 100).toFixed(2);
+}
+
+export function splitAmountByWeightedParts(amountInput: string, parts: WeightedSplitPart[]): string[] {
+  const totalCents = parseCents(amountInput);
+  const normalizedParts = parts.map((part) => Math.trunc(part.parts));
+  const totalParts = normalizedParts.reduce((total, part) => total + part, 0);
+  if (!Number.isFinite(totalCents) || totalCents <= 0 || totalParts <= 0 || normalizedParts.some((part) => part <= 0)) {
+    return [];
+  }
+
+  let allocatedCents = 0;
+  return normalizedParts.map((part, index) => {
+    if (index === normalizedParts.length - 1) {
+      return formatCents(totalCents - allocatedCents);
+    }
+    const cents = Math.floor((totalCents * part) / totalParts);
+    allocatedCents += cents;
+    return formatCents(cents);
+  });
 }
 
 export function cloneSplitItems(
@@ -86,7 +111,7 @@ export function upsertSplitItem(input: {
   };
   const items = input.editingItemId
     ? input.items.map((item) => (item.id === input.editingItemId ? nextItem : item))
-    : [...input.items, nextItem];
+    : [nextItem, ...input.items];
 
   return {
     items,

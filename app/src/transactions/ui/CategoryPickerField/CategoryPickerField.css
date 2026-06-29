@@ -5,7 +5,7 @@
 
 .category-picker-label {
   color: #2f2f2a;
-  font-size: 0.86rem;
+  font-size: 0.78rem;
   font-weight: 600;
 }
 
@@ -32,9 +32,9 @@
   justify-content: center;
   gap: 6px;
   min-width: 42px;
-  height: 42px;
-  min-height: 42px;
-  padding: 0 12px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 10px;
   border: 1px solid #c9c9c0;
   border-radius: 999px;
   background: #fff;

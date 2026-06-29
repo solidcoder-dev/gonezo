@@ -28,40 +28,16 @@ export function SplitSummaryView({ required, provided }: SplitSummaryViewProps) 
 
   return (
     <section className="split-summary" aria-label="Split">
-      <div className="split-summary-heading">Split</div>
-      <div className="split-summary-card">
-        <button
-          type="button"
-          className="split-summary-main"
-          onClick={provided.commands.edit}
-          disabled={status.disabled}
-        >
-          <span className="split-summary-line">
-            <i className="bi bi-shuffle" aria-hidden />
-            <span>{state.itemsCount} {itemLabel} · {formatCurrencyAmount(state.total, state.currencyCode)}</span>
-          </span>
-        </button>
-        <div className="split-summary-actions">
-          <button
-            type="button"
-            className="icon-button text-button split-summary-action"
-            aria-label="Edit split"
-            onClick={provided.commands.edit}
-            disabled={status.disabled}
-          >
-            <i className="bi bi-pencil" aria-hidden />
-          </button>
-          <button
-            type="button"
-            className="icon-button text-button split-summary-action"
-            aria-label="Remove split"
-            onClick={provided.commands.remove}
-            disabled={status.disabled}
-          >
-            <i className="bi bi-trash" aria-hidden />
-          </button>
-        </div>
-      </div>
+      <button
+        type="button"
+        className="split-summary-chip"
+        onClick={provided.commands.edit}
+        disabled={status.disabled}
+        aria-label={`Edit split, ${state.itemsCount} ${itemLabel}, ${formatCurrencyAmount(state.total, state.currencyCode)}`}
+      >
+        <i className="bi bi-receipt" aria-hidden />
+        <span>{state.itemsCount} {itemLabel}</span>
+      </button>
     </section>
   );
 }

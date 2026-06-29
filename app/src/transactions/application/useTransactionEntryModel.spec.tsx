@@ -242,9 +242,9 @@ describe('useTransactionEntryModel', () => {
 
     expect(result.current.required.state.amount).toBe('');
     expect(result.current.required.state.splitItems).toEqual([
-      { id: 'split-1', name: 'Part 1', amount: '3.33' },
-      { id: 'split-2', name: 'Part 2', amount: '3.33' },
-      { id: 'split-3', name: 'Part 3', amount: '3.34' },
+      { id: 'split-1', name: 'Me', amount: '3.33' },
+      { id: 'split-2', name: 'Person 2', amount: '3.33' },
+      { id: 'split-3', name: 'Person 3', amount: '3.34' },
     ]);
 
     act(() => {
@@ -252,6 +252,68 @@ describe('useTransactionEntryModel', () => {
     });
 
     expect(result.current.required.state.amount).toBe('10.00');
+  });
+
+  it('uses the manual split total as the movement amount when applying from an empty amount', async () => {
+    const ports = makePorts();
+
+    const { result } = renderHook(() => useTransactionEntryModel({
+      ports,
+      clock: makeClock(),
+      idGenerator: makeIdGenerator(['split-1']),
+      accountId: 'account-1',
+      enabled: true,
+    }));
+
+    await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
+
+    act(() => {
+      result.current.provided.commands.open();
+      result.current.provided.commands.selectMode('expense');
+      result.current.provided.commands.openSplitEditor();
+      result.current.provided.commands.setSplitItemName('Food');
+      result.current.provided.commands.setSplitItemAmount('22.00');
+    });
+    act(() => {
+      result.current.provided.commands.addSplitItem();
+    });
+
+    expect(result.current.required.state.amount).toBe('');
+    expect(result.current.required.state.splitTotal).toBe('22.00');
+
+    act(() => {
+      result.current.provided.commands.applySplit();
+    });
+
+    expect(result.current.required.state.amount).toBe('22.00');
+  });
+
+  it('does not apply a split when sharing only includes the current user', async () => {
+    const ports = makePorts();
+
+    const { result } = renderHook(() => useTransactionEntryModel({
+      ports,
+      clock: makeClock(),
+      idGenerator: makeIdGenerator([]),
+      accountId: 'account-1',
+      enabled: true,
+    }));
+
+    await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
+
+    act(() => {
+      result.current.provided.commands.open();
+      result.current.provided.commands.selectMode('expense');
+      result.current.provided.commands.setAmount('10.00');
+      result.current.provided.commands.openSplitEditor();
+      result.current.provided.commands.selectSplitMode('parts');
+      result.current.provided.commands.applySplit();
+    });
+
+    expect(result.current.required.state.amount).toBe('10.00');
+    expect(result.current.required.state.splitApplied).toBe(false);
+    expect(result.current.required.state.splitEnabled).toBe(false);
+    expect(result.current.required.state.splitItems).toEqual([]);
   });
 
   it('uses the nearest scheduler occurrence instead of the manually selected date for recurring movements', async () => {
