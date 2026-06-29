@@ -12,7 +12,7 @@ import { RecurrenceEditorView } from '../RecurrenceEditor/RecurrenceEditorView';
 import { ScheduleSummaryView } from '../ScheduleControls/ScheduleSummaryView';
 import { ScheduleTriggerView } from '../ScheduleControls/ScheduleTriggerView';
 import { ShareControlsView } from '../ShareControls/ShareControlsView';
-import { ShareExpenseEditorView } from '../ShareExpenseEditor/ShareExpenseEditorView';
+import { ShareExpenseEditorView, type ShareDraft } from '../ShareExpenseEditor/ShareExpenseEditorView';
 import { SplitSummaryView } from '../SplitControls/SplitSummaryView';
 import { SplitTriggerView } from '../SplitControls/SplitTriggerView';
 import { TransactionComposerActionsView } from '../TransactionComposerActions/TransactionComposerActionsView';
@@ -193,10 +193,17 @@ function recurrenceSummary(
 }
 
 const COMPOSER_MODES: Array<{ value: Exclude<ComposerMode, 'picker'>; label: string; iconClassName: string }> = [
-  { value: 'expense', label: 'Expense', iconClassName: 'bi bi-person-fill-down' },
-  { value: 'income', label: 'Income', iconClassName: 'bi bi-arrow-up-right' },
+  { value: 'expense', label: 'Expense', iconClassName: 'bi bi-arrow-down' },
+  { value: 'income', label: 'Income', iconClassName: 'bi bi-arrow-up' },
   { value: 'transfer', label: 'Transfer', iconClassName: 'bi bi-arrow-left-right' },
 ];
+
+function accountIconClass(type?: string): string {
+  if (type === 'bank' || type === 'checking' || type === 'savings') {
+    return 'bi bi-bank';
+  }
+  return 'bi bi-wallet2';
+}
 
 export function TransactionComposerView({ required, provided }: Props) {
   const {
@@ -311,9 +318,13 @@ export function TransactionComposerView({ required, provided }: Props) {
   } = provided;
   const [shareEditorOpen, setShareEditorOpen] = useState(false);
   const [shareSummary, setShareSummary] = useState<{ peopleCount: number; total: string } | null>(null);
+  const [shareDraft, setShareDraft] = useState<ShareDraft | null>(null);
+  const [movementTypeSheetOpen, setMovementTypeSheetOpen] = useState(false);
+  const [sourceAccountSheetOpen, setSourceAccountSheetOpen] = useState(false);
 
   const amountInputRef = useRef<HTMLInputElement | null>(null);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
+
   useEffect(() => {
     if (open && mode !== 'picker') {
       const timer = window.setTimeout(() => {
@@ -429,7 +440,10 @@ export function TransactionComposerView({ required, provided }: Props) {
       provided={{
         commands: {
           open: () => setShareEditorOpen(true),
-          remove: () => setShareSummary(null),
+          remove: () => {
+            setShareSummary(null);
+            setShareDraft(null);
+          },
         },
       }}
     />
@@ -448,6 +462,30 @@ export function TransactionComposerView({ required, provided }: Props) {
     return null;
   }
   const selectedMode: Exclude<ComposerMode, 'picker'> = mode === 'picker' ? 'expense' : mode;
+  const selectedModeOption = COMPOSER_MODES.find((item) => item.value === selectedMode) ?? COMPOSER_MODES[0];
+  const selectedSourceAccount = required.sourceAccountOptions.find((account) => account.id === required.sourceAccountId);
+  function resetLocalComposerState() {
+    setShareEditorOpen(false);
+    setShareSummary(null);
+    setShareDraft(null);
+    setMovementTypeSheetOpen(false);
+    setSourceAccountSheetOpen(false);
+  }
+
+  async function submitComposer(event: FormEvent) {
+    await onSubmit(event);
+    resetLocalComposerState();
+  }
+
+  function closeComposer() {
+    resetLocalComposerState();
+    onClose();
+  }
+
+  function collapseComposer() {
+    resetLocalComposerState();
+    onCollapse?.();
+  }
 
   return (
     <>
@@ -463,37 +501,33 @@ export function TransactionComposerView({ required, provided }: Props) {
           },
           data: {
             body: (
-            <form className="composer-form" onSubmit={onSubmit} aria-busy={disabled} noValidate>
+            <form className="composer-form" onSubmit={submitComposer} aria-busy={disabled} noValidate>
             <div className="composer-form-content stack">
               <div className="composer-context-controls">
-                <label className={`composer-context-select composer-context-select--${selectedMode}`}>
-                  <i className={COMPOSER_MODES.find((item) => item.value === selectedMode)?.iconClassName ?? 'bi bi-arrow-down-left'} aria-hidden />
-                  <select
-                    aria-label="Movement type"
-                    value={selectedMode}
-                    disabled={disabled}
-                    onChange={(event) => onSelectMode(event.target.value as Exclude<ComposerMode, 'picker'>)}
-                  >
-                    {COMPOSER_MODES.map((item) => (
-                      <option key={item.value} value={item.value}>{item.label}</option>
-                    ))}
-                  </select>
+                <button
+                  type="button"
+                  className={`composer-context-select composer-context-select--${selectedMode}`}
+                  aria-label={`Movement type ${selectedModeOption.label}`}
+                  aria-haspopup="dialog"
+                  disabled={disabled}
+                  onClick={() => setMovementTypeSheetOpen(true)}
+                >
+                  <i className={selectedModeOption.iconClassName} aria-hidden />
+                  <span className="composer-context-value">{selectedModeOption.label}</span>
                   <i className="bi bi-chevron-down" aria-hidden />
-                </label>
-                <label className="composer-context-select composer-context-select--account">
-                  <i className="bi bi-wallet2" aria-hidden />
-                  <select
-                    aria-label="Source account"
-                    value={required.sourceAccountId}
-                    disabled={disabled}
-                    onChange={(event) => onSelectSourceAccount(event.target.value)}
-                  >
-                    {required.sourceAccountOptions.map((account) => (
-                      <option key={account.id} value={account.id}>{account.name}</option>
-                    ))}
-                  </select>
+                </button>
+                <button
+                  type="button"
+                  className="composer-context-select composer-context-select--account"
+                  aria-label={`Source account ${selectedSourceAccount?.name ?? 'Select account'}`}
+                  aria-haspopup="dialog"
+                  disabled={disabled}
+                  onClick={() => setSourceAccountSheetOpen(true)}
+                >
+                  <i className={accountIconClass(selectedSourceAccount?.type)} aria-hidden />
+                  <span className="composer-context-value">{selectedSourceAccount?.name ?? 'Select account'}</span>
                   <i className="bi bi-chevron-down" aria-hidden />
-                </label>
+                </button>
               </div>
               <TransactionMainFieldsView
                 required={{
@@ -722,7 +756,98 @@ export function TransactionComposerView({ required, provided }: Props) {
           state: { open: true },
           status: {},
         }}
-        provided={{ commands: { close: onClose, collapse: onCollapse } }}
+        provided={{ commands: { close: closeComposer, collapse: collapseComposer } }}
+      />
+      <SheetView
+        required={{
+          config: {
+            ariaLabel: 'Movement type',
+            title: 'Movement type',
+            closeLabel: 'Close movement type',
+            panelClassName: 'composer-sheet composer-choice-sheet',
+            contentClassName: 'composer-choice-content',
+          },
+          data: {
+            body: (
+              <ul className="composer-choice-list" aria-label="Movement types">
+                {COMPOSER_MODES.map((item) => {
+                  const selected = item.value === selectedMode;
+                  return (
+                    <li key={item.value}>
+                      <button
+                        type="button"
+                        className={`composer-choice-row composer-choice-row--${item.value}`}
+                        aria-label={selected ? `Selected movement type ${item.label}` : `Select movement type ${item.label}`}
+                        disabled={disabled}
+                        onClick={() => {
+                          onSelectMode(item.value);
+                          setMovementTypeSheetOpen(false);
+                        }}
+                      >
+                        <span className="composer-choice-icon" aria-hidden>
+                          <i className={item.iconClassName} />
+                        </span>
+                        <span className="composer-choice-name">{item.label}</span>
+                        <span className={selected ? 'composer-choice-check composer-choice-check--selected' : 'composer-choice-check'} aria-hidden>
+                          {selected ? <i className="bi bi-check-lg" /> : null}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ),
+          },
+          state: { open: movementTypeSheetOpen },
+          status: { disabled },
+        }}
+        provided={{ commands: { close: () => setMovementTypeSheetOpen(false) } }}
+      />
+      <SheetView
+        required={{
+          config: {
+            ariaLabel: 'Choose account',
+            title: 'Choose account',
+            closeLabel: 'Close account chooser',
+            panelClassName: 'composer-sheet composer-choice-sheet',
+            contentClassName: 'composer-choice-content',
+          },
+          data: {
+            body: (
+              <ul className="composer-account-choice-list" aria-label="Accounts">
+                {required.sourceAccountOptions.map((account) => {
+                  const selected = account.id === required.sourceAccountId;
+                  return (
+                    <li key={account.id}>
+                      <button
+                        type="button"
+                        className="composer-account-choice-row"
+                        aria-label={selected ? `Selected account ${account.name}` : `Select account ${account.name}`}
+                        disabled={disabled}
+                        onClick={() => {
+                          onSelectSourceAccount(account.id);
+                          setSourceAccountSheetOpen(false);
+                        }}
+                      >
+                        <span className="composer-account-choice-icon" aria-hidden>
+                          <i className={accountIconClass(account.type)} />
+                        </span>
+                        <span className="composer-choice-name">{account.name}</span>
+                        {selected ? <span className="composer-default-pill">Selected</span> : null}
+                        <span className={selected ? 'composer-choice-check composer-choice-check--selected' : 'composer-choice-check'} aria-hidden>
+                          {selected ? <i className="bi bi-check-lg" /> : null}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ),
+          },
+          state: { open: sourceAccountSheetOpen },
+          status: { disabled },
+        }}
+        provided={{ commands: { close: () => setSourceAccountSheetOpen(false) } }}
       />
       <SheetView
         required={{
@@ -861,13 +986,15 @@ export function TransactionComposerView({ required, provided }: Props) {
                   state: {
                     amount,
                     currencyCode,
+                    draft: shareDraft ?? undefined,
                   },
                   status: { disabled },
                 }}
                 provided={{
                   commands: {
-                    applyShare: (summary) => {
+                    applyShare: (summary, draft) => {
                       setShareSummary(summary);
+                      setShareDraft(draft);
                       setShareEditorOpen(false);
                     },
                   },

@@ -1,14 +1,15 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ShareExpenseEditorView } from './ShareExpenseEditorView';
+import type { ShareDraft } from './ShareExpenseEditorView';
 
-function renderShareEditor(applyShare = vi.fn()) {
+function renderShareEditor(applyShare = vi.fn(), draft?: ShareDraft) {
   render(
     <ShareExpenseEditorView
       required={{
         config: {},
         data: {},
-        state: { amount: '20.00', currencyCode: 'EUR' },
+        state: { amount: '20.00', currencyCode: 'EUR', draft },
         status: { disabled: false },
       }}
       provided={{ commands: { applyShare } }}
@@ -74,6 +75,28 @@ describe('ShareExpenseEditorView', () => {
     fireEvent.change(screen.getByLabelText('Emma amount'), { target: { value: '8.00' } });
     fireEvent.click(screen.getByRole('button', { name: 'Apply share' }));
 
-    expect(applyShare).toHaveBeenCalledWith({ peopleCount: 2, total: '20.00' });
+    expect(applyShare).toHaveBeenCalledWith(
+      { peopleCount: 2, total: '20.00' },
+      expect.objectContaining({
+        mode: 'amounts',
+        people: expect.arrayContaining([
+          expect.objectContaining({ name: 'Emma', amount: '8.00' }),
+        ]),
+      }),
+    );
+  });
+
+  it('restores a previously applied share draft', () => {
+    renderShareEditor(vi.fn(), {
+      mode: 'amounts',
+      people: [
+        { id: 'you', name: 'You (Payer)', reimbursable: false, parts: 1, amount: '12.00', avatarTone: 'you' },
+        { id: 'emma-1', name: 'Emma', email: 'emma@example.com', reimbursable: true, parts: 1, amount: '8.00', avatarTone: 'emma' },
+      ],
+    });
+
+    expect(screen.getByRole('tab', { name: 'As amounts' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByText('Emma')).toBeInTheDocument();
+    expect(screen.getByLabelText('Emma amount')).toHaveValue(8);
   });
 });

@@ -829,10 +829,18 @@ async function openMode(mode: 'Expense' | 'Income' | 'Transfer') {
   fireEvent.click(screen.getByRole('button', { name: 'Add movement' }));
   const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
   if (mode !== 'Expense') {
-    fireEvent.change(within(composer).getByLabelText('Movement type'), {
-      target: { value: mode.toLowerCase() },
-    });
+    await selectComposerMovementType(composer, mode);
   }
+}
+
+async function selectComposerMovementType(composer: HTMLElement, mode: 'Expense' | 'Income' | 'Transfer') {
+  fireEvent.click(within(composer).getByRole('button', { name: /^Movement type/ }));
+  fireEvent.click(await screen.findByRole('button', { name: `Select movement type ${mode}` }));
+}
+
+async function selectComposerSourceAccount(composer: HTMLElement, accountName: string) {
+  fireEvent.click(within(composer).getByRole('button', { name: /^Source account/ }));
+  fireEvent.click(await screen.findByRole('button', { name: `Select account ${accountName}` }));
 }
 
 async function openNewSplitItemDialog() {
@@ -1160,10 +1168,10 @@ describe('App Accounts UX', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
-    expect(within(composer).getByLabelText('Movement type')).toHaveValue('expense');
-    expect(within(composer).getByLabelText('Source account')).toHaveValue('acc-2');
-    fireEvent.change(within(composer).getByLabelText('Source account'), { target: { value: 'acc-1' } });
-    await waitFor(() => expect(within(composer).getByLabelText('Source account')).toHaveValue('acc-1'));
+    expect(within(composer).getByRole('button', { name: 'Movement type Expense' })).toBeInTheDocument();
+    expect(within(composer).getByRole('button', { name: 'Source account Savings' })).toBeInTheDocument();
+    await selectComposerSourceAccount(composer, 'Main');
+    await waitFor(() => expect(within(composer).getByRole('button', { name: 'Source account Main' })).toBeInTheDocument());
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
@@ -1178,8 +1186,8 @@ describe('App Accounts UX', () => {
     });
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
     const resetComposer = await screen.findByRole('dialog', { name: 'Transaction composer' });
-    expect(within(resetComposer).getByLabelText('Source account')).toHaveValue('acc-2');
-    expect(within(resetComposer).getByLabelText('Movement type')).toHaveValue('expense');
+    expect(within(resetComposer).getByRole('button', { name: 'Source account Savings' })).toBeInTheDocument();
+    expect(within(resetComposer).getByRole('button', { name: 'Movement type Expense' })).toBeInTheDocument();
   });
 
   it('resets the movement draft defaults after closing without saving', async () => {
@@ -1194,9 +1202,9 @@ describe('App Accounts UX', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
-    expect(within(composer).getByLabelText('Source account')).toHaveValue('acc-2');
-    fireEvent.change(within(composer).getByLabelText('Source account'), { target: { value: 'acc-1' } });
-    await waitFor(() => expect(within(composer).getByLabelText('Source account')).toHaveValue('acc-1'));
+    expect(within(composer).getByRole('button', { name: 'Source account Savings' })).toBeInTheDocument();
+    await selectComposerSourceAccount(composer, 'Main');
+    await waitFor(() => expect(within(composer).getByRole('button', { name: 'Source account Main' })).toBeInTheDocument());
     dragComposerDown(composer);
 
     await waitFor(() => {
@@ -1204,7 +1212,82 @@ describe('App Accounts UX', () => {
     });
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
     const resetComposer = await screen.findByRole('dialog', { name: 'Transaction composer' });
-    expect(within(resetComposer).getByLabelText('Source account')).toHaveValue('acc-2');
+    expect(within(resetComposer).getByRole('button', { name: 'Source account Savings' })).toBeInTheDocument();
+  });
+
+  it('keeps an applied share editable while open and clears it when closing without saving', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
+    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '20' } });
+    fireEvent.click(within(composer).getByRole('button', { name: 'Share' }));
+
+    const shareDialog = await screen.findByRole('dialog', { name: 'Share expense' });
+    fireEvent.change(within(shareDialog).getByLabelText('Search people to add'), { target: { value: 'Emma' } });
+    fireEvent.click(within(shareDialog).getByRole('button', { name: /Emma/i }));
+    fireEvent.click(within(shareDialog).getByRole('button', { name: 'Apply share' }));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit share, 1 owes you, 20.00 USD' }));
+    const reopenedShareDialog = await screen.findByRole('dialog', { name: 'Share expense' });
+    expect(within(reopenedShareDialog).getByText('Emma')).toBeInTheDocument();
+    fireEvent.click(within(reopenedShareDialog).getByRole('button', { name: 'Close share expense' }));
+
+    dragComposerDown(composer);
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
+    const resetComposer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    const amountInput = within(resetComposer).getByLabelText('Amount');
+    fireEvent.change(amountInput, { target: { value: '15' } });
+    expect(amountInput).toHaveValue(15);
+    expect(amountInput).toBeEnabled();
+    expect(within(resetComposer).getByRole('button', { name: 'Share' })).toBeEnabled();
+    expect(within(resetComposer).queryByRole('button', { name: /Edit share/ })).not.toBeInTheDocument();
+  });
+
+  it('does not reuse an applied share after posting and opening a new composer', async () => {
+    const core = makeCore();
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
+    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '20' } });
+    fireEvent.click(within(composer).getByRole('button', { name: 'Share' }));
+
+    const shareDialog = await screen.findByRole('dialog', { name: 'Share expense' });
+    fireEvent.change(within(shareDialog).getByLabelText('Search people to add'), { target: { value: 'Emma' } });
+    fireEvent.click(within(shareDialog).getByRole('button', { name: /Emma/i }));
+    fireEvent.click(within(shareDialog).getByRole('button', { name: 'Apply share' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
+
+    await waitFor(() => {
+      expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
+    const nextComposer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    const nextAmountInput = within(nextComposer).getByLabelText('Amount');
+    fireEvent.change(nextAmountInput, { target: { value: '15' } });
+
+    expect(nextAmountInput).toHaveValue(15);
+    expect(nextAmountInput).toBeEnabled();
+    expect(within(nextComposer).getByRole('button', { name: 'Share' })).toBeEnabled();
+    expect(within(nextComposer).queryByRole('button', { name: /Edit share/ })).not.toBeInTheDocument();
   });
 
   it('refreshes the movement split action accounts after creating an account', async () => {
@@ -1270,9 +1353,9 @@ describe('App Accounts UX', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
-    const selector = within(composer).getByLabelText('Source account');
+    fireEvent.click(within(composer).getByRole('button', { name: /^Source account/ }));
 
-    expect(within(selector).getByRole('option', { name: 'Travel' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Select account Travel' })).toBeInTheDocument();
   });
 
   it('ignores default account preference when the account is archived', async () => {

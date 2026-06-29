@@ -8,36 +8,54 @@ export type ShareExpenseEditorViewProps = ViewProps<
   {
     amount: string;
     currencyCode?: string;
+    draft?: ShareDraft;
   },
   {
     disabled?: boolean;
   },
   {
-    applyShare: (summary: { peopleCount: number; total: string }) => void;
+    applyShare: (summary: { peopleCount: number; total: string }, draft: ShareDraft) => void;
   }
 >;
 
-type ShareMode = 'parts' | 'amounts';
+export type ShareMode = 'parts' | 'amounts';
 
-type SharePerson = {
+export type SharePersonDraft = {
   id: string;
   name: string;
   email?: string;
   reimbursable: boolean;
   parts: number;
   amount: string;
-  avatarClassName: string;
+  avatarTone: 'you' | 'emma' | 'luis' | 'maria' | 'john' | 'alex' | 'alexandra' | 'ali' | 'custom';
 };
 
-const PEOPLE_OPTIONS: SharePerson[] = [
-  { id: 'emma', name: 'Emma', email: 'emma@example.com', reimbursable: true, parts: 1, amount: '', avatarClassName: styles.avatarEmma },
-  { id: 'luis', name: 'Luis', email: 'luis@example.com', reimbursable: true, parts: 1, amount: '', avatarClassName: styles.avatarLuis },
-  { id: 'maria', name: 'Maria', email: 'maria@example.com', reimbursable: true, parts: 1, amount: '', avatarClassName: styles.avatarMaria },
-  { id: 'john', name: 'John', email: 'john@example.com', reimbursable: true, parts: 1, amount: '', avatarClassName: styles.avatarJohn },
-  { id: 'alex-johnson', name: 'Alex Johnson', email: 'alex.j@example.com', reimbursable: true, parts: 1, amount: '', avatarClassName: styles.avatarAlex },
-  { id: 'alexandra-rossi', name: 'Alexandra Rossi', email: 'alexandra.r@example.com', reimbursable: true, parts: 1, amount: '', avatarClassName: styles.avatarAlexandra },
-  { id: 'ali-khan', name: 'Ali Khan', email: 'ali.k@example.com', reimbursable: true, parts: 1, amount: '', avatarClassName: styles.avatarAli },
+export type ShareDraft = {
+  mode: ShareMode;
+  people: SharePersonDraft[];
+};
+
+const PEOPLE_OPTIONS: SharePersonDraft[] = [
+  { id: 'emma', name: 'Emma', email: 'emma@example.com', reimbursable: true, parts: 1, amount: '', avatarTone: 'emma' },
+  { id: 'luis', name: 'Luis', email: 'luis@example.com', reimbursable: true, parts: 1, amount: '', avatarTone: 'luis' },
+  { id: 'maria', name: 'Maria', email: 'maria@example.com', reimbursable: true, parts: 1, amount: '', avatarTone: 'maria' },
+  { id: 'john', name: 'John', email: 'john@example.com', reimbursable: true, parts: 1, amount: '', avatarTone: 'john' },
+  { id: 'alex-johnson', name: 'Alex Johnson', email: 'alex.j@example.com', reimbursable: true, parts: 1, amount: '', avatarTone: 'alex' },
+  { id: 'alexandra-rossi', name: 'Alexandra Rossi', email: 'alexandra.r@example.com', reimbursable: true, parts: 1, amount: '', avatarTone: 'alexandra' },
+  { id: 'ali-khan', name: 'Ali Khan', email: 'ali.k@example.com', reimbursable: true, parts: 1, amount: '', avatarTone: 'ali' },
 ];
+
+const AVATAR_CLASS_BY_TONE: Record<SharePersonDraft['avatarTone'], string> = {
+  you: styles.avatarYou,
+  emma: styles.avatarEmma,
+  luis: styles.avatarLuis,
+  maria: styles.avatarMaria,
+  john: styles.avatarJohn,
+  alex: styles.avatarAlex,
+  alexandra: styles.avatarAlexandra,
+  ali: styles.avatarAli,
+  custom: styles.avatarCustom,
+};
 
 function parseCents(value: string): number {
   const parsed = Number(value.trim());
@@ -48,7 +66,7 @@ function formatCents(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
-function makePerson(name: string): SharePerson {
+function makePerson(name: string): SharePersonDraft {
   const normalizedName = name.trim();
   const existing = PEOPLE_OPTIONS.find((person) => person.name.toLowerCase() === normalizedName.toLowerCase());
   if (existing) {
@@ -60,11 +78,11 @@ function makePerson(name: string): SharePerson {
     reimbursable: true,
     parts: 1,
     amount: '',
-    avatarClassName: styles.avatarCustom,
+    avatarTone: 'custom',
   };
 }
 
-function distributeByParts(amountCents: number, people: SharePerson[]): SharePerson[] {
+function distributeByParts(amountCents: number, people: SharePersonDraft[]): SharePersonDraft[] {
   const totalParts = people.reduce((total, person) => total + Math.max(1, person.parts), 0);
   let allocated = 0;
   return people.map((person, index) => {
@@ -77,36 +95,36 @@ function distributeByParts(amountCents: number, people: SharePerson[]): SharePer
   });
 }
 
-function resetPeopleForMode(mode: ShareMode, amountCents: number, people: SharePerson[]): SharePerson[] {
+function resetPeopleForMode(mode: ShareMode, amountCents: number, people: SharePersonDraft[]): SharePersonDraft[] {
   const resetPeople = people.map((person) => ({ ...person, parts: 1, amount: '' }));
   return mode === 'parts' ? distributeByParts(amountCents, resetPeople) : resetPeople;
 }
 
-function totalShareCents(people: SharePerson[]): number {
+function totalShareCents(people: SharePersonDraft[]): number {
   return people.reduce((total, person) => total + parseCents(person.amount), 0);
 }
 
-function matchesPerson(person: SharePerson, query: string): boolean {
+function matchesPerson(person: SharePersonDraft, query: string): boolean {
   const normalized = query.trim().toLowerCase();
   return person.name.toLowerCase().includes(normalized) || Boolean(person.email?.toLowerCase().includes(normalized));
 }
 
-function amountInputLabel(person: SharePerson): string {
+function amountInputLabel(person: SharePersonDraft): string {
   return person.id === 'you' ? 'Your amount' : `${person.name} amount`;
 }
 
 export function ShareExpenseEditorView({ required, provided }: ShareExpenseEditorViewProps) {
   const amountCents = parseCents(required.state.amount);
-  const [mode, setMode] = useState<ShareMode>('parts');
+  const [mode, setMode] = useState<ShareMode>(required.state.draft?.mode ?? 'parts');
   const [personQuery, setPersonQuery] = useState('');
-  const [people, setPeople] = useState<SharePerson[]>(() => resetPeopleForMode('parts', amountCents, [
+  const [people, setPeople] = useState<SharePersonDraft[]>(() => required.state.draft?.people ?? resetPeopleForMode('parts', amountCents, [
     {
       id: 'you',
       name: 'You (Payer)',
       reimbursable: false,
       parts: 1,
       amount: '',
-      avatarClassName: styles.avatarYou,
+      avatarTone: 'you',
     },
   ]));
 
@@ -198,7 +216,7 @@ export function ShareExpenseEditorView({ required, provided }: ShareExpenseEdito
       <ul className={styles.peopleList} aria-label="Share people">
         {people.map((person) => (
           <li key={person.id} className={styles.personRow}>
-            <span className={`${styles.avatar} ${person.avatarClassName}`} aria-hidden>
+              <span className={`${styles.avatar} ${AVATAR_CLASS_BY_TONE[person.avatarTone]}`} aria-hidden>
               {person.id === 'you' ? 'You' : person.name.slice(0, 1)}
             </span>
             <strong>{person.name}</strong>
@@ -317,7 +335,7 @@ export function ShareExpenseEditorView({ required, provided }: ShareExpenseEdito
                 onClick={() => addPerson(person.name)}
                 disabled={required.status.disabled}
               >
-                <span className={`${styles.avatar} ${person.avatarClassName}`} aria-hidden>{person.name.slice(0, 1)}</span>
+                <span className={`${styles.avatar} ${AVATAR_CLASS_BY_TONE[person.avatarTone]}`} aria-hidden>{person.name.slice(0, 1)}</span>
                 <span>
                   <strong>{person.name}</strong>
                   <small>{person.email}</small>
@@ -345,7 +363,10 @@ export function ShareExpenseEditorView({ required, provided }: ShareExpenseEdito
         type="button"
         className={styles.applyButton}
         disabled={required.status.disabled || exceedsTotal}
-        onClick={() => provided.commands.applyShare({ peopleCount: people.length, total: formatCents(totalCents) })}
+        onClick={() => provided.commands.applyShare(
+          { peopleCount: people.length, total: formatCents(totalCents) },
+          { mode, people },
+        )}
       >
         Apply share
       </button>

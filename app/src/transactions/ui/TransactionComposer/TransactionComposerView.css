@@ -21,6 +21,11 @@
   height: min(74dvh, 620px);
 }
 
+.composer-choice-sheet {
+  width: min(100%, 520px);
+  height: min(82dvh, 680px);
+}
+
 .composer-split-content {
   min-height: 0;
   display: grid;
@@ -32,6 +37,140 @@
   display: grid;
   padding: 0 2px 2px;
   overflow: hidden;
+}
+
+.composer-choice-content {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.composer-choice-list,
+.composer-account-choice-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 2px 0;
+  list-style: none;
+}
+
+.composer-account-choice-list {
+  gap: 0;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.composer-choice-row,
+.composer-account-choice-row {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  align-items: center;
+  border: 0;
+  background: #fff;
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: left;
+}
+
+.composer-choice-row {
+  grid-template-columns: 72px minmax(0, 1fr) 34px;
+  min-height: 124px;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 16px;
+  box-shadow: 0 10px 26px rgba(24, 24, 22, 0.04);
+}
+
+.composer-account-choice-row {
+  grid-template-columns: 42px minmax(0, 1fr) auto 34px;
+  min-height: 54px;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.composer-account-choice-list li:last-child .composer-account-choice-row {
+  border-bottom: 0;
+}
+
+.composer-choice-icon,
+.composer-account-choice-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.composer-choice-icon {
+  width: 58px;
+  height: 58px;
+  font-size: 1.75rem;
+}
+
+.composer-choice-row--expense .composer-choice-icon {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.composer-choice-row--income .composer-choice-icon {
+  background: color-mix(in srgb, var(--color-status-success-background) 72%, #fff);
+  color: var(--color-status-success-text);
+}
+
+.composer-choice-row--transfer .composer-choice-icon {
+  background: rgba(23, 92, 211, 0.1);
+  color: #175cd3;
+}
+
+.composer-account-choice-icon {
+  width: 34px;
+  height: 34px;
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+  font-size: 1.05rem;
+}
+
+.composer-choice-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-choice-check {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: end;
+  border: 2px solid #c9c9c0;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.composer-choice-check--selected {
+  border-color: var(--color-status-success-text);
+  background: var(--color-status-success-text);
+}
+
+.composer-default-pill {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-status-success-background) 62%, #fff);
+  color: var(--color-status-success-text);
+  font-size: 0.78rem;
+  font-weight: 850;
 }
 
 .composer-amount-accessory {
@@ -98,17 +237,16 @@
   box-shadow: 0 6px 18px rgba(24, 24, 22, 0.04);
 }
 
-.composer-context-select select {
+.composer-context-value {
   width: 100%;
   min-width: 0;
-  border: 0;
-  background: transparent;
   color: inherit;
-  font: inherit;
   font-size: 0.96rem;
   font-weight: 760;
-  outline: 0;
-  appearance: none;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .composer-context-select > .bi:first-child {
@@ -245,7 +383,7 @@
     height: 30px;
   }
 
-  .composer-context-select select {
+  .composer-context-value {
     font-size: 0.9rem;
   }
 }
