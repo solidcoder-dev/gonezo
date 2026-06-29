@@ -59,6 +59,10 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         recurrenceEndCount: required.state.recurrenceEndCount,
         scheduleEditorOpen: required.state.scheduleEditorOpen,
         expected: required.state.expected,
+        shareEditorOpen: required.state.shareEditorOpen,
+        shareApplied: Boolean(required.state.shareSummary),
+        shareControl: required.state.shareControl,
+        shareEditorBody: required.state.shareEditorBody,
         editedScheduledMovementId: required.state.editedScheduledMovementId,
         postExpectedMovementId: required.state.postExpectedMovementId,
         currencyCode: required.state.currencyCode,
@@ -127,6 +131,7 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         onSetRecurrenceEndDate: provided.commands.setRecurrenceEndDate,
         onSetRecurrenceEndCount: provided.commands.setRecurrenceEndCount,
         onSetExpected: provided.commands.setExpected,
+        onCloseShareEditor: provided.commands.closeShareEditor,
         onSubmit: provided.commands.submit,
       }}
     />

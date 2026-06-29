@@ -19,6 +19,11 @@ function baseInput() {
         expectedResolveMovement: vi.fn().mockResolvedValue(undefined),
         expectedDismissMovement: vi.fn(),
       },
+      sharing: {
+        sharingListPeople: vi.fn(),
+        sharingApplyShareToPostedTransaction: vi.fn(),
+        sharingGetMovementDetails: vi.fn(),
+      },
     },
     ledgerTransactionCommands: {
       recordExpense: vi.fn().mockResolvedValue({ id: 'tx-1' }),

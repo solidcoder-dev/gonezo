@@ -2,7 +2,10 @@ import { useMemo } from 'react';
 import { createExpectedGateway } from '../../expected/application/expectedGateway';
 import { createLedgerGateway } from '../../ledger/application/ledgerGateway';
 import { createSchedulingGateway } from '../../scheduling/application/schedulingGateway';
+import { createSharingGateway } from '../../sharing/application/sharingGateway';
 import { createTaxonomyGateway } from '../../taxonomy/application/taxonomyGateway';
+import { ShareControlsView } from '../../sharing/ui/ShareControls/ShareControlsView';
+import { ShareExpenseEditorView } from '../../sharing/ui/ShareExpenseEditor/ShareExpenseEditorView';
 import { TransactionEntryView } from '../ui/TransactionComposer/TransactionEntryView';
 import type { TransactionEntryComponentProps } from './TransactionEntryComponent.contract';
 import type { TransactionEntryModelClock, TransactionEntryModelIdGenerator } from './useTransactionEntryModel';
@@ -82,6 +85,7 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
     ledger: createLedgerGateway(required.context.core),
     scheduling: createSchedulingGateway(required.context.core),
     expected: createExpectedGateway(required.context.core),
+    sharing: createSharingGateway(required.context.core),
     taxonomy: createTaxonomyGateway(required.context.core),
   }), [required.context.core]);
 
@@ -106,6 +110,48 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
     return null;
   }
 
+  const shareEnabled = model.required.state.mode === 'expense' && Number(model.required.state.amount) > 0;
+  const shareControl = model.required.state.mode === 'expense' ? (
+    <ShareControlsView
+      required={{
+        config: {},
+        data: {},
+        state: {
+          applied: Boolean(model.required.state.shareSummary),
+          peopleCount: model.required.state.shareSummary?.peopleCount ?? 0,
+          total: model.required.state.shareSummary?.total ?? model.required.state.amount,
+          currencyCode: model.required.state.currencyCode,
+        },
+        status: { disabled: model.required.status.disabled || !shareEnabled },
+      }}
+      provided={{
+        commands: {
+          open: model.provided.commands.openShareEditor,
+          remove: model.provided.commands.removeShareDraft,
+        },
+      }}
+    />
+  ) : null;
+  const shareEditorBody = (
+    <ShareExpenseEditorView
+      required={{
+        config: {},
+        data: { peopleSuggestions: model.required.state.sharePeopleSuggestions },
+        state: {
+          amount: model.required.state.amount,
+          currencyCode: model.required.state.currencyCode,
+          draft: model.required.state.shareDraft,
+        },
+        status: { disabled: model.required.status.disabled },
+      }}
+      provided={{
+        commands: {
+          applyShare: model.provided.commands.applyShareDraft,
+        },
+      }}
+    />
+  );
+
   return (
     <>
       {model.error ? (
@@ -113,7 +159,17 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
           {model.error}
         </div>
       ) : null}
-      <TransactionEntryView required={model.required} provided={model.provided} />
+      <TransactionEntryView
+        required={{
+          ...model.required,
+          state: {
+            ...model.required.state,
+            shareControl,
+            shareEditorBody,
+          },
+        }}
+        provided={model.provided}
+      />
     </>
   );
 }

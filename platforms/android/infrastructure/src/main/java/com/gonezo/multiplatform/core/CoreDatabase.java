@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 19;
+  private static final int DB_VERSION = 20;
 
   CoreDatabase(Context context) {
     super(context, DB_NAME, null, DB_VERSION);
@@ -75,6 +75,10 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion >= 14 && oldVersion < 19) {
       addExpectedMovementOriginColumns(db);
     }
+
+    if (oldVersion < 20) {
+      createSharingTables(db);
+    }
   }
 
   @Override
@@ -93,6 +97,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     createRecurringMovementItemTables(db);
     createExpectedMovementItemTables(db);
     createUserPreferencesTables(db);
+    createSharingTables(db);
   }
 
   private static void createLedgerTables(SQLiteDatabase db) {
@@ -456,6 +461,81 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     );
   }
 
+  private static void createSharingTables(SQLiteDatabase db) {
+    db.execSQL(
+      "create table if not exists sharing_persons (" +
+        "id text primary key," +
+        "display_name text not null," +
+        "normalized_name text not null," +
+        "created_at text not null," +
+        "archived_at text" +
+      ");"
+    );
+
+    db.execSQL(
+      "create unique index if not exists uq_sharing_persons_normalized_active " +
+        "on sharing_persons(normalized_name) where archived_at is null;"
+    );
+
+    db.execSQL(
+      "create table if not exists sharing_expense_shares (" +
+        "id text primary key," +
+        "source_transaction_id text not null," +
+        "payer_person_id text not null," +
+        "total_amount text not null," +
+        "currency text not null," +
+        "created_at text not null," +
+        "updated_at text not null," +
+        "foreign key(source_transaction_id) references ledger_transactions(id) on delete cascade," +
+        "foreign key(payer_person_id) references sharing_persons(id)" +
+      ");"
+    );
+
+    db.execSQL(
+      "create unique index if not exists uq_sharing_expense_shares_source_transaction " +
+        "on sharing_expense_shares(source_transaction_id);"
+    );
+
+    db.execSQL(
+      "create table if not exists sharing_expense_share_participants (" +
+        "id text primary key," +
+        "share_id text not null," +
+        "person_id text not null," +
+        "amount text not null," +
+        "reimbursable integer not null," +
+        "expected_movement_id text," +
+        "foreign key(share_id) references sharing_expense_shares(id) on delete cascade," +
+        "foreign key(person_id) references sharing_persons(id)," +
+        "foreign key(expected_movement_id) references expected_movements(id)" +
+      ");"
+    );
+
+    db.execSQL(
+      "create unique index if not exists uq_sharing_share_participants_person " +
+        "on sharing_expense_share_participants(share_id, person_id);"
+    );
+
+    db.execSQL(
+      "create index if not exists idx_sharing_share_participants_expected " +
+        "on sharing_expense_share_participants(expected_movement_id) where expected_movement_id is not null;"
+    );
+
+    db.execSQL(
+      "create table if not exists analytics_exclusions (" +
+        "id text primary key," +
+        "scope_type text not null," +
+        "scope_id text not null," +
+        "reason text not null," +
+        "created_at text not null" +
+      ");"
+    );
+
+    db.execSQL(
+      "create unique index if not exists uq_analytics_exclusions_scope_reason " +
+        "on analytics_exclusions(scope_type, scope_id, reason);"
+    );
+  }
+
   private static void addRecurringMovementCategoryColumn(SQLiteDatabase db) {
     db.execSQL("alter table recurring_movements add column category_id text;");
   }
@@ -463,6 +543,10 @@ public final class CoreDatabase extends SQLiteOpenHelper {
   private static void dropTables(SQLiteDatabase db) {
     db.execSQL("drop table if exists expected_movements");
     db.execSQL("drop table if exists expected_movement_items");
+    db.execSQL("drop table if exists analytics_exclusions");
+    db.execSQL("drop table if exists sharing_expense_share_participants");
+    db.execSQL("drop table if exists sharing_expense_shares");
+    db.execSQL("drop table if exists sharing_persons");
     db.execSQL("drop table if exists recurrence_outbox");
     db.execSQL("drop table if exists recurring_movement_occurrences");
     db.execSQL("drop table if exists recurring_movements");

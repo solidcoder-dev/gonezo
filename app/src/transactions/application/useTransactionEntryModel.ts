@@ -5,6 +5,8 @@ import { useLedgerTransactionCommands } from '../../ledger/application/useLedger
 import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
+import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
+import { useShareDraftModel } from '../../sharing/application/useShareDraftModel';
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
 import type { ComposerMode, TransactionFieldErrors } from './transactions.types';
 import type { TransactionEntryViewProvided, TransactionEntryViewRequired } from '../ui/TransactionComposer/TransactionEntryView';
@@ -20,7 +22,7 @@ import { nextRecurrenceDateIso } from '../../shared/domain/nextRecurrenceDate';
 import { applyTransactionEntryInitialMode, type TransactionEntryInitialMode } from './transactionEntryInitialMode';
 
 export type TransactionEntryModelPorts = {
-  ledger: LedgerGatewayPort; scheduling: SchedulingGatewayPort; expected: ExpectedGatewayPort; taxonomy: TaxonomyGatewayPort;
+  ledger: LedgerGatewayPort; scheduling: SchedulingGatewayPort; expected: ExpectedGatewayPort; sharing: SharingGatewayPort; taxonomy: TaxonomyGatewayPort;
 };
 
 export type TransactionEntryModelClock = {
@@ -77,6 +79,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [transactionDate, setTransactionDate] = useState(initialToday);
   const [transactionNote, setTransactionNote] = useState('');
   const [fieldErrors, setFieldErrors] = useState<TransactionFieldErrors>({});
+  const shareDraftModel = useShareDraftModel(ports.sharing);
   const ledgerAccounts = useLedgerAccounts(ports.ledger);
   const ledgerTransactionCommands = useLedgerTransactionCommands(ports.ledger);
   const transferFxModel = useTransactionTransferFxModel({
@@ -218,6 +221,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     resetTransferFx();
     resetExpenseSplit();
     resetScheduling(today);
+    shareDraftModel.actions.reset();
     setFieldErrors({});
   }
 
@@ -318,6 +322,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     void (async () => {
       try {
         await refreshTaxonomyCategories();
+        await shareDraftModel.actions.refreshPeopleSuggestions();
       } catch (err) {
         reportError(err);
       }
@@ -467,6 +472,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         ports: {
           scheduling: ports.scheduling,
           expected: ports.expected,
+          sharing: ports.sharing,
         },
         ledgerTransactionCommands,
         clock,
@@ -501,6 +507,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         editedScheduledMovementId,
         editedExpectedMovementId,
         postExpectedMovementId,
+        shareDraft: shareDraftModel.state.draft,
         resolveCategorySelection,
         parseTransactionTags,
         resolveTagSelectionIds,
@@ -576,6 +583,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       recurrenceEndCount,
       scheduleEditorOpen,
       expected: expectedMovement,
+      shareEditorOpen: shareDraftModel.state.editorOpen,
+      shareDraft: shareDraftModel.state.draft,
+      shareSummary: shareDraftModel.state.summary,
+      sharePeopleSuggestions: shareDraftModel.state.peopleSuggestions,
       editedScheduledMovementId: editedScheduledMovementId || undefined,
       postExpectedMovementId: postExpectedMovementId || undefined,
       currencyCode: accountCurrency,
@@ -641,6 +652,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       setRecurrenceEndDate: setRecurrenceEndDateValue,
       setRecurrenceEndCount: setRecurrenceEndCountValue,
       setExpected: setExpectedMovementValue,
+      openShareEditor: shareDraftModel.actions.openEditor,
+      closeShareEditor: shareDraftModel.actions.closeEditor,
+      applyShareDraft: shareDraftModel.actions.applyShareDraft,
+      removeShareDraft: shareDraftModel.actions.removeShareDraft,
       submit: submitTransaction,
     },
   };

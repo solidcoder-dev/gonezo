@@ -235,4 +235,19 @@ public class CorePlugin extends Plugin {
   public void expectedDismissMovement(PluginCall call) {
     new ExpectedPluginHandler(getContext()).expectedDismissMovement(call);
   }
+
+  @PluginMethod
+  public void sharingListPeople(PluginCall call) {
+    new SharingPluginHandler(getContext()).sharingListPeople(call);
+  }
+
+  @PluginMethod
+  public void sharingApplyShareToPostedTransaction(PluginCall call) {
+    new SharingPluginHandler(getContext()).sharingApplyShareToPostedTransaction(call);
+  }
+
+  @PluginMethod
+  public void sharingGetMovementDetails(PluginCall call) {
+    new SharingPluginHandler(getContext()).sharingGetMovementDetails(call);
+  }
 }

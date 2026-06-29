@@ -93,6 +93,13 @@ import type {
   MovementsListScheduledInput,
   MovementsListScheduledResult,
 } from '../../movements/application/movements.port';
+import type {
+  SharingApplyShareToPostedTransactionInput,
+  SharingApplyShareToPostedTransactionResult,
+  SharingGetMovementDetailsInput,
+  SharingListPeopleResult,
+  SharingMovementDetailsResult,
+} from '../../sharing/application/sharing.port';
 
 export interface CorePlugin {
   preferencesGet(): Promise<UserPreferencesResult>;
@@ -163,6 +170,11 @@ export interface CorePlugin {
   expectedListMovements(options: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult>;
   expectedResolveMovement(options: ExpectedResolveMovementInput): Promise<void>;
   expectedDismissMovement(options: ExpectedDismissMovementInput): Promise<void>;
+  sharingListPeople(): Promise<SharingListPeopleResult>;
+  sharingApplyShareToPostedTransaction(
+    options: SharingApplyShareToPostedTransactionInput,
+  ): Promise<SharingApplyShareToPostedTransactionResult>;
+  sharingGetMovementDetails(options: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult>;
   movementsGetMonthOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;
   movementsSearch(options: MovementsSearchInput): Promise<MovementsSearchResult>;
   movementsGetOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;

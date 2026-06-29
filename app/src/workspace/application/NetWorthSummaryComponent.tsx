@@ -51,8 +51,6 @@ export function NetWorthSummaryComponent({ required, provided }: NetWorthSummary
 
   useEffect(() => {
     if (!required.config.enabled) {
-      setItems([]);
-      setLoadPhase('idle');
       return;
     }
 
@@ -84,7 +82,12 @@ export function NetWorthSummaryComponent({ required, provided }: NetWorthSummary
     };
   }, [provided, required.config.enabled, required.config.refreshSignal, required.context.core]);
 
-  const viewItems = useMemo(() => items.map(toCurrencyView), [items]);
+  const visibleLoadPhase = required.config.enabled ? loadPhase : 'idle';
+  const visibleError = required.config.enabled ? error : '';
+  const viewItems = useMemo(
+    () => (required.config.enabled ? items.map(toCurrencyView) : []),
+    [items, required.config.enabled],
+  );
 
   return (
     <NetWorthSummaryView
@@ -92,7 +95,7 @@ export function NetWorthSummaryComponent({ required, provided }: NetWorthSummary
         config: {},
         data: { items: viewItems },
         state: {},
-        status: { loadPhase, error },
+        status: { loadPhase: visibleLoadPhase, error: visibleError },
       }}
       provided={{
         commands: {},

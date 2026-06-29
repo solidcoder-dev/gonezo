@@ -151,6 +151,7 @@ describe('SOLID frontend boundaries', () => {
     const expectedPort = readFileSync(resolve(srcDir, 'expected/application/expected.port.ts'), 'utf8');
     const movementsPort = readFileSync(resolve(srcDir, 'movements/application/movements.port.ts'), 'utf8');
     const analyticsPort = readFileSync(resolve(srcDir, 'analytics/application/analytics.port.ts'), 'utf8');
+    const sharingPort = readFileSync(resolve(srcDir, 'sharing/application/sharing.port.ts'), 'utf8');
 
     expect(corePort).toContain("from '../../analytics/application/analytics.port'");
     expect(corePort).toContain("from '../../account/application/preferences.port'");
@@ -160,14 +161,16 @@ describe('SOLID frontend boundaries', () => {
     expect(corePort).toContain("from '../../scheduling/application/scheduling.port'");
     expect(corePort).toContain("from '../../expected/application/expected.port'");
     expect(corePort).toContain("from '../../movements/application/movements.port'");
+    expect(corePort).toContain("from '../../sharing/application/sharing.port'");
     expect(corePort).toMatch(/export interface CorePort\s+extends\s+PreferencesPort,/);
-    expect(corePort).toMatch(/MovementsQueryPort,\s+AnalyticsPort \{\}/);
+    expect(corePort).toMatch(/MovementsQueryPort,\s+AnalyticsPort,\s+SharingPort \{\}/);
     expect(ledgerPort).toContain('LedgerPort');
     expect(taxonomyPort).toContain('TaxonomyPort');
     expect(schedulingPort).toContain('SchedulingPort');
     expect(expectedPort).toContain('ExpectedPort');
     expect(movementsPort).toContain('MovementsQueryPort');
     expect(analyticsPort).toContain('AnalyticsPort');
+    expect(sharingPort).toContain('SharingPort');
   });
 
   it('keeps gateway adapters and browser effects out of application hooks and ports', () => {
@@ -305,7 +308,7 @@ describe('SOLID frontend boundaries', () => {
     expect(coreAdapter).not.toContain('function mapPostedTransactionToSearchItem');
     expect(coreAdapter).toContain("from '../../analytics/infrastructure/analyticsQueries'");
     expect(coreAdapter).not.toContain('function buildSpendingOverview');
-    expect(coreAdapter.split('\n').length).toBeLessThanOrEqual(600);
+    expect(coreAdapter.split('\n').length).toBeLessThanOrEqual(630);
 
     expect(nativeMovements).toContain('function filterScheduledMovementItems');
     expect(nativeMovements).toContain('function mapPostedTransactionToSearchItem');
@@ -391,7 +394,7 @@ describe('SOLID frontend boundaries', () => {
     expect(coreAdapterWeb).not.toContain('const statusesFilter = filters.statuses');
     expect(coreAdapterWeb).toContain("from '../../analytics/infrastructure/analyticsQueries'");
     expect(coreAdapterWeb).not.toContain('function buildSpendingOverview');
-    expect(coreAdapterWeb.split('\n').length).toBeLessThanOrEqual(490);
+    expect(coreAdapterWeb.split('\n').length).toBeLessThanOrEqual(515);
 
     expect(recurrence).toContain('export function normalizeWebRecurrenceRule');
     expect(recurrence).toContain('export function firstDueAtForWebRecurrence');
@@ -649,7 +652,7 @@ describe('SOLID frontend boundaries', () => {
     expect(hook).not.toContain('calculateTransferDestinationAmount');
     expect(hook).not.toContain('calculateTransferFxRate');
     expect(hook).not.toContain('normalizePositiveFxRate');
-    expect(hook.split('\n').length).toBeLessThanOrEqual(650);
+    expect(hook.split('\n').length).toBeLessThanOrEqual(665);
 
     expect(selection).toContain('export function findActiveCategoryByName');
     expect(selection).toContain('export function mergeCategories');

@@ -2,6 +2,7 @@ package com.gonezo.testing
 
 import com.gonezo.application.events.DomainEventPublisher
 import com.gonezo.application.orchestration.DeleteLedgerAccountWorkflowService
+import com.gonezo.analytics.infrastructure.persistence.JdbcAnalyticsExclusionRepository
 import com.gonezo.domain.shared.DomainEvent
 import com.gonezo.expected.application.CreateExpectedMovementService
 import com.gonezo.expected.application.CreateExpectedMovementUC
@@ -42,6 +43,12 @@ import com.gonezo.ledger.infrastructure.persistence.JdbcLedgerAccountRepository
 import com.gonezo.ledger.infrastructure.persistence.JdbcLedgerTransactionRepository
 import com.gonezo.infrastructure.persistence.JdbcTxCategorizationStateRepository
 import com.gonezo.infrastructure.transaction.JdbcConsistencyBoundary
+import com.gonezo.sharing.application.ApplyShareToPostedTransactionService
+import com.gonezo.sharing.application.ApplyShareToPostedTransactionUC
+import com.gonezo.sharing.application.GetMovementSharingDetailsService
+import com.gonezo.sharing.application.GetMovementSharingDetailsUC
+import com.gonezo.sharing.infrastructure.persistence.JdbcExpenseShareRepository
+import com.gonezo.sharing.infrastructure.persistence.JdbcSharingPersonRepository
 import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTransactionCategoryAssignmentRepository
 import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTransactionTagAssignmentRepository
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
@@ -56,6 +63,9 @@ class TestApp(private val db: TestDatabase) {
   val ledgerAccountRepository = JdbcLedgerAccountRepository(namedJdbc)
   val ledgerTransactionRepository = JdbcLedgerTransactionRepository(namedJdbc)
   val expectedMovementRepository = JdbcExpectedMovementRepository(namedJdbc)
+  val sharingPersonRepository = JdbcSharingPersonRepository(namedJdbc)
+  val expenseShareRepository = JdbcExpenseShareRepository(namedJdbc)
+  val analyticsExclusionRepository = JdbcAnalyticsExclusionRepository(namedJdbc)
   val taxonomyTransactionCategoryAssignmentRepository = JdbcTaxonomyTransactionCategoryAssignmentRepository(namedJdbc)
   val taxonomyTransactionTagAssignmentRepository = JdbcTaxonomyTransactionTagAssignmentRepository(namedJdbc)
   val txCategorizationStateRepository = JdbcTxCategorizationStateRepository(namedJdbc)
@@ -122,6 +132,20 @@ class TestApp(private val db: TestDatabase) {
   val expectedResolveMovementUC: ResolveExpectedMovementUC = ResolveExpectedMovementService(expectedMovementRepository)
   val expectedDismissMovementUC: DismissExpectedMovementUC = DismissExpectedMovementService(expectedMovementRepository)
   val expectedListMovementsUC: ListExpectedMovementsUC = ListExpectedMovementsService(expectedMovementRepository)
+  val sharingApplyShareToPostedTransactionUC: ApplyShareToPostedTransactionUC = ApplyShareToPostedTransactionService(
+    ledgerTransactionRepository,
+    sharingPersonRepository,
+    expenseShareRepository,
+    expectedCreateMovementUC,
+    analyticsExclusionRepository,
+    consistencyBoundary,
+  )
+  val sharingGetMovementSharingDetailsUC: GetMovementSharingDetailsUC = GetMovementSharingDetailsService(
+    ledgerTransactionRepository,
+    sharingPersonRepository,
+    expenseShareRepository,
+    expectedMovementRepository,
+  )
 }
 
 private class NoopDomainEventPublisher : DomainEventPublisher {

@@ -93,6 +93,13 @@ import type {
   MovementsListScheduledInput,
   MovementsListScheduledResult,
 } from '../../movements/application/movements.port';
+import type {
+  SharingApplyShareToPostedTransactionInput,
+  SharingApplyShareToPostedTransactionResult,
+  SharingGetMovementDetailsInput,
+  SharingListPeopleResult,
+  SharingMovementDetailsResult,
+} from '../../sharing/application/sharing.port';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import type { CorePlugin } from './corePlugin';
 
@@ -309,6 +316,20 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async expectedDismissMovement(options: ExpectedDismissMovementInput): Promise<void> {
     return this.core.expectedDismissMovement(options);
+  }
+
+  async sharingListPeople(): Promise<SharingListPeopleResult> {
+    return this.core.sharingListPeople();
+  }
+
+  async sharingApplyShareToPostedTransaction(
+    options: SharingApplyShareToPostedTransactionInput,
+  ): Promise<SharingApplyShareToPostedTransactionResult> {
+    return this.core.sharingApplyShareToPostedTransaction(options);
+  }
+
+  async sharingGetMovementDetails(options: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult> {
+    return this.core.sharingGetMovementDetails(options);
   }
 
   async movementsGetMonthOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> {

@@ -6,6 +6,8 @@ import type {
 } from '../../scheduling/application/scheduling.port';
 import type { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
+import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
+import type { ShareDraft } from '../../sharing/domain/shareDraft';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
 import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.types';
 import type { ComposerMode, ExpenseItemDraft } from './transactions.types';
@@ -26,6 +28,7 @@ export type TransactionSubmissionPlanInput = {
   ports: {
     scheduling: SchedulingGatewayPort;
     expected: ExpectedGatewayPort;
+    sharing: SharingGatewayPort;
   };
   ledgerTransactionCommands: LedgerTransactionCommands;
   clock: TransactionSubmissionClock;
@@ -60,6 +63,7 @@ export type TransactionSubmissionPlanInput = {
   editedScheduledMovementId: string;
   editedExpectedMovementId: string;
   postExpectedMovementId: string;
+  shareDraft?: ShareDraft;
   resolveCategorySelection(type: TaxonomyCategoryAppliesTo): Promise<string | undefined>;
   parseTransactionTags(): string[];
   resolveTagSelectionIds(tagNames: string[]): string[];
@@ -533,6 +537,39 @@ async function handlePostedTransfer(
   state.recorded = true;
 }
 
+async function handlePostedShare(
+  context: TransactionSubmissionContext,
+  state: TransactionSubmissionState,
+) {
+  if (
+    context.composerMode !== 'expense'
+    || !state.postedTransactionId
+    || !context.shareDraft
+  ) {
+    return;
+  }
+
+  const participants = context.shareDraft.people
+    .filter((person) => person.id !== 'you')
+    .map((person) => ({
+      personName: person.name,
+      amount: formatAmount(parseAmount(person.amount)),
+      reimbursable: person.reimbursable,
+    }))
+    .filter((person) => parseAmount(person.amount) > 0);
+
+  if (participants.length === 0) {
+    return;
+  }
+
+  await context.ports.sharing.sharingApplyShareToPostedTransaction({
+    transactionId: state.postedTransactionId,
+    payerName: 'You',
+    participants,
+    appliedAt: context.clock.now().toISOString(),
+  });
+}
+
 const SUBMISSION_HANDLERS: TransactionSubmissionHandlerEntry[] = [
   { run: handleEditedScheduledMovement },
   { run: handleExpectedMovement, runAfterRecorded: true },
@@ -542,6 +579,7 @@ const SUBMISSION_HANDLERS: TransactionSubmissionHandlerEntry[] = [
   { run: handlePostedExpense },
   { run: handlePostedIncome },
   { run: handlePostedTransfer },
+  { run: handlePostedShare, runAfterRecorded: true },
 ];
 
 async function resolvePostedExpectedMovement(

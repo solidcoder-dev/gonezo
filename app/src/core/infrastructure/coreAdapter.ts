@@ -103,6 +103,13 @@ import type {
   MovementsListScheduledInput,
   MovementsListScheduledResult,
 } from '../../movements/application/movements.port';
+import type {
+  SharingApplyShareToPostedTransactionInput,
+  SharingApplyShareToPostedTransactionResult,
+  SharingGetMovementDetailsInput,
+  SharingListPeopleResult,
+  SharingMovementDetailsResult,
+} from '../../sharing/application/sharing.port';
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
@@ -291,6 +298,29 @@ export class CoreAdapter implements CorePort {
       return this.web.analyticsGetSpendingOverview(input);
     }
     return analyticsGetSpendingOverview(this, input);
+  }
+
+  async sharingListPeople(): Promise<SharingListPeopleResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.sharingListPeople();
+    }
+    return this.web.sharingListPeople();
+  }
+
+  async sharingApplyShareToPostedTransaction(
+    input: SharingApplyShareToPostedTransactionInput,
+  ): Promise<SharingApplyShareToPostedTransactionResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.sharingApplyShareToPostedTransaction(input);
+    }
+    return this.web.sharingApplyShareToPostedTransaction(input);
+  }
+
+  async sharingGetMovementDetails(input: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult> {
+    if (Capacitor.isNativePlatform()) {
+      return CorePlugin.sharingGetMovementDetails(input);
+    }
+    return this.web.sharingGetMovementDetails(input);
   }
 
   async ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {

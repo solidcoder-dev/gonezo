@@ -478,6 +478,20 @@ function makeCore(transactionCount = 0): AppTestPort {
       movement.dismissedAt = dismissedAt;
       movement.updatedAt = dismissedAt;
     }),
+    sharingListPeople: vi.fn(async () => ({ items: [] })),
+    sharingApplyShareToPostedTransaction: vi.fn(async (input) => ({
+      shareId: `share-${input.transactionId}`,
+      transactionId: input.transactionId,
+      participants: input.participants.map((participant: { personName: string; amount: string; reimbursable: boolean }, index: number) => ({
+        participantId: `share-participant-${index + 1}`,
+        personId: `share-person-${index + 1}`,
+        displayName: participant.personName,
+        amount: participant.amount,
+        reimbursable: participant.reimbursable,
+        expectedMovementId: participant.reimbursable ? `expected-share-${index + 1}` : undefined,
+      })),
+    })),
+    sharingGetMovementDetails: vi.fn(async () => null),
     movementsGetMonthOverview: vi.fn(async (input: MovementsMonthOverviewInput) => {
       const fromDate = input.fromDate ?? input.filters?.fromDate;
       const toDate = input.toDate ?? input.filters?.toDate;

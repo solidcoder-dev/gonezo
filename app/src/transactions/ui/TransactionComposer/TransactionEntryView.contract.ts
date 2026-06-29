@@ -1,10 +1,12 @@
 import type { FormEvent } from 'react';
+import type { ReactNode } from 'react';
 import type { ComposerMode, TransactionFieldErrors } from '../../application/transactions.types';
 import type {
   RecurrenceEndView as RecurrenceEndInput,
   RecurrenceFrequencyView as RecurrenceFrequency,
   RecurrenceMonthlyPatternView as RecurrenceMonthlyPattern,
 } from '../../../shared/domain/schedulingView.types';
+import type { ShareDraft, SharingPersonSuggestion } from '../../../sharing/domain/shareDraft';
 
 export type TransactionEntryViewRequired = {
   state: {
@@ -55,6 +57,12 @@ export type TransactionEntryViewRequired = {
     recurrenceEndCount: string;
     scheduleEditorOpen: boolean;
     expected: boolean;
+    shareEditorOpen: boolean;
+    shareDraft?: ShareDraft;
+    shareSummary?: { peopleCount: number; total: string };
+    sharePeopleSuggestions: SharingPersonSuggestion[];
+    shareControl?: ReactNode;
+    shareEditorBody?: ReactNode;
     editedScheduledMovementId?: string;
     postExpectedMovementId?: string;
     currencyCode?: string;
@@ -123,6 +131,10 @@ export type TransactionEntryViewProvided = {
     setRecurrenceEndDate: (value: string) => void;
     setRecurrenceEndCount: (value: string) => void;
     setExpected: (value: boolean) => void;
+    openShareEditor: () => void;
+    closeShareEditor: () => void;
+    applyShareDraft: (summary: { peopleCount: number; total: string }, draft: ShareDraft) => void;
+    removeShareDraft: () => void;
     submit: (event: FormEvent) => Promise<void>;
   };
 };

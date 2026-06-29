@@ -6,6 +6,7 @@ import type { MobillsImportPort, MovementsBackupPort } from '../../imports/appli
 import type { LedgerPort } from '../../ledger/application/ledger.port';
 import type { MovementsQueryPort } from '../../movements/application/movements.port';
 import type { RecurrencePort, SchedulingPort } from '../../scheduling/application/scheduling.port';
+import type { SharingPort } from '../../sharing/application/sharing.port';
 import type { TaxonomyPort } from '../../taxonomy/application/taxonomy.port';
 
 export interface CorePort
@@ -19,4 +20,5 @@ export interface CorePort
     SchedulingPort,
     ExpectedPort,
     MovementsQueryPort,
-    AnalyticsPort {}
+    AnalyticsPort,
+    SharingPort {}

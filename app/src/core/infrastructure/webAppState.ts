@@ -67,6 +67,42 @@ export type WebRecurringMovement = RecurrenceMovementItem & {
 
 export type WebExpectedMovement = ExpectedMovementItem;
 
+export type WebSharingPerson = {
+  id: string;
+  name: string;
+  normalizedName: string;
+  email?: string;
+  createdAt: string;
+  archivedAt?: string;
+};
+
+export type WebShareParticipant = {
+  participantId: string;
+  personId: string;
+  amount: string;
+  reimbursable: boolean;
+  expectedMovementId?: string;
+};
+
+export type WebExpenseShare = {
+  id: string;
+  transactionId: string;
+  payerPersonId: string;
+  totalAmount: string;
+  currency: string;
+  participants: WebShareParticipant[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WebAnalyticsExclusion = {
+  id: string;
+  scopeType: 'movement' | 'split_item' | 'share_participant' | 'expected_movement';
+  scopeId: string;
+  reason: 'user_ignored' | 'shared_expense' | 'reimbursement';
+  createdAt: string;
+};
+
 export type WebRecurringMovementOccurrence = {
   id: string;
   recurringMovementId: string;
@@ -84,6 +120,9 @@ export type WebAppState = {
   recurringMovements: WebRecurringMovement[];
   recurringMovementOccurrences: WebRecurringMovementOccurrence[];
   expectedMovements: WebExpectedMovement[];
+  sharingPersons: WebSharingPerson[];
+  expenseShares: WebExpenseShare[];
+  analyticsExclusions: WebAnalyticsExclusion[];
   defaultAccountId: string | null;
 };
 
@@ -112,6 +151,9 @@ export function createWebAppState(overrides: Partial<WebAppState> = {}): WebAppS
     recurringMovements: [],
     recurringMovementOccurrences: [],
     expectedMovements: [],
+    sharingPersons: [],
+    expenseShares: [],
+    analyticsExclusions: [],
     defaultAccountId: null,
     ...overrides,
   };

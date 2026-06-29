@@ -102,6 +102,13 @@ import type {
   MovementsSearchInput,
   MovementsSearchResult,
 } from '../../movements/application/movements.port';
+import type {
+  SharingApplyShareToPostedTransactionInput,
+  SharingApplyShareToPostedTransactionResult,
+  SharingGetMovementDetailsInput,
+  SharingListPeopleResult,
+  SharingMovementDetailsResult,
+} from '../../sharing/application/sharing.port';
 import {
   collectWebMovementsBackupExport,
   summarizeWebMovementsBackupExport,
@@ -113,6 +120,7 @@ import {
 } from './webRuntimeDependencies';
 import { WebExpectedMovementsService } from '../../expected/infrastructure/webExpectedService';
 import { WebLedgerService } from '../../ledger/infrastructure/webLedgerService';
+import { WebSharingService } from '../../sharing/infrastructure/webSharingService';
 import { WebMobillsImportWorkflow } from '../../imports/infrastructure/providers/mobills/webMobillsImportWorkflow';
 import { WebMovementsService } from '../../movements/infrastructure/webMovementsService';
 import { WebSchedulingService } from '../../scheduling/infrastructure/webSchedulingService';
@@ -152,6 +160,8 @@ export class CoreAdapterWeb implements CorePort {
 
   private readonly movementsService: WebMovementsService;
 
+  private readonly sharingService: WebSharingService;
+
   constructor(options: CoreAdapterWebOptions = {}) {
     this.state = options.state ?? defaultWebAppState;
     this.dependencies = {
@@ -181,6 +191,12 @@ export class CoreAdapterWeb implements CorePort {
       state: this.state,
       dependencies: this.dependencies,
       ledger: this.ledgerService,
+    });
+    this.sharingService = new WebSharingService({
+      state: this.state,
+      dependencies: this.dependencies,
+      ledger: this.ledgerService,
+      expected: this.expectedMovementsService,
     });
     this.movementsService = new WebMovementsService({
       state: this.state,
@@ -265,6 +281,20 @@ export class CoreAdapterWeb implements CorePort {
 
   async analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult> {
     return analyticsGetSpendingOverview(this, input);
+  }
+
+  async sharingListPeople(): Promise<SharingListPeopleResult> {
+    return this.sharingService.listPeople();
+  }
+
+  async sharingApplyShareToPostedTransaction(
+    input: SharingApplyShareToPostedTransactionInput,
+  ): Promise<SharingApplyShareToPostedTransactionResult> {
+    return this.sharingService.applyShareToPostedTransaction(input);
+  }
+
+  async sharingGetMovementDetails(input: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult> {
+    return this.sharingService.getMovementDetails(input);
   }
 
   async ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {
@@ -385,9 +415,8 @@ export class CoreAdapterWeb implements CorePort {
     return this.schedulingService.listMovements(input);
   }
 
-  async schedulingProcessDueMovements(
-    _input: SchedulingProcessDueMovementsInput = {},
-  ): Promise<SchedulingProcessDueMovementsResult> {
+  async schedulingProcessDueMovements(input: SchedulingProcessDueMovementsInput = {}): Promise<SchedulingProcessDueMovementsResult> {
+    void input;
     return {
       scanned: 0,
       posted: 0,

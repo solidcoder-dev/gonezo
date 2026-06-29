@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import type { ReactNode } from 'react';
 import { SheetView } from '../../../shared/ui/SheetView';
 import { MultiTagPickerView } from '../../../shared/ui/MultiTagPicker/MultiTagPickerView';
 import {
@@ -11,8 +12,6 @@ import { ExpenseSplitEditorView } from '../ExpenseSplitEditor/ExpenseSplitEditor
 import { RecurrenceEditorView } from '../RecurrenceEditor/RecurrenceEditorView';
 import { ScheduleSummaryView } from '../ScheduleControls/ScheduleSummaryView';
 import { ScheduleTriggerView } from '../ScheduleControls/ScheduleTriggerView';
-import { ShareControlsView } from '../ShareControls/ShareControlsView';
-import { ShareExpenseEditorView, type ShareDraft } from '../ShareExpenseEditor/ShareExpenseEditorView';
 import { SplitSummaryView } from '../SplitControls/SplitSummaryView';
 import { SplitTriggerView } from '../SplitControls/SplitTriggerView';
 import { TransactionComposerActionsView } from '../TransactionComposerActions/TransactionComposerActionsView';
@@ -82,6 +81,10 @@ export type TransactionComposerViewRequired = {
   recurrenceEndCount: string;
   scheduleEditorOpen: boolean;
   expected: boolean;
+  shareEditorOpen: boolean;
+  shareApplied: boolean;
+  shareControl?: ReactNode;
+  shareEditorBody?: ReactNode;
   editedScheduledMovementId?: string;
   postExpectedMovementId?: string;
   currencyCode?: string;
@@ -154,6 +157,7 @@ export type TransactionComposerViewProvided = {
   onSetRecurrenceEndDate: (value: string) => void;
   onSetRecurrenceEndCount: (value: string) => void;
   onSetExpected: (value: boolean) => void;
+  onCloseShareEditor: () => void;
   onSubmit: (event: FormEvent) => Promise<void> | void;
 };
 
@@ -252,6 +256,10 @@ export function TransactionComposerView({ required, provided }: Props) {
     recurrenceEndCount,
     scheduleEditorOpen,
     expected,
+    shareEditorOpen,
+    shareApplied,
+    shareControl,
+    shareEditorBody,
     editedScheduledMovementId,
     postExpectedMovementId,
     currencyCode,
@@ -314,11 +322,9 @@ export function TransactionComposerView({ required, provided }: Props) {
     onSetRecurrenceEndKind,
     onSetRecurrenceEndDate,
     onSetRecurrenceEndCount,
+    onCloseShareEditor,
     onSubmit,
   } = provided;
-  const [shareEditorOpen, setShareEditorOpen] = useState(false);
-  const [shareSummary, setShareSummary] = useState<{ peopleCount: number; total: string } | null>(null);
-  const [shareDraft, setShareDraft] = useState<ShareDraft | null>(null);
   const [movementTypeSheetOpen, setMovementTypeSheetOpen] = useState(false);
   const [sourceAccountSheetOpen, setSourceAccountSheetOpen] = useState(false);
 
@@ -356,8 +362,7 @@ export function TransactionComposerView({ required, provided }: Props) {
   const splitAvailable = mode === 'expense' || mode === 'income';
   const shareAvailable = mode === 'expense';
   const shareEnabled = Number(amount) > 0;
-  const visibleShareSummary = shareEnabled ? shareSummary : null;
-  const amountLocked = splitApplied || Boolean(visibleShareSummary);
+  const amountLocked = splitApplied || (shareEnabled && shareApplied);
   const frequentCategoryIds = mode === 'income'
     ? FREQUENT_INCOME_CATEGORY_IDS
     : FREQUENT_EXPENSE_CATEGORY_IDS;
@@ -424,35 +429,12 @@ export function TransactionComposerView({ required, provided }: Props) {
         />
       )
     : null;
-  const shareControl = shareAvailable ? (
-    <ShareControlsView
-      required={{
-        config: {},
-        data: {},
-        state: {
-          applied: Boolean(visibleShareSummary),
-          peopleCount: visibleShareSummary?.peopleCount ?? 0,
-          total: visibleShareSummary?.total ?? amount,
-          currencyCode,
-        },
-        status: { disabled: disabled || !shareEnabled },
-      }}
-      provided={{
-        commands: {
-          open: () => setShareEditorOpen(true),
-          remove: () => {
-            setShareSummary(null);
-            setShareDraft(null);
-          },
-        },
-      }}
-    />
-  ) : null;
-  const amountAccessory = splitControl || shareControl ? (
+  const visibleShareControl = shareAvailable ? shareControl : null;
+  const amountAccessory = splitControl || visibleShareControl ? (
     <div className="composer-amount-accessory">
       <div className="composer-details-title">Details</div>
       <div className="composer-details-chips">
-        {shareControl}
+        {visibleShareControl}
         {splitControl}
       </div>
     </div>
@@ -465,9 +447,7 @@ export function TransactionComposerView({ required, provided }: Props) {
   const selectedModeOption = COMPOSER_MODES.find((item) => item.value === selectedMode) ?? COMPOSER_MODES[0];
   const selectedSourceAccount = required.sourceAccountOptions.find((account) => account.id === required.sourceAccountId);
   function resetLocalComposerState() {
-    setShareEditorOpen(false);
-    setShareSummary(null);
-    setShareDraft(null);
+    onCloseShareEditor();
     setMovementTypeSheetOpen(false);
     setSourceAccountSheetOpen(false);
   }
@@ -979,33 +959,13 @@ export function TransactionComposerView({ required, provided }: Props) {
           },
           data: {
             body: (
-              <ShareExpenseEditorView
-                required={{
-                  config: {},
-                  data: {},
-                  state: {
-                    amount,
-                    currencyCode,
-                    draft: shareDraft ?? undefined,
-                  },
-                  status: { disabled },
-                }}
-                provided={{
-                  commands: {
-                    applyShare: (summary, draft) => {
-                      setShareSummary(summary);
-                      setShareDraft(draft);
-                      setShareEditorOpen(false);
-                    },
-                  },
-                }}
-              />
+              shareEditorBody
             ),
           },
           state: { open: shareEnabled && shareEditorOpen },
           status: { disabled },
         }}
-        provided={{ commands: { close: () => setShareEditorOpen(false) } }}
+        provided={{ commands: { close: onCloseShareEditor } }}
       />
     </>
   );
