@@ -3,12 +3,15 @@ package com.gonezo.multiplatform.plugins;
 import android.content.Context;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
+import com.gonezo.multiplatform.core.AndroidAnalyticsCore;
 import com.gonezo.multiplatform.core.AndroidLedgerCore;
 import com.gonezo.multiplatform.core.AndroidTaxonomyCore;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -53,6 +56,7 @@ final class LedgerTransactionsQueryHandler {
 
       AndroidLedgerCore ledgerCore = AndroidLedgerCore.getInstance(context);
       AndroidTaxonomyCore taxonomyCore = AndroidTaxonomyCore.getInstance(context);
+      Set<String> ignoredMovementIds = new HashSet<>(AndroidAnalyticsCore.getInstance(context).listIgnoredMovements());
 
       java.util.Set<String> categoryFilter = categoryIds == null || categoryIds.isEmpty()
         ? null
@@ -83,6 +87,7 @@ final class LedgerTransactionsQueryHandler {
         call.resolve(toTransactionPageJson(
           pageResult.content(),
           taxonomyByTransactionId,
+          ignoredMovementIds,
           pageResult.page(),
           pageResult.size(),
           pageResult.totalElements(),
@@ -169,6 +174,7 @@ final class LedgerTransactionsQueryHandler {
       call.resolve(toTransactionPageJson(
         pageTransactions,
         taxonomyByTransactionId,
+        ignoredMovementIds,
         resolvedPage,
         pageSize,
         totalElements,
@@ -183,7 +189,8 @@ final class LedgerTransactionsQueryHandler {
 
   private JSObject toTransactionJson(
     AndroidLedgerCore.LedgerTransactionView tx,
-    AndroidTaxonomyCore.TransactionTaxonomyView taxonomy
+    AndroidTaxonomyCore.TransactionTaxonomyView taxonomy,
+    Set<String> ignoredMovementIds
   ) {
     JSObject item = new JSObject();
     item.put("id", tx.id());
@@ -196,6 +203,7 @@ final class LedgerTransactionsQueryHandler {
     item.put("description", tx.description());
     item.put("merchant", tx.merchant());
     item.put("linkedTransactionId", tx.linkedTransactionId());
+    item.put("ignored", ignoredMovementIds.contains(tx.id()));
     String categoryIdValue = taxonomy == null ? null : taxonomy.categoryId();
     if (categoryIdValue == null || categoryIdValue.trim().isEmpty()) {
       categoryIdValue = tx.categoryId();
@@ -220,6 +228,7 @@ final class LedgerTransactionsQueryHandler {
   private JSObject toTransactionPageJson(
     List<AndroidLedgerCore.LedgerTransactionView> transactions,
     Map<String, AndroidTaxonomyCore.TransactionTaxonomyView> taxonomyByTransactionId,
+    Set<String> ignoredMovementIds,
     int page,
     int size,
     int totalElements,
@@ -229,7 +238,7 @@ final class LedgerTransactionsQueryHandler {
   ) {
     JSONArray items = new JSONArray();
     for (AndroidLedgerCore.LedgerTransactionView tx : transactions) {
-      items.put(toTransactionJson(tx, taxonomyByTransactionId.get(tx.id())));
+      items.put(toTransactionJson(tx, taxonomyByTransactionId.get(tx.id()), ignoredMovementIds));
     }
 
     JSObject result = new JSObject();

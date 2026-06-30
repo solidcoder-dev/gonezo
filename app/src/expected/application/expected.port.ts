@@ -7,6 +7,7 @@ export type ExpectedCreateMovementInput = {
   description?: string;
   merchant?: string;
   categoryId?: string;
+  ignored?: boolean;
   originOccurrenceId?: string;
   originRecurringMovementId?: string;
   splitItems?: Array<{ id: string; name: string; amount: string }>;
@@ -26,6 +27,7 @@ export type ExpectedUpdateMovementInput = {
   description?: string;
   merchant?: string;
   categoryId?: string;
+  ignored?: boolean;
   splitItems?: Array<{ id: string; name: string; amount: string }>;
 };
 
@@ -54,6 +56,7 @@ export type ExpectedMovementItem = {
   updatedAt: string;
   resolvedAt?: string;
   dismissedAt?: string;
+  ignored?: boolean;
 };
 
 export type ExpectedListMovementsInput = {

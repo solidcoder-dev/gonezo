@@ -76,6 +76,7 @@ export type MovementsSearchItem = {
     id: string;
     name: string;
   };
+  ignored?: boolean;
   tags?: Array<{
     id: string;
     name: string;

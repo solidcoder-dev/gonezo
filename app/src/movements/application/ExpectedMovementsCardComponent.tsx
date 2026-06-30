@@ -78,6 +78,7 @@ function buildHomeExpectedMovementRow(movement: ExpectedMovementView): HomeMovem
     iconClassName: movement.type === 'income' ? 'bi bi-arrow-down-left' : 'bi bi-arrow-up-right',
     amountLabel: `${sign}${formatCurrencyAmount(movement.amount, movement.currency)}`,
     amountTone: movement.type === 'income' ? 'income' : 'expense',
+    ignored: movement.ignored,
   };
 }
 

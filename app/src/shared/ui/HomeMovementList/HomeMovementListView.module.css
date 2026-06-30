@@ -34,6 +34,11 @@
   text-align: left;
 }
 
+.ignored {
+  opacity: 0.55;
+  filter: grayscale(0.15);
+}
+
 .icon {
   display: inline-flex;
   align-items: center;

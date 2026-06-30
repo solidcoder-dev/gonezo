@@ -43,6 +43,7 @@ function createPort(): HomeRecentMovementsPort {
             currency: 'EUR',
             type: 'expense',
             status: 'posted',
+            ignored: true,
             items: [],
           },
         ],
@@ -79,6 +80,23 @@ describe('HomeRecentMovementsComponent', () => {
     })));
     expect(await screen.findByText('Cafe')).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Recent movements' })).toBeInTheDocument();
+  });
+
+  it('keeps ignored recent movements faded but clickable', async () => {
+    const core = createPort();
+
+    render(
+      <HomeRecentMovementsComponent
+        required={{
+          context: { core },
+          config: { enabled: true, refreshSignal: false },
+        }}
+      />,
+    );
+
+    const movementButton = await screen.findByRole('button', { name: /Cafe/i });
+    expect(movementButton.className).toContain('ignored');
+    expect(movementButton).toBeEnabled();
   });
 
   it('opens recent movement details when a row is selected', async () => {

@@ -1,13 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import type { CorePort } from '../application/corePort';
 import type { AccountsListBalancesResult } from '../../account/application/accountBalances.port';
-import type {
-  AnalyticsCashFlowSeriesInput,
-  AnalyticsCashFlowSummaryResult,
-  AnalyticsListCurrenciesResult,
-  AnalyticsSpendingOverviewInput,
-  AnalyticsSpendingOverviewResult,
-} from '../../analytics/application/analytics.port';
+import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult } from '../../analytics/application/analytics.port';
 import type {
   UserPreferencesResult,
   PreferencesSetDefaultAccountInput,
@@ -298,6 +292,13 @@ export class CoreAdapter implements CorePort {
       return this.web.analyticsGetSpendingOverview(input);
     }
     return analyticsGetSpendingOverview(this, input);
+  }
+
+  async analyticsSetMovementIgnored(input: AnalyticsSetMovementIgnoredInput): Promise<void> {
+    return Capacitor.isNativePlatform() ? CorePlugin.analyticsSetMovementIgnored(input) : this.web.analyticsSetMovementIgnored(input);
+  }
+  async analyticsListIgnoredMovements() {
+    return Capacitor.isNativePlatform() ? CorePlugin.analyticsListIgnoredMovements() : this.web.analyticsListIgnoredMovements();
   }
 
   async sharingListPeople(): Promise<SharingListPeopleResult> {

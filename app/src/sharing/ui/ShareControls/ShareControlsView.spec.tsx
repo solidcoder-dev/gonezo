@@ -18,7 +18,7 @@ describe('ShareControlsView', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Share' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sharing' }));
 
     expect(open).toHaveBeenCalledTimes(1);
   });

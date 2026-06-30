@@ -9,6 +9,7 @@ import type { ExpectedGatewayPort } from '../../expected/application/expectedGat
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
 import type { ShareDraft } from '../../sharing/domain/shareDraft';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
+import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.types';
 import type { ComposerMode, ExpenseItemDraft } from './transactions.types';
 import {
@@ -29,6 +30,7 @@ export type TransactionSubmissionPlanInput = {
     scheduling: SchedulingGatewayPort;
     expected: ExpectedGatewayPort;
     sharing: SharingGatewayPort;
+    analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
   };
   ledgerTransactionCommands: LedgerTransactionCommands;
   clock: TransactionSubmissionClock;
@@ -57,6 +59,7 @@ export type TransactionSubmissionPlanInput = {
   recurrenceEndDate: string;
   recurrenceEndCount: string;
   movementExpected: boolean;
+  movementIgnored: boolean;
   movementScheduled: boolean;
   expenseDetailed: boolean;
   expenseItems: ExpenseItemDraft[];
@@ -251,6 +254,7 @@ async function handleExpectedMovement(
     description: context.transactionNote.trim() || undefined,
     merchant: context.transactionNote.trim() || undefined,
     categoryId,
+    ignored: context.movementIgnored,
     splitItems: context.expenseItems,
   };
   if (context.editedExpectedMovementId) {
@@ -570,6 +574,25 @@ async function handlePostedShare(
   });
 }
 
+async function handlePostedMovementIgnored(
+  context: TransactionSubmissionContext,
+  state: TransactionSubmissionState,
+) {
+  if (
+    !context.movementIgnored
+    || !state.postedTransactionId
+    || (context.composerMode !== 'expense' && context.composerMode !== 'income')
+  ) {
+    return;
+  }
+
+  await context.ports.analytics.analyticsSetMovementIgnored({
+    movementId: state.postedTransactionId,
+    ignored: true,
+    changedAt: context.clock.now().toISOString(),
+  });
+}
+
 const SUBMISSION_HANDLERS: TransactionSubmissionHandlerEntry[] = [
   { run: handleEditedScheduledMovement },
   { run: handleExpectedMovement, runAfterRecorded: true },
@@ -579,6 +602,7 @@ const SUBMISSION_HANDLERS: TransactionSubmissionHandlerEntry[] = [
   { run: handlePostedExpense },
   { run: handlePostedIncome },
   { run: handlePostedTransfer },
+  { run: handlePostedMovementIgnored, runAfterRecorded: true },
   { run: handlePostedShare, runAfterRecorded: true },
 ];
 

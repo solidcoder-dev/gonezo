@@ -3,5 +3,11 @@ import type { SchedulingGatewayPort } from '../../scheduling/application/schedul
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
+import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 
-export type TransactionsPort = LedgerGatewayPort & TaxonomyGatewayPort & SchedulingGatewayPort & ExpectedGatewayPort & SharingGatewayPort;
+export type TransactionsPort = LedgerGatewayPort
+  & TaxonomyGatewayPort
+  & SchedulingGatewayPort
+  & ExpectedGatewayPort
+  & SharingGatewayPort
+  & Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;

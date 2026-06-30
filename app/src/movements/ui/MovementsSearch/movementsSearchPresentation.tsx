@@ -68,6 +68,10 @@ function amountClassName(kind: MovementAmountKindView): string {
   return `movement-amount movement-amount--${kind}`;
 }
 
+function movementRowClassName(baseClassName: string, ignored?: boolean): string {
+  return ignored ? `${baseClassName} movement-row--ignored` : baseClassName;
+}
+
 export function groupMovementSearchResultsByDay(
   entries: MovementsSearchItemView[],
   options: SearchPresentationOptions = {},
@@ -110,7 +114,7 @@ export function buildMovementSearchRowData(
   }
 
   return {
-    itemClassName: txItemTypeClass(entry.type),
+    itemClassName: movementRowClassName(txItemTypeClass(entry.type), entry.ignored),
     iconClassName: txKindIconClass(entry.type),
     title: entry.title,
     amount: {
@@ -157,6 +161,7 @@ function searchEntryToPostedTransaction(entry: MovementsSearchItemView): Transac
     categoryId: entry.categoryId,
     category: entry.category,
     tags: entry.tags,
+    ignored: entry.ignored,
     items: entry.items ?? [],
   };
 }
@@ -177,6 +182,7 @@ function searchEntryToExpectedMovement(entry: MovementsSearchItemView): Expected
     status: entry.status === 'resolved' || entry.status === 'dismissed' ? entry.status : 'pending',
     createdAt: entry.occurredAt,
     updatedAt: entry.occurredAt,
+    ignored: entry.ignored,
   };
 }
 

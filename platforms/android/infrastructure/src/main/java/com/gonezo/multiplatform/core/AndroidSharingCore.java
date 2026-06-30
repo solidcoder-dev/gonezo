@@ -145,6 +145,7 @@ public final class AndroidSharingCore {
         null
       );
       addAnalyticsExclusion("movement", expectedMovementId, "shared_expense_reimbursement", now);
+      addAnalyticsExclusion("expected_movement", expectedMovementId, "user_ignored", now);
     }
 
     ContentValues values = new ContentValues();
@@ -251,6 +252,11 @@ public final class AndroidSharingCore {
         "analytics_exclusions",
         "scope_type = ? and scope_id = ?",
         new String[] { "movement", expectedMovementId }
+      );
+      database.getWritableDatabase().delete(
+        "analytics_exclusions",
+        "scope_type = ? and scope_id = ?",
+        new String[] { "expected_movement", expectedMovementId }
       );
     }
   }

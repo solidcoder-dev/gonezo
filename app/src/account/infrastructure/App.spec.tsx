@@ -320,6 +320,8 @@ function makeCore(transactionCount = 0): AppTestPort {
       totalExpenseAmount: '0.00',
       categories: [],
     })),
+    analyticsSetMovementIgnored: vi.fn(async () => undefined),
+    analyticsListIgnoredMovements: vi.fn(async () => ({ movementIds: [] })),
     ledgerListTransactions: vi.fn(async (input) => toPagedResult(transactions, input)),
     ledgerOpenAccount: vi.fn(async () => ({ id: 'acc-1' })),
     ledgerRenameAccount: vi.fn(async () => undefined),
@@ -1241,7 +1243,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '20' } });
-    fireEvent.click(within(composer).getByRole('button', { name: 'Share' }));
+    fireEvent.click(within(composer).getByRole('button', { name: 'Sharing' }));
 
     const shareDialog = await screen.findByRole('dialog', { name: 'Share expense' });
     fireEvent.change(within(shareDialog).getByLabelText('Search people to add'), { target: { value: 'Emma' } });
@@ -1264,7 +1266,7 @@ describe('App Accounts UX', () => {
     fireEvent.change(amountInput, { target: { value: '15' } });
     expect(amountInput).toHaveValue(15);
     expect(amountInput).toBeEnabled();
-    expect(within(resetComposer).getByRole('button', { name: 'Share' })).toBeEnabled();
+    expect(within(resetComposer).getByRole('button', { name: 'Sharing' })).toBeEnabled();
     expect(within(resetComposer).queryByRole('button', { name: /Edit share/ })).not.toBeInTheDocument();
   });
 
@@ -1280,7 +1282,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '20' } });
-    fireEvent.click(within(composer).getByRole('button', { name: 'Share' }));
+    fireEvent.click(within(composer).getByRole('button', { name: 'Sharing' }));
 
     const shareDialog = await screen.findByRole('dialog', { name: 'Share expense' });
     fireEvent.change(within(shareDialog).getByLabelText('Search people to add'), { target: { value: 'Emma' } });
@@ -1300,7 +1302,7 @@ describe('App Accounts UX', () => {
 
     expect(nextAmountInput).toHaveValue(15);
     expect(nextAmountInput).toBeEnabled();
-    expect(within(nextComposer).getByRole('button', { name: 'Share' })).toBeEnabled();
+    expect(within(nextComposer).getByRole('button', { name: 'Sharing' })).toBeEnabled();
     expect(within(nextComposer).queryByRole('button', { name: /Edit share/ })).not.toBeInTheDocument();
   });
 

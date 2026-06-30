@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { TransactionHistoryItemView } from '../../../transactions/application/transactionView.types';
 import type { ExpectedMovementView, ScheduledMovementView } from '../../application/movementsView.types';
 import {
+  buildExpectedMovementRowData,
   buildPostedMovementRowData,
   buildExpectedMovementDetailData,
   buildPostedMovementDetailData,
@@ -120,6 +121,14 @@ describe('monthly movement detail builders', () => {
       { label: 'Origin', value: 'recurring' },
       { label: 'Status', value: 'pending' },
     ]);
+  });
+
+  it('keeps ignored expected movements visually faded and marked in detail data', () => {
+    const rowData = buildExpectedMovementRowData(expected({ ignored: true }));
+    const detailData = buildExpectedMovementDetailData(expected({ ignored: true }));
+
+    expect(rowData.itemClassName).toContain('movement-row--ignored');
+    expect(detailData.ignored).toBe(true);
   });
 
   it('builds scheduled movement detail data', () => {

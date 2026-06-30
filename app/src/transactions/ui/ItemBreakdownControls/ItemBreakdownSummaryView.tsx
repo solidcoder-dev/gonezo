@@ -36,7 +36,11 @@ export function ItemBreakdownSummaryView({ required, provided }: ItemBreakdownSu
         aria-label={`Edit items, ${state.itemsCount} ${itemLabel}, ${formatCurrencyAmount(state.total, state.currencyCode)}`}
       >
         <i className="bi bi-receipt" aria-hidden />
-        <span>{state.itemsCount} {itemLabel} · {formatCurrencyAmount(state.total, state.currencyCode)}</span>
+        <span className="item-breakdown-control-text">
+          <strong>Items</strong>
+          <small>{state.itemsCount} {itemLabel} · {formatCurrencyAmount(state.total, state.currencyCode)}</small>
+        </span>
+        <i className="bi bi-chevron-right item-breakdown-control-chevron" aria-hidden />
       </button>
     </section>
   );

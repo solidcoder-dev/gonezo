@@ -64,6 +64,7 @@ export function mapExpectedMovementToSearchItem(
     merchant: movement.merchant,
     categoryId: movement.categoryId,
     category: movement.categoryId ? { id: movement.categoryId, name: categoryNameById(movement.categoryId) ?? movement.categoryId } : undefined,
+    ignored: movement.ignored,
     tags: [],
     items: movement.splitItems,
   };

@@ -7,6 +7,7 @@ export type HomeMovementRowView = {
   iconClassName: string;
   amountLabel: string;
   amountTone: 'income' | 'expense' | 'transfer' | 'expected';
+  ignored?: boolean;
 };
 
 export type HomeMovementListViewProps = {
@@ -28,7 +29,7 @@ export function HomeMovementListView({
         <li className={styles.item} key={movement.id}>
           <button
             type="button"
-            className={styles.itemButton}
+            className={`${styles.itemButton} ${movement.ignored ? styles.ignored : ''}`}
             onClick={() => selectMovement(movement.id)}
             disabled={disabled}
           >

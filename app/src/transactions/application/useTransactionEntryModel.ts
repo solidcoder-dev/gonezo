@@ -7,6 +7,7 @@ import type { SchedulingGatewayPort } from '../../scheduling/application/schedul
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
 import { useShareDraftModel } from '../../sharing/application/useShareDraftModel';
+import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
 import type { ComposerMode, TransactionFieldErrors } from './transactions.types';
 import type { TransactionEntryViewProvided, TransactionEntryViewRequired } from '../ui/TransactionComposer/TransactionEntryView';
@@ -22,24 +23,14 @@ import { nextRecurrenceDateIso } from '../../shared/domain/nextRecurrenceDate';
 import { applyTransactionEntryInitialMode, type TransactionEntryInitialMode } from './transactionEntryInitialMode';
 
 export type TransactionEntryModelPorts = {
-  ledger: LedgerGatewayPort; scheduling: SchedulingGatewayPort; expected: ExpectedGatewayPort; sharing: SharingGatewayPort; taxonomy: TaxonomyGatewayPort;
+  ledger: LedgerGatewayPort; scheduling: SchedulingGatewayPort; expected: ExpectedGatewayPort; sharing: SharingGatewayPort; taxonomy: TaxonomyGatewayPort; analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
 };
 
-export type TransactionEntryModelClock = {
-  now(): Date; todayIso(): string; resolveOccurredAt(dateInput: string): string;
-  dayOfMonthFromDateInput(dateInput: string): string; weekDayIsoFromDateInput(dateInput: string): string; resolveTimeZoneId(): string;
-};
+export type TransactionEntryModelClock = { now(): Date; todayIso(): string; resolveOccurredAt(dateInput: string): string; dayOfMonthFromDateInput(dateInput: string): string; weekDayIsoFromDateInput(dateInput: string): string; resolveTimeZoneId(): string };
 
 export type TransactionEntryModelIdGenerator = { nextId(): string };
 
-type UseTransactionEntryModelInput = {
-  ports: TransactionEntryModelPorts;
-  clock: TransactionEntryModelClock;
-  idGenerator: TransactionEntryModelIdGenerator;
-  accountId: string | null; enabled: boolean; prefillRequest?: TransactionEntryPrefillRequest; openSignal?: number;
-  initialMode?: TransactionEntryInitialMode; movementAccountContext?: { name: string; type?: TransactionEntryInitialMode };
-  onRecorded?: () => void; onClosed?: () => void; onCollapsed?: () => void; onAccountChanged?: (account: { id: string; name: string }) => void; onError?: (error: { message: string }) => void;
-};
+type UseTransactionEntryModelInput = { ports: TransactionEntryModelPorts; clock: TransactionEntryModelClock; idGenerator: TransactionEntryModelIdGenerator; accountId: string | null; enabled: boolean; prefillRequest?: TransactionEntryPrefillRequest; openSignal?: number; initialMode?: TransactionEntryInitialMode; movementAccountContext?: { name: string; type?: TransactionEntryInitialMode }; onRecorded?: () => void; onClosed?: () => void; onCollapsed?: () => void; onAccountChanged?: (account: { id: string; name: string }) => void; onError?: (error: { message: string }) => void };
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -78,6 +69,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [transactionAmount, setTransactionAmount] = useState('');
   const [transactionDate, setTransactionDate] = useState(initialToday);
   const [transactionNote, setTransactionNote] = useState('');
+  const [movementIgnored, setMovementIgnored] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<TransactionFieldErrors>({});
   const shareDraftModel = useShareDraftModel(ports.sharing);
   const ledgerAccounts = useLedgerAccounts(ports.ledger);
@@ -217,6 +209,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setTransactionAmount('');
     setTransactionDate(today);
     setTransactionNote('');
+    setMovementIgnored(false);
     resetTaxonomyInputs();
     resetTransferFx();
     resetExpenseSplit();
@@ -345,6 +338,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       return;
     }
 
+    setMovementIgnored(false);
     setExpectedMovement(false);
     syncForTransferMode();
   }
@@ -473,6 +467,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           scheduling: ports.scheduling,
           expected: ports.expected,
           sharing: ports.sharing,
+          analytics: ports.analytics,
         },
         ledgerTransactionCommands,
         clock,
@@ -501,6 +496,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         recurrenceEndDate,
         recurrenceEndCount,
         movementExpected,
+        movementIgnored: composerMode === 'expense' || composerMode === 'income' ? movementIgnored : false,
         movementScheduled,
         expenseDetailed,
         expenseItems,
@@ -587,6 +583,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       shareDraft: shareDraftModel.state.draft,
       shareSummary: shareDraftModel.state.summary,
       sharePeopleSuggestions: shareDraftModel.state.peopleSuggestions,
+      movementIgnored,
       editedScheduledMovementId: editedScheduledMovementId || undefined,
       postExpectedMovementId: postExpectedMovementId || undefined,
       currencyCode: accountCurrency,
@@ -652,6 +649,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       setRecurrenceEndDate: setRecurrenceEndDateValue,
       setRecurrenceEndCount: setRecurrenceEndCountValue,
       setExpected: setExpectedMovementValue,
+      setMovementIgnored,
       openShareEditor: shareDraftModel.actions.openEditor,
       closeShareEditor: shareDraftModel.actions.closeEditor,
       applyShareDraft: shareDraftModel.actions.applyShareDraft,

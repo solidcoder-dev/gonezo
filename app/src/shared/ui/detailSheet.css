@@ -32,6 +32,26 @@
   line-height: 1.2;
 }
 
+.detail-sheet-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.movement-detail-ignored-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #f1f1eb;
+  color: #5f5f56;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 .detail-sheet-amount {
   margin-top: 12px;
   padding: 14px 16px;

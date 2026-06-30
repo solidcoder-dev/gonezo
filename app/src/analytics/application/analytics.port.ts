@@ -47,9 +47,21 @@ export type AnalyticsSpendingOverviewResult = {
   categories: AnalyticsSpendingOverviewCategory[];
 };
 
+export type AnalyticsSetMovementIgnoredInput = {
+  movementId: string;
+  ignored: boolean;
+  changedAt?: string;
+};
+
+export type AnalyticsListIgnoredMovementsResult = {
+  movementIds: string[];
+};
+
 export type AnalyticsPort = {
   analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult>;
   analyticsGetCashFlowSeries(input: AnalyticsCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult>;
   analyticsGetPeriodCashFlowSummary(input: AnalyticsCurrencyScopeInput): Promise<AnalyticsCashFlowSummaryResult>;
   analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult>;
+  analyticsSetMovementIgnored(input: AnalyticsSetMovementIgnoredInput): Promise<void>;
+  analyticsListIgnoredMovements(): Promise<AnalyticsListIgnoredMovementsResult>;
 };

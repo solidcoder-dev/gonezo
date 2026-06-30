@@ -87,6 +87,7 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
     expected: createExpectedGateway(required.context.core),
     sharing: createSharingGateway(required.context.core),
     taxonomy: createTaxonomyGateway(required.context.core),
+    analytics: required.context.core,
   }), [required.context.core]);
 
   const model = useTransactionEntryModel({

@@ -37,7 +37,10 @@ export function ShareControlsView({ required, provided }: ShareControlsViewProps
         disabled={status.disabled}
       >
         <i className="bi bi-people" aria-hidden />
-        Share
+        <span className="share-control-text">
+          <strong>Sharing</strong>
+        </span>
+        <i className="bi bi-chevron-right share-control-chevron" aria-hidden />
       </button>
     );
   }
@@ -52,7 +55,11 @@ export function ShareControlsView({ required, provided }: ShareControlsViewProps
         aria-label={`Edit share, ${shareLabel}, ${formatCurrencyAmount(state.total, state.currencyCode)}`}
       >
         <i className="bi bi-people" aria-hidden />
-        <span>{shareLabel}</span>
+        <span className="share-control-text">
+          <strong>Sharing</strong>
+          <small>{shareLabel}</small>
+        </span>
+        <i className="bi bi-chevron-right share-control-chevron" aria-hidden />
       </button>
     </section>
   );

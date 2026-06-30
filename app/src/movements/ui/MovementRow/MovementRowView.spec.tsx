@@ -55,6 +55,29 @@ describe('MovementRowView', () => {
     expect(screen.getByRole('button', { name: /Salary/i })).toBeDisabled();
   });
 
+  it('keeps the ignored row class supplied by presentation data', () => {
+    const { container } = render(
+      <MovementRowView
+        required={{
+          config: {},
+          data: {
+            itemClassName: 'expense-item expense-item--expense movement-row--ignored',
+            iconClassName: 'bi bi-arrow-down-right',
+            title: 'Ignored coffee',
+            amount: { sign: '-', label: '$4.00' },
+            details: [],
+          },
+          state: {},
+          status: { disabled: false },
+        }}
+        provided={{ commands: { select: vi.fn() } }}
+      />,
+    );
+
+    expect(container.querySelector('li')).toHaveClass('movement-row--ignored');
+    expect(screen.getByRole('button', { name: /Ignored coffee/i })).toBeEnabled();
+  });
+
   it('keeps long movement text inside truncation containers', () => {
     const longText = 'Very long merchant name that should never resize the movement card horizontally or push actions away';
     const { container } = render(

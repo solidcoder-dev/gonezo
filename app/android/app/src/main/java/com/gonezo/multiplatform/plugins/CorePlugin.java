@@ -250,4 +250,10 @@ public class CorePlugin extends Plugin {
   public void sharingGetMovementDetails(PluginCall call) {
     new SharingPluginHandler(getContext()).sharingGetMovementDetails(call);
   }
+
+  @PluginMethod
+  public void analyticsSetMovementIgnored(PluginCall call) { new AnalyticsPluginHandler(getContext()).analyticsSetMovementIgnored(call); }
+
+  @PluginMethod
+  public void analyticsListIgnoredMovements(PluginCall call) { new AnalyticsPluginHandler(getContext()).analyticsListIgnoredMovements(call); }
 }

@@ -129,4 +129,27 @@ describe('ExpectedMovementsCardComponent', () => {
     expect(screen.getByText('Edit expected')).toBeInTheDocument();
     expect(screen.getByText('Remove movement')).toBeInTheDocument();
   });
+
+  it('keeps ignored expected movements faded in the home expected list', async () => {
+    const core = createCore();
+    vi.mocked(core.expectedListMovements).mockImplementation(async ({ accountId }) => ({
+      items: accountId === 'acc-1'
+        ? [expectedMovement({ id: 'expected-main', accountId, ignored: true })]
+        : [],
+    }));
+
+    render(
+      <ExpectedMovementsCardComponent
+        required={{
+          context: { core },
+          config: { enabled: true, refreshSignal: false },
+        }}
+      />,
+    );
+
+    const movementButton = await screen.findByRole('button', { name: /Market/i });
+
+    expect(movementButton.className).toContain('ignored');
+    expect(movementButton).toBeEnabled();
+  });
 });

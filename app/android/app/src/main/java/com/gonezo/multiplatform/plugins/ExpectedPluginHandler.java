@@ -3,9 +3,12 @@ package com.gonezo.multiplatform.plugins;
 import android.content.Context;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
+import com.gonezo.multiplatform.core.AndroidAnalyticsCore;
 import com.gonezo.multiplatform.core.AndroidExpectedCore;
 import com.gonezo.multiplatform.core.AndroidRecurringExpectedRuntime;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -32,6 +35,11 @@ final class ExpectedPluginHandler {
         call.getString("originRecurringMovementId"),
         toJsonStringOrNull(call.getArray("splitItems"))
       );
+      AndroidAnalyticsCore.getInstance(context).setExpectedMovementIgnored(
+        id.toString(),
+        call.getBoolean("ignored", false),
+        Instant.now().toString()
+      );
       JSObject result = new JSObject();
       result.put("id", id.toString());
       call.resolve(result);
@@ -54,6 +62,14 @@ final class ExpectedPluginHandler {
         call.getString("categoryId"),
         toJsonStringOrNull(call.getArray("splitItems"))
       );
+      Boolean ignored = call.getBoolean("ignored");
+      if (ignored != null) {
+        AndroidAnalyticsCore.getInstance(context).setExpectedMovementIgnored(
+          id.toString(),
+          ignored,
+          Instant.now().toString()
+        );
+      }
       JSObject result = new JSObject();
       result.put("id", id.toString());
       call.resolve(result);
@@ -67,12 +83,15 @@ final class ExpectedPluginHandler {
       Boolean includeClosedValue = call.getBoolean("includeClosed");
       boolean includeClosed = includeClosedValue != null && includeClosedValue;
       AndroidExpectedCore expectedCore = AndroidExpectedCore.getInstance(context);
+      Set<String> ignoredExpectedMovementIds = new HashSet<>(
+        AndroidAnalyticsCore.getInstance(context).listIgnoredExpectedMovements()
+      );
       JSONArray items = new JSONArray();
       for (AndroidExpectedCore.ExpectedMovementView movement : expectedCore.listMovements(
         call.getString("accountId"),
         includeClosed
       )) {
-        items.put(toExpectedMovementJson(movement));
+        items.put(toExpectedMovementJson(movement, ignoredExpectedMovementIds));
       }
       JSObject result = new JSObject();
       result.put("items", items);
@@ -118,7 +137,10 @@ final class ExpectedPluginHandler {
     }
   }
 
-  private JSObject toExpectedMovementJson(AndroidExpectedCore.ExpectedMovementView movement) {
+  private JSObject toExpectedMovementJson(
+    AndroidExpectedCore.ExpectedMovementView movement,
+    Set<String> ignoredExpectedMovementIds
+  ) {
     JSObject result = new JSObject();
     result.put("id", movement.getId());
     result.put("accountId", movement.getAccountId());
@@ -146,6 +168,7 @@ final class ExpectedPluginHandler {
     result.put("updatedAt", movement.getUpdatedAt());
     result.put("resolvedAt", movement.getResolvedAt());
     result.put("dismissedAt", movement.getDismissedAt());
+    result.put("ignored", ignoredExpectedMovementIds.contains(movement.getId()));
     return result;
   }
 

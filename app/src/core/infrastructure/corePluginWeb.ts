@@ -94,6 +94,10 @@ import type {
   MovementsListScheduledResult,
 } from '../../movements/application/movements.port';
 import type {
+  AnalyticsListIgnoredMovementsResult,
+  AnalyticsSetMovementIgnoredInput,
+} from '../../analytics/application/analytics.port';
+import type {
   SharingApplyShareToPostedTransactionInput,
   SharingApplyShareToPostedTransactionResult,
   SharingGetMovementDetailsInput,
@@ -330,6 +334,14 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async sharingGetMovementDetails(options: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult> {
     return this.core.sharingGetMovementDetails(options);
+  }
+
+  async analyticsSetMovementIgnored(options: AnalyticsSetMovementIgnoredInput): Promise<void> {
+    return this.core.analyticsSetMovementIgnored(options);
+  }
+
+  async analyticsListIgnoredMovements(): Promise<AnalyticsListIgnoredMovementsResult> {
+    return this.core.analyticsListIgnoredMovements();
   }
 
   async movementsGetMonthOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> {

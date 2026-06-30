@@ -133,6 +133,7 @@ function mapPostedTransactionToSearchItem(transaction: LedgerTransactionListItem
     merchant: transaction.merchant,
     categoryId: transaction.categoryId,
     category: transaction.category,
+    ignored: transaction.ignored,
     tags: transaction.tags,
     items: transaction.items,
   };
@@ -283,6 +284,7 @@ function mapExpectedMovementToSearchItem(
     category: movement.categoryId
       ? { id: movement.categoryId, name: categoryNamesById?.get(movement.categoryId) ?? movement.categoryId }
       : undefined,
+    ignored: movement.ignored,
     tags: [],
     items: movement.splitItems,
   };

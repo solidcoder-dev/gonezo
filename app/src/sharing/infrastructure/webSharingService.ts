@@ -87,6 +87,7 @@ export class WebSharingService {
         this.addAnalyticsExclusion('share_participant', participantId, 'shared_expense', appliedAt);
         if (expectedMovementId) {
           this.addAnalyticsExclusion('expected_movement', expectedMovementId, 'reimbursement', appliedAt);
+          this.addAnalyticsExclusion('expected_movement', expectedMovementId, 'user_ignored', appliedAt);
         }
       }
     }

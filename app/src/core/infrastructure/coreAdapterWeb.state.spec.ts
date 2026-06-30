@@ -150,6 +150,69 @@ describe('CoreAdapterWeb state and effects boundaries', () => {
     await expect(second.preferencesGet()).resolves.toEqual({ defaultAccountId: 'second-default' });
   });
 
+  it('marks sharing reimbursement expected movements as ignored', async () => {
+    let nextId = 0;
+    const state = createWebAppState();
+    const core = new CoreAdapterWeb({
+      state,
+      dependencies: {
+        clock: { nowIso: () => '2026-06-02T09:00:00.000Z' },
+        idGenerator: { nextId: () => `id-${++nextId}` },
+        backupDownloader: { downloadJson: vi.fn() },
+      },
+    });
+    const account = await core.ledgerOpenAccount({ name: 'Wallet', type: 'cash', currency: 'EUR' });
+    const expense = await core.ledgerRecordExpense({
+      accountId: account.id,
+      occurredAt: '2026-06-02T09:00:00.000Z',
+      amount: '30.00',
+      currency: 'EUR',
+      merchant: 'Dinner',
+    });
+
+    const share = await core.sharingApplyShareToPostedTransaction({
+      transactionId: expense.id,
+      payerName: 'You',
+      participants: [{ personName: 'Alex', amount: '15.00', reimbursable: true }],
+    });
+
+    const expectedMovementId = share.participants[0].expectedMovementId;
+    expect(expectedMovementId).toBeTruthy();
+    expect(state.analyticsExclusions).toContainEqual(expect.objectContaining({
+      scopeType: 'expected_movement',
+      scopeId: expectedMovementId,
+      reason: 'user_ignored',
+    }));
+    await expect(core.expectedListMovements({ accountId: account.id })).resolves.toMatchObject({
+      items: [expect.objectContaining({ id: expectedMovementId, ignored: true })],
+    });
+  });
+
+  it('lists manual ignored expected movements as ignored', async () => {
+    let nextId = 0;
+    const core = new CoreAdapterWeb({
+      state: createWebAppState(),
+      dependencies: {
+        clock: { nowIso: () => '2026-06-02T09:00:00.000Z' },
+        idGenerator: { nextId: () => `id-${++nextId}` },
+        backupDownloader: { downloadJson: vi.fn() },
+      },
+    });
+    const account = await core.ledgerOpenAccount({ name: 'Wallet', type: 'cash', currency: 'EUR' });
+    const expected = await core.expectedCreateMovement({
+      accountId: account.id,
+      type: 'income',
+      amount: '18.00',
+      currency: 'EUR',
+      expectedAt: '2026-06-05T09:00:00.000Z',
+      ignored: true,
+    });
+
+    await expect(core.expectedListMovements({ accountId: account.id })).resolves.toMatchObject({
+      items: [expect.objectContaining({ id: expected.id, ignored: true })],
+    });
+  });
+
   it('orders net worth with the default account currency first', async () => {
     let nextId = 0;
     const core = new CoreAdapterWeb({

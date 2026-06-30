@@ -1,0 +1,115 @@
+.movement-more-trigger {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.movement-more-trigger > .bi:first-child {
+  font-size: 1.15rem;
+}
+
+.movement-more-trigger-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.movement-more-trigger-text strong {
+  overflow: hidden;
+  font-size: 0.91rem;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.movement-more-trigger-text small {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.movement-more-trigger-chevron {
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+}
+
+.movement-more-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.movement-more-sheet {
+  display: grid;
+  gap: 14px;
+  padding: 4px 2px 2px;
+}
+
+.movement-more-card {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 82px;
+  padding: 14px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 26px rgba(24, 24, 22, 0.04);
+}
+
+.movement-more-icon {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-status-success-background) 58%, #fff);
+  color: var(--color-status-success-text);
+  font-size: 1.15rem;
+}
+
+.movement-more-card-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.movement-more-card-text strong {
+  font-size: 0.94rem;
+  font-weight: 850;
+}
+
+.movement-more-card-text small {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.movement-more-card input[role='switch'] {
+  width: 36px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--color-status-success-text);
+}
+
+.movement-more-done {
+  width: 100%;
+  min-height: 44px;
+}

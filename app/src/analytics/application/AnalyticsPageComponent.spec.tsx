@@ -29,6 +29,8 @@ function createCore(): AnalyticsPort {
         { categoryId: 'cat-food', categoryName: 'Food', amount: input.currency === 'USD' ? '100.00' : '250.00', percentage: 100 },
       ],
     })),
+    analyticsSetMovementIgnored: vi.fn(),
+    analyticsListIgnoredMovements: vi.fn(async () => ({ movementIds: [] })),
   };
 }
 

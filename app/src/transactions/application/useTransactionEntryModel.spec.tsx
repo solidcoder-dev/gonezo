@@ -62,6 +62,9 @@ function makePorts(): TransactionEntryModelPorts {
       sharingApplyShareToPostedTransaction: vi.fn(),
       sharingGetMovementDetails: vi.fn(),
     },
+    analytics: {
+      analyticsSetMovementIgnored: vi.fn(),
+    },
       taxonomy: {
         taxonomyListCategories: vi.fn().mockResolvedValue({ items: [] }),
         taxonomyCreateCategory: vi.fn().mockResolvedValue({ id: 'cat-1' }),

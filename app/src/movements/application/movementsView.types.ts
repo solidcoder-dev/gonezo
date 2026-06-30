@@ -57,6 +57,7 @@ export type ExpectedMovementView = {
   updatedAt: string;
   resolvedAt?: string;
   dismissedAt?: string;
+  ignored?: boolean;
 };
 
 export type MovementsSearchItemView = {
@@ -77,6 +78,7 @@ export type MovementsSearchItemView = {
     id: string;
     name: string;
   };
+  ignored?: boolean;
   tags?: Array<{
     id: string;
     name: string;

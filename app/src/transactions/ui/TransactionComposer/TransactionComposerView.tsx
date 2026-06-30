@@ -14,6 +14,8 @@ import { ScheduleSummaryView } from '../ScheduleControls/ScheduleSummaryView';
 import { ScheduleTriggerView } from '../ScheduleControls/ScheduleTriggerView';
 import { ItemBreakdownSummaryView } from '../ItemBreakdownControls/ItemBreakdownSummaryView';
 import { ItemBreakdownTriggerView } from '../ItemBreakdownControls/ItemBreakdownTriggerView';
+import { MovementMoreSheetView } from '../MovementMoreControls/MovementMoreSheetView';
+import { MovementMoreTriggerView } from '../MovementMoreControls/MovementMoreTriggerView';
 import { TransactionComposerActionsView } from '../TransactionComposerActions/TransactionComposerActionsView';
 import { TransactionMainFieldsView } from '../TransactionMainFields/TransactionMainFieldsView';
 import { TransferFxFieldsView } from '../TransferFxFields/TransferFxFieldsView';
@@ -83,6 +85,7 @@ export type TransactionComposerViewRequired = {
   expected: boolean;
   shareEditorOpen: boolean;
   shareApplied: boolean;
+  movementIgnored: boolean;
   shareControl?: ReactNode;
   shareEditorBody?: ReactNode;
   editedScheduledMovementId?: string;
@@ -157,6 +160,7 @@ export type TransactionComposerViewProvided = {
   onSetRecurrenceEndDate: (value: string) => void;
   onSetRecurrenceEndCount: (value: string) => void;
   onSetExpected: (value: boolean) => void;
+  onSetMovementIgnored: (value: boolean) => void;
   onCloseShareEditor: () => void;
   onSubmit: (event: FormEvent) => Promise<void> | void;
 };
@@ -258,6 +262,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     expected,
     shareEditorOpen,
     shareApplied,
+    movementIgnored,
     shareControl,
     shareEditorBody,
     editedScheduledMovementId,
@@ -322,11 +327,13 @@ export function TransactionComposerView({ required, provided }: Props) {
     onSetRecurrenceEndKind,
     onSetRecurrenceEndDate,
     onSetRecurrenceEndCount,
+    onSetMovementIgnored,
     onCloseShareEditor,
     onSubmit,
   } = provided;
   const [movementTypeSheetOpen, setMovementTypeSheetOpen] = useState(false);
   const [sourceAccountSheetOpen, setSourceAccountSheetOpen] = useState(false);
+  const [movementMoreOpen, setMovementMoreOpen] = useState(false);
 
   const amountInputRef = useRef<HTMLInputElement | null>(null);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
@@ -361,6 +368,7 @@ export function TransactionComposerView({ required, provided }: Props) {
   const recurringScheduleConfigured = recurringScheduleAvailable && repeatEnabled;
   const splitAvailable = mode === 'expense' || mode === 'income';
   const shareAvailable = mode === 'expense';
+  const movementMoreAvailable = mode === 'expense' || mode === 'income';
   const shareEnabled = Number(amount) > 0;
   const amountLocked = splitApplied || (shareEnabled && shareApplied);
   const frequentCategoryIds = mode === 'income'
@@ -430,12 +438,24 @@ export function TransactionComposerView({ required, provided }: Props) {
       )
     : null;
   const visibleShareControl = shareAvailable ? shareControl : null;
-  const amountAccessory = splitControl || visibleShareControl ? (
+  const movementMoreControl = movementMoreAvailable ? (
+    <MovementMoreTriggerView
+      required={{
+        config: {},
+        data: {},
+        state: {},
+        status: { disabled },
+      }}
+      provided={{ commands: { open: () => setMovementMoreOpen(true) } }}
+    />
+  ) : null;
+  const amountAccessory = splitControl || visibleShareControl || movementMoreControl ? (
     <div className="composer-amount-accessory">
       <div className="composer-details-title">Details</div>
       <div className="composer-details-chips">
-        {visibleShareControl}
         {splitControl}
+        {visibleShareControl}
+        {movementMoreControl}
       </div>
     </div>
   ) : null;
@@ -450,6 +470,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     onCloseShareEditor();
     setMovementTypeSheetOpen(false);
     setSourceAccountSheetOpen(false);
+    setMovementMoreOpen(false);
   }
 
   async function submitComposer(event: FormEvent) {
@@ -966,6 +987,37 @@ export function TransactionComposerView({ required, provided }: Props) {
           status: { disabled },
         }}
         provided={{ commands: { close: onCloseShareEditor } }}
+      />
+      <SheetView
+        required={{
+          config: {
+            ariaLabel: 'More',
+            title: 'More',
+            closeLabel: 'Close more',
+            panelClassName: 'composer-sheet composer-more-sheet',
+          },
+          data: {
+            body: (
+              <MovementMoreSheetView
+                required={{
+                  config: {},
+                  data: {},
+                  state: { ignored: movementIgnored },
+                  status: { disabled },
+                }}
+                provided={{
+                  commands: {
+                    setIgnored: onSetMovementIgnored,
+                    done: () => setMovementMoreOpen(false),
+                  },
+                }}
+              />
+            ),
+          },
+          state: { open: movementMoreOpen },
+          status: { disabled },
+        }}
+        provided={{ commands: { close: () => setMovementMoreOpen(false) } }}
       />
     </>
   );

@@ -52,6 +52,10 @@ export function txItemTypeClass(type: TransactionHistoryItemView['type']): strin
   return 'expense-item expense-item--expense';
 }
 
+function movementRowClassName(baseClassName: string, ignored?: boolean): string {
+  return ignored ? `${baseClassName} movement-row--ignored` : baseClassName;
+}
+
 export function txAmountKind(type: TransactionHistoryItemView['type']): MovementAmountKindView {
   if (type === 'income') {
     return 'income';
@@ -190,7 +194,7 @@ export function groupExpectedMovementsByDate(items: ExpectedMovementView[], now 
 
 export function buildPostedMovementRowData(transaction: TransactionHistoryItemView): MovementRowDataView {
   return {
-    itemClassName: txItemTypeClass(transaction.type),
+    itemClassName: movementRowClassName(txItemTypeClass(transaction.type), transaction.ignored),
     iconClassName: txKindIconClass(transaction.type),
     title: transaction.merchant || transaction.description || txLabel(transaction.type),
     amount: {
@@ -211,7 +215,7 @@ export function buildExpectedMovementRowData(
   options: ExpectedDetailOptions = {},
 ): MovementRowDataView {
   return {
-    itemClassName: movementTypeClass(movement.type),
+    itemClassName: movementRowClassName(movementTypeClass(movement.type), movement.ignored),
     iconClassName: movementKindIconClass(movement.type),
     title: movement.merchant || movement.description || 'Expected movement',
     amount: {
@@ -259,6 +263,7 @@ export function buildPostedMovementDetailData(
     title: transaction.merchant || transaction.description || txLabel(transaction.type),
     kicker: txLabel(transaction.type),
     iconClassName: txKindIconClass(transaction.type),
+    ignored: transaction.ignored,
     amount: {
       kind: txAmountKind(transaction.type),
       sign: txSign(transaction.type),
@@ -283,6 +288,7 @@ export function buildExpectedMovementDetailData(
     title: movement.merchant || movement.description || 'Expected movement',
     kicker: 'Expected',
     iconClassName: movementKindIconClass(movement.type),
+    ignored: movement.ignored,
     amount: {
       kind: 'scheduled',
       sign: movementAmountSign(movement.type),

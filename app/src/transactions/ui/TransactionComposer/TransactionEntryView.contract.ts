@@ -61,6 +61,7 @@ export type TransactionEntryViewRequired = {
     shareDraft?: ShareDraft;
     shareSummary?: { peopleCount: number; total: string };
     sharePeopleSuggestions: SharingPersonSuggestion[];
+    movementIgnored: boolean;
     shareControl?: ReactNode;
     shareEditorBody?: ReactNode;
     editedScheduledMovementId?: string;
@@ -131,6 +132,7 @@ export type TransactionEntryViewProvided = {
     setRecurrenceEndDate: (value: string) => void;
     setRecurrenceEndCount: (value: string) => void;
     setExpected: (value: boolean) => void;
+    setMovementIgnored: (value: boolean) => void;
     openShareEditor: () => void;
     closeShareEditor: () => void;
     applyShareDraft: (summary: { peopleCount: number; total: string }, draft: ShareDraft) => void;

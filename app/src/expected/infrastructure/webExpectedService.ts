@@ -13,6 +13,10 @@ import type { ExpectedLedgerPort } from '../application/expectedLedger.port';
 import type { WebRuntimeDependencies } from '../../core/infrastructure/webRuntimeDependencies';
 import type { WebAppState } from '../../core/infrastructure/webAppState';
 
+function isIgnoredExpectedMovementExclusion(item: WebAppState['analyticsExclusions'][number]): boolean {
+  return item.scopeType === 'expected_movement' && item.reason === 'user_ignored';
+}
+
 export type WebExpectedMovementsServiceOptions = {
   state: WebAppState;
   dependencies: WebRuntimeDependencies;
@@ -38,6 +42,29 @@ export class WebExpectedMovementsService {
 
   private nextId(): string {
     return this.dependencies.idGenerator.nextId();
+  }
+
+  private setExpectedMovementIgnored(expectedMovementId: string, ignored?: boolean): void {
+    this.state.analyticsExclusions = this.state.analyticsExclusions.filter((item) => !(
+      isIgnoredExpectedMovementExclusion(item) && item.scopeId === expectedMovementId
+    ));
+    if (ignored) {
+      this.state.analyticsExclusions.push({
+        id: this.nextId(),
+        scopeType: 'expected_movement',
+        scopeId: expectedMovementId,
+        reason: 'user_ignored',
+        createdAt: this.nowIso(),
+      });
+    }
+  }
+
+  private ignoredExpectedMovementIds(): Set<string> {
+    return new Set(
+      this.state.analyticsExclusions
+        .filter(isIgnoredExpectedMovementExclusion)
+        .map((item) => item.scopeId),
+    );
   }
 
   async createMovement(input: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult> {
@@ -71,6 +98,7 @@ export class WebExpectedMovementsService {
       createdAt: now,
       updatedAt: now,
     });
+    this.setExpectedMovementIgnored(id, input.ignored);
     return { id };
   }
 
@@ -108,16 +136,23 @@ export class WebExpectedMovementsService {
       })),
       updatedAt: now,
     };
+    if (input.ignored !== undefined) {
+      this.setExpectedMovementIgnored(current.id, input.ignored);
+    }
     return { id: current.id };
   }
 
   async listMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult> {
     this.ledger.getAccountOrThrow(input.accountId);
+    const ignoredIds = this.ignoredExpectedMovementIds();
     return {
       items: filterExpectedMovements(this.state.expectedMovements, {
         accountId: input.accountId,
         includeClosed: input.includeClosed === true,
-      }),
+      }).map((item) => ({
+        ...item,
+        ignored: ignoredIds.has(item.id),
+      })),
     };
   }
 

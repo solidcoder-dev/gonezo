@@ -111,6 +111,7 @@ function buildHomeRecentMovementRow(movement: TransactionHistoryItemView): HomeR
     iconClassName: movementIconClass(movement.type),
     amountLabel: `${movementAmountSign(movement.type)}${absoluteAmountLabel(movement.amount, movement.currency)}`,
     amountTone: movementTone(movement.type),
+    ignored: movement.ignored,
   };
 }
 

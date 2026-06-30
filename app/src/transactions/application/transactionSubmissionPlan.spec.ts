@@ -24,6 +24,9 @@ function baseInput() {
         sharingApplyShareToPostedTransaction: vi.fn(),
         sharingGetMovementDetails: vi.fn(),
       },
+      analytics: {
+        analyticsSetMovementIgnored: vi.fn(),
+      },
     },
     ledgerTransactionCommands: {
       recordExpense: vi.fn().mockResolvedValue({ id: 'tx-1' }),
@@ -67,6 +70,7 @@ function baseInput() {
     recurrenceEndDate: '',
     recurrenceEndCount: '12',
     movementExpected: false,
+    movementIgnored: false,
     movementScheduled: false,
     expenseDetailed: false,
     expenseItems: [],
@@ -101,6 +105,37 @@ describe('transaction submission plan', () => {
     });
     expect(input.categorizeTransaction).toHaveBeenCalledWith('tx-1', 'expense', 'cat-1');
     expect(input.applyTransactionTags).toHaveBeenCalledWith('tx-1', ['tag']);
+  });
+
+  it('marks a posted expense as ignored when requested', async () => {
+    const input = {
+      ...baseInput(),
+      movementIgnored: true,
+    };
+
+    await runTransactionSubmissionPlan(input);
+
+    expect(input.ports.analytics.analyticsSetMovementIgnored).toHaveBeenCalledWith({
+      movementId: 'tx-1',
+      ignored: true,
+      changedAt: '2026-05-18T10:20:30.000Z',
+    });
+  });
+
+  it('carries ignored state into expected expenses', async () => {
+    const input = {
+      ...baseInput(),
+      movementExpected: true,
+      movementIgnored: true,
+    };
+
+    await runTransactionSubmissionPlan(input);
+
+    expect(input.ports.expected.expectedCreateMovement).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'expense',
+      ignored: true,
+    }));
+    expect(input.ports.analytics.analyticsSetMovementIgnored).not.toHaveBeenCalled();
   });
 
   it('runs the posted FX transfer handler', async () => {

@@ -265,6 +265,7 @@ export type LedgerTransactionListItem = {
   }>;
   categorizationStatus?: 'none' | 'pending' | 'processing' | 'assigned' | 'failed';
   taggingStatus?: 'none' | 'pending' | 'processing' | 'assigned' | 'failed';
+  ignored?: boolean;
   items: LedgerTransactionBreakdownItem[];
 };
 

@@ -29,6 +29,7 @@ export type MovementDetailDataView = {
     label: string;
     value: ReactNode;
   }>;
+  ignored?: boolean;
   splitItems?: MovementSplitItemView[];
   actions?: MovementDetailActionView[];
 };
@@ -90,7 +91,10 @@ export function MovementDetailSheetView({ required, provided }: MovementDetailSh
                   <i className={data.iconClassName} aria-hidden />
                   <span>{data.kicker}</span>
                 </span>
-                <h3>{data.title}</h3>
+                <div className="detail-sheet-title-line">
+                  <h3>{data.title}</h3>
+                  {data.ignored ? <span className="movement-detail-ignored-chip">Ignored</span> : null}
+                </div>
               </div>
               <button
                 type="button"

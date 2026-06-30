@@ -22,7 +22,10 @@ export function ItemBreakdownTriggerView({ required, provided }: ItemBreakdownTr
       disabled={required.status.disabled}
     >
       <i className="bi bi-receipt" aria-hidden />
-      Items
+      <span className="item-breakdown-control-text">
+        <strong>Items</strong>
+      </span>
+      <i className="bi bi-chevron-right item-breakdown-control-chevron" aria-hidden />
     </button>
   );
 }

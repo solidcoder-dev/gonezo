@@ -1,12 +1,6 @@
 import type { CorePort } from '../application/corePort';
 import type { AccountsListBalancesResult } from '../../account/application/accountBalances.port';
-import type {
-  AnalyticsCashFlowSeriesInput,
-  AnalyticsCashFlowSummaryResult,
-  AnalyticsListCurrenciesResult,
-  AnalyticsSpendingOverviewInput,
-  AnalyticsSpendingOverviewResult,
-} from '../../analytics/application/analytics.port';
+import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult } from '../../analytics/application/analytics.port';
 import type {
   PreferencesSetDefaultAccountInput,
   UserPreferencesResult,
@@ -137,6 +131,7 @@ import {
   analyticsGetSpendingOverview,
   analyticsListCurrencies,
 } from '../../analytics/infrastructure/analyticsQueries';
+import { WebAnalyticsExclusionService } from '../../analytics/infrastructure/webAnalyticsExclusionService';
 
 export type CoreAdapterWebOptions = {
   state?: WebAppState;
@@ -161,6 +156,8 @@ export class CoreAdapterWeb implements CorePort {
   private readonly movementsService: WebMovementsService;
 
   private readonly sharingService: WebSharingService;
+
+  private readonly analyticsExclusionService: WebAnalyticsExclusionService;
 
   constructor(options: CoreAdapterWebOptions = {}) {
     this.state = options.state ?? defaultWebAppState;
@@ -198,6 +195,7 @@ export class CoreAdapterWeb implements CorePort {
       ledger: this.ledgerService,
       expected: this.expectedMovementsService,
     });
+    this.analyticsExclusionService = new WebAnalyticsExclusionService(this.state, this.dependencies);
     this.movementsService = new WebMovementsService({
       state: this.state,
       ledger: this.ledgerService,
@@ -330,7 +328,7 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult> {
-    return this.ledgerService.listTransactions(input);
+    return this.analyticsExclusionService.applyIgnoredMovements(await this.ledgerService.listTransactions(input));
   }
 
   async taxonomyListCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult> {
@@ -489,6 +487,10 @@ export class CoreAdapterWeb implements CorePort {
   async movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult> {
     return this.movementsService.listScheduled(input);
   }
+
+  async analyticsSetMovementIgnored(input: AnalyticsSetMovementIgnoredInput): Promise<void> { this.analyticsExclusionService.setMovementIgnored(input); }
+
+  async analyticsListIgnoredMovements() { return this.analyticsExclusionService.listIgnoredMovements(); }
 
   private async projectNextConfirmationRequiredOccurrence(recurringMovementId: string): Promise<void> {
     const occurrence = this.schedulingService.projectNextConfirmationRequiredOccurrence(recurringMovementId);
