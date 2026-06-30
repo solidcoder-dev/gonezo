@@ -58,11 +58,11 @@ function remainingText(remaining?: string, currencyCode?: string): string | unde
 export function MovementSplitManagerView({ required, provided }: MovementSplitManagerViewProps) {
   const { config, data, state, status } = required;
   const { commands } = provided;
-  const label = config.label ?? 'Splits';
-  const emptyLabel = config.emptyLabel ?? 'No splits yet.';
-  const addLabel = config.addLabel ?? 'Add split';
+  const label = config.label ?? 'Items';
+  const emptyLabel = config.emptyLabel ?? 'No items yet.';
+  const addLabel = config.addLabel ?? 'Add item';
   const assignRemainingLabel = config.assignRemainingLabel ?? 'Assign remaining';
-  const splitPartsLabel = config.splitPartsLabel ?? 'Split by parts';
+  const splitPartsLabel = config.splitPartsLabel ?? 'Break down by parts';
   const expectedStatusLabel = config.expectedStatusLabel ?? 'Expected repayment';
   const ignoredStatusLabel = config.ignoredStatusLabel ?? 'Ignored in analytics';
   const remaining = remainingText(state.remaining, state.currencyCode);
@@ -119,7 +119,7 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
       </div>
 
       {data.items.length > 0 ? (
-        <ul className={styles.list} aria-label="Split items">
+        <ul className={styles.list} aria-label="Items">
           {data.items.map((item) => (
             <li key={item.id} className={styles.item}>
               <strong className={styles.itemName}>{item.name}</strong>
@@ -141,7 +141,7 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
                   <summary
                     className={`text-button icon-button ${styles.menuButton}`}
                     role="button"
-                    aria-label={`Split actions for ${item.name}`}
+                    aria-label={`Item actions for ${item.name}`}
                     aria-disabled={status.disabled}
                     onClick={(event) => {
                       if (status.disabled) {
@@ -157,7 +157,7 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
                         type="button"
                         role="menuitem"
                         disabled={status.disabled}
-                        aria-label={`Edit split ${item.name}`}
+                        aria-label={`Edit item ${item.name}`}
                         onClick={() => commands.editSplit?.(item.id)}
                       >
                         Edit
@@ -168,7 +168,7 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
                         type="button"
                         role="menuitem"
                         disabled={status.disabled}
-                        aria-label={`${item.expected ? 'Unmark' : 'Mark'} expected split ${item.name}`}
+                        aria-label={`${item.expected ? 'Unmark' : 'Mark'} expected item ${item.name}`}
                         onClick={() => commands.toggleExpected?.(item.id)}
                       >
                         {item.expected ? 'Unmark expected' : 'Mark expected'}
@@ -179,7 +179,7 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
                         type="button"
                         role="menuitem"
                         disabled={status.disabled}
-                        aria-label={`${item.ignored ? 'Include' : 'Ignore'} split ${item.name} in analytics`}
+                        aria-label={`${item.ignored ? 'Include' : 'Ignore'} item ${item.name} in analytics`}
                         onClick={() => commands.toggleIgnored?.(item.id)}
                       >
                         {item.ignored ? 'Include in analytics' : 'Ignore analytics'}
@@ -191,7 +191,7 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
                         role="menuitem"
                         className={styles.dangerMenuItem}
                         disabled={status.disabled}
-                        aria-label={`Remove split ${item.name}`}
+                        aria-label={`Remove item ${item.name}`}
                         onClick={() => commands.removeSplit?.(item.id)}
                       >
                         Remove

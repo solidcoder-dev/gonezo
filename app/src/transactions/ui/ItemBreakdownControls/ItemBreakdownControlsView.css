@@ -1,5 +1,5 @@
-.split-trigger,
-.split-summary-chip {
+.item-breakdown-trigger,
+.item-breakdown-summary-chip {
   width: 100%;
   min-width: 0;
   height: 40px;
@@ -21,32 +21,32 @@
   cursor: pointer;
 }
 
-.split-summary-chip {
+.item-breakdown-summary-chip {
   border-color: color-mix(in srgb, var(--color-status-success-text) 18%, var(--color-border-subtle));
   background: color-mix(in srgb, var(--color-status-success-background) 50%, #fff);
   color: var(--color-status-success-text);
 }
 
-.split-trigger i,
-.split-summary-chip i {
+.item-breakdown-trigger i,
+.item-breakdown-summary-chip i {
   font-size: 1rem;
 }
 
-.split-trigger span,
-.split-summary-chip span {
+.item-breakdown-trigger span,
+.item-breakdown-summary-chip span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.split-trigger:disabled,
-.split-summary-chip:disabled {
+.item-breakdown-trigger:disabled,
+.item-breakdown-summary-chip:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
 
-.split-summary {
+.item-breakdown-summary {
   min-width: 0;
   width: 100%;
 }

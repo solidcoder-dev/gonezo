@@ -11,7 +11,7 @@
   max-width: 520px;
 }
 
-.composer-split-sheet {
+.composer-items-sheet {
   width: min(100%, 760px);
   height: min(88dvh, 780px);
 }
@@ -26,7 +26,7 @@
   height: min(82dvh, 680px);
 }
 
-.composer-split-content {
+.composer-items-content {
   min-height: 0;
   display: grid;
   overflow: hidden;
@@ -297,7 +297,7 @@
   gap: 12px;
 }
 
-.composer-split-editor {
+.composer-items-editor {
   min-height: 0;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
@@ -306,7 +306,7 @@
   overflow: hidden;
 }
 
-.composer-split-apply {
+.composer-items-apply {
   width: 100%;
   min-height: 44px;
   border-radius: 10px;

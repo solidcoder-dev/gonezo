@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { MovementSplitManagerView } from './MovementSplitManagerView';
 
 describe('MovementSplitManagerView', () => {
-  it('renders compact split rows with toolbar actions and row actions', () => {
+  it('renders compact item rows with toolbar actions and row actions', () => {
     const addSplit = vi.fn();
     const assignRemaining = vi.fn();
     const splitParts = vi.fn();
@@ -38,21 +38,21 @@ describe('MovementSplitManagerView', () => {
       />,
     );
 
-    expect(screen.getByText('Splits')).toBeInTheDocument();
+    expect(screen.getByText('Items')).toBeInTheDocument();
     expect(screen.getByText('Remaining: 18.40 USD')).toBeInTheDocument();
-    expect(screen.getByRole('list', { name: 'Split items' })).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Items' })).toBeInTheDocument();
     expect(screen.getByLabelText('Expected repayment')).toBeInTheDocument();
     expect(screen.getByLabelText('Ignored in analytics')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add split' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     fireEvent.click(screen.getByRole('button', { name: 'Assign remaining' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Split by parts' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Break down by parts' }));
 
     const alexRow = screen.getByText('Alex').closest('li');
     expect(alexRow).not.toBeNull();
-    fireEvent.click(within(alexRow as HTMLElement).getByRole('button', { name: 'Split actions for Alex' }));
-    fireEvent.click(within(alexRow as HTMLElement).getByRole('menuitem', { name: 'Edit split Alex' }));
-    fireEvent.click(within(alexRow as HTMLElement).getByRole('menuitem', { name: 'Remove split Alex' }));
+    fireEvent.click(within(alexRow as HTMLElement).getByRole('button', { name: 'Item actions for Alex' }));
+    fireEvent.click(within(alexRow as HTMLElement).getByRole('menuitem', { name: 'Edit item Alex' }));
+    fireEvent.click(within(alexRow as HTMLElement).getByRole('menuitem', { name: 'Remove item Alex' }));
 
     expect(addSplit).toHaveBeenCalledTimes(1);
     expect(assignRemaining).toHaveBeenCalledTimes(1);
@@ -61,7 +61,7 @@ describe('MovementSplitManagerView', () => {
     expect(removeSplit).toHaveBeenCalledWith('item-1');
   });
 
-  it('renders an empty split manager when creation is available', () => {
+  it('renders an empty item manager when creation is available', () => {
     render(
       <MovementSplitManagerView
         required={{
@@ -74,12 +74,12 @@ describe('MovementSplitManagerView', () => {
       />,
     );
 
-    expect(screen.getByText('No splits yet.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add split' })).toBeInTheDocument();
-    expect(screen.queryByRole('list', { name: 'Split items' })).not.toBeInTheDocument();
+    expect(screen.getByText('No items yet.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add item' })).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Items' })).not.toBeInTheDocument();
   });
 
-  it('does not render when there are no splits or available split actions', () => {
+  it('does not render when there are no items or available item actions', () => {
     const { container } = render(
       <MovementSplitManagerView
         required={{
@@ -114,9 +114,9 @@ describe('MovementSplitManagerView', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Add split' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Split actions for Alex' }));
-    expect(screen.getByRole('menuitem', { name: 'Edit split Alex' })).toBeDisabled();
-    expect(screen.getByRole('menuitem', { name: 'Remove split Alex' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add item' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Item actions for Alex' }));
+    expect(screen.getByRole('menuitem', { name: 'Edit item Alex' })).toBeDisabled();
+    expect(screen.getByRole('menuitem', { name: 'Remove item Alex' })).toBeDisabled();
   });
 });

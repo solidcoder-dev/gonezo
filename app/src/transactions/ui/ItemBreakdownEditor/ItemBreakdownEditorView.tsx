@@ -1,11 +1,11 @@
 import type { KeyboardEvent } from 'react';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
 import type { ComposerExpenseItem } from '../TransactionComposer/TransactionComposerView';
-import styles from './ExpenseSplitEditorView.module.css';
+import styles from './ItemBreakdownEditorView.module.css';
 
-type SplitMode = 'items' | 'parts';
+type BreakdownMode = 'items' | 'parts';
 
-export type ExpenseSplitEditorViewProps = ViewProps<
+export type ItemBreakdownEditorViewProps = ViewProps<
   Record<string, never>,
   {
     items: ComposerExpenseItem[];
@@ -16,7 +16,7 @@ export type ExpenseSplitEditorViewProps = ViewProps<
     itemName: string;
     itemAmount: string;
     editingItemId: string;
-    splitMode: SplitMode;
+    splitMode: BreakdownMode;
     splitTotal: string;
     splitBaseAmount: string;
     splitRemaining: string;
@@ -38,7 +38,7 @@ export type ExpenseSplitEditorViewProps = ViewProps<
     addItem: () => boolean;
     splitByParts: (amount: string, parts: string, addedPersonName?: string) => void;
     splitByWeightedParts: (amount: string, parts: Array<{ id?: string; name: string; parts: number }>) => void;
-    selectMode: (mode: SplitMode) => void;
+    selectMode: (mode: BreakdownMode) => void;
     editItem: (itemId: string) => void;
     removeItem: (itemId: string) => void;
   }
@@ -53,14 +53,14 @@ function formatAmountCents(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
-function SplitItemForm({
+function ItemForm({
   state,
   status,
   provided,
   onSubmit,
   currencyCode,
-}: Pick<ExpenseSplitEditorViewProps['required'], 'state' | 'status'>
-  & Pick<ExpenseSplitEditorViewProps, 'provided'>
+}: Pick<ItemBreakdownEditorViewProps['required'], 'state' | 'status'>
+  & Pick<ItemBreakdownEditorViewProps, 'provided'>
   & {
     onSubmit: () => void;
     currencyCode?: string;
@@ -116,21 +116,21 @@ function SplitItemForm({
   );
 }
 
-export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEditorViewProps) {
+export function ItemBreakdownEditorView({ required, provided }: ItemBreakdownEditorViewProps) {
   const { data, state, status } = required;
   const managerVisible = status.hideToggle || state.enabled;
   const itemCountLabel = `${data.items.length} ${data.items.length === 1 ? 'item' : 'items'}`;
-  const amountBeforeSplitCents = parseAmountCents(state.splitBaseAmount);
-  const splitAmountCents = parseAmountCents(state.splitTotal);
+  const movementAmountCents = parseAmountCents(state.splitBaseAmount);
+  const itemsAmountCents = parseAmountCents(state.splitTotal);
   const effectiveTotalCents = data.items.length > 0
-    ? Math.max(amountBeforeSplitCents, splitAmountCents)
-    : amountBeforeSplitCents;
-  const amountBeforeSplit = formatAmountCents(amountBeforeSplitCents);
-  const splitAmount = formatAmountCents(splitAmountCents);
-  const splitTotal = formatAmountCents(effectiveTotalCents);
+    ? Math.max(movementAmountCents, itemsAmountCents)
+    : movementAmountCents;
+  const movementAmount = formatAmountCents(movementAmountCents);
+  const itemsAmount = formatAmountCents(itemsAmountCents);
+  const displayedTotal = formatAmountCents(effectiveTotalCents);
   const remainingAmount = Number(state.splitRemaining);
   const showRemainingItem = data.items.length > 0 && remainingAmount > 0;
-  const hasSplitOverage = data.items.length > 0 && splitAmountCents > amountBeforeSplitCents;
+  const hasItemsOverage = data.items.length > 0 && itemsAmountCents > movementAmountCents;
 
   function editItem(itemId: string) {
     provided.commands.editItem(itemId);
@@ -158,23 +158,23 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
             }}
             disabled={status.disabled}
           />
-          Split into items
+          Add items
         </label>
       )}
       {managerVisible ? (
         <div className={`stack ${styles.manager}`}>
           <div className={styles.itemsBlock}>
             <div className={styles.totalLine}>
-              <span>Total</span>
-              <strong>{splitTotal}</strong>
+              <span>Items total</span>
+              <strong>{displayedTotal}</strong>
               {state.currencyCode ? <span>{state.currencyCode}</span> : null}
               <small>{itemCountLabel}</small>
             </div>
-            {hasSplitOverage ? (
+            {hasItemsOverage ? (
               <div className={styles.warningBanner} role="alert">
                 <i className="bi bi-info-circle" aria-hidden />
                 <span>
-                  Amount before split: {amountBeforeSplit} {state.currencyCode ?? ''}. Split amount: {splitAmount} {state.currencyCode ?? ''}.
+                  Movement amount: {movementAmount} {state.currencyCode ?? ''}. Items total: {itemsAmount} {state.currencyCode ?? ''}.
                 </span>
               </div>
             ) : null}
@@ -232,7 +232,7 @@ export function ExpenseSplitEditorView({ required, provided }: ExpenseSplitEdito
               ) : null}
             </ul>
             <div className={styles.addPanel}>
-              <SplitItemForm
+              <ItemForm
                 state={state}
                 status={status}
                 provided={provided}

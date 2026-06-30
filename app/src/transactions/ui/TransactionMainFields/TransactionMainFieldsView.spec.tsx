@@ -160,7 +160,7 @@ describe('TransactionMainFieldsView', () => {
             datePlaceholder: '2026-05-14',
             noteLabel: 'Merchant',
             notePlaceholder: 'Cafe',
-            afterAmount: <div>Split summary</div>,
+            afterAmount: <div>Items summary</div>,
           },
           data: {
             transferTargetOptions: [],
@@ -188,7 +188,7 @@ describe('TransactionMainFieldsView', () => {
     );
 
     expect(screen.queryByLabelText('Amount')).not.toBeInTheDocument();
-    expect(screen.getByText('Split summary')).toBeInTheDocument();
+    expect(screen.getByText('Items summary')).toBeInTheDocument();
     expect(screen.getByLabelText('Merchant')).toBeInTheDocument();
   });
 

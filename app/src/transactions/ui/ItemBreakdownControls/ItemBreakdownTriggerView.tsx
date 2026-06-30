@@ -1,7 +1,7 @@
 import type { ViewProps } from '../../../shared/ui/ViewProps';
-import './SplitControlsView.css';
+import './ItemBreakdownControlsView.css';
 
-export type SplitTriggerViewProps = ViewProps<
+export type ItemBreakdownTriggerViewProps = ViewProps<
   Record<string, never>,
   Record<string, never>,
   Record<string, never>,
@@ -13,16 +13,16 @@ export type SplitTriggerViewProps = ViewProps<
   }
 >;
 
-export function SplitTriggerView({ required, provided }: SplitTriggerViewProps) {
+export function ItemBreakdownTriggerView({ required, provided }: ItemBreakdownTriggerViewProps) {
   return (
     <button
       type="button"
-      className="split-trigger"
+      className="item-breakdown-trigger"
       onClick={provided.commands.open}
       disabled={required.status.disabled}
     >
       <i className="bi bi-receipt" aria-hidden />
-      Split
+      Items
     </button>
   );
 }

@@ -8,12 +8,12 @@ import {
   FREQUENT_INCOME_CATEGORY_IDS,
 } from '../../../taxonomy/domain/masterCategories';
 import { CategoryPickerField } from '../CategoryPickerField/CategoryPickerField';
-import { ExpenseSplitEditorView } from '../ExpenseSplitEditor/ExpenseSplitEditorView';
+import { ItemBreakdownEditorView } from '../ItemBreakdownEditor/ItemBreakdownEditorView';
 import { RecurrenceEditorView } from '../RecurrenceEditor/RecurrenceEditorView';
 import { ScheduleSummaryView } from '../ScheduleControls/ScheduleSummaryView';
 import { ScheduleTriggerView } from '../ScheduleControls/ScheduleTriggerView';
-import { SplitSummaryView } from '../SplitControls/SplitSummaryView';
-import { SplitTriggerView } from '../SplitControls/SplitTriggerView';
+import { ItemBreakdownSummaryView } from '../ItemBreakdownControls/ItemBreakdownSummaryView';
+import { ItemBreakdownTriggerView } from '../ItemBreakdownControls/ItemBreakdownTriggerView';
 import { TransactionComposerActionsView } from '../TransactionComposerActions/TransactionComposerActionsView';
 import { TransactionMainFieldsView } from '../TransactionMainFields/TransactionMainFieldsView';
 import { TransferFxFieldsView } from '../TransferFxFields/TransferFxFieldsView';
@@ -398,7 +398,7 @@ export function TransactionComposerView({ required, provided }: Props) {
   const splitControl = splitAvailable
     ? splitApplied
       ? (
-        <SplitSummaryView
+        <ItemBreakdownSummaryView
           required={{
             config: {},
             data: {},
@@ -418,7 +418,7 @@ export function TransactionComposerView({ required, provided }: Props) {
         />
       )
       : (
-        <SplitTriggerView
+        <ItemBreakdownTriggerView
           required={{
             config: {},
             data: {},
@@ -887,16 +887,16 @@ export function TransactionComposerView({ required, provided }: Props) {
       <SheetView
         required={{
           config: {
-            ariaLabel: 'Split amount',
-            title: 'Split amount',
-            closeLabel: 'Close split amount',
-            panelClassName: 'composer-sheet composer-split-sheet',
-            contentClassName: 'composer-split-content',
+            ariaLabel: 'Items',
+            title: 'Items',
+            closeLabel: 'Close items',
+            panelClassName: 'composer-sheet composer-items-sheet',
+            contentClassName: 'composer-items-content',
           },
           data: {
             body: (
-              <div className="stack composer-split-editor">
-                <ExpenseSplitEditorView
+              <div className="stack composer-items-editor">
+                <ItemBreakdownEditorView
                   required={{
                     config: {},
                     data: { items: expenseItems, itemOptions: expenseItemOptions },
@@ -934,11 +934,11 @@ export function TransactionComposerView({ required, provided }: Props) {
                 />
                 <button
                   type="button"
-                  className="primary-button composer-split-apply"
+                  className="primary-button composer-items-apply"
                   onClick={onApplySplit}
                   disabled={disabled}
                 >
-                  Apply split
+                  Apply items
                 </button>
               </div>
             ),

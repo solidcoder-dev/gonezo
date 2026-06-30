@@ -28,7 +28,7 @@ const baseInput = {
 };
 
 describe('transaction composer validation', () => {
-  it('returns field errors for invalid amount, split and recurrence inputs', () => {
+  it('returns field errors for invalid amount, items and recurrence inputs', () => {
     const result = validateTransactionComposerSubmission({
       ...baseInput,
       amount: '',

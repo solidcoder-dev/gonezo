@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ExpenseSplitEditorView } from './ExpenseSplitEditorView';
-import type { ExpenseSplitEditorViewProps } from './ExpenseSplitEditorView';
+import { ItemBreakdownEditorView } from './ItemBreakdownEditorView';
+import type { ItemBreakdownEditorViewProps } from './ItemBreakdownEditorView';
 
-function makeCommands(overrides: Partial<ExpenseSplitEditorViewProps['provided']['commands']> = {}) {
+function makeCommands(overrides: Partial<ItemBreakdownEditorViewProps['provided']['commands']> = {}) {
   return {
     toggleEnabled: vi.fn(),
     changeItemName: vi.fn(),
@@ -20,12 +20,12 @@ function makeCommands(overrides: Partial<ExpenseSplitEditorViewProps['provided']
   };
 }
 
-describe('ExpenseSplitEditorView', () => {
-  it('renders item split rows and dispatches item commands', () => {
+describe('ItemBreakdownEditorView', () => {
+  it('renders item rows and dispatches item commands', () => {
     const commands = makeCommands();
 
     render(
-      <ExpenseSplitEditorView
+      <ItemBreakdownEditorView
         required={{
           config: {},
           data: {
@@ -67,10 +67,10 @@ describe('ExpenseSplitEditorView', () => {
     expect(commands.removeItem).toHaveBeenCalledWith('item-1');
   });
 
-  it('renders empty, remaining and over-base split states', () => {
+  it('renders empty, remaining and over-base item breakdown states', () => {
     const commands = makeCommands();
     const { rerender } = render(
-      <ExpenseSplitEditorView
+      <ItemBreakdownEditorView
         required={{
           config: {},
           data: { items: [] },
@@ -95,7 +95,7 @@ describe('ExpenseSplitEditorView', () => {
     expect(screen.queryByLabelText(/Remaining auto/i)).not.toBeInTheDocument();
 
     rerender(
-      <ExpenseSplitEditorView
+      <ItemBreakdownEditorView
         required={{
           config: {},
           data: { items: [{ id: 'item-food', name: 'Food', amount: '7.00' }] },
@@ -119,7 +119,7 @@ describe('ExpenseSplitEditorView', () => {
     expect(screen.getByLabelText('Remaining auto 13.00 EUR')).toBeInTheDocument();
 
     rerender(
-      <ExpenseSplitEditorView
+      <ItemBreakdownEditorView
         required={{
           config: {},
           data: { items: [{ id: 'item-food', name: 'Food', amount: '22.00' }] },
@@ -140,15 +140,15 @@ describe('ExpenseSplitEditorView', () => {
       />,
     );
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Amount before split: 20.00 EUR. Split amount: 22.00 EUR.');
+    expect(screen.getByRole('alert')).toHaveTextContent('Movement amount: 20.00 EUR. Items total: 22.00 EUR.');
   });
 
-  it('edits an existing split item inline', () => {
+  it('edits an existing item inline', () => {
     const editItem = vi.fn();
     const addItem = vi.fn(() => true);
     const commands = makeCommands({ editItem, addItem });
     const { rerender } = render(
-      <ExpenseSplitEditorView
+      <ItemBreakdownEditorView
         required={{
           config: {},
           data: { items: [{ id: 'item-1', name: 'Coffee', amount: '4.00' }] },
@@ -173,7 +173,7 @@ describe('ExpenseSplitEditorView', () => {
     fireEvent.click(row as HTMLElement);
 
     rerender(
-      <ExpenseSplitEditorView
+      <ItemBreakdownEditorView
         required={{
           config: {},
           data: { items: [{ id: 'item-1', name: 'Coffee', amount: '4.00' }] },
@@ -204,7 +204,7 @@ describe('ExpenseSplitEditorView', () => {
 
   it('renders validation feedback and hides editor body when disabled by state', () => {
     render(
-      <ExpenseSplitEditorView
+      <ItemBreakdownEditorView
         required={{
           config: {},
           data: { items: [] },
@@ -218,7 +218,7 @@ describe('ExpenseSplitEditorView', () => {
             splitBaseAmount: '0.00',
             splitRemaining: '0.00',
             itemNameError: 'Item name is required',
-            splitError: 'Split must match amount',
+            splitError: 'Items must match amount',
           },
           status: { disabled: true },
         }}
@@ -226,9 +226,9 @@ describe('ExpenseSplitEditorView', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Split into items')).toBeDisabled();
+    expect(screen.getByLabelText('Add items')).toBeDisabled();
     expect(screen.queryByLabelText('Description')).not.toBeInTheDocument();
     expect(screen.queryByText('Item name is required')).not.toBeInTheDocument();
-    expect(screen.queryByText('Split must match amount')).not.toBeInTheDocument();
+    expect(screen.queryByText('Items must match amount')).not.toBeInTheDocument();
   });
 });

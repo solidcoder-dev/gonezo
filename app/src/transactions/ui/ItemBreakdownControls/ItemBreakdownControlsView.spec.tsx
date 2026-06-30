@@ -1,14 +1,14 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { SplitSummaryView } from './SplitSummaryView';
-import { SplitTriggerView } from './SplitTriggerView';
+import { ItemBreakdownSummaryView } from './ItemBreakdownSummaryView';
+import { ItemBreakdownTriggerView } from './ItemBreakdownTriggerView';
 
-describe('SplitControlsView', () => {
-  it('opens the split editor from the trigger', () => {
+describe('ItemBreakdownControlsView', () => {
+  it('opens the items editor from the trigger', () => {
     const open = vi.fn();
 
     render(
-      <SplitTriggerView
+      <ItemBreakdownTriggerView
         required={{
           config: {},
           data: {},
@@ -19,17 +19,17 @@ describe('SplitControlsView', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Split' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Items' }));
 
     expect(open).toHaveBeenCalledTimes(1);
   });
 
-  it('renders an applied split summary with edit and remove actions', () => {
+  it('renders an applied items summary with edit and remove actions', () => {
     const edit = vi.fn();
     const remove = vi.fn();
 
     render(
-      <SplitSummaryView
+      <ItemBreakdownSummaryView
         required={{
           config: {},
           data: {},
@@ -44,10 +44,10 @@ describe('SplitControlsView', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Edit split, 2 items, 100.00 EUR' })).toBeInTheDocument();
-    expect(screen.getByText('2 items')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit items, 2 items, 100.00 EUR' })).toBeInTheDocument();
+    expect(screen.getByText('2 items · 100.00 EUR')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit split, 2 items, 100.00 EUR' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit items, 2 items, 100.00 EUR' }));
 
     expect(edit).toHaveBeenCalledTimes(1);
     expect(remove).not.toHaveBeenCalled();

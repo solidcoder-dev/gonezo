@@ -19,7 +19,7 @@ function renderSplitModel(initialAmount = '100.00') {
 }
 
 describe('useExpenseSplitEditorModel', () => {
-  it('keeps movement amount unchanged when adding split items', () => {
+  it('keeps movement amount unchanged when adding items', () => {
     const { result } = renderSplitModel('100.00');
 
     act(() => {
@@ -52,7 +52,7 @@ describe('useExpenseSplitEditorModel', () => {
     expect(result.current.model.state.expenseSplitTotal).toBe('60.00');
   });
 
-  it('keeps movement amount unchanged when removing split items', () => {
+  it('keeps movement amount unchanged when removing items', () => {
     const { result } = renderSplitModel('100.00');
 
     act(() => {
@@ -78,7 +78,7 @@ describe('useExpenseSplitEditorModel', () => {
     expect(result.current.model.state.expenseRemaining).toBe('60.00');
   });
 
-  it('applies and removes a split without changing the movement amount', () => {
+  it('applies and removes items without changing the movement amount', () => {
     const { result } = renderSplitModel('100.00');
 
     act(() => {
@@ -281,7 +281,7 @@ describe('useExpenseSplitEditorModel', () => {
     expect(result.current.model.state.expenseSplitTotal).toBe('100.00');
   });
 
-  it('keeps part split cents balanced when edited amount leaves a remainder', () => {
+  it('keeps part item cents balanced when edited amount leaves a remainder', () => {
     const { result } = renderSplitModel('10.00');
 
     act(() => {

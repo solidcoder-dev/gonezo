@@ -125,7 +125,7 @@ describe('useTransactionEntryModel', () => {
     expect(ports.taxonomy.taxonomyListCategories).not.toHaveBeenCalled();
   });
 
-  it('uses injected ids when cloning prefilled split items', async () => {
+  it('uses injected ids when cloning prefilled items', async () => {
     const ports = makePorts();
 
     const { result } = renderHook(() => useTransactionEntryModel({
@@ -259,7 +259,7 @@ describe('useTransactionEntryModel', () => {
     expect(result.current.required.state.amount).toBe('10.00');
   });
 
-  it('uses the manual split total as the movement amount when applying from an empty amount', async () => {
+  it('uses the manual items total as the movement amount when applying from an empty amount', async () => {
     const ports = makePorts();
 
     const { result } = renderHook(() => useTransactionEntryModel({
@@ -293,7 +293,7 @@ describe('useTransactionEntryModel', () => {
     expect(result.current.required.state.amount).toBe('22.00');
   });
 
-  it('does not apply a split when sharing only includes the current user', async () => {
+  it('does not apply items when sharing only includes the current user', async () => {
     const ports = makePorts();
 
     const { result } = renderHook(() => useTransactionEntryModel({

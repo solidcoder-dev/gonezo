@@ -50,7 +50,7 @@ describe('TransactionComposerActionsView', () => {
     expect(screen.queryByRole('button', { name: 'Post now' })).not.toBeInTheDocument();
   });
 
-  it('prioritizes post/edit labels and disables when split is not ready', () => {
+  it('prioritizes post/edit labels and disables when items are not ready', () => {
     const { rerender } = render(
       <TransactionComposerActionsView
         required={{

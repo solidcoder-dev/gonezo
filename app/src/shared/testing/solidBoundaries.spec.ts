@@ -88,8 +88,8 @@ describe('SOLID frontend boundaries', () => {
       'transactions/ui/TransactionComposer/TransactionComposerView.tsx',
       'transactions/ui/TransactionComposer/TransactionEntryView.tsx',
       'transactions/ui/TransactionComposer/TransactionEntryView.contract.ts',
-      'transactions/ui/ExpenseSplitEditor/ExpenseSplitEditorView.tsx',
-      'transactions/ui/ExpenseSplitEditor/ExpenseSplitEditorView.spec.tsx',
+      'transactions/ui/ItemBreakdownEditor/ItemBreakdownEditorView.tsx',
+      'transactions/ui/ItemBreakdownEditor/ItemBreakdownEditorView.spec.tsx',
     ];
 
     for (const relativePath of expectedClusterFiles) {
@@ -97,13 +97,13 @@ describe('SOLID frontend boundaries', () => {
     }
   });
 
-  it('keeps split component styles out of the global app stylesheet', () => {
+  it('keeps item breakdown component styles out of the global app stylesheet', () => {
     const appCss = readFileSync(resolve(srcDir, 'App.css'), 'utf8');
-    const forbiddenSplitSelector = /\.(?:split-|composer-split-|composer-expense-split)/;
+    const forbiddenItemBreakdownSelector = /\.(?:item-breakdown-|composer-items-|composer-expense-items)/;
 
-    expect(appCss).not.toMatch(forbiddenSplitSelector);
+    expect(appCss).not.toMatch(forbiddenItemBreakdownSelector);
     expect(readFileSync(resolve(srcDir, 'shared/ui/SplitManager/SplitManager.module.css'), 'utf8')).toBeTruthy();
-    expect(readFileSync(resolve(srcDir, 'transactions/ui/ExpenseSplitEditor/ExpenseSplitEditorView.module.css'), 'utf8')).toBeTruthy();
+    expect(readFileSync(resolve(srcDir, 'transactions/ui/ItemBreakdownEditor/ItemBreakdownEditorView.module.css'), 'utf8')).toBeTruthy();
   });
 
   it('keeps shared visual foundations out of the feature stylesheet', () => {
