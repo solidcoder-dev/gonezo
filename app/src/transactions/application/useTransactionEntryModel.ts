@@ -282,6 +282,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setTransactionDate(prefillRequest.date);
     setTransactionNote(prefillRequest.note ?? '');
     setTransactionCategoryId(prefillRequest.categoryId ?? '');
+    setMovementIgnored((prefillRequest.mode === 'expense' || prefillRequest.mode === 'income') && prefillRequest.movementIgnored === true);
     if (prefillRequest.mode === 'transfer') {
       setTransferToAccountId(prefillRequest.transferTargetAccountId ?? '');
       setTransferAmountIn(prefillRequest.transferAmountIn ?? '');

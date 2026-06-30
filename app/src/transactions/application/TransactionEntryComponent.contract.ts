@@ -16,6 +16,7 @@ export type TransactionEntryPrefillRequest = {
   date: string;
   note?: string;
   categoryId?: string;
+  movementIgnored?: boolean;
   splitItems?: Array<{ id: string; name: string; amount: string }>;
   transferTargetAccountId?: string;
   transferAmountIn?: string;

@@ -68,11 +68,12 @@ describe('movementComposerPrefill', () => {
   });
 
   it('maps an expected movement post into a composer prefill', () => {
-    expect(postExpectedMovementToComposerPrefill(baseExpectedMovement, undefined, 456)).toMatchObject({
+    expect(postExpectedMovementToComposerPrefill({ ...baseExpectedMovement, ignored: true }, undefined, 456)).toMatchObject({
       requestId: 456,
       postExpectedMovementId: 'expected-1',
       mode: 'expense',
       categoryId: 'cat-food',
+      movementIgnored: true,
     });
   });
 

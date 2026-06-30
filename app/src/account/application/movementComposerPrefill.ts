@@ -27,6 +27,7 @@ export function expectedMovementToComposerPrefill(
     date: toDateInputValue(movement.expectedAt),
     note: movement.merchant || movement.description || '',
     categoryId: movement.categoryId,
+    movementIgnored: movement.ignored,
     splitItems: movement.splitItems,
   };
 }
@@ -44,6 +45,7 @@ export function postExpectedMovementToComposerPrefill(
     date: toDateInputValue(movement.expectedAt),
     note: movement.merchant || movement.description || '',
     categoryId: movement.categoryId,
+    movementIgnored: movement.ignored,
     splitItems: movement.splitItems,
   };
 }
