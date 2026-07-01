@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { SpendingOverviewCardComponent, type SpendingOverviewCardPort } from './SpendingOverviewCardComponent';
 
@@ -25,7 +25,7 @@ function createCore(): SpendingOverviewCardPort {
 }
 
 describe('SpendingOverviewCardComponent', () => {
-  it('loads monthly spending by default and reloads period changes independently', async () => {
+  it('loads monthly spending into top category bars', async () => {
     const core = createCore();
 
     render(
@@ -37,40 +37,9 @@ describe('SpendingOverviewCardComponent', () => {
       />,
     );
 
-    expect(await screen.findByText('Jun 2026')).toBeInTheDocument();
+    expect(await screen.findByText((_, element) => element?.textContent === '€250.00 in Jun 2026')).toBeInTheDocument();
+    expect(screen.getByText('Food')).toBeInTheDocument();
+    expect(screen.getByText('€250.00')).toBeInTheDocument();
     expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith(expect.objectContaining({ currency: 'EUR', granularity: 'monthly', periodOffset: 0 }));
-
-    fireEvent.click(screen.getByRole('button', { name: 'Select period' }));
-    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Yearly' }));
-
-    await waitFor(() => expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith(expect.objectContaining({
-      currency: 'EUR',
-      granularity: 'yearly',
-      periodOffset: 0,
-    })));
-  });
-
-  it('navigates spending overview windows', async () => {
-    const core = createCore();
-
-    render(
-      <SpendingOverviewCardComponent
-        required={{
-          context: { core },
-          config: { enabled: true, currency: 'EUR', refreshSignal: false },
-        }}
-      />,
-    );
-
-    expect(await screen.findByText('Jun 2026')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Previous spending overview window' }));
-
-    await waitFor(() => expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith(expect.objectContaining({
-      currency: 'EUR',
-      granularity: 'monthly',
-      periodOffset: -1,
-    })));
-    expect(await screen.findByText('May 2026')).toBeInTheDocument();
   });
 });

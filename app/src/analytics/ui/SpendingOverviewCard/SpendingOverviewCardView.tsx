@@ -1,63 +1,28 @@
-import { AnalyticsPeriodMenuView } from '../AnalyticsPeriodMenuView';
 import { SheetView } from '../../../shared/ui/SheetView';
 import type { SpendingOverviewCardViewProps, SpendingOverviewCategoryView } from './SpendingOverviewCardView.contract';
 import styles from './SpendingOverviewCardView.module.css';
 
-function donutBackground(categories: SpendingOverviewCategoryView[]): string {
-  if (categories.length === 0) {
-    return 'conic-gradient(var(--color-brand-soft) 0 100%)';
-  }
-  let start = 0;
-  const segments = categories.map((category) => {
-    const end = start + category.percentage;
-    const segment = `${category.color} ${start}% ${end}%`;
-    start = end;
-    return segment;
-  });
-  if (start < 100) {
-    segments.push(`rgba(32, 32, 30, 0.08) ${start}% 100%`);
-  }
-  return `conic-gradient(${segments.join(', ')})`;
-}
+const CATEGORY_ICONS = ['bi bi-fork-knife', 'bi bi-suitcase-lg', 'bi bi-cart-fill', 'bi bi-car-front-fill', 'bi bi-three-dots'];
 
 export function SpendingOverviewCardView({ required, provided }: SpendingOverviewCardViewProps) {
   const { categories, totalAmount, windowLabel } = required.data;
   const canShowBreakdown = categories.length > 0 && !required.status.loading;
+  const topCategories = categories.slice(0, 5);
 
   return (
     <>
       <section className={styles.card} aria-label="Spending overview" aria-busy={required.status.loading}>
         <div className={styles.header}>
           <div>
-            <h2>Spending overview</h2>
-            <span>{totalAmount}</span>
+            <h2>Top spending categories</h2>
+            <span>{totalAmount} in {windowLabel}</span>
           </div>
-          <AnalyticsPeriodMenuView
-            required={{
-              state: { granularity: required.state.granularity },
-              status: { disabled: required.status.disabled || required.status.loading },
-            }}
-            provided={{ commands: { selectGranularity: provided.commands.selectGranularity } }}
-          />
-        </div>
-
-        <div className={styles.windowNav}>
           <button
             type="button"
-            className={styles.iconButton}
-            aria-label="Previous spending overview window"
-            disabled={required.status.disabled || required.status.loading}
-            onClick={provided.commands.goToPreviousWindow}
-          >
-            <i className="bi bi-chevron-left" aria-hidden />
-          </button>
-          <span>{windowLabel}</span>
-          <button
-            type="button"
-            className={styles.iconButton}
-            aria-label="Next spending overview window"
-            disabled={required.status.disabled || required.status.loading || !required.state.canGoNextWindow}
-            onClick={provided.commands.goToNextWindow}
+            className={styles.headerAction}
+            aria-label="Open spending categories"
+            disabled={required.status.disabled || !canShowBreakdown}
+            onClick={provided.commands.openCategoryBreakdown}
           >
             <i className="bi bi-chevron-right" aria-hidden />
           </button>
@@ -68,9 +33,7 @@ export function SpendingOverviewCardView({ required, provided }: SpendingOvervie
         ) : categories.length === 0 ? (
           <p className={styles.empty}>No spending data.</p>
         ) : (
-          <div className={styles.body}>
-            <div className={styles.donut} style={{ background: donutBackground(categories) }} aria-hidden />
-          </div>
+          <CategoryBarList categories={topCategories} />
         )}
 
         <button
@@ -79,7 +42,8 @@ export function SpendingOverviewCardView({ required, provided }: SpendingOvervie
           disabled={required.status.disabled || !canShowBreakdown}
           onClick={provided.commands.openCategoryBreakdown}
         >
-          View categories
+          <span>See all categories</span>
+          <i className="bi bi-chevron-right" aria-hidden />
         </button>
       </section>
 
@@ -106,8 +70,39 @@ export function SpendingOverviewCardView({ required, provided }: SpendingOvervie
 function SpendingOverviewSkeleton() {
   return (
     <div className={styles.skeleton} role="status" aria-label="Loading spending overview">
-      <span className={styles.skeletonDonut} />
-      <span className={styles.skeletonLine} />
+      {Array.from({ length: 5 }, (_, index) => (
+        <span className={styles.skeletonLine} key={index} />
+      ))}
+    </div>
+  );
+}
+
+function CategoryBarList({ categories }: { categories: SpendingOverviewCategoryView[] }) {
+  return (
+    <div className={styles.categoryList}>
+      {categories.map((category, index) => (
+        <div className={styles.categoryItem} key={category.key}>
+          <span className={styles.categoryIcon} style={{ background: category.color }}>
+            <i className={CATEGORY_ICONS[index] ?? CATEGORY_ICONS[CATEGORY_ICONS.length - 1]} aria-hidden />
+          </span>
+          <span className={styles.categoryDetails}>
+            <span className={styles.categoryMeta}>
+              <strong>{category.name}</strong>
+              <span>{category.amount}</span>
+              <span>{category.percentage}%</span>
+            </span>
+            <span className={styles.progressTrack}>
+              <span
+                className={styles.progressFill}
+                style={{
+                  background: category.color,
+                  width: `${Math.max(2, Math.min(100, category.percentage))}%`,
+                }}
+              />
+            </span>
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

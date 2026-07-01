@@ -1,11 +1,11 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  min-height: 390px;
-  padding: 22px;
+  gap: 20px;
+  min-height: 0;
+  padding: 22px 20px;
   border: 1px solid var(--color-border-subtle);
-  border-radius: 28px;
+  border-radius: 18px;
   background: var(--color-card-surface);
   box-shadow: var(--shadow-card);
 }
@@ -20,13 +20,32 @@
 .header h2 {
   margin: 0;
   color: var(--color-text-primary);
-  font-size: 1.25rem;
+  font-size: 1.15rem;
+  line-height: 1.15;
 }
 
 .header span {
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: 0.84rem;
   font-weight: 700;
+}
+
+.headerAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 1.1rem;
+}
+
+.headerAction:disabled {
+  color: var(--color-text-muted);
+  opacity: 0.45;
 }
 
 .windowNav {
@@ -63,37 +82,6 @@
   color: var(--color-text-muted);
   cursor: default;
   opacity: 0.45;
-}
-
-.body {
-  display: grid;
-  flex: 1;
-  grid-template-columns: 1fr;
-  align-items: center;
-  justify-items: center;
-  min-height: 170px;
-}
-
-.donut {
-  width: 148px;
-  aspect-ratio: 1;
-  border-radius: 999px;
-  background: conic-gradient(var(--color-brand-soft) 0 100%);
-  position: relative;
-}
-
-.donut::after {
-  position: absolute;
-  inset: 32%;
-  border-radius: 999px;
-  background: var(--color-card-surface);
-  content: "";
-}
-
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 .sheetList {
@@ -147,13 +135,18 @@
 }
 
 .breakdownButton {
-  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
   border: 0;
-  border-radius: 999px;
-  background: var(--color-brand-soft);
+  border-radius: 0;
+  background: transparent;
   color: var(--color-brand-strong);
   font: inherit;
-  font-weight: 750;
+  font-size: 0.95rem;
+  font-weight: 900;
   cursor: pointer;
 }
 
@@ -165,12 +158,10 @@
 .skeleton {
   display: grid;
   flex: 1;
-  place-items: center;
-  gap: 16px;
-  min-height: 170px;
+  gap: 18px;
+  min-height: 238px;
 }
 
-.skeletonDonut,
 .skeletonLine {
   display: block;
   background: linear-gradient(90deg, rgba(32, 32, 30, 0.06), rgba(32, 32, 30, 0.12), rgba(32, 32, 30, 0.06));
@@ -178,16 +169,84 @@
   animation: skeletonPulse 1.2s ease-in-out infinite;
 }
 
-.skeletonDonut {
-  width: 148px;
-  aspect-ratio: 1;
+.skeletonLine {
+  width: 100%;
+  height: 34px;
   border-radius: 999px;
 }
 
-.skeletonLine {
-  width: min(180px, 72%);
-  height: 14px;
+.categoryList {
+  display: grid;
+  gap: 18px;
+}
+
+.categoryItem {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.categoryIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
   border-radius: 999px;
+  color: #20201c;
+  font-size: 1.05rem;
+}
+
+.categoryDetails {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.categoryMeta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 38px;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.categoryMeta strong {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.categoryMeta span {
+  color: var(--color-text-primary);
+  font-size: 0.84rem;
+  font-weight: 900;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.categoryMeta span:last-child {
+  color: var(--color-text-muted);
+}
+
+.progressTrack {
+  display: block;
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e7e7e2;
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
 }
 
 @keyframes skeletonPulse {
@@ -200,12 +259,13 @@
   }
 }
 
-@media (max-width: 520px) {
-  .body {
-    grid-template-columns: 1fr;
+@media (max-width: 420px) {
+  .categoryMeta {
+    grid-template-columns: minmax(0, 1fr) auto 32px;
+    gap: 8px;
   }
 
-  .donut {
-    justify-self: center;
+  .categoryMeta span {
+    font-size: 0.78rem;
   }
 }

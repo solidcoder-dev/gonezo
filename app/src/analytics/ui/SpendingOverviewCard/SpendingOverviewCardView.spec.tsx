@@ -1,12 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { SpendingOverviewCardView } from './SpendingOverviewCardView';
 
 describe('SpendingOverviewCardView', () => {
-  it('renders period menu and window navigation', () => {
-    const selectGranularity = vi.fn();
-    const goToPreviousWindow = vi.fn();
-    const goToNextWindow = vi.fn();
+  it('renders top spending category bars', () => {
 
     render(
       <SpendingOverviewCardView
@@ -15,7 +12,8 @@ describe('SpendingOverviewCardView', () => {
             totalAmount: '€250.00',
             windowLabel: 'Jun 2026',
             categories: [
-              { key: 'food', name: 'Food', amount: '€250.00', percentage: 100, color: '#86d69a' },
+              { key: 'food', name: 'Dining', amount: '€120.00', percentage: 48, color: '#f7cf6d' },
+              { key: 'travel', name: 'Travel', amount: '€80.00', percentage: 32, color: '#8ab9ee' },
             ],
           },
           state: { granularity: 'monthly', canGoNextWindow: true, categoryBreakdownOpen: false },
@@ -23,9 +21,9 @@ describe('SpendingOverviewCardView', () => {
         }}
         provided={{
           commands: {
-            selectGranularity,
-            goToPreviousWindow,
-            goToNextWindow,
+            selectGranularity: vi.fn(),
+            goToPreviousWindow: vi.fn(),
+            goToNextWindow: vi.fn(),
             openCategoryBreakdown: vi.fn(),
             closeCategoryBreakdown: vi.fn(),
           },
@@ -33,17 +31,12 @@ describe('SpendingOverviewCardView', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: 'Spending overview' })).toBeInTheDocument();
-    expect(screen.getByText('Jun 2026')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Select period' }));
-    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Yearly' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Previous spending overview window' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Next spending overview window' }));
-
-    expect(selectGranularity).toHaveBeenCalledWith('yearly');
-    expect(goToPreviousWindow).toHaveBeenCalledTimes(1);
-    expect(goToNextWindow).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('heading', { name: 'Top spending categories' })).toBeInTheDocument();
+    expect(screen.getByText('€250.00 in Jun 2026')).toBeInTheDocument();
+    expect(screen.getByText('Dining')).toBeInTheDocument();
+    expect(screen.getByText('€120.00')).toBeInTheDocument();
+    expect(screen.getByText('48%')).toBeInTheDocument();
+    expect(screen.getByText('Travel')).toBeInTheDocument();
   });
 
   it('opens the category breakdown through a bottom sheet command', () => {
@@ -75,9 +68,10 @@ describe('SpendingOverviewCardView', () => {
     );
 
     expect(screen.queryByRole('dialog', { name: 'Spending categories' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'View categories' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open spending categories' }));
+    fireEvent.click(screen.getByRole('button', { name: 'See all categories' }));
 
-    expect(openCategoryBreakdown).toHaveBeenCalledTimes(1);
+    expect(openCategoryBreakdown).toHaveBeenCalledTimes(2);
   });
 
   it('renders category rows inside the bottom sheet when it is open', () => {
@@ -108,8 +102,9 @@ describe('SpendingOverviewCardView', () => {
       />,
     );
 
-    expect(screen.getByRole('dialog', { name: 'Spending categories' })).toBeInTheDocument();
-    expect(screen.getByText('Food')).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Spending categories' });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('Food')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Close spending categories' }));
 
     expect(closeCategoryBreakdown).toHaveBeenCalledTimes(1);
