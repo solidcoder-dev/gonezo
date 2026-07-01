@@ -99,6 +99,7 @@ export type LedgerGetCashFlowSeriesResult = {
   window: {
     label: string;
     periodOffset: number;
+    canGoPrevious: boolean;
     canGoNext: boolean;
   };
   points: LedgerCashFlowSeriesPoint[];

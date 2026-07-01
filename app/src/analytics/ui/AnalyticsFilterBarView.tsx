@@ -53,13 +53,22 @@ type AnalyticsFilterBarViewProps = {
       openMoreFilters: () => void;
       closeMoreFilters: () => void;
       patchDraftFilters: (patch: AnalyticsFiltersInput) => void;
+      selectDraftAccount: (accountId: string) => void;
       resetDraftFilters: () => void;
       applyDraftFilters: () => void;
     };
   };
 };
 
-const PERIODS: AnalyticsPeriodPreset[] = ['3M', '6M', '12M'];
+const PERIODS: Array<{ value: AnalyticsPeriodPreset; label: string }> = [
+  { value: '1W', label: '1W' },
+  { value: '1M', label: '1M' },
+  { value: '3M', label: '3M' },
+  { value: '6M', label: '6M' },
+  { value: '1Y', label: '1Y' },
+  { value: '5Y', label: '5Y' },
+  { value: 'ALL', label: 'All period' },
+];
 
 const MOVEMENT_TYPES: Array<{ value: AnalyticsMovementTypeFilter; label: string }> = [
   { value: 'expense', label: 'Expense' },
@@ -96,9 +105,11 @@ function activeMoreFilterCount(filters: AnalyticsFilters): number {
   return [
     filters.accountIds.length > 0,
     filters.movementTypes.length > 0,
-    filters.recurring !== 'postedOnly',
-    filters.groupBy !== 'monthly',
   ].filter(Boolean).length;
+}
+
+function periodLabel(period: AnalyticsPeriodPreset): string {
+  return PERIODS.find((option) => option.value === period)?.label ?? period;
 }
 
 export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBarViewProps) {
@@ -130,7 +141,7 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
           aria-label="Select period"
         >
           <i className="bi bi-calendar4" aria-hidden />
-          <span>{state.filters.period}</span>
+          <span>{periodLabel(state.filters.period)}</span>
           <i className="bi bi-chevron-down" aria-hidden />
         </button>
 
@@ -234,13 +245,13 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
               <div className={styles.optionList}>
                 {PERIODS.map((period) => (
                   <button
-                    key={period}
+                    key={period.value}
                     type="button"
-                    className={period === state.filters.period ? styles.optionRowActive : styles.optionRow}
-                    onClick={() => provided.commands.selectPeriod(period)}
+                    className={period.value === state.filters.period ? styles.optionRowActive : styles.optionRow}
+                    onClick={() => provided.commands.selectPeriod(period.value)}
                   >
-                    <span>{period}</span>
-                    {period === state.filters.period ? <i className="bi bi-check-lg" aria-hidden /> : null}
+                    <span>{period.label}</span>
+                    {period.value === state.filters.period ? <i className="bi bi-check-lg" aria-hidden /> : null}
                   </button>
                 ))}
               </div>
@@ -264,8 +275,8 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
             header: (
               <div className={styles.sheetHeader}>
                 <h3>Select tags</h3>
-                <button type="button" className={styles.sheetDoneButton} onClick={provided.commands.applyDraftTags}>
-                  Done
+                <button type="button" className={styles.sheetDoneButton} onClick={provided.commands.clearDraftTags}>
+                  Clear
                 </button>
               </div>
             ),
@@ -303,10 +314,10 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
               </>
             ),
             footer: (
-              <div className={styles.sheetFooter}>
+              <div className={styles.tagSheetFooter}>
                 <strong>{state.draftTagIds.length} tags selected</strong>
-                <button type="button" className={styles.sheetDoneButton} onClick={provided.commands.clearDraftTags}>
-                  Clear
+                <button type="button" className={styles.tagDoneButton} onClick={provided.commands.applyDraftTags}>
+                  Done
                 </button>
               </div>
             ),
@@ -340,9 +351,7 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
                   <select
                     aria-label="Analytics account"
                     value={state.draftFilters.accountIds[0] ?? ''}
-                    onChange={(event) => provided.commands.patchDraftFilters({
-                      accountIds: event.target.value ? [event.target.value] : [],
-                    })}
+                    onChange={(event) => provided.commands.selectDraftAccount(event.target.value)}
                   >
                     <option value="">All accounts</option>
                     {data.accounts.map((account) => (
@@ -368,35 +377,6 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
                     ))}
                   </div>
                 </div>
-
-                <label className={styles.filterRow}>
-                  <span>Recurring</span>
-                  <select
-                    aria-label="Analytics recurring"
-                    value={state.draftFilters.recurring}
-                    onChange={(event) => provided.commands.patchDraftFilters({
-                      recurring: event.target.value as AnalyticsFilters['recurring'],
-                    })}
-                  >
-                    <option value="postedOnly">Posted only</option>
-                    <option value="all">All</option>
-                    <option value="recurringOnly">Recurring only</option>
-                  </select>
-                </label>
-
-                <label className={styles.filterRow}>
-                  <span>Group by</span>
-                  <select
-                    aria-label="Analytics group by"
-                    value={state.draftFilters.groupBy}
-                    onChange={(event) => provided.commands.patchDraftFilters({
-                      groupBy: event.target.value as AnalyticsFilters['groupBy'],
-                    })}
-                  >
-                    <option value="monthly">Monthly</option>
-                    <option value="weekly">Weekly</option>
-                  </select>
-                </label>
 
                 <div className={styles.filterRowGroup}>
                   <span>Tags</span>

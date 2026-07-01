@@ -135,6 +135,10 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput) {
     setFilters((current) => mergeAnalyticsFilters(current, patch));
   }
 
+  function currencyForAccount(accountId: string): string | undefined {
+    return facets.accounts.find((account) => account.id === accountId)?.currency.toUpperCase();
+  }
+
   function toggleDraftTag(tagId: string) {
     setDraftTagIds((current) => (
       current.includes(tagId)
@@ -185,7 +189,7 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput) {
         openCurrencySheet: () => setCurrencySheetOpen(true),
         closeCurrencySheet: () => setCurrencySheetOpen(false),
         selectCurrency: (currency: string) => {
-          updateFilters({ currency });
+          updateFilters({ currency, accountIds: [] });
           setCurrencySheetOpen(false);
         },
         openPeriodSheet: () => setPeriodSheetOpen(true),
@@ -209,6 +213,12 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput) {
         closeMoreFilters: () => setMoreFiltersOpen(false),
         patchDraftFilters: (patch: AnalyticsFiltersInput) => {
           setDraftFilters((current) => mergeAnalyticsFilters(current, patch));
+        },
+        selectDraftAccount: (accountId: string) => {
+          setDraftFilters((current) => mergeAnalyticsFilters(current, {
+            accountIds: accountId ? [accountId] : [],
+            currency: accountId ? currencyForAccount(accountId) ?? current.currency : current.currency,
+          }));
         },
         resetDraftFilters: () => {
           const currency = filters.currency || currencies[0] || '';

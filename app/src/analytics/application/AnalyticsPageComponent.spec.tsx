@@ -7,7 +7,10 @@ function createCore(): AnalyticsPort {
   return {
     analyticsListCurrencies: vi.fn(async () => ({ items: ['EUR', 'USD'] })),
     analyticsGetFilterFacets: vi.fn(async () => ({
-      accounts: [{ id: 'acc-1', name: 'Main', currency: 'EUR' }],
+      accounts: [
+        { id: 'acc-1', name: 'Main', currency: 'EUR' },
+        { id: 'acc-2', name: 'Travel', currency: 'USD' },
+      ],
       tags: [
         { id: 'tag-alicante', name: 'Alicante 2026' },
         { id: 'tag-benidorm', name: 'Benidorm 2026' },
@@ -18,7 +21,7 @@ function createCore(): AnalyticsPort {
       selectedCurrency: input.currency,
       granularity: input.granularity,
       totals: { incomeAmount: '1000.00', expenseAmount: '250.00' },
-      window: { label: 'Jan 2026 - Jun 2026', periodOffset: input.periodOffset ?? 0, canGoNext: false },
+      window: { label: 'Jan 2026 - Jun 2026', periodOffset: input.periodOffset ?? 0, canGoPrevious: true, canGoNext: false },
       points: [
         { periodKey: '2026-06', label: 'Jun', incomeAmount: '1000.00', expenseAmount: '250.00' },
       ],
@@ -56,7 +59,12 @@ describe('AnalyticsPageComponent', () => {
 
     expect(await screen.findByRole('heading', { name: 'Analytics' })).toBeInTheDocument();
     await waitFor(() => expect(core.analyticsGetPeriodCashFlowSummary).toHaveBeenCalledWith(expect.objectContaining({ currency: 'EUR' })));
-    expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith(expect.objectContaining({ currency: 'EUR', granularity: 'monthly', periodOffset: 0 }));
+    expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith(expect.objectContaining({
+      currency: 'EUR',
+      granularity: 'monthly',
+      periodOffset: 0,
+      filters: expect.objectContaining({ period: '1M' }),
+    }));
     expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith(expect.objectContaining({ currency: 'EUR', granularity: 'monthly', periodOffset: 0 }));
 
     fireEvent.click(screen.getByLabelText('Select currency'));
@@ -67,9 +75,21 @@ describe('AnalyticsPageComponent', () => {
     expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith(expect.objectContaining({ currency: 'USD', granularity: 'monthly', periodOffset: 0 }));
 
     fireEvent.click(screen.getAllByLabelText('Select period')[0]);
+    expect(screen.getByRole('button', { name: '1W' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '1Y' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '5Y' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'All period' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '3M' }));
     await waitFor(() => expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith(expect.objectContaining({
       filters: expect.objectContaining({ period: '3M' }),
+    })));
+
+    fireEvent.click(screen.getByLabelText('More filters'));
+    fireEvent.change(screen.getByLabelText('Analytics account'), { target: { value: 'acc-2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply filters' }));
+    await waitFor(() => expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith(expect.objectContaining({
+      currency: 'USD',
+      filters: expect.objectContaining({ accountIds: ['acc-2'], currency: 'USD' }),
     })));
 
     const filterFacetsCallsBeforeRefresh = vi.mocked(core.analyticsGetFilterFacets).mock.calls.length;
@@ -87,7 +107,7 @@ describe('AnalyticsPageComponent', () => {
     await waitFor(() => expect(vi.mocked(core.analyticsGetFilterFacets).mock.calls.length).toBeGreaterThan(filterFacetsCallsBeforeRefresh));
     expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith(expect.objectContaining({
       currency: 'USD',
-      filters: expect.objectContaining({ period: '3M' }),
+      filters: expect.objectContaining({ accountIds: ['acc-2'], period: '3M' }),
     }));
   }, 10000);
 });

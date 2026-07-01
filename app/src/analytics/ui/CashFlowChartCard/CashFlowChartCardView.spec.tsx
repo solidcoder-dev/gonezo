@@ -23,7 +23,7 @@ describe('CashFlowChartCardView', () => {
               },
             ],
           },
-          state: { granularity: 'monthly', canGoNextWindow: false },
+          state: { granularity: 'monthly', canGoPreviousWindow: true, canGoNextWindow: false },
           status: { loading: false },
         }}
         provided={{
@@ -58,7 +58,7 @@ describe('CashFlowChartCardView', () => {
             windowLabel: 'Jan 2026 - Jun 2026',
             points: [],
           },
-          state: { granularity: 'monthly', canGoNextWindow: true },
+          state: { granularity: 'monthly', canGoPreviousWindow: true, canGoNextWindow: true },
           status: { loading: false },
         }}
         provided={{
@@ -107,7 +107,7 @@ describe('CashFlowChartCardView', () => {
               },
             ],
           },
-          state: { granularity: 'yearly', canGoNextWindow: true },
+          state: { granularity: 'yearly', canGoPreviousWindow: true, canGoNextWindow: true },
           status: { loading: false },
         }}
         provided={{
@@ -134,7 +134,7 @@ describe('CashFlowChartCardView', () => {
             windowLabel: 'Jan 2026 - Jun 2026',
             points: [],
           },
-          state: { granularity: 'monthly', canGoNextWindow: false },
+          state: { granularity: 'monthly', canGoPreviousWindow: false, canGoNextWindow: false },
           status: { loading: true },
         }}
         provided={{
@@ -149,5 +149,30 @@ describe('CashFlowChartCardView', () => {
 
     expect(screen.getByRole('status', { name: 'Loading cash flow chart' })).toBeInTheDocument();
     expect(screen.queryByText('Loading cash flow...')).not.toBeInTheDocument();
+  });
+
+  it('disables previous window navigation when the selected filter range starts at the current window', () => {
+    render(
+      <CashFlowChartCardView
+        required={{
+          data: {
+            selectedCurrency: 'EUR',
+            windowLabel: 'Mar 2026 - Jul 2026',
+            points: [],
+          },
+          state: { granularity: 'monthly', canGoPreviousWindow: false, canGoNextWindow: false },
+          status: { loading: false },
+        }}
+        provided={{
+          commands: {
+            selectGranularity: vi.fn(),
+            goToPreviousWindow: vi.fn(),
+            goToNextWindow: vi.fn(),
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Previous cash flow window' })).toBeDisabled();
   });
 });

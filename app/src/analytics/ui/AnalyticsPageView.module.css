@@ -360,6 +360,27 @@
   font-size: 0.9rem;
 }
 
+.tagSheetFooter {
+  display: grid;
+  gap: 12px;
+  padding: 16px 20px 20px;
+  border-top: 1px solid #eeeeea;
+}
+
+.tagSheetFooter strong {
+  font-size: 0.9rem;
+}
+
+.tagDoneButton {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 8px;
+  background: #000;
+  color: #fff;
+  font-weight: 900;
+}
+
 .filterRow,
 .filterRowGroup {
   display: grid;

@@ -43,21 +43,57 @@ function startOfUtcMonth(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
 }
 
+function startOfUtcYear(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+}
+
+function startOfUtcDay(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+function addUtcDays(date: Date, days: number): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days));
+}
+
 function addUtcMonths(date: Date, months: number): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1));
 }
 
+function addUtcYears(date: Date, years: number): Date {
+  return new Date(Date.UTC(date.getUTCFullYear() + years, date.getUTCMonth(), date.getUTCDate()));
+}
+
 function dateFilterValue(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  return date.toISOString();
+}
+
+function endOfUtcDay(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
+}
+
+function analyticsVisibleRangeStart(input: AnalyticsFiltersInput | undefined, now: Date): Date | undefined {
+  const filters = normalizeAnalyticsFilters(input);
+  if (filters.period === '1W') {
+    return addUtcDays(startOfUtcDay(now), -6);
+  }
+  if (filters.period === '5Y') {
+    return addUtcYears(startOfUtcYear(now), -4);
+  }
+  if (filters.period === 'ALL') {
+    return undefined;
+  }
+  const periodMonths = analyticsPeriodMonths(filters.period);
+  return addUtcMonths(startOfUtcMonth(now), -(periodMonths - 1));
 }
 
 function analyticsDateRange(input: AnalyticsFiltersInput | undefined, now: Date): Pick<LedgerTransactionFilterInput, 'fromDate' | 'toDate'> {
-  const filters = normalizeAnalyticsFilters(input);
-  const periodMonths = analyticsPeriodMonths(filters.period);
-  const firstMonth = addUtcMonths(startOfUtcMonth(now), -(periodMonths - 1));
+  const rangeStart = analyticsVisibleRangeStart(input, now);
+  if (!rangeStart) {
+    return {};
+  }
   return {
-    fromDate: dateFilterValue(firstMonth),
-    toDate: dateFilterValue(now),
+    fromDate: dateFilterValue(rangeStart),
+    toDate: dateFilterValue(endOfUtcDay(now)),
   };
 }
 
@@ -86,8 +122,11 @@ async function selectedAnalyticsAccountIds(
   const accounts = await port.ledgerListAccounts();
   const requestedAccountIds = new Set(filters.accountIds);
   return accounts.items
-    .filter((account) => (filters.currency ? account.currency.toUpperCase() === filters.currency : true))
-    .filter((account) => (requestedAccountIds.size > 0 ? requestedAccountIds.has(account.id) : true))
+    .filter((account) => (
+      requestedAccountIds.size > 0
+        ? requestedAccountIds.has(account.id)
+        : !filters.currency || account.currency.toUpperCase() === filters.currency
+    ))
     .map((account) => account.id);
 }
 
@@ -103,6 +142,16 @@ function analyticsTransactionFilters(
     tagIds: includeTags && filters.tagIds.length > 0 ? filters.tagIds : undefined,
     ...analyticsDateRange(filters, now),
   };
+}
+
+function earliestTransactionDate(transactions: Array<{ occurredAt: string }>): Date | undefined {
+  return transactions.reduce<Date | undefined>((earliest, transaction) => {
+    const occurredAt = new Date(transaction.occurredAt);
+    if (Number.isNaN(occurredAt.getTime())) {
+      return earliest;
+    }
+    return !earliest || occurredAt < earliest ? occurredAt : earliest;
+  }, undefined);
 }
 
 async function listScopedAnalyticsMovements(
@@ -155,7 +204,6 @@ export async function analyticsGetFilterFacets(
 
   return {
     accounts: accounts.items
-      .filter((account) => (normalizedFilters.currency ? account.currency.toUpperCase() === normalizedFilters.currency : true))
       .map((account) => ({
         id: account.id,
         name: account.name,
@@ -172,15 +220,17 @@ export async function analyticsGetCashFlowSeries(
   input: AnalyticsCashFlowSeriesInput,
 ): Promise<LedgerGetCashFlowSeriesResult> {
   const filters = normalizeAnalyticsFilters({ ...input.filters, currency: input.currency });
-  const { accounts, transactions } = await listScopedAnalyticsMovements(port, filters);
+  const now = new Date();
+  const { accounts, transactions } = await listScopedAnalyticsMovements(port, filters, now);
   return buildCashFlowSeries({
     accounts,
     transactions,
     currency: input.currency,
     granularity: input.granularity,
     periodOffset: input.periodOffset,
-    periodCount: analyticsPeriodMonths(filters.period),
-    now: new Date(),
+    periodCount: 5,
+    visibleRangeStart: analyticsVisibleRangeStart(filters, now) ?? earliestTransactionDate(transactions),
+    now,
   });
 }
 
@@ -188,7 +238,7 @@ export async function analyticsGetPeriodCashFlowSummary(
   port: AnalyticsQueryPort,
   input: AnalyticsCurrencyScopeInput,
 ): Promise<AnalyticsCashFlowSummaryResult> {
-  const { transactions } = await listScopedAnalyticsMovements(port, { ...input.filters, currency: input.currency });
+  const { transactions } = await listScopedAnalyticsMovements(port, { ...input.filters, currency: input.currency }, new Date());
   return buildAnalyticsCashFlowSummary(transactions, input.currency);
 }
 
@@ -197,8 +247,9 @@ export async function analyticsGetSpendingOverview(
   input: AnalyticsSpendingOverviewInput,
 ): Promise<AnalyticsSpendingOverviewResult> {
   const filters = normalizeAnalyticsFilters({ ...input.filters, currency: input.currency });
+  const now = new Date();
   const [{ transactions }, categories] = await Promise.all([
-    listScopedAnalyticsMovements(port, filters),
+    listScopedAnalyticsMovements(port, filters, now),
     port.taxonomyListCategories({ appliesTo: 'expense', includeArchived: true }),
   ]);
   return buildSpendingOverview({
@@ -208,6 +259,6 @@ export async function analyticsGetSpendingOverview(
     granularity: input.granularity,
     periodOffset: input.periodOffset,
     periodMonths: analyticsPeriodMonths(filters.period),
-    now: new Date(),
+    now,
   });
 }

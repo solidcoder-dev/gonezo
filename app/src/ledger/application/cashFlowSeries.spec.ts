@@ -69,6 +69,7 @@ describe('buildCashFlowSeries', () => {
     expect(result.window).toEqual({
       label: 'Jul 2025 - Dec 2025',
       periodOffset: -1,
+      canGoPrevious: true,
       canGoNext: true,
     });
     expect(result.points.map((point) => point.periodKey)).toEqual([
@@ -92,6 +93,27 @@ describe('buildCashFlowSeries', () => {
     });
 
     expect(result.window.canGoNext).toBe(false);
+  });
+
+  it('does not allow navigating before the visible range start', () => {
+    const result = buildCashFlowSeries({
+      accounts,
+      transactions: [],
+      currency: 'EUR',
+      granularity: 'monthly',
+      periodCount: 5,
+      visibleRangeStart: new Date('2026-01-01T00:00:00.000Z'),
+      now: new Date('2026-06-17T12:00:00.000Z'),
+    });
+
+    expect(result.points.map((point) => point.periodKey)).toEqual([
+      '2026-02',
+      '2026-03',
+      '2026-04',
+      '2026-05',
+      '2026-06',
+    ]);
+    expect(result.window.canGoPrevious).toBe(false);
   });
 
   it('includes historical movements from archived accounts', () => {

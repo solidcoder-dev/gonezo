@@ -71,12 +71,6 @@ export function SpendingOverviewCardComponent({ required, provided }: SpendingOv
   }, [currency, filters]);
 
   useEffect(() => {
-    if (filters?.groupBy) {
-      setGranularity(filters.groupBy === 'weekly' ? 'weekly' : 'monthly');
-    }
-  }, [filters?.groupBy]);
-
-  useEffect(() => {
     if (!enabled || !currency) {
       setOverview(emptyOverview());
       setLoading(false);

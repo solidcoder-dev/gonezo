@@ -10,6 +10,7 @@ export type CashFlowChartCardViewProps = {
     };
     state: {
       granularity: LedgerCashFlowGranularity;
+      canGoPreviousWindow: boolean;
       canGoNextWindow: boolean;
     };
     status: {

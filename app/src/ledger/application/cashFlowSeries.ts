@@ -12,6 +12,7 @@ type BuildCashFlowSeriesInput = {
   granularity: LedgerCashFlowGranularity;
   periodOffset?: number;
   periodCount?: number;
+  visibleRangeStart?: Date;
   now: Date;
 };
 
@@ -147,6 +148,21 @@ function buildPeriods(
   return { periods, label: rangeLabel(first, end, granularity) };
 }
 
+function canNavigateToPreviousWindow(
+  granularity: LedgerCashFlowGranularity,
+  now: Date,
+  periodOffset: number,
+  periodCount: number | undefined,
+  visibleRangeStart: Date | undefined,
+): boolean {
+  if (!visibleRangeStart) {
+    return true;
+  }
+  const previous = buildPeriods(granularity, now, periodOffset - 1, periodCount);
+  const previousStart = previous.periods[0]?.start;
+  return previousStart != null && previousStart >= visibleRangeStart;
+}
+
 function findPeriod(periods: PeriodBucket[], occurredAt: string): PeriodBucket | undefined {
   const parsed = new Date(occurredAt);
   if (Number.isNaN(parsed.getTime())) {
@@ -188,6 +204,13 @@ export function buildCashFlowSeries(input: BuildCashFlowSeriesInput): LedgerGetC
   );
   const periodOffset = Math.min(0, Math.trunc(input.periodOffset ?? 0));
   const { periods, label } = buildPeriods(input.granularity, input.now, periodOffset, input.periodCount);
+  const canGoPrevious = canNavigateToPreviousWindow(
+    input.granularity,
+    input.now,
+    periodOffset,
+    input.periodCount,
+    input.visibleRangeStart,
+  );
   const pointByPeriod = new Map(periods.map((period) => [
     period.periodKey,
     {
@@ -232,6 +255,7 @@ export function buildCashFlowSeries(input: BuildCashFlowSeriesInput): LedgerGetC
     window: {
       label,
       periodOffset,
+      canGoPrevious,
       canGoNext: periodOffset < 0,
     },
     points,

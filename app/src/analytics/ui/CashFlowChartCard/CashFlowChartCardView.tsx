@@ -25,7 +25,7 @@ export function CashFlowChartCardView({ required, provided }: CashFlowChartCardV
           type="button"
           className={styles.iconButton}
           aria-label="Previous cash flow window"
-          disabled={status.disabled || status.loading}
+          disabled={status.disabled || status.loading || !state.canGoPreviousWindow}
           onClick={provided.commands.goToPreviousWindow}
         >
           <i className="bi bi-chevron-left" aria-hidden />

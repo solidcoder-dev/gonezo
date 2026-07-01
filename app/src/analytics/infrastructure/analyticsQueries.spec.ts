@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type {
   LedgerAccountItem,
   LedgerListTransactionsInput,
@@ -23,10 +23,12 @@ function transaction(input: Partial<LedgerTransactionListItem> & Pick<LedgerTran
   };
 }
 
-function createPort(transactions: LedgerTransactionListItem[]) {
-  const accounts: LedgerAccountItem[] = [
+function createPort(
+  transactions: LedgerTransactionListItem[],
+  accounts: LedgerAccountItem[] = [
     { id: 'acc-1', name: 'Main', type: 'cash', currency: 'EUR', status: 'active' },
-  ];
+  ],
+) {
   const categories: TaxonomyCategoryItem[] = [
     { id: 'cat-food', name: 'Food', appliesTo: 'expense', status: 'active' },
   ];
@@ -59,7 +61,13 @@ function createPort(transactions: LedgerTransactionListItem[]) {
 }
 
 describe('analytics queries', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('excludes ignored movements from analytics summaries, series and spending', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
     const port = createPort([
       transaction({ id: 'income-kept', type: 'income', amount: '100.00' }),
       transaction({ id: 'income-ignored', type: 'income', amount: '40.00', ignored: true }),
@@ -92,6 +100,119 @@ describe('analytics queries', () => {
     });
   });
 
+  it('uses an explicit end-of-day instant so today movements are included on Android', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-01T10:30:00.000Z'));
+    const port = createPort([
+      transaction({ id: 'income-today', type: 'income', amount: '100000.00', occurredAt: '2026-07-01T10:00:00.000Z' }),
+      transaction({ id: 'expense-today', type: 'expense', amount: '90000.00', occurredAt: '2026-07-01T10:05:00.000Z' }),
+    ]);
+
+    await analyticsGetCashFlowSeries(port, {
+      currency: 'EUR',
+      granularity: 'monthly',
+      periodOffset: 0,
+      filters: { period: '1M' },
+    });
+
+    expect(port.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({
+      filters: expect.objectContaining({
+        fromDate: '2026-07-01T00:00:00.000Z',
+        toDate: '2026-07-01T23:59:59.999Z',
+      }),
+    }));
+  });
+
+  it('uses a seven-day date range for the one-week period', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-01T10:30:00.000Z'));
+    const port = createPort([
+      transaction({ id: 'expense-week', type: 'expense', amount: '90.00', occurredAt: '2026-06-28T10:05:00.000Z' }),
+    ]);
+
+    await analyticsGetCashFlowSeries(port, {
+      currency: 'EUR',
+      granularity: 'monthly',
+      periodOffset: 0,
+      filters: { period: '1W' },
+    });
+
+    expect(port.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({
+      filters: expect.objectContaining({
+        fromDate: '2026-06-25T00:00:00.000Z',
+        toDate: '2026-07-01T23:59:59.999Z',
+      }),
+    }));
+  });
+
+  it('uses five visible cash flow buckets inside the selected period range', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-01T10:30:00.000Z'));
+    const port = createPort([
+      transaction({ id: 'expense-year', type: 'expense', amount: '90.00', occurredAt: '2026-06-28T10:05:00.000Z' }),
+    ]);
+
+    const result = await analyticsGetCashFlowSeries(port, {
+      currency: 'EUR',
+      granularity: 'monthly',
+      periodOffset: 0,
+      filters: { period: '1Y' },
+    });
+
+    expect(result.points.map((point) => point.periodKey)).toEqual([
+      '2026-03',
+      '2026-04',
+      '2026-05',
+      '2026-06',
+      '2026-07',
+    ]);
+    expect(result.window.canGoPrevious).toBe(true);
+  });
+
+  it('uses a five-year range for the five-year period', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-01T10:30:00.000Z'));
+    const port = createPort([
+      transaction({ id: 'expense-year', type: 'expense', amount: '90.00', occurredAt: '2023-06-28T10:05:00.000Z' }),
+    ]);
+
+    await analyticsGetCashFlowSeries(port, {
+      currency: 'EUR',
+      granularity: 'yearly',
+      periodOffset: 0,
+      filters: { period: '5Y' },
+    });
+
+    expect(port.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({
+      filters: expect.objectContaining({
+        fromDate: '2022-01-01T00:00:00.000Z',
+        toDate: '2026-07-01T23:59:59.999Z',
+      }),
+    }));
+  });
+
+  it('does not pass date bounds for the all-period filter', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-01T10:30:00.000Z'));
+    const port = createPort([
+      transaction({ id: 'expense-old', type: 'expense', amount: '90.00', occurredAt: '2018-06-28T10:05:00.000Z' }),
+    ]);
+
+    await analyticsGetCashFlowSeries(port, {
+      currency: 'EUR',
+      granularity: 'yearly',
+      periodOffset: 0,
+      filters: { period: 'ALL' },
+    });
+
+    expect(port.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({
+      filters: expect.not.objectContaining({
+        fromDate: expect.any(String),
+        toDate: expect.any(String),
+      }),
+    }));
+  });
+
   it('scopes analytics tag facets to posted movements in the selected period', async () => {
     const port = createPort([
       transaction({
@@ -111,7 +232,28 @@ describe('analytics queries', () => {
     });
   });
 
+  it('lists all account facets regardless of the selected currency', async () => {
+    const port = createPort(
+      [transaction({ id: 'expense-tagged', type: 'expense', amount: '25.00' })],
+      [
+        { id: 'acc-1', name: 'Main', type: 'cash', currency: 'EUR', status: 'active' },
+        { id: 'acc-2', name: 'Travel', type: 'cash', currency: 'USD', status: 'active' },
+      ],
+    );
+
+    await expect(analyticsGetFilterFacets(port, {
+      filters: { currency: 'EUR', period: '6M' },
+    })).resolves.toMatchObject({
+      accounts: [
+        { id: 'acc-1', name: 'Main', currency: 'EUR' },
+        { id: 'acc-2', name: 'Travel', currency: 'USD' },
+      ],
+    });
+  });
+
   it('passes selected tags to ledger transaction filters', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
     const port = createPort([
       transaction({
         id: 'expense-tagged',

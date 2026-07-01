@@ -45,7 +45,7 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
     selectedCurrency: '',
     granularity: 'monthly',
     totals: { incomeAmount: '0.00', expenseAmount: '0.00' },
-    window: { label: '', periodOffset: 0, canGoNext: false },
+    window: { label: '', periodOffset: 0, canGoPrevious: false, canGoNext: false },
     points: [],
   });
   const [loading, setLoading] = useState(true);
@@ -63,7 +63,7 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
         selectedCurrency: '',
         granularity,
         totals: { incomeAmount: '0.00', expenseAmount: '0.00' },
-        window: { label: '', periodOffset, canGoNext: false },
+        window: { label: '', periodOffset, canGoPrevious: false, canGoNext: false },
         points: [],
       });
       return;
@@ -121,7 +121,11 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
           windowLabel: result.window.label,
           points: chartPoints,
         },
-        state: { granularity, canGoNextWindow: result.window.canGoNext },
+        state: {
+          granularity,
+          canGoPreviousWindow: result.window.canGoPrevious,
+          canGoNextWindow: result.window.canGoNext,
+        },
         status: { loading },
       }}
       provided={{
