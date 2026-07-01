@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { LedgerCashFlowGranularity } from '../../ledger/application/ledger.port';
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
 import type { AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult } from './analytics.port';
+import type { AnalyticsFiltersInput } from './analyticsFilters';
 import { SpendingOverviewCardView } from '../ui/SpendingOverviewCard/SpendingOverviewCardView';
 import type { SpendingOverviewCategoryView } from '../ui/SpendingOverviewCard/SpendingOverviewCardView.contract';
 
@@ -17,6 +18,7 @@ export type SpendingOverviewCardComponentProps = {
     config: {
       enabled: boolean;
       currency: string;
+      filters?: AnalyticsFiltersInput;
       refreshSignal: boolean;
     };
   };
@@ -62,11 +64,17 @@ export function SpendingOverviewCardComponent({ required, provided }: SpendingOv
   const [categoryBreakdownOpen, setCategoryBreakdownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { core } = required.context;
-  const { currency, enabled, refreshSignal } = required.config;
+  const { currency, enabled, filters, refreshSignal } = required.config;
 
   useEffect(() => {
     setPeriodOffset(0);
-  }, [currency]);
+  }, [currency, filters]);
+
+  useEffect(() => {
+    if (filters?.groupBy) {
+      setGranularity(filters.groupBy === 'weekly' ? 'weekly' : 'monthly');
+    }
+  }, [filters?.groupBy]);
 
   useEffect(() => {
     if (!enabled || !currency) {
@@ -80,7 +88,7 @@ export function SpendingOverviewCardComponent({ required, provided }: SpendingOv
     async function loadOverview() {
       setLoading(true);
       try {
-        const result = await core.analyticsGetSpendingOverview({ currency, granularity, periodOffset });
+        const result = await core.analyticsGetSpendingOverview({ currency, filters, granularity, periodOffset });
         if (!cancelled) {
           setOverview(result);
         }
@@ -100,7 +108,7 @@ export function SpendingOverviewCardComponent({ required, provided }: SpendingOv
     return () => {
       cancelled = true;
     };
-  }, [core, currency, enabled, granularity, periodOffset, refreshSignal]);
+  }, [core, currency, enabled, filters, granularity, periodOffset, refreshSignal]);
 
   const categories = useMemo(() => toCategoryViews(overview, currency || 'USD'), [currency, overview]);
 

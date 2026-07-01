@@ -1,5 +1,6 @@
 import type {
   LedgerListAccountsResult,
+  LedgerTransactionFilterInput,
   LedgerListTransactionsInput,
   LedgerListTransactionsResult,
 } from '../../ledger/application/ledger.port';
@@ -14,9 +15,15 @@ export type AnalyticsMovementReadModel = {
   transactions: LedgerListTransactionsResult['content'];
 };
 
+export type AnalyticsMovementReadScope = {
+  accountIds?: string[];
+  filters?: LedgerTransactionFilterInput;
+};
+
 async function listAllAccountTransactions(
   port: AnalyticsMovementReaderPort,
   accountId: string,
+  filters?: LedgerTransactionFilterInput,
 ): Promise<LedgerListTransactionsResult['content']> {
   const content: LedgerListTransactionsResult['content'] = [];
   let page = 0;
@@ -25,7 +32,7 @@ async function listAllAccountTransactions(
   while (hasNext) {
     const result = await port.ledgerListTransactions({
       accountId,
-      filters: { statuses: ['posted'] },
+      filters: { statuses: ['posted'], ...filters },
       pagination: { page, size: 100 },
       sort: [{ field: 'occurredAt', direction: 'desc' }],
     });
@@ -45,13 +52,20 @@ function isAnalyticsIncludedMovement(
 
 export async function listAnalyticsMovements(
   port: AnalyticsMovementReaderPort,
+  scope: AnalyticsMovementReadScope = {},
 ): Promise<AnalyticsMovementReadModel> {
   const accounts = await port.ledgerListAccounts();
+  const requestedAccountIds = scope.accountIds && scope.accountIds.length > 0
+    ? new Set(scope.accountIds)
+    : null;
+  const scopedAccounts = requestedAccountIds
+    ? accounts.items.filter((account) => requestedAccountIds.has(account.id))
+    : accounts.items;
   const pages = await Promise.all(
-    accounts.items.map((account) => listAllAccountTransactions(port, account.id)),
+    scopedAccounts.map((account) => listAllAccountTransactions(port, account.id, scope.filters)),
   );
   return {
-    accounts: accounts.items,
+    accounts: scopedAccounts,
     transactions: pages.flat().filter(isAnalyticsIncludedMovement),
   };
 }

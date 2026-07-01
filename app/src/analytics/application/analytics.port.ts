@@ -1,7 +1,9 @@
 import type { LedgerCashFlowGranularity, LedgerGetCashFlowSeriesResult } from '../../ledger/application/ledger.port';
+import type { AnalyticsFiltersInput } from './analyticsFilters';
 
 export type AnalyticsCurrencyScopeInput = {
   currency: string;
+  filters?: AnalyticsFiltersInput;
 };
 
 export type AnalyticsCashFlowSeriesInput = AnalyticsCurrencyScopeInput & {
@@ -22,6 +24,26 @@ export type AnalyticsSpendingOverviewInput = AnalyticsCurrencyScopeInput & {
 
 export type AnalyticsListCurrenciesResult = {
   items: string[];
+};
+
+export type AnalyticsFilterFacetAccount = {
+  id: string;
+  name: string;
+  currency: string;
+};
+
+export type AnalyticsFilterFacetTag = {
+  id: string;
+  name: string;
+};
+
+export type AnalyticsGetFilterFacetsInput = {
+  filters?: AnalyticsFiltersInput;
+};
+
+export type AnalyticsGetFilterFacetsResult = {
+  accounts: AnalyticsFilterFacetAccount[];
+  tags: AnalyticsFilterFacetTag[];
 };
 
 export type AnalyticsCashFlowSummaryResult = {
@@ -59,6 +81,7 @@ export type AnalyticsListIgnoredMovementsResult = {
 
 export type AnalyticsPort = {
   analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult>;
+  analyticsGetFilterFacets(input?: AnalyticsGetFilterFacetsInput): Promise<AnalyticsGetFilterFacetsResult>;
   analyticsGetCashFlowSeries(input: AnalyticsCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult>;
   analyticsGetPeriodCashFlowSummary(input: AnalyticsCurrencyScopeInput): Promise<AnalyticsCashFlowSummaryResult>;
   analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult>;

@@ -88,6 +88,25 @@ export function buildAnalyticsPeriodWindow(
   return { start, end, label: rangeLabel(start, end, granularity), periodOffset, canGoNext: periodOffset < 0 };
 }
 
+function buildAnalyticsMonthRangeWindow(
+  months: number,
+  now: Date,
+  inputPeriodOffset = 0,
+): AnalyticsPeriodWindow & { start: Date; end: Date } {
+  const periodOffset = Math.min(0, Math.trunc(inputPeriodOffset));
+  const count = Number.isFinite(months) && months > 0 ? Math.min(Math.trunc(months), 24) : 6;
+  const current = addUtcMonths(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)), periodOffset * count);
+  const start = addUtcMonths(current, -(count - 1));
+  const end = addUtcMonths(start, count);
+  return {
+    start,
+    end,
+    label: rangeLabel(start, end, 'monthly'),
+    periodOffset,
+    canGoNext: periodOffset < 0,
+  };
+}
+
 function isAutomaticOpeningBalance(transaction: LedgerTransactionListItem): boolean {
   return transaction.description?.trim().toLowerCase() === OPENING_BALANCE_DESCRIPTION
     && !transaction.merchant
@@ -148,11 +167,14 @@ export function buildSpendingOverview(
     currency: string;
     granularity: LedgerCashFlowGranularity;
     periodOffset?: number;
+    periodMonths?: number;
     now: Date;
   },
 ): AnalyticsSpendingOverviewResult {
   const currency = selectedCurrency(input.currency);
-  const window = buildAnalyticsPeriodWindow(input.granularity, input.now, input.periodOffset);
+  const window = input.periodMonths
+    ? buildAnalyticsMonthRangeWindow(input.periodMonths, input.now, input.periodOffset)
+    : buildAnalyticsPeriodWindow(input.granularity, input.now, input.periodOffset);
   const expenseCategories = new Map(
     input.categories
       .filter((category) => category.appliesTo === 'expense')

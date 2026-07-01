@@ -293,6 +293,7 @@ function makeCore(transactionCount = 0): AppTestPort {
       points: [],
     })),
     analyticsListCurrencies: vi.fn(async () => ({ items: ['USD'] })),
+    analyticsGetFilterFacets: vi.fn(async () => ({ accounts: [], tags: [] })),
     analyticsGetCashFlowSeries: vi.fn(async (input) => ({
       currencies: ['USD'],
       selectedCurrency: input.currency,

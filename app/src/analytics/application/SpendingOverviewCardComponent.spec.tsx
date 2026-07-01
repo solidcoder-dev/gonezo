@@ -38,16 +38,16 @@ describe('SpendingOverviewCardComponent', () => {
     );
 
     expect(await screen.findByText('Jun 2026')).toBeInTheDocument();
-    expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith({ currency: 'EUR', granularity: 'monthly', periodOffset: 0 });
+    expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith(expect.objectContaining({ currency: 'EUR', granularity: 'monthly', periodOffset: 0 }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Select period' }));
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'Yearly' }));
 
-    await waitFor(() => expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith({
+    await waitFor(() => expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith(expect.objectContaining({
       currency: 'EUR',
       granularity: 'yearly',
       periodOffset: 0,
-    }));
+    })));
   });
 
   it('navigates spending overview windows', async () => {
@@ -66,11 +66,11 @@ describe('SpendingOverviewCardComponent', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Previous spending overview window' }));
 
-    await waitFor(() => expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith({
+    await waitFor(() => expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith(expect.objectContaining({
       currency: 'EUR',
       granularity: 'monthly',
       periodOffset: -1,
-    }));
+    })));
     expect(await screen.findByText('May 2026')).toBeInTheDocument();
   });
 });

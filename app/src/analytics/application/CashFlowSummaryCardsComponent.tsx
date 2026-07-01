@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
 import type { AnalyticsCashFlowSummaryResult } from './analytics.port';
+import type { AnalyticsFiltersInput } from './analyticsFilters';
 import { CashFlowSummaryCardsView } from '../ui/CashFlowSummaryCards/CashFlowSummaryCardsView';
 import type { CashFlowSummaryCardView } from '../ui/CashFlowSummaryCards/CashFlowSummaryCardsView.contract';
 
 export type CashFlowSummaryCardsPort = {
-  analyticsGetPeriodCashFlowSummary(input: { currency: string }): Promise<AnalyticsCashFlowSummaryResult>;
+  analyticsGetPeriodCashFlowSummary(input: { currency: string; filters?: AnalyticsFiltersInput }): Promise<AnalyticsCashFlowSummaryResult>;
 };
 
 export type CashFlowSummaryCardsComponentProps = {
@@ -16,6 +17,7 @@ export type CashFlowSummaryCardsComponentProps = {
     config: {
       enabled: boolean;
       currency: string;
+      filters?: AnalyticsFiltersInput;
       refreshSignal: boolean;
     };
   };
@@ -64,7 +66,7 @@ export function CashFlowSummaryCardsComponent({ required, provided }: CashFlowSu
   const [summary, setSummary] = useState<AnalyticsCashFlowSummaryResult>(emptySummary);
   const [loading, setLoading] = useState(true);
   const { core } = required.context;
-  const { currency, enabled, refreshSignal } = required.config;
+  const { currency, enabled, filters, refreshSignal } = required.config;
 
   useEffect(() => {
     if (!enabled || !currency) {
@@ -78,7 +80,7 @@ export function CashFlowSummaryCardsComponent({ required, provided }: CashFlowSu
     async function loadSummary() {
       setLoading(true);
       try {
-        const result = await core.analyticsGetPeriodCashFlowSummary({ currency });
+        const result = await core.analyticsGetPeriodCashFlowSummary({ currency, filters });
         if (!cancelled) {
           setSummary(result);
         }
@@ -98,7 +100,7 @@ export function CashFlowSummaryCardsComponent({ required, provided }: CashFlowSu
     return () => {
       cancelled = true;
     };
-  }, [core, currency, enabled, refreshSignal]);
+  }, [core, currency, enabled, filters, refreshSignal]);
 
   const cards = useMemo(() => toCards(summary, currency || 'USD'), [currency, summary]);
 

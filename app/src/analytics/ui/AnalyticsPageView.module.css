@@ -1,41 +1,448 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
 }
 
 .header {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
 }
 
 .header h1 {
   margin: 0;
+  font-size: 2rem;
+  line-height: 1.05;
+  letter-spacing: 0;
 }
 
-.currencySelector {
+.notificationButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #161612;
+  font-size: 1.25rem;
+}
+
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 2px 0;
+  scrollbar-width: none;
+}
+
+.filterBar::-webkit-scrollbar {
+  display: none;
+}
+
+.filterMenu {
+  position: relative;
+}
+
+.filterMenu > summary {
+  list-style: none;
+}
+
+.filterMenu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.filterChip,
+.filterChipMuted,
+.filterChipActive,
+.moreFiltersButton,
+.moreFiltersButtonActive {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: #f1f1f1;
+  color: #1b1b17;
+  font-size: 0.95rem;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.filterChip,
+.filterChipMuted,
+.filterChipActive {
+  padding: 0 14px;
+}
+
+.filterChipMuted {
+  color: #66665f;
+}
+
+.filterChipActive,
+.moreFiltersButtonActive {
+  background: #c9f2d8;
+  color: #149447;
+}
+
+.moreFiltersButton,
+.moreFiltersButtonActive {
+  position: relative;
+  width: 44px;
+  flex: 0 0 44px;
+  padding: 0;
+  font-size: 1.15rem;
+}
+
+.filterBadge {
+  position: absolute;
+  top: -4px;
+  right: -2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #149447;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.filterMenuPanel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  left: 0;
+  display: grid;
+  min-width: 112px;
+  padding: 8px;
+  border: 1px solid #e7e7e2;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 12%);
+}
+
+.filterMenuOption,
+.filterMenuOptionActive {
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #24241f;
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 800;
+}
+
+.filterMenuOptionActive {
+  background: #c9f2d8;
+  color: #149447;
+}
+
+.selectedTagRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.selectedTagChip,
+.compactChip,
+.compactChipActive {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--color-text-muted);
-  font-size: 0.86rem;
-  font-weight: 700;
+  min-height: 38px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 12px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
-.currencySelector select {
-  min-width: 86px;
-  border: 1px solid var(--color-border-subtle);
+.selectedTagChip,
+.compactChipActive {
+  background: #c9f2d8;
+  color: #149447;
+}
+
+.compactChip {
+  background: #f2f2f0;
+  color: #252520;
+}
+
+.viewTabs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 2px 0;
+  scrollbar-width: none;
+}
+
+.viewTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.viewTab,
+.viewTabActive {
+  flex: 0 0 auto;
+  min-height: 40px;
+  border: 0;
   border-radius: 999px;
-  background: var(--color-card-surface);
-  color: var(--color-text-primary);
-  font: inherit;
-  padding: 8px 12px;
+  padding: 0 16px;
+  font-size: 0.9rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.viewTab {
+  background: #f2f2f0;
+  color: #22221d;
+}
+
+.viewTabActive {
+  background: #000;
+  color: #fff;
 }
 
 .stack {
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+.emptyView {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  border: 1px solid #ecece6;
+  border-radius: 8px;
+  background: #fbfbf8;
+  color: #6c6c64;
+  font-weight: 800;
+}
+
+.analyticsSheet {
+  border-radius: 28px 28px 0 0;
+  background: #fff;
+}
+
+.analyticsSheetContent {
+  display: grid;
+  gap: 22px;
+  padding: 18px 20px 0;
+}
+
+.sheetHeader,
+.sheetFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 20px 0;
+}
+
+.sheetHeader h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.2;
+}
+
+.sheetDoneButton {
+  border: 0;
+  background: transparent;
+  color: #149447;
+  font-weight: 900;
+}
+
+.searchField {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 50px;
+  border-radius: 12px;
+  background: #f4f4f2;
+  padding: 0 14px;
+  color: #85857d;
+}
+
+.searchField input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #20201c;
+  font: inherit;
+  font-weight: 700;
+}
+
+.tagOptionList,
+.optionList,
+.filterRows {
+  display: grid;
+  gap: 14px;
+}
+
+.optionRow,
+.optionRowActive {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #252520;
+  padding: 0 12px;
+  font-size: 1rem;
+  font-weight: 900;
+  text-align: left;
+}
+
+.optionRowActive {
+  background: #c9f2d8;
+  color: #149447;
+}
+
+.tagOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+  border: 0;
+  background: transparent;
+  color: #252520;
+  padding: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: left;
+}
+
+.checkbox,
+.checkboxChecked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+}
+
+.checkbox {
+  border: 2px solid #d8d8d2;
+}
+
+.checkboxChecked {
+  border: 2px solid #149447;
+  background: #149447;
+  color: #fff;
+}
+
+.sheetFooter {
+  padding: 16px 20px 20px;
+  border-top: 1px solid #eeeeea;
+}
+
+.sheetFooter strong {
+  font-size: 0.9rem;
+}
+
+.filterRow,
+.filterRowGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.filterRow {
+  grid-template-columns: minmax(0, 1fr) minmax(132px, auto);
+  align-items: center;
+}
+
+.filterRow span,
+.filterRowGroup > span {
+  color: #22221d;
+  font-weight: 900;
+}
+
+.filterRow select {
+  min-height: 42px;
+  border: 0;
+  border-radius: 10px;
+  background: #f4f4f2;
+  color: #585850;
+  padding: 0 10px;
+  font: inherit;
+  font-weight: 800;
+}
+
+.segmentedControls,
+.compactChipRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.segment,
+.segmentActive {
+  min-height: 36px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 12px;
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.segment {
+  background: #f2f2f0;
+  color: #252520;
+}
+
+.segmentActive {
+  background: #000;
+  color: #fff;
+}
+
+.applyFiltersButton {
+  width: calc(100% - 40px);
+  min-height: 48px;
+  margin: 18px 20px 20px;
+  border: 0;
+  border-radius: 8px;
+  background: #000;
+  color: #fff;
+  font-weight: 900;
+}
+
+@media (max-width: 420px) {
+  .filterBar {
+    gap: 10px;
+  }
+
+  .filterChip,
+  .filterChipMuted,
+  .filterChipActive {
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 0.88rem;
+  }
+
+  .viewTab,
+  .viewTabActive {
+    min-height: 38px;
+    padding: 0 14px;
+    font-size: 0.84rem;
+  }
 }

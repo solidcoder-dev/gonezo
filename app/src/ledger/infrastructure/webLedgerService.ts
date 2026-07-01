@@ -120,6 +120,7 @@ export class WebLedgerService {
       currency: input.currency,
       granularity: input.granularity,
       periodOffset: input.periodOffset,
+      periodCount: input.periodCount,
       now: new Date(),
     });
   }

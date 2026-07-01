@@ -11,6 +11,7 @@ type BuildCashFlowSeriesInput = {
   currency?: string;
   granularity: LedgerCashFlowGranularity;
   periodOffset?: number;
+  periodCount?: number;
   now: Date;
 };
 
@@ -98,40 +99,48 @@ function buildPeriods(
   granularity: LedgerCashFlowGranularity,
   now: Date,
   periodOffset: number,
+  inputPeriodCount?: number,
 ): { periods: PeriodBucket[]; label: string } {
+  const periodCount = Number.isFinite(inputPeriodCount) && inputPeriodCount != null && inputPeriodCount > 0
+    ? Math.min(Math.trunc(inputPeriodCount), 24)
+    : undefined;
   if (granularity === 'daily') {
-    const end = addUtcDays(startOfUtcDay(now), 1 + periodOffset * 7);
-    const first = addUtcDays(end, -7);
-    const periods = Array.from({ length: 7 }, (_, index) => {
+    const count = periodCount ?? 7;
+    const end = addUtcDays(startOfUtcDay(now), 1 + periodOffset * count);
+    const first = addUtcDays(end, -count);
+    const periods = Array.from({ length: count }, (_, index) => {
       const start = addUtcDays(first, index);
       return { periodKey: periodKey(start, granularity), label: dayLabel(start), start, end: addUtcDays(start, 1) };
     });
     return { periods, label: rangeLabel(first, end, granularity) };
   }
   if (granularity === 'weekly') {
-    const current = addUtcDays(startOfUtcWeek(now), periodOffset * 8 * 7);
-    const first = addUtcDays(current, -7 * 7);
-    const end = addUtcDays(first, 8 * 7);
-    const periods = Array.from({ length: 8 }, (_, index) => {
+    const count = periodCount ?? 8;
+    const current = addUtcDays(startOfUtcWeek(now), periodOffset * count * 7);
+    const first = addUtcDays(current, -(count - 1) * 7);
+    const end = addUtcDays(first, count * 7);
+    const periods = Array.from({ length: count }, (_, index) => {
       const start = addUtcDays(first, index * 7);
       return { periodKey: periodKey(start, granularity), label: weekLabel(start), start, end: addUtcDays(start, 7) };
     });
     return { periods, label: rangeLabel(first, end, granularity) };
   }
   if (granularity === 'monthly') {
-    const current = addUtcMonths(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)), periodOffset * 6);
-    const first = addUtcMonths(current, -5);
-    const end = addUtcMonths(first, 6);
-    const periods = Array.from({ length: 6 }, (_, index) => {
+    const count = periodCount ?? 6;
+    const current = addUtcMonths(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)), periodOffset * count);
+    const first = addUtcMonths(current, -(count - 1));
+    const end = addUtcMonths(first, count);
+    const periods = Array.from({ length: count }, (_, index) => {
       const start = addUtcMonths(first, index);
       return { periodKey: periodKey(start, granularity), label: monthLabel(start), start, end: addUtcMonths(start, 1) };
     });
     return { periods, label: rangeLabel(first, end, granularity) };
   }
-  const current = addUtcYears(new Date(Date.UTC(now.getUTCFullYear(), 0, 1)), periodOffset * 5);
-  const first = addUtcYears(current, -4);
-  const end = addUtcYears(first, 5);
-  const periods = Array.from({ length: 5 }, (_, index) => {
+  const count = periodCount ?? 5;
+  const current = addUtcYears(new Date(Date.UTC(now.getUTCFullYear(), 0, 1)), periodOffset * count);
+  const first = addUtcYears(current, -(count - 1));
+  const end = addUtcYears(first, count);
+  const periods = Array.from({ length: count }, (_, index) => {
     const start = addUtcYears(first, index);
     return { periodKey: periodKey(start, granularity), label: String(start.getUTCFullYear()), start, end: addUtcYears(start, 1) };
   });
@@ -178,7 +187,7 @@ export function buildCashFlowSeries(input: BuildCashFlowSeriesInput): LedgerGetC
       .map((account) => account.id),
   );
   const periodOffset = Math.min(0, Math.trunc(input.periodOffset ?? 0));
-  const { periods, label } = buildPeriods(input.granularity, input.now, periodOffset);
+  const { periods, label } = buildPeriods(input.granularity, input.now, periodOffset, input.periodCount);
   const pointByPeriod = new Map(periods.map((period) => [
     period.periodKey,
     {

@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import type { CorePort } from '../application/corePort';
 import type { AccountsListBalancesResult } from '../../account/application/accountBalances.port';
-import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult } from '../../analytics/application/analytics.port';
+import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult } from '../../analytics/application/analytics.port';
 import type {
   UserPreferencesResult,
   PreferencesSetDefaultAccountInput,
@@ -117,12 +117,7 @@ import { getNativeCashFlowSeries } from '../../ledger/infrastructure/nativeCashF
 import { getMovementsSearchFacets } from '../../movements/infrastructure/searchFacets';
 import { listMasterCategories } from '../../taxonomy/domain/masterCategories';
 import { listAccountBalances } from './accountBalancesQuery';
-import {
-  analyticsGetCashFlowSeries,
-  analyticsGetPeriodCashFlowSummary,
-  analyticsGetSpendingOverview,
-  analyticsListCurrencies,
-} from '../../analytics/infrastructure/analyticsQueries';
+import { analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetPeriodCashFlowSummary, analyticsGetSpendingOverview, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
 
 function normalizeMasterCategoryKey(name: string, appliesTo: string): string {
   return `${appliesTo}:${name.trim().toLowerCase()}`;
@@ -271,6 +266,10 @@ export class CoreAdapter implements CorePort {
       return this.web.analyticsListCurrencies();
     }
     return analyticsListCurrencies(this);
+  }
+
+  async analyticsGetFilterFacets(input?: AnalyticsGetFilterFacetsInput): Promise<AnalyticsGetFilterFacetsResult> {
+    return Capacitor.isNativePlatform() ? analyticsGetFilterFacets(this, input) : this.web.analyticsGetFilterFacets(input);
   }
 
   async analyticsGetCashFlowSeries(input: AnalyticsCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> {

@@ -78,6 +78,7 @@ export type LedgerGetCashFlowSeriesInput = {
   currency?: string;
   granularity: LedgerCashFlowGranularity;
   periodOffset?: number;
+  periodCount?: number;
 };
 
 export type LedgerCashFlowSeriesPoint = {

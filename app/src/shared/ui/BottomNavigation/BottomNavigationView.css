@@ -1,38 +1,36 @@
 .bottom-navigation {
   position: fixed;
   left: 50%;
-  bottom: calc(10px + var(--app-safe-area-bottom));
+  bottom: calc(12px + var(--app-safe-area-bottom));
   z-index: 40;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
-  width: min(90vw, 520px);
-  padding: 9px 13px;
-  border: 1px solid var(--color-border-subtle);
+  width: min(calc(100vw - 32px), 470px);
+  height: 56px;
+  padding: 0 40px;
   border-radius: 999px;
-  background: rgba(255, 255, 252, 0.96);
-  box-shadow: var(--shadow-card);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 12px 28px rgba(22, 29, 38, 0.1), 0 3px 10px rgba(22, 29, 38, 0.06);
   transform: translateX(-50%);
 }
 
 .bottom-navigation-item {
-  display: inline-grid;
-  justify-items: center;
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 3px;
-  width: 58px;
-  height: 50px;
-  min-width: 50px;
+  justify-content: center;
+  width: 40px;
+  height: 44px;
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: var(--color-text-muted);
+  color: #525b64;
   font: inherit;
-  font-size: 1.1rem;
+  font-size: 1.42rem;
   line-height: 1;
   cursor: pointer;
-  transition: width 160ms ease, background-color 160ms ease, color 160ms ease, opacity 160ms ease;
+  transition: color 160ms ease, opacity 160ms ease, transform 160ms ease;
 }
 
 .bottom-navigation-item:disabled {
@@ -41,66 +39,87 @@
 }
 
 .bottom-navigation-item:not(:disabled):active {
-  background: var(--color-brand-soft);
+  transform: translateY(1px);
 }
 
 .bottom-navigation-item--active {
-  background: var(--color-brand-soft);
-  color: var(--color-brand-strong);
+  color: #2ea84f;
 }
 
-.bottom-navigation-item:not(.bottom-navigation-item--primary).bottom-navigation-item--active {
-  width: 82px;
+.bottom-navigation-item:first-child {
+  margin-right: 8px;
+}
+
+.bottom-navigation-item:last-child {
+  margin-left: 8px;
+}
+
+.bottom-navigation-item:not(.bottom-navigation-item--primary).bottom-navigation-item--active::after {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 22px;
+  height: 4px;
+  border-radius: 999px;
+  background: #2ea84f;
+  content: '';
+  transform: translateX(-50%);
 }
 
 .bottom-navigation-item--primary {
-  width: 56px;
-  height: 56px;
-  min-width: 56px;
-  margin: -18px 4px -8px;
-  background: radial-gradient(circle at 34% 26%, #6fd984 0%, #1f9f51 48%, #087934 100%);
+  width: 66px;
+  height: 66px;
+  margin: -33px 18px 0;
+  border: 4px solid #fff;
+  background: linear-gradient(180deg, #32b957 0%, #20a34a 100%);
   color: #fff;
-  font-size: 1.46rem;
-  box-shadow: 0 10px 20px rgba(8, 121, 52, 0.22);
+  font-size: 2.04rem;
+  box-shadow: 0 13px 24px rgba(19, 74, 39, 0.16), 0 4px 11px rgba(19, 74, 39, 0.11);
 }
 
 .bottom-navigation-item span {
-  max-width: 100%;
+  position: absolute;
+  width: 1px;
+  height: 1px;
   overflow: hidden;
-  font-size: 0.68rem;
-  font-weight: 680;
-  line-height: 1;
-  text-align: center;
-  text-overflow: ellipsis;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
   white-space: nowrap;
 }
 
-.bottom-navigation-item--primary span {
-  display: none;
-}
-
 .bottom-navigation-item--primary.bottom-navigation-item--active {
-  width: 56px;
+  width: 66px;
 }
 
 @media (max-width: 360px) {
   .bottom-navigation {
-    gap: 3px;
-    padding: 9px;
+    width: calc(100vw - 24px);
+    height: 54px;
+    padding: 0 30px;
   }
 
   .bottom-navigation-item {
-    width: 48px;
-    min-width: 46px;
+    width: 36px;
+    height: 42px;
+    font-size: 1.34rem;
   }
 
-  .bottom-navigation-item:not(.bottom-navigation-item--primary).bottom-navigation-item--active {
-    width: 76px;
+  .bottom-navigation-item:first-child {
+    margin-right: 5px;
+  }
+
+  .bottom-navigation-item:last-child {
+    margin-left: 5px;
   }
 
   .bottom-navigation-item--primary {
-    width: 54px;
-    height: 54px;
-    min-width: 54px;
+    width: 62px;
+    height: 62px;
+    margin: -31px 14px 0;
+    font-size: 1.96rem;
+  }
+
+  .bottom-navigation-item--primary.bottom-navigation-item--active {
+    width: 62px;
   }
 }

@@ -43,7 +43,7 @@ describe('CashFlowChartCardComponent', () => {
     );
 
     expect(await screen.findByText('Expense 500; Income 1200')).toBeInTheDocument();
-    expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith({ currency: 'EUR', granularity: 'monthly', periodOffset: 0 });
+    expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith(expect.objectContaining({ currency: 'EUR', granularity: 'monthly', periodOffset: 0 }));
     expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledTimes(1);
 
     rerender(
@@ -54,12 +54,12 @@ describe('CashFlowChartCardComponent', () => {
         }}
       />,
     );
-    await waitFor(() => expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith({ currency: 'USD', granularity: 'monthly', periodOffset: 0 }));
+    await waitFor(() => expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith(expect.objectContaining({ currency: 'USD', granularity: 'monthly', periodOffset: 0 })));
     expect(await screen.findByText('Expense 100; Income 300')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Select period' }));
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'Weekly' }));
-    await waitFor(() => expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith({ currency: 'USD', granularity: 'weekly', periodOffset: 0 }));
+    await waitFor(() => expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith(expect.objectContaining({ currency: 'USD', granularity: 'weekly', periodOffset: 0 })));
   }, 10000);
 
   it('navigates cash flow windows', async () => {
@@ -78,11 +78,11 @@ describe('CashFlowChartCardComponent', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Previous cash flow window' }));
 
-    await waitFor(() => expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith({
+    await waitFor(() => expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith(expect.objectContaining({
       currency: 'EUR',
       granularity: 'monthly',
       periodOffset: -1,
-    }));
+    })));
     expect(await screen.findByText('Dec 2025 - May 2026')).toBeInTheDocument();
   });
 
@@ -112,10 +112,10 @@ describe('CashFlowChartCardComponent', () => {
       />,
     );
 
-    await waitFor(() => expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith({
+    await waitFor(() => expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith(expect.objectContaining({
       currency: 'USD',
       granularity: 'monthly',
       periodOffset: 0,
-    }));
+    })));
   });
 });

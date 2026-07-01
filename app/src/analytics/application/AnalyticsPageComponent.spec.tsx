@@ -6,6 +6,13 @@ import type { AnalyticsPort } from './analytics.port';
 function createCore(): AnalyticsPort {
   return {
     analyticsListCurrencies: vi.fn(async () => ({ items: ['EUR', 'USD'] })),
+    analyticsGetFilterFacets: vi.fn(async () => ({
+      accounts: [{ id: 'acc-1', name: 'Main', currency: 'EUR' }],
+      tags: [
+        { id: 'tag-alicante', name: 'Alicante 2026' },
+        { id: 'tag-benidorm', name: 'Benidorm 2026' },
+      ],
+    })),
     analyticsGetCashFlowSeries: vi.fn(async (input) => ({
       currencies: ['EUR', 'USD'],
       selectedCurrency: input.currency,
@@ -38,7 +45,7 @@ describe('AnalyticsPageComponent', () => {
   it('uses a global currency selector while cards load through separate use cases', async () => {
     const core = createCore();
 
-    render(
+    const { rerender } = render(
       <AnalyticsPageComponent
         required={{
           context: { core },
@@ -48,14 +55,39 @@ describe('AnalyticsPageComponent', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Analytics' })).toBeInTheDocument();
-    await waitFor(() => expect(core.analyticsGetPeriodCashFlowSummary).toHaveBeenCalledWith({ currency: 'EUR' }));
-    expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith({ currency: 'EUR', granularity: 'monthly', periodOffset: 0 });
-    expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith({ currency: 'EUR', granularity: 'monthly', periodOffset: 0 });
+    await waitFor(() => expect(core.analyticsGetPeriodCashFlowSummary).toHaveBeenCalledWith(expect.objectContaining({ currency: 'EUR' })));
+    expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith(expect.objectContaining({ currency: 'EUR', granularity: 'monthly', periodOffset: 0 }));
+    expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith(expect.objectContaining({ currency: 'EUR', granularity: 'monthly', periodOffset: 0 }));
 
-    fireEvent.change(screen.getByLabelText('Analytics currency'), { target: { value: 'USD' } });
+    fireEvent.click(screen.getByLabelText('Select currency'));
+    fireEvent.click(screen.getByRole('button', { name: 'USD' }));
 
-    await waitFor(() => expect(core.analyticsGetPeriodCashFlowSummary).toHaveBeenCalledWith({ currency: 'USD' }));
-    expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith({ currency: 'USD', granularity: 'monthly', periodOffset: 0 });
-    expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith({ currency: 'USD', granularity: 'monthly', periodOffset: 0 });
+    await waitFor(() => expect(core.analyticsGetPeriodCashFlowSummary).toHaveBeenCalledWith(expect.objectContaining({ currency: 'USD' })));
+    expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith(expect.objectContaining({ currency: 'USD', granularity: 'monthly', periodOffset: 0 }));
+    expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith(expect.objectContaining({ currency: 'USD', granularity: 'monthly', periodOffset: 0 }));
+
+    fireEvent.click(screen.getAllByLabelText('Select period')[0]);
+    fireEvent.click(screen.getByRole('button', { name: '3M' }));
+    await waitFor(() => expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith(expect.objectContaining({
+      filters: expect.objectContaining({ period: '3M' }),
+    })));
+
+    const filterFacetsCallsBeforeRefresh = vi.mocked(core.analyticsGetFilterFacets).mock.calls.length;
+
+    rerender(
+      <AnalyticsPageComponent
+        required={{
+          context: { core },
+          config: { enabled: true, refreshSignal: true },
+        }}
+      />,
+    );
+
+    await waitFor(() => expect(core.analyticsListCurrencies).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(vi.mocked(core.analyticsGetFilterFacets).mock.calls.length).toBeGreaterThan(filterFacetsCallsBeforeRefresh));
+    expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith(expect.objectContaining({
+      currency: 'USD',
+      filters: expect.objectContaining({ period: '3M' }),
+    }));
   }, 10000);
 });

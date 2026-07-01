@@ -1,6 +1,6 @@
 import type { CorePort } from '../application/corePort';
 import type { AccountsListBalancesResult } from '../../account/application/accountBalances.port';
-import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult } from '../../analytics/application/analytics.port';
+import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult } from '../../analytics/application/analytics.port';
 import type {
   PreferencesSetDefaultAccountInput,
   UserPreferencesResult,
@@ -125,12 +125,7 @@ import {
 import { WebTaxonomyService } from '../../taxonomy/infrastructure/webTaxonomyService';
 import { sortNetWorthCurrencies } from '../../ledger/application/netWorthOrdering';
 import { listAccountBalances } from './accountBalancesQuery';
-import {
-  analyticsGetCashFlowSeries,
-  analyticsGetPeriodCashFlowSummary,
-  analyticsGetSpendingOverview,
-  analyticsListCurrencies,
-} from '../../analytics/infrastructure/analyticsQueries';
+import { analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetPeriodCashFlowSummary, analyticsGetSpendingOverview, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
 import { WebAnalyticsExclusionService } from '../../analytics/infrastructure/webAnalyticsExclusionService';
 
 export type CoreAdapterWebOptions = {
@@ -268,6 +263,8 @@ export class CoreAdapterWeb implements CorePort {
   async analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult> {
     return analyticsListCurrencies(this);
   }
+
+  async analyticsGetFilterFacets(input?: AnalyticsGetFilterFacetsInput): Promise<AnalyticsGetFilterFacetsResult> { return analyticsGetFilterFacets(this, input); }
 
   async analyticsGetCashFlowSeries(input: AnalyticsCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> {
     return analyticsGetCashFlowSeries(this, input);

@@ -1,9 +1,12 @@
 import type { AnalyticsPort } from './analytics.port';
-import { AnalyticsCurrencySelectorView } from '../ui/AnalyticsCurrencySelectorView';
+import {
+  AnalyticsFilterBarView,
+  AnalyticsViewTabsView,
+} from '../ui/AnalyticsFilterBarView';
 import { CashFlowChartCardComponent } from './CashFlowChartCardComponent';
 import { CashFlowSummaryCardsComponent } from './CashFlowSummaryCardsComponent';
 import { SpendingOverviewCardComponent } from './SpendingOverviewCardComponent';
-import { useAnalyticsCurrencyScope } from './useAnalyticsCurrencyScope';
+import { useAnalyticsFiltersModel } from './useAnalyticsFiltersModel';
 import styles from '../ui/AnalyticsPageView.module.css';
 
 export type AnalyticsPageComponentProps = {
@@ -24,59 +27,74 @@ export type AnalyticsPageComponentProps = {
 };
 
 export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComponentProps) {
-  const currencyScope = useAnalyticsCurrencyScope({
+  const filterModel = useAnalyticsFiltersModel({
     core: required.context.core,
     enabled: required.config.enabled,
     refreshSignal: required.config.refreshSignal,
     onError: provided?.events?.onError,
   });
-  const currency = currencyScope.required.data.selectedCurrency;
+  const currency = filterModel.filters.currency;
 
   return (
     <section className={styles.page}>
       <div className={styles.header}>
         <h1>Analytics</h1>
-        <AnalyticsCurrencySelectorView
-          required={currencyScope.required}
-          provided={currencyScope.provided}
-        />
+        <button type="button" className={styles.notificationButton} aria-label="Notifications">
+          <i className="bi bi-bell" aria-hidden />
+        </button>
       </div>
 
-      <div className={styles.stack}>
-        <CashFlowSummaryCardsComponent
-          required={{
-            context: { core: required.context.core },
-            config: {
-              enabled: required.config.enabled,
-              currency,
-              refreshSignal: required.config.refreshSignal,
-            },
-          }}
-          provided={provided}
-        />
-        <CashFlowChartCardComponent
-          required={{
-            context: { core: required.context.core },
-            config: {
-              enabled: required.config.enabled,
-              currency,
-              refreshSignal: required.config.refreshSignal,
-            },
-          }}
-          provided={provided}
-        />
-        <SpendingOverviewCardComponent
-          required={{
-            context: { core: required.context.core },
-            config: {
-              enabled: required.config.enabled,
-              currency,
-              refreshSignal: required.config.refreshSignal,
-            },
-          }}
-          provided={provided}
-        />
-      </div>
+      <AnalyticsFilterBarView
+        required={filterModel.required}
+        provided={filterModel.provided}
+      />
+      <AnalyticsViewTabsView
+        required={{ state: { viewMode: filterModel.viewMode } }}
+        provided={{ commands: { selectViewMode: filterModel.provided.commands.selectViewMode } }}
+      />
+
+      {filterModel.viewMode === 'overview' ? (
+        <div className={styles.stack}>
+          <CashFlowSummaryCardsComponent
+            required={{
+              context: { core: required.context.core },
+              config: {
+                enabled: required.config.enabled,
+                currency,
+                filters: filterModel.filters,
+                refreshSignal: required.config.refreshSignal,
+              },
+            }}
+            provided={provided}
+          />
+          <CashFlowChartCardComponent
+            required={{
+              context: { core: required.context.core },
+              config: {
+                enabled: required.config.enabled,
+                currency,
+                filters: filterModel.filters,
+                refreshSignal: required.config.refreshSignal,
+              },
+            }}
+            provided={provided}
+          />
+          <SpendingOverviewCardComponent
+            required={{
+              context: { core: required.context.core },
+              config: {
+                enabled: required.config.enabled,
+                currency,
+                filters: filterModel.filters,
+                refreshSignal: required.config.refreshSignal,
+              },
+            }}
+            provided={provided}
+          />
+        </div>
+      ) : (
+        <div className={styles.emptyView} aria-label={`${filterModel.viewMode} analytics view`} />
+      )}
     </section>
   );
 }

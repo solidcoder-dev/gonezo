@@ -6,10 +6,10 @@ import type { MovementQuickActionComponentProps } from './MovementQuickActionCom
 import { useMovementQuickActionModel } from './useMovementQuickActionModel';
 
 const DOCK_ITEMS: BottomNavigationItemView[] = [
-  { id: 'home', label: 'Home', iconClassName: 'bi bi-house-door-fill' },
+  { id: 'home', label: 'Home', iconClassName: 'bi bi-house-door' },
   { id: 'analytics', label: 'Analytics', iconClassName: 'bi bi-bar-chart-line' },
   { id: 'add', label: 'Add movement', iconClassName: 'bi bi-plus-lg' },
-  { id: 'movements', label: 'Movements', iconClassName: 'bi bi-list-ul' },
+  { id: 'movements', label: 'Movements', iconClassName: 'bi bi-receipt' },
   { id: 'profile', label: 'Profile', iconClassName: 'bi bi-person' },
 ];
 

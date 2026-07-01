@@ -4,6 +4,7 @@ import type {
   LedgerGetCashFlowSeriesResult,
 } from '../../ledger/application/ledger.port';
 import type { AnalyticsCashFlowSeriesInput } from './analytics.port';
+import type { AnalyticsFiltersInput } from './analyticsFilters';
 import { CashFlowChartCardView } from '../ui/CashFlowChartCard/CashFlowChartCardView';
 
 export type CashFlowChartCardPort = {
@@ -18,6 +19,7 @@ export type CashFlowChartCardComponentProps = {
     config: {
       enabled: boolean;
       currency: string;
+      filters?: AnalyticsFiltersInput;
       refreshSignal: boolean;
     };
   };
@@ -51,7 +53,7 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
 
   useEffect(() => {
     setPeriodOffset(0);
-  }, [required.config.currency]);
+  }, [required.config.currency, required.config.filters]);
 
   useEffect(() => {
     if (!required.config.enabled || !required.config.currency) {
@@ -74,6 +76,7 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
       try {
         const nextResult = await core.analyticsGetCashFlowSeries({
           currency: required.config.currency,
+          filters: required.config.filters,
           granularity,
           periodOffset,
         });
@@ -96,7 +99,7 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
     return () => {
       cancelled = true;
     };
-  }, [core, granularity, periodOffset, required.config.currency, required.config.enabled, required.config.refreshSignal]);
+  }, [core, granularity, periodOffset, required.config.currency, required.config.enabled, required.config.filters, required.config.refreshSignal]);
 
   const chartPoints = useMemo(
     () => result.points.map((point) => ({

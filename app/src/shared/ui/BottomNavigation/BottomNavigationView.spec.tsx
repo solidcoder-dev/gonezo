@@ -34,14 +34,13 @@ function makeProps(overrides: Partial<BottomNavigationViewProps> = {}): BottomNa
 }
 
 describe('BottomNavigationView', () => {
-  it('renders icon navigation with visible labels', () => {
+  it('renders icon navigation with accessible labels', () => {
     render(<BottomNavigationView {...makeProps()} />);
 
     expect(screen.getByRole('navigation', { name: 'Primary navigation' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Home' })).toHaveClass('bottom-navigation-item--active');
     expect(screen.getByRole('button', { name: 'Add movement' })).toBeInTheDocument();
-    expect(screen.getByText('Home')).toBeInTheDocument();
-    expect(screen.getByText('Stats')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Analytics' })).toBeInTheDocument();
   });
 
   it('notifies the selected item', () => {
