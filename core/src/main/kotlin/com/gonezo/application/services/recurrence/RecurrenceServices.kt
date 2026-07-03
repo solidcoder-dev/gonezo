@@ -186,7 +186,7 @@ class AcknowledgeRecurringMovementOccurrenceService(
 ) : AcknowledgeRecurringMovementOccurrenceUC {
   override fun execute(command: AcknowledgeRecurringMovementOccurrenceCommand): RecurringMovementOccurrence {
     val occurrence = occurrenceRepository.findById(command.occurrenceId)
-      ?: throw IllegalStateException("Recurring movement occurrence not found: ${command.occurrenceId}")
+      ?: throw RecurringMovementOccurrenceNotFound(command.occurrenceId)
 
     val acknowledged = when (command.status) {
       AcknowledgeRecurringMovementOccurrenceStatus.POSTED -> {
@@ -263,4 +263,4 @@ private fun requireRecurringMovement(
   recurringMovementRepository: RecurringMovementRepository,
   recurringMovementId: RecurringMovementId,
 ): RecurringMovement = recurringMovementRepository.findById(recurringMovementId)
-  ?: throw IllegalStateException("Recurring movement not found: $recurringMovementId")
+  ?: throw RecurringMovementNotFound(recurringMovementId)

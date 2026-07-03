@@ -2,7 +2,6 @@ package com.gonezo.multiplatform.core
 
 import android.content.ContentValues
 import android.content.Context
-import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import com.gonezo.ledger.domain.AccountId
 import java.math.BigDecimal
@@ -21,6 +20,8 @@ class AndroidExpectedCore internal constructor(
   private val accountExists: (String) -> Boolean,
   private val clock: Clock,
 ) {
+  private val viewMapper = AndroidExpectedViewMapper(database)
+
   fun createMovement(
     accountId: String?,
     type: String?,
@@ -157,7 +158,7 @@ class AndroidExpectedCore internal constructor(
       null,
       "expected_at asc, id asc",
     )
-    return cursor.use(::readExpectedMovements)
+    return cursor.use(viewMapper::readExpectedMovements)
   }
 
   fun resolveMovement(expectedMovementId: String?, transactionId: String?, resolvedAt: String?) {
@@ -242,36 +243,6 @@ class AndroidExpectedCore internal constructor(
     }
   }
 
-  private fun readExpectedMovements(cursor: Cursor): List<ExpectedMovementView> {
-    val items = mutableListOf<ExpectedMovementView>()
-    while (cursor.moveToNext()) {
-      val movementId = cursor.getString(0)
-      items.add(
-        ExpectedMovementView(
-          id = movementId,
-          accountId = cursor.getString(1),
-          type = cursor.getString(2),
-          amount = cursor.getString(3),
-          currency = cursor.getString(4),
-          expectedAt = cursor.getString(5),
-          description = cursor.getStringOrNull(6),
-          merchant = cursor.getStringOrNull(7),
-          categoryId = cursor.getStringOrNull(8),
-          originOccurrenceId = cursor.getStringOrNull(9),
-          originRecurringMovementId = cursor.getStringOrNull(10),
-          status = cursor.getString(11),
-          resolvedTransactionId = cursor.getStringOrNull(12),
-          createdAt = cursor.getString(13),
-          updatedAt = cursor.getString(14),
-          resolvedAt = cursor.getStringOrNull(15),
-          dismissedAt = cursor.getStringOrNull(16),
-          splitItems = loadSplitItems(movementId),
-        ),
-      )
-    }
-    return items
-  }
-
   private fun parsePositiveDecimal(value: String): BigDecimal {
     val parsed = value.trim().toBigDecimalOrNull()
       ?: throw IllegalArgumentException("amount must be greater than 0")
@@ -323,9 +294,6 @@ class AndroidExpectedCore internal constructor(
     }
   }
 
-  private fun Cursor.getStringOrNull(index: Int): String? =
-    if (isNull(index)) null else getString(index)
-
   private fun parseSplitItems(splitItemsJson: String?): List<SplitItemInput> {
     val raw = splitItemsJson?.trim().orEmpty()
     if (raw.isEmpty()) {
@@ -344,31 +312,6 @@ class AndroidExpectedCore internal constructor(
       )
     }
     return items
-  }
-
-  private fun loadSplitItems(expectedMovementId: String): List<SplitItem> {
-    val cursor = database.readableDatabase.query(
-      "expected_movement_items",
-      arrayOf("id", "name", "amount"),
-      "expected_movement_id = ?",
-      arrayOf(expectedMovementId),
-      null,
-      null,
-      "item_order asc, id asc",
-    )
-    return cursor.use {
-      val items = mutableListOf<SplitItem>()
-      while (it.moveToNext()) {
-        items.add(
-          SplitItem(
-            id = it.getString(0),
-            name = it.getString(1),
-            amount = it.getString(2),
-          ),
-        )
-      }
-      items
-    }
   }
 
   data class ExpectedMovementView(

@@ -10,15 +10,14 @@ import {
 import { CategoryPickerField } from '../CategoryPickerField/CategoryPickerField';
 import { ScheduleSummaryView } from '../ScheduleControls/ScheduleSummaryView';
 import { ScheduleTriggerView } from '../ScheduleControls/ScheduleTriggerView';
-import { ItemBreakdownSummaryView } from '../ItemBreakdownControls/ItemBreakdownSummaryView';
-import { ItemBreakdownTriggerView } from '../ItemBreakdownControls/ItemBreakdownTriggerView';
-import { MovementMoreTriggerView } from '../MovementMoreControls/MovementMoreTriggerView';
 import { TransactionComposerActionsView } from '../TransactionComposerActions/TransactionComposerActionsView';
 import { TransactionMainFieldsView } from '../TransactionMainFields/TransactionMainFieldsView';
 import { TransferFxFieldsView } from '../TransferFxFields/TransferFxFieldsView';
+import { TransactionComposerAmountAccessories } from './TransactionComposerAmountAccessories';
 import { TransactionComposerChoiceSheets } from './TransactionComposerChoiceSheets';
+import { TransactionComposerContextControls } from './TransactionComposerContextControls';
 import { TransactionComposerEditorSheets } from './TransactionComposerEditorSheets';
-import { accountIconClass, COMPOSER_MODES } from './transactionComposerPresentation';
+import { COMPOSER_MODES } from './transactionComposerPresentation';
 import type {
   RecurrenceEndView as RecurrenceEndInput,
   RecurrenceFrequencyView as RecurrenceFrequency,
@@ -407,9 +406,6 @@ export function TransactionComposerView({ required, provided }: Props) {
     && schedulingKind === 'recurring';
   const recurringScheduleAvailable = mode === 'expense' || mode === 'income';
   const recurringScheduleConfigured = recurringScheduleAvailable && repeatEnabled;
-  const splitAvailable = mode === 'expense' || mode === 'income';
-  const shareAvailable = mode === 'expense';
-  const movementMoreAvailable = mode === 'expense' || mode === 'income';
   const shareEnabled = Number(amount) > 0;
   const amountLocked = splitApplied || (shareEnabled && shareApplied);
   const frequentCategoryIds = mode === 'income'
@@ -444,63 +440,6 @@ export function TransactionComposerView({ required, provided }: Props) {
     }
     return expenseItems.length > 0;
   }, [expenseDetailed, expenseItems.length, mode, splitEditorOpen]);
-  const splitControl = splitAvailable
-    ? splitApplied
-      ? (
-        <ItemBreakdownSummaryView
-          required={{
-            config: {},
-            data: {},
-            state: {
-              itemsCount: expenseItems.length,
-              total: expenseSplitTotal,
-              currencyCode,
-            },
-            status: { disabled },
-          }}
-          provided={{
-            commands: {
-              edit: onOpenSplitEditor,
-              remove: onRemoveSplit,
-            },
-          }}
-        />
-      )
-      : (
-        <ItemBreakdownTriggerView
-          required={{
-            config: {},
-            data: {},
-            state: {},
-            status: { disabled },
-          }}
-          provided={{ commands: { open: onOpenSplitEditor } }}
-        />
-      )
-    : null;
-  const visibleShareControl = shareAvailable ? shareControl : null;
-  const movementMoreControl = movementMoreAvailable ? (
-    <MovementMoreTriggerView
-      required={{
-        config: {},
-        data: {},
-        state: {},
-        status: { disabled },
-      }}
-      provided={{ commands: { open: () => setMovementMoreOpen(true) } }}
-    />
-  ) : null;
-  const amountAccessory = splitControl || visibleShareControl || movementMoreControl ? (
-    <div className="composer-amount-accessory">
-      <div className="composer-details-title">Details</div>
-      <div className="composer-details-chips">
-        {splitControl}
-        {visibleShareControl}
-        {movementMoreControl}
-      </div>
-    </div>
-  ) : null;
-
   if (!open) {
     return null;
   }
@@ -545,32 +484,23 @@ export function TransactionComposerView({ required, provided }: Props) {
             body: (
             <form className="composer-form" onSubmit={submitComposer} aria-busy={disabled} noValidate>
             <div className="composer-form-content stack">
-              <div className="composer-context-controls">
-                <button
-                  type="button"
-                  className={`composer-context-select composer-context-select--${selectedMode}`}
-                  aria-label={`Movement type ${selectedModeOption.label}`}
-                  aria-haspopup="dialog"
-                  disabled={disabled}
-                  onClick={() => setMovementTypeSheetOpen(true)}
-                >
-                  <i className={selectedModeOption.iconClassName} aria-hidden />
-                  <span className="composer-context-value">{selectedModeOption.label}</span>
-                  <i className="bi bi-chevron-down" aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  className="composer-context-select composer-context-select--account"
-                  aria-label={`Source account ${selectedSourceAccount?.name ?? 'Select account'}`}
-                  aria-haspopup="dialog"
-                  disabled={disabled}
-                  onClick={() => setSourceAccountSheetOpen(true)}
-                >
-                  <i className={accountIconClass(selectedSourceAccount?.type)} aria-hidden />
-                  <span className="composer-context-value">{selectedSourceAccount?.name ?? 'Select account'}</span>
-                  <i className="bi bi-chevron-down" aria-hidden />
-                </button>
-              </div>
+              <TransactionComposerContextControls
+                required={{
+                  state: {
+                    selectedMode,
+                    selectedModeIconClassName: selectedModeOption.iconClassName,
+                    selectedModeLabel: selectedModeOption.label,
+                    selectedSourceAccount,
+                  },
+                  status: { disabled },
+                }}
+                provided={{
+                  commands: {
+                    openMovementTypeSheet: () => setMovementTypeSheetOpen(true),
+                    openSourceAccountSheet: () => setSourceAccountSheetOpen(true),
+                  },
+                }}
+              />
               <TransactionMainFieldsView
                 required={{
                   config: {
@@ -774,7 +704,26 @@ export function TransactionComposerView({ required, provided }: Props) {
                   </>
                 )}
               </div>
-              {amountAccessory}
+              <TransactionComposerAmountAccessories
+                required={{
+                  state: {
+                    currencyCode,
+                    expenseItemsCount: expenseItems.length,
+                    expenseSplitTotal,
+                    mode,
+                    shareControl,
+                    splitApplied,
+                  },
+                  status: { disabled },
+                }}
+                provided={{
+                  commands: {
+                    openMovementMore: () => setMovementMoreOpen(true),
+                    openSplitEditor: onOpenSplitEditor,
+                    removeSplit: onRemoveSplit,
+                  },
+                }}
+              />
             </div>
 
             <TransactionComposerActionsView

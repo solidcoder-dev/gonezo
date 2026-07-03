@@ -36,7 +36,7 @@ class ApplyShareToPostedTransactionService(
   override fun execute(command: ApplyShareToPostedTransactionCommand): ApplyShareToPostedTransactionResult =
     consistencyBoundary.withinConsistencyBoundary {
       val transaction = ledgerTransactionRepository.findById(com.gonezo.ledger.domain.TransactionId.from(command.transactionId))
-        ?: throw IllegalStateException("Transaction not found: ${command.transactionId}")
+        ?: throw SharingTransactionNotFound(command.transactionId)
       require(transaction.status == TransactionStatus.POSTED) { "Only posted transactions can be shared" }
       require(transaction.type == TransactionType.EXPENSE) { "Only expense transactions can be shared" }
       require(command.participants.isNotEmpty()) { "Share requires participants" }
@@ -147,7 +147,7 @@ class GetMovementSharingDetailsService(
   override fun execute(query: GetMovementSharingDetailsQuery): MovementSharingDetailsView? {
     val share = expenseShareRepository.findBySourceTransactionId(query.transactionId) ?: return null
     val transaction = ledgerTransactionRepository.findById(com.gonezo.ledger.domain.TransactionId.from(query.transactionId))
-      ?: throw IllegalStateException("Transaction not found: ${query.transactionId}")
+      ?: throw SharingTransactionNotFound(query.transactionId)
     val peopleById = sharingPersonRepository.listActive().associateBy { it.id }
     val participants = share.participants.map { participant ->
       val expected = participant.expectedMovementId?.let { expectedMovementRepository.findById(ExpectedMovementId.from(it)) }

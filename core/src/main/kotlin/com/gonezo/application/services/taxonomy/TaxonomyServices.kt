@@ -56,7 +56,7 @@ class RenameCategoryService(
 ) : RenameCategoryUC {
   override fun execute(command: RenameCategoryCommand) {
     val category = categoryRepository.findById(command.categoryId)
-      ?: throw IllegalStateException("Category not found: ${command.categoryId}")
+      ?: throw TaxonomyCategoryNotFound(command.categoryId)
     val normalizedName = command.name.trim()
     require(normalizedName.isNotBlank()) { "category name is required" }
     val existing = categoryRepository.findByNormalizedNameAndAppliesTo(normalizedName, category.appliesTo)
@@ -78,7 +78,7 @@ class AssignCategoryToTransactionService(
     }
 
     val category = categoryRepository.findById(command.categoryId)
-      ?: throw IllegalStateException("Category not found: ${command.categoryId}")
+      ?: throw TaxonomyCategoryNotFound(command.categoryId)
 
     category.ensureCanAssign()
     val expectedAppliesTo = CategoryAppliesTo.from(normalizedType)
@@ -126,7 +126,7 @@ class RenameTagService(
 ) : RenameTagUC {
   override fun execute(command: RenameTagCommand) {
     val tag = tagRepository.findById(command.tagId)
-      ?: throw IllegalStateException("Tag not found: ${command.tagId}")
+      ?: throw TaxonomyTagNotFound(command.tagId)
     val normalizedName = command.name.trim()
     require(normalizedName.isNotBlank()) { "tag name is required" }
     val existing = tagRepository.findByNormalizedName(normalizedName)

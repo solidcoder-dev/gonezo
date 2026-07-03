@@ -207,6 +207,27 @@ describe('SOLID frontend boundaries', () => {
     expect(sharingPort).toContain('SharingPort');
   });
 
+  it('keeps CorePort as an infrastructure facade instead of an application dependency', () => {
+    const violations: string[] = [];
+
+    for (const file of listSourceFiles(srcDir)) {
+      const normalized = normalizePath(file);
+      if (
+        normalized.endsWith('/src/core/application/corePort.ts') ||
+        normalized.includes('/src/core/infrastructure/') ||
+        normalized.endsWith('/src/shared/testing/solidBoundaries.spec.ts')
+      ) {
+        continue;
+      }
+      const source = readFileSync(file, 'utf8');
+      if (source.includes('CorePort')) {
+        violations.push(`${normalized}: depends on the broad CorePort facade`);
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
   it('keeps gateway adapters and browser effects out of application hooks and ports', () => {
     const violations: string[] = [];
     const gatewayImportPattern = /from\s+['"][^'"]*\/infrastructure\/[^'"]*Gateway['"]/;
@@ -378,6 +399,29 @@ describe('SOLID frontend boundaries', () => {
       'recurring_movement_id',
       'expected_movement_id',
     ];
+    const criticalTableColumns: Record<string, string[]> = {
+      ledger_transactions: ['id', 'account_id', 'status', 'amount', 'currency', 'occurred_at'],
+      ledger_transaction_items: ['id', 'transaction_id', 'name', 'amount', 'currency'],
+      taxonomy_categories: ['id', 'name', 'name_normalized', 'applies_to', 'status'],
+      recurring_movements: ['id', 'movement_type', 'source_account_id', 'review_policy', 'rule_frequency', 'next_due_at'],
+      expected_movements: ['id', 'account_id', 'movement_type', 'amount', 'origin_occurrence_id', 'origin_recurring_movement_id'],
+      sharing_expense_share_participants: ['id', 'share_id', 'person_id', 'amount', 'expected_movement_id'],
+      analytics_exclusions: ['id', 'scope_type', 'scope_id', 'reason'],
+    };
+
+    function tableContainsColumn(schema: string, table: string, column: string): boolean {
+      const createTablePattern = new RegExp(`create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?${table}\\s*\\(`, 'i');
+      const match = createTablePattern.exec(schema);
+      if (match) {
+        const tableIndex = match.index;
+        const nextTableIndex = schema.indexOf('create table', tableIndex + match[0].length);
+        const tableSchema = schema.slice(tableIndex, nextTableIndex < 0 ? undefined : nextTableIndex);
+        if (tableSchema.includes(column)) {
+          return true;
+        }
+      }
+      return new RegExp(`alter\\s+table\\s+${table}\\s+add\\s+column\\s+${column}\\b`, 'i').test(schema);
+    }
 
     for (const table of productTables) {
       expect(migrations).toContain(table);
@@ -385,6 +429,12 @@ describe('SOLID frontend boundaries', () => {
     }
     for (const column of productColumns) {
       expect(androidSchema).toContain(column);
+    }
+    for (const [table, columns] of Object.entries(criticalTableColumns)) {
+      for (const column of columns) {
+        expect(tableContainsColumn(migrations.toLowerCase(), table, column)).toBe(true);
+        expect(tableContainsColumn(androidSchema.toLowerCase(), table, column)).toBe(true);
+      }
     }
   });
 

@@ -18,7 +18,6 @@ import com.gonezo.taxonomy.application.RenameCategoryUC;
 import com.gonezo.taxonomy.application.UnassignCategoryFromTransactionCommand;
 import com.gonezo.taxonomy.application.UnassignCategoryFromTransactionService;
 import com.gonezo.taxonomy.application.UnassignCategoryFromTransactionUC;
-import com.gonezo.taxonomy.domain.Category;
 import com.gonezo.taxonomy.domain.CategoryAppliesTo;
 import com.gonezo.taxonomy.domain.CategoryId;
 import com.gonezo.taxonomy.domain.CategoryStatus;
@@ -78,7 +77,7 @@ public final class AndroidTaxonomyCore {
     return listCategoriesUC.execute().stream()
       .filter((category) -> resolvedIncludeArchived || category.getStatus() == CategoryStatus.ACTIVE)
       .filter((category) -> normalizedAppliesTo == null || category.getAppliesTo().getValue().equals(normalizedAppliesTo))
-      .map(AndroidTaxonomyCore::toView)
+      .map(AndroidTaxonomyViewMapper::toCategoryView)
       .toList();
   }
 
@@ -313,15 +312,6 @@ public final class AndroidTaxonomyCore {
     }
 
     return result;
-  }
-
-  private static TaxonomyCategoryView toView(Category category) {
-    return new TaxonomyCategoryView(
-      category.getId().toString(),
-      category.getName(),
-      category.getAppliesTo().getValue(),
-      category.getStatus().getValue()
-    );
   }
 
   private String findTagIdByNormalizedName(SQLiteDatabase db, String normalizedName) {

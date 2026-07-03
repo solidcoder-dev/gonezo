@@ -18,6 +18,19 @@ import type {
   MovementsSearchResult,
   MovementsListScheduledInput,
 } from '../../movements/application/movements.port';
+import {
+  applySchedule,
+  enableMobillsImport,
+  expandExpectedMovements,
+  expandScheduledMovements,
+  goToMovementsPage,
+  openImportSheetFromAccounts,
+  openItemsEditor,
+  openMode,
+  openNewItemDialog,
+  selectComposerSourceAccount,
+  selectMonthlyScheduleEveryTwoMonthsOnDay11,
+} from './testing/appTestActions';
 
 type AppTestPort = AppPort & RecurrencePort & SchedulingPort & ExpectedPort & MovementsQueryPort;
 
@@ -842,84 +855,6 @@ function makeCore(transactionCount = 0): AppTestPort {
   });
 
   return core;
-}
-
-async function openMode(mode: 'Expense' | 'Income' | 'Transfer') {
-  fireEvent.click(screen.getByRole('button', { name: 'Add movement' }));
-  const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
-  if (mode !== 'Expense') {
-    await selectComposerMovementType(composer, mode);
-  }
-}
-
-async function selectComposerMovementType(composer: HTMLElement, mode: 'Expense' | 'Income' | 'Transfer') {
-  fireEvent.click(within(composer).getByRole('button', { name: /^Movement type/ }));
-  fireEvent.click(await screen.findByRole('button', { name: `Select movement type ${mode}` }));
-}
-
-async function selectComposerSourceAccount(composer: HTMLElement, accountName: string) {
-  fireEvent.click(within(composer).getByRole('button', { name: /^Source account/ }));
-  fireEvent.click(await screen.findByRole('button', { name: `Select account ${accountName}` }));
-}
-
-async function openNewItemDialog() {
-  await screen.findByLabelText('Description');
-}
-
-async function openItemsEditor() {
-  fireEvent.click(await screen.findByRole('button', { name: 'Items' }));
-}
-
-function scheduleButton(name: RegExp | string) {
-  return within(screen.getByRole('dialog', { name: 'Recurring schedule' })).getByRole('button', { name });
-}
-
-function applySchedule() {
-  fireEvent.click(scheduleButton('Apply schedule'));
-}
-
-function selectMonthlyScheduleEveryTwoMonthsOnDay11() {
-  const repeat = scheduleButton(/Repeat:/);
-  if (!repeat.textContent?.includes('Monthly')) {
-    fireEvent.click(repeat);
-    fireEvent.click(screen.getByRole('button', { name: 'Monthly' }));
-  }
-
-  fireEvent.click(scheduleButton(/Every:/));
-  fireEvent.click(screen.getByRole('button', { name: '2 months' }));
-
-  fireEvent.click(scheduleButton(/On:/));
-  fireEvent.click(screen.getByRole('button', { name: /Day:/ }));
-  fireEvent.click(screen.getByRole('button', { name: '11' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Done' }));
-}
-
-async function expandExpectedMovements() {
-  await goToMovementsPage();
-  fireEvent.click(await screen.findByRole('button', { name: /Expand expected movements/i }));
-}
-
-async function expandScheduledMovements() {
-  await goToMovementsPage();
-  fireEvent.click(await screen.findByRole('button', { name: /Expand scheduled movements/i }));
-}
-
-async function goToMovementsPage() {
-  if (!screen.queryByRole('heading', { name: 'Movements' })) {
-    await screen.findByRole('heading', { name: 'Accounts' });
-    fireEvent.click(await screen.findByRole('button', { name: 'Movements' }));
-  }
-  await screen.findByRole('heading', { name: 'Movements' });
-}
-
-async function openImportSheetFromAccounts() {
-  fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
-  await screen.findByRole('heading', { name: 'Profile' });
-  fireEvent.click(screen.getByRole('button', { name: 'Import backup' }));
-}
-
-async function enableMobillsImport() {
-  fireEvent.click(await screen.findByLabelText('Import Mobills TSV/CSV'));
 }
 
 describe('App Accounts UX', () => {

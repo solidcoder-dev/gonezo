@@ -107,4 +107,4 @@ private fun requireExpectedMovement(
   repository: ExpectedMovementRepository,
   id: ExpectedMovementId,
 ): ExpectedMovement = repository.findById(id)
-  ?: throw IllegalStateException("Expected movement not found: $id")
+  ?: throw ExpectedMovementNotFound(id)

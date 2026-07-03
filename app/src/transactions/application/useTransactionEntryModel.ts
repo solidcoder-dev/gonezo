@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type { LedgerAccountItem } from '../../ledger/application/ledger.port';
 import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
 import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
@@ -21,38 +21,13 @@ import { useTransactionTransferFxModel } from './useTransactionTransferFxModel';
 import { useTransactionEntryOpenSignal } from './useTransactionEntryOpenSignal';
 import { nextRecurrenceDateIso } from '../../shared/domain/nextRecurrenceDate';
 import { applyTransactionEntryInitialMode, type TransactionEntryInitialMode } from './transactionEntryInitialMode';
-
+import { resolveSubmitExpectedIntent, toErrorMessage } from './transactionEntryModelUtils';
 export type TransactionEntryModelPorts = {
   ledger: LedgerGatewayPort; scheduling: SchedulingGatewayPort; expected: ExpectedGatewayPort; sharing: SharingGatewayPort; taxonomy: TaxonomyGatewayPort; analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
 };
-
 export type TransactionEntryModelClock = { now(): Date; todayIso(): string; resolveOccurredAt(dateInput: string): string; dayOfMonthFromDateInput(dateInput: string): string; weekDayIsoFromDateInput(dateInput: string): string; resolveTimeZoneId(): string };
-
 export type TransactionEntryModelIdGenerator = { nextId(): string };
-
 type UseTransactionEntryModelInput = { ports: TransactionEntryModelPorts; clock: TransactionEntryModelClock; idGenerator: TransactionEntryModelIdGenerator; accountId: string | null; enabled: boolean; prefillRequest?: TransactionEntryPrefillRequest; openSignal?: number; initialMode?: TransactionEntryInitialMode; movementAccountContext?: { name: string; type?: TransactionEntryInitialMode }; onRecorded?: () => void; onClosed?: () => void; onCollapsed?: () => void; onAccountChanged?: (account: { id: string; name: string }) => void; onError?: (error: { message: string }) => void };
-
-function toErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return 'Unknown error';
-}
-
-function resolveSubmitExpectedIntent(event: FormEvent, fallback: boolean): boolean {
-  const nativeEvent = event.nativeEvent;
-  const submitter = nativeEvent && 'submitter' in nativeEvent
-    ? (nativeEvent as Event & { submitter?: EventTarget | null }).submitter
-    : undefined;
-  if (
-    typeof HTMLButtonElement !== 'undefined'
-    && submitter instanceof HTMLButtonElement
-    && submitter.name === 'transactionIntent'
-  ) {
-    return submitter.value === 'expected';
-  }
-  return fallback;
-}
 
 export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const { ports, clock, idGenerator, accountId, enabled, prefillRequest, openSignal, initialMode, movementAccountContext, onRecorded, onClosed, onCollapsed, onAccountChanged, onError } = input;
@@ -171,7 +146,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     })
     : undefined;
   const effectiveTransactionDate = nextScheduledOccurrenceDate ?? transactionDate;
-
   const {
     transactionCategoryId,
     transactionTagInput,
@@ -196,6 +170,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     categorizeTransaction,
     applyTransactionTags,
   } = taxonomyModel.actions;
+
   function reportError(raw: unknown) {
     const message = toErrorMessage(raw);
     setError(message);
@@ -217,7 +192,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     shareDraftModel.actions.reset();
     setFieldErrors({});
   }
-
   async function refreshAccountSnapshot() {
     const accountResult = await ledgerAccounts.listAccounts();
     setAccounts(accountResult.items);
@@ -237,6 +211,34 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setAccountCurrency(summary.currency);
     setDefaultTargetForAccounts(accountResult.items, accountId);
   }
+  const modelEffectsRef = useRef({
+    prefillExpenseSplit,
+    prefillScheduling,
+    prefillRequest,
+    refreshAccountSnapshot,
+    refreshTaxonomyLookups,
+    reportError,
+    resetComposerState,
+    setTransactionCategoryId,
+    setTransferAmountIn,
+    setTransferFxMode,
+    setTransferFxRate,
+    setTransferToAccountId,
+  });
+  modelEffectsRef.current = {
+    prefillExpenseSplit,
+    prefillScheduling,
+    prefillRequest,
+    refreshAccountSnapshot,
+    refreshTaxonomyLookups,
+    reportError,
+    resetComposerState,
+    setTransactionCategoryId,
+    setTransferAmountIn,
+    setTransferFxMode,
+    setTransferFxRate,
+    setTransferToAccountId,
+  };
 
   useEffect(() => {
     if (!enabled || !accountId) {
@@ -250,11 +252,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       setLoading(true);
       setError('');
       try {
-        await refreshAccountSnapshot();
-        await refreshTaxonomyLookups();
+        await modelEffectsRef.current.refreshAccountSnapshot();
+        await modelEffectsRef.current.refreshTaxonomyLookups();
       } catch (err) {
         if (!cancelled) {
-          reportError(err);
+          modelEffectsRef.current.reportError(err);
         }
       } finally {
         if (!cancelled) {
@@ -266,41 +268,39 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, accountId]);
 
   useEffect(() => {
-    if (!enabled || !accountId || !prefillRequest) {
+    const currentPrefillRequest = modelEffectsRef.current.prefillRequest;
+    if (!enabled || !accountId || !currentPrefillRequest) {
       return;
     }
     setError('');
-    resetComposerState();
+    modelEffectsRef.current.resetComposerState();
     setComposerOpen(true);
-    setComposerMode(prefillRequest.mode);
+    setComposerMode(currentPrefillRequest.mode);
     setComposerAdvancedOpen(true);
-    setTransactionAmount(prefillRequest.amount.replace('-', ''));
-    setTransactionDate(prefillRequest.date);
-    setTransactionNote(prefillRequest.note ?? '');
-    setTransactionCategoryId(prefillRequest.categoryId ?? '');
-    setMovementIgnored((prefillRequest.mode === 'expense' || prefillRequest.mode === 'income') && prefillRequest.movementIgnored === true);
-    if (prefillRequest.mode === 'transfer') {
-      setTransferToAccountId(prefillRequest.transferTargetAccountId ?? '');
-      setTransferAmountIn(prefillRequest.transferAmountIn ?? '');
-      setTransferFxRate(prefillRequest.transferFxRate ?? '1');
-      setTransferFxMode(prefillRequest.transferFxMode ?? 'auto_destination');
+    setTransactionAmount(currentPrefillRequest.amount.replace('-', ''));
+    setTransactionDate(currentPrefillRequest.date);
+    setTransactionNote(currentPrefillRequest.note ?? '');
+    modelEffectsRef.current.setTransactionCategoryId(currentPrefillRequest.categoryId ?? '');
+    setMovementIgnored((currentPrefillRequest.mode === 'expense' || currentPrefillRequest.mode === 'income') && currentPrefillRequest.movementIgnored === true);
+    if (currentPrefillRequest.mode === 'transfer') {
+      modelEffectsRef.current.setTransferToAccountId(currentPrefillRequest.transferTargetAccountId ?? '');
+      modelEffectsRef.current.setTransferAmountIn(currentPrefillRequest.transferAmountIn ?? '');
+      modelEffectsRef.current.setTransferFxRate(currentPrefillRequest.transferFxRate ?? '1');
+      modelEffectsRef.current.setTransferFxMode(currentPrefillRequest.transferFxMode ?? 'auto_destination');
     }
-    prefillScheduling(prefillRequest);
-    prefillExpenseSplit(prefillRequest.splitItems ?? []);
+    modelEffectsRef.current.prefillScheduling(currentPrefillRequest);
+    modelEffectsRef.current.prefillExpenseSplit(currentPrefillRequest.splitItems ?? []);
     void (async () => {
       try {
-        await refreshTaxonomyLookups();
+        await modelEffectsRef.current.refreshTaxonomyLookups();
       } catch (err) {
-        reportError(err);
+        modelEffectsRef.current.reportError(err);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, accountId, prefillRequest?.requestId]);
-
   function openTransactionComposer() {
     if (!accountId) {
       setError('Select an account first.');
