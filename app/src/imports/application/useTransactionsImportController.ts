@@ -12,7 +12,7 @@ import type {
   TransactionsImportResult,
   TransactionsImportSource,
 } from './transactionsImport.types';
-import { readImportFileAsBase64 } from '../infrastructure/readImportFileAsBase64';
+import type { TransactionsImportFileReaderPort } from './transactionsImportFileReader.port';
 
 export type TransactionsImportPort = {
   submitImport(input: TransactionsImportRequest): Promise<TransactionsImportResult>;
@@ -20,11 +20,12 @@ export type TransactionsImportPort = {
 
 type UseTransactionsImportInput = {
   port: TransactionsImportPort;
+  fileReader: TransactionsImportFileReaderPort;
   onCompleted?: (result: TransactionsImportResult) => void;
   onFailed?: (message: string) => void;
 };
 
-export function useTransactionsImportController({ port, onCompleted, onFailed }: UseTransactionsImportInput) {
+export function useTransactionsImportController({ port, fileReader, onCompleted, onFailed }: UseTransactionsImportInput) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitPhase, setSubmitPhase] = useState<'idle' | 'submitting' | 'succeeded' | 'failed'>('idle');
   const [fileName, setFileName] = useState('');
@@ -92,7 +93,7 @@ export function useTransactionsImportController({ port, onCompleted, onFailed }:
     setIsSubmitting(true);
     setSubmitPhase('submitting');
     try {
-      const fileBase64 = await readImportFileAsBase64(selectedFile);
+      const fileBase64 = await fileReader.readAsBase64(selectedFile);
       const policy: TransactionsImportPolicyInput | undefined = importSource === 'mobills'
         ? {
             createMissingAccounts,

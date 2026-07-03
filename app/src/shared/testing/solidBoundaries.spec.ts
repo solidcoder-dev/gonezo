@@ -70,6 +70,40 @@ describe('SOLID frontend boundaries', () => {
     expect(violations).toEqual([]);
   });
 
+  it('keeps UI modules behind required/provided contracts instead of infrastructure adapters', () => {
+    const violations: string[] = [];
+    const forbiddenImports = [
+      /from\s+['"][^'"]*\/infrastructure(?:\/[^'"]*)?['"]/,
+      /from\s+['"][^'"]*\/core\/infrastructure(?:\/[^'"]*)?['"]/,
+    ];
+    const forbiddenReferences = [
+      'CoreAdapter',
+      'CorePlugin',
+      'Capacitor.',
+    ];
+
+    for (const file of listSourceFiles(srcDir)) {
+      const normalized = normalizePath(file);
+      if (!normalized.includes('/ui/')) {
+        continue;
+      }
+
+      const source = readFileSync(file, 'utf8');
+      for (const pattern of forbiddenImports) {
+        if (pattern.test(source)) {
+          violations.push(`${normalized}: imports infrastructure from UI`);
+        }
+      }
+      for (const reference of forbiddenReferences) {
+        if (source.includes(reference)) {
+          violations.push(`${normalized}: references ${reference} from UI`);
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
   it('keeps multi-file component clusters colocated in component folders', () => {
     const expectedClusterFiles = [
       'account/application/AccountHub/AccountHubComponent.tsx',
@@ -176,6 +210,7 @@ describe('SOLID frontend boundaries', () => {
   it('keeps gateway adapters and browser effects out of application hooks and ports', () => {
     const violations: string[] = [];
     const gatewayImportPattern = /from\s+['"][^'"]*\/infrastructure\/[^'"]*Gateway['"]/;
+    const infrastructureImportPattern = /from\s+['"][^'"]*\/infrastructure(?:\/[^'"]*)?['"]/;
     const createGatewayPattern = /create[A-Z]\w*Gateway/;
     const forbiddenBrowserEffects = [
       'window.confirm',
@@ -194,6 +229,10 @@ describe('SOLID frontend boundaries', () => {
 
       if (isApplicationFile && !isBoundaryComponent && gatewayImportPattern.test(source)) {
         violations.push(`${normalized}: imports a gateway adapter/port from infrastructure`);
+      }
+
+      if (isApplicationFile && !isBoundaryComponent && infrastructureImportPattern.test(source)) {
+        violations.push(`${normalized}: imports infrastructure instead of a port dependency`);
       }
 
       if (isApplicationHook && createGatewayPattern.test(source)) {
@@ -287,6 +326,68 @@ describe('SOLID frontend boundaries', () => {
     expect(tagging).toContain('final class TransactionTaggingBridge');
   });
 
+  it('keeps Android plugin methods declared in the TypeScript plugin contract', () => {
+    const androidPluginDir = resolve(appDir, 'android/app/src/main/java/com/gonezo/multiplatform/plugins');
+    const corePlugin = readFileSync(join(androidPluginDir, 'CorePlugin.java'), 'utf8');
+    const corePluginContract = readFileSync(resolve(srcDir, 'core/infrastructure/corePlugin.ts'), 'utf8');
+    const androidMethods = [...corePlugin.matchAll(/@PluginMethod\s+public void ([A-Za-z0-9_]+)\(PluginCall call\)/g)]
+      .map((match) => match[1])
+      .sort();
+    const typescriptMethods = [...corePluginContract.matchAll(/^\s{2}([A-Za-z0-9_]+)\([^)]*\): Promise</gm)]
+      .map((match) => match[1]);
+
+    expect(androidMethods).not.toHaveLength(0);
+    expect(androidMethods.filter((method) => !typescriptMethods.includes(method))).toEqual([]);
+  });
+
+  it('keeps Android product schema aligned with core migration-owned product tables', () => {
+    const androidSchema = readFileSync(
+      resolve(appDir, '../platforms/android/infrastructure/src/main/java/com/gonezo/multiplatform/core/CoreDatabase.java'),
+      'utf8',
+    );
+    const coreMigrationsDir = resolve(appDir, '../core/src/main/resources/db/migration');
+    const migrations = readdirSync(coreMigrationsDir)
+      .filter((file) => file.endsWith('.sql'))
+      .map((file) => readFileSync(join(coreMigrationsDir, file), 'utf8'))
+      .join('\n');
+    const productTables = [
+      'ledger_accounts',
+      'ledger_transactions',
+      'ledger_transaction_items',
+      'taxonomy_categories',
+      'taxonomy_transaction_assignments',
+      'taxonomy_tags',
+      'taxonomy_transaction_tag_assignments',
+      'recurring_movements',
+      'recurring_movement_occurrences',
+      'recurrence_outbox',
+      'expected_movements',
+      'expected_movement_items',
+      'recurring_movement_items',
+      'sharing_persons',
+      'sharing_expense_shares',
+      'sharing_expense_share_participants',
+      'analytics_exclusions',
+    ];
+    const productColumns = [
+      'category_id',
+      'review_policy',
+      'origin_occurrence_id',
+      'origin_recurring_movement_id',
+      'expected_movement_id',
+      'recurring_movement_id',
+      'expected_movement_id',
+    ];
+
+    for (const table of productTables) {
+      expect(migrations).toContain(table);
+      expect(androidSchema).toContain(table);
+    }
+    for (const column of productColumns) {
+      expect(androidSchema).toContain(column);
+    }
+  });
+
   it('keeps Android Capacitor commands explicit from the app package', () => {
     const packageJson = JSON.parse(readFileSync(resolve(appDir, 'package.json'), 'utf8')) as {
       scripts: Record<string, string>;
@@ -299,16 +400,19 @@ describe('SOLID frontend boundaries', () => {
 
   it('keeps native movement composition out of the platform adapter shell', () => {
     const coreAdapter = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapter.ts'), 'utf8');
+    const movementsRuntimeAdapter = readFileSync(resolve(srcDir, 'core/infrastructure/movementsRuntimeAdapter.ts'), 'utf8');
+    const analyticsRuntimeAdapter = readFileSync(resolve(srcDir, 'core/infrastructure/analyticsRuntimeAdapter.ts'), 'utf8');
     const nativeMovements = readFileSync(resolve(srcDir, 'movements/infrastructure/nativeMovements.ts'), 'utf8');
 
-    expect(coreAdapter).toContain('getNativeMovementsMonthOverview(this, input)');
-    expect(coreAdapter).toContain('searchNativeMovements(this, input)');
-    expect(coreAdapter).toContain('listNativeScheduledMovements(this, input)');
+    expect(coreAdapter).toContain('new MovementsRuntimeAdapter(this.web, this)');
+    expect(movementsRuntimeAdapter).toContain('getNativeMovementsMonthOverview(this.queries, input)');
+    expect(movementsRuntimeAdapter).toContain('searchNativeMovements(this.queries, input)');
+    expect(movementsRuntimeAdapter).toContain('listNativeScheduledMovements(this.queries, input)');
     expect(coreAdapter).not.toContain('function filterScheduledMovementItems');
     expect(coreAdapter).not.toContain('function mapPostedTransactionToSearchItem');
-    expect(coreAdapter).toContain("from '../../analytics/infrastructure/analyticsQueries'");
+    expect(analyticsRuntimeAdapter).toContain("from '../../analytics/infrastructure/analyticsQueries'");
     expect(coreAdapter).not.toContain('function buildSpendingOverview');
-    expect(coreAdapter.split('\n').length).toBeLessThanOrEqual(630);
+    expect(coreAdapter.split('\n').length).toBeLessThanOrEqual(120);
 
     expect(nativeMovements).toContain('function filterScheduledMovementItems');
     expect(nativeMovements).toContain('function mapPostedTransactionToSearchItem');

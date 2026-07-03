@@ -56,7 +56,6 @@ import com.gonezo.ledger.domain.AccountId;
 import com.gonezo.domain.shared.CurrencyCode;
 import com.gonezo.ledger.domain.Transaction;
 import com.gonezo.ledger.domain.TransactionId;
-import com.gonezo.ledger.domain.TransactionItem;
 import com.gonezo.ledger.domain.services.BalanceCalculator;
 import com.gonezo.domain.shared.Money;
 import java.math.BigDecimal;
@@ -209,7 +208,7 @@ public final class AndroidLedgerCore {
 
   public List<LedgerAccountView> listAccounts() {
     return listAccountsUC.execute().stream()
-      .map(AndroidLedgerCore::toAccountView)
+      .map(AndroidLedgerViewMapper::toAccountView)
       .toList();
   }
 
@@ -435,7 +434,7 @@ public final class AndroidLedgerCore {
       int totalPages = page.totalElements() == 0 ? 0 : (int) Math.ceil((double) page.totalElements() / pageSize);
       int resolvedPage = totalPages == 0 ? 0 : Math.min(requestedPage, totalPages - 1);
       return new LedgerTransactionPageView(
-        page.content().stream().map(AndroidLedgerCore::toTransactionView).toList(),
+        page.content().stream().map(AndroidLedgerViewMapper::toTransactionView).toList(),
         resolvedPage,
         pageSize,
         page.totalElements(),
@@ -502,7 +501,7 @@ public final class AndroidLedgerCore {
     int end = Math.min(start + pageSize, totalElements);
 
     List<LedgerTransactionView> content = sorted.subList(start, end).stream()
-      .map(AndroidLedgerCore::toTransactionView)
+      .map(AndroidLedgerViewMapper::toTransactionView)
       .toList();
 
     return new LedgerTransactionPageView(
@@ -534,43 +533,6 @@ public final class AndroidLedgerCore {
     mobillsImportFingerprintRepository.touchDuplicate(
       requireText(fingerprint, "fingerprint is required"),
       Instant.now()
-    );
-  }
-
-  private static LedgerAccountView toAccountView(Account account) {
-    return new LedgerAccountView(
-      account.getId().toString(),
-      account.getName(),
-      account.getType().getValue(),
-      account.getCurrency().toString(),
-      account.getStatus().getValue()
-    );
-  }
-
-  private static LedgerTransactionView toTransactionView(Transaction tx) {
-    List<LedgerTransactionItemView> items = tx.getItems().stream()
-      .map((item) -> new LedgerTransactionItemView(
-        item.getId().toString(),
-        item.getName(),
-        item.getAmount().getAmount().toPlainString(),
-        item.getAmount().getCurrency(),
-        null,
-        item.getNote()
-      ))
-      .toList();
-    return new LedgerTransactionView(
-      tx.getId().toString(),
-      tx.getAccountId().toString(),
-      tx.getType().getValue(),
-      tx.getStatus().getValue(),
-      tx.getAmount().getAmount().toPlainString(),
-      tx.getAmount().getCurrency(),
-      tx.getOccurredAt().toString(),
-      tx.getDescription(),
-      tx.getMerchant(),
-      null,
-      tx.getLinkedTransactionId() == null ? null : tx.getLinkedTransactionId().toString(),
-      items
     );
   }
 

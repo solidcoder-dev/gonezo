@@ -84,6 +84,10 @@ function buildHomeExpectedMovementRow(movement: ExpectedMovementView): HomeMovem
 
 export function ExpectedMovementsCardComponent({ required, provided }: ExpectedMovementsCardComponentProps) {
   const { core } = required.context;
+  const onError = provided?.events?.onError;
+  const onExpectedDismissed = provided?.events?.onExpectedDismissed;
+  const onPostExpectedMovement = provided?.events?.onPostExpectedMovement;
+  const onEditExpectedMovement = provided?.events?.onEditExpectedMovement;
   const [movements, setMovements] = useState<ExpectedMovementView[]>([]);
   const [selectedMovement, setSelectedMovement] = useState<ExpectedMovementView | null>(null);
   const [pendingDismissExpectedId, setPendingDismissExpectedId] = useState('');
@@ -119,7 +123,7 @@ export function ExpectedMovementsCardComponent({ required, provided }: ExpectedM
       } catch (err) {
         if (!cancelled) {
           setMovements([]);
-          provided?.events?.onError?.({ message: toErrorMessage(err) });
+          onError?.({ message: toErrorMessage(err) });
         }
       } finally {
         if (!cancelled) {
@@ -133,7 +137,7 @@ export function ExpectedMovementsCardComponent({ required, provided }: ExpectedM
     return () => {
       cancelled = true;
     };
-  }, [core, required.config.enabled, required.config.refreshSignal]);
+  }, [core, onError, required.config.enabled, required.config.refreshSignal]);
 
   const rows = useMemo(
     () => movements.map((movement) => ({
@@ -158,9 +162,9 @@ export function ExpectedMovementsCardComponent({ required, provided }: ExpectedM
       await core.expectedDismissMovement({ expectedMovementId: selectedMovement.id });
       setMovements((previous) => previous.filter((movement) => movement.id !== selectedMovement.id));
       setSelectedMovement(null);
-      provided?.events?.onExpectedDismissed?.();
+      onExpectedDismissed?.();
     } catch (err) {
-      provided?.events?.onError?.({ message: toErrorMessage(err) });
+      onError?.({ message: toErrorMessage(err) });
     } finally {
       setPendingDismissExpectedId('');
     }
@@ -192,7 +196,7 @@ export function ExpectedMovementsCardComponent({ required, provided }: ExpectedM
                   key: 'post',
                   label: 'Post movement',
                   onClick: () => {
-                    provided?.events?.onPostExpectedMovement?.(selectedMovement);
+                    onPostExpectedMovement?.(selectedMovement);
                     setSelectedMovement(null);
                   },
                 },
@@ -201,7 +205,7 @@ export function ExpectedMovementsCardComponent({ required, provided }: ExpectedM
                   label: 'Edit expected',
                   variant: 'text',
                   onClick: () => {
-                    provided?.events?.onEditExpectedMovement?.(selectedMovement);
+                    onEditExpectedMovement?.(selectedMovement);
                     setSelectedMovement(null);
                   },
                 },

@@ -1,16 +1,17 @@
 import { Route, Routes } from 'react-router-dom';
 import './App.css';
-import type { AccountWorkspacePort } from './account/application/accounts.port';
-import type { AnalyticsPort } from './analytics/application/analytics.port';
-import { WorkspacePage } from './workspace/application/WorkspacePage';
+import { WorkspacePage, type WorkspacePagePort } from './workspace/application/WorkspacePage';
 import { CoreAdapter } from './core/infrastructure/coreAdapter';
+import { readImportFileAsBase64 } from './imports/infrastructure/readImportFileAsBase64';
 import { MovementsSearchPage } from './movements/index';
 import type { MovementsSearchPagePort } from './movements/application/movementsSearch.port';
 import { TaxonomyPage, type TaxonomyPagePort } from './taxonomy/application/TaxonomyPage';
 
 const defaultCore = new CoreAdapter();
+const defaultImportFileReader = { readAsBase64: readImportFileAsBase64 };
+const workspaceRoutes = ['/', '/home', '/accounts', '/analytics', '/movements', '/profile'];
 
-export type AppPort = AccountWorkspacePort & AnalyticsPort & MovementsSearchPagePort & TaxonomyPagePort;
+export type AppPort = WorkspacePagePort & MovementsSearchPagePort & TaxonomyPagePort;
 
 export type AppRequired = {
   core?: AppPort;
@@ -22,15 +23,15 @@ type AppProps = {
 
 export function App({ required }: AppProps) {
   const resolvedCore = required?.core ?? defaultCore;
+  const workspacePage = (
+    <WorkspacePage required={{ core: resolvedCore, importFileReader: defaultImportFileReader }} />
+  );
 
   return (
     <Routes>
-      <Route path="/" element={<WorkspacePage required={{ core: resolvedCore }} />} />
-      <Route path="/home" element={<WorkspacePage required={{ core: resolvedCore }} />} />
-      <Route path="/accounts" element={<WorkspacePage required={{ core: resolvedCore }} />} />
-      <Route path="/analytics" element={<WorkspacePage required={{ core: resolvedCore }} />} />
-      <Route path="/movements" element={<WorkspacePage required={{ core: resolvedCore }} />} />
-      <Route path="/profile" element={<WorkspacePage required={{ core: resolvedCore }} />} />
+      {workspaceRoutes.map((path) => (
+        <Route key={path} path={path} element={workspacePage} />
+      ))}
       <Route path="/movements/search" element={<MovementsSearchPage required={{ core: resolvedCore }} />} />
       <Route path="/taxonomy" element={<TaxonomyPage required={{ core: resolvedCore }} />} />
     </Routes>

@@ -102,6 +102,8 @@ type TransactionSubmissionHandlerEntry = {
   runAfterRecorded?: boolean;
 };
 
+type IncomeExpenseMode = Extract<ComposerMode, 'expense' | 'income'>;
+
 function parseAmount(value: string): number {
   const parsed = Number(value.trim());
   return Number.isNaN(parsed) ? 0 : parsed;
@@ -109,6 +111,10 @@ function parseAmount(value: string): number {
 
 function formatAmount(value: number): string {
   return value.toFixed(2);
+}
+
+function transactionNote(context: TransactionSubmissionContext): string | undefined {
+  return context.transactionNote.trim() || undefined;
 }
 
 function buildCurrentSchedulingParts(context: TransactionSubmissionContext, enabled = context.recurrenceEnabled) {
@@ -126,6 +132,91 @@ function buildCurrentSchedulingParts(context: TransactionSubmissionContext, enab
     recurrenceEndCount: context.recurrenceEndCount,
     transactionDate: context.resolvedTransactionDate,
   });
+}
+
+function buildPostedMovementInput(
+  context: TransactionSubmissionContext,
+  categoryId: string | undefined,
+) {
+  return {
+    accountId: context.accountId,
+    occurredAt: context.occurredAt,
+    amount: context.amount,
+    currency: context.accountCurrency,
+    description: transactionNote(context),
+    merchant: transactionNote(context),
+    categoryId,
+  };
+}
+
+function buildDraftMovementInput(context: TransactionSubmissionContext, type: IncomeExpenseMode) {
+  const input = {
+    accountId: context.accountId,
+    occurredAt: context.occurredAt,
+    amount: context.amount,
+    currency: context.accountCurrency,
+    description: transactionNote(context),
+    merchant: transactionNote(context),
+  };
+  return type === 'income' ? { ...input, type } : input;
+}
+
+async function addDraftItems(context: TransactionSubmissionContext, transactionId: string) {
+  for (const item of context.expenseItems) {
+    await context.ledgerTransactionCommands.addTransactionItem({
+      transactionId,
+      name: item.name,
+      amount: item.amount,
+      currency: context.accountCurrency,
+    });
+  }
+}
+
+async function assignPostedTaxonomy(
+  context: TransactionSubmissionContext,
+  transactionId: string,
+  type: IncomeExpenseMode,
+  categoryId: string | undefined,
+) {
+  await context.categorizeTransaction(transactionId, type, categoryId);
+  await context.applyTransactionTags(transactionId, context.tagNames);
+}
+
+async function recordSimplePostedMovement(
+  context: TransactionSubmissionContext,
+  type: IncomeExpenseMode,
+  categoryId: string | undefined,
+): Promise<string> {
+  const input = buildPostedMovementInput(context, categoryId);
+  const result = type === 'expense'
+    ? await context.ledgerTransactionCommands.recordExpense(input)
+    : await context.ledgerTransactionCommands.recordIncome(input);
+  await assignPostedTaxonomy(context, result.id, type, categoryId);
+  return result.id;
+}
+
+async function recordDetailedPostedMovement(
+  context: TransactionSubmissionContext,
+  type: IncomeExpenseMode,
+  categoryId: string | undefined,
+): Promise<string> {
+  const draft = await context.ledgerTransactionCommands.createExpenseDraft(buildDraftMovementInput(context, type));
+  await addDraftItems(context, draft.id);
+  await context.ledgerTransactionCommands.postDraftTransaction({ transactionId: draft.id });
+  await assignPostedTaxonomy(context, draft.id, type, categoryId);
+  return draft.id;
+}
+
+async function recordPostedIncomeExpense(
+  context: TransactionSubmissionContext,
+  state: TransactionSubmissionState,
+  type: IncomeExpenseMode,
+) {
+  const categoryId = await context.resolveCategorySelection(type);
+  state.postedTransactionId = context.expenseDetailed
+    ? await recordDetailedPostedMovement(context, type, categoryId)
+    : await recordSimplePostedMovement(context, type, categoryId);
+  state.recorded = true;
 }
 
 function findTransferTarget(context: TransactionSubmissionContext): LedgerAccountItem {
@@ -172,7 +263,7 @@ async function handleEditedScheduledMovement(
       destinationAmount: transferAmountParts.destinationAmount,
       destinationCurrency: transferAmountParts.destinationCurrency,
       exchangeRate: transferAmountParts.exchangeRate,
-      description: context.transactionNote.trim() || undefined,
+      description: transactionNote(context),
       merchant: undefined,
       categoryId: undefined,
       tagIds: context.tagIds,
@@ -193,8 +284,8 @@ async function handleEditedScheduledMovement(
       sourceAccountId: context.accountId,
       amount: formatAmount(parseAmount(context.amount)),
       currency: context.accountCurrency,
-      description: context.transactionNote.trim() || undefined,
-      merchant: context.transactionNote.trim() || undefined,
+      description: transactionNote(context),
+      merchant: transactionNote(context),
       categoryId,
       splitItems: context.expenseItems,
       tagIds: context.tagIds,
@@ -215,8 +306,8 @@ async function handleEditedScheduledMovement(
       sourceAccountId: context.accountId,
       amount: formatAmount(parseAmount(context.amount)),
       currency: context.accountCurrency,
-      description: context.transactionNote.trim() || undefined,
-      merchant: context.transactionNote.trim() || undefined,
+      description: transactionNote(context),
+      merchant: transactionNote(context),
       categoryId,
       splitItems: context.expenseItems,
       tagIds: context.tagIds,
@@ -251,8 +342,8 @@ async function handleExpectedMovement(
     amount: formatAmount(parseAmount(context.amount)),
     currency: context.accountCurrency,
     expectedAt: context.occurredAt,
-    description: context.transactionNote.trim() || undefined,
-    merchant: context.transactionNote.trim() || undefined,
+    description: transactionNote(context),
+    merchant: transactionNote(context),
     categoryId,
     ignored: context.movementIgnored,
     splitItems: context.expenseItems,
@@ -288,8 +379,8 @@ async function handleRecurringIncomeExpense(
     sourceAccountId: context.accountId,
     amount: formatAmount(parseAmount(context.amount)),
     currency: context.accountCurrency,
-    description: context.transactionNote.trim() || undefined,
-    merchant: context.transactionNote.trim() || undefined,
+    description: transactionNote(context),
+    merchant: transactionNote(context),
     categoryId,
     splitItems: context.expenseItems,
     tagIds: context.tagIds,
@@ -322,8 +413,8 @@ async function handleOneShotIncomeExpense(
     sourceAccountId: context.accountId,
     amount: formatAmount(parseAmount(context.amount)),
     currency: context.accountCurrency,
-    description: context.transactionNote.trim() || undefined,
-    merchant: context.transactionNote.trim() || undefined,
+    description: transactionNote(context),
+    merchant: transactionNote(context),
     categoryId,
     tagIds: context.tagIds,
     tagNames: context.tagNames,
@@ -362,7 +453,7 @@ async function handleScheduledNonExpense(
       destinationAmount: transferAmountParts.destinationAmount,
       destinationCurrency: transferAmountParts.destinationCurrency,
       exchangeRate: transferAmountParts.exchangeRate,
-      description: context.transactionNote.trim() || undefined,
+      description: transactionNote(context),
       merchant: undefined,
       categoryId: undefined,
       tagIds: context.tagIds,
@@ -381,8 +472,8 @@ async function handleScheduledNonExpense(
       sourceAccountId: context.accountId,
       amount: formatAmount(parseAmount(context.amount)),
       currency: context.accountCurrency,
-      description: context.transactionNote.trim() || undefined,
-      merchant: context.transactionNote.trim() || undefined,
+      description: transactionNote(context),
+      merchant: transactionNote(context),
       categoryId,
       splitItems: context.expenseItems,
       tagIds: context.tagIds,
@@ -405,47 +496,7 @@ async function handlePostedExpense(
     return;
   }
 
-  const categoryId = await context.resolveCategorySelection('expense');
-  if (!context.expenseDetailed) {
-    const result = await context.ledgerTransactionCommands.recordExpense({
-      accountId: context.accountId,
-      occurredAt: context.occurredAt,
-      amount: context.amount,
-      currency: context.accountCurrency,
-      description: context.transactionNote.trim() || undefined,
-      merchant: context.transactionNote.trim() || undefined,
-      categoryId,
-    });
-    state.postedTransactionId = result.id;
-    await context.categorizeTransaction(result.id, 'expense', categoryId);
-    await context.applyTransactionTags(result.id, context.tagNames);
-    state.recorded = true;
-    return;
-  }
-
-  const draft = await context.ledgerTransactionCommands.createExpenseDraft({
-    accountId: context.accountId,
-    occurredAt: context.occurredAt,
-    amount: context.amount,
-    currency: context.accountCurrency,
-    description: context.transactionNote.trim() || undefined,
-    merchant: context.transactionNote.trim() || undefined,
-  });
-
-  for (const item of context.expenseItems) {
-    await context.ledgerTransactionCommands.addTransactionItem({
-      transactionId: draft.id,
-      name: item.name,
-      amount: item.amount,
-      currency: context.accountCurrency,
-    });
-  }
-
-  await context.ledgerTransactionCommands.postDraftTransaction({ transactionId: draft.id });
-  state.postedTransactionId = draft.id;
-  await context.categorizeTransaction(draft.id, 'expense', categoryId);
-  await context.applyTransactionTags(draft.id, context.tagNames);
-  state.recorded = true;
+  await recordPostedIncomeExpense(context, state, 'expense');
 }
 
 async function handlePostedIncome(
@@ -456,48 +507,7 @@ async function handlePostedIncome(
     return;
   }
 
-  const categoryId = await context.resolveCategorySelection('income');
-  if (!context.expenseDetailed) {
-    const result = await context.ledgerTransactionCommands.recordIncome({
-      accountId: context.accountId,
-      occurredAt: context.occurredAt,
-      amount: context.amount,
-      currency: context.accountCurrency,
-      description: context.transactionNote.trim() || undefined,
-      merchant: context.transactionNote.trim() || undefined,
-      categoryId,
-    });
-    state.postedTransactionId = result.id;
-    await context.categorizeTransaction(result.id, 'income', categoryId);
-    await context.applyTransactionTags(result.id, context.tagNames);
-    state.recorded = true;
-    return;
-  }
-
-  const draft = await context.ledgerTransactionCommands.createExpenseDraft({
-    accountId: context.accountId,
-    occurredAt: context.occurredAt,
-    amount: context.amount,
-    currency: context.accountCurrency,
-    type: 'income',
-    description: context.transactionNote.trim() || undefined,
-    merchant: context.transactionNote.trim() || undefined,
-  });
-
-  for (const item of context.expenseItems) {
-    await context.ledgerTransactionCommands.addTransactionItem({
-      transactionId: draft.id,
-      name: item.name,
-      amount: item.amount,
-      currency: context.accountCurrency,
-    });
-  }
-
-  await context.ledgerTransactionCommands.postDraftTransaction({ transactionId: draft.id });
-  state.postedTransactionId = draft.id;
-  await context.categorizeTransaction(draft.id, 'income', categoryId);
-  await context.applyTransactionTags(draft.id, context.tagNames);
-  state.recorded = true;
+  await recordPostedIncomeExpense(context, state, 'income');
 }
 
 async function handlePostedTransfer(
@@ -520,7 +530,7 @@ async function handlePostedTransfer(
       occurredAt: context.occurredAt,
       amount: transferAmountParts.amount,
       currency: transferAmountParts.currency,
-      description: context.transactionNote.trim() || undefined,
+      description: transactionNote(context),
     });
   } else {
     result = await context.ledgerTransactionCommands.recordTransferFx({
@@ -532,7 +542,7 @@ async function handlePostedTransfer(
       destinationAmount: transferAmountParts.destinationAmount,
       destinationCurrency: transferAmountParts.destinationCurrency,
       exchangeRate: transferAmountParts.exchangeRate,
-      description: context.transactionNote.trim() || undefined,
+      description: transactionNote(context),
     });
   }
 

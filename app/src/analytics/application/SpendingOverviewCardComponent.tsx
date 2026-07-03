@@ -65,6 +65,7 @@ export function SpendingOverviewCardComponent({ required, provided }: SpendingOv
   const [loading, setLoading] = useState(true);
   const { core } = required.context;
   const { currency, enabled, filters, refreshSignal } = required.config;
+  const onError = provided?.events?.onError;
 
   useEffect(() => {
     setPeriodOffset(0);
@@ -88,7 +89,7 @@ export function SpendingOverviewCardComponent({ required, provided }: SpendingOv
         }
       } catch (err) {
         if (!cancelled) {
-          provided?.events?.onError?.({ message: toErrorMessage(err) });
+          onError?.({ message: toErrorMessage(err) });
         }
       } finally {
         if (!cancelled) {
@@ -102,7 +103,7 @@ export function SpendingOverviewCardComponent({ required, provided }: SpendingOv
     return () => {
       cancelled = true;
     };
-  }, [core, currency, enabled, filters, granularity, periodOffset, refreshSignal]);
+  }, [core, currency, enabled, filters, granularity, onError, periodOffset, refreshSignal]);
 
   const categories = useMemo(() => toCategoryViews(overview, currency || 'USD'), [currency, overview]);
 

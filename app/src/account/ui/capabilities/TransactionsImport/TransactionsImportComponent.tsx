@@ -28,7 +28,12 @@ export function TransactionsImportComponent({ required, provided }: Transactions
           body: (
             <TransactionsImportFeature
               required={{
-                accountsCount: required.state.accountsCount,
+                context: {
+                  fileReader: required.context.fileReader,
+                },
+                state: {
+                  accountsCount: required.state.accountsCount,
+                },
               }}
               provided={{
                 submitImport: provided.commands.submit,

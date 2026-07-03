@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AccountWorkspacePort } from '../accounts.port';
 import type { AccountBalanceItem } from '../accountBalances.port';
 import { formatCurrencyAmount } from '../../../shared/utils/formatting';
@@ -54,6 +54,7 @@ function toAccountView(account: AccountRailItem): AccountsRailAccountView {
 
 export function AccountsRailComponent({ required, provided }: AccountsRailComponentProps) {
   const { core } = required.context;
+  const eventsRef = useRef(provided?.events);
   const [accounts, setAccounts] = useState<AccountRailItem[]>([]);
   const [supportedCurrencies, setSupportedCurrencies] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,23 +72,27 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
     ? accounts.find((account) => account.accountId === manageAccountId) ?? null
     : null;
 
-  async function loadAccounts(preferredAccountId?: string) {
+  useEffect(() => {
+    eventsRef.current = provided?.events;
+  }, [provided?.events]);
+
+  const loadAccounts = useCallback(async (preferredAccountId?: string) => {
     const [balances, currencies] = await Promise.all([
       core.accountsListBalances(),
       core.ledgerListSupportedCurrencies(),
     ]);
     setAccounts(balances.items);
     setSupportedCurrencies(currencies.items);
-    if (currencies.items.length > 0 && !currencies.items.includes(createCurrency)) {
-      setCreateCurrency(currencies.items[0]);
-    }
+    setCreateCurrency((current) => (
+      currencies.items.length > 0 && !currencies.items.includes(current) ? currencies.items[0] : current
+    ));
     const nextActive = balances.items.filter((account) => account.status === 'active');
-    provided?.events?.onAccountsCountChanged?.(nextActive.length);
+    eventsRef.current?.onAccountsCountChanged?.(nextActive.length);
     const nextSelected = preferredAccountId && nextActive.some((account) => account.accountId === preferredAccountId)
       ? preferredAccountId
       : nextActive[0]?.accountId ?? null;
-    provided?.events?.onSelectedAccountChanged?.(nextSelected);
-  }
+    eventsRef.current?.onSelectedAccountChanged?.(nextSelected);
+  }, [core]);
 
   useEffect(() => {
     if (!required.config.enabled) {
@@ -103,7 +108,7 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
         await loadAccounts();
       } catch (err) {
         if (!cancelled) {
-          provided?.events?.onError?.({ message: toErrorMessage(err) });
+          eventsRef.current?.onError?.({ message: toErrorMessage(err) });
         }
       } finally {
         if (!cancelled) {
@@ -117,13 +122,13 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
     return () => {
       cancelled = true;
     };
-  }, [required.config.enabled, required.config.refreshSignal, core]);
+  }, [required.config.enabled, required.config.refreshSignal, loadAccounts]);
 
   async function submitCreateAccount(event: { preventDefault: () => void }) {
     event.preventDefault();
     const name = createName.trim();
     if (!name) {
-      provided?.events?.onError?.({ message: 'Account name is required.' });
+      eventsRef.current?.onError?.({ message: 'Account name is required.' });
       return;
     }
     setSubmitting(true);
@@ -137,9 +142,9 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
       setCreateOpeningBalance('');
       setCreateOpen(false);
       await loadAccounts(created.id);
-      provided?.events?.onAccountMutated?.(created.id);
+      eventsRef.current?.onAccountMutated?.(created.id);
     } catch (err) {
-      provided?.events?.onError?.({ message: toErrorMessage(err) });
+      eventsRef.current?.onError?.({ message: toErrorMessage(err) });
     } finally {
       setSubmitting(false);
     }
@@ -152,7 +157,7 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
     }
     const name = manageName.trim();
     if (!name) {
-      provided?.events?.onError?.({ message: 'Account name is required.' });
+      eventsRef.current?.onError?.({ message: 'Account name is required.' });
       return;
     }
     setSubmitting(true);
@@ -160,9 +165,9 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
       await core.ledgerRenameAccount({ accountId: selectedManageAccount.accountId, name });
       setManageAccountId(null);
       await loadAccounts(selectedManageAccount.accountId);
-      provided?.events?.onAccountMutated?.(selectedManageAccount.accountId);
+      eventsRef.current?.onAccountMutated?.(selectedManageAccount.accountId);
     } catch (err) {
-      provided?.events?.onError?.({ message: toErrorMessage(err) });
+      eventsRef.current?.onError?.({ message: toErrorMessage(err) });
     } finally {
       setSubmitting(false);
     }
@@ -177,9 +182,9 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
       await core.ledgerArchiveAccount({ accountId: selectedManageAccount.accountId });
       setManageAccountId(null);
       await loadAccounts();
-      provided?.events?.onAccountMutated?.(selectedManageAccount.accountId);
+      eventsRef.current?.onAccountMutated?.(selectedManageAccount.accountId);
     } catch (err) {
-      provided?.events?.onError?.({ message: toErrorMessage(err) });
+      eventsRef.current?.onError?.({ message: toErrorMessage(err) });
     } finally {
       setSubmitting(false);
     }
@@ -197,9 +202,9 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
       await core.ledgerDeleteAccount({ accountId: selectedManageAccount.accountId });
       setManageAccountId(null);
       await loadAccounts();
-      provided?.events?.onAccountDeleted?.(selectedManageAccount.accountId);
+      eventsRef.current?.onAccountDeleted?.(selectedManageAccount.accountId);
     } catch (err) {
-      provided?.events?.onError?.({ message: toErrorMessage(err) });
+      eventsRef.current?.onError?.({ message: toErrorMessage(err) });
     } finally {
       setSubmitting(false);
     }
@@ -218,7 +223,7 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
           commands: {
             openAllAccounts: () => setAllAccountsOpen(true),
             closeAllAccounts: () => setAllAccountsOpen(false),
-            selectAccount: (accountId) => provided?.events?.onSelectedAccountChanged?.(accountId),
+            selectAccount: (accountId) => eventsRef.current?.onSelectedAccountChanged?.(accountId),
             manageAccount: (accountId) => {
               const account = accounts.find((item) => item.accountId === accountId);
               setManageName(account?.name ?? '');

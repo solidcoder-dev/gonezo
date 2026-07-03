@@ -39,6 +39,7 @@ function toErrorMessage(error: unknown): string {
 
 export function CashFlowChartCardComponent({ required, provided }: CashFlowChartCardComponentProps) {
   const { core } = required.context;
+  const onError = provided?.events?.onError;
   const [granularity, setGranularity] = useState<LedgerCashFlowGranularity>('monthly');
   const [result, setResult] = useState<LedgerGetCashFlowSeriesResult>({
     currencies: [],
@@ -85,7 +86,7 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
         }
       } catch (err) {
         if (!cancelled) {
-          provided?.events?.onError?.({ message: toErrorMessage(err) });
+          onError?.({ message: toErrorMessage(err) });
         }
       } finally {
         if (!cancelled) {
@@ -99,7 +100,7 @@ export function CashFlowChartCardComponent({ required, provided }: CashFlowChart
     return () => {
       cancelled = true;
     };
-  }, [core, granularity, periodOffset, required.config.currency, required.config.enabled, required.config.filters, required.config.refreshSignal]);
+  }, [core, granularity, onError, periodOffset, required.config.currency, required.config.enabled, required.config.filters, required.config.refreshSignal]);
 
   const chartPoints = useMemo(
     () => result.points.map((point) => ({

@@ -3,8 +3,12 @@ import type {
   TransactionsImportRequest,
   TransactionsImportResult,
 } from '../../../../imports/application/transactionsImport.types';
+import type { TransactionsImportFileReaderPort } from '../../../../imports/application/transactionsImportFileReader.port';
 
 export type TransactionsImportComponentRequired = {
+  context: {
+    fileReader: TransactionsImportFileReaderPort;
+  };
   state: {
     accountsCount: number;
     isOpen: boolean;

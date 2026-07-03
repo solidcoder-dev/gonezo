@@ -1,44 +1,38 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import type { TransactionsImportRequest, TransactionsImportResult } from '../../imports/application/transactionsImport.types';
+import type { TransactionsImportFileReaderPort } from '../../imports/application/transactionsImportFileReader.port';
 import { MovementDockNavigationComponent, TransactionEntryComponent } from '../../transactions/index';
-import type { TransactionEntryPrefillRequest } from '../../transactions/application/TransactionEntryComponent.contract';
-import type { TransactionType } from '../../transactions/application/transactions.types';
 import { MonthlyMovementsComponent } from '../../movements/index';
-import type { ExpectedMovementView, ScheduledMovementView } from '../../movements/application/movementsView.types';
 import { AccountPageView } from '../../account/ui/AccountPageView/AccountPageView';
 import { TransactionsImportComponent } from '../../account/ui/capabilities/TransactionsImport/TransactionsImportComponent';
 import type { AccountPageViewProvided, AccountPageViewRequired } from '../../account/ui/AccountPageView/accountPageView.contract';
-import type { LoadPhase, SubmitPhase } from '../../account/application/accountPage.types';
+import type { LoadPhase } from '../../account/application/accountPage.types';
 import type { AccountWorkspacePort } from '../../account/application/accounts.port';
 import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 import { AccountsRailComponent } from '../../account/application/AccountsRail/AccountsRailComponent';
-import {
-  expectedMovementToComposerPrefill,
-  postExpectedMovementToComposerPrefill,
-  scheduledMovementToComposerPrefill,
-} from '../../account/application/movementComposerPrefill';
 import { ProfilePage } from './ProfilePage';
 import { NetWorthSummaryComponent } from './NetWorthSummaryComponent';
 import { ExpectedMovementsCardComponent } from '../../movements/application/ExpectedMovementsCardComponent';
 import { AnalyticsPageComponent } from '../../analytics/application/AnalyticsPageComponent';
 import { HomeRecentMovementsComponent, type HomeRecentMovementsPort } from './HomeRecentMovementsComponent';
 import { HomeHeaderView } from '../ui/HomeHeader/HomeHeaderView';
+import { useWorkspaceRefreshSignals } from './useWorkspaceRefreshSignals';
+import { useWorkspaceImportCoordinator } from './useWorkspaceImportCoordinator';
+import { useWorkspaceToast } from './useWorkspaceToast';
+import { useMovementComposerCoordinator } from './useMovementComposerCoordinator';
+import { resolveWorkspaceRoutePage } from './workspaceNavigation';
+import { useWorkspaceAccountEvents } from './useWorkspaceAccountEvents';
 
 export type WorkspacePageRequired = {
-  core: AccountWorkspacePort & AnalyticsPort & HomeRecentMovementsPort;
+  core: WorkspacePagePort;
+  importFileReader: TransactionsImportFileReaderPort;
 };
+
+export type WorkspacePagePort = AccountWorkspacePort & AnalyticsPort & HomeRecentMovementsPort;
 
 type WorkspacePageProps = {
   required: WorkspacePageRequired;
 };
-
-function toErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return 'Unknown error';
-}
 
 export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const location = useLocation();
@@ -47,122 +41,64 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [accountsCount, setAccountsCount] = useState(0);
 
-  const [importSheetOpen, setImportSheetOpen] = useState(false);
-  const [importSubmitPhase, setImportSubmitPhase] = useState<SubmitPhase>('idle');
-
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastActionLabel, setToastActionLabel] = useState('');
-  const [toastAction, setToastAction] = useState<(() => void) | null>(null);
-
-  const [accountHubRefreshSignal, setAccountHubRefreshSignal] = useState(false);
-  const [accountSummaryRefreshSignal, setAccountSummaryRefreshSignal] = useState(false);
-  const [netWorthRefreshSignal, setNetWorthRefreshSignal] = useState(false);
-  const [expectedMovementsRefreshSignal, setExpectedMovementsRefreshSignal] = useState(false);
-  const [recentTransactionsRefreshSignal, setRecentTransactionsRefreshSignal] = useState(false);
-  const [analyticsRefreshSignal, setAnalyticsRefreshSignal] = useState(false);
-  const [movementQuickActionRefreshSignal, setMovementQuickActionRefreshSignal] = useState(false);
-  const [transactionEntryPrefill, setTransactionEntryPrefill] = useState<TransactionEntryPrefillRequest | undefined>();
-  const [movementEntryAccountId, setMovementEntryAccountId] = useState<string | null>(null);
-  const [movementEntryAccountName, setMovementEntryAccountName] = useState<string | null>(null);
-  const [movementEntryType, setMovementEntryType] = useState<TransactionType | undefined>();
-  const [movementEntryOpenSignal, setMovementEntryOpenSignal] = useState(0);
-
-  const transactionEntryAccountId = movementEntryAccountId ?? selectedAccountId;
-  const currentPage = location.pathname.startsWith('/analytics')
-    ? 'analytics'
-    : location.pathname.startsWith('/movements') && !location.pathname.startsWith('/movements/search')
-      ? 'movements'
-      : location.pathname.startsWith('/profile')
-        ? 'profile'
-        : 'home';
-
-  function handleSelectedAccountChanged(accountId: string | null) {
-    setSelectedAccountId((previousAccountId) => {
-      if (previousAccountId === accountId) {
-        return previousAccountId;
-      }
-      setAccountSummaryRefreshSignal((previous) => !previous);
-      setNetWorthRefreshSignal((previous) => !previous);
-      setRecentTransactionsRefreshSignal((previous) => !previous);
-      setMovementQuickActionRefreshSignal((previous) => !previous);
-      return accountId;
-    });
-  }
-
-  function refreshAnalytics() {
-    setAnalyticsRefreshSignal((previous) => !previous);
-  }
-
-  async function submitTransactionsImport(input: TransactionsImportRequest): Promise<TransactionsImportResult> {
-    setImportSubmitPhase('submitting');
-    try {
-      const result = input.source === 'mobills'
-        ? await pageRequired.core.mobillsImport({ fileBase64: input.fileBase64, policy: input.policy })
-        : await pageRequired.core.movementsImportBackup({ fileBase64: input.fileBase64 });
-      setImportSubmitPhase('succeeded');
-      setToastMessage(`Import finished: ${result.importedCount} imported, ${result.failedCount} failed.`);
-      setToastActionLabel('');
-      setToastAction(null);
-      setAccountHubRefreshSignal((previous) => !previous);
-      setMovementQuickActionRefreshSignal((previous) => !previous);
-      setAccountSummaryRefreshSignal((previous) => !previous);
-      setNetWorthRefreshSignal((previous) => !previous);
-      setRecentTransactionsRefreshSignal((previous) => !previous);
-      refreshAnalytics();
-      setExpectedMovementsRefreshSignal((previous) => !previous);
-      return result;
-    } catch (err) {
-      setImportSubmitPhase('failed');
-      throw err instanceof Error ? err : new Error(toErrorMessage(err));
-    }
-  }
-
-  async function requestMovementsBackup(): Promise<void> {
-    const result = await pageRequired.core.movementsExportBackup();
-    setToastMessage(`Backup saved: ${result.fileName} (${result.postedMovementCount} posted movements).`);
-    setToastActionLabel('');
-    setToastAction(null);
-  }
-
-  function editExpectedMovement(movement: ExpectedMovementView, categoryName?: string) {
-    setMovementEntryAccountId(movement.accountId);
-    setMovementEntryAccountName(null);
-    setTransactionEntryPrefill(expectedMovementToComposerPrefill(movement, categoryName));
-  }
-
-  function editScheduledMovement(movement: ScheduledMovementView, categoryName?: string) {
-    setMovementEntryAccountId(movement.sourceAccountId);
-    setMovementEntryAccountName(null);
-    setTransactionEntryPrefill(scheduledMovementToComposerPrefill(movement, categoryName));
-  }
-
-  function postExpectedMovement(movement: ExpectedMovementView, categoryName?: string) {
-    setMovementEntryAccountId(movement.accountId);
-    setMovementEntryAccountName(null);
-    setTransactionEntryPrefill(postExpectedMovementToComposerPrefill(movement, categoryName));
-  }
-
-  function clearMovementEntryAccount() {
-    setMovementEntryAccountId(null);
-    setMovementEntryAccountName(null);
-    setMovementEntryType(undefined);
-  }
-
-  function createMovementForAccount(movement: { account: { id: string; name: string }; type: TransactionType }) {
-    setMovementEntryAccountId(movement.account.id);
-    setMovementEntryAccountName(movement.account.name);
-    setMovementEntryType(movement.type);
-    setTransactionEntryPrefill(undefined);
-    setMovementEntryOpenSignal((previous) => previous + 1);
-  }
+  const workspaceToast = useWorkspaceToast();
+  const workspaceRefresh = useWorkspaceRefreshSignals();
+  const { refresh } = workspaceRefresh;
+  const {
+    accountHubRefreshSignal,
+    accountSummaryRefreshSignal,
+    analyticsRefreshSignal,
+    expectedMovementsRefreshSignal,
+    movementQuickActionRefreshSignal,
+    netWorthRefreshSignal,
+    recentTransactionsRefreshSignal,
+  } = workspaceRefresh.signals;
+  const { clearToast, runToastAction, showError, showToast } = workspaceToast.actions;
+  const importCoordinator = useWorkspaceImportCoordinator({
+    core: pageRequired.core,
+    refresh,
+    showToast,
+  });
+  const { importSheetOpen, importSubmitPhase } = importCoordinator.state;
+  const {
+    closeImportSheet,
+    openImportSheet,
+    requestMovementsBackup,
+    submitTransactionsImport,
+  } = importCoordinator.actions;
+  const movementComposer = useMovementComposerCoordinator({ selectedAccountId });
+  const {
+    movementAccountContext,
+    movementEntryOpenSignal,
+    movementEntryType,
+    transactionEntryAccountId,
+    transactionEntryPrefill,
+  } = movementComposer.state;
+  const {
+    changeMovementComposerAccount,
+    clearMovementEntryAccount,
+    createMovementForAccount,
+    editExpectedMovement,
+    editScheduledMovement,
+    postExpectedMovement,
+    resetTransactionEntryPrefill,
+  } = movementComposer.actions;
+  const currentPage = resolveWorkspaceRoutePage(location.pathname);
+  const {
+    handleAccountDeleted,
+    handleAccountMutated,
+    handleAccountsCountChanged,
+    handleProfileAccountMutated,
+    handleSelectedAccountChanged,
+  } = useWorkspaceAccountEvents({
+    selectedAccountId,
+    setAccountsCount,
+    setSelectedAccountId,
+    refresh,
+  });
 
   function collapseMovementComposerToDraft() {
     clearMovementEntryAccount();
-  }
-
-  function changeMovementComposerAccount(account: { id: string; name: string }) {
-    setMovementEntryAccountId(account.id);
-    setMovementEntryAccountName(account.name);
   }
 
   const transactionEntry = transactionEntryAccountId
@@ -178,18 +114,14 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
               prefillRequest: transactionEntryPrefill,
               openSignal: movementEntryOpenSignal,
               initialMode: movementEntryType,
-              movementAccountContext: movementEntryAccountName ? { name: movementEntryAccountName, type: movementEntryType } : undefined,
+              movementAccountContext,
             },
           }}
           provided={{
             events: {
               onRecorded: () => {
-                setRecentTransactionsRefreshSignal((previous) => !previous);
-                setAccountSummaryRefreshSignal((previous) => !previous);
-                setNetWorthRefreshSignal((previous) => !previous);
-                setExpectedMovementsRefreshSignal((previous) => !previous);
-                refreshAnalytics();
-                setTransactionEntryPrefill(undefined);
+                refresh('recentTransactions', 'accountSummary', 'netWorth', 'expectedMovements', 'analytics');
+                resetTransactionEntryPrefill();
                 clearMovementEntryAccount();
               },
               onClosed: clearMovementEntryAccount,
@@ -232,41 +164,12 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         },
       }}
       provided={{
-        events: {
-          onSelectedAccountChanged: handleSelectedAccountChanged,
-          onAccountsCountChanged: (count) => {
-            setAccountsCount((previousCount) => {
-              if (previousCount > 0 && previousCount !== count) {
-                setMovementQuickActionRefreshSignal((previous) => !previous);
-                setNetWorthRefreshSignal((previous) => !previous);
-                refreshAnalytics();
-              }
-              return count;
-            });
-          },
-          onAccountMutated: () => {
-            setAccountSummaryRefreshSignal((previous) => !previous);
-            setNetWorthRefreshSignal((previous) => !previous);
-            setMovementQuickActionRefreshSignal((previous) => !previous);
-            setExpectedMovementsRefreshSignal((previous) => !previous);
-            refreshAnalytics();
-          },
-          onAccountDeleted: (accountId) => {
-            if (selectedAccountId === accountId) {
-              setSelectedAccountId(null);
-            }
-            setAccountSummaryRefreshSignal((previous) => !previous);
-            setNetWorthRefreshSignal((previous) => !previous);
-            setRecentTransactionsRefreshSignal((previous) => !previous);
-            setMovementQuickActionRefreshSignal((previous) => !previous);
-            setExpectedMovementsRefreshSignal((previous) => !previous);
-            refreshAnalytics();
-          },
-          onError: (error) => {
-            setToastMessage(error.message);
-            setToastActionLabel('');
-            setToastAction(null);
-          },
+          events: {
+            onSelectedAccountChanged: handleSelectedAccountChanged,
+          onAccountsCountChanged: handleAccountsCountChanged,
+          onAccountMutated: handleAccountMutated,
+          onAccountDeleted: handleAccountDeleted,
+          onError: showError,
         },
       }}
     />
@@ -288,21 +191,13 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       provided={{
         events: {
           onVoided: () => {
-            setAccountSummaryRefreshSignal((previous) => !previous);
-            setNetWorthRefreshSignal((previous) => !previous);
-            setRecentTransactionsRefreshSignal((previous) => !previous);
-            refreshAnalytics();
+            refresh('accountSummary', 'netWorth', 'recentTransactions', 'analytics');
           },
           onExpectedPosted: () => {
-            setAccountSummaryRefreshSignal((previous) => !previous);
-            setNetWorthRefreshSignal((previous) => !previous);
-            setExpectedMovementsRefreshSignal((previous) => !previous);
-            setRecentTransactionsRefreshSignal((previous) => !previous);
-            refreshAnalytics();
+            refresh('accountSummary', 'netWorth', 'expectedMovements', 'recentTransactions', 'analytics');
           },
           onExpectedDismissed: () => {
-            setAccountSummaryRefreshSignal((previous) => !previous);
-            setExpectedMovementsRefreshSignal((previous) => !previous);
+            refresh('accountSummary', 'expectedMovements');
           },
           onPostExpectedMovement: postExpectedMovement,
           onEditExpectedMovement: editExpectedMovement,
@@ -327,27 +222,14 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           onLoadPhaseChanged: setScreenLoadPhase,
           onSelectedAccountChanged: handleSelectedAccountChanged,
           onAccountsCountChanged: setAccountsCount,
-          onImportRequested: () => setImportSheetOpen(true),
+          onImportRequested: openImportSheet,
           onBackupRequested: () => {
             void requestMovementsBackup().catch((err) => {
-              setToastMessage(toErrorMessage(err));
-              setToastActionLabel('');
-              setToastAction(null);
+              showError(err instanceof Error ? err : { message: 'Unknown error' });
             });
           },
-          onAccountMutated: () => {
-            setAccountHubRefreshSignal((previous) => !previous);
-            setMovementQuickActionRefreshSignal((previous) => !previous);
-            setAccountSummaryRefreshSignal((previous) => !previous);
-            setNetWorthRefreshSignal((previous) => !previous);
-            setExpectedMovementsRefreshSignal((previous) => !previous);
-            refreshAnalytics();
-          },
-          onError: (error) => {
-            setToastMessage(error.message);
-            setToastActionLabel('');
-            setToastAction(null);
-          },
+          onAccountMutated: handleProfileAccountMutated,
+          onError: showError,
         },
       }}
     />
@@ -366,11 +248,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       }}
       provided={{
         events: {
-          onError: (error) => {
-            setToastMessage(error.message);
-            setToastActionLabel('');
-            setToastAction(null);
-          },
+          onError: showError,
         },
       }}
     />
@@ -391,11 +269,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         }}
         provided={{
           events: {
-            onError: (error) => {
-              setToastMessage(error.message);
-              setToastActionLabel('');
-              setToastAction(null);
-            },
+            onError: showError,
           },
         }}
       />
@@ -416,16 +290,11 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       provided={{
         events: {
           onExpectedDismissed: () => {
-            setAccountSummaryRefreshSignal((previous) => !previous);
-            setExpectedMovementsRefreshSignal((previous) => !previous);
+            refresh('accountSummary', 'expectedMovements');
           },
           onPostExpectedMovement: postExpectedMovement,
           onEditExpectedMovement: editExpectedMovement,
-          onError: (error) => {
-            setToastMessage(error.message);
-            setToastActionLabel('');
-            setToastAction(null);
-          },
+          onError: showError,
         },
       }}
     />
@@ -447,11 +316,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           onSeeAll: () => {
             void navigate('/movements');
           },
-          onError: (error) => {
-            setToastMessage(error.message);
-            setToastActionLabel('');
-            setToastAction(null);
-          },
+          onError: showError,
         },
       }}
     />
@@ -463,8 +328,8 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       error: '',
     },
     toast: {
-      message: toastMessage,
-      actionLabel: toastActionLabel,
+      message: workspaceToast.toast.message,
+      actionLabel: workspaceToast.toast.actionLabel,
     },
     sections: {
       netWorthSummary,
@@ -492,6 +357,9 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       transactionsImport: (
         <TransactionsImportComponent
           required={{
+            context: {
+              fileReader: pageRequired.importFileReader,
+            },
             state: {
               accountsCount,
               isOpen: importSheetOpen,
@@ -503,8 +371,8 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           }}
           provided={{
             commands: {
-              open: () => setImportSheetOpen(true),
-              close: () => setImportSheetOpen(false),
+              open: openImportSheet,
+              close: closeImportSheet,
               submit: submitTransactionsImport,
             },
           }}
@@ -516,12 +384,8 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const provided: AccountPageViewProvided = {
     toast: {
       commands: {
-        dismiss: () => {
-          setToastMessage('');
-          setToastActionLabel('');
-          setToastAction(null);
-        },
-        runAction: () => toastAction?.(),
+        dismiss: clearToast,
+        runAction: runToastAction,
       },
     },
   };

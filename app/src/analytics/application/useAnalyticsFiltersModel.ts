@@ -44,6 +44,7 @@ function selectedTags(filters: AnalyticsFilters, tags: AnalyticsFilterFacetTag[]
 }
 
 export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput) {
+  const { core, enabled, onError, refreshSignal } = input;
   const [viewMode, setViewMode] = useState<AnalyticsViewMode>('overview');
   const [filters, setFilters] = useState<AnalyticsFilters>(DEFAULT_ANALYTICS_FILTERS);
   const [currencies, setCurrencies] = useState<string[]>([]);
@@ -61,7 +62,7 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput) {
   const [draftFilters, setDraftFilters] = useState<AnalyticsFilters>(DEFAULT_ANALYTICS_FILTERS);
 
   useEffect(() => {
-    if (!input.enabled) {
+    if (!enabled) {
       setLoading(false);
       return;
     }
@@ -70,7 +71,7 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput) {
     async function loadCurrencies() {
       setLoading(true);
       try {
-        const result = await input.core.analyticsListCurrencies();
+        const result = await core.analyticsListCurrencies();
         if (cancelled) {
           return;
         }
@@ -80,7 +81,7 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput) {
         }));
       } catch (error) {
         if (!cancelled) {
-          input.onError?.({ message: toErrorMessage(error) });
+          onError?.({ message: toErrorMessage(error) });
         }
       } finally {
         if (!cancelled) {
@@ -94,23 +95,23 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput) {
     return () => {
       cancelled = true;
     };
-  }, [input.core, input.enabled, input.refreshSignal]);
+  }, [core, enabled, onError, refreshSignal]);
 
   useEffect(() => {
-    if (!input.enabled) {
+    if (!enabled) {
       return;
     }
 
     let cancelled = false;
     async function loadFacets() {
       try {
-        const result = await input.core.analyticsGetFilterFacets({ filters });
+        const result = await core.analyticsGetFilterFacets({ filters });
         if (!cancelled) {
           setFacets(result);
         }
       } catch (error) {
         if (!cancelled) {
-          input.onError?.({ message: toErrorMessage(error) });
+          onError?.({ message: toErrorMessage(error) });
         }
       }
     }
@@ -120,7 +121,7 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput) {
     return () => {
       cancelled = true;
     };
-  }, [filters, input.core, input.enabled, input.refreshSignal]);
+  }, [core, enabled, filters, onError, refreshSignal]);
 
   const selectedTagItems = useMemo(() => selectedTags(filters, facets.tags), [facets.tags, filters]);
   const filteredTagOptions = useMemo(() => {
@@ -181,7 +182,7 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput) {
       },
       status: {
         loading,
-        disabled: !input.enabled,
+        disabled: !enabled,
       },
     },
     provided: {

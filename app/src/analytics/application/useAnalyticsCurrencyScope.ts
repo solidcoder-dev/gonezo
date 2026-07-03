@@ -16,12 +16,13 @@ function toErrorMessage(error: unknown): string {
 }
 
 export function useAnalyticsCurrencyScope(input: UseAnalyticsCurrencyScopeInput) {
+  const { core, enabled, onError, refreshSignal } = input;
   const [currencies, setCurrencies] = useState<string[]>([]);
   const [selectedCurrency, setSelectedCurrency] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!input.enabled) {
+    if (!enabled) {
       setCurrencies([]);
       setSelectedCurrency('');
       setLoading(false);
@@ -33,7 +34,7 @@ export function useAnalyticsCurrencyScope(input: UseAnalyticsCurrencyScopeInput)
     async function loadCurrencies() {
       setLoading(true);
       try {
-        const result = await input.core.analyticsListCurrencies();
+        const result = await core.analyticsListCurrencies();
         if (cancelled) {
           return;
         }
@@ -43,7 +44,7 @@ export function useAnalyticsCurrencyScope(input: UseAnalyticsCurrencyScopeInput)
         ));
       } catch (err) {
         if (!cancelled) {
-          input.onError?.({ message: toErrorMessage(err) });
+          onError?.({ message: toErrorMessage(err) });
         }
       } finally {
         if (!cancelled) {
@@ -57,7 +58,7 @@ export function useAnalyticsCurrencyScope(input: UseAnalyticsCurrencyScopeInput)
     return () => {
       cancelled = true;
     };
-  }, [input.core, input.enabled, input.refreshSignal]);
+  }, [core, enabled, onError, refreshSignal]);
 
   return {
     required: {

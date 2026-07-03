@@ -202,19 +202,14 @@ class RecordLedgerTransferService(
 ) : RecordLedgerTransferUC {
   override fun execute(command: RecordLedgerTransferCommand): RecordLedgerTransferResult =
     consistencyBoundary.withinConsistencyBoundary {
-      require(command.fromAccountId != command.toAccountId) { "source and destination accounts must be different" }
-
-      val fromAccount = requireAccount(accountRepository, command.fromAccountId)
-      val toAccount = requireAccount(accountRepository, command.toAccountId)
-      fromAccount.ensureCanRecordTransactions()
-      toAccount.ensureCanRecordTransactions()
+      val transferAccounts = requireTransferAccounts(accountRepository, command.fromAccountId, command.toAccountId)
 
       val normalizedCurrency = command.amount.currency.uppercase()
-      require(normalizedCurrency == fromAccount.currency.value) {
-        "Transfer currency must match source account currency (${fromAccount.currency.value})"
+      require(normalizedCurrency == transferAccounts.from.currency.value) {
+        "Transfer currency must match source account currency (${transferAccounts.from.currency.value})"
       }
-      require(normalizedCurrency == toAccount.currency.value) {
-        "Transfer currency must match destination account currency (${toAccount.currency.value})"
+      require(normalizedCurrency == transferAccounts.to.currency.value) {
+        "Transfer currency must match destination account currency (${transferAccounts.to.currency.value})"
       }
 
       val transferOutId = TransactionId.random()
@@ -223,7 +218,7 @@ class RecordLedgerTransferService(
 
       val transferOut = Transaction.recordTransferOut(
         id = transferOutId,
-        accountId = fromAccount.id,
+        accountId = transferAccounts.from.id,
         amount = normalizedAmount,
         occurredAt = command.occurredAt,
         description = command.description,
@@ -231,22 +226,14 @@ class RecordLedgerTransferService(
       )
       val transferIn = Transaction.recordTransferIn(
         id = transferInId,
-        accountId = toAccount.id,
+        accountId = transferAccounts.to.id,
         amount = normalizedAmount,
         occurredAt = command.occurredAt,
         description = command.description,
         linkedTransactionId = transferOutId,
       )
 
-      transactionRepository.save(transferOut)
-      transactionRepository.save(transferIn)
-      domainEventPublisher.publish(TransactionRecorded(transferOut.id, transferOut.accountId))
-      domainEventPublisher.publish(TransactionRecorded(transferIn.id, transferIn.accountId))
-
-      RecordLedgerTransferResult(
-        transferOutId = transferOutId,
-        transferInId = transferInId,
-      )
+      recordTransferPair(transactionRepository, domainEventPublisher, transferOut, transferIn)
     }
 }
 
@@ -258,15 +245,10 @@ class RecordLedgerTransferFxService(
 ) : RecordLedgerTransferFxUC {
   override fun execute(command: RecordLedgerTransferFxCommand): RecordLedgerTransferResult =
     consistencyBoundary.withinConsistencyBoundary {
-      require(command.fromAccountId != command.toAccountId) { "source and destination accounts must be different" }
+      val transferAccounts = requireTransferAccounts(accountRepository, command.fromAccountId, command.toAccountId)
 
-      val fromAccount = requireAccount(accountRepository, command.fromAccountId)
-      val toAccount = requireAccount(accountRepository, command.toAccountId)
-      fromAccount.ensureCanRecordTransactions()
-      toAccount.ensureCanRecordTransactions()
-
-      val sourceAmount = requireAmountInAccountCurrency(fromAccount, command.sourceAmount)
-      val destinationAmount = requireAmountInAccountCurrency(toAccount, command.destinationAmount)
+      val sourceAmount = requireAmountInAccountCurrency(transferAccounts.from, command.sourceAmount)
+      val destinationAmount = requireAmountInAccountCurrency(transferAccounts.to, command.destinationAmount)
 
       val providedExchangeRate = command.exchangeRate?.stripTrailingZeros()
       if (providedExchangeRate != null) {
@@ -303,7 +285,7 @@ class RecordLedgerTransferFxService(
 
       val transferOut = Transaction.recordTransferOut(
         id = transferOutId,
-        accountId = fromAccount.id,
+        accountId = transferAccounts.from.id,
         amount = Money(normalizedSourceAmount, sourceAmount.currency.uppercase()),
         occurredAt = command.occurredAt,
         description = command.description,
@@ -311,22 +293,14 @@ class RecordLedgerTransferFxService(
       )
       val transferIn = Transaction.recordTransferIn(
         id = transferInId,
-        accountId = toAccount.id,
+        accountId = transferAccounts.to.id,
         amount = Money(normalizedDestinationAmount, destinationAmount.currency.uppercase()),
         occurredAt = command.occurredAt,
         description = command.description,
         linkedTransactionId = transferOutId,
       )
 
-      transactionRepository.save(transferOut)
-      transactionRepository.save(transferIn)
-      domainEventPublisher.publish(TransactionRecorded(transferOut.id, transferOut.accountId))
-      domainEventPublisher.publish(TransactionRecorded(transferIn.id, transferIn.accountId))
-
-      RecordLedgerTransferResult(
-        transferOutId = transferOutId,
-        transferInId = transferInId,
-      )
+      recordTransferPair(transactionRepository, domainEventPublisher, transferOut, transferIn)
     }
 }
 
@@ -439,10 +413,45 @@ class GetLedgerAccountBalanceService(
 }
 
 private fun requireAccount(repository: LedgerAccountRepository, accountId: AccountId): Account =
-  repository.findById(accountId) ?: throw IllegalStateException("Account not found: $accountId")
+  repository.findById(accountId) ?: throw LedgerAccountNotFound(accountId)
 
 private fun requireTransaction(repository: LedgerTransactionRepository, transactionId: TransactionId): Transaction =
-  repository.findById(transactionId) ?: throw IllegalStateException("Transaction not found: $transactionId")
+  repository.findById(transactionId) ?: throw LedgerTransactionNotFound(transactionId)
+
+private data class TransferAccounts(
+  val from: Account,
+  val to: Account,
+)
+
+private fun requireTransferAccounts(
+  repository: LedgerAccountRepository,
+  fromAccountId: AccountId,
+  toAccountId: AccountId,
+): TransferAccounts {
+  require(fromAccountId != toAccountId) { "source and destination accounts must be different" }
+  val fromAccount = requireAccount(repository, fromAccountId)
+  val toAccount = requireAccount(repository, toAccountId)
+  fromAccount.ensureCanRecordTransactions()
+  toAccount.ensureCanRecordTransactions()
+  return TransferAccounts(from = fromAccount, to = toAccount)
+}
+
+private fun recordTransferPair(
+  repository: LedgerTransactionRepository,
+  domainEventPublisher: DomainEventPublisher,
+  transferOut: Transaction,
+  transferIn: Transaction,
+): RecordLedgerTransferResult {
+  repository.save(transferOut)
+  repository.save(transferIn)
+  domainEventPublisher.publish(TransactionRecorded(transferOut.id, transferOut.accountId))
+  domainEventPublisher.publish(TransactionRecorded(transferIn.id, transferIn.accountId))
+
+  return RecordLedgerTransferResult(
+    transferOutId = transferOut.id,
+    transferInId = transferIn.id,
+  )
+}
 
 private fun requireAmountInAccountCurrency(account: Account, amount: Money): Money {
   val normalizedCurrency = amount.currency.uppercase()

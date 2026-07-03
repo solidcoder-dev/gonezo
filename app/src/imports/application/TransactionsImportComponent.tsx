@@ -1,4 +1,5 @@
 import type { TransactionsImportRequest, TransactionsImportResult } from './transactionsImport.types';
+import type { TransactionsImportFileReaderPort } from './transactionsImportFileReader.port';
 import { useTransactionsImportController } from './useTransactionsImportController';
 import {
   TransactionsImportView,
@@ -7,7 +8,12 @@ import {
 } from '../ui/TransactionsImportView';
 
 export type TransactionsImportComponentRequired = {
-  accountsCount: number;
+  context: {
+    fileReader: TransactionsImportFileReaderPort;
+  };
+  state: {
+    accountsCount: number;
+  };
 };
 
 export type TransactionsImportComponentProvided = {
@@ -26,13 +32,14 @@ export function TransactionsImportComponent({ required, provided }: Transactions
     port: {
       submitImport: provided.submitImport,
     },
+    fileReader: required.context.fileReader,
     onCompleted: provided.onCompleted,
     onFailed: provided.onFailed,
   });
 
   const viewRequired: TransactionsImportViewRequired = {
     state: {
-      accountsCount: required.accountsCount,
+      accountsCount: required.state.accountsCount,
       fileName: workspace.state.fileName,
       result: workspace.state.result,
       importSource: workspace.state.importSource,

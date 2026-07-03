@@ -67,6 +67,7 @@ export function CashFlowSummaryCardsComponent({ required, provided }: CashFlowSu
   const [loading, setLoading] = useState(true);
   const { core } = required.context;
   const { currency, enabled, filters, refreshSignal } = required.config;
+  const onError = provided?.events?.onError;
 
   useEffect(() => {
     if (!enabled || !currency) {
@@ -86,7 +87,7 @@ export function CashFlowSummaryCardsComponent({ required, provided }: CashFlowSu
         }
       } catch (err) {
         if (!cancelled) {
-          provided?.events?.onError?.({ message: toErrorMessage(err) });
+          onError?.({ message: toErrorMessage(err) });
         }
       } finally {
         if (!cancelled) {
@@ -100,7 +101,7 @@ export function CashFlowSummaryCardsComponent({ required, provided }: CashFlowSu
     return () => {
       cancelled = true;
     };
-  }, [core, currency, enabled, filters, refreshSignal]);
+  }, [core, currency, enabled, filters, onError, refreshSignal]);
 
   const cards = useMemo(() => toCards(summary, currency || 'USD'), [currency, summary]);
 

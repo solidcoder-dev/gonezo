@@ -1,628 +1,97 @@
-import { Capacitor } from '@capacitor/core';
 import type { CorePort } from '../application/corePort';
-import type { AccountsListBalancesResult } from '../../account/application/accountBalances.port';
-import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult } from '../../analytics/application/analytics.port';
-import type {
-  UserPreferencesResult,
-  PreferencesSetDefaultAccountInput,
-} from '../../account/application/preferences.port';
-import type {
-  LedgerOpenAccountInput,
-  LedgerOpenAccountResult,
-  LedgerListSupportedCurrenciesResult,
-  LedgerRenameAccountInput,
-  LedgerArchiveAccountInput,
-  LedgerRestoreAccountInput,
-  LedgerDeleteAccountInput,
-  LedgerListAccountsResult,
-  LedgerGetAccountSummaryInput,
-  LedgerGetAccountSummaryResult,
-  LedgerGetCashFlowSeriesInput,
-  LedgerGetCashFlowSeriesResult,
-  LedgerGetNetWorthByCurrencyResult,
-  LedgerRecordExpenseInput,
-  LedgerRecordExpenseResult,
-  LedgerRecordIncomeInput,
-  LedgerRecordIncomeResult,
-  LedgerRecordTransferInput,
-  LedgerRecordTransferResult,
-  LedgerRecordTransferFxInput,
-  LedgerRecordTransferFxResult,
-  LedgerCreateExpenseDraftInput,
-  LedgerCreateExpenseDraftResult,
-  LedgerAddTransactionItemInput,
-  LedgerPostDraftTransactionInput,
-  LedgerVoidTransactionInput,
-  LedgerListTransactionsInput,
-  LedgerListTransactionsResult,
-} from '../../ledger/application/ledger.port';
-import type {
-  TaxonomyListCategoriesInput,
-  TaxonomyListCategoriesResult,
-  TaxonomyCreateCategoryInput,
-  TaxonomyCreateCategoryResult,
-  TaxonomyRenameCategoryInput,
-  TaxonomyListTagsInput,
-  TaxonomyListTagsResult,
-  TaxonomyRenameTagInput,
-  OrchestrationCategorizeTransactionInput,
-  OrchestrationCategorizeTransactionResult,
-  OrchestrationApplyTransactionTagsInput,
-  OrchestrationApplyTransactionTagsResult,
-  OrchestrationListTransactionTaxonomyInput,
-  OrchestrationListTransactionTaxonomyResult,
-} from '../../taxonomy/application/taxonomy.port';
-import type {
-  MobillsImportInput,
-  MobillsImportResult,
-  MovementsBackupExportResult,
-  MovementsBackupImportInput,
-  MovementsBackupImportResult,
-} from '../../imports/application/imports.port';
-import type {
-  RecurrenceCreateRecurringMovementInput,
-  RecurrenceCreateRecurringMovementResult,
-  RecurrenceDeactivateRecurringMovementInput,
-  RecurrenceListRecurringMovementsInput,
-  RecurrenceListRecurringMovementsResult,
-  SchedulingCreateMovementInput,
-  SchedulingCreateMovementResult,
-  SchedulingDeactivateMovementInput,
-  SchedulingListMovementsInput,
-  SchedulingListMovementsResult,
-  SchedulingProcessDueMovementsInput,
-  SchedulingProcessDueMovementsResult,
-  SchedulingUpdateMovementInput,
-  SchedulingUpdateMovementResult,
-} from '../../scheduling/application/scheduling.port';
-import type {
-  ExpectedCreateMovementInput,
-  ExpectedCreateMovementResult,
-  ExpectedUpdateMovementInput,
-  ExpectedUpdateMovementResult,
-  ExpectedDismissMovementInput,
-  ExpectedListMovementsInput,
-  ExpectedListMovementsResult,
-  ExpectedResolveMovementInput,
-} from '../../expected/application/expected.port';
-import type {
-  MovementsMonthOverviewInput,
-  MovementsMonthOverviewResult,
-  MovementsGetOverviewInput,
-  MovementsGetOverviewResult,
-  MovementsSearchFacetsInput,
-  MovementsSearchFacetsResult,
-  MovementsSearchInput,
-  MovementsSearchResult,
-  MovementsListScheduledInput,
-  MovementsListScheduledResult,
-} from '../../movements/application/movements.port';
-import type {
-  SharingApplyShareToPostedTransactionInput,
-  SharingApplyShareToPostedTransactionResult,
-  SharingGetMovementDetailsInput,
-  SharingListPeopleResult,
-  SharingMovementDetailsResult,
-} from '../../sharing/application/sharing.port';
-import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
-import { CoreAdapterWeb } from './coreAdapterWeb';
-import { CorePlugin } from './corePlugin';
 import {
-  getNativeMovementsMonthOverview,
-  listNativeScheduledMovements,
-  searchNativeMovements,
-} from '../../movements/infrastructure/nativeMovements';
-import { getNativeNetWorthByCurrency } from './nativeNetWorth';
-import { getNativeCashFlowSeries } from '../../ledger/infrastructure/nativeCashFlowSeries';
-import { getMovementsSearchFacets } from '../../movements/infrastructure/searchFacets';
-import { listMasterCategories } from '../../taxonomy/domain/masterCategories';
-import { listAccountBalances } from './accountBalancesQuery';
-import { analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetPeriodCashFlowSummary, analyticsGetSpendingOverview, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
-
-function normalizeMasterCategoryKey(name: string, appliesTo: string): string {
-  return `${appliesTo}:${name.trim().toLowerCase()}`;
-}
-
-async function listNativeMasterCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult> {
-  const nativeCategories = await CorePlugin.taxonomyListCategories({ includeArchived: true });
-  const nativeByNameAndType = new Map(
-    nativeCategories.items.map((category) => [
-      normalizeMasterCategoryKey(category.name, category.appliesTo),
-      category,
-    ]),
-  );
-
-  const items: TaxonomyListCategoriesResult['items'] = [];
-  for (const master of listMasterCategories(input?.appliesTo)) {
-    const key = normalizeMasterCategoryKey(master.name, master.appliesTo);
-    const existing = nativeByNameAndType.get(key);
-    if (existing) {
-      if (input?.includeArchived === true || existing.status !== 'archived') {
-        items.push(existing);
-      }
-      continue;
-    }
-
-    const created = await CorePlugin.taxonomyCreateCategory({
-      name: master.name,
-      appliesTo: master.appliesTo,
-    });
-    items.push({
-      id: created.id,
-      name: master.name,
-      appliesTo: master.appliesTo,
-      status: 'active',
-    });
-  }
-
-  return {
-    items: items.sort((left, right) => left.name.localeCompare(right.name)),
-  };
-}
+  AnalyticsRuntimeAdapter,
+  ExpectedRuntimeAdapter,
+  ImportsRuntimeAdapter,
+  LedgerRuntimeAdapter,
+  MovementsRuntimeAdapter,
+  PreferencesRuntimeAdapter,
+  SchedulingRuntimeAdapter,
+  SharingRuntimeAdapter,
+  TaxonomyRuntimeAdapter,
+} from './coreRuntimeAdapters';
+import { CoreAdapterWeb } from './coreAdapterWeb';
 
 export class CoreAdapter implements CorePort {
-  private readonly web = new CoreAdapterWeb();
+  private readonly web: CoreAdapterWeb = new CoreAdapterWeb();
+  private readonly preferences: PreferencesRuntimeAdapter = new PreferencesRuntimeAdapter(this.web);
+  private readonly ledger: LedgerRuntimeAdapter = new LedgerRuntimeAdapter(this.web);
+  private readonly analytics: AnalyticsRuntimeAdapter = new AnalyticsRuntimeAdapter(this.web, this);
+  private readonly sharing: SharingRuntimeAdapter = new SharingRuntimeAdapter(this.web);
+  private readonly taxonomy: TaxonomyRuntimeAdapter = new TaxonomyRuntimeAdapter(this.web);
+  private readonly imports: ImportsRuntimeAdapter = new ImportsRuntimeAdapter(this.web);
+  private readonly scheduling: SchedulingRuntimeAdapter = new SchedulingRuntimeAdapter(this.web);
+  private readonly expected: ExpectedRuntimeAdapter = new ExpectedRuntimeAdapter(this.web);
+  private readonly movements: MovementsRuntimeAdapter = new MovementsRuntimeAdapter(this.web, this);
 
-  async preferencesGet(): Promise<UserPreferencesResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.preferencesGet();
-    }
-    return this.web.preferencesGet();
-  }
+  preferencesGet = this.preferences.preferencesGet.bind(this.preferences);
+  preferencesSetDefaultAccount = this.preferences.preferencesSetDefaultAccount.bind(this.preferences);
+  preferencesClearDefaultAccount = this.preferences.preferencesClearDefaultAccount.bind(this.preferences);
 
-  async preferencesSetDefaultAccount(input: PreferencesSetDefaultAccountInput): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      await CorePlugin.preferencesSetDefaultAccount(input);
-      return;
-    }
-    await this.web.preferencesSetDefaultAccount(input);
-  }
+  accountsListBalances = this.ledger.accountsListBalances.bind(this.ledger);
+  ledgerOpenAccount = this.ledger.ledgerOpenAccount.bind(this.ledger);
+  ledgerListSupportedCurrencies = this.ledger.ledgerListSupportedCurrencies.bind(this.ledger);
+  ledgerRenameAccount = this.ledger.ledgerRenameAccount.bind(this.ledger);
+  ledgerArchiveAccount = this.ledger.ledgerArchiveAccount.bind(this.ledger);
+  ledgerRestoreAccount = this.ledger.ledgerRestoreAccount.bind(this.ledger);
+  ledgerDeleteAccount = this.ledger.ledgerDeleteAccount.bind(this.ledger);
+  ledgerListAccounts = this.ledger.ledgerListAccounts.bind(this.ledger);
+  ledgerGetAccountSummary = this.ledger.ledgerGetAccountSummary.bind(this.ledger);
+  ledgerGetNetWorthByCurrency = this.ledger.ledgerGetNetWorthByCurrency.bind(this.ledger);
+  ledgerGetCashFlowSeries = this.ledger.ledgerGetCashFlowSeries.bind(this.ledger);
+  ledgerRecordExpense = this.ledger.ledgerRecordExpense.bind(this.ledger);
+  ledgerRecordIncome = this.ledger.ledgerRecordIncome.bind(this.ledger);
+  ledgerRecordTransfer = this.ledger.ledgerRecordTransfer.bind(this.ledger);
+  ledgerRecordTransferFx = this.ledger.ledgerRecordTransferFx.bind(this.ledger);
+  ledgerCreateExpenseDraft = this.ledger.ledgerCreateExpenseDraft.bind(this.ledger);
+  ledgerAddTransactionItem = this.ledger.ledgerAddTransactionItem.bind(this.ledger);
+  ledgerPostDraftTransaction = this.ledger.ledgerPostDraftTransaction.bind(this.ledger);
+  ledgerVoidTransaction = this.ledger.ledgerVoidTransaction.bind(this.ledger);
+  ledgerListTransactions = this.ledger.ledgerListTransactions.bind(this.ledger);
 
-  async preferencesClearDefaultAccount(): Promise<void> {
-    return Capacitor.isNativePlatform() ? CorePlugin.preferencesClearDefaultAccount() : this.web.preferencesClearDefaultAccount();
-  }
+  analyticsListCurrencies = this.analytics.analyticsListCurrencies.bind(this.analytics);
+  analyticsGetFilterFacets = this.analytics.analyticsGetFilterFacets.bind(this.analytics);
+  analyticsGetCashFlowSeries = this.analytics.analyticsGetCashFlowSeries.bind(this.analytics);
+  analyticsGetPeriodCashFlowSummary = this.analytics.analyticsGetPeriodCashFlowSummary.bind(this.analytics);
+  analyticsGetSpendingOverview = this.analytics.analyticsGetSpendingOverview.bind(this.analytics);
+  analyticsSetMovementIgnored = this.analytics.analyticsSetMovementIgnored.bind(this.analytics);
+  analyticsListIgnoredMovements = this.analytics.analyticsListIgnoredMovements.bind(this.analytics);
 
-  async accountsListBalances(): Promise<AccountsListBalancesResult> {
-    return Capacitor.isNativePlatform() ? listAccountBalances(CorePlugin) : this.web.accountsListBalances();
-  }
+  sharingListPeople = this.sharing.sharingListPeople.bind(this.sharing);
+  sharingApplyShareToPostedTransaction = this.sharing.sharingApplyShareToPostedTransaction.bind(this.sharing);
+  sharingGetMovementDetails = this.sharing.sharingGetMovementDetails.bind(this.sharing);
 
-  async ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.ledgerOpenAccount(input);
-    }
-    return this.web.ledgerOpenAccount(input);
-  }
+  taxonomyListCategories = this.taxonomy.taxonomyListCategories.bind(this.taxonomy);
+  taxonomyCreateCategory = this.taxonomy.taxonomyCreateCategory.bind(this.taxonomy);
+  taxonomyRenameCategory = this.taxonomy.taxonomyRenameCategory.bind(this.taxonomy);
+  taxonomyListTags = this.taxonomy.taxonomyListTags.bind(this.taxonomy);
+  taxonomyRenameTag = this.taxonomy.taxonomyRenameTag.bind(this.taxonomy);
+  orchestrationCategorizeTransaction = this.taxonomy.orchestrationCategorizeTransaction.bind(this.taxonomy);
+  orchestrationApplyTransactionTags = this.taxonomy.orchestrationApplyTransactionTags.bind(this.taxonomy);
+  orchestrationListTransactionTaxonomy = this.taxonomy.orchestrationListTransactionTaxonomy.bind(this.taxonomy);
 
-  async ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.ledgerListSupportedCurrencies();
-    }
-    return this.web.ledgerListSupportedCurrencies();
-  }
+  mobillsImport = this.imports.mobillsImport.bind(this.imports);
+  movementsExportBackup = this.imports.movementsExportBackup.bind(this.imports);
+  movementsImportBackup = this.imports.movementsImportBackup.bind(this.imports);
 
-  async ledgerRenameAccount(input: LedgerRenameAccountInput): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      await CorePlugin.ledgerRenameAccount(input);
-      return;
-    }
-    await this.web.ledgerRenameAccount(input);
-  }
+  recurrenceCreateRecurringMovement = this.scheduling.recurrenceCreateRecurringMovement.bind(this.scheduling);
+  recurrenceDeactivateRecurringMovement = this.scheduling.recurrenceDeactivateRecurringMovement.bind(this.scheduling);
+  recurrenceListRecurringMovements = this.scheduling.recurrenceListRecurringMovements.bind(this.scheduling);
+  schedulingCreateMovement = this.scheduling.schedulingCreateMovement.bind(this.scheduling);
+  schedulingUpdateMovement = this.scheduling.schedulingUpdateMovement.bind(this.scheduling);
+  schedulingDeactivateMovement = this.scheduling.schedulingDeactivateMovement.bind(this.scheduling);
+  schedulingListMovements = this.scheduling.schedulingListMovements.bind(this.scheduling);
+  schedulingProcessDueMovements = this.scheduling.schedulingProcessDueMovements.bind(this.scheduling);
 
-  async ledgerArchiveAccount(input: LedgerArchiveAccountInput): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      await CorePlugin.ledgerArchiveAccount(input);
-      return;
-    }
-    await this.web.ledgerArchiveAccount(input);
-  }
+  expectedCreateMovement = this.expected.expectedCreateMovement.bind(this.expected);
+  expectedUpdateMovement = this.expected.expectedUpdateMovement.bind(this.expected);
+  expectedListMovements = this.expected.expectedListMovements.bind(this.expected);
+  expectedResolveMovement = this.expected.expectedResolveMovement.bind(this.expected);
+  expectedDismissMovement = this.expected.expectedDismissMovement.bind(this.expected);
 
-  async ledgerRestoreAccount(input: LedgerRestoreAccountInput): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      await CorePlugin.ledgerRestoreAccount(input);
-      return;
-    }
-    await this.web.ledgerRestoreAccount(input);
-  }
-
-  async ledgerDeleteAccount(input: LedgerDeleteAccountInput): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      await CorePlugin.ledgerDeleteAccount(input);
-      return;
-    }
-    await this.web.ledgerDeleteAccount(input);
-  }
-
-  async ledgerListAccounts(): Promise<LedgerListAccountsResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.ledgerListAccounts();
-    }
-    return this.web.ledgerListAccounts();
-  }
-
-  async ledgerGetAccountSummary(input: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.ledgerGetAccountSummary(input);
-    }
-    return this.web.ledgerGetAccountSummary(input);
-  }
-
-  async ledgerGetNetWorthByCurrency(): Promise<LedgerGetNetWorthByCurrencyResult> {
-    if (!Capacitor.isNativePlatform()) {
-      return this.web.ledgerGetNetWorthByCurrency();
-    }
-    const preferences = await CorePlugin.preferencesGet();
-    return getNativeNetWorthByCurrency(CorePlugin, preferences.defaultAccountId);
-  }
-
-  async ledgerGetCashFlowSeries(input: LedgerGetCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> {
-    if (!Capacitor.isNativePlatform()) {
-      return this.web.ledgerGetCashFlowSeries(input);
-    }
-    return getNativeCashFlowSeries(CorePlugin, input);
-  }
-
-  async analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult> {
-    if (!Capacitor.isNativePlatform()) {
-      return this.web.analyticsListCurrencies();
-    }
-    return analyticsListCurrencies(this);
-  }
-
-  async analyticsGetFilterFacets(input?: AnalyticsGetFilterFacetsInput): Promise<AnalyticsGetFilterFacetsResult> {
-    return Capacitor.isNativePlatform() ? analyticsGetFilterFacets(this, input) : this.web.analyticsGetFilterFacets(input);
-  }
-
-  async analyticsGetCashFlowSeries(input: AnalyticsCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> {
-    if (!Capacitor.isNativePlatform()) {
-      return this.web.analyticsGetCashFlowSeries(input);
-    }
-    return analyticsGetCashFlowSeries(this, input);
-  }
-
-  async analyticsGetPeriodCashFlowSummary(input: { currency: string }): Promise<AnalyticsCashFlowSummaryResult> {
-    if (!Capacitor.isNativePlatform()) {
-      return this.web.analyticsGetPeriodCashFlowSummary(input);
-    }
-    return analyticsGetPeriodCashFlowSummary(this, input);
-  }
-
-  async analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult> {
-    if (!Capacitor.isNativePlatform()) {
-      return this.web.analyticsGetSpendingOverview(input);
-    }
-    return analyticsGetSpendingOverview(this, input);
-  }
-
-  async analyticsSetMovementIgnored(input: AnalyticsSetMovementIgnoredInput): Promise<void> {
-    return Capacitor.isNativePlatform() ? CorePlugin.analyticsSetMovementIgnored(input) : this.web.analyticsSetMovementIgnored(input);
-  }
-  async analyticsListIgnoredMovements() {
-    return Capacitor.isNativePlatform() ? CorePlugin.analyticsListIgnoredMovements() : this.web.analyticsListIgnoredMovements();
-  }
-
-  async sharingListPeople(): Promise<SharingListPeopleResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.sharingListPeople();
-    }
-    return this.web.sharingListPeople();
-  }
-
-  async sharingApplyShareToPostedTransaction(
-    input: SharingApplyShareToPostedTransactionInput,
-  ): Promise<SharingApplyShareToPostedTransactionResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.sharingApplyShareToPostedTransaction(input);
-    }
-    return this.web.sharingApplyShareToPostedTransaction(input);
-  }
-
-  async sharingGetMovementDetails(input: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.sharingGetMovementDetails(input);
-    }
-    return this.web.sharingGetMovementDetails(input);
-  }
-
-  async ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.ledgerRecordExpense(input);
-    }
-    return this.web.ledgerRecordExpense(input);
-  }
-
-  async ledgerRecordIncome(input: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.ledgerRecordIncome(input);
-    }
-    return this.web.ledgerRecordIncome(input);
-  }
-
-  async ledgerRecordTransfer(input: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.ledgerRecordTransfer(input);
-    }
-    return this.web.ledgerRecordTransfer(input);
-  }
-
-  async ledgerRecordTransferFx(input: LedgerRecordTransferFxInput): Promise<LedgerRecordTransferFxResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.ledgerRecordTransferFx(input);
-    }
-    return this.web.ledgerRecordTransferFx(input);
-  }
-
-  async ledgerCreateExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.ledgerCreateExpenseDraft(input);
-    }
-    return this.web.ledgerCreateExpenseDraft(input);
-  }
-
-  async ledgerAddTransactionItem(input: LedgerAddTransactionItemInput): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      await CorePlugin.ledgerAddTransactionItem(input);
-      return;
-    }
-    await this.web.ledgerAddTransactionItem(input);
-  }
-
-  async ledgerPostDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      await CorePlugin.ledgerPostDraftTransaction(input);
-      return;
-    }
-    await this.web.ledgerPostDraftTransaction(input);
-  }
-
-  async ledgerVoidTransaction(input: LedgerVoidTransactionInput): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      await CorePlugin.ledgerVoidTransaction(input);
-      return;
-    }
-    await this.web.ledgerVoidTransaction(input);
-  }
-
-  async ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.ledgerListTransactions(input);
-    }
-    return this.web.ledgerListTransactions(input);
-  }
-
-  async taxonomyListCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult> {
-    if (Capacitor.isNativePlatform()) {
-      return listNativeMasterCategories(input);
-    }
-    return this.web.taxonomyListCategories(input);
-  }
-
-  async taxonomyCreateCategory(input: TaxonomyCreateCategoryInput): Promise<TaxonomyCreateCategoryResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.taxonomyCreateCategory(input);
-    }
-    return this.web.taxonomyCreateCategory(input);
-  }
-
-  async taxonomyRenameCategory(input: TaxonomyRenameCategoryInput): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      await CorePlugin.taxonomyRenameCategory(input);
-      return;
-    }
-    await this.web.taxonomyRenameCategory(input);
-  }
-
-  async taxonomyListTags(input?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.taxonomyListTags(input ?? {});
-    }
-    return this.web.taxonomyListTags(input);
-  }
-
-  async taxonomyRenameTag(input: TaxonomyRenameTagInput): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      await CorePlugin.taxonomyRenameTag(input);
-      return;
-    }
-    await this.web.taxonomyRenameTag(input);
-  }
-
-  async mobillsImport(input: MobillsImportInput): Promise<MobillsImportResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.mobillsImport(input);
-    }
-    return this.web.mobillsImport(input);
-  }
-
-  async orchestrationCategorizeTransaction(
-    input: OrchestrationCategorizeTransactionInput,
-  ): Promise<OrchestrationCategorizeTransactionResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.orchestrationCategorizeTransaction(input);
-    }
-    return this.web.orchestrationCategorizeTransaction(input);
-  }
-
-  async orchestrationApplyTransactionTags(
-    input: OrchestrationApplyTransactionTagsInput,
-  ): Promise<OrchestrationApplyTransactionTagsResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.orchestrationApplyTransactionTags(input);
-    }
-    return this.web.orchestrationApplyTransactionTags(input);
-  }
-
-  async orchestrationListTransactionTaxonomy(
-    input: OrchestrationListTransactionTaxonomyInput,
-  ): Promise<OrchestrationListTransactionTaxonomyResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.orchestrationListTransactionTaxonomy(input);
-    }
-    return this.web.orchestrationListTransactionTaxonomy(input);
-  }
-
-  async movementsExportBackup(): Promise<MovementsBackupExportResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.movementsExportBackup();
-    }
-    return this.web.movementsExportBackup();
-  }
-
-  async movementsImportBackup(input: MovementsBackupImportInput): Promise<MovementsBackupImportResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.movementsImportBackup(input);
-    }
-    return this.web.movementsImportBackup(input);
-  }
-
-  async recurrenceCreateRecurringMovement(
-    input: RecurrenceCreateRecurringMovementInput,
-  ): Promise<RecurrenceCreateRecurringMovementResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.recurrenceCreateRecurringMovement(input);
-    }
-    return this.web.recurrenceCreateRecurringMovement(input);
-  }
-
-  async recurrenceDeactivateRecurringMovement(input: RecurrenceDeactivateRecurringMovementInput): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      await CorePlugin.recurrenceDeactivateRecurringMovement(input);
-      return;
-    }
-    await this.web.recurrenceDeactivateRecurringMovement(input);
-  }
-
-  async recurrenceListRecurringMovements(
-    input: RecurrenceListRecurringMovementsInput,
-  ): Promise<RecurrenceListRecurringMovementsResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.recurrenceListRecurringMovements(input);
-    }
-    return this.web.recurrenceListRecurringMovements(input);
-  }
-
-  async schedulingCreateMovement(
-    input: SchedulingCreateMovementInput,
-  ): Promise<SchedulingCreateMovementResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.recurrenceCreateRecurringMovement(input);
-    }
-    return this.web.schedulingCreateMovement(input);
-  }
-
-  async schedulingUpdateMovement(
-    input: SchedulingUpdateMovementInput,
-  ): Promise<SchedulingUpdateMovementResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.recurrenceUpdateRecurringMovement(input);
-    }
-    return this.web.schedulingUpdateMovement(input);
-  }
-
-  async schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      await CorePlugin.recurrenceDeactivateRecurringMovement(input);
-      return;
-    }
-    await this.web.schedulingDeactivateMovement(input);
-  }
-
-  async schedulingListMovements(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult> {
-    if (Capacitor.isNativePlatform()) {
-      const result = await CorePlugin.recurrenceListRecurringMovements(input);
-      return {
-        items: result.items.map((item) => {
-          const kind = resolveSchedulingKind(item);
-          return {
-            ...item,
-            scheduleKind: kind,
-            origin: kind,
-          };
-        }),
-      };
-    }
-    return this.web.schedulingListMovements(input);
-  }
-
-  async schedulingProcessDueMovements(
-    input: SchedulingProcessDueMovementsInput = {},
-  ): Promise<SchedulingProcessDueMovementsResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.schedulingProcessDueMovements(input);
-    }
-    return this.web.schedulingProcessDueMovements?.(input) ?? {
-      scanned: 0,
-      posted: 0,
-      expectedCreated: 0,
-      failed: 0,
-      advancedSchedules: 0,
-    };
-  }
-
-  async expectedCreateMovement(input: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.expectedCreateMovement(input);
-    }
-    return this.web.expectedCreateMovement(input);
-  }
-
-  async expectedUpdateMovement(input: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.expectedUpdateMovement(input);
-    }
-    return this.web.expectedUpdateMovement(input);
-  }
-
-  async expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult> {
-    if (Capacitor.isNativePlatform()) {
-      return CorePlugin.expectedListMovements(input);
-    }
-    return this.web.expectedListMovements(input);
-  }
-
-  async expectedResolveMovement(input: ExpectedResolveMovementInput): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      await CorePlugin.expectedResolveMovement(input);
-      return;
-    }
-    await this.web.expectedResolveMovement(input);
-  }
-
-  async expectedDismissMovement(input: ExpectedDismissMovementInput): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      await CorePlugin.expectedDismissMovement(input);
-      return;
-    }
-    await this.web.expectedDismissMovement(input);
-  }
-
-  async movementsGetMonthOverview(input: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> {
-    if (!Capacitor.isNativePlatform()) {
-      return this.web.movementsGetMonthOverview(input);
-    }
-
-    return getNativeMovementsMonthOverview(this, input);
-  }
-
-  async movementsSearch(input: MovementsSearchInput): Promise<MovementsSearchResult> {
-    if (!Capacitor.isNativePlatform()) {
-      return this.web.movementsSearch(input);
-    }
-
-    return searchNativeMovements(this, input);
-  }
-
-  async movementsGetSearchFacets(input: MovementsSearchFacetsInput): Promise<MovementsSearchFacetsResult> {
-    return getMovementsSearchFacets(this, input);
-  }
-
-  async movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult> {
-    return this.movementsGetMonthOverview(input);
-  }
-
-  async movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult> {
-    if (!Capacitor.isNativePlatform()) {
-      return this.web.movementsListScheduled(input);
-    }
-    return listNativeScheduledMovements(this, input);
-  }
+  movementsGetMonthOverview = this.movements.movementsGetMonthOverview.bind(this.movements);
+  movementsSearch = this.movements.movementsSearch.bind(this.movements);
+  movementsGetSearchFacets = this.movements.movementsGetSearchFacets.bind(this.movements);
+  movementsGetOverview = this.movements.movementsGetOverview.bind(this.movements);
+  movementsListScheduled = this.movements.movementsListScheduled.bind(this.movements);
 }

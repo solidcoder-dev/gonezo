@@ -84,7 +84,7 @@ class JdbcLedgerTransactionRepository(
       where id = :id
     """.trimIndent()
     val params = MapSqlParameterSource("id", id.toString())
-    return jdbcTemplate.query(sql, params, transactionRowMapper()).firstOrNull()?.let { hydrateItems(it) }
+    return hydrateItems(jdbcTemplate.query(sql, params, transactionRowMapper())).firstOrNull()
   }
 
   override fun findByAccount(accountId: AccountId, limit: Int?): List<Transaction> {
@@ -103,7 +103,7 @@ class JdbcLedgerTransactionRepository(
     }
     val params = MapSqlParameterSource("account_id", accountId.toString())
       .addValue("limit", limit)
-    return jdbcTemplate.query(sql, params, transactionRowMapper()).map(::hydrateItems)
+    return hydrateItems(jdbcTemplate.query(sql, params, transactionRowMapper()))
   }
 
   override fun findByAccountAndPeriod(accountId: AccountId, range: DateRange): List<Transaction> {
@@ -119,7 +119,7 @@ class JdbcLedgerTransactionRepository(
       .addValue("account_id", accountId.toString())
       .addValue("from_date", range.from.toString())
       .addValue("to_date", range.to.toString())
-    return jdbcTemplate.query(sql, params, transactionRowMapper()).map(::hydrateItems)
+    return hydrateItems(jdbcTemplate.query(sql, params, transactionRowMapper()))
   }
 
   override fun findByAccountAndMerchant(accountId: AccountId, merchant: String): List<Transaction> {
@@ -133,19 +133,28 @@ class JdbcLedgerTransactionRepository(
     val params = MapSqlParameterSource()
       .addValue("account_id", accountId.toString())
       .addValue("merchant", merchant.trim())
-    return jdbcTemplate.query(sql, params, transactionRowMapper()).map(::hydrateItems)
+    return hydrateItems(jdbcTemplate.query(sql, params, transactionRowMapper()))
   }
 
-  private fun hydrateItems(transaction: Transaction): Transaction {
+  private fun hydrateItems(transactions: List<Transaction>): List<Transaction> {
+    if (transactions.isEmpty()) {
+      return emptyList()
+    }
+
     val sql = """
       select id, transaction_id, name, amount, currency, note
       from ledger_transaction_items
-      where transaction_id = :transaction_id
-      order by id asc
+      where transaction_id in (:transaction_ids)
+      order by transaction_id asc, id asc
     """.trimIndent()
-    val params = MapSqlParameterSource("transaction_id", transaction.id.toString())
-    val items = jdbcTemplate.query(sql, params, itemRowMapper())
-    return transaction.copy(items = items)
+    val params = MapSqlParameterSource("transaction_ids", transactions.map { it.id.toString() })
+    val itemsByTransactionId = jdbcTemplate.query(sql, params, transactionItemRowMapper())
+      .groupBy { it.transactionId }
+      .mapValues { (_, rows) -> rows.map(TransactionItemRow::item) }
+
+    return transactions.map { transaction ->
+      transaction.copy(items = itemsByTransactionId[transaction.id] ?: emptyList())
+    }
   }
 
   private fun transactionRowMapper(): RowMapper<Transaction> = RowMapper { rs: ResultSet, _ ->
@@ -166,15 +175,23 @@ class JdbcLedgerTransactionRepository(
     )
   }
 
-  private fun itemRowMapper(): RowMapper<TransactionItem> = RowMapper { rs: ResultSet, _ ->
-    TransactionItem(
-      id = TransactionItemId.from(rs.getString("id")),
-      name = rs.getString("name"),
-      amount = Money(
-        amount = rs.getObject("amount", BigDecimal::class.java),
-        currency = rs.getString("currency"),
+  private fun transactionItemRowMapper(): RowMapper<TransactionItemRow> = RowMapper { rs: ResultSet, _ ->
+    TransactionItemRow(
+      transactionId = TransactionId.from(rs.getString("transaction_id")),
+      item = TransactionItem(
+        id = TransactionItemId.from(rs.getString("id")),
+        name = rs.getString("name"),
+        amount = Money(
+          amount = rs.getObject("amount", BigDecimal::class.java),
+          currency = rs.getString("currency"),
+        ),
+        note = rs.getString("note"),
       ),
-      note = rs.getString("note"),
     )
   }
+
+  private data class TransactionItemRow(
+    val transactionId: TransactionId,
+    val item: TransactionItem,
+  )
 }

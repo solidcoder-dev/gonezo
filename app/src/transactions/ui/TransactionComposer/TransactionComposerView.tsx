@@ -8,17 +8,17 @@ import {
   FREQUENT_INCOME_CATEGORY_IDS,
 } from '../../../taxonomy/domain/masterCategories';
 import { CategoryPickerField } from '../CategoryPickerField/CategoryPickerField';
-import { ItemBreakdownEditorView } from '../ItemBreakdownEditor/ItemBreakdownEditorView';
-import { RecurrenceEditorView } from '../RecurrenceEditor/RecurrenceEditorView';
 import { ScheduleSummaryView } from '../ScheduleControls/ScheduleSummaryView';
 import { ScheduleTriggerView } from '../ScheduleControls/ScheduleTriggerView';
 import { ItemBreakdownSummaryView } from '../ItemBreakdownControls/ItemBreakdownSummaryView';
 import { ItemBreakdownTriggerView } from '../ItemBreakdownControls/ItemBreakdownTriggerView';
-import { MovementMoreSheetView } from '../MovementMoreControls/MovementMoreSheetView';
 import { MovementMoreTriggerView } from '../MovementMoreControls/MovementMoreTriggerView';
 import { TransactionComposerActionsView } from '../TransactionComposerActions/TransactionComposerActionsView';
 import { TransactionMainFieldsView } from '../TransactionMainFields/TransactionMainFieldsView';
 import { TransferFxFieldsView } from '../TransferFxFields/TransferFxFieldsView';
+import { TransactionComposerChoiceSheets } from './TransactionComposerChoiceSheets';
+import { TransactionComposerEditorSheets } from './TransactionComposerEditorSheets';
+import { accountIconClass, COMPOSER_MODES } from './transactionComposerPresentation';
 import type {
   RecurrenceEndView as RecurrenceEndInput,
   RecurrenceFrequencyView as RecurrenceFrequency,
@@ -34,21 +34,41 @@ export type ComposerExpenseItem = {
   amount: string;
 };
 
-export type TransactionComposerViewRequired = {
+export type TransactionComposerShellRequired = {
   open: boolean;
   mode: ComposerMode;
   disabled: boolean;
+  advancedOpen: boolean;
+  expected: boolean;
+  movementIgnored: boolean;
+  editedScheduledMovementId?: string;
+  postExpectedMovementId?: string;
+  currencyCode?: string;
+  movementAccountContext?: {
+    name: string;
+    type?: Exclude<ComposerMode, 'picker'>;
+  };
+};
+
+export type TransactionComposerMainFieldsRequired = {
   amount: string;
   date: string;
   nextScheduledOccurrenceDate?: string;
   note: string;
+  amountError?: string;
+  dateError?: string;
+};
+
+export type TransactionComposerTaxonomyRequired = {
   categoryId: string;
   categoryOptions: Array<{ id: string; name: string }>;
   tagInput: string;
   selectedTagOptions: Array<{ id: string; name: string }>;
   tagSuggestions: Array<{ id: string; name: string }>;
   tagCreateCandidate?: string;
-  advancedOpen: boolean;
+};
+
+export type TransactionComposerTransferRequired = {
   transferTargetAccountId: string;
   sourceAccountId: string;
   sourceAccountOptions: Array<{ id: string; name: string; currency: string; type?: string }>;
@@ -58,6 +78,11 @@ export type TransactionComposerViewRequired = {
   transferFxMode: 'auto_destination' | 'auto_rate';
   transferDestinationCurrency?: string;
   transferCrossCurrency: boolean;
+  transferAmountInError?: string;
+  transferFxRateError?: string;
+};
+
+export type TransactionComposerSplitRequired = {
   expenseDetailed: boolean;
   splitEditorOpen: boolean;
   splitApplied: boolean;
@@ -69,6 +94,12 @@ export type TransactionComposerViewRequired = {
   editingExpenseItemId: string;
   expenseSplitTotal: string;
   expenseSplitRemaining: string;
+  expenseItemNameError?: string;
+  expenseItemAmountError?: string;
+  expenseSplitError?: string;
+};
+
+export type TransactionComposerSchedulingRequired = {
   schedulingMode: 'now' | 'scheduled';
   schedulingKind: 'one_shot' | 'recurring';
   recurrenceFrequency: RecurrenceFrequency;
@@ -82,52 +113,63 @@ export type TransactionComposerViewRequired = {
   recurrenceEndDate: string;
   recurrenceEndCount: string;
   scheduleEditorOpen: boolean;
-  expected: boolean;
-  shareEditorOpen: boolean;
-  shareApplied: boolean;
-  movementIgnored: boolean;
-  shareControl?: ReactNode;
-  shareEditorBody?: ReactNode;
-  editedScheduledMovementId?: string;
-  postExpectedMovementId?: string;
-  currencyCode?: string;
-  movementAccountContext?: {
-    name: string;
-    type?: Exclude<ComposerMode, 'picker'>;
-  };
-  expenseItemNameError?: string;
-  expenseItemAmountError?: string;
-  expenseSplitError?: string;
-  amountError?: string;
-  transferAmountInError?: string;
-  transferFxRateError?: string;
-  dateError?: string;
   recurrenceIntervalError?: string;
   recurrenceEndDateError?: string;
   recurrenceEndCountError?: string;
   expectedConflictError?: string;
 };
 
-export type TransactionComposerViewProvided = {
+export type TransactionComposerSharingRequired = {
+  shareEditorOpen: boolean;
+  shareApplied: boolean;
+  shareControl?: ReactNode;
+  shareEditorBody?: ReactNode;
+};
+
+export type TransactionComposerViewRequired =
+  & TransactionComposerShellRequired
+  & TransactionComposerMainFieldsRequired
+  & TransactionComposerTaxonomyRequired
+  & TransactionComposerTransferRequired
+  & TransactionComposerSplitRequired
+  & TransactionComposerSchedulingRequired
+  & TransactionComposerSharingRequired;
+
+export type TransactionComposerShellProvided = {
   onOpen: () => void;
   onClose: () => void;
   onCollapse?: () => void;
   onSelectMode: (mode: Exclude<ComposerMode, 'picker'>) => void;
-  onSelectSourceAccount: (accountId: string) => void;
   onToggleAdvanced: () => void;
+  onSetExpected: (value: boolean) => void;
+  onSetMovementIgnored: (value: boolean) => void;
+  onSubmit: (event: FormEvent) => Promise<void> | void;
+};
+
+export type TransactionComposerMainFieldsProvided = {
+  onSelectSourceAccount: (accountId: string) => void;
   onSetAmount: (value: string) => void;
   onSetDate: (value: string) => void;
   onSetNote: (value: string) => void;
+};
+
+export type TransactionComposerTaxonomyProvided = {
   onSetCategoryId: (value: string) => void;
   onSetTagInput: (value: string) => void;
   onSelectTag: (tagId: string) => void;
   onCreateTag: (name: string) => void;
   onRemoveTag: (tagId: string) => void;
   onRemoveLastTag: () => void;
+};
+
+export type TransactionComposerTransferProvided = {
   onSetTransferTarget: (value: string) => void;
   onSetTransferAmountIn: (value: string) => void;
   onSetTransferFxRate: (value: string) => void;
   onSetTransferFxMode: (value: 'auto_destination' | 'auto_rate') => void;
+};
+
+export type TransactionComposerSplitProvided = {
   onToggleExpenseDetailed: () => void;
   onOpenSplitEditor: () => void;
   onCloseSplitEditor: () => void;
@@ -143,6 +185,9 @@ export type TransactionComposerViewProvided = {
   onSplitByParts: (amount: string, parts: string, addedPersonName?: string) => void;
   onSplitByWeightedParts: (amount: string, parts: Array<{ id?: string; name: string; parts: number }>) => void;
   onSelectSplitMode: (mode: 'items' | 'parts') => void;
+};
+
+export type TransactionComposerSchedulingProvided = {
   onSetSchedulingMode: (value: 'now' | 'scheduled') => void;
   onSetSchedulingKind: (value: 'one_shot' | 'recurring') => void;
   onOpenRecurringScheduleEditor: () => void;
@@ -159,11 +204,20 @@ export type TransactionComposerViewProvided = {
   onSetRecurrenceEndKind: (value: RecurrenceEndInput['kind']) => void;
   onSetRecurrenceEndDate: (value: string) => void;
   onSetRecurrenceEndCount: (value: string) => void;
-  onSetExpected: (value: boolean) => void;
-  onSetMovementIgnored: (value: boolean) => void;
-  onCloseShareEditor: () => void;
-  onSubmit: (event: FormEvent) => Promise<void> | void;
 };
+
+export type TransactionComposerSharingProvided = {
+  onCloseShareEditor: () => void;
+};
+
+export type TransactionComposerViewProvided =
+  & TransactionComposerShellProvided
+  & TransactionComposerMainFieldsProvided
+  & TransactionComposerTaxonomyProvided
+  & TransactionComposerTransferProvided
+  & TransactionComposerSplitProvided
+  & TransactionComposerSchedulingProvided
+  & TransactionComposerSharingProvided;
 
 type Props = {
   required: TransactionComposerViewRequired;
@@ -198,19 +252,6 @@ function recurrenceSummary(
     return titleCase(frequency);
   }
   return `${titleCase(frequency)} · every ${normalizedInterval}`;
-}
-
-const COMPOSER_MODES: Array<{ value: Exclude<ComposerMode, 'picker'>; label: string; iconClassName: string }> = [
-  { value: 'expense', label: 'Expense', iconClassName: 'bi bi-arrow-down' },
-  { value: 'income', label: 'Income', iconClassName: 'bi bi-arrow-up' },
-  { value: 'transfer', label: 'Transfer', iconClassName: 'bi bi-arrow-left-right' },
-];
-
-function accountIconClass(type?: string): string {
-  if (type === 'bank' || type === 'checking' || type === 'savings') {
-    return 'bi bi-bank';
-  }
-  return 'bi bi-wallet2';
 }
 
 export function TransactionComposerView({ required, provided }: Props) {
@@ -759,265 +800,92 @@ export function TransactionComposerView({ required, provided }: Props) {
         }}
         provided={{ commands: { close: closeComposer, collapse: collapseComposer } }}
       />
-      <SheetView
+      <TransactionComposerChoiceSheets
         required={{
-          config: {
-            ariaLabel: 'Movement type',
-            title: 'Movement type',
-            closeLabel: 'Close movement type',
-            panelClassName: 'composer-sheet composer-choice-sheet',
-            contentClassName: 'composer-choice-content',
-          },
-          data: {
-            body: (
-              <ul className="composer-choice-list" aria-label="Movement types">
-                {COMPOSER_MODES.map((item) => {
-                  const selected = item.value === selectedMode;
-                  return (
-                    <li key={item.value}>
-                      <button
-                        type="button"
-                        className={`composer-choice-row composer-choice-row--${item.value}`}
-                        aria-label={selected ? `Selected movement type ${item.label}` : `Select movement type ${item.label}`}
-                        disabled={disabled}
-                        onClick={() => {
-                          onSelectMode(item.value);
-                          setMovementTypeSheetOpen(false);
-                        }}
-                      >
-                        <span className="composer-choice-icon" aria-hidden>
-                          <i className={item.iconClassName} />
-                        </span>
-                        <span className="composer-choice-name">{item.label}</span>
-                        <span className={selected ? 'composer-choice-check composer-choice-check--selected' : 'composer-choice-check'} aria-hidden>
-                          {selected ? <i className="bi bi-check-lg" /> : null}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            ),
-          },
-          state: { open: movementTypeSheetOpen },
-          status: { disabled },
+          disabled,
+          movementTypeSheetOpen,
+          selectedMode,
+          sourceAccountId: required.sourceAccountId,
+          sourceAccountOptions: required.sourceAccountOptions,
+          sourceAccountSheetOpen,
         }}
-        provided={{ commands: { close: () => setMovementTypeSheetOpen(false) } }}
+        provided={{
+          closeMovementTypeSheet: () => setMovementTypeSheetOpen(false),
+          closeSourceAccountSheet: () => setSourceAccountSheetOpen(false),
+          selectMode: onSelectMode,
+          selectSourceAccount: onSelectSourceAccount,
+        }}
       />
-      <SheetView
+      <TransactionComposerEditorSheets
         required={{
-          config: {
-            ariaLabel: 'Choose account',
-            title: 'Choose account',
-            closeLabel: 'Close account chooser',
-            panelClassName: 'composer-sheet composer-choice-sheet',
-            contentClassName: 'composer-choice-content',
-          },
-          data: {
-            body: (
-              <ul className="composer-account-choice-list" aria-label="Accounts">
-                {required.sourceAccountOptions.map((account) => {
-                  const selected = account.id === required.sourceAccountId;
-                  return (
-                    <li key={account.id}>
-                      <button
-                        type="button"
-                        className="composer-account-choice-row"
-                        aria-label={selected ? `Selected account ${account.name}` : `Select account ${account.name}`}
-                        disabled={disabled}
-                        onClick={() => {
-                          onSelectSourceAccount(account.id);
-                          setSourceAccountSheetOpen(false);
-                        }}
-                      >
-                        <span className="composer-account-choice-icon" aria-hidden>
-                          <i className={accountIconClass(account.type)} />
-                        </span>
-                        <span className="composer-choice-name">{account.name}</span>
-                        {selected ? <span className="composer-default-pill">Selected</span> : null}
-                        <span className={selected ? 'composer-choice-check composer-choice-check--selected' : 'composer-choice-check'} aria-hidden>
-                          {selected ? <i className="bi bi-check-lg" /> : null}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            ),
-          },
-          state: { open: sourceAccountSheetOpen },
-          status: { disabled },
+          amount,
+          currencyCode,
+          date,
+          disabled,
+          editingExpenseItemId,
+          expenseItemAmount,
+          expenseItemAmountError,
+          expenseItemName,
+          expenseItemNameError,
+          expenseItemOptions,
+          expenseItems,
+          expenseSplitError,
+          expenseSplitRemaining,
+          expenseSplitTotal,
+          movementIgnored,
+          movementMoreOpen,
+          nextScheduledOccurrenceDate,
+          recurrenceDayOfMonth,
+          recurrenceEndCount,
+          recurrenceEndCountError,
+          recurrenceEndDate,
+          recurrenceEndDateError,
+          recurrenceEndKind,
+          recurrenceFrequency,
+          recurrenceInterval,
+          recurrenceIntervalError,
+          recurrenceMonthlyOrdinal,
+          recurrenceMonthlyPattern,
+          recurrenceMonthlyWeekday,
+          recurrenceWeeklyDay,
+          scheduleEditorOpen,
+          scheduleEditorTitle,
+          shareEditorBody,
+          shareEditorOpen,
+          shareEnabled,
+          splitDraftMode,
+          splitEditorOpen,
         }}
-        provided={{ commands: { close: () => setSourceAccountSheetOpen(false) } }}
-      />
-      <SheetView
-        required={{
-          config: {
-            ariaLabel: scheduleEditorTitle,
-            panelClassName: 'composer-sheet composer-schedule-sheet',
-          },
-          data: {
-            body: (
-              <RecurrenceEditorView
-                required={{
-                  config: { title: scheduleEditorTitle },
-                  data: {},
-                  state: {
-                    frequency: recurrenceFrequency,
-                    interval: recurrenceInterval,
-                    weeklyDay: recurrenceWeeklyDay,
-                    monthlyPattern: recurrenceMonthlyPattern,
-                    dayOfMonth: recurrenceDayOfMonth,
-                    monthlyOrdinal: recurrenceMonthlyOrdinal,
-                    monthlyWeekday: recurrenceMonthlyWeekday,
-                    endKind: recurrenceEndKind,
-                    endDate: recurrenceEndDate,
-                    endCount: recurrenceEndCount,
-                    nextOccurrenceDate: nextScheduledOccurrenceDate ?? date,
-                  },
-                  status: {
-                    intervalError: recurrenceIntervalError,
-                    endDateError: recurrenceEndDateError,
-                    endCountError: recurrenceEndCountError,
-                  },
-                }}
-                provided={{
-                  commands: {
-                    closeEditor: onCloseRecurringScheduleEditor,
-                    applySchedule: onApplyRecurringSchedule,
-                    setFrequency: onSetRecurrenceFrequency,
-                    setInterval: onSetRecurrenceInterval,
-                    setWeeklyDay: onSetRecurrenceWeeklyDay,
-                    setMonthlyPattern: onSetRecurrenceMonthlyPattern,
-                    setDayOfMonth: onSetRecurrenceDayOfMonth,
-                    setMonthlyOrdinal: onSetRecurrenceMonthlyOrdinal,
-                    setMonthlyWeekday: onSetRecurrenceMonthlyWeekday,
-                    setEndKind: onSetRecurrenceEndKind,
-                    setEndDate: onSetRecurrenceEndDate,
-                    setEndCount: onSetRecurrenceEndCount,
-                  },
-                }}
-              />
-            ),
-          },
-          state: { open: scheduleEditorOpen },
-          status: { disabled },
+        provided={{
+          addExpenseItem: onAddExpenseItem,
+          applyRecurringSchedule: onApplyRecurringSchedule,
+          applySplit: onApplySplit,
+          cancelExpenseItem: onCancelExpenseItem,
+          closeMovementMore: () => setMovementMoreOpen(false),
+          closeRecurringScheduleEditor: onCloseRecurringScheduleEditor,
+          closeShareEditor: onCloseShareEditor,
+          closeSplitEditor: onCloseSplitEditor,
+          editExpenseItem: onEditExpenseItem,
+          removeExpenseItem: onRemoveExpenseItem,
+          selectSplitMode: onSelectSplitMode,
+          setExpenseItemAmount: onSetExpenseItemAmount,
+          setExpenseItemName: onSetExpenseItemName,
+          setMovementIgnored: onSetMovementIgnored,
+          setRecurrenceDayOfMonth: onSetRecurrenceDayOfMonth,
+          setRecurrenceEndCount: onSetRecurrenceEndCount,
+          setRecurrenceEndDate: onSetRecurrenceEndDate,
+          setRecurrenceEndKind: onSetRecurrenceEndKind,
+          setRecurrenceFrequency: onSetRecurrenceFrequency,
+          setRecurrenceInterval: onSetRecurrenceInterval,
+          setRecurrenceMonthlyOrdinal: onSetRecurrenceMonthlyOrdinal,
+          setRecurrenceMonthlyPattern: onSetRecurrenceMonthlyPattern,
+          setRecurrenceMonthlyWeekday: onSetRecurrenceMonthlyWeekday,
+          setRecurrenceWeeklyDay: onSetRecurrenceWeeklyDay,
+          splitByParts: onSplitByParts,
+          splitByWeightedParts: onSplitByWeightedParts,
+          startExpenseItem: onStartExpenseItem,
+          toggleExpenseDetailed: onToggleExpenseDetailed,
         }}
-        provided={{ commands: { close: onCloseRecurringScheduleEditor } }}
-      />
-      <SheetView
-        required={{
-          config: {
-            ariaLabel: 'Items',
-            title: 'Items',
-            closeLabel: 'Close items',
-            panelClassName: 'composer-sheet composer-items-sheet',
-            contentClassName: 'composer-items-content',
-          },
-          data: {
-            body: (
-              <div className="stack composer-items-editor">
-                <ItemBreakdownEditorView
-                  required={{
-                    config: {},
-                    data: { items: expenseItems, itemOptions: expenseItemOptions },
-                    state: {
-                      enabled: true,
-                      itemName: expenseItemName,
-                      itemAmount: expenseItemAmount,
-                      editingItemId: editingExpenseItemId,
-                      splitMode: splitDraftMode,
-                      splitTotal: expenseSplitTotal,
-                      splitBaseAmount: amount,
-                      splitRemaining: expenseSplitRemaining,
-                      currencyCode,
-                      itemNameError: expenseItemNameError,
-                      itemAmountError: expenseItemAmountError,
-                      splitError: expenseSplitError,
-                    },
-                    status: { disabled, hideToggle: true },
-                  }}
-                  provided={{
-                    commands: {
-                      toggleEnabled: onToggleExpenseDetailed,
-                      changeItemName: onSetExpenseItemName,
-                      changeItemAmount: onSetExpenseItemAmount,
-                      startItem: onStartExpenseItem,
-                      cancelItem: onCancelExpenseItem,
-                      addItem: onAddExpenseItem,
-                      editItem: onEditExpenseItem,
-                      removeItem: onRemoveExpenseItem,
-                      splitByParts: onSplitByParts,
-                      splitByWeightedParts: onSplitByWeightedParts,
-                      selectMode: onSelectSplitMode,
-                    },
-                  }}
-                />
-                <button
-                  type="button"
-                  className="primary-button composer-items-apply"
-                  onClick={onApplySplit}
-                  disabled={disabled}
-                >
-                  Apply items
-                </button>
-              </div>
-            ),
-          },
-          state: { open: splitEditorOpen },
-          status: { disabled },
-        }}
-        provided={{ commands: { close: onCloseSplitEditor } }}
-      />
-      <SheetView
-        required={{
-          config: {
-            ariaLabel: 'Share expense',
-            title: 'Share expense',
-            closeLabel: 'Close share expense',
-            panelClassName: 'composer-sheet composer-share-sheet',
-            contentClassName: 'composer-share-content',
-          },
-          data: {
-            body: (
-              shareEditorBody
-            ),
-          },
-          state: { open: shareEnabled && shareEditorOpen },
-          status: { disabled },
-        }}
-        provided={{ commands: { close: onCloseShareEditor } }}
-      />
-      <SheetView
-        required={{
-          config: {
-            ariaLabel: 'More',
-            title: 'More',
-            closeLabel: 'Close more',
-            panelClassName: 'composer-sheet composer-more-sheet',
-          },
-          data: {
-            body: (
-              <MovementMoreSheetView
-                required={{
-                  config: {},
-                  data: {},
-                  state: { ignored: movementIgnored },
-                  status: { disabled },
-                }}
-                provided={{
-                  commands: {
-                    setIgnored: onSetMovementIgnored,
-                    done: () => setMovementMoreOpen(false),
-                  },
-                }}
-              />
-            ),
-          },
-          state: { open: movementMoreOpen },
-          status: { disabled },
-        }}
-        provided={{ commands: { close: () => setMovementMoreOpen(false) } }}
       />
     </>
   );
