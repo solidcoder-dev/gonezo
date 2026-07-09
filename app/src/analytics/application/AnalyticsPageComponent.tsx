@@ -4,7 +4,8 @@ import {
   AnalyticsViewTabsView,
 } from '../ui/AnalyticsFilterBarView';
 import { CashFlowChartCardComponent } from './CashFlowChartCardComponent';
-import { CashFlowSummaryCardsComponent } from './CashFlowSummaryCardsComponent';
+import { OverviewInsightsRailComponent } from './OverviewInsightsRailComponent';
+import { OverviewSnapshotCardComponent } from './OverviewSnapshotCardComponent';
 import { SpendingOverviewCardComponent } from './SpendingOverviewCardComponent';
 import { useAnalyticsFiltersModel } from './useAnalyticsFiltersModel';
 import styles from '../ui/AnalyticsPageView.module.css';
@@ -44,18 +45,18 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
         </button>
       </div>
 
-      <AnalyticsFilterBarView
-        required={filterModel.required}
-        provided={filterModel.provided}
-      />
       <AnalyticsViewTabsView
         required={{ state: { viewMode: filterModel.viewMode } }}
         provided={{ commands: { selectViewMode: filterModel.provided.commands.selectViewMode } }}
       />
+      <AnalyticsFilterBarView
+        required={filterModel.required}
+        provided={filterModel.provided}
+      />
 
       {filterModel.viewMode === 'overview' ? (
         <div className={styles.stack}>
-          <CashFlowSummaryCardsComponent
+          <OverviewSnapshotCardComponent
             required={{
               context: { core: required.context.core },
               config: {
@@ -67,19 +68,7 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
             }}
             provided={provided}
           />
-          <CashFlowChartCardComponent
-            required={{
-              context: { core: required.context.core },
-              config: {
-                enabled: required.config.enabled,
-                currency,
-                filters: filterModel.filters,
-                refreshSignal: required.config.refreshSignal,
-              },
-            }}
-            provided={provided}
-          />
-          <SpendingOverviewCardComponent
+          <OverviewInsightsRailComponent
             required={{
               context: { core: required.context.core },
               config: {
@@ -92,6 +81,32 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
             provided={provided}
           />
         </div>
+      ) : filterModel.viewMode === 'spending' ? (
+        <SpendingOverviewCardComponent
+          required={{
+            context: { core: required.context.core },
+            config: {
+              enabled: required.config.enabled,
+              currency,
+              filters: filterModel.filters,
+              refreshSignal: required.config.refreshSignal,
+            },
+          }}
+          provided={provided}
+        />
+      ) : filterModel.viewMode === 'cashFlow' ? (
+        <CashFlowChartCardComponent
+          required={{
+            context: { core: required.context.core },
+            config: {
+              enabled: required.config.enabled,
+              currency,
+              filters: filterModel.filters,
+              refreshSignal: required.config.refreshSignal,
+            },
+          }}
+          provided={provided}
+        />
       ) : (
         <div className={styles.emptyView} aria-label={`${filterModel.viewMode} analytics view`} />
       )}

@@ -308,6 +308,37 @@ function makeCore(transactionCount = 0): AppTestPort {
     })),
     analyticsListCurrencies: vi.fn(async () => ({ items: ['USD'] })),
     analyticsGetFilterFacets: vi.fn(async () => ({ accounts: [], tags: [] })),
+    analyticsGetOverviewSnapshot: vi.fn(async () => ({
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        startDate: '2026-06-01T00:00:00.000Z',
+        endDate: '2026-06-30T23:59:59.999Z',
+      },
+      previousWindow: {
+        label: 'May 1-May 31, 2026',
+        startDate: '2026-05-01T00:00:00.000Z',
+        endDate: '2026-05-31T23:59:59.999Z',
+      },
+      currentTotals: {
+        incomeAmount: '0.00',
+        expenseAmount: '0.00',
+        netFlowAmount: '0.00',
+      },
+      previousTotals: {
+        incomeAmount: '0.00',
+        expenseAmount: '0.00',
+        netFlowAmount: '0.00',
+      },
+      biggestExpense: undefined,
+      biggestIncome: undefined,
+      netFlowChangePercent: '0.00',
+    })),
+    analyticsGetOverviewInsights: vi.fn(async () => ({
+      items: [
+        { key: 'topTags' as const, title: 'Top tags', subtitle: '0 tags', amount: '0.00' },
+        { key: 'transfers' as const, title: 'Transfers', subtitle: '0 transfers', amount: '0.00' },
+      ],
+    })),
     analyticsGetCashFlowSeries: vi.fn(async (input) => ({
       currencies: ['USD'],
       selectedCurrency: input.currency,

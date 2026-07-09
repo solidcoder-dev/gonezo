@@ -428,9 +428,7 @@ export type AnalyticsViewTabsViewProps = {
 const VIEW_TABS: Array<{ value: AnalyticsViewMode; label: string }> = [
   { value: 'overview', label: 'Overview' },
   { value: 'spending', label: 'Spending' },
-  { value: 'cashFlow', label: 'Cash flow' },
-  { value: 'recurring', label: 'Recurring' },
-  { value: 'accounts', label: 'Accounts' },
+  { value: 'cashFlow', label: 'Flow' },
 ];
 
 export function AnalyticsViewTabsView({ required, provided }: AnalyticsViewTabsViewProps) {

@@ -1,0 +1,319 @@
+.overview {
+  display: grid;
+  gap: 16px;
+}
+
+.summaryCard {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid #ecece6;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgb(17 24 39 / 6%);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.15;
+}
+
+.header p {
+  margin: 4px 0 0;
+  color: #6d6d66;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.summarySection {
+  display: grid;
+  gap: 14px;
+}
+
+.summarySection h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.summaryList {
+  display: grid;
+  gap: 14px;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.incomeAmount,
+.expenseAmount {
+  flex: 0 0 150px;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.incomeAmount {
+  color: #14a443;
+}
+
+.expenseAmount {
+  color: #ff3b30;
+}
+
+.progressTrack {
+  display: block;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: #f4f2eb;
+  overflow: hidden;
+}
+
+.progressFillIncome,
+.progressFillExpense {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.progressFillIncome {
+  background: linear-gradient(90deg, #14a443 0%, #7ddc97 100%);
+}
+
+.progressFillExpense {
+  background: linear-gradient(90deg, #ff3b30 0%, #ff8d82 100%);
+}
+
+.netFlowRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid #ecece6;
+}
+
+.netFlowSummary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-weight: 800;
+  flex-wrap: wrap;
+}
+
+.netFlowSummary span {
+  font-size: 0.95rem;
+}
+
+.netFlowAmountPositive,
+.netFlowAmountNegative {
+  font-size: 1.1rem;
+}
+
+.netFlowAmountPositive {
+  color: #149447;
+}
+
+.netFlowAmountNegative {
+  color: #ff3b30;
+}
+
+.comparisonBadgePositive,
+.comparisonBadgeNegative {
+  display: grid;
+  gap: 2px;
+  min-width: 124px;
+  padding: 8px 12px;
+  border-radius: 16px;
+  justify-items: center;
+  text-align: center;
+  flex: 0 0 auto;
+}
+
+.comparisonBadgePositive {
+  background: #eaf8ea;
+  color: #149447;
+}
+
+.comparisonBadgeNegative {
+  background: #fdeceb;
+  color: #ff3b30;
+}
+
+.comparisonBadgePositive strong,
+.comparisonBadgeNegative strong {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.comparisonBadgePositive span,
+.comparisonBadgeNegative span {
+  color: #4a4a43;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.highlightsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.highlightCard {
+  display: flex;
+  gap: 12px;
+  padding: 16px 14px;
+  border: 1px solid #ecece6;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgb(17 24 39 / 4%);
+  min-width: 0;
+}
+
+.highlightIconIncome,
+.highlightIconExpense {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  font-size: 1.55rem;
+  flex: 0 0 52px;
+}
+
+.highlightIconIncome {
+  background: #e5f7ea;
+  color: #1aac4f;
+}
+
+.highlightIconExpense {
+  background: #fdeceb;
+  color: #ff3b30;
+}
+
+.highlightContent {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.highlightLabel {
+  color: #22221d;
+  font-weight: 900;
+  font-size: 0.88rem;
+}
+
+.highlightTitle {
+  font-size: 0.95rem;
+  line-height: 1.15;
+}
+
+.highlightDate {
+  color: #6d6d66;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.skeleton {
+  display: grid;
+  gap: 12px;
+}
+
+.skeletonLineWide,
+.skeletonLine,
+.skeletonCards {
+  display: block;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #f2f2ee 0%, #fbfbf8 50%, #f2f2ee 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.skeletonLineWide {
+  height: 68px;
+}
+
+.skeletonLine {
+  height: 24px;
+}
+
+.skeletonCards {
+  height: 132px;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .summaryCard {
+    padding: 18px;
+  }
+
+  .summaryRow {
+    display: grid;
+    grid-template-columns: minmax(110px, auto) 1fr;
+    gap: 10px;
+  }
+
+  .incomeAmount,
+  .expenseAmount {
+    flex: initial;
+    min-width: 0;
+  }
+
+  .comparisonBadgePositive,
+  .comparisonBadgeNegative {
+    min-width: 112px;
+    padding: 8px 10px;
+  }
+
+  .highlightsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .highlightCard {
+    padding: 14px 12px;
+    gap: 10px;
+  }
+
+  .highlightIconIncome,
+  .highlightIconExpense {
+    width: 46px;
+    height: 46px;
+    flex-basis: 46px;
+    font-size: 1.35rem;
+  }
+
+  .highlightLabel {
+    font-size: 0.8rem;
+  }
+
+  .highlightTitle {
+    font-size: 0.88rem;
+  }
+
+  .highlightDate {
+    font-size: 0.78rem;
+  }
+}

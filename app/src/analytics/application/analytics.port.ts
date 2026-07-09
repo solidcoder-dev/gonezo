@@ -55,6 +55,58 @@ export type AnalyticsCashFlowSummaryResult = {
   previousNetFlowChangePercent?: string;
 };
 
+export type AnalyticsOverviewWindow = {
+  label: string;
+  startDate: string;
+  endDate: string;
+};
+
+export type AnalyticsOverviewTotals = {
+  incomeAmount: string;
+  expenseAmount: string;
+  netFlowAmount: string;
+};
+
+export type AnalyticsOverviewHighlight = {
+  movementId: string;
+  title: string;
+  subtitle?: string;
+  amount: string;
+  occurredAt: string;
+};
+
+export type AnalyticsOverviewSnapshotInput = AnalyticsCurrencyScopeInput;
+
+export type AnalyticsOverviewSnapshotResult = {
+  currentWindow: AnalyticsOverviewWindow;
+  previousWindow?: AnalyticsOverviewWindow;
+  currentTotals: AnalyticsOverviewTotals;
+  previousTotals?: AnalyticsOverviewTotals;
+  netFlowChangePercent?: string;
+  biggestExpense?: AnalyticsOverviewHighlight;
+  biggestIncome?: AnalyticsOverviewHighlight;
+};
+
+export type AnalyticsOverviewInsightKey =
+  | 'topTags'
+  | 'sharedExpenses'
+  | 'mostSharedWith'
+  | 'recurringImpact'
+  | 'transfers';
+
+export type AnalyticsOverviewInsightItem = {
+  key: AnalyticsOverviewInsightKey;
+  title: string;
+  subtitle: string;
+  amount: string;
+};
+
+export type AnalyticsOverviewInsightsInput = AnalyticsCurrencyScopeInput;
+
+export type AnalyticsOverviewInsightsResult = {
+  items: AnalyticsOverviewInsightItem[];
+};
+
 export type AnalyticsSpendingOverviewCategory = {
   categoryId?: string;
   categoryName: string;
@@ -82,6 +134,8 @@ export type AnalyticsListIgnoredMovementsResult = {
 export type AnalyticsPort = {
   analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult>;
   analyticsGetFilterFacets(input?: AnalyticsGetFilterFacetsInput): Promise<AnalyticsGetFilterFacetsResult>;
+  analyticsGetOverviewSnapshot(input: AnalyticsOverviewSnapshotInput): Promise<AnalyticsOverviewSnapshotResult>;
+  analyticsGetOverviewInsights(input: AnalyticsOverviewInsightsInput): Promise<AnalyticsOverviewInsightsResult>;
   analyticsGetCashFlowSeries(input: AnalyticsCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult>;
   analyticsGetPeriodCashFlowSummary(input: AnalyticsCurrencyScopeInput): Promise<AnalyticsCashFlowSummaryResult>;
   analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult>;

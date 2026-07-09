@@ -10,8 +10,13 @@ import type {
   TaxonomyListCategoriesResult,
   TaxonomyListTagsResult,
 } from '../../taxonomy/application/taxonomy.port';
+import type { SharingMovementDetailsResult } from '../../sharing/application/sharing.port';
+import type { SchedulingListMovementsResult } from '../../scheduling/application/scheduling.port';
 import {
   buildAnalyticsCashFlowSummary,
+  buildAnalyticsOverviewInsights,
+  buildAnalyticsOverviewSnapshot,
+  buildAnalyticsOverviewWindows,
   buildSpendingOverview,
   listAnalyticsCurrencies,
 } from '../application/analyticsBuilders';
@@ -22,6 +27,10 @@ import type {
   AnalyticsGetFilterFacetsInput,
   AnalyticsGetFilterFacetsResult,
   AnalyticsListCurrenciesResult,
+  AnalyticsOverviewInsightsInput,
+  AnalyticsOverviewInsightsResult,
+  AnalyticsOverviewSnapshotInput,
+  AnalyticsOverviewSnapshotResult,
   AnalyticsSpendingOverviewInput,
   AnalyticsSpendingOverviewResult,
 } from '../application/analytics.port';
@@ -31,12 +40,16 @@ import {
   type AnalyticsFiltersInput,
 } from '../application/analyticsFilters';
 import { listAnalyticsMovements, type AnalyticsMovementReaderPort } from './analyticsMovementReader';
+import { analyticsGetOverviewRecurringInsight } from './overviewRecurringInsightQuery';
+import { analyticsGetOverviewSharingInsights } from './overviewSharingInsightsQuery';
 
 type AnalyticsQueryPort = AnalyticsMovementReaderPort & {
   preferencesGet(): Promise<UserPreferencesResult>;
   taxonomyListCategories(input?: { appliesTo?: 'income' | 'expense'; includeArchived?: boolean }): Promise<TaxonomyListCategoriesResult>;
   taxonomyListTags(input?: { includeArchived?: boolean }): Promise<TaxonomyListTagsResult>;
   orchestrationListTransactionTaxonomy(input: { transactionIds: string[] }): Promise<OrchestrationListTransactionTaxonomyResult>;
+  sharingGetMovementDetails(input: { transactionId: string }): Promise<SharingMovementDetailsResult>;
+  schedulingListMovements(input: { sourceAccountId: string }): Promise<SchedulingListMovementsResult>;
 };
 
 function startOfUtcMonth(date: Date): Date {
@@ -97,6 +110,16 @@ function analyticsDateRange(input: AnalyticsFiltersInput | undefined, now: Date)
   };
 }
 
+function analyticsWindowDateRange(window: { start: Date; end: Date } | undefined): Pick<LedgerTransactionFilterInput, 'fromDate' | 'toDate'> {
+  if (!window) {
+    return {};
+  }
+  return {
+    fromDate: dateFilterValue(window.start),
+    toDate: dateFilterValue(endOfUtcDay(addUtcDays(window.end, -1))),
+  };
+}
+
 function toLedgerTransactionTypes(types: string[]): LedgerTransactionType[] | undefined {
   if (types.length === 0) {
     return undefined;
@@ -141,6 +164,20 @@ function analyticsTransactionFilters(
     types: toLedgerTransactionTypes(filters.movementTypes),
     tagIds: includeTags && filters.tagIds.length > 0 ? filters.tagIds : undefined,
     ...analyticsDateRange(filters, now),
+  };
+}
+
+function analyticsWindowTransactionFilters(
+  input: AnalyticsFiltersInput | undefined,
+  window: { start: Date; end: Date } | undefined,
+  includeTags: boolean,
+): LedgerTransactionFilterInput {
+  const filters = normalizeAnalyticsFilters(input);
+  return {
+    statuses: ['posted'],
+    types: toLedgerTransactionTypes(filters.movementTypes),
+    tagIds: includeTags && filters.tagIds.length > 0 ? filters.tagIds : undefined,
+    ...analyticsWindowDateRange(window),
   };
 }
 
@@ -240,6 +277,89 @@ export async function analyticsGetPeriodCashFlowSummary(
 ): Promise<AnalyticsCashFlowSummaryResult> {
   const { transactions } = await listScopedAnalyticsMovements(port, { ...input.filters, currency: input.currency }, new Date());
   return buildAnalyticsCashFlowSummary(transactions, input.currency);
+}
+
+export async function analyticsGetOverviewSnapshot(
+  port: AnalyticsQueryPort,
+  input: AnalyticsOverviewSnapshotInput,
+): Promise<AnalyticsOverviewSnapshotResult> {
+  const filters = normalizeAnalyticsFilters({ ...input.filters, currency: input.currency });
+  const now = new Date();
+  const accountIds = await selectedAnalyticsAccountIds(port, filters);
+
+  if (filters.period === 'ALL') {
+    const { transactions } = await listAnalyticsMovements(port, {
+      accountIds,
+      filters: analyticsWindowTransactionFilters(filters, undefined, true),
+    });
+    const windows = buildAnalyticsOverviewWindows(filters.period, now, earliestTransactionDate(transactions));
+    return buildAnalyticsOverviewSnapshot({
+      currentTransactions: transactions,
+      currency: input.currency,
+      currentWindow: windows.currentWindow,
+    });
+  }
+
+  const windows = buildAnalyticsOverviewWindows(filters.period, now);
+  const [currentResult, previousResult] = await Promise.all([
+    listAnalyticsMovements(port, {
+      accountIds,
+      filters: analyticsWindowTransactionFilters(filters, windows.currentWindow, true),
+    }),
+    windows.previousWindow
+      ? listAnalyticsMovements(port, {
+          accountIds,
+          filters: analyticsWindowTransactionFilters(filters, windows.previousWindow, true),
+        })
+      : Promise.resolve({ accounts: [], transactions: [] }),
+  ]);
+
+  return buildAnalyticsOverviewSnapshot({
+    currentTransactions: currentResult.transactions,
+    previousTransactions: previousResult.transactions,
+    currency: input.currency,
+    currentWindow: windows.currentWindow,
+    previousWindow: windows.previousWindow,
+  });
+}
+
+export async function analyticsGetOverviewInsights(
+  port: AnalyticsQueryPort,
+  input: AnalyticsOverviewInsightsInput,
+): Promise<AnalyticsOverviewInsightsResult> {
+  const filters = normalizeAnalyticsFilters({ ...input.filters, currency: input.currency });
+  const now = new Date();
+  const accountIds = await selectedAnalyticsAccountIds(port, filters);
+  const windows = buildAnalyticsOverviewWindows(filters.period, now);
+  const { transactions } = await listAnalyticsMovements(port, {
+    accountIds,
+    filters: analyticsWindowTransactionFilters(filters, windows.currentWindow, true),
+  });
+  const transactionIds = transactions.map((transaction) => transaction.id);
+  const [taxonomyAssignments, tags, sharingInsights, recurringInsight] = await Promise.all([
+    transactionIds.length > 0
+      ? port.orchestrationListTransactionTaxonomy({ transactionIds })
+      : Promise.resolve({ items: [] }),
+    port.taxonomyListTags({ includeArchived: false }),
+    analyticsGetOverviewSharingInsights(port, transactions),
+    analyticsGetOverviewRecurringInsight(port, {
+      accountIds,
+      filters,
+      window: windows.currentWindow,
+    }),
+  ]);
+
+  return buildAnalyticsOverviewInsights({
+    topTagsFact: {
+      transactions,
+      taxonomyAssignments: taxonomyAssignments.items,
+      tags: tags.items,
+    },
+    sharingInsights,
+    recurringInsight,
+    transferTransactions: transactions,
+    currency: input.currency,
+  });
 }
 
 export async function analyticsGetSpendingOverview(

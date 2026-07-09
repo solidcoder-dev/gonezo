@@ -6,6 +6,10 @@ import type {
   AnalyticsGetFilterFacetsResult,
   AnalyticsListCurrenciesResult,
   AnalyticsListIgnoredMovementsResult,
+  AnalyticsOverviewInsightsInput,
+  AnalyticsOverviewInsightsResult,
+  AnalyticsOverviewSnapshotInput,
+  AnalyticsOverviewSnapshotResult,
   AnalyticsSetMovementIgnoredInput,
   AnalyticsSpendingOverviewInput,
   AnalyticsSpendingOverviewResult,
@@ -14,6 +18,8 @@ import type { LedgerGetCashFlowSeriesResult } from '../../ledger/application/led
 import {
   analyticsGetCashFlowSeries,
   analyticsGetFilterFacets,
+  analyticsGetOverviewInsights,
+  analyticsGetOverviewSnapshot,
   analyticsGetPeriodCashFlowSummary,
   analyticsGetSpendingOverview,
   analyticsListCurrencies,
@@ -37,6 +43,14 @@ export class AnalyticsRuntimeAdapter {
 
   analyticsGetFilterFacets(input?: AnalyticsGetFilterFacetsInput): Promise<AnalyticsGetFilterFacetsResult> {
     return isNativeRuntime() ? analyticsGetFilterFacets(this.queries, input) : this.web.analyticsGetFilterFacets(input);
+  }
+
+  analyticsGetOverviewSnapshot(input: AnalyticsOverviewSnapshotInput): Promise<AnalyticsOverviewSnapshotResult> {
+    return isNativeRuntime() ? analyticsGetOverviewSnapshot(this.queries, input) : this.web.analyticsGetOverviewSnapshot(input);
+  }
+
+  analyticsGetOverviewInsights(input: AnalyticsOverviewInsightsInput): Promise<AnalyticsOverviewInsightsResult> {
+    return isNativeRuntime() ? analyticsGetOverviewInsights(this.queries, input) : this.web.analyticsGetOverviewInsights(input);
   }
 
   analyticsGetCashFlowSeries(input: AnalyticsCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> {

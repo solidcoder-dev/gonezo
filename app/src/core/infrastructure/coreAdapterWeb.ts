@@ -1,6 +1,7 @@
 import type { CorePort } from '../application/corePort';
 import type { AccountsListBalancesResult } from '../../account/application/accountBalances.port';
 import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult } from '../../analytics/application/analytics.port';
+import type { AnalyticsOverviewInsightsInput, AnalyticsOverviewInsightsResult, AnalyticsOverviewSnapshotInput, AnalyticsOverviewSnapshotResult } from '../../analytics/application/analytics.port';
 import type {
   PreferencesSetDefaultAccountInput,
   UserPreferencesResult,
@@ -125,7 +126,7 @@ import {
 import { WebTaxonomyService } from '../../taxonomy/infrastructure/webTaxonomyService';
 import { sortNetWorthCurrencies } from '../../ledger/application/netWorthOrdering';
 import { listAccountBalances } from './accountBalancesQuery';
-import { analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetPeriodCashFlowSummary, analyticsGetSpendingOverview, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
+import { analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetOverviewInsights, analyticsGetOverviewSnapshot, analyticsGetPeriodCashFlowSummary, analyticsGetSpendingOverview, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
 import { WebAnalyticsExclusionService } from '../../analytics/infrastructure/webAnalyticsExclusionService';
 
 export type CoreAdapterWebOptions = {
@@ -265,6 +266,14 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async analyticsGetFilterFacets(input?: AnalyticsGetFilterFacetsInput): Promise<AnalyticsGetFilterFacetsResult> { return analyticsGetFilterFacets(this, input); }
+
+  async analyticsGetOverviewSnapshot(input: AnalyticsOverviewSnapshotInput): Promise<AnalyticsOverviewSnapshotResult> {
+    return analyticsGetOverviewSnapshot(this, input);
+  }
+
+  async analyticsGetOverviewInsights(input: AnalyticsOverviewInsightsInput): Promise<AnalyticsOverviewInsightsResult> {
+    return analyticsGetOverviewInsights(this, input);
+  }
 
   async analyticsGetCashFlowSeries(input: AnalyticsCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> {
     return analyticsGetCashFlowSeries(this, input);

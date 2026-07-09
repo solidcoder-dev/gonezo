@@ -3,6 +3,8 @@ import type { LedgerAccountItem, LedgerTransactionListItem } from '../../ledger/
 import type { TaxonomyCategoryItem } from '../../taxonomy/application/taxonomy.port';
 import {
   buildAnalyticsCashFlowSummary,
+  buildAnalyticsOverviewInsights,
+  buildAnalyticsOverviewSnapshot,
   buildSpendingOverview,
   listAnalyticsCurrencies,
 } from './analyticsBuilders';
@@ -61,6 +63,92 @@ describe('analytics builders', () => {
     });
   });
 
+  it('builds an overview snapshot with current totals, previous comparison and biggest movements', () => {
+    const result = buildAnalyticsOverviewSnapshot({
+      currentTransactions: [
+        transaction({
+          id: 'income-main',
+          type: 'income',
+          amount: '950.00',
+          currency: 'EUR',
+          merchant: 'Employer',
+          description: 'Work income',
+          occurredAt: '2026-06-01T10:00:00.000Z',
+        }),
+        transaction({
+          id: 'expense-main',
+          type: 'expense',
+          amount: '180.17',
+          currency: 'EUR',
+          merchant: 'Shop',
+          description: 'Shopping',
+          occurredAt: '2026-06-12T10:00:00.000Z',
+        }),
+        transaction({
+          id: 'expense-small',
+          type: 'expense',
+          amount: '20.00',
+          currency: 'EUR',
+          description: 'Taxi',
+          occurredAt: '2026-06-14T10:00:00.000Z',
+        }),
+      ],
+      previousTransactions: [
+        transaction({ id: 'income-prev', type: 'income', amount: '700.00', currency: 'EUR', occurredAt: '2026-05-02T10:00:00.000Z' }),
+        transaction({ id: 'expense-prev', type: 'expense', amount: '100.00', currency: 'EUR', occurredAt: '2026-05-03T10:00:00.000Z' }),
+      ],
+      currency: 'EUR',
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        start: new Date('2026-06-01T00:00:00.000Z'),
+        end: new Date('2026-07-01T00:00:00.000Z'),
+      },
+      previousWindow: {
+        label: 'May 1-May 31, 2026',
+        start: new Date('2026-05-01T00:00:00.000Z'),
+        end: new Date('2026-06-01T00:00:00.000Z'),
+      },
+    });
+
+    expect(result).toEqual({
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        startDate: '2026-06-01T00:00:00.000Z',
+        endDate: '2026-06-30T23:59:59.999Z',
+      },
+      previousWindow: {
+        label: 'May 1-May 31, 2026',
+        startDate: '2026-05-01T00:00:00.000Z',
+        endDate: '2026-05-31T23:59:59.999Z',
+      },
+      currentTotals: {
+        incomeAmount: '950.00',
+        expenseAmount: '200.17',
+        netFlowAmount: '749.83',
+      },
+      previousTotals: {
+        incomeAmount: '700.00',
+        expenseAmount: '100.00',
+        netFlowAmount: '600.00',
+      },
+      netFlowChangePercent: '24.97',
+      biggestExpense: {
+        movementId: 'expense-main',
+        title: 'Shopping',
+        subtitle: 'Shop',
+        amount: '180.17',
+        occurredAt: '2026-06-12T10:00:00.000Z',
+      },
+      biggestIncome: {
+        movementId: 'income-main',
+        title: 'Work income',
+        subtitle: 'Employer',
+        amount: '950.00',
+        occurredAt: '2026-06-01T10:00:00.000Z',
+      },
+    });
+  });
+
   it('builds spending overview by expense category and split items for the selected period', () => {
     const result = buildSpendingOverview({
       transactions: [
@@ -98,6 +186,143 @@ describe('analytics builders', () => {
         { categoryId: undefined, categoryName: 'Uncategorized', amount: '200.00', percentage: 20 },
         { categoryId: 'cat-food', categoryName: 'Food & Dining', amount: '60.00', percentage: 6 },
       ],
+    });
+  });
+
+  it('builds overview insights for top tags and transfers from the current period', () => {
+    const result = buildAnalyticsOverviewInsights({
+      topTagsFact: {
+        transactions: [
+          transaction({
+            id: 'expense-trip',
+            type: 'expense',
+            amount: '120.00',
+            currency: 'EUR',
+            tags: [
+              { id: 'tag-trip', name: 'Trip' },
+              { id: 'tag-friends', name: 'Friends' },
+            ],
+          }),
+          transaction({
+            id: 'expense-home',
+            type: 'expense',
+            amount: '80.00',
+            currency: 'EUR',
+            tags: [{ id: 'tag-home', name: 'Home' }],
+          }),
+        ],
+        taxonomyAssignments: [
+          { transactionId: 'expense-trip', tagIds: ['tag-trip', 'tag-friends'] },
+          { transactionId: 'expense-home', tagIds: ['tag-home'] },
+        ],
+        tags: [
+          { id: 'tag-trip', name: 'Trip', status: 'active' },
+          { id: 'tag-friends', name: 'Friends', status: 'active' },
+          { id: 'tag-home', name: 'Home', status: 'active' },
+        ],
+      },
+      sharingInsights: [
+        { key: 'sharedExpenses', title: 'Shared expenses', subtitle: '0 shared', amount: '0.00' },
+        { key: 'mostSharedWith', title: 'Most shared with', subtitle: 'No data', amount: '0.00' },
+      ],
+      recurringInsight: {
+        key: 'recurringImpact',
+        title: 'Recurring impact',
+        subtitle: '0 recurring',
+        amount: '0.00',
+      },
+      transferTransactions: [
+        transaction({
+          id: 'transfer-out-1',
+          type: 'transfer_out',
+          amount: '220.00',
+          currency: 'EUR',
+          linkedTransactionId: 'transfer-in-1',
+        }),
+        transaction({
+          id: 'transfer-in-1',
+          type: 'transfer_in',
+          amount: '220.00',
+          currency: 'EUR',
+          linkedTransactionId: 'transfer-out-1',
+        }),
+      ],
+      currency: 'EUR',
+    });
+
+    expect(result).toEqual({
+      items: [
+        {
+          key: 'topTags',
+          title: 'Top tags',
+          subtitle: '3 tags',
+          amount: '320.00',
+        },
+        {
+          key: 'sharedExpenses',
+          title: 'Shared expenses',
+          subtitle: '0 shared',
+          amount: '0.00',
+        },
+        {
+          key: 'mostSharedWith',
+          title: 'Most shared with',
+          subtitle: 'No data',
+          amount: '0.00',
+        },
+        {
+          key: 'recurringImpact',
+          title: 'Recurring impact',
+          subtitle: '0 recurring',
+          amount: '0.00',
+        },
+        {
+          key: 'transfers',
+          title: 'Transfers',
+          subtitle: '1 transfer',
+          amount: '220.00',
+        },
+      ],
+    });
+  });
+
+  it('builds top tags from taxonomy assignments when transactions are not hydrated with tag objects', () => {
+    const result = buildAnalyticsOverviewInsights({
+      topTagsFact: {
+        transactions: [
+          transaction({
+            id: 'expense-trip',
+            type: 'expense',
+            amount: '120.00',
+            currency: 'EUR',
+          }),
+        ],
+        taxonomyAssignments: [
+          { transactionId: 'expense-trip', tagIds: ['tag-trip'] },
+        ],
+        tags: [
+          { id: 'tag-trip', name: 'Trip', status: 'active' },
+        ],
+      },
+      sharingInsights: [
+        { key: 'sharedExpenses', title: 'Shared expenses', subtitle: '0 shared', amount: '0.00' },
+        { key: 'mostSharedWith', title: 'Most shared with', subtitle: 'No data', amount: '0.00' },
+      ],
+      recurringInsight: {
+        key: 'recurringImpact',
+        title: 'Recurring impact',
+        subtitle: '0 recurring',
+        amount: '0.00',
+      },
+      transferTransactions: [],
+      currency: 'EUR',
+    });
+
+    expect(result.items[0]).toEqual({
+      key: 'topTags',
+      title: 'Top tags',
+      subtitle: '1 tag',
+      amount: '120.00',
     });
   });
 });

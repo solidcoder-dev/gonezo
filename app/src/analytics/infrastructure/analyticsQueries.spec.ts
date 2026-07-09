@@ -5,9 +5,13 @@ import type {
   LedgerTransactionListItem,
 } from '../../ledger/application/ledger.port';
 import type { TaxonomyCategoryItem } from '../../taxonomy/application/taxonomy.port';
+import type { SchedulingMovementItem } from '../../scheduling/application/scheduling.port';
+import type { SharingMovementDetailsResult } from '../../sharing/application/sharing.port';
 import {
   analyticsGetCashFlowSeries,
   analyticsGetFilterFacets,
+  analyticsGetOverviewInsights,
+  analyticsGetOverviewSnapshot,
   analyticsGetPeriodCashFlowSummary,
   analyticsGetSpendingOverview,
 } from './analyticsQueries';
@@ -25,9 +29,10 @@ function transaction(input: Partial<LedgerTransactionListItem> & Pick<LedgerTran
 
 function createPort(
   transactions: LedgerTransactionListItem[],
-  accounts: LedgerAccountItem[] = [
+  accounts: LedgerAccountItem[] | undefined = [
     { id: 'acc-1', name: 'Main', type: 'cash', currency: 'EUR', status: 'active' },
   ],
+  scheduledMovements: SchedulingMovementItem[] = [],
 ) {
   const categories: TaxonomyCategoryItem[] = [
     { id: 'cat-food', name: 'Food', appliesTo: 'expense', status: 'active' },
@@ -36,9 +41,21 @@ function createPort(
     preferencesGet: vi.fn(async () => ({ defaultAccountId: 'acc-1' })),
     ledgerListAccounts: vi.fn(async () => ({ items: accounts })),
     ledgerListTransactions: vi.fn(async (input: LedgerListTransactionsInput) => ({
-      content: input.filters?.tagIds && input.filters.tagIds.length > 0
-        ? transactions.filter((item) => item.tags?.some((tag) => input.filters?.tagIds?.includes(tag.id)))
-        : transactions,
+      content: transactions.filter((item) => {
+        const fromDateEpoch = input.filters?.fromDate ? Date.parse(input.filters.fromDate) : undefined;
+        const toDateEpoch = input.filters?.toDate ? Date.parse(input.filters.toDate) : undefined;
+        const occurredAtEpoch = Date.parse(item.occurredAt);
+        if (Number.isFinite(fromDateEpoch) && occurredAtEpoch < fromDateEpoch!) {
+          return false;
+        }
+        if (Number.isFinite(toDateEpoch) && occurredAtEpoch > toDateEpoch!) {
+          return false;
+        }
+        if (input.filters?.tagIds && input.filters.tagIds.length > 0) {
+          return item.tags?.some((tag) => input.filters?.tagIds?.includes(tag.id)) ?? false;
+        }
+        return true;
+      }),
       page: 0,
       size: transactions.length,
       totalElements: transactions.length,
@@ -56,6 +73,10 @@ function createPort(
         transactionId,
         tagIds: transactions.find((item) => item.id === transactionId)?.tags?.map((tag) => tag.id) ?? [],
       })),
+    })),
+    sharingGetMovementDetails: vi.fn(async (): Promise<SharingMovementDetailsResult> => null),
+    schedulingListMovements: vi.fn(async ({ sourceAccountId }: { sourceAccountId: string }) => ({
+      items: scheduledMovements.filter((item) => item.sourceAccountId === sourceAccountId),
     })),
   };
 }
@@ -282,5 +303,300 @@ describe('analytics queries', () => {
     expect(port.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({
       filters: expect.objectContaining({ tagIds: ['tag-trip'] }),
     }));
+  });
+
+  it('builds an overview snapshot for the selected week and compares it with the previous week', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-30T12:00:00.000Z'));
+    const port = createPort([
+      transaction({ id: 'income-current', type: 'income', amount: '300.00', occurredAt: '2026-06-25T09:00:00.000Z', description: 'Salary' }),
+      transaction({ id: 'expense-current', type: 'expense', amount: '180.00', occurredAt: '2026-06-28T09:00:00.000Z', description: 'Shopping' }),
+      transaction({ id: 'income-previous', type: 'income', amount: '240.00', occurredAt: '2026-06-18T09:00:00.000Z', description: 'Salary' }),
+      transaction({ id: 'expense-previous', type: 'expense', amount: '120.00', occurredAt: '2026-06-20T09:00:00.000Z', description: 'Groceries' }),
+    ]);
+
+    await expect(analyticsGetOverviewSnapshot(port, {
+      currency: 'EUR',
+      filters: { period: '1W' },
+    })).resolves.toEqual({
+      currentWindow: {
+        label: 'Jun 24-Jun 30, 2026',
+        startDate: '2026-06-24T00:00:00.000Z',
+        endDate: '2026-06-30T23:59:59.999Z',
+      },
+      previousWindow: {
+        label: 'Jun 17-Jun 23, 2026',
+        startDate: '2026-06-17T00:00:00.000Z',
+        endDate: '2026-06-23T23:59:59.999Z',
+      },
+      currentTotals: {
+        incomeAmount: '300.00',
+        expenseAmount: '180.00',
+        netFlowAmount: '120.00',
+      },
+      previousTotals: {
+        incomeAmount: '240.00',
+        expenseAmount: '120.00',
+        netFlowAmount: '120.00',
+      },
+      netFlowChangePercent: '0.00',
+      biggestExpense: {
+        movementId: 'expense-current',
+        title: 'Shopping',
+        subtitle: undefined,
+        amount: '180.00',
+        occurredAt: '2026-06-28T09:00:00.000Z',
+      },
+      biggestIncome: {
+        movementId: 'income-current',
+        title: 'Salary',
+        subtitle: undefined,
+        amount: '300.00',
+        occurredAt: '2026-06-25T09:00:00.000Z',
+      },
+    });
+  });
+
+  it('does not compare against a previous period for all-time overview snapshots', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-30T12:00:00.000Z'));
+    const port = createPort([
+      transaction({ id: 'income-current', type: 'income', amount: '300.00', occurredAt: '2026-06-25T09:00:00.000Z', description: 'Salary' }),
+      transaction({ id: 'expense-current', type: 'expense', amount: '180.00', occurredAt: '2026-06-28T09:00:00.000Z', description: 'Shopping' }),
+    ]);
+
+    await expect(analyticsGetOverviewSnapshot(port, {
+      currency: 'EUR',
+      filters: { period: 'ALL' },
+    })).resolves.toEqual(expect.objectContaining({
+      previousWindow: undefined,
+      previousTotals: undefined,
+      netFlowChangePercent: undefined,
+    }));
+  });
+
+  it('builds overview insights for the current period only and respects selected tags', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-30T12:00:00.000Z'));
+    const port = createPort([
+      transaction({
+        id: 'expense-trip',
+        type: 'expense',
+        amount: '120.00',
+        occurredAt: '2026-06-25T09:00:00.000Z',
+        tags: [{ id: 'tag-trip', name: 'Trip' }],
+      }),
+      transaction({
+        id: 'transfer-out-current',
+        type: 'transfer_out',
+        amount: '220.00',
+        occurredAt: '2026-06-27T09:00:00.000Z',
+        linkedTransactionId: 'transfer-in-current',
+      }),
+      transaction({
+        id: 'transfer-in-current',
+        type: 'transfer_in',
+        amount: '220.00',
+        occurredAt: '2026-06-27T09:00:00.000Z',
+        linkedTransactionId: 'transfer-out-current',
+      }),
+      transaction({
+        id: 'expense-previous',
+        type: 'expense',
+        amount: '999.00',
+        occurredAt: '2026-05-20T09:00:00.000Z',
+        tags: [{ id: 'tag-trip', name: 'Trip' }],
+      }),
+    ]);
+
+    await expect(analyticsGetOverviewInsights(port, {
+      currency: 'EUR',
+      filters: { period: '1W', tagIds: ['tag-trip'] },
+    })).resolves.toEqual({
+      items: [
+        {
+          key: 'topTags',
+          title: 'Top tags',
+          subtitle: '1 tag',
+          amount: '120.00',
+        },
+        {
+          key: 'sharedExpenses',
+          title: 'Shared expenses',
+          subtitle: '0 shared',
+          amount: '0.00',
+        },
+        {
+          key: 'mostSharedWith',
+          title: 'Most shared with',
+          subtitle: 'No data',
+          amount: '0.00',
+        },
+        {
+          key: 'recurringImpact',
+          title: 'Recurring impact',
+          subtitle: '0 recurring',
+          amount: '0.00',
+        },
+        {
+          key: 'transfers',
+          title: 'Transfers',
+          subtitle: '0 transfers',
+          amount: '0.00',
+        },
+      ],
+    });
+  });
+
+  it('builds top tags from taxonomy assignments when posted movements do not include hydrated tag objects', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-30T12:00:00.000Z'));
+    const port = createPort([
+      transaction({
+        id: 'expense-trip',
+        type: 'expense',
+        amount: '120.00',
+        occurredAt: '2026-06-25T09:00:00.000Z',
+      }),
+    ]);
+
+    vi.mocked(port.orchestrationListTransactionTaxonomy).mockResolvedValue({
+      items: [{ transactionId: 'expense-trip', tagIds: ['tag-trip'] }],
+    });
+
+    await expect(analyticsGetOverviewInsights(port, {
+      currency: 'EUR',
+      filters: { period: '1W' },
+    })).resolves.toEqual({
+      items: [
+        {
+          key: 'topTags',
+          title: 'Top tags',
+          subtitle: '1 tag',
+          amount: '120.00',
+        },
+        {
+          key: 'sharedExpenses',
+          title: 'Shared expenses',
+          subtitle: '0 shared',
+          amount: '0.00',
+        },
+        {
+          key: 'mostSharedWith',
+          title: 'Most shared with',
+          subtitle: 'No data',
+          amount: '0.00',
+        },
+        {
+          key: 'recurringImpact',
+          title: 'Recurring impact',
+          subtitle: '0 recurring',
+          amount: '0.00',
+        },
+        {
+          key: 'transfers',
+          title: 'Transfers',
+          subtitle: '0 transfers',
+          amount: '0.00',
+        },
+      ],
+    });
+  });
+
+  it('aggregates sharing and recurring insights from their own read-model use cases', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-30T12:00:00.000Z'));
+    const port = createPort(
+      [
+        transaction({
+          id: 'expense-shared',
+          type: 'expense',
+          amount: '180.00',
+          occurredAt: '2026-06-26T09:00:00.000Z',
+          tags: [{ id: 'tag-trip', name: 'Trip' }],
+        }),
+      ],
+      [
+        { id: 'acc-1', name: 'Main', type: 'cash', currency: 'EUR', status: 'active' },
+      ],
+      [
+        {
+          id: 'rec-1',
+          type: 'expense',
+          sourceAccountId: 'acc-1',
+          amount: '145.90',
+          currency: 'EUR',
+          status: 'active',
+          startAt: '2026-06-01T00:00:00.000Z',
+          nextDueAt: '2026-06-28T00:00:00.000Z',
+          zoneId: 'Europe/Madrid',
+          generatedOccurrences: 0,
+          splitItems: [],
+          rule: { frequency: 'monthly' },
+          recurrenceEnd: { kind: 'never' },
+          tagIds: ['tag-trip'],
+          scheduleKind: 'recurring',
+          origin: 'recurring',
+        },
+      ],
+    );
+
+    vi.mocked(port.sharingGetMovementDetails).mockResolvedValue({
+      shareId: 'share-1',
+      transactionId: 'expense-shared',
+      participants: [
+        {
+          participantId: 'participant-1',
+          personId: 'person-1',
+          displayName: 'Ana',
+          amount: '120.00',
+          reimbursable: true,
+          repaymentStatus: 'pending',
+        },
+      ],
+      analytics: {
+        personalExpenseAmount: '60.00',
+        excludedLentAmount: '120.00',
+        excludedReimbursementIncomeAmount: '0.00',
+      },
+    } satisfies Exclude<SharingMovementDetailsResult, null>);
+
+    await expect(analyticsGetOverviewInsights(port, {
+      currency: 'EUR',
+      filters: { period: '1W', tagIds: ['tag-trip'] },
+    })).resolves.toEqual({
+      items: [
+        {
+          key: 'topTags',
+          title: 'Top tags',
+          subtitle: '1 tag',
+          amount: '180.00',
+        },
+        {
+          key: 'sharedExpenses',
+          title: 'Shared expenses',
+          subtitle: '1 shared',
+          amount: '120.00',
+        },
+        {
+          key: 'mostSharedWith',
+          title: 'Most shared with',
+          subtitle: 'Ana',
+          amount: '120.00',
+        },
+        {
+          key: 'recurringImpact',
+          title: 'Recurring impact',
+          subtitle: '1 recurring',
+          amount: '145.90',
+        },
+        {
+          key: 'transfers',
+          title: 'Transfers',
+          subtitle: '0 transfers',
+          amount: '0.00',
+        },
+      ],
+    });
   });
 });

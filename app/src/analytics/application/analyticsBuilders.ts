@@ -1,10 +1,20 @@
-import type { TaxonomyCategoryItem } from '../../taxonomy/application/taxonomy.port';
+import type {
+  OrchestrationTransactionTaxonomyItem,
+  TaxonomyCategoryItem,
+  TaxonomyTagItem,
+} from '../../taxonomy/application/taxonomy.port';
 import type { LedgerAccountItem, LedgerCashFlowGranularity, LedgerTransactionListItem } from '../../ledger/application/ledger.port';
 import type {
   AnalyticsCashFlowSummaryResult,
+  AnalyticsOverviewHighlight,
+  AnalyticsOverviewInsightItem,
+  AnalyticsOverviewInsightsResult,
+  AnalyticsOverviewSnapshotResult,
   AnalyticsPeriodWindow,
   AnalyticsSpendingOverviewResult,
 } from './analytics.port';
+import type { AnalyticsPeriodPreset } from './analyticsFilters';
+import { buildOverviewInsightsResult } from './overviewInsights';
 
 const UNCATEGORIZED = 'Uncategorized';
 const OPENING_BALANCE_DESCRIPTION = 'opening balance';
@@ -48,6 +58,10 @@ function dayLabel(date: Date): string {
   return new Intl.DateTimeFormat('en-US', { day: '2-digit', month: 'short', timeZone: 'UTC' }).format(date);
 }
 
+function monthDayLabel(date: Date): string {
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(date);
+}
+
 function rangeLabel(start: Date, end: Date, granularity: LedgerCashFlowGranularity): string {
   const last = addUtcDays(end, -1);
   if (granularity === 'yearly') {
@@ -60,6 +74,18 @@ function rangeLabel(start: Date, end: Date, granularity: LedgerCashFlowGranulari
     return `${monthLabel(start)} ${start.getUTCFullYear()} - ${monthLabel(last)} ${last.getUTCFullYear()}`;
   }
   return `${dayLabel(start)} - ${dayLabel(last)}`;
+}
+
+function endInclusive(endExclusive: Date): Date {
+  return new Date(endExclusive.getTime() - 1);
+}
+
+function overviewRangeLabel(start: Date, endExclusive: Date): string {
+  const end = endInclusive(endExclusive);
+  if (start.getUTCFullYear() === end.getUTCFullYear()) {
+    return `${monthDayLabel(start)}-${monthDayLabel(end)}, ${end.getUTCFullYear()}`;
+  }
+  return `${monthDayLabel(start)}, ${start.getUTCFullYear()}-${monthDayLabel(end)}, ${end.getUTCFullYear()}`;
 }
 
 export function buildAnalyticsPeriodWindow(
@@ -86,6 +112,58 @@ export function buildAnalyticsPeriodWindow(
   const start = addUtcYears(new Date(Date.UTC(now.getUTCFullYear(), 0, 1)), periodOffset);
   const end = addUtcYears(start, 1);
   return { start, end, label: rangeLabel(start, end, granularity), periodOffset, canGoNext: periodOffset < 0 };
+}
+
+export type AnalyticsOverviewWindowRange = {
+  label: string;
+  start: Date;
+  end: Date;
+};
+
+export function buildAnalyticsOverviewWindows(
+  period: AnalyticsPeriodPreset,
+  now: Date,
+  earliestOccurredAt?: Date,
+): { currentWindow: AnalyticsOverviewWindowRange; previousWindow?: AnalyticsOverviewWindowRange } {
+  if (period === '1W') {
+    const currentStart = addUtcDays(startOfUtcDay(now), -6);
+    const currentEnd = addUtcDays(startOfUtcDay(now), 1);
+    const previousStart = addUtcDays(currentStart, -7);
+    return {
+      currentWindow: { start: currentStart, end: currentEnd, label: overviewRangeLabel(currentStart, currentEnd) },
+      previousWindow: { start: previousStart, end: currentStart, label: overviewRangeLabel(previousStart, currentStart) },
+    };
+  }
+
+  if (period === 'ALL') {
+    const currentStart = earliestOccurredAt ? startOfUtcDay(earliestOccurredAt) : startOfUtcDay(now);
+    const currentEnd = addUtcDays(startOfUtcDay(now), 1);
+    return {
+      currentWindow: {
+        start: currentStart,
+        end: currentEnd,
+        label: 'All time',
+      },
+    };
+  }
+
+  const monthCount = period === '1M'
+    ? 1
+    : period === '3M'
+      ? 3
+      : period === '6M'
+        ? 6
+        : period === '1Y'
+          ? 12
+          : 60;
+  const currentEnd = addUtcMonths(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)), 1);
+  const currentStart = addUtcMonths(currentEnd, -monthCount);
+  const previousEnd = currentStart;
+  const previousStart = addUtcMonths(previousEnd, -monthCount);
+  return {
+    currentWindow: { start: currentStart, end: currentEnd, label: overviewRangeLabel(currentStart, currentEnd) },
+    previousWindow: { start: previousStart, end: previousEnd, label: overviewRangeLabel(previousStart, previousEnd) },
+  };
 }
 
 function buildAnalyticsMonthRangeWindow(
@@ -154,6 +232,114 @@ export function buildAnalyticsCashFlowSummary(
     ...totals,
     netFlowAmount: addAmount(totals.incomeAmount, (-Number(totals.expenseAmount)).toFixed(2)),
   };
+}
+
+function analyticsHighlightTitle(transaction: LedgerTransactionListItem): string {
+  const description = transaction.description?.trim();
+  if (description) {
+    return description;
+  }
+  const merchant = transaction.merchant?.trim();
+  if (merchant) {
+    return merchant;
+  }
+  const categoryName = transaction.category?.name?.trim();
+  if (categoryName) {
+    return categoryName;
+  }
+  return transaction.type === 'expense' ? 'Expense' : 'Income';
+}
+
+function analyticsHighlightSubtitle(transaction: LedgerTransactionListItem): string | undefined {
+  const description = transaction.description?.trim();
+  const merchant = transaction.merchant?.trim();
+  if (description && merchant) {
+    return merchant;
+  }
+  return undefined;
+}
+
+function toOverviewHighlight(transaction: LedgerTransactionListItem | undefined): AnalyticsOverviewHighlight | undefined {
+  if (!transaction) {
+    return undefined;
+  }
+  return {
+    movementId: transaction.id,
+    title: analyticsHighlightTitle(transaction),
+    subtitle: analyticsHighlightSubtitle(transaction),
+    amount: transaction.amount,
+    occurredAt: transaction.occurredAt,
+  };
+}
+
+function byAmountDescending(left: LedgerTransactionListItem, right: LedgerTransactionListItem): number {
+  return Number(right.amount) - Number(left.amount);
+}
+
+function selectBiggestMovement(
+  transactions: LedgerTransactionListItem[],
+  currency: string,
+  type: 'income' | 'expense',
+): LedgerTransactionListItem | undefined {
+  return transactions
+    .filter((transaction) => isAnalyticsCashFlowTransaction(transaction, currency) && transaction.type === type)
+    .sort(byAmountDescending)[0];
+}
+
+function percentChange(currentAmount: string, previousAmount: string): string | undefined {
+  const previous = Number(previousAmount);
+  const current = Number(currentAmount);
+  if (!Number.isFinite(previous) || !Number.isFinite(current) || previous === 0) {
+    return undefined;
+  }
+  return (((current - previous) / previous) * 100).toFixed(2);
+}
+
+export function buildAnalyticsOverviewSnapshot(input: {
+  currentTransactions: LedgerTransactionListItem[];
+  previousTransactions?: LedgerTransactionListItem[];
+  currency: string;
+  currentWindow: AnalyticsOverviewWindowRange;
+  previousWindow?: AnalyticsOverviewWindowRange;
+}): AnalyticsOverviewSnapshotResult {
+  const currentTotals = buildAnalyticsCashFlowSummary(input.currentTransactions, input.currency);
+  const previousTotals = input.previousTransactions && input.previousWindow
+    ? buildAnalyticsCashFlowSummary(input.previousTransactions, input.currency)
+    : undefined;
+
+  return {
+    currentWindow: {
+      label: input.currentWindow.label,
+      startDate: input.currentWindow.start.toISOString(),
+      endDate: endInclusive(input.currentWindow.end).toISOString(),
+    },
+    previousWindow: input.previousWindow ? {
+      label: input.previousWindow.label,
+      startDate: input.previousWindow.start.toISOString(),
+      endDate: endInclusive(input.previousWindow.end).toISOString(),
+    } : undefined,
+    currentTotals,
+    previousTotals,
+    netFlowChangePercent: previousTotals
+      ? percentChange(currentTotals.netFlowAmount, previousTotals.netFlowAmount)
+      : undefined,
+    biggestExpense: toOverviewHighlight(selectBiggestMovement(input.currentTransactions, input.currency, 'expense')),
+    biggestIncome: toOverviewHighlight(selectBiggestMovement(input.currentTransactions, input.currency, 'income')),
+  };
+}
+
+export function buildAnalyticsOverviewInsights(input: {
+  topTagsFact: {
+    transactions: LedgerTransactionListItem[];
+    taxonomyAssignments?: OrchestrationTransactionTaxonomyItem[];
+    tags?: TaxonomyTagItem[];
+  };
+  sharingInsights: AnalyticsOverviewInsightItem[];
+  recurringInsight: AnalyticsOverviewInsightItem;
+  transferTransactions: LedgerTransactionListItem[];
+  currency: string;
+}): AnalyticsOverviewInsightsResult {
+  return buildOverviewInsightsResult(input);
 }
 
 function categoryName(categoriesById: ReadonlyMap<string, TaxonomyCategoryItem>, categoryId?: string): string {
