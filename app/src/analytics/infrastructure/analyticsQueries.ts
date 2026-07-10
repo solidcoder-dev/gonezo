@@ -2,6 +2,7 @@ import { buildCashFlowSeries } from '../../ledger/application/cashFlowSeries';
 import type {
   LedgerTransactionFilterInput,
   LedgerTransactionType,
+  LedgerGetAccountSummaryResult,
   LedgerGetCashFlowSeriesResult,
 } from '../../ledger/application/ledger.port';
 import type { UserPreferencesResult } from '../../account/application/preferences.port';
@@ -14,6 +15,9 @@ import type { SharingMovementDetailsResult } from '../../sharing/application/sha
 import type { SchedulingListMovementsResult } from '../../scheduling/application/scheduling.port';
 import {
   buildAnalyticsCashFlowSummary,
+  buildFlowInsights,
+  buildFlowProjection,
+  buildFlowUpcoming,
   buildAnalyticsOverviewInsights,
   buildAnalyticsOverviewSnapshot,
   buildAnalyticsOverviewWindows,
@@ -28,6 +32,12 @@ import type {
   AnalyticsCashFlowSeriesInput,
   AnalyticsCashFlowSummaryResult,
   AnalyticsCurrencyScopeInput,
+  AnalyticsFlowInsightsInput,
+  AnalyticsFlowInsightsResult,
+  AnalyticsFlowProjectionInput,
+  AnalyticsFlowProjectionResult,
+  AnalyticsFlowUpcomingInput,
+  AnalyticsFlowUpcomingResult,
   AnalyticsGetFilterFacetsInput,
   AnalyticsGetFilterFacetsResult,
   AnalyticsListCurrenciesResult,
@@ -54,6 +64,7 @@ import { analyticsGetOverviewRecurringInsight } from './overviewRecurringInsight
 import { analyticsGetOverviewSharingInsights } from './overviewSharingInsightsQuery';
 
 type AnalyticsQueryPort = AnalyticsMovementReaderPort & {
+  ledgerGetAccountSummary(input: { accountId: string }): Promise<LedgerGetAccountSummaryResult>;
   preferencesGet(): Promise<UserPreferencesResult>;
   taxonomyListCategories(input?: { appliesTo?: 'income' | 'expense'; includeArchived?: boolean }): Promise<TaxonomyListCategoriesResult>;
   taxonomyListTags(input?: { includeArchived?: boolean }): Promise<TaxonomyListTagsResult>;
@@ -463,5 +474,99 @@ export async function analyticsGetSpendingTopExpenses(
     transactions,
     currency: input.currency,
     currentWindow: windows.currentWindow,
+  });
+}
+
+async function selectedAccountSummaries(
+  port: AnalyticsQueryPort,
+  accountIds: string[],
+): Promise<LedgerGetAccountSummaryResult[]> {
+  return Promise.all(accountIds.map((accountId) => port.ledgerGetAccountSummary({ accountId })));
+}
+
+async function selectedSchedulingMovements(
+  port: AnalyticsQueryPort,
+  accountIds: string[],
+): Promise<NonNullable<SchedulingListMovementsResult['items']>> {
+  const results = await Promise.all(accountIds.map((accountId) => port.schedulingListMovements({ sourceAccountId: accountId })));
+  const movementById = new Map<string, SchedulingListMovementsResult['items'][number]>();
+  for (const result of results) {
+    for (const movement of result.items) {
+      movementById.set(movement.id, movement);
+    }
+  }
+  return [...movementById.values()];
+}
+
+export async function analyticsGetFlowProjection(
+  port: AnalyticsQueryPort,
+  input: AnalyticsFlowProjectionInput,
+): Promise<AnalyticsFlowProjectionResult> {
+  const filters = normalizeAnalyticsFilters({ ...input.filters, currency: input.currency });
+  const now = new Date();
+  const accountIds = await selectedAnalyticsAccountIds(port, filters);
+  const windows = buildSpendingTimelineWindow(filters.period, now, input.periodOffset, undefined, 5);
+  const [balances, transactions, scheduledMovements] = await Promise.all([
+    selectedAccountSummaries(port, accountIds),
+    listAnalyticsMovements(port, {
+      accountIds,
+      filters: analyticsWindowTransactionFilters(filters, windows, true),
+    }),
+    selectedSchedulingMovements(port, accountIds),
+  ]);
+
+  const currentBalanceAmount = balances.reduce(
+    (total, account) => (Number.isFinite(Number(account.balanceAmount))
+      ? (Number(total) + Number(account.balanceAmount)).toFixed(2)
+      : total),
+    '0.00',
+  );
+
+  return buildFlowProjection({
+    currency: input.currency,
+    currentWindow: windows,
+    period: filters.period,
+    currentBalanceAmount,
+    postedTransactions: transactions.transactions,
+    scheduledMovements,
+    now,
+  });
+}
+
+export async function analyticsGetFlowUpcoming(
+  port: AnalyticsQueryPort,
+  input: AnalyticsFlowUpcomingInput,
+): Promise<AnalyticsFlowUpcomingResult> {
+  const filters = normalizeAnalyticsFilters({ ...input.filters, currency: input.currency });
+  const now = new Date();
+  const accountIds = await selectedAnalyticsAccountIds(port, filters);
+  const windows = buildSpendingTimelineWindow(filters.period, now, 0, undefined, 5);
+  const scheduledMovements = await selectedSchedulingMovements(port, accountIds);
+
+  return buildFlowUpcoming({
+    scheduledMovements,
+    currency: input.currency,
+    currentWindow: windows,
+  });
+}
+
+export async function analyticsGetFlowInsights(
+  port: AnalyticsQueryPort,
+  input: AnalyticsFlowInsightsInput,
+): Promise<AnalyticsFlowInsightsResult> {
+  const filters = normalizeAnalyticsFilters({ ...input.filters, currency: input.currency });
+  const now = new Date();
+  const accountIds = await selectedAnalyticsAccountIds(port, filters);
+  const windows = buildSpendingTimelineWindow(filters.period, now, 0, undefined, 5);
+  const { transactions } = await listAnalyticsMovements(port, {
+    accountIds,
+    filters: analyticsWindowTransactionFilters(filters, windows, true),
+  });
+
+  return buildFlowInsights({
+    postedTransactions: transactions,
+    currency: input.currency,
+    currentWindow: windows,
+    period: filters.period,
   });
 }

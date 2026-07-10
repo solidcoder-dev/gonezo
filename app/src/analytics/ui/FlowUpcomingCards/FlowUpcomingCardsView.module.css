@@ -1,0 +1,85 @@
+.section {
+  display: grid;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.card {
+  padding: 16px;
+  border-radius: 20px;
+  background: var(--surface, #fff);
+  box-shadow: 0 1px 0 rgba(32, 32, 30, 0.06), 0 16px 36px rgba(24, 24, 22, 0.05);
+}
+
+.income {
+  border: 1px solid rgba(37, 99, 235, 0.12);
+}
+
+.expense {
+  border: 1px solid rgba(239, 68, 68, 0.12);
+}
+
+.cardHeader h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.cardHeader strong {
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.income strong {
+  color: #16a34a;
+}
+
+.expense strong {
+  color: #ef4444;
+}
+
+.items {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  align-items: center;
+}
+
+.itemTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: rgba(34, 34, 31, 0.9);
+}
+
+.itemAmount {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(34, 34, 31, 0.9);
+}
+
+.itemDate {
+  grid-column: 2;
+  color: rgba(34, 34, 31, 0.58);
+  font-size: 12px;
+  justify-self: end;
+}
+
+.empty {
+  color: rgba(34, 34, 31, 0.58);
+  font-size: 13px;
+}

@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { LedgerAccountItem, LedgerTransactionListItem } from '../../ledger/application/ledger.port';
+import type { SchedulingMovementItem } from '../../scheduling/application/scheduling.port';
 import type { TaxonomyCategoryItem } from '../../taxonomy/application/taxonomy.port';
 import {
   buildAnalyticsCashFlowSummary,
+  buildFlowInsights,
+  buildFlowProjection,
+  buildFlowUpcoming,
   buildAnalyticsOverviewInsights,
   buildAnalyticsOverviewSnapshot,
   buildSpendingDashboard,
@@ -18,6 +22,27 @@ function transaction(input: Partial<LedgerTransactionListItem> & Pick<LedgerTran
     status: 'posted',
     occurredAt: '2026-06-01T00:00:00.000Z',
     items: [],
+    ...input,
+  };
+}
+
+function scheduledMovement(
+  input: Partial<SchedulingMovementItem> & Pick<SchedulingMovementItem, 'id' | 'type' | 'sourceAccountId' | 'amount' | 'currency' | 'status' | 'startAt' | 'zoneId' | 'generatedOccurrences' | 'splitItems' | 'rule' | 'recurrenceEnd'>,
+): SchedulingMovementItem {
+  return {
+    targetAccountId: undefined,
+    destinationAmount: undefined,
+    destinationCurrency: undefined,
+    exchangeRate: undefined,
+    description: undefined,
+    merchant: undefined,
+    nextDueAt: undefined,
+    reviewPolicy: 'automatic',
+    tagIds: [],
+    tagNames: [],
+    categoryId: undefined,
+    scheduleKind: 'recurring',
+    origin: 'recurring',
     ...input,
   };
 }
@@ -322,6 +347,130 @@ describe('analytics builders', () => {
     });
 
     expect(result.items.map((item) => item.title)).toEqual(['Supermarket', 'Amazon', 'Ikea']);
+  });
+
+  it('builds flow projection balance points from posted and scheduled movements', () => {
+    const result = buildFlowProjection({
+      currency: 'EUR',
+      currentWindow: {
+        label: 'Jun 1-Jun 7, 2026',
+        start: new Date('2026-06-01T00:00:00.000Z'),
+        end: new Date('2026-06-08T00:00:00.000Z'),
+        periodOffset: 0,
+        canGoPrevious: true,
+        canGoNext: false,
+      },
+      period: '30D',
+      currentBalanceAmount: '1000.00',
+      now: new Date('2026-06-04T12:00:00.000Z'),
+      postedTransactions: [
+        transaction({ id: 'income-1', type: 'income', amount: '200.00', currency: 'EUR', occurredAt: '2026-06-02T10:00:00.000Z' }),
+        transaction({ id: 'expense-1', type: 'expense', amount: '50.00', currency: 'EUR', occurredAt: '2026-06-03T10:00:00.000Z' }),
+      ],
+      scheduledMovements: [
+        scheduledMovement({
+          id: 'scheduled-income',
+          type: 'income',
+          sourceAccountId: 'acc-1',
+          amount: '300.00',
+          currency: 'EUR',
+          status: 'active',
+          startAt: '2026-06-05T00:00:00.000Z',
+          zoneId: 'UTC',
+          generatedOccurrences: 0,
+          splitItems: [],
+          rule: { frequency: 'monthly' },
+          recurrenceEnd: { kind: 'never' },
+        }),
+        scheduledMovement({
+          id: 'scheduled-expense',
+          type: 'expense',
+          sourceAccountId: 'acc-1',
+          amount: '100.00',
+          currency: 'EUR',
+          status: 'active',
+          startAt: '2026-06-06T00:00:00.000Z',
+          zoneId: 'UTC',
+          generatedOccurrences: 0,
+          splitItems: [],
+          rule: { frequency: 'monthly' },
+          recurrenceEnd: { kind: 'never' },
+        }),
+      ],
+    });
+
+    expect(result.currentBalanceAmount).toBe('1000.00');
+    expect(result.expectedEndBalanceAmount).toBe('1200.00');
+    expect(result.lowestPointLabel).toBe('Jun 1');
+    expect(result.points[1]).toEqual(expect.objectContaining({
+      label: 'Jun 2',
+      postedBalanceAmount: '1050.00',
+      expectedBalanceAmount: '1050.00',
+    }));
+  });
+
+  it('builds upcoming money cards from scheduled movements in the selected window', () => {
+    const result = buildFlowUpcoming({
+      currency: 'EUR',
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        start: new Date('2026-06-01T00:00:00.000Z'),
+        end: new Date('2026-07-01T00:00:00.000Z'),
+      },
+      scheduledMovements: [
+        scheduledMovement({
+          id: 'income',
+          type: 'income',
+          sourceAccountId: 'acc-1',
+          amount: '300.00',
+          currency: 'EUR',
+          status: 'active',
+          startAt: '2026-06-05T00:00:00.000Z',
+          zoneId: 'UTC',
+          generatedOccurrences: 0,
+          splitItems: [],
+          rule: { frequency: 'monthly' },
+          recurrenceEnd: { kind: 'never' },
+        }),
+        scheduledMovement({
+          id: 'expense',
+          type: 'expense',
+          sourceAccountId: 'acc-1',
+          amount: '100.00',
+          currency: 'EUR',
+          status: 'active',
+          startAt: '2026-06-06T00:00:00.000Z',
+          zoneId: 'UTC',
+          generatedOccurrences: 0,
+          splitItems: [],
+          rule: { frequency: 'monthly' },
+          recurrenceEnd: { kind: 'never' },
+        }),
+      ],
+    });
+
+    expect(result.incomeItems).toHaveLength(1);
+    expect(result.expenseItems).toHaveLength(1);
+  });
+
+  it('builds flow insights from the selected window buckets', () => {
+    const result = buildFlowInsights({
+      currency: 'EUR',
+      currentWindow: {
+        label: 'Jun 1-Jun 7, 2026',
+        start: new Date('2026-06-01T00:00:00.000Z'),
+        end: new Date('2026-06-08T00:00:00.000Z'),
+      },
+      period: '30D',
+      postedTransactions: [
+        transaction({ id: 'income-1', type: 'income', amount: '200.00', currency: 'EUR', occurredAt: '2026-06-02T10:00:00.000Z' }),
+        transaction({ id: 'expense-1', type: 'expense', amount: '50.00', currency: 'EUR', occurredAt: '2026-06-03T10:00:00.000Z' }),
+      ],
+    });
+
+    expect(result.items).toHaveLength(4);
+    expect(result.items[0]).toMatchObject({ key: 'bestPeriod', amount: '200.00' });
+    expect(result.items[1]).toMatchObject({ key: 'worstPeriod', amount: '-50.00' });
   });
 
   it('builds overview insights for top tags and transfers from the current period', () => {

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type {
   LedgerAccountItem,
+  LedgerGetAccountSummaryResult,
   LedgerListTransactionsInput,
   LedgerTransactionListItem,
 } from '../../ledger/application/ledger.port';
@@ -43,6 +44,13 @@ function createPort(
   return {
     preferencesGet: vi.fn(async () => ({ defaultAccountId: 'acc-1' })),
     ledgerListAccounts: vi.fn(async () => ({ items: accounts })),
+    ledgerGetAccountSummary: vi.fn(async ({ accountId }: { accountId: string }): Promise<LedgerGetAccountSummaryResult> => ({
+      accountId,
+      name: accountId,
+      type: 'cash',
+      currency: 'EUR',
+      balanceAmount: '1000.00',
+    })),
     ledgerListTransactions: vi.fn(async (input: LedgerListTransactionsInput) => ({
       content: transactions.filter((item) => {
         const fromDateEpoch = input.filters?.fromDate ? Date.parse(input.filters.fromDate) : undefined;

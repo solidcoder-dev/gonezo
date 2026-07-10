@@ -4,8 +4,14 @@ import type {
   TaxonomyTagItem,
 } from '../../taxonomy/application/taxonomy.port';
 import type { LedgerAccountItem, LedgerCashFlowGranularity, LedgerTransactionListItem } from '../../ledger/application/ledger.port';
+import type { SchedulingMovementItem } from '../../scheduling/application/scheduling.port';
 import type {
   AnalyticsCashFlowSummaryResult,
+  AnalyticsFlowInsightsResult,
+  AnalyticsFlowProjectionPoint,
+  AnalyticsFlowProjectionResult,
+  AnalyticsFlowUpcomingItem,
+  AnalyticsFlowUpcomingResult,
   AnalyticsOverviewHighlight,
   AnalyticsOverviewInsightItem,
   AnalyticsOverviewInsightsResult,
@@ -25,6 +31,10 @@ const OPENING_BALANCE_DESCRIPTION = 'opening balance';
 
 function addAmount(left: string, right: string): string {
   return (Number(left) + Number(right)).toFixed(2);
+}
+
+function subtractAmount(left: string, right: string): string {
+  return (Number(left) - Number(right)).toFixed(2);
 }
 
 function selectedCurrency(input: string): string {
@@ -560,6 +570,10 @@ function spendingTimelineGrouping(period: AnalyticsPeriodPreset): SpendingTimeli
   return 'month';
 }
 
+function flowProjectionGrouping(period: AnalyticsPeriodPreset): SpendingTimelineGrouping {
+  return spendingTimelineGrouping(period);
+}
+
 function spendingTimelinePointLabel(
   start: Date,
   grouping: SpendingTimelineGrouping,
@@ -704,5 +718,293 @@ export function buildSpendingOverview(
     },
     totalExpenseAmount: categories.reduce((total, category) => addAmount(total, category.amount), '0.00'),
     categories,
+  };
+}
+
+function movementSignedAmount(movement: SchedulingMovementItem): string {
+  return movement.type === 'expense'
+    ? `-${movement.amount}`
+    : movement.type === 'income'
+      ? movement.amount
+      : '0.00';
+}
+
+function movementTitle(movement: SchedulingMovementItem): string {
+  return movement.description?.trim()
+    || movement.merchant?.trim()
+    || (movement.type === 'expense' ? 'Expense' : movement.type === 'income' ? 'Income' : 'Transfer');
+}
+
+function scheduledMovementDueAt(movement: SchedulingMovementItem): Date | undefined {
+  const candidate = movement.nextDueAt ?? movement.startAt;
+  const parsed = candidate ? new Date(candidate) : undefined;
+  return parsed && !Number.isNaN(parsed.getTime()) ? parsed : undefined;
+}
+
+function bucketStartFor(date: Date, grouping: SpendingTimelineGrouping): Date {
+  return grouping === 'day'
+    ? startOfUtcDay(date)
+    : grouping === 'week'
+      ? startOfUtcWeek(date)
+      : grouping === 'month'
+        ? startOfUtcMonth(date)
+        : startOfUtcYear(date);
+}
+
+function advanceCursor(date: Date, grouping: SpendingTimelineGrouping): Date {
+  return grouping === 'day'
+    ? addUtcDays(date, 1)
+    : grouping === 'week'
+      ? addUtcDays(date, 7)
+      : grouping === 'month'
+        ? addUtcMonths(date, 1)
+        : addUtcYears(date, 1);
+}
+
+function flowProjectionPoints(input: {
+  currentWindow: AnalyticsOverviewWindowRange;
+  grouping: SpendingTimelineGrouping;
+  postedDeltasByBucket: ReadonlyMap<string, string>;
+  scheduledDeltasByBucket: ReadonlyMap<string, string>;
+  startBalanceAmount: string;
+  now: Date;
+}): {
+  points: AnalyticsFlowProjectionPoint[];
+  lowestPointAmount: string;
+  lowestPointLabel: string;
+  currentMarkerLabel: string;
+} {
+  const points: AnalyticsFlowProjectionPoint[] = [];
+  let cursor = new Date(input.currentWindow.start);
+  let runningBalance = input.startBalanceAmount;
+  let lowestPointAmount = input.startBalanceAmount;
+  let lowestPointLabel = spendingTimelinePointLabel(cursor, input.grouping, input.currentWindow);
+  let currentMarkerLabel = input.currentWindow.label;
+
+  while (cursor < input.currentWindow.end) {
+    const label = spendingTimelinePointLabel(cursor, input.grouping, input.currentWindow);
+    const bucketKey = cursor.toISOString();
+    const postedDelta = input.postedDeltasByBucket.get(bucketKey) ?? '0.00';
+    const scheduledDelta = input.scheduledDeltasByBucket.get(bucketKey) ?? '0.00';
+    const bucketEnd = advanceCursor(cursor, input.grouping);
+    const balanceAfterPosted = addAmount(runningBalance, postedDelta);
+    const expectedBalance = addAmount(balanceAfterPosted, scheduledDelta);
+    const actualBalanceVisible = bucketEnd <= input.now || (cursor <= input.now && input.now < bucketEnd)
+      ? balanceAfterPosted
+      : undefined;
+    const expectedBalanceVisible = bucketEnd > input.now ? expectedBalance : undefined;
+
+    points.push({
+      periodKey: bucketKey,
+      label,
+      postedBalanceAmount: actualBalanceVisible,
+      scheduledBalanceAmount: expectedBalanceVisible,
+      expectedBalanceAmount: expectedBalance,
+    });
+
+    if (cursor <= input.now && input.now < bucketEnd) {
+      currentMarkerLabel = label;
+    }
+    if (Number(expectedBalance) < Number(lowestPointAmount)) {
+      lowestPointAmount = expectedBalance;
+      lowestPointLabel = label;
+    }
+
+    runningBalance = expectedBalance;
+    cursor = bucketEnd;
+  }
+
+  return { points, lowestPointAmount, lowestPointLabel, currentMarkerLabel };
+}
+
+export function buildFlowProjection(input: {
+  currency: string;
+  currentWindow: AnalyticsNavigableWindowRange;
+  period: AnalyticsPeriodPreset;
+  currentBalanceAmount: string;
+  postedTransactions: LedgerTransactionListItem[];
+  scheduledMovements: SchedulingMovementItem[];
+  now: Date;
+}): AnalyticsFlowProjectionResult {
+  const currency = selectedCurrency(input.currency);
+  const grouping = flowProjectionGrouping(input.period);
+  const postedDeltasByBucket = new Map<string, string>();
+  const scheduledDeltasByBucket = new Map<string, string>();
+  let postedDeltaToNow = '0.00';
+
+  for (const transaction of input.postedTransactions) {
+    if (!isAnalyticsCashFlowTransaction(transaction, currency) || transaction.type === 'transfer') {
+      continue;
+    }
+    const occurredAt = new Date(transaction.occurredAt);
+    if (Number.isNaN(occurredAt.getTime()) || occurredAt < input.currentWindow.start || occurredAt >= input.currentWindow.end) {
+      continue;
+    }
+    const key = bucketStartFor(occurredAt, grouping).toISOString();
+    const current = postedDeltasByBucket.get(key) ?? '0.00';
+    const delta = transaction.type === 'income' ? transaction.amount : `-${transaction.amount}`;
+    postedDeltasByBucket.set(key, addAmount(current, delta));
+    if (occurredAt <= input.now) {
+      postedDeltaToNow = addAmount(postedDeltaToNow, delta);
+    }
+  }
+
+  for (const movement of input.scheduledMovements) {
+    if (movement.status !== 'active' || movement.currency.toUpperCase() !== currency) {
+      continue;
+    }
+    if (movement.type !== 'income' && movement.type !== 'expense') {
+      continue;
+    }
+    const dueAt = scheduledMovementDueAt(movement);
+    if (!dueAt || dueAt < input.now || dueAt < input.currentWindow.start || dueAt >= input.currentWindow.end) {
+      continue;
+    }
+    const key = bucketStartFor(dueAt, grouping).toISOString();
+    const current = scheduledDeltasByBucket.get(key) ?? '0.00';
+    scheduledDeltasByBucket.set(key, addAmount(current, movementSignedAmount(movement)));
+  }
+
+  const startBalanceAmount = subtractAmount(input.currentBalanceAmount, postedDeltaToNow);
+  const { points, lowestPointAmount, lowestPointLabel, currentMarkerLabel } = flowProjectionPoints({
+    currentWindow: input.currentWindow,
+    grouping,
+    postedDeltasByBucket,
+    scheduledDeltasByBucket,
+    startBalanceAmount,
+    now: input.now,
+  });
+
+  return {
+    currentWindow: {
+      label: input.currentWindow.label,
+      startDate: input.currentWindow.start.toISOString(),
+      endDate: endInclusive(input.currentWindow.end).toISOString(),
+    },
+    window: {
+      label: input.currentWindow.label,
+      periodOffset: input.currentWindow.periodOffset,
+      canGoPrevious: input.currentWindow.canGoPrevious,
+      canGoNext: input.currentWindow.canGoNext,
+    },
+    currentBalanceAmount: input.currentBalanceAmount,
+    expectedEndBalanceAmount: points.at(-1)?.expectedBalanceAmount ?? input.currentBalanceAmount,
+    lowestPointAmount,
+    lowestPointLabel,
+    currentMarkerLabel,
+    points,
+  };
+}
+
+export function buildFlowUpcoming(input: {
+  scheduledMovements: SchedulingMovementItem[];
+  currency: string;
+  currentWindow: AnalyticsOverviewWindowRange;
+}): AnalyticsFlowUpcomingResult {
+  const currency = selectedCurrency(input.currency);
+  const incoming: AnalyticsFlowUpcomingItem[] = [];
+  const outgoing: AnalyticsFlowUpcomingItem[] = [];
+
+  for (const movement of input.scheduledMovements) {
+    if (movement.status !== 'active' || movement.currency.toUpperCase() !== currency) {
+      continue;
+    }
+    if (movement.type !== 'income' && movement.type !== 'expense') {
+      continue;
+    }
+    const dueAt = scheduledMovementDueAt(movement);
+    if (!dueAt || dueAt < input.currentWindow.start || dueAt >= input.currentWindow.end) {
+      continue;
+    }
+    const item = {
+      movementId: movement.id,
+      title: movementTitle(movement),
+      amount: movement.amount,
+      occurredAt: dueAt.toISOString(),
+    };
+    if (movement.type === 'income') {
+      incoming.push(item);
+    } else {
+      outgoing.push(item);
+    }
+  }
+
+  const byDueDate = (left: AnalyticsFlowUpcomingItem, right: AnalyticsFlowUpcomingItem) => left.occurredAt.localeCompare(right.occurredAt);
+  return {
+    incomeItems: incoming.sort(byDueDate),
+    expenseItems: outgoing.sort(byDueDate),
+  };
+}
+
+function flowPeriodTitle(grouping: SpendingTimelineGrouping): string {
+  return grouping === 'day' ? 'day' : 'period';
+}
+
+export function buildFlowInsights(input: {
+  postedTransactions: LedgerTransactionListItem[];
+  currency: string;
+  currentWindow: AnalyticsOverviewWindowRange;
+  period: AnalyticsPeriodPreset;
+}): AnalyticsFlowInsightsResult {
+  const currency = selectedCurrency(input.currency);
+  const grouping = flowProjectionGrouping(input.period);
+  const buckets = spendingTimelinePoints(input.currentWindow, grouping);
+  const netByBucket = new Map<string, string>();
+
+  for (const transaction of input.postedTransactions) {
+    if (!isAnalyticsCashFlowTransaction(transaction, currency) || transaction.type === 'transfer') {
+      continue;
+    }
+    const occurredAt = new Date(transaction.occurredAt);
+    if (Number.isNaN(occurredAt.getTime()) || occurredAt < input.currentWindow.start || occurredAt >= input.currentWindow.end) {
+      continue;
+    }
+    const key = bucketStartFor(occurredAt, grouping).toISOString();
+    const current = netByBucket.get(key) ?? '0.00';
+    const delta = transaction.type === 'income' ? transaction.amount : `-${transaction.amount}`;
+    netByBucket.set(key, addAmount(current, delta));
+  }
+
+  const bucketAmounts = buckets.map((bucket) => ({
+    label: bucket.label,
+    amount: Number(netByBucket.get(bucket.periodKey) ?? '0.00'),
+  }));
+  const best = [...bucketAmounts].sort((left, right) => right.amount - left.amount)[0];
+  const worst = [...bucketAmounts].sort((left, right) => left.amount - right.amount)[0];
+  const total = bucketAmounts.reduce((current, bucket) => current + bucket.amount, 0);
+  const positiveCount = bucketAmounts.filter((bucket) => bucket.amount > 0).length;
+  const average = bucketAmounts.length > 0 ? total / bucketAmounts.length : 0;
+
+  return {
+    items: [
+      {
+        key: 'bestPeriod',
+        title: `Best ${flowPeriodTitle(grouping)}`,
+        subtitle: best?.label ?? 'No data',
+        amount: best ? best.amount.toFixed(2) : '0.00',
+        tone: 'income',
+      },
+      {
+        key: 'worstPeriod',
+        title: `Worst ${flowPeriodTitle(grouping)}`,
+        subtitle: worst?.label ?? 'No data',
+        amount: worst ? worst.amount.toFixed(2) : '0.00',
+        tone: 'expense',
+      },
+      {
+        key: 'averagePeriod',
+        title: `Average ${flowPeriodTitle(grouping)}`,
+        subtitle: `Across ${bucketAmounts.length} ${flowPeriodTitle(grouping)}${bucketAmounts.length === 1 ? '' : 's'}`,
+        amount: average.toFixed(2),
+        tone: 'neutral',
+      },
+      {
+        key: 'positivePeriods',
+        title: `Positive ${flowPeriodTitle(grouping)}s`,
+        subtitle: `${positiveCount} of ${bucketAmounts.length}`,
+        amount: String(positiveCount),
+        tone: 'neutral',
+      },
+    ],
   };
 }

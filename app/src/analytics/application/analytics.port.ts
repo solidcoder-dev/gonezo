@@ -157,6 +157,63 @@ export type AnalyticsSpendingTopExpensesResult = {
   items: AnalyticsSpendingTopExpenseItem[];
 };
 
+export type AnalyticsFlowProjectionPoint = {
+  periodKey: string;
+  label: string;
+  postedBalanceAmount?: string;
+  scheduledBalanceAmount?: string;
+  expectedBalanceAmount: string;
+};
+
+export type AnalyticsFlowProjectionInput = AnalyticsCurrencyScopeInput & {
+  periodOffset?: number;
+};
+
+export type AnalyticsFlowProjectionResult = {
+  currentWindow: AnalyticsOverviewWindow;
+  window: AnalyticsPeriodWindow;
+  currentBalanceAmount: string;
+  expectedEndBalanceAmount: string;
+  lowestPointAmount: string;
+  lowestPointLabel: string;
+  currentMarkerLabel: string;
+  points: AnalyticsFlowProjectionPoint[];
+};
+
+export type AnalyticsFlowUpcomingItem = {
+  movementId: string;
+  title: string;
+  amount: string;
+  occurredAt: string;
+};
+
+export type AnalyticsFlowUpcomingInput = AnalyticsCurrencyScopeInput;
+
+export type AnalyticsFlowUpcomingResult = {
+  incomeItems: AnalyticsFlowUpcomingItem[];
+  expenseItems: AnalyticsFlowUpcomingItem[];
+};
+
+export type AnalyticsFlowInsightKey =
+  | 'bestPeriod'
+  | 'worstPeriod'
+  | 'averagePeriod'
+  | 'positivePeriods';
+
+export type AnalyticsFlowInsightItem = {
+  key: AnalyticsFlowInsightKey;
+  title: string;
+  subtitle: string;
+  amount: string;
+  tone: 'income' | 'expense' | 'neutral';
+};
+
+export type AnalyticsFlowInsightsInput = AnalyticsCurrencyScopeInput;
+
+export type AnalyticsFlowInsightsResult = {
+  items: AnalyticsFlowInsightItem[];
+};
+
 export type AnalyticsSetMovementIgnoredInput = {
   movementId: string;
   ignored: boolean;
@@ -178,6 +235,9 @@ export type AnalyticsPort = {
   analyticsGetSpendingTimeline(input: AnalyticsSpendingTimelineInput): Promise<AnalyticsSpendingTimelineResult>;
   analyticsGetSpendingTopExpenses(input: AnalyticsSpendingTopExpensesInput): Promise<AnalyticsSpendingTopExpensesResult>;
   analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult>;
+  analyticsGetFlowProjection(input: AnalyticsFlowProjectionInput): Promise<AnalyticsFlowProjectionResult>;
+  analyticsGetFlowUpcoming(input: AnalyticsFlowUpcomingInput): Promise<AnalyticsFlowUpcomingResult>;
+  analyticsGetFlowInsights(input: AnalyticsFlowInsightsInput): Promise<AnalyticsFlowInsightsResult>;
   analyticsSetMovementIgnored(input: AnalyticsSetMovementIgnoredInput): Promise<void>;
   analyticsListIgnoredMovements(): Promise<AnalyticsListIgnoredMovementsResult>;
 };

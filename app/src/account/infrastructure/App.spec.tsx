@@ -405,6 +405,32 @@ function makeCore(transactionCount = 0): AppTestPort {
       totalExpenseAmount: '0.00',
       categories: [],
     })),
+    analyticsGetFlowProjection: vi.fn(async () => ({
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        startDate: '2026-06-01T00:00:00.000Z',
+        endDate: '2026-06-30T23:59:59.999Z',
+      },
+      window: {
+        label: 'Jun 1-Jun 30, 2026',
+        periodOffset: 0,
+        canGoPrevious: true,
+        canGoNext: false,
+      },
+      currentBalanceAmount: '0.00',
+      expectedEndBalanceAmount: '0.00',
+      lowestPointAmount: '0.00',
+      lowestPointLabel: 'Jun 1',
+      currentMarkerLabel: 'Jun 1',
+      points: [],
+    })),
+    analyticsGetFlowUpcoming: vi.fn(async () => ({
+      incomeItems: [],
+      expenseItems: [],
+    })),
+    analyticsGetFlowInsights: vi.fn(async () => ({
+      items: [],
+    })),
     analyticsSetMovementIgnored: vi.fn(async () => undefined),
     analyticsListIgnoredMovements: vi.fn(async () => ({ movementIds: [] })),
     ledgerListTransactions: vi.fn(async (input) => toPagedResult(transactions, input)),
@@ -1021,7 +1047,7 @@ describe('App Accounts UX', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Analytics' }));
     expect(await screen.findByRole('heading', { name: 'Analytics' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Cash flow' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Income vs Expenses' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Profile' }));
     expect(await screen.findByText('Favorite account')).toBeInTheDocument();

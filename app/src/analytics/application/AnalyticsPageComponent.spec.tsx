@@ -116,6 +116,32 @@ function createCore(): AnalyticsPort {
         { periodKey: '2026-06-06T00:00:00.000Z', label: 'Jun 6', amount: '80.00' },
       ],
     })),
+    analyticsGetFlowProjection: vi.fn(async (input) => ({
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        startDate: '2026-06-01T00:00:00.000Z',
+        endDate: '2026-06-30T23:59:59.999Z',
+      },
+      window: {
+        label: 'Jun 1-Jun 30, 2026',
+        periodOffset: input.periodOffset ?? 0,
+        canGoPrevious: true,
+        canGoNext: false,
+      },
+      currentBalanceAmount: '1000.00',
+      expectedEndBalanceAmount: '1100.00',
+      lowestPointAmount: '900.00',
+      lowestPointLabel: 'Jun 6',
+      currentMarkerLabel: 'Jun 6',
+      points: [],
+    })),
+    analyticsGetFlowUpcoming: vi.fn(async () => ({
+      incomeItems: [],
+      expenseItems: [],
+    })),
+    analyticsGetFlowInsights: vi.fn(async () => ({
+      items: [],
+    })),
     analyticsGetSpendingTopExpenses: vi.fn(async (input) => ({
       currentWindow: {
         label: 'Jun 1-Jun 30, 2026',
@@ -174,7 +200,7 @@ describe('AnalyticsPageComponent', () => {
       currency: 'EUR',
       filters: expect.objectContaining({ period: '30D' }),
     })));
-    expect(core.analyticsGetCashFlowSeries).not.toHaveBeenCalled();
+    expect(core.analyticsGetFlowProjection).not.toHaveBeenCalled();
     expect(core.analyticsGetSpendingDashboard).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByLabelText('Select currency'));
@@ -198,9 +224,8 @@ describe('AnalyticsPageComponent', () => {
     })));
 
     fireEvent.click(screen.getByRole('tab', { name: 'Flow' }));
-    await waitFor(() => expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith(expect.objectContaining({
+    await waitFor(() => expect(core.analyticsGetFlowProjection).toHaveBeenCalledWith(expect.objectContaining({
       currency: 'USD',
-      granularity: 'monthly',
       periodOffset: 0,
       filters: expect.objectContaining({ period: '30D' }),
     })));

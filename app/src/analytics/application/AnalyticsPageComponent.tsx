@@ -3,9 +3,9 @@ import {
   AnalyticsFilterBarView,
   AnalyticsViewTabsView,
 } from '../ui/AnalyticsFilterBarView';
-import { CashFlowChartCardComponent } from './CashFlowChartCardComponent';
 import { OverviewInsightsRailComponent } from './OverviewInsightsRailComponent';
 import { OverviewSnapshotCardComponent } from './OverviewSnapshotCardComponent';
+import { FlowTabComponent } from './FlowTabComponent';
 import { SpendingTabComponent } from './SpendingTabComponent';
 import { useAnalyticsFiltersModel } from './useAnalyticsFiltersModel';
 import styles from '../ui/AnalyticsPageView.module.css';
@@ -95,7 +95,7 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
           provided={provided}
         />
       ) : filterModel.viewMode === 'cashFlow' ? (
-        <CashFlowChartCardComponent
+        <FlowTabComponent
           required={{
             context: { core: required.context.core },
             config: {
