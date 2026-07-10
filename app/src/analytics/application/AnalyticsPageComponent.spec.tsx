@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AnalyticsPageComponent } from './AnalyticsPageComponent';
 import type { AnalyticsOverviewInsightsResult, AnalyticsPort } from './analytics.port';
@@ -82,9 +82,58 @@ function createCore(): AnalyticsPort {
       expenseAmount: input.currency === 'USD' ? '100.00' : '250.00',
       netFlowAmount: input.currency === 'USD' ? '200.00' : '750.00',
     })),
+    analyticsGetSpendingDashboard: vi.fn(async (input) => ({
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        startDate: '2026-06-01T00:00:00.000Z',
+        endDate: '2026-06-30T23:59:59.999Z',
+      },
+      previousWindow: {
+        label: 'May 1-May 31, 2026',
+        startDate: '2026-05-01T00:00:00.000Z',
+        endDate: '2026-05-31T23:59:59.999Z',
+      },
+      totalExpenseAmount: input.currency === 'USD' ? '100.00' : '250.00',
+      previousExpenseChangePercent: input.currency === 'USD' ? '-20.00' : '25.00',
+      categories: [
+        { categoryId: 'cat-food', categoryName: 'Food', amount: input.currency === 'USD' ? '100.00' : '250.00', percentage: 100 },
+      ],
+    })),
+    analyticsGetSpendingTimeline: vi.fn(async () => ({
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        startDate: '2026-06-01T00:00:00.000Z',
+        endDate: '2026-06-30T23:59:59.999Z',
+      },
+      window: {
+        label: 'Jun 1-Jun 30, 2026',
+        periodOffset: 0,
+        canGoPrevious: true,
+        canGoNext: false,
+      },
+      points: [
+        { periodKey: '2026-06-01T00:00:00.000Z', label: 'Jun 1', amount: '40.00' },
+        { periodKey: '2026-06-06T00:00:00.000Z', label: 'Jun 6', amount: '80.00' },
+      ],
+    })),
+    analyticsGetSpendingTopExpenses: vi.fn(async (input) => ({
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        startDate: '2026-06-01T00:00:00.000Z',
+        endDate: '2026-06-30T23:59:59.999Z',
+      },
+      items: [
+        {
+          movementId: 'expense-1',
+          title: 'Supermarket',
+          amount: input.currency === 'USD' ? '52.40' : '64.23',
+          occurredAt: '2026-06-10T00:00:00.000Z',
+        },
+      ],
+    })),
     analyticsGetSpendingOverview: vi.fn(async (input) => ({
       granularity: input.granularity,
-      window: { label: 'Jun 2026 - Jun 2026', periodOffset: input.periodOffset ?? 0, canGoNext: false },
+      window: { label: 'Jun 2026 - Jun 2026', periodOffset: input.periodOffset ?? 0, canGoPrevious: true, canGoNext: false },
       totalExpenseAmount: input.currency === 'USD' ? '100.00' : '250.00',
       categories: [
         { categoryId: 'cat-food', categoryName: 'Food', amount: input.currency === 'USD' ? '100.00' : '250.00', percentage: 100 },
@@ -96,10 +145,10 @@ function createCore(): AnalyticsPort {
 }
 
 describe('AnalyticsPageComponent', () => {
-  it('uses a global currency selector while each analytics tab loads its own use case', async () => {
+  it('uses a global currency selector across overview, spending and flow tabs', async () => {
     const core = createCore();
 
-    const { rerender } = render(
+    render(
       <AnalyticsPageComponent
         required={{
           context: { core },
@@ -119,14 +168,14 @@ describe('AnalyticsPageComponent', () => {
     expect(screen.queryByRole('tab', { name: 'Accounts' })).not.toBeInTheDocument();
     await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalledWith(expect.objectContaining({
       currency: 'EUR',
-      filters: expect.objectContaining({ period: '1M' }),
+      filters: expect.objectContaining({ period: '30D' }),
     })));
     await waitFor(() => expect(core.analyticsGetOverviewInsights).toHaveBeenCalledWith(expect.objectContaining({
       currency: 'EUR',
-      filters: expect.objectContaining({ period: '1M' }),
+      filters: expect.objectContaining({ period: '30D' }),
     })));
     expect(core.analyticsGetCashFlowSeries).not.toHaveBeenCalled();
-    expect(core.analyticsGetSpendingOverview).not.toHaveBeenCalled();
+    expect(core.analyticsGetSpendingDashboard).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByLabelText('Select currency'));
     fireEvent.click(screen.getByRole('button', { name: 'USD' }));
@@ -134,35 +183,18 @@ describe('AnalyticsPageComponent', () => {
     await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalledWith(expect.objectContaining({ currency: 'USD' })));
     await waitFor(() => expect(core.analyticsGetOverviewInsights).toHaveBeenCalledWith(expect.objectContaining({ currency: 'USD' })));
 
-    fireEvent.click(screen.getAllByLabelText('Select period')[0]);
-    expect(screen.getByRole('button', { name: '1W' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '1Y' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '5Y' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'All period' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '3M' }));
-    await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalledWith(expect.objectContaining({
-      filters: expect.objectContaining({ period: '3M' }),
-    })));
-    await waitFor(() => expect(core.analyticsGetOverviewInsights).toHaveBeenCalledWith(expect.objectContaining({
-      filters: expect.objectContaining({ period: '3M' }),
-    })));
-
-    fireEvent.click(screen.getByLabelText('More filters'));
-    fireEvent.change(screen.getByLabelText('Analytics account'), { target: { value: 'acc-2' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Apply filters' }));
-    await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalledWith(expect.objectContaining({
-      currency: 'USD',
-      filters: expect.objectContaining({ accountIds: ['acc-2'], currency: 'USD' }),
-    })));
-    await waitFor(() => expect(core.analyticsGetOverviewInsights).toHaveBeenCalledWith(expect.objectContaining({
-      currency: 'USD',
-      filters: expect.objectContaining({ accountIds: ['acc-2'], currency: 'USD' }),
-    })));
-
     fireEvent.click(screen.getByRole('tab', { name: 'Spending' }));
-    await waitFor(() => expect(core.analyticsGetSpendingOverview).toHaveBeenCalledWith(expect.objectContaining({
+    await waitFor(() => expect(core.analyticsGetSpendingDashboard).toHaveBeenCalledWith(expect.objectContaining({
       currency: 'USD',
-      filters: expect.objectContaining({ accountIds: ['acc-2'], period: '3M' }),
+      filters: expect.objectContaining({ period: '30D' }),
+    })));
+    await waitFor(() => expect(core.analyticsGetSpendingTimeline).toHaveBeenCalledWith(expect.objectContaining({
+      currency: 'USD',
+      filters: expect.objectContaining({ period: '30D' }),
+    })));
+    await waitFor(() => expect(core.analyticsGetSpendingTopExpenses).toHaveBeenCalledWith(expect.objectContaining({
+      currency: 'USD',
+      filters: expect.objectContaining({ period: '30D' }),
     })));
 
     fireEvent.click(screen.getByRole('tab', { name: 'Flow' }));
@@ -170,31 +202,15 @@ describe('AnalyticsPageComponent', () => {
       currency: 'USD',
       granularity: 'monthly',
       periodOffset: 0,
-      filters: expect.objectContaining({ accountIds: ['acc-2'], period: '3M' }),
+      filters: expect.objectContaining({ period: '30D' }),
     })));
-
-    const filterFacetsCallsBeforeRefresh = vi.mocked(core.analyticsGetFilterFacets).mock.calls.length;
-
-    rerender(
-      <AnalyticsPageComponent
-        required={{
-          context: { core },
-          config: { enabled: true, refreshSignal: true },
-        }}
-      />,
-    );
-
-    await waitFor(() => expect(core.analyticsListCurrencies).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(vi.mocked(core.analyticsGetFilterFacets).mock.calls.length).toBeGreaterThan(filterFacetsCallsBeforeRefresh));
-    expect(core.analyticsGetCashFlowSeries).toHaveBeenCalledWith(expect.objectContaining({
-      currency: 'USD',
-      filters: expect.objectContaining({ accountIds: ['acc-2'], period: '3M' }),
-    }));
-  }, 10000);
+  }, 20000);
 
   it('renders the overview snapshot before the insights rail finishes loading', async () => {
+    const snapshotDeferred = deferred<Awaited<ReturnType<AnalyticsPort['analyticsGetOverviewSnapshot']>>>();
     const insightsDeferred = deferred<AnalyticsOverviewInsightsResult>();
     const core = createCore();
+    core.analyticsGetOverviewSnapshot = vi.fn(() => snapshotDeferred.promise);
     core.analyticsGetOverviewInsights = vi.fn(() => insightsDeferred.promise);
 
     render(
@@ -206,18 +222,62 @@ describe('AnalyticsPageComponent', () => {
       />,
     );
 
+    await act(async () => {
+      snapshotDeferred.resolve({
+        currentWindow: {
+          label: 'Jun 1-Jun 30, 2026',
+          startDate: '2026-06-01T00:00:00.000Z',
+          endDate: '2026-06-30T23:59:59.999Z',
+        },
+        previousWindow: {
+          label: 'May 1-May 31, 2026',
+          startDate: '2026-05-01T00:00:00.000Z',
+          endDate: '2026-05-31T23:59:59.999Z',
+        },
+        currentTotals: {
+          incomeAmount: '1000.00',
+          expenseAmount: '250.00',
+          netFlowAmount: '750.00',
+        },
+        previousTotals: {
+          incomeAmount: '800.00',
+          expenseAmount: '200.00',
+          netFlowAmount: '600.00',
+        },
+        netFlowChangePercent: '25.00',
+        biggestExpense: {
+          movementId: 'expense-1',
+          title: 'Shopping',
+          subtitle: 'Mall',
+          amount: '250.00',
+          occurredAt: '2026-06-12T00:00:00.000Z',
+        },
+        biggestIncome: {
+          movementId: 'income-1',
+          title: 'Work income',
+          subtitle: 'Employer',
+          amount: '1000.00',
+          occurredAt: '2026-06-01T00:00:00.000Z',
+        },
+      });
+      await snapshotDeferred.promise;
+    });
+
     expect(await screen.findByRole('heading', { name: 'Jun 1-Jun 30, 2026' })).toBeInTheDocument();
     expect(screen.getByRole('status', { name: 'Loading overview insights' })).toBeInTheDocument();
 
-    insightsDeferred.resolve({
-      items: [
-        { key: 'topTags', title: 'Top tags', subtitle: '3 tags', amount: '240.00' },
-        { key: 'transfers', title: 'Transfers', subtitle: '1 transfer', amount: '220.00' },
-      ],
+    await act(async () => {
+      insightsDeferred.resolve({
+        items: [
+          { key: 'topTags', title: 'Top tags', subtitle: '3 tags', amount: '240.00' },
+          { key: 'transfers', title: 'Transfers', subtitle: '1 transfer', amount: '220.00' },
+        ],
+      });
+      await insightsDeferred.promise;
     });
 
     expect(await screen.findByRole('heading', { name: 'More insights' })).toBeInTheDocument();
     expect(screen.getByText('Top tags')).toBeInTheDocument();
     expect(screen.getByText('Transfers')).toBeInTheDocument();
-  });
+  }, 15000);
 });

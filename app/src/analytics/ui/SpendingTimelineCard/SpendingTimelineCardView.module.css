@@ -1,0 +1,121 @@
+.card {
+  display: grid;
+  gap: 16px;
+  padding: 18px 16px;
+  border: 1px solid #ecece6;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(17 24 39 / 4%);
+}
+
+.header {
+  display: grid;
+  gap: 10px;
+}
+
+.title {
+  margin: 0;
+  color: #22221d;
+  font-size: 0.95rem;
+}
+
+.windowNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #6d6d66;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e7e5de;
+  border-radius: 999px;
+  background: #fff;
+  color: #22221d;
+}
+
+.iconButton:disabled {
+  opacity: 0.4;
+}
+
+.chart {
+  display: grid;
+  align-items: end;
+  gap: 8px;
+  min-height: 150px;
+}
+
+.chartDense {
+  display: grid;
+  align-items: end;
+  gap: 4px;
+  min-height: 150px;
+}
+
+.point {
+  display: grid;
+  gap: 7px;
+  justify-items: center;
+}
+
+.barTrack {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  width: 100%;
+  height: 120px;
+}
+
+.bar {
+  display: block;
+  width: min(100%, 12px);
+  min-height: 8px;
+  border-radius: 999px 999px 2px 2px;
+  background: #ff3b30;
+}
+
+.label {
+  color: #6d6d66;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.labelMuted {
+  color: transparent;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+  user-select: none;
+}
+
+.skeleton {
+  height: 140px;
+  border-radius: 18px;
+  background: linear-gradient(90deg, #f2f2ee 0%, #fbfbf8 50%, #f2f2ee 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.empty {
+  margin: 0;
+  color: #6d6d66;
+  font-size: 0.88rem;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}

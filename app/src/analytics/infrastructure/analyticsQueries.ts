@@ -17,7 +17,11 @@ import {
   buildAnalyticsOverviewInsights,
   buildAnalyticsOverviewSnapshot,
   buildAnalyticsOverviewWindows,
+  buildSpendingTimelineWindow,
+  buildSpendingDashboard,
   buildSpendingOverview,
+  buildSpendingTimeline,
+  buildSpendingTopExpenses,
   listAnalyticsCurrencies,
 } from '../application/analyticsBuilders';
 import type {
@@ -31,8 +35,14 @@ import type {
   AnalyticsOverviewInsightsResult,
   AnalyticsOverviewSnapshotInput,
   AnalyticsOverviewSnapshotResult,
+  AnalyticsSpendingDashboardInput,
+  AnalyticsSpendingDashboardResult,
   AnalyticsSpendingOverviewInput,
   AnalyticsSpendingOverviewResult,
+  AnalyticsSpendingTimelineInput,
+  AnalyticsSpendingTimelineResult,
+  AnalyticsSpendingTopExpensesInput,
+  AnalyticsSpendingTopExpensesResult,
 } from '../application/analytics.port';
 import {
   analyticsPeriodMonths,
@@ -52,28 +62,8 @@ type AnalyticsQueryPort = AnalyticsMovementReaderPort & {
   schedulingListMovements(input: { sourceAccountId: string }): Promise<SchedulingListMovementsResult>;
 };
 
-function startOfUtcMonth(date: Date): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
-}
-
-function startOfUtcYear(date: Date): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-}
-
-function startOfUtcDay(date: Date): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-}
-
 function addUtcDays(date: Date, days: number): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days));
-}
-
-function addUtcMonths(date: Date, months: number): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1));
-}
-
-function addUtcYears(date: Date, years: number): Date {
-  return new Date(Date.UTC(date.getUTCFullYear() + years, date.getUTCMonth(), date.getUTCDate()));
 }
 
 function dateFilterValue(date: Date): string {
@@ -86,27 +76,21 @@ function endOfUtcDay(date: Date): Date {
 
 function analyticsVisibleRangeStart(input: AnalyticsFiltersInput | undefined, now: Date): Date | undefined {
   const filters = normalizeAnalyticsFilters(input);
-  if (filters.period === '1W') {
-    return addUtcDays(startOfUtcDay(now), -6);
-  }
-  if (filters.period === '5Y') {
-    return addUtcYears(startOfUtcYear(now), -4);
-  }
   if (filters.period === 'ALL') {
     return undefined;
   }
-  const periodMonths = analyticsPeriodMonths(filters.period);
-  return addUtcMonths(startOfUtcMonth(now), -(periodMonths - 1));
+  return buildAnalyticsOverviewWindows(filters.period, now).currentWindow.start;
 }
 
 function analyticsDateRange(input: AnalyticsFiltersInput | undefined, now: Date): Pick<LedgerTransactionFilterInput, 'fromDate' | 'toDate'> {
-  const rangeStart = analyticsVisibleRangeStart(input, now);
-  if (!rangeStart) {
+  const filters = normalizeAnalyticsFilters(input);
+  if (filters.period === 'ALL') {
     return {};
   }
+  const window = buildAnalyticsOverviewWindows(filters.period, now).currentWindow;
   return {
-    fromDate: dateFilterValue(rangeStart),
-    toDate: dateFilterValue(endOfUtcDay(now)),
+    fromDate: dateFilterValue(window.start),
+    toDate: dateFilterValue(endOfUtcDay(addUtcDays(window.end, -1))),
   };
 }
 
@@ -380,5 +364,104 @@ export async function analyticsGetSpendingOverview(
     periodOffset: input.periodOffset,
     periodMonths: analyticsPeriodMonths(filters.period),
     now,
+  });
+}
+
+export async function analyticsGetSpendingDashboard(
+  port: AnalyticsQueryPort,
+  input: AnalyticsSpendingDashboardInput,
+): Promise<AnalyticsSpendingDashboardResult> {
+  const filters = normalizeAnalyticsFilters({ ...input.filters, currency: input.currency });
+  const now = new Date();
+  const accountIds = await selectedAnalyticsAccountIds(port, filters);
+
+  if (filters.period === 'ALL') {
+    const [{ transactions }, categories] = await Promise.all([
+      listAnalyticsMovements(port, {
+        accountIds,
+        filters: analyticsWindowTransactionFilters(filters, undefined, true),
+      }),
+      port.taxonomyListCategories({ appliesTo: 'expense', includeArchived: true }),
+    ]);
+    const windows = buildAnalyticsOverviewWindows(filters.period, now, earliestTransactionDate(transactions));
+    return buildSpendingDashboard({
+      currentTransactions: transactions,
+      categories: categories.items,
+      currency: input.currency,
+      currentWindow: windows.currentWindow,
+    });
+  }
+
+  const windows = buildAnalyticsOverviewWindows(filters.period, now);
+  const [currentResult, previousResult, categories] = await Promise.all([
+    listAnalyticsMovements(port, {
+      accountIds,
+      filters: analyticsWindowTransactionFilters(filters, windows.currentWindow, true),
+    }),
+    windows.previousWindow
+      ? listAnalyticsMovements(port, {
+          accountIds,
+          filters: analyticsWindowTransactionFilters(filters, windows.previousWindow, true),
+        })
+      : Promise.resolve({ accounts: [], transactions: [] }),
+    port.taxonomyListCategories({ appliesTo: 'expense', includeArchived: true }),
+  ]);
+
+  return buildSpendingDashboard({
+    currentTransactions: currentResult.transactions,
+    previousTransactions: previousResult.transactions,
+    categories: categories.items,
+    currency: input.currency,
+    currentWindow: windows.currentWindow,
+    previousWindow: windows.previousWindow,
+  });
+}
+
+export async function analyticsGetSpendingTimeline(
+  port: AnalyticsQueryPort,
+  input: AnalyticsSpendingTimelineInput,
+): Promise<AnalyticsSpendingTimelineResult> {
+  const filters = normalizeAnalyticsFilters({ ...input.filters, currency: input.currency });
+  const now = new Date();
+  const allPeriodMovements = filters.period === 'ALL'
+    ? await listScopedAnalyticsMovements(port, filters, now, true)
+    : undefined;
+  const accountIds = allPeriodMovements
+    ? undefined
+    : await selectedAnalyticsAccountIds(port, filters);
+  const earliestOccurredAt = allPeriodMovements ? earliestTransactionDate(allPeriodMovements.transactions) : undefined;
+  const window = buildSpendingTimelineWindow(filters.period, now, input.periodOffset, earliestOccurredAt);
+  const transactions = allPeriodMovements
+    ? allPeriodMovements.transactions
+    : (await listAnalyticsMovements(port, {
+      accountIds: accountIds ?? [],
+      filters: analyticsWindowTransactionFilters(filters, window, true),
+    })).transactions;
+
+  return buildSpendingTimeline({
+    transactions,
+    currency: input.currency,
+    currentWindow: window,
+    period: filters.period,
+  });
+}
+
+export async function analyticsGetSpendingTopExpenses(
+  port: AnalyticsQueryPort,
+  input: AnalyticsSpendingTopExpensesInput,
+): Promise<AnalyticsSpendingTopExpensesResult> {
+  const filters = normalizeAnalyticsFilters({ ...input.filters, currency: input.currency });
+  const now = new Date();
+  const accountIds = await selectedAnalyticsAccountIds(port, filters);
+  const windows = buildAnalyticsOverviewWindows(filters.period, now);
+  const { transactions } = await listAnalyticsMovements(port, {
+    accountIds,
+    filters: analyticsWindowTransactionFilters(filters, windows.currentWindow, true),
+  });
+
+  return buildSpendingTopExpenses({
+    transactions,
+    currency: input.currency,
+    currentWindow: windows.currentWindow,
   });
 }

@@ -2,7 +2,7 @@ import type { LedgerTransactionType } from '../../ledger/application/ledger.port
 
 export type AnalyticsViewMode = 'overview' | 'spending' | 'cashFlow' | 'recurring' | 'accounts';
 
-export type AnalyticsPeriodPreset = '1W' | '1M' | '3M' | '6M' | '1Y' | '5Y' | 'ALL';
+export type AnalyticsPeriodPreset = '7D' | '30D' | '90D' | '1Y' | 'ALL';
 
 export type AnalyticsMovementTypeFilter = Extract<LedgerTransactionType, 'income' | 'expense' | 'transfer'>;
 
@@ -18,26 +18,23 @@ export type AnalyticsFiltersInput = Partial<AnalyticsFilters>;
 
 export const DEFAULT_ANALYTICS_FILTERS: AnalyticsFilters = {
   currency: '',
-  period: '1M',
+  period: '30D',
   tagIds: [],
   accountIds: [],
   movementTypes: [],
 };
 
 export function analyticsPeriodMonths(period: AnalyticsPeriodPreset): number {
-  if (period === '1W' || period === '1M') {
+  if (period === '7D' || period === '30D') {
     return 1;
   }
-  if (period === '3M') {
+  if (period === '90D') {
     return 3;
   }
   if (period === '1Y') {
     return 12;
   }
-  if (period === '5Y') {
-    return 60;
-  }
-  return 6;
+  return 12;
 }
 
 function normalizeIdentifierList(values?: string[]): string[] {
@@ -55,10 +52,10 @@ function normalizeIdentifierList(values?: string[]): string[] {
 }
 
 function normalizePeriod(period?: AnalyticsPeriodPreset): AnalyticsPeriodPreset {
-  if (period === '1W' || period === '3M' || period === '6M' || period === '1Y' || period === '5Y' || period === 'ALL') {
+  if (period === '7D' || period === '30D' || period === '90D' || period === '1Y' || period === 'ALL') {
     return period;
   }
-  return '1M';
+  return '30D';
 }
 
 function normalizeMovementTypes(values?: AnalyticsMovementTypeFilter[]): AnalyticsMovementTypeFilter[] {

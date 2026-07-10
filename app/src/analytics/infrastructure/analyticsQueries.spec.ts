@@ -13,7 +13,10 @@ import {
   analyticsGetOverviewInsights,
   analyticsGetOverviewSnapshot,
   analyticsGetPeriodCashFlowSummary,
+  analyticsGetSpendingDashboard,
   analyticsGetSpendingOverview,
+  analyticsGetSpendingTimeline,
+  analyticsGetSpendingTopExpenses,
 } from './analyticsQueries';
 
 function transaction(input: Partial<LedgerTransactionListItem> & Pick<LedgerTransactionListItem, 'id' | 'type' | 'amount'>): LedgerTransactionListItem {
@@ -133,18 +136,18 @@ describe('analytics queries', () => {
       currency: 'EUR',
       granularity: 'monthly',
       periodOffset: 0,
-      filters: { period: '1M' },
+      filters: { period: '30D' },
     });
 
     expect(port.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({
       filters: expect.objectContaining({
-        fromDate: '2026-07-01T00:00:00.000Z',
+        fromDate: '2026-06-02T00:00:00.000Z',
         toDate: '2026-07-01T23:59:59.999Z',
       }),
     }));
   });
 
-  it('uses a seven-day date range for the one-week period', async () => {
+  it('uses a seven-day date range for the seven-day period', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-01T10:30:00.000Z'));
     const port = createPort([
@@ -155,7 +158,7 @@ describe('analytics queries', () => {
       currency: 'EUR',
       granularity: 'monthly',
       periodOffset: 0,
-      filters: { period: '1W' },
+      filters: { period: '7D' },
     });
 
     expect(port.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({
@@ -190,23 +193,23 @@ describe('analytics queries', () => {
     expect(result.window.canGoPrevious).toBe(true);
   });
 
-  it('uses a five-year range for the five-year period', async () => {
+  it('uses a ninety-day range for the ninety-day period', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-01T10:30:00.000Z'));
     const port = createPort([
-      transaction({ id: 'expense-year', type: 'expense', amount: '90.00', occurredAt: '2023-06-28T10:05:00.000Z' }),
+      transaction({ id: 'expense-quarter', type: 'expense', amount: '90.00', occurredAt: '2026-05-03T10:05:00.000Z' }),
     ]);
 
     await analyticsGetCashFlowSeries(port, {
       currency: 'EUR',
-      granularity: 'yearly',
+      granularity: 'weekly',
       periodOffset: 0,
-      filters: { period: '5Y' },
+      filters: { period: '90D' },
     });
 
     expect(port.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({
       filters: expect.objectContaining({
-        fromDate: '2022-01-01T00:00:00.000Z',
+        fromDate: '2026-04-03T00:00:00.000Z',
         toDate: '2026-07-01T23:59:59.999Z',
       }),
     }));
@@ -246,7 +249,7 @@ describe('analytics queries', () => {
     ]);
 
     await expect(analyticsGetFilterFacets(port, {
-      filters: { currency: 'EUR', period: '6M' },
+      filters: { currency: 'EUR', period: '90D' },
     })).resolves.toEqual({
       accounts: [{ id: 'acc-1', name: 'Main', currency: 'EUR' }],
       tags: [{ id: 'tag-trip', name: 'Alicante 2026' }],
@@ -263,7 +266,7 @@ describe('analytics queries', () => {
     );
 
     await expect(analyticsGetFilterFacets(port, {
-      filters: { currency: 'EUR', period: '6M' },
+      filters: { currency: 'EUR', period: '90D' },
     })).resolves.toMatchObject({
       accounts: [
         { id: 'acc-1', name: 'Main', currency: 'EUR' },
@@ -317,7 +320,7 @@ describe('analytics queries', () => {
 
     await expect(analyticsGetOverviewSnapshot(port, {
       currency: 'EUR',
-      filters: { period: '1W' },
+      filters: { period: '7D' },
     })).resolves.toEqual({
       currentWindow: {
         label: 'Jun 24-Jun 30, 2026',
@@ -411,7 +414,7 @@ describe('analytics queries', () => {
 
     await expect(analyticsGetOverviewInsights(port, {
       currency: 'EUR',
-      filters: { period: '1W', tagIds: ['tag-trip'] },
+      filters: { period: '7D', tagIds: ['tag-trip'] },
     })).resolves.toEqual({
       items: [
         {
@@ -448,6 +451,137 @@ describe('analytics queries', () => {
     });
   });
 
+  it('builds the spending dashboard for the selected period and compares with the previous one', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-30T12:00:00.000Z'));
+    const port = createPort([
+      transaction({
+        id: 'expense-current',
+        type: 'expense',
+        amount: '180.00',
+        occurredAt: '2026-06-25T09:00:00.000Z',
+        categoryId: 'cat-food',
+      }),
+      transaction({
+        id: 'expense-previous',
+        type: 'expense',
+        amount: '240.00',
+        occurredAt: '2026-05-10T09:00:00.000Z',
+        categoryId: 'cat-food',
+      }),
+    ]);
+
+    await expect(analyticsGetSpendingDashboard(port, {
+      currency: 'EUR',
+      filters: { period: '7D' },
+    })).resolves.toEqual({
+      currentWindow: {
+        label: 'Jun 24-Jun 30, 2026',
+        startDate: '2026-06-24T00:00:00.000Z',
+        endDate: '2026-06-30T23:59:59.999Z',
+      },
+      previousWindow: {
+        label: 'Jun 17-Jun 23, 2026',
+        startDate: '2026-06-17T00:00:00.000Z',
+        endDate: '2026-06-23T23:59:59.999Z',
+      },
+      totalExpenseAmount: '180.00',
+      previousExpenseChangePercent: undefined,
+      categories: [
+        { categoryId: 'cat-food', categoryName: 'Food', amount: '180.00', percentage: 100 },
+      ],
+    });
+  });
+
+  it('builds spending timeline and top expenses from the current window only', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-30T12:00:00.000Z'));
+    const port = createPort([
+      transaction({
+        id: 'expense-1',
+        type: 'expense',
+        amount: '180.00',
+        occurredAt: '2026-06-25T09:00:00.000Z',
+        description: 'Supermarket',
+      }),
+      transaction({
+        id: 'expense-2',
+        type: 'expense',
+        amount: '80.00',
+        occurredAt: '2026-06-27T09:00:00.000Z',
+        description: 'Transport',
+      }),
+    ]);
+
+    await expect(analyticsGetSpendingTimeline(port, {
+      currency: 'EUR',
+      filters: { period: '7D' },
+    })).resolves.toEqual(expect.objectContaining({
+      currentWindow: expect.objectContaining({ label: 'Jun 24-Jun 30, 2026' }),
+      points: expect.arrayContaining([
+        expect.objectContaining({ label: 'Jun 24' }),
+        expect.objectContaining({ label: 'Jun 30' }),
+      ]),
+    }));
+
+    await expect(analyticsGetSpendingTopExpenses(port, {
+      currency: 'EUR',
+      filters: { period: '7D' },
+    })).resolves.toEqual({
+      currentWindow: {
+        label: 'Jun 24-Jun 30, 2026',
+        startDate: '2026-06-24T00:00:00.000Z',
+        endDate: '2026-06-30T23:59:59.999Z',
+      },
+      items: [
+        {
+          movementId: 'expense-1',
+          title: 'Supermarket',
+          subtitle: undefined,
+          amount: '180.00',
+          occurredAt: '2026-06-25T09:00:00.000Z',
+        },
+        {
+          movementId: 'expense-2',
+          title: 'Transport',
+          subtitle: undefined,
+          amount: '80.00',
+          occurredAt: '2026-06-27T09:00:00.000Z',
+        },
+      ],
+    });
+  });
+
+  it('builds annual spending timeline pages for the all-period filter', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-01T10:30:00.000Z'));
+    const port = createPort([
+      transaction({
+        id: 'expense-old',
+        type: 'expense',
+        amount: '180.00',
+        occurredAt: '2022-05-25T09:00:00.000Z',
+        description: 'Supermarket',
+      }),
+      transaction({
+        id: 'expense-new',
+        type: 'expense',
+        amount: '80.00',
+        occurredAt: '2026-07-27T09:00:00.000Z',
+        description: 'Transport',
+      }),
+    ]);
+
+    const result = await analyticsGetSpendingTimeline(port, {
+      currency: 'EUR',
+      filters: { period: 'ALL' },
+    });
+
+    expect(result.window).toEqual({ label: '2022 - 2026', periodOffset: 0, canGoPrevious: false, canGoNext: false });
+    expect(result.points.map((point) => point.label)).toEqual(['2022', '2023', '2024', '2025', '2026']);
+    expect(result.points.map((point) => point.amount)).toEqual(['180.00', '0.00', '0.00', '0.00', '80.00']);
+  });
+
   it('builds top tags from taxonomy assignments when posted movements do not include hydrated tag objects', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-30T12:00:00.000Z'));
@@ -466,7 +600,7 @@ describe('analytics queries', () => {
 
     await expect(analyticsGetOverviewInsights(port, {
       currency: 'EUR',
-      filters: { period: '1W' },
+      filters: { period: '7D' },
     })).resolves.toEqual({
       items: [
         {
@@ -563,7 +697,7 @@ describe('analytics queries', () => {
 
     await expect(analyticsGetOverviewInsights(port, {
       currency: 'EUR',
-      filters: { period: '1W', tagIds: ['tag-trip'] },
+      filters: { period: '7D', tagIds: ['tag-trip'] },
     })).resolves.toEqual({
       items: [
         {

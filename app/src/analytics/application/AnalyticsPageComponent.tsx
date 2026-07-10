@@ -6,7 +6,7 @@ import {
 import { CashFlowChartCardComponent } from './CashFlowChartCardComponent';
 import { OverviewInsightsRailComponent } from './OverviewInsightsRailComponent';
 import { OverviewSnapshotCardComponent } from './OverviewSnapshotCardComponent';
-import { SpendingOverviewCardComponent } from './SpendingOverviewCardComponent';
+import { SpendingTabComponent } from './SpendingTabComponent';
 import { useAnalyticsFiltersModel } from './useAnalyticsFiltersModel';
 import styles from '../ui/AnalyticsPageView.module.css';
 
@@ -82,7 +82,7 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
           />
         </div>
       ) : filterModel.viewMode === 'spending' ? (
-        <SpendingOverviewCardComponent
+        <SpendingTabComponent
           required={{
             context: { core: required.context.core },
             config: {

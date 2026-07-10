@@ -11,7 +11,11 @@ import type {
   AnalyticsOverviewInsightsResult,
   AnalyticsOverviewSnapshotResult,
   AnalyticsPeriodWindow,
+  AnalyticsSpendingDashboardResult,
   AnalyticsSpendingOverviewResult,
+  AnalyticsSpendingTimelinePoint,
+  AnalyticsSpendingTimelineResult,
+  AnalyticsSpendingTopExpensesResult,
 } from './analytics.port';
 import type { AnalyticsPeriodPreset } from './analyticsFilters';
 import { buildOverviewInsightsResult } from './overviewInsights';
@@ -97,21 +101,21 @@ export function buildAnalyticsPeriodWindow(
   if (granularity === 'daily') {
     const start = addUtcDays(startOfUtcDay(now), periodOffset);
     const end = addUtcDays(start, 1);
-    return { start, end, label: dayLabel(start), periodOffset, canGoNext: periodOffset < 0 };
+    return { start, end, label: dayLabel(start), periodOffset, canGoPrevious: true, canGoNext: periodOffset < 0 };
   }
   if (granularity === 'weekly') {
     const start = addUtcDays(startOfUtcWeek(now), periodOffset * 7);
     const end = addUtcDays(start, 7);
-    return { start, end, label: rangeLabel(start, end, granularity), periodOffset, canGoNext: periodOffset < 0 };
+    return { start, end, label: rangeLabel(start, end, granularity), periodOffset, canGoPrevious: true, canGoNext: periodOffset < 0 };
   }
   if (granularity === 'monthly') {
     const start = addUtcMonths(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)), periodOffset);
     const end = addUtcMonths(start, 1);
-    return { start, end, label: rangeLabel(start, end, granularity), periodOffset, canGoNext: periodOffset < 0 };
+    return { start, end, label: rangeLabel(start, end, granularity), periodOffset, canGoPrevious: true, canGoNext: periodOffset < 0 };
   }
   const start = addUtcYears(new Date(Date.UTC(now.getUTCFullYear(), 0, 1)), periodOffset);
   const end = addUtcYears(start, 1);
-  return { start, end, label: rangeLabel(start, end, granularity), periodOffset, canGoNext: periodOffset < 0 };
+  return { start, end, label: rangeLabel(start, end, granularity), periodOffset, canGoPrevious: true, canGoNext: periodOffset < 0 };
 }
 
 export type AnalyticsOverviewWindowRange = {
@@ -120,15 +124,49 @@ export type AnalyticsOverviewWindowRange = {
   end: Date;
 };
 
+export type AnalyticsNavigableWindowRange = AnalyticsOverviewWindowRange & {
+  periodOffset: number;
+  canGoPrevious: boolean;
+  canGoNext: boolean;
+};
+
+function startOfUtcMonth(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+}
+
+function startOfUtcYear(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+}
+
 export function buildAnalyticsOverviewWindows(
   period: AnalyticsPeriodPreset,
   now: Date,
   earliestOccurredAt?: Date,
 ): { currentWindow: AnalyticsOverviewWindowRange; previousWindow?: AnalyticsOverviewWindowRange } {
-  if (period === '1W') {
+  if (period === '7D') {
     const currentStart = addUtcDays(startOfUtcDay(now), -6);
     const currentEnd = addUtcDays(startOfUtcDay(now), 1);
     const previousStart = addUtcDays(currentStart, -7);
+    return {
+      currentWindow: { start: currentStart, end: currentEnd, label: overviewRangeLabel(currentStart, currentEnd) },
+      previousWindow: { start: previousStart, end: currentStart, label: overviewRangeLabel(previousStart, currentStart) },
+    };
+  }
+
+  if (period === '30D') {
+    const currentEnd = addUtcDays(startOfUtcDay(now), 1);
+    const currentStart = addUtcDays(currentEnd, -30);
+    const previousStart = addUtcDays(currentStart, -30);
+    return {
+      currentWindow: { start: currentStart, end: currentEnd, label: overviewRangeLabel(currentStart, currentEnd) },
+      previousWindow: { start: previousStart, end: currentStart, label: overviewRangeLabel(previousStart, currentStart) },
+    };
+  }
+
+  if (period === '90D') {
+    const currentEnd = addUtcDays(startOfUtcDay(now), 1);
+    const currentStart = addUtcDays(currentEnd, -90);
+    const previousStart = addUtcDays(currentStart, -90);
     return {
       currentWindow: { start: currentStart, end: currentEnd, label: overviewRangeLabel(currentStart, currentEnd) },
       previousWindow: { start: previousStart, end: currentStart, label: overviewRangeLabel(previousStart, currentStart) },
@@ -147,22 +185,90 @@ export function buildAnalyticsOverviewWindows(
     };
   }
 
-  const monthCount = period === '1M'
-    ? 1
-    : period === '3M'
-      ? 3
-      : period === '6M'
-        ? 6
-        : period === '1Y'
-          ? 12
-          : 60;
-  const currentEnd = addUtcMonths(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)), 1);
-  const currentStart = addUtcMonths(currentEnd, -monthCount);
+  const currentEnd = addUtcMonths(startOfUtcMonth(now), 1);
+  const currentStart = addUtcMonths(currentEnd, -12);
   const previousEnd = currentStart;
-  const previousStart = addUtcMonths(previousEnd, -monthCount);
+  const previousStart = addUtcMonths(previousEnd, -12);
   return {
     currentWindow: { start: currentStart, end: currentEnd, label: overviewRangeLabel(currentStart, currentEnd) },
     previousWindow: { start: previousStart, end: previousEnd, label: overviewRangeLabel(previousStart, previousEnd) },
+  };
+}
+
+export function buildSpendingTimelineWindow(
+  period: AnalyticsPeriodPreset,
+  now: Date,
+  inputPeriodOffset = 0,
+  earliestOccurredAt?: Date,
+  allPeriodYearPageSize = 5,
+): AnalyticsNavigableWindowRange {
+  const periodOffset = Math.min(0, Math.trunc(inputPeriodOffset));
+
+  if (period === '7D') {
+    const currentEnd = addUtcDays(startOfUtcDay(now), 1 + (periodOffset * 7));
+    const currentStart = addUtcDays(currentEnd, -7);
+    return {
+      start: currentStart,
+      end: currentEnd,
+      label: overviewRangeLabel(currentStart, currentEnd),
+      periodOffset,
+      canGoPrevious: true,
+      canGoNext: periodOffset < 0,
+    };
+  }
+
+  if (period === '30D') {
+    const currentEnd = addUtcDays(startOfUtcDay(now), 1 + (periodOffset * 30));
+    const currentStart = addUtcDays(currentEnd, -30);
+    return {
+      start: currentStart,
+      end: currentEnd,
+      label: overviewRangeLabel(currentStart, currentEnd),
+      periodOffset,
+      canGoPrevious: true,
+      canGoNext: periodOffset < 0,
+    };
+  }
+
+  if (period === '90D') {
+    const currentEnd = addUtcDays(startOfUtcDay(now), 1 + (periodOffset * 90));
+    const currentStart = addUtcDays(currentEnd, -90);
+    return {
+      start: currentStart,
+      end: currentEnd,
+      label: overviewRangeLabel(currentStart, currentEnd),
+      periodOffset,
+      canGoPrevious: true,
+      canGoNext: periodOffset < 0,
+    };
+  }
+
+  if (period === '1Y') {
+    const currentEnd = addUtcMonths(startOfUtcMonth(now), 1 + (periodOffset * 12));
+    const currentStart = addUtcMonths(currentEnd, -12);
+    return {
+      start: currentStart,
+      end: currentEnd,
+      label: overviewRangeLabel(currentStart, currentEnd),
+      periodOffset,
+      canGoPrevious: true,
+      canGoNext: periodOffset < 0,
+    };
+  }
+
+  const pageSize = Math.max(5, Math.min(12, Math.trunc(allPeriodYearPageSize)));
+  const latestYearEnd = addUtcYears(startOfUtcYear(now), 1 + (periodOffset * pageSize));
+  const latestYearStart = addUtcYears(latestYearEnd, -pageSize);
+  const earliestYearStart = earliestOccurredAt ? startOfUtcYear(earliestOccurredAt) : startOfUtcYear(now);
+  const windowStart = latestYearStart < earliestYearStart ? earliestYearStart : latestYearStart;
+
+  return {
+    start: windowStart,
+    end: latestYearEnd,
+    label: rangeLabel(windowStart, latestYearEnd, 'yearly'),
+    periodOffset,
+    canGoPrevious: earliestYearStart < latestYearStart,
+    canGoNext: periodOffset < 0,
   };
 }
 
@@ -181,6 +287,7 @@ function buildAnalyticsMonthRangeWindow(
     end,
     label: rangeLabel(start, end, 'monthly'),
     periodOffset,
+    canGoPrevious: true,
     canGoNext: periodOffset < 0,
   };
 }
@@ -295,6 +402,14 @@ function percentChange(currentAmount: string, previousAmount: string): string | 
   return (((current - previous) / previous) * 100).toFixed(2);
 }
 
+function toOverviewWindow(window: AnalyticsOverviewWindowRange) {
+  return {
+    label: window.label,
+    startDate: window.start.toISOString(),
+    endDate: endInclusive(window.end).toISOString(),
+  };
+}
+
 export function buildAnalyticsOverviewSnapshot(input: {
   currentTransactions: LedgerTransactionListItem[];
   previousTransactions?: LedgerTransactionListItem[];
@@ -346,21 +461,12 @@ function categoryName(categoriesById: ReadonlyMap<string, TaxonomyCategoryItem>,
   return categoryId ? categoriesById.get(categoryId)?.name ?? UNCATEGORIZED : UNCATEGORIZED;
 }
 
-export function buildSpendingOverview(
-  input: {
-    transactions: LedgerTransactionListItem[];
-    categories: TaxonomyCategoryItem[];
-    currency: string;
-    granularity: LedgerCashFlowGranularity;
-    periodOffset?: number;
-    periodMonths?: number;
-    now: Date;
-  },
-): AnalyticsSpendingOverviewResult {
-  const currency = selectedCurrency(input.currency);
-  const window = input.periodMonths
-    ? buildAnalyticsMonthRangeWindow(input.periodMonths, input.now, input.periodOffset)
-    : buildAnalyticsPeriodWindow(input.granularity, input.now, input.periodOffset);
+function spendingCategoryBreakdown(input: {
+  transactions: LedgerTransactionListItem[];
+  categories: TaxonomyCategoryItem[];
+  currency: string;
+  window: { start: Date; end: Date };
+}): AnalyticsSpendingOverviewResult['categories'] {
   const expenseCategories = new Map(
     input.categories
       .filter((category) => category.appliesTo === 'expense')
@@ -369,11 +475,11 @@ export function buildSpendingOverview(
   const amountByCategory = new Map<string, { categoryId?: string; categoryName: string; amount: string }>();
 
   for (const transaction of input.transactions) {
-    if (!isAnalyticsCashFlowTransaction(transaction, currency) || transaction.type !== 'expense') {
+    if (!isAnalyticsCashFlowTransaction(transaction, input.currency) || transaction.type !== 'expense') {
       continue;
     }
     const occurredAt = new Date(transaction.occurredAt);
-    if (Number.isNaN(occurredAt.getTime()) || occurredAt < window.start || occurredAt >= window.end) {
+    if (Number.isNaN(occurredAt.getTime()) || occurredAt < input.window.start || occurredAt >= input.window.end) {
       continue;
     }
     const breakdown = transaction.items.length > 0
@@ -401,19 +507,202 @@ export function buildSpendingOverview(
     .reduce((total, item) => addAmount(total, item.amount), '0.00');
   const total = Number(totalExpenseAmount);
 
+  return [...amountByCategory.values()]
+    .sort((left, right) => Number(right.amount) - Number(left.amount))
+    .map((item) => ({
+      ...item,
+      percentage: total > 0 ? Math.round((Number(item.amount) / total) * 100) : 0,
+    }));
+}
+
+export function buildSpendingDashboard(input: {
+  currentTransactions: LedgerTransactionListItem[];
+  previousTransactions?: LedgerTransactionListItem[];
+  categories: TaxonomyCategoryItem[];
+  currency: string;
+  currentWindow: AnalyticsOverviewWindowRange;
+  previousWindow?: AnalyticsOverviewWindowRange;
+}): AnalyticsSpendingDashboardResult {
+  const currentTotals = buildAnalyticsCashFlowSummary(input.currentTransactions, input.currency);
+  const previousTotals = input.previousTransactions && input.previousWindow
+    ? buildAnalyticsCashFlowSummary(input.previousTransactions, input.currency)
+    : undefined;
+  const categories = spendingCategoryBreakdown({
+    transactions: input.currentTransactions,
+    categories: input.categories,
+    currency: selectedCurrency(input.currency),
+    window: input.currentWindow,
+  });
+
+  return {
+    currentWindow: toOverviewWindow(input.currentWindow),
+    previousWindow: input.previousWindow ? toOverviewWindow(input.previousWindow) : undefined,
+    totalExpenseAmount: currentTotals.expenseAmount,
+    previousExpenseChangePercent: previousTotals
+      ? percentChange(currentTotals.expenseAmount, previousTotals.expenseAmount)
+      : undefined,
+    categories,
+  };
+}
+
+type SpendingTimelineGrouping = 'day' | 'week' | 'month' | 'year';
+
+function spendingTimelineGrouping(period: AnalyticsPeriodPreset): SpendingTimelineGrouping {
+  if (period === '7D' || period === '30D') {
+    return 'day';
+  }
+  if (period === '90D') {
+    return 'week';
+  }
+  if (period === 'ALL') {
+    return 'year';
+  }
+  return 'month';
+}
+
+function spendingTimelinePointLabel(
+  start: Date,
+  grouping: SpendingTimelineGrouping,
+  currentWindow: AnalyticsOverviewWindowRange,
+): string {
+  if (grouping === 'month') {
+    return start.getUTCFullYear() === currentWindow.start.getUTCFullYear()
+      ? monthLabel(start)
+      : `${monthLabel(start)} ${start.getUTCFullYear()}`;
+  }
+  if (grouping === 'year') {
+    return String(start.getUTCFullYear());
+  }
+  return monthDayLabel(start);
+}
+
+function spendingTimelinePoints(
+  currentWindow: AnalyticsOverviewWindowRange,
+  grouping: SpendingTimelineGrouping,
+): AnalyticsSpendingTimelinePoint[] {
+  const points: AnalyticsSpendingTimelinePoint[] = [];
+  let cursor = new Date(currentWindow.start);
+
+  while (cursor < currentWindow.end) {
+    points.push({
+      periodKey: cursor.toISOString(),
+      label: spendingTimelinePointLabel(cursor, grouping, currentWindow),
+      amount: '0.00',
+    });
+    cursor = grouping === 'day'
+      ? addUtcDays(cursor, 1)
+      : grouping === 'week'
+        ? addUtcDays(cursor, 7)
+        : grouping === 'month'
+          ? addUtcMonths(cursor, 1)
+          : addUtcYears(cursor, 1);
+  }
+
+  return points;
+}
+
+export function buildSpendingTimeline(input: {
+  transactions: LedgerTransactionListItem[];
+  currency: string;
+  currentWindow: AnalyticsNavigableWindowRange;
+  period: AnalyticsPeriodPreset;
+}): AnalyticsSpendingTimelineResult {
+  const currency = selectedCurrency(input.currency);
+  const grouping = spendingTimelineGrouping(input.period);
+  const points = spendingTimelinePoints(input.currentWindow, grouping);
+
+  for (const transaction of input.transactions) {
+    if (!isAnalyticsCashFlowTransaction(transaction, currency) || transaction.type !== 'expense') {
+      continue;
+    }
+    const occurredAt = new Date(transaction.occurredAt);
+    if (Number.isNaN(occurredAt.getTime()) || occurredAt < input.currentWindow.start || occurredAt >= input.currentWindow.end) {
+      continue;
+    }
+    const candidateIndex = points.findIndex((point, index) => {
+      const bucketStart = new Date(point.periodKey);
+      const nextBucketStart = index + 1 < points.length
+        ? new Date(points[index + 1].periodKey)
+        : input.currentWindow.end;
+      return occurredAt >= bucketStart && occurredAt < nextBucketStart;
+    });
+    if (candidateIndex < 0) {
+      continue;
+    }
+    points[candidateIndex] = {
+      ...points[candidateIndex],
+      amount: addAmount(points[candidateIndex].amount, transaction.amount),
+    };
+  }
+
+  return {
+    currentWindow: toOverviewWindow(input.currentWindow),
+    window: {
+      label: input.currentWindow.label,
+      periodOffset: input.currentWindow.periodOffset,
+      canGoPrevious: input.currentWindow.canGoPrevious,
+      canGoNext: input.currentWindow.canGoNext,
+    },
+    points,
+  };
+}
+
+export function buildSpendingTopExpenses(input: {
+  transactions: LedgerTransactionListItem[];
+  currency: string;
+  currentWindow: AnalyticsOverviewWindowRange;
+  limit?: number;
+}): AnalyticsSpendingTopExpensesResult {
+  const currency = selectedCurrency(input.currency);
+
+  return {
+    currentWindow: toOverviewWindow(input.currentWindow),
+    items: input.transactions
+      .filter((transaction) => isAnalyticsCashFlowTransaction(transaction, currency) && transaction.type === 'expense')
+      .filter((transaction) => {
+        const occurredAt = new Date(transaction.occurredAt);
+        return !Number.isNaN(occurredAt.getTime())
+          && occurredAt >= input.currentWindow.start
+          && occurredAt < input.currentWindow.end;
+      })
+      .sort(byAmountDescending)
+      .slice(0, input.limit ?? 3)
+      .map((transaction) => toOverviewHighlight(transaction))
+      .filter((transaction): transaction is AnalyticsOverviewHighlight => Boolean(transaction)),
+  };
+}
+
+export function buildSpendingOverview(
+  input: {
+    transactions: LedgerTransactionListItem[];
+    categories: TaxonomyCategoryItem[];
+    currency: string;
+    granularity: LedgerCashFlowGranularity;
+    periodOffset?: number;
+    periodMonths?: number;
+    now: Date;
+  },
+): AnalyticsSpendingOverviewResult {
+  const currency = selectedCurrency(input.currency);
+  const window = input.periodMonths
+    ? buildAnalyticsMonthRangeWindow(input.periodMonths, input.now, input.periodOffset)
+    : buildAnalyticsPeriodWindow(input.granularity, input.now, input.periodOffset);
+  const categories = spendingCategoryBreakdown({
+    transactions: input.transactions,
+    categories: input.categories,
+    currency,
+    window,
+  });
+
   return {
     granularity: input.granularity,
     window: {
       label: window.label,
       periodOffset: window.periodOffset,
+      canGoPrevious: window.canGoPrevious,
       canGoNext: window.canGoNext,
     },
-    totalExpenseAmount,
-    categories: [...amountByCategory.values()]
-      .sort((left, right) => Number(right.amount) - Number(left.amount))
-      .map((item) => ({
-        ...item,
-        percentage: total > 0 ? Math.round((Number(item.amount) / total) * 100) : 0,
-      })),
+    totalExpenseAmount: categories.reduce((total, category) => addAmount(total, category.amount), '0.00'),
+    categories,
   };
 }

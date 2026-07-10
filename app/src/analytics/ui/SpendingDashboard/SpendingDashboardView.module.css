@@ -1,0 +1,216 @@
+.stack {
+  display: grid;
+  gap: 18px;
+}
+
+.card {
+  display: grid;
+  gap: 16px;
+  padding: 18px 16px;
+  border: 1px solid #ecece6;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(17 24 39 / 4%);
+}
+
+.sectionTitle {
+  margin: 0;
+  color: #22221d;
+  font-size: 0.95rem;
+  line-height: 1.15;
+}
+
+.summaryHeader {
+  display: grid;
+  gap: 4px;
+}
+
+.comparisonLabel {
+  margin: 0;
+  color: #6d6d66;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.totalAmount {
+  color: #ff3b30;
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.badgeNegative,
+.badgePositive {
+  display: grid;
+  gap: 2px;
+  min-width: 112px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  text-align: center;
+}
+
+.badgeNegative {
+  background: #fff1ef;
+  color: #ff3b30;
+}
+
+.badgePositive {
+  background: #eef8f0;
+  color: #149447;
+}
+
+.badgeNegative strong,
+.badgePositive strong {
+  font-size: 1.05rem;
+  line-height: 1.1;
+}
+
+.badgeNegative span,
+.badgePositive span {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.categoryList {
+  display: grid;
+  gap: 14px;
+}
+
+.categoryRow {
+  display: grid;
+  grid-template-columns: minmax(0, 6.75rem) minmax(0, 1fr);
+  align-items: start;
+  column-gap: 12px;
+  min-width: 0;
+}
+
+.categoryName {
+  overflow: hidden;
+  color: #22221d;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+  align-self: end;
+  padding-bottom: 1px;
+}
+
+.categoryMetricColumn {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.categoryMetricHeader {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 12px;
+  min-width: 0;
+}
+
+.categoryMetricTrack {
+  position: relative;
+  width: 100%;
+  height: 0.62rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f3f1eb;
+}
+
+.categoryMetricFill {
+  display: block;
+  height: 100%;
+  display: block;
+  min-width: 0.38rem;
+  border-radius: inherit;
+  opacity: 0.8;
+}
+
+.categoryAmount,
+.categoryPercentage {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  white-space: nowrap;
+}
+
+.categoryAmount {
+  color: #32312c;
+  font-weight: 700;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+}
+
+.categoryPercentage {
+  min-width: 2rem;
+  color: #6d6d66;
+  font-weight: 700;
+  text-align: right;
+}
+
+.summarySkeleton,
+.skeletonLine {
+  display: block;
+  width: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f2f2ee 0%, #fbfbf8 50%, #f2f2ee 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.summarySkeleton {
+  height: 52px;
+}
+
+.listSkeleton {
+  display: grid;
+  gap: 12px;
+}
+
+.skeletonLine {
+  height: 20px;
+}
+
+.empty {
+  margin: 0;
+  color: #6d6d66;
+  font-size: 0.88rem;
+}
+
+.breakdownButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #149447;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}

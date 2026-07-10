@@ -61,13 +61,11 @@ type AnalyticsFilterBarViewProps = {
 };
 
 const PERIODS: Array<{ value: AnalyticsPeriodPreset; label: string }> = [
-  { value: '1W', label: '1W' },
-  { value: '1M', label: '1M' },
-  { value: '3M', label: '3M' },
-  { value: '6M', label: '6M' },
+  { value: '7D', label: '7D' },
+  { value: '30D', label: '30D' },
+  { value: '90D', label: '90D' },
   { value: '1Y', label: '1Y' },
-  { value: '5Y', label: '5Y' },
-  { value: 'ALL', label: 'All period' },
+  { value: 'ALL', label: 'All' },
 ];
 
 const MOVEMENT_TYPES: Array<{ value: AnalyticsMovementTypeFilter; label: string }> = [

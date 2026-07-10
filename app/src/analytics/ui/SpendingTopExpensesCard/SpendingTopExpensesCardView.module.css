@@ -1,0 +1,96 @@
+.card {
+  display: grid;
+  gap: 16px;
+  padding: 18px 16px;
+  border: 1px solid #ecece6;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(17 24 39 / 4%);
+}
+
+.title {
+  margin: 0;
+  color: #22221d;
+  font-size: 0.95rem;
+}
+
+.list,
+.skeleton {
+  display: grid;
+  gap: 12px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #fff3f0;
+  color: #ff3b30;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.name,
+.amount {
+  font-size: 0.88rem;
+}
+
+.name {
+  overflow: hidden;
+  color: #22221d;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.amount {
+  color: #ff3b30;
+  white-space: nowrap;
+}
+
+.date {
+  color: #6d6d66;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.chevron {
+  color: #8b8b84;
+  font-size: 0.9rem;
+}
+
+.skeletonRow {
+  display: block;
+  width: 100%;
+  height: 36px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f2f2ee 0%, #fbfbf8 50%, #f2f2ee 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.empty {
+  margin: 0;
+  color: #6d6d66;
+  font-size: 0.88rem;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}

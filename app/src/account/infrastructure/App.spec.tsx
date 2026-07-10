@@ -357,11 +357,49 @@ function makeCore(transactionCount = 0): AppTestPort {
       expenseAmount: '0.00',
       netFlowAmount: '0.00',
     })),
+    analyticsGetSpendingDashboard: vi.fn(async () => ({
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        startDate: '2026-06-01T00:00:00.000Z',
+        endDate: '2026-06-30T23:59:59.999Z',
+      },
+      previousWindow: {
+        label: 'May 1-May 31, 2026',
+        startDate: '2026-05-01T00:00:00.000Z',
+        endDate: '2026-05-31T23:59:59.999Z',
+      },
+      totalExpenseAmount: '0.00',
+      previousExpenseChangePercent: '0.00',
+      categories: [],
+    })),
+    analyticsGetSpendingTimeline: vi.fn(async () => ({
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        startDate: '2026-06-01T00:00:00.000Z',
+        endDate: '2026-06-30T23:59:59.999Z',
+      },
+      window: {
+        label: 'Jun 1-Jun 30, 2026',
+        periodOffset: 0,
+        canGoPrevious: true,
+        canGoNext: false,
+      },
+      points: [],
+    })),
+    analyticsGetSpendingTopExpenses: vi.fn(async () => ({
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        startDate: '2026-06-01T00:00:00.000Z',
+        endDate: '2026-06-30T23:59:59.999Z',
+      },
+      items: [],
+    })),
     analyticsGetSpendingOverview: vi.fn(async (input) => ({
       granularity: input.granularity,
       window: {
         label: 'Jun 2026 - Jun 2026',
         periodOffset: input.periodOffset ?? 0,
+        canGoPrevious: true,
         canGoNext: (input.periodOffset ?? 0) < 0,
       },
       totalExpenseAmount: '0.00',

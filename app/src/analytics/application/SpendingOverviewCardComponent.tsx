@@ -38,7 +38,7 @@ function toErrorMessage(error: unknown): string {
 function emptyOverview(): AnalyticsSpendingOverviewResult {
   return {
     granularity: 'monthly',
-    window: { label: '', periodOffset: 0, canGoNext: false },
+    window: { label: '', periodOffset: 0, canGoPrevious: true, canGoNext: false },
     totalExpenseAmount: '0.00',
     categories: [],
   };

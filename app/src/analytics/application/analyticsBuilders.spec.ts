@@ -5,7 +5,10 @@ import {
   buildAnalyticsCashFlowSummary,
   buildAnalyticsOverviewInsights,
   buildAnalyticsOverviewSnapshot,
+  buildSpendingDashboard,
   buildSpendingOverview,
+  buildSpendingTimeline,
+  buildSpendingTopExpenses,
   listAnalyticsCurrencies,
 } from './analyticsBuilders';
 
@@ -178,6 +181,7 @@ describe('analytics builders', () => {
       window: {
         label: 'Jun 2026',
         periodOffset: 0,
+        canGoPrevious: true,
         canGoNext: false,
       },
       totalExpenseAmount: '1000.00',
@@ -187,6 +191,137 @@ describe('analytics builders', () => {
         { categoryId: 'cat-food', categoryName: 'Food & Dining', amount: '60.00', percentage: 6 },
       ],
     });
+  });
+
+  it('builds a spending dashboard summary with previous-period comparison and category breakdown', () => {
+    const result = buildSpendingDashboard({
+      currentTransactions: [
+        transaction({ id: 'shopping', type: 'expense', amount: '180.17', currency: 'EUR', categoryId: 'cat-food', occurredAt: '2026-06-12T10:00:00.000Z' }),
+        transaction({ id: 'bills', type: 'expense', amount: '145.90', currency: 'EUR', categoryId: 'cat-home', occurredAt: '2026-06-14T10:00:00.000Z' }),
+      ],
+      previousTransactions: [
+        transaction({ id: 'previous', type: 'expense', amount: '430.00', currency: 'EUR', categoryId: 'cat-home', occurredAt: '2026-05-10T10:00:00.000Z' }),
+      ],
+      categories,
+      currency: 'EUR',
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        start: new Date('2026-06-01T00:00:00.000Z'),
+        end: new Date('2026-07-01T00:00:00.000Z'),
+      },
+      previousWindow: {
+        label: 'May 1-May 31, 2026',
+        start: new Date('2026-05-01T00:00:00.000Z'),
+        end: new Date('2026-06-01T00:00:00.000Z'),
+      },
+    });
+
+    expect(result).toEqual({
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        startDate: '2026-06-01T00:00:00.000Z',
+        endDate: '2026-06-30T23:59:59.999Z',
+      },
+      previousWindow: {
+        label: 'May 1-May 31, 2026',
+        startDate: '2026-05-01T00:00:00.000Z',
+        endDate: '2026-05-31T23:59:59.999Z',
+      },
+      totalExpenseAmount: '326.07',
+      previousExpenseChangePercent: '-24.17',
+      categories: [
+        { categoryId: 'cat-food', categoryName: 'Food & Dining', amount: '180.17', percentage: 55 },
+        { categoryId: 'cat-home', categoryName: 'Housing', amount: '145.90', percentage: 45 },
+      ],
+    });
+  });
+
+  it('builds spending timeline daily buckets for the thirty-day period', () => {
+    const result = buildSpendingTimeline({
+      transactions: [
+        transaction({ id: 'expense-1', type: 'expense', amount: '40.00', currency: 'EUR', occurredAt: '2026-06-03T10:00:00.000Z' }),
+        transaction({ id: 'expense-2', type: 'expense', amount: '80.00', currency: 'EUR', occurredAt: '2026-06-17T10:00:00.000Z' }),
+      ],
+      currency: 'EUR',
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        start: new Date('2026-06-01T00:00:00.000Z'),
+        end: new Date('2026-07-01T00:00:00.000Z'),
+        periodOffset: 0,
+        canGoPrevious: true,
+        canGoNext: false,
+      },
+      period: '30D',
+    });
+
+    expect(result.points).toHaveLength(30);
+    expect(result.points[2]).toEqual(expect.objectContaining({ label: 'Jun 3', amount: '40.00' }));
+    expect(result.points[16]).toEqual(expect.objectContaining({ label: 'Jun 17', amount: '80.00' }));
+    expect(result.points.reduce((total, point) => Number(total) + Number(point.amount), 0)).toBe(120);
+  });
+
+  it('builds spending timeline weekly buckets for the ninety-day period', () => {
+    const result = buildSpendingTimeline({
+      transactions: [
+        transaction({ id: 'expense-1', type: 'expense', amount: '40.00', currency: 'EUR', occurredAt: '2026-05-04T10:00:00.000Z' }),
+        transaction({ id: 'expense-2', type: 'expense', amount: '80.00', currency: 'EUR', occurredAt: '2026-05-10T10:00:00.000Z' }),
+      ],
+      currency: 'EUR',
+      currentWindow: {
+        label: 'May 1-Jul 31, 2026',
+        start: new Date('2026-05-01T00:00:00.000Z'),
+        end: new Date('2026-08-01T00:00:00.000Z'),
+        periodOffset: 0,
+        canGoPrevious: true,
+        canGoNext: false,
+      },
+      period: '90D',
+    });
+
+    expect(result.points).toHaveLength(14);
+    expect(result.points[0]).toEqual(expect.objectContaining({ label: 'May 1', amount: '40.00' }));
+    expect(result.points[1]).toEqual(expect.objectContaining({ label: 'May 8', amount: '80.00' }));
+  });
+
+  it('builds spending timeline monthly buckets for the yearly period', () => {
+    const result = buildSpendingTimeline({
+      transactions: [
+        transaction({ id: 'expense-1', type: 'expense', amount: '40.00', currency: 'EUR', occurredAt: '2026-01-03T10:00:00.000Z' }),
+        transaction({ id: 'expense-2', type: 'expense', amount: '80.00', currency: 'EUR', occurredAt: '2026-12-17T10:00:00.000Z' }),
+      ],
+      currency: 'EUR',
+      currentWindow: {
+        label: 'Jan 1-Dec 31, 2026',
+        start: new Date('2026-01-01T00:00:00.000Z'),
+        end: new Date('2027-01-01T00:00:00.000Z'),
+        periodOffset: 0,
+        canGoPrevious: true,
+        canGoNext: false,
+      },
+      period: '1Y',
+    });
+
+    expect(result.points).toHaveLength(12);
+    expect(result.points[0]).toEqual(expect.objectContaining({ label: 'Jan', amount: '40.00' }));
+    expect(result.points[11]).toEqual(expect.objectContaining({ label: 'Dec', amount: '80.00' }));
+  });
+
+  it('builds top expenses sorted by amount for the current period', () => {
+    const result = buildSpendingTopExpenses({
+      transactions: [
+        transaction({ id: 'small', type: 'expense', amount: '41.90', currency: 'EUR', description: 'Ikea', occurredAt: '2026-06-12T10:00:00.000Z' }),
+        transaction({ id: 'big', type: 'expense', amount: '64.23', currency: 'EUR', description: 'Supermarket', occurredAt: '2026-06-10T10:00:00.000Z' }),
+        transaction({ id: 'mid', type: 'expense', amount: '52.40', currency: 'EUR', description: 'Amazon', occurredAt: '2026-06-12T10:00:00.000Z' }),
+      ],
+      currency: 'EUR',
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        start: new Date('2026-06-01T00:00:00.000Z'),
+        end: new Date('2026-07-01T00:00:00.000Z'),
+      },
+    });
+
+    expect(result.items.map((item) => item.title)).toEqual(['Supermarket', 'Amazon', 'Ikea']);
   });
 
   it('builds overview insights for top tags and transfers from the current period', () => {

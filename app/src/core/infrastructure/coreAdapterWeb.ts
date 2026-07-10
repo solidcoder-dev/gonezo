@@ -1,6 +1,6 @@
 import type { CorePort } from '../application/corePort';
 import type { AccountsListBalancesResult } from '../../account/application/accountBalances.port';
-import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult } from '../../analytics/application/analytics.port';
+import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingDashboardInput, AnalyticsSpendingDashboardResult, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult, AnalyticsSpendingTimelineInput, AnalyticsSpendingTimelineResult, AnalyticsSpendingTopExpensesInput, AnalyticsSpendingTopExpensesResult } from '../../analytics/application/analytics.port';
 import type { AnalyticsOverviewInsightsInput, AnalyticsOverviewInsightsResult, AnalyticsOverviewSnapshotInput, AnalyticsOverviewSnapshotResult } from '../../analytics/application/analytics.port';
 import type {
   PreferencesSetDefaultAccountInput,
@@ -126,7 +126,7 @@ import {
 import { WebTaxonomyService } from '../../taxonomy/infrastructure/webTaxonomyService';
 import { sortNetWorthCurrencies } from '../../ledger/application/netWorthOrdering';
 import { listAccountBalances } from './accountBalancesQuery';
-import { analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetOverviewInsights, analyticsGetOverviewSnapshot, analyticsGetPeriodCashFlowSummary, analyticsGetSpendingOverview, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
+import { analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetOverviewInsights, analyticsGetOverviewSnapshot, analyticsGetPeriodCashFlowSummary, analyticsGetSpendingDashboard, analyticsGetSpendingOverview, analyticsGetSpendingTimeline, analyticsGetSpendingTopExpenses, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
 import { WebAnalyticsExclusionService } from '../../analytics/infrastructure/webAnalyticsExclusionService';
 
 export type CoreAdapterWebOptions = {
@@ -281,6 +281,18 @@ export class CoreAdapterWeb implements CorePort {
 
   async analyticsGetPeriodCashFlowSummary(input: { currency: string }): Promise<AnalyticsCashFlowSummaryResult> {
     return analyticsGetPeriodCashFlowSummary(this, input);
+  }
+
+  async analyticsGetSpendingDashboard(input: AnalyticsSpendingDashboardInput): Promise<AnalyticsSpendingDashboardResult> {
+    return analyticsGetSpendingDashboard(this, input);
+  }
+
+  async analyticsGetSpendingTimeline(input: AnalyticsSpendingTimelineInput): Promise<AnalyticsSpendingTimelineResult> {
+    return analyticsGetSpendingTimeline(this, input);
+  }
+
+  async analyticsGetSpendingTopExpenses(input: AnalyticsSpendingTopExpensesInput): Promise<AnalyticsSpendingTopExpensesResult> {
+    return analyticsGetSpendingTopExpenses(this, input);
   }
 
   async analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult> {

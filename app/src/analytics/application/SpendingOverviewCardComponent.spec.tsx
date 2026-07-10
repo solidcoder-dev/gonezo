@@ -9,6 +9,7 @@ function createCore(): SpendingOverviewCardPort {
       window: {
         label: input.periodOffset === -1 ? 'May 2026' : 'Jun 2026',
         periodOffset: input.periodOffset ?? 0,
+        canGoPrevious: true,
         canGoNext: (input.periodOffset ?? 0) < 0,
       },
       totalExpenseAmount: input.granularity === 'yearly' ? '1200.00' : '250.00',

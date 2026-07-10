@@ -11,8 +11,14 @@ import type {
   AnalyticsOverviewSnapshotInput,
   AnalyticsOverviewSnapshotResult,
   AnalyticsSetMovementIgnoredInput,
+  AnalyticsSpendingDashboardInput,
+  AnalyticsSpendingDashboardResult,
   AnalyticsSpendingOverviewInput,
   AnalyticsSpendingOverviewResult,
+  AnalyticsSpendingTimelineInput,
+  AnalyticsSpendingTimelineResult,
+  AnalyticsSpendingTopExpensesInput,
+  AnalyticsSpendingTopExpensesResult,
 } from '../../analytics/application/analytics.port';
 import type { LedgerGetCashFlowSeriesResult } from '../../ledger/application/ledger.port';
 import {
@@ -20,8 +26,11 @@ import {
   analyticsGetFilterFacets,
   analyticsGetOverviewInsights,
   analyticsGetOverviewSnapshot,
+  analyticsGetSpendingDashboard,
   analyticsGetPeriodCashFlowSummary,
   analyticsGetSpendingOverview,
+  analyticsGetSpendingTimeline,
+  analyticsGetSpendingTopExpenses,
   analyticsListCurrencies,
 } from '../../analytics/infrastructure/analyticsQueries';
 import { CoreAdapterWeb } from './coreAdapterWeb';
@@ -61,6 +70,18 @@ export class AnalyticsRuntimeAdapter {
     return isNativeRuntime()
       ? analyticsGetPeriodCashFlowSummary(this.queries, input)
       : this.web.analyticsGetPeriodCashFlowSummary(input);
+  }
+
+  analyticsGetSpendingDashboard(input: AnalyticsSpendingDashboardInput): Promise<AnalyticsSpendingDashboardResult> {
+    return isNativeRuntime() ? analyticsGetSpendingDashboard(this.queries, input) : this.web.analyticsGetSpendingDashboard(input);
+  }
+
+  analyticsGetSpendingTimeline(input: AnalyticsSpendingTimelineInput): Promise<AnalyticsSpendingTimelineResult> {
+    return isNativeRuntime() ? analyticsGetSpendingTimeline(this.queries, input) : this.web.analyticsGetSpendingTimeline(input);
+  }
+
+  analyticsGetSpendingTopExpenses(input: AnalyticsSpendingTopExpensesInput): Promise<AnalyticsSpendingTopExpensesResult> {
+    return isNativeRuntime() ? analyticsGetSpendingTopExpenses(this.queries, input) : this.web.analyticsGetSpendingTopExpenses(input);
   }
 
   analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult> {

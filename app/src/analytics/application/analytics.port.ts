@@ -14,6 +14,7 @@ export type AnalyticsCashFlowSeriesInput = AnalyticsCurrencyScopeInput & {
 export type AnalyticsPeriodWindow = {
   label: string;
   periodOffset: number;
+  canGoPrevious: boolean;
   canGoNext: boolean;
 };
 
@@ -114,11 +115,46 @@ export type AnalyticsSpendingOverviewCategory = {
   percentage: number;
 };
 
+export type AnalyticsSpendingDashboardInput = AnalyticsCurrencyScopeInput;
+
+export type AnalyticsSpendingDashboardResult = {
+  currentWindow: AnalyticsOverviewWindow;
+  previousWindow?: AnalyticsOverviewWindow;
+  totalExpenseAmount: string;
+  previousExpenseChangePercent?: string;
+  categories: AnalyticsSpendingOverviewCategory[];
+};
+
 export type AnalyticsSpendingOverviewResult = {
   granularity: LedgerCashFlowGranularity;
   window: AnalyticsPeriodWindow;
   totalExpenseAmount: string;
   categories: AnalyticsSpendingOverviewCategory[];
+};
+
+export type AnalyticsSpendingTimelinePoint = {
+  periodKey: string;
+  label: string;
+  amount: string;
+};
+
+export type AnalyticsSpendingTimelineInput = AnalyticsCurrencyScopeInput & {
+  periodOffset?: number;
+};
+
+export type AnalyticsSpendingTimelineResult = {
+  currentWindow: AnalyticsOverviewWindow;
+  window: AnalyticsPeriodWindow;
+  points: AnalyticsSpendingTimelinePoint[];
+};
+
+export type AnalyticsSpendingTopExpenseItem = AnalyticsOverviewHighlight;
+
+export type AnalyticsSpendingTopExpensesInput = AnalyticsCurrencyScopeInput;
+
+export type AnalyticsSpendingTopExpensesResult = {
+  currentWindow: AnalyticsOverviewWindow;
+  items: AnalyticsSpendingTopExpenseItem[];
 };
 
 export type AnalyticsSetMovementIgnoredInput = {
@@ -138,6 +174,9 @@ export type AnalyticsPort = {
   analyticsGetOverviewInsights(input: AnalyticsOverviewInsightsInput): Promise<AnalyticsOverviewInsightsResult>;
   analyticsGetCashFlowSeries(input: AnalyticsCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult>;
   analyticsGetPeriodCashFlowSummary(input: AnalyticsCurrencyScopeInput): Promise<AnalyticsCashFlowSummaryResult>;
+  analyticsGetSpendingDashboard(input: AnalyticsSpendingDashboardInput): Promise<AnalyticsSpendingDashboardResult>;
+  analyticsGetSpendingTimeline(input: AnalyticsSpendingTimelineInput): Promise<AnalyticsSpendingTimelineResult>;
+  analyticsGetSpendingTopExpenses(input: AnalyticsSpendingTopExpensesInput): Promise<AnalyticsSpendingTopExpensesResult>;
   analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult>;
   analyticsSetMovementIgnored(input: AnalyticsSetMovementIgnoredInput): Promise<void>;
   analyticsListIgnoredMovements(): Promise<AnalyticsListIgnoredMovementsResult>;
