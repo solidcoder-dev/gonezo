@@ -23,6 +23,7 @@ function baseInput() {
         sharingListPeople: vi.fn(),
         sharingApplyShareToPostedTransaction: vi.fn(),
         sharingGetMovementDetails: vi.fn(),
+        sharingListMovementDetails: vi.fn(),
       },
       analytics: {
         analyticsSetMovementIgnored: vi.fn(),

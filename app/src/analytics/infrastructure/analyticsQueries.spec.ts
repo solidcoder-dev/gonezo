@@ -7,7 +7,7 @@ import type {
 } from '../../ledger/application/ledger.port';
 import type { TaxonomyCategoryItem } from '../../taxonomy/application/taxonomy.port';
 import type { SchedulingMovementItem } from '../../scheduling/application/scheduling.port';
-import type { SharingMovementDetailsResult } from '../../sharing/application/sharing.port';
+import type { SharingListMovementDetailsResult, SharingMovementDetailsResult } from '../../sharing/application/sharing.port';
 import {
   analyticsGetCashFlowSeries,
   analyticsGetFilterFacets,
@@ -90,7 +90,7 @@ function createPort(
         tagIds: transactions.find((item) => item.id === transactionId)?.tags?.map((tag) => tag.id) ?? [],
       })),
     })),
-    sharingGetMovementDetails: vi.fn(async (): Promise<SharingMovementDetailsResult> => null),
+    sharingListMovementDetails: vi.fn(async (): Promise<SharingListMovementDetailsResult> => ({ items: [] })),
     schedulingListMovements: vi.fn(async ({ sourceAccountId }: { sourceAccountId: string }) => ({
       items: scheduledMovements.filter((item) => item.sourceAccountId === sourceAccountId),
     })),
@@ -202,6 +202,117 @@ describe('analytics queries', () => {
     });
   });
 
+  it('counts only the personal share by default across overview, spending and flow analytics while preserving balances', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
+    const port = createPort([
+      transaction({ id: 'expense-shared', type: 'expense', amount: '100.00', categoryId: 'cat-food' }),
+      transaction({ id: 'income-salary', type: 'income', amount: '250.00' }),
+    ]);
+    vi.mocked(port.sharingListMovementDetails).mockResolvedValue({
+      items: [{
+        shareId: 'share-1',
+        transactionId: 'expense-shared',
+        participants: [
+          {
+            participantId: 'participant-1',
+            personId: 'person-1',
+            displayName: 'Ana',
+            amount: '60.00',
+            reimbursable: true,
+            repaymentStatus: 'pending',
+          },
+        ],
+        analytics: {
+          personalExpenseAmount: '40.00',
+          excludedLentAmount: '60.00',
+          excludedReimbursementIncomeAmount: '0.00',
+        },
+      }],
+    });
+
+    await expect(analyticsGetOverviewSnapshot(port, {
+      currency: 'EUR',
+    })).resolves.toMatchObject({
+      currentTotals: {
+        incomeAmount: '250.00',
+        expenseAmount: '40.00',
+        netFlowAmount: '210.00',
+      },
+    });
+    await expect(analyticsGetSpendingOverview(port, {
+      currency: 'EUR',
+      granularity: 'monthly',
+      periodOffset: 0,
+    })).resolves.toMatchObject({
+      totalExpenseAmount: '40.00',
+      categories: [{ categoryId: 'cat-food', amount: '40.00' }],
+    });
+    await expect(analyticsGetFlowInsights(port, {
+      currency: 'EUR',
+    })).resolves.toMatchObject({
+      items: expect.any(Array),
+    });
+    await expect(analyticsGetFlowProjection(port, {
+      currency: 'EUR',
+      periodOffset: 0,
+    })).resolves.toMatchObject({
+      currentBalanceAmount: '1000.00',
+    });
+  });
+
+  it('counts the full shared amount when sharedAmountMode is full', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
+    const port = createPort([
+      transaction({ id: 'expense-shared', type: 'expense', amount: '100.00', categoryId: 'cat-food' }),
+      transaction({ id: 'income-salary', type: 'income', amount: '250.00' }),
+    ]);
+    vi.mocked(port.sharingListMovementDetails).mockResolvedValue({
+      items: [{
+        shareId: 'share-1',
+        transactionId: 'expense-shared',
+        participants: [
+          {
+            participantId: 'participant-1',
+            personId: 'person-1',
+            displayName: 'Ana',
+            amount: '60.00',
+            reimbursable: true,
+            repaymentStatus: 'pending',
+          },
+        ],
+        analytics: {
+          personalExpenseAmount: '40.00',
+          excludedLentAmount: '60.00',
+          excludedReimbursementIncomeAmount: '0.00',
+        },
+      }],
+    });
+
+    const filters = { sharedAmountMode: 'full' as const };
+
+    await expect(analyticsGetOverviewSnapshot(port, {
+      currency: 'EUR',
+      filters,
+    })).resolves.toMatchObject({
+      currentTotals: {
+        incomeAmount: '250.00',
+        expenseAmount: '100.00',
+        netFlowAmount: '150.00',
+      },
+    });
+    await expect(analyticsGetSpendingOverview(port, {
+      currency: 'EUR',
+      granularity: 'monthly',
+      periodOffset: 0,
+      filters,
+    })).resolves.toMatchObject({
+      totalExpenseAmount: '100.00',
+      categories: [{ categoryId: 'cat-food', amount: '100.00' }],
+    });
+  });
+
   it('uses an explicit end-of-day instant so today movements are included on Android', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-01T10:30:00.000Z'));
@@ -268,7 +379,7 @@ describe('analytics queries', () => {
       '2026-06',
       '2026-07',
     ]);
-    expect(result.window.canGoPrevious).toBe(true);
+    expect(result.window.canGoPrevious).toBe(false);
   });
 
   it('uses a ninety-day range for the ninety-day period', async () => {
@@ -904,25 +1015,27 @@ describe('analytics queries', () => {
       ],
     );
 
-    vi.mocked(port.sharingGetMovementDetails).mockResolvedValue({
-      shareId: 'share-1',
-      transactionId: 'expense-shared',
-      participants: [
-        {
-          participantId: 'participant-1',
-          personId: 'person-1',
-          displayName: 'Ana',
-          amount: '120.00',
-          reimbursable: true,
-          repaymentStatus: 'pending',
+    vi.mocked(port.sharingListMovementDetails).mockResolvedValue({
+      items: [{
+        shareId: 'share-1',
+        transactionId: 'expense-shared',
+        participants: [
+          {
+            participantId: 'participant-1',
+            personId: 'person-1',
+            displayName: 'Ana',
+            amount: '120.00',
+            reimbursable: true,
+            repaymentStatus: 'pending',
+          },
+        ],
+        analytics: {
+          personalExpenseAmount: '60.00',
+          excludedLentAmount: '120.00',
+          excludedReimbursementIncomeAmount: '0.00',
         },
-      ],
-      analytics: {
-        personalExpenseAmount: '60.00',
-        excludedLentAmount: '120.00',
-        excludedReimbursementIncomeAmount: '0.00',
-      },
-    } satisfies Exclude<SharingMovementDetailsResult, null>);
+      } satisfies Exclude<SharingMovementDetailsResult, null>],
+    });
 
     await expect(analyticsGetOverviewInsights(port, {
       currency: 'EUR',

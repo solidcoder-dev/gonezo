@@ -1,20 +1,20 @@
 import type { LedgerTransactionListItem } from '../../ledger/application/ledger.port';
-import type { SharingGetMovementDetailsInput, SharingMovementDetailsResult } from '../../sharing/application/sharing.port';
+import type { SharingListMovementDetailsInput, SharingListMovementDetailsResult } from '../../sharing/application/sharing.port';
 import { buildOverviewSharingInsights } from '../application/overviewSharingInsights';
 
 type OverviewSharingInsightsQueryPort = {
-  sharingGetMovementDetails(input: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult>;
+  sharingListMovementDetails(input: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult>;
 };
 
 export async function analyticsGetOverviewSharingInsights(
   port: OverviewSharingInsightsQueryPort,
   transactions: LedgerTransactionListItem[],
 ) {
-  const details = await Promise.all(
-    transactions
-      .filter((transaction) => transaction.type === 'expense')
-      .map((transaction) => port.sharingGetMovementDetails({ transactionId: transaction.id })),
-  );
-
-  return buildOverviewSharingInsights(details.filter((item) => item != null));
+  const transactionIds = transactions
+    .filter((transaction) => transaction.type === 'expense')
+    .map((transaction) => transaction.id);
+  const details = transactionIds.length > 0
+    ? await port.sharingListMovementDetails({ transactionIds })
+    : { items: [] };
+  return buildOverviewSharingInsights(details.items);
 }

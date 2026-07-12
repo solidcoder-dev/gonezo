@@ -23,7 +23,13 @@ import type {
   AnalyticsSpendingTimelineResult,
   AnalyticsSpendingTopExpensesResult,
 } from './analytics.port';
-import type { AnalyticsPeriodPreset } from './analyticsFilters';
+import {
+  analyticsReferenceDateFromNow,
+  normalizeAnalyticsPeriodInput,
+  type AnalyticsPeriod,
+  type LegacyAnalyticsPeriodPreset,
+} from './analyticsFilters';
+import { resolveAnalyticsPeriodWindow } from './analyticsPeriodResolver';
 import { buildOverviewInsightsResult } from './overviewInsights';
 
 const UNCATEGORIZED = 'Uncategorized';
@@ -35,6 +41,12 @@ function addAmount(left: string, right: string): string {
 
 function subtractAmount(left: string, right: string): string {
   return (Number(left) - Number(right)).toFixed(2);
+}
+
+function analyticsTransactionAmount(transaction: LedgerTransactionListItem): string {
+  return 'analyticsAmount' in transaction && typeof transaction.analyticsAmount === 'string'
+    ? transaction.analyticsAmount
+    : transaction.amount;
 }
 
 function selectedCurrency(input: string): string {
@@ -94,14 +106,6 @@ function endInclusive(endExclusive: Date): Date {
   return new Date(endExclusive.getTime() - 1);
 }
 
-function overviewRangeLabel(start: Date, endExclusive: Date): string {
-  const end = endInclusive(endExclusive);
-  if (start.getUTCFullYear() === end.getUTCFullYear()) {
-    return `${monthDayLabel(start)}-${monthDayLabel(end)}, ${end.getUTCFullYear()}`;
-  }
-  return `${monthDayLabel(start)}, ${start.getUTCFullYear()}-${monthDayLabel(end)}, ${end.getUTCFullYear()}`;
-}
-
 export function buildAnalyticsPeriodWindow(
   granularity: LedgerCashFlowGranularity,
   now: Date,
@@ -148,42 +152,40 @@ function startOfUtcYear(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
 }
 
+function toLocalDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function toWindowRange(range: { from: string; to: string }, label: string): AnalyticsOverviewWindowRange {
+  return {
+    start: new Date(`${range.from}T00:00:00.000Z`),
+    end: addUtcDays(new Date(`${range.to}T00:00:00.000Z`), 1),
+    label,
+  };
+}
+
+function periodWindowOffset(period: AnalyticsPeriod, referenceDate: string, periodOffset: number) {
+  let currentPeriod = period;
+  let currentReferenceDate = referenceDate;
+  let resolved = resolveAnalyticsPeriodWindow(currentPeriod, currentReferenceDate);
+  for (let index = 0; index > periodOffset; index -= 1) {
+    if (!resolved.comparisonRange) {
+      break;
+    }
+    currentPeriod = { kind: 'custom', from: resolved.comparisonRange.from, to: resolved.comparisonRange.to };
+    currentReferenceDate = resolved.comparisonRange.to;
+    resolved = resolveAnalyticsPeriodWindow(currentPeriod, currentReferenceDate);
+  }
+  return resolved;
+}
+
 export function buildAnalyticsOverviewWindows(
-  period: AnalyticsPeriodPreset,
+  period: AnalyticsPeriod | LegacyAnalyticsPeriodPreset,
   now: Date,
   earliestOccurredAt?: Date,
 ): { currentWindow: AnalyticsOverviewWindowRange; previousWindow?: AnalyticsOverviewWindowRange } {
-  if (period === '7D') {
-    const currentStart = addUtcDays(startOfUtcDay(now), -6);
-    const currentEnd = addUtcDays(startOfUtcDay(now), 1);
-    const previousStart = addUtcDays(currentStart, -7);
-    return {
-      currentWindow: { start: currentStart, end: currentEnd, label: overviewRangeLabel(currentStart, currentEnd) },
-      previousWindow: { start: previousStart, end: currentStart, label: overviewRangeLabel(previousStart, currentStart) },
-    };
-  }
-
-  if (period === '30D') {
-    const currentEnd = addUtcDays(startOfUtcDay(now), 1);
-    const currentStart = addUtcDays(currentEnd, -30);
-    const previousStart = addUtcDays(currentStart, -30);
-    return {
-      currentWindow: { start: currentStart, end: currentEnd, label: overviewRangeLabel(currentStart, currentEnd) },
-      previousWindow: { start: previousStart, end: currentStart, label: overviewRangeLabel(previousStart, currentStart) },
-    };
-  }
-
-  if (period === '90D') {
-    const currentEnd = addUtcDays(startOfUtcDay(now), 1);
-    const currentStart = addUtcDays(currentEnd, -90);
-    const previousStart = addUtcDays(currentStart, -90);
-    return {
-      currentWindow: { start: currentStart, end: currentEnd, label: overviewRangeLabel(currentStart, currentEnd) },
-      previousWindow: { start: previousStart, end: currentStart, label: overviewRangeLabel(previousStart, currentStart) },
-    };
-  }
-
-  if (period === 'ALL') {
+  const normalizedPeriod = normalizeAnalyticsPeriodInput(period);
+  if (normalizedPeriod.kind === 'allTime') {
     const currentStart = earliestOccurredAt ? startOfUtcDay(earliestOccurredAt) : startOfUtcDay(now);
     const currentEnd = addUtcDays(startOfUtcDay(now), 1);
     return {
@@ -194,108 +196,48 @@ export function buildAnalyticsOverviewWindows(
       },
     };
   }
-
-  const currentEnd = addUtcMonths(startOfUtcMonth(now), 1);
-  const currentStart = addUtcMonths(currentEnd, -12);
-  const previousEnd = currentStart;
-  const previousStart = addUtcMonths(previousEnd, -12);
+  const resolved = resolveAnalyticsPeriodWindow(normalizedPeriod, analyticsReferenceDateFromNow(now));
+  const currentWindow = toWindowRange(resolved.currentRange!, resolved.currentWindowLabel);
   return {
-    currentWindow: { start: currentStart, end: currentEnd, label: overviewRangeLabel(currentStart, currentEnd) },
-    previousWindow: { start: previousStart, end: previousEnd, label: overviewRangeLabel(previousStart, previousEnd) },
+    currentWindow,
+    previousWindow: resolved.comparisonRange && resolved.comparisonWindowLabel
+      ? toWindowRange(resolved.comparisonRange, resolved.comparisonWindowLabel)
+      : undefined,
   };
 }
 
 export function buildSpendingTimelineWindow(
-  period: AnalyticsPeriodPreset,
+  period: AnalyticsPeriod | LegacyAnalyticsPeriodPreset,
   now: Date,
   inputPeriodOffset = 0,
   earliestOccurredAt?: Date,
   allPeriodYearPageSize = 5,
 ): AnalyticsNavigableWindowRange {
+  const normalizedPeriod = normalizeAnalyticsPeriodInput(period);
   const periodOffset = Math.min(0, Math.trunc(inputPeriodOffset));
+  if (normalizedPeriod.kind === 'allTime') {
+    const pageSize = Math.max(5, Math.min(12, Math.trunc(allPeriodYearPageSize)));
+    const latestYearEnd = addUtcYears(new Date(Date.UTC(now.getUTCFullYear(), 0, 1)), 1 + (periodOffset * pageSize));
+    const latestYearStart = addUtcYears(latestYearEnd, -pageSize);
+    const earliestYearStart = earliestOccurredAt
+      ? new Date(Date.UTC(earliestOccurredAt.getUTCFullYear(), 0, 1))
+      : new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+    const windowStart = latestYearStart < earliestYearStart ? earliestYearStart : latestYearStart;
 
-  if (period === '7D') {
-    const currentEnd = addUtcDays(startOfUtcDay(now), 1 + (periodOffset * 7));
-    const currentStart = addUtcDays(currentEnd, -7);
     return {
-      start: currentStart,
-      end: currentEnd,
-      label: overviewRangeLabel(currentStart, currentEnd),
+      start: windowStart,
+      end: latestYearEnd,
+      label: rangeLabel(windowStart, latestYearEnd, 'yearly'),
       periodOffset,
-      canGoPrevious: true,
+      canGoPrevious: earliestYearStart < latestYearStart,
       canGoNext: periodOffset < 0,
     };
   }
 
-  if (period === '30D') {
-    const currentEnd = addUtcDays(startOfUtcDay(now), 1 + (periodOffset * 30));
-    const currentStart = addUtcDays(currentEnd, -30);
-    return {
-      start: currentStart,
-      end: currentEnd,
-      label: overviewRangeLabel(currentStart, currentEnd),
-      periodOffset,
-      canGoPrevious: true,
-      canGoNext: periodOffset < 0,
-    };
-  }
-
-  if (period === '90D') {
-    const currentEnd = addUtcDays(startOfUtcDay(now), 1 + (periodOffset * 90));
-    const currentStart = addUtcDays(currentEnd, -90);
-    return {
-      start: currentStart,
-      end: currentEnd,
-      label: overviewRangeLabel(currentStart, currentEnd),
-      periodOffset,
-      canGoPrevious: true,
-      canGoNext: periodOffset < 0,
-    };
-  }
-
-  if (period === '1Y') {
-    const currentEnd = addUtcMonths(startOfUtcMonth(now), 1 + (periodOffset * 12));
-    const currentStart = addUtcMonths(currentEnd, -12);
-    return {
-      start: currentStart,
-      end: currentEnd,
-      label: overviewRangeLabel(currentStart, currentEnd),
-      periodOffset,
-      canGoPrevious: true,
-      canGoNext: periodOffset < 0,
-    };
-  }
-
-  const pageSize = Math.max(5, Math.min(12, Math.trunc(allPeriodYearPageSize)));
-  const latestYearEnd = addUtcYears(startOfUtcYear(now), 1 + (periodOffset * pageSize));
-  const latestYearStart = addUtcYears(latestYearEnd, -pageSize);
-  const earliestYearStart = earliestOccurredAt ? startOfUtcYear(earliestOccurredAt) : startOfUtcYear(now);
-  const windowStart = latestYearStart < earliestYearStart ? earliestYearStart : latestYearStart;
-
+  const resolved = periodWindowOffset(normalizedPeriod, toLocalDate(now), periodOffset);
+  const window = toWindowRange(resolved.currentRange!, resolved.currentWindowLabel);
   return {
-    start: windowStart,
-    end: latestYearEnd,
-    label: rangeLabel(windowStart, latestYearEnd, 'yearly'),
-    periodOffset,
-    canGoPrevious: earliestYearStart < latestYearStart,
-    canGoNext: periodOffset < 0,
-  };
-}
-
-function buildAnalyticsMonthRangeWindow(
-  months: number,
-  now: Date,
-  inputPeriodOffset = 0,
-): AnalyticsPeriodWindow & { start: Date; end: Date } {
-  const periodOffset = Math.min(0, Math.trunc(inputPeriodOffset));
-  const count = Number.isFinite(months) && months > 0 ? Math.min(Math.trunc(months), 24) : 6;
-  const current = addUtcMonths(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)), periodOffset * count);
-  const start = addUtcMonths(current, -(count - 1));
-  const end = addUtcMonths(start, count);
-  return {
-    start,
-    end,
-    label: rangeLabel(start, end, 'monthly'),
+    ...window,
     periodOffset,
     canGoPrevious: true,
     canGoNext: periodOffset < 0,
@@ -338,9 +280,9 @@ export function buildAnalyticsCashFlowSummary(
     .reduce(
       (current, transaction) => {
         if (transaction.type === 'income') {
-          return { ...current, incomeAmount: addAmount(current.incomeAmount, transaction.amount) };
+          return { ...current, incomeAmount: addAmount(current.incomeAmount, analyticsTransactionAmount(transaction)) };
         }
-        return { ...current, expenseAmount: addAmount(current.expenseAmount, transaction.amount) };
+        return { ...current, expenseAmount: addAmount(current.expenseAmount, analyticsTransactionAmount(transaction)) };
       },
       { incomeAmount: '0.00', expenseAmount: '0.00' },
     );
@@ -384,13 +326,13 @@ function toOverviewHighlight(transaction: LedgerTransactionListItem | undefined)
     movementId: transaction.id,
     title: analyticsHighlightTitle(transaction),
     subtitle: analyticsHighlightSubtitle(transaction),
-    amount: transaction.amount,
+    amount: analyticsTransactionAmount(transaction),
     occurredAt: transaction.occurredAt,
   };
 }
 
 function byAmountDescending(left: LedgerTransactionListItem, right: LedgerTransactionListItem): number {
-  return Number(right.amount) - Number(left.amount);
+  return Number(analyticsTransactionAmount(right)) - Number(analyticsTransactionAmount(left));
 }
 
 function selectBiggestMovement(
@@ -492,12 +434,15 @@ function spendingCategoryBreakdown(input: {
     if (Number.isNaN(occurredAt.getTime()) || occurredAt < input.window.start || occurredAt >= input.window.end) {
       continue;
     }
+    const attributedAmount = Number(analyticsTransactionAmount(transaction));
+    const fullAmount = Number(transaction.amount);
+    const ratio = fullAmount > 0 ? attributedAmount / fullAmount : 1;
     const breakdown = transaction.items.length > 0
       ? transaction.items.map((item) => ({
           categoryId: item.categoryId ?? transaction.categoryId,
-          amount: item.amount,
+          amount: (Number(item.amount) * ratio).toFixed(2),
         }))
-      : [{ categoryId: transaction.categoryId, amount: transaction.amount }];
+      : [{ categoryId: transaction.categoryId, amount: analyticsTransactionAmount(transaction) }];
 
     for (const item of breakdown) {
       const key = item.categoryId ?? UNCATEGORIZED;
@@ -557,20 +502,21 @@ export function buildSpendingDashboard(input: {
 
 type SpendingTimelineGrouping = 'day' | 'week' | 'month' | 'year';
 
-function spendingTimelineGrouping(period: AnalyticsPeriodPreset): SpendingTimelineGrouping {
-  if (period === '7D' || period === '30D') {
+function spendingTimelineGrouping(period: AnalyticsPeriod | LegacyAnalyticsPeriodPreset): SpendingTimelineGrouping {
+  const normalizedPeriod = normalizeAnalyticsPeriodInput(period);
+  if (normalizedPeriod.kind === 'rollingDays') {
     return 'day';
   }
-  if (period === '90D') {
+  if (normalizedPeriod.kind === 'rollingMonths') {
     return 'week';
   }
-  if (period === 'ALL') {
+  if (normalizedPeriod.kind === 'allTime') {
     return 'year';
   }
   return 'month';
 }
 
-function flowProjectionGrouping(period: AnalyticsPeriodPreset): SpendingTimelineGrouping {
+function flowProjectionGrouping(period: AnalyticsPeriod | LegacyAnalyticsPeriodPreset): SpendingTimelineGrouping {
   return spendingTimelineGrouping(period);
 }
 
@@ -619,7 +565,7 @@ export function buildSpendingTimeline(input: {
   transactions: LedgerTransactionListItem[];
   currency: string;
   currentWindow: AnalyticsNavigableWindowRange;
-  period: AnalyticsPeriodPreset;
+  period: AnalyticsPeriod | LegacyAnalyticsPeriodPreset;
 }): AnalyticsSpendingTimelineResult {
   const currency = selectedCurrency(input.currency);
   const grouping = spendingTimelineGrouping(input.period);
@@ -645,7 +591,7 @@ export function buildSpendingTimeline(input: {
     }
     points[candidateIndex] = {
       ...points[candidateIndex],
-      amount: addAmount(points[candidateIndex].amount, transaction.amount),
+      amount: addAmount(points[candidateIndex].amount, analyticsTransactionAmount(transaction)),
     };
   }
 
@@ -686,21 +632,21 @@ export function buildSpendingTopExpenses(input: {
   };
 }
 
-export function buildSpendingOverview(
-  input: {
-    transactions: LedgerTransactionListItem[];
-    categories: TaxonomyCategoryItem[];
-    currency: string;
-    granularity: LedgerCashFlowGranularity;
-    periodOffset?: number;
-    periodMonths?: number;
-    now: Date;
-  },
-): AnalyticsSpendingOverviewResult {
+export function buildSpendingOverview(input: {
+  transactions: LedgerTransactionListItem[];
+  categories: TaxonomyCategoryItem[];
+  currency: string;
+  granularity: LedgerCashFlowGranularity;
+  currentWindow?: AnalyticsNavigableWindowRange;
+  periodOffset?: number;
+  now?: Date;
+}): AnalyticsSpendingOverviewResult {
   const currency = selectedCurrency(input.currency);
-  const window = input.periodMonths
-    ? buildAnalyticsMonthRangeWindow(input.periodMonths, input.now, input.periodOffset)
-    : buildAnalyticsPeriodWindow(input.granularity, input.now, input.periodOffset);
+  const window = input.currentWindow ?? buildAnalyticsPeriodWindow(
+    input.granularity,
+    input.now ?? new Date(),
+    input.periodOffset,
+  );
   const categories = spendingCategoryBreakdown({
     transactions: input.transactions,
     categories: input.categories,
@@ -820,7 +766,7 @@ function flowProjectionPoints(input: {
 export function buildFlowProjection(input: {
   currency: string;
   currentWindow: AnalyticsNavigableWindowRange;
-  period: AnalyticsPeriodPreset;
+  period: AnalyticsPeriod | LegacyAnalyticsPeriodPreset;
   currentBalanceAmount: string;
   postedTransactions: LedgerTransactionListItem[];
   scheduledMovements: SchedulingMovementItem[];
@@ -842,7 +788,9 @@ export function buildFlowProjection(input: {
     }
     const key = bucketStartFor(occurredAt, grouping).toISOString();
     const current = postedDeltasByBucket.get(key) ?? '0.00';
-    const delta = transaction.type === 'income' ? transaction.amount : `-${transaction.amount}`;
+    const delta = transaction.type === 'income'
+      ? analyticsTransactionAmount(transaction)
+      : `-${analyticsTransactionAmount(transaction)}`;
     postedDeltasByBucket.set(key, addAmount(current, delta));
     if (occurredAt <= input.now) {
       postedDeltaToNow = addAmount(postedDeltaToNow, delta);
@@ -944,7 +892,7 @@ export function buildFlowInsights(input: {
   postedTransactions: LedgerTransactionListItem[];
   currency: string;
   currentWindow: AnalyticsOverviewWindowRange;
-  period: AnalyticsPeriodPreset;
+  period: AnalyticsPeriod | LegacyAnalyticsPeriodPreset;
 }): AnalyticsFlowInsightsResult {
   const currency = selectedCurrency(input.currency);
   const grouping = flowProjectionGrouping(input.period);
@@ -961,7 +909,9 @@ export function buildFlowInsights(input: {
     }
     const key = bucketStartFor(occurredAt, grouping).toISOString();
     const current = netByBucket.get(key) ?? '0.00';
-    const delta = transaction.type === 'income' ? transaction.amount : `-${transaction.amount}`;
+    const delta = transaction.type === 'income'
+      ? analyticsTransactionAmount(transaction)
+      : `-${analyticsTransactionAmount(transaction)}`;
     netByBucket.set(key, addAmount(current, delta));
   }
 

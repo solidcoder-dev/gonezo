@@ -11,7 +11,6 @@ import type {
   TaxonomyListCategoriesResult,
   TaxonomyListTagsResult,
 } from '../../taxonomy/application/taxonomy.port';
-import type { SharingMovementDetailsResult } from '../../sharing/application/sharing.port';
 import type { SchedulingListMovementsResult } from '../../scheduling/application/scheduling.port';
 import {
   buildAnalyticsCashFlowSummary,
@@ -55,7 +54,6 @@ import type {
   AnalyticsSpendingTopExpensesResult,
 } from '../application/analytics.port';
 import {
-  analyticsPeriodMonths,
   normalizeAnalyticsFilters,
   type AnalyticsFilters,
   type AnalyticsFiltersInput,
@@ -70,7 +68,6 @@ type AnalyticsQueryPort = AnalyticsMovementReaderPort & {
   taxonomyListCategories(input?: { appliesTo?: 'income' | 'expense'; includeArchived?: boolean }): Promise<TaxonomyListCategoriesResult>;
   taxonomyListTags(input?: { includeArchived?: boolean }): Promise<TaxonomyListTagsResult>;
   orchestrationListTransactionTaxonomy(input: { transactionIds: string[] }): Promise<OrchestrationListTransactionTaxonomyResult>;
-  sharingGetMovementDetails(input: { transactionId: string }): Promise<SharingMovementDetailsResult>;
   schedulingListMovements(input: { sourceAccountId: string }): Promise<SchedulingListMovementsResult>;
 };
 
@@ -92,24 +89,6 @@ function endOfUtcDay(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
 }
 
-function analyticsVisibleRangeStart(filters: AnalyticsFilters, now: Date): Date | undefined {
-  if (filters.period === 'ALL') {
-    return undefined;
-  }
-  return buildAnalyticsOverviewWindows(filters.period, now).currentWindow.start;
-}
-
-function analyticsDateRange(filters: AnalyticsFilters, now: Date): Pick<LedgerTransactionFilterInput, 'fromDate' | 'toDate'> {
-  if (filters.period === 'ALL') {
-    return {};
-  }
-  const window = buildAnalyticsOverviewWindows(filters.period, now).currentWindow;
-  return {
-    fromDate: dateFilterValue(window.start),
-    toDate: dateFilterValue(endOfUtcDay(addUtcDays(window.end, -1))),
-  };
-}
-
 function analyticsWindowDateRange(window: { start: Date; end: Date } | undefined): Pick<LedgerTransactionFilterInput, 'fromDate' | 'toDate'> {
   if (!window) {
     return {};
@@ -120,19 +99,14 @@ function analyticsWindowDateRange(window: { start: Date; end: Date } | undefined
   };
 }
 
-function assertSupportedAnalyticsPeriod(input: AnalyticsFiltersInput | undefined): void {
-  const period = input?.period;
-  if (
-    period == null
-    || period === '7D'
-    || period === '30D'
-    || period === '90D'
-    || period === '1Y'
-    || period === 'ALL'
-  ) {
-    return;
-  }
-  throw new Error(`Unsupported analytics period: ${String(period)}`);
+function earliestTransactionDate(transactions: Array<{ occurredAt: string }>): Date | undefined {
+  return transactions.reduce<Date | undefined>((earliest, transaction) => {
+    const occurredAt = new Date(transaction.occurredAt);
+    if (Number.isNaN(occurredAt.getTime())) {
+      return earliest;
+    }
+    return !earliest || occurredAt < earliest ? occurredAt : earliest;
+  }, undefined);
 }
 
 function assertSupportedAnalyticsCurrency(accounts: LedgerAccountItem[], currency: string): void {
@@ -191,7 +165,6 @@ async function resolveAnalyticsQueryScope(
   port: AnalyticsQueryPort,
   input: AnalyticsFiltersInput | undefined,
 ): Promise<AnalyticsQueryScope> {
-  assertSupportedAnalyticsPeriod(input);
   const filters = normalizeAnalyticsFilters(input);
   const [accounts, tags] = await Promise.all([
     port.ledgerListAccounts(),
@@ -214,50 +187,29 @@ async function resolveAnalyticsQueryScope(
 }
 
 function analyticsTransactionFilters(
-  filters: AnalyticsFilters,
-  now: Date,
-  includeTags: boolean,
-): LedgerTransactionFilterInput {
-  return {
-    statuses: ['posted'],
-    tagIds: includeTags && filters.tagIds.length > 0 ? filters.tagIds : undefined,
-    ...analyticsDateRange(filters, now),
-  };
-}
-
-function analyticsWindowTransactionFilters(
-  filters: AnalyticsFilters,
+  scope: AnalyticsFilters,
   window: { start: Date; end: Date } | undefined,
   includeTags: boolean,
 ): LedgerTransactionFilterInput {
   return {
     statuses: ['posted'],
-    tagIds: includeTags && filters.tagIds.length > 0 ? filters.tagIds : undefined,
+    tagIds: includeTags && scope.tagIds.length > 0 ? scope.tagIds : undefined,
     ...analyticsWindowDateRange(window),
   };
-}
-
-function earliestTransactionDate(transactions: Array<{ occurredAt: string }>): Date | undefined {
-  return transactions.reduce<Date | undefined>((earliest, transaction) => {
-    const occurredAt = new Date(transaction.occurredAt);
-    if (Number.isNaN(occurredAt.getTime())) {
-      return earliest;
-    }
-    return !earliest || occurredAt < earliest ? occurredAt : earliest;
-  }, undefined);
 }
 
 async function listScopedAnalyticsMovements(
   port: AnalyticsQueryPort,
   input: AnalyticsFiltersInput | AnalyticsFilters | undefined,
-  now = new Date(),
+  window: { start: Date; end: Date } | undefined,
   includeTags = true,
 ) {
   const scope = await resolveAnalyticsQueryScope(port, input);
   return listAnalyticsMovements(port, {
     accountIds: scope.selectedAccountIds,
-    filters: analyticsTransactionFilters(scope.filters, now, includeTags),
+    filters: analyticsTransactionFilters(scope.filters, window, includeTags),
     includeIgnoredMovements: scope.filters.includeIgnoredMovements,
+    sharedAmountMode: scope.filters.sharedAmountMode,
   });
 }
 
@@ -278,8 +230,9 @@ export async function analyticsGetFilterFacets(
 ): Promise<AnalyticsGetFilterFacetsResult> {
   const scope = await resolveAnalyticsQueryScope(port, input.filters);
   const now = new Date();
+  const currentWindow = buildAnalyticsOverviewWindows(scope.filters.period, now).currentWindow;
   const [{ transactions }, tags] = await Promise.all([
-    listScopedAnalyticsMovements(port, scope.filters, now, false),
+    listScopedAnalyticsMovements(port, scope.filters, currentWindow, false),
     port.taxonomyListTags({ includeArchived: false }),
   ]);
 
@@ -296,12 +249,11 @@ export async function analyticsGetFilterFacets(
   }
 
   return {
-    accounts: scope.compatibleAccounts
-      .map((account) => ({
-        id: account.id,
-        name: account.name,
-        currency: account.currency,
-      })),
+    accounts: scope.compatibleAccounts.map((account) => ({
+      id: account.id,
+      name: account.name,
+      currency: account.currency,
+    })),
     tags: tags.items
       .filter((tag) => scopedTagIds.has(tag.id))
       .map((tag) => ({ id: tag.id, name: tag.name })),
@@ -314,7 +266,10 @@ export async function analyticsGetCashFlowSeries(
 ): Promise<LedgerGetCashFlowSeriesResult> {
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
   const now = new Date();
-  const { accounts, transactions } = await listScopedAnalyticsMovements(port, scope.filters, now);
+  const currentWindow = scope.filters.period.kind === 'allTime'
+    ? undefined
+    : buildAnalyticsOverviewWindows(scope.filters.period, now).currentWindow;
+  const { accounts, transactions } = await listScopedAnalyticsMovements(port, scope.filters, currentWindow);
   return buildCashFlowSeries({
     accounts,
     transactions,
@@ -322,7 +277,7 @@ export async function analyticsGetCashFlowSeries(
     granularity: input.granularity,
     periodOffset: input.periodOffset,
     periodCount: 5,
-    visibleRangeStart: analyticsVisibleRangeStart(scope.filters, now) ?? earliestTransactionDate(transactions),
+    visibleRangeStart: currentWindow?.start ?? earliestTransactionDate(transactions),
     now,
   });
 }
@@ -332,7 +287,11 @@ export async function analyticsGetPeriodCashFlowSummary(
   input: AnalyticsCurrencyScopeInput,
 ): Promise<AnalyticsCashFlowSummaryResult> {
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
-  const { transactions } = await listScopedAnalyticsMovements(port, scope.filters, new Date());
+  const now = new Date();
+  const currentWindow = scope.filters.period.kind === 'allTime'
+    ? undefined
+    : buildAnalyticsOverviewWindows(scope.filters.period, now).currentWindow;
+  const { transactions } = await listScopedAnalyticsMovements(port, scope.filters, currentWindow);
   return buildAnalyticsCashFlowSummary(transactions, input.currency);
 }
 
@@ -341,36 +300,23 @@ export async function analyticsGetOverviewSnapshot(
   input: AnalyticsOverviewSnapshotInput,
 ): Promise<AnalyticsOverviewSnapshotResult> {
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
-  const filters = scope.filters;
   const now = new Date();
   const accountIds = scope.selectedAccountIds;
+  const windows = buildAnalyticsOverviewWindows(scope.filters.period, now);
 
-  if (filters.period === 'ALL') {
-    const { transactions } = await listAnalyticsMovements(port, {
-      accountIds,
-      filters: analyticsWindowTransactionFilters(filters, undefined, true),
-      includeIgnoredMovements: filters.includeIgnoredMovements,
-    });
-    const windows = buildAnalyticsOverviewWindows(filters.period, now, earliestTransactionDate(transactions));
-    return buildAnalyticsOverviewSnapshot({
-      currentTransactions: transactions,
-      currency: input.currency,
-      currentWindow: windows.currentWindow,
-    });
-  }
-
-  const windows = buildAnalyticsOverviewWindows(filters.period, now);
   const [currentResult, previousResult] = await Promise.all([
     listAnalyticsMovements(port, {
       accountIds,
-      filters: analyticsWindowTransactionFilters(filters, windows.currentWindow, true),
-      includeIgnoredMovements: filters.includeIgnoredMovements,
+      filters: analyticsTransactionFilters(scope.filters, windows.currentWindow, true),
+      includeIgnoredMovements: scope.filters.includeIgnoredMovements,
+      sharedAmountMode: scope.filters.sharedAmountMode,
     }),
     windows.previousWindow
       ? listAnalyticsMovements(port, {
           accountIds,
-          filters: analyticsWindowTransactionFilters(filters, windows.previousWindow, true),
-          includeIgnoredMovements: filters.includeIgnoredMovements,
+          filters: analyticsTransactionFilters(scope.filters, windows.previousWindow, true),
+          includeIgnoredMovements: scope.filters.includeIgnoredMovements,
+          sharedAmountMode: scope.filters.sharedAmountMode,
         })
       : Promise.resolve({ accounts: [], transactions: [] }),
   ]);
@@ -389,14 +335,14 @@ export async function analyticsGetOverviewInsights(
   input: AnalyticsOverviewInsightsInput,
 ): Promise<AnalyticsOverviewInsightsResult> {
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
-  const filters = scope.filters;
   const now = new Date();
   const accountIds = scope.selectedAccountIds;
-  const windows = buildAnalyticsOverviewWindows(filters.period, now);
+  const windows = buildAnalyticsOverviewWindows(scope.filters.period, now);
   const { transactions } = await listAnalyticsMovements(port, {
     accountIds,
-    filters: analyticsWindowTransactionFilters(filters, windows.currentWindow, true),
-    includeIgnoredMovements: filters.includeIgnoredMovements,
+    filters: analyticsTransactionFilters(scope.filters, windows.currentWindow, true),
+    includeIgnoredMovements: scope.filters.includeIgnoredMovements,
+    sharedAmountMode: scope.filters.sharedAmountMode,
   });
   const transactionIds = transactions.map((transaction) => transaction.id);
   const [taxonomyAssignments, tags, sharingInsights, recurringInsight] = await Promise.all([
@@ -407,7 +353,7 @@ export async function analyticsGetOverviewInsights(
     analyticsGetOverviewSharingInsights(port, transactions),
     analyticsGetOverviewRecurringInsight(port, {
       accountIds,
-      filters,
+      filters: scope.filters,
       window: windows.currentWindow,
     }),
   ]);
@@ -430,20 +376,36 @@ export async function analyticsGetSpendingOverview(
   input: AnalyticsSpendingOverviewInput,
 ): Promise<AnalyticsSpendingOverviewResult> {
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
-  const filters = scope.filters;
   const now = new Date();
-  const [{ transactions }, categories] = await Promise.all([
-    listScopedAnalyticsMovements(port, filters, now),
-    port.taxonomyListCategories({ appliesTo: 'expense', includeArchived: true }),
-  ]);
+  const allScoped = scope.filters.period.kind === 'allTime'
+    ? await listAnalyticsMovements(port, {
+        accountIds: scope.selectedAccountIds,
+        filters: analyticsTransactionFilters(scope.filters, undefined, true),
+        includeIgnoredMovements: scope.filters.includeIgnoredMovements,
+        sharedAmountMode: scope.filters.sharedAmountMode,
+      })
+    : undefined;
+  const currentWindow = buildSpendingTimelineWindow(
+    scope.filters.period,
+    now,
+    input.periodOffset,
+    allScoped ? earliestTransactionDate(allScoped.transactions) : undefined,
+  );
+  const transactions = allScoped
+    ? allScoped.transactions
+    : (await listAnalyticsMovements(port, {
+      accountIds: scope.selectedAccountIds,
+      filters: analyticsTransactionFilters(scope.filters, currentWindow, true),
+      includeIgnoredMovements: scope.filters.includeIgnoredMovements,
+      sharedAmountMode: scope.filters.sharedAmountMode,
+    })).transactions;
+  const categories = await port.taxonomyListCategories({ appliesTo: 'expense', includeArchived: true });
   return buildSpendingOverview({
     transactions,
     categories: categories.items,
     currency: input.currency,
     granularity: input.granularity,
-    periodOffset: input.periodOffset,
-    periodMonths: analyticsPeriodMonths(filters.period),
-    now,
+    currentWindow,
   });
 }
 
@@ -452,40 +414,21 @@ export async function analyticsGetSpendingDashboard(
   input: AnalyticsSpendingDashboardInput,
 ): Promise<AnalyticsSpendingDashboardResult> {
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
-  const filters = scope.filters;
   const now = new Date();
-  const accountIds = scope.selectedAccountIds;
-
-  if (filters.period === 'ALL') {
-    const [{ transactions }, categories] = await Promise.all([
-      listAnalyticsMovements(port, {
-        accountIds,
-        filters: analyticsWindowTransactionFilters(filters, undefined, true),
-        includeIgnoredMovements: filters.includeIgnoredMovements,
-      }),
-      port.taxonomyListCategories({ appliesTo: 'expense', includeArchived: true }),
-    ]);
-    const windows = buildAnalyticsOverviewWindows(filters.period, now, earliestTransactionDate(transactions));
-    return buildSpendingDashboard({
-      currentTransactions: transactions,
-      categories: categories.items,
-      currency: input.currency,
-      currentWindow: windows.currentWindow,
-    });
-  }
-
-  const windows = buildAnalyticsOverviewWindows(filters.period, now);
+  const windows = buildAnalyticsOverviewWindows(scope.filters.period, now);
   const [currentResult, previousResult, categories] = await Promise.all([
     listAnalyticsMovements(port, {
-      accountIds,
-      filters: analyticsWindowTransactionFilters(filters, windows.currentWindow, true),
-      includeIgnoredMovements: filters.includeIgnoredMovements,
+      accountIds: scope.selectedAccountIds,
+      filters: analyticsTransactionFilters(scope.filters, windows.currentWindow, true),
+      includeIgnoredMovements: scope.filters.includeIgnoredMovements,
+      sharedAmountMode: scope.filters.sharedAmountMode,
     }),
     windows.previousWindow
       ? listAnalyticsMovements(port, {
-          accountIds,
-          filters: analyticsWindowTransactionFilters(filters, windows.previousWindow, true),
-          includeIgnoredMovements: filters.includeIgnoredMovements,
+          accountIds: scope.selectedAccountIds,
+          filters: analyticsTransactionFilters(scope.filters, windows.previousWindow, true),
+          includeIgnoredMovements: scope.filters.includeIgnoredMovements,
+          sharedAmountMode: scope.filters.sharedAmountMode,
         })
       : Promise.resolve({ accounts: [], transactions: [] }),
     port.taxonomyListCategories({ appliesTo: 'expense', includeArchived: true }),
@@ -506,29 +449,35 @@ export async function analyticsGetSpendingTimeline(
   input: AnalyticsSpendingTimelineInput,
 ): Promise<AnalyticsSpendingTimelineResult> {
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
-  const filters = scope.filters;
   const now = new Date();
-  const allPeriodMovements = filters.period === 'ALL'
-    ? await listScopedAnalyticsMovements(port, filters, now, true)
+  const allPeriodMovements = scope.filters.period.kind === 'allTime'
+    ? await listAnalyticsMovements(port, {
+        accountIds: scope.selectedAccountIds,
+        filters: analyticsTransactionFilters(scope.filters, undefined, true),
+        includeIgnoredMovements: scope.filters.includeIgnoredMovements,
+        sharedAmountMode: scope.filters.sharedAmountMode,
+      })
     : undefined;
-  const accountIds = allPeriodMovements
-    ? undefined
-    : scope.selectedAccountIds;
-  const earliestOccurredAt = allPeriodMovements ? earliestTransactionDate(allPeriodMovements.transactions) : undefined;
-  const window = buildSpendingTimelineWindow(filters.period, now, input.periodOffset, earliestOccurredAt);
+  const currentWindow = buildSpendingTimelineWindow(
+    scope.filters.period,
+    now,
+    input.periodOffset,
+    allPeriodMovements ? earliestTransactionDate(allPeriodMovements.transactions) : undefined,
+  );
   const transactions = allPeriodMovements
     ? allPeriodMovements.transactions
     : (await listAnalyticsMovements(port, {
-      accountIds: accountIds ?? [],
-      filters: analyticsWindowTransactionFilters(filters, window, true),
-      includeIgnoredMovements: filters.includeIgnoredMovements,
+      accountIds: scope.selectedAccountIds,
+      filters: analyticsTransactionFilters(scope.filters, currentWindow, true),
+      includeIgnoredMovements: scope.filters.includeIgnoredMovements,
+      sharedAmountMode: scope.filters.sharedAmountMode,
     })).transactions;
 
   return buildSpendingTimeline({
     transactions,
     currency: input.currency,
-    currentWindow: window,
-    period: filters.period,
+    currentWindow,
+    period: scope.filters.period,
   });
 }
 
@@ -537,14 +486,13 @@ export async function analyticsGetSpendingTopExpenses(
   input: AnalyticsSpendingTopExpensesInput,
 ): Promise<AnalyticsSpendingTopExpensesResult> {
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
-  const filters = scope.filters;
   const now = new Date();
-  const accountIds = scope.selectedAccountIds;
-  const windows = buildAnalyticsOverviewWindows(filters.period, now);
+  const windows = buildAnalyticsOverviewWindows(scope.filters.period, now);
   const { transactions } = await listAnalyticsMovements(port, {
-    accountIds,
-    filters: analyticsWindowTransactionFilters(filters, windows.currentWindow, true),
-    includeIgnoredMovements: filters.includeIgnoredMovements,
+    accountIds: scope.selectedAccountIds,
+    filters: analyticsTransactionFilters(scope.filters, windows.currentWindow, true),
+    includeIgnoredMovements: scope.filters.includeIgnoredMovements,
+    sharedAmountMode: scope.filters.sharedAmountMode,
   });
 
   return buildSpendingTopExpenses({
@@ -580,18 +528,17 @@ export async function analyticsGetFlowProjection(
   input: AnalyticsFlowProjectionInput,
 ): Promise<AnalyticsFlowProjectionResult> {
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
-  const filters = scope.filters;
   const now = new Date();
-  const accountIds = scope.selectedAccountIds;
-  const windows = buildSpendingTimelineWindow(filters.period, now, input.periodOffset, undefined, 5);
+  const windows = buildSpendingTimelineWindow(scope.filters.period, now, input.periodOffset, undefined, 5);
   const [balances, transactions, scheduledMovements] = await Promise.all([
-    selectedAccountSummaries(port, accountIds),
+    selectedAccountSummaries(port, scope.selectedAccountIds),
     listAnalyticsMovements(port, {
-      accountIds,
-      filters: analyticsWindowTransactionFilters(filters, windows, true),
-      includeIgnoredMovements: filters.includeIgnoredMovements,
+      accountIds: scope.selectedAccountIds,
+      filters: analyticsTransactionFilters(scope.filters, windows, true),
+      includeIgnoredMovements: scope.filters.includeIgnoredMovements,
+      sharedAmountMode: 'full',
     }),
-    selectedSchedulingMovements(port, accountIds),
+    selectedSchedulingMovements(port, scope.selectedAccountIds),
   ]);
 
   const currentBalanceAmount = balances.reduce(
@@ -604,7 +551,7 @@ export async function analyticsGetFlowProjection(
   return buildFlowProjection({
     currency: input.currency,
     currentWindow: windows,
-    period: filters.period,
+    period: scope.filters.period,
     currentBalanceAmount,
     postedTransactions: transactions.transactions,
     scheduledMovements,
@@ -617,11 +564,9 @@ export async function analyticsGetFlowUpcoming(
   input: AnalyticsFlowUpcomingInput,
 ): Promise<AnalyticsFlowUpcomingResult> {
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
-  const filters = scope.filters;
   const now = new Date();
-  const accountIds = scope.selectedAccountIds;
-  const windows = buildSpendingTimelineWindow(filters.period, now, 0, undefined, 5);
-  const scheduledMovements = await selectedSchedulingMovements(port, accountIds);
+  const windows = buildSpendingTimelineWindow(scope.filters.period, now, 0, undefined, 5);
+  const scheduledMovements = await selectedSchedulingMovements(port, scope.selectedAccountIds);
 
   return buildFlowUpcoming({
     scheduledMovements,
@@ -635,20 +580,19 @@ export async function analyticsGetFlowInsights(
   input: AnalyticsFlowInsightsInput,
 ): Promise<AnalyticsFlowInsightsResult> {
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
-  const filters = scope.filters;
   const now = new Date();
-  const accountIds = scope.selectedAccountIds;
-  const windows = buildSpendingTimelineWindow(filters.period, now, 0, undefined, 5);
+  const windows = buildSpendingTimelineWindow(scope.filters.period, now, 0, undefined, 5);
   const { transactions } = await listAnalyticsMovements(port, {
-    accountIds,
-    filters: analyticsWindowTransactionFilters(filters, windows, true),
-    includeIgnoredMovements: filters.includeIgnoredMovements,
+    accountIds: scope.selectedAccountIds,
+    filters: analyticsTransactionFilters(scope.filters, windows, true),
+    includeIgnoredMovements: scope.filters.includeIgnoredMovements,
+    sharedAmountMode: scope.filters.sharedAmountMode,
   });
 
   return buildFlowInsights({
     postedTransactions: transactions,
     currency: input.currency,
     currentWindow: windows,
-    period: filters.period,
+    period: scope.filters.period,
   });
 }

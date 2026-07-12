@@ -1,4 +1,5 @@
 import type { ViewProps } from '../../../shared/ui/ViewProps';
+import { BinarySwitchCardView } from '../../../shared/ui/BinarySwitchCard/BinarySwitchCardView';
 import './MovementMoreControlsView.css';
 
 export type MovementMoreSheetViewProps = ViewProps<
@@ -21,23 +22,21 @@ export function MovementMoreSheetView({ required, provided }: MovementMoreSheetV
 
   return (
     <div className="movement-more-sheet">
-      <label className="movement-more-card" htmlFor={switchId}>
-        <span className="movement-more-icon">
-          <i className="bi bi-eye-slash" aria-hidden />
-        </span>
-        <span className="movement-more-card-text">
-          <strong>Ignore movement</strong>
-          <small>Exclude this expense or income from normal tracking</small>
-        </span>
-        <input
-          id={switchId}
-          type="checkbox"
-          role="switch"
-          checked={required.state.ignored}
-          disabled={required.status.disabled}
-          onChange={(event) => provided.commands.setIgnored(event.currentTarget.checked)}
-        />
-      </label>
+      <BinarySwitchCardView
+        required={{
+          config: {
+            switchId,
+            title: 'Ignore movement',
+            description: 'Exclude this expense or income from normal tracking',
+            iconClassName: 'bi bi-eye-slash',
+            ariaLabel: 'Ignore movement',
+          },
+          data: {},
+          state: { value: required.state.ignored },
+          status: { disabled: required.status.disabled },
+        }}
+        provided={{ commands: { setValue: provided.commands.setIgnored } }}
+      />
 
       <button
         type="button"

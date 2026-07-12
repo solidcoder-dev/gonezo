@@ -101,6 +101,8 @@ import type {
   SharingApplyShareToPostedTransactionInput,
   SharingApplyShareToPostedTransactionResult,
   SharingGetMovementDetailsInput,
+  SharingListMovementDetailsInput,
+  SharingListMovementDetailsResult,
   SharingListPeopleResult,
   SharingMovementDetailsResult,
 } from '../../sharing/application/sharing.port';
@@ -136,23 +138,14 @@ export type CoreAdapterWebOptions = {
 
 export class CoreAdapterWeb implements CorePort {
   private readonly state: WebAppState;
-
   private readonly dependencies: WebRuntimeDependencies;
-
   private readonly ledgerService: WebLedgerService;
-
   private readonly taxonomyService: WebTaxonomyService;
-
   private readonly mobillsImportWorkflow: WebMobillsImportWorkflow;
-
   private readonly schedulingService: WebSchedulingService;
-
   private readonly expectedMovementsService: WebExpectedMovementsService;
-
   private readonly movementsService: WebMovementsService;
-
   private readonly sharingService: WebSharingService;
-
   private readonly analyticsExclusionService: WebAnalyticsExclusionService;
 
   constructor(options: CoreAdapterWebOptions = {}) {
@@ -210,42 +203,16 @@ export class CoreAdapterWeb implements CorePort {
     }
     this.state.defaultAccountId = accountId;
   }
-
   async preferencesClearDefaultAccount(): Promise<void> { this.state.defaultAccountId = null; }
-
   async accountsListBalances(): Promise<AccountsListBalancesResult> { return listAccountBalances(this); }
-
-  async ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> {
-    return this.ledgerService.openAccount(input);
-  }
-
-  async ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult> {
-    return this.ledgerService.listSupportedCurrencies();
-  }
-
-  async ledgerRenameAccount(input: LedgerRenameAccountInput): Promise<void> {
-    return this.ledgerService.renameAccount(input);
-  }
-
-  async ledgerArchiveAccount(input: LedgerArchiveAccountInput): Promise<void> {
-    return this.ledgerService.archiveAccount(input);
-  }
-
-  async ledgerRestoreAccount(input: LedgerRestoreAccountInput): Promise<void> {
-    return this.ledgerService.restoreAccount(input);
-  }
-
-  async ledgerDeleteAccount(input: LedgerDeleteAccountInput): Promise<void> {
-    return this.ledgerService.deleteAccount(input);
-  }
-
-  async ledgerListAccounts(): Promise<LedgerListAccountsResult> {
-    return this.ledgerService.listAccounts();
-  }
-
-  async ledgerGetAccountSummary(input: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult> {
-    return this.ledgerService.getAccountSummary(input);
-  }
+  async ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> { return this.ledgerService.openAccount(input); }
+  async ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult> { return this.ledgerService.listSupportedCurrencies(); }
+  async ledgerRenameAccount(input: LedgerRenameAccountInput): Promise<void> { return this.ledgerService.renameAccount(input); }
+  async ledgerArchiveAccount(input: LedgerArchiveAccountInput): Promise<void> { return this.ledgerService.archiveAccount(input); }
+  async ledgerRestoreAccount(input: LedgerRestoreAccountInput): Promise<void> { return this.ledgerService.restoreAccount(input); }
+  async ledgerDeleteAccount(input: LedgerDeleteAccountInput): Promise<void> { return this.ledgerService.deleteAccount(input); }
+  async ledgerListAccounts(): Promise<LedgerListAccountsResult> { return this.ledgerService.listAccounts(); }
+  async ledgerGetAccountSummary(input: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult> { return this.ledgerService.getAccountSummary(input); }
 
   async ledgerGetNetWorthByCurrency(): Promise<LedgerGetNetWorthByCurrencyResult> {
     const result = await this.ledgerService.getNetWorthByCurrency();
@@ -257,63 +224,21 @@ export class CoreAdapterWeb implements CorePort {
     };
   }
 
-  async ledgerGetCashFlowSeries(input: LedgerGetCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> {
-    return this.ledgerService.getCashFlowSeries(input);
-  }
-
-  async analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult> {
-    return analyticsListCurrencies(this);
-  }
-
+  async ledgerGetCashFlowSeries(input: LedgerGetCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> { return this.ledgerService.getCashFlowSeries(input); }
+  async analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult> { return analyticsListCurrencies(this); }
   async analyticsGetFilterFacets(input?: AnalyticsGetFilterFacetsInput): Promise<AnalyticsGetFilterFacetsResult> { return analyticsGetFilterFacets(this, input); }
-
-  async analyticsGetOverviewSnapshot(input: AnalyticsOverviewSnapshotInput): Promise<AnalyticsOverviewSnapshotResult> {
-    return analyticsGetOverviewSnapshot(this, input);
-  }
-
-  async analyticsGetOverviewInsights(input: AnalyticsOverviewInsightsInput): Promise<AnalyticsOverviewInsightsResult> {
-    return analyticsGetOverviewInsights(this, input);
-  }
-
-  async analyticsGetCashFlowSeries(input: AnalyticsCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> {
-    return analyticsGetCashFlowSeries(this, input);
-  }
-
-  async analyticsGetPeriodCashFlowSummary(input: AnalyticsCurrencyScopeInput): Promise<AnalyticsCashFlowSummaryResult> {
-    return analyticsGetPeriodCashFlowSummary(this, input);
-  }
-
-  async analyticsGetSpendingDashboard(input: AnalyticsSpendingDashboardInput): Promise<AnalyticsSpendingDashboardResult> {
-    return analyticsGetSpendingDashboard(this, input);
-  }
-
-  async analyticsGetSpendingTimeline(input: AnalyticsSpendingTimelineInput): Promise<AnalyticsSpendingTimelineResult> {
-    return analyticsGetSpendingTimeline(this, input);
-  }
-
-  async analyticsGetSpendingTopExpenses(input: AnalyticsSpendingTopExpensesInput): Promise<AnalyticsSpendingTopExpensesResult> {
-    return analyticsGetSpendingTopExpenses(this, input);
-  }
-
-  async analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult> {
-    return analyticsGetSpendingOverview(this, input);
-  }
-
-  async analyticsGetFlowProjection(input: AnalyticsFlowProjectionInput): Promise<AnalyticsFlowProjectionResult> {
-    return analyticsGetFlowProjection(this, input);
-  }
-
-  async analyticsGetFlowUpcoming(input: AnalyticsFlowUpcomingInput): Promise<AnalyticsFlowUpcomingResult> {
-    return analyticsGetFlowUpcoming(this, input);
-  }
-
-  async analyticsGetFlowInsights(input: AnalyticsFlowInsightsInput): Promise<AnalyticsFlowInsightsResult> {
-    return analyticsGetFlowInsights(this, input);
-  }
-
-  async sharingListPeople(): Promise<SharingListPeopleResult> {
-    return this.sharingService.listPeople();
-  }
+  async analyticsGetOverviewSnapshot(input: AnalyticsOverviewSnapshotInput): Promise<AnalyticsOverviewSnapshotResult> { return analyticsGetOverviewSnapshot(this, input); }
+  async analyticsGetOverviewInsights(input: AnalyticsOverviewInsightsInput): Promise<AnalyticsOverviewInsightsResult> { return analyticsGetOverviewInsights(this, input); }
+  async analyticsGetCashFlowSeries(input: AnalyticsCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> { return analyticsGetCashFlowSeries(this, input); }
+  async analyticsGetPeriodCashFlowSummary(input: AnalyticsCurrencyScopeInput): Promise<AnalyticsCashFlowSummaryResult> { return analyticsGetPeriodCashFlowSummary(this, input); }
+  async analyticsGetSpendingDashboard(input: AnalyticsSpendingDashboardInput): Promise<AnalyticsSpendingDashboardResult> { return analyticsGetSpendingDashboard(this, input); }
+  async analyticsGetSpendingTimeline(input: AnalyticsSpendingTimelineInput): Promise<AnalyticsSpendingTimelineResult> { return analyticsGetSpendingTimeline(this, input); }
+  async analyticsGetSpendingTopExpenses(input: AnalyticsSpendingTopExpensesInput): Promise<AnalyticsSpendingTopExpensesResult> { return analyticsGetSpendingTopExpenses(this, input); }
+  async analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult> { return analyticsGetSpendingOverview(this, input); }
+  async analyticsGetFlowProjection(input: AnalyticsFlowProjectionInput): Promise<AnalyticsFlowProjectionResult> { return analyticsGetFlowProjection(this, input); }
+  async analyticsGetFlowUpcoming(input: AnalyticsFlowUpcomingInput): Promise<AnalyticsFlowUpcomingResult> { return analyticsGetFlowUpcoming(this, input); }
+  async analyticsGetFlowInsights(input: AnalyticsFlowInsightsInput): Promise<AnalyticsFlowInsightsResult> { return analyticsGetFlowInsights(this, input); }
+  async sharingListPeople(): Promise<SharingListPeopleResult> { return this.sharingService.listPeople(); }
 
   async sharingApplyShareToPostedTransaction(
     input: SharingApplyShareToPostedTransactionInput,
@@ -321,69 +246,23 @@ export class CoreAdapterWeb implements CorePort {
     return this.sharingService.applyShareToPostedTransaction(input);
   }
 
-  async sharingGetMovementDetails(input: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult> {
-    return this.sharingService.getMovementDetails(input);
-  }
-
-  async ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> {
-    return this.ledgerService.recordExpense(input);
-  }
-
-  async ledgerRecordIncome(input: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult> {
-    return this.ledgerService.recordIncome(input);
-  }
-
-  async ledgerRecordTransfer(input: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult> {
-    return this.ledgerService.recordTransfer(input);
-  }
-
-  async ledgerRecordTransferFx(input: LedgerRecordTransferFxInput): Promise<LedgerRecordTransferFxResult> {
-    return this.ledgerService.recordTransferFx(input);
-  }
-
-  async ledgerCreateExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult> {
-    return this.ledgerService.createExpenseDraft(input);
-  }
-
-  async ledgerAddTransactionItem(input: LedgerAddTransactionItemInput): Promise<void> {
-    return this.ledgerService.addTransactionItem(input);
-  }
-
-  async ledgerPostDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void> {
-    return this.ledgerService.postDraftTransaction(input);
-  }
-
-  async ledgerVoidTransaction(input: LedgerVoidTransactionInput): Promise<void> {
-    return this.ledgerService.voidTransaction(input);
-  }
-
-  async ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult> {
-    return this.analyticsExclusionService.applyIgnoredMovements(await this.ledgerService.listTransactions(input));
-  }
-
-  async taxonomyListCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult> {
-    return this.taxonomyService.listCategories(input);
-  }
-
-  async taxonomyCreateCategory(input: TaxonomyCreateCategoryInput): Promise<TaxonomyCreateCategoryResult> {
-    return this.taxonomyService.createCategory(input);
-  }
-
-  async taxonomyRenameCategory(input: TaxonomyRenameCategoryInput): Promise<void> {
-    return this.taxonomyService.renameCategory(input);
-  }
-
-  async taxonomyListTags(input?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult> {
-    return this.taxonomyService.listTags(input);
-  }
-
-  async taxonomyRenameTag(input: TaxonomyRenameTagInput): Promise<void> {
-    return this.taxonomyService.renameTag(input);
-  }
-
-  async mobillsImport(input: MobillsImportInput): Promise<MobillsImportResult> {
-    return this.mobillsImportWorkflow.import(input);
-  }
+  async sharingGetMovementDetails(input: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult> { return this.sharingService.getMovementDetails(input); }
+  async sharingListMovementDetails(input: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult> { return this.sharingService.listMovementDetails(input); }
+  async ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> { return this.ledgerService.recordExpense(input); }
+  async ledgerRecordIncome(input: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult> { return this.ledgerService.recordIncome(input); }
+  async ledgerRecordTransfer(input: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult> { return this.ledgerService.recordTransfer(input); }
+  async ledgerRecordTransferFx(input: LedgerRecordTransferFxInput): Promise<LedgerRecordTransferFxResult> { return this.ledgerService.recordTransferFx(input); }
+  async ledgerCreateExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult> { return this.ledgerService.createExpenseDraft(input); }
+  async ledgerAddTransactionItem(input: LedgerAddTransactionItemInput): Promise<void> { return this.ledgerService.addTransactionItem(input); }
+  async ledgerPostDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void> { return this.ledgerService.postDraftTransaction(input); }
+  async ledgerVoidTransaction(input: LedgerVoidTransactionInput): Promise<void> { return this.ledgerService.voidTransaction(input); }
+  async ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult> { return this.analyticsExclusionService.applyIgnoredMovements(await this.ledgerService.listTransactions(input)); }
+  async taxonomyListCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult> { return this.taxonomyService.listCategories(input); }
+  async taxonomyCreateCategory(input: TaxonomyCreateCategoryInput): Promise<TaxonomyCreateCategoryResult> { return this.taxonomyService.createCategory(input); }
+  async taxonomyRenameCategory(input: TaxonomyRenameCategoryInput): Promise<void> { return this.taxonomyService.renameCategory(input); }
+  async taxonomyListTags(input?: TaxonomyListTagsInput): Promise<TaxonomyListTagsResult> { return this.taxonomyService.listTags(input); }
+  async taxonomyRenameTag(input: TaxonomyRenameTagInput): Promise<void> { return this.taxonomyService.renameTag(input); }
+  async mobillsImport(input: MobillsImportInput): Promise<MobillsImportResult> { return this.mobillsImportWorkflow.import(input); }
 
   async orchestrationCategorizeTransaction(
     input: OrchestrationCategorizeTransactionInput,
@@ -409,15 +288,8 @@ export class CoreAdapterWeb implements CorePort {
     return this.schedulingService.createRecurringMovement(input);
   }
 
-  async recurrenceDeactivateRecurringMovement(input: RecurrenceDeactivateRecurringMovementInput): Promise<void> {
-    return this.schedulingService.deactivateRecurringMovement(input);
-  }
-
-  async recurrenceListRecurringMovements(
-    input: RecurrenceListRecurringMovementsInput,
-  ): Promise<RecurrenceListRecurringMovementsResult> {
-    return this.schedulingService.listRecurringMovements(input);
-  }
+  async recurrenceDeactivateRecurringMovement(input: RecurrenceDeactivateRecurringMovementInput): Promise<void> { return this.schedulingService.deactivateRecurringMovement(input); }
+  async recurrenceListRecurringMovements(input: RecurrenceListRecurringMovementsInput): Promise<RecurrenceListRecurringMovementsResult> { return this.schedulingService.listRecurringMovements(input); }
 
   async schedulingCreateMovement(
     input: SchedulingCreateMovementInput,
@@ -435,14 +307,8 @@ export class CoreAdapterWeb implements CorePort {
     return result;
   }
 
-  async schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void> {
-    return this.schedulingService.deactivateMovement(input);
-  }
-
-  async schedulingListMovements(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult> {
-    return this.schedulingService.listMovements(input);
-  }
-
+  async schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void> { return this.schedulingService.deactivateMovement(input); }
+  async schedulingListMovements(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult> { return this.schedulingService.listMovements(input); }
   async schedulingProcessDueMovements(input: SchedulingProcessDueMovementsInput = {}): Promise<SchedulingProcessDueMovementsResult> {
     void input;
     return {
@@ -454,25 +320,11 @@ export class CoreAdapterWeb implements CorePort {
     };
   }
 
-  async movementsGetMonthOverview(input: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> {
-    return this.movementsService.getMonthOverview(input);
-  }
-
-  async movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult> {
-    return this.movementsService.getOverview(input);
-  }
-
-  async expectedCreateMovement(input: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult> {
-    return this.expectedMovementsService.createMovement(input);
-  }
-
-  async expectedUpdateMovement(input: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult> {
-    return this.expectedMovementsService.updateMovement(input);
-  }
-
-  async expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult> {
-    return this.expectedMovementsService.listMovements(input);
-  }
+  async movementsGetMonthOverview(input: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> { return this.movementsService.getMonthOverview(input); }
+  async movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult> { return this.movementsService.getOverview(input); }
+  async expectedCreateMovement(input: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult> { return this.expectedMovementsService.createMovement(input); }
+  async expectedUpdateMovement(input: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult> { return this.expectedMovementsService.updateMovement(input); }
+  async expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult> { return this.expectedMovementsService.listMovements(input); }
 
   async expectedResolveMovement(input: ExpectedResolveMovementInput): Promise<void> {
     const movement = this.state.expectedMovements.find((item) => item.id === input.expectedMovementId);
@@ -506,22 +358,11 @@ export class CoreAdapterWeb implements CorePort {
     throw new Error('Backup import is only available on Android.');
   }
 
-  async movementsSearch(input: MovementsSearchInput): Promise<MovementsSearchResult> {
-    return this.movementsService.search(input);
-  }
-
-  async movementsGetSearchFacets(input: MovementsSearchFacetsInput): Promise<MovementsSearchFacetsResult> {
-    return this.movementsService.getSearchFacets(input);
-  }
-
-  async movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult> {
-    return this.movementsService.listScheduled(input);
-  }
-
+  async movementsSearch(input: MovementsSearchInput): Promise<MovementsSearchResult> { return this.movementsService.search(input); }
+  async movementsGetSearchFacets(input: MovementsSearchFacetsInput): Promise<MovementsSearchFacetsResult> { return this.movementsService.getSearchFacets(input); }
+  async movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult> { return this.movementsService.listScheduled(input); }
   async analyticsSetMovementIgnored(input: AnalyticsSetMovementIgnoredInput): Promise<void> { this.analyticsExclusionService.setMovementIgnored(input); }
-
   async analyticsListIgnoredMovements() { return this.analyticsExclusionService.listIgnoredMovements(); }
-
   private async projectNextConfirmationRequiredOccurrence(recurringMovementId: string): Promise<void> {
     const occurrence = this.schedulingService.projectNextConfirmationRequiredOccurrence(recurringMovementId);
     if (!occurrence || occurrence.movement.type === 'transfer') {

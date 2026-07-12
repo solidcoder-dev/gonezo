@@ -57,10 +57,19 @@ export type SharingMovementDetailsResult = {
   };
 } | null;
 
+export type SharingListMovementDetailsInput = {
+  transactionIds: string[];
+};
+
+export type SharingListMovementDetailsResult = {
+  items: Array<Exclude<SharingMovementDetailsResult, null>>;
+};
+
 export interface SharingPort {
   sharingListPeople(): Promise<SharingListPeopleResult>;
   sharingApplyShareToPostedTransaction(
     input: SharingApplyShareToPostedTransactionInput,
   ): Promise<SharingApplyShareToPostedTransactionResult>;
   sharingGetMovementDetails(input: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult>;
+  sharingListMovementDetails(input: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult>;
 }

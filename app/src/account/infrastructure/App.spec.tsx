@@ -605,6 +605,7 @@ function makeCore(transactionCount = 0): AppTestPort {
       })),
     })),
     sharingGetMovementDetails: vi.fn(async () => null),
+    sharingListMovementDetails: vi.fn(async () => ({ items: [] })),
     movementsGetMonthOverview: vi.fn(async (input: MovementsMonthOverviewInput) => {
       const fromDate = input.fromDate ?? input.filters?.fromDate;
       const toDate = input.toDate ?? input.filters?.toDate;

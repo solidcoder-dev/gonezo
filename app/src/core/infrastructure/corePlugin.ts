@@ -101,6 +101,8 @@ import type {
   SharingApplyShareToPostedTransactionInput,
   SharingApplyShareToPostedTransactionResult,
   SharingGetMovementDetailsInput,
+  SharingListMovementDetailsInput,
+  SharingListMovementDetailsResult,
   SharingListPeopleResult,
   SharingMovementDetailsResult,
 } from '../../sharing/application/sharing.port';
@@ -179,6 +181,7 @@ export interface CorePlugin {
     options: SharingApplyShareToPostedTransactionInput,
   ): Promise<SharingApplyShareToPostedTransactionResult>;
   sharingGetMovementDetails(options: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult>;
+  sharingListMovementDetails(options: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult>;
   analyticsSetMovementIgnored(options: AnalyticsSetMovementIgnoredInput): Promise<void>;
   analyticsListIgnoredMovements(): Promise<AnalyticsListIgnoredMovementsResult>;
   movementsGetMonthOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;

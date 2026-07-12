@@ -101,6 +101,8 @@ import type {
   SharingApplyShareToPostedTransactionInput,
   SharingApplyShareToPostedTransactionResult,
   SharingGetMovementDetailsInput,
+  SharingListMovementDetailsInput,
+  SharingListMovementDetailsResult,
   SharingListPeopleResult,
   SharingMovementDetailsResult,
 } from '../../sharing/application/sharing.port';
@@ -334,6 +336,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async sharingGetMovementDetails(options: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult> {
     return this.core.sharingGetMovementDetails(options);
+  }
+
+  async sharingListMovementDetails(options: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult> {
+    return this.core.sharingListMovementDetails(options);
   }
 
   async analyticsSetMovementIgnored(options: AnalyticsSetMovementIgnoredInput): Promise<void> {

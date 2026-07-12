@@ -175,7 +175,11 @@ describe('AnalyticsPageComponent', () => {
 
     await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalledWith(expect.objectContaining({
       currency: 'EUR',
-      filters: expect.objectContaining({ period: '30D', includeIgnoredMovements: false }),
+      filters: expect.objectContaining({
+        period: { kind: 'thisMonth' },
+        includeIgnoredMovements: false,
+        sharedAmountMode: 'personal',
+      }),
     })));
 
     fireEvent.click(screen.getByLabelText('Open currency filter'));
@@ -188,10 +192,12 @@ describe('AnalyticsPageComponent', () => {
 
     fireEvent.click(screen.getByLabelText('Open period filter'));
     expect(screen.getByRole('dialog', { name: 'Period filter' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /90D/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Last 3 months/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalledWith(expect.objectContaining({
-      filters: expect.objectContaining({ period: '90D' }),
+      filters: expect.objectContaining({
+        period: { kind: 'rollingMonths', months: 3, anchorDate: expect.any(String) },
+      }),
     })));
 
     fireEvent.click(screen.getByLabelText('Open tags filter'));
@@ -203,7 +209,7 @@ describe('AnalyticsPageComponent', () => {
     })));
   }, 30000);
 
-  it('shows four independent sheets and keeps More filters limited to account and ignored movements', async () => {
+  it('shows four independent sheets and keeps More filters limited to accounts, ignored movements and shared amount mode', async () => {
     const core = createCore();
 
     render(
@@ -221,17 +227,20 @@ describe('AnalyticsPageComponent', () => {
     expect(screen.getByRole('dialog', { name: 'More analytics filters' })).toBeInTheDocument();
     expect(screen.getByText('Accounts')).toBeInTheDocument();
     expect(screen.getByText('Include ignored movements')).toBeInTheDocument();
+    expect(screen.getByText('Count full shared amounts')).toBeInTheDocument();
     expect(screen.queryByText('Movement type')).not.toBeInTheDocument();
     expect(screen.queryByText('Add tag')).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Analytics account'), { target: { value: 'acc-1' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Include ignored movements' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Include ignored movements' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Count full shared amounts' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
     await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalledWith(expect.objectContaining({
       filters: expect.objectContaining({
         accountIds: ['acc-1'],
         includeIgnoredMovements: true,
+        sharedAmountMode: 'full',
       }),
     })));
 
@@ -243,6 +252,7 @@ describe('AnalyticsPageComponent', () => {
       filters: expect.objectContaining({
         accountIds: [],
         includeIgnoredMovements: false,
+        sharedAmountMode: 'personal',
       }),
     })));
   }, 15000);

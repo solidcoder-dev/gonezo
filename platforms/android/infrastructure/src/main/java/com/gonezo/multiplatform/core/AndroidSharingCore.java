@@ -126,6 +126,17 @@ public final class AndroidSharingCore {
     }
   }
 
+  public List<MovementDetailsView> listMovementDetails(List<String> transactionIds) {
+    List<MovementDetailsView> items = new ArrayList<>();
+    for (String transactionId : transactionIds) {
+      MovementDetailsView details = getMovementDetails(transactionId);
+      if (details != null) {
+        items.add(details);
+      }
+    }
+    return items;
+  }
+
   private void addParticipant(String shareId, PostedExpense expense, ParticipantInput participant, Instant now) {
     String displayName = requireText(participant.personName(), "participant personName is required");
     String personId = findOrCreatePerson(displayName, now);

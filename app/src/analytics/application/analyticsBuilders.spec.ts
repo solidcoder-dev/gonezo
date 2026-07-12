@@ -300,7 +300,7 @@ describe('analytics builders', () => {
         canGoPrevious: true,
         canGoNext: false,
       },
-      period: '90D',
+      period: { kind: 'rollingMonths', months: 3, anchorDate: '2026-07-31' },
     });
 
     expect(result.points).toHaveLength(14);

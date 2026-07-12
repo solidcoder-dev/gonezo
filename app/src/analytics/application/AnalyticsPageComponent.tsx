@@ -39,6 +39,9 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
     onError: provided?.events?.onError,
   });
   const currency = filterModel.filters.currency;
+  const moreFiltersCount = Number(filterModel.filters.accountIds.length > 0)
+    + Number(filterModel.filters.includeIgnoredMovements)
+    + Number(filterModel.filters.sharedAmountMode === 'full');
 
   return (
     <section className={styles.page}>
@@ -59,7 +62,7 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
             currency: filterModel.filters.currency,
             period: filterModel.filters.period,
             tagsSelected: filterModel.filters.tagIds.length > 0,
-            moreFiltersSelected: filterModel.filters.accountIds.length > 0 || filterModel.filters.includeIgnoredMovements,
+            moreFiltersCount,
           },
           status: {
             disabled: filterModel.disabled || filterModel.loading,
@@ -98,6 +101,9 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
           state: {
             open: filterModel.periodSheetOpen,
             draftPeriod: filterModel.draftPeriod,
+            draftCustomFrom: filterModel.draftCustomFrom,
+            draftCustomTo: filterModel.draftCustomTo,
+            draftPeriodError: filterModel.draftPeriodError,
           },
           status: {
             disabled: filterModel.disabled || filterModel.loading,
@@ -107,6 +113,8 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
           commands: {
             close: filterModel.commands.closePeriodSheet,
             setDraftPeriod: filterModel.commands.setDraftPeriod,
+            setDraftCustomFrom: filterModel.commands.setDraftCustomFrom,
+            setDraftCustomTo: filterModel.commands.setDraftCustomTo,
             applyDraftPeriod: filterModel.commands.applyDraftPeriod,
           },
         }}
@@ -138,6 +146,7 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
             open: filterModel.moreFiltersSheetOpen,
             draftAccountIds: filterModel.draftAccountIds,
             draftIncludeIgnoredMovements: filterModel.draftIncludeIgnoredMovements,
+            draftSharedAmountMode: filterModel.draftSharedAmountMode,
           },
           status: {
             disabled: filterModel.disabled || filterModel.loading,
@@ -148,6 +157,7 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
             close: filterModel.commands.closeMoreFiltersSheet,
             setDraftAccountIds: filterModel.commands.setDraftAccountIds,
             setDraftIncludeIgnoredMovements: filterModel.commands.setDraftIncludeIgnoredMovements,
+            setDraftSharedAmountMode: filterModel.commands.setDraftSharedAmountMode,
             resetMoreFiltersDraft: filterModel.commands.resetMoreFiltersDraft,
             applyMoreFiltersDraft: filterModel.commands.applyMoreFiltersDraft,
           },

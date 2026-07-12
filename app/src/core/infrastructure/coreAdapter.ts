@@ -68,6 +68,7 @@ export class CoreAdapter implements CorePort {
   sharingListPeople = this.sharing.sharingListPeople.bind(this.sharing);
   sharingApplyShareToPostedTransaction = this.sharing.sharingApplyShareToPostedTransaction.bind(this.sharing);
   sharingGetMovementDetails = this.sharing.sharingGetMovementDetails.bind(this.sharing);
+  sharingListMovementDetails = this.sharing.sharingListMovementDetails.bind(this.sharing);
 
   taxonomyListCategories = this.taxonomy.taxonomyListCategories.bind(this.taxonomy);
   taxonomyCreateCategory = this.taxonomy.taxonomyCreateCategory.bind(this.taxonomy);

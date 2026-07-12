@@ -1,5 +1,7 @@
 import type { AnalyticsFilterFacetAccount } from '../application/analytics.port';
+import type { AnalyticsSharedAmountMode } from '../application/analyticsFilters';
 import { SheetView } from '../../shared/ui/SheetView';
+import { BinarySwitchCardView } from '../../shared/ui/BinarySwitchCard/BinarySwitchCardView';
 import styles from './AnalyticsPageView.module.css';
 
 type AnalyticsMoreFiltersSheetViewProps = {
@@ -11,6 +13,7 @@ type AnalyticsMoreFiltersSheetViewProps = {
       open: boolean;
       draftAccountIds: string[];
       draftIncludeIgnoredMovements: boolean;
+      draftSharedAmountMode: AnalyticsSharedAmountMode;
     };
     status: {
       disabled: boolean;
@@ -21,6 +24,7 @@ type AnalyticsMoreFiltersSheetViewProps = {
       close: () => void;
       setDraftAccountIds: (accountIds: string[]) => void;
       setDraftIncludeIgnoredMovements: (includeIgnoredMovements: boolean) => void;
+      setDraftSharedAmountMode: (sharedAmountMode: AnalyticsSharedAmountMode) => void;
       resetMoreFiltersDraft: () => void;
       applyMoreFiltersDraft: () => void;
     };
@@ -45,7 +49,7 @@ export function AnalyticsMoreFiltersSheetView({ required, provided }: AnalyticsM
               <div className={styles.sheetHeaderRow}>
                 <div className={styles.sheetIntro}>
                   <h3>More filters</h3>
-                  <p>Ajustes adicionales para tus análisis.</p>
+                  <p>Adjust extra analytics filters without changing currency, period or tags.</p>
                 </div>
                 <button
                   type="button"
@@ -77,24 +81,41 @@ export function AnalyticsMoreFiltersSheetView({ required, provided }: AnalyticsM
                 </label>
               </div>
 
-              <label className={styles.toggleRow}>
-                <div className={styles.toggleCopy}>
-                  <span className={styles.moreFiltersLabel}>Include ignored movements</span>
-                  <span className={styles.toggleDescription}>
-                    Ignored income and expenses will be included in analytics.
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className={required.state.draftIncludeIgnoredMovements ? styles.toggleSwitchOn : styles.toggleSwitch}
-                  aria-label="Include ignored movements"
-                  aria-pressed={required.state.draftIncludeIgnoredMovements}
-                  onClick={() => provided.commands.setDraftIncludeIgnoredMovements(!required.state.draftIncludeIgnoredMovements)}
-                  disabled={required.status.disabled}
-                >
-                  <span className={styles.toggleKnob} />
-                </button>
-              </label>
+              <BinarySwitchCardView
+                required={{
+                  config: {
+                    switchId: 'analytics-include-ignored',
+                    title: 'Include ignored movements',
+                    description: 'Ignored movements are excluded by default.',
+                    iconClassName: 'bi bi-eye-slash',
+                    ariaLabel: 'Include ignored movements',
+                  },
+                  data: {},
+                  state: { value: required.state.draftIncludeIgnoredMovements },
+                  status: { disabled: required.status.disabled },
+                }}
+                provided={{ commands: { setValue: provided.commands.setDraftIncludeIgnoredMovements } }}
+              />
+
+              <BinarySwitchCardView
+                required={{
+                  config: {
+                    switchId: 'analytics-full-shared-amounts',
+                    title: 'Count full shared amounts',
+                    description: 'Off counts only your part. On counts the full amount.',
+                    iconClassName: 'bi bi-people',
+                    ariaLabel: 'Count full shared amounts',
+                  },
+                  data: {},
+                  state: { value: required.state.draftSharedAmountMode === 'full' },
+                  status: { disabled: required.status.disabled },
+                }}
+                provided={{
+                  commands: {
+                    setValue: (value) => provided.commands.setDraftSharedAmountMode(value ? 'full' : 'personal'),
+                  },
+                }}
+              />
             </>
           ),
           footer: (

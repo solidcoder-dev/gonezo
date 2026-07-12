@@ -31,10 +31,11 @@ describe('useAnalyticsFiltersModel', () => {
 
     expect(result.current.filters).toEqual({
       currency: 'EUR',
-      period: '30D',
+      period: { kind: 'thisMonth' },
       tagIds: [],
       accountIds: [],
       includeIgnoredMovements: false,
+      sharedAmountMode: 'personal',
     });
     expect('movementTypes' in result.current.filters).toBe(false);
   });
@@ -90,11 +91,11 @@ describe('useAnalyticsFiltersModel', () => {
 
     act(() => {
       result.current.commands.openPeriodSheet();
-      result.current.commands.setDraftPeriod('90D');
+      result.current.commands.setDraftPeriod({ kind: 'rollingMonths', months: 3, anchorDate: '2026-06-17' });
       result.current.commands.closePeriodSheet();
     });
 
-    expect(result.current.filters.period).toBe('30D');
+    expect(result.current.filters.period).toEqual({ kind: 'thisMonth' });
   });
 
   it('applies ignored movements only from More filters', async () => {
@@ -112,12 +113,14 @@ describe('useAnalyticsFiltersModel', () => {
     });
     act(() => {
       result.current.commands.setDraftIncludeIgnoredMovements(true);
+      result.current.commands.setDraftSharedAmountMode('full');
     });
     act(() => {
       result.current.commands.applyMoreFiltersDraft();
     });
 
     await waitFor(() => expect(result.current.filters.includeIgnoredMovements).toBe(true));
+    expect(result.current.filters.sharedAmountMode).toBe('full');
   });
 
   it('resets only More filters draft values', async () => {
@@ -145,6 +148,7 @@ describe('useAnalyticsFiltersModel', () => {
     act(() => {
       result.current.commands.setDraftAccountIds(['acc-eur']);
       result.current.commands.setDraftIncludeIgnoredMovements(true);
+      result.current.commands.setDraftSharedAmountMode('full');
     });
     act(() => {
       result.current.commands.resetMoreFiltersDraft();
@@ -155,9 +159,10 @@ describe('useAnalyticsFiltersModel', () => {
 
     await waitFor(() => expect(result.current.filters.tagIds).toEqual(['tag-trip']));
     expect(result.current.filters.currency).toBe('EUR');
-    expect(result.current.filters.period).toBe('30D');
+    expect(result.current.filters.period).toEqual({ kind: 'thisMonth' });
     expect(result.current.filters.accountIds).toEqual([]);
     expect(result.current.filters.includeIgnoredMovements).toBe(false);
+    expect(result.current.filters.sharedAmountMode).toBe('personal');
   });
 
   it('keeps previous tags when the tags sheet closes without Apply', async () => {

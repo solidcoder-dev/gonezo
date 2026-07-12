@@ -1,0 +1,49 @@
+.binary-switch-card {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 82px;
+  padding: 14px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 26px rgba(24, 24, 22, 0.04);
+}
+
+.binary-switch-card__icon {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-status-success-background) 58%, #fff);
+  color: var(--color-status-success-text);
+  font-size: 1.15rem;
+}
+
+.binary-switch-card__text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.binary-switch-card__text strong {
+  font-size: 0.94rem;
+  font-weight: 850;
+}
+
+.binary-switch-card__text small {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.binary-switch-card input[role='switch'] {
+  width: 36px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--color-status-success-text);
+}

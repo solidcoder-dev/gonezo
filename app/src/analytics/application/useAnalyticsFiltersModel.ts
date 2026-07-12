@@ -7,12 +7,16 @@ import type {
 } from './analytics.port';
 import {
   DEFAULT_ANALYTICS_FILTERS,
+  analyticsReferenceDateFromNow,
   mergeAnalyticsFilters,
   type AnalyticsFilters,
   type AnalyticsFiltersInput,
-  type AnalyticsPeriodPreset,
+  type AnalyticsLocalDate,
+  type AnalyticsPeriod,
+  type AnalyticsSharedAmountMode,
   type AnalyticsViewMode,
 } from './analyticsFilters';
+import { resolveAnalyticsPeriodWindow } from './analyticsPeriodResolver';
 
 export type AnalyticsFiltersModelPort = {
   analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult>;
@@ -38,12 +42,16 @@ export type AnalyticsFiltersModel = {
   currencySheetOpen: boolean;
   draftCurrency: string;
   periodSheetOpen: boolean;
-  draftPeriod: AnalyticsPeriodPreset;
+  draftPeriod: AnalyticsPeriod;
+  draftCustomFrom: AnalyticsLocalDate;
+  draftCustomTo: AnalyticsLocalDate;
+  draftPeriodError?: string;
   tagSheetOpen: boolean;
   draftTagIds: string[];
   moreFiltersSheetOpen: boolean;
   draftAccountIds: string[];
   draftIncludeIgnoredMovements: boolean;
+  draftSharedAmountMode: AnalyticsSharedAmountMode;
   commands: {
     selectViewMode: (viewMode: AnalyticsViewMode) => void;
     openCurrencySheet: () => void;
@@ -52,7 +60,9 @@ export type AnalyticsFiltersModel = {
     applyDraftCurrency: () => void;
     openPeriodSheet: () => void;
     closePeriodSheet: () => void;
-    setDraftPeriod: (period: AnalyticsPeriodPreset) => void;
+    setDraftPeriod: (period: AnalyticsPeriod) => void;
+    setDraftCustomFrom: (from: AnalyticsLocalDate) => void;
+    setDraftCustomTo: (to: AnalyticsLocalDate) => void;
     applyDraftPeriod: () => void;
     openTagSheet: () => void;
     closeTagSheet: () => void;
@@ -63,6 +73,7 @@ export type AnalyticsFiltersModel = {
     closeMoreFiltersSheet: () => void;
     setDraftAccountIds: (accountIds: string[]) => void;
     setDraftIncludeIgnoredMovements: (includeIgnoredMovements: boolean) => void;
+    setDraftSharedAmountMode: (sharedAmountMode: AnalyticsSharedAmountMode) => void;
     resetMoreFiltersDraft: () => void;
     applyMoreFiltersDraft: () => void;
   };
@@ -97,6 +108,36 @@ function toggleIdentifier(values: string[], candidate: string): string[] {
     : [...values, candidate];
 }
 
+function currentCustomRange(period: AnalyticsPeriod): { from: AnalyticsLocalDate; to: AnalyticsLocalDate } {
+  if (period.kind === 'custom') {
+    return { from: period.from, to: period.to };
+  }
+  const referenceDate = analyticsReferenceDateFromNow();
+  const range = resolveAnalyticsPeriodWindow(period, referenceDate).currentRange;
+  return range ?? { from: referenceDate, to: referenceDate };
+}
+
+function periodValidationError(period: AnalyticsPeriod): string | undefined {
+  if (period.kind === 'custom' && period.from > period.to) {
+    return 'Choose a valid date range.';
+  }
+  return undefined;
+}
+
+function appliedPeriod(period: AnalyticsPeriod, draftCustomFrom: AnalyticsLocalDate, draftCustomTo: AnalyticsLocalDate): AnalyticsPeriod {
+  const referenceDate = analyticsReferenceDateFromNow();
+  if (period.kind === 'custom') {
+    return { kind: 'custom', from: draftCustomFrom, to: draftCustomTo };
+  }
+  if (period.kind === 'rollingDays') {
+    return { kind: 'rollingDays', days: 30, anchorDate: referenceDate };
+  }
+  if (period.kind === 'rollingMonths') {
+    return { kind: 'rollingMonths', months: 3, anchorDate: referenceDate };
+  }
+  return period;
+}
+
 export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput): AnalyticsFiltersModel {
   const { core, enabled, onError, refreshSignal } = input;
   const [viewMode, setViewMode] = useState<AnalyticsViewMode>('overview');
@@ -112,7 +153,10 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput): Ana
   const [draftCurrency, setDraftCurrency] = useState(DEFAULT_ANALYTICS_FILTERS.currency);
 
   const [periodSheetOpen, setPeriodSheetOpen] = useState(false);
-  const [draftPeriod, setDraftPeriod] = useState<AnalyticsPeriodPreset>(DEFAULT_ANALYTICS_FILTERS.period);
+  const [draftPeriod, setDraftPeriod] = useState<AnalyticsPeriod>(DEFAULT_ANALYTICS_FILTERS.period);
+  const initialCustomRange = currentCustomRange(DEFAULT_ANALYTICS_FILTERS.period);
+  const [draftCustomFrom, setDraftCustomFrom] = useState(initialCustomRange.from);
+  const [draftCustomTo, setDraftCustomTo] = useState(initialCustomRange.to);
 
   const [tagSheetOpen, setTagSheetOpen] = useState(false);
   const [draftTagIds, setDraftTagIds] = useState<string[]>([]);
@@ -120,6 +164,7 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput): Ana
   const [moreFiltersSheetOpen, setMoreFiltersSheetOpen] = useState(false);
   const [draftAccountIds, setDraftAccountIds] = useState<string[]>([]);
   const [draftIncludeIgnoredMovements, setDraftIncludeIgnoredMovements] = useState(false);
+  const [draftSharedAmountMode, setDraftSharedAmountMode] = useState<AnalyticsSharedAmountMode>('personal');
 
   useEffect(() => {
     if (!enabled) {
@@ -194,6 +239,9 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput): Ana
   );
   const availableTags = useMemo(() => facets.tags, [facets.tags]);
   const selectedTagItems = useMemo(() => selectedTags(filters, facets.tags), [facets.tags, filters]);
+  const draftPeriodCandidate = draftPeriod.kind === 'custom'
+    ? { kind: 'custom', from: draftCustomFrom, to: draftCustomTo } satisfies AnalyticsPeriod
+    : draftPeriod;
 
   function applyFilters(patch: AnalyticsFiltersInput) {
     setFilters((current) => mergeAnalyticsFilters(current, patch));
@@ -212,11 +260,15 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput): Ana
     draftCurrency,
     periodSheetOpen,
     draftPeriod,
+    draftCustomFrom,
+    draftCustomTo,
+    draftPeriodError: periodValidationError(draftPeriodCandidate),
     tagSheetOpen,
     draftTagIds,
     moreFiltersSheetOpen,
     draftAccountIds,
     draftIncludeIgnoredMovements,
+    draftSharedAmountMode,
     commands: {
       selectViewMode: setViewMode,
       openCurrencySheet: () => {
@@ -234,12 +286,28 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput): Ana
       },
       openPeriodSheet: () => {
         setDraftPeriod(filters.period);
+        const customRange = currentCustomRange(filters.period);
+        setDraftCustomFrom(customRange.from);
+        setDraftCustomTo(customRange.to);
         setPeriodSheetOpen(true);
       },
       closePeriodSheet: () => setPeriodSheetOpen(false),
-      setDraftPeriod,
+      setDraftPeriod: (period) => {
+        setDraftPeriod(period);
+        if (period.kind === 'custom') {
+          const customRange = currentCustomRange(period);
+          setDraftCustomFrom(customRange.from);
+          setDraftCustomTo(customRange.to);
+        }
+      },
+      setDraftCustomFrom,
+      setDraftCustomTo,
       applyDraftPeriod: () => {
-        applyFilters({ period: draftPeriod });
+        const nextPeriod = appliedPeriod(draftPeriod, draftCustomFrom, draftCustomTo);
+        if (periodValidationError(nextPeriod)) {
+          return;
+        }
+        applyFilters({ period: nextPeriod });
         setPeriodSheetOpen(false);
       },
       openTagSheet: () => {
@@ -258,19 +326,23 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput): Ana
       openMoreFiltersSheet: () => {
         setDraftAccountIds(filters.accountIds);
         setDraftIncludeIgnoredMovements(filters.includeIgnoredMovements);
+        setDraftSharedAmountMode(filters.sharedAmountMode);
         setMoreFiltersSheetOpen(true);
       },
       closeMoreFiltersSheet: () => setMoreFiltersSheetOpen(false),
       setDraftAccountIds,
       setDraftIncludeIgnoredMovements,
+      setDraftSharedAmountMode,
       resetMoreFiltersDraft: () => {
         setDraftAccountIds([]);
         setDraftIncludeIgnoredMovements(false);
+        setDraftSharedAmountMode('personal');
       },
       applyMoreFiltersDraft: () => {
         applyFilters({
           accountIds: draftAccountIds,
           includeIgnoredMovements: draftIncludeIgnoredMovements,
+          sharedAmountMode: draftSharedAmountMode,
         });
         setMoreFiltersSheetOpen(false);
       },

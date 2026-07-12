@@ -237,23 +237,15 @@ public class CorePlugin extends Plugin {
   }
 
   @PluginMethod
-  public void sharingListPeople(PluginCall call) {
-    new SharingPluginHandler(getContext()).sharingListPeople(call);
-  }
-
+  public void sharingListPeople(PluginCall call) { new SharingPluginHandler(getContext()).sharingListPeople(call); }
   @PluginMethod
-  public void sharingApplyShareToPostedTransaction(PluginCall call) {
-    new SharingPluginHandler(getContext()).sharingApplyShareToPostedTransaction(call);
-  }
-
+  public void sharingApplyShareToPostedTransaction(PluginCall call) { new SharingPluginHandler(getContext()).sharingApplyShareToPostedTransaction(call); }
   @PluginMethod
-  public void sharingGetMovementDetails(PluginCall call) {
-    new SharingPluginHandler(getContext()).sharingGetMovementDetails(call);
-  }
-
+  public void sharingGetMovementDetails(PluginCall call) { new SharingPluginHandler(getContext()).sharingGetMovementDetails(call); }
+  @PluginMethod
+  public void sharingListMovementDetails(PluginCall call) { new SharingPluginHandler(getContext()).sharingListMovementDetails(call); }
   @PluginMethod
   public void analyticsSetMovementIgnored(PluginCall call) { new AnalyticsPluginHandler(getContext()).analyticsSetMovementIgnored(call); }
-
   @PluginMethod
   public void analyticsListIgnoredMovements(PluginCall call) { new AnalyticsPluginHandler(getContext()).analyticsListIgnoredMovements(call); }
 }

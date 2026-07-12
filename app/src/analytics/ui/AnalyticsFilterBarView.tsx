@@ -1,13 +1,14 @@
-import type { AnalyticsPeriodPreset, AnalyticsViewMode } from '../application/analyticsFilters';
+import type { AnalyticsPeriod, AnalyticsViewMode } from '../application/analyticsFilters';
+import { analyticsPeriodChipLabel } from '../application/analyticsFilters';
 import styles from './AnalyticsPageView.module.css';
 
 type AnalyticsFilterBarViewProps = {
   required: {
     state: {
       currency: string;
-      period: AnalyticsPeriodPreset;
+      period: AnalyticsPeriod;
       tagsSelected: boolean;
-      moreFiltersSelected: boolean;
+      moreFiltersCount: number;
     };
     status: {
       disabled: boolean;
@@ -22,10 +23,6 @@ type AnalyticsFilterBarViewProps = {
     };
   };
 };
-
-function periodLabel(period: AnalyticsPeriodPreset): string {
-  return period === 'ALL' ? 'All' : period;
-}
 
 export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBarViewProps) {
   const { state, status } = required;
@@ -52,7 +49,7 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
         aria-label="Open period filter"
       >
         <i className="bi bi-calendar4" aria-hidden />
-        <span>{periodLabel(state.period)}</span>
+        <span>{analyticsPeriodChipLabel(state.period)}</span>
         <i className="bi bi-chevron-down" aria-hidden />
       </button>
 
@@ -70,12 +67,13 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
 
       <button
         type="button"
-        className={state.moreFiltersSelected ? styles.moreFiltersButtonSelected : styles.moreFiltersButton}
+        className={state.moreFiltersCount > 0 ? styles.moreFiltersButtonSelected : styles.moreFiltersButton}
         onClick={provided.commands.openMoreFiltersSheet}
         disabled={status.disabled}
         aria-label="Open more filters"
       >
         <i className="bi bi-sliders2" aria-hidden />
+        {state.moreFiltersCount > 0 ? <span className={styles.filterBadge}>{state.moreFiltersCount}</span> : null}
       </button>
     </div>
   );

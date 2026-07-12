@@ -58,6 +58,22 @@ final class SharingPluginHandler {
     }
   }
 
+  void sharingListMovementDetails(PluginCall call) {
+    try {
+      JSONArray items = new JSONArray();
+      for (AndroidSharingCore.MovementDetailsView details : AndroidSharingCore.getInstance(context).listMovementDetails(
+        toTransactionIds(call.getArray("transactionIds"))
+      )) {
+        items.put(toMovementDetailsJson(details));
+      }
+      JSObject result = new JSObject();
+      result.put("items", items);
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
   private List<AndroidSharingCore.ParticipantInput> toParticipants(JSONArray values) {
     List<AndroidSharingCore.ParticipantInput> participants = new ArrayList<>();
     if (values == null) {
@@ -78,6 +94,20 @@ final class SharingPluginHandler {
 
   private JSObject toMovementDetailsJson(AndroidSharingCore.MovementDetailsView details) {
     return toShareJson(details.share());
+  }
+
+  private List<String> toTransactionIds(JSONArray values) {
+    List<String> items = new ArrayList<>();
+    if (values == null) {
+      return items;
+    }
+    for (int index = 0; index < values.length(); index += 1) {
+      String value = values.optString(index, null);
+      if (value != null && !value.isBlank()) {
+        items.add(value.trim());
+      }
+    }
+    return items;
   }
 
   private JSObject toShareJson(AndroidSharingCore.ShareView share) {

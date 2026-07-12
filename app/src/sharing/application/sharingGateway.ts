@@ -7,5 +7,6 @@ export function createSharingGateway(core: SharingGatewayPort): SharingGatewayPo
     sharingListPeople: () => core.sharingListPeople(),
     sharingApplyShareToPostedTransaction: (input) => core.sharingApplyShareToPostedTransaction(input),
     sharingGetMovementDetails: (input) => core.sharingGetMovementDetails(input),
+    sharingListMovementDetails: (input) => core.sharingListMovementDetails(input),
   };
 }

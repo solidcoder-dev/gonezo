@@ -2,6 +2,8 @@ import type {
   SharingApplyShareToPostedTransactionInput,
   SharingApplyShareToPostedTransactionResult,
   SharingGetMovementDetailsInput,
+  SharingListMovementDetailsInput,
+  SharingListMovementDetailsResult,
   SharingListPeopleResult,
   SharingMovementDetailsResult,
 } from '../application/sharing.port';
@@ -117,6 +119,19 @@ export class WebSharingService {
     }
     const transaction = this.ledger.getTransactionOrThrow(input.transactionId);
     return this.toMovementDetails(share, transaction);
+  }
+
+  async listMovementDetails(input: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult> {
+    const items = input.transactionIds
+      .map((transactionId) => {
+        const share = this.state.expenseShares.find((item) => item.transactionId === transactionId);
+        if (!share) {
+          return null;
+        }
+        return this.toMovementDetails(share, this.ledger.getTransactionOrThrow(transactionId));
+      })
+      .filter((item): item is Exclude<SharingMovementDetailsResult, null> => item != null);
+    return { items };
   }
 
   private findOrCreatePerson(name: string, createdAt: string): WebSharingPerson {
