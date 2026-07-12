@@ -1,6 +1,7 @@
 import type { CorePort } from '../application/corePort';
 import type {
   AnalyticsCashFlowSeriesInput,
+  AnalyticsCurrencyScopeInput,
   AnalyticsCashFlowSummaryResult,
   AnalyticsGetFilterFacetsInput,
   AnalyticsGetFilterFacetsResult,
@@ -75,7 +76,7 @@ export class AnalyticsRuntimeAdapter {
     return isNativeRuntime() ? analyticsGetCashFlowSeries(this.queries, input) : this.web.analyticsGetCashFlowSeries(input);
   }
 
-  analyticsGetPeriodCashFlowSummary(input: { currency: string }): Promise<AnalyticsCashFlowSummaryResult> {
+  analyticsGetPeriodCashFlowSummary(input: AnalyticsCurrencyScopeInput): Promise<AnalyticsCashFlowSummaryResult> {
     return isNativeRuntime()
       ? analyticsGetPeriodCashFlowSummary(this.queries, input)
       : this.web.analyticsGetPeriodCashFlowSummary(input);

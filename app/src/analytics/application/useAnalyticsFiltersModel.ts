@@ -8,7 +8,6 @@ import type {
 import {
   DEFAULT_ANALYTICS_FILTERS,
   mergeAnalyticsFilters,
-  normalizeAnalyticsFilters,
   type AnalyticsFilters,
   type AnalyticsFiltersInput,
   type AnalyticsPeriodPreset,
@@ -27,6 +26,48 @@ export type AnalyticsFiltersModelInput = {
   onError?: (error: { message: string }) => void;
 };
 
+export type AnalyticsFiltersModel = {
+  filters: AnalyticsFilters;
+  viewMode: AnalyticsViewMode;
+  currencies: string[];
+  availableAccounts: AnalyticsFilterFacetAccount[];
+  availableTags: AnalyticsFilterFacetTag[];
+  selectedTags: AnalyticsFilterFacetTag[];
+  loading: boolean;
+  disabled: boolean;
+  currencySheetOpen: boolean;
+  draftCurrency: string;
+  periodSheetOpen: boolean;
+  draftPeriod: AnalyticsPeriodPreset;
+  tagSheetOpen: boolean;
+  draftTagIds: string[];
+  moreFiltersSheetOpen: boolean;
+  draftAccountIds: string[];
+  draftIncludeIgnoredMovements: boolean;
+  commands: {
+    selectViewMode: (viewMode: AnalyticsViewMode) => void;
+    openCurrencySheet: () => void;
+    closeCurrencySheet: () => void;
+    setDraftCurrency: (currency: string) => void;
+    applyDraftCurrency: () => void;
+    openPeriodSheet: () => void;
+    closePeriodSheet: () => void;
+    setDraftPeriod: (period: AnalyticsPeriodPreset) => void;
+    applyDraftPeriod: () => void;
+    openTagSheet: () => void;
+    closeTagSheet: () => void;
+    toggleDraftTagId: (tagId: string) => void;
+    resetDraftTagIds: () => void;
+    applyDraftTagIds: () => void;
+    openMoreFiltersSheet: () => void;
+    closeMoreFiltersSheet: () => void;
+    setDraftAccountIds: (accountIds: string[]) => void;
+    setDraftIncludeIgnoredMovements: (includeIgnoredMovements: boolean) => void;
+    resetMoreFiltersDraft: () => void;
+    applyMoreFiltersDraft: () => void;
+  };
+};
+
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unknown error';
 }
@@ -43,7 +84,20 @@ function selectedTags(filters: AnalyticsFilters, tags: AnalyticsFilterFacetTag[]
   return filters.tagIds.map((tagId) => tagsById.get(tagId) ?? { id: tagId, name: tagId });
 }
 
-export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput) {
+function filterAccountsByCurrency(accounts: AnalyticsFilterFacetAccount[], currency: string): AnalyticsFilterFacetAccount[] {
+  if (!currency) {
+    return accounts;
+  }
+  return accounts.filter((account) => account.currency.toUpperCase() === currency);
+}
+
+function toggleIdentifier(values: string[], candidate: string): string[] {
+  return values.includes(candidate)
+    ? values.filter((value) => value !== candidate)
+    : [...values, candidate];
+}
+
+export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput): AnalyticsFiltersModel {
   const { core, enabled, onError, refreshSignal } = input;
   const [viewMode, setViewMode] = useState<AnalyticsViewMode>('overview');
   const [filters, setFilters] = useState<AnalyticsFilters>(DEFAULT_ANALYTICS_FILTERS);
@@ -53,13 +107,19 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput) {
     tags: [],
   });
   const [loading, setLoading] = useState(true);
+
   const [currencySheetOpen, setCurrencySheetOpen] = useState(false);
+  const [draftCurrency, setDraftCurrency] = useState(DEFAULT_ANALYTICS_FILTERS.currency);
+
   const [periodSheetOpen, setPeriodSheetOpen] = useState(false);
+  const [draftPeriod, setDraftPeriod] = useState<AnalyticsPeriodPreset>(DEFAULT_ANALYTICS_FILTERS.period);
+
   const [tagSheetOpen, setTagSheetOpen] = useState(false);
-  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
-  const [tagQuery, setTagQuery] = useState('');
   const [draftTagIds, setDraftTagIds] = useState<string[]>([]);
-  const [draftFilters, setDraftFilters] = useState<AnalyticsFilters>(DEFAULT_ANALYTICS_FILTERS);
+
+  const [moreFiltersSheetOpen, setMoreFiltersSheetOpen] = useState(false);
+  const [draftAccountIds, setDraftAccountIds] = useState<string[]>([]);
+  const [draftIncludeIgnoredMovements, setDraftIncludeIgnoredMovements] = useState(false);
 
   useEffect(() => {
     if (!enabled) {
@@ -75,10 +135,15 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput) {
         if (cancelled) {
           return;
         }
+
         setCurrencies(result.items);
-        setFilters((current) => mergeAnalyticsFilters(current, {
-          currency: resolveInitialCurrency(result.items, current.currency),
-        }));
+        setFilters((current) => {
+          const nextCurrency = resolveInitialCurrency(result.items, current.currency);
+          return mergeAnalyticsFilters(current, {
+            currency: nextCurrency,
+            accountIds: nextCurrency === current.currency ? current.accountIds : [],
+          });
+        });
       } catch (error) {
         if (!cancelled) {
           onError?.({ message: toErrorMessage(error) });
@@ -123,112 +188,91 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput) {
     };
   }, [core, enabled, filters, onError, refreshSignal]);
 
+  const availableAccounts = useMemo(
+    () => filterAccountsByCurrency(facets.accounts, filters.currency),
+    [facets.accounts, filters.currency],
+  );
+  const availableTags = useMemo(() => facets.tags, [facets.tags]);
   const selectedTagItems = useMemo(() => selectedTags(filters, facets.tags), [facets.tags, filters]);
-  const filteredTagOptions = useMemo(() => {
-    const query = tagQuery.trim().toLowerCase();
-    if (!query) {
-      return facets.tags;
-    }
-    return facets.tags.filter((tag) => tag.name.toLowerCase().includes(query));
-  }, [facets.tags, tagQuery]);
 
-  function updateFilters(patch: AnalyticsFiltersInput) {
+  function applyFilters(patch: AnalyticsFiltersInput) {
     setFilters((current) => mergeAnalyticsFilters(current, patch));
-  }
-
-  function currencyForAccount(accountId: string): string | undefined {
-    return facets.accounts.find((account) => account.id === accountId)?.currency.toUpperCase();
-  }
-
-  function toggleDraftTag(tagId: string) {
-    setDraftTagIds((current) => (
-      current.includes(tagId)
-        ? current.filter((item) => item !== tagId)
-        : [...current, tagId]
-    ));
-  }
-
-  function openTagSheet() {
-    setDraftTagIds(filters.tagIds);
-    setTagQuery('');
-    setTagSheetOpen(true);
-  }
-
-  function openMoreFilters() {
-    setDraftFilters(filters);
-    setMoreFiltersOpen(true);
   }
 
   return {
     filters,
     viewMode,
-    required: {
-      data: {
-        currencies,
-        accounts: facets.accounts,
-        tags: filteredTagOptions,
-        selectedTags: selectedTagItems,
+    currencies,
+    availableAccounts,
+    availableTags,
+    selectedTags: selectedTagItems,
+    loading,
+    disabled: !enabled,
+    currencySheetOpen,
+    draftCurrency,
+    periodSheetOpen,
+    draftPeriod,
+    tagSheetOpen,
+    draftTagIds,
+    moreFiltersSheetOpen,
+    draftAccountIds,
+    draftIncludeIgnoredMovements,
+    commands: {
+      selectViewMode: setViewMode,
+      openCurrencySheet: () => {
+        setDraftCurrency(filters.currency);
+        setCurrencySheetOpen(true);
       },
-      state: {
-        filters,
-        draftFilters,
-        draftTagIds,
-        tagQuery,
-        currencySheetOpen,
-        periodSheetOpen,
-        tagSheetOpen,
-        moreFiltersOpen,
-        viewMode,
+      closeCurrencySheet: () => setCurrencySheetOpen(false),
+      setDraftCurrency,
+      applyDraftCurrency: () => {
+        applyFilters({
+          currency: draftCurrency,
+          accountIds: [],
+        });
+        setCurrencySheetOpen(false);
       },
-      status: {
-        loading,
-        disabled: !enabled,
+      openPeriodSheet: () => {
+        setDraftPeriod(filters.period);
+        setPeriodSheetOpen(true);
       },
-    },
-    provided: {
-      commands: {
-        openCurrencySheet: () => setCurrencySheetOpen(true),
-        closeCurrencySheet: () => setCurrencySheetOpen(false),
-        selectCurrency: (currency: string) => {
-          updateFilters({ currency, accountIds: [] });
-          setCurrencySheetOpen(false);
-        },
-        openPeriodSheet: () => setPeriodSheetOpen(true),
-        closePeriodSheet: () => setPeriodSheetOpen(false),
-        selectPeriod: (period: AnalyticsPeriodPreset) => {
-          updateFilters({ period });
-          setPeriodSheetOpen(false);
-        },
-        selectViewMode: setViewMode,
-        removeTag: (tagId: string) => updateFilters({ tagIds: filters.tagIds.filter((item) => item !== tagId) }),
-        openTagSheet,
-        closeTagSheet: () => setTagSheetOpen(false),
-        setTagQuery,
-        toggleDraftTag,
-        clearDraftTags: () => setDraftTagIds([]),
-        applyDraftTags: () => {
-          updateFilters({ tagIds: draftTagIds });
-          setTagSheetOpen(false);
-        },
-        openMoreFilters,
-        closeMoreFilters: () => setMoreFiltersOpen(false),
-        patchDraftFilters: (patch: AnalyticsFiltersInput) => {
-          setDraftFilters((current) => mergeAnalyticsFilters(current, patch));
-        },
-        selectDraftAccount: (accountId: string) => {
-          setDraftFilters((current) => mergeAnalyticsFilters(current, {
-            accountIds: accountId ? [accountId] : [],
-            currency: accountId ? currencyForAccount(accountId) ?? current.currency : current.currency,
-          }));
-        },
-        resetDraftFilters: () => {
-          const currency = filters.currency || currencies[0] || '';
-          setDraftFilters(normalizeAnalyticsFilters({ ...DEFAULT_ANALYTICS_FILTERS, currency }));
-        },
-        applyDraftFilters: () => {
-          setFilters(draftFilters);
-          setMoreFiltersOpen(false);
-        },
+      closePeriodSheet: () => setPeriodSheetOpen(false),
+      setDraftPeriod,
+      applyDraftPeriod: () => {
+        applyFilters({ period: draftPeriod });
+        setPeriodSheetOpen(false);
+      },
+      openTagSheet: () => {
+        setDraftTagIds(filters.tagIds);
+        setTagSheetOpen(true);
+      },
+      closeTagSheet: () => setTagSheetOpen(false),
+      toggleDraftTagId: (tagId: string) => {
+        setDraftTagIds((current) => toggleIdentifier(current, tagId));
+      },
+      resetDraftTagIds: () => setDraftTagIds([]),
+      applyDraftTagIds: () => {
+        applyFilters({ tagIds: draftTagIds });
+        setTagSheetOpen(false);
+      },
+      openMoreFiltersSheet: () => {
+        setDraftAccountIds(filters.accountIds);
+        setDraftIncludeIgnoredMovements(filters.includeIgnoredMovements);
+        setMoreFiltersSheetOpen(true);
+      },
+      closeMoreFiltersSheet: () => setMoreFiltersSheetOpen(false),
+      setDraftAccountIds,
+      setDraftIncludeIgnoredMovements,
+      resetMoreFiltersDraft: () => {
+        setDraftAccountIds([]);
+        setDraftIncludeIgnoredMovements(false);
+      },
+      applyMoreFiltersDraft: () => {
+        applyFilters({
+          accountIds: draftAccountIds,
+          includeIgnoredMovements: draftIncludeIgnoredMovements,
+        });
+        setMoreFiltersSheetOpen(false);
       },
     },
   };

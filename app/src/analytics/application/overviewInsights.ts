@@ -30,7 +30,6 @@ function isAnalyticsExpenseTransaction(transaction: LedgerTransactionListItem, c
   return transaction.status === 'posted'
     && transaction.type === 'expense'
     && transaction.currency.toUpperCase() === currency
-    && !transaction.ignored
     && !isAutomaticOpeningBalance(transaction);
 }
 

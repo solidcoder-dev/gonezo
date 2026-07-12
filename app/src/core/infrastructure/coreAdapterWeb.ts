@@ -1,6 +1,6 @@
 import type { CorePort } from '../application/corePort';
 import type { AccountsListBalancesResult } from '../../account/application/accountBalances.port';
-import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsFlowInsightsInput, AnalyticsFlowInsightsResult, AnalyticsFlowProjectionInput, AnalyticsFlowProjectionResult, AnalyticsFlowUpcomingInput, AnalyticsFlowUpcomingResult, AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingDashboardInput, AnalyticsSpendingDashboardResult, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult, AnalyticsSpendingTimelineInput, AnalyticsSpendingTimelineResult, AnalyticsSpendingTopExpensesInput, AnalyticsSpendingTopExpensesResult } from '../../analytics/application/analytics.port';
+import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsCurrencyScopeInput, AnalyticsFlowInsightsInput, AnalyticsFlowInsightsResult, AnalyticsFlowProjectionInput, AnalyticsFlowProjectionResult, AnalyticsFlowUpcomingInput, AnalyticsFlowUpcomingResult, AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingDashboardInput, AnalyticsSpendingDashboardResult, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult, AnalyticsSpendingTimelineInput, AnalyticsSpendingTimelineResult, AnalyticsSpendingTopExpensesInput, AnalyticsSpendingTopExpensesResult } from '../../analytics/application/analytics.port';
 import type { AnalyticsOverviewInsightsInput, AnalyticsOverviewInsightsResult, AnalyticsOverviewSnapshotInput, AnalyticsOverviewSnapshotResult } from '../../analytics/application/analytics.port';
 import type {
   PreferencesSetDefaultAccountInput,
@@ -279,7 +279,7 @@ export class CoreAdapterWeb implements CorePort {
     return analyticsGetCashFlowSeries(this, input);
   }
 
-  async analyticsGetPeriodCashFlowSummary(input: { currency: string }): Promise<AnalyticsCashFlowSummaryResult> {
+  async analyticsGetPeriodCashFlowSummary(input: AnalyticsCurrencyScopeInput): Promise<AnalyticsCashFlowSummaryResult> {
     return analyticsGetPeriodCashFlowSummary(this, input);
   }
 

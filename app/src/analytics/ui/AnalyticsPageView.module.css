@@ -34,7 +34,7 @@
 .filterBar {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   min-width: 0;
   overflow-x: auto;
   padding: 2px 0;
@@ -45,41 +45,29 @@
   display: none;
 }
 
-.filterMenu {
-  position: relative;
-}
-
-.filterMenu > summary {
-  list-style: none;
-}
-
-.filterMenu > summary::-webkit-details-marker {
-  display: none;
-}
-
 .filterChip,
 .filterChipMuted,
-.filterChipActive,
+.filterChipSelected,
 .moreFiltersButton,
-.moreFiltersButtonActive {
+.moreFiltersButtonSelected {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   min-height: 44px;
-  border: 0;
+  border: 1px solid #ecebe7;
   border-radius: 999px;
-  background: #f1f1f1;
+  background: #fff;
   color: #1b1b17;
   font-size: 0.95rem;
   font-weight: 800;
   white-space: nowrap;
-  box-shadow: none;
+  box-shadow: 0 6px 18px rgb(17 17 17 / 5%);
 }
 
 .filterChip,
 .filterChipMuted,
-.filterChipActive {
+.filterChipSelected {
   padding: 0 14px;
 }
 
@@ -87,98 +75,18 @@
   color: #66665f;
 }
 
-.filterChipActive,
-.moreFiltersButtonActive {
-  background: #c9f2d8;
-  color: #149447;
+.filterChipSelected,
+.moreFiltersButtonSelected {
+  border-color: #d7d5cf;
+  background: #f8f7f4;
 }
 
 .moreFiltersButton,
-.moreFiltersButtonActive {
-  position: relative;
+.moreFiltersButtonSelected {
   width: 44px;
   flex: 0 0 44px;
   padding: 0;
-  font-size: 1.15rem;
-}
-
-.filterBadge {
-  position: absolute;
-  top: -4px;
-  right: -2px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: #149447;
-  color: #fff;
-  font-size: 0.68rem;
-  font-weight: 900;
-}
-
-.filterMenuPanel {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 8px);
-  left: 0;
-  display: grid;
-  min-width: 112px;
-  padding: 8px;
-  border: 1px solid #e7e7e2;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 16px 40px rgb(0 0 0 / 12%);
-}
-
-.filterMenuOption,
-.filterMenuOptionActive {
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: #24241f;
-  padding: 10px 12px;
-  text-align: left;
-  font-weight: 800;
-}
-
-.filterMenuOptionActive {
-  background: #c9f2d8;
-  color: #149447;
-}
-
-.selectedTagRow {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.selectedTagChip,
-.compactChip,
-.compactChipActive {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 38px;
-  border: 0;
-  border-radius: 999px;
-  padding: 0 12px;
-  font-size: 0.9rem;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.selectedTagChip,
-.compactChipActive {
-  background: #c9f2d8;
-  color: #149447;
-}
-
-.compactChip {
-  background: #f2f2f0;
-  color: #252520;
+  font-size: 1.05rem;
 }
 
 .viewTabs {
@@ -193,26 +101,26 @@
 .viewTab,
 .viewTabActive {
   flex: 1 1 0;
-  min-height: 34px;
-  border: 0;
+  min-height: 40px;
+  border: 1px solid #ecebe7;
   border-radius: 999px;
   padding: 0 22px;
   font-size: 0.88rem;
   font-weight: 800;
   letter-spacing: -0.01em;
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0%);
   white-space: nowrap;
   text-align: center;
 }
 
 .viewTab {
-  background: #f5f5f3;
+  background: #fff;
   color: #34342f;
 }
 
 .viewTabActive {
   background: #111;
   color: #fff;
+  border-color: #111;
   box-shadow: 0 8px 18px rgb(17 17 17 / 10%);
 }
 
@@ -241,93 +149,89 @@
 .analyticsSheetContent {
   display: grid;
   gap: 22px;
-  padding: 18px 20px 0;
+  padding: 12px 20px 0;
 }
 
-.sheetHeader,
-.sheetFooter {
+.sheetIntro {
+  display: grid;
+  gap: 8px;
+}
+
+.sheetIntro h3 {
+  margin: 0;
+  font-size: 1.75rem;
+  line-height: 1.1;
+}
+
+.sheetIntro p {
+  margin: 0;
+  color: #6d6c66;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.sheetHeaderRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sheetTextButton {
+  border: 0;
+  background: transparent;
+  color: #1b1b17;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.sheetOptionList {
+  display: grid;
+}
+
+.sheetOptionRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px 20px 0;
-}
-
-.sheetHeader h3 {
-  margin: 0;
-  font-size: 1.2rem;
-  line-height: 1.2;
-}
-
-.sheetDoneButton {
+  min-height: 60px;
   border: 0;
+  border-bottom: 1px solid #f0efeb;
   background: transparent;
-  color: #149447;
-  font-weight: 900;
-}
-
-.searchField {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 50px;
-  border-radius: 12px;
-  background: #f4f4f2;
-  padding: 0 14px;
-  color: #85857d;
-}
-
-.searchField input {
-  width: 100%;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #20201c;
-  font: inherit;
-  font-weight: 700;
-}
-
-.tagOptionList,
-.optionList,
-.filterRows {
-  display: grid;
-  gap: 14px;
-}
-
-.optionRow,
-.optionRowActive {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 48px;
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
-  color: #252520;
-  padding: 0 12px;
-  font-size: 1rem;
-  font-weight: 900;
+  padding: 0 4px;
   text-align: left;
 }
 
-.optionRowActive {
-  background: #c9f2d8;
-  color: #149447;
+.sheetOptionMain {
+  display: grid;
+  gap: 4px;
 }
 
-.tagOption {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 48px;
-  border: 0;
-  background: transparent;
-  color: #252520;
-  padding: 0;
+.sheetOptionTitle {
+  color: #1b1b17;
   font-size: 1rem;
   font-weight: 800;
-  text-align: left;
+}
+
+.sheetOptionDescription {
+  color: #6d6c66;
+  font-size: 0.94rem;
+}
+
+.radio,
+.radioChecked {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+}
+
+.radio {
+  border: 2px solid #cecdc7;
+}
+
+.radioChecked {
+  border: 7px solid #111;
 }
 
 .checkbox,
@@ -345,105 +249,108 @@
 }
 
 .checkboxChecked {
-  border: 2px solid #149447;
-  background: #149447;
+  border: 2px solid #111;
+  background: #111;
   color: #fff;
 }
 
-.sheetFooter {
-  padding: 16px 20px 20px;
-  border-top: 1px solid #eeeeea;
-}
-
-.sheetFooter strong {
-  font-size: 0.9rem;
-}
-
-.tagSheetFooter {
-  display: grid;
-  gap: 12px;
-  padding: 16px 20px 20px;
-  border-top: 1px solid #eeeeea;
-}
-
-.tagSheetFooter strong {
-  font-size: 0.9rem;
-}
-
-.tagDoneButton {
-  width: 100%;
-  min-height: 48px;
-  border: 0;
-  border-radius: 8px;
-  background: #000;
-  color: #fff;
-  font-weight: 900;
-}
-
-.filterRow,
-.filterRowGroup {
-  display: grid;
-  gap: 8px;
-}
-
-.filterRow {
-  grid-template-columns: minmax(0, 1fr) minmax(132px, auto);
-  align-items: center;
-}
-
-.filterRow span,
-.filterRowGroup > span {
-  color: #22221d;
-  font-weight: 900;
-}
-
-.filterRow select {
-  min-height: 42px;
-  border: 0;
-  border-radius: 10px;
-  background: #f4f4f2;
-  color: #585850;
-  padding: 0 10px;
-  font: inherit;
-  font-weight: 800;
-}
-
-.segmentedControls,
-.compactChipRow {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.segment,
-.segmentActive {
-  min-height: 36px;
-  border: 0;
-  border-radius: 999px;
-  padding: 0 12px;
-  font-size: 0.84rem;
-  font-weight: 900;
-}
-
-.segment {
-  background: #f2f2f0;
-  color: #252520;
-}
-
-.segmentActive {
-  background: #000;
-  color: #fff;
+.sheetActionFooter {
+  padding: 2px 0 20px;
 }
 
 .applyFiltersButton {
-  width: calc(100% - 40px);
-  min-height: 48px;
-  margin: 18px 20px 20px;
+  width: 100%;
+  min-height: 54px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 12px;
   background: #000;
   color: #fff;
+  font-size: 1rem;
   font-weight: 900;
+}
+
+.moreFiltersSection {
+  display: grid;
+  gap: 12px;
+}
+
+.moreFiltersLabel {
+  color: #1b1b17;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.accountSelectField {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 50px;
+  border: 1px solid #ecebe7;
+  border-radius: 14px;
+  background: #fff;
+  padding: 0 14px;
+  color: #595852;
+}
+
+.accountSelectField select {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #1b1b17;
+  font: inherit;
+  font-weight: 700;
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.toggleCopy {
+  display: grid;
+  gap: 8px;
+}
+
+.toggleDescription {
+  color: #6d6c66;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.toggleSwitch,
+.toggleSwitchOn {
+  position: relative;
+  display: inline-flex;
+  width: 52px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
+}
+
+.toggleSwitch {
+  background: #d7d6d1;
+}
+
+.toggleSwitchOn {
+  background: #111;
+}
+
+.toggleKnob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: #fff;
+  transition: transform 140ms ease;
+}
+
+.toggleSwitchOn .toggleKnob {
+  transform: translateX(20px);
 }
 
 @media (max-width: 420px) {
@@ -453,7 +360,7 @@
 
   .filterChip,
   .filterChipMuted,
-  .filterChipActive {
+  .filterChipSelected {
     min-height: 40px;
     padding: 0 12px;
     font-size: 0.88rem;
@@ -464,5 +371,9 @@
     min-height: 38px;
     padding: 0 14px;
     font-size: 0.84rem;
+  }
+
+  .sheetIntro h3 {
+    font-size: 1.5rem;
   }
 }

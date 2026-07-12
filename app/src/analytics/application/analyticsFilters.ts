@@ -1,17 +1,13 @@
-import type { LedgerTransactionType } from '../../ledger/application/ledger.port';
-
 export type AnalyticsViewMode = 'overview' | 'spending' | 'cashFlow' | 'recurring' | 'accounts';
 
 export type AnalyticsPeriodPreset = '7D' | '30D' | '90D' | '1Y' | 'ALL';
-
-export type AnalyticsMovementTypeFilter = Extract<LedgerTransactionType, 'income' | 'expense' | 'transfer'>;
 
 export type AnalyticsFilters = {
   currency: string;
   period: AnalyticsPeriodPreset;
   tagIds: string[];
   accountIds: string[];
-  movementTypes: AnalyticsMovementTypeFilter[];
+  includeIgnoredMovements: boolean;
 };
 
 export type AnalyticsFiltersInput = Partial<AnalyticsFilters>;
@@ -21,7 +17,7 @@ export const DEFAULT_ANALYTICS_FILTERS: AnalyticsFilters = {
   period: '30D',
   tagIds: [],
   accountIds: [],
-  movementTypes: [],
+  includeIgnoredMovements: false,
 };
 
 export function analyticsPeriodMonths(period: AnalyticsPeriodPreset): number {
@@ -58,11 +54,8 @@ function normalizePeriod(period?: AnalyticsPeriodPreset): AnalyticsPeriodPreset 
   return '30D';
 }
 
-function normalizeMovementTypes(values?: AnalyticsMovementTypeFilter[]): AnalyticsMovementTypeFilter[] {
-  const allowed = new Set<AnalyticsMovementTypeFilter>(['income', 'expense', 'transfer']);
-  return normalizeIdentifierList(values).filter((value): value is AnalyticsMovementTypeFilter => (
-    allowed.has(value as AnalyticsMovementTypeFilter)
-  ));
+function normalizeIncludeIgnoredMovements(value?: boolean): boolean {
+  return value === true;
 }
 
 export function normalizeAnalyticsFilters(input?: AnalyticsFiltersInput): AnalyticsFilters {
@@ -71,7 +64,7 @@ export function normalizeAnalyticsFilters(input?: AnalyticsFiltersInput): Analyt
     period: normalizePeriod(input?.period),
     tagIds: normalizeIdentifierList(input?.tagIds),
     accountIds: normalizeIdentifierList(input?.accountIds),
-    movementTypes: normalizeMovementTypes(input?.movementTypes),
+    includeIgnoredMovements: normalizeIncludeIgnoredMovements(input?.includeIgnoredMovements),
   };
 }
 

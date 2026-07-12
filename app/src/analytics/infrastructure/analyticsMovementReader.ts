@@ -18,6 +18,7 @@ export type AnalyticsMovementReadModel = {
 export type AnalyticsMovementReadScope = {
   accountIds?: string[];
   filters?: LedgerTransactionFilterInput;
+  includeIgnoredMovements?: boolean;
 };
 
 async function listAllAccountTransactions(
@@ -46,8 +47,9 @@ async function listAllAccountTransactions(
 
 function isAnalyticsIncludedMovement(
   movement: LedgerListTransactionsResult['content'][number],
+  includeIgnoredMovements: boolean,
 ): boolean {
-  return movement.ignored !== true;
+  return includeIgnoredMovements || movement.ignored !== true;
 }
 
 export async function listAnalyticsMovements(
@@ -66,6 +68,9 @@ export async function listAnalyticsMovements(
   );
   return {
     accounts: scopedAccounts,
-    transactions: pages.flat().filter(isAnalyticsIncludedMovement),
+    transactions: pages.flat().filter((movement) => isAnalyticsIncludedMovement(
+      movement,
+      scope.includeIgnoredMovements === true,
+    )),
   };
 }

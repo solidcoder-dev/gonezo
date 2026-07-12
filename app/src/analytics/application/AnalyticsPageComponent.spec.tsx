@@ -20,8 +20,8 @@ function createCore(): AnalyticsPort {
         { id: 'acc-2', name: 'Travel', currency: 'USD' },
       ],
       tags: [
-        { id: 'tag-alicante', name: 'Alicante 2026' },
-        { id: 'tag-benidorm', name: 'Benidorm 2026' },
+        { id: 'tag-trip', name: 'Trip Tenerife' },
+        { id: 'tag-family', name: 'Family' },
       ],
     })),
     analyticsGetCashFlowSeries: vi.fn(async (input) => ({
@@ -30,59 +30,9 @@ function createCore(): AnalyticsPort {
       granularity: input.granularity,
       totals: { incomeAmount: '1000.00', expenseAmount: '250.00' },
       window: { label: 'Jan 2026 - Jun 2026', periodOffset: input.periodOffset ?? 0, canGoPrevious: true, canGoNext: false },
-      points: [
-        { periodKey: '2026-06', label: 'Jun', incomeAmount: '1000.00', expenseAmount: '250.00' },
-      ],
+      points: [{ periodKey: '2026-06', label: 'Jun', incomeAmount: '1000.00', expenseAmount: '250.00' }],
     })),
     analyticsGetOverviewSnapshot: vi.fn(async (input) => ({
-      currentWindow: {
-        label: input.currency === 'USD' ? 'Jun 24-Jun 30, 2026' : 'Jun 1-Jun 30, 2026',
-        startDate: '2026-06-01T00:00:00.000Z',
-        endDate: '2026-06-30T23:59:59.999Z',
-      },
-      previousWindow: {
-        label: 'May 1-May 31, 2026',
-        startDate: '2026-05-01T00:00:00.000Z',
-        endDate: '2026-05-31T23:59:59.999Z',
-      },
-      currentTotals: {
-        incomeAmount: input.currency === 'USD' ? '300.00' : '1000.00',
-        expenseAmount: input.currency === 'USD' ? '100.00' : '250.00',
-        netFlowAmount: input.currency === 'USD' ? '200.00' : '750.00',
-      },
-      previousTotals: {
-        incomeAmount: '800.00',
-        expenseAmount: '200.00',
-        netFlowAmount: '600.00',
-      },
-      netFlowChangePercent: input.currency === 'USD' ? '-66.67' : '25.00',
-      biggestExpense: {
-        movementId: 'expense-1',
-        title: 'Shopping',
-        subtitle: 'Mall',
-        amount: input.currency === 'USD' ? '100.00' : '250.00',
-        occurredAt: '2026-06-12T00:00:00.000Z',
-      },
-      biggestIncome: {
-        movementId: 'income-1',
-        title: 'Work income',
-        subtitle: 'Employer',
-        amount: input.currency === 'USD' ? '300.00' : '1000.00',
-        occurredAt: '2026-06-01T00:00:00.000Z',
-      },
-    })),
-    analyticsGetOverviewInsights: vi.fn(async () => ({
-      items: [
-        { key: 'topTags', title: 'Top tags', subtitle: '3 tags', amount: '240.00' },
-        { key: 'transfers', title: 'Transfers', subtitle: '1 transfer', amount: '220.00' },
-      ],
-    }) satisfies AnalyticsOverviewInsightsResult),
-    analyticsGetPeriodCashFlowSummary: vi.fn(async (input) => ({
-      incomeAmount: input.currency === 'USD' ? '300.00' : '1000.00',
-      expenseAmount: input.currency === 'USD' ? '100.00' : '250.00',
-      netFlowAmount: input.currency === 'USD' ? '200.00' : '750.00',
-    })),
-    analyticsGetSpendingDashboard: vi.fn(async (input) => ({
       currentWindow: {
         label: 'Jun 1-Jun 30, 2026',
         startDate: '2026-06-01T00:00:00.000Z',
@@ -93,10 +43,58 @@ function createCore(): AnalyticsPort {
         startDate: '2026-05-01T00:00:00.000Z',
         endDate: '2026-05-31T23:59:59.999Z',
       },
-      totalExpenseAmount: input.currency === 'USD' ? '100.00' : '250.00',
-      previousExpenseChangePercent: input.currency === 'USD' ? '-20.00' : '25.00',
+      currentTotals: {
+        incomeAmount: input.filters?.includeIgnoredMovements ? '1400.00' : '1000.00',
+        expenseAmount: '250.00',
+        netFlowAmount: input.filters?.includeIgnoredMovements ? '1150.00' : '750.00',
+      },
+      previousTotals: {
+        incomeAmount: '800.00',
+        expenseAmount: '200.00',
+        netFlowAmount: '600.00',
+      },
+      netFlowChangePercent: '25.00',
+      biggestExpense: {
+        movementId: 'expense-1',
+        title: 'Shopping',
+        subtitle: 'Mall',
+        amount: '250.00',
+        occurredAt: '2026-06-12T00:00:00.000Z',
+      },
+      biggestIncome: {
+        movementId: 'income-1',
+        title: 'Work income',
+        subtitle: 'Employer',
+        amount: '1000.00',
+        occurredAt: '2026-06-01T00:00:00.000Z',
+      },
+    })),
+    analyticsGetOverviewInsights: vi.fn(async () => ({
+      items: [
+        { key: 'topTags', title: 'Top tags', subtitle: '2 tags', amount: '240.00' },
+        { key: 'transfers', title: 'Transfers', subtitle: '1 transfer', amount: '220.00' },
+      ],
+    }) satisfies AnalyticsOverviewInsightsResult),
+    analyticsGetPeriodCashFlowSummary: vi.fn(async () => ({
+      incomeAmount: '1000.00',
+      expenseAmount: '250.00',
+      netFlowAmount: '750.00',
+    })),
+    analyticsGetSpendingDashboard: vi.fn(async () => ({
+      currentWindow: {
+        label: 'Jun 1-Jun 30, 2026',
+        startDate: '2026-06-01T00:00:00.000Z',
+        endDate: '2026-06-30T23:59:59.999Z',
+      },
+      previousWindow: {
+        label: 'May 1-May 31, 2026',
+        startDate: '2026-05-01T00:00:00.000Z',
+        endDate: '2026-05-31T23:59:59.999Z',
+      },
+      totalExpenseAmount: '250.00',
+      previousExpenseChangePercent: '25.00',
       categories: [
-        { categoryId: 'cat-food', categoryName: 'Food', amount: input.currency === 'USD' ? '100.00' : '250.00', percentage: 100 },
+        { categoryId: 'cat-food', categoryName: 'Food', amount: '250.00', percentage: 100 },
       ],
     })),
     analyticsGetSpendingTimeline: vi.fn(async () => ({
@@ -113,7 +111,6 @@ function createCore(): AnalyticsPort {
       },
       points: [
         { periodKey: '2026-06-01T00:00:00.000Z', label: 'Jun 1', amount: '40.00' },
-        { periodKey: '2026-06-06T00:00:00.000Z', label: 'Jun 6', amount: '80.00' },
       ],
     })),
     analyticsGetFlowProjection: vi.fn(async (input) => ({
@@ -142,27 +139,20 @@ function createCore(): AnalyticsPort {
     analyticsGetFlowInsights: vi.fn(async () => ({
       items: [],
     })),
-    analyticsGetSpendingTopExpenses: vi.fn(async (input) => ({
+    analyticsGetSpendingTopExpenses: vi.fn(async () => ({
       currentWindow: {
         label: 'Jun 1-Jun 30, 2026',
         startDate: '2026-06-01T00:00:00.000Z',
         endDate: '2026-06-30T23:59:59.999Z',
       },
-      items: [
-        {
-          movementId: 'expense-1',
-          title: 'Supermarket',
-          amount: input.currency === 'USD' ? '52.40' : '64.23',
-          occurredAt: '2026-06-10T00:00:00.000Z',
-        },
-      ],
+      items: [],
     })),
     analyticsGetSpendingOverview: vi.fn(async (input) => ({
       granularity: input.granularity,
-      window: { label: 'Jun 2026 - Jun 2026', periodOffset: input.periodOffset ?? 0, canGoPrevious: true, canGoNext: false },
-      totalExpenseAmount: input.currency === 'USD' ? '100.00' : '250.00',
+      window: { label: 'Jun 2026 - Jun 2026', periodOffset: 0, canGoPrevious: true, canGoNext: false },
+      totalExpenseAmount: '250.00',
       categories: [
-        { categoryId: 'cat-food', categoryName: 'Food', amount: input.currency === 'USD' ? '100.00' : '250.00', percentage: 100 },
+        { categoryId: 'cat-food', categoryName: 'Food', amount: '250.00', percentage: 100 },
       ],
     })),
     analyticsSetMovementIgnored: vi.fn(),
@@ -171,7 +161,49 @@ function createCore(): AnalyticsPort {
 }
 
 describe('AnalyticsPageComponent', () => {
-  it('uses a global currency selector across overview, spending and flow tabs', async () => {
+  it('applies each global filter from its own sheet', async () => {
+    const core = createCore();
+
+    render(
+      <AnalyticsPageComponent
+        required={{
+          context: { core },
+          config: { enabled: true, refreshSignal: false },
+        }}
+      />,
+    );
+
+    await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalledWith(expect.objectContaining({
+      currency: 'EUR',
+      filters: expect.objectContaining({ period: '30D', includeIgnoredMovements: false }),
+    })));
+
+    fireEvent.click(screen.getByLabelText('Open currency filter'));
+    expect(screen.getByRole('dialog', { name: 'Currency filter' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /USD/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalledWith(expect.objectContaining({
+      currency: 'USD',
+    })));
+
+    fireEvent.click(screen.getByLabelText('Open period filter'));
+    expect(screen.getByRole('dialog', { name: 'Period filter' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /90D/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalledWith(expect.objectContaining({
+      filters: expect.objectContaining({ period: '90D' }),
+    })));
+
+    fireEvent.click(screen.getByLabelText('Open tags filter'));
+    expect(screen.getByRole('dialog', { name: 'Tags filter' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Trip Tenerife/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalledWith(expect.objectContaining({
+      filters: expect.objectContaining({ tagIds: ['tag-trip'] }),
+    })));
+  }, 30000);
+
+  it('shows four independent sheets and keeps More filters limited to account and ignored movements', async () => {
     const core = createCore();
 
     render(
@@ -184,52 +216,36 @@ describe('AnalyticsPageComponent', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Analytics' })).toBeInTheDocument();
-    const analyticsTabs = screen.getByRole('tablist', { name: 'Analytics views' });
-    const analyticsFilters = screen.getByLabelText('Analytics filters');
-    expect(analyticsTabs.compareDocumentPosition(analyticsFilters) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getByRole('tab', { name: 'Overview' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Spending' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Flow' })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'Recurring' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'Accounts' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Open more filters'));
+    expect(screen.getByRole('dialog', { name: 'More analytics filters' })).toBeInTheDocument();
+    expect(screen.getByText('Accounts')).toBeInTheDocument();
+    expect(screen.getByText('Include ignored movements')).toBeInTheDocument();
+    expect(screen.queryByText('Movement type')).not.toBeInTheDocument();
+    expect(screen.queryByText('Add tag')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Analytics account'), { target: { value: 'acc-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Include ignored movements' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
     await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalledWith(expect.objectContaining({
-      currency: 'EUR',
-      filters: expect.objectContaining({ period: '30D' }),
-    })));
-    await waitFor(() => expect(core.analyticsGetOverviewInsights).toHaveBeenCalledWith(expect.objectContaining({
-      currency: 'EUR',
-      filters: expect.objectContaining({ period: '30D' }),
-    })));
-    expect(core.analyticsGetFlowProjection).not.toHaveBeenCalled();
-    expect(core.analyticsGetSpendingDashboard).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByLabelText('Select currency'));
-    fireEvent.click(screen.getByRole('button', { name: 'USD' }));
-
-    await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalledWith(expect.objectContaining({ currency: 'USD' })));
-    await waitFor(() => expect(core.analyticsGetOverviewInsights).toHaveBeenCalledWith(expect.objectContaining({ currency: 'USD' })));
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Spending' }));
-    await waitFor(() => expect(core.analyticsGetSpendingDashboard).toHaveBeenCalledWith(expect.objectContaining({
-      currency: 'USD',
-      filters: expect.objectContaining({ period: '30D' }),
-    })));
-    await waitFor(() => expect(core.analyticsGetSpendingTimeline).toHaveBeenCalledWith(expect.objectContaining({
-      currency: 'USD',
-      filters: expect.objectContaining({ period: '30D' }),
-    })));
-    await waitFor(() => expect(core.analyticsGetSpendingTopExpenses).toHaveBeenCalledWith(expect.objectContaining({
-      currency: 'USD',
-      filters: expect.objectContaining({ period: '30D' }),
+      filters: expect.objectContaining({
+        accountIds: ['acc-1'],
+        includeIgnoredMovements: true,
+      }),
     })));
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Flow' }));
-    await waitFor(() => expect(core.analyticsGetFlowProjection).toHaveBeenCalledWith(expect.objectContaining({
-      currency: 'USD',
-      periodOffset: 0,
-      filters: expect.objectContaining({ period: '30D' }),
+    fireEvent.click(screen.getByLabelText('Open more filters'));
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+    await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalledWith(expect.objectContaining({
+      filters: expect.objectContaining({
+        accountIds: [],
+        includeIgnoredMovements: false,
+      }),
     })));
-  }, 20000);
+  }, 15000);
 
   it('renders the overview snapshot before the insights rail finishes loading', async () => {
     const snapshotDeferred = deferred<Awaited<ReturnType<AnalyticsPort['analyticsGetOverviewSnapshot']>>>();

@@ -11,6 +11,8 @@ import type { SharingMovementDetailsResult } from '../../sharing/application/sha
 import {
   analyticsGetCashFlowSeries,
   analyticsGetFilterFacets,
+  analyticsGetFlowInsights,
+  analyticsGetFlowProjection,
   analyticsGetOverviewInsights,
   analyticsGetOverviewSnapshot,
   analyticsGetPeriodCashFlowSummary,
@@ -53,6 +55,9 @@ function createPort(
     })),
     ledgerListTransactions: vi.fn(async (input: LedgerListTransactionsInput) => ({
       content: transactions.filter((item) => {
+        if (item.accountId !== input.accountId) {
+          return false;
+        }
         const fromDateEpoch = input.filters?.fromDate ? Date.parse(input.filters.fromDate) : undefined;
         const toDateEpoch = input.filters?.toDate ? Date.parse(input.filters.toDate) : undefined;
         const occurredAtEpoch = Date.parse(item.occurredAt);
@@ -97,7 +102,7 @@ describe('analytics queries', () => {
     vi.useRealTimers();
   });
 
-  it('excludes ignored movements from analytics summaries, series and spending', async () => {
+  it('excludes ignored movements by default across overview, spending and flow analytics', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
     const port = createPort([
@@ -129,6 +134,71 @@ describe('analytics queries', () => {
     })).resolves.toMatchObject({
       totalExpenseAmount: '25.00',
       categories: [{ categoryId: 'cat-food', categoryName: 'Food', amount: '25.00', percentage: 100 }],
+    });
+    await expect(analyticsGetOverviewSnapshot(port, {
+      currency: 'EUR',
+    })).resolves.toMatchObject({
+      currentTotals: {
+        incomeAmount: '100.00',
+        expenseAmount: '25.00',
+        netFlowAmount: '75.00',
+      },
+    });
+    await expect(analyticsGetFlowProjection(port, {
+      currency: 'EUR',
+      periodOffset: 0,
+    })).resolves.toMatchObject({
+      currentBalanceAmount: '1000.00',
+    });
+    await expect(analyticsGetFlowInsights(port, {
+      currency: 'EUR',
+    })).resolves.toEqual({
+      items: expect.any(Array),
+    });
+  });
+
+  it('includes ignored movements when the filter enables them', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
+    const port = createPort([
+      transaction({ id: 'income-kept', type: 'income', amount: '100.00' }),
+      transaction({ id: 'income-ignored', type: 'income', amount: '40.00', ignored: true }),
+      transaction({ id: 'expense-kept', type: 'expense', amount: '25.00', categoryId: 'cat-food' }),
+      transaction({ id: 'expense-ignored', type: 'expense', amount: '10.00', categoryId: 'cat-food', ignored: true }),
+    ]);
+
+    const filters = { includeIgnoredMovements: true as const };
+
+    await expect(analyticsGetPeriodCashFlowSummary(port, { currency: 'EUR', filters })).resolves.toEqual({
+      incomeAmount: '140.00',
+      expenseAmount: '35.00',
+      netFlowAmount: '105.00',
+    });
+    await expect(analyticsGetOverviewSnapshot(port, {
+      currency: 'EUR',
+      filters,
+    })).resolves.toMatchObject({
+      currentTotals: {
+        incomeAmount: '140.00',
+        expenseAmount: '35.00',
+        netFlowAmount: '105.00',
+      },
+    });
+    await expect(analyticsGetSpendingOverview(port, {
+      currency: 'EUR',
+      granularity: 'monthly',
+      periodOffset: 0,
+      filters,
+    })).resolves.toMatchObject({
+      totalExpenseAmount: '35.00',
+      categories: [{ categoryId: 'cat-food', categoryName: 'Food', amount: '35.00', percentage: 100 }],
+    });
+    await expect(analyticsGetFlowProjection(port, {
+      currency: 'EUR',
+      periodOffset: 0,
+      filters,
+    })).resolves.toMatchObject({
+      currentBalanceAmount: '1000.00',
     });
   });
 
@@ -264,7 +334,7 @@ describe('analytics queries', () => {
     });
   });
 
-  it('lists all account facets regardless of the selected currency', async () => {
+  it('lists only accounts compatible with the selected currency in analytics facets', async () => {
     const port = createPort(
       [transaction({ id: 'expense-tagged', type: 'expense', amount: '25.00' })],
       [
@@ -276,11 +346,81 @@ describe('analytics queries', () => {
     await expect(analyticsGetFilterFacets(port, {
       filters: { currency: 'EUR', period: '90D' },
     })).resolves.toMatchObject({
-      accounts: [
-        { id: 'acc-1', name: 'Main', currency: 'EUR' },
-        { id: 'acc-2', name: 'Travel', currency: 'USD' },
-      ],
+      accounts: [{ id: 'acc-1', name: 'Main', currency: 'EUR' }],
     });
+  });
+
+  it('keeps OR semantics when multiple analytics tags are selected', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
+    const port = createPort([
+      transaction({
+        id: 'expense-trip',
+        type: 'expense',
+        amount: '25.00',
+        categoryId: 'cat-food',
+        tags: [{ id: 'tag-trip', name: 'Alicante 2026' }],
+      }),
+      transaction({
+        id: 'expense-home',
+        type: 'expense',
+        amount: '30.00',
+        categoryId: 'cat-food',
+        tags: [{ id: 'tag-home', name: 'Home Renovation' }],
+      }),
+    ]);
+
+    await expect(analyticsGetSpendingOverview(port, {
+      currency: 'EUR',
+      granularity: 'monthly',
+      periodOffset: 0,
+      filters: { tagIds: ['tag-trip', 'tag-home'] },
+    })).resolves.toMatchObject({
+      totalExpenseAmount: '55.00',
+    });
+  });
+
+  it('rejects an unsupported analytics period', async () => {
+    const port = createPort([transaction({ id: 'expense', type: 'expense', amount: '25.00' })]);
+
+    await expect(analyticsGetOverviewSnapshot(port, {
+      currency: 'EUR',
+      filters: { period: 'CUSTOM' as never },
+    })).rejects.toThrow('Unsupported analytics period: CUSTOM');
+  });
+
+  it('rejects an unknown analytics currency', async () => {
+    const port = createPort([transaction({ id: 'expense', type: 'expense', amount: '25.00' })]);
+
+    await expect(analyticsGetOverviewSnapshot(port, {
+      currency: 'GBP',
+    })).rejects.toThrow('unsupported currency code: GBP');
+  });
+
+  it('rejects accounts outside the selected currency', async () => {
+    const port = createPort(
+      [transaction({ id: 'expense', type: 'expense', amount: '25.00' })],
+      [
+        { id: 'acc-1', name: 'Main', type: 'cash', currency: 'EUR', status: 'active' },
+        { id: 'acc-2', name: 'Travel', type: 'cash', currency: 'USD', status: 'active' },
+      ],
+    );
+
+    await expect(analyticsGetOverviewSnapshot(port, {
+      currency: 'EUR',
+      filters: { accountIds: ['acc-2'] },
+    })).rejects.toThrow('Analytics account currency must match selected currency (EUR)');
+  });
+
+  it('rejects unknown analytics tag ids', async () => {
+    const port = createPort([transaction({ id: 'expense', type: 'expense', amount: '25.00' })]);
+
+    await expect(analyticsGetSpendingOverview(port, {
+      currency: 'EUR',
+      granularity: 'monthly',
+      periodOffset: 0,
+      filters: { tagIds: ['tag-missing'] },
+    })).rejects.toThrow('Tag not found: tag-missing');
   });
 
   it('passes selected tags to ledger transaction filters', async () => {
@@ -314,6 +454,87 @@ describe('analytics queries', () => {
     expect(port.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({
       filters: expect.objectContaining({ tagIds: ['tag-trip'] }),
     }));
+  });
+
+  it('combines ignored, period, currency, account and tag filters consistently', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
+    const port = createPort(
+      [
+        transaction({
+          id: 'expense-in-scope-ignored',
+          accountId: 'acc-1',
+          type: 'expense',
+          amount: '25.00',
+          categoryId: 'cat-food',
+          occurredAt: '2026-06-15T12:00:00.000Z',
+          ignored: true,
+          tags: [{ id: 'tag-trip', name: 'Alicante 2026' }],
+        }),
+        transaction({
+          id: 'expense-outside-period',
+          accountId: 'acc-1',
+          type: 'expense',
+          amount: '10.00',
+          categoryId: 'cat-food',
+          occurredAt: '2026-04-01T12:00:00.000Z',
+          ignored: true,
+          tags: [{ id: 'tag-trip', name: 'Alicante 2026' }],
+        }),
+        transaction({
+          id: 'expense-other-account',
+          accountId: 'acc-2',
+          currency: 'EUR',
+          type: 'expense',
+          amount: '15.00',
+          categoryId: 'cat-food',
+          occurredAt: '2026-06-15T12:00:00.000Z',
+          ignored: true,
+          tags: [{ id: 'tag-trip', name: 'Alicante 2026' }],
+        }),
+        transaction({
+          id: 'expense-other-tag',
+          accountId: 'acc-1',
+          type: 'expense',
+          amount: '20.00',
+          categoryId: 'cat-food',
+          occurredAt: '2026-06-15T12:00:00.000Z',
+          ignored: true,
+          tags: [{ id: 'tag-home', name: 'Home Renovation' }],
+        }),
+      ],
+      [
+        { id: 'acc-1', name: 'Main', type: 'cash', currency: 'EUR', status: 'active' },
+        { id: 'acc-2', name: 'Travel', type: 'cash', currency: 'EUR', status: 'active' },
+      ],
+    );
+
+    const filters = {
+      period: '30D' as const,
+      accountIds: ['acc-1'],
+      tagIds: ['tag-trip'],
+      includeIgnoredMovements: true,
+    };
+
+    await expect(analyticsGetSpendingOverview(port, {
+      currency: 'EUR',
+      granularity: 'monthly',
+      periodOffset: 0,
+      filters,
+    })).resolves.toMatchObject({
+      totalExpenseAmount: '25.00',
+    });
+
+    await expect(analyticsGetOverviewSnapshot(port, {
+      currency: 'EUR',
+      filters,
+    })).resolves.toMatchObject({
+      currentTotals: {
+        incomeAmount: '0.00',
+        expenseAmount: '25.00',
+        netFlowAmount: '-25.00',
+      },
+    });
   });
 
   it('builds an overview snapshot for the selected week and compares it with the previous week', async () => {
