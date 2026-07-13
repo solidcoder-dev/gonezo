@@ -1,6 +1,6 @@
 import type { ExpectedMovementView, ScheduledMovementView } from '../../application/movementsView.types';
 import type { TransactionHistoryItemView } from '../../../transactions/application/transactionView.types';
-import type { MovementDetailsSheetViewProps } from '../MovementDetailSheet/MovementDetailsSheetView';
+import type { MovementDetailViewProps } from '../MovementDetail/MovementDetailView';
 
 export type MonthlyMovementsViewRequired = {
   state: {
@@ -41,7 +41,7 @@ export type MonthlyMovementsViewRequired = {
     loading: boolean;
     disabled: boolean;
   };
-  detail: MovementDetailsSheetViewProps['required'];
+  detail: MovementDetailViewProps['required'];
 };
 
 export type MonthlyMovementsViewProvided = {
@@ -62,7 +62,7 @@ export type MonthlyMovementsViewProvided = {
     openScheduledMovementDetail: (scheduledMovementId: string) => void;
     openExpectedMovementDetail: (expectedMovementId: string) => void;
   };
-  detail: MovementDetailsSheetViewProps['provided'];
+  detail: MovementDetailViewProps['provided'];
 };
 
 export type MonthlyMovementsViewProps = {

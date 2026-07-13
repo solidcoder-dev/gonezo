@@ -4,7 +4,7 @@ import { groupPostedTransactionsByDate } from './postedGrouping';
 import { groupScheduledMovementsByDate } from './scheduledGrouping';
 import { MonthNavigatorView } from '../MonthNavigator/MonthNavigatorView';
 import { MonthPickerModalView } from '../MonthPickerModal/MonthPickerModalView';
-import { MovementDetailsSheetView } from '../MovementDetailSheet/MovementDetailsSheetView';
+import { MovementDetailView } from '../MovementDetail/MovementDetailView';
 import { MovementRowView } from '../MovementRow/MovementRowView';
 import { MovementSectionView } from '../MovementSection/MovementSectionView';
 import { YearMonthSelectorView } from '../YearMonthSelector/YearMonthSelectorView';
@@ -306,7 +306,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
         />
       ) : null}
 
-      <MovementDetailsSheetView required={required.detail} provided={provided.detail} />
+      <MovementDetailView required={required.detail} provided={provided.detail} />
 
     </section>
   );

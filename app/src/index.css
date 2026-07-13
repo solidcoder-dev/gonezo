@@ -47,6 +47,7 @@
   --shadow-modal: 0 18px 36px rgba(29, 29, 27, 0.2);
   --shadow-sheet: 0 20px 40px rgba(0, 0, 0, 0.18);
   --shadow-card: 0 20px 44px rgba(24, 24, 22, 0.08);
+  --z-full-screen-detail: 45;
   --z-sheet-backdrop: 50;
   --z-menu-backdrop: 69;
   --z-menu: 70;

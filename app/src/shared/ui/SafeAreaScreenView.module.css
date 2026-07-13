@@ -1,0 +1,41 @@
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-full-screen-detail);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--color-background-surface);
+}
+
+.header {
+  min-width: 0;
+  padding:
+    calc(var(--app-safe-area-top) + var(--spacing-3))
+    calc(var(--app-safe-area-right) + var(--spacing-4))
+    var(--spacing-3)
+    calc(var(--app-safe-area-left) + var(--spacing-4));
+}
+
+.body {
+  min-height: 0;
+  min-width: 0;
+  padding:
+    0
+    calc(var(--app-safe-area-right) + var(--spacing-4))
+    0
+    calc(var(--app-safe-area-left) + var(--spacing-4));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.footer {
+  min-width: 0;
+  padding:
+    var(--spacing-3)
+    calc(var(--app-safe-area-right) + var(--spacing-4))
+    calc(var(--app-safe-area-bottom) + var(--spacing-3))
+    calc(var(--app-safe-area-left) + var(--spacing-4));
+}

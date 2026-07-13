@@ -58,7 +58,7 @@ function makeProps(overrides: Partial<MonthlyMovementsViewProps> = {}): MonthlyM
     detail: {
       state: {
         open: false,
-        screen: 'summary',
+        activeSheet: null,
         overflowOpen: false,
         categoryQuery: '',
         tagsQuery: '',
@@ -99,14 +99,14 @@ function makeProps(overrides: Partial<MonthlyMovementsViewProps> = {}): MonthlyM
     },
     detail: {
       commands: {
-        close: vi.fn(),
-        dismissSubview: vi.fn(),
+        closeDetail: vi.fn(),
+        dismissSheet: vi.fn(),
         toggleOverflow: vi.fn(),
-        openCategoryScreen: vi.fn(),
-        openTagsScreen: vi.fn(),
-        openSharingScreen: vi.fn(),
-        openItemsScreen: vi.fn(),
-        openMoreScreen: vi.fn(),
+        openCategorySheet: vi.fn(),
+        openTagsSheet: vi.fn(),
+        openSharingSheet: vi.fn(),
+        openItemsSheet: vi.fn(),
+        openMoreDetailsSheet: vi.fn(),
         setCategoryQuery: vi.fn(),
         setTagsQuery: vi.fn(),
         saveCategory: vi.fn(),

@@ -17,7 +17,7 @@ import {
 } from './movementDetailPayloads';
 import type {
   MovementDetailCategoryOption,
-  MovementDetailScreen,
+  MovementDetailSheet,
   MovementDetailSelection,
   MovementDetailTagOption,
   MovementDetailTagView,
@@ -118,7 +118,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
   } = input;
 
   const [selection, setSelection] = useState<MovementDetailSelection | null>(null);
-  const [screen, setScreen] = useState<MovementDetailScreen>('summary');
+  const [activeSheet, setActiveSheet] = useState<MovementDetailSheet | null>(null);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [sharing, setSharing] = useState<SharingDetailState>(defaultSharingState);
   const [categoryQuery, setCategoryQuery] = useState('');
@@ -150,7 +150,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
 
   useEffect(() => {
     if (!selection) {
-      setScreen('summary');
+      setActiveSheet(null);
       setOverflowOpen(false);
       setCategoryQuery('');
       setTagsQuery('');
@@ -225,9 +225,9 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     return tagSelectionKey(draftTags) !== tagSelectionKey(movement.tags);
   }, [draftTags, movement]);
 
-  function close() {
+  function closeDetail() {
     setSelection(null);
-    setScreen('summary');
+    setActiveSheet(null);
     setOverflowOpen(false);
     setCategoryQuery('');
     setTagsQuery('');
@@ -235,11 +235,11 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     setSharing(defaultSharingState());
   }
 
-  function dismissSubview() {
+  function dismissSheet() {
     if (savingCategory || savingTags) {
       return;
     }
-    setScreen('summary');
+    setActiveSheet(null);
     setCategoryQuery('');
     setTagsQuery('');
     if (movement && movement.source !== 'expected') {
@@ -251,7 +251,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
 
   function openSelection(nextSelection: MovementDetailSelection) {
     setSelection(nextSelection);
-    setScreen('summary');
+    setActiveSheet(null);
     setOverflowOpen(false);
     setCategoryQuery('');
     setTagsQuery('');
@@ -271,45 +271,45 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     openSelection({ source: 'expected', id });
   }
 
-  function openCategoryScreen() {
+  function openCategorySheet() {
     if (!movement || !movement.canEditCategory) {
       return;
     }
     setCategoryQuery('');
-    setScreen('category');
+    setActiveSheet('category');
   }
 
-  function openTagsScreen() {
+  function openTagsSheet() {
     if (!movement || movement.source === 'expected') {
       return;
     }
     setDraftTags(movement.tags);
     setTagsQuery('');
-    setScreen('tags');
+    setActiveSheet('tags');
   }
 
-  function openSharingScreen() {
+  function openSharingSheet() {
     if (movement?.source !== 'posted') {
       return;
     }
     if (movement.sharing.phase === 'loaded' && movement.sharing.value == null) {
       return;
     }
-    setScreen('sharing');
+    setActiveSheet('sharing');
   }
 
-  function openItemsScreen() {
+  function openItemsSheet() {
     if (!movement?.canOpenItems) {
       return;
     }
-    setScreen('items');
+    setActiveSheet('items');
   }
 
-  function openMoreScreen() {
+  function openMoreDetailsSheet() {
     if (!movement) {
       return;
     }
-    setScreen('more');
+    setActiveSheet('more');
   }
 
   async function saveCategory(categoryId?: string) {
@@ -335,7 +335,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
         );
       }
       await refreshMovements();
-      setScreen('summary');
+      setActiveSheet(null);
     } catch (error) {
       reportError(error);
     } finally {
@@ -372,7 +372,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
         );
       }
       await refreshMovements();
-      setScreen('summary');
+      setActiveSheet(null);
     } catch (error) {
       reportError(error);
     } finally {
@@ -422,7 +422,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     }
     if (movement.source === 'expected' && movement.canEditExpected) {
       onEditExpectedMovement?.(movement.raw, movement.category?.name);
-      close();
+      closeDetail();
     }
   }
 
@@ -443,7 +443,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
         recurringMovementId: movement.id,
       });
       await refreshMovements();
-      close();
+      closeDetail();
     } catch (error) {
       reportError(error);
     } finally {
@@ -456,7 +456,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
       return;
     }
     onPostExpectedMovement?.(movement.raw, movement.category?.name);
-    close();
+    closeDetail();
   }
 
   const overflowActionLabel = movement?.source === 'posted' && movement.canVoid
@@ -470,12 +470,12 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
   return {
     state: {
       selection,
-      screen,
+      activeSheet,
     },
     required: {
       state: {
         open: movement != null,
-        screen,
+        activeSheet,
         overflowOpen,
         categoryQuery,
         tagsQuery,
@@ -498,14 +498,14 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     },
     provided: {
       commands: {
-        close,
-        dismissSubview,
+        closeDetail,
+        dismissSheet,
         toggleOverflow: () => setOverflowOpen((previous) => !previous),
-        openCategoryScreen,
-        openTagsScreen,
-        openSharingScreen,
-        openItemsScreen,
-        openMoreScreen,
+        openCategorySheet,
+        openTagsSheet,
+        openSharingSheet,
+        openItemsSheet,
+        openMoreDetailsSheet,
         setCategoryQuery,
         setTagsQuery,
         saveCategory,

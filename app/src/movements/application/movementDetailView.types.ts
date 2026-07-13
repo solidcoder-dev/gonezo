@@ -7,8 +7,7 @@ export type MovementDetailSelection = {
   id: string;
 };
 
-export type MovementDetailScreen =
-  | 'summary'
+export type MovementDetailSheet =
   | 'category'
   | 'tags'
   | 'sharing'

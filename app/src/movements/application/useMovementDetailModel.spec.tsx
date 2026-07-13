@@ -97,7 +97,7 @@ function makeInput(overrides: Record<string, unknown> = {}) {
 }
 
 describe('useMovementDetailModel', () => {
-  it('dismissSubview returns to summary, clears searches, and restores the persisted draft tags', () => {
+  it('dismissSheet clears searches and restores the persisted draft tags', () => {
     const input = makeInput();
     const { result } = renderHook(() => useMovementDetailModel(input));
 
@@ -105,14 +105,14 @@ describe('useMovementDetailModel', () => {
       result.current.actions.openPostedMovementDetail('tx-1');
     });
     act(() => {
-      result.current.provided.commands.openTagsScreen();
+      result.current.provided.commands.openTagsSheet();
       result.current.provided.commands.setCategoryQuery('gro');
       result.current.provided.commands.setTagsQuery('family');
       result.current.provided.commands.toggleDraftTag({ id: 'tag-3', name: 'Family' });
-      result.current.provided.commands.dismissSubview();
+      result.current.provided.commands.dismissSheet();
     });
 
-    expect(result.current.state.screen).toBe('summary');
+    expect(result.current.state.activeSheet).toBeNull();
     expect(result.current.required.state.categoryQuery).toBe('');
     expect(result.current.required.state.tagsQuery).toBe('');
     expect(result.current.required.data.draftTags).toEqual([
@@ -131,15 +131,15 @@ describe('useMovementDetailModel', () => {
       result.current.actions.openPostedMovementDetail('tx-1');
     });
     act(() => {
-      result.current.provided.commands.openTagsScreen();
+      result.current.provided.commands.openTagsSheet();
       result.current.provided.commands.setTagsQuery('trip');
       void result.current.provided.commands.saveTags();
     });
     act(() => {
-      result.current.provided.commands.dismissSubview();
+      result.current.provided.commands.dismissSheet();
     });
 
-    expect(result.current.state.screen).toBe('tags');
+    expect(result.current.state.activeSheet).toBe('tags');
     expect(result.current.required.state.tagsQuery).toBe('trip');
 
     await act(async () => {
@@ -158,15 +158,15 @@ describe('useMovementDetailModel', () => {
       result.current.actions.openPostedMovementDetail('tx-1');
     });
     act(() => {
-      result.current.provided.commands.openCategoryScreen();
+      result.current.provided.commands.openCategorySheet();
       result.current.provided.commands.setCategoryQuery('gro');
       void result.current.provided.commands.saveCategory('cat-1');
     });
     act(() => {
-      result.current.provided.commands.dismissSubview();
+      result.current.provided.commands.dismissSheet();
     });
 
-    expect(result.current.state.screen).toBe('category');
+    expect(result.current.state.activeSheet).toBe('category');
     expect(result.current.required.state.categoryQuery).toBe('gro');
 
     await act(async () => {
@@ -183,7 +183,7 @@ describe('useMovementDetailModel', () => {
       result.current.actions.openPostedMovementDetail('tx-1');
     });
     act(() => {
-      result.current.provided.commands.openTagsScreen();
+      result.current.provided.commands.openTagsSheet();
       result.current.provided.commands.toggleDraftTag({ id: 'tag-1', name: 'Home' });
       result.current.provided.commands.toggleDraftTag({ id: 'tag-1', name: 'Home' });
     });
@@ -202,7 +202,7 @@ describe('useMovementDetailModel', () => {
       result.current.actions.openPostedMovementDetail('tx-1');
     });
     act(() => {
-      result.current.provided.commands.openTagsScreen();
+      result.current.provided.commands.openTagsSheet();
       result.current.provided.commands.toggleDraftTag({ name: '  Travel  ' });
     });
     expect(result.current.required.status.tagsDirty).toBe(true);
@@ -221,7 +221,7 @@ describe('useMovementDetailModel', () => {
       result.current.actions.openPostedMovementDetail('tx-1');
     });
     act(() => {
-      result.current.provided.commands.openTagsScreen();
+      result.current.provided.commands.openTagsSheet();
     });
 
     expect(result.current.required.status.tagsDirty).toBe(false);
@@ -235,14 +235,14 @@ describe('useMovementDetailModel', () => {
       result.current.actions.openPostedMovementDetail('tx-1');
     });
     act(() => {
-      result.current.provided.commands.openTagsScreen();
+      result.current.provided.commands.openTagsSheet();
       result.current.provided.commands.toggleDraftTag({ id: 'tag-3', name: 'Family' });
     });
     expect(result.current.required.status.tagsDirty).toBe(true);
 
     act(() => {
-      result.current.provided.commands.dismissSubview();
-      result.current.provided.commands.openTagsScreen();
+      result.current.provided.commands.dismissSheet();
+      result.current.provided.commands.openTagsSheet();
       result.current.provided.commands.toggleDraftTag({ id: 'tag-1', name: 'Home' });
     });
     expect(result.current.required.status.tagsDirty).toBe(true);

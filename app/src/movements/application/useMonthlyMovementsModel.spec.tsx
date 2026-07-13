@@ -553,7 +553,7 @@ describe('useMonthlyMovementsModel', () => {
     });
 
     act(() => {
-      result.current.provided.detail.commands.openTagsScreen();
+      result.current.provided.detail.commands.openTagsSheet();
       result.current.provided.detail.commands.toggleDraftTag({ id: 'tag-home', name: 'Home' });
     });
     await act(async () => {
@@ -565,7 +565,7 @@ describe('useMonthlyMovementsModel', () => {
     });
 
     act(() => {
-      result.current.provided.detail.commands.openTagsScreen();
+      result.current.provided.detail.commands.openTagsSheet();
       result.current.provided.detail.commands.toggleDraftTag({ id: 'tag-lunch', name: 'Lunch' });
     });
     await act(async () => {
@@ -614,7 +614,7 @@ describe('useMonthlyMovementsModel', () => {
     expect(ports.taxonomy.orchestrationCategorizeTransaction).not.toHaveBeenCalled();
 
     act(() => {
-      result.current.provided.detail.commands.openTagsScreen();
+      result.current.provided.detail.commands.openTagsSheet();
       result.current.provided.detail.commands.toggleDraftTag({ id: 'tag-home', name: 'Home' });
     });
     await act(async () => {
@@ -678,7 +678,7 @@ describe('useMonthlyMovementsModel', () => {
       await result.current.provided.detail.commands.saveCategory('cat-fun');
     });
     act(() => {
-      result.current.provided.detail.commands.openTagsScreen();
+      result.current.provided.detail.commands.openTagsSheet();
       result.current.provided.detail.commands.toggleDraftTag({ id: 'tag-home', name: 'Home' });
     });
     await act(async () => {
@@ -702,7 +702,7 @@ describe('useMonthlyMovementsModel', () => {
 
     act(() => {
       result.current.provided.commands.openScheduledMovementDetail('sch-transfer');
-      result.current.provided.detail.commands.openTagsScreen();
+      result.current.provided.detail.commands.openTagsSheet();
       result.current.provided.detail.commands.toggleDraftTag({ id: 'tag-home', name: 'Home' });
     });
     await act(async () => {

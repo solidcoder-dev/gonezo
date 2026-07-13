@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { MovementDetailViewModel } from '../../application/movementDetailView.types';
-import { MovementDetailsSheetView } from './MovementDetailsSheetView';
+import { MovementDetailView } from '../MovementDetail/MovementDetailView';
 
 type MovementDetailsSheetPreviewProps = {
   movement: MovementDetailViewModel | null;
@@ -27,21 +27,21 @@ export function MovementDetailsSheetPreview(props: MovementDetailsSheetPreviewPr
 }
 
 function MovementDetailsSheetPreviewInner(props: MovementDetailsSheetPreviewProps & { movement: MovementDetailViewModel }) {
-  const [screen, setScreen] = useState<'summary' | 'tags' | 'sharing' | 'items' | 'more'>('summary');
+  const [activeSheet, setActiveSheet] = useState<'tags' | 'sharing' | 'items' | 'more' | null>(null);
   const [overflowOpen, setOverflowOpen] = useState(false);
 
-  function close() {
-    setScreen('summary');
+  function closeDetail() {
+    setActiveSheet(null);
     setOverflowOpen(false);
     props.onClose();
   }
 
   return (
-    <MovementDetailsSheetView
+    <MovementDetailView
       required={{
         state: {
           open: true,
-          screen,
+          activeSheet,
           overflowOpen,
           categoryQuery: '',
           tagsQuery: '',
@@ -56,7 +56,7 @@ function MovementDetailsSheetPreviewInner(props: MovementDetailsSheetPreviewProp
         status: {
           savingCategory: false,
           savingTags: false,
-          tagsDirty: screen === 'tags',
+          tagsDirty: activeSheet === 'tags',
           togglingIgnored: false,
           deactivating: props.deactivating === true,
           pendingVoid: props.pendingVoid === true,
@@ -64,14 +64,14 @@ function MovementDetailsSheetPreviewInner(props: MovementDetailsSheetPreviewProp
       }}
       provided={{
         commands: {
-          close,
-          dismissSubview: () => setScreen('summary'),
+          closeDetail,
+          dismissSheet: () => setActiveSheet(null),
           toggleOverflow: () => setOverflowOpen((previous) => !previous),
-          openCategoryScreen: () => undefined,
-          openTagsScreen: () => setScreen('tags'),
-          openSharingScreen: () => setScreen('sharing'),
-          openItemsScreen: () => setScreen('items'),
-          openMoreScreen: () => setScreen('more'),
+          openCategorySheet: () => undefined,
+          openTagsSheet: () => setActiveSheet('tags'),
+          openSharingSheet: () => setActiveSheet('sharing'),
+          openItemsSheet: () => setActiveSheet('items'),
+          openMoreDetailsSheet: () => setActiveSheet('more'),
           setCategoryQuery: () => undefined,
           setTagsQuery: () => undefined,
           saveCategory: () => undefined,
