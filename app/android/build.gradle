@@ -16,6 +16,8 @@ buildscript {
     }
 }
 
+ext.ndkVersion = '28.0.13004108'
+
 apply from: "variables.gradle"
 
 allprojects {

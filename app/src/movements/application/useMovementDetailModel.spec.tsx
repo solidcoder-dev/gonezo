@@ -148,6 +148,60 @@ describe('useMovementDetailModel', () => {
     });
   });
 
+  it('keeps the tags editor open when the backend reports a tagging failure', async () => {
+    const input = makeInput();
+    input.ports.taxonomy.orchestrationApplyTransactionTags.mockResolvedValue({
+      status: 'failed',
+      errorCode: 'TAGGING_FAILED',
+      errorMessage: 'Tags could not be saved',
+    });
+    const { result } = renderHook(() => useMovementDetailModel(input));
+
+    act(() => {
+      result.current.actions.openPostedMovementDetail('tx-1');
+    });
+    act(() => {
+      result.current.provided.commands.openTagsSheet();
+    });
+    act(() => {
+      result.current.provided.commands.toggleDraftTag({ id: 'tag-3', name: 'Family' });
+    });
+
+    await act(async () => {
+      await result.current.provided.commands.saveTags();
+    });
+
+    expect(input.reportError).toHaveBeenCalledWith(new Error('Tags could not be saved'));
+    expect(input.refreshMovements).not.toHaveBeenCalled();
+    expect(result.current.state.activeSheet).toBe('tags');
+    expect(result.current.required.status.savingTags).toBe(false);
+    expect(result.current.required.data.draftTags).toContainEqual({ id: 'tag-3', name: 'Family' });
+  });
+
+  it.each([
+    ['assigned', { status: 'assigned' as const, tagIds: ['tag-1'] }],
+    ['none', { status: 'none' as const, tagIds: [] }],
+  ])('refreshes and closes the tags editor after a %s result', async (_status, response) => {
+    const input = makeInput();
+    input.ports.taxonomy.orchestrationApplyTransactionTags.mockResolvedValue(response);
+    const { result } = renderHook(() => useMovementDetailModel(input));
+
+    act(() => {
+      result.current.actions.openPostedMovementDetail('tx-1');
+    });
+    act(() => {
+      result.current.provided.commands.openTagsSheet();
+    });
+
+    await act(async () => {
+      await result.current.provided.commands.saveTags();
+    });
+
+    expect(input.refreshMovements).toHaveBeenCalledTimes(1);
+    expect(result.current.state.activeSheet).toBeNull();
+    expect(input.reportError).not.toHaveBeenCalled();
+  });
+
   it('does not dismiss the category subview while category is saving', async () => {
     const save = deferred<void>();
     const input = makeInput();

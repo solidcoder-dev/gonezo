@@ -1,0 +1,72 @@
+plugins {
+  id 'org.jetbrains.kotlin.jvm'
+}
+
+group = 'dev.solidcoder.interpretation'
+version = '0.1.0-SNAPSHOT'
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_17
+  targetCompatibility = JavaVersion.VERSION_17
+}
+
+kotlin {
+  compilerOptions {
+    jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    freeCompilerArgs.addAll(['-Xjsr305=strict'])
+  }
+}
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  def interpretationProjectPath = findProject(':schema-guided-interpretation') != null
+    ? ':schema-guided-interpretation'
+    : ':core:schema-guided-interpretation'
+  implementation project(interpretationProjectPath)
+  implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+  implementation 'org.json:json:20240303'
+
+  testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+  testImplementation 'org.assertj:assertj-core:3.26.3'
+  testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.4'
+}
+
+tasks.withType(Test).configureEach {
+  useJUnitPlatform()
+}
+
+tasks.register('checkLayerBoundaries') {
+  group = 'verification'
+  description = 'Fails when the interpretation JSON boundary leaks application or platform concepts.'
+
+  doLast {
+    def forbiddenPatterns = [
+      ~/import\s+com\.gonezo\./,
+      ~/import\s+android\./,
+      ~/import\s+com\.getcapacitor\./,
+      ~/import\s+org\.springframework\./,
+      ~/import\s+okhttp3\./,
+      ~/import\s+retrofit2\./,
+      ~/System\.loadLibrary/
+    ]
+
+    fileTree('src/main') {
+      include '**/*.kt'
+      include '**/*.java'
+    }.each { file ->
+      def text = file.getText('UTF-8')
+      forbiddenPatterns.each { pattern ->
+        if (text =~ pattern) {
+          throw new GradleException("Forbidden dependency in interpretation JSON boundary: ${file}")
+        }
+      }
+    }
+  }
+}
+
+tasks.named('check') {
+  dependsOn tasks.named('checkLayerBoundaries')
+}

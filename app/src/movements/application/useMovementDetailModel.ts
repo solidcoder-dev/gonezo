@@ -363,10 +363,13 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     setSavingTags(true);
     try {
       if (movement.source === 'posted') {
-        await ports.taxonomy.orchestrationApplyTransactionTags({
+        const result = await ports.taxonomy.orchestrationApplyTransactionTags({
           transactionId: movement.id,
           tagNames: draftTags.map((tag) => tag.name.trim()).filter((name) => name.length > 0),
         });
+        if (result.status === 'failed') {
+          throw new Error(result.errorMessage ?? 'Tags could not be saved');
+        }
       } else {
         await ports.scheduling.schedulingUpdateMovement(
           buildScheduledTagsUpdateInput(movement.raw, draftTags, tags.map((tag) => ({ ...tag, status: 'active' }))),

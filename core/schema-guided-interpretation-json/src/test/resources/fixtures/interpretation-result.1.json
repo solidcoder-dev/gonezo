@@ -1,0 +1,28 @@
+{
+  "contractVersion": "1",
+  "specId": "gonezo-movement-entry",
+  "version": "1",
+  "fields": [
+    {
+      "key": "amount",
+      "interpretation": {
+        "kind": "resolved",
+        "candidate": {
+          "value": {
+            "type": "decimal",
+            "value": "34.80"
+          },
+          "confidence": 0.92,
+          "rationale": "Explicit amount"
+        }
+      }
+    }
+  ],
+  "issues": [
+    {
+      "code": "example-warning",
+      "message": "Example warning",
+      "level": "WARNING"
+    }
+  ]
+}

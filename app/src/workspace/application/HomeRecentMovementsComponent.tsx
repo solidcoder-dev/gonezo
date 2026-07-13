@@ -116,6 +116,10 @@ function buildHomeRecentMovementRow(movement: TransactionHistoryItemView): HomeR
 }
 
 export function HomeRecentMovementsComponent({ required, provided }: HomeRecentMovementsComponentProps) {
+  const { core } = required.context;
+  const onError = provided?.events?.onError;
+  const onSelectMovement = provided?.events?.onSelectMovement;
+  const onSeeAll = provided?.events?.onSeeAll;
   const [movements, setMovements] = useState<TransactionHistoryItemView[]>([]);
   const [selectedMovementId, setSelectedMovementId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -126,7 +130,7 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
     requestIdRef.current = requestId;
     setLoading(true);
     try {
-      const overview = await required.context.core.movementsGetOverview({
+      const overview = await core.movementsGetOverview({
         postedPagination: { page: 0, size: 3 },
         expectedPreviewSize: 0,
         scheduledPreviewSize: 0,
@@ -141,13 +145,13 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
         return;
       }
       setMovements([]);
-      provided?.events?.onError?.({ message: toErrorMessage(err) });
+      onError?.({ message: toErrorMessage(err) });
     } finally {
       if (requestId === requestIdRef.current) {
         setLoading(false);
       }
     }
-  }, [provided, required.context.core]);
+  }, [core, onError]);
 
   useEffect(() => {
     if (!required.config.enabled) {
@@ -166,7 +170,7 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
     const movement = movements.find((item) => item.id === movementId);
     if (movement) {
       setSelectedMovementId(movement.id);
-      provided?.events?.onSelectMovement?.(movement);
+      onSelectMovement?.(movement);
     }
   }
 
@@ -180,7 +184,7 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
         provided={{
           commands: {
             selectMovement,
-            seeAll: () => provided?.events?.onSeeAll?.(),
+            seeAll: () => onSeeAll?.(),
           },
         }}
       />
@@ -202,12 +206,12 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
             commands: {
               refreshMovements: loadRecentMovements,
               voidPostedMovement: async (transactionId) => {
-                await required.context.core.ledgerVoidTransaction({ transactionId });
+                await core.ledgerVoidTransaction({ transactionId });
               },
             },
             events: {
               onClose: () => setSelectedMovementId(null),
-              onError: provided?.events?.onError,
+              onError,
             },
           }}
         />

@@ -1,0 +1,75 @@
+plugins {
+  id 'org.jetbrains.kotlin.jvm'
+}
+
+group = 'dev.solidcoder.interpretation'
+version = '0.1.0-SNAPSHOT'
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_17
+  targetCompatibility = JavaVersion.VERSION_17
+}
+
+kotlin {
+  compilerOptions {
+    jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    freeCompilerArgs.addAll(['-Xjsr305=strict'])
+  }
+}
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+  implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2'
+
+  testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+  testImplementation 'org.assertj:assertj-core:3.26.3'
+  testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.4'
+}
+
+tasks.withType(Test).configureEach {
+  useJUnitPlatform()
+}
+
+tasks.register('checkLayerBoundaries') {
+  group = 'verification'
+  description = 'Fails when schema-guided-interpretation leaks app/framework/platform dependencies.'
+
+  doLast {
+    def forbiddenPatterns = [
+      ~/import\s+com\.gonezo\./,
+      ~/import\s+android\./,
+      ~/import\s+com\.getcapacitor\./,
+      ~/import\s+org\.springframework\./,
+      ~/import\s+org\.json\./,
+      ~/import\s+java\.io\./,
+      ~/import\s+java\.nio\.file\./,
+      ~/import\s+java\.net\.http\./,
+      ~/import\s+okhttp3\./,
+      ~/import\s+retrofit2\./,
+      ~/import\s+io\.ktor\.client\./,
+      ~/external\s+fun/,
+      ~/System\.loadLibrary/,
+      ~/JNI/
+    ]
+
+    fileTree('src/main') {
+      include '**/*.kt'
+      include '**/*.java'
+    }.each { file ->
+      def text = file.getText('UTF-8')
+      forbiddenPatterns.each { pattern ->
+        if (text =~ pattern) {
+          throw new GradleException("Forbidden dependency or runtime hook in schema-guided-interpretation: ${file} matches ${pattern}")
+        }
+      }
+    }
+  }
+}
+
+tasks.named('check') {
+  dependsOn tasks.named('checkLayerBoundaries')
+}

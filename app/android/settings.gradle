@@ -3,5 +3,11 @@ include ':capacitor-cordova-android-plugins'
 project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
 include ':core'
 project(':core').projectDir = new File('../../core')
+include ':core:schema-guided-interpretation'
+project(':core:schema-guided-interpretation').projectDir = new File('../../core/schema-guided-interpretation')
+include ':core:schema-guided-interpretation-json'
+project(':core:schema-guided-interpretation-json').projectDir = new File('../../core/schema-guided-interpretation-json')
+include ':speech-transcription-contract'
+project(':speech-transcription-contract').projectDir = new File('../../core/speech-transcription-contract')
 
 apply from: 'capacitor.settings.gradle'

@@ -1,0 +1,47 @@
+{
+  "contractVersion": "1",
+  "specId": "gonezo-movement-entry",
+  "version": "1",
+  "fields": [
+    {
+      "key": "type",
+      "interpretation": {
+        "kind": "resolved",
+        "candidate": {
+          "value": {
+            "type": "enum",
+            "value": "expense"
+          },
+          "confidence": 0.85
+        }
+      }
+    },
+    {
+      "key": "amount",
+      "interpretation": {
+        "kind": "resolved",
+        "candidate": {
+          "value": {
+            "type": "decimal",
+            "value": "5"
+          },
+          "confidence": 0.9
+        }
+      }
+    },
+    {
+      "key": "note",
+      "interpretation": {
+        "kind": "resolved",
+        "candidate": {
+          "value": {
+            "type": "text",
+            "value": "5 euros de gasolina 95 para mi cuenta bebobea de gasto."
+          },
+          "confidence": 0.7
+        }
+      }
+    }
+  ],
+  "issues": []
+}

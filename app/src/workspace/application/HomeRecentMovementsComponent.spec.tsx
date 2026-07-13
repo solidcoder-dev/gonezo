@@ -138,4 +138,81 @@ describe('HomeRecentMovementsComponent', () => {
     fireEvent.click(screen.getByRole('button', { name: /Tags/i }));
     expect(await screen.findByRole('dialog', { name: 'Movement tags' })).toBeInTheDocument();
   });
+
+  it('does not reload recent movements when only the provided wrapper identity changes', async () => {
+    const core = createPort();
+    const onError = vi.fn();
+
+    const { rerender } = render(
+      <HomeRecentMovementsComponent
+        required={{
+          context: { core },
+          config: { enabled: true, refreshSignal: false },
+        }}
+        provided={{
+          events: {
+            onError,
+            onSeeAll: vi.fn(),
+          },
+        }}
+      />,
+    );
+
+    expect(await screen.findByText('Cafe')).toBeInTheDocument();
+    expect(core.movementsGetOverview).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <HomeRecentMovementsComponent
+        required={{
+          context: { core },
+          config: { enabled: true, refreshSignal: false },
+        }}
+        provided={{
+          events: {
+            onError,
+            onSeeAll: vi.fn(),
+          },
+        }}
+      />,
+    );
+
+    await waitFor(() => expect(core.movementsGetOverview).toHaveBeenCalledTimes(1), { timeout: 250 });
+    expect(screen.getByRole('button', { name: /Cafe/i })).toBeInTheDocument();
+  });
+
+  it('reloads recent movements when refreshSignal changes', async () => {
+    const core = createPort();
+    const onError = vi.fn();
+    const provided = {
+      events: {
+        onError,
+        onSeeAll: vi.fn(),
+      },
+    };
+
+    const { rerender } = render(
+      <HomeRecentMovementsComponent
+        required={{
+          context: { core },
+          config: { enabled: true, refreshSignal: false },
+        }}
+        provided={provided}
+      />,
+    );
+
+    expect(await screen.findByText('Cafe')).toBeInTheDocument();
+    expect(core.movementsGetOverview).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <HomeRecentMovementsComponent
+        required={{
+          context: { core },
+          config: { enabled: true, refreshSignal: true },
+        }}
+        provided={provided}
+      />,
+    );
+
+    await waitFor(() => expect(core.movementsGetOverview).toHaveBeenCalledTimes(2));
+  });
 });

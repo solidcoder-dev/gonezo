@@ -21,9 +21,20 @@ repositories {
   mavenCentral()
 }
 
+def interpretationProjectPath = findProject(':schema-guided-interpretation') != null
+  ? ':schema-guided-interpretation'
+  : ':core:schema-guided-interpretation'
+def interpretationJsonProjectPath = findProject(':schema-guided-interpretation-json') != null
+  ? ':schema-guided-interpretation-json'
+  : ':core:schema-guided-interpretation-json'
+def speechTranscriptionProjectPath = findProject(':speech-transcription-contract') != null
+  ? ':speech-transcription-contract'
+  : ':core:speech-transcription-contract'
+
 dependencies {
   implementation 'org.jetbrains.kotlin:kotlin-stdlib'
   implementation 'org.json:json:20240303'
+  implementation project(interpretationProjectPath)
 
   compileOnly 'org.springframework:spring-context:6.2.3'
   compileOnly 'org.springframework:spring-jdbc:6.2.3'
@@ -43,6 +54,18 @@ dependencies {
 
 tasks.withType(Test).configureEach {
   useJUnitPlatform()
+}
+
+tasks.named('test') {
+  dependsOn "${interpretationProjectPath}:test"
+  dependsOn "${interpretationJsonProjectPath}:test"
+  dependsOn "${speechTranscriptionProjectPath}:test"
+}
+
+tasks.named('check') {
+  dependsOn "${interpretationProjectPath}:check"
+  dependsOn "${interpretationJsonProjectPath}:check"
+  dependsOn "${speechTranscriptionProjectPath}:check"
 }
 
 tasks.register('checkLayerBoundaries') {
@@ -89,6 +112,15 @@ tasks.register('checkLayerBoundaries') {
       applicationForbidden
     )
 
+    checkForbidden(
+      'core/domain -> schema-guided-interpretation',
+      fileTree('src/main') {
+        include '**/com/gonezo/domain/**/*.kt'
+        include '**/com/gonezo/domain/**/*.java'
+      },
+      [~/import\s+dev\.solidcoder\.interpretation\./]
+    )
+
     def boundedContexts = ['ledger', 'taxonomy', 'expected', 'recurrence']
     boundedContexts.each { context ->
       def forbiddenContextImports = boundedContexts
@@ -109,5 +141,26 @@ tasks.register('checkLayerBoundaries') {
     if (ledgerCategoryId.exists()) {
       throw new GradleException('CategoryId belongs to Taxonomy; Ledger must not define its own category identity.')
     }
+
+    def interpretationConsumers = fileTree('src/main/kotlin/com/gonezo') {
+      include '**/*.kt'
+      include '**/*.java'
+    }
+
+    interpretationConsumers.each { file ->
+      def text = file.getText('UTF-8')
+      if (text =~ /import\s+dev\.solidcoder\.interpretation\./) {
+        def normalizedPath = file.path.replace('\\', '/')
+        if (!normalizedPath.contains('/com/gonezo/application/orchestration/')) {
+          throw new GradleException("schema-guided-interpretation imports are only allowed from application/orchestration: ${file}")
+        }
+      }
+    }
   }
+}
+
+tasks.named('checkLayerBoundaries') {
+  dependsOn "${interpretationProjectPath}:checkLayerBoundaries"
+  dependsOn "${interpretationJsonProjectPath}:checkLayerBoundaries"
+  dependsOn "${speechTranscriptionProjectPath}:checkLayerBoundaries"
 }

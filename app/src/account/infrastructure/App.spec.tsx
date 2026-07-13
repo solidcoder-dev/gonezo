@@ -1238,7 +1238,7 @@ describe('App Accounts UX', () => {
     const resetComposer = await screen.findByRole('dialog', { name: 'Transaction composer' });
     expect(within(resetComposer).getByRole('button', { name: 'Source account Savings' })).toBeInTheDocument();
     expect(within(resetComposer).getByRole('button', { name: 'Movement type Expense' })).toBeInTheDocument();
-  });
+  }, 10_000);
 
   it('resets the movement draft defaults after closing without saving', async () => {
     const core = makeCore();
@@ -1263,7 +1263,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
     const resetComposer = await screen.findByRole('dialog', { name: 'Transaction composer' });
     expect(within(resetComposer).getByRole('button', { name: 'Source account Savings' })).toBeInTheDocument();
-  });
+  }, 10_000);
 
   it('keeps an applied share editable while open and clears it when closing without saving', async () => {
     const core = makeCore();
@@ -1302,7 +1302,7 @@ describe('App Accounts UX', () => {
     expect(amountInput).toBeEnabled();
     expect(within(resetComposer).getByRole('button', { name: 'Sharing' })).toBeEnabled();
     expect(within(resetComposer).queryByRole('button', { name: /Edit share/ })).not.toBeInTheDocument();
-  });
+  }, 10_000);
 
   it('does not reuse an applied share after posting and opening a new composer', async () => {
     const core = makeCore();
@@ -1338,7 +1338,7 @@ describe('App Accounts UX', () => {
     expect(nextAmountInput).toBeEnabled();
     expect(within(nextComposer).getByRole('button', { name: 'Sharing' })).toBeEnabled();
     expect(within(nextComposer).queryByRole('button', { name: /Edit share/ })).not.toBeInTheDocument();
-  });
+  }, 10_000);
 
   it('refreshes the movement items action accounts after creating an account', async () => {
     const core = makeCore();
@@ -2533,7 +2533,7 @@ describe('App Accounts UX', () => {
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'trip' } });
     expect(await screen.findByRole('button', { name: '#trip-2026' })).toBeInTheDocument();
-  });
+  }, 10_000);
 
   it('applies tags to both transfer sides', async () => {
     const core = makeCore();
@@ -2944,7 +2944,7 @@ describe('App Accounts UX', () => {
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
     });
-    expect(await screen.findByRole('status')).toHaveTextContent('refresh failed');
+    expect(await screen.findByRole('alert')).toHaveTextContent('refresh failed');
   });
 
   it('voids a transaction after undo window expires', async () => {

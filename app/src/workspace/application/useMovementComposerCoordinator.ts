@@ -6,6 +6,8 @@ import {
 } from '../../account/application/movementComposerPrefill';
 import type { ExpectedMovementView, ScheduledMovementView } from '../../movements/application/movementsView.types';
 import type { TransactionEntryPrefillRequest } from '../../transactions/application/TransactionEntryComponent.contract';
+import type { MovementEntryDraft } from '../../transactions/application/MovementVoiceEntry/MovementEntryDraftInterpreterPort';
+import { mapMovementEntryDraftToTransactionEntryPrefill } from '../../transactions/application/MovementVoiceEntry/mapMovementEntryDraftToTransactionEntryPrefill';
 import type { TransactionType } from '../../transactions/application/transactions.types';
 
 type MovementComposerCoordinatorInput = {
@@ -43,11 +45,30 @@ export function useMovementComposerCoordinator({ selectedAccountId }: MovementCo
     setMovementEntryType(undefined);
   }
 
-  function createMovementForAccount(movement: { account: { id: string; name: string }; type: TransactionType }) {
+  function createMovementForAccount(
+    movement: {
+      account: { id: string; name: string };
+      type: TransactionType;
+      prefillRequest?: TransactionEntryPrefillRequest;
+    },
+  ) {
     setMovementEntryAccountId(movement.account.id);
     setMovementEntryAccountName(movement.account.name);
     setMovementEntryType(movement.type);
-    setTransactionEntryPrefill(undefined);
+    setTransactionEntryPrefill(movement.prefillRequest);
+    setMovementEntryOpenSignal((previous) => previous + 1);
+  }
+
+  function createMovementForDraft(
+    movement: {
+      account: { id: string; name: string; currency: string };
+      draft: MovementEntryDraft;
+    },
+  ) {
+    setMovementEntryAccountId(movement.account.id);
+    setMovementEntryAccountName(movement.account.name);
+    setMovementEntryType(movement.draft.type);
+    setTransactionEntryPrefill(mapMovementEntryDraftToTransactionEntryPrefill(movement.draft));
     setMovementEntryOpenSignal((previous) => previous + 1);
   }
 
@@ -68,6 +89,7 @@ export function useMovementComposerCoordinator({ selectedAccountId }: MovementCo
       changeMovementComposerAccount,
       clearMovementEntryAccount,
       createMovementForAccount,
+      createMovementForDraft,
       editExpectedMovement,
       editScheduledMovement,
       postExpectedMovement,

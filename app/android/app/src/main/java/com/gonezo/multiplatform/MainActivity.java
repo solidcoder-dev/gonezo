@@ -9,6 +9,10 @@ import androidx.core.view.WindowInsetsCompat;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.WebViewListener;
 import com.gonezo.multiplatform.plugins.CorePlugin;
+import com.gonezo.multiplatform.plugins.audio.AudioCapturePlugin;
+import com.gonezo.multiplatform.plugins.interpretation.SchemaGuidedInterpretationPlugin;
+import com.gonezo.multiplatform.plugins.interpretation.export.InterpretationRunExportPlugin;
+import com.gonezo.multiplatform.plugins.speech.SpeechTranscriptionPlugin;
 import java.util.Locale;
 
 public class MainActivity extends BridgeActivity {
@@ -21,6 +25,10 @@ public class MainActivity extends BridgeActivity {
   @Override
   public void onCreate(Bundle savedInstanceState) {
     registerPlugin(CorePlugin.class);
+    registerPlugin(AudioCapturePlugin.class);
+    registerPlugin(SchemaGuidedInterpretationPlugin.class);
+    registerPlugin(InterpretationRunExportPlugin.class);
+    registerPlugin(SpeechTranscriptionPlugin.class);
     super.onCreate(savedInstanceState);
     installAndroidSafeAreaInsets();
   }

@@ -9,3 +9,7 @@ pluginManagement {
 }
 
 rootProject.name = 'gonezo-core'
+
+include ':schema-guided-interpretation'
+include ':schema-guided-interpretation-json'
+include ':speech-transcription-contract'

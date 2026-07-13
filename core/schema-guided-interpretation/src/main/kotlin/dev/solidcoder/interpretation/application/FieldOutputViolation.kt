@@ -1,0 +1,13 @@
+package dev.solidcoder.interpretation.application
+
+enum class FieldOutputViolation {
+  INVALID_JSON,
+  WRONG_PROPERTIES,
+  UNKNOWN_KIND,
+  INVALID_KIND_SHAPE,
+  INVALID_VALUE_TYPE,
+  UNKNOWN_ENUM_ALIAS,
+  INVALID_CONFIDENCE,
+  INVALID_DATE,
+  INVALID_CANDIDATES,
+}

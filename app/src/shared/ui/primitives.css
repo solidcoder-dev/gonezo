@@ -211,10 +211,40 @@ select:focus-visible {
   flex-wrap: wrap;
   margin-top: 14px;
   padding: 12px;
-  border: 1px solid #bfdfc6;
+  border: 1px solid transparent;
   border-radius: 10px;
+}
+
+.toast--success {
+  border-color: #bfdfc6;
   background: #ecf8ef;
   color: #1b5b28;
+}
+
+.toast--info {
+  color: var(--color-status-info-text);
+  background: var(--color-status-info-background);
+  border-color: var(--color-status-info-border);
+}
+
+.toast--warning {
+  border-color: var(--color-status-warning-border);
+  background: var(--color-status-warning-background);
+  color: var(--color-status-warning-text);
+}
+
+.toast--error {
+  border-color: #f1caca;
+  background: #fbeaea;
+  color: #6f1515;
+}
+
+.toast-action {
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
 }
 
 .section-gap {

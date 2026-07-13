@@ -45,12 +45,15 @@ function toCurrencyView(item: LedgerNetWorthCurrencyItem): NetWorthCurrencyView 
 }
 
 export function NetWorthSummaryComponent({ required, provided }: NetWorthSummaryComponentProps) {
+  const { core } = required.context;
+  const { enabled, refreshSignal } = required.config;
+  const onError = provided?.events?.onError;
   const [items, setItems] = useState<LedgerNetWorthCurrencyItem[]>([]);
   const [loadPhase, setLoadPhase] = useState<LoadPhase>('idle');
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!required.config.enabled) {
+    if (!enabled) {
       return;
     }
 
@@ -60,7 +63,7 @@ export function NetWorthSummaryComponent({ required, provided }: NetWorthSummary
       setLoadPhase('loading');
       setError('');
       try {
-        const result = await required.context.core.ledgerGetNetWorthByCurrency();
+        const result = await core.ledgerGetNetWorthByCurrency();
         if (!cancelled) {
           setItems(result.items);
           setLoadPhase('succeeded');
@@ -70,7 +73,7 @@ export function NetWorthSummaryComponent({ required, provided }: NetWorthSummary
           const message = toErrorMessage(err);
           setError(message);
           setLoadPhase('failed');
-          provided?.events?.onError?.({ message });
+          onError?.({ message });
         }
       }
     }
@@ -80,13 +83,13 @@ export function NetWorthSummaryComponent({ required, provided }: NetWorthSummary
     return () => {
       cancelled = true;
     };
-  }, [provided, required.config.enabled, required.config.refreshSignal, required.context.core]);
+  }, [core, enabled, onError, refreshSignal]);
 
-  const visibleLoadPhase = required.config.enabled ? loadPhase : 'idle';
-  const visibleError = required.config.enabled ? error : '';
+  const visibleLoadPhase = enabled ? loadPhase : 'idle';
+  const visibleError = enabled ? error : '';
   const viewItems = useMemo(
-    () => (required.config.enabled ? items.map(toCurrencyView) : []),
-    [items, required.config.enabled],
+    () => (enabled ? items.map(toCurrencyView) : []),
+    [enabled, items],
   );
 
   return (

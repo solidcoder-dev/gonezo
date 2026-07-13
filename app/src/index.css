@@ -29,6 +29,12 @@
   --color-chart-line: rgba(22, 117, 46, 0.42);
   --color-status-success-text: #245a36;
   --color-status-success-background: #e9f6ed;
+  --color-status-info-text: #184f68;
+  --color-status-info-background: #eaf6fb;
+  --color-status-info-border: #9ccddd;
+  --color-status-warning-text: #6b4a00;
+  --color-status-warning-background: #fff4d6;
+  --color-status-warning-border: #e4c264;
   --color-status-danger-text: #8a2020;
   --color-status-danger-muted-text: #6d3d3d;
   --color-status-danger-muted-background: #f7eeee;

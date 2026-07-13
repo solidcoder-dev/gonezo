@@ -24,18 +24,64 @@
 
         </activity>
 
+        <meta-data
+            android:name="gonezo.speech.model.asset"
+            android:value="speech-transcription/whisper/ggml-tiny.bin" />
+        <meta-data
+            android:name="gonezo.speech.model.id"
+            android:value="whisper-tiny" />
+        <meta-data
+            android:name="gonezo.speech.model.version"
+            android:value="whisper.cpp-v1.7.6" />
+        <meta-data
+            android:name="gonezo.speech.model.size"
+            android:value="77691713" />
+        <meta-data
+            android:name="gonezo.speech.model.sha256"
+            android:value="be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21" />
+        <meta-data
+            android:name="gonezo.speech.model.languages"
+            android:value="auto,es,en" />
+        <meta-data
+            android:name="gonezo.interpretation.model.asset"
+            android:value="schema-guided-interpretation/litertlm/Gemma3-1B-IT_multi-prefill-seq_q4_ekv4096.litertlm" />
+        <meta-data
+            android:name="gonezo.interpretation.model.id"
+            android:value="litert-community/Gemma3-1B-IT" />
+        <meta-data
+            android:name="gonezo.interpretation.model.version"
+            android:value="dynamic-int4-q4-ekv4096" />
+        <meta-data
+            android:name="gonezo.interpretation.model.fileName"
+            android:value="Gemma3-1B-IT_multi-prefill-seq_q4_ekv4096.litertlm" />
+        <meta-data
+            android:name="gonezo.interpretation.model.size"
+            android:value="584417280" />
+        <meta-data
+            android:name="gonezo.interpretation.model.sha256"
+            android:value="1325ae366d31950f137c9c357b9fa89448b176d76998180c08ceaca78bba98be" />
+
+        <uses-native-library
+            android:name="libvndksupport.so"
+            android:required="false" />
+
+        <uses-native-library
+            android:name="libOpenCL.so"
+            android:required="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"></meta-data>
+        <meta-data
+            android:name="android.support.FILE_PROVIDER_PATHS"
+            android:resource="@xml/file_paths"></meta-data>
         </provider>
     </application>
 
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 </manifest>

@@ -8,6 +8,7 @@ export type AccountPageViewRequired = {
   };
   toast: {
     message: string;
+    tone: 'success' | 'info' | 'warning' | 'error';
     actionLabel: string;
   };
   sections: {

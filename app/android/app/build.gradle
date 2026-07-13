@@ -1,10 +1,20 @@
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 
+def speechModelAssetPath = 'speech-transcription/whisper/ggml-tiny.bin'
+def speechModelDownloadUrl = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin'
+def speechModelSourceFile = file("$projectDir/../third_party/ggml-tiny.bin")
+def speechModelExpectedBytes = 77691713L
+def speechModelSha256 = 'be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21'
+def interpretationModelAssetPath = 'schema-guided-interpretation/litertlm/Gemma3-1B-IT_multi-prefill-seq_q4_ekv4096.litertlm'
+def interpretationModelSourceFile = file("$projectDir/../third_party/Gemma3-1B-IT_multi-prefill-seq_q4_ekv4096.litertlm")
+def interpretationModelExpectedBytes = 584417280L
+def interpretationModelSha256 = '1325ae366d31950f137c9c357b9fa89448b176d76998180c08ceaca78bba98be'
+
 android {
     namespace = "com.gonezo.multiplatform"
+    ndkVersion = '28.0.13004108'
     compileSdk = rootProject.ext.compileSdkVersion
-    ndkPath "/Users/brunopicolo/Library/Android/sdk/ndk/27.0.12077973"
     defaultConfig {
         applicationId "com.gonezo.multiplatform"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -12,6 +22,9 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        ndk {
+            abiFilters 'arm64-v8a', 'x86_64'
+        }
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
@@ -35,6 +48,14 @@ android {
     sourceSets {
         main {
             java.srcDirs += ['../../../platforms/android/infrastructure/src/main/java']
+            assets.srcDir("$buildDir/generated/speech-assets")
+            assets.srcDir("$buildDir/generated/interpretation-assets")
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path file('src/main/cpp/speech-transcription/CMakeLists.txt')
+            version = '3.22.1'
         }
     }
     kotlinOptions {
@@ -42,21 +63,112 @@ android {
     }
 }
 
-repositories {
-    flatDir{
-        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+tasks.register('stageSpeechModel') {
+    def modelFile = file("$buildDir/generated/speech-assets/$speechModelAssetPath")
+    outputs.file(modelFile)
+    doLast {
+        if (!speechModelSourceFile.isFile()) {
+            throw new GradleException("Local speech model is missing: ${speechModelSourceFile}")
+        }
+        if (speechModelSourceFile.length() != speechModelExpectedBytes || sha256(speechModelSourceFile) != speechModelSha256) {
+            throw new GradleException("Local speech model failed size or SHA-256 validation.")
+        }
+        modelFile.parentFile.mkdirs()
+        java.nio.file.Files.copy(speechModelSourceFile.toPath(), modelFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
     }
 }
 
+tasks.register('verifySpeechModel') {
+    dependsOn tasks.named('stageSpeechModel')
+    doLast {
+        def modelFile = file("$buildDir/generated/speech-assets/$speechModelAssetPath")
+        if (modelFile.length() != speechModelExpectedBytes || sha256(modelFile) != speechModelSha256) {
+            throw new GradleException("Staged speech model failed size or SHA-256 validation.")
+        }
+    }
+}
+
+tasks.register('stageInterpretationModel') {
+    def modelFile = file("$buildDir/generated/interpretation-assets/$interpretationModelAssetPath")
+    outputs.file(modelFile)
+    doLast {
+        if (!interpretationModelSourceFile.isFile()) {
+            throw new GradleException("Local interpretation model is missing: ${interpretationModelSourceFile}")
+        }
+        if (interpretationModelSourceFile.length() != interpretationModelExpectedBytes || sha256(interpretationModelSourceFile) != interpretationModelSha256) {
+            throw new GradleException("Local interpretation model failed size or SHA-256 validation.")
+        }
+        modelFile.parentFile.mkdirs()
+        java.nio.file.Files.copy(interpretationModelSourceFile.toPath(), modelFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+    }
+}
+
+tasks.register('verifyInterpretationModel') {
+    dependsOn tasks.named('stageInterpretationModel')
+    doLast {
+        def modelFile = file("$buildDir/generated/interpretation-assets/$interpretationModelAssetPath")
+        if (modelFile.length() != interpretationModelExpectedBytes || sha256(modelFile) != interpretationModelSha256) {
+            throw new GradleException("Staged interpretation model failed size or SHA-256 validation.")
+        }
+    }
+}
+
+tasks.register('provisionSpeechModel') {
+    outputs.file(speechModelSourceFile)
+    doLast {
+        speechModelSourceFile.parentFile.mkdirs()
+        def temporaryFile = file("${speechModelSourceFile.absolutePath}.download")
+        new URL(speechModelDownloadUrl).withInputStream { input ->
+            temporaryFile.withOutputStream { output -> input.transferTo(output) }
+        }
+        if (temporaryFile.length() != speechModelExpectedBytes || sha256(temporaryFile) != speechModelSha256) {
+            temporaryFile.delete()
+            throw new GradleException("Provisioned Whisper model failed size or SHA-256 validation.")
+        }
+        if (speechModelSourceFile.exists()) {
+            speechModelSourceFile.delete()
+        }
+        if (!temporaryFile.renameTo(speechModelSourceFile)) {
+            throw new GradleException("Provisioned Whisper model could not be installed.")
+        }
+    }
+}
+
+static String sha256(File file) {
+    def digest = java.security.MessageDigest.getInstance('SHA-256')
+    file.withInputStream { input ->
+        byte[] buffer = new byte[1024 * 1024]
+        int read
+        while ((read = input.read(buffer)) != -1) {
+            digest.update(buffer, 0, read)
+        }
+    }
+    digest.digest().collect { String.format('%02x', it) }.join()
+}
+
+tasks.named('preBuild') {
+    dependsOn tasks.named('verifySpeechModel')
+    dependsOn tasks.named('verifyInterpretationModel')
+}
+
+configurations.configureEach {
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+}
+
 dependencies {
-    implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation "org.nanohttpd:nanohttpd:2.3.1"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:2.3.0"
     implementation project(':capacitor-android')
     implementation project(':core')
+    implementation project(':core:schema-guided-interpretation')
+    implementation project(':core:schema-guided-interpretation-json')
+    implementation project(':speech-transcription-contract')
+    implementation 'com.google.ai.edge.litertlm:litertlm-android:0.12.0'
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

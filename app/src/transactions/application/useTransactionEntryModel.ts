@@ -323,7 +323,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     })();
   }
 
-  useTransactionEntryOpenSignal(openSignal, enabled, accountId, openTransactionComposer);
+  useTransactionEntryOpenSignal(prefillRequest ? undefined : openSignal, enabled, accountId, openTransactionComposer);
 
   function finishTransactionComposer(callback?: () => void) {
     setComposerOpen(false);

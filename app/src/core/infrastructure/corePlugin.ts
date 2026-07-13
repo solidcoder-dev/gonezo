@@ -106,7 +106,6 @@ import type {
   SharingListPeopleResult,
   SharingMovementDetailsResult,
 } from '../../sharing/application/sharing.port';
-
 export interface CorePlugin {
   preferencesGet(): Promise<UserPreferencesResult>;
   preferencesSetDefaultAccount(options: PreferencesSetDefaultAccountInput): Promise<void>;

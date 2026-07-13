@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "preview": "vite preview",
     "android:sync": "npm run build && cap sync android",
+    "android:check-16kb": "node ./scripts/check-16kb-alignment.mjs",
     "android:open": "cap open android"
   },
   "dependencies": {

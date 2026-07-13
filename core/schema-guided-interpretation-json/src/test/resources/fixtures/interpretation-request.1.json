@@ -1,0 +1,66 @@
+{
+  "contractVersion": "1",
+  "input": "Gasté 34,80 euros ayer en comida",
+  "inputLanguage": "es",
+  "spec": {
+    "contractVersion": "1",
+    "specId": "gonezo-movement-entry",
+    "version": "1",
+    "fields": [
+      {
+        "key": "type",
+        "description": "Financial direction expressed by the user",
+        "type": "ENUM",
+        "required": false,
+        "allowedValues": [
+          {
+            "stableValue": "expense",
+            "label": "Expense"
+          },
+          {
+            "stableValue": "income",
+            "label": "Income"
+          }
+        ]
+      },
+      {
+        "key": "amount",
+        "description": "Monetary amount explicitly mentioned by the user",
+        "type": "DECIMAL",
+        "required": false
+      }
+    ]
+  },
+  "context": {
+    "entries": [
+      {
+        "key": "currentDate",
+        "value": {
+          "type": "date",
+          "value": "2026-07-16"
+        }
+      },
+      {
+        "key": "timeZone",
+        "value": {
+          "type": "text",
+          "value": "Atlantic/Canary"
+        }
+      },
+      {
+        "key": "locale",
+        "value": {
+          "type": "text",
+          "value": "es-ES"
+        }
+      },
+      {
+        "key": "currency",
+        "value": {
+          "type": "text",
+          "value": "EUR"
+        }
+      }
+    ]
+  }
+}

@@ -8,6 +8,7 @@ import com.gonezo.multiplatform.core.AndroidLedgerCore;
 import com.gonezo.multiplatform.core.AndroidTaxonomyCore;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,7 @@ final class LedgerTransactionsQueryHandler {
 
       AndroidLedgerCore ledgerCore = AndroidLedgerCore.getInstance(context);
       AndroidTaxonomyCore taxonomyCore = AndroidTaxonomyCore.getInstance(context);
+      Map<String, AndroidTaxonomyCore.TaxonomyTagView> tagsById = toTagsById(taxonomyCore.listTags(true));
       Set<String> ignoredMovementIds = new HashSet<>(AndroidAnalyticsCore.getInstance(context).listIgnoredMovements());
 
       java.util.Set<String> categoryFilter = categoryIds == null || categoryIds.isEmpty()
@@ -87,6 +89,7 @@ final class LedgerTransactionsQueryHandler {
         call.resolve(toTransactionPageJson(
           pageResult.content(),
           taxonomyByTransactionId,
+          tagsById,
           ignoredMovementIds,
           pageResult.page(),
           pageResult.size(),
@@ -174,6 +177,7 @@ final class LedgerTransactionsQueryHandler {
       call.resolve(toTransactionPageJson(
         pageTransactions,
         taxonomyByTransactionId,
+        tagsById,
         ignoredMovementIds,
         resolvedPage,
         pageSize,
@@ -190,44 +194,16 @@ final class LedgerTransactionsQueryHandler {
   private JSObject toTransactionJson(
     AndroidLedgerCore.LedgerTransactionView tx,
     AndroidTaxonomyCore.TransactionTaxonomyView taxonomy,
+    Map<String, AndroidTaxonomyCore.TaxonomyTagView> tagsById,
     Set<String> ignoredMovementIds
   ) {
-    JSObject item = new JSObject();
-    item.put("id", tx.id());
-    item.put("accountId", tx.accountId());
-    item.put("type", tx.type());
-    item.put("status", tx.status());
-    item.put("amount", tx.amount());
-    item.put("currency", tx.currency());
-    item.put("occurredAt", tx.occurredAt());
-    item.put("description", tx.description());
-    item.put("merchant", tx.merchant());
-    item.put("linkedTransactionId", tx.linkedTransactionId());
-    item.put("ignored", ignoredMovementIds.contains(tx.id()));
-    String categoryIdValue = taxonomy == null ? null : taxonomy.categoryId();
-    if (categoryIdValue == null || categoryIdValue.trim().isEmpty()) {
-      categoryIdValue = tx.categoryId();
-    }
-    item.put("categoryId", categoryIdValue);
-
-    JSONArray txItems = new JSONArray();
-    for (AndroidLedgerCore.LedgerTransactionItemView txItem : tx.items()) {
-      JSObject txItemJson = new JSObject();
-      txItemJson.put("id", txItem.id());
-      txItemJson.put("name", txItem.name());
-      txItemJson.put("amount", txItem.amount());
-      txItemJson.put("currency", txItem.currency());
-      txItemJson.put("categoryId", txItem.categoryId());
-      txItemJson.put("note", txItem.note());
-      txItems.put(txItemJson);
-    }
-    item.put("items", txItems);
-    return item;
+    return LedgerTransactionProjectionMapper.toJson(tx, taxonomy, tagsById, ignoredMovementIds);
   }
 
   private JSObject toTransactionPageJson(
     List<AndroidLedgerCore.LedgerTransactionView> transactions,
     Map<String, AndroidTaxonomyCore.TransactionTaxonomyView> taxonomyByTransactionId,
+    Map<String, AndroidTaxonomyCore.TaxonomyTagView> tagsById,
     Set<String> ignoredMovementIds,
     int page,
     int size,
@@ -238,7 +214,7 @@ final class LedgerTransactionsQueryHandler {
   ) {
     JSONArray items = new JSONArray();
     for (AndroidLedgerCore.LedgerTransactionView tx : transactions) {
-      items.put(toTransactionJson(tx, taxonomyByTransactionId.get(tx.id()), ignoredMovementIds));
+      items.put(toTransactionJson(tx, taxonomyByTransactionId.get(tx.id()), tagsById, ignoredMovementIds));
     }
 
     JSObject result = new JSObject();
@@ -250,6 +226,16 @@ final class LedgerTransactionsQueryHandler {
     result.put("totalPages", totalPages);
     result.put("hasNext", hasNext);
     result.put("hasPrevious", hasPrevious);
+    return result;
+  }
+
+  private Map<String, AndroidTaxonomyCore.TaxonomyTagView> toTagsById(
+    List<AndroidTaxonomyCore.TaxonomyTagView> tags
+  ) {
+    Map<String, AndroidTaxonomyCore.TaxonomyTagView> result = new HashMap<>();
+    for (AndroidTaxonomyCore.TaxonomyTagView tag : tags) {
+      result.put(tag.id(), tag);
+    }
     return result;
   }
 

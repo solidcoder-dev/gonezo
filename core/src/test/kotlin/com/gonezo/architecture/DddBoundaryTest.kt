@@ -47,4 +47,39 @@ class DddBoundaryTest {
     assertThat(publisher).contains("fun publish(event: DomainEvent)")
     assertThat(publisher).doesNotContain("event: Any")
   }
+
+  @Test
+  fun `gonezo domain does not import schema guided interpretation`() {
+    val root = Path.of("src/main/kotlin/com/gonezo/domain")
+
+    Files.walk(root).use { paths ->
+      paths
+        .filter(Path::isRegularFile)
+        .filter { it.toString().endsWith(".kt") }
+        .forEach { file ->
+          assertThat(file.readText())
+            .describedAs("${file.toString()} should not import schema-guided-interpretation")
+            .doesNotContain("import dev.solidcoder.interpretation.")
+        }
+    }
+  }
+
+  @Test
+  fun `schema guided interpretation is imported only from application orchestration`() {
+    val root = Path.of("src/main/kotlin/com/gonezo")
+
+    Files.walk(root).use { paths ->
+      paths
+        .filter(Path::isRegularFile)
+        .filter { it.toString().endsWith(".kt") }
+        .forEach { file ->
+          val text = file.readText()
+          if (text.contains("import dev.solidcoder.interpretation.")) {
+            assertThat(file.toString().replace('\\', '/'))
+              .describedAs("${file.toString()} should import schema-guided-interpretation only from application/orchestration")
+              .contains("/application/orchestration/")
+          }
+        }
+    }
+  }
 }

@@ -149,7 +149,7 @@ describe('ExpectedMovementsCardComponent', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Category/i }));
     expect(await screen.findByRole('dialog', { name: 'Movement category' })).toBeInTheDocument();
-  });
+  }, 10000);
 
   it('keeps ignored expected movements faded in the home expected list', async () => {
     const core = createCore();

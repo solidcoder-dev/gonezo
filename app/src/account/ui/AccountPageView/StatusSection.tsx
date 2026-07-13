@@ -13,6 +13,8 @@ type Props = {
 };
 
 export function StatusSection({ required, provided }: Props) {
+  const toastClassName = `toast toast--${required.toast.tone}`;
+
   return (
     <>
       {required.screen.error ? (
@@ -21,10 +23,14 @@ export function StatusSection({ required, provided }: Props) {
         </div>
       ) : null}
       {required.toast.message ? (
-        <div className="toast" role="status" aria-live="polite">
+        <div
+          className={toastClassName}
+          role={required.toast.tone === 'success' || required.toast.tone === 'info' ? 'status' : 'alert'}
+          aria-live={required.toast.tone === 'success' || required.toast.tone === 'info' ? 'polite' : 'assertive'}
+        >
           <span>{required.toast.message}</span>
           {required.toast.actionLabel ? (
-            <button type="button" className="text-button" onClick={provided.commands.runAction}>
+            <button type="button" className="toast-action" onClick={provided.commands.runAction}>
               {required.toast.actionLabel}
             </button>
           ) : null}

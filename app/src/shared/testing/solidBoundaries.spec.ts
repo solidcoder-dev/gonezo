@@ -272,6 +272,28 @@ describe('SOLID frontend boundaries', () => {
     expect(violations).toEqual([]);
   });
 
+  it('keeps movement voice application modules free from core infrastructure audio imports', () => {
+    const violations: string[] = [];
+
+    for (const file of listSourceFiles(resolve(srcDir, 'transactions/application'))) {
+      const normalized = normalizePath(file);
+      const source = readFileSync(file, 'utf8');
+      if (source.includes("/core/infrastructure/audio/") || source.includes('/core/infrastructure/audio/')) {
+        violations.push(`${normalized}: imports core infrastructure audio directly`);
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it('keeps movement dock navigation composed from injected voice entry capabilities', () => {
+    const source = readFileSync(resolve(srcDir, 'transactions/application/MovementDockNavigationComponent.tsx'), 'utf8');
+
+    expect(source).toContain('required.context.voiceEntry.captureVoiceInput');
+    expect(source).toContain('required.context.voiceEntry.microphonePermission');
+    expect(source).not.toContain('new NativeAudioCaptureAdapter');
+  });
+
   it('keeps bounded-context infrastructure from depending on another context infrastructure', () => {
     const violations: string[] = [];
     const contexts = new Set(['account', 'expected', 'imports', 'ledger', 'movements', 'scheduling', 'taxonomy']);
