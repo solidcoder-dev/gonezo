@@ -7,8 +7,7 @@ const options = [
   { id: '00000000-0000-4000-8000-000000000102', name: 'Groceries' },
   { id: '00000000-0000-4000-8000-000000000103', name: 'Dining' },
   { id: '00000000-0000-4000-8000-000000000104', name: 'Transport' },
-  { id: '00000000-0000-4000-8000-000000000105', name: 'Health' },
-  { id: '00000000-0000-4000-8000-000000000106', name: 'Shopping' },
+  { id: '00000000-0000-4000-8000-000000000110', name: 'Beauty' },
   { id: '00000000-0000-4000-8000-000000000108', name: 'Travel' },
 ];
 
@@ -37,13 +36,12 @@ describe('CategoryPickerField', () => {
     );
 
     expect(screen.queryByRole('textbox', { name: 'Category' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Select category Health' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Select category Shopping' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Select category Beauty' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Select category Travel' })).toHaveTextContent('Travel');
     expect(screen.queryByRole('button', { name: 'Show more categories' })).not.toBeInTheDocument();
   });
 
-  it('keeps category order stable when one is selected', () => {
+  it('keeps the provided category order when one is selected', () => {
     const onSelect = vi.fn();
 
     render(
@@ -65,8 +63,7 @@ describe('CategoryPickerField', () => {
       'Select category Groceries',
       'Select category Dining',
       'Select category Transport',
-      'Select category Health',
-      'Select category Shopping',
+      'Select category Beauty',
       'Select category Travel',
     ]);
     fireEvent.click(screen.getByRole('button', { name: 'Select category Bills' }));
@@ -85,8 +82,7 @@ describe('CategoryPickerField', () => {
             '00000000-0000-4000-8000-000000000102',
             '00000000-0000-4000-8000-000000000103',
             '00000000-0000-4000-8000-000000000104',
-            '00000000-0000-4000-8000-000000000105',
-            '00000000-0000-4000-8000-000000000106',
+            '00000000-0000-4000-8000-000000000110',
             '00000000-0000-4000-8000-000000000108',
           ],
           disabled: false,

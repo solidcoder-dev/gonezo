@@ -14,6 +14,7 @@ import {
   findMasterCategoryById,
   listMasterCategories,
 } from '../domain/masterCategories';
+import { compareTaxonomyCategoriesByUsage } from '../domain/categoryOrdering';
 import { normalizeWebTaxonomyCategoryName } from './webTaxonomyNames';
 
 export type WebCategoryLookupPort = {
@@ -94,15 +95,27 @@ export class WebCategoryRepository implements WebCategoryImportPort {
 
   async listCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult> {
     const includeArchived = input?.includeArchived === true;
+    const usageCountByCategoryId = new Map<string, number>();
+    for (const transaction of this.state.ledgerTransactions) {
+      if (!transaction.categoryId || transaction.status === 'voided') {
+        continue;
+      }
+      usageCountByCategoryId.set(
+        transaction.categoryId,
+        (usageCountByCategoryId.get(transaction.categoryId) ?? 0) + 1,
+      );
+    }
+
     const items = listMasterCategories(input?.appliesTo)
       .filter((category) => includeArchived || category.status !== 'archived')
-      .sort((a, b) => a.name.localeCompare(b.name))
       .map((category) => ({
         id: category.id,
         name: category.name,
         appliesTo: category.appliesTo,
         status: category.status,
-      }));
+        usageCount: usageCountByCategoryId.get(category.id) ?? 0,
+      }))
+      .sort(compareTaxonomyCategoriesByUsage);
 
     return { items };
   }

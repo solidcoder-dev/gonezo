@@ -38,6 +38,121 @@ class JdbcTaxonomyRepositoriesE2ETest : SqliteE2ETest() {
   }
 
   @Test
+  fun `lists categories ordered by usage count then normalized name then id`() {
+    val categoryRepository = JdbcTaxonomyCategoryRepository(db.namedJdbcTemplate)
+    val groceries = Category.create(
+      id = CategoryId.from("00000000-0000-4000-8000-00000000aaa1"),
+      name = "Produce",
+      appliesTo = CategoryAppliesTo.EXPENSE,
+      createdAt = Instant.parse("2026-03-22T12:00:00Z"),
+    )
+    val beauty = Category.create(
+      id = CategoryId.from("00000000-0000-4000-8000-00000000aaa2"),
+      name = "Bakery",
+      appliesTo = CategoryAppliesTo.EXPENSE,
+      createdAt = Instant.parse("2026-03-22T12:01:00Z"),
+    )
+    val entertainment = Category.create(
+      id = CategoryId.from("00000000-0000-4000-8000-00000000aaa3"),
+      name = "Cinema",
+      appliesTo = CategoryAppliesTo.EXPENSE,
+      createdAt = Instant.parse("2026-03-22T12:02:00Z"),
+    )
+    categoryRepository.save(groceries)
+    categoryRepository.save(beauty)
+    categoryRepository.save(entertainment)
+
+    db.jdbcTemplate.update(
+      """
+        insert into ledger_accounts (id, name, type, currency, status, created_at, archived_at)
+        values (?, ?, ?, ?, ?, ?, ?)
+      """.trimIndent(),
+      "acc-1",
+      "Main",
+      "cash",
+      "USD",
+      "active",
+      "2026-03-22T10:00:00Z",
+      null,
+    )
+    db.jdbcTemplate.update(
+      """
+        insert into ledger_transactions (id, account_id, type, amount, currency, occurred_at, description, merchant, category_id, status, linked_transaction_id)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      """.trimIndent(),
+      "00000000-0000-4000-8000-000000000001",
+      "acc-1",
+      "expense",
+      "15.00",
+      "USD",
+      "2026-03-22T13:00:00Z",
+      "Groceries",
+      null,
+      null,
+      "posted",
+      null,
+    )
+    db.jdbcTemplate.update(
+      """
+        insert into ledger_transactions (id, account_id, type, amount, currency, occurred_at, description, merchant, category_id, status, linked_transaction_id)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      """.trimIndent(),
+      "00000000-0000-4000-8000-000000000002",
+      "acc-1",
+      "expense",
+      "20.00",
+      "USD",
+      "2026-03-22T14:00:00Z",
+      "Movie night",
+      null,
+      null,
+      "posted",
+      null,
+    )
+    db.jdbcTemplate.update(
+      """
+        insert into ledger_transactions (id, account_id, type, amount, currency, occurred_at, description, merchant, category_id, status, linked_transaction_id)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      """.trimIndent(),
+      "00000000-0000-4000-8000-000000000003",
+      "acc-1",
+      "expense",
+      "18.00",
+      "USD",
+      "2026-03-22T15:00:00Z",
+      "Dinner",
+      null,
+      null,
+      "posted",
+      null,
+    )
+    db.jdbcTemplate.update(
+      """
+        insert into taxonomy_transaction_assignments (transaction_id, category_id, assigned_at)
+        values (?, ?, ?), (?, ?, ?), (?, ?, ?)
+      """.trimIndent(),
+      "00000000-0000-4000-8000-000000000001",
+      groceries.id.toString(),
+      "2026-03-22T13:00:00Z",
+      "00000000-0000-4000-8000-000000000002",
+      entertainment.id.toString(),
+      "2026-03-22T14:00:00Z",
+      "00000000-0000-4000-8000-000000000003",
+      groceries.id.toString(),
+      "2026-03-22T15:00:00Z",
+    )
+
+    val listed = categoryRepository.listAll()
+
+    assertThat(listed.take(3).map { it.category.id }).containsExactly(
+      groceries.id,
+      entertainment.id,
+      beauty.id,
+    )
+    assertThat(listed.take(3).map { it.usageCount }).containsExactly(2, 1, 0)
+  }
+
+  @Test
   fun `upsert assignment replaces existing category for same transaction`() {
     val categoryRepository = JdbcTaxonomyCategoryRepository(db.namedJdbcTemplate)
     val assignmentRepository = JdbcTaxonomyTransactionCategoryAssignmentRepository(db.namedJdbcTemplate)
@@ -50,7 +165,7 @@ class JdbcTaxonomyRepositoriesE2ETest : SqliteE2ETest() {
     )
     val secondCategory = Category.create(
       id = CategoryId.random(),
-      name = "Transport",
+      name = "Commute",
       appliesTo = CategoryAppliesTo.EXPENSE,
       createdAt = Instant.parse("2026-03-22T12:01:00Z"),
     )

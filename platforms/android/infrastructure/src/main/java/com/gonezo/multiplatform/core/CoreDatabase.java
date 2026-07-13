@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 20;
+  private static final int DB_VERSION = 21;
 
   CoreDatabase(Context context) {
     super(context, DB_NAME, null, DB_VERSION);
@@ -79,6 +79,10 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion < 20) {
       createSharingTables(db);
     }
+
+    if (oldVersion < 21) {
+      seedMasterCategories(db);
+    }
   }
 
   @Override
@@ -90,6 +94,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
   private static void createTables(SQLiteDatabase db) {
     createLedgerTables(db);
     createTaxonomyTables(db);
+    seedMasterCategories(db);
     createTaxonomyTagTables(db);
     createMobillsImportTables(db);
     createRecurrenceTables(db);
@@ -194,6 +199,34 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     db.execSQL(
       "create index if not exists idx_taxonomy_assignments_category_id " +
         "on taxonomy_transaction_assignments(category_id);"
+    );
+  }
+
+  private static void seedMasterCategories(SQLiteDatabase db) {
+    seedMasterCategory(db, "00000000-0000-4000-8000-000000000101", "Bills", "expense");
+    seedMasterCategory(db, "00000000-0000-4000-8000-000000000102", "Groceries", "expense");
+    seedMasterCategory(db, "00000000-0000-4000-8000-000000000103", "Dining", "expense");
+    seedMasterCategory(db, "00000000-0000-4000-8000-000000000104", "Transport", "expense");
+    seedMasterCategory(db, "00000000-0000-4000-8000-000000000105", "Health", "expense");
+    seedMasterCategory(db, "00000000-0000-4000-8000-000000000106", "Shopping", "expense");
+    seedMasterCategory(db, "00000000-0000-4000-8000-000000000107", "Entertainment", "expense");
+    seedMasterCategory(db, "00000000-0000-4000-8000-000000000108", "Travel", "expense");
+    seedMasterCategory(db, "00000000-0000-4000-8000-000000000109", "Other", "expense");
+    seedMasterCategory(db, "00000000-0000-4000-8000-000000000110", "Beauty", "expense");
+    seedMasterCategory(db, "00000000-0000-4000-8000-000000000201", "Work Income", "income");
+    seedMasterCategory(db, "00000000-0000-4000-8000-000000000202", "Investments", "income");
+    seedMasterCategory(db, "00000000-0000-4000-8000-000000000203", "Reimbursements", "income");
+    seedMasterCategory(db, "00000000-0000-4000-8000-000000000204", "Gifts & Benefits", "income");
+    seedMasterCategory(db, "00000000-0000-4000-8000-000000000205", "Other", "income");
+  }
+
+  private static void seedMasterCategory(SQLiteDatabase db, String id, String name, String appliesTo) {
+    String normalizedName = name.trim().toLowerCase();
+    db.execSQL(
+      "insert or ignore into taxonomy_categories " +
+        "(id, name, name_normalized, applies_to, status, created_at, archived_at) " +
+        "values (?, ?, ?, ?, 'active', '2026-07-13T00:00:00Z', null)",
+      new Object[] {id, name, normalizedName, appliesTo}
     );
   }
 

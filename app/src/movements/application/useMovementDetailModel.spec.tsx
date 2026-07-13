@@ -79,7 +79,7 @@ function makeInput(overrides: Record<string, unknown> = {}) {
     postedItems: [postedTransaction()],
     scheduledItems: [],
     expectedItems: [],
-    categories: [{ id: 'cat-1', name: 'Groceries', appliesTo: 'expense' as const }],
+    categories: [{ id: 'cat-1', name: 'Groceries', appliesTo: 'expense' as const, usageCount: 1 }],
     tags: [
       { id: 'tag-1', name: 'Home' },
       { id: 'tag-2', name: 'Trip' },
@@ -246,5 +246,29 @@ describe('useMovementDetailModel', () => {
       result.current.provided.commands.toggleDraftTag({ id: 'tag-1', name: 'Home' });
     });
     expect(result.current.required.status.tagsDirty).toBe(true);
+  });
+
+  it('orders category suggestions by usage count, normalized name and id', () => {
+    const input = makeInput({
+      categories: [
+        { id: 'cat-b', name: 'Beauty', appliesTo: 'expense' as const, usageCount: 0 },
+        { id: 'cat-g', name: 'Groceries', appliesTo: 'expense' as const, usageCount: 4 },
+        { id: 'cat-d-2', name: 'Dining', appliesTo: 'expense' as const, usageCount: 1 },
+        { id: 'cat-d-1', name: 'dining', appliesTo: 'expense' as const, usageCount: 1 },
+      ],
+    });
+    const { result } = renderHook(() => useMovementDetailModel(input));
+
+    act(() => {
+      result.current.actions.openPostedMovementDetail('tx-1');
+      result.current.provided.commands.openCategorySheet();
+    });
+
+    expect(result.current.required.data.categories.map((category) => category.id)).toEqual([
+      'cat-g',
+      'cat-d-1',
+      'cat-d-2',
+      'cat-b',
+    ]);
   });
 });

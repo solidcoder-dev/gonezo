@@ -7,6 +7,7 @@ export type TaxonomyCategoryItem = {
   name: string;
   appliesTo: TaxonomyCategoryAppliesTo;
   status: TaxonomyCategoryStatus;
+  usageCount?: number;
 };
 
 export type TaxonomyListCategoriesInput = {

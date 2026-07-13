@@ -33,7 +33,7 @@ class ImportMobillsStatementService(
       .associateBy { accountKey(it.name, it.currency.value) }
       .toMutableMap()
     val categoryIndex = listCategoriesUC.execute()
-      .associate { category -> categoryKey(category.name, category.appliesTo.value) to category.id }
+      .associate { category -> categoryKey(category.category.name, category.category.appliesTo.value) to category.category.id }
       .toMutableMap()
     val results = mutableListOf<ImportMobillsRowResult>()
 

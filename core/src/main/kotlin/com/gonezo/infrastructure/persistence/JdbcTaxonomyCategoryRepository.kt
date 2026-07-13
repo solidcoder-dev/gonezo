@@ -4,6 +4,7 @@ import com.gonezo.taxonomy.domain.Category
 import com.gonezo.taxonomy.domain.CategoryAppliesTo
 import com.gonezo.taxonomy.domain.CategoryId
 import com.gonezo.taxonomy.domain.CategoryStatus
+import com.gonezo.taxonomy.domain.CategoryWithUsage
 import com.gonezo.taxonomy.domain.ports.CategoryRepository
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
@@ -47,7 +48,7 @@ class JdbcTaxonomyCategoryRepository(
       from taxonomy_categories
       where id = :id
     """.trimIndent()
-    return jdbcTemplate.query(sql, MapSqlParameterSource("id", id.toString()), rowMapper()).firstOrNull()
+    return jdbcTemplate.query(sql, MapSqlParameterSource("id", id.toString()), categoryRowMapper()).firstOrNull()
   }
 
   override fun findByIds(ids: Collection<CategoryId>): Map<CategoryId, Category> {
@@ -60,7 +61,7 @@ class JdbcTaxonomyCategoryRepository(
       where id in (:ids)
     """.trimIndent()
     val params = MapSqlParameterSource("ids", ids.map(CategoryId::toString))
-    return jdbcTemplate.query(sql, params, rowMapper()).associateBy { it.id }
+    return jdbcTemplate.query(sql, params, categoryRowMapper()).associateBy { it.id }
   }
 
   override fun findByNormalizedNameAndAppliesTo(name: String, appliesTo: CategoryAppliesTo): Category? {
@@ -73,19 +74,39 @@ class JdbcTaxonomyCategoryRepository(
     val params = MapSqlParameterSource()
       .addValue("name_normalized", name.trim().lowercase())
       .addValue("applies_to", appliesTo.value)
-    return jdbcTemplate.query(sql, params, rowMapper()).firstOrNull()
+    return jdbcTemplate.query(sql, params, categoryRowMapper()).firstOrNull()
   }
 
-  override fun listAll(): List<Category> {
+  override fun listAll(): List<CategoryWithUsage> {
     val sql = """
-      select id, name, applies_to, status, created_at, archived_at
-      from taxonomy_categories
-      order by applies_to asc, name_normalized asc, id asc
+      select
+        c.id,
+        c.name,
+        c.applies_to,
+        c.status,
+        c.created_at,
+        c.archived_at,
+        count(a.transaction_id) as usage_count
+      from taxonomy_categories c
+      left join taxonomy_transaction_assignments a on a.category_id = c.id
+      left join ledger_transactions t on t.id = a.transaction_id
+      where a.transaction_id is null or t.id is not null
+      group by c.id, c.name, c.applies_to, c.status, c.created_at, c.archived_at, c.name_normalized
+      order by usage_count desc, c.name_normalized asc, c.id asc
     """.trimIndent()
-    return jdbcTemplate.query(sql, rowMapper())
+    return jdbcTemplate.query(sql, usageRowMapper())
   }
 
-  private fun rowMapper(): RowMapper<Category> = RowMapper { rs: ResultSet, _ ->
+  private fun categoryRowMapper(): RowMapper<Category> = RowMapper { rs: ResultSet, _ -> mapCategory(rs) }
+
+  private fun usageRowMapper(): RowMapper<CategoryWithUsage> = RowMapper { rs: ResultSet, _ ->
+    CategoryWithUsage(
+      category = mapCategory(rs),
+      usageCount = rs.getLong("usage_count"),
+    )
+  }
+
+  private fun mapCategory(rs: ResultSet): Category =
     Category(
       id = CategoryId.from(rs.getString("id")),
       name = rs.getString("name"),
@@ -94,5 +115,4 @@ class JdbcTaxonomyCategoryRepository(
       createdAt = Instant.parse(rs.getString("created_at")),
       archivedAt = rs.getString("archived_at")?.let(Instant::parse),
     )
-  }
 }

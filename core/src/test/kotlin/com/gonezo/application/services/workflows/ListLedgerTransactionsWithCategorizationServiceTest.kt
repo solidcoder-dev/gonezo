@@ -16,6 +16,7 @@ import com.gonezo.taxonomy.domain.Category
 import com.gonezo.taxonomy.domain.CategoryAppliesTo
 import com.gonezo.taxonomy.domain.CategoryId
 import com.gonezo.taxonomy.domain.CategoryStatus
+import com.gonezo.taxonomy.domain.CategoryWithUsage
 import com.gonezo.taxonomy.domain.TransactionCategoryAssignment
 import com.gonezo.taxonomy.domain.ports.CategoryRepository
 import com.gonezo.taxonomy.domain.ports.TransactionCategoryAssignmentRepository
@@ -205,7 +206,7 @@ private class InMemoryCategoryRepository(
   override fun findByNormalizedNameAndAppliesTo(name: String, appliesTo: CategoryAppliesTo): Category? =
     values.values.firstOrNull { it.name.equals(name.trim(), ignoreCase = true) && it.appliesTo == appliesTo }
 
-  override fun listAll(): List<Category> = values.values.toList()
+  override fun listAll(): List<CategoryWithUsage> = values.values.map { CategoryWithUsage(it, 0) }
 }
 
 private class InMemoryStateRepository(

@@ -16,6 +16,9 @@ class DeleteLedgerAccountE2ETest : SqliteE2ETest() {
 
   @Test
   fun `deletes account and all associated transaction projections`() {
+    val categoryCountBefore = db.jdbcTemplate.queryForObject("select count(*) from taxonomy_categories", Int::class.java)!!
+    val tagCountBefore = db.jdbcTemplate.queryForObject("select count(*) from taxonomy_tags", Int::class.java)!!
+
     val accountId = app.ledgerOpenAccountUC.execute(
       OpenLedgerAccountCommand(
         name = "Cash",
@@ -133,7 +136,7 @@ class DeleteLedgerAccountE2ETest : SqliteE2ETest() {
       ),
     ).isEqualTo(0)
 
-    assertThat(db.jdbcTemplate.queryForObject("select count(*) from taxonomy_categories", Int::class.java)).isEqualTo(1)
-    assertThat(db.jdbcTemplate.queryForObject("select count(*) from taxonomy_tags", Int::class.java)).isEqualTo(1)
+    assertThat(db.jdbcTemplate.queryForObject("select count(*) from taxonomy_categories", Int::class.java)).isEqualTo(categoryCountBefore + 1)
+    assertThat(db.jdbcTemplate.queryForObject("select count(*) from taxonomy_tags", Int::class.java)).isEqualTo(tagCountBefore + 1)
   }
 }

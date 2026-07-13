@@ -124,6 +124,6 @@ export type MovementDetailViewModel =
   | ScheduledMovementDetailViewModel
   | ExpectedMovementDetailViewModel;
 
-export type MovementDetailCategoryOption = Pick<TaxonomyCategoryItem, 'id' | 'name' | 'appliesTo'>;
+export type MovementDetailCategoryOption = Pick<TaxonomyCategoryItem, 'id' | 'name' | 'appliesTo' | 'usageCount'>;
 
 export type MovementDetailTagOption = Pick<TaxonomyTagItem, 'id' | 'name'>;

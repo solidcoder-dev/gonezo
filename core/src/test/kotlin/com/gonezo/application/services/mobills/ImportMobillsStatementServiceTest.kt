@@ -22,6 +22,7 @@ import com.gonezo.taxonomy.application.ListCategoriesUC
 import com.gonezo.taxonomy.domain.Category
 import com.gonezo.taxonomy.domain.CategoryAppliesTo
 import com.gonezo.taxonomy.domain.CategoryId
+import com.gonezo.taxonomy.domain.CategoryWithUsage
 import com.gonezo.taxonomy.domain.CategoryStatus
 import com.gonezo.taxonomy.domain.TagId
 import org.assertj.core.api.Assertions.assertThat
@@ -525,7 +526,7 @@ private class StubListLedgerAccountsUC(
 private class StubListCategoriesUC(
   private vararg val categories: Category,
 ) : ListCategoriesUC {
-  override fun execute(): List<Category> = categories.toList()
+  override fun execute(): List<CategoryWithUsage> = categories.map { CategoryWithUsage(it, 0) }
 }
 
 private class RecordingOpenLedgerAccountUC : OpenLedgerAccountUC {

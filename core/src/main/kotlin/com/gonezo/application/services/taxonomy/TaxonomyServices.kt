@@ -18,6 +18,7 @@ import com.gonezo.taxonomy.application.UnassignCategoryFromTransactionUC
 import com.gonezo.taxonomy.domain.Category
 import com.gonezo.taxonomy.domain.CategoryAppliesTo
 import com.gonezo.taxonomy.domain.CategoryId
+import com.gonezo.taxonomy.domain.CategoryWithUsage
 import com.gonezo.taxonomy.domain.Tag
 import com.gonezo.taxonomy.domain.TagId
 import com.gonezo.taxonomy.domain.TransactionCategoryAssignment
@@ -48,7 +49,7 @@ class CreateCategoryService(
 class ListCategoriesService(
   private val categoryRepository: CategoryRepository,
 ) : ListCategoriesUC {
-  override fun execute(): List<Category> = categoryRepository.listAll()
+  override fun execute(): List<CategoryWithUsage> = categoryRepository.listAll()
 }
 
 class RenameCategoryService(

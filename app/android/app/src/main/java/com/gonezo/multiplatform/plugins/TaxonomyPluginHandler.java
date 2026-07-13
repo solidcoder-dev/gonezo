@@ -29,6 +29,7 @@ final class TaxonomyPluginHandler {
         item.put("name", category.name());
         item.put("appliesTo", category.appliesTo());
         item.put("status", category.status());
+        item.put("usageCount", category.usageCount());
         items.put(item);
       }
 

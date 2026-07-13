@@ -7,6 +7,7 @@ import com.gonezo.taxonomy.domain.Category;
 import com.gonezo.taxonomy.domain.CategoryAppliesTo;
 import com.gonezo.taxonomy.domain.CategoryId;
 import com.gonezo.taxonomy.domain.CategoryStatus;
+import com.gonezo.taxonomy.domain.CategoryWithUsage;
 import com.gonezo.taxonomy.domain.ports.CategoryRepository;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -61,7 +62,7 @@ final class AndroidTaxonomyCategoryRepository implements CategoryRepository {
       if (!cursor.moveToFirst()) {
         return null;
       }
-      return mapCategory(cursor);
+      return mapCategoryOnly(cursor);
     } finally {
       cursor.close();
     }
@@ -99,7 +100,7 @@ final class AndroidTaxonomyCategoryRepository implements CategoryRepository {
     try {
       Map<CategoryId, Category> result = new HashMap<>();
       while (cursor.moveToNext()) {
-        Category category = mapCategory(cursor);
+        Category category = mapCategoryOnly(cursor);
         result.put(category.getId(), category);
       }
       return result;
@@ -124,28 +125,36 @@ final class AndroidTaxonomyCategoryRepository implements CategoryRepository {
       if (!cursor.moveToFirst()) {
         return null;
       }
-      return mapCategory(cursor);
+      return mapCategoryOnly(cursor);
     } finally {
       cursor.close();
     }
   }
 
   @Override
-  public List<Category> listAll() {
+  public List<CategoryWithUsage> listAll() {
     SQLiteDatabase database = db.getReadableDatabase();
-    Cursor cursor = database.query(
-      "taxonomy_categories",
-      new String[] {"id", "name", "applies_to", "status", "created_at", "archived_at"},
-      null,
-      null,
-      null,
-      null,
-      "applies_to asc, name_normalized asc, id asc"
+    Cursor cursor = database.rawQuery(
+      "select " +
+        "c.id, " +
+        "c.name, " +
+        "c.applies_to, " +
+        "c.status, " +
+        "c.created_at, " +
+        "c.archived_at, " +
+        "count(a.transaction_id) as usage_count " +
+      "from taxonomy_categories c " +
+      "left join taxonomy_transaction_assignments a on a.category_id = c.id " +
+      "left join ledger_transactions t on t.id = a.transaction_id " +
+      "where a.transaction_id is null or t.id is not null " +
+      "group by c.id, c.name, c.applies_to, c.status, c.created_at, c.archived_at, c.name_normalized " +
+      "order by usage_count desc, c.name_normalized asc, c.id asc",
+      null
     );
     try {
-      List<Category> categories = new ArrayList<>();
+      List<CategoryWithUsage> categories = new ArrayList<>();
       while (cursor.moveToNext()) {
-        categories.add(mapCategory(cursor));
+        categories.add(mapCategoryWithUsage(cursor));
       }
       return categories;
     } finally {
@@ -153,7 +162,7 @@ final class AndroidTaxonomyCategoryRepository implements CategoryRepository {
     }
   }
 
-  private static Category mapCategory(Cursor cursor) {
+  private static Category mapCategoryOnly(Cursor cursor) {
     CategoryId id = CategoryId.Companion.from(cursor.getString(0));
     String name = cursor.getString(1);
     CategoryAppliesTo appliesTo = CategoryAppliesTo.Companion.from(cursor.getString(2));
@@ -169,6 +178,13 @@ final class AndroidTaxonomyCategoryRepository implements CategoryRepository {
       status,
       createdAt,
       archivedAt
+    );
+  }
+
+  private static CategoryWithUsage mapCategoryWithUsage(Cursor cursor) {
+    return new CategoryWithUsage(
+      mapCategoryOnly(cursor),
+      cursor.getLong(6)
     );
   }
 }

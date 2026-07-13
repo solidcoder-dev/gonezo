@@ -62,6 +62,13 @@ export const MASTER_EXPENSE_CATEGORIES: MasterCategoryDefinition[] = [
     keywords: ['flights', 'hotels', 'trips', 'holidays'],
   },
   {
+    id: '00000000-0000-4000-8000-000000000110',
+    name: 'Beauty',
+    appliesTo: 'expense',
+    status: 'active',
+    keywords: ['salon', 'haircut', 'skincare', 'makeup', 'barber', 'cosmetics'],
+  },
+  {
     id: '00000000-0000-4000-8000-000000000109',
     name: 'Other',
     appliesTo: 'expense',
@@ -122,6 +129,7 @@ export const FREQUENT_EXPENSE_CATEGORY_IDS = [
   '00000000-0000-4000-8000-000000000106',
   '00000000-0000-4000-8000-000000000107',
   '00000000-0000-4000-8000-000000000108',
+  '00000000-0000-4000-8000-000000000110',
   '00000000-0000-4000-8000-000000000109',
 ];
 

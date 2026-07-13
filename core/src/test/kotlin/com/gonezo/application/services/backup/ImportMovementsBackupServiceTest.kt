@@ -12,6 +12,7 @@ import com.gonezo.ledger.domain.ports.LedgerTransactionRepository
 import com.gonezo.taxonomy.domain.Category
 import com.gonezo.taxonomy.domain.CategoryAppliesTo
 import com.gonezo.taxonomy.domain.CategoryId
+import com.gonezo.taxonomy.domain.CategoryWithUsage
 import com.gonezo.taxonomy.domain.Tag
 import com.gonezo.taxonomy.domain.TagId
 import com.gonezo.taxonomy.domain.TransactionCategoryAssignment
@@ -262,7 +263,7 @@ private class MutableCategoryRepository : CategoryRepository {
   override fun findByNormalizedNameAndAppliesTo(name: String, appliesTo: CategoryAppliesTo): Category? =
     values.values.firstOrNull { it.name.equals(name.trim(), ignoreCase = true) && it.appliesTo == appliesTo }
 
-  override fun listAll(): List<Category> = values.values.toList()
+  override fun listAll(): List<CategoryWithUsage> = values.values.map { CategoryWithUsage(it, 0) }
 }
 
 private class MutableTagRepository : TagRepository {

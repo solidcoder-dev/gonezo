@@ -5,6 +5,7 @@ import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions'
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
 import { useTransactionClassification } from '../../taxonomy/application/useTransactionClassification';
 import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.types';
+import { compareTaxonomyCategoriesByUsage } from '../../taxonomy/domain/categoryOrdering';
 import { findMasterCategoryById, listMasterCategories } from '../../taxonomy/domain/masterCategories';
 import type { ComposerMode } from './transactions.types';
 import {
@@ -42,7 +43,10 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
         .map((category) => [category.name.trim().toLowerCase(), category]),
     );
     const selectableMasterCategories = masterCategories.map(
-      (master) => backendMasterCategoriesByName.get(master.name.trim().toLowerCase()) ?? master,
+      (master) => backendMasterCategoriesByName.get(master.name.trim().toLowerCase()) ?? {
+        ...master,
+        usageCount: 0,
+      },
     );
     const selectedExistingCategory = categories.find(
       (category) =>
@@ -56,8 +60,8 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
     )
       .filter((category) => category.status === 'active')
       .filter((category) => category.appliesTo === composerMode)
+      .sort(compareTaxonomyCategoriesByUsage)
       .map((category) => ({ id: category.id, name: category.name }))
-      .sort((left, right) => left.name.localeCompare(right.name));
   }, [categories, composerMode, transactionCategoryId]);
 
   const tagOptions = useMemo(

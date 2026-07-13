@@ -71,7 +71,12 @@ export async function collectWebMovementsBackupExport(
     schemaVersion: 2,
     exportedAt,
     accounts: accountsResult.items,
-    categories: categoriesResult.items,
+    categories: categoriesResult.items.map((category) => ({
+      id: category.id,
+      name: category.name,
+      appliesTo: category.appliesTo,
+      status: category.status,
+    })),
     tags: tagsResult.items,
     postedMovements,
   };

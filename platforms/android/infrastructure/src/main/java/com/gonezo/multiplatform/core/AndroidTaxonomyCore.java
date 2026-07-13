@@ -75,8 +75,8 @@ public final class AndroidTaxonomyCore {
     boolean resolvedIncludeArchived = includeArchived != null && includeArchived;
 
     return listCategoriesUC.execute().stream()
-      .filter((category) -> resolvedIncludeArchived || category.getStatus() == CategoryStatus.ACTIVE)
-      .filter((category) -> normalizedAppliesTo == null || category.getAppliesTo().getValue().equals(normalizedAppliesTo))
+      .filter((category) -> resolvedIncludeArchived || category.getCategory().getStatus() == CategoryStatus.ACTIVE)
+      .filter((category) -> normalizedAppliesTo == null || category.getCategory().getAppliesTo().getValue().equals(normalizedAppliesTo))
       .map(AndroidTaxonomyViewMapper::toCategoryView)
       .toList();
   }
@@ -407,7 +407,8 @@ public final class AndroidTaxonomyCore {
     String id,
     String name,
     String appliesTo,
-    String status
+    String status,
+    long usageCount
   ) {}
 
   public record TaxonomyCategorizationResultView(

@@ -23,6 +23,7 @@ type Props = {
 
 const CATEGORY_ICON_BY_NAME: Record<string, string> = {
   bills: 'bi-receipt',
+  beauty: 'bi-scissors',
   groceries: 'bi-basket',
   dining: 'bi-cup-hot',
   transport: 'bi-bus-front',
@@ -43,13 +44,6 @@ function iconForCategory(name: string): string {
 
 export function CategoryPickerField({ required, provided }: Props) {
   const selectedCategory = required.options.find((category) => category.id === required.selectedCategoryId);
-  const frequentCategories = required.frequentCategoryIds
-    .map((id) => required.options.find((category) => category.id === id))
-    .filter((category): category is CategoryOption => Boolean(category));
-  const orderedCategories = [
-    ...frequentCategories,
-    ...required.options.filter((category) => !frequentCategories.some((frequent) => frequent.id === category.id)),
-  ];
 
   function selectCategory(categoryId: string) {
     provided.onSelect(categoryId);
@@ -59,7 +53,7 @@ export function CategoryPickerField({ required, provided }: Props) {
     <div className="category-picker">
       <span className="category-picker-label">Category</span>
       <div className="category-picker-row" role="group" aria-label="Category">
-        {orderedCategories.map((category) => {
+        {required.options.map((category) => {
           const selected = category.id === selectedCategory?.id;
           return (
             <button

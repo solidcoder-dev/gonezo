@@ -3,6 +3,7 @@ package com.gonezo.taxonomy.application
 import com.gonezo.taxonomy.domain.Category
 import com.gonezo.taxonomy.domain.CategoryAppliesTo
 import com.gonezo.taxonomy.domain.CategoryId
+import com.gonezo.taxonomy.domain.CategoryWithUsage
 import com.gonezo.taxonomy.domain.TagId
 import java.time.Instant
 import java.util.UUID
@@ -27,7 +28,7 @@ interface RenameCategoryUC {
 }
 
 interface ListCategoriesUC {
-  fun execute(): List<Category>
+  fun execute(): List<CategoryWithUsage>
 }
 
 data class AssignCategoryToTransactionCommand(

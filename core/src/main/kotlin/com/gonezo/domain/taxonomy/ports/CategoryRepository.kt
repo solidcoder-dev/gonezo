@@ -3,6 +3,7 @@ package com.gonezo.taxonomy.domain.ports
 import com.gonezo.taxonomy.domain.Category
 import com.gonezo.taxonomy.domain.CategoryAppliesTo
 import com.gonezo.taxonomy.domain.CategoryId
+import com.gonezo.taxonomy.domain.CategoryWithUsage
 
 interface CategoryRepository {
   fun save(category: Category)
@@ -13,5 +14,5 @@ interface CategoryRepository {
 
   fun findByNormalizedNameAndAppliesTo(name: String, appliesTo: CategoryAppliesTo): Category?
 
-  fun listAll(): List<Category>
+  fun listAll(): List<CategoryWithUsage>
 }

@@ -31,6 +31,41 @@ function createSubject(state: WebAppState = createWebAppState()) {
 describe('WebTaxonomyService', () => {
   it('lists categories and tags while respecting archived filters and sort order', async () => {
     const taxonomy = createSubject(createWebAppState({
+      ledgerTransactions: [
+        {
+          id: 'tx-1',
+          accountId: 'acc-1',
+          type: 'expense',
+          status: 'posted',
+          amount: '10.00',
+          currency: 'EUR',
+          occurredAt: '2026-05-01T00:00:00.000Z',
+          categoryId: '00000000-0000-4000-8000-000000000102',
+          items: [],
+        },
+        {
+          id: 'tx-2',
+          accountId: 'acc-1',
+          type: 'expense',
+          status: 'posted',
+          amount: '12.00',
+          currency: 'EUR',
+          occurredAt: '2026-05-02T00:00:00.000Z',
+          categoryId: '00000000-0000-4000-8000-000000000102',
+          items: [],
+        },
+        {
+          id: 'tx-3',
+          accountId: 'acc-1',
+          type: 'expense',
+          status: 'voided',
+          amount: '8.00',
+          currency: 'EUR',
+          occurredAt: '2026-05-03T00:00:00.000Z',
+          categoryId: '00000000-0000-4000-8000-000000000110',
+          items: [],
+        },
+      ],
       taxonomyCategories: [
         {
           id: 'cat-z',
@@ -67,15 +102,16 @@ describe('WebTaxonomyService', () => {
       ],
     }));
 
-    await expect(taxonomy.listCategories({ appliesTo: 'expense' })).resolves.toMatchObject({
-      items: expect.arrayContaining([
-        { id: '00000000-0000-4000-8000-000000000101', name: 'Bills', appliesTo: 'expense', status: 'active' },
-        { id: '00000000-0000-4000-8000-000000000102', name: 'Groceries', appliesTo: 'expense', status: 'active' },
-      ]),
-    });
+    const expenseCategories = await taxonomy.listCategories({ appliesTo: 'expense' });
+    expect(expenseCategories.items.slice(0, 4)).toEqual([
+      { id: '00000000-0000-4000-8000-000000000102', name: 'Groceries', appliesTo: 'expense', status: 'active', usageCount: 2 },
+      { id: '00000000-0000-4000-8000-000000000110', name: 'Beauty', appliesTo: 'expense', status: 'active', usageCount: 0 },
+      { id: '00000000-0000-4000-8000-000000000101', name: 'Bills', appliesTo: 'expense', status: 'active', usageCount: 0 },
+      { id: '00000000-0000-4000-8000-000000000103', name: 'Dining', appliesTo: 'expense', status: 'active', usageCount: 0 },
+    ]);
     await expect(taxonomy.listCategories({ appliesTo: 'income' })).resolves.toMatchObject({
       items: expect.arrayContaining([
-        { id: '00000000-0000-4000-8000-000000000201', name: 'Work Income', appliesTo: 'income', status: 'active' },
+        { id: '00000000-0000-4000-8000-000000000201', name: 'Work Income', appliesTo: 'income', status: 'active', usageCount: 0 },
       ]),
     });
     await expect(taxonomy.listTags()).resolves.toEqual({

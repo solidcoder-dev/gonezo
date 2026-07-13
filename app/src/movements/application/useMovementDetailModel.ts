@@ -4,6 +4,7 @@ import type { ExpectedGatewayPort } from '../../expected/application/expectedGat
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
+import { compareTaxonomyCategoriesByUsage } from '../../taxonomy/domain/categoryOrdering';
 import {
   normalizeTaxonomyName,
 } from '../../transactions/application/transactionTaxonomySelection';
@@ -203,7 +204,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     return categories
       .filter((item) => item.appliesTo === movement.financialType)
       .filter((item) => normalizedQuery.length === 0 || normalizeTaxonomyName(item.name).includes(normalizedQuery))
-      .sort((left, right) => left.name.localeCompare(right.name));
+      .sort(compareTaxonomyCategoriesByUsage);
   }, [categories, categoryQuery, movement]);
 
   const filteredSuggestedTags = useMemo(() => {

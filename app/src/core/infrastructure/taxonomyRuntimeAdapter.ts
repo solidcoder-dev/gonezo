@@ -14,6 +14,7 @@ import type {
   TaxonomyRenameCategoryInput,
   TaxonomyRenameTagInput,
 } from '../../taxonomy/application/taxonomy.port';
+import { compareTaxonomyCategoriesByUsage } from '../../taxonomy/domain/categoryOrdering';
 import { listMasterCategories } from '../../taxonomy/domain/masterCategories';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
@@ -52,11 +53,12 @@ async function listNativeMasterCategories(input?: TaxonomyListCategoriesInput): 
       name: master.name,
       appliesTo: master.appliesTo,
       status: 'active',
+      usageCount: 0,
     });
   }
 
   return {
-    items: items.sort((left, right) => left.name.localeCompare(right.name)),
+    items: items.sort(compareTaxonomyCategoriesByUsage),
   };
 }
 
