@@ -79,7 +79,6 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     clearMovementEntryAccount,
     createMovementForAccount,
     editExpectedMovement,
-    editScheduledMovement,
     postExpectedMovement,
     resetTransactionEntryPrefill,
   } = movementComposer.actions;
@@ -193,15 +192,8 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           onVoided: () => {
             refresh('accountSummary', 'netWorth', 'recentTransactions', 'analytics');
           },
-          onExpectedPosted: () => {
-            refresh('accountSummary', 'netWorth', 'expectedMovements', 'recentTransactions', 'analytics');
-          },
-          onExpectedDismissed: () => {
-            refresh('accountSummary', 'expectedMovements');
-          },
           onPostExpectedMovement: postExpectedMovement,
           onEditExpectedMovement: editExpectedMovement,
-          onEditScheduledMovement: editScheduledMovement,
         },
       }}
     />
@@ -289,9 +281,6 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       }}
       provided={{
         events: {
-          onExpectedDismissed: () => {
-            refresh('accountSummary', 'expectedMovements');
-          },
           onPostExpectedMovement: postExpectedMovement,
           onEditExpectedMovement: editExpectedMovement,
           onError: showError,

@@ -217,4 +217,23 @@ describe('transaction submission plan', () => {
     }));
     expect(input.ledgerTransactionCommands.recordExpense).not.toHaveBeenCalled();
   });
+
+  it('resolves a posted expected movement only after the posted transaction succeeds', async () => {
+    const input = {
+      ...baseInput(),
+      postExpectedMovementId: 'expected-1',
+    };
+
+    await runTransactionSubmissionPlan(input);
+
+    expect(input.ledgerTransactionCommands.recordExpense).toHaveBeenCalledTimes(1);
+    expect(input.ports.expected.expectedResolveMovement).toHaveBeenCalledWith({
+      expectedMovementId: 'expected-1',
+      transactionId: 'tx-1',
+      resolvedAt: '2026-05-18T10:20:30.000Z',
+    });
+    expect(input.ledgerTransactionCommands.recordExpense.mock.invocationCallOrder[0]).toBeLessThan(
+      input.ports.expected.expectedResolveMovement.mock.invocationCallOrder[0],
+    );
+  });
 });

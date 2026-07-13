@@ -8,7 +8,7 @@ import type {
   MovementsMonthOverviewInput,
   MovementsMonthOverviewResult,
 } from './movements.port';
-import type { ExpectedMovementView } from './movementsView.types';
+import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
 import type {
   MonthlyMovementsModelClock,
   MonthlyMovementsModelPorts,
@@ -67,6 +67,9 @@ function baseOverview(): MovementsMonthOverviewResult {
 
 function makePorts(overrides: Partial<MonthlyMovementsModelPorts> = {}): MonthlyMovementsModelPorts {
   return {
+    analytics: {
+      analyticsSetMovementIgnored: vi.fn().mockResolvedValue(undefined),
+    },
     ledger: {
       ledgerListSupportedCurrencies: vi.fn(),
       ledgerListAccounts: vi.fn(),
@@ -102,6 +105,12 @@ function makePorts(overrides: Partial<MonthlyMovementsModelPorts> = {}): Monthly
       expectedListMovements: vi.fn(),
       expectedResolveMovement: vi.fn(),
       expectedDismissMovement: vi.fn().mockResolvedValue(undefined),
+    },
+    sharing: {
+      sharingListPeople: vi.fn(),
+      sharingApplyShareToPostedTransaction: vi.fn(),
+      sharingGetMovementDetails: vi.fn().mockResolvedValue(null),
+      sharingListMovementDetails: vi.fn(),
     },
     taxonomy: {
       taxonomyListCategories: vi.fn().mockResolvedValue({ items: [] }),
@@ -152,18 +161,51 @@ function postedTransaction(overrides: Partial<LedgerTransactionListItem> = {}): 
   };
 }
 
-function expectedMovement(): ExpectedMovementView {
+function scheduledMovement(overrides: Partial<ScheduledMovementView> = {}): ScheduledMovementView {
   return {
-    id: 'expected-1',
+    id: 'sch-1',
+    type: 'expense',
+    sourceAccountId: 'account-1',
+    accountName: 'Main',
+    amount: '24.00',
+    currency: 'USD',
+    description: 'Rent',
+    merchant: 'Landlord',
+    status: 'active',
+    startAt: '2026-05-14T00:00:00.000Z',
+    nextDueAt: '2026-05-20T00:00:00.000Z',
+    zoneId: 'UTC',
+    generatedOccurrences: 2,
+    splitItems: [{ id: 'item-1', name: 'Base', amount: '24.00' }],
+    rule: { frequency: 'monthly', interval: 1, monthlyPattern: 'day_of_month', dayOfMonth: 20 },
+    recurrenceEnd: { kind: 'never' },
+    categoryId: 'cat-food',
+    tagIds: ['tag-lunch'],
+    tagNames: ['Lunch'],
+    scheduleKind: 'recurring',
+    origin: 'recurring',
+    ...overrides,
+  };
+}
+
+function expectedMovement(overrides: Partial<ExpectedMovementView> = {}): ExpectedMovementView {
+  return {
+    id: 'exp-1',
     accountId: 'account-1',
+    accountName: 'Main',
     type: 'expense',
     amount: '12.00',
     currency: 'USD',
     expectedAt: '2026-05-20T00:00:00.000Z',
-    splitItems: [],
+    description: 'Lunch',
+    merchant: 'Cafe',
+    categoryId: 'cat-food',
+    splitItems: [{ id: 'item-1', name: 'Lunch', amount: '12.00' }],
     status: 'pending',
     createdAt: '2026-05-01T00:00:00.000Z',
     updatedAt: '2026-05-01T00:00:00.000Z',
+    ignored: true,
+    ...overrides,
   };
 }
 
@@ -201,37 +243,6 @@ describe('useMonthlyMovementsModel', () => {
     }));
     expect(ports.taxonomy.taxonomyListCategories).toHaveBeenCalledWith({ includeArchived: false });
     expect(ports.taxonomy.taxonomyListTags).toHaveBeenCalledWith({ includeArchived: false });
-  });
-
-  it('dismisses expected movements with the injected clock', async () => {
-    const now = new Date('2026-05-15T10:20:30.000Z');
-    const expectedDismissMovement = vi.fn().mockResolvedValue(undefined);
-    const ports = makePorts({
-      expected: {
-        ...makePorts().expected,
-        expectedDismissMovement,
-      },
-    });
-
-    const { result } = renderHook(() => useMonthlyMovementsModel({
-      ports,
-      accountId: 'account-1',
-      enabled: true,
-      refreshSignal: false,
-      clock: { now: () => now },
-      timers: makeTimers(),
-    }));
-
-    await waitFor(() => expect(result.current.required.status.loading).toBe(false));
-
-    await act(async () => {
-      await result.current.provided.commands.dismissExpectedMovement(expectedMovement());
-    });
-
-    expect(expectedDismissMovement).toHaveBeenCalledWith({
-      expectedMovementId: 'expected-1',
-      dismissedAt: now.toISOString(),
-    });
   });
 
   it('moves between months and refreshes the requested month range', async () => {
@@ -381,10 +392,18 @@ describe('useMonthlyMovementsModel', () => {
     const { timers, handlers } = makeControllableTimers();
     const ledgerVoidTransaction = vi.fn().mockResolvedValue(undefined);
     const onVoided = vi.fn();
+    const transaction = postedTransaction();
     const ports = makePorts({
       ledger: {
         ...makePorts().ledger,
         ledgerVoidTransaction,
+      },
+      scheduling: {
+        ...makePorts().scheduling,
+        movementsGetOverview: vi.fn().mockResolvedValue(emptyOverview({
+          postedPage: pageWith([transaction]),
+          executedPage: pageWith([transaction]),
+        })),
       },
     });
 
@@ -401,10 +420,14 @@ describe('useMonthlyMovementsModel', () => {
     await waitFor(() => expect(result.current.required.status.loading).toBe(false));
 
     act(() => {
-      result.current.provided.commands.requestVoid('tx-1');
+      result.current.provided.commands.openPostedMovementDetail('tx-1');
+    });
+    await waitFor(() => expect(result.current.required.detail.data.movement?.id).toBe('tx-1'));
+    act(() => {
+      result.current.provided.detail.commands.runOverflowAction();
     });
 
-    expect(result.current.required.state.pendingVoidTransactionId).toBe('tx-1');
+    await waitFor(() => expect(result.current.required.state.pendingVoidTransactionId).toBe('tx-1'));
     expect(result.current.toast.message).toBe('Transaction will be voided in 5 seconds.');
     expect(result.current.toast.actionLabel).toBe('Undo');
 
@@ -418,7 +441,11 @@ describe('useMonthlyMovementsModel', () => {
     expect(ledgerVoidTransaction).not.toHaveBeenCalled();
 
     act(() => {
-      result.current.provided.commands.requestVoid('tx-1');
+      result.current.provided.commands.openPostedMovementDetail('tx-1');
+    });
+    await waitFor(() => expect(result.current.required.detail.data.movement?.id).toBe('tx-1'));
+    act(() => {
+      result.current.provided.detail.commands.runOverflowAction();
     });
     act(() => {
       handlers[1]();
@@ -468,5 +495,303 @@ describe('useMonthlyMovementsModel', () => {
     expect(result.current.required.state.items[0].tags).toEqual([{ id: 'tag-lunch', name: 'Lunch' }]);
     expect(result.current.required.state.filterOptions.categories).toEqual([{ id: 'cat-food', label: 'Food' }]);
     expect(result.current.required.state.filterOptions.tags).toEqual([{ id: 'tag-lunch', label: 'Lunch' }]);
+  });
+
+  it('updates posted category and tags from the detail model', async () => {
+    const transaction = postedTransaction({ categoryId: 'cat-food', tags: [{ id: 'tag-lunch', name: 'Lunch' }] });
+    const ports = makePorts({
+      scheduling: {
+        ...makePorts().scheduling,
+        movementsGetOverview: vi.fn().mockResolvedValue(emptyOverview({
+          postedPage: pageWith([transaction]),
+          executedPage: pageWith([transaction]),
+        })),
+      },
+      taxonomy: {
+        ...makePorts().taxonomy,
+        taxonomyListCategories: vi.fn().mockResolvedValue({
+          items: [
+            { id: 'cat-food', name: 'Food', appliesTo: 'expense', status: 'active' },
+            { id: 'cat-fun', name: 'Fun', appliesTo: 'expense', status: 'active' },
+          ],
+        }),
+        taxonomyListTags: vi.fn().mockResolvedValue({
+          items: [
+            { id: 'tag-lunch', name: 'Lunch', status: 'active' },
+            { id: 'tag-home', name: 'Home', status: 'active' },
+          ],
+        }),
+        orchestrationCategorizeTransaction: vi.fn().mockResolvedValue({ status: 'assigned' }),
+        orchestrationApplyTransactionTags: vi.fn().mockResolvedValue({ status: 'assigned' }),
+        orchestrationListTransactionTaxonomy: vi.fn().mockResolvedValue({
+          items: [{ transactionId: 'tx-1', categoryId: 'cat-food', tagIds: ['tag-lunch'] }],
+        }),
+      },
+    });
+
+    const { result } = renderHook(() => useMonthlyMovementsModel({
+      ports,
+      accountId: 'account-1',
+      enabled: true,
+      refreshSignal: false,
+      clock: { now: () => new Date('2026-05-15T10:20:30.000Z') },
+      timers: makeTimers(),
+    }));
+
+    await waitFor(() => expect(result.current.required.status.loading).toBe(false));
+
+    act(() => {
+      result.current.provided.commands.openPostedMovementDetail('tx-1');
+    });
+    await act(async () => {
+      await result.current.provided.detail.commands.saveCategory('cat-fun');
+    });
+    expect(ports.taxonomy.orchestrationCategorizeTransaction).toHaveBeenCalledWith({
+      transactionId: 'tx-1',
+      transactionType: 'expense',
+      categoryId: 'cat-fun',
+    });
+
+    act(() => {
+      result.current.provided.detail.commands.openTagsScreen();
+      result.current.provided.detail.commands.toggleDraftTag({ id: 'tag-home', name: 'Home' });
+    });
+    await act(async () => {
+      await result.current.provided.detail.commands.saveTags();
+    });
+    expect(ports.taxonomy.orchestrationApplyTransactionTags).toHaveBeenCalledWith({
+      transactionId: 'tx-1',
+      tagNames: ['Lunch', 'Home'],
+    });
+
+    act(() => {
+      result.current.provided.detail.commands.openTagsScreen();
+      result.current.provided.detail.commands.toggleDraftTag({ id: 'tag-lunch', name: 'Lunch' });
+    });
+    await act(async () => {
+      await result.current.provided.detail.commands.saveTags();
+    });
+    expect(ports.taxonomy.orchestrationApplyTransactionTags).toHaveBeenLastCalledWith({
+      transactionId: 'tx-1',
+      tagNames: [],
+    });
+  });
+
+  it('blocks transfer categorization and still updates transfer tags', async () => {
+    const transaction = postedTransaction({ id: 'tx-transfer', type: 'transfer', categoryId: undefined, tags: [] });
+    const ports = makePorts({
+      scheduling: {
+        ...makePorts().scheduling,
+        movementsGetOverview: vi.fn().mockResolvedValue(emptyOverview({
+          postedPage: pageWith([transaction]),
+          executedPage: pageWith([transaction]),
+        })),
+      },
+      taxonomy: {
+        ...makePorts().taxonomy,
+        taxonomyListTags: vi.fn().mockResolvedValue({
+          items: [{ id: 'tag-home', name: 'Home', status: 'active' }],
+        }),
+      },
+    });
+
+    const { result } = renderHook(() => useMonthlyMovementsModel({
+      ports,
+      accountId: 'account-1',
+      enabled: true,
+      refreshSignal: false,
+      clock: { now: () => new Date('2026-05-15T10:20:30.000Z') },
+      timers: makeTimers(),
+    }));
+
+    await waitFor(() => expect(result.current.required.status.loading).toBe(false));
+    act(() => {
+      result.current.provided.commands.openPostedMovementDetail('tx-transfer');
+    });
+    await act(async () => {
+      await result.current.provided.detail.commands.saveCategory('cat-food');
+    });
+    expect(ports.taxonomy.orchestrationCategorizeTransaction).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.provided.detail.commands.openTagsScreen();
+      result.current.provided.detail.commands.toggleDraftTag({ id: 'tag-home', name: 'Home' });
+    });
+    await act(async () => {
+      await result.current.provided.detail.commands.saveTags();
+    });
+    expect(ports.taxonomy.orchestrationApplyTransactionTags).toHaveBeenCalledWith({
+      transactionId: 'tx-transfer',
+      tagNames: ['Home'],
+    });
+  });
+
+  it('preserves scheduled and expected payloads and emits expected composer callbacks', async () => {
+    const schedule = scheduledMovement();
+    const transferSchedule = scheduledMovement({ id: 'sch-transfer', type: 'transfer', categoryId: undefined, targetAccountId: 'account-2' });
+    const expected = expectedMovement();
+    const onEditExpectedMovement = vi.fn();
+    const onPostExpectedMovement = vi.fn();
+    const ports = makePorts({
+      scheduling: {
+        ...makePorts().scheduling,
+        movementsGetOverview: vi.fn().mockResolvedValue(emptyOverview({
+          scheduledPreview: { items: [schedule, transferSchedule], total: 2, hasMore: false },
+          expectedPreview: { items: [expected], total: 1, hasMore: false },
+        })),
+        schedulingUpdateMovement: vi.fn().mockResolvedValue({ id: 'sch-1' }),
+      },
+      taxonomy: {
+        ...makePorts().taxonomy,
+        taxonomyListCategories: vi.fn().mockResolvedValue({
+          items: [
+            { id: 'cat-food', name: 'Food', appliesTo: 'expense', status: 'active' },
+            { id: 'cat-fun', name: 'Fun', appliesTo: 'expense', status: 'active' },
+          ],
+        }),
+        taxonomyListTags: vi.fn().mockResolvedValue({
+          items: [
+            { id: 'tag-lunch', name: 'Lunch', status: 'active' },
+            { id: 'tag-home', name: 'Home', status: 'active' },
+          ],
+        }),
+      },
+    });
+
+    const { result } = renderHook(() => useMonthlyMovementsModel({
+      ports,
+      accountId: 'account-1',
+      enabled: true,
+      refreshSignal: false,
+      clock: { now: () => new Date('2026-05-15T10:20:30.000Z') },
+      timers: makeTimers(),
+      onEditExpectedMovement,
+      onPostExpectedMovement,
+    }));
+
+    await waitFor(() => expect(result.current.required.status.loading).toBe(false));
+
+    act(() => {
+      result.current.provided.commands.openScheduledMovementDetail('sch-1');
+    });
+    await act(async () => {
+      await result.current.provided.detail.commands.saveCategory('cat-fun');
+    });
+    act(() => {
+      result.current.provided.detail.commands.openTagsScreen();
+      result.current.provided.detail.commands.toggleDraftTag({ id: 'tag-home', name: 'Home' });
+    });
+    await act(async () => {
+      await result.current.provided.detail.commands.saveTags();
+    });
+
+    expect(ports.scheduling.schedulingUpdateMovement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      recurringMovementId: 'sch-1',
+      sourceAccountId: 'account-1',
+      amount: '24.00',
+      currency: 'USD',
+      categoryId: 'cat-fun',
+      splitItems: [{ id: 'item-1', name: 'Base', amount: '24.00' }],
+    }));
+    expect(ports.scheduling.schedulingUpdateMovement).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      recurringMovementId: 'sch-1',
+      categoryId: 'cat-food',
+      tagIds: ['tag-lunch', 'tag-home'],
+      tagNames: ['Lunch', 'Home'],
+    }));
+
+    act(() => {
+      result.current.provided.commands.openScheduledMovementDetail('sch-transfer');
+      result.current.provided.detail.commands.openTagsScreen();
+      result.current.provided.detail.commands.toggleDraftTag({ id: 'tag-home', name: 'Home' });
+    });
+    await act(async () => {
+      await result.current.provided.detail.commands.saveTags();
+    });
+    const transferPayload = vi.mocked(ports.scheduling.schedulingUpdateMovement).mock.calls[2]?.[0];
+    expect(Object.prototype.hasOwnProperty.call(transferPayload, 'categoryId')).toBe(false);
+
+    act(() => {
+      result.current.provided.commands.openExpectedMovementDetail('exp-1');
+    });
+    await waitFor(() => expect(result.current.required.detail.data.movement?.id).toBe('exp-1'));
+    await act(async () => {
+      await result.current.provided.detail.commands.saveCategory('cat-fun');
+    });
+    expect(ports.expected.expectedUpdateMovement).toHaveBeenCalledWith(expect.objectContaining({
+      expectedMovementId: 'exp-1',
+      accountId: 'account-1',
+      amount: '12.00',
+      currency: 'USD',
+      expectedAt: '2026-05-20T00:00:00.000Z',
+      ignored: true,
+      splitItems: [{ id: 'item-1', name: 'Lunch', amount: '12.00' }],
+    }));
+    act(() => {
+      result.current.provided.detail.commands.runOverflowAction();
+    });
+    expect(onEditExpectedMovement).toHaveBeenCalledWith(expect.objectContaining({ id: 'exp-1' }), 'Food');
+
+    act(() => {
+      result.current.provided.commands.openExpectedMovementDetail('exp-1');
+    });
+    await waitFor(() => expect(result.current.required.detail.data.movement?.id).toBe('exp-1'));
+    act(() => {
+      result.current.provided.detail.commands.postExpectedMovement();
+    });
+    expect(onPostExpectedMovement).toHaveBeenCalledWith(expect.objectContaining({ id: 'exp-1' }), 'Food');
+  });
+
+  it('loads sharing lazily for posted expenses and handles confirmation for schedule deactivation', async () => {
+    const transaction = postedTransaction({ amount: '48.20', currency: 'EUR' });
+    const confirm = vi.fn(() => true);
+    const ports = makePorts({
+      scheduling: {
+        ...makePorts().scheduling,
+        movementsGetOverview: vi.fn().mockResolvedValue(emptyOverview({
+          postedPage: pageWith([transaction]),
+          executedPage: pageWith([transaction]),
+          scheduledPreview: { items: [scheduledMovement()], total: 1, hasMore: false },
+        })),
+      },
+      sharing: {
+        ...makePorts().sharing,
+        sharingGetMovementDetails: vi.fn().mockResolvedValue({
+          shareId: 'share-1',
+          transactionId: 'tx-1',
+          participants: [{ participantId: 'p-1', personId: 'person-1', displayName: 'Ana', amount: '16.07', reimbursable: true, repaymentStatus: 'pending' }],
+          analytics: { personalExpenseAmount: '16.07', excludedLentAmount: '0.00', excludedReimbursementIncomeAmount: '0.00' },
+        }),
+      },
+    });
+
+    const { result } = renderHook(() => useMonthlyMovementsModel({
+      ports,
+      accountId: 'account-1',
+      enabled: true,
+      refreshSignal: false,
+      clock: { now: () => new Date('2026-05-15T10:20:30.000Z') },
+      timers: makeTimers(),
+      confirm,
+    }));
+
+    await waitFor(() => expect(result.current.required.status.loading).toBe(false));
+
+    act(() => {
+      result.current.provided.commands.openPostedMovementDetail('tx-1');
+    });
+    await waitFor(() => expect(ports.sharing.sharingGetMovementDetails).toHaveBeenCalledWith({ transactionId: 'tx-1' }));
+    if (result.current.required.detail.data.movement?.source === 'posted' && result.current.required.detail.data.movement.sharing.phase === 'loaded') {
+      expect(result.current.required.detail.data.movement.sharing.value?.personalExpenseAmount).toBe('16.07');
+    }
+
+    act(() => {
+      result.current.provided.commands.openScheduledMovementDetail('sch-1');
+    });
+    await act(async () => {
+      result.current.provided.detail.commands.runOverflowAction();
+    });
+    expect(confirm).toHaveBeenCalled();
+    expect(ports.scheduling.schedulingDeactivateMovement).toHaveBeenCalledWith({ recurringMovementId: 'sch-1' });
   });
 });

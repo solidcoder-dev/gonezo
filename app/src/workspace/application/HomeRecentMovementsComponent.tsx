@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import type { MovementsQueryPort } from '../../movements/application/movements.port';
 import type { TransactionHistoryItemView } from '../../transactions/application/transactionView.types';
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
-import { MovementDetailSheetView } from '../../movements/ui/MovementDetailSheet/MovementDetailSheetView';
-import { buildPostedMovementDetailData } from '../../movements/ui/MonthlyMovements/monthlyMovementPresentation';
+import { mapPostedMovementPreview } from '../../movements/application/movementDetailPreviewMappers';
+import { MovementDetailsSheetPreview } from '../../movements/ui/MovementDetailSheet/MovementDetailsSheetPreview';
 import {
   HomeRecentMovementsView,
   type HomeRecentMovementRowView,
@@ -186,17 +186,9 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
       />
 
       {selectedMovement ? (
-        <MovementDetailSheetView
-          required={{
-            config: {
-              ariaLabel: 'Transaction details',
-              closeLabel: 'Close transaction details',
-            },
-            data: buildPostedMovementDetailData(selectedMovement),
-            state: { open: true },
-            status: {},
-          }}
-          provided={{ commands: { close: () => setSelectedMovement(null) } }}
+        <MovementDetailsSheetPreview
+          movement={mapPostedMovementPreview(selectedMovement)}
+          onClose={() => setSelectedMovement(null)}
         />
       ) : null}
     </>

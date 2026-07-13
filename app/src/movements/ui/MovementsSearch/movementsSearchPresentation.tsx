@@ -1,10 +1,8 @@
 import { formatCalendarDay } from '../MonthlyMovements/postedGrouping';
+import type { MovementDetailViewModel } from '../../application/movementDetailView.types';
 import type {
-  ExpectedMovementView,
   MovementsSearchItemView,
-  ScheduledMovementView,
 } from '../../application/movementsView.types';
-import type { TransactionHistoryItemView } from '../../../transactions/application/transactionView.types';
 import type { MovementDetailDataView, MovementAmountKindView } from '../MovementDetailSheet/MovementDetailSheetView';
 import type { MovementRowDataView } from '../MovementRow/MovementRowView';
 import {
@@ -18,6 +16,14 @@ import {
   txKindIconClass,
   txSign,
 } from '../MonthlyMovements/monthlyMovementPresentation';
+import {
+  mapExpectedMovementPreview,
+  mapPostedMovementPreview,
+  mapScheduledMovementPreview,
+  searchItemToExpectedMovement,
+  searchItemToPostedMovement,
+  searchItemToScheduledMovement,
+} from '../../application/movementDetailPreviewMappers';
 
 type SearchPresentationOptions = {
   now?: Date;
@@ -131,81 +137,32 @@ export function buildMovementSearchDetailData(
   options: SearchPresentationOptions = {},
 ): MovementDetailDataView {
   if (entry.source === 'expected') {
-    return buildExpectedMovementDetailData(searchEntryToExpectedMovement(entry), {
+    return buildExpectedMovementDetailData(searchItemToExpectedMovement(entry), {
       ...options,
       categoryName: entry.category?.name,
     });
   }
   if (entry.source === 'scheduled') {
-    return buildScheduledMovementDetailData(searchEntryToScheduledMovement(entry), {
+    return buildScheduledMovementDetailData(searchItemToScheduledMovement(entry), {
       ...options,
       categoryName: entry.category?.name,
       tagNames: entry.tags?.map((tag) => tag.name),
     });
   }
-  return buildPostedMovementDetailData(searchEntryToPostedTransaction(entry), options);
+  return buildPostedMovementDetailData(searchItemToPostedMovement(entry), options);
 }
 
-function searchEntryToPostedTransaction(entry: MovementsSearchItemView): TransactionHistoryItemView {
-  return {
-    id: entry.id,
-    accountId: entry.accountId ?? '',
-    accountName: entry.accountName,
-    occurredAt: entry.occurredAt,
-    description: entry.description,
-    merchant: entry.merchant || entry.title,
-    amount: entry.amount,
-    currency: entry.currency,
-    type: entry.type,
-    status: entry.status === 'voided' ? 'voided' : 'posted',
-    categoryId: entry.categoryId,
-    category: entry.category,
-    tags: entry.tags,
-    ignored: entry.ignored,
-    items: entry.items ?? [],
-  };
-}
-
-function searchEntryToExpectedMovement(entry: MovementsSearchItemView): ExpectedMovementView {
-  return {
-    id: entry.id,
-    accountId: entry.accountId ?? '',
-    accountName: entry.accountName,
-    type: entry.type === 'income' ? 'income' : 'expense',
-    amount: entry.amount,
-    currency: entry.currency,
-    expectedAt: entry.occurredAt,
-    description: entry.description,
-    merchant: entry.merchant || entry.title,
-    categoryId: entry.categoryId ?? entry.category?.id,
-    splitItems: entry.items ?? [],
-    status: entry.status === 'resolved' || entry.status === 'dismissed' ? entry.status : 'pending',
-    createdAt: entry.occurredAt,
-    updatedAt: entry.occurredAt,
-    ignored: entry.ignored,
-  };
-}
-
-function searchEntryToScheduledMovement(entry: MovementsSearchItemView): ScheduledMovementView {
-  return {
-    id: entry.id,
-    type: entry.type === 'income' || entry.type === 'transfer' ? entry.type : 'expense',
-    sourceAccountId: entry.accountId ?? '',
-    accountName: entry.accountName,
-    amount: entry.amount,
-    currency: entry.currency,
-    description: entry.description,
-    merchant: entry.merchant || entry.title,
-    status: entry.status === 'deactivated' ? 'deactivated' : 'active',
-    startAt: entry.occurredAt,
-    nextDueAt: entry.occurredAt,
-    zoneId: 'UTC',
-    generatedOccurrences: 0,
-    splitItems: entry.items ?? [],
-    rule: { frequency: 'monthly', interval: 1 },
-    recurrenceEnd: { kind: 'never' },
-    categoryId: entry.categoryId ?? entry.category?.id,
-    tagIds: entry.tags?.map((tag) => tag.id),
-    tagNames: entry.tags?.map((tag) => tag.name),
-  };
+export function buildMovementSearchDetailViewModel(entry: MovementsSearchItemView): MovementDetailViewModel {
+  if (entry.source === 'expected') {
+    return mapExpectedMovementPreview(searchItemToExpectedMovement(entry), {
+      categoryName: entry.category?.name,
+    });
+  }
+  if (entry.source === 'scheduled') {
+    return mapScheduledMovementPreview(searchItemToScheduledMovement(entry), {
+      categoryName: entry.category?.name,
+      tagNames: entry.tags?.map((tag) => tag.name),
+    });
+  }
+  return mapPostedMovementPreview(searchItemToPostedMovement(entry));
 }

@@ -113,7 +113,7 @@ describe('HomeRecentMovementsComponent', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: /Cafe/i }));
 
-    expect(await screen.findByRole('dialog', { name: 'Transaction details' })).toBeInTheDocument();
-    expect(screen.getByText('posted')).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'Movement detail' })).toBeInTheDocument();
+    expect(screen.getByText('Expense')).toBeInTheDocument();
   });
 });

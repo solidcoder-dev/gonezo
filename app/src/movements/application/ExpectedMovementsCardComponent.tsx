@@ -4,14 +4,12 @@ import type { ExpectedPort } from '../../expected/application/expected.port';
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
 import type { HomeMovementRowView } from '../../shared/ui/HomeMovementList/HomeMovementListView';
 import { ExpectedMovementsCardView } from '../ui/ExpectedMovementsCard/ExpectedMovementsCardView';
-import { MovementDetailSheetView } from '../ui/MovementDetailSheet/MovementDetailSheetView';
+import { MovementDetailsSheetPreview } from '../ui/MovementDetailSheet/MovementDetailsSheetPreview';
 import type { ExpectedMovementView } from './movementsView.types';
-import {
-  buildExpectedMovementDetailData,
-} from '../ui/MonthlyMovements/monthlyMovementPresentation';
+import { mapExpectedMovementPreview } from './movementDetailPreviewMappers';
 
 export type ExpectedMovementsCardPort = Pick<AccountBalancesPort, 'accountsListBalances'>
-  & Pick<ExpectedPort, 'expectedListMovements' | 'expectedDismissMovement'>;
+  & Pick<ExpectedPort, 'expectedListMovements'>;
 
 export type ExpectedMovementsCardComponentProps = {
   required: {
@@ -26,7 +24,6 @@ export type ExpectedMovementsCardComponentProps = {
   provided?: {
     events?: {
       onError?: (error: { message: string }) => void;
-      onExpectedDismissed?: () => void;
       onPostExpectedMovement?: (movement: ExpectedMovementView) => void;
       onEditExpectedMovement?: (movement: ExpectedMovementView) => void;
     };
@@ -85,12 +82,10 @@ function buildHomeExpectedMovementRow(movement: ExpectedMovementView): HomeMovem
 export function ExpectedMovementsCardComponent({ required, provided }: ExpectedMovementsCardComponentProps) {
   const { core } = required.context;
   const onError = provided?.events?.onError;
-  const onExpectedDismissed = provided?.events?.onExpectedDismissed;
   const onPostExpectedMovement = provided?.events?.onPostExpectedMovement;
   const onEditExpectedMovement = provided?.events?.onEditExpectedMovement;
   const [movements, setMovements] = useState<ExpectedMovementView[]>([]);
   const [selectedMovement, setSelectedMovement] = useState<ExpectedMovementView | null>(null);
-  const [pendingDismissExpectedId, setPendingDismissExpectedId] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -153,23 +148,6 @@ export function ExpectedMovementsCardComponent({ required, provided }: ExpectedM
     }
   }
 
-  async function dismissSelectedMovement() {
-    if (!selectedMovement) {
-      return;
-    }
-    setPendingDismissExpectedId(selectedMovement.id);
-    try {
-      await core.expectedDismissMovement({ expectedMovementId: selectedMovement.id });
-      setMovements((previous) => previous.filter((movement) => movement.id !== selectedMovement.id));
-      setSelectedMovement(null);
-      onExpectedDismissed?.();
-    } catch (err) {
-      onError?.({ message: toErrorMessage(err) });
-    } finally {
-      setPendingDismissExpectedId('');
-    }
-  }
-
   return (
     <>
       <ExpectedMovementsCardView
@@ -183,53 +161,21 @@ export function ExpectedMovementsCardComponent({ required, provided }: ExpectedM
       />
 
       {selectedMovement ? (
-        <MovementDetailSheetView
-          required={{
-            config: {
-              ariaLabel: 'Expected movement details',
-              closeLabel: 'Close expected movement details',
-            },
-            data: {
-              ...buildExpectedMovementDetailData(selectedMovement),
-              actions: [
-                {
-                  key: 'post',
-                  label: 'Post movement',
-                  onClick: () => {
-                    onPostExpectedMovement?.(selectedMovement);
-                    setSelectedMovement(null);
-                  },
-                },
-                {
-                  key: 'edit',
-                  label: 'Edit expected',
-                  variant: 'text',
-                  onClick: () => {
-                    onEditExpectedMovement?.(selectedMovement);
-                    setSelectedMovement(null);
-                  },
-                },
-                {
-                  key: 'remove',
-                  label: pendingDismissExpectedId === selectedMovement.id ? 'Removing...' : 'Remove movement',
-                  variant: 'text-danger',
-                  disabled: pendingDismissExpectedId === selectedMovement.id,
-                  onClick: () => {
-                    void dismissSelectedMovement();
-                  },
-                },
-                {
-                  key: 'close',
-                  label: 'Close',
-                  variant: 'text',
-                  onClick: () => setSelectedMovement(null),
-                },
-              ],
-            },
-            state: { open: true },
-            status: { disabled: Boolean(pendingDismissExpectedId) },
+        <MovementDetailsSheetPreview
+          movement={mapExpectedMovementPreview(selectedMovement, {
+            canEditExpected: true,
+            canPostExpected: true,
+          })}
+          overflowActionLabel="Edit expected"
+          onRunOverflowAction={() => {
+            onEditExpectedMovement?.(selectedMovement);
+            setSelectedMovement(null);
           }}
-          provided={{ commands: { close: () => setSelectedMovement(null) } }}
+          onPostExpectedMovement={() => {
+            onPostExpectedMovement?.(selectedMovement);
+            setSelectedMovement(null);
+          }}
+          onClose={() => setSelectedMovement(null)}
         />
       ) : null}
     </>

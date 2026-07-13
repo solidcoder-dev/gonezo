@@ -2,11 +2,12 @@ import { useMemo } from 'react';
 import { createExpectedGateway } from '../../expected/application/expectedGateway';
 import { createLedgerGateway } from '../../ledger/application/ledgerGateway';
 import { createSchedulingGateway } from '../../scheduling/application/schedulingGateway';
+import { createSharingGateway } from '../../sharing/application/sharingGateway';
 import { createTaxonomyGateway } from '../../taxonomy/application/taxonomyGateway';
 import { MonthlyMovementsView } from '../ui/MonthlyMovements/MonthlyMovementsView';
 import { useMonthlyMovementsModel } from './useMonthlyMovementsModel';
 import type { TransactionsPort } from '../../transactions/application/transactions.port';
-import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
+import type { ExpectedMovementView } from './movementsView.types';
 
 const BROWSER_CLOCK = {
   now: () => new Date(),
@@ -32,11 +33,9 @@ export type MonthlyMovementsComponentProps = {
   provided?: {
     events?: {
       onVoided?: (transactionId: string) => void;
-      onExpectedPosted?: () => void;
       onExpectedDismissed?: () => void;
       onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
       onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
-      onEditScheduledMovement?: (movement: ScheduledMovementView, categoryName?: string) => void;
       onError?: (error: { message: string }) => void;
     };
   };
@@ -44,9 +43,11 @@ export type MonthlyMovementsComponentProps = {
 
 export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMovementsComponentProps) {
   const ports = useMemo(() => ({
+    analytics: required.context.core,
     ledger: createLedgerGateway(required.context.core),
     scheduling: createSchedulingGateway(required.context.core),
     expected: createExpectedGateway(required.context.core),
+    sharing: createSharingGateway(required.context.core),
     taxonomy: createTaxonomyGateway(required.context.core),
   }), [required.context.core]);
   const model = useMonthlyMovementsModel({
@@ -58,12 +59,11 @@ export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMo
     clock: BROWSER_CLOCK,
     timers: BROWSER_TIMERS,
     onVoided: provided.events?.onVoided,
-    onExpectedPosted: provided.events?.onExpectedPosted,
     onExpectedDismissed: provided.events?.onExpectedDismissed,
     onPostExpectedMovement: provided.events?.onPostExpectedMovement,
     onEditExpectedMovement: provided.events?.onEditExpectedMovement,
-    onEditScheduledMovement: provided.events?.onEditScheduledMovement,
     onError: provided.events?.onError,
+    confirm: (message) => window.confirm(message),
   });
 
   if (!required.config.enabled || ((required.context.scope ?? 'account') === 'account' && !required.context.accountId)) {

@@ -5,12 +5,11 @@ import type {
   MovementsSearchFiltersState,
 } from '../../application/movementsView.types';
 import {
-  MovementDetailSheetView,
-  type MovementDetailActionView,
-} from '../MovementDetailSheet/MovementDetailSheetView';
+  MovementDetailsSheetPreview,
+} from '../MovementDetailSheet/MovementDetailsSheetPreview';
 import { MovementRowView } from '../MovementRow/MovementRowView';
 import {
-  buildMovementSearchDetailData,
+  buildMovementSearchDetailViewModel,
   buildMovementSearchRowData,
   groupMovementSearchResultsByDay,
 } from './movementsSearchPresentation';
@@ -41,10 +40,6 @@ type MovementsSearchResultsProps = {
   required: MovementsSearchResultsRequired;
   provided: MovementsSearchResultsProvided;
 };
-
-function movementDetailActions(actions: Array<MovementDetailActionView | undefined>): MovementDetailActionView[] {
-  return actions.filter((action): action is MovementDetailActionView => Boolean(action));
-}
 
 export function MovementsSearchResults({ required, provided }: MovementsSearchResultsProps) {
   const { appliedFilters, items, pagination } = required.state;
@@ -121,37 +116,18 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
       ) : null}
 
       {selectedEntry ? (
-        <MovementDetailSheetView
-          required={{
-            config: {
-              ariaLabel: 'Movement details',
-              closeLabel: 'Close movement details',
-            },
-            data: {
-              ...buildMovementSearchDetailData(selectedEntry),
-              actions: movementDetailActions([
-                selectedEntry.source === 'posted' && selectedEntry.status === 'posted' ? {
-                  key: 'void',
-                  label: 'Void movement',
-                  variant: 'danger',
-                  onClick: () => {
-                    void provided.commands.voidPostedMovement(selectedEntry.id).then(() => {
-                      setSelectedEntry(null);
-                    });
-                  },
-                } : undefined,
-                {
-                  key: 'close',
-                  label: 'Close',
-                  variant: 'text',
-                  onClick: () => setSelectedEntry(null),
-                },
-              ]),
-            },
-            state: { open: true },
-            status: { disabled },
+        <MovementDetailsSheetPreview
+          movement={buildMovementSearchDetailViewModel(selectedEntry)}
+          overflowActionLabel={selectedEntry.source === 'posted' && selectedEntry.status === 'posted' ? 'Void movement' : undefined}
+          onRunOverflowAction={() => {
+            if (selectedEntry.source !== 'posted' || selectedEntry.status !== 'posted') {
+              return;
+            }
+            void provided.commands.voidPostedMovement(selectedEntry.id).then(() => {
+              setSelectedEntry(null);
+            });
           }}
-          provided={{ commands: { close: () => setSelectedEntry(null) } }}
+          onClose={() => setSelectedEntry(null)}
         />
       ) : null}
     </section>

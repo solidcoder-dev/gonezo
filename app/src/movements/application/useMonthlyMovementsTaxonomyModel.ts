@@ -150,6 +150,8 @@ export function useMonthlyMovementsTaxonomyModel(input: UseMonthlyMovementsTaxon
   return {
     state: {
       historyItems,
+      categories,
+      tags,
       filterOptions: {
         categories: categories.map((category) => ({ id: category.id, label: category.name })),
         tags: tags.map((tag) => ({ id: tag.id, label: tag.name })),

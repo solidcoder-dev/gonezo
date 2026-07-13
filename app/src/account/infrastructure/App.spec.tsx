@@ -2959,9 +2959,10 @@ describe('App Accounts UX', () => {
     await goToMovementsPage();
     const movementRow = await screen.findByText('Merchant 1');
     fireEvent.click(movementRow.closest('button')!);
-    const detailDialog = await screen.findByRole('dialog', { name: 'Transaction details' });
+    const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
     vi.useFakeTimers();
-    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Void movement' }));
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Movement actions' }));
+    fireEvent.click(within(detailDialog).getByRole('menuitem', { name: 'Void movement' }));
     expect(core.ledgerVoidTransaction).toHaveBeenCalledTimes(0);
     await vi.advanceTimersByTimeAsync(5000);
     await Promise.resolve();
@@ -2980,9 +2981,10 @@ describe('App Accounts UX', () => {
     await goToMovementsPage();
     const movementRow = await screen.findByText('Merchant 1');
     fireEvent.click(movementRow.closest('button')!);
-    const detailDialog = await screen.findByRole('dialog', { name: 'Transaction details' });
+    const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
     vi.useFakeTimers();
-    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Void movement' }));
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Movement actions' }));
+    fireEvent.click(within(detailDialog).getByRole('menuitem', { name: 'Void movement' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(screen.getByRole('status')).toHaveTextContent('Void canceled.');
@@ -3361,8 +3363,8 @@ describe('App Accounts UX', () => {
 
     expect(await screen.findByText('#home')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Merchant 1'));
-    const detailDialog = await screen.findByRole('dialog', { name: 'Movement details' });
-    expect(within(detailDialog).getByText('#home')).toBeInTheDocument();
+    const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
+    expect(within(detailDialog).getByText('home')).toBeInTheDocument();
   });
 
   it('shows category metadata on advanced-search cards and detail when only category id is returned', async () => {
@@ -3405,7 +3407,7 @@ describe('App Accounts UX', () => {
 
     expect(await screen.findByText('Food')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Merchant 1'));
-    const detailDialog = await screen.findByRole('dialog', { name: 'Movement details' });
+    const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
     expect(within(detailDialog).getByText('Food')).toBeInTheDocument();
     await waitFor(() => {
       expect(core.movementsSearch).toHaveBeenLastCalledWith(
@@ -3461,10 +3463,11 @@ describe('App Accounts UX', () => {
     await screen.findByText('1 movement · Grouped by day · Date desc');
     fireEvent.click(screen.getByText('Utilities'));
 
-    const detailDialog = await screen.findByRole('dialog', { name: 'Movement details' });
-    expect(within(detailDialog).getByText('Items')).toBeInTheDocument();
-    expect(within(detailDialog).getByText('Water')).toBeInTheDocument();
-    expect(within(detailDialog).getByText('55.00')).toBeInTheDocument();
+    const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
+    fireEvent.click(within(detailDialog).getByRole('button', { name: /Items/i }));
+    const itemsDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
+    expect(within(itemsDialog).getByText('Water')).toBeInTheDocument();
+    expect(within(itemsDialog).getByText('$55.00')).toBeInTheDocument();
   });
 
   it('client-filters advanced-search posted results after taxonomy hydration when the adapter ignores category filters', async () => {
@@ -3635,9 +3638,11 @@ describe('App Accounts UX', () => {
     const postedRow = await screen.findByText('House bill');
     fireEvent.click(postedRow.closest('button')!);
 
-    const detailDialog = await screen.findByRole('dialog', { name: 'Transaction details' });
-    expect(within(detailDialog).getByText('Water')).toBeInTheDocument();
-    expect(within(detailDialog).getByText('Electricity')).toBeInTheDocument();
+    const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
+    fireEvent.click(within(detailDialog).getByRole('button', { name: /Items/i }));
+    const itemsDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
+    expect(within(itemsDialog).getByText('Water')).toBeInTheDocument();
+    expect(within(itemsDialog).getByText('Electricity')).toBeInTheDocument();
   });
 
   it('posts an expected movement through a copy without editing the expected', async () => {
@@ -3666,14 +3671,20 @@ describe('App Accounts UX', () => {
     const expectedRow = await screen.findByText('Expected rent');
 
     fireEvent.click(expectedRow.closest('button')!);
-    const detailDialog = await screen.findByRole('dialog', { name: 'Expected movement details' });
+    const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
     expect(within(detailDialog).getByText('Groceries')).toBeInTheDocument();
-    expect(within(detailDialog).getByText('manual')).toBeInTheDocument();
-    expect(within(detailDialog).getByText('pending')).toBeInTheDocument();
-    expect(within(detailDialog).getByText('Water')).toBeInTheDocument();
-    expect(within(detailDialog).getByText('Electricity')).toBeInTheDocument();
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'More details' }));
+    const moreDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
+    expect(within(moreDialog).getByText('Manual')).toBeInTheDocument();
+    expect(within(moreDialog).getByText('Pending')).toBeInTheDocument();
+    fireEvent.click(within(moreDialog).getByRole('button', { name: /Back to movement/i }));
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Movement detail' })).getByRole('button', { name: /Items/i }));
+    const itemsDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
+    expect(within(itemsDialog).getByText('Water')).toBeInTheDocument();
+    expect(within(itemsDialog).getByText('Electricity')).toBeInTheDocument();
+    fireEvent.click(within(itemsDialog).getByRole('button', { name: /Back to movement/i }));
 
-    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Post movement' }));
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Movement detail' })).getByRole('button', { name: 'Post movement' }));
 
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
     expect(within(composer).getByRole('button', { name: 'Post movement' })).toBeInTheDocument();
@@ -3760,8 +3771,9 @@ describe('App Accounts UX', () => {
     await expandExpectedMovements();
     const expectedRow = await screen.findByText('Expected rent');
     fireEvent.click(expectedRow.closest('button')!);
-    const detailDialog = await screen.findByRole('dialog', { name: 'Expected movement details' });
-    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Edit expected' }));
+    const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Movement actions' }));
+    fireEvent.click(within(detailDialog).getByRole('menuitem', { name: 'Edit expected' }));
 
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
     expect(within(composer).getByLabelText('Amount')).toHaveValue(42);
@@ -3801,8 +3813,9 @@ describe('App Accounts UX', () => {
     await expandExpectedMovements();
     const expectedRow = await screen.findByText('Expected rent');
     fireEvent.click(expectedRow.closest('button')!);
-    const detailDialog = await screen.findByRole('dialog', { name: 'Expected movement details' });
-    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Edit expected' }));
+    const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Movement actions' }));
+    fireEvent.click(within(detailDialog).getByRole('menuitem', { name: 'Edit expected' }));
 
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
     fireEvent.click(within(composer).getByRole('button', { name: 'Save expected' }));
@@ -3826,7 +3839,7 @@ describe('App Accounts UX', () => {
     expect(updated.items[0].id).toBe('exp-1');
   });
 
-  it('dismisses an expected movement from the detail sheet', async () => {
+  it('does not offer remove movement from the expected detail sheet', async () => {
     const core = makeCore();
     await core.expectedCreateMovement({
       accountId: 'acc-1',
@@ -3851,18 +3864,13 @@ describe('App Accounts UX', () => {
     await expandExpectedMovements();
     const expectedRow = await screen.findByText('Expected rent');
     fireEvent.click(expectedRow.closest('button')!);
-    const detailDialog = await screen.findByRole('dialog', { name: 'Expected movement details' });
-    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Remove movement' }));
-
-    await waitFor(() => {
-      expect(core.expectedDismissMovement).toHaveBeenCalledTimes(1);
-    });
-    expect(core.expectedDismissMovement).toHaveBeenCalledWith(expect.objectContaining({
-      expectedMovementId: 'exp-1',
-    }));
-    await waitFor(() => {
-      expect(screen.queryByText('Expected rent')).not.toBeInTheDocument();
-    });
+    const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Movement actions' }));
+    const actionsMenu = within(detailDialog).getByRole('menu', { name: 'Movement actions' });
+    expect(within(actionsMenu).getByRole('menuitem', { name: 'Edit expected' })).toBeInTheDocument();
+    expect(within(actionsMenu).queryByRole('menuitem', { name: 'Remove movement' })).not.toBeInTheDocument();
+    expect(core.expectedDismissMovement).not.toHaveBeenCalled();
+    expect(within(detailDialog).getByText('Expected rent')).toBeInTheDocument();
   });
 
   it('shows scheduled transfer when switching to destination account', async () => {
@@ -4076,24 +4084,26 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     await expandScheduledMovements();
     const scheduledRow = await screen.findByText('Scheduled movement');
     fireEvent.click(scheduledRow.closest('button')!);
-    const detailDialog = await screen.findByRole('dialog', { name: 'Scheduled movement details' });
-    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Deactivate movement' }));
+    const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Movement actions' }));
+    fireEvent.click(within(detailDialog).getByRole('menuitem', { name: 'Deactivate movement' }));
 
     await waitFor(() => {
       expect(core.schedulingDeactivateMovement).toHaveBeenCalledWith({
         recurringMovementId: 'rec-1',
       });
     });
+    expect(confirmSpy).toHaveBeenCalled();
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Scheduled movement details' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'Movement detail' })).not.toBeInTheDocument();
     });
-    expect(screen.getByRole('status')).toHaveTextContent('Scheduled movement deactivated.');
   });
 
-  it('opens the composer with scheduled movement values for editing', async () => {
+  it('does not offer scheduled editing from the detail sheet', async () => {
     const core = makeCore();
     await core.schedulingCreateMovement({
       type: 'expense',
@@ -4118,34 +4128,13 @@ describe('App Accounts UX', () => {
     await expandScheduledMovements();
     const scheduledRow = await screen.findByText('Scheduled rent');
     fireEvent.click(scheduledRow.closest('button')!);
-    const detailDialog = await screen.findByRole('dialog', { name: 'Scheduled movement details' });
-    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Edit movement' }));
-
-    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
-    await waitFor(() => {
-      expect(within(composer).getByRole('button', { name: 'Update scheduled' })).toBeInTheDocument();
-    });
-    expect(within(composer).getByLabelText('Amount')).toHaveValue(15);
-    expect(within(composer).getByLabelText('Date')).toHaveValue(isoInCurrentMonth(11, 10).slice(0, 10));
-    expect(within(composer).getByLabelText('Merchant')).toHaveValue('Scheduled rent');
-    expect(within(composer).getByRole('button', { name: 'Select category Groceries' })).toHaveTextContent('Groceries');
-
-    fireEvent.change(within(composer).getByLabelText('Amount'), { target: { value: '17' } });
-    fireEvent.click(within(composer).getByRole('button', { name: 'Update scheduled' }));
-
-    await waitFor(() => {
-      expect(core.schedulingUpdateMovement).toHaveBeenCalledTimes(1);
-    });
-    expect(core.schedulingUpdateMovement).toHaveBeenCalledWith(expect.objectContaining({
-      recurringMovementId: 'rec-1',
-      type: 'expense',
-      amount: '17.00',
-      currency: 'USD',
-      categoryId: '00000000-0000-4000-8000-000000000102',
-    }));
-    await waitFor(() => {
-      expect(screen.getByText('-$17.00')).toBeInTheDocument();
-    });
+    const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
+    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Movement actions' }));
+    const actionsMenu = within(detailDialog).getByRole('menu', { name: 'Movement actions' });
+    expect(within(actionsMenu).getByRole('menuitem', { name: 'Deactivate movement' })).toBeInTheDocument();
+    expect(within(actionsMenu).queryByRole('menuitem', { name: 'Edit movement' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
+    expect(core.schedulingUpdateMovement).not.toHaveBeenCalled();
   });
 
   it('infers one-shot metadata for legacy scheduled items', async () => {

@@ -1,0 +1,336 @@
+.movement-details-panel {
+  max-width: 480px;
+  margin: 0 auto;
+  border-radius: 28px 28px 0 0;
+}
+
+.movement-details-content {
+  padding: 0;
+}
+
+.movement-details-sheet {
+  position: relative;
+  display: grid;
+  gap: 20px;
+  padding: 18px 18px 24px;
+  background: #fff;
+}
+
+.movement-details-subview {
+  min-height: 72vh;
+}
+
+.movement-details-header {
+  position: relative;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 8px;
+}
+
+.movement-details-header h3 {
+  margin: 0;
+  text-align: left;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.movement-details-header-side {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.movement-details-overflow {
+  position: absolute;
+  top: 44px;
+  right: 0;
+  z-index: 2;
+  min-width: 180px;
+  padding: 8px;
+  border: 1px solid #ecece3;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 38px rgba(18, 18, 16, 0.12);
+}
+
+.movement-details-overflow-action {
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: #fff5f5;
+  color: #9b2323;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+}
+
+.movement-details-hero {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border-radius: 22px;
+}
+
+.movement-details-hero--expense {
+  background: #fff4f3;
+}
+
+.movement-details-hero--income {
+  background: #effaf0;
+}
+
+.movement-details-hero--transfer {
+  background: #f1f6ff;
+}
+
+.movement-details-hero-top,
+.movement-details-hero-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.movement-details-hero-icon {
+  width: 46px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 1.15rem;
+}
+
+.movement-details-hero-copy {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+}
+
+.movement-details-hero-copy strong {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.movement-details-hero-copy span {
+  color: #6a6a63;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.movement-details-hero-amount {
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.movement-details-section {
+  display: grid;
+  gap: 12px;
+}
+
+.movement-details-section-title {
+  color: #77776d;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.movement-details-group,
+.movement-details-list {
+  display: grid;
+  border-radius: 20px;
+  background: #fff;
+}
+
+.movement-details-row,
+.movement-details-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 60px;
+  padding: 14px 0;
+  border: 0;
+  border-bottom: 1px solid #ecece3;
+  background: transparent;
+  color: #171715;
+  font: inherit;
+  text-align: left;
+}
+
+.movement-details-group > :last-child,
+.movement-details-list > :last-child {
+  border-bottom: 0;
+}
+
+.movement-details-row-main,
+.movement-details-row-leading {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.movement-details-row-main--stacked,
+.movement-details-choice-stack {
+  display: grid;
+  gap: 4px;
+}
+
+.movement-details-row-main--stacked small,
+.movement-details-choice-stack small {
+  color: #6f6f68;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.movement-details-row-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.movement-details-row-value--tags {
+  max-width: 62%;
+}
+
+.movement-details-row--static {
+  cursor: default;
+}
+
+.movement-details-placeholder {
+  color: #8a8a82;
+  font-weight: 600;
+}
+
+.movement-details-chip-list {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.movement-details-chip-list--wrap {
+  flex-wrap: wrap;
+}
+
+.movement-details-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #f2f5fb;
+  color: #184f8f;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.movement-details-chip--filled {
+  background: #eef5ef;
+  color: #166534;
+}
+
+.movement-details-chip--secondary {
+  background: #f4f4ef;
+  color: #5c5c54;
+}
+
+.movement-details-chip--tone-expense {
+  background: #ffecec;
+  color: #9b2323;
+}
+
+.movement-details-chip--tone-income {
+  background: #eaf8ed;
+  color: #166534;
+}
+
+.movement-details-chip--tone-transfer {
+  background: #eaf1ff;
+  color: #1e4fbf;
+}
+
+.movement-details-chip-button {
+  border: 0;
+}
+
+.movement-details-search {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #f7f7f2;
+}
+
+.movement-details-search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  outline: 0;
+}
+
+.movement-details-choice--selected {
+  color: #166534;
+  font-weight: 700;
+}
+
+.movement-details-choice--static {
+  cursor: default;
+}
+
+.movement-details-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #f4f8ff;
+}
+
+.movement-details-summary-grid small {
+  display: block;
+  margin-bottom: 4px;
+  color: #6c6c64;
+  font-weight: 700;
+}
+
+.movement-details-summary-card {
+  padding: 18px;
+  border-radius: 18px;
+  background: #f7f8fb;
+}
+
+.movement-details-switch {
+  margin-top: 8px;
+}
+
+.movement-details-footer {
+  padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid #ecece3;
+  background: #fff;
+}
+
+.movement-details-primary {
+  width: 100%;
+}
+
+.movement-details-done {
+  color: #15803d;
+  font-weight: 700;
+}
+
+@media (min-width: 540px) {
+  .movement-details-sheet {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}

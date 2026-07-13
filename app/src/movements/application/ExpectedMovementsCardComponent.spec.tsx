@@ -73,7 +73,6 @@ function createCore(): ExpectedMovementsCardPort {
             }),
           ],
     })),
-    expectedDismissMovement: vi.fn(async () => undefined),
   };
 }
 
@@ -124,10 +123,12 @@ describe('ExpectedMovementsCardComponent', () => {
 
     fireEvent.click(movementRows[0]);
 
-    expect(await screen.findByRole('dialog', { name: 'Expected movement details' })).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'Movement detail' })).toBeInTheDocument();
     expect(screen.getByText('Post movement')).toBeInTheDocument();
-    expect(screen.getByText('Edit expected')).toBeInTheDocument();
-    expect(screen.getByText('Remove movement')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Movement actions' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Movement actions' }));
+    expect(screen.getByRole('menuitem', { name: 'Edit expected' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Remove movement' })).not.toBeInTheDocument();
   });
 
   it('keeps ignored expected movements faded in the home expected list', async () => {

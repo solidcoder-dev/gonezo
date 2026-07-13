@@ -1,5 +1,6 @@
 import type { ExpectedMovementView, ScheduledMovementView } from '../../application/movementsView.types';
 import type { TransactionHistoryItemView } from '../../../transactions/application/transactionView.types';
+import type { MovementDetailsSheetViewProps } from '../MovementDetailSheet/MovementDetailsSheetView';
 
 export type MonthlyMovementsViewRequired = {
   state: {
@@ -40,6 +41,7 @@ export type MonthlyMovementsViewRequired = {
     loading: boolean;
     disabled: boolean;
   };
+  detail: MovementDetailsSheetViewProps['required'];
 };
 
 export type MonthlyMovementsViewProvided = {
@@ -56,13 +58,11 @@ export type MonthlyMovementsViewProvided = {
     selectPickerMonth: (monthIndex: number) => void;
     goToPreviousPage: () => void;
     goToNextPage: () => void;
-    requestVoid: (transactionId: string) => void;
-    deactivateScheduledMovement: (scheduledMovementId: string) => Promise<void>;
-    editScheduledMovement: (movement: ScheduledMovementView, categoryName?: string) => void;
-    postExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => Promise<boolean>;
-    dismissExpectedMovement: (movement: ExpectedMovementView) => Promise<boolean>;
-    editExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => void;
+    openPostedMovementDetail: (transactionId: string) => void;
+    openScheduledMovementDetail: (scheduledMovementId: string) => void;
+    openExpectedMovementDetail: (expectedMovementId: string) => void;
   };
+  detail: MovementDetailsSheetViewProps['provided'];
 };
 
 export type MonthlyMovementsViewProps = {

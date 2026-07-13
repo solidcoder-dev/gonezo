@@ -1,10 +1,13 @@
+import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 import { useEffect, useRef, useState } from 'react';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
 import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
+import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
-import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
+import type { ExpectedMovementView } from './movementsView.types';
 import type { MonthlyMovementsViewProvided, MonthlyMovementsViewRequired } from '../ui/MonthlyMovements/MonthlyMovementsView.contract';
+import { useMovementDetailModel } from './useMovementDetailModel';
 import { useMonthlyMovementMutationsModel } from './useMonthlyMovementMutationsModel';
 import { useMonthlyMovementNavigationModel } from './useMonthlyMovementNavigationModel';
 import { useMonthlyMovementsFeedbackModel } from './useMonthlyMovementsFeedbackModel';
@@ -12,21 +15,18 @@ import { useMonthlyMovementsOverviewModel } from './useMonthlyMovementsOverviewM
 import { useMonthlyMovementsTaxonomyModel } from './useMonthlyMovementsTaxonomyModel';
 
 export type MonthlyMovementsModelPorts = {
+  analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
   ledger: LedgerGatewayPort;
   scheduling: SchedulingGatewayPort;
   expected: ExpectedGatewayPort;
+  sharing: SharingGatewayPort;
   taxonomy: TaxonomyGatewayPort;
 };
-
-export type MonthlyMovementsModelClock = {
-  now(): Date;
-};
-
+export type MonthlyMovementsModelClock = { now(): Date };
 export type MonthlyMovementsModelTimers = {
   setTimeout(handler: () => void, timeoutMs: number): number;
   clearTimeout(timerId: number): void;
 };
-
 type UseMonthlyMovementsModelInput = {
   ports: MonthlyMovementsModelPorts;
   accountId: string | null;
@@ -36,12 +36,11 @@ type UseMonthlyMovementsModelInput = {
   clock: MonthlyMovementsModelClock;
   timers: MonthlyMovementsModelTimers;
   onVoided?: (transactionId: string) => void;
-  onExpectedPosted?: () => void;
   onExpectedDismissed?: () => void;
   onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
   onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
-  onEditScheduledMovement?: (movement: ScheduledMovementView, categoryName?: string) => void;
   onError?: (error: { message: string }) => void;
+  confirm?: (message: string) => boolean;
 };
 
 function toErrorMessage(error: unknown): string {
@@ -50,7 +49,6 @@ function toErrorMessage(error: unknown): string {
   }
   return 'Unknown error';
 }
-
 export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const {
     ports,
@@ -64,15 +62,15 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     onExpectedDismissed,
     onPostExpectedMovement,
     onEditExpectedMovement,
-    onEditScheduledMovement,
     onError,
+    confirm,
   } = input;
+  const confirmMovementAction = confirm ?? (() => false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(0);
   const previousAccountIdRef = useRef<string | null>(null);
-
   const feedbackModel = useMonthlyMovementsFeedbackModel();
   const navigationModel = useMonthlyMovementNavigationModel({
     clock,
@@ -93,7 +91,6 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   });
   const monthStartTime = navigationModel.state.monthStartDate.getTime();
   const monthEndTime = navigationModel.state.monthEndDate.getTime();
-
   function clearError() {
     setError('');
   }
@@ -105,9 +102,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   }
 
   async function loadAccountNameById(): Promise<Map<string, string>> {
-    if (scope !== 'all') {
-      return new Map();
-    }
+    if (scope !== 'all') return new Map();
     const result = await ports.ledger.ledgerListAccounts();
     return new Map(result.items.map((account) => [account.id, account.name]));
   }
@@ -136,6 +131,30 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     },
     onVoided,
     onExpectedDismissed,
+    onPostExpectedMovement,
+  });
+
+  const detailModel = useMovementDetailModel({
+    ports: {
+      analytics: ports.analytics,
+      expected: ports.expected,
+      scheduling: ports.scheduling,
+      sharing: ports.sharing,
+      taxonomy: ports.taxonomy,
+    },
+    postedItems: taxonomyModel.state.historyItems,
+    scheduledItems: overviewModel.state.scheduledItems,
+    expectedItems: overviewModel.state.expectedItems,
+    categories: taxonomyModel.state.categories,
+    tags: taxonomyModel.state.tags,
+    refreshMovements,
+    requestVoid: mutationsModel.actions.requestVoid,
+    pendingVoidTransactionId: mutationsModel.state.pendingVoidTransactionId || undefined,
+    clearError,
+    reportError,
+    clock,
+    confirm: confirmMovementAction,
+    onEditExpectedMovement,
     onPostExpectedMovement,
   });
 
@@ -200,10 +219,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     monthEndTime,
   ]);
 
-  const disabled = loading
-    || mutationsModel.state.mutating
-    || mutationsModel.state.postingTransaction
-    || mutationsModel.state.voidMutationPhase === 'committing';
+  const disabled = loading || mutationsModel.state.mutating || mutationsModel.state.postingTransaction || mutationsModel.state.voidMutationPhase === 'committing';
 
   const required: MonthlyMovementsViewRequired = {
     state: {
@@ -234,6 +250,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       loading,
       disabled,
     },
+    detail: detailModel.required,
   };
 
   const provided: MonthlyMovementsViewProvided = {
@@ -255,13 +272,11 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
         }
         setPage((previous) => previous + 1);
       },
-      requestVoid: mutationsModel.actions.requestVoid,
-      deactivateScheduledMovement: mutationsModel.actions.deactivateScheduledMovement,
-      editScheduledMovement: (movement, categoryName) => onEditScheduledMovement?.(movement, categoryName),
-      postExpectedMovement: mutationsModel.actions.postExpectedMovement,
-      dismissExpectedMovement: mutationsModel.actions.dismissExpectedMovement,
-      editExpectedMovement: (movement, categoryName) => onEditExpectedMovement?.(movement, categoryName),
+      openPostedMovementDetail: detailModel.actions.openPostedMovementDetail,
+      openScheduledMovementDetail: detailModel.actions.openScheduledMovementDetail,
+      openExpectedMovementDetail: detailModel.actions.openExpectedMovementDetail,
     },
+    detail: detailModel.provided,
   };
 
   return {
