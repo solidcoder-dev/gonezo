@@ -8,6 +8,7 @@ export type SheetViewProps = ViewProps<
     ariaLabel: string;
     title?: string;
     closeLabel?: string;
+    backdropClassName?: string;
     panelClassName?: string;
     contentClassName?: string;
     contentAriaLabel?: string;
@@ -60,6 +61,9 @@ export function SheetView({ required, provided }: SheetViewProps) {
   const panelClassName = config.panelClassName
     ? `${styles.panel} ${config.panelClassName}${drag.dragging ? ` ${styles.dragging}` : ''}`
     : `${styles.panel}${drag.dragging ? ` ${styles.dragging}` : ''}`;
+  const backdropClassName = config.backdropClassName
+    ? `${styles.backdrop} ${config.backdropClassName}`
+    : styles.backdrop;
   const closeLabel = config.closeLabel ?? 'Close';
   const panelStyle = (config.dragToClose || config.dragUpToExpand || config.dragDownToCollapse) && drag.offset !== 0
     ? { transform: `translateY(${drag.offset}px)` }
@@ -72,7 +76,7 @@ export function SheetView({ required, provided }: SheetViewProps) {
 
   return (
     <div
-      className={styles.backdrop}
+      className={backdropClassName}
       role="presentation"
       data-testid="sheet-backdrop"
       onClick={closeFromBackdrop}

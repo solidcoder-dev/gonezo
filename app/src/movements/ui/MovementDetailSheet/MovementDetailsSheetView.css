@@ -1,38 +1,68 @@
+.movement-details-backdrop {
+  padding:
+    calc(12px + var(--app-safe-area-top))
+    0
+    0;
+}
+
 .movement-details-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: 100%;
   max-width: 480px;
+  max-height: min(92dvh, 860px);
   margin: 0 auto;
+  padding: 0;
+  overflow: hidden;
   border-radius: 28px 28px 0 0;
 }
 
 .movement-details-content {
+  min-height: 0;
   padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.movement-details-content::-webkit-scrollbar {
+  display: none;
 }
 
 .movement-details-sheet {
   position: relative;
   display: grid;
-  gap: 20px;
-  padding: 18px 18px 24px;
+  gap: 16px;
+  padding: 10px 20px 20px;
   background: #fff;
 }
 
 .movement-details-subview {
-  min-height: 72vh;
+  min-height: 0;
+}
+
+.movement-details-header,
+.movement-details-subview-header {
+  position: relative;
+  display: grid;
+  align-items: center;
 }
 
 .movement-details-header {
-  position: relative;
-  display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 40px;
-  align-items: center;
   gap: 8px;
 }
 
-.movement-details-header h3 {
+.movement-details-subview-header {
+  min-height: 32px;
+}
+
+.movement-details-header h3,
+.movement-details-subview-header h3 {
   margin: 0;
-  text-align: left;
   font-size: 1.15rem;
   font-weight: 800;
+  text-align: left;
 }
 
 .movement-details-header-side {
@@ -67,9 +97,9 @@
 
 .movement-details-hero {
   display: grid;
-  gap: 18px;
-  padding: 18px;
-  border-radius: 22px;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 20px;
 }
 
 .movement-details-hero--expense {
@@ -87,9 +117,16 @@
 .movement-details-hero-top,
 .movement-details-hero-bottom {
   display: flex;
-  align-items: center;
   justify-content: space-between;
   gap: 16px;
+}
+
+.movement-details-hero-top {
+  align-items: center;
+}
+
+.movement-details-hero-bottom {
+  align-items: flex-end;
 }
 
 .movement-details-hero-icon {
@@ -101,12 +138,14 @@
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.72);
   font-size: 1.15rem;
+  flex-shrink: 0;
 }
 
 .movement-details-hero-copy {
   display: grid;
   flex: 1;
   gap: 4px;
+  min-width: 0;
 }
 
 .movement-details-hero-copy strong {
@@ -121,14 +160,22 @@
 }
 
 .movement-details-hero-amount {
+  flex-shrink: 0;
+  white-space: nowrap;
   font-size: 2rem;
   font-weight: 900;
   letter-spacing: -0.03em;
 }
 
-.movement-details-section {
+.movement-details-hero-bottom .movement-details-chip-list {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.movement-details-section,
+.movement-details-tags-block {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .movement-details-section-title {
@@ -142,17 +189,21 @@
 .movement-details-group,
 .movement-details-list {
   display: grid;
-  border-radius: 20px;
   background: #fff;
+}
+
+.movement-details-list--details {
+  gap: 0;
 }
 
 .movement-details-row,
 .movement-details-choice {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 60px;
-  padding: 14px 0;
+  min-height: 58px;
+  padding: 10px 0;
   border: 0;
   border-bottom: 1px solid #ecece3;
   background: transparent;
@@ -178,6 +229,7 @@
 .movement-details-choice-stack {
   display: grid;
   gap: 4px;
+  padding: 2px 0;
 }
 
 .movement-details-row-main--stacked small,
@@ -191,13 +243,16 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  margin-left: 12px;
 }
 
 .movement-details-row-value--tags {
   max-width: 62%;
 }
 
-.movement-details-row--static {
+.movement-details-row--static,
+.movement-details-choice--static {
   cursor: default;
 }
 
@@ -215,6 +270,12 @@
 
 .movement-details-chip-list--wrap {
   flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.movement-details-tags-block .movement-details-chip-list {
+  display: flex;
+  min-height: 32px;
 }
 
 .movement-details-chip {
@@ -260,31 +321,31 @@
 }
 
 .movement-details-search {
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  min-height: 48px;
-  padding: 0 14px;
-  border-radius: 999px;
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: 26px;
   background: #f7f7f2;
 }
 
 .movement-details-search input {
   width: 100%;
+  min-width: 0;
   border: 0;
   background: transparent;
+  color: inherit;
   font: inherit;
+  font-size: 1rem;
   outline: 0;
 }
 
 .movement-details-choice--selected {
   color: #166534;
   font-weight: 700;
-}
-
-.movement-details-choice--static {
-  cursor: default;
 }
 
 .movement-details-summary-grid {
@@ -304,32 +365,66 @@
 }
 
 .movement-details-summary-card {
-  padding: 18px;
+  padding: 16px;
   border-radius: 18px;
   background: #f7f8fb;
 }
 
+.movement-details-detail-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.42fr) minmax(0, 0.58fr);
+  align-items: center;
+  gap: 16px;
+  min-height: 58px;
+  padding: 10px 0;
+  border-bottom: 1px solid #ecece3;
+}
+
+.movement-details-detail-row:last-child {
+  border-bottom: 0;
+}
+
+.movement-details-detail-label {
+  color: #171715;
+}
+
+.movement-details-detail-value {
+  min-width: 0;
+  color: #272724;
+  font-weight: 600;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
 .movement-details-switch {
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .movement-details-footer {
-  padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+  padding: 12px 20px calc(12px + var(--app-safe-area-bottom));
   border-top: 1px solid #ecece3;
   background: #fff;
 }
 
 .movement-details-primary {
   width: 100%;
+  min-height: 52px;
 }
 
-.movement-details-done {
-  color: #15803d;
-  font-weight: 700;
+@media (max-width: 380px) {
+  .movement-details-detail-row--stackable {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .movement-details-detail-row--stackable .movement-details-detail-value {
+    text-align: left;
+  }
 }
 
 @media (min-width: 540px) {
-  .movement-details-sheet {
+  .movement-details-sheet,
+  .movement-details-footer {
     padding-left: 24px;
     padding-right: 24px;
   }

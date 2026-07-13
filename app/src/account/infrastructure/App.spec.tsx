@@ -3465,7 +3465,7 @@ describe('App Accounts UX', () => {
 
     const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
     fireEvent.click(within(detailDialog).getByRole('button', { name: /Items/i }));
-    const itemsDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
+    const itemsDialog = await screen.findByRole('dialog', { name: 'Movement items' });
     expect(within(itemsDialog).getByText('Water')).toBeInTheDocument();
     expect(within(itemsDialog).getByText('$55.00')).toBeInTheDocument();
   });
@@ -3640,7 +3640,7 @@ describe('App Accounts UX', () => {
 
     const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
     fireEvent.click(within(detailDialog).getByRole('button', { name: /Items/i }));
-    const itemsDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
+    const itemsDialog = await screen.findByRole('dialog', { name: 'Movement items' });
     expect(within(itemsDialog).getByText('Water')).toBeInTheDocument();
     expect(within(itemsDialog).getByText('Electricity')).toBeInTheDocument();
   });
@@ -3674,15 +3674,15 @@ describe('App Accounts UX', () => {
     const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
     expect(within(detailDialog).getByText('Groceries')).toBeInTheDocument();
     fireEvent.click(within(detailDialog).getByRole('button', { name: 'More details' }));
-    const moreDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
+    const moreDialog = await screen.findByRole('dialog', { name: 'Movement more' });
     expect(within(moreDialog).getByText('Manual')).toBeInTheDocument();
     expect(within(moreDialog).getByText('Pending')).toBeInTheDocument();
-    fireEvent.click(within(moreDialog).getByRole('button', { name: /Back to movement/i }));
+    fireEvent.click(screen.getByTestId('sheet-backdrop'));
     fireEvent.click(within(await screen.findByRole('dialog', { name: 'Movement detail' })).getByRole('button', { name: /Items/i }));
-    const itemsDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
+    const itemsDialog = await screen.findByRole('dialog', { name: 'Movement items' });
     expect(within(itemsDialog).getByText('Water')).toBeInTheDocument();
     expect(within(itemsDialog).getByText('Electricity')).toBeInTheDocument();
-    fireEvent.click(within(itemsDialog).getByRole('button', { name: /Back to movement/i }));
+    fireEvent.click(screen.getByTestId('sheet-backdrop'));
 
     fireEvent.click(within(await screen.findByRole('dialog', { name: 'Movement detail' })).getByRole('button', { name: 'Post movement' }));
 

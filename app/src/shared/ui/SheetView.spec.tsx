@@ -51,6 +51,27 @@ describe('SheetView', () => {
     expect(close).toHaveBeenCalledTimes(1);
   });
 
+  it('applies the configured backdrop class without dropping the base class', () => {
+    render(
+      <SheetView
+        required={{
+          config: {
+            ariaLabel: 'Sheet',
+            backdropClassName: 'custom-backdrop',
+          },
+          data: { body: <p>Content</p> },
+          state: { open: true },
+          status: {},
+        }}
+        provided={{ commands: { close: vi.fn() } }}
+      />,
+    );
+
+    const backdrop = screen.getByTestId('sheet-backdrop');
+    expect(backdrop.className).toContain('custom-backdrop');
+    expect(backdrop.className).not.toBe('custom-backdrop');
+  });
+
   it('renders a handle without a close button when configured as a bottom sheet', () => {
     render(
       <SheetView

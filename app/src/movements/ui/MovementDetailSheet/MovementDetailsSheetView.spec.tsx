@@ -1,9 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import type { MovementDetailViewModel } from '../../application/movementDetailView.types';
 import type { MovementDetailsSheetViewProps } from './MovementDetailsSheetView';
 import { MovementDetailsSheetView } from './MovementDetailsSheetView';
-import type { MovementDetailViewModel } from '../../application/movementDetailView.types';
 
 function postedMovement(overrides: Partial<Extract<MovementDetailViewModel, { source: 'posted' }>> = {}): Extract<MovementDetailViewModel, { source: 'posted' }> {
   return {
@@ -16,18 +15,19 @@ function postedMovement(overrides: Partial<Extract<MovementDetailViewModel, { so
       occurredAt: '2026-07-12T13:42:00.000Z',
       description: 'Weekly family grocery run',
       merchant: 'Mercadona',
-      amount: '48.20',
+      amount: '15.00',
       currency: 'EUR',
       type: 'expense',
       status: 'posted',
       items: [],
       ignored: false,
+      tags: [{ id: 'tag-1', name: 'Home' }, { id: 'tag-2', name: 'Trip' }],
     },
     financialType: 'expense',
     title: 'Mercadona',
     accountLabel: 'Revolut',
     dateLabel: 'Today, 13:42',
-    amount: { value: '48.20', currency: 'EUR', sign: '-' },
+    amount: { value: '15.00', currency: 'EUR', sign: '-' },
     category: { id: 'cat-1', name: 'Groceries' },
     tags: [{ id: 'tag-1', name: 'Home' }, { id: 'tag-2', name: 'Trip' }],
     items: [],
@@ -138,44 +138,10 @@ function expectedMovement(overrides: Partial<Extract<MovementDetailViewModel, { 
   };
 }
 
-function renderView(overrides: Partial<MovementDetailsSheetViewProps['required']> = {}, commandOverrides: Partial<MovementDetailsSheetViewProps['provided']['commands']> = {}) {
-  const commands = makeCommands(commandOverrides);
-
-  render(
-    <MovementDetailsSheetView
-      required={{
-        state: {
-          open: true,
-          screen: 'summary',
-          overflowOpen: false,
-          categoryQuery: '',
-          tagsQuery: '',
-        },
-        data: {
-          movement: postedMovement(),
-          categories: [{ id: 'cat-1', name: 'Groceries' }],
-          draftTags: [],
-          suggestedTags: [{ id: 'tag-1', name: 'Home' }],
-        },
-        status: {
-          savingCategory: false,
-          savingTags: false,
-          togglingIgnored: false,
-          deactivating: false,
-          pendingVoid: false,
-        },
-        ...overrides,
-      }}
-      provided={{ commands }}
-    />,
-  );
-  return commands;
-}
-
 function makeCommands(commandOverrides: Partial<MovementDetailsSheetViewProps['provided']['commands']> = {}) {
   return {
     close: vi.fn(),
-    back: vi.fn(),
+    dismissSubview: vi.fn(),
     toggleOverflow: vi.fn(),
     openCategoryScreen: vi.fn(),
     openTagsScreen: vi.fn(),
@@ -195,228 +161,381 @@ function makeCommands(commandOverrides: Partial<MovementDetailsSheetViewProps['p
   };
 }
 
-function NavigationHarness({ movement }: { movement: MovementDetailViewModel }) {
-  const [screenState, setScreenState] = useState<MovementDetailsSheetViewProps['required']['state']['screen']>('summary');
-  return (
-    <MovementDetailsSheetView
-      required={{
-        state: {
-          open: true,
-          screen: screenState,
-          overflowOpen: false,
-          categoryQuery: '',
-          tagsQuery: '',
-        },
-        data: {
-          movement,
-          categories: [{ id: 'cat-1', name: 'Groceries' }],
-          draftTags: movement.tags,
-          suggestedTags: [{ id: 'tag-3', name: 'Family' }],
-        },
-        status: {
-          savingCategory: false,
-          savingTags: false,
-          togglingIgnored: false,
-          deactivating: false,
-          pendingVoid: false,
-        },
-      }}
-      provided={{
-        commands: {
-          close: vi.fn(),
-          back: () => setScreenState('summary'),
-          toggleOverflow: vi.fn(),
-          openCategoryScreen: () => setScreenState('category'),
-          openTagsScreen: () => setScreenState('tags'),
-          openSharingScreen: () => setScreenState('sharing'),
-          openItemsScreen: () => setScreenState('items'),
-          openMoreScreen: () => setScreenState('more'),
-          setCategoryQuery: vi.fn(),
-          setTagsQuery: vi.fn(),
-          saveCategory: vi.fn(),
-          toggleDraftTag: vi.fn(),
-          saveTags: vi.fn(),
-          setIgnored: vi.fn(),
-          runOverflowAction: vi.fn(),
-          deactivateScheduledMovement: vi.fn(),
-          postExpectedMovement: vi.fn(),
-        },
-      }}
-    />
-  );
+function renderView(
+  overrides: Partial<MovementDetailsSheetViewProps['required']> = {},
+  commandOverrides: Partial<MovementDetailsSheetViewProps['provided']['commands']> = {},
+) {
+  const commands = makeCommands(commandOverrides);
+  const required: MovementDetailsSheetViewProps['required'] = {
+    state: {
+      open: true,
+      screen: 'summary',
+      overflowOpen: false,
+      categoryQuery: '',
+      tagsQuery: '',
+    },
+    data: {
+      movement: postedMovement(),
+      categories: [{ id: 'cat-1', name: 'Groceries' }],
+      draftTags: [{ id: 'tag-1', name: 'Home' }],
+      suggestedTags: [{ id: 'tag-2', name: 'Trip' }],
+    },
+    status: {
+      savingCategory: false,
+      savingTags: false,
+      tagsDirty: false,
+      togglingIgnored: false,
+      deactivating: false,
+      pendingVoid: false,
+    },
+    ...overrides,
+  };
+
+  render(<MovementDetailsSheetView required={required} provided={{ commands }} />);
+  return { commands, required };
 }
 
 describe('MovementDetailsSheetView', () => {
-  it('uses expense hero styling', () => {
-    renderView({ data: { movement: postedMovement() } as MovementDetailsSheetViewProps['required']['data'] });
-    expect(document.querySelector('.movement-details-hero--expense')).not.toBeNull();
+  it('uses dismissSubview in the contract instead of back', () => {
+    const { commands } = renderView();
+    expect(commands).toHaveProperty('dismissSubview');
+    expect(commands).not.toHaveProperty('back');
   });
 
-  it('uses income hero styling', () => {
-    renderView({ data: { movement: postedMovement({ financialType: 'income', amount: { value: '48.20', currency: 'EUR', sign: '+' } }) } as MovementDetailsSheetViewProps['required']['data'] });
-    expect(document.querySelector('.movement-details-hero--income')).not.toBeNull();
+  it('keeps the summary close button and the drag handle visible', () => {
+    renderView();
+    expect(screen.getByRole('button', { name: 'Close movement details' })).toBeInTheDocument();
+    expect(screen.getByTestId('sheet-drag-handle')).toBeInTheDocument();
   });
 
-  it('uses transfer hero styling and hides category', () => {
-    renderView({ data: { movement: postedMovement({ financialType: 'transfer', amount: { value: '48.20', currency: 'EUR', sign: '' }, canEditCategory: false }) } as MovementDetailsSheetViewProps['required']['data'] });
-    expect(document.querySelector('.movement-details-hero--transfer')).not.toBeNull();
-    expect(screen.queryByText('Category')).not.toBeInTheDocument();
+  it('renders the amount as a single node', () => {
+    renderView();
+    const amount = document.querySelector('.movement-details-hero-amount');
+    expect(amount?.textContent).toBe('-€15.00');
   });
 
-  it('shows expected lifecycle without losing financial type', () => {
-    renderView({ data: { movement: expectedMovement() } as MovementDetailsSheetViewProps['required']['data'] });
-    expect(screen.getByText('Expense')).toBeInTheDocument();
-    expect(screen.getByText('Expected')).toBeInTheDocument();
+  it('closes the summary on backdrop click', () => {
+    const { commands } = renderView();
+    fireEvent.click(screen.getByTestId('sheet-backdrop'));
+    expect(commands.close).toHaveBeenCalledTimes(1);
+    expect(commands.dismissSubview).not.toHaveBeenCalled();
   });
 
-  it('shows scheduled lifecycle without losing financial type', () => {
-    renderView({ data: { movement: scheduledMovement() } as MovementDetailsSheetViewProps['required']['data'] });
-    expect(screen.getByText('Expense')).toBeInTheDocument();
-    expect(screen.getByText('Scheduled')).toBeInTheDocument();
+  it('dismisses a subview on backdrop click', () => {
+    const { commands } = renderView({
+      state: {
+        open: true,
+        screen: 'category',
+        overflowOpen: false,
+        categoryQuery: '',
+        tagsQuery: '',
+      },
+    });
+
+    fireEvent.click(screen.getByTestId('sheet-backdrop'));
+    expect(commands.dismissSubview).toHaveBeenCalledTimes(1);
+    expect(commands.close).not.toHaveBeenCalled();
   });
 
-  it('opens only the category view', () => {
-    render(<NavigationHarness movement={postedMovement()} />);
-    fireEvent.click(screen.getByRole('button', { name: /category/i }));
-    expect(screen.getByPlaceholderText('Search categories')).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText('Search tags')).not.toBeInTheDocument();
+  it('does not dismiss the category subview while saving', () => {
+    const { commands } = renderView({
+      state: {
+        open: true,
+        screen: 'category',
+        overflowOpen: false,
+        categoryQuery: '',
+        tagsQuery: '',
+      },
+      status: {
+        savingCategory: true,
+        savingTags: false,
+        tagsDirty: false,
+        togglingIgnored: false,
+        deactivating: false,
+        pendingVoid: false,
+      },
+    });
+
+    fireEvent.click(screen.getByTestId('sheet-backdrop'));
+    expect(commands.dismissSubview).not.toHaveBeenCalled();
+    expect(commands.close).not.toHaveBeenCalled();
   });
 
-  it('opens only the tags view', () => {
-    render(<NavigationHarness movement={postedMovement()} />);
-    fireEvent.click(screen.getByRole('button', { name: /tags/i }));
-    expect(screen.getByPlaceholderText('Search tags')).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText('Search categories')).not.toBeInTheDocument();
+  it('does not dismiss the tags subview while saving', () => {
+    const { commands } = renderView({
+      state: {
+        open: true,
+        screen: 'tags',
+        overflowOpen: false,
+        categoryQuery: '',
+        tagsQuery: '',
+      },
+      status: {
+        savingCategory: false,
+        savingTags: true,
+        tagsDirty: true,
+        togglingIgnored: false,
+        deactivating: false,
+        pendingVoid: false,
+      },
+    });
+
+    fireEvent.click(screen.getByTestId('sheet-backdrop'));
+    expect(commands.dismissSubview).not.toHaveBeenCalled();
+    expect(commands.close).not.toHaveBeenCalled();
   });
 
-  it('shows sharing only when sharing exists', () => {
-    const { rerender } = render(
-      <MovementDetailsSheetView
-        required={{
-          state: { open: true, screen: 'summary', overflowOpen: false, categoryQuery: '', tagsQuery: '' },
-          data: {
-            movement: postedMovement({ sharing: { phase: 'loaded', value: { participantCount: 2, personalExpenseAmount: '16.07', totalAmount: '48.20', currency: 'EUR', participants: [] } } }),
-            categories: [],
-            draftTags: [],
-            suggestedTags: [],
+  it('shows no back arrow or back copy in category', () => {
+    renderView({
+      state: {
+        open: true,
+        screen: 'category',
+        overflowOpen: false,
+        categoryQuery: '',
+        tagsQuery: '',
+      },
+    });
+
+    expect(screen.queryByLabelText(/Back to movement/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Back to movement')).not.toBeInTheDocument();
+  });
+
+  it('shows no back arrow or back copy in tags', () => {
+    renderView({
+      state: {
+        open: true,
+        screen: 'tags',
+        overflowOpen: false,
+        categoryQuery: '',
+        tagsQuery: '',
+      },
+      status: {
+        savingCategory: false,
+        savingTags: false,
+        tagsDirty: true,
+        togglingIgnored: false,
+        deactivating: false,
+        pendingVoid: false,
+      },
+    });
+
+    expect(screen.queryByLabelText(/Back to movement/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Back to movement')).not.toBeInTheDocument();
+  });
+
+  it('shows no back arrow or back copy in sharing', () => {
+    renderView({
+      state: {
+        open: true,
+        screen: 'sharing',
+        overflowOpen: false,
+        categoryQuery: '',
+        tagsQuery: '',
+      },
+      data: {
+        movement: postedMovement({
+          sharing: {
+            phase: 'loaded',
+            value: {
+              participantCount: 2,
+              personalExpenseAmount: '5.00',
+              totalAmount: '15.00',
+              currency: 'EUR',
+              participants: [{ id: 'p-1', name: 'Ana', amount: '5.00' }],
+            },
           },
-          status: { savingCategory: false, savingTags: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
-        }}
-        provided={{ commands: makeCommands() }}
-      />,
-    );
-    expect(screen.getByText(/Shared with 2 people/i)).toBeInTheDocument();
+        }),
+        categories: [],
+        draftTags: [],
+        suggestedTags: [],
+      },
+    });
 
-    rerender(
-      <MovementDetailsSheetView
-        required={{
-          state: { open: true, screen: 'summary', overflowOpen: false, categoryQuery: '', tagsQuery: '' },
-          data: { movement: postedMovement({ sharing: { phase: 'loaded', value: null } }), categories: [], draftTags: [], suggestedTags: [] },
-          status: { savingCategory: false, savingTags: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
-        }}
-        provided={{ commands: makeCommands() }}
-      />,
-    );
-    expect(screen.queryByText(/Shared with/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Back to movement/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Back to movement')).not.toBeInTheDocument();
   });
 
-  it('renders sharing as read-only without edit or remove actions', () => {
-    render(<NavigationHarness movement={postedMovement({ sharing: { phase: 'loaded', value: { participantCount: 2, personalExpenseAmount: '16.07', totalAmount: '48.20', currency: 'EUR', participants: [{ id: '1', name: 'Ana', amount: '16.07' }] } }, canOpenItems: false })} />);
-    fireEvent.click(screen.getByRole('button', { name: /shared with/i }));
-    expect(screen.getByText('Participants')).toBeInTheDocument();
-    expect(screen.queryByText(/Edit/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Remove/i)).not.toBeInTheDocument();
+  it('shows no back arrow or back copy in items', () => {
+    renderView({
+      state: {
+        open: true,
+        screen: 'items',
+        overflowOpen: false,
+        categoryQuery: '',
+        tagsQuery: '',
+      },
+      data: {
+        movement: postedMovement({
+          canOpenItems: true,
+          items: [{ id: 'item-1', name: 'Milk', amount: '3.20', currency: 'EUR' }],
+        }),
+        categories: [],
+        draftTags: [],
+        suggestedTags: [],
+      },
+    });
+
+    expect(screen.queryByLabelText(/Back to movement/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Back to movement')).not.toBeInTheDocument();
   });
 
-  it('renders items only when they exist and keeps them read-only', () => {
-    render(<NavigationHarness movement={postedMovement({ canOpenItems: true, items: [{ id: 'item-1', name: 'Milk', amount: '3.20', currency: 'EUR' }] })} />);
-    fireEvent.click(screen.getByRole('button', { name: /items/i }));
-    expect(screen.getByText('Milk')).toBeInTheDocument();
-    expect(screen.queryByText(/Add/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Edit/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Remove/i)).not.toBeInTheDocument();
+  it('shows no back arrow or back copy in more details', () => {
+    renderView({
+      state: {
+        open: true,
+        screen: 'more',
+        overflowOpen: false,
+        categoryQuery: '',
+        tagsQuery: '',
+      },
+    });
+
+    expect(screen.queryByLabelText(/Back to movement/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Back to movement')).not.toBeInTheDocument();
   });
 
-  it('shows the expected footer only for expected movements', () => {
+  it('renders tags done in the footer and disables it when nothing changed', () => {
+    renderView({
+      state: {
+        open: true,
+        screen: 'tags',
+        overflowOpen: false,
+        categoryQuery: '',
+        tagsQuery: '',
+      },
+    });
+
+    const done = screen.getByRole('button', { name: 'Done' });
+    expect(done.closest('.movement-details-footer')).not.toBeNull();
+    expect(done).toBeDisabled();
+  });
+
+  it('enables tags done when the draft changed', () => {
+    renderView({
+      state: {
+        open: true,
+        screen: 'tags',
+        overflowOpen: false,
+        categoryQuery: '',
+        tagsQuery: '',
+      },
+      status: {
+        savingCategory: false,
+        savingTags: false,
+        tagsDirty: true,
+        togglingIgnored: false,
+        deactivating: false,
+        pendingVoid: false,
+      },
+    });
+
+    expect(screen.getByRole('button', { name: 'Done' })).toBeEnabled();
+  });
+
+  it('disables tags done while saving', () => {
+    renderView({
+      state: {
+        open: true,
+        screen: 'tags',
+        overflowOpen: false,
+        categoryQuery: '',
+        tagsQuery: '',
+      },
+      status: {
+        savingCategory: false,
+        savingTags: true,
+        tagsDirty: true,
+        togglingIgnored: false,
+        deactivating: false,
+        pendingVoid: false,
+      },
+    });
+
+    expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled();
+  });
+
+  it('keeps the expected footer in summary only', () => {
     const { rerender } = render(
       <MovementDetailsSheetView
         required={{
           state: { open: true, screen: 'summary', overflowOpen: false, categoryQuery: '', tagsQuery: '' },
           data: { movement: expectedMovement(), categories: [], draftTags: [], suggestedTags: [] },
-          status: { savingCategory: false, savingTags: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
+          status: { savingCategory: false, savingTags: false, tagsDirty: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
         }}
         provided={{ commands: makeCommands() }}
       />,
     );
+
     expect(screen.getByRole('button', { name: 'Post movement' })).toBeInTheDocument();
 
     rerender(
       <MovementDetailsSheetView
         required={{
-          state: { open: true, screen: 'summary', overflowOpen: false, categoryQuery: '', tagsQuery: '' },
-          data: { movement: postedMovement(), categories: [], draftTags: [], suggestedTags: [] },
-          status: { savingCategory: false, savingTags: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
+          state: { open: true, screen: 'more', overflowOpen: false, categoryQuery: '', tagsQuery: '' },
+          data: { movement: expectedMovement(), categories: [], draftTags: [], suggestedTags: [] },
+          status: { savingCategory: false, savingTags: false, tagsDirty: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
         }}
         provided={{ commands: makeCommands() }}
       />,
     );
+
     expect(screen.queryByRole('button', { name: 'Post movement' })).not.toBeInTheDocument();
   });
 
-  it('shows only the correct overflow action for each movement type', () => {
-    const postedCommands = renderView({
-      state: { open: true, screen: 'summary', overflowOpen: true, categoryQuery: '', tagsQuery: '' },
-      data: { movement: postedMovement(), categories: [], draftTags: [], suggestedTags: [], overflowActionLabel: 'Void movement' },
-    });
-    expect(screen.getByText('Void movement')).toBeInTheDocument();
-    expect(screen.queryByText('Deactivate movement')).not.toBeInTheDocument();
-    expect(screen.queryByText('Edit expected')).not.toBeInTheDocument();
-    postedCommands.close();
-  });
-
-  it('shows only edit expected for expected movements and hides tags', () => {
+  it('hides the movement section title when only more details is available', () => {
     renderView({
-      state: { open: true, screen: 'summary', overflowOpen: true, categoryQuery: '', tagsQuery: '' },
-      data: { movement: expectedMovement(), categories: [], draftTags: [], suggestedTags: [], overflowActionLabel: 'Edit expected' },
+      data: {
+        movement: postedMovement({ items: [], sharing: { phase: 'loaded', value: null } }),
+        categories: [],
+        draftTags: [],
+        suggestedTags: [],
+      },
     });
-    expect(screen.getByText('Edit expected')).toBeInTheDocument();
-    expect(screen.queryByText('Tags')).not.toBeInTheDocument();
+
+    expect(screen.getAllByText(/^Movement$/)).toHaveLength(1);
   });
 
-  it('shows only relevant more details fields', () => {
-    render(
-      <NavigationHarness movement={scheduledMovement({ financialType: 'transfer', targetAccountLabel: 'Savings' })} />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: /more details/i }));
-    expect(screen.getByText('Source account')).toBeInTheDocument();
-    expect(screen.getByText('Target account')).toBeInTheDocument();
-    expect(screen.getByText('Schedule')).toBeInTheDocument();
-    expect(screen.queryByText('Posted at')).not.toBeInTheDocument();
+  it('shows the movement section title when sharing or items exist', () => {
+    renderView({
+      data: {
+        movement: postedMovement({
+          canOpenItems: true,
+          items: [{ id: 'item-1', name: 'Milk', amount: '3.20', currency: 'EUR' }],
+        }),
+        categories: [],
+        draftTags: [],
+        suggestedTags: [],
+      },
+    });
+
+    expect(screen.getAllByText(/^Movement$/)).toHaveLength(2);
   });
 
-  it('shows ignore in analytics only where supported', () => {
+  it('keeps scheduled and expected lifecycle chips', () => {
     const { rerender } = render(
       <MovementDetailsSheetView
         required={{
-          state: { open: true, screen: 'more', overflowOpen: false, categoryQuery: '', tagsQuery: '' },
-          data: { movement: postedMovement(), categories: [], draftTags: [], suggestedTags: [] },
-          status: { savingCategory: false, savingTags: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
+          state: { open: true, screen: 'summary', overflowOpen: false, categoryQuery: '', tagsQuery: '' },
+          data: { movement: scheduledMovement(), categories: [], draftTags: [], suggestedTags: [] },
+          status: { savingCategory: false, savingTags: false, tagsDirty: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
         }}
         provided={{ commands: makeCommands() }}
       />,
     );
-    expect(screen.getByText('Ignore in analytics')).toBeInTheDocument();
+
+    expect(screen.getByText('Scheduled')).toBeInTheDocument();
 
     rerender(
       <MovementDetailsSheetView
         required={{
-          state: { open: true, screen: 'more', overflowOpen: false, categoryQuery: '', tagsQuery: '' },
-          data: { movement: scheduledMovement(), categories: [], draftTags: [], suggestedTags: [] },
-          status: { savingCategory: false, savingTags: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
+          state: { open: true, screen: 'summary', overflowOpen: false, categoryQuery: '', tagsQuery: '' },
+          data: { movement: expectedMovement(), categories: [], draftTags: [], suggestedTags: [] },
+          status: { savingCategory: false, savingTags: false, tagsDirty: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
         }}
         provided={{ commands: makeCommands() }}
       />,
     );
-    expect(screen.queryByText('Ignore in analytics')).not.toBeInTheDocument();
+
+    expect(screen.getByText('Expected')).toBeInTheDocument();
   });
 });

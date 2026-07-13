@@ -56,6 +56,14 @@ function defaultSharingState(): SharingDetailState {
   return { phase: 'idle' };
 }
 
+function tagSelectionKey(tags: MovementDetailTagView[]): string {
+  return tags
+    .map((tag) => tag.id ?? normalizeTaxonomyName(tag.name))
+    .filter((value) => value.length > 0)
+    .sort()
+    .join('|');
+}
+
 function sharingParticipantStatus(
   value: 'not_expected' | 'pending' | 'paid' | 'dismissed' | 'missing_expected',
 ): SharingViewModel['participants'][number]['reimbursementStatus'] {
@@ -210,6 +218,13 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
       .sort((left, right) => left.name.localeCompare(right.name));
   }, [draftTags, movement, tags, tagsQuery]);
 
+  const tagsDirty = useMemo(() => {
+    if (!movement || movement.source === 'expected') {
+      return false;
+    }
+    return tagSelectionKey(draftTags) !== tagSelectionKey(movement.tags);
+  }, [draftTags, movement]);
+
   function close() {
     setSelection(null);
     setScreen('summary');
@@ -218,6 +233,20 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     setTagsQuery('');
     setDraftTags([]);
     setSharing(defaultSharingState());
+  }
+
+  function dismissSubview() {
+    if (savingCategory || savingTags) {
+      return;
+    }
+    setScreen('summary');
+    setCategoryQuery('');
+    setTagsQuery('');
+    if (movement && movement.source !== 'expected') {
+      setDraftTags(movement.tags);
+      return;
+    }
+    setDraftTags([]);
   }
 
   function openSelection(nextSelection: MovementDetailSelection) {
@@ -461,6 +490,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
       status: {
         savingCategory,
         savingTags,
+        tagsDirty,
         togglingIgnored,
         deactivating,
         pendingVoid: movement?.source === 'posted' && pendingVoidTransactionId === movement.id,
@@ -469,7 +499,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     provided: {
       commands: {
         close,
-        back: () => setScreen('summary'),
+        dismissSubview,
         toggleOverflow: () => setOverflowOpen((previous) => !previous),
         openCategoryScreen,
         openTagsScreen,

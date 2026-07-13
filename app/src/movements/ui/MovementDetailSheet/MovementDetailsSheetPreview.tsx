@@ -27,7 +27,7 @@ export function MovementDetailsSheetPreview(props: MovementDetailsSheetPreviewPr
 }
 
 function MovementDetailsSheetPreviewInner(props: MovementDetailsSheetPreviewProps & { movement: MovementDetailViewModel }) {
-  const [screen, setScreen] = useState<'summary' | 'sharing' | 'items' | 'more'>('summary');
+  const [screen, setScreen] = useState<'summary' | 'tags' | 'sharing' | 'items' | 'more'>('summary');
   const [overflowOpen, setOverflowOpen] = useState(false);
 
   function close() {
@@ -56,6 +56,7 @@ function MovementDetailsSheetPreviewInner(props: MovementDetailsSheetPreviewProp
         status: {
           savingCategory: false,
           savingTags: false,
+          tagsDirty: screen === 'tags',
           togglingIgnored: false,
           deactivating: props.deactivating === true,
           pendingVoid: props.pendingVoid === true,
@@ -64,10 +65,10 @@ function MovementDetailsSheetPreviewInner(props: MovementDetailsSheetPreviewProp
       provided={{
         commands: {
           close,
-          back: () => setScreen('summary'),
+          dismissSubview: () => setScreen('summary'),
           toggleOverflow: () => setOverflowOpen((previous) => !previous),
           openCategoryScreen: () => undefined,
-          openTagsScreen: () => undefined,
+          openTagsScreen: () => setScreen('tags'),
           openSharingScreen: () => setScreen('sharing'),
           openItemsScreen: () => setScreen('items'),
           openMoreScreen: () => setScreen('more'),

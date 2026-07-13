@@ -72,6 +72,7 @@ function makeProps(overrides: Partial<MonthlyMovementsViewProps> = {}): MonthlyM
       status: {
         savingCategory: false,
         savingTags: false,
+        tagsDirty: false,
         togglingIgnored: false,
         deactivating: false,
         pendingVoid: false,
@@ -99,7 +100,7 @@ function makeProps(overrides: Partial<MonthlyMovementsViewProps> = {}): MonthlyM
     detail: {
       commands: {
         close: vi.fn(),
-        back: vi.fn(),
+        dismissSubview: vi.fn(),
         toggleOverflow: vi.fn(),
         openCategoryScreen: vi.fn(),
         openTagsScreen: vi.fn(),
