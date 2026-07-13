@@ -67,6 +67,10 @@ function detailRow(label: string, value: ReactNode, stackable = false) {
   );
 }
 
+function hasText(value: string | undefined): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
 function categoryContent(props: MovementDetailSheetContentViewProps): MovementDetailSheetContent {
   const { movement } = props;
 
@@ -252,11 +256,15 @@ function moreDetailsContent(props: MovementDetailSheetContentViewProps): Movemen
         <div className="movement-detail-list movement-detail-list--details">
           {movement.note ? detailRow('Note', movement.note, true) : null}
           {movement.merchant ? detailRow('Merchant', movement.merchant, true) : null}
-          {movement.source === 'posted' || movement.source === 'expected'
-            ? detailRow('Account', movement.accountLabel ?? '-')
-            : detailRow('Source account', movement.accountLabel ?? '-')}
+          {(movement.source === 'posted' || movement.source === 'expected') && hasText(movement.accountLabel)
+            ? detailRow('Account', movement.accountLabel)
+            : null}
+          {movement.source === 'scheduled' && hasText(movement.accountLabel)
+            ? detailRow('Source account', movement.accountLabel)
+            : null}
           {movement.source === 'scheduled' && movement.financialType === 'transfer'
-            ? detailRow('Target account', movement.targetAccountLabel ?? '-')
+            && hasText(movement.targetAccountLabel)
+            ? detailRow('Target account', movement.targetAccountLabel)
             : null}
           {movement.source === 'posted' ? detailRow('Posted at', movement.postedAtLabel) : null}
           {movement.source === 'expected' ? (

@@ -73,7 +73,21 @@ function createCore(): ExpectedMovementsCardPort {
             }),
           ],
     })),
-  };
+    taxonomyListCategories: vi.fn(async () => ({
+      items: [{ id: 'cat-1', name: 'Food', appliesTo: 'expense', status: 'active' }],
+    })),
+    taxonomyListTags: vi.fn(async () => ({
+      items: [{ id: 'tag-1', name: 'Coffee', status: 'active' }],
+    })),
+    sharingGetMovementDetails: vi.fn(async () => null),
+    orchestrationCategorizeTransaction: vi.fn(async () => ({ status: 'assigned', categoryId: 'cat-1' })),
+    orchestrationApplyTransactionTags: vi.fn(async () => ({ status: 'assigned', tagIds: ['tag-1'] })),
+    analyticsSetMovementIgnored: vi.fn(async () => undefined),
+    expectedUpdateMovement: vi.fn(async () => undefined),
+    schedulingUpdateMovement: vi.fn(async () => undefined),
+    schedulingDeactivateMovement: vi.fn(async () => undefined),
+    ledgerVoidTransaction: vi.fn(async () => undefined),
+  } as unknown as ExpectedMovementsCardPort;
 }
 
 describe('ExpectedMovementsCardComponent', () => {
@@ -124,11 +138,17 @@ describe('ExpectedMovementsCardComponent', () => {
     fireEvent.click(movementRows[0]);
 
     expect(await screen.findByRole('dialog', { name: 'Movement detail' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Category/i })).toHaveTextContent('No category');
+    expect(screen.getByText('Tags')).toBeInTheDocument();
+    expect(screen.getByText('No tags')).toBeInTheDocument();
     expect(screen.getByText('Post movement')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Movement actions' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Movement actions' }));
     expect(screen.getByRole('menuitem', { name: 'Edit expected' })).toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'Remove movement' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Category/i }));
+    expect(await screen.findByRole('dialog', { name: 'Movement category' })).toBeInTheDocument();
   });
 
   it('keeps ignored expected movements faded in the home expected list', async () => {

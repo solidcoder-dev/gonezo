@@ -136,6 +136,9 @@ export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
               status: searchModel.required.status,
             }}
             provided={{
+              context: {
+                core: required.core,
+              },
               commands: searchModel.provided.commands,
             }}
           />

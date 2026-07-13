@@ -4,12 +4,10 @@ import type {
   MovementsPaginationView,
   MovementsSearchFiltersState,
 } from '../../application/movementsView.types';
-import {
-  MovementDetailsSheetPreview,
-} from '../MovementDetailSheet/MovementDetailsSheetPreview';
+import type { MovementsSearchPagePort } from '../../application/movementsSearch.port';
+import { MovementDetailOverlayComponent } from '../../application/MovementDetailOverlayComponent';
 import { MovementRowView } from '../MovementRow/MovementRowView';
 import {
-  buildMovementSearchDetailViewModel,
   buildMovementSearchRowData,
   groupMovementSearchResultsByDay,
 } from './movementsSearchPresentation';
@@ -29,9 +27,13 @@ export type MovementsSearchResultsRequired = {
 };
 
 export type MovementsSearchResultsProvided = {
+  context: {
+    core: MovementsSearchPagePort;
+  };
   commands: {
     goToPreviousPage: () => void;
     goToNextPage: () => void;
+    refreshResults: () => Promise<void>;
     voidPostedMovement: (transactionId: string) => Promise<void>;
   };
 };
@@ -44,9 +46,15 @@ type MovementsSearchResultsProps = {
 export function MovementsSearchResults({ required, provided }: MovementsSearchResultsProps) {
   const { appliedFilters, items, pagination } = required.state;
   const { loading, disabled } = required.status;
-  const [selectedEntry, setSelectedEntry] = useState<MovementsSearchItemView | null>(null);
+  const [selectedEntryKey, setSelectedEntryKey] = useState<string | null>(null);
 
   const entries = useMemo(() => items, [items]);
+  const selectedEntry = useMemo(
+    () => selectedEntryKey
+      ? entries.find((entry) => `${entry.accountId ?? 'scope'}:${entry.source}:${entry.id}` === selectedEntryKey) ?? null
+      : null,
+    [entries, selectedEntryKey],
+  );
   const groupedByDay = appliedFilters.sortField === 'date' && appliedFilters.groupByDay;
   const groups = useMemo(() => groupedByDay ? groupMovementSearchResultsByDay(entries) : [], [entries, groupedByDay]);
   const sortSummary = `${appliedFilters.sortField === 'date' ? 'Date' : 'Amount'} ${appliedFilters.sortDirection}`;
@@ -76,7 +84,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
                           state: {},
                           status: { disabled },
                         }}
-                        provided={{ commands: { select: () => setSelectedEntry(entry) } }}
+                        provided={{ commands: { select: () => setSelectedEntryKey(`${entry.accountId ?? 'scope'}:${entry.source}:${entry.id}`) } }}
                       />
                     ))}
                   </ul>
@@ -94,7 +102,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
                     state: {},
                     status: { disabled },
                   }}
-                  provided={{ commands: { select: () => setSelectedEntry(entry) } }}
+                  provided={{ commands: { select: () => setSelectedEntryKey(`${entry.accountId ?? 'scope'}:${entry.source}:${entry.id}`) } }}
                 />
               ))}
             </ul>
@@ -116,18 +124,85 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
       ) : null}
 
       {selectedEntry ? (
-        <MovementDetailsSheetPreview
-          movement={buildMovementSearchDetailViewModel(selectedEntry)}
-          overflowActionLabel={selectedEntry.source === 'posted' && selectedEntry.status === 'posted' ? 'Void movement' : undefined}
-          onRunOverflowAction={() => {
-            if (selectedEntry.source !== 'posted' || selectedEntry.status !== 'posted') {
-              return;
-            }
-            void provided.commands.voidPostedMovement(selectedEntry.id).then(() => {
-              setSelectedEntry(null);
-            });
+        <MovementDetailOverlayComponent
+          required={{
+            context: {
+              core: provided.context.core,
+            },
+            data: {
+              selection: { source: selectedEntry.source, id: selectedEntry.id },
+              postedItems: entries
+                .filter((entry): entry is MovementsSearchItemView & { source: 'posted' } => entry.source === 'posted')
+                .map((entry) => ({
+                  id: entry.id,
+                  accountId: entry.accountId ?? '',
+                  accountName: entry.accountName,
+                  occurredAt: entry.occurredAt,
+                  description: entry.description,
+                  merchant: entry.merchant || entry.title,
+                  amount: entry.amount,
+                  currency: entry.currency,
+                  type: entry.type,
+                  status: entry.status === 'voided' ? 'voided' : 'posted',
+                  categoryId: entry.categoryId,
+                  category: entry.category,
+                  tags: entry.tags,
+                  ignored: entry.ignored,
+                  items: entry.items ?? [],
+                })),
+              scheduledItems: entries
+                .filter((entry): entry is MovementsSearchItemView & { source: 'scheduled' } => entry.source === 'scheduled')
+                .map((entry) => ({
+                  id: entry.id,
+                  type: entry.type === 'income' || entry.type === 'transfer' ? entry.type : 'expense',
+                  sourceAccountId: entry.accountId ?? '',
+                  accountName: entry.accountName,
+                  amount: entry.amount,
+                  currency: entry.currency,
+                  description: entry.description,
+                  merchant: entry.merchant || entry.title,
+                  status: entry.status === 'deactivated' ? 'deactivated' : entry.status === 'failed' ? 'completed' : 'active',
+                  startAt: entry.occurredAt,
+                  nextDueAt: entry.occurredAt,
+                  zoneId: 'UTC',
+                  generatedOccurrences: 0,
+                  splitItems: entry.items ?? [],
+                  rule: { frequency: 'monthly', interval: 1 },
+                  recurrenceEnd: { kind: 'never' },
+                  categoryId: entry.categoryId ?? entry.category?.id,
+                  tagIds: entry.tags?.map((tag) => tag.id).filter((tagId): tagId is string => typeof tagId === 'string'),
+                  tagNames: entry.tags?.map((tag) => tag.name),
+                })),
+              expectedItems: entries
+                .filter((entry): entry is MovementsSearchItemView & { source: 'expected' } => entry.source === 'expected')
+                .map((entry) => ({
+                  id: entry.id,
+                  accountId: entry.accountId ?? '',
+                  accountName: entry.accountName,
+                  type: entry.type === 'income' ? 'income' : 'expense',
+                  amount: entry.amount,
+                  currency: entry.currency,
+                  expectedAt: entry.occurredAt,
+                  description: entry.description,
+                  merchant: entry.merchant || entry.title,
+                  categoryId: entry.categoryId ?? entry.category?.id,
+                  splitItems: entry.items ?? [],
+                  status: entry.status === 'resolved' || entry.status === 'dismissed' ? entry.status : 'pending',
+                  createdAt: entry.occurredAt,
+                  updatedAt: entry.occurredAt,
+                  ignored: entry.ignored,
+                })),
+            },
           }}
-          onClose={() => setSelectedEntry(null)}
+          provided={{
+            commands: {
+              refreshMovements: provided.commands.refreshResults,
+              voidPostedMovement: provided.commands.voidPostedMovement,
+            },
+            events: {
+              onClose: () => setSelectedEntryKey(null),
+            },
+          }}
         />
       ) : null}
     </section>

@@ -264,6 +264,89 @@ describe('MovementDetailView', () => {
     expect(screen.getByText('Expected')).toBeInTheDocument();
   });
 
+  it('keeps category and tags visible for posted, scheduled and expected', () => {
+    const { rerender } = render(
+      <MovementDetailView
+        required={{
+          state: { open: true, activeSheet: null, overflowOpen: false, categoryQuery: '', tagsQuery: '' },
+          data: { movement: postedMovement(), categories: [], draftTags: [], suggestedTags: [] },
+          status: { savingCategory: false, savingTags: false, tagsDirty: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
+        }}
+        provided={{ commands: makeCommands() }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'CategoryGroceries' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'TagsHomeTrip' })).toBeInTheDocument();
+
+    rerender(
+      <MovementDetailView
+        required={{
+          state: { open: true, activeSheet: null, overflowOpen: false, categoryQuery: '', tagsQuery: '' },
+          data: { movement: scheduledMovement(), categories: [], draftTags: [], suggestedTags: [] },
+          status: { savingCategory: false, savingTags: false, tagsDirty: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
+        }}
+        provided={{ commands: makeCommands() }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'CategoryGroceries' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'TagsHome' })).toBeInTheDocument();
+
+    rerender(
+      <MovementDetailView
+        required={{
+          state: { open: true, activeSheet: null, overflowOpen: false, categoryQuery: '', tagsQuery: '' },
+          data: { movement: expectedMovement(), categories: [], draftTags: [], suggestedTags: [] },
+          status: { savingCategory: false, savingTags: false, tagsDirty: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
+        }}
+        provided={{ commands: makeCommands() }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'CategoryGroceries' })).toBeInTheDocument();
+    expect(screen.getByText('Tags')).toBeInTheDocument();
+    expect(screen.getByText('No tags')).toBeInTheDocument();
+  });
+
+  it('shows no category and no tags placeholders while keeping editable rows actionable', () => {
+    const commands = makeCommands();
+
+    render(
+      <MovementDetailView
+        required={{
+          state: { open: true, activeSheet: null, overflowOpen: false, categoryQuery: '', tagsQuery: '' },
+          data: {
+            movement: postedMovement({
+              category: undefined,
+              raw: {
+                ...postedMovement().raw,
+                categoryId: undefined,
+                category: undefined,
+                tags: [],
+              },
+              tags: [],
+            }),
+            categories: [],
+            draftTags: [],
+            suggestedTags: [],
+          },
+          status: { savingCategory: false, savingTags: false, tagsDirty: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
+        }}
+        provided={{ commands }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'CategoryNo category' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'TagsNo tags' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'CategoryNo category' }));
+    fireEvent.click(screen.getByRole('button', { name: 'TagsNo tags' }));
+
+    expect(commands.openCategorySheet).toHaveBeenCalledTimes(1);
+    expect(commands.openTagsSheet).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps Post movement only for expected and places it outside the scrollable body', () => {
     const { rerender } = render(
       <MovementDetailView
@@ -526,6 +609,31 @@ describe('MovementDetailView', () => {
     expect(screen.queryByRole('button', { name: 'Apply' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('switch', { name: 'Ignore in analytics' }));
     expect(commands.setIgnored).toHaveBeenCalledWith(false);
+  });
+
+  it('does not render a hyphen placeholder for account values in more details', () => {
+    render(
+      <MovementDetailView
+        required={{
+          state: { open: true, activeSheet: 'more', overflowOpen: false, categoryQuery: '', tagsQuery: '' },
+          data: {
+            movement: scheduledMovement({
+              accountLabel: undefined,
+              targetAccountLabel: undefined,
+            }),
+            categories: [],
+            draftTags: [],
+            suggestedTags: [],
+          },
+          status: { savingCategory: false, savingTags: false, tagsDirty: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
+        }}
+        provided={{ commands: makeCommands() }}
+      />,
+    );
+
+    expect(screen.queryByText('Source account')).not.toBeInTheDocument();
+    expect(screen.queryByText('Target account')).not.toBeInTheDocument();
+    expect(screen.queryByText('-')).not.toBeInTheDocument();
   });
 
   it('routes summary affordances to the right commands', () => {

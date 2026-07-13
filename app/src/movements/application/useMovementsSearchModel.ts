@@ -29,7 +29,6 @@ function toErrorMessage(error: unknown): string {
   }
   return 'Unknown error';
 }
-
 export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
   const { core, accounts, accountId, enabled } = input;
   const [loading, setLoading] = useState(true);
@@ -40,14 +39,8 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
   const [items, setItems] = useState<MovementsSearchItemView[]>([]);
   const previousAccountScopeRef = useRef('');
 
-  const accountScope = useMemo(
-    () => getMovementsSearchAccountScope(accounts, accountId),
-    [accounts, accountId],
-  );
-  const accountScopeKey = useMemo(
-    () => getMovementsSearchAccountScopeKey(accountScope, accountId),
-    [accountId, accountScope],
-  );
+  const accountScope = useMemo(() => getMovementsSearchAccountScope(accounts, accountId), [accounts, accountId]);
+  const accountScopeKey = useMemo(() => getMovementsSearchAccountScopeKey(accountScope, accountId), [accountId, accountScope]);
 
   const filtersModel = useMovementsSearchFiltersModel({
     resetPage: () => setPage(0),
@@ -61,7 +54,6 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
   function reportError(raw: unknown) {
     setError(toErrorMessage(raw));
   }
-
   function clearSearchState() {
     setError('');
     setItems(EMPTY_MOVEMENTS_SEARCH_ITEMS);
@@ -93,7 +85,6 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
       setPage(result.page);
     }
   }
-
   function ensureFilterOptionsLoaded() {
     void facetsModel.ensureLoaded().catch(reportError);
   }
@@ -223,6 +214,17 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
       },
       goToNextPage: () => {
         setPage((previous) => Math.max(0, previous + 1));
+      },
+      refreshResults: async () => {
+        setLoading(true);
+        setError('');
+        try {
+          await refreshResults();
+        } catch (err) {
+          reportError(err);
+        } finally {
+          setLoading(false);
+        }
       },
       voidPostedMovement,
     },

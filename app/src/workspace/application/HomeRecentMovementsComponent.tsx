@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MovementsQueryPort } from '../../movements/application/movements.port';
 import type { TransactionHistoryItemView } from '../../transactions/application/transactionView.types';
+import type { TransactionsPort } from '../../transactions/application/transactions.port';
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
-import { mapPostedMovementPreview } from '../../movements/application/movementDetailPreviewMappers';
-import { MovementDetailsSheetPreview } from '../../movements/ui/MovementDetailSheet/MovementDetailsSheetPreview';
+import { MovementDetailOverlayComponent } from '../../movements/application/MovementDetailOverlayComponent';
 import {
   HomeRecentMovementsView,
   type HomeRecentMovementRowView,
 } from '../ui/HomeRecentMovements/HomeRecentMovementsView';
 
-export type HomeRecentMovementsPort = Pick<MovementsQueryPort, 'movementsGetOverview'>;
+export type HomeRecentMovementsPort = TransactionsPort & Pick<MovementsQueryPort, 'movementsGetOverview'>;
 
 export type HomeRecentMovementsComponentProps = {
   required: {
@@ -117,55 +117,55 @@ function buildHomeRecentMovementRow(movement: TransactionHistoryItemView): HomeR
 
 export function HomeRecentMovementsComponent({ required, provided }: HomeRecentMovementsComponentProps) {
   const [movements, setMovements] = useState<TransactionHistoryItemView[]>([]);
-  const [selectedMovement, setSelectedMovement] = useState<TransactionHistoryItemView | null>(null);
+  const [selectedMovementId, setSelectedMovementId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const requestIdRef = useRef(0);
+
+  const loadRecentMovements = useCallback(async () => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    setLoading(true);
+    try {
+      const overview = await required.context.core.movementsGetOverview({
+        postedPagination: { page: 0, size: 3 },
+        expectedPreviewSize: 0,
+        scheduledPreviewSize: 0,
+        sort: [{ field: 'occurredAt', direction: 'desc' }],
+      });
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+      setMovements(overview.postedPage.content as TransactionHistoryItemView[]);
+    } catch (err) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+      setMovements([]);
+      provided?.events?.onError?.({ message: toErrorMessage(err) });
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [provided, required.context.core]);
 
   useEffect(() => {
     if (!required.config.enabled) {
+      requestIdRef.current += 1;
       setMovements([]);
+      setSelectedMovementId(null);
       setLoading(false);
       return;
     }
 
-    let cancelled = false;
-
-    async function loadRecentMovements() {
-      setLoading(true);
-      try {
-        const overview = await required.context.core.movementsGetOverview({
-          postedPagination: { page: 0, size: 3 },
-          expectedPreviewSize: 0,
-          scheduledPreviewSize: 0,
-          sort: [{ field: 'occurredAt', direction: 'desc' }],
-        });
-        if (!cancelled) {
-          setMovements(overview.postedPage.content as TransactionHistoryItemView[]);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setMovements([]);
-          provided?.events?.onError?.({ message: toErrorMessage(err) });
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
     void loadRecentMovements();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [provided, required.config.enabled, required.config.refreshSignal, required.context.core]);
+  }, [loadRecentMovements, required.config.enabled, required.config.refreshSignal]);
 
   const rows = useMemo(() => movements.map(buildHomeRecentMovementRow), [movements]);
-
   function selectMovement(movementId: string) {
     const movement = movements.find((item) => item.id === movementId);
     if (movement) {
-      setSelectedMovement(movement);
+      setSelectedMovementId(movement.id);
       provided?.events?.onSelectMovement?.(movement);
     }
   }
@@ -185,10 +185,31 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
         }}
       />
 
-      {selectedMovement ? (
-        <MovementDetailsSheetPreview
-          movement={mapPostedMovementPreview(selectedMovement)}
-          onClose={() => setSelectedMovement(null)}
+      {selectedMovementId ? (
+        <MovementDetailOverlayComponent
+          required={{
+            context: {
+              core: required.context.core,
+            },
+            data: {
+              selection: { source: 'posted', id: selectedMovementId },
+              postedItems: movements,
+              scheduledItems: [],
+              expectedItems: [],
+            },
+          }}
+          provided={{
+            commands: {
+              refreshMovements: loadRecentMovements,
+              voidPostedMovement: async (transactionId) => {
+                await required.context.core.ledgerVoidTransaction({ transactionId });
+              },
+            },
+            events: {
+              onClose: () => setSelectedMovementId(null),
+              onError: provided?.events?.onError,
+            },
+          }}
         />
       ) : null}
     </>

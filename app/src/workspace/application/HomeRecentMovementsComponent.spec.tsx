@@ -43,6 +43,9 @@ function createPort(): HomeRecentMovementsPort {
             currency: 'EUR',
             type: 'expense',
             status: 'posted',
+            categoryId: 'cat-1',
+            category: { id: 'cat-1', name: 'Food' },
+            tags: [{ id: 'tag-1', name: 'Coffee' }],
             ignored: true,
             items: [],
           },
@@ -55,7 +58,21 @@ function createPort(): HomeRecentMovementsPort {
         hasPrevious: false,
       },
     })),
-  };
+    taxonomyListCategories: vi.fn(async () => ({
+      items: [{ id: 'cat-1', name: 'Food', appliesTo: 'expense', status: 'active' }],
+    })),
+    taxonomyListTags: vi.fn(async () => ({
+      items: [{ id: 'tag-1', name: 'Coffee', status: 'active' }],
+    })),
+    sharingGetMovementDetails: vi.fn(async () => null),
+    orchestrationCategorizeTransaction: vi.fn(async () => ({ status: 'assigned', categoryId: 'cat-1' })),
+    orchestrationApplyTransactionTags: vi.fn(async () => ({ status: 'assigned', tagIds: ['tag-1'] })),
+    analyticsSetMovementIgnored: vi.fn(async () => undefined),
+    expectedUpdateMovement: vi.fn(async () => undefined),
+    schedulingUpdateMovement: vi.fn(async () => undefined),
+    schedulingDeactivateMovement: vi.fn(async () => undefined),
+    ledgerVoidTransaction: vi.fn(async () => undefined),
+  } as unknown as HomeRecentMovementsPort;
 }
 
 describe('HomeRecentMovementsComponent', () => {
@@ -115,5 +132,10 @@ describe('HomeRecentMovementsComponent', () => {
 
     expect(await screen.findByRole('dialog', { name: 'Movement detail' })).toBeInTheDocument();
     expect(screen.getByText('Expense')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Category/i })).toHaveTextContent('Food');
+    expect(screen.getByRole('button', { name: /Tags/i })).toHaveTextContent('Coffee');
+
+    fireEvent.click(screen.getByRole('button', { name: /Tags/i }));
+    expect(await screen.findByRole('dialog', { name: 'Movement tags' })).toBeInTheDocument();
   });
 });

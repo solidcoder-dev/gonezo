@@ -24,7 +24,7 @@ type MovementDetailSummaryViewProps = {
 
 function summaryTags(tags: MovementDetailTagView[]) {
   if (tags.length === 0) {
-    return <span className="movement-detail-placeholder">Add tags</span>;
+    return <span className="movement-detail-placeholder">No tags</span>;
   }
 
   return (
@@ -120,7 +120,8 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
   } = props;
   const iconClassName = movementDetailIconClassName(movement.financialType);
   const showCategory = movement.financialType !== 'transfer' && (movement.canEditCategory || movement.category != null);
-  const showTags = movement.source !== 'expected' && (movement.canEditTags || movement.tags.length > 0);
+  const showTags = ('canEditTags' in movement && movement.canEditTags) || movement.tags.length > 0 || movement.source === 'expected';
+  const canEditTags = 'canEditTags' in movement && movement.canEditTags;
   const showSharing = movement.source === 'posted'
     && movement.financialType === 'expense'
     && (
@@ -171,7 +172,7 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
               </span>
               <span className="movement-detail-row-value">
                 <span className={movement.category ? 'movement-detail-chip movement-detail-chip--filled' : 'movement-detail-placeholder'}>
-                  {movement.category?.name ?? 'Add category'}
+                  {movement.category?.name ?? 'No category'}
                 </span>
                 <i className="bi bi-chevron-right" aria-hidden />
               </span>
@@ -185,12 +186,12 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
               </span>
               <span className="movement-detail-row-value">
                 <span className={movement.category ? 'movement-detail-chip movement-detail-chip--filled' : 'movement-detail-placeholder'}>
-                  {movement.category?.name ?? 'Add category'}
+                  {movement.category?.name ?? 'No category'}
                 </span>
               </span>
             </div>
           ) : null}
-          {showTags && movement.canEditTags ? (
+          {showTags && canEditTags ? (
             <button type="button" className="movement-detail-row" onClick={onOpenTagsSheet}>
               <span className="movement-detail-row-main">
                 <i className="bi bi-tags" aria-hidden />
@@ -202,7 +203,7 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
               </span>
             </button>
           ) : null}
-          {showTags && !movement.canEditTags ? (
+          {showTags && !canEditTags ? (
             <div className="movement-detail-row movement-detail-row--static">
               <span className="movement-detail-row-main">
                 <i className="bi bi-tags" aria-hidden />
