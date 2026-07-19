@@ -2,11 +2,13 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import type { AccountPageViewProps } from '../../account/ui/AccountPageView/accountPageView.contract';
-import type { MovementQuickActionComponentProps } from '../../transactions/application/MovementQuickActionComponent.contract';
+import type { ExperimentalMovementDockNavigationComponentProps } from '../../transactions/application/ExperimentalMovementDockNavigationComponent.contract';
 import type { TransactionEntryComponentProps } from '../../transactions/application/TransactionEntryComponent.contract';
 import { WorkspacePage, type WorkspacePageRequired } from './WorkspacePage';
 
-const taxonomyListCategories = vi.fn();
+const experimentalNavigationProps: { current: ExperimentalMovementDockNavigationComponentProps | null } = {
+  current: null,
+};
 
 vi.mock('../../account/ui/AccountPageView/AccountPageView', () => ({
   AccountPageView: ({ required }: AccountPageViewProps) => (
@@ -28,8 +30,31 @@ vi.mock('../../account/application/AccountsRail/AccountsRailComponent', () => ({
 }));
 
 vi.mock('../../transactions/index', () => ({
-  MovementDockNavigationComponent: (props: MovementQuickActionComponentProps) => (
+  MovementDockNavigationComponent: () => null,
+  TransactionEntryComponent: ({ required }: TransactionEntryComponentProps) => {
+    if (!required.context.accountId) {
+      return null;
+    }
+
+    return (
+      <div
+        data-testid="movement-composer"
+        data-account-id={required.context.accountId}
+        data-open-signal={required.config.openSignal}
+        data-initial-mode={required.config.initialMode}
+      >
+        {JSON.stringify(required.config.prefillRequest)}
+      </div>
+    );
+  },
+}));
+
+vi.mock('../../transactions/application/ExperimentalMovementDockNavigationComponent', () => ({
+  ExperimentalMovementDockNavigationComponent: (props: ExperimentalMovementDockNavigationComponentProps) => {
+    experimentalNavigationProps.current = props;
+    return (
       <button
+        type="button"
         data-testid="emit-voice-draft"
         onClick={() =>
           props.provided?.events?.onMovementEntryDraftReady?.({
@@ -51,31 +76,16 @@ vi.mock('../../transactions/index', () => ({
       >
         Emit voice draft
       </button>
-    ),
-  TransactionEntryComponent: ({ required }: TransactionEntryComponentProps) => {
-    if (!required.config.enabled || !required.context.accountId) {
-      return null;
-    }
-
-    return (
-      <div
-        data-testid="movement-composer"
-        data-account-id={required.context.accountId}
-        data-open-signal={required.config.openSignal}
-        data-initial-mode={required.config.initialMode}
-      >
-        {JSON.stringify(required.config.prefillRequest)}
-      </div>
     );
   },
 }));
 
-vi.mock('../../movements/index', () => ({
-  MonthlyMovementsComponent: () => null,
-}));
-
 vi.mock('./ProfilePage', () => ({
   ProfilePage: () => null,
+}));
+
+vi.mock('../../movements/index', () => ({
+  MonthlyMovementsComponent: () => null,
 }));
 
 vi.mock('./NetWorthSummaryComponent', () => ({
@@ -139,23 +149,47 @@ vi.mock('./useWorkspaceAccountEvents', () => ({
 }));
 
 function createRequiredCore() {
+  return {} as unknown as WorkspacePageRequired['core'];
+}
+
+function createRequiredVoiceEntry() {
   return {
-    taxonomyListCategories,
-  } as unknown as WorkspacePageRequired['core'];
+    enabled: true,
+    captureVoiceInput: {
+      start: vi.fn(),
+      stop: vi.fn(),
+      cancel: vi.fn(),
+      discardRun: vi.fn(),
+    } as never,
+    transcribeVoiceInput: {
+      transcribe: vi.fn(),
+      cancel: vi.fn(),
+    } as never,
+    interpretMovementEntryDraft: {
+      interpret: vi.fn(),
+      cancel: vi.fn(),
+    } as never,
+    interpretationRunExporter: {
+      exportRun: vi.fn(),
+    } as never,
+    microphonePermission: {
+      getStatus: vi.fn(),
+      request: vi.fn(),
+      openSettings: vi.fn(),
+    } as never,
+    appLifecycle: undefined,
+    categorySource: {
+      taxonomyListCategories: vi.fn(async () => ({ items: [] })),
+    } as never,
+  } as WorkspacePageRequired['voiceEntry'];
 }
 
 describe('WorkspacePage voice entry integration', () => {
-  it('opens the existing composer from a voice draft without recording a movement automatically', async () => {
-    taxonomyListCategories.mockResolvedValue({
-      items: [
-        {
-          id: 'cat-food',
-          name: 'Comida',
-          status: 'active',
-          appliesTo: 'expense',
-        },
-      ],
-    });
+  it('opens the existing composer from the experimental dock draft without recording a movement automatically', async () => {
+    const experimentalFeatures = {
+      load: vi.fn(async () => ({ voiceMovementEntryEnabled: true })),
+      setFeature: vi.fn(async () => undefined),
+    } as WorkspacePageRequired['experimentalFeatures'];
 
     render(
       <MemoryRouter initialEntries={['/home']}>
@@ -163,13 +197,15 @@ describe('WorkspacePage voice entry integration', () => {
           required={{
             core: createRequiredCore(),
             importFileReader: {} as WorkspacePageRequired['importFileReader'],
-            voiceEntry: { enabled: true } as WorkspacePageRequired['voiceEntry'],
+            voiceEntry: createRequiredVoiceEntry(),
+            experimentalFeatures,
           }}
         />
       </MemoryRouter>,
     );
 
     expect(screen.queryByTestId('movement-composer')).toBeNull();
+    await waitFor(() => expect(screen.getByTestId('emit-voice-draft')).toBeInTheDocument());
 
     await act(async () => {
       screen.getByTestId('emit-voice-draft').click();
@@ -191,7 +227,5 @@ describe('WorkspacePage voice entry integration', () => {
       note: 'Gasté 34,80 euros ayer en Comida',
       categoryId: 'cat-food',
     });
-
-    expect(taxonomyListCategories).toHaveBeenCalledWith({ includeArchived: false });
   });
 });

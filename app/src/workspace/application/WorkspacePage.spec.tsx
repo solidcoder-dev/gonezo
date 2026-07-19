@@ -1,12 +1,36 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import type { AccountPageViewProps } from '../../account/ui/AccountPageView/accountPageView.contract';
-import type { MovementQuickActionComponentProps } from '../../transactions/application/MovementQuickActionComponent.contract';
+import type { MovementDockNavigationComponentProps } from '../../transactions/application/MovementDockNavigationComponent.contract';
+import type { ExperimentalMovementDockNavigationComponentProps } from '../../transactions/application/ExperimentalMovementDockNavigationComponent.contract';
+import type { ProfilePageProps } from './ProfilePage';
 import { WorkspacePage, type WorkspacePageRequired } from './WorkspacePage';
 
-const taxonomyListCategories = vi.fn();
-let movementDockNavigationProps: MovementQuickActionComponentProps | null = null;
+let movementDockNavigationProps: MovementDockNavigationComponentProps | null = null;
+let experimentalMovementDockNavigationProps: ExperimentalMovementDockNavigationComponentProps | null = null;
+let profilePageProps: ProfilePageProps | null = null;
+
+function makeExperimentalFeaturesPort(initialEnabled = false) {
+  let enabled = initialEnabled;
+
+  return {
+    load: vi.fn(async () => ({
+      voiceMovementEntryEnabled: enabled,
+    })),
+    setFeature: vi.fn(async (input: { enabled: boolean }) => {
+      enabled = input.enabled;
+    }),
+    get enabled() {
+      return enabled;
+    },
+  } as WorkspacePageRequired['experimentalFeatures'] & { enabled: boolean };
+}
+
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="workspace-path">{location.pathname}</div>;
+}
 
 vi.mock('../../account/ui/AccountPageView/AccountPageView', () => ({
   AccountPageView: ({ required, provided }: AccountPageViewProps) => (
@@ -19,6 +43,7 @@ vi.mock('../../account/ui/AccountPageView/AccountPageView', () => ({
           {required.toast.actionLabel}
         </button>
       ) : null}
+      <LocationProbe />
       {required.sections.transactionEntry}
       {required.sections.accountSummary}
       {required.sections.netWorthSummary}
@@ -36,19 +61,50 @@ vi.mock('../../account/application/AccountsRail/AccountsRailComponent', () => ({
 }));
 
 vi.mock('../../transactions/index', () => ({
-  MovementDockNavigationComponent: (props: MovementQuickActionComponentProps) => {
+  MovementDockNavigationComponent: (props: MovementDockNavigationComponentProps) => {
     movementDockNavigationProps = props;
-    return null;
+    return <nav data-testid="standard-navigation" />;
   },
   TransactionEntryComponent: () => null,
 }));
 
-vi.mock('../../movements/index', () => ({
-  MonthlyMovementsComponent: () => null,
+vi.mock('../../transactions/application/ExperimentalMovementDockNavigationComponent', () => ({
+  ExperimentalMovementDockNavigationComponent: (props: ExperimentalMovementDockNavigationComponentProps) => {
+    experimentalMovementDockNavigationProps = props;
+    return (
+      <nav data-testid="experimental-navigation">
+        <button
+          type="button"
+          onClick={() => props.provided?.events?.onBusyChanged?.(true)}
+        >
+          Busy
+        </button>
+      </nav>
+    );
+  },
 }));
 
 vi.mock('./ProfilePage', () => ({
-  ProfilePage: () => null,
+  ProfilePage: (props: ProfilePageProps) => {
+    profilePageProps = props;
+    const location = useLocation();
+    return (
+      <div data-testid="profile-page">
+        <div data-testid="profile-path">{location.pathname}</div>
+        <button
+          type="button"
+          data-testid="toggle-experiment"
+          onClick={() => props.provided?.events?.onSetVoiceMovementExperimentEnabled?.(!props.required.config.voiceMovementExperimentEnabled)}
+        >
+          Toggle
+        </button>
+      </div>
+    );
+  },
+}));
+
+vi.mock('../../movements/index', () => ({
+  MonthlyMovementsComponent: () => null,
 }));
 
 vi.mock('./NetWorthSummaryComponent', () => ({
@@ -132,193 +188,153 @@ vi.mock('./useWorkspaceAccountEvents', () => ({
   }),
 }));
 
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((nextResolve) => {
-    resolve = nextResolve;
-  });
-  return { promise, resolve };
+function createRequiredCore() {
+  return {} as unknown as WorkspacePageRequired['core'];
 }
 
-function createRequiredCore() {
+function createRequiredVoiceEntry(enabled = true) {
   return {
-    taxonomyListCategories,
-  } as unknown as WorkspacePageRequired['core'];
+    enabled,
+    captureVoiceInput: {
+      start: vi.fn(),
+      stop: vi.fn(),
+      cancel: vi.fn(),
+      discardRun: vi.fn(),
+    } as never,
+    transcribeVoiceInput: {
+      transcribe: vi.fn(),
+      cancel: vi.fn(),
+    } as never,
+    interpretMovementEntryDraft: {
+      interpret: vi.fn(),
+      cancel: vi.fn(),
+    } as never,
+    interpretationRunExporter: {
+      exportRun: vi.fn(),
+    } as never,
+    microphonePermission: {
+      getStatus: vi.fn(),
+      request: vi.fn(),
+      openSettings: vi.fn(),
+    } as never,
+    appLifecycle: undefined,
+    categorySource: {
+      taxonomyListCategories: vi.fn(async () => ({ items: [] })),
+    } as never,
+  } as WorkspacePageRequired['voiceEntry'];
+}
+
+function renderSubject(route: string, experimentalFeatures = makeExperimentalFeaturesPort(false), voiceEntry = createRequiredVoiceEntry()) {
+  movementDockNavigationProps = null;
+  experimentalMovementDockNavigationProps = null;
+  profilePageProps = null;
+
+  return render(
+    <MemoryRouter initialEntries={[route]}>
+      <WorkspacePage
+        required={{
+          core: createRequiredCore(),
+          importFileReader: {} as WorkspacePageRequired['importFileReader'],
+          voiceEntry,
+          experimentalFeatures,
+        }}
+      />
+    </MemoryRouter>,
+  );
 }
 
 describe('WorkspacePage', () => {
-  it('loads voice categories once when resolving them causes WorkspacePage to rerender', async () => {
-    const loadCategories = deferred<{ items: Array<{ id: string; name: string; status: string; appliesTo: string }> }>();
-    taxonomyListCategories.mockImplementation(() => loadCategories.promise);
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+  it('renders the standard navbar when the experiment is disabled', async () => {
+    const experimentalFeatures = makeExperimentalFeaturesPort(false);
 
-    render(
-      <MemoryRouter initialEntries={['/home']}>
-        <WorkspacePage
-          required={{
-            core: createRequiredCore(),
-            importFileReader: {} as WorkspacePageRequired['importFileReader'],
-            voiceEntry: { enabled: true } as WorkspacePageRequired['voiceEntry'],
-          }}
-        />
-      </MemoryRouter>,
-    );
-
-    expect(taxonomyListCategories).toHaveBeenCalledTimes(1);
-    expect(taxonomyListCategories).toHaveBeenCalledWith({ includeArchived: false });
-
-    await act(async () => {
-      loadCategories.resolve({
-        items: [
-          {
-            id: 'cat-food',
-            name: 'Food',
-            status: 'active',
-            appliesTo: 'expense',
-          },
-        ],
-      });
-      await loadCategories.promise;
-    });
-
-    await waitFor(() => expect(taxonomyListCategories).toHaveBeenCalledTimes(1), { timeout: 250 });
-
-    const errorMessages = consoleErrorSpy.mock.calls.flat().map((entry) => String(entry));
-    const warnMessages = consoleWarnSpy.mock.calls.flat().map((entry) => String(entry));
-    expect(errorMessages.some((message) => message.includes('Maximum update depth exceeded'))).toBe(false);
-    expect(warnMessages.some((message) => message.includes('Maximum update depth exceeded'))).toBe(false);
-
-    consoleErrorSpy.mockRestore();
-    consoleWarnSpy.mockRestore();
-  });
-
-  it('does not load voice categories when voice entry is disabled', async () => {
-    taxonomyListCategories.mockReset();
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-    render(
-      <MemoryRouter initialEntries={['/home']}>
-        <WorkspacePage
-          required={{
-            core: createRequiredCore(),
-            importFileReader: {} as WorkspacePageRequired['importFileReader'],
-            voiceEntry: { enabled: false } as WorkspacePageRequired['voiceEntry'],
-          }}
-        />
-      </MemoryRouter>,
-    );
-
-    await waitFor(() => expect(taxonomyListCategories).not.toHaveBeenCalled(), { timeout: 250 });
-
-    expect(consoleErrorSpy).not.toHaveBeenCalled();
-    expect(consoleWarnSpy).not.toHaveBeenCalled();
-
-    consoleErrorSpy.mockRestore();
-    consoleWarnSpy.mockRestore();
-  });
-
-  it('routes voice failures into a warning toast with a delegated action', async () => {
-    taxonomyListCategories.mockResolvedValue({
-      items: [
-        {
-          id: 'cat-food',
-          name: 'Food',
-          status: 'active',
-          appliesTo: 'expense',
-        },
-      ],
-    });
-    movementDockNavigationProps = null;
-
-    render(
-      <MemoryRouter initialEntries={['/home']}>
-        <WorkspacePage
-          required={{
-            core: createRequiredCore(),
-            importFileReader: {} as WorkspacePageRequired['importFileReader'],
-            voiceEntry: { enabled: true } as WorkspacePageRequired['voiceEntry'],
-          }}
-        />
-      </MemoryRouter>,
-    );
-
-    expect(screen.getByTestId('workspace-toast')).toHaveTextContent('');
-    expect(screen.getByTestId('workspace-toast')).toHaveAttribute('data-tone', 'success');
-    expect(movementDockNavigationProps).not.toBeNull();
-    const dockProps = movementDockNavigationProps as unknown as MovementQuickActionComponentProps;
-    expect(dockProps.provided?.events?.onError).toBeDefined();
-
-    const exportDiagnostics = vi.fn();
-
-    await act(async () => {
-      dockProps.provided?.events?.onError?.({
-        message: 'Voice processing failed.',
-        tone: 'warning',
-        action: {
-          label: 'Download ZIP',
-          run: exportDiagnostics,
-        },
-      });
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('workspace-toast')).toHaveTextContent('Voice processing failed.');
-      expect(screen.getByTestId('workspace-toast')).toHaveAttribute('data-tone', 'warning');
-      expect(screen.getByRole('button', { name: 'Download ZIP' })).toBeInTheDocument();
-    });
-
-    await act(async () => {
-      screen.getByRole('button', { name: 'Download ZIP' }).click();
-    });
-
-    expect(exportDiagnostics).toHaveBeenCalledTimes(1);
-  });
-
-  it('routes successful voice drafts into an info toast with a delegated action', async () => {
-    taxonomyListCategories.mockResolvedValue({
-      items: [
-        {
-          id: 'cat-food',
-          name: 'Food',
-          status: 'active',
-          appliesTo: 'expense',
-        },
-      ],
-    });
-    movementDockNavigationProps = null;
-
-    render(
-      <MemoryRouter initialEntries={['/home']}>
-        <WorkspacePage
-          required={{
-            core: createRequiredCore(),
-            importFileReader: {} as WorkspacePageRequired['importFileReader'],
-            voiceEntry: { enabled: true } as WorkspacePageRequired['voiceEntry'],
-          }}
-        />
-      </MemoryRouter>,
-    );
+    renderSubject('/home', experimentalFeatures);
 
     await waitFor(() => expect(movementDockNavigationProps).not.toBeNull());
-    const dockProps = movementDockNavigationProps as unknown as MovementQuickActionComponentProps;
+    expect(screen.getByTestId('standard-navigation')).toBeInTheDocument();
+    expect(screen.queryByTestId('experimental-navigation')).toBeNull();
+    expect(screen.queryByTestId('profile-page')).toBeNull();
+    expect(experimentalFeatures.load).toHaveBeenCalledTimes(1);
+  });
 
-    await act(async () => {
-      dockProps.provided?.events?.onNotice?.({
-        message: 'Voice draft created. Review the interpreted values.',
-        tone: 'info',
-        action: {
-          label: 'Download ZIP',
-          run: vi.fn(),
-        },
-      });
+  it('renders the experimental navbar when the experiment is enabled and supported', async () => {
+    const experimentalFeatures = makeExperimentalFeaturesPort(true);
+    const voiceEntry = createRequiredVoiceEntry(true);
+
+    renderSubject('/home', experimentalFeatures, voiceEntry);
+
+    await waitFor(() => expect(experimentalMovementDockNavigationProps).not.toBeNull());
+    expect(screen.getByTestId('experimental-navigation')).toBeInTheDocument();
+    expect(screen.queryByTestId('standard-navigation')).toBeNull();
+    expect(voiceEntry.categorySource.taxonomyListCategories).not.toHaveBeenCalled();
+  });
+
+  it('renders the standard navbar when the experiment is enabled but the device is unavailable', async () => {
+    const experimentalFeatures = makeExperimentalFeaturesPort(true);
+    const voiceEntry = createRequiredVoiceEntry(false);
+
+    renderSubject('/home', experimentalFeatures, voiceEntry);
+
+    await waitFor(() => expect(movementDockNavigationProps).not.toBeNull());
+    expect(screen.getByTestId('standard-navigation')).toBeInTheDocument();
+    expect(screen.queryByTestId('experimental-navigation')).toBeNull();
+  });
+
+  it('switches navbar variants immediately when the profile toggle changes and keeps the route', async () => {
+    const experimentalFeatures = makeExperimentalFeaturesPort(false);
+
+    renderSubject('/profile', experimentalFeatures);
+
+    await waitFor(() => expect(profilePageProps).not.toBeNull());
+    expect(screen.getByTestId('standard-navigation')).toBeInTheDocument();
+    expect(screen.getByTestId('profile-path')).toHaveTextContent('/profile');
+
+    act(() => {
+      screen.getByTestId('toggle-experiment').click();
     });
 
-    await waitFor(() => {
-      expect(screen.getByTestId('workspace-toast')).toHaveTextContent('Voice draft created. Review the interpreted values.');
-      expect(screen.getByTestId('workspace-toast')).toHaveAttribute('data-tone', 'info');
-      expect(screen.getByRole('button', { name: 'Download ZIP' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('experimental-navigation')).toBeInTheDocument());
+    expect(screen.getByTestId('profile-path')).toHaveTextContent('/profile');
+    expect(experimentalFeatures.enabled).toBe(true);
+  });
+
+  it('persists the experiment preference across remounts', async () => {
+    const experimentalFeatures = makeExperimentalFeaturesPort(false);
+
+    const firstRender = renderSubject('/home', experimentalFeatures);
+    await waitFor(() => expect(screen.getByTestId('standard-navigation')).toBeInTheDocument());
+    firstRender.unmount();
+
+    experimentalFeatures.setFeature({ feature: 'voiceMovementEntry', enabled: true });
+
+    renderSubject('/home', experimentalFeatures);
+    await waitFor(() => expect(screen.getByTestId('experimental-navigation')).toBeInTheDocument());
+  });
+
+  it('renders only one navigation variant at a time', async () => {
+    const experimentalFeatures = makeExperimentalFeaturesPort(true);
+
+    renderSubject('/home', experimentalFeatures);
+
+    await waitFor(() => expect(screen.getByTestId('experimental-navigation')).toBeInTheDocument());
+    expect(screen.queryByTestId('standard-navigation')).toBeNull();
+    expect(screen.queryAllByRole('navigation')).toHaveLength(1);
+  });
+
+  it('does not flash the wrong navbar while the preference is loading', async () => {
+    let resolveLoad: ((value: { voiceMovementEntryEnabled: boolean }) => void) | undefined;
+    const loadDeferred = new Promise<{ voiceMovementEntryEnabled: boolean }>((resolve) => {
+      resolveLoad = resolve;
     });
+    const experimentalFeatures = {
+      load: vi.fn(() => loadDeferred),
+      setFeature: vi.fn(async () => undefined),
+      enabled: false,
+    } as WorkspacePageRequired['experimentalFeatures'] & { enabled: boolean };
+
+    renderSubject('/home', experimentalFeatures);
+
+    expect(screen.queryByTestId('standard-navigation')).toBeNull();
+    expect(screen.queryByTestId('experimental-navigation')).toBeNull();
+    resolveLoad?.({ voiceMovementEntryEnabled: true });
   });
 });

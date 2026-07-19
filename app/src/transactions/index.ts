@@ -1,11 +1,28 @@
 export { MovementQuickActionComponent } from './application/MovementQuickActionComponent';
 export { MovementDockNavigationComponent } from './application/MovementDockNavigationComponent';
+export { MovementVoiceEntryComponent } from './application/MovementVoiceEntryComponent';
 export { TransactionEntryComponent } from './application/TransactionEntryComponent';
+export type {
+  MovementDockNavigationComponentProps,
+  MovementDockNavigationComponentProvided,
+  MovementDockNavigationComponentRequired,
+} from './application/MovementDockNavigationComponent.contract';
 export type {
   MovementQuickActionComponentProps,
   MovementQuickActionComponentProvided,
   MovementQuickActionComponentRequired,
 } from './application/MovementQuickActionComponent';
+export type {
+  MovementVoiceEntryCategoryItem,
+  MovementVoiceEntryCategorySourcePort,
+  MovementVoiceEntryCategorySourceResult,
+  MovementVoiceEntryComponentProvided,
+  MovementVoiceEntryComponentRequired,
+  MovementVoiceEntryComponentProps,
+  MovementVoiceEntryErrorNotice,
+  MovementVoiceEntryNotice,
+  MovementVoiceEntrySelectedAccount,
+} from './application/MovementVoiceEntryComponent';
 export type {
   TransactionEntryComponentProps,
   TransactionEntryComponentProvided,

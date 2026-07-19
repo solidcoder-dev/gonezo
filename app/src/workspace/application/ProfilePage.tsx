@@ -6,6 +6,7 @@ import { useAccountHubModel } from '../../account/application/AccountHub/useAcco
 import type { AccountWorkspacePort } from '../../account/application/accounts.port';
 import { ProfilePageView } from '../ui/ProfilePageView';
 import type { LoadPhase } from '../../account/application/accountPage.types';
+import type { VoiceMovementExperimentViewModel } from '../ui/ProfilePageView.contract';
 
 export type ProfilePageRequired = {
   context: {
@@ -13,6 +14,11 @@ export type ProfilePageRequired = {
   };
   config: {
     refreshSignal: boolean;
+    voiceEntryAvailable: boolean;
+    voiceWorkflowBusy: boolean;
+    voiceMovementExperimentEnabled: boolean;
+    voiceMovementExperimentLoading: boolean;
+    voiceMovementExperimentSaving: boolean;
   };
 };
 
@@ -25,10 +31,11 @@ export type ProfilePageProvided = {
     onBackupRequested?: () => void;
     onAccountMutated?: () => void;
     onError?: (error: { message: string }) => void;
+    onSetVoiceMovementExperimentEnabled?: (enabled: boolean) => void;
   };
 };
 
-type ProfilePageProps = {
+export type ProfilePageProps = {
   required: ProfilePageRequired;
   provided?: ProfilePageProvided;
 };
@@ -55,6 +62,25 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
     creating,
     controlsDisabled,
   } = model.state;
+  const voiceMovementExperiment: VoiceMovementExperimentViewModel = {
+    enabled: required.config.voiceMovementExperimentEnabled,
+    available: required.config.voiceEntryAvailable,
+    saving: required.config.voiceMovementExperimentLoading || required.config.voiceMovementExperimentSaving,
+    disabled: required.config.voiceMovementExperimentLoading
+      || required.config.voiceMovementExperimentSaving
+      || required.config.voiceWorkflowBusy
+      || !required.config.voiceEntryAvailable,
+    description: required.config.voiceMovementExperimentLoading
+      ? 'Loading experimental preference...'
+      : required.config.voiceMovementExperimentSaving
+        ? 'Saving experimental preference...'
+        : !required.config.voiceEntryAvailable
+          ? 'Voice movement entry is unavailable on this device.'
+          : required.config.voiceWorkflowBusy
+            ? 'Finish the current voice operation before changing this setting.'
+            : 'Replaces the standard Add navigation with the experimental manual and voice movement controls.',
+  };
+
   const {
     submitCreateAccount,
     setDefaultAccount,
@@ -135,6 +161,7 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
           config: {},
           data: {
             accounts,
+            voiceMovementExperiment,
           },
           state: {
             favoriteAccountId: defaultAccountId ?? '',
@@ -154,9 +181,12 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
             importBackup: provided.events?.onImportRequested ?? (() => undefined),
             exportBackup: provided.events?.onBackupRequested ?? (() => undefined),
             manageTaxonomy: () => navigate('/taxonomy'),
+            setVoiceMovementExperimentEnabled: (enabled) => {
+              provided.events?.onSetVoiceMovementExperimentEnabled?.(enabled);
+            },
           },
         }}
       />
-    </>
-  );
+      </>
+    );
 }

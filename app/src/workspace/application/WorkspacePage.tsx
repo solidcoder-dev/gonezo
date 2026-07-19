@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { TransactionsImportFileReaderPort } from '../../imports/application/transactionsImportFileReader.port';
 import { MovementDockNavigationComponent, TransactionEntryComponent } from '../../transactions/index';
+import { ExperimentalMovementDockNavigationComponent } from '../../transactions/application/ExperimentalMovementDockNavigationComponent';
 import { MonthlyMovementsComponent } from '../../movements/index';
 import { AccountPageView } from '../../account/ui/AccountPageView/AccountPageView';
 import { TransactionsImportComponent } from '../../account/ui/capabilities/TransactionsImport/TransactionsImportComponent';
@@ -23,16 +24,17 @@ import { useMovementComposerCoordinator } from './useMovementComposerCoordinator
 import { resolveWorkspaceRoutePage } from './workspaceNavigation';
 import { useWorkspaceAccountEvents } from './useWorkspaceAccountEvents';
 import type { MovementVoiceEntryContext } from '../../transactions/application/MovementVoiceEntry/movementVoiceEntryContext';
-import type { MovementEntryCategoryOption } from '../../transactions/application/MovementVoiceEntry/MovementEntryDraftInterpreterPort';
-import type { TaxonomyPort } from '../../taxonomy/application/taxonomy.port';
+import { useExperimentalFeaturesModel } from '../../experiments/application/useExperimentalFeaturesModel';
+import type { ExperimentalFeaturesPort } from '../../experiments/application/experimentalFeatures.port';
 
 export type WorkspacePageRequired = {
   core: WorkspacePagePort;
   importFileReader: TransactionsImportFileReaderPort;
   voiceEntry: MovementVoiceEntryContext;
+  experimentalFeatures: ExperimentalFeaturesPort;
 };
 
-export type WorkspacePagePort = AccountWorkspacePort & AnalyticsPort & HomeRecentMovementsPort & TaxonomyPort;
+export type WorkspacePagePort = AccountWorkspacePort & AnalyticsPort & HomeRecentMovementsPort;
 
 type WorkspacePageProps = {
   required: WorkspacePageRequired;
@@ -44,9 +46,15 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const [screenLoadPhase, setScreenLoadPhase] = useState<LoadPhase>('loading');
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [accountsCount, setAccountsCount] = useState(0);
-  const [voiceCategoryOptions, setVoiceCategoryOptions] = useState<ReadonlyArray<MovementEntryCategoryOption>>([]);
 
   const workspaceToast = useWorkspaceToast();
+  const { clearToast, runToastAction, showError, showInfo, showToast, showWarning } = workspaceToast.actions;
+  const experimentalFeatures = useExperimentalFeaturesModel({
+    port: pageRequired.experimentalFeatures,
+    events: {
+      onError: showError,
+    },
+  });
   const workspaceRefresh = useWorkspaceRefreshSignals();
   const { refresh } = workspaceRefresh;
   const {
@@ -58,7 +66,6 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     netWorthRefreshSignal,
     recentTransactionsRefreshSignal,
   } = workspaceRefresh.signals;
-  const { clearToast, runToastAction, showError, showInfo, showToast, showWarning } = workspaceToast.actions;
   const importCoordinator = useWorkspaceImportCoordinator({
     core: pageRequired.core,
     refresh,
@@ -89,35 +96,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     resetTransactionEntryPrefill,
   } = movementComposer.actions;
   const currentPage = resolveWorkspaceRoutePage(location.pathname);
-  useEffect(() => {
-    if (!pageRequired.voiceEntry.enabled) {
-      return;
-    }
-    let cancelled = false;
-
-    async function loadVoiceCategories() {
-      try {
-        const result = await pageRequired.core.taxonomyListCategories({ includeArchived: false });
-        if (!cancelled) {
-          setVoiceCategoryOptions(result.items.map((item) => ({
-            id: item.id,
-            label: item.name,
-          })));
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setVoiceCategoryOptions([]);
-          showError(error instanceof Error ? error : { message: 'Unable to load categories for voice capture.' });
-        }
-      }
-    }
-
-    void loadVoiceCategories();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [pageRequired.core, pageRequired.voiceEntry.enabled, showError]);
+  const [voiceWorkflowBusy, setVoiceWorkflowBusy] = useState(false);
   const {
     handleAccountDeleted,
     handleAccountMutated,
@@ -167,68 +146,119 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       )
     : null;
 
-  const dockNavigation = (
-    <MovementDockNavigationComponent
+  const voiceMovementExperimentEnabled = experimentalFeatures.state.features.voiceMovementEntryEnabled;
+  const voiceMovementExperimentActive = !experimentalFeatures.state.loading
+    && voiceMovementExperimentEnabled
+    && pageRequired.voiceEntry.enabled;
+  const dockNavigation = experimentalFeatures.state.loading
+    ? null
+    : voiceMovementExperimentActive
+      ? (
+          <ExperimentalMovementDockNavigationComponent
+            required={{
+              context: {
+                core: pageRequired.core,
+                voiceEntry: pageRequired.voiceEntry,
+              },
+              config: {
+                enabled: voiceMovementExperimentActive,
+                refreshSignal: movementQuickActionRefreshSignal,
+              },
+            }}
+            provided={{
+              events: {
+                onCreateMovementRequested: createMovementForAccount,
+                onMovementEntryDraftReady: ({ account, draft }) => {
+                  createMovementForDraft({ account, draft });
+                },
+                onNotice: (notice) => {
+                  if (notice.tone === 'info') {
+                    showInfo(notice.message, notice.action);
+                    return;
+                  }
+
+                  if (notice.tone === 'warning') {
+                    showWarning(notice.message, notice.action);
+                    return;
+                  }
+
+                  if (notice.tone === 'error') {
+                    showError({ message: notice.message });
+                    return;
+                  }
+
+                  showToast(notice.message);
+                },
+                onError: (notice) => {
+                  if (notice.tone === 'warning') {
+                    showWarning(notice.message, notice.action);
+                    return;
+                  }
+
+                  showError({ message: notice.message });
+                },
+                onBusyChanged: setVoiceWorkflowBusy,
+              },
+            }}
+          />
+        )
+      : (
+          <MovementDockNavigationComponent
+            required={{
+              context: {
+                core: pageRequired.core,
+              },
+              config: {
+                enabled: true,
+                refreshSignal: movementQuickActionRefreshSignal,
+              },
+            }}
+            provided={{
+              events: {
+                onCreateMovementRequested: createMovementForAccount,
+                onError: (notice) => {
+                  showError({ message: notice.message });
+                },
+              },
+            }}
+          />
+        );
+
+  const profilePage = currentPage === 'profile' ? (
+    <ProfilePage
       required={{
         context: {
           core: pageRequired.core,
-          voiceEntry: pageRequired.voiceEntry,
         },
         config: {
-          enabled: true,
-          refreshSignal: movementQuickActionRefreshSignal,
-          voiceInterpretationContext: {
-            currentDate: new Date().toISOString().slice(0, 10),
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-            locale: navigator.language || 'en-US',
-            categoryOptions: voiceCategoryOptions,
-          },
+          refreshSignal: accountHubRefreshSignal,
+          voiceEntryAvailable: pageRequired.voiceEntry.enabled,
+          voiceWorkflowBusy,
+          voiceMovementExperimentEnabled,
+          voiceMovementExperimentLoading: experimentalFeatures.state.loading,
+          voiceMovementExperimentSaving: experimentalFeatures.state.saving,
         },
       }}
       provided={{
         events: {
-          onCreateMovementRequested: createMovementForAccount,
-          onMovementEntryDraftReady: ({ account, draft }) => {
-            createMovementForDraft({ account, draft });
+          onLoadPhaseChanged: setScreenLoadPhase,
+          onSelectedAccountChanged: handleSelectedAccountChanged,
+          onAccountsCountChanged: setAccountsCount,
+          onImportRequested: openImportSheet,
+          onBackupRequested: () => {
+            void requestMovementsBackup().catch((err) => {
+              showError(err instanceof Error ? err : { message: 'Unknown error' });
+            });
           },
-          onError: (notice) => {
-            if (notice.tone === 'warning') {
-              showWarning(
-                notice.message,
-                notice.action
-                  ? {
-                      label: notice.action.label,
-                      run: notice.action.run,
-                    }
-                  : undefined,
-              );
-              return;
-            }
-
-            showError({ message: notice.message });
-          },
-          onNotice: (notice) => {
-            if (notice.tone === 'info') {
-              showInfo(notice.message, notice.action);
-              return;
-            }
-
-            if (notice.tone === 'warning') {
-              showWarning(notice.message, notice.action);
-              return;
-            }
-
-            if (notice.tone === 'error') {
-              showError({ message: notice.message });
-              return;
-            }
-
-            showToast(notice.message);
+          onAccountMutated: handleProfileAccountMutated,
+          onError: showError,
+          onSetVoiceMovementExperimentEnabled: (enabled) => {
+            void experimentalFeatures.commands.setVoiceMovementEntryEnabled(enabled);
           },
         },
       }}
     />
-  );
+  ) : null;
 
   const homeAccountsRail = currentPage === 'home' ? (
     <AccountsRailComponent
@@ -273,34 +303,6 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           },
           onPostExpectedMovement: postExpectedMovement,
           onEditExpectedMovement: editExpectedMovement,
-        },
-      }}
-    />
-  );
-
-  const profilePage = (
-    <ProfilePage
-      required={{
-        context: {
-          core: pageRequired.core,
-        },
-        config: {
-          refreshSignal: accountHubRefreshSignal,
-        },
-      }}
-      provided={{
-        events: {
-          onLoadPhaseChanged: setScreenLoadPhase,
-          onSelectedAccountChanged: handleSelectedAccountChanged,
-          onAccountsCountChanged: setAccountsCount,
-          onImportRequested: openImportSheet,
-          onBackupRequested: () => {
-            void requestMovementsBackup().catch((err) => {
-              showError(err instanceof Error ? err : { message: 'Unknown error' });
-            });
-          },
-          onAccountMutated: handleProfileAccountMutated,
-          onError: showError,
         },
       }}
     />
@@ -411,9 +413,9 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
               {homeRecentMovements}
             </>
           )
-        : currentPage === 'analytics'
-          ? analyticsPage
-          : currentPage === 'profile'
+          : currentPage === 'analytics'
+            ? analyticsPage
+            : currentPage === 'profile'
             ? profilePage
             : null,
       transactionEntry: (

@@ -10,7 +10,7 @@ import { NativeMicrophonePermissionAdapter } from './nativeMicrophonePermissionA
 import { NativeSpeechTranscriptionAdapter } from './nativeSpeechTranscriptionAdapter';
 import { NativeInterpretationRunExporter } from '../interpretation/nativeInterpretationRunExporter';
 
-export function createDefaultMovementVoiceEntryContext(): MovementVoiceEntryContext {
+export function createDefaultMovementVoiceEntryContext(): Omit<MovementVoiceEntryContext, 'categorySource'> {
   const audioCapture = new NativeAudioCaptureAdapter();
   const transcriptionSettings: TranscriptionSettings = {
     language: 'es',

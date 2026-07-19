@@ -87,6 +87,7 @@ export function useMovementQuickActionModel({
   const [accountSelectorOpen, setAccountSelectorOpen] = useState(false);
   const [typeSelectorOpen, setTypeSelectorOpen] = useState(false);
   const selectedAccountIdRef = useRef(selectedAccountId);
+  const pendingOpenDraftRef = useRef(false);
   const eventsRef = useRef(events);
   const draftRequestId = draftRequest?.requestId;
   const draftRequestAccountId = draftRequest?.account.id;
@@ -129,11 +130,11 @@ export function useMovementQuickActionModel({
         setAccountSelectorOpen(false);
         setTypeSelectorOpen(false);
         return;
-      }
+        }
 
-      setLoading(true);
-      try {
-        const [accountsResult, preferencesResult] = await Promise.all([
+        setLoading(true);
+        try {
+          const [accountsResult, preferencesResult] = await Promise.all([
           ports.ledger.ledgerListAccounts(),
           ports.preferences.preferencesGet(),
         ]);
@@ -183,15 +184,33 @@ export function useMovementQuickActionModel({
 
   const selectedAccount = accounts.find((account) => account.id === selectedAccountId);
   const disabled = loading || !enabled || accounts.length === 0 || !selectedAccountId;
-
-  function resetDraftContext() {
+  const resetDraftContext = useCallback(() => {
     const fallbackAccountId = defaultAccountId || accounts[0]?.id || '';
     selectedAccountIdRef.current = fallbackAccountId;
     setSelectedAccountId(fallbackAccountId);
     setSelectedMovementType('expense');
     setAccountSelectorOpen(false);
     setTypeSelectorOpen(false);
-  }
+  }, [accounts, defaultAccountId]);
+
+  useEffect(() => {
+    if (!pendingOpenDraftRef.current || loading || !selectedAccountId) {
+      return;
+    }
+
+    const selectedAccount = accounts.find((account) => account.id === selectedAccountId);
+    if (!selectedAccount) {
+      pendingOpenDraftRef.current = false;
+      return;
+    }
+
+    pendingOpenDraftRef.current = false;
+    resetDraftContext();
+    eventsRef.current?.onCreateMovementRequested?.({
+      account: { id: selectedAccount.id, name: selectedAccount.name },
+      type: 'expense' as const,
+    });
+  }, [accounts, loading, resetDraftContext, selectedAccountId]);
 
   return {
     required: {
@@ -212,14 +231,21 @@ export function useMovementQuickActionModel({
     provided: {
       commands: {
         openDraft: () => {
-          if (!disabled && selectedAccount) {
+          if (!enabled) {
+            return;
+          }
+
+          if (!loading && selectedAccount) {
             const movement = {
               account: { id: selectedAccount.id, name: selectedAccount.name },
               type: 'expense' as const,
             };
             resetDraftContext();
             eventsRef.current?.onCreateMovementRequested?.(movement);
+            return;
           }
+
+          pendingOpenDraftRef.current = true;
         },
         closeDraft: () => {
           setDraftOpen(false);

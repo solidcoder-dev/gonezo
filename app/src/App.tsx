@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import './App.css';
 import { WorkspacePage, type WorkspacePagePort } from './workspace/application/WorkspacePage';
@@ -8,17 +9,21 @@ import { MovementsSearchPage } from './movements/index';
 import type { MovementsSearchPagePort } from './movements/application/movementsSearch.port';
 import { TaxonomyPage, type TaxonomyPagePort } from './taxonomy/application/TaxonomyPage';
 import type { MovementVoiceEntryContext } from './transactions/application/MovementVoiceEntry/movementVoiceEntryContext';
+import { LocalExperimentalFeaturesAdapter } from './experiments/infrastructure/LocalExperimentalFeaturesAdapter';
+import type { ExperimentalFeaturesPort } from './experiments/application/experimentalFeatures.port';
 
 const defaultCore = new CoreAdapter();
 const defaultImportFileReader = { readAsBase64: readImportFileAsBase64 };
 const defaultMovementVoiceEntryContext = createDefaultMovementVoiceEntryContext();
+const defaultExperimentalFeatures = new LocalExperimentalFeaturesAdapter();
 const workspaceRoutes = ['/', '/home', '/accounts', '/analytics', '/movements', '/profile'];
 
 export type AppPort = WorkspacePagePort & MovementsSearchPagePort & TaxonomyPagePort;
 
 export type AppRequired = {
   core?: AppPort;
-  movementVoiceEntry?: MovementVoiceEntryContext;
+  movementVoiceEntry?: Omit<MovementVoiceEntryContext, 'categorySource'>;
+  experimentalFeatures?: ExperimentalFeaturesPort;
 };
 
 type AppProps = {
@@ -27,10 +32,17 @@ type AppProps = {
 
 export function App({ required }: AppProps) {
   const resolvedCore = required?.core ?? defaultCore;
-  const resolvedMovementVoiceEntry = required?.movementVoiceEntry ?? defaultMovementVoiceEntryContext;
-  const workspacePage = (
-    <WorkspacePage required={{ core: resolvedCore, importFileReader: defaultImportFileReader, voiceEntry: resolvedMovementVoiceEntry }} />
-  );
+  const resolvedExperimentalFeatures = required?.experimentalFeatures ?? defaultExperimentalFeatures;
+  const voiceCategorySource = useMemo(() => ({
+    taxonomyListCategories: (input?: { includeArchived?: boolean }) => resolvedCore.taxonomyListCategories(input),
+  }), [resolvedCore]);
+  const resolvedMovementVoiceEntry = useMemo(() => ({
+    ...(required?.movementVoiceEntry ?? defaultMovementVoiceEntryContext),
+    categorySource: voiceCategorySource,
+  }), [required?.movementVoiceEntry, voiceCategorySource]);
+  const workspacePage = useMemo(() => (
+    <WorkspacePage required={{ core: resolvedCore, importFileReader: defaultImportFileReader, voiceEntry: resolvedMovementVoiceEntry, experimentalFeatures: resolvedExperimentalFeatures }} />
+  ), [resolvedCore, resolvedExperimentalFeatures, resolvedMovementVoiceEntry]);
 
   return (
     <Routes>

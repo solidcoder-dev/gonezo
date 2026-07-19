@@ -110,6 +110,11 @@ function createMicrophonePermission(): MicrophonePermissionPort {
 }
 
 function renderSubject(overrides: Partial<Parameters<typeof useMovementVoiceCaptureModel>[0]> = {}) {
+  const {
+    enabled = true,
+    selectedAccount = { id: 'acc-1', name: 'Main', currency: 'USD' },
+    ...inputOverrides
+  } = overrides;
   const captureVoiceInput = overrides.captureVoiceInput ?? createCaptureVoiceInput();
   const transcribeVoiceInput = overrides.transcribeVoiceInput ?? createTranscribeVoiceInput();
   const interpretMovementEntryDraft = overrides.interpretMovementEntryDraft ?? createInterpretMovementEntryDraft();
@@ -121,8 +126,8 @@ function renderSubject(overrides: Partial<Parameters<typeof useMovementVoiceCapt
   const onError = overrides.onError ?? vi.fn();
 
   const result = renderHook(() => useMovementVoiceCaptureModel({
-    enabled: true,
-    selectedAccount: { id: 'acc-1', name: 'Main', currency: 'USD' },
+    enabled,
+    selectedAccount,
     clockNow: () => 2_500,
     captureVoiceInput,
     transcribeVoiceInput,
@@ -141,7 +146,7 @@ function renderSubject(overrides: Partial<Parameters<typeof useMovementVoiceCapt
     onMovementEntryDraftReady,
     onCompleted,
     onError,
-    ...overrides,
+    ...inputOverrides,
   }));
 
   return {
@@ -159,6 +164,163 @@ function renderSubject(overrides: Partial<Parameters<typeof useMovementVoiceCapt
 }
 
 describe('useMovementVoiceCaptureModel', () => {
+  it.each(['prompt', 'denied'] as const)('opens the request-access dialog when getStatus returns %s', async (status) => {
+    const microphonePermission: MicrophonePermissionPort = {
+      getStatus: vi.fn(async () => status),
+      request: vi.fn(async () => 'granted' as const),
+      openSettings: vi.fn(async () => undefined),
+    };
+    const { result, captureVoiceInput } = renderSubject({
+      microphonePermission,
+      selectedAccount: { id: 'acc-1', name: 'Main', currency: 'USD' },
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    await act(async () => {
+      await result.current.commands.beginGesture({ pointerId: 1, clientX: 10, clientY: 10 });
+    });
+
+    expect(microphonePermission.getStatus).toHaveBeenCalledTimes(1);
+    expect(captureVoiceInput.start).not.toHaveBeenCalled();
+  });
+
+  it('requests permission once and starts locked capture when permission is granted', async () => {
+    const microphonePermission: MicrophonePermissionPort = {
+      getStatus: vi.fn(async () => 'prompt' as const),
+      request: vi.fn(async () => 'granted' as const),
+      openSettings: vi.fn(async () => undefined),
+    };
+    const { result, captureVoiceInput } = renderSubject({
+      microphonePermission,
+      selectedAccount: { id: 'acc-1', name: 'Main', currency: 'USD' },
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    await act(async () => {
+      await result.current.commands.beginGesture({ pointerId: 1, clientX: 10, clientY: 10 });
+    });
+
+    await act(async () => {
+      await result.current.commands.requestPermissionAndRecord();
+    });
+
+    expect(microphonePermission.request).toHaveBeenCalledTimes(1);
+    expect(captureVoiceInput.start).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(result.current.state.functionalState).toBe('locked');
+    });
+  });
+
+  it('fails with the microphone denial message when permission is denied', async () => {
+    const microphonePermission: MicrophonePermissionPort = {
+      getStatus: vi.fn(async () => 'prompt' as const),
+      request: vi.fn(async () => 'denied' as const),
+      openSettings: vi.fn(async () => undefined),
+    };
+    const { result, captureVoiceInput, onError } = renderSubject({
+      microphonePermission,
+      selectedAccount: { id: 'acc-1', name: 'Main', currency: 'USD' },
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    await act(async () => {
+      await result.current.commands.beginGesture({ pointerId: 1, clientX: 10, clientY: 10 });
+    });
+
+    await act(async () => {
+      await result.current.commands.requestPermissionAndRecord();
+    });
+
+    expect(microphonePermission.request).toHaveBeenCalledTimes(1);
+    expect(captureVoiceInput.start).not.toHaveBeenCalled();
+    expect(result.current.state.functionalState).toBe('failed');
+    expect(result.current.state.presentation.kind).toBe('failed');
+    expect(onError).toHaveBeenCalledWith({
+      message: 'Microphone access was denied.',
+      diagnosticsAvailable: false,
+    });
+  });
+
+  it.each(['beginGesture', 'requestPermissionAndRecord'] as const)('opens the settings dialog when permission is permanently denied via %s', async (source) => {
+    const microphonePermission: MicrophonePermissionPort = {
+      getStatus: vi.fn(async (): Promise<'prompt' | 'permanently-denied'> => (source === 'beginGesture' ? 'permanently-denied' : 'prompt')),
+      request: vi.fn(async () => 'permanently-denied' as const),
+      openSettings: vi.fn(async () => undefined),
+    };
+    const { result, captureVoiceInput, onError } = renderSubject({
+      microphonePermission,
+      selectedAccount: { id: 'acc-1', name: 'Main', currency: 'USD' },
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    if (source === 'beginGesture') {
+      await act(async () => {
+        await result.current.commands.beginGesture({ pointerId: 1, clientX: 10, clientY: 10 });
+      });
+    } else {
+      await act(async () => {
+        await result.current.commands.beginGesture({ pointerId: 1, clientX: 10, clientY: 10 });
+      });
+      await act(async () => {
+        await result.current.commands.requestPermissionAndRecord();
+      });
+    }
+
+    expect(captureVoiceInput.start).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('opens microphone settings once and closes the dialog after the lifecycle returns with granted access', async () => {
+    const microphonePermission: MicrophonePermissionPort = {
+      getStatus: vi.fn()
+        .mockResolvedValueOnce('permanently-denied' as const)
+        .mockResolvedValueOnce('granted' as const),
+      request: vi.fn(async () => 'granted' as const),
+      openSettings: vi.fn(async () => undefined),
+    };
+    const { result, lifecycle } = renderSubject({
+      microphonePermission,
+      selectedAccount: { id: 'acc-1', name: 'Main', currency: 'USD' },
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    await act(async () => {
+      await result.current.commands.beginGesture({ pointerId: 1, clientX: 10, clientY: 10 });
+    });
+
+    await act(async () => {
+      await result.current.commands.openMicrophoneSettings();
+    });
+
+    expect(microphonePermission.openSettings).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      lifecycle.emit('inactive');
+      lifecycle.emit('active');
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.permissionDialog.open).toBe(false);
+    });
+    expect(result.current.state.functionalState).toBe('idle');
+  });
+
   it('waits for capture, transcription, and interpretation cancellation before discarding the run', async () => {
     const events: string[] = [];
     const captureCancel = createDeferred<void>();

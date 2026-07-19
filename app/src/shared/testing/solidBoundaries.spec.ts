@@ -104,6 +104,27 @@ describe('SOLID frontend boundaries', () => {
     expect(violations).toEqual([]);
   });
 
+  it('keeps MovementVoiceEntry application files independent from the component contract import cycle', () => {
+    const violations: string[] = [];
+
+    for (const file of listSourceFiles(srcDir)) {
+      const normalized = normalizePath(file);
+      if (!normalized.includes('/src/transactions/application/MovementVoiceEntry/')) {
+        continue;
+      }
+      if (normalized.endsWith('/useMovementVoiceEntryController.ts')) {
+        continue;
+      }
+
+      const source = readFileSync(file, 'utf8');
+      if (source.includes("from '../MovementVoiceEntryComponent.contract'") || source.includes("from './MovementVoiceEntryComponent.contract'")) {
+        violations.push(`${normalized}: imports MovementVoiceEntryComponent.contract`);
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
   it('keeps multi-file component clusters colocated in component folders', () => {
     const expectedClusterFiles = [
       'account/application/AccountHub/AccountHubComponent.tsx',
@@ -286,12 +307,58 @@ describe('SOLID frontend boundaries', () => {
     expect(violations).toEqual([]);
   });
 
-  it('keeps movement dock navigation composed from injected voice entry capabilities', () => {
+  it('keeps the dock free from voice entry contracts and components', () => {
     const source = readFileSync(resolve(srcDir, 'transactions/application/MovementDockNavigationComponent.tsx'), 'utf8');
+    const contractSource = readFileSync(resolve(srcDir, 'transactions/application/MovementDockNavigationComponent.contract.ts'), 'utf8');
 
-    expect(source).toContain('required.context.voiceEntry.captureVoiceInput');
-    expect(source).toContain('required.context.voiceEntry.microphonePermission');
-    expect(source).not.toContain('new NativeAudioCaptureAdapter');
+    expect(source).toContain("from '../../shared/ui/BottomNavigation/BottomNavigationView'");
+    expect(source).not.toContain('MovementDockNavigationView');
+    expect(source).not.toContain('useMovementVoiceCaptureModel');
+    expect(source).not.toContain('MovementVoiceEntryComponent');
+    expect(source).not.toContain('ExperimentalMovementDockNavigationComponent');
+    expect(source).not.toContain('useMovementVoiceEntryController');
+    expect(source).not.toContain('MovementVoicePermissionDialog');
+    expect(source).not.toContain('MovementVoiceEntryView');
+    expect(source).not.toContain('onMovementEntryDraftReady');
+    expect(source).not.toContain('onNotice');
+    expect(source).not.toContain('onInteractionStateChanged');
+    expect(source).not.toContain('selectedAccount: model.required.state.selectedAccountId');
+    expect(source).not.toContain('SheetView');
+    expect(contractSource).not.toContain('MovementVoiceEntryComponentRequired');
+    expect(contractSource).not.toContain('MovementVoiceEntrySelectedAccount');
+    expect(contractSource).not.toContain('MovementVoiceEntryNotice');
+  });
+
+  it('keeps the experimental dock view explicit and free from voice-entry naming', () => {
+    const source = readFileSync(resolve(srcDir, 'transactions/ui/ExperimentalMovementDockNavigation/ExperimentalMovementDockNavigationView.tsx'), 'utf8');
+    const css = readFileSync(resolve(srcDir, 'transactions/ui/ExperimentalMovementDockNavigation/ExperimentalMovementDockNavigationView.css'), 'utf8');
+
+    expect(source).toContain('movement-dock-navigation');
+    expect(source).not.toContain('MovementVoiceEntryView');
+    expect(source).not.toContain('MovementVoiceEntryComponent');
+    expect(css).toContain('movement-dock-navigation');
+    expect(css).not.toContain('movement-voice-');
+    expect(css).toContain('position: fixed');
+    expect(css).toContain('left: 50%');
+  });
+
+  it('keeps the experimental dock as the only voice controller consumer', () => {
+    const experimentalDockSource = readFileSync(resolve(srcDir, 'transactions/application/ExperimentalMovementDockNavigationComponent.tsx'), 'utf8');
+    const controllerSource = readFileSync(resolve(srcDir, 'transactions/application/MovementVoiceEntry/useMovementVoiceEntryController.ts'), 'utf8');
+    const profilePageSource = readFileSync(resolve(srcDir, 'workspace/application/ProfilePage.tsx'), 'utf8');
+    const profileViewSource = readFileSync(resolve(srcDir, 'workspace/ui/ProfilePageView.tsx'), 'utf8');
+
+    expect(experimentalDockSource).toContain('useMovementVoiceEntryController');
+    expect(experimentalDockSource).toContain('MovementVoicePermissionDialog');
+    expect(controllerSource).toContain('useMovementVoiceCaptureModel');
+    expect(profilePageSource).not.toContain('MovementVoiceEntryComponent');
+    expect(profilePageSource).not.toContain('MovementVoiceEntryContext');
+    expect(profilePageSource).not.toContain('onMovementEntryDraftReady');
+    expect(profilePageSource).not.toContain('experimentalContent');
+    expect(profileViewSource).not.toContain('MovementVoiceEntryComponent');
+    expect(profileViewSource).not.toContain('MovementVoiceEntryContext');
+    expect(profileViewSource).not.toContain('experimentalContent');
+    expect(profileViewSource).not.toContain('core/infrastructure');
   });
 
   it('keeps bounded-context infrastructure from depending on another context infrastructure', () => {

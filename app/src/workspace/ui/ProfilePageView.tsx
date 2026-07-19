@@ -1,26 +1,8 @@
-import type { ViewProps } from '../../shared/ui/ViewProps';
-import type { AccountSummaryView } from '../../account/application/accountView.types';
+import { BinarySwitchCardView } from '../../shared/ui/BinarySwitchCard/BinarySwitchCardView';
+import type { ProfilePageViewProps } from './ProfilePageView.contract';
 import './ProfilePageView.css';
 
-export type ProfilePageViewProps = ViewProps<
-  Record<string, never>,
-  {
-    accounts: AccountSummaryView[];
-  },
-  {
-    favoriteAccountId: string;
-  },
-  {
-    disabled: boolean;
-  },
-  {
-    selectFavoriteAccount: (accountId: string) => void;
-    addAccount: () => void;
-    importBackup: () => void;
-    exportBackup: () => void;
-    manageTaxonomy: () => void;
-  }
->;
+export type { ProfilePageViewProps } from './ProfilePageView.contract';
 
 export function ProfilePageView({ required, provided }: ProfilePageViewProps) {
   const activeAccounts = required.data.accounts.filter((account) => account.status === 'active');
@@ -64,6 +46,33 @@ export function ProfilePageView({ required, provided }: ProfilePageViewProps) {
             Taxonomy
           </button>
         </div>
+      </section>
+
+      <section className="profile-section profile-experimental-section" aria-labelledby="profile-experimental-heading">
+        <h2 id="profile-experimental-heading">Experimental</h2>
+        <BinarySwitchCardView
+          required={{
+            config: {
+              switchId: 'voice-movement-entry-experiment',
+              title: 'Voice movement entry',
+              description: required.data.voiceMovementExperiment.description,
+              ariaLabel: 'Enable voice movement entry experiment',
+              iconClassName: 'bi bi-flask',
+            },
+            data: {},
+            state: {
+              value: required.data.voiceMovementExperiment.enabled,
+            },
+            status: {
+              disabled: required.status.disabled || required.data.voiceMovementExperiment.disabled,
+            },
+          }}
+          provided={{
+            commands: {
+              setValue: provided.commands.setVoiceMovementExperimentEnabled,
+            },
+          }}
+        />
       </section>
     </div>
   );

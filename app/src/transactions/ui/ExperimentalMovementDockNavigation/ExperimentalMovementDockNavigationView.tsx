@@ -1,14 +1,22 @@
-import { useRef } from 'react';
-import type { MovementDockNavigationViewProps } from './MovementDockNavigationView.contract';
-import './MovementDockNavigationView.css';
+import { useRef, type PointerEvent as ReactPointerEvent } from 'react';
+import type { ExperimentalMovementDockNavigationViewProps } from './ExperimentalMovementDockNavigationView.contract';
+import './ExperimentalMovementDockNavigationView.css';
 
-export type { MovementDockNavigationViewProps } from './MovementDockNavigationView.contract';
+export type { ExperimentalMovementDockNavigationViewProps } from './ExperimentalMovementDockNavigationView.contract';
 
-function isRecordingState(kind: MovementDockNavigationViewProps['required']['state']['voiceCapture']['kind']): boolean {
-  return kind === 'recording' || kind === 'locked' || kind === 'requesting-permission' || kind === 'cancelling' || kind === 'stopping' || kind === 'transcribing' || kind === 'processing';
+const LEFT_ITEM_COUNT = 2;
+
+function isRecordingState(kind: ExperimentalMovementDockNavigationViewProps['required']['state']['voiceCapture']['kind']): boolean {
+  return kind === 'recording'
+    || kind === 'locked'
+    || kind === 'requesting-permission'
+    || kind === 'cancelling'
+    || kind === 'stopping'
+    || kind === 'transcribing'
+    || kind === 'processing';
 }
 
-export function MovementDockNavigationView({ required, provided }: MovementDockNavigationViewProps) {
+export function ExperimentalMovementDockNavigationView({ required, provided }: ExperimentalMovementDockNavigationViewProps) {
   const stopArmedRef = useRef(false);
   const voiceCaptureState = required.state.voiceCapture;
   const draftReadyState = voiceCaptureState.kind === 'draft-ready';
@@ -16,6 +24,7 @@ export function MovementDockNavigationView({ required, provided }: MovementDockN
     || voiceCaptureState.kind === 'stopping'
     || voiceCaptureState.kind === 'transcribing'
     || voiceCaptureState.kind === 'processing';
+  const showVoiceCaptureStatus = voiceCaptureState.kind !== 'idle';
   const {
     cancelVoicePipeline,
     onVoicePointerCancel,
@@ -31,7 +40,6 @@ export function MovementDockNavigationView({ required, provided }: MovementDockN
   const voiceCaptureKind = voiceCaptureState.kind;
   const voiceCaptureBusy = voiceCaptureState.busy;
   const recordingState = isRecordingState(voiceCaptureState.kind) || draftReadyState;
-  const showVoiceCaptureStatus = voiceCaptureKind !== 'idle';
   const navClassName = [
     'movement-dock-navigation',
     required.status.navigationDimmed ? 'movement-dock-navigation--dimmed' : '',
@@ -62,11 +70,46 @@ export function MovementDockNavigationView({ required, provided }: MovementDockN
     }
   }
 
+  function bindPointerGesture(
+    callback: (gesture: { pointerId: number; clientX: number; clientY: number }) => Promise<void> | void,
+  ) {
+    return async (event: ReactPointerEvent<HTMLButtonElement>) => {
+      if (event.pointerType === 'mouse' && event.button !== 0) {
+        return;
+      }
+      if ('setPointerCapture' in event.currentTarget && event.type === 'pointerdown') {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
+      event.preventDefault();
+      await callback({
+        pointerId: event.pointerId,
+        clientX: event.clientX,
+        clientY: event.clientY,
+      });
+    };
+  }
+
+  function bindPointerFinish(
+    callback: (gesture: { pointerId: number }) => Promise<void> | void,
+  ) {
+    return async (event: ReactPointerEvent<HTMLButtonElement>) => {
+      if ('releasePointerCapture' in event.currentTarget) {
+        try {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        } catch {
+          // noop
+        }
+      }
+      event.preventDefault();
+      await callback({ pointerId: event.pointerId });
+    };
+  }
+
   return (
     <nav className={navClassName} aria-label={required.config.ariaLabel}>
       <div className="movement-dock-bar">
         <div className="movement-dock-side movement-dock-side--left">
-          {required.data.items.slice(0, 2).map((item) => {
+          {required.data.items.slice(0, LEFT_ITEM_COUNT).map((item) => {
             const active = item.id === required.state.activeItemId;
             return (
               <button
@@ -88,7 +131,7 @@ export function MovementDockNavigationView({ required, provided }: MovementDockN
         <div className="movement-dock-bar-gap" aria-hidden />
 
         <div className="movement-dock-side movement-dock-side--right">
-          {required.data.items.slice(2).map((item) => {
+          {required.data.items.slice(LEFT_ITEM_COUNT).map((item) => {
             const active = item.id === required.state.activeItemId;
             return (
               <button
@@ -151,31 +194,32 @@ export function MovementDockNavigationView({ required, provided }: MovementDockN
           onClick={handleMicrophoneClick}
           onPointerDown={(event) => {
             stopArmedRef.current = recordingState;
-            onVoicePointerDown(event);
+            void bindPointerGesture(onVoicePointerDown)(event);
           }}
-          onPointerMove={onVoicePointerMove}
+          onPointerMove={bindPointerGesture(onVoicePointerMove)}
           onPointerUp={(event) => {
             if (voiceCaptureKind === 'locked') {
               stopArmedRef.current = false;
             }
-            onVoicePointerUp(event);
+            void bindPointerFinish(onVoicePointerUp)(event);
           }}
           onPointerCancel={(event) => {
             stopArmedRef.current = false;
-            onVoicePointerCancel(event);
+            void bindPointerFinish(onVoicePointerCancel)(event);
           }}
-          >
-            <i className={`bi ${
-            compactPipelineState
-              ? 'bi-x-circle'
-              : recordingState
-                && !draftReadyState
-                ? 'bi-stop-circle'
-                : voiceCaptureKind === 'failed'
-                  ? 'bi-mic-fill'
-                  : 'bi-mic'
-          }`}
-          aria-hidden
+        >
+          <i
+            className={`bi ${
+              compactPipelineState
+                ? 'bi-x-circle'
+                : recordingState
+                  && !draftReadyState
+                  ? 'bi-stop-circle'
+                  : voiceCaptureKind === 'failed'
+                    ? 'bi-mic-fill'
+                    : 'bi-mic'
+            }`}
+            aria-hidden
           />
         </button>
       </div>
