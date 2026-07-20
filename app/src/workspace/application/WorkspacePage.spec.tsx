@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import type { AccountPageViewProps } from '../../account/ui/AccountPageView/accountPageView.contract';
@@ -44,6 +44,7 @@ vi.mock('../../account/ui/AccountPageView/AccountPageView', () => ({
         </button>
       ) : null}
       <LocationProbe />
+      {required.sections.pageHeader}
       {required.sections.transactionEntry}
       {required.sections.accountSummary}
       {required.sections.netWorthSummary}
@@ -121,10 +122,6 @@ vi.mock('../../analytics/application/AnalyticsPageComponent', () => ({
 
 vi.mock('./HomeRecentMovementsComponent', () => ({
   HomeRecentMovementsComponent: () => null,
-}));
-
-vi.mock('../ui/HomeHeader/HomeHeaderView', () => ({
-  HomeHeaderView: () => null,
 }));
 
 vi.mock('./useWorkspaceRefreshSignals', () => ({
@@ -266,6 +263,42 @@ describe('WorkspacePage', () => {
     expect(screen.getByTestId('experimental-navigation')).toBeInTheDocument();
     expect(screen.queryByTestId('standard-navigation')).toBeNull();
     expect(voiceEntry.categorySource.taxonomyListCategories).not.toHaveBeenCalled();
+  });
+
+  it('renders the home page header with Gonezo and notifications', async () => {
+    renderSubject('/home');
+
+    expect(screen.getByRole('heading', { name: 'Gonezo' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open notifications' })).toBeInTheDocument();
+  });
+
+  it('renders the analytics page header with Analytics and notifications', async () => {
+    renderSubject('/analytics');
+
+    expect(screen.getByRole('heading', { name: 'Analytics' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open notifications' })).toBeInTheDocument();
+  });
+
+  it('renders the movements page header with search before notifications and navigates to global search', async () => {
+    renderSubject('/movements');
+
+    expect(screen.getByRole('heading', { name: 'Movements' })).toBeInTheDocument();
+    const searchLink = screen.getByRole('link', { name: 'Search movements' });
+    const notificationsButton = screen.getByRole('button', { name: 'Open notifications' });
+    expect(searchLink.compareDocumentPosition(notificationsButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    fireEvent.click(searchLink);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('workspace-path')).toHaveTextContent('/movements/search');
+    });
+  });
+
+  it('renders the profile page header with Profile and notifications', async () => {
+    renderSubject('/profile');
+
+    expect(screen.getByRole('heading', { name: 'Profile' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open notifications' })).toBeInTheDocument();
   });
 
   it('renders the standard navbar when the experiment is enabled but the device is unavailable', async () => {

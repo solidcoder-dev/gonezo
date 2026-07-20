@@ -43,6 +43,12 @@ function renderSubject(overrides: Partial<Parameters<typeof ProfilePageView>[0]>
 }
 
 describe('ProfilePageView', () => {
+  it('does not render a local page title', () => {
+    renderSubject();
+
+    expect(screen.queryByRole('heading', { name: 'Profile' })).not.toBeInTheDocument();
+  });
+
   it('renders the experimental section with the voice movement entry switch', () => {
     renderSubject();
 

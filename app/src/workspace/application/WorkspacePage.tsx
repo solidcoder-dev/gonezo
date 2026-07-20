@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { TransactionsImportFileReaderPort } from '../../imports/application/transactionsImportFileReader.port';
 import { MovementDockNavigationComponent, TransactionEntryComponent } from '../../transactions/index';
 import { ExperimentalMovementDockNavigationComponent } from '../../transactions/application/ExperimentalMovementDockNavigationComponent';
@@ -16,7 +16,7 @@ import { NetWorthSummaryComponent } from './NetWorthSummaryComponent';
 import { ExpectedMovementsCardComponent } from '../../movements/application/ExpectedMovementsCardComponent';
 import { AnalyticsPageComponent } from '../../analytics/application/AnalyticsPageComponent';
 import { HomeRecentMovementsComponent, type HomeRecentMovementsPort } from './HomeRecentMovementsComponent';
-import { HomeHeaderView } from '../ui/HomeHeader/HomeHeaderView';
+import { WorkspacePageHeader } from '../ui/WorkspacePageHeader/WorkspacePageHeader';
 import { useWorkspaceRefreshSignals } from './useWorkspaceRefreshSignals';
 import { useWorkspaceImportCoordinator } from './useWorkspaceImportCoordinator';
 import { useWorkspaceToast } from './useWorkspaceToast';
@@ -109,6 +109,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     setSelectedAccountId,
     refresh,
   });
+  const openNotifications = () => undefined;
 
   function collapseMovementComposerToDraft() {
     clearMovementEntryAccount();
@@ -327,26 +328,82 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     />
   );
 
+  const pageHeader = currentPage === 'home'
+    ? (
+        <WorkspacePageHeader
+          required={{
+            title: 'Gonezo',
+          }}
+          provided={{
+            commands: {
+              openNotifications,
+            },
+          }}
+        />
+      )
+    : currentPage === 'analytics'
+      ? (
+          <WorkspacePageHeader
+            required={{
+              title: 'Analytics',
+            }}
+            provided={{
+              commands: {
+                openNotifications,
+              },
+            }}
+          />
+        )
+      : currentPage === 'movements'
+        ? (
+            <WorkspacePageHeader
+              required={{
+                title: 'Movements',
+                searchAction: (
+                  <Link className="text-button icon-button" to="/movements/search" aria-label="Search movements">
+                    <i className="bi bi-search" aria-hidden />
+                  </Link>
+                ),
+              }}
+              provided={{
+                commands: {
+                  openNotifications,
+                },
+              }}
+            />
+          )
+        : currentPage === 'profile'
+          ? (
+              <WorkspacePageHeader
+                required={{
+                  title: 'Profile',
+                }}
+                provided={{
+                  commands: {
+                    openNotifications,
+                  },
+                }}
+              />
+            )
+          : null;
+
   const netWorthSummary = currentPage === 'home' ? (
-    <>
-      <HomeHeaderView provided={{ commands: { openNotifications: () => undefined } }} />
-      <NetWorthSummaryComponent
-        required={{
-          context: {
-            core: pageRequired.core,
-          },
-          config: {
-            enabled: true,
-            refreshSignal: netWorthRefreshSignal,
-          },
-        }}
-        provided={{
-          events: {
-            onError: showError,
-          },
-        }}
-      />
-    </>
+    <NetWorthSummaryComponent
+      required={{
+        context: {
+          core: pageRequired.core,
+        },
+        config: {
+          enabled: true,
+          refreshSignal: netWorthRefreshSignal,
+        },
+      }}
+      provided={{
+        events: {
+          onError: showError,
+        },
+      }}
+    />
   ) : null;
 
   const homeExpectedMovements = currentPage === 'home' ? (
@@ -403,6 +460,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       actionLabel: workspaceToast.toast.actionLabel,
     },
     sections: {
+      pageHeader,
       netWorthSummary,
       accountHub: null,
       accountSummary: currentPage === 'home'

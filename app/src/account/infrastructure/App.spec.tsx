@@ -3076,7 +3076,7 @@ describe('App Accounts UX', () => {
     await goToMovementsPage();
     expect(screen.getByRole('link', { name: 'Search movements' })).toHaveAttribute(
       'href',
-      '/movements/search?accountId=',
+      '/movements/search',
     );
   });
 
@@ -3092,7 +3092,7 @@ describe('App Accounts UX', () => {
     await goToMovementsPage();
     expect(screen.getByRole('link', { name: 'Search movements' })).toHaveAttribute(
       'href',
-      '/movements/search?accountId=',
+      '/movements/search',
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Home' }));
@@ -3103,7 +3103,7 @@ describe('App Accounts UX', () => {
     await waitFor(() => {
       expect(screen.getByRole('link', { name: 'Search movements' })).toHaveAttribute(
         'href',
-        '/movements/search?accountId=',
+        '/movements/search',
       );
     });
   });

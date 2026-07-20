@@ -126,6 +126,19 @@ function makeProps(overrides: Partial<MonthlyMovementsViewProps> = {}): MonthlyM
 }
 
 describe('MonthlyMovementsView', () => {
+  it('does not render the page title or search action inline', () => {
+    const props = makeProps();
+
+    render(
+      <MemoryRouter>
+        <MonthlyMovementsView {...props} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('heading', { name: 'Movements' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Search movements' })).not.toBeInTheDocument();
+  });
+
   it('renders a posted movement load more control', () => {
     const props = makeProps();
 

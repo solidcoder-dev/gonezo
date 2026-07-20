@@ -45,13 +45,6 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
 
   return (
     <section className={styles.page}>
-      <div className={styles.header}>
-        <h1>Analytics</h1>
-        <button type="button" className={styles.notificationButton} aria-label="Notifications">
-          <i className="bi bi-bell" aria-hidden />
-        </button>
-      </div>
-
       <AnalyticsViewTabsView
         required={{ state: { viewMode: filterModel.viewMode } }}
         provided={{ commands: { selectViewMode: filterModel.commands.selectViewMode } }}

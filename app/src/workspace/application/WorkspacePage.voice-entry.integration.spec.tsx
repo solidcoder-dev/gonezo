@@ -13,6 +13,7 @@ const experimentalNavigationProps: { current: ExperimentalMovementDockNavigation
 vi.mock('../../account/ui/AccountPageView/AccountPageView', () => ({
   AccountPageView: ({ required }: AccountPageViewProps) => (
     <div>
+      {required.sections.pageHeader}
       {required.sections.transactionEntry}
       {required.sections.accountSummary}
       {required.sections.netWorthSummary}
@@ -102,10 +103,6 @@ vi.mock('../../analytics/application/AnalyticsPageComponent', () => ({
 
 vi.mock('./HomeRecentMovementsComponent', () => ({
   HomeRecentMovementsComponent: () => null,
-}));
-
-vi.mock('../ui/HomeHeader/HomeHeaderView', () => ({
-  HomeHeaderView: () => null,
 }));
 
 vi.mock('./useWorkspaceRefreshSignals', () => ({

@@ -12,6 +12,7 @@ export type AccountPageViewRequired = {
     actionLabel: string;
   };
   sections: {
+    pageHeader: ReactNode;
     netWorthSummary: ReactNode;
     accountHub: ReactNode;
     accountSummary: ReactNode;

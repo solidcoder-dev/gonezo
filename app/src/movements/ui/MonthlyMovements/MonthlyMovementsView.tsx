@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { groupPostedTransactionsByDate } from './postedGrouping';
 import { groupScheduledMovementsByDate } from './scheduledGrouping';
 import { MonthNavigatorView } from '../MonthNavigator/MonthNavigatorView';
@@ -68,8 +67,6 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
   const expectedHasItems = expectedTotal > 0;
   const scheduledHasItems = scheduledTotal > 0;
 
-  const searchHref = `/movements/search?accountId=${encodeURIComponent(accountId)}`;
-
   function toggleExpectedExpanded() {
     setExpansionState((previous) => previous.scope === expansionScope
       ? { ...previous, expected: !previous.expected }
@@ -110,13 +107,6 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
 
   return (
     <section className="stack section-gap transactions-section" aria-busy={loading}>
-      <div className="inline-header">
-        <h2>Movements</h2>
-        <Link className="text-button icon-button" to={searchHref} aria-label="Search movements">
-          <i className="bi bi-search" aria-hidden />
-        </Link>
-      </div>
-
       <MonthNavigatorView
         required={{
           monthLabel,

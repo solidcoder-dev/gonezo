@@ -10,7 +10,6 @@ export function ProfilePageView({ required, provided }: ProfilePageViewProps) {
   return (
     <div className="profile-page">
       <section className="profile-section">
-        <h1>Profile</h1>
         <label className="stack">
           Favorite account
           <select

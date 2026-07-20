@@ -161,6 +161,19 @@ function createCore(): AnalyticsPort {
 }
 
 describe('AnalyticsPageComponent', () => {
+  it('does not render a local page title', () => {
+    render(
+      <AnalyticsPageComponent
+        required={{
+          context: { core: createCore() },
+          config: { enabled: true, refreshSignal: false },
+        }}
+      />,
+    );
+
+    expect(screen.queryByRole('heading', { name: 'Analytics' })).not.toBeInTheDocument();
+  });
+
   it('applies each global filter from its own sheet', async () => {
     const core = createCore();
 
@@ -221,8 +234,7 @@ describe('AnalyticsPageComponent', () => {
       />,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Analytics' })).toBeInTheDocument();
-
+    await waitFor(() => expect(screen.getByLabelText('Open more filters')).not.toBeDisabled());
     fireEvent.click(screen.getByLabelText('Open more filters'));
     expect(screen.getByRole('dialog', { name: 'More analytics filters' })).toBeInTheDocument();
     expect(screen.getByText('Accounts')).toBeInTheDocument();
