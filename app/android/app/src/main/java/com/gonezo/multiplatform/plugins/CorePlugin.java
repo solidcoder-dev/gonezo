@@ -62,6 +62,7 @@ public class CorePlugin extends Plugin {
     new LedgerPluginHandler(getContext()).ledgerGetAccountSummary(call);
   }
 
+  @PluginMethod public void ledgerGetNetWorthByCurrency(PluginCall call) { new LedgerPluginHandler(getContext()).ledgerGetNetWorthByCurrency(call); }
   @PluginMethod
   public void ledgerRecordExpense(PluginCall call) {
     new LedgerPluginHandler(getContext()).ledgerRecordExpense(call);

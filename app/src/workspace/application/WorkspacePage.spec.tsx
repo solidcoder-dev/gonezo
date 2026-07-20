@@ -5,6 +5,8 @@ import type { AccountPageViewProps } from '../../account/ui/AccountPageView/acco
 import type { MovementDockNavigationComponentProps } from '../../transactions/application/MovementDockNavigationComponent.contract';
 import type { ExperimentalMovementDockNavigationComponentProps } from '../../transactions/application/ExperimentalMovementDockNavigationComponent.contract';
 import type { ProfilePageProps } from './ProfilePage';
+import type { CurrencyAccountsSheetComponentProps } from '../../account/application/CurrencyAccountsSheet/CurrencyAccountsSheetComponent';
+import type { ManageAccountSheetComponentProps } from '../../account/application/ManageAccountSheet/ManageAccountSheetComponent';
 import { WorkspacePage, type WorkspacePageRequired } from './WorkspacePage';
 
 let movementDockNavigationProps: MovementDockNavigationComponentProps | null = null;
@@ -109,7 +111,35 @@ vi.mock('../../movements/index', () => ({
 }));
 
 vi.mock('./NetWorthSummaryComponent', () => ({
-  NetWorthSummaryComponent: () => null,
+  NetWorthSummaryComponent: (props: { provided?: { events?: { onViewAccountsRequested?: (currency: string) => void } } }) => {
+    return (
+      <div data-testid="net-worth-summary">
+        <button type="button" onClick={() => props.provided?.events?.onViewAccountsRequested?.('EUR')}>See all EUR</button>
+        <button type="button" onClick={() => props.provided?.events?.onViewAccountsRequested?.('USD')}>See all USD</button>
+      </div>
+    );
+  },
+}));
+
+vi.mock('../../account/application/CurrencyAccountsSheet/CurrencyAccountsSheetComponent', () => ({
+  CurrencyAccountsSheetComponent: (props: CurrencyAccountsSheetComponentProps) => props.required.config.open ? (
+    <div role="dialog" aria-label={`${props.required.config.currency} accounts`}>
+      <button type="button" onClick={props.provided?.events?.onClose}>Close accounts</button>
+      <button type="button" onClick={() => props.provided?.events?.onManageAccountRequested?.('eur-account')}>Manage Main EUR</button>
+    </div>
+  ) : null,
+}));
+
+vi.mock('../../account/application/ManageAccountSheet/ManageAccountSheetComponent', () => ({
+  ManageAccountSheetComponent: (props: ManageAccountSheetComponentProps) => props.required.config.open ? (
+    <div role="dialog" aria-label={`Manage ${props.required.context.accountId}`}>
+      <input aria-label="Manage account name" defaultValue="Main EUR" />
+      <button type="button">Save name</button>
+      <button type="button">Archive account</button>
+      <button type="button">Delete account</button>
+      <button type="button" onClick={props.provided?.events?.onClose}>Close account management</button>
+    </div>
+  ) : null,
 }));
 
 vi.mock('../../movements/application/ExpectedMovementsCardComponent', () => ({
@@ -241,6 +271,33 @@ function renderSubject(route: string, experimentalFeatures = makeExperimentalFea
 }
 
 describe('WorkspacePage', () => {
+  it('opens and closes currency accounts without changing the Home route', async () => {
+    renderSubject('/home');
+
+    fireEvent.click(screen.getByRole('button', { name: 'See all EUR' }));
+    expect(screen.getByRole('dialog', { name: 'EUR accounts' })).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-path')).toHaveTextContent('/home');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close accounts' }));
+    expect(screen.queryByRole('dialog', { name: 'EUR accounts' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('workspace-path')).toHaveTextContent('/home');
+  });
+
+  it('closes the currency account list and opens the selected account management sheet', () => {
+    renderSubject('/home');
+
+    fireEvent.click(screen.getByRole('button', { name: 'See all EUR' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Manage Main EUR' }));
+
+    expect(screen.queryByRole('dialog', { name: 'EUR accounts' })).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Manage eur-account' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save name' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Archive account' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete account' })).toBeInTheDocument();
+    expect(screen.queryByText('Net balance')).not.toBeInTheDocument();
+    expect(screen.getByTestId('workspace-path')).toHaveTextContent('/home');
+  });
+
   it('renders the standard navbar when the experiment is disabled', async () => {
     const experimentalFeatures = makeExperimentalFeaturesPort(false);
 

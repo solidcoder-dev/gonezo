@@ -86,6 +86,17 @@ beforeEach(() => {
 });
 
 describe('ProfilePage', () => {
+  it('does not filter profile accounts from a currency query parameter', async () => {
+    render(
+      <MemoryRouter initialEntries={['/profile?currency=EUR']}>
+        <ProfilePage required={makeRequired()} />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(profilePageProps).not.toBeNull());
+    expect(profilePageProps?.required.data.accounts).toHaveLength(2);
+  });
+
   it('passes the experimental toggle model to the view', async () => {
     render(
       <MemoryRouter>

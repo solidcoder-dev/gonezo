@@ -1,8 +1,36 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { SheetView } from './SheetView';
 
 describe('SheetView', () => {
+  it('restores focus to the opener when it closes', () => {
+    function Subject() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>Open sheet</button>
+          <SheetView
+            required={{
+              config: { ariaLabel: 'Sheet', closeLabel: 'Close sheet' },
+              data: { body: <p>Content</p> },
+              state: { open },
+              status: {},
+            }}
+            provided={{ commands: { close: () => setOpen(false) } }}
+          />
+        </>
+      );
+    }
+
+    render(<Subject />);
+    const opener = screen.getByRole('button', { name: 'Open sheet' });
+    opener.focus();
+    fireEvent.click(opener);
+    fireEvent.click(screen.getByRole('button', { name: 'Close sheet' }));
+    expect(document.activeElement).toBe(opener);
+  });
+
   it('renders a dialog with header, body and footer when open', () => {
     render(
       <SheetView

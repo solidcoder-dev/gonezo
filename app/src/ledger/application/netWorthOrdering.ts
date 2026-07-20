@@ -13,8 +13,7 @@ function compareNetWorthCurrency(
       return 1;
     }
   }
-  const balanceComparison = Number(right.balanceAmount) - Number(left.balanceAmount);
-  return balanceComparison !== 0 ? balanceComparison : left.currency.localeCompare(right.currency);
+  return left.currency.localeCompare(right.currency);
 }
 
 export function sortNetWorthCurrencies(

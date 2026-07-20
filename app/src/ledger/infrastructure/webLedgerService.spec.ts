@@ -192,7 +192,7 @@ describe('WebLedgerService', () => {
     });
   });
 
-  it('orders net worth currencies by highest net balance', async () => {
+  it('orders non-preferred net worth currencies alphabetically', async () => {
     const state = createWebAppState();
     const ledger = new WebLedgerService({ state, dependencies: createDependencies() });
 
@@ -217,9 +217,9 @@ describe('WebLedgerService', () => {
 
     await expect(ledger.getNetWorthByCurrency()).resolves.toEqual({
       items: [
-        expect.objectContaining({ currency: 'USD', balanceAmount: '300.00' }),
-        expect.objectContaining({ currency: 'GBP', balanceAmount: '200.00' }),
         expect.objectContaining({ currency: 'EUR', balanceAmount: '100.00' }),
+        expect.objectContaining({ currency: 'GBP', balanceAmount: '200.00' }),
+        expect.objectContaining({ currency: 'USD', balanceAmount: '300.00' }),
       ],
     });
   });

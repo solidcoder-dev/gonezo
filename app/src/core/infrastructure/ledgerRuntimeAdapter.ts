@@ -33,7 +33,6 @@ import { getNativeCashFlowSeries } from '../../ledger/infrastructure/nativeCashF
 import { listAccountBalances } from './accountBalancesQuery';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
-import { getNativeNetWorthByCurrency } from './nativeNetWorth';
 import { isNativeRuntime } from './runtimeAdapterSupport';
 
 export class LedgerRuntimeAdapter {
@@ -95,12 +94,8 @@ export class LedgerRuntimeAdapter {
     return isNativeRuntime() ? CorePlugin.ledgerGetAccountSummary(input) : this.web.ledgerGetAccountSummary(input);
   }
 
-  async ledgerGetNetWorthByCurrency(): Promise<LedgerGetNetWorthByCurrencyResult> {
-    if (!isNativeRuntime()) {
-      return this.web.ledgerGetNetWorthByCurrency();
-    }
-    const preferences = await CorePlugin.preferencesGet();
-    return getNativeNetWorthByCurrency(CorePlugin, preferences.defaultAccountId);
+  ledgerGetNetWorthByCurrency(): Promise<LedgerGetNetWorthByCurrencyResult> {
+    return isNativeRuntime() ? CorePlugin.ledgerGetNetWorthByCurrency() : this.web.ledgerGetNetWorthByCurrency();
   }
 
   ledgerGetCashFlowSeries(input: LedgerGetCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> {

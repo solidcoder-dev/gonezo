@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { ViewProps } from './ViewProps';
 import styles from './SheetView.module.css';
 import { useSheetDragToClose } from './useSheetDragToClose';
+import { useEffect } from 'react';
 
 export type SheetViewProps = ViewProps<
   {
@@ -46,6 +47,16 @@ export function SheetView({ required, provided }: SheetViewProps) {
     config.dragUpToExpand ? provided.commands.expand : undefined,
     config.dragDownToCollapse ? provided.commands.collapse : undefined,
   );
+
+  useEffect(() => {
+    if (!state.open) {
+      return undefined;
+    }
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    return () => {
+      opener?.focus();
+    };
+  }, [state.open]);
 
   if (!state.open) {
     return null;

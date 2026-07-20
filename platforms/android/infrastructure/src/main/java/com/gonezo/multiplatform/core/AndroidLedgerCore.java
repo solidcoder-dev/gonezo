@@ -3,6 +3,10 @@ package com.gonezo.multiplatform.core;
 import android.content.Context;
 import com.gonezo.application.ConsistencyBoundary;
 import com.gonezo.application.events.DomainEventPublisher;
+import com.gonezo.application.query.GetNetWorthByCurrencyQuery;
+import com.gonezo.application.query.GetNetWorthByCurrencyService;
+import com.gonezo.application.query.NetWorthByCurrencyQuery;
+import com.gonezo.application.query.NetWorthByCurrencyResult;
 import com.gonezo.ledger.application.AddLedgerTransactionItemCommand;
 import com.gonezo.ledger.application.AddLedgerTransactionItemUC;
 import com.gonezo.ledger.application.ArchiveLedgerAccountCommand;
@@ -92,6 +96,8 @@ public final class AndroidLedgerCore {
   private final AndroidLedgerAccountRepository accountRepository;
   private final AndroidLedgerTransactionRepository transactionRepository;
   private final AndroidMobillsImportFingerprintRepository mobillsImportFingerprintRepository;
+  private final GetNetWorthByCurrencyQuery getNetWorthByCurrencyQuery;
+  private final AndroidPreferencesCore preferencesCore;
 
   private AndroidLedgerCore(Context context) {
     CoreDatabase database = new CoreDatabase(context.getApplicationContext());
@@ -138,6 +144,10 @@ public final class AndroidLedgerCore {
     this.accountRepository = accountRepository;
     this.transactionRepository = transactionRepository;
     this.mobillsImportFingerprintRepository = new AndroidMobillsImportFingerprintRepository(database);
+    this.preferencesCore = AndroidPreferencesCore.getInstance(context);
+    this.getNetWorthByCurrencyQuery = new GetNetWorthByCurrencyService(
+      new AndroidNetWorthByCurrencyReadAdapter(database)
+    );
   }
 
   public static synchronized AndroidLedgerCore getInstance(Context context) {
@@ -225,6 +235,18 @@ public final class AndroidLedgerCore {
       account.getType().getValue(),
       account.getCurrency().toString(),
       balance.getAmount().toPlainString()
+    );
+  }
+
+  public NetWorthByCurrencyResult getNetWorthByCurrency() {
+    String preferredAccountId = preferencesCore.getPreferences().getDefaultAccountId() == null
+      ? null
+      : preferencesCore.getPreferences().getDefaultAccountId().getValue();
+    return getNetWorthByCurrencyQuery.execute(
+      new NetWorthByCurrencyQuery(
+        Instant.now(),
+        preferredAccountId == null ? null : new AccountId(UUID.fromString(preferredAccountId))
+      )
     );
   }
 

@@ -26,6 +26,19 @@ export function formatCurrencyAmount(amount: string, currency: string, preferred
   }
 }
 
+export function currencySymbol(currency: string, preferredLocale?: string): string {
+  try {
+    const parts = new Intl.NumberFormat(userLocale(preferredLocale), {
+      style: 'currency',
+      currency,
+      currencyDisplay: 'narrowSymbol',
+    }).formatToParts(0);
+    return parts.find((part) => part.type === 'currency')?.value ?? currency;
+  } catch {
+    return currency;
+  }
+}
+
 export function formatIsoDate(dateIso: string, preferredLocale?: string): string {
   if (!dateIso) {
     return '';

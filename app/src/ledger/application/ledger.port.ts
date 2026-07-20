@@ -59,12 +59,15 @@ export type LedgerGetAccountSummaryResult = {
 export type LedgerNetWorthCurrencyItem = {
   currency: string;
   balanceAmount: string;
+  accountCount?: number;
+  isPreferred?: boolean;
   trend?: LedgerNetWorthTrendPoint[];
 };
 
 export type LedgerNetWorthTrendPoint = {
-  periodKey: string;
-  label: string;
+  period?: string;
+  periodKey?: string;
+  label?: string;
   balanceAmount: string;
 };
 

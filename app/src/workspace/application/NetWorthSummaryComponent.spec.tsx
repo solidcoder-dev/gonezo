@@ -138,4 +138,31 @@ describe('NetWorthSummaryComponent', () => {
 
     await waitFor(() => expect(core.ledgerGetNetWorthByCurrency).toHaveBeenCalledTimes(2));
   });
+
+  it('renders account count and emits the active currency when See all is pressed', async () => {
+    const onViewAccountsRequested = vi.fn();
+    const core = createCore(async () => ({
+      items: [{
+        currency: 'EUR',
+        balanceAmount: '10.30',
+        accountCount: 2,
+        isPreferred: true,
+        trend: Array.from({ length: 6 }, (_, index) => ({ periodKey: `2026-0${index + 1}`, label: 'Jan', balanceAmount: '10.30' })),
+      } as never],
+    }));
+
+    render(
+      <NetWorthSummaryComponent
+        required={{ context: { core }, config: { enabled: true, refreshSignal: false } }}
+        provided={{ events: { onViewAccountsRequested } }}
+      />,
+    );
+
+    expect(await screen.findByText('2 accounts')).toBeInTheDocument();
+    const accountCount = screen.getByText('2 accounts');
+    expect(accountCount.querySelector('i.bi-bank')).toBeInTheDocument();
+    expect(accountCount.querySelector('i[class*="accountCountIcon"]')).toBeInTheDocument();
+    screen.getByRole('button', { name: /see all.*eur/i }).click();
+    expect(onViewAccountsRequested).toHaveBeenCalledWith('EUR');
+  });
 });

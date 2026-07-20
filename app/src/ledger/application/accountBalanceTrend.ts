@@ -1,4 +1,5 @@
 import type { LedgerNetWorthTrendPoint, LedgerTransactionListItem } from './ledger.port';
+import { addDecimalAmounts } from './decimalAmount';
 
 type BuildAccountBalanceTrendInput = {
   transactions: LedgerTransactionListItem[];
@@ -12,10 +13,6 @@ type TrendPeriod = {
 };
 
 const TREND_PERIODS = 6;
-
-function addAmount(left: string, right: string): string {
-  return (Number(left) + Number(right)).toFixed(2);
-}
 
 function startOfUtcMonth(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
@@ -47,21 +44,17 @@ function buildTrendPeriods(now: Date): TrendPeriod[] {
   });
 }
 
-export function ledgerTransactionBalanceDelta(transaction: LedgerTransactionListItem): number {
+export function ledgerTransactionBalanceDelta(transaction: LedgerTransactionListItem): string {
   if (transaction.status !== 'posted') {
-    return 0;
-  }
-  const amount = Number(transaction.amount);
-  if (!Number.isFinite(amount)) {
-    return 0;
+    return '0.00';
   }
   if (transaction.type === 'income' || transaction.type === 'transfer_in') {
-    return amount;
+    return transaction.amount;
   }
   if (transaction.type === 'expense' || transaction.type === 'transfer_out') {
-    return -amount;
+    return addDecimalAmounts('0', `-${transaction.amount}`);
   }
-  return 0;
+  return '0.00';
 }
 
 export function buildAccountBalanceTrend(input: BuildAccountBalanceTrendInput): LedgerNetWorthTrendPoint[] | undefined {
@@ -72,14 +65,15 @@ export function buildAccountBalanceTrend(input: BuildAccountBalanceTrendInput): 
         const occurredAt = new Date(transaction.occurredAt);
         return !Number.isNaN(occurredAt.getTime()) && occurredAt < period.end;
       })
-      .reduce((total, transaction) => addAmount(total, ledgerTransactionBalanceDelta(transaction).toFixed(2)), '0.00');
+      .reduce((total, transaction) => addDecimalAmounts(total, ledgerTransactionBalanceDelta(transaction)), '0.00');
 
     return {
+      period: period.periodKey,
       periodKey: period.periodKey,
       label: period.label,
       balanceAmount,
     };
   });
 
-  return trend.some((point) => Number(point.balanceAmount) !== 0) ? trend : undefined;
+  return trend;
 }

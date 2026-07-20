@@ -10,9 +10,10 @@ import type { AccountPageViewProvided, AccountPageViewRequired } from '../../acc
 import type { LoadPhase } from '../../account/application/accountPage.types';
 import type { AccountWorkspacePort } from '../../account/application/accounts.port';
 import type { AnalyticsPort } from '../../analytics/application/analytics.port';
-import { AccountsRailComponent } from '../../account/application/AccountsRail/AccountsRailComponent';
 import { ProfilePage } from './ProfilePage';
 import { NetWorthSummaryComponent } from './NetWorthSummaryComponent';
+import { CurrencyAccountsSheetComponent } from '../../account/application/CurrencyAccountsSheet/CurrencyAccountsSheetComponent';
+import { ManageAccountSheetComponent } from '../../account/application/ManageAccountSheet/ManageAccountSheetComponent';
 import { ExpectedMovementsCardComponent } from '../../movements/application/ExpectedMovementsCardComponent';
 import { AnalyticsPageComponent } from '../../analytics/application/AnalyticsPageComponent';
 import { HomeRecentMovementsComponent, type HomeRecentMovementsPort } from './HomeRecentMovementsComponent';
@@ -45,6 +46,8 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const navigate = useNavigate();
   const [screenLoadPhase, setScreenLoadPhase] = useState<LoadPhase>('loading');
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [accountsSheetCurrency, setAccountsSheetCurrency] = useState<string | null>(null);
+  const [managedAccountId, setManagedAccountId] = useState<string | null>(null);
   const [accountsCount, setAccountsCount] = useState(0);
 
   const workspaceToast = useWorkspaceToast();
@@ -59,7 +62,6 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const { refresh } = workspaceRefresh;
   const {
     accountHubRefreshSignal,
-    accountSummaryRefreshSignal,
     analyticsRefreshSignal,
     expectedMovementsRefreshSignal,
     movementQuickActionRefreshSignal,
@@ -100,7 +102,6 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const {
     handleAccountDeleted,
     handleAccountMutated,
-    handleAccountsCountChanged,
     handleProfileAccountMutated,
     handleSelectedAccountChanged,
   } = useWorkspaceAccountEvents({
@@ -261,29 +262,6 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     />
   ) : null;
 
-  const homeAccountsRail = currentPage === 'home' ? (
-    <AccountsRailComponent
-      required={{
-        context: {
-          core: pageRequired.core,
-        },
-        config: {
-          enabled: true,
-          refreshSignal: accountSummaryRefreshSignal,
-        },
-      }}
-      provided={{
-          events: {
-            onSelectedAccountChanged: handleSelectedAccountChanged,
-          onAccountsCountChanged: handleAccountsCountChanged,
-          onAccountMutated: handleAccountMutated,
-          onAccountDeleted: handleAccountDeleted,
-          onError: showError,
-        },
-      }}
-    />
-  ) : null;
-
   const movementsPage = (
     <MonthlyMovementsComponent
       required={{
@@ -401,6 +379,59 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       provided={{
         events: {
           onError: showError,
+          onViewAccountsRequested: (currency) => {
+            setAccountsSheetCurrency(currency);
+          },
+        },
+      }}
+    />
+  ) : null;
+
+  const currencyAccountsSheet = currentPage === 'home' ? (
+    <CurrencyAccountsSheetComponent
+      required={{
+        context: { core: pageRequired.core },
+        config: {
+          open: accountsSheetCurrency !== null,
+          currency: accountsSheetCurrency,
+          refreshSignal: netWorthRefreshSignal,
+        },
+      }}
+      provided={{
+        events: {
+          onClose: () => setAccountsSheetCurrency(null),
+          onAccountSelected: (accountId) => {
+            setSelectedAccountId(accountId);
+            setAccountsSheetCurrency(null);
+          },
+          onManageAccountRequested: (accountId) => {
+            setAccountsSheetCurrency(null);
+            setManagedAccountId(accountId);
+          },
+          onError: showError,
+        },
+      }}
+    />
+  ) : null;
+
+  const manageAccountSheet = currentPage === 'home' ? (
+    <ManageAccountSheetComponent
+      required={{
+        context: { core: pageRequired.core, accountId: managedAccountId },
+        config: { open: managedAccountId !== null, refreshSignal: accountHubRefreshSignal },
+      }}
+      provided={{
+        events: {
+          onClose: () => setManagedAccountId(null),
+          onAccountMutated: () => {
+            setManagedAccountId(null);
+            handleAccountMutated();
+          },
+          onAccountDeleted: () => {
+            setManagedAccountId(null);
+            if (managedAccountId) handleAccountDeleted(managedAccountId);
+          },
+          onError: showError,
         },
       }}
     />
@@ -464,9 +495,10 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       netWorthSummary,
       accountHub: null,
       accountSummary: currentPage === 'home'
-        ? (
+          ? (
             <>
-              {homeAccountsRail}
+              {currencyAccountsSheet}
+              {manageAccountSheet}
               {homeExpectedMovements}
               {homeRecentMovements}
             </>

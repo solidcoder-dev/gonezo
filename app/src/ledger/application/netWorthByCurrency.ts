@@ -5,6 +5,7 @@ import type {
 } from './ledger.port';
 import { buildAccountBalanceTrend, ledgerTransactionBalanceDelta } from './accountBalanceTrend';
 import { sortNetWorthCurrencies } from './netWorthOrdering';
+import { addDecimalAmounts } from './decimalAmount';
 
 type BuildNetWorthByCurrencyInput = {
   accounts: LedgerAccountItem[];
@@ -12,10 +13,6 @@ type BuildNetWorthByCurrencyInput = {
   preferredCurrency?: string;
   now: Date;
 };
-
-function addAmount(left: string, right: string): string {
-  return (Number(left) + Number(right)).toFixed(2);
-}
 
 export function buildNetWorthByCurrency(input: BuildNetWorthByCurrencyInput): LedgerNetWorthCurrencyItem[] {
   const currencies = new Set(input.accounts.map((account) => account.currency.toUpperCase()));
@@ -25,7 +22,7 @@ export function buildNetWorthByCurrency(input: BuildNetWorthByCurrencyInput): Le
   for (const currency of currencies) {
     const currencyTransactions = input.transactions.filter((transaction) => transaction.currency.toUpperCase() === currency);
     const balanceAmount = currencyTransactions.reduce(
-      (total, transaction) => addAmount(total, ledgerTransactionBalanceDelta(transaction).toFixed(2)),
+      (total, transaction) => addDecimalAmounts(total, ledgerTransactionBalanceDelta(transaction)),
       '0.00',
     );
     balanceByCurrency.set(currency, balanceAmount);
@@ -39,6 +36,8 @@ export function buildNetWorthByCurrency(input: BuildNetWorthByCurrencyInput): Le
     [...balanceByCurrency.entries()].map(([currency, balanceAmount]) => ({
       currency,
       balanceAmount,
+      accountCount: input.accounts.filter((account) => account.currency.toUpperCase() === currency).length,
+      isPreferred: currency === input.preferredCurrency?.toUpperCase(),
       trend: trendByCurrency.get(currency),
     })),
     input.preferredCurrency,

@@ -64,7 +64,6 @@ export async function expandScheduledMovements() {
 
 export async function goToMovementsPage() {
   if (!screen.queryByRole('heading', { name: 'Movements' })) {
-    await screen.findByRole('heading', { name: 'Accounts' });
     fireEvent.click(await screen.findByRole('button', { name: 'Movements' }));
   }
   await screen.findByRole('heading', { name: 'Movements' });

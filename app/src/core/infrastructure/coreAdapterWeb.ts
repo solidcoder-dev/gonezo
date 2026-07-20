@@ -223,7 +223,10 @@ export class CoreAdapterWeb implements CorePort {
       ? this.state.ledgerAccounts.find((account) => account.id === this.state.defaultAccountId)
       : undefined;
     return {
-      items: sortNetWorthCurrencies(result.items, defaultAccount?.currency),
+      items: sortNetWorthCurrencies(result.items, defaultAccount?.currency).map((item) => ({
+        ...item,
+        isPreferred: item.currency === defaultAccount?.currency,
+      })),
     };
   }
 

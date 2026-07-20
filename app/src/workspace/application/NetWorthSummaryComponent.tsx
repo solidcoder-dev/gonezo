@@ -18,6 +18,7 @@ export type NetWorthSummaryComponentProps = {
   provided?: {
     events?: {
       onError?: (error: { message: string }) => void;
+      onViewAccountsRequested?: (currency: string) => void;
     };
   };
 };
@@ -35,6 +36,8 @@ function toCurrencyView(item: LedgerNetWorthCurrencyItem): NetWorthCurrencyView 
   return {
     ...item,
     formattedBalance: formatCurrencyAmount(item.balanceAmount, item.currency),
+    accountCount: item.accountCount ?? 0,
+    isPreferred: item.isPreferred ?? false,
     trend: item.trend && item.trend.length >= 2
       ? {
           ariaLabel: `${item.currency} net worth trend`,
@@ -101,7 +104,9 @@ export function NetWorthSummaryComponent({ required, provided }: NetWorthSummary
         status: { loadPhase: visibleLoadPhase, error: visibleError },
       }}
       provided={{
-        commands: {},
+        commands: {
+          onViewAccountsRequested: (currency) => provided?.events?.onViewAccountsRequested?.(currency),
+        },
       }}
     />
   );

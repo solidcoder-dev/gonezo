@@ -57,6 +57,17 @@ describe('ProfilePageView', () => {
     expect(screen.getByText('Replaces the standard Add navigation with the experimental manual and voice movement controls.')).toBeInTheDocument();
   });
 
+  it('keeps favorite account and global actions without rendering an account list', () => {
+    renderSubject();
+
+    expect(screen.getByRole('combobox', { name: 'Favorite account' })).toHaveValue('a');
+    expect(screen.queryByRole('region', { name: 'Accounts' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add account' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Import backup' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Backup' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Taxonomy' })).toBeInTheDocument();
+  });
+
   it('reflects the current experiment state and disables while saving', () => {
     renderSubject({
       required: {

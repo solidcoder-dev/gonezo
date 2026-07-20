@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { createLedgerGateway } from '../../../ledger/application/ledgerGateway';
 import { formatCurrencyAmount } from '../../../shared/utils/formatting';
-import { SheetView } from '../../../shared/ui/SheetView';
+import { ManageAccountSheetView } from '../../ui/ManageAccountSheet/ManageAccountSheetView';
 import type { AccountSummaryComponentProps } from './AccountSummaryComponent.contract';
 import { useAccountSummaryModel } from './useAccountSummaryModel';
 import './AccountSummaryComponent.css';
@@ -74,59 +74,22 @@ export function AccountSummaryComponent({ required, provided = {} }: AccountSumm
       </section>
 
       {manageOpen ? (
-        <SheetView
+        <ManageAccountSheetView
           required={{
-            config: {
-              ariaLabel: 'Manage account',
-              title: 'Manage account',
-              closeLabel: 'Close account management',
-            },
-            data: {
-              body: (
-                <form className="stack" onSubmit={submitRename} aria-busy={managing}>
-                  <label className="stack">
-                    Account name
-                    <input
-                      aria-label="Manage account name"
-                      value={manageName}
-                      onChange={(event) => setManageName(event.target.value)}
-                      placeholder="Account name"
-                      autoComplete="off"
-                    />
-                  </label>
-
-                  <div className="quick-row">
-                    <button type="submit" disabled={managing}>
-                      Save name
-                    </button>
-                    <button
-                      type="button"
-                      className="text-button"
-                      onClick={archiveAccount}
-                      disabled={managing}
-                    >
-                      Archive account
-                    </button>
-                  </div>
-
-                  <p className="hint">Archived accounts are hidden from the active list and cannot accept new transactions.</p>
-
-                  <button
-                    type="button"
-                    className="danger-button"
-                    onClick={deleteAccount}
-                    disabled={managing}
-                  >
-                    Delete account
-                  </button>
-                  <p className="hint">Delete removes the account and all its transactions permanently.</p>
-                </form>
-              ),
-            },
-            state: { open: true },
-            status: {},
+            config: {},
+            data: { summary },
+            state: { open: true, name: manageName },
+            status: { loading, managing, error },
           }}
-          provided={{ commands: { close: closeManage } }}
+          provided={{
+            commands: {
+              close: closeManage,
+              setName: setManageName,
+              submitRename,
+              archive: archiveAccount,
+              delete: deleteAccount,
+            },
+          }}
         />
       ) : null}
     </>

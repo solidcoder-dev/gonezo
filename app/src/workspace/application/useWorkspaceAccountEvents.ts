@@ -34,14 +34,14 @@ export function useWorkspaceAccountEvents({
   }
 
   function handleAccountMutated() {
-    refresh('accountSummary', 'netWorth', 'movementQuickAction', 'expectedMovements', 'analytics');
+    refresh('accountHub', 'accountSummary', 'netWorth', 'movementQuickAction', 'expectedMovements', 'analytics');
   }
 
   function handleAccountDeleted(accountId: string) {
     if (selectedAccountId === accountId) {
       setSelectedAccountId(null);
     }
-    refresh('accountSummary', 'netWorth', 'recentTransactions', 'movementQuickAction', 'expectedMovements', 'analytics');
+    refresh('accountHub', 'accountSummary', 'netWorth', 'recentTransactions', 'movementQuickAction', 'expectedMovements', 'analytics');
   }
 
   function handleProfileAccountMutated() {

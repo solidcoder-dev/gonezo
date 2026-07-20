@@ -3,6 +3,8 @@ package com.gonezo.multiplatform.plugins;
 import android.content.Context;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
+import com.gonezo.application.query.NetWorthByCurrencyItem;
+import com.gonezo.application.query.NetWorthByCurrencyResult;
 import com.gonezo.multiplatform.core.AndroidLedgerCore;
 import org.json.JSONArray;
 
@@ -116,6 +118,34 @@ final class LedgerPluginHandler {
       result.put("currency", summary.currency());
       result.put("balanceAmount", summary.balanceAmount());
       call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  void ledgerGetNetWorthByCurrency(PluginCall call) {
+    try {
+      NetWorthByCurrencyResult result = AndroidLedgerCore.getInstance(context).getNetWorthByCurrency();
+      JSONArray items = new JSONArray();
+      for (NetWorthByCurrencyItem item : result.getItems()) {
+        JSObject serialized = new JSObject();
+        serialized.put("currency", item.getCurrency().getValue());
+        serialized.put("balanceAmount", item.getBalance().getAmount().toPlainString());
+        serialized.put("accountCount", item.getAccountCount());
+        serialized.put("isPreferred", item.isPreferred());
+        JSONArray trend = new JSONArray();
+        for (com.gonezo.application.query.NetWorthTrendPoint point : item.getTrend()) {
+          JSObject trendPoint = new JSObject();
+          trendPoint.put("period", point.getPeriod());
+          trendPoint.put("balanceAmount", point.getBalance().getAmount().toPlainString());
+          trend.put(trendPoint);
+        }
+        serialized.put("trend", trend);
+        items.put(serialized);
+      }
+      JSObject resultJson = new JSObject();
+      resultJson.put("items", items);
+      call.resolve(resultJson);
     } catch (Exception ex) {
       call.reject(ex.getMessage());
     }

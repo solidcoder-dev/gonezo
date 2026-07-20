@@ -954,6 +954,13 @@ function makeCore(transactionCount = 0): AppTestPort {
 }
 
 describe('App Accounts UX', () => {
+  async function openMainAccountManagement() {
+    await screen.findByRole('heading', { name: 'Balances by currency' });
+    fireEvent.click(screen.getByRole('button', { name: 'See all USD accounts' }));
+    const accountsDialog = await screen.findByRole('dialog', { name: 'USD accounts' });
+    fireEvent.click(within(accountsDialog).getByRole('button', { name: 'Manage Main' }));
+  }
+
   beforeEach(() => {
     window.localStorage.clear();
   });
@@ -963,7 +970,7 @@ describe('App Accounts UX', () => {
     vi.restoreAllMocks();
   });
 
-  it('shows accounts rail instead of the old net balance card', async () => {
+  it('shows balances by currency instead of the old accounts rail', async () => {
     const core = makeCore();
 
     render(
@@ -972,9 +979,9 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole('heading', { name: 'Accounts' })).toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: 'Main' })).toBeInTheDocument();
-    expect(screen.getAllByText('$100.00').length).toBeGreaterThan(0);
+    expect(await screen.findByRole('heading', { name: 'Balances by currency' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Balances by currency' })).toBeInTheDocument();
+    expect(screen.getAllByText('$250.00').length).toBeGreaterThan(0);
     expect(screen.queryByText('Net balance')).not.toBeInTheDocument();
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   });
@@ -1018,7 +1025,7 @@ describe('App Accounts UX', () => {
     });
   });
 
-  it('opens the preferred active account from user preferences', async () => {
+  it('places the preferred account currency first on Home', async () => {
     const core = makeCore();
     vi.mocked(core.preferencesGet).mockResolvedValue({ defaultAccountId: 'acc-2' });
 
@@ -1028,10 +1035,8 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole('button', { name: 'Savings' })).toBeInTheDocument();
-    await waitFor(() => {
-      expect(core.ledgerGetAccountSummary).toHaveBeenCalledWith({ accountId: 'acc-2' });
-    });
+    expect(await screen.findByRole('heading', { name: 'Balances by currency' })).toBeInTheDocument();
+    expect(screen.getByRole('article', { name: 'USD, currency 1 of 1' })).toBeInTheDocument();
   });
 
   it('routes home, analytics, movements and profile from the bottom dock', async () => {
@@ -1043,7 +1048,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole('heading', { name: 'Accounts' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Balances by currency' })).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Primary navigation' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Analytics' }));
@@ -1387,7 +1392,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
     await screen.findByRole('heading', { name: 'Profile' });
     fireEvent.click(await screen.findByRole('button', { name: 'Add account' }));
@@ -1398,9 +1403,6 @@ describe('App Accounts UX', () => {
     await waitFor(() => {
       expect(core.ledgerOpenAccount).toHaveBeenCalledWith(expect.objectContaining({ name: 'Travel' }));
     });
-    fireEvent.click(await screen.findByRole('button', { name: 'Home' }));
-    expect(await screen.findByRole('button', { name: 'Travel' })).toBeInTheDocument();
-
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
     const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
     fireEvent.click(within(composer).getByRole('button', { name: /^Source account/ }));
@@ -1436,9 +1438,9 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole('button', { name: 'Main' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Balances by currency' })).toBeInTheDocument();
     await waitFor(() => {
-      expect(core.ledgerGetAccountSummary).toHaveBeenCalledWith({ accountId: 'acc-1' });
+      expect(core.ledgerGetNetWorthByCurrency).toHaveBeenCalled();
     });
   });
 
@@ -1525,9 +1527,11 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
-    expect(screen.getByRole('button', { name: 'Main' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Savings' })).toBeInTheDocument();
+    await screen.findByRole('heading', { name: 'Balances by currency' });
+    fireEvent.click(screen.getByRole('button', { name: 'Profile' }));
+    await screen.findByRole('heading', { name: 'Profile' });
+    expect(screen.getByRole('option', { name: 'Main' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Savings' })).toBeInTheDocument();
     expect(screen.queryByText('Old Wallet')).not.toBeInTheDocument();
   });
 
@@ -1566,13 +1570,12 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     expect(screen.queryByText('Old Wallet')).not.toBeInTheDocument();
     accounts[1].status = 'active';
     fireEvent.click(screen.getByRole('button', { name: 'Profile' }));
     await screen.findByRole('heading', { name: 'Profile' });
-    fireEvent.click(screen.getByRole('button', { name: 'Home' }));
-    expect(await screen.findByRole('button', { name: 'Old Wallet' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Old Wallet' })).toBeInTheDocument();
   });
 
   it('opens add account sheet from accounts menu', async () => {
@@ -1584,7 +1587,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
     await screen.findByRole('heading', { name: 'Profile' });
     fireEvent.click(await screen.findByRole('button', { name: 'Add account' }));
@@ -1604,8 +1607,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
-    fireEvent.click(screen.getByRole('button', { name: 'Main' }));
+    await openMainAccountManagement();
     expect(await screen.findByRole('dialog', { name: 'Manage account' })).toBeInTheDocument();
   });
 
@@ -1618,8 +1620,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
-    fireEvent.click(screen.getByRole('button', { name: 'Main' }));
+    await openMainAccountManagement();
     fireEvent.change(await screen.findByLabelText('Manage account name'), { target: { value: 'Wallet renamed' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save name' }));
 
@@ -1642,8 +1643,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
-    fireEvent.click(screen.getByRole('button', { name: 'Main' }));
+    await openMainAccountManagement();
     fireEvent.click(await screen.findByRole('button', { name: 'Archive account' }));
 
     await waitFor(() => {
@@ -1665,8 +1665,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
-    fireEvent.click(screen.getByRole('button', { name: 'Main' }));
+    await openMainAccountManagement();
     fireEvent.click(await screen.findByRole('button', { name: 'Delete account' }));
 
     await waitFor(() => {
@@ -1688,8 +1687,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
-    fireEvent.click(screen.getByRole('button', { name: 'Main' }));
+    await openMainAccountManagement();
     fireEvent.click(await screen.findByRole('button', { name: 'Delete account' }));
 
     expect(core.ledgerDeleteAccount).not.toHaveBeenCalled();
@@ -1723,7 +1721,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openImportSheetFromAccounts();
     const dialog = await screen.findByRole('dialog', { name: 'Import backup' });
     expect(dialog).toBeInTheDocument();
@@ -1745,7 +1743,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openImportSheetFromAccounts();
     await enableMobillsImport();
 
@@ -1762,7 +1760,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openImportSheetFromAccounts();
 
     expect(screen.getByLabelText('Import Mobills TSV/CSV')).not.toBeChecked();
@@ -1795,7 +1793,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openImportSheetFromAccounts();
 
     fireEvent.click(screen.getByLabelText('Import Mobills TSV/CSV'));
@@ -1835,7 +1833,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openImportSheetFromAccounts();
     await enableMobillsImport();
 
@@ -1887,7 +1885,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openImportSheetFromAccounts();
     await enableMobillsImport();
 
@@ -1918,7 +1916,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openImportSheetFromAccounts();
     await enableMobillsImport();
 
@@ -1999,7 +1997,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openImportSheetFromAccounts();
     await enableMobillsImport();
 
@@ -2040,7 +2038,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openImportSheetFromAccounts();
     await enableMobillsImport();
 
@@ -2066,7 +2064,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
@@ -2138,6 +2136,10 @@ describe('App Accounts UX', () => {
     const core = makeCore();
     let currentBalance = '100.00';
 
+    vi.mocked(core.ledgerGetNetWorthByCurrency).mockImplementation(async () => ({
+      items: [{ currency: 'USD', balanceAmount: currentBalance, accountCount: 2 }],
+    }));
+
     vi.mocked(core.ledgerGetAccountSummary).mockImplementation(async () => ({
       accountId: 'acc-1',
       name: 'Main',
@@ -2156,7 +2158,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     expect(screen.getAllByText(/\$100\.00/).length).toBeGreaterThan(0);
 
     await openMode('Expense');
@@ -2180,7 +2182,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-03-10' } });
@@ -2205,7 +2207,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-12-31' } });
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
@@ -2226,7 +2228,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Income');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '1200' } });
     fireEvent.change(screen.getByLabelText('Source'), { target: { value: 'Client invoice' } });
@@ -2258,7 +2260,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '55' } });
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: isoInCurrentMonth(4).slice(0, 10) } });
@@ -2302,7 +2304,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
     expect(screen.getByRole('group', { name: 'Category' })).toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: 'Category' })).not.toBeInTheDocument();
@@ -2330,7 +2332,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '35' } });
@@ -2353,7 +2355,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '35' } });
@@ -2383,7 +2385,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
 
     await waitFor(() => {
@@ -2401,7 +2403,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Income');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '30' } });
@@ -2421,7 +2423,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Income');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
@@ -2463,7 +2465,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
     expect(screen.getByLabelText('Tags')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'ho' } });
@@ -2510,7 +2512,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '20' } });
@@ -2544,7 +2546,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Transfer');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
@@ -2580,7 +2582,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Transfer');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '5' } });
@@ -2629,7 +2631,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Transfer');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
@@ -2694,7 +2696,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Transfer');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
@@ -2759,7 +2761,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Transfer');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
@@ -2781,7 +2783,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
@@ -2815,7 +2817,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
     await openItemsEditor();
 
@@ -2852,7 +2854,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>,
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
     await openItemsEditor();
@@ -2903,7 +2905,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '80' } });
@@ -2931,9 +2933,9 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
-    vi.mocked(core.ledgerListAccounts).mockRejectedValueOnce(new Error('refresh failed'));
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
+    vi.mocked(core.ledgerGetNetWorthByCurrency).mockRejectedValueOnce(new Error('refresh failed'));
 
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
@@ -2944,7 +2946,7 @@ describe('App Accounts UX', () => {
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
     });
-    expect(await screen.findByRole('alert')).toHaveTextContent('refresh failed');
+    expect(screen.getAllByRole('alert').some((element) => element.textContent?.includes('refresh failed'))).toBe(true);
   });
 
   it('voids a transaction after undo window expires', async () => {
@@ -3095,9 +3097,6 @@ describe('App Accounts UX', () => {
       '/movements/search',
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Home' }));
-    await screen.findByRole('heading', { name: 'Accounts' });
-    fireEvent.click(await screen.findByRole('button', { name: 'Savings' }));
     await goToMovementsPage();
 
     await waitFor(() => {
@@ -3897,13 +3896,6 @@ describe('App Accounts UX', () => {
 
     await expandScheduledMovements();
     expect(await screen.findByText('Scheduled transfer')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Home' }));
-    await screen.findByRole('heading', { name: 'Accounts' });
-    fireEvent.click(await screen.findByRole('button', { name: 'Savings' }));
-
-    await expandScheduledMovements();
-    expect(await screen.findByText('Scheduled transfer')).toBeInTheDocument();
   });
 
   it('creates recurring expense from composer more options', async () => {
@@ -3915,7 +3907,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '37.5' } });
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-05-04' } });
@@ -3956,7 +3948,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Income');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '2400' } });
     fireEvent.change(screen.getByLabelText('Source'), { target: { value: 'Consulting' } });
@@ -3997,7 +3989,7 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole('heading', { name: 'Accounts' });
+    await screen.findByRole('heading', { name: 'Balances by currency' });
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '25' } });
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-12-31' } });
