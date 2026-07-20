@@ -81,6 +81,7 @@ import type {
   ExpectedUpdateMovementInput,
   ExpectedUpdateMovementResult,
   ExpectedDismissMovementInput,
+  ExpectedPostMovementInput,
   ExpectedListMovementsInput,
   ExpectedListMovementsResult,
   ExpectedResolveMovementInput,
@@ -105,6 +106,8 @@ import type {
   SharingListMovementDetailsResult,
   SharingListPeopleResult,
   SharingMovementDetailsResult,
+  SharingGetPlannedShareInput,
+  SharingPlannedShareResult,
 } from '../../sharing/application/sharing.port';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import type { CorePlugin } from './corePlugin';
@@ -324,6 +327,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
     return this.core.expectedDismissMovement(options);
   }
 
+  async expectedPostMovement(options: ExpectedPostMovementInput): Promise<{ transactionId: string; shareId?: string; nextExpectedMovementId?: string }> {
+    return this.core.expectedPostMovement(options);
+  }
+
   async sharingListPeople(): Promise<SharingListPeopleResult> {
     return this.core.sharingListPeople();
   }
@@ -340,6 +347,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async sharingListMovementDetails(options: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult> {
     return this.core.sharingListMovementDetails(options);
+  }
+
+  async sharingGetPlannedShare(options: SharingGetPlannedShareInput): Promise<SharingPlannedShareResult> {
+    return this.core.sharingGetPlannedShare(options);
   }
 
   async analyticsSetMovementIgnored(options: AnalyticsSetMovementIgnoredInput): Promise<void> {

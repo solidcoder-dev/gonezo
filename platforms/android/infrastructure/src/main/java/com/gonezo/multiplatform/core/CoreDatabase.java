@@ -7,10 +7,14 @@ import android.database.sqlite.SQLiteOpenHelper;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 21;
+  private static final int DB_VERSION = 29;
 
   CoreDatabase(Context context) {
-    super(context, DB_NAME, null, DB_VERSION);
+    this(context, DB_NAME);
+  }
+
+  CoreDatabase(Context context, String databaseName) {
+    super(context, databaseName, null, DB_VERSION);
   }
 
   @Override
@@ -83,6 +87,35 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion < 21) {
       seedMasterCategories(db);
     }
+
+    if (oldVersion >= 16 && oldVersion < 22) {
+      addExpectedMovementItemTemplateTraceabilityColumn(db);
+    }
+
+    if (oldVersion < 23) {
+      createRecurringSharingTables(db);
+    }
+
+    if (oldVersion < 24) {
+      addPlannedSharePayerPartsColumn(db);
+    }
+
+    if (oldVersion < 25) {
+      createExpectedPostingIdempotencyTable(db);
+    }
+
+    if (oldVersion < 26) {
+      addExpectedPostingCompletionStatus(db);
+    }
+    if (oldVersion < 27) {
+      addExpectedItemTemplateIdentityIndex(db);
+    }
+    if (oldVersion < 28) {
+      addNextExpectedPostingId(db);
+    }
+    if (oldVersion < 29) {
+      addRecurringAndExpectedTagColumns(db);
+    }
   }
 
   @Override
@@ -103,6 +136,13 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     createExpectedMovementItemTables(db);
     createUserPreferencesTables(db);
     createSharingTables(db);
+    createRecurringSharingTables(db);
+    addPlannedSharePayerPartsColumn(db);
+    createExpectedPostingIdempotencyTable(db);
+    addExpectedPostingCompletionStatus(db);
+    addExpectedItemTemplateIdentityIndex(db);
+    addNextExpectedPostingId(db);
+    addRecurringAndExpectedTagColumns(db);
   }
 
   private static void createLedgerTables(SQLiteDatabase db) {
@@ -149,6 +189,10 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     );
 
     createLedgerIndexes(db);
+  }
+
+  private static void addExpectedMovementItemTemplateTraceabilityColumn(SQLiteDatabase db) {
+    db.execSQL("alter table expected_movement_items add column source_template_item_id text;");
   }
 
   private static void createLedgerIndexes(SQLiteDatabase db) {
@@ -296,6 +340,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
         "description text," +
         "merchant text," +
         "category_id text," +
+        "tag_names text not null default '[]'," +
         "review_policy text not null default 'automatic'," +
         "rule_frequency text not null," +
         "rule_interval integer not null," +
@@ -396,6 +441,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
         "updated_at text not null," +
         "resolved_at text," +
         "dismissed_at text," +
+        "tag_names text not null default '[]'," +
       "foreign key(account_id) references ledger_accounts(id)" +
       ");"
     );
@@ -446,6 +492,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
         "item_order integer not null," +
         "name text not null," +
         "amount text not null," +
+        "source_template_item_id text," +
         "foreign key(expected_movement_id) references expected_movements(id) on delete cascade" +
       ");"
     );
@@ -569,6 +616,121 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     );
   }
 
+  private static void createRecurringSharingTables(SQLiteDatabase db) {
+    db.execSQL("create table if not exists sharing_recurring_plans (" +
+      "id text primary key, recurring_movement_ref text not null, payer_person_id text not null, " +
+      "mode text not null check (mode in ('parts', 'amounts')), currency text not null, payer_parts integer, " +
+      "created_at text not null, updated_at text not null, " +
+      "foreign key(payer_person_id) references sharing_persons(id), " +
+      "check ((mode = 'parts' and payer_parts is not null and payer_parts > 0) or " +
+      "(mode = 'amounts' and payer_parts is null)));");
+    db.execSQL("create unique index if not exists uq_sharing_recurring_plans_movement " +
+      "on sharing_recurring_plans(recurring_movement_ref);");
+    db.execSQL("create index if not exists idx_sharing_recurring_plans_payer " +
+      "on sharing_recurring_plans(payer_person_id);");
+    db.execSQL("create table if not exists sharing_recurring_plan_participants (" +
+      "id text primary key, plan_id text not null, person_id text not null, participant_parts integer, " +
+      "fixed_amount text, reimbursable integer not null check (reimbursable in (0, 1)), " +
+      "participant_order integer not null, foreign key(plan_id) references sharing_recurring_plans(id) on delete cascade, " +
+      "foreign key(person_id) references sharing_persons(id), " +
+      "check ((participant_parts is not null and participant_parts > 0 and fixed_amount is null) or " +
+      "(participant_parts is null and fixed_amount is not null and cast(fixed_amount as real) > 0)));");
+    db.execSQL("create unique index if not exists uq_sharing_recurring_plan_participant_person " +
+      "on sharing_recurring_plan_participants(plan_id, person_id);");
+    db.execSQL("create unique index if not exists uq_sharing_recurring_plan_participant_order " +
+      "on sharing_recurring_plan_participants(plan_id, participant_order);");
+    db.execSQL("create index if not exists idx_sharing_recurring_plan_participants_plan " +
+      "on sharing_recurring_plan_participants(plan_id, participant_order);");
+    db.execSQL("create table if not exists sharing_planned_expense_shares (" +
+      "id text primary key, expected_movement_ref text not null, source_plan_id text not null, payer_person_id text not null, " +
+      "mode text not null check (mode in ('parts', 'amounts')), payer_parts integer, total_amount text not null, currency text not null, " +
+      "status text not null check (status in ('pending', 'materialized', 'cancelled')), " +
+      "materialized_transaction_ref text, materialized_share_ref text, created_at text not null, updated_at text not null, " +
+      "foreign key(source_plan_id) references sharing_recurring_plans(id), foreign key(payer_person_id) references sharing_persons(id), " +
+      "check ((status = 'materialized' and materialized_transaction_ref is not null and materialized_share_ref is not null) or " +
+      "(status <> 'materialized' and materialized_transaction_ref is null and materialized_share_ref is null)));");
+    db.execSQL("create unique index if not exists uq_sharing_planned_expense_expected " +
+      "on sharing_planned_expense_shares(expected_movement_ref);");
+    db.execSQL("create unique index if not exists uq_sharing_planned_expense_transaction " +
+      "on sharing_planned_expense_shares(materialized_transaction_ref) where materialized_transaction_ref is not null;");
+    db.execSQL("create index if not exists idx_sharing_planned_expense_plan " +
+      "on sharing_planned_expense_shares(source_plan_id);");
+    db.execSQL("create index if not exists idx_sharing_planned_expense_status " +
+      "on sharing_planned_expense_shares(status, expected_movement_ref);");
+    db.execSQL("create table if not exists sharing_planned_expense_share_participants (" +
+      "id text primary key, planned_share_id text not null, person_id text not null, participant_parts integer, amount text not null, " +
+      "reimbursable integer not null check (reimbursable in (0, 1)), participant_order integer not null, " +
+      "foreign key(planned_share_id) references sharing_planned_expense_shares(id) on delete cascade, " +
+      "foreign key(person_id) references sharing_persons(id));");
+    db.execSQL("create unique index if not exists uq_sharing_planned_share_participant_person " +
+      "on sharing_planned_expense_share_participants(planned_share_id, person_id);");
+    db.execSQL("create unique index if not exists uq_sharing_planned_share_participant_order " +
+      "on sharing_planned_expense_share_participants(planned_share_id, participant_order);");
+    db.execSQL("create index if not exists idx_sharing_planned_share_participants_share " +
+      "on sharing_planned_expense_share_participants(planned_share_id, participant_order);");
+  }
+
+  private static void addPlannedSharePayerPartsColumn(SQLiteDatabase db) {
+    try {
+      db.execSQL("alter table sharing_planned_expense_shares add column payer_parts integer;");
+    } catch (android.database.sqlite.SQLiteException ignored) {
+    }
+    db.execSQL("update sharing_planned_expense_shares set payer_parts = (select payer_parts from sharing_recurring_plans where sharing_recurring_plans.id = sharing_planned_expense_shares.source_plan_id) where payer_parts is null;");
+  }
+
+  private static void createExpectedPostingIdempotencyTable(SQLiteDatabase db) {
+    db.execSQL("create table if not exists expected_posting_attempts (" +
+      "idempotency_key text primary key, expected_movement_id text not null unique, " +
+      "transaction_id text not null, share_id text, completed_at text not null, " +
+      "foreign key(expected_movement_id) references expected_movements(id), " +
+      "foreign key(transaction_id) references ledger_transactions(id));");
+  }
+
+  private static void addExpectedPostingCompletionStatus(SQLiteDatabase db) {
+    try {
+      db.execSQL("alter table expected_posting_attempts add column completion_status text not null default 'completed'");
+    } catch (android.database.sqlite.SQLiteException ignored) {
+    }
+    db.execSQL(
+      "create unique index if not exists uq_expected_posting_attempts_expected_success " +
+        "on expected_posting_attempts(expected_movement_id, completion_status) " +
+        "where completion_status = 'completed'"
+    );
+  }
+
+  private static void addExpectedItemTemplateIdentityIndex(SQLiteDatabase db) {
+    db.execSQL("create unique index if not exists uq_expected_item_template_per_occurrence on expected_movement_items(expected_movement_id, source_template_item_id) where source_template_item_id is not null");
+  }
+
+  private static void addNextExpectedPostingId(SQLiteDatabase db) {
+    try {
+      db.execSQL("alter table expected_posting_attempts add column next_expected_movement_id text");
+    } catch (android.database.sqlite.SQLiteException ignored) {
+    }
+    db.execSQL("create index if not exists idx_expected_posting_attempts_next_expected on expected_posting_attempts(next_expected_movement_id)");
+  }
+
+  private static void addRecurringAndExpectedTagColumns(SQLiteDatabase db) {
+    if (!hasColumn(db, "recurring_movements", "tag_names")) {
+      db.execSQL("alter table recurring_movements add column tag_names text not null default '[]'");
+    }
+    if (!hasColumn(db, "expected_movements", "tag_names")) {
+      db.execSQL("alter table expected_movements add column tag_names text not null default '[]'");
+    }
+  }
+
+  private static boolean hasColumn(SQLiteDatabase db, String table, String column) {
+    try (android.database.Cursor cursor = db.rawQuery("pragma table_info(" + table + ")", null)) {
+      int nameIndex = cursor.getColumnIndexOrThrow("name");
+      while (cursor.moveToNext()) {
+        if (column.equals(cursor.getString(nameIndex))) {
+          return true;
+        }
+      }
+      return false;
+    }
+  }
+
   private static void addRecurringMovementCategoryColumn(SQLiteDatabase db) {
     db.execSQL("alter table recurring_movements add column category_id text;");
   }
@@ -579,6 +741,10 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     db.execSQL("drop table if exists analytics_exclusions");
     db.execSQL("drop table if exists sharing_expense_share_participants");
     db.execSQL("drop table if exists sharing_expense_shares");
+    db.execSQL("drop table if exists sharing_planned_expense_share_participants");
+    db.execSQL("drop table if exists sharing_planned_expense_shares");
+    db.execSQL("drop table if exists sharing_recurring_plan_participants");
+    db.execSQL("drop table if exists sharing_recurring_plans");
     db.execSQL("drop table if exists sharing_persons");
     db.execSQL("drop table if exists recurrence_outbox");
     db.execSQL("drop table if exists recurring_movement_occurrences");

@@ -28,14 +28,14 @@ class JdbcRecurringMovementRepository(
     val sql = """
       insert into recurring_movements (
         id, movement_type, source_account_id, target_account_id, amount, currency,
-        destination_amount, destination_currency, exchange_rate, description, merchant, category_id, review_policy,
+        destination_amount, destination_currency, exchange_rate, description, merchant, category_id, tag_names, review_policy,
         rule_frequency, rule_interval, rule_weekdays, rule_day_of_month, rule_monthly_pattern, rule_monthly_nth, rule_monthly_weekday,
         end_kind, end_on_date, end_after_occurrences,
         start_at, zone_id, next_due_at, status, generated_occurrences,
         created_at, updated_at, deactivated_at, completed_at
       ) values (
         :id, :movement_type, :source_account_id, :target_account_id, :amount, :currency,
-        :destination_amount, :destination_currency, :exchange_rate, :description, :merchant, :category_id, :review_policy,
+        :destination_amount, :destination_currency, :exchange_rate, :description, :merchant, :category_id, :tag_names, :review_policy,
         :rule_frequency, :rule_interval, :rule_weekdays, :rule_day_of_month, :rule_monthly_pattern, :rule_monthly_nth, :rule_monthly_weekday,
         :end_kind, :end_on_date, :end_after_occurrences,
         :start_at, :zone_id, :next_due_at, :status, :generated_occurrences,
@@ -53,6 +53,7 @@ class JdbcRecurringMovementRepository(
         description = excluded.description,
         merchant = excluded.merchant,
         category_id = excluded.category_id,
+        tag_names = excluded.tag_names,
         review_policy = excluded.review_policy,
         rule_frequency = excluded.rule_frequency,
         rule_interval = excluded.rule_interval,
@@ -191,6 +192,7 @@ class JdbcRecurringMovementRepository(
       description = rs.getString("description"),
       merchant = rs.getString("merchant"),
       categoryId = rs.getString("category_id"),
+      tagNames = decodeTags(rs.getString("tag_names")),
       reviewPolicy = RecurringMovementReviewPolicy.from(rs.getString("review_policy")),
       rule = rule,
       recurrenceEnd = recurrenceEnd,
@@ -226,6 +228,7 @@ class JdbcRecurringMovementRepository(
       .addValue("description", movement.description)
       .addValue("merchant", movement.merchant)
       .addValue("category_id", movement.categoryId)
+      .addValue("tag_names", encodeTags(movement.tagNames))
       .addValue("review_policy", movement.reviewPolicy.value)
       .addValue("rule_frequency", movement.rule.frequency.value)
       .addValue("rule_interval", movement.rule.interval)
@@ -268,6 +271,13 @@ class JdbcRecurringMovementRepository(
     }
   }
 
+  private fun encodeTags(tags: List<String>): String = org.json.JSONArray(tags).toString()
+
+  private fun decodeTags(value: String?): List<String> = value?.let { raw ->
+    val json = org.json.JSONArray(raw)
+    buildList { for (index in 0 until json.length()) add(json.getString(index)) }
+  } ?: emptyList()
+
   private fun RecurringMovementRow.toMovement(): RecurringMovement = RecurringMovement(
     id = id,
     type = type,
@@ -309,6 +319,7 @@ class JdbcRecurringMovementRepository(
     val description: String?,
     val merchant: String?,
     val categoryId: String?,
+    val tagNames: List<String>,
     val reviewPolicy: RecurringMovementReviewPolicy,
     val rule: RecurrenceRule,
     val recurrenceEnd: RecurrenceEnd,

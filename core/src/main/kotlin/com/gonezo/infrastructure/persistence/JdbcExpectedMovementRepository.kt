@@ -21,11 +21,11 @@ class JdbcExpectedMovementRepository(
     val sql = """
       insert into expected_movements (
         id, account_id, movement_type, amount, currency, expected_at,
-        description, merchant, category_id, origin_occurrence_id, origin_recurring_movement_id, status, resolved_transaction_id,
+        description, merchant, category_id, tag_names, origin_occurrence_id, origin_recurring_movement_id, status, resolved_transaction_id,
         created_at, updated_at, resolved_at, dismissed_at
       ) values (
         :id, :account_id, :movement_type, :amount, :currency, :expected_at,
-        :description, :merchant, :category_id, :origin_occurrence_id, :origin_recurring_movement_id, :status, :resolved_transaction_id,
+        :description, :merchant, :category_id, :tag_names, :origin_occurrence_id, :origin_recurring_movement_id, :status, :resolved_transaction_id,
         :created_at, :updated_at, :resolved_at, :dismissed_at
       )
       on conflict(id) do update set
@@ -37,6 +37,7 @@ class JdbcExpectedMovementRepository(
         description = excluded.description,
         merchant = excluded.merchant,
         category_id = excluded.category_id,
+        tag_names = excluded.tag_names,
         origin_occurrence_id = excluded.origin_occurrence_id,
         origin_recurring_movement_id = excluded.origin_recurring_movement_id,
         status = excluded.status,
@@ -56,9 +57,9 @@ class JdbcExpectedMovementRepository(
       jdbcTemplate.update(
         """
           insert into expected_movement_items (
-            id, expected_movement_id, item_order, name, amount
+            id, expected_movement_id, item_order, name, amount, source_template_item_id
           ) values (
-            :id, :expected_movement_id, :item_order, :name, :amount
+            :id, :expected_movement_id, :item_order, :name, :amount, :source_template_item_id
           )
         """.trimIndent(),
         MapSqlParameterSource()
@@ -66,7 +67,8 @@ class JdbcExpectedMovementRepository(
           .addValue("expected_movement_id", movement.id.toString())
           .addValue("item_order", index)
           .addValue("name", item.name)
-          .addValue("amount", item.amount.toPlainString()),
+          .addValue("amount", item.amount.toPlainString())
+          .addValue("source_template_item_id", item.sourceTemplateItemId),
       )
     }
   }
@@ -131,6 +133,7 @@ class JdbcExpectedMovementRepository(
       description = rs.getString("description"),
       merchant = rs.getString("merchant"),
       categoryId = rs.getString("category_id"),
+      tagNames = decodeTags(rs.getString("tag_names")),
       originOccurrenceId = rs.getString("origin_occurrence_id"),
       originRecurringMovementId = rs.getString("origin_recurring_movement_id"),
       status = ExpectedMovementStatus.from(rs.getString("status")),
@@ -153,6 +156,7 @@ class JdbcExpectedMovementRepository(
       .addValue("description", movement.description)
       .addValue("merchant", movement.merchant)
       .addValue("category_id", movement.categoryId)
+      .addValue("tag_names", encodeTags(movement.tagNames))
       .addValue("origin_occurrence_id", movement.originOccurrenceId)
       .addValue("origin_recurring_movement_id", movement.originRecurringMovementId)
       .addValue("status", movement.status.value)
@@ -181,11 +185,12 @@ class JdbcExpectedMovementRepository(
     updatedAt = updatedAt,
     resolvedAt = resolvedAt,
     dismissedAt = dismissedAt,
+    tagNames = tagNames,
   )
 
   private fun loadSplitItems(expectedMovementId: String): List<ExpectedMovement.SplitItem> {
     val sql = """
-      select id, name, amount
+      select id, name, amount, source_template_item_id
       from expected_movement_items
       where expected_movement_id = :expected_movement_id
       order by item_order asc, id asc
@@ -199,9 +204,17 @@ class JdbcExpectedMovementRepository(
         id = rs.getString("id"),
         name = rs.getString("name"),
         amount = BigDecimal(rs.getString("amount")),
+        sourceTemplateItemId = rs.getString("source_template_item_id"),
       )
     }
   }
+
+  private fun encodeTags(tags: List<String>): String = org.json.JSONArray(tags).toString()
+
+  private fun decodeTags(value: String?): List<String> = value?.let { raw ->
+    val json = org.json.JSONArray(raw)
+    buildList { for (index in 0 until json.length()) add(json.getString(index)) }
+  } ?: emptyList()
 
   private data class ExpectedMovementRow(
     val id: ExpectedMovementId,
@@ -221,5 +234,6 @@ class JdbcExpectedMovementRepository(
     val updatedAt: Instant,
     val resolvedAt: Instant?,
     val dismissedAt: Instant?,
+    val tagNames: List<String>,
   )
 }

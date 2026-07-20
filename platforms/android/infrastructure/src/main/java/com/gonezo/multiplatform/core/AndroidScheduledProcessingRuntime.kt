@@ -6,9 +6,8 @@ import com.gonezo.application.orchestration.ConfirmationRequiredDueScheduledMove
 import com.gonezo.application.orchestration.ProcessDueScheduledMovementsCommand
 import com.gonezo.application.orchestration.ProcessDueScheduledMovementsResult
 import com.gonezo.application.orchestration.ProcessDueScheduledMovementsService
-import com.gonezo.expected.application.CreateExpectedMovementCommand
-import com.gonezo.expected.application.CreateExpectedMovementUC
-import com.gonezo.expected.domain.ExpectedMovementId
+import com.gonezo.expected.application.CreateExpectedMovementService
+import com.gonezo.sharing.application.DefaultPlannedShareInstantiator
 import com.gonezo.ledger.application.RecordLedgerExpenseService
 import com.gonezo.ledger.application.RecordLedgerIncomeService
 import com.gonezo.ledger.application.RecordLedgerTransferFxService
@@ -18,8 +17,6 @@ import com.gonezo.recurrence.domain.services.RecurrenceScheduleCalculator
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
-import org.json.JSONArray
-import org.json.JSONObject
 
 class AndroidScheduledProcessingRuntime private constructor(
   private val processDueScheduledMovementsService: ProcessDueScheduledMovementsService,
@@ -61,14 +58,10 @@ class AndroidScheduledProcessingRuntime private constructor(
       val eventPublisher = NoopDomainEventPublisher()
       val consistencyBoundary = AndroidConsistencyBoundary(database)
       val clock = Clock.systemUTC()
-      val expectedCore = AndroidExpectedCore(
-        database = database,
-        accountExists = { accountId ->
-          val uuid = runCatching { UUID.fromString(accountId.trim()) }.getOrNull()
-          uuid != null && accountRepository.exists(AccountId(uuid))
-        },
-        clock = clock,
-      )
+      val expectedRepository = AndroidExpectedMovementRepository(database)
+      val plannedShares = AndroidPlannedExpenseShareRepository(database)
+      val recurringPlans = AndroidRecurringSharePlanRepository(database)
+      val people = AndroidSharingPersonRepository(database)
 
       return AndroidScheduledProcessingRuntime(
         processDueScheduledMovementsService = ProcessDueScheduledMovementsService(
@@ -92,7 +85,9 @@ class AndroidScheduledProcessingRuntime private constructor(
               ),
             ),
             ConfirmationRequiredDueScheduledMovementHandler(
-              createExpectedMovementUC = AndroidCreateExpectedMovementUC(expectedCore),
+              createExpectedMovementUC = CreateExpectedMovementService(expectedRepository),
+              expectedMovementRepository = expectedRepository,
+              plannedShareInstantiator = DefaultPlannedShareInstantiator(recurringPlans, plannedShares, consistencyBoundary = consistencyBoundary),
             ),
           ),
           scheduleCalculator = RecurrenceScheduleCalculator(),
@@ -100,35 +95,5 @@ class AndroidScheduledProcessingRuntime private constructor(
         ),
       )
     }
-  }
-}
-
-private class AndroidCreateExpectedMovementUC(
-  private val expectedCore: AndroidExpectedCore,
-) : CreateExpectedMovementUC {
-  override fun execute(command: CreateExpectedMovementCommand): ExpectedMovementId {
-    val id = expectedCore.createMovement(
-      accountId = command.accountId,
-      type = command.type,
-      amount = command.amount.toPlainString(),
-      currency = command.currency,
-      expectedAt = command.expectedAt.toString(),
-      description = command.description,
-      merchant = command.merchant,
-      categoryId = command.categoryId,
-      originOccurrenceId = command.originOccurrenceId,
-      originRecurringMovementId = command.originRecurringMovementId,
-      splitItemsJson = JSONArray().apply {
-        command.splitItems.forEach { item ->
-          put(
-            JSONObject()
-              .put("id", item.id)
-              .put("name", item.name)
-              .put("amount", item.amount.toPlainString()),
-          )
-        }
-      }.toString(),
-    )
-    return ExpectedMovementId(id)
   }
 }

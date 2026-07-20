@@ -2,6 +2,23 @@ export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export type RecurrenceReviewPolicy = 'automatic' | 'require_user_confirmation';
 
+export type RecurringSharingPlanInput = {
+  mode: 'parts' | 'amounts';
+  payerName: string;
+  payerParts?: number;
+  participants: Array<{
+    personName: string;
+    reimbursable: boolean;
+    parts?: number;
+    amount?: string;
+  }>;
+};
+
+export type SharingPlanChange =
+  | { kind: 'keep' }
+  | { kind: 'remove' }
+  | { kind: 'replace'; plan: RecurringSharingPlanInput };
+
 export type RecurrenceMonthlyPattern = 'day_of_month' | 'nth_weekday';
 
 export type RecurrenceRuleInput = {
@@ -47,6 +64,7 @@ export type RecurrenceCreateRecurringMovementInput = {
   startAt: string;
   zoneId: string;
   reviewPolicy?: RecurrenceReviewPolicy;
+  sharingPlan?: RecurringSharingPlanInput;
 };
 
 export type RecurrenceCreateRecurringMovementResult = {
@@ -105,6 +123,7 @@ export type SchedulingCreateMovementResult = RecurrenceCreateRecurringMovementRe
 
 export type SchedulingUpdateMovementInput = SchedulingCreateMovementInput & {
   recurringMovementId: string;
+  sharingPlanChange?: SharingPlanChange;
 };
 
 export type SchedulingUpdateMovementResult = RecurrenceCreateRecurringMovementResult;

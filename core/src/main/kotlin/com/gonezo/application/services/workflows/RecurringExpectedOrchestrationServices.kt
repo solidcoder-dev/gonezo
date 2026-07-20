@@ -20,6 +20,9 @@ import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceC
 import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceStatus
 import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceUC
 import com.gonezo.recurrence.domain.RecurringMovementReviewPolicy
+import com.gonezo.sharing.application.ExpectedOccurrenceShareSnapshot
+import com.gonezo.sharing.application.NoOpPlannedShareInstantiator
+import com.gonezo.sharing.application.PlannedShareInstantiator
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
@@ -27,6 +30,8 @@ import java.util.UUID
 class HandleRecurringMovementDueForExpectedService(
   private val createExpectedMovementUC: CreateExpectedMovementUC,
   private val expectedMovementRepository: ExpectedMovementRepository,
+  private val expectedOccurrenceFactory: ExpectedOccurrenceFactory = DefaultExpectedOccurrenceFactory(),
+  private val plannedShareInstantiator: PlannedShareInstantiator = NoOpPlannedShareInstantiator,
 ) : HandleRecurringMovementDueForExpectedUC {
   override fun execute(command: HandleRecurringMovementDueForExpectedCommand): HandleRecurringMovementDueForExpectedResult {
     val occurrenceId = command.event.occurrenceId.trim()
@@ -37,41 +42,66 @@ class HandleRecurringMovementDueForExpectedService(
 
     val existing = expectedMovementRepository.findByOriginOccurrenceId(occurrenceId)
     if (existing != null) {
+      plannedShareInstantiator.instantiate(
+        ExpectedOccurrenceShareSnapshot(
+          expectedMovementId = existing.id.toString(),
+          recurringMovementId = command.event.recurringMovementId,
+          totalAmount = BigDecimal(command.event.amount),
+          currency = command.event.currency,
+          createdAt = command.handledAt,
+        ),
+      )
       return HandleRecurringMovementDueForExpectedResult(
         expectedMovementId = existing.id,
         created = false,
       )
     }
 
-    val expectedType = when (command.event.movementType.trim().lowercase()) {
-      ExpectedMovementType.EXPENSE.value -> ExpectedMovementType.EXPENSE.value
-      ExpectedMovementType.INCOME.value -> ExpectedMovementType.INCOME.value
-      else -> throw IllegalArgumentException(
-        "Unsupported recurring movement type for expected projection: ${command.event.movementType}",
-      )
+    require(command.event.movementType.trim().lowercase() == ExpectedMovementType.EXPENSE.value ||
+      command.event.movementType.trim().lowercase() == ExpectedMovementType.INCOME.value) {
+      "Unsupported recurring movement type for expected projection: ${command.event.movementType}"
     }
+
+    val draft = expectedOccurrenceFactory.create(
+      RecurringOccurrenceSnapshot(
+        recurringMovementId = command.event.recurringMovementId,
+        occurrenceId = occurrenceId,
+        accountId = command.event.sourceAccountId,
+        movementType = command.event.movementType,
+        amount = BigDecimal(command.event.amount),
+        currency = command.event.currency,
+        dueAt = Instant.parse(command.event.dueAt),
+        description = command.event.description,
+        merchant = command.event.merchant,
+          categoryId = command.event.categoryId,
+          tagNames = command.event.tagNames,
+        createdAt = command.handledAt,
+        items = command.event.splitItems.map {
+          RecurringOccurrenceSnapshot.Item(
+            templateItemId = it.id,
+            name = it.name,
+            amount = BigDecimal(it.amount),
+          )
+        },
+      ),
+    )
 
     val expectedId = try {
       createExpectedMovementUC.execute(
         CreateExpectedMovementCommand(
-          accountId = command.event.sourceAccountId,
-          type = expectedType,
-          amount = BigDecimal(command.event.amount),
-          currency = command.event.currency,
-          expectedAt = Instant.parse(command.event.dueAt),
-          description = command.event.description,
-          merchant = command.event.merchant,
-          categoryId = command.event.categoryId,
-          originOccurrenceId = occurrenceId,
-          originRecurringMovementId = command.event.recurringMovementId,
-          splitItems = command.event.splitItems.map {
-            com.gonezo.expected.domain.ExpectedMovement.SplitItem(
-              id = it.id,
-              name = it.name,
-              amount = BigDecimal(it.amount),
-            )
-          },
-          createdAt = command.handledAt,
+          accountId = draft.accountId,
+          type = draft.type.value,
+          amount = draft.amount,
+          currency = draft.currency,
+          expectedAt = draft.expectedAt,
+          description = draft.description,
+          merchant = draft.merchant,
+          categoryId = draft.categoryId,
+          originOccurrenceId = draft.originOccurrenceId,
+          originRecurringMovementId = draft.originRecurringMovementId,
+          splitItems = draft.splitItems,
+          createdAt = draft.createdAt,
+          tagNames = draft.tagNames,
         ),
       )
     } catch (ex: RuntimeException) {
@@ -84,6 +114,16 @@ class HandleRecurringMovementDueForExpectedService(
       }
       throw ex
     }
+
+    plannedShareInstantiator.instantiate(
+      ExpectedOccurrenceShareSnapshot(
+        expectedMovementId = expectedId.toString(),
+        recurringMovementId = command.event.recurringMovementId,
+        totalAmount = draft.amount,
+        currency = draft.currency,
+        createdAt = command.handledAt,
+      ),
+    )
 
     return HandleRecurringMovementDueForExpectedResult(
       expectedMovementId = expectedId,

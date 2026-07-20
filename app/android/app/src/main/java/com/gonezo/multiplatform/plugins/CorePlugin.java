@@ -237,6 +237,11 @@ public class CorePlugin extends Plugin {
   }
 
   @PluginMethod
+  public void expectedPostMovement(PluginCall call) {
+    new ExpectedPluginHandler(getContext()).expectedPostMovement(call);
+  }
+
+  @PluginMethod
   public void sharingListPeople(PluginCall call) { new SharingPluginHandler(getContext()).sharingListPeople(call); }
   @PluginMethod
   public void sharingApplyShareToPostedTransaction(PluginCall call) { new SharingPluginHandler(getContext()).sharingApplyShareToPostedTransaction(call); }
@@ -244,6 +249,8 @@ public class CorePlugin extends Plugin {
   public void sharingGetMovementDetails(PluginCall call) { new SharingPluginHandler(getContext()).sharingGetMovementDetails(call); }
   @PluginMethod
   public void sharingListMovementDetails(PluginCall call) { new SharingPluginHandler(getContext()).sharingListMovementDetails(call); }
+  @PluginMethod
+  public void sharingGetPlannedShare(PluginCall call) { new SharingPluginHandler(getContext()).sharingGetPlannedShare(call); }
   @PluginMethod
   public void analyticsSetMovementIgnored(PluginCall call) { new AnalyticsPluginHandler(getContext()).analyticsSetMovementIgnored(call); }
   @PluginMethod

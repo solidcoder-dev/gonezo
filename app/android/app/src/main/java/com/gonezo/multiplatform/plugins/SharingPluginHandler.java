@@ -4,6 +4,12 @@ import android.content.Context;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import com.gonezo.multiplatform.core.AndroidSharingCore;
+import com.gonezo.multiplatform.core.AndroidExpectedPostingApplication;
+import com.gonezo.sharing.application.ApplyShareParticipantCommand;
+import com.gonezo.sharing.application.ApplyShareToPostedTransactionCommand;
+import com.gonezo.sharing.application.ApplyShareToPostedTransactionResult;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import org.json.JSONArray;
@@ -35,13 +41,28 @@ final class SharingPluginHandler {
 
   void sharingApplyShareToPostedTransaction(PluginCall call) {
     try {
-      AndroidSharingCore.ShareView share = AndroidSharingCore.getInstance(context).applyShareToPostedTransaction(
-        call.getString("transactionId"),
-        call.getString("payerName"),
-        toParticipants(call.getArray("participants")),
-        call.getString("appliedAt")
+      ApplyShareToPostedTransactionResult share = AndroidExpectedPostingApplication.getInstance(context).applyShare(
+        new ApplyShareToPostedTransactionCommand(
+          call.getString("transactionId"), call.getString("payerName"), toCoreParticipants(call.getArray("participants")),
+          Instant.parse(call.getString("appliedAt", Instant.now().toString()))
+        )
       );
-      call.resolve(toShareJson(share));
+      JSObject result = new JSObject();
+      result.put("shareId", share.getShareId());
+      result.put("transactionId", share.getTransactionId());
+      JSONArray participants = new JSONArray();
+      for (var participant : share.getParticipants()) {
+        JSObject item = new JSObject();
+        item.put("participantId", participant.getParticipantId());
+        item.put("personId", participant.getPersonId());
+        item.put("displayName", participant.getDisplayName());
+        item.put("amount", participant.getAmount().toPlainString());
+        item.put("reimbursable", participant.getReimbursable());
+        item.put("expectedMovementId", JSONObject.NULL);
+        participants.put(item);
+      }
+      result.put("participants", participants);
+      call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());
     }
@@ -74,18 +95,51 @@ final class SharingPluginHandler {
     }
   }
 
-  private List<AndroidSharingCore.ParticipantInput> toParticipants(JSONArray values) {
-    List<AndroidSharingCore.ParticipantInput> participants = new ArrayList<>();
-    if (values == null) {
-      return participants;
+  void sharingGetPlannedShare(PluginCall call) {
+    try {
+      AndroidSharingCore.PlannedShareView share = AndroidSharingCore.getInstance(context).getPlannedShare(
+        call.getString("expectedMovementId")
+      );
+      call.resolve(share == null ? null : toPlannedShareJson(share));
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
     }
+  }
+
+  private JSObject toPlannedShareJson(AndroidSharingCore.PlannedShareView share) {
+    JSObject result = new JSObject();
+    result.put("expectedMovementId", share.expectedMovementId());
+    JSObject payer = new JSObject();
+    payer.put("personId", share.payerPersonId());
+    payer.put("name", share.payerName());
+    payer.put("parts", share.payerParts());
+    result.put("payer", payer);
+    result.put("mode", share.mode());
+    result.put("totalAmount", share.totalAmount());
+    result.put("currency", share.currency());
+    JSONArray participants = new JSONArray();
+    for (AndroidSharingCore.PlannedParticipantView participant : share.participants()) {
+      JSObject item = new JSObject();
+      item.put("participantId", participant.participantId());
+      item.put("personId", participant.personId());
+      item.put("name", participant.displayName());
+      item.put("parts", participant.parts());
+      item.put("amount", participant.amount());
+      item.put("reimbursable", participant.reimbursable());
+      participants.put(item);
+    }
+    result.put("participants", participants);
+    return result;
+  }
+
+  private List<ApplyShareParticipantCommand> toCoreParticipants(JSONArray values) {
+    List<ApplyShareParticipantCommand> participants = new ArrayList<>();
+    if (values == null) return participants;
     for (int index = 0; index < values.length(); index += 1) {
       JSONObject item = values.optJSONObject(index);
       if (item != null) {
-        participants.add(new AndroidSharingCore.ParticipantInput(
-          item.optString("personName", null),
-          item.optString("amount", null),
-          item.optBoolean("reimbursable", false)
+        participants.add(new ApplyShareParticipantCommand(
+          item.optString("personName", null), new BigDecimal(item.optString("amount", null)), item.optBoolean("reimbursable", false)
         ));
       }
     }

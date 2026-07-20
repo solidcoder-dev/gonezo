@@ -13,6 +13,9 @@ import com.gonezo.recurrence.domain.RecurringMovementStatus
 import com.gonezo.recurrence.domain.RecurringMovementType
 import com.gonezo.recurrence.domain.ports.RecurringMovementRepository
 import com.gonezo.recurrence.domain.services.RecurrenceScheduleCalculator
+import com.gonezo.recurrence.application.CreateRecurringMovementCommand
+import com.gonezo.recurrence.application.UpdateRecurringMovementCommand
+import com.gonezo.recurrence.application.DeactivateRecurringMovementCommand
 import java.math.BigDecimal
 import java.time.Clock
 import java.time.DayOfWeek
@@ -30,6 +33,52 @@ class AndroidRecurringCore internal constructor(
   private val clock: Clock,
 ) {
   private val scheduleCalculator = RecurrenceScheduleCalculator()
+
+  fun toCreateCommand(input: CreateRecurringMovementInput, createdAt: Instant = Instant.now(clock)): CreateRecurringMovementCommand {
+    val type = RecurringMovementType.from(requireText(input.type, "type is required"))
+    val sourceAccountId = requireText(input.sourceAccountId, "sourceAccountId is required")
+    ensureAccountExists(sourceAccountId, "source")
+    val targetAccountId = input.targetAccountId?.trim()?.ifBlank { null }
+    validateTransfer(type, sourceAccountId, targetAccountId)
+    return CreateRecurringMovementCommand(
+      type, sourceAccountId, targetAccountId,
+      parsePositiveDecimal(requireText(input.amount, "amount is required"), "amount must be greater than 0"),
+      requireText(input.currency, "currency is required").uppercase(),
+      input.destinationAmount?.let { parsePositiveDecimal(it, "destinationAmount must be greater than 0") },
+      input.destinationCurrency, input.exchangeRate?.let { parsePositiveDecimal(it, "exchangeRate must be greater than 0") },
+      input.description, input.merchant, input.categoryId,
+      RecurringMovementReviewPolicy.from(input.reviewPolicy ?: "automatic"), parseSplitItems(input.splitItemsJson), parseTagNames(input.tagNamesJson),
+      toDomainRule(input.rule ?: RecurrenceRuleInput("daily", 1)), toDomainEnd(input.recurrenceEnd ?: RecurrenceEndInput()),
+      parseInstantOrDate(requireText(input.startAt, "startAt is required"), "startAt"),
+      input.zoneId?.trim()?.ifBlank { "UTC" } ?: "UTC", createdAt,
+    )
+  }
+
+  fun toUpdateCommand(input: UpdateRecurringMovementInput, updatedAt: Instant = Instant.now(clock)): UpdateRecurringMovementCommand {
+    val id = RecurringMovementId.from(requireText(input.recurringMovementId, "recurringMovementId is required"))
+    val existing = recurringMovementRepository.findById(id) ?: throw IllegalStateException("Recurring movement not found: ${input.recurringMovementId}")
+    check(existing.status == RecurringMovementStatus.ACTIVE) { "Only active scheduled movements can be edited" }
+    val type = RecurringMovementType.from(requireText(input.type, "type is required"))
+    val source = requireText(input.sourceAccountId, "sourceAccountId is required")
+    ensureAccountExists(source, "source")
+    val target = input.targetAccountId?.trim()?.ifBlank { null }
+    validateTransfer(type, source, target)
+    return UpdateRecurringMovementCommand(
+      id, type, source, target,
+      parsePositiveDecimal(requireText(input.amount, "amount is required"), "amount must be greater than 0"),
+      requireText(input.currency, "currency is required").uppercase(),
+      input.destinationAmount?.let { parsePositiveDecimal(it, "destinationAmount must be greater than 0") },
+      input.destinationCurrency, input.exchangeRate?.let { parsePositiveDecimal(it, "exchangeRate must be greater than 0") },
+      input.description, input.merchant, input.categoryId,
+      RecurringMovementReviewPolicy.from(input.reviewPolicy ?: existing.reviewPolicy.value), parseSplitItems(input.splitItemsJson), parseTagNames(input.tagNamesJson),
+      toDomainRule(input.rule ?: RecurrenceRuleInput("daily", 1)), toDomainEnd(input.recurrenceEnd ?: RecurrenceEndInput()),
+      parseInstantOrDate(requireText(input.startAt, "startAt is required"), "startAt"),
+      input.zoneId?.trim()?.ifBlank { "UTC" } ?: "UTC", updatedAt,
+    )
+  }
+
+  fun toDeactivateCommand(id: String?, at: Instant): DeactivateRecurringMovementCommand =
+    DeactivateRecurringMovementCommand(RecurringMovementId.from(requireText(id, "recurringMovementId is required")), at)
 
   fun createRecurringMovement(input: CreateRecurringMovementInput): UUID {
     val type = RecurringMovementType.from(requireText(input.type, "type is required"))
@@ -163,6 +212,14 @@ class AndroidRecurringCore internal constructor(
     }
   }
 
+  private fun validateTransfer(type: RecurringMovementType, source: String, target: String?) {
+    if (type == RecurringMovementType.TRANSFER) {
+      val resolved = target ?: throw IllegalArgumentException("targetAccountId is required for transfer recurrence")
+      require(resolved != source) { "source and destination accounts must be different" }
+      ensureAccountExists(resolved, "target")
+    }
+  }
+
   private fun toDomainRule(input: RecurrenceRuleInput): RecurrenceRule {
     val frequency = RecurrenceFrequency.from(requireText(input.frequency, "rule.frequency is required"))
     val interval = input.interval ?: 1
@@ -244,6 +301,17 @@ class AndroidRecurringCore internal constructor(
     return items
   }
 
+  private fun parseTagNames(tagNamesJson: String?): List<String> {
+    val raw = tagNamesJson?.trim().orEmpty()
+    if (raw.isEmpty()) return emptyList()
+    val parsed = JSONArray(raw)
+    return buildList {
+      for (index in 0 until parsed.length()) {
+        parsed.optString(index, "").trim().takeIf(String::isNotBlank)?.let(::add)
+      }
+    }.distinct()
+  }
+
   data class CreateRecurringMovementInput(
     val type: String?,
     val sourceAccountId: String?,
@@ -258,6 +326,7 @@ class AndroidRecurringCore internal constructor(
     val categoryId: String? = null,
     val reviewPolicy: String? = "automatic",
     val splitItemsJson: String? = null,
+    val tagNamesJson: String? = null,
     val rule: RecurrenceRuleInput?,
     val recurrenceEnd: RecurrenceEndInput?,
     val startAt: String?,
@@ -279,6 +348,7 @@ class AndroidRecurringCore internal constructor(
     val categoryId: String? = null,
     val reviewPolicy: String? = null,
     val splitItemsJson: String? = null,
+    val tagNamesJson: String? = null,
     val rule: RecurrenceRuleInput?,
     val recurrenceEnd: RecurrenceEndInput?,
     val startAt: String?,

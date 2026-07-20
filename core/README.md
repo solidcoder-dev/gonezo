@@ -40,6 +40,12 @@ DDD boundary rules:
 - Cross-context cleanup belongs in orchestration workflows, not context repositories.
 - Multi-write local flows use `ConsistencyBoundary` so the application layer owns consistency without depending on a concrete transaction technology.
 
+Recurring expected posting is implemented by `application/orchestration/PostExpectedMovementWorkflow`.
+It owns one consistency boundary for ledger, taxonomy, expected, recurrence, sharing, and posting
+idempotency. Android maps the Capacitor payload to that workflow. Recurrence projection uses
+`ExpectedOccurrenceFactory`; recurring sharing is stored as a reusable plan and instantiated as an
+independent planned share for each expected occurrence before materialization into a final share.
+
 Android runtime integration lives outside the pure core in:
 
 - `platforms/android/infrastructure/src/main/java/com/gonezo/multiplatform/core`

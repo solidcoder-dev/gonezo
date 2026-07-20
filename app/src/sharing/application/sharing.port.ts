@@ -65,6 +65,26 @@ export type SharingListMovementDetailsResult = {
   items: Array<Exclude<SharingMovementDetailsResult, null>>;
 };
 
+export type SharingGetPlannedShareInput = {
+  expectedMovementId: string;
+};
+
+export type SharingPlannedShareResult = {
+  expectedMovementId: string;
+  payer: { personId: string; name: string; parts?: number };
+  mode: 'parts' | 'amounts';
+  totalAmount: string;
+  currency: string;
+  participants: Array<{
+    participantId: string;
+    personId: string;
+    name: string;
+    parts?: number;
+    amount: string;
+    reimbursable: boolean;
+  }>;
+} | null;
+
 export interface SharingPort {
   sharingListPeople(): Promise<SharingListPeopleResult>;
   sharingApplyShareToPostedTransaction(
@@ -72,4 +92,5 @@ export interface SharingPort {
   ): Promise<SharingApplyShareToPostedTransactionResult>;
   sharingGetMovementDetails(input: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult>;
   sharingListMovementDetails(input: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult>;
+  sharingGetPlannedShare?(input: SharingGetPlannedShareInput): Promise<SharingPlannedShareResult>;
 }

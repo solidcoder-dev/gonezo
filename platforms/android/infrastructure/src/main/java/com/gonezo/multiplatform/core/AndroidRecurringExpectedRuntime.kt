@@ -1,61 +1,29 @@
 package com.gonezo.multiplatform.core
 
 import android.content.Context
-import com.gonezo.ledger.domain.AccountId
-import java.time.Clock
-import java.util.UUID
+import java.time.Instant
 
 class AndroidRecurringExpectedRuntime private constructor(
-  private val coordinator: AndroidRecurringExpectedCoordinator,
+  private val application: AndroidExpectedPostingApplication,
 ) {
   fun projectNext(recurringMovementId: String) {
-    coordinator.projectNext(recurringMovementId)
+    application.projectNext(recurringMovementId)
   }
 
   fun continueAfterResolution(expectedMovementId: String, transactionId: String, resolvedAt: String) {
-    coordinator.continueAfterResolution(expectedMovementId, transactionId, resolvedAt)
+    application.resolve(expectedMovementId, transactionId, Instant.parse(resolvedAt))
   }
 
   fun continueAfterDismissal(expectedMovementId: String, dismissedAt: String) {
-    coordinator.continueAfterDismissal(expectedMovementId, dismissedAt)
+    application.dismiss(expectedMovementId, Instant.parse(dismissedAt))
   }
 
   companion object {
-    @Volatile
-    private var instance: AndroidRecurringExpectedRuntime? = null
+    @Volatile private var instance: AndroidRecurringExpectedRuntime? = null
 
     @JvmStatic
-    fun getInstance(context: Context): AndroidRecurringExpectedRuntime {
-      val existing = instance
-      if (existing != null) {
-        return existing
-      }
-      return synchronized(this) {
-        val synchronizedExisting = instance
-        if (synchronizedExisting != null) {
-          synchronizedExisting
-        } else {
-          val database = CoreDatabase(context.applicationContext)
-          val accountRepository = AndroidLedgerAccountRepository(database)
-          val clock = Clock.systemUTC()
-          val expectedCore = AndroidExpectedCore(
-            database = database,
-            accountExists = { accountId ->
-              val uuid = runCatching { UUID.fromString(accountId.trim()) }.getOrNull()
-              uuid != null && accountRepository.exists(AccountId(uuid))
-            },
-            clock = clock,
-          )
-          AndroidRecurringExpectedRuntime(
-            coordinator = AndroidRecurringExpectedCoordinator(
-              recurringMovementRepository = AndroidRecurringMovementRepository(database),
-              store = AndroidRecurringExpectedSqliteStore(database, expectedCore),
-              clock = clock,
-              consistencyBoundary = AndroidConsistencyBoundary(database),
-            ),
-          ).also { created -> instance = created }
-        }
-      }
+    fun getInstance(context: Context): AndroidRecurringExpectedRuntime = instance ?: synchronized(this) {
+      instance ?: AndroidRecurringExpectedRuntime(AndroidExpectedPostingApplication.getInstance(context)).also { instance = it }
     }
   }
 }

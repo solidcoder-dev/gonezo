@@ -19,6 +19,7 @@ data class RecurringMovementDueIntegrationEvent(
   val description: String?,
   val merchant: String?,
   val categoryId: String? = null,
+  val tagNames: List<String> = emptyList(),
   val reviewPolicy: String = "automatic",
   val splitItems: List<SplitItem> = emptyList(),
 ) {
@@ -44,6 +45,7 @@ data class RecurringMovementDueIntegrationEvent(
     .put("description", description)
     .put("merchant", merchant)
     .put("categoryId", categoryId)
+    .put("tagNames", tagNames)
     .put("reviewPolicy", reviewPolicy)
     .put("splitItems", splitItems.map { split ->
       JSONObject()
@@ -74,6 +76,7 @@ data class RecurringMovementDueIntegrationEvent(
         description = parsed.optString("description", "").ifBlank { null },
         merchant = parsed.optString("merchant", "").ifBlank { null },
         categoryId = parsed.optString("categoryId", "").ifBlank { null },
+        tagNames = parsed.optJSONArray("tagNames")?.let { tags -> buildList { for (index in 0 until tags.length()) add(tags.getString(index)) } } ?: emptyList(),
         reviewPolicy = parsed.optString("reviewPolicy", "automatic"),
         splitItems = parsed.optJSONArray("splitItems")?.let { items ->
           buildList {

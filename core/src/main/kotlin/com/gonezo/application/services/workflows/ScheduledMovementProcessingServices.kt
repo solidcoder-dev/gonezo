@@ -6,6 +6,7 @@ import com.gonezo.domain.shared.Money
 import com.gonezo.expected.application.CreateExpectedMovementCommand
 import com.gonezo.expected.application.CreateExpectedMovementUC
 import com.gonezo.expected.domain.ExpectedMovement
+import com.gonezo.expected.domain.ports.ExpectedMovementRepository
 import com.gonezo.ledger.application.RecordLedgerExpenseCommand
 import com.gonezo.ledger.application.RecordLedgerExpenseUC
 import com.gonezo.ledger.application.RecordLedgerIncomeCommand
@@ -25,6 +26,9 @@ import com.gonezo.recurrence.domain.ports.RecurringMovementRepository
 import com.gonezo.recurrence.domain.services.RecurrenceScheduleCalculator
 import java.time.Instant
 import java.util.UUID
+import com.gonezo.sharing.application.ExpectedOccurrenceShareSnapshot
+import com.gonezo.sharing.application.NoOpPlannedShareInstantiator
+import com.gonezo.sharing.application.PlannedShareInstantiator
 
 data class DueScheduledMovementContext(
   val movement: RecurringMovement,
@@ -216,6 +220,9 @@ class AutomaticDueScheduledMovementHandler(
 
 class ConfirmationRequiredDueScheduledMovementHandler(
   private val createExpectedMovementUC: CreateExpectedMovementUC,
+  private val expectedOccurrenceFactory: ExpectedOccurrenceFactory = DefaultExpectedOccurrenceFactory(),
+  private val expectedMovementRepository: ExpectedMovementRepository? = null,
+  private val plannedShareInstantiator: PlannedShareInstantiator = NoOpPlannedShareInstantiator,
 ) : DueScheduledMovementHandler {
   override fun supports(movement: RecurringMovement): Boolean =
     movement.reviewPolicy == RecurringMovementReviewPolicy.REQUIRE_USER_CONFIRMATION &&
@@ -223,31 +230,54 @@ class ConfirmationRequiredDueScheduledMovementHandler(
 
   override fun handle(context: DueScheduledMovementContext): DueScheduledMovementHandlerResult {
     val movement = context.movement
-    val expectedType = when (movement.type) {
-      RecurringMovementType.EXPENSE -> "expense"
-      RecurringMovementType.INCOME -> "income"
+    when (movement.type) {
+      RecurringMovementType.EXPENSE, RecurringMovementType.INCOME -> Unit
       RecurringMovementType.TRANSFER -> throw IllegalArgumentException("Scheduled transfer cannot be projected as expected")
     }
-
-    val expectedId = createExpectedMovementUC.execute(
-      CreateExpectedMovementCommand(
+    val draft = expectedOccurrenceFactory.create(
+      RecurringOccurrenceSnapshot(
+        recurringMovementId = movement.id.toString(),
+        occurrenceId = context.occurrence.id.toString(),
         accountId = movement.sourceAccountId,
-        type = expectedType,
+        movementType = movement.type.value,
         amount = movement.amount,
         currency = movement.currency,
-        expectedAt = context.occurrence.dueAt,
+        dueAt = context.occurrence.dueAt,
         description = movement.description,
         merchant = movement.merchant,
         categoryId = movement.categoryId,
-        originOccurrenceId = context.occurrence.id.toString(),
-        originRecurringMovementId = movement.id.toString(),
-        splitItems = movement.splitItems.map {
-          ExpectedMovement.SplitItem(
-            id = it.id,
-            name = it.name,
-            amount = it.amount,
-          )
+        createdAt = context.handledAt,
+        items = movement.splitItems.map {
+          RecurringOccurrenceSnapshot.Item(it.id, it.name, it.amount)
         },
+        tagNames = movement.tagNames,
+      ),
+    )
+
+    val expectedId = expectedMovementRepository?.findByOriginOccurrenceId(context.occurrence.id.toString())?.id
+      ?: createExpectedMovementUC.execute(
+        CreateExpectedMovementCommand(
+          accountId = draft.accountId,
+          type = draft.type.value,
+          amount = draft.amount,
+          currency = draft.currency,
+          expectedAt = draft.expectedAt,
+          description = draft.description,
+          merchant = draft.merchant,
+          categoryId = draft.categoryId,
+          originOccurrenceId = draft.originOccurrenceId,
+          originRecurringMovementId = draft.originRecurringMovementId,
+          splitItems = draft.splitItems,
+          createdAt = draft.createdAt,
+          tagNames = draft.tagNames,
+        ),
+      )
+    plannedShareInstantiator.instantiate(
+      ExpectedOccurrenceShareSnapshot(
+        expectedMovementId = expectedId.toString(),
+        recurringMovementId = movement.id.toString(),
+        totalAmount = movement.amount,
+        currency = movement.currency,
         createdAt = context.handledAt,
       ),
     )

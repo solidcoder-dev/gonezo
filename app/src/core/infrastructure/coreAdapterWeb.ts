@@ -82,6 +82,7 @@ import type {
   ExpectedListMovementsInput,
   ExpectedListMovementsResult,
   ExpectedResolveMovementInput,
+  ExpectedPostMovementInput,
   ExpectedUpdateMovementInput,
   ExpectedUpdateMovementResult,
 } from '../../expected/application/expected.port';
@@ -105,6 +106,8 @@ import type {
   SharingListMovementDetailsResult,
   SharingListPeopleResult,
   SharingMovementDetailsResult,
+  SharingGetPlannedShareInput,
+  SharingPlannedShareResult,
 } from '../../sharing/application/sharing.port';
 import {
   collectWebMovementsBackupExport,
@@ -248,6 +251,7 @@ export class CoreAdapterWeb implements CorePort {
 
   async sharingGetMovementDetails(input: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult> { return this.sharingService.getMovementDetails(input); }
   async sharingListMovementDetails(input: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult> { return this.sharingService.listMovementDetails(input); }
+  async sharingGetPlannedShare(input: SharingGetPlannedShareInput): Promise<SharingPlannedShareResult> { return this.sharingService.getPlannedShare(input); }
   async ledgerRecordExpense(input: LedgerRecordExpenseInput): Promise<LedgerRecordExpenseResult> { return this.ledgerService.recordExpense(input); }
   async ledgerRecordIncome(input: LedgerRecordIncomeInput): Promise<LedgerRecordIncomeResult> { return this.ledgerService.recordIncome(input); }
   async ledgerRecordTransfer(input: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult> { return this.ledgerService.recordTransfer(input); }
@@ -340,6 +344,11 @@ export class CoreAdapterWeb implements CorePort {
     if (movement?.originRecurringMovementId) {
       await this.projectNextConfirmationRequiredOccurrence(movement.originRecurringMovementId);
     }
+  }
+
+  async expectedPostMovement(input: ExpectedPostMovementInput): Promise<{ transactionId: string; shareId?: string; nextExpectedMovementId?: string }> {
+    void input;
+    throw new Error('Expected posting workflow is not implemented for the web runtime');
   }
 
   async movementsExportBackup(): Promise<MovementsBackupExportResult> {

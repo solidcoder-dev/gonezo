@@ -1,26 +1,18 @@
 package com.gonezo.multiplatform.core;
 
-import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import java.math.BigDecimal;
-import java.time.Clock;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
 
 public final class AndroidSharingCore {
   private static AndroidSharingCore instance;
 
   private final CoreDatabase database;
-  private final Clock clock;
 
   private AndroidSharingCore(Context context) {
     this.database = new CoreDatabase(context.getApplicationContext());
-    this.clock = Clock.systemUTC();
   }
 
   public static synchronized AndroidSharingCore getInstance(Context context) {
@@ -46,45 +38,6 @@ public final class AndroidSharingCore {
         people.add(new PersonView(cursor.getString(0), cursor.getString(1)));
       }
       return people;
-    }
-  }
-
-  public ShareView applyShareToPostedTransaction(
-    String transactionId,
-    String payerName,
-    List<ParticipantInput> participants,
-    String appliedAt
-  ) {
-    String resolvedTransactionId = requireText(transactionId, "transactionId is required");
-    PostedExpense expense = findPostedExpense(resolvedTransactionId);
-    Instant now = blankToNull(appliedAt) == null ? Instant.now(clock) : Instant.parse(appliedAt);
-
-    SQLiteDatabase db = database.getWritableDatabase();
-    db.beginTransaction();
-    try {
-      deleteExistingShare(resolvedTransactionId);
-
-      String payerPersonId = findOrCreatePerson(requireText(payerName, "payerName is required"), now);
-      String shareId = UUID.randomUUID().toString();
-      ContentValues shareValues = new ContentValues();
-      shareValues.put("id", shareId);
-      shareValues.put("source_transaction_id", resolvedTransactionId);
-      shareValues.put("payer_person_id", payerPersonId);
-      shareValues.put("total_amount", expense.amount());
-      shareValues.put("currency", expense.currency());
-      shareValues.put("created_at", now.toString());
-      shareValues.put("updated_at", now.toString());
-      insertOrThrow("sharing_expense_shares", shareValues, "Failed to create expense share");
-
-      addAnalyticsExclusion("movement", resolvedTransactionId, "shared_expense_lent_amount", now);
-      for (ParticipantInput participant : participants) {
-        addParticipant(shareId, expense, participant, now);
-      }
-
-      db.setTransactionSuccessful();
-      return getMovementDetails(resolvedTransactionId).share();
-    } finally {
-      db.endTransaction();
     }
   }
 
@@ -137,56 +90,40 @@ public final class AndroidSharingCore {
     return items;
   }
 
-  private void addParticipant(String shareId, PostedExpense expense, ParticipantInput participant, Instant now) {
-    String displayName = requireText(participant.personName(), "participant personName is required");
-    String personId = findOrCreatePerson(displayName, now);
-    BigDecimal amount = parsePositiveDecimal(participant.amount(), "participant amount is required");
-    String expectedMovementId = null;
-    if (participant.reimbursable()) {
-      expectedMovementId = createExpectedMovement(
-        expense.accountId(),
-        "income",
-        amount.toPlainString(),
-        expense.currency(),
-        now.toString(),
-        "Reimbursement from " + displayName,
-        displayName,
-        null,
-        null,
-        null
-      );
-      addAnalyticsExclusion("movement", expectedMovementId, "shared_expense_reimbursement", now);
-      addAnalyticsExclusion("expected_movement", expectedMovementId, "user_ignored", now);
-    }
-
-    ContentValues values = new ContentValues();
-    values.put("id", UUID.randomUUID().toString());
-    values.put("share_id", shareId);
-    values.put("person_id", personId);
-    values.put("amount", amount.toPlainString());
-    values.put("reimbursable", participant.reimbursable() ? 1 : 0);
-    putNullable(values, "expected_movement_id", expectedMovementId);
-    insertOrThrow("sharing_expense_share_participants", values, "Failed to create share participant");
-  }
-
-  private PostedExpense findPostedExpense(String transactionId) {
-    Cursor cursor = database.getReadableDatabase().query(
-      "ledger_transactions",
-      new String[] { "id", "account_id", "type", "amount", "currency" },
-      "id = ? and status = ?",
-      new String[] { transactionId, "posted" },
-      null,
-      null,
-      null
+  public PlannedShareView getPlannedShare(String expectedMovementId) {
+    String resolvedExpectedMovementId = requireText(expectedMovementId, "expectedMovementId is required");
+    Cursor shareCursor = database.getReadableDatabase().rawQuery(
+      "select s.expected_movement_ref, s.payer_person_id, p.display_name, s.mode, s.total_amount, s.currency, s.payer_parts " +
+        "from sharing_planned_expense_shares s join sharing_persons p on p.id = s.payer_person_id " +
+        "where s.expected_movement_ref = ? and s.status in ('pending', 'materialized') limit 1",
+      new String[] { resolvedExpectedMovementId }
     );
-    try (cursor) {
-      if (!cursor.moveToFirst()) {
-        throw new IllegalStateException("Posted transaction not found: " + transactionId);
+    try (shareCursor) {
+      if (!shareCursor.moveToFirst()) {
+        return null;
       }
-      if (!"expense".equalsIgnoreCase(cursor.getString(2))) {
-        throw new IllegalArgumentException("Only posted expenses can be shared");
+      String shareId = shareCursor.getString(0);
+      List<PlannedParticipantView> participants = new ArrayList<>();
+      Cursor participantCursor = database.getReadableDatabase().rawQuery(
+        "select sp.id, sp.person_id, p.display_name, sp.participant_parts, sp.amount, sp.reimbursable " +
+          "from sharing_planned_expense_share_participants sp join sharing_persons p on p.id = sp.person_id " +
+          "join sharing_planned_expense_shares s on s.id = sp.planned_share_id " +
+          "where s.expected_movement_ref = ? order by sp.participant_order asc",
+        new String[] { resolvedExpectedMovementId }
+      );
+      try (participantCursor) {
+        while (participantCursor.moveToNext()) {
+          participants.add(new PlannedParticipantView(
+            participantCursor.getString(0), participantCursor.getString(1), participantCursor.getString(2),
+            participantCursor.isNull(3) ? null : participantCursor.getInt(3), participantCursor.getString(4),
+            participantCursor.getInt(5) == 1
+          ));
+        }
       }
-      return new PostedExpense(cursor.getString(0), cursor.getString(1), cursor.getString(3), cursor.getString(4));
+      return new PlannedShareView(
+        shareId, shareCursor.getString(1), shareCursor.getString(2), shareCursor.getString(3),
+        shareCursor.getString(4), shareCursor.getString(5), shareCursor.isNull(6) ? null : shareCursor.getInt(6), participants
+      );
     }
   }
 
@@ -233,167 +170,12 @@ public final class AndroidSharingCore {
     return "pending";
   }
 
-  private void deleteExistingShare(String transactionId) {
-    List<String> expectedMovementIds = new ArrayList<>();
-    Cursor cursor = database.getReadableDatabase().rawQuery(
-      "select sp.expected_movement_id from sharing_expense_share_participants sp " +
-        "join sharing_expense_shares s on s.id = sp.share_id " +
-        "where s.source_transaction_id = ? and sp.expected_movement_id is not null",
-      new String[] { transactionId }
-    );
-    try (cursor) {
-      while (cursor.moveToNext()) {
-        expectedMovementIds.add(cursor.getString(0));
-      }
-    }
-
-    database.getWritableDatabase().delete(
-      "sharing_expense_shares",
-      "source_transaction_id = ?",
-      new String[] { transactionId }
-    );
-    database.getWritableDatabase().delete(
-      "analytics_exclusions",
-      "scope_type = ? and scope_id = ?",
-      new String[] { "movement", transactionId }
-    );
-    for (String expectedMovementId : expectedMovementIds) {
-      database.getWritableDatabase().delete("expected_movements", "id = ?", new String[] { expectedMovementId });
-      database.getWritableDatabase().delete(
-        "analytics_exclusions",
-        "scope_type = ? and scope_id = ?",
-        new String[] { "movement", expectedMovementId }
-      );
-      database.getWritableDatabase().delete(
-        "analytics_exclusions",
-        "scope_type = ? and scope_id = ?",
-        new String[] { "expected_movement", expectedMovementId }
-      );
-    }
-  }
-
-  private String findOrCreatePerson(String displayName, Instant now) {
-    String normalizedName = normalizeName(displayName);
-    Cursor cursor = database.getReadableDatabase().query(
-      "sharing_persons",
-      new String[] { "id" },
-      "normalized_name = ? and archived_at is null",
-      new String[] { normalizedName },
-      null,
-      null,
-      null
-    );
-    try (cursor) {
-      if (cursor.moveToFirst()) {
-        return cursor.getString(0);
-      }
-    }
-
-    String id = UUID.randomUUID().toString();
-    ContentValues values = new ContentValues();
-    values.put("id", id);
-    values.put("display_name", displayName.trim());
-    values.put("normalized_name", normalizedName);
-    values.put("created_at", now.toString());
-    values.putNull("archived_at");
-    insertOrThrow("sharing_persons", values, "Failed to create sharing person");
-    return id;
-  }
-
-  private void addAnalyticsExclusion(String scopeType, String scopeId, String reason, Instant now) {
-    ContentValues values = new ContentValues();
-    values.put("id", UUID.randomUUID().toString());
-    values.put("scope_type", scopeType);
-    values.put("scope_id", scopeId);
-    values.put("reason", reason);
-    values.put("created_at", now.toString());
-    database.getWritableDatabase().insertWithOnConflict(
-      "analytics_exclusions",
-      null,
-      values,
-      SQLiteDatabase.CONFLICT_IGNORE
-    );
-  }
-
-  private String createExpectedMovement(
-    String accountId,
-    String type,
-    String amount,
-    String currency,
-    String expectedAt,
-    String description,
-    String merchant,
-    String categoryId,
-    String originOccurrenceId,
-    String originRecurringMovementId
-  ) {
-    String id = UUID.randomUUID().toString();
-    String now = Instant.now(clock).toString();
-    ContentValues values = new ContentValues();
-    values.put("id", id);
-    values.put("account_id", accountId);
-    values.put("movement_type", type);
-    values.put("amount", amount);
-    values.put("currency", currency);
-    values.put("expected_at", expectedAt);
-    putNullable(values, "description", description);
-    putNullable(values, "merchant", merchant);
-    putNullable(values, "category_id", categoryId);
-    putNullable(values, "origin_occurrence_id", originOccurrenceId);
-    putNullable(values, "origin_recurring_movement_id", originRecurringMovementId);
-    values.put("status", "pending");
-    values.putNull("resolved_transaction_id");
-    values.put("created_at", now);
-    values.put("updated_at", now);
-    values.putNull("resolved_at");
-    values.putNull("dismissed_at");
-    insertOrThrow("expected_movements", values, "Failed to create reimbursement expected movement");
-    return id;
-  }
-
-  private void insertOrThrow(String table, ContentValues values, String message) {
-    long inserted = database.getWritableDatabase().insertWithOnConflict(table, null, values, SQLiteDatabase.CONFLICT_ABORT);
-    if (inserted == -1L) {
-      throw new IllegalStateException(message);
-    }
-  }
-
-  private static void putNullable(ContentValues values, String key, String value) {
-    if (value == null) {
-      values.putNull(key);
-    } else {
-      values.put(key, value);
-    }
-  }
-
   private static String requireText(String value, String message) {
     if (value == null || value.trim().isEmpty()) {
       throw new IllegalArgumentException(message);
     }
     return value.trim();
   }
-
-  private static String blankToNull(String value) {
-    return value == null || value.trim().isEmpty() ? null : value.trim();
-  }
-
-  private static BigDecimal parsePositiveDecimal(String value, String message) {
-    BigDecimal amount = new BigDecimal(requireText(value, message));
-    if (amount.signum() <= 0) {
-      throw new IllegalArgumentException("amount must be positive");
-    }
-    return amount;
-  }
-
-  private static String normalizeName(String value) {
-    return requireText(value, "person name is required")
-      .replaceAll("\\s+", " ")
-      .toLowerCase(Locale.ROOT);
-  }
-
-  private record PostedExpense(String id, String accountId, String amount, String currency) {}
-
-  public record ParticipantInput(String personName, String amount, boolean reimbursable) {}
 
   public record PersonView(String id, String displayName) {}
 
@@ -421,4 +203,13 @@ public final class AndroidSharingCore {
   ) {}
 
   public record MovementDetailsView(ShareView share) {}
+
+  public record PlannedParticipantView(
+    String participantId, String personId, String displayName, Integer parts, String amount, boolean reimbursable
+  ) {}
+
+  public record PlannedShareView(
+    String expectedMovementId, String payerPersonId, String payerName, String mode, String totalAmount,
+    String currency, Integer payerParts, List<PlannedParticipantView> participants
+  ) {}
 }

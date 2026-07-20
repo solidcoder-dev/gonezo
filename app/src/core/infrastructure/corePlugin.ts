@@ -84,6 +84,7 @@ import type {
   ExpectedListMovementsInput,
   ExpectedListMovementsResult,
   ExpectedResolveMovementInput,
+  ExpectedPostMovementInput,
 } from '../../expected/application/expected.port';
 import type {
   MovementsMonthOverviewInput,
@@ -104,6 +105,8 @@ import type {
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
   SharingListPeopleResult,
+  SharingGetPlannedShareInput,
+  SharingPlannedShareResult,
   SharingMovementDetailsResult,
 } from '../../sharing/application/sharing.port';
 export interface CorePlugin {
@@ -175,12 +178,18 @@ export interface CorePlugin {
   expectedListMovements(options: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult>;
   expectedResolveMovement(options: ExpectedResolveMovementInput): Promise<void>;
   expectedDismissMovement(options: ExpectedDismissMovementInput): Promise<void>;
+  expectedPostMovement(options: ExpectedPostMovementInput): Promise<{
+    transactionId: string;
+    shareId?: string;
+    nextExpectedMovementId?: string;
+  }>;
   sharingListPeople(): Promise<SharingListPeopleResult>;
   sharingApplyShareToPostedTransaction(
     options: SharingApplyShareToPostedTransactionInput,
   ): Promise<SharingApplyShareToPostedTransactionResult>;
   sharingGetMovementDetails(options: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult>;
   sharingListMovementDetails(options: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult>;
+  sharingGetPlannedShare(options: SharingGetPlannedShareInput): Promise<SharingPlannedShareResult>;
   analyticsSetMovementIgnored(options: AnalyticsSetMovementIgnoredInput): Promise<void>;
   analyticsListIgnoredMovements(): Promise<AnalyticsListIgnoredMovementsResult>;
   movementsGetMonthOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;

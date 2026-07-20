@@ -22,6 +22,7 @@ class CreateExpectedMovementService(
       originOccurrenceId = command.originOccurrenceId,
       originRecurringMovementId = command.originRecurringMovementId,
       splitItems = command.splitItems,
+      tagNames = command.tagNames,
       createdAt = command.createdAt,
     )
     repository.save(movement)
@@ -45,6 +46,7 @@ class UpdateExpectedMovementService(
         merchant = command.merchant,
         categoryId = command.categoryId,
         splitItems = command.splitItems,
+        tagNames = command.tagNames,
         updatedAt = command.updatedAt,
       ),
     )
@@ -99,6 +101,7 @@ class ListExpectedMovementsService(
         updatedAt = movement.updatedAt,
         resolvedAt = movement.resolvedAt,
         dismissedAt = movement.dismissedAt,
+        tagNames = movement.tagNames,
       )
     }
 }

@@ -36,7 +36,7 @@ internal class AndroidExpectedViewMapper(private val database: CoreDatabase) {
   private fun loadSplitItems(expectedMovementId: String): List<AndroidExpectedCore.SplitItem> {
     val cursor = database.readableDatabase.query(
       "expected_movement_items",
-      arrayOf("id", "name", "amount"),
+      arrayOf("id", "name", "amount", "source_template_item_id"),
       "expected_movement_id = ?",
       arrayOf(expectedMovementId),
       null,
@@ -51,6 +51,7 @@ internal class AndroidExpectedViewMapper(private val database: CoreDatabase) {
             id = it.getString(0),
             name = it.getString(1),
             amount = it.getString(2),
+            sourceTemplateItemId = it.getStringOrNull(3),
           ),
         )
       }

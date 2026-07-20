@@ -42,6 +42,7 @@ import com.gonezo.ledger.application.VoidLedgerTransactionService
 import com.gonezo.ledger.infrastructure.persistence.JdbcLedgerAccountRepository
 import com.gonezo.ledger.infrastructure.persistence.JdbcLedgerTransactionRepository
 import com.gonezo.infrastructure.persistence.JdbcTxCategorizationStateRepository
+import com.gonezo.infrastructure.persistence.JdbcExpectedPostingIdempotencyRepository
 import com.gonezo.infrastructure.transaction.JdbcConsistencyBoundary
 import com.gonezo.sharing.application.ApplyShareToPostedTransactionService
 import com.gonezo.sharing.application.ApplyShareToPostedTransactionUC
@@ -49,6 +50,8 @@ import com.gonezo.sharing.application.GetMovementSharingDetailsService
 import com.gonezo.sharing.application.GetMovementSharingDetailsUC
 import com.gonezo.sharing.infrastructure.persistence.JdbcExpenseShareRepository
 import com.gonezo.sharing.infrastructure.persistence.JdbcSharingPersonRepository
+import com.gonezo.sharing.infrastructure.persistence.JdbcRecurringSharePlanRepository
+import com.gonezo.sharing.infrastructure.persistence.JdbcPlannedExpenseShareRepository
 import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTransactionCategoryAssignmentRepository
 import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTransactionTagAssignmentRepository
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
@@ -64,11 +67,14 @@ class TestApp(private val db: TestDatabase) {
   val ledgerTransactionRepository = JdbcLedgerTransactionRepository(namedJdbc)
   val expectedMovementRepository = JdbcExpectedMovementRepository(namedJdbc)
   val sharingPersonRepository = JdbcSharingPersonRepository(namedJdbc)
+  val recurringSharePlanRepository = JdbcRecurringSharePlanRepository(namedJdbc)
+  val plannedExpenseShareRepository = JdbcPlannedExpenseShareRepository(namedJdbc)
   val expenseShareRepository = JdbcExpenseShareRepository(namedJdbc)
   val analyticsExclusionRepository = JdbcAnalyticsExclusionRepository(namedJdbc)
   val taxonomyTransactionCategoryAssignmentRepository = JdbcTaxonomyTransactionCategoryAssignmentRepository(namedJdbc)
   val taxonomyTransactionTagAssignmentRepository = JdbcTaxonomyTransactionTagAssignmentRepository(namedJdbc)
   val txCategorizationStateRepository = JdbcTxCategorizationStateRepository(namedJdbc)
+  val expectedPostingIdempotencyRepository = JdbcExpectedPostingIdempotencyRepository(namedJdbc)
 
   private val domainEventPublisher: DomainEventPublisher = NoopDomainEventPublisher()
   private val ledgerDeleteAccountService: DeleteLedgerAccountUC = DeleteLedgerAccountService(ledgerAccountRepository)

@@ -5,13 +5,19 @@ import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import com.gonezo.multiplatform.core.AndroidAnalyticsCore;
 import com.gonezo.multiplatform.core.AndroidExpectedCore;
+import com.gonezo.multiplatform.core.AndroidExpectedPostingApplication;
+import com.gonezo.application.orchestration.PostExpectedMovementCommand;
+import com.gonezo.sharing.application.FinalPlannedShareDraft;
+import com.gonezo.sharing.application.FinalPlannedShareParticipant;
 import com.gonezo.multiplatform.core.AndroidRecurringExpectedRuntime;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import org.json.JSONArray;
+import java.util.ArrayList;
+import java.util.List;
 import org.json.JSONObject;
+import org.json.JSONArray;
 
 final class ExpectedPluginHandler {
   private final Context context;
@@ -106,11 +112,6 @@ final class ExpectedPluginHandler {
       String resolvedAt = call.getString("resolvedAt", Instant.now().toString());
       String expectedMovementId = call.getString("expectedMovementId");
       String transactionId = call.getString("transactionId");
-      AndroidExpectedCore.getInstance(context).resolveMovement(
-        expectedMovementId,
-        transactionId,
-        resolvedAt
-      );
       AndroidRecurringExpectedRuntime.getInstance(context).continueAfterResolution(
         expectedMovementId,
         transactionId,
@@ -126,15 +127,61 @@ final class ExpectedPluginHandler {
     try {
       String dismissedAt = call.getString("dismissedAt", Instant.now().toString());
       String expectedMovementId = call.getString("expectedMovementId");
-      AndroidExpectedCore.getInstance(context).dismissMovement(
-        expectedMovementId,
-        dismissedAt
-      );
       AndroidRecurringExpectedRuntime.getInstance(context).continueAfterDismissal(expectedMovementId, dismissedAt);
       call.resolve();
     } catch (Exception ex) {
       call.reject(ex.getMessage());
     }
+  }
+
+  void expectedPostMovement(PluginCall call) {
+    try {
+      PostExpectedMovementCommand command = new PostExpectedMovementCommand(
+        call.getString("expectedMovementId"),
+        Instant.parse(call.getString("occurredAt")),
+        call.getString("categoryId"),
+        toTagNames(call.getArray("tagNames")),
+        call.getBoolean("ignored", false),
+        toSharingOverride(call.getObject("sharingOverride")),
+        call.getString("idempotencyKey")
+      );
+      var posting = AndroidExpectedPostingApplication.getInstance(context).execute(command);
+      JSObject response = new JSObject();
+      response.put("transactionId", posting.getTransactionId());
+      response.put("shareId", posting.getShareId());
+      response.put("nextExpectedMovementId", posting.getNextExpectedMovementId());
+      call.resolve(response);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  private List<String> toTagNames(JSONArray values) {
+    List<String> names = new ArrayList<>();
+    if (values == null) return names;
+    for (int index = 0; index < values.length(); index++) {
+      String name = values.optString(index, "").trim();
+      if (!name.isEmpty() && !names.contains(name)) names.add(name);
+    }
+    return names;
+  }
+
+  private FinalPlannedShareDraft toSharingOverride(JSONObject value) throws Exception {
+    if (value == null) return null;
+    JSONArray rawParticipants = value.optJSONArray("participants");
+    List<FinalPlannedShareParticipant> participants = new ArrayList<>();
+    if (rawParticipants != null) {
+      for (int index = 0; index < rawParticipants.length(); index++) {
+        JSONObject participant = rawParticipants.optJSONObject(index);
+        if (participant == null) continue;
+        participants.add(new FinalPlannedShareParticipant(
+          participant.getString("personName"),
+          new java.math.BigDecimal(participant.getString("amount")),
+          participant.optBoolean("reimbursable", false)
+        ));
+      }
+    }
+    return new FinalPlannedShareDraft(value.getString("payerName"), participants);
   }
 
   private JSObject toExpectedMovementJson(
@@ -157,6 +204,7 @@ final class ExpectedPluginHandler {
     for (AndroidExpectedCore.SplitItem item : movement.getSplitItems()) {
       JSObject split = new JSObject();
       split.put("id", item.getId());
+      split.put("sourceTemplateItemId", item.getSourceTemplateItemId());
       split.put("name", item.getName());
       split.put("amount", item.getAmount());
       splitItems.put(split);
@@ -175,4 +223,5 @@ final class ExpectedPluginHandler {
   private String toJsonStringOrNull(JSONArray value) {
     return value == null ? null : value.toString();
   }
+
 }

@@ -5,6 +5,8 @@ import type {
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
   SharingListPeopleResult,
+  SharingGetPlannedShareInput,
+  SharingPlannedShareResult,
   SharingMovementDetailsResult,
 } from '../../sharing/application/sharing.port';
 import { CoreAdapterWeb } from './coreAdapterWeb';
@@ -36,5 +38,9 @@ export class SharingRuntimeAdapter {
 
   sharingListMovementDetails(input: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult> {
     return isNativeRuntime() ? CorePlugin.sharingListMovementDetails(input) : this.web.sharingListMovementDetails(input);
+  }
+
+  sharingGetPlannedShare(input: SharingGetPlannedShareInput): Promise<SharingPlannedShareResult> {
+    return isNativeRuntime() ? CorePlugin.sharingGetPlannedShare(input) : this.web.sharingGetPlannedShare(input);
   }
 }

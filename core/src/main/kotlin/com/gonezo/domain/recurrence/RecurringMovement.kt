@@ -31,6 +31,7 @@ data class RecurringMovement(
   val updatedAt: Instant,
   val deactivatedAt: Instant?,
   val completedAt: Instant?,
+  val tagNames: List<String> = emptyList(),
 ) {
   data class SplitItem(
     val id: String,
@@ -100,6 +101,7 @@ data class RecurringMovement(
     description: String?,
     merchant: String?,
     categoryId: String?,
+    tagNames: List<String> = emptyList(),
     reviewPolicy: RecurringMovementReviewPolicy,
     splitItems: List<SplitItem> = emptyList(),
     rule: RecurrenceRule,
@@ -122,6 +124,7 @@ data class RecurringMovement(
       description = description,
       merchant = merchant,
       categoryId = categoryId,
+      tagNames = tagNames,
       reviewPolicy = reviewPolicy,
       splitItems = splitItems,
       rule = rule,
@@ -204,6 +207,7 @@ data class RecurringMovement(
       description: String?,
       merchant: String?,
       categoryId: String? = null,
+      tagNames: List<String> = emptyList(),
       reviewPolicy: RecurringMovementReviewPolicy = RecurringMovementReviewPolicy.AUTOMATIC,
       splitItems: List<SplitItem> = emptyList(),
       rule: RecurrenceRule,
@@ -252,6 +256,7 @@ data class RecurringMovement(
         updatedAt = createdAt,
         deactivatedAt = null,
         completedAt = if (completedAtCreation) createdAt else null,
+        tagNames = tagNames.map(String::trim).filter(String::isNotBlank).distinct(),
       )
     }
   }

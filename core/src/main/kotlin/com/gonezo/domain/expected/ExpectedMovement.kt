@@ -22,11 +22,13 @@ data class ExpectedMovement(
   val updatedAt: Instant,
   val resolvedAt: Instant?,
   val dismissedAt: Instant?,
+  val tagNames: List<String> = emptyList(),
 ) {
   data class SplitItem(
     val id: String,
     val name: String,
     val amount: BigDecimal,
+    val sourceTemplateItemId: String? = null,
   )
 
   init {
@@ -85,6 +87,7 @@ data class ExpectedMovement(
     merchant: String?,
     categoryId: String?,
     splitItems: List<SplitItem>,
+    tagNames: List<String> = emptyList(),
     updatedAt: Instant,
   ): ExpectedMovement {
     check(status == ExpectedMovementStatus.PENDING) { "Only pending expected movements can be changed" }
@@ -108,11 +111,13 @@ data class ExpectedMovement(
       description = description?.trim()?.ifBlank { null },
       merchant = merchant?.trim()?.ifBlank { null },
       categoryId = categoryId?.trim()?.ifBlank { null },
+      tagNames = tagNames.map(String::trim).filter(String::isNotBlank).distinct(),
       splitItems = splitItems.map {
         SplitItem(
           id = it.id.trim(),
           name = it.name.trim(),
           amount = it.amount,
+          sourceTemplateItemId = it.sourceTemplateItemId?.trim()?.ifBlank { null },
         )
       },
       updatedAt = updatedAt,
@@ -145,6 +150,7 @@ data class ExpectedMovement(
       originOccurrenceId: String? = null,
       originRecurringMovementId: String? = null,
       splitItems: List<SplitItem> = emptyList(),
+      tagNames: List<String> = emptyList(),
       createdAt: Instant,
     ): ExpectedMovement = ExpectedMovement(
       id = id,
@@ -163,6 +169,7 @@ data class ExpectedMovement(
           id = it.id.trim(),
           name = it.name.trim(),
           amount = it.amount,
+          sourceTemplateItemId = it.sourceTemplateItemId?.trim()?.ifBlank { null },
         )
       },
       status = ExpectedMovementStatus.PENDING,
@@ -171,6 +178,7 @@ data class ExpectedMovement(
       updatedAt = createdAt,
       resolvedAt = null,
       dismissedAt = null,
+      tagNames = tagNames.map(String::trim).filter(String::isNotBlank).distinct(),
     )
   }
 }

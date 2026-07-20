@@ -11,6 +11,7 @@ import {
   TaxonomyRuntimeAdapter,
 } from './coreRuntimeAdapters';
 import { CoreAdapterWeb } from './coreAdapterWeb';
+import { isNativeRuntime } from './runtimeAdapterSupport';
 
 export class CoreAdapter implements CorePort {
   private readonly web: CoreAdapterWeb = new CoreAdapterWeb();
@@ -69,6 +70,7 @@ export class CoreAdapter implements CorePort {
   sharingApplyShareToPostedTransaction = this.sharing.sharingApplyShareToPostedTransaction.bind(this.sharing);
   sharingGetMovementDetails = this.sharing.sharingGetMovementDetails.bind(this.sharing);
   sharingListMovementDetails = this.sharing.sharingListMovementDetails.bind(this.sharing);
+  sharingGetPlannedShare = this.sharing.sharingGetPlannedShare.bind(this.sharing);
 
   taxonomyListCategories = this.taxonomy.taxonomyListCategories.bind(this.taxonomy);
   taxonomyCreateCategory = this.taxonomy.taxonomyCreateCategory.bind(this.taxonomy);
@@ -96,6 +98,7 @@ export class CoreAdapter implements CorePort {
   expectedUpdateMovement = this.expected.expectedUpdateMovement.bind(this.expected);
   expectedListMovements = this.expected.expectedListMovements.bind(this.expected);
   expectedResolveMovement = this.expected.expectedResolveMovement.bind(this.expected);
+  expectedPostMovement = isNativeRuntime() ? this.expected.expectedPostMovement?.bind(this.expected) : undefined;
   expectedDismissMovement = this.expected.expectedDismissMovement.bind(this.expected);
 
   movementsGetMonthOverview = this.movements.movementsGetMonthOverview.bind(this.movements);

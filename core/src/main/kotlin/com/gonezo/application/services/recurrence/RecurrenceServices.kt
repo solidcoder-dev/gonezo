@@ -36,6 +36,7 @@ class CreateRecurringMovementService(
       categoryId = command.categoryId,
       reviewPolicy = command.reviewPolicy,
       splitItems = command.splitItems,
+      tagNames = command.tagNames,
       rule = command.rule,
       recurrenceEnd = command.recurrenceEnd,
       startAt = command.startAt,
@@ -54,6 +55,42 @@ class DeactivateRecurringMovementService(
   override fun execute(command: DeactivateRecurringMovementCommand) {
     val movement = requireRecurringMovement(recurringMovementRepository, command.recurringMovementId)
     recurringMovementRepository.save(movement.deactivate(command.deactivatedAt))
+  }
+}
+
+class UpdateRecurringMovementService(
+  private val recurringMovementRepository: RecurringMovementRepository,
+  private val scheduleCalculator: RecurrenceScheduleCalculator,
+) : UpdateRecurringMovementUC {
+  override fun execute(command: UpdateRecurringMovementCommand) {
+    val existing = requireRecurringMovement(recurringMovementRepository, command.recurringMovementId)
+    check(existing.status == com.gonezo.recurrence.domain.RecurringMovementStatus.ACTIVE) {
+      "Only active recurring movements can be updated"
+    }
+    recurringMovementRepository.save(
+      existing.update(
+        type = command.type,
+        sourceAccountId = command.sourceAccountId,
+        targetAccountId = command.targetAccountId,
+        amount = command.amount,
+        currency = command.currency,
+        destinationAmount = command.destinationAmount,
+        destinationCurrency = command.destinationCurrency,
+        exchangeRate = command.exchangeRate,
+        description = command.description,
+        merchant = command.merchant,
+        categoryId = command.categoryId,
+        reviewPolicy = command.reviewPolicy,
+        splitItems = command.splitItems,
+        tagNames = command.tagNames,
+        rule = command.rule,
+        recurrenceEnd = command.recurrenceEnd,
+        startAt = command.startAt,
+        zoneId = command.zoneId,
+        updatedAt = command.updatedAt,
+        scheduleCalculator = scheduleCalculator,
+      ),
+    )
   }
 }
 
@@ -86,6 +123,7 @@ class ListRecurringMovementsByAccountService(
         nextDueAt = movement.nextDueAt,
         status = movement.status.value,
         generatedOccurrences = movement.generatedOccurrences,
+        tagNames = movement.tagNames,
       )
     }
 }
@@ -140,6 +178,7 @@ class ProcessDueRecurringMovementsService(
                 description = movement.description,
                 merchant = movement.merchant,
                 categoryId = movement.categoryId,
+                tagNames = movement.tagNames,
                 reviewPolicy = movement.reviewPolicy.value,
                 splitItems = movement.splitItems.map {
                   RecurringMovementDueIntegrationEvent.SplitItem(

@@ -494,6 +494,7 @@ describe('SOLID frontend boundaries', () => {
       taxonomy_categories: ['id', 'name', 'name_normalized', 'applies_to', 'status'],
       recurring_movements: ['id', 'movement_type', 'source_account_id', 'review_policy', 'rule_frequency', 'next_due_at'],
       expected_movements: ['id', 'account_id', 'movement_type', 'amount', 'origin_occurrence_id', 'origin_recurring_movement_id'],
+      expected_movement_items: ['id', 'expected_movement_id', 'item_order', 'name', 'amount', 'source_template_item_id'],
       sharing_expense_share_participants: ['id', 'share_id', 'person_id', 'amount', 'expected_movement_id'],
       analytics_exclusions: ['id', 'scope_type', 'scope_id', 'reason'],
     };

@@ -5,6 +5,7 @@ import type {
   ExpectedListMovementsInput,
   ExpectedListMovementsResult,
   ExpectedResolveMovementInput,
+  ExpectedPostMovementInput,
   ExpectedUpdateMovementInput,
   ExpectedUpdateMovementResult,
 } from '../../expected/application/expected.port';
@@ -37,6 +38,11 @@ export class ExpectedRuntimeAdapter {
       return;
     }
     await this.web.expectedResolveMovement(input);
+  }
+
+  expectedPostMovement(input: ExpectedPostMovementInput): Promise<{ transactionId: string; shareId?: string; nextExpectedMovementId?: string }> {
+    if (isNativeRuntime()) return CorePlugin.expectedPostMovement(input);
+    throw new Error('Expected posting workflow is only available on the Android runtime');
   }
 
   async expectedDismissMovement(input: ExpectedDismissMovementInput): Promise<void> {

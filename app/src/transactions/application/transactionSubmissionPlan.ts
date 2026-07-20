@@ -161,6 +161,22 @@ function buildDraftMovementInput(context: TransactionSubmissionContext, type: In
   return type === 'income' ? { ...input, type } : input;
 }
 
+function buildSharingPlan(context: TransactionSubmissionContext) {
+  if (context.composerMode !== 'expense' || !context.shareDraft) return undefined;
+  const participants = context.shareDraft.people.filter((person) => person.id !== 'you').map((person) => ({
+    personName: person.name,
+    reimbursable: person.reimbursable,
+    ...(context.shareDraft?.mode === 'parts' ? { parts: person.parts } : { amount: formatAmount(parseAmount(person.amount)) }),
+  })).filter((person) => 'parts' in person ? person.parts > 0 : parseAmount(person.amount) > 0);
+  if (participants.length === 0) return undefined;
+  return {
+    mode: context.shareDraft.mode,
+    payerName: 'You',
+    ...(context.shareDraft.mode === 'parts' ? { payerParts: context.shareDraft.people.find((person) => person.id === 'you')?.parts ?? 1 } : {}),
+    participants,
+  };
+}
+
 async function addDraftItems(context: TransactionSubmissionContext, transactionId: string) {
   for (const item of context.expenseItems) {
     await context.ledgerTransactionCommands.addTransactionItem({
@@ -317,6 +333,7 @@ async function handleEditedScheduledMovement(
       startAt: context.occurredAt,
       zoneId: context.clock.resolveTimeZoneId(),
       scheduleKind,
+      sharingPlan: buildSharingPlan(context),
     });
   }
 
@@ -391,6 +408,7 @@ async function handleRecurringIncomeExpense(
     zoneId: context.clock.resolveTimeZoneId(),
     scheduleKind: 'recurring',
     reviewPolicy: context.movementExpected ? 'require_user_confirmation' : 'automatic',
+    ...(context.composerMode === 'expense' ? { sharingPlan: buildSharingPlan(context) } : {}),
   });
   state.recorded = true;
 }
@@ -492,7 +510,7 @@ async function handlePostedExpense(
   context: TransactionSubmissionContext,
   state: TransactionSubmissionState,
 ) {
-  if (context.composerMode !== 'expense') {
+  if (context.composerMode !== 'expense' || (context.postExpectedMovementId && context.ports.expected.expectedPostMovement)) {
     return;
   }
 
@@ -503,7 +521,7 @@ async function handlePostedIncome(
   context: TransactionSubmissionContext,
   state: TransactionSubmissionState,
 ) {
-  if (context.composerMode !== 'income') {
+  if (context.composerMode !== 'income' || (context.postExpectedMovementId && context.ports.expected.expectedPostMovement)) {
     return;
   }
 
@@ -551,6 +569,31 @@ async function handlePostedTransfer(
   state.recorded = true;
 }
 
+async function handlePostExpectedMovement(
+  context: TransactionSubmissionContext,
+  state: TransactionSubmissionState,
+) {
+  if (!context.postExpectedMovementId || !context.ports.expected.expectedPostMovement) return;
+  const result = await context.ports.expected.expectedPostMovement({
+    expectedMovementId: context.postExpectedMovementId,
+    occurredAt: context.occurredAt,
+    categoryId: await context.resolveCategorySelection('expense'),
+    tagNames: context.tagNames,
+    ignored: context.movementIgnored,
+    sharingOverride: context.shareDraft ? {
+      payerName: 'You',
+      participants: context.shareDraft.people.filter((person) => person.id !== 'you').map((person) => ({
+        personName: person.name,
+        amount: formatAmount(parseAmount(person.amount)),
+        reimbursable: person.reimbursable,
+      })).filter((person) => parseAmount(person.amount) > 0),
+    } : undefined,
+    idempotencyKey: context.postExpectedMovementId,
+  });
+  state.recorded = true;
+  state.postedTransactionId = result.transactionId;
+}
+
 async function handlePostedShare(
   context: TransactionSubmissionContext,
   state: TransactionSubmissionState,
@@ -559,6 +602,7 @@ async function handlePostedShare(
     context.composerMode !== 'expense'
     || !state.postedTransactionId
     || !context.shareDraft
+    || (context.postExpectedMovementId && context.ports.expected.expectedPostMovement)
   ) {
     return;
   }
@@ -592,6 +636,7 @@ async function handlePostedMovementIgnored(
     !context.movementIgnored
     || !state.postedTransactionId
     || (context.composerMode !== 'expense' && context.composerMode !== 'income')
+    || (context.postExpectedMovementId && context.ports.expected.expectedPostMovement)
   ) {
     return;
   }
@@ -605,6 +650,7 @@ async function handlePostedMovementIgnored(
 
 const SUBMISSION_HANDLERS: TransactionSubmissionHandlerEntry[] = [
   { run: handleEditedScheduledMovement },
+  { run: handlePostExpectedMovement },
   { run: handleExpectedMovement, runAfterRecorded: true },
   { run: handleRecurringIncomeExpense, runAfterRecorded: true },
   { run: handleOneShotIncomeExpense },
@@ -620,7 +666,7 @@ async function resolvePostedExpectedMovement(
   context: TransactionSubmissionContext,
   state: TransactionSubmissionState,
 ) {
-  if (!state.recorded || !state.postedTransactionId) {
+  if (!state.recorded || !state.postedTransactionId || (context.postExpectedMovementId && context.ports.expected.expectedPostMovement)) {
     return;
   }
 

@@ -44,6 +44,7 @@ internal class AndroidRecurringMovementRepository(
     values.putNullable("description", movement.description)
     values.putNullable("merchant", movement.merchant)
     values.putNullable("category_id", movement.categoryId)
+    values.put(COLUMN_TAG_NAMES, org.json.JSONArray(movement.tagNames).toString())
     values.put("review_policy", movement.reviewPolicy.value)
     values.put("rule_frequency", movement.rule.frequency.value)
     values.put("rule_interval", movement.rule.interval)
@@ -192,6 +193,7 @@ internal class AndroidRecurringMovementRepository(
       description = cursor.stringOrNull("description"),
       merchant = cursor.stringOrNull("merchant"),
       categoryId = cursor.stringOrNull("category_id"),
+      tagNames = cursor.stringOrNull(COLUMN_TAG_NAMES)?.let(::decodeTags) ?: emptyList(),
       reviewPolicy = RecurringMovementReviewPolicy.from(cursor.string("review_policy")),
       splitItems = loadSplitItems(cursor.string("id")),
       rule = rule,
@@ -251,6 +253,11 @@ internal class AndroidRecurringMovementRepository(
     }
   }
 
+  private fun decodeTags(raw: String): List<String> {
+    val json = org.json.JSONArray(raw)
+    return buildList { for (index in 0 until json.length()) add(json.getString(index)) }
+  }
+
   private fun ContentValues.putNullable(key: String, value: String?) {
     if (value == null) {
       putNull(key)
@@ -268,6 +275,8 @@ internal class AndroidRecurringMovementRepository(
   }
 
   private companion object {
+    const val COLUMN_TAG_NAMES = "tag_names"
+
     val COLUMNS = arrayOf(
       "id",
       "movement_type",
@@ -281,6 +290,7 @@ internal class AndroidRecurringMovementRepository(
       "description",
       "merchant",
       "category_id",
+      COLUMN_TAG_NAMES,
       "review_policy",
       "rule_frequency",
       "rule_interval",

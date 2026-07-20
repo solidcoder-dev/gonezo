@@ -22,6 +22,7 @@ class AndroidExpectedCore internal constructor(
 ) {
   private val viewMapper = AndroidExpectedViewMapper(database)
 
+  @JvmOverloads
   fun createMovement(
     accountId: String?,
     type: String?,
@@ -34,6 +35,8 @@ class AndroidExpectedCore internal constructor(
     originOccurrenceId: String? = null,
     originRecurringMovementId: String? = null,
     splitItemsJson: String? = null,
+    expectedMovementId: String? = null,
+    createdAt: String? = null,
   ): UUID {
     val resolvedAccountId = requireText(accountId, "accountId is required")
     if (!accountExists(resolvedAccountId)) {
@@ -46,7 +49,7 @@ class AndroidExpectedCore internal constructor(
     }
 
     val now = Instant.now(clock)
-    val id = UUID.randomUUID()
+    val id = expectedMovementId?.let(UUID::fromString) ?: UUID.randomUUID()
     val values = ContentValues()
     values.put("id", id.toString())
     values.put("account_id", resolvedAccountId)
@@ -64,8 +67,9 @@ class AndroidExpectedCore internal constructor(
     putNullable(values, "origin_recurring_movement_id", originRecurringMovementId)
     values.put("status", "pending")
     values.putNull("resolved_transaction_id")
-    values.put("created_at", now.toString())
-    values.put("updated_at", now.toString())
+    val persistedCreatedAt = createdAt?.let { parseInstantOrDate(it, "createdAt") } ?: now
+    values.put("created_at", persistedCreatedAt.toString())
+    values.put("updated_at", persistedCreatedAt.toString())
     values.putNull("resolved_at")
     values.putNull("dismissed_at")
 
@@ -231,6 +235,7 @@ class AndroidExpectedCore internal constructor(
       itemValues.put("item_order", index)
       itemValues.put("name", item.name)
       itemValues.put("amount", item.amount)
+      putNullable(itemValues, "source_template_item_id", item.sourceTemplateItemId)
       if (database.writableDatabase.insertWithOnConflict(
           "expected_movement_items",
           null,
@@ -308,6 +313,7 @@ class AndroidExpectedCore internal constructor(
           id = requireText(item.getString("id"), "split item id is required"),
           name = requireText(item.getString("name"), "split item name is required"),
           amount = requireText(item.getString("amount"), "split item amount is required"),
+          sourceTemplateItemId = item.optString("sourceTemplateItemId", "").ifBlank { null },
         ),
       )
     }
@@ -339,12 +345,14 @@ class AndroidExpectedCore internal constructor(
     val id: String,
     val name: String,
     val amount: String,
+    val sourceTemplateItemId: String? = null,
   )
 
   data class SplitItemInput(
     val id: String,
     val name: String,
     val amount: String,
+    val sourceTemplateItemId: String? = null,
   )
 
   companion object {

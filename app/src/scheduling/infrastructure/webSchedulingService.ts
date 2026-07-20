@@ -68,6 +68,27 @@ export class WebSchedulingService {
   async createRecurringMovement(
     input: RecurrenceCreateRecurringMovementInput,
   ): Promise<RecurrenceCreateRecurringMovementResult> {
+    if (input.sharingPlan) {
+      if (input.type !== 'expense') {
+        throw new Error('Recurring sharing is only supported for expenses');
+      }
+      if (input.reviewPolicy !== 'require_user_confirmation') {
+        throw new Error('Recurring sharing requires user confirmation');
+      }
+      if (input.sharingPlan.participants.length === 0) {
+        throw new Error('Recurring sharing requires at least one participant');
+      }
+      if (input.sharingPlan.mode === 'parts') {
+        if (!Number.isInteger(input.sharingPlan.payerParts) || (input.sharingPlan.payerParts ?? 0) <= 0) {
+          throw new Error('Recurring sharing payerParts must be a positive integer');
+        }
+        if (input.sharingPlan.participants.some((participant) => !Number.isInteger(participant.parts) || (participant.parts ?? 0) <= 0)) {
+          throw new Error('Recurring sharing participant parts must be positive integers');
+        }
+      } else if (input.sharingPlan.participants.some((participant) => Number(participant.amount) <= 0)) {
+        throw new Error('Recurring sharing participant amounts must be positive');
+      }
+    }
     const sourceAccount = this.ledger.getAccountOrThrow(input.sourceAccountId);
     if (sourceAccount.status !== 'active') {
       throw new Error('Source account is archived');

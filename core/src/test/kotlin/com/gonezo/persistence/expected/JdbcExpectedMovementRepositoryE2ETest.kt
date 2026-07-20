@@ -73,6 +73,37 @@ class JdbcExpectedMovementRepositoryE2ETest : SqliteE2ETest() {
   }
 
   @Test
+  fun `round trips expected item source template identity separately from occurrence item identity`() {
+    val repository = JdbcExpectedMovementRepository(db.namedJdbcTemplate)
+    val movement = expectedMovement().let {
+      it.copy(
+        splitItems = listOf(
+          ExpectedMovement.SplitItem(
+            id = "occurrence-item-a",
+            name = "Invoice A",
+            amount = BigDecimal("70.00"),
+            sourceTemplateItemId = "template-item-a",
+          ),
+          ExpectedMovement.SplitItem(
+            id = "occurrence-item-b",
+            name = "Invoice B",
+            amount = BigDecimal("50.00"),
+            sourceTemplateItemId = "template-item-b",
+          ),
+        ),
+      )
+    }
+
+    repository.save(movement)
+
+    val stored = repository.findById(movement.id)
+    assertThat(stored!!.splitItems.map { it.id })
+      .containsExactly("occurrence-item-a", "occurrence-item-b")
+    assertThat(stored.splitItems.map { it.sourceTemplateItemId })
+      .containsExactly("template-item-a", "template-item-b")
+  }
+
+  @Test
   fun `unique index prevents two expected movements linked to same origin occurrence`() {
     val repository = JdbcExpectedMovementRepository(db.namedJdbcTemplate)
     val originOccurrenceId = "6b93faca-53f9-48e4-af06-ed65cddb9917"

@@ -79,10 +79,28 @@ export type ExpectedDismissMovementInput = {
   dismissedAt?: string;
 };
 
+export type ExpectedPostMovementInput = {
+  expectedMovementId: string;
+  occurredAt: string;
+  categoryId?: string;
+  tagNames: string[];
+  ignored: boolean;
+  sharingOverride?: {
+    payerName: string;
+    participants: Array<{ personName: string; amount: string; reimbursable: boolean }>;
+  };
+  idempotencyKey: string;
+};
+
 export interface ExpectedPort {
   expectedCreateMovement(input: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult>;
   expectedUpdateMovement(input: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult>;
   expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult>;
   expectedResolveMovement(input: ExpectedResolveMovementInput): Promise<void>;
   expectedDismissMovement(input: ExpectedDismissMovementInput): Promise<void>;
+  expectedPostMovement?: (input: ExpectedPostMovementInput) => Promise<{
+    transactionId: string;
+    shareId?: string;
+    nextExpectedMovementId?: string;
+  }>;
 }

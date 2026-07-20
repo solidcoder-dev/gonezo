@@ -5,6 +5,7 @@ import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import com.gonezo.multiplatform.core.AndroidRecurringCore;
 import com.gonezo.multiplatform.core.AndroidRecurringExpectedRuntime;
+import com.gonezo.multiplatform.core.AndroidRecurringApplication;
 import com.gonezo.multiplatform.core.AndroidScheduledProcessingRuntime;
 import com.gonezo.application.orchestration.ProcessDueScheduledMovementsResult;
 import java.time.Instant;
@@ -24,7 +25,7 @@ final class RecurringPluginHandler {
 
   void recurrenceCreateRecurringMovement(PluginCall call) {
     try {
-      UUID id = AndroidRecurringCore.getInstance(context).createRecurringMovement(
+      String id = AndroidRecurringApplication.getInstance(context).create(
         new AndroidRecurringCore.CreateRecurringMovementInput(
           normalizedType(call.getString("type", "expense")),
           call.getString("sourceAccountId"),
@@ -39,16 +40,16 @@ final class RecurringPluginHandler {
           nullIfBlank(call.getString("categoryId")),
           call.getString("reviewPolicy", "automatic"),
           toJsonStringOrNull(call.getArray("splitItems")),
+          toJsonStringOrNull(call.getArray("tagNames")),
           toRecurringRuleInput(call.getObject("rule")),
           toRecurrenceEndInput(call.getObject("recurrenceEnd")),
           call.getString("startAt", Instant.now().toString()),
           defaultZoneId(call.getString("zoneId", "UTC"))
-        )
-      );
-      AndroidRecurringExpectedRuntime.getInstance(context).projectNext(id.toString());
+        ),
+        call.getObject("sharingPlan"));
 
       JSObject result = new JSObject();
-      result.put("id", id.toString());
+      result.put("id", id);
       call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());
@@ -57,7 +58,21 @@ final class RecurringPluginHandler {
 
   void recurrenceUpdateRecurringMovement(PluginCall call) {
     try {
-      UUID id = AndroidRecurringCore.getInstance(context).updateRecurringMovement(
+      JSONObject sharingPlanChange = call.getObject("sharingPlanChange");
+      boolean hasSharingPlanChange = sharingPlanChange != null || call.getData().has("sharingPlan");
+      JSONObject sharingPlan = sharingPlanChange == null ? call.getObject("sharingPlan") : sharingPlanChange.optJSONObject("plan");
+      if (sharingPlanChange != null) {
+        String kind = sharingPlanChange.optString("kind", "keep");
+        if ("keep".equals(kind)) {
+          hasSharingPlanChange = false;
+        } else if ("remove".equals(kind)) {
+          hasSharingPlanChange = true;
+          sharingPlan = null;
+        } else if (!"replace".equals(kind)) {
+          throw new IllegalArgumentException("Unsupported sharingPlanChange: " + kind);
+        }
+      }
+      String id = AndroidRecurringApplication.getInstance(context).update(
         new AndroidRecurringCore.UpdateRecurringMovementInput(
           call.getString("recurringMovementId"),
           normalizedType(call.getString("type", "expense")),
@@ -73,16 +88,16 @@ final class RecurringPluginHandler {
           nullIfBlank(call.getString("categoryId")),
           call.getString("reviewPolicy"),
           toJsonStringOrNull(call.getArray("splitItems")),
+          toJsonStringOrNull(call.getArray("tagNames")),
           toRecurringRuleInput(call.getObject("rule")),
           toRecurrenceEndInput(call.getObject("recurrenceEnd")),
           call.getString("startAt", Instant.now().toString()),
           defaultZoneId(call.getString("zoneId", "UTC"))
-        )
-      );
-      AndroidRecurringExpectedRuntime.getInstance(context).projectNext(id.toString());
+        ),
+        hasSharingPlanChange, sharingPlan);
 
       JSObject result = new JSObject();
-      result.put("id", id.toString());
+      result.put("id", id);
       call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());
@@ -91,9 +106,9 @@ final class RecurringPluginHandler {
 
   void recurrenceDeactivateRecurringMovement(PluginCall call) {
     try {
-      AndroidRecurringCore.getInstance(context).deactivateRecurringMovement(
+      AndroidRecurringApplication.getInstance(context).deactivate(
         call.getString("recurringMovementId"),
-        call.getString("deactivatedAt", Instant.now().toString())
+        Instant.parse(call.getString("deactivatedAt", Instant.now().toString()))
       );
       call.resolve();
     } catch (Exception ex) {

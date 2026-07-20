@@ -6,6 +6,8 @@ import type {
   SharingListMovementDetailsResult,
   SharingListPeopleResult,
   SharingMovementDetailsResult,
+  SharingGetPlannedShareInput,
+  SharingPlannedShareResult,
 } from '../application/sharing.port';
 import type { WebRuntimeDependencies } from '../../core/infrastructure/webRuntimeDependencies';
 import type { WebAppState, WebExpenseShare, WebLedgerTransaction, WebSharingPerson } from '../../core/infrastructure/webAppState';
@@ -132,6 +134,11 @@ export class WebSharingService {
       })
       .filter((item): item is Exclude<SharingMovementDetailsResult, null> => item != null);
     return { items };
+  }
+
+  async getPlannedShare(input: SharingGetPlannedShareInput): Promise<SharingPlannedShareResult> {
+    void input;
+    return null;
   }
 
   private findOrCreatePerson(name: string, createdAt: string): WebSharingPerson {
