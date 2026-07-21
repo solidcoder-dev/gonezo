@@ -7,6 +7,10 @@ import com.gonezo.multiplatform.core.AndroidAnalyticsCore;
 import com.gonezo.multiplatform.core.AndroidExpectedCore;
 import com.gonezo.multiplatform.core.AndroidExpectedPostingApplication;
 import com.gonezo.application.orchestration.PostExpectedMovementCommand;
+import com.gonezo.application.orchestration.ExpectedPostingMovementSnapshot;
+import com.gonezo.application.orchestration.ExpectedPostingSplitItem;
+import com.gonezo.expected.domain.ExpectedMovementType;
+import com.gonezo.domain.shared.CurrencyCode;
 import com.gonezo.sharing.application.FinalPlannedShareDraft;
 import com.gonezo.sharing.application.FinalPlannedShareParticipant;
 import com.gonezo.multiplatform.core.AndroidRecurringExpectedRuntime;
@@ -16,6 +20,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
+import java.math.BigDecimal;
 import org.json.JSONObject;
 import org.json.JSONArray;
 
@@ -164,13 +169,14 @@ final class ExpectedPluginHandler {
   void expectedPostMovement(PluginCall call) {
     try {
       PostExpectedMovementCommand command = new PostExpectedMovementCommand(
-        call.getString("expectedMovementId"),
-        Instant.parse(call.getString("occurredAt")),
+        requiredCallString(call, "expectedMovementId"),
+        toPostingMovementSnapshot(call.getObject("movement")),
+        Instant.parse(requiredCallString(call, "occurredAt")),
         call.getString("categoryId"),
         toTagNames(call.getArray("tagNames")),
         call.getBoolean("ignored", false),
         toSharingOverride(call.getObject("sharingOverride")),
-        call.getString("idempotencyKey")
+        requiredCallString(call, "idempotencyKey")
       );
       var posting = AndroidExpectedPostingApplication.getInstance(context).execute(command);
       JSObject response = new JSObject();
@@ -181,6 +187,56 @@ final class ExpectedPluginHandler {
     } catch (Exception ex) {
       call.reject(ex.getMessage());
     }
+  }
+
+  private ExpectedPostingMovementSnapshot toPostingMovementSnapshot(JSONObject value) throws Exception {
+    if (value == null) throw new IllegalArgumentException("movement is required");
+    String accountId = requiredString(value, "accountId");
+    ExpectedMovementType type = ExpectedMovementType.Companion.from(requiredString(value, "type"));
+    BigDecimal amount = new BigDecimal(requiredString(value, "amount"));
+    String currency = CurrencyCode.Companion.from(requiredString(value, "currency")).getValue();
+    JSONArray rawItems = value.getJSONArray("splitItems");
+    List<ExpectedPostingSplitItem> items = toPostingSplitItems(rawItems);
+    return new ExpectedPostingMovementSnapshot(
+      accountId,
+      type,
+      amount,
+      currency,
+      optionalString(value, "description"),
+      optionalString(value, "merchant"),
+      items
+    );
+  }
+
+  private String requiredCallString(PluginCall call, String field) {
+    String result = call.getString(field, "").trim();
+    if (result.isEmpty()) throw new IllegalArgumentException(field + " is required");
+    return result;
+  }
+
+  private List<ExpectedPostingSplitItem> toPostingSplitItems(JSONArray values) throws Exception {
+    List<ExpectedPostingSplitItem> items = new ArrayList<>();
+    for (int index = 0; index < values.length(); index++) {
+      JSONObject item = values.optJSONObject(index);
+      if (item == null) throw new IllegalArgumentException("movement.splitItems[" + index + "] must be an object");
+      items.add(new ExpectedPostingSplitItem(
+        requiredString(item, "id"),
+        requiredString(item, "name"),
+        new BigDecimal(requiredString(item, "amount"))
+      ));
+    }
+    return items;
+  }
+
+  private String requiredString(JSONObject value, String field) throws Exception {
+    String result = value.optString(field, "").trim();
+    if (result.isEmpty()) throw new IllegalArgumentException(field + " is required");
+    return result;
+  }
+
+  private String optionalString(JSONObject value, String field) {
+    String result = value.optString(field, "").trim();
+    return result.isEmpty() ? null : result;
   }
 
   private List<String> toTagNames(JSONArray values) {

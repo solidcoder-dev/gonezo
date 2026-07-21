@@ -12,6 +12,7 @@ import { WorkspacePage, type WorkspacePageRequired } from './WorkspacePage';
 let movementDockNavigationProps: MovementDockNavigationComponentProps | null = null;
 let experimentalMovementDockNavigationProps: ExperimentalMovementDockNavigationComponentProps | null = null;
 let profilePageProps: ProfilePageProps | null = null;
+let movementsSearchPageProps: { required: { refreshSignal: boolean }; provided: unknown } | null = null;
 
 function makeExperimentalFeaturesPort(initialEnabled = false) {
   let enabled = initialEnabled;
@@ -108,6 +109,10 @@ vi.mock('./ProfilePage', () => ({
 
 vi.mock('../../movements/index', () => ({
   MonthlyMovementsComponent: () => null,
+  MovementsSearchPage: (props: { required: { refreshSignal: boolean }; provided: unknown }) => {
+    movementsSearchPageProps = props;
+    return <div data-testid="movements-search-page" />;
+  },
 }));
 
 vi.mock('./NetWorthSummaryComponent', () => ({
@@ -251,6 +256,7 @@ function renderSubject(route: string, experimentalFeatures = makeExperimentalFea
   movementDockNavigationProps = null;
   experimentalMovementDockNavigationProps = null;
   profilePageProps = null;
+  movementsSearchPageProps = null;
 
   return render(
     <MemoryRouter initialEntries={[route]}>
@@ -345,6 +351,16 @@ describe('WorkspacePage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('workspace-path')).toHaveTextContent('/movements/search');
     });
+  });
+
+  it('renders Search inside WorkspacePage without the workspace header or bottom navigation', () => {
+    renderSubject('/movements/search?source=expected&type=income');
+
+    expect(screen.getByTestId('movements-search-page')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Movements' })).toBeNull();
+    expect(screen.queryByTestId('standard-navigation')).toBeNull();
+    expect(screen.getByTestId('workspace-path')).toHaveTextContent('/movements/search');
+    expect(movementsSearchPageProps).not.toBeNull();
   });
 
   it('renders the profile page header with Profile and notifications', async () => {

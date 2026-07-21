@@ -4,6 +4,8 @@ import type { TransactionsImportFileReaderPort } from '../../imports/application
 import { MovementDockNavigationComponent, TransactionEntryComponent } from '../../transactions/index';
 import { ExperimentalMovementDockNavigationComponent } from '../../transactions/application/ExperimentalMovementDockNavigationComponent';
 import { MonthlyMovementsComponent } from '../../movements/index';
+import { MovementsSearchPage } from '../../movements/index';
+import type { MovementsSearchPagePort } from '../../movements/application/movementsSearch.port';
 import { AccountPageView } from '../../account/ui/AccountPageView/AccountPageView';
 import { TransactionsImportComponent } from '../../account/ui/capabilities/TransactionsImport/TransactionsImportComponent';
 import type { AccountPageViewProvided, AccountPageViewRequired } from '../../account/ui/AccountPageView/accountPageView.contract';
@@ -35,7 +37,7 @@ export type WorkspacePageRequired = {
   experimentalFeatures: ExperimentalFeaturesPort;
 };
 
-export type WorkspacePagePort = AccountWorkspacePort & AnalyticsPort & HomeRecentMovementsPort & PendingExpectedOverviewPort;
+export type WorkspacePagePort = AccountWorkspacePort & AnalyticsPort & HomeRecentMovementsPort & PendingExpectedOverviewPort & MovementsSearchPagePort;
 
 type WorkspacePageProps = {
   required: WorkspacePageRequired;
@@ -287,6 +289,21 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     />
   );
 
+  const movementsSearchPage = currentPage === 'movementsSearch' ? (
+    <MovementsSearchPage
+      required={{
+        core: pageRequired.core,
+        refreshSignal: recentTransactionsRefreshSignal,
+      }}
+      provided={{
+        events: {
+          onPostExpectedMovement: postExpectedMovement,
+          onEditExpectedMovement: editExpectedMovement,
+        },
+      }}
+    />
+  ) : null;
+
   const analyticsPage = (
     <AnalyticsPageComponent
       required={{
@@ -350,7 +367,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
               }}
             />
           )
-        : currentPage === 'profile'
+          : currentPage === 'profile'
           ? (
               <WorkspacePageHeader
                 required={{
@@ -505,13 +522,15 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           )
           : currentPage === 'analytics'
             ? analyticsPage
+            : currentPage === 'movementsSearch'
+              ? movementsSearchPage
             : currentPage === 'profile'
             ? profilePage
             : null,
       transactionEntry: (
         <>
           {transactionEntry}
-          {dockNavigation}
+          {currentPage === 'movementsSearch' ? null : dockNavigation}
         </>
       ),
       recentTransactions: currentPage === 'movements' ? movementsPage : null,

@@ -30,6 +30,7 @@ import java.util.UUID
 
 data class PostExpectedMovementCommand(
   val expectedMovementId: String,
+  val movement: ExpectedPostingMovementSnapshot,
   val occurredAt: Instant,
   val categoryId: String? = null,
   val tagNames: List<String> = emptyList(),
@@ -106,13 +107,15 @@ class PostExpectedMovementWorkflow(
       }
     }
     check(expected.status == ExpectedMovementStatus.PENDING) { "Only pending expected movements can be posted" }
-    val transactionId = post(expected, command.occurredAt)
-    categorize.execute(CategorizeLedgerTransactionCommand(TransactionId.from(transactionId), expected.type.value, (command.categoryId ?: expected.categoryId)?.let(CategoryId::from), requestedAt = command.occurredAt))
-    applyTags.execute(ApplyTransactionTagsCommand(TransactionId.from(transactionId), if (command.tagNames.isEmpty()) expected.tagNames else command.tagNames, command.occurredAt))
+    val transactionId = post(command.movement, command.occurredAt)
+    val finalType = command.movement.type
+    val categoryId = command.categoryId ?: expected.categoryId.takeIf { expected.type == finalType }
+    categorize.execute(CategorizeLedgerTransactionCommand(TransactionId.from(transactionId), finalType.value, categoryId?.let(CategoryId::from), requestedAt = command.occurredAt))
+    applyTags.execute(ApplyTransactionTagsCommand(TransactionId.from(transactionId), command.tagNames, command.occurredAt))
     ignoredWriter.setIgnored(command.expectedMovementId, command.ignored, command.occurredAt)
     transactionIgnoredWriter.setIgnored(transactionId, command.ignored, command.occurredAt)
     val planned = plannedShares.findByExpectedMovementRef(ExpectedMovementRef(command.expectedMovementId))
-    val shareId = if (command.sharingOverride != null || planned != null) {
+    val shareId = if (finalType == ExpectedMovementType.EXPENSE && (command.sharingOverride != null || planned != null)) {
       materializeShare.execute(MaterializePlannedShareCommand(command.expectedMovementId, transactionId, command.occurredAt, command.sharingOverride))
     } else null
     resolveExpected.execute(ResolveExpectedMovementCommand(expectedId, transactionId, command.occurredAt))
@@ -126,18 +129,18 @@ class PostExpectedMovementWorkflow(
     }
   }
 
-  private fun post(expected: com.gonezo.expected.domain.ExpectedMovement, at: Instant): String {
-    val account = AccountId.from(expected.accountId)
-    val money = com.gonezo.domain.shared.Money(expected.amount, expected.currency)
-    if (expected.type == ExpectedMovementType.EXPENSE && expected.splitItems.isNotEmpty()) {
-      val draft = createExpenseDraft.execute(CreateLedgerExpenseDraftCommand(account, money, at, expected.description, expected.merchant))
-      expected.splitItems.forEach { item -> addItem.execute(AddLedgerTransactionItemCommand(draft, item.name, com.gonezo.domain.shared.Money(item.amount, expected.currency), null)) }
+  private fun post(movement: ExpectedPostingMovementSnapshot, at: Instant): String {
+    val account = AccountId.from(movement.accountId)
+    val money = com.gonezo.domain.shared.Money.of(movement.amount, movement.currency)
+    if (movement.type == ExpectedMovementType.EXPENSE && movement.splitItems.isNotEmpty()) {
+      val draft = createExpenseDraft.execute(CreateLedgerExpenseDraftCommand(account, money, at, movement.description, movement.merchant))
+      movement.splitItems.forEach { item -> addItem.execute(AddLedgerTransactionItemCommand(draft, item.name, com.gonezo.domain.shared.Money.of(item.amount, movement.currency), null)) }
       postDraft.execute(PostLedgerDraftTransactionCommand(draft))
       return draft.toString()
     }
-    return when (expected.type) {
-      ExpectedMovementType.EXPENSE -> recordExpense.execute(RecordLedgerExpenseCommand(account, money, at, expected.description, expected.merchant)).toString()
-      ExpectedMovementType.INCOME -> recordIncome.execute(RecordLedgerIncomeCommand(account, money, at, expected.description, expected.merchant)).toString()
+    return when (movement.type) {
+      ExpectedMovementType.EXPENSE -> recordExpense.execute(RecordLedgerExpenseCommand(account, money, at, movement.description, movement.merchant)).toString()
+      ExpectedMovementType.INCOME -> recordIncome.execute(RecordLedgerIncomeCommand(account, money, at, movement.description, movement.merchant)).toString()
     }
   }
 }

@@ -6,6 +6,7 @@ import type {
 } from '../../scheduling/application/scheduling.port';
 import type { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
+import type { ExpectedPostingMovementSnapshot } from '../../expected/application/expected.port';
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
 import type { ShareDraft } from '../../sharing/domain/shareDraft';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
@@ -115,6 +116,29 @@ function formatAmount(value: number): string {
 
 function transactionNote(context: TransactionSubmissionContext): string | undefined {
   return context.transactionNote.trim() || undefined;
+}
+
+export function buildExpectedPostingMovementSnapshot(
+  context: Pick<TransactionSubmissionContext, 'accountId' | 'composerMode' | 'amount' | 'accountCurrency' | 'transactionNote' | 'expenseItems'>,
+): ExpectedPostingMovementSnapshot {
+  if (context.composerMode !== 'expense' && context.composerMode !== 'income') {
+    throw new Error('Expected movement posting requires expense or income mode');
+  }
+
+  const note = context.transactionNote.trim() || undefined;
+  return {
+    accountId: context.accountId,
+    type: context.composerMode,
+    amount: formatAmount(parseAmount(context.amount)),
+    currency: context.accountCurrency,
+    description: note,
+    merchant: note,
+    splitItems: context.expenseItems.map((item) => ({
+      id: item.id,
+      name: item.name,
+      amount: formatAmount(parseAmount(item.amount)),
+    })),
+  };
 }
 
 function buildCurrentSchedulingParts(context: TransactionSubmissionContext, enabled = context.recurrenceEnabled) {
@@ -510,7 +534,7 @@ async function handlePostedExpense(
   context: TransactionSubmissionContext,
   state: TransactionSubmissionState,
 ) {
-  if (context.composerMode !== 'expense' || (context.postExpectedMovementId && context.ports.expected.expectedPostMovement)) {
+  if (context.composerMode !== 'expense' || context.postExpectedMovementId) {
     return;
   }
 
@@ -521,7 +545,7 @@ async function handlePostedIncome(
   context: TransactionSubmissionContext,
   state: TransactionSubmissionState,
 ) {
-  if (context.composerMode !== 'income' || (context.postExpectedMovementId && context.ports.expected.expectedPostMovement)) {
+  if (context.composerMode !== 'income' || context.postExpectedMovementId) {
     return;
   }
 
@@ -573,14 +597,23 @@ async function handlePostExpectedMovement(
   context: TransactionSubmissionContext,
   state: TransactionSubmissionState,
 ) {
-  if (!context.postExpectedMovementId || !context.ports.expected.expectedPostMovement) return;
-  const result = await context.ports.expected.expectedPostMovement({
+  if (!context.postExpectedMovementId) return;
+  if (context.composerMode !== 'expense' && context.composerMode !== 'income') {
+    throw new Error('Expected movement posting requires expense or income mode');
+  }
+  const expectedPostMovement = context.ports.expected.expectedPostMovement;
+  if (!expectedPostMovement) {
+    throw new Error('Expected movement posting is not supported by this runtime');
+  }
+  const movement = buildExpectedPostingMovementSnapshot(context);
+  const result = await expectedPostMovement({
     expectedMovementId: context.postExpectedMovementId,
+    movement,
     occurredAt: context.occurredAt,
-    categoryId: await context.resolveCategorySelection('expense'),
+    categoryId: await context.resolveCategorySelection(context.composerMode),
     tagNames: context.tagNames,
     ignored: context.movementIgnored,
-    sharingOverride: context.shareDraft ? {
+    sharingOverride: context.composerMode === 'expense' && context.shareDraft ? {
       payerName: 'You',
       participants: context.shareDraft.people.filter((person) => person.id !== 'you').map((person) => ({
         personName: person.name,
@@ -602,7 +635,7 @@ async function handlePostedShare(
     context.composerMode !== 'expense'
     || !state.postedTransactionId
     || !context.shareDraft
-    || (context.postExpectedMovementId && context.ports.expected.expectedPostMovement)
+    || context.postExpectedMovementId
   ) {
     return;
   }
@@ -636,7 +669,7 @@ async function handlePostedMovementIgnored(
     !context.movementIgnored
     || !state.postedTransactionId
     || (context.composerMode !== 'expense' && context.composerMode !== 'income')
-    || (context.postExpectedMovementId && context.ports.expected.expectedPostMovement)
+    || context.postExpectedMovementId
   ) {
     return;
   }
@@ -666,7 +699,7 @@ async function resolvePostedExpectedMovement(
   context: TransactionSubmissionContext,
   state: TransactionSubmissionState,
 ) {
-  if (!state.recorded || !state.postedTransactionId || (context.postExpectedMovementId && context.ports.expected.expectedPostMovement)) {
+  if (context.postExpectedMovementId || !state.recorded || !state.postedTransactionId) {
     return;
   }
 
@@ -691,6 +724,14 @@ async function resolvePostedExpectedMovement(
 export async function runTransactionSubmissionPlan(
   input: TransactionSubmissionPlanInput,
 ): Promise<TransactionSubmissionPlanResult> {
+  if (input.postExpectedMovementId) {
+    if (!input.ports.expected.expectedPostMovement) {
+      throw new Error('Expected movement posting is not supported by this runtime');
+    }
+    if (input.composerMode !== 'expense' && input.composerMode !== 'income') {
+      throw new Error('Expected movement posting requires expense or income mode');
+    }
+  }
   const tagNames = input.parseTransactionTags();
   const context: TransactionSubmissionContext = {
     ...input,
@@ -704,6 +745,11 @@ export async function runTransactionSubmissionPlan(
     recorded: false,
     postedTransactionId: '',
   };
+
+  if (context.postExpectedMovementId) {
+    await handlePostExpectedMovement(context, state);
+    return state;
+  }
 
   for (const handler of SUBMISSION_HANDLERS) {
     if (state.recorded && !handler.runAfterRecorded) {

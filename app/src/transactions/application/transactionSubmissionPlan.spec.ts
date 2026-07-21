@@ -16,8 +16,8 @@ function baseInput() {
         expectedCreateMovement: vi.fn(),
         expectedUpdateMovement: vi.fn(),
         expectedListMovements: vi.fn(),
-        expectedResolveMovement: vi.fn().mockResolvedValue(undefined),
-        expectedDismissMovement: vi.fn(),
+      expectedResolveMovement: vi.fn().mockResolvedValue(undefined),
+      expectedDismissMovement: vi.fn(),
       },
       sharing: {
         sharingListPeople: vi.fn(),
@@ -222,18 +222,94 @@ describe('transaction submission plan', () => {
     const input = {
       ...baseInput(),
       postExpectedMovementId: 'expected-1',
+      accountId: 'account-2',
+      accountCurrency: 'EUR',
+      amount: '50',
+      transactionNote: 'Tricount changed',
+      expenseItems: [
+        { id: 'item-final-1', name: 'Alice', amount: '30' },
+        { id: 'item-final-2', name: 'Bob', amount: '20' },
+      ],
+      resolvedTransactionDate: '2026-05-15',
+      ports: {
+        ...baseInput().ports,
+        expected: {
+          ...baseInput().ports.expected,
+          expectedPostMovement: vi.fn().mockResolvedValue({ transactionId: 'tx-expected' }),
+        },
+      },
     };
 
     await runTransactionSubmissionPlan(input);
 
-    expect(input.ledgerTransactionCommands.recordExpense).toHaveBeenCalledTimes(1);
-    expect(input.ports.expected.expectedResolveMovement).toHaveBeenCalledWith({
+    expect(input.ports.expected.expectedPostMovement).toHaveBeenCalledWith({
       expectedMovementId: 'expected-1',
-      transactionId: 'tx-1',
-      resolvedAt: '2026-05-18T10:20:30.000Z',
+      movement: {
+        accountId: 'account-2',
+        type: 'expense',
+        amount: '50.00',
+        currency: 'EUR',
+        description: 'Tricount changed',
+        merchant: 'Tricount changed',
+        splitItems: [
+          { id: 'item-final-1', name: 'Alice', amount: '30.00' },
+          { id: 'item-final-2', name: 'Bob', amount: '20.00' },
+        ],
+      },
+      occurredAt: '2026-05-15T10:20:30.000Z',
+      categoryId: 'cat-1',
+      tagNames: ['tag'],
+      ignored: false,
+      idempotencyKey: 'expected-1',
     });
-    expect(input.ledgerTransactionCommands.recordExpense.mock.invocationCallOrder[0]).toBeLessThan(
-      input.ports.expected.expectedResolveMovement.mock.invocationCallOrder[0],
+    expect(input.ports.expected.expectedPostMovement).toHaveBeenCalledTimes(1);
+    expect(input.ledgerTransactionCommands.recordExpense).not.toHaveBeenCalled();
+    expect(input.ports.expected.expectedResolveMovement).not.toHaveBeenCalled();
+  });
+
+  it('rejects expected posting before side effects when the capability is absent', async () => {
+    const input = { ...baseInput(), postExpectedMovementId: 'expected-1' };
+
+    await expect(runTransactionSubmissionPlan(input)).rejects.toThrow(
+      'Expected movement posting is not supported by this runtime',
     );
+    expect(input.ledgerTransactionCommands.recordExpense).not.toHaveBeenCalled();
+    expect(input.ledgerTransactionCommands.recordIncome).not.toHaveBeenCalled();
+    expect(input.ports.expected.expectedResolveMovement).not.toHaveBeenCalled();
+    expect(input.categorizeTransaction).not.toHaveBeenCalled();
+    expect(input.applyTransactionTags).not.toHaveBeenCalled();
+    expect(input.ports.sharing.sharingApplyShareToPostedTransaction).not.toHaveBeenCalled();
+    expect(input.ports.analytics.analyticsSetMovementIgnored).not.toHaveBeenCalled();
+  });
+
+  it('uses income category selection when posting an expected income', async () => {
+    const input = {
+      ...baseInput(),
+      composerMode: 'income' as const,
+      postExpectedMovementId: 'expected-income',
+      ports: {
+        ...baseInput().ports,
+        expected: {
+          ...baseInput().ports.expected,
+          expectedPostMovement: vi.fn().mockResolvedValue({ transactionId: 'tx-income' }),
+        },
+      },
+    };
+
+    await runTransactionSubmissionPlan(input);
+
+    expect(input.resolveCategorySelection).toHaveBeenCalledWith('income');
+    expect(input.resolveCategorySelection).not.toHaveBeenCalledWith('expense');
+    expect(input.ports.expected.expectedPostMovement).toHaveBeenCalledWith(expect.objectContaining({
+      movement: expect.objectContaining({
+        accountId: 'account-1',
+        type: 'income',
+        amount: '12.00',
+        currency: 'USD',
+        description: 'Lunch',
+        merchant: 'Lunch',
+      }),
+      sharingOverride: undefined,
+    }));
   });
 });

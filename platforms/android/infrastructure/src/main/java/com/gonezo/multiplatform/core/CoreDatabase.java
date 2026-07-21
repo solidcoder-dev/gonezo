@@ -3,11 +3,12 @@ package com.gonezo.multiplatform.core;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteException;
 
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 29;
+  private static final int DB_VERSION = 30;
 
   CoreDatabase(Context context) {
     this(context, DB_NAME);
@@ -116,12 +117,18 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion < 29) {
       addRecurringAndExpectedTagColumns(db);
     }
+
+    if (oldVersion < 30) {
+      createCategorizationWorkflowTable(db);
+    }
   }
 
   @Override
   public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-    dropTables(db);
-    createTables(db);
+    throw new SQLiteException(
+      "Database downgrade from " + oldVersion + " to " + newVersion
+        + " is not supported because it could cause data loss."
+    );
   }
 
   private static void createTables(SQLiteDatabase db) {
@@ -143,6 +150,27 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     addExpectedItemTemplateIdentityIndex(db);
     addNextExpectedPostingId(db);
     addRecurringAndExpectedTagColumns(db);
+    createCategorizationWorkflowTable(db);
+  }
+
+  private static void createCategorizationWorkflowTable(SQLiteDatabase db) {
+    db.execSQL(
+      "create table if not exists workflow_tx_categorization (" +
+        "transaction_id text primary key," +
+        "requested_category_id text null," +
+        "status text not null," +
+        "error_code text null," +
+        "error_message text null," +
+        "attempts integer not null," +
+        "next_attempt_at text null," +
+        "updated_at text not null," +
+        "created_at text not null" +
+      ");"
+    );
+    db.execSQL(
+      "create index if not exists idx_workflow_tx_categorization_status_next_attempt " +
+        "on workflow_tx_categorization(status, next_attempt_at);"
+    );
   }
 
   private static void createLedgerTables(SQLiteDatabase db) {
@@ -736,6 +764,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
   }
 
   private static void dropTables(SQLiteDatabase db) {
+    db.execSQL("drop table if exists workflow_tx_categorization");
     db.execSQL("drop table if exists expected_movements");
     db.execSQL("drop table if exists expected_movement_items");
     db.execSQL("drop table if exists analytics_exclusions");

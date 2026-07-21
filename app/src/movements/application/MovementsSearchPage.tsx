@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { LedgerAccountItem } from '../../ledger/application/ledger.port';
 import type { MovementsSearchPagePort } from './movementsSearch.port';
+import type { ExpectedMovementView } from './movementsView.types';
 import { useMovementsSearchModel } from './useMovementsSearchModel';
 import { MovementsSearchFilters } from '../ui/MovementsSearch/MovementsSearchFilters';
 import { MovementsSearchResults } from '../ui/MovementsSearch/MovementsSearchResults';
@@ -10,6 +11,13 @@ import { parseMovementsSearchRoutePreset } from './movementsSearchRoutePreset';
 type MovementsSearchPageProps = {
   required: {
     core: MovementsSearchPagePort;
+    refreshSignal: boolean;
+  };
+  provided: {
+    events: {
+      onPostExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => void;
+      onEditExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => void;
+    };
   };
 };
 
@@ -30,7 +38,9 @@ function resolveInitialAccountId(accounts: LedgerAccountItem[], queryValue: stri
   return null;
 }
 
-export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
+export type { MovementsSearchPageProps };
+
+export function MovementsSearchPage({ required, provided }: MovementsSearchPageProps) {
   const location = useLocation();
   const routePreset = parseMovementsSearchRoutePreset(location.search);
 
@@ -79,6 +89,16 @@ export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
     enabled: accounts.length > 0,
     initialFilters: routePreset,
   });
+  const refreshResultsRef = useRef(searchModel.provided.commands.refreshResults);
+  const accountsAvailableRef = useRef(false);
+  refreshResultsRef.current = searchModel.provided.commands.refreshResults;
+  accountsAvailableRef.current = accounts.length > 0;
+
+  useEffect(() => {
+    if (accountsAvailableRef.current) {
+      void refreshResultsRef.current();
+    }
+  }, [required.refreshSignal]);
 
   return (
     <section className="app-screen">
@@ -143,6 +163,7 @@ export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
                 core: required.core,
               },
               commands: searchModel.provided.commands,
+              events: provided.events,
             }}
           />
         </>

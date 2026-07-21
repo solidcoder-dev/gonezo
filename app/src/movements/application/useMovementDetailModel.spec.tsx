@@ -36,6 +36,27 @@ function postedTransaction(overrides: Partial<TransactionHistoryItemView> = {}):
   };
 }
 
+function expectedMovement(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'expected-1',
+    accountId: 'account-1',
+    accountName: 'Main',
+    type: 'expense' as const,
+    amount: '15.00',
+    currency: 'EUR',
+    expectedAt: '2026-07-12T13:42:00.000Z',
+    description: 'Groceries',
+    merchant: 'Market',
+    categoryId: 'cat-1',
+    splitItems: [],
+    status: 'pending' as const,
+    createdAt: '2026-07-01T00:00:00.000Z',
+    updatedAt: '2026-07-01T00:00:00.000Z',
+    ignored: true,
+    ...overrides,
+  };
+}
+
 function makeInput(overrides: Record<string, unknown> = {}) {
   const ports = {
     analytics: {
@@ -97,6 +118,42 @@ function makeInput(overrides: Record<string, unknown> = {}) {
 }
 
 describe('useMovementDetailModel', () => {
+  it('emits expected post and edit actions before closing the detail', () => {
+    const onPostExpectedMovement = vi.fn();
+    const onEditExpectedMovement = vi.fn();
+    const input = makeInput({
+      postedItems: [],
+      expectedItems: [expectedMovement()],
+      onPostExpectedMovement,
+      onEditExpectedMovement,
+    });
+    const { result } = renderHook(() => useMovementDetailModel(input));
+
+    act(() => result.current.actions.openExpectedMovementDetail('expected-1'));
+    act(() => result.current.provided.commands.postExpectedMovement());
+    expect(onPostExpectedMovement).toHaveBeenCalledWith(expect.objectContaining({ id: 'expected-1' }), 'Groceries');
+    expect(result.current.state.selection).toBeNull();
+
+    act(() => result.current.actions.openExpectedMovementDetail('expected-1'));
+    act(() => result.current.provided.commands.runOverflowAction());
+    expect(onEditExpectedMovement).toHaveBeenCalledWith(expect.objectContaining({ id: 'expected-1' }), 'Groceries');
+    expect(result.current.state.selection).toBeNull();
+  });
+
+  it.each([
+    ['post', 'postExpectedMovement'],
+    ['edit', 'runOverflowAction'],
+  ])('reports a missing expected %s callback and keeps the detail open', (_label, action) => {
+    const input = makeInput({ postedItems: [], expectedItems: [expectedMovement()] });
+    const { result } = renderHook(() => useMovementDetailModel(input));
+
+    act(() => result.current.actions.openExpectedMovementDetail('expected-1'));
+    act(() => result.current.provided.commands[action as 'postExpectedMovement' | 'runOverflowAction']());
+
+    expect(input.reportError).toHaveBeenCalledWith(expect.any(Error));
+    expect(result.current.state.selection).toEqual({ source: 'expected', id: 'expected-1' });
+  });
+
   it('dismissSheet clears searches and restores the persisted draft tags', () => {
     const input = makeInput();
     const { result } = renderHook(() => useMovementDetailModel(input));

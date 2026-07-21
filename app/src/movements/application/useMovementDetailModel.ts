@@ -425,7 +425,11 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
       return;
     }
     if (movement.source === 'expected' && movement.canEditExpected) {
-      onEditExpectedMovement?.(movement.raw, movement.category?.name);
+      if (!onEditExpectedMovement) {
+        reportError(new Error('Expected movement edit action is not available'));
+        return;
+      }
+      onEditExpectedMovement(movement.raw, movement.category?.name);
       closeDetail();
     }
   }
@@ -459,7 +463,11 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     if (!movement || movement.source !== 'expected' || !movement.canPostExpected) {
       return;
     }
-    onPostExpectedMovement?.(movement.raw, movement.category?.name);
+    if (!onPostExpectedMovement) {
+      reportError(new Error('Expected movement post action is not available'));
+      return;
+    }
+    onPostExpectedMovement(movement.raw, movement.category?.name);
     closeDetail();
   }
 

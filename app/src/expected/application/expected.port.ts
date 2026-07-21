@@ -95,8 +95,23 @@ export type ExpectedDismissMovementInput = {
   dismissedAt?: string;
 };
 
+export type ExpectedPostingMovementSnapshot = Readonly<{
+  accountId: string;
+  type: 'expense' | 'income';
+  amount: string;
+  currency: string;
+  description?: string;
+  merchant?: string;
+  splitItems: ReadonlyArray<Readonly<{
+    id: string;
+    name: string;
+    amount: string;
+  }>>;
+}>;
+
 export type ExpectedPostMovementInput = {
   expectedMovementId: string;
+  movement: ExpectedPostingMovementSnapshot;
   occurredAt: string;
   categoryId?: string;
   tagNames: string[];

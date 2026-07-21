@@ -56,6 +56,7 @@ function makePorts(): TransactionEntryModelPorts {
       expectedListMovements: vi.fn(),
       expectedResolveMovement: vi.fn().mockResolvedValue(undefined),
       expectedDismissMovement: vi.fn(),
+      expectedPostMovement: vi.fn().mockResolvedValue({ transactionId: 'tx-1' }),
     },
     sharing: {
       sharingListPeople: vi.fn().mockResolvedValue({ items: [] }),
@@ -458,7 +459,7 @@ describe('useTransactionEntryModel', () => {
     expect(ports.ledger.ledgerRecordExpense).not.toHaveBeenCalled();
   });
 
-  it('resolves posted expected movements using the injected clock', async () => {
+  it('posts expected movements atomically using the injected clock', async () => {
     const ports = makePorts();
 
     const { result } = renderHook(() => useTransactionEntryModel({
@@ -483,10 +484,24 @@ describe('useTransactionEntryModel', () => {
       await result.current.provided.commands.submit(formEvent());
     });
 
-    expect(ports.expected.expectedResolveMovement).toHaveBeenCalledWith({
+    expect(ports.expected.expectedPostMovement).toHaveBeenCalledWith({
       expectedMovementId: 'expected-1',
-      transactionId: 'tx-1',
-      resolvedAt: '2026-05-18T10:20:30.000Z',
+      movement: {
+        accountId: 'account-1',
+        type: 'expense',
+        amount: '15.00',
+        currency: 'USD',
+        description: 'Expected lunch',
+        merchant: 'Expected lunch',
+        splitItems: [],
+      },
+      occurredAt: '2026-05-14T10:20:30.000Z',
+      categoryId: undefined,
+      tagNames: [],
+      ignored: false,
+      idempotencyKey: 'expected-1',
     });
+    expect(ports.ledger.ledgerRecordExpense).not.toHaveBeenCalled();
+    expect(ports.expected.expectedResolveMovement).not.toHaveBeenCalled();
   });
 });

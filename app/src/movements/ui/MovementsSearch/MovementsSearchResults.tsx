@@ -5,6 +5,7 @@ import type {
   MovementsSearchFiltersState,
 } from '../../application/movementsView.types';
 import type { MovementsSearchPagePort } from '../../application/movementsSearch.port';
+import type { ExpectedMovementView } from '../../application/movementsView.types';
 import { MovementDetailOverlayComponent } from '../../application/MovementDetailOverlayComponent';
 import { MovementRowView } from '../MovementRow/MovementRowView';
 import {
@@ -35,6 +36,10 @@ export type MovementsSearchResultsProvided = {
     goToNextPage: () => void;
     refreshResults: () => Promise<void>;
     voidPostedMovement: (transactionId: string) => Promise<void>;
+  };
+  events: {
+    onPostExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => void;
+    onEditExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => void;
   };
 };
 
@@ -201,6 +206,8 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
             },
             events: {
               onClose: () => setSelectedEntryKey(null),
+              onPostExpectedMovement: provided.events.onPostExpectedMovement,
+              onEditExpectedMovement: provided.events.onEditExpectedMovement,
             },
           }}
         />

@@ -583,6 +583,17 @@ function makeCore(transactionCount = 0): AppTestPort {
       movement.resolvedAt = resolvedAt;
       movement.updatedAt = resolvedAt;
     }),
+    expectedPostMovement: vi.fn(async (input) => {
+      const movement = expectedMovements.find((item) => item.id === input.expectedMovementId);
+      if (!movement) {
+        throw new Error(`Expected movement not found: ${input.expectedMovementId}`);
+      }
+      movement.status = 'resolved';
+      movement.resolvedTransactionId = 'tx-draft';
+      movement.resolvedAt = input.occurredAt;
+      movement.updatedAt = input.occurredAt;
+      return { transactionId: 'tx-draft' };
+    }),
     expectedDismissMovement: vi.fn(async (input) => {
       const movement = expectedMovements.find((item) => item.id === input.expectedMovementId);
       if (!movement) return;
@@ -3690,24 +3701,14 @@ describe('App Accounts UX', () => {
     fireEvent.click(within(composer).getByRole('button', { name: 'Post movement' }));
 
     await waitFor(() => {
-      expect(core.ledgerCreateExpenseDraft).toHaveBeenCalledWith(expect.objectContaining({
-        accountId: 'acc-1',
-        amount: '42.00',
-        currency: 'USD',
-        merchant: 'Expected rent',
-        description: 'Expected rent',
-      }));
-    });
-    expect(core.ledgerAddTransactionItem).toHaveBeenCalledTimes(2);
-    expect(core.ledgerPostDraftTransaction).toHaveBeenCalledWith({
-      transactionId: 'tx-draft',
-    });
-    await waitFor(() => {
-      expect(core.expectedResolveMovement).toHaveBeenCalledWith(expect.objectContaining({
+      expect(core.expectedPostMovement).toHaveBeenCalledWith(expect.objectContaining({
         expectedMovementId: 'exp-1',
-        transactionId: 'tx-draft',
+        occurredAt: expect.any(String),
+        idempotencyKey: 'exp-1',
       }));
     });
+    expect(core.ledgerCreateExpenseDraft).not.toHaveBeenCalled();
+    expect(core.expectedResolveMovement).not.toHaveBeenCalled();
     expect(core.expectedUpdateMovement).not.toHaveBeenCalled();
   });
 
