@@ -8,6 +8,7 @@ import type {
   ExpectedPostMovementInput,
   ExpectedUpdateMovementInput,
   ExpectedUpdateMovementResult,
+  ExpectedPendingOverviewResult,
 } from '../../expected/application/expected.port';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
@@ -30,6 +31,10 @@ export class ExpectedRuntimeAdapter {
 
   expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult> {
     return isNativeRuntime() ? CorePlugin.expectedListMovements(input) : this.web.expectedListMovements(input);
+  }
+
+  expectedGetPendingOverview(): Promise<ExpectedPendingOverviewResult> {
+    return isNativeRuntime() ? CorePlugin.expectedGetPendingOverview() : this.web.expectedGetPendingOverview();
   }
 
   async expectedResolveMovement(input: ExpectedResolveMovementInput): Promise<void> {

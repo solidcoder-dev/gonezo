@@ -5,6 +5,7 @@ import type { MovementsSearchPagePort } from './movementsSearch.port';
 import { useMovementsSearchModel } from './useMovementsSearchModel';
 import { MovementsSearchFilters } from '../ui/MovementsSearch/MovementsSearchFilters';
 import { MovementsSearchResults } from '../ui/MovementsSearch/MovementsSearchResults';
+import { parseMovementsSearchRoutePreset } from './movementsSearchRoutePreset';
 
 type MovementsSearchPageProps = {
   required: {
@@ -31,6 +32,7 @@ function resolveInitialAccountId(accounts: LedgerAccountItem[], queryValue: stri
 
 export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
   const location = useLocation();
+  const routePreset = parseMovementsSearchRoutePreset(location.search);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -75,6 +77,7 @@ export function MovementsSearchPage({ required }: MovementsSearchPageProps) {
     accounts,
     accountId: selectedAccountId,
     enabled: accounts.length > 0,
+    initialFilters: routePreset,
   });
 
   return (

@@ -97,6 +97,7 @@ export class CoreAdapter implements CorePort {
   expectedCreateMovement = this.expected.expectedCreateMovement.bind(this.expected);
   expectedUpdateMovement = this.expected.expectedUpdateMovement.bind(this.expected);
   expectedListMovements = this.expected.expectedListMovements.bind(this.expected);
+  expectedGetPendingOverview = this.expected.expectedGetPendingOverview.bind(this.expected);
   expectedResolveMovement = this.expected.expectedResolveMovement.bind(this.expected);
   expectedPostMovement = isNativeRuntime() ? this.expected.expectedPostMovement?.bind(this.expected) : undefined;
   expectedDismissMovement = this.expected.expectedDismissMovement.bind(this.expected);

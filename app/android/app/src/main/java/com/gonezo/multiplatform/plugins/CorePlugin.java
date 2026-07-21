@@ -226,7 +226,7 @@ public class CorePlugin extends Plugin {
   public void expectedListMovements(PluginCall call) {
     new ExpectedPluginHandler(getContext()).expectedListMovements(call);
   }
-
+  @PluginMethod public void expectedGetPendingOverview(PluginCall call) { new ExpectedPluginHandler(getContext()).expectedGetPendingOverview(call); }
   @PluginMethod
   public void expectedResolveMovement(PluginCall call) {
     new ExpectedPluginHandler(getContext()).expectedResolveMovement(call);

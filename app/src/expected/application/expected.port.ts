@@ -68,6 +68,22 @@ export type ExpectedListMovementsResult = {
   items: ExpectedMovementItem[];
 };
 
+export type ExpectedPendingCurrencySummary = {
+  currency: string;
+  amount: string;
+  movementCount: number;
+};
+
+export type ExpectedPendingTypeSummary = {
+  totalCount: number;
+  amountsByCurrency: ExpectedPendingCurrencySummary[];
+};
+
+export type ExpectedPendingOverviewResult = {
+  expenses: ExpectedPendingTypeSummary;
+  incomes: ExpectedPendingTypeSummary;
+};
+
 export type ExpectedResolveMovementInput = {
   expectedMovementId: string;
   transactionId: string;
@@ -96,6 +112,7 @@ export interface ExpectedPort {
   expectedCreateMovement(input: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult>;
   expectedUpdateMovement(input: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult>;
   expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult>;
+  expectedGetPendingOverview?: () => Promise<ExpectedPendingOverviewResult>;
   expectedResolveMovement(input: ExpectedResolveMovementInput): Promise<void>;
   expectedDismissMovement(input: ExpectedDismissMovementInput): Promise<void>;
   expectedPostMovement?: (input: ExpectedPostMovementInput) => Promise<{

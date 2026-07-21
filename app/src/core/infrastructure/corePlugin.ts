@@ -83,6 +83,7 @@ import type {
   ExpectedDismissMovementInput,
   ExpectedListMovementsInput,
   ExpectedListMovementsResult,
+  ExpectedPendingOverviewResult,
   ExpectedResolveMovementInput,
   ExpectedPostMovementInput,
 } from '../../expected/application/expected.port';
@@ -176,6 +177,7 @@ export interface CorePlugin {
   expectedCreateMovement(options: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult>;
   expectedUpdateMovement(options: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult>;
   expectedListMovements(options: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult>;
+  expectedGetPendingOverview(): Promise<ExpectedPendingOverviewResult>;
   expectedResolveMovement(options: ExpectedResolveMovementInput): Promise<void>;
   expectedDismissMovement(options: ExpectedDismissMovementInput): Promise<void>;
   expectedPostMovement(options: ExpectedPostMovementInput): Promise<{

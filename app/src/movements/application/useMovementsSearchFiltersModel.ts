@@ -15,6 +15,7 @@ import {
 
 type UseMovementsSearchFiltersModelInput = {
   resetPage: () => void;
+  initialFilters?: Partial<MovementsSearchFiltersState>;
 };
 
 export type MovementsSearchFiltersModel = {
@@ -48,51 +49,22 @@ export type MovementsSearchFiltersModel = {
   };
 };
 
-function sameValues(left: string[], right: string[]): boolean {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
-}
-
-function sameFilters(
-  left: MovementsSearchFiltersState,
-  right: MovementsSearchFiltersState,
-): boolean {
-  return left.source === right.source
-    && left.text === right.text
-    && left.merchant === right.merchant
-    && sameValues(left.categoryIds, right.categoryIds)
-    && sameValues(left.tagIds, right.tagIds)
-    && left.amountMin === right.amountMin
-    && left.amountMax === right.amountMax
-    && left.fromDate === right.fromDate
-    && left.toDate === right.toDate
-    && sameValues(left.types, right.types)
-    && left.sortField === right.sortField
-    && left.sortDirection === right.sortDirection
-    && left.pageSize === right.pageSize
-    && left.groupByDay === right.groupByDay;
-}
-
-function resetToDefaultFilters(previous: MovementsSearchFiltersState): MovementsSearchFiltersState {
-  return sameFilters(previous, DEFAULT_MOVEMENTS_SEARCH_FILTERS)
-    ? previous
-    : createDefaultMovementsSearchFilters();
-}
-
 export function useMovementsSearchFiltersModel(
   input: UseMovementsSearchFiltersModelInput,
 ): MovementsSearchFiltersModel {
+  const initialFilters = mergeMovementsSearchFilterPatch(createDefaultMovementsSearchFilters(), input.initialFilters ?? {});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filtersAdvancedOpen, setFiltersAdvancedOpen] = useState(false);
   const [searchApplied, setSearchApplied] = useState(false);
-  const [filterDraft, setFilterDraft] = useState<MovementsSearchFiltersState>(createDefaultMovementsSearchFilters);
-  const [appliedFilters, setAppliedFilters] = useState<MovementsSearchFiltersState>(createDefaultMovementsSearchFilters);
+  const [filterDraft, setFilterDraft] = useState<MovementsSearchFiltersState>(initialFilters);
+  const [appliedFilters, setAppliedFilters] = useState<MovementsSearchFiltersState>(initialFilters);
 
   function resetSearchState() {
     setFiltersOpen(false);
     setFiltersAdvancedOpen(false);
     setSearchApplied(false);
-    setFilterDraft(resetToDefaultFilters);
-    setAppliedFilters(resetToDefaultFilters);
+    setFilterDraft(() => initialFilters);
+    setAppliedFilters(() => initialFilters);
     input.resetPage();
   }
 

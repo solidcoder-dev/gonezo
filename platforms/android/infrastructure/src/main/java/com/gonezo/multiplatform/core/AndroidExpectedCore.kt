@@ -4,6 +4,10 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import com.gonezo.ledger.domain.AccountId
+import com.gonezo.application.query.GetPendingExpectedOverviewQuery
+import com.gonezo.application.query.GetPendingExpectedOverviewService
+import com.gonezo.application.query.PendingExpectedOverviewQuery
+import com.gonezo.application.query.PendingExpectedOverviewResult
 import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
@@ -19,8 +23,10 @@ class AndroidExpectedCore internal constructor(
   private val database: CoreDatabase,
   private val accountExists: (String) -> Boolean,
   private val clock: Clock,
+  private val preferredCurrency: () -> String?,
 ) {
   private val viewMapper = AndroidExpectedViewMapper(database)
+  private val pendingOverviewQuery: GetPendingExpectedOverviewQuery = GetPendingExpectedOverviewService(AndroidPendingExpectedOverviewReadAdapter(database))
 
   @JvmOverloads
   fun createMovement(
@@ -164,6 +170,9 @@ class AndroidExpectedCore internal constructor(
     )
     return cursor.use(viewMapper::readExpectedMovements)
   }
+
+  fun getPendingOverview(): PendingExpectedOverviewResult =
+    pendingOverviewQuery.execute(PendingExpectedOverviewQuery(preferredCurrency()))
 
   fun resolveMovement(expectedMovementId: String?, transactionId: String?, resolvedAt: String?) {
     val id = requireText(expectedMovementId, "expectedMovementId is required")
@@ -399,6 +408,16 @@ class AndroidExpectedCore internal constructor(
               uuid != null && accountRepository.exists(AccountId(uuid))
             },
             clock = Clock.systemUTC(),
+            preferredCurrency = {
+              val accountId = AndroidPreferencesCore.getInstance(context).getPreferences().defaultAccountId?.value
+              if (accountId == null) {
+                null
+              } else {
+                database.readableDatabase.query("ledger_accounts", arrayOf("currency"), "id = ?", arrayOf(accountId), null, null, null, "1").use { cursor ->
+                  if (cursor.moveToFirst()) cursor.getString(0) else null
+                }
+              }
+            },
           ).also { created -> instance = created }
         }
       }

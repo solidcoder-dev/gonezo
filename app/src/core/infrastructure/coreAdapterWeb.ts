@@ -85,6 +85,7 @@ import type {
   ExpectedPostMovementInput,
   ExpectedUpdateMovementInput,
   ExpectedUpdateMovementResult,
+  ExpectedPendingOverviewResult,
 } from '../../expected/application/expected.port';
 import type {
   MovementsGetOverviewInput,
@@ -332,6 +333,13 @@ export class CoreAdapterWeb implements CorePort {
   async expectedCreateMovement(input: ExpectedCreateMovementInput): Promise<ExpectedCreateMovementResult> { return this.expectedMovementsService.createMovement(input); }
   async expectedUpdateMovement(input: ExpectedUpdateMovementInput): Promise<ExpectedUpdateMovementResult> { return this.expectedMovementsService.updateMovement(input); }
   async expectedListMovements(input: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult> { return this.expectedMovementsService.listMovements(input); }
+  async expectedGetPendingOverview(): Promise<ExpectedPendingOverviewResult> {
+    const activeAccountIds = new Set(this.state.ledgerAccounts.filter((account) => account.status === 'active').map((account) => account.id));
+    const preferredAccount = this.state.defaultAccountId
+      ? this.state.ledgerAccounts.find((account) => account.id === this.state.defaultAccountId)
+      : undefined;
+    return this.expectedMovementsService.pendingOverview(activeAccountIds, preferredAccount?.currency);
+  }
 
   async expectedResolveMovement(input: ExpectedResolveMovementInput): Promise<void> {
     const movement = this.state.expectedMovements.find((item) => item.id === input.expectedMovementId);

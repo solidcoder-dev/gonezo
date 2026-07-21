@@ -142,10 +142,6 @@ vi.mock('../../account/application/ManageAccountSheet/ManageAccountSheetComponen
   ) : null,
 }));
 
-vi.mock('../../movements/application/ExpectedMovementsCardComponent', () => ({
-  ExpectedMovementsCardComponent: () => null,
-}));
-
 vi.mock('../../analytics/application/AnalyticsPageComponent', () => ({
   AnalyticsPageComponent: () => null,
 }));

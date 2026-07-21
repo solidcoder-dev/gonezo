@@ -107,6 +107,33 @@ final class ExpectedPluginHandler {
     }
   }
 
+  void expectedGetPendingOverview(PluginCall call) {
+    try {
+      var overview = AndroidExpectedCore.getInstance(context).getPendingOverview();
+      JSObject result = new JSObject();
+      result.put("expenses", toPendingExpectedSummaryJson(overview.getExpenses()));
+      result.put("incomes", toPendingExpectedSummaryJson(overview.getIncomes()));
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  private JSObject toPendingExpectedSummaryJson(com.gonezo.application.query.PendingExpectedTypeSummary summary) {
+    JSObject result = new JSObject();
+    result.put("totalCount", summary.getTotalCount());
+    JSONArray amounts = new JSONArray();
+    for (com.gonezo.application.query.PendingExpectedCurrencySummary item : summary.getAmountsByCurrency()) {
+      JSObject amount = new JSObject();
+      amount.put("currency", item.getCurrency());
+      amount.put("amount", item.getAmount());
+      amount.put("movementCount", item.getMovementCount());
+      amounts.put(amount);
+    }
+    result.put("amountsByCurrency", amounts);
+    return result;
+  }
+
   void expectedResolveMovement(PluginCall call) {
     try {
       String resolvedAt = call.getString("resolvedAt", Instant.now().toString());

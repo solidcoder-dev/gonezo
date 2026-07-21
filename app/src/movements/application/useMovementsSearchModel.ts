@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LedgerAccountItem } from '../../ledger/application/ledger.port';
-import type { MovementsPaginationView, MovementsSearchItemView, MovementsSearchModelProvided, MovementsSearchModelRequired } from './movementsView.types';
+import type { MovementsPaginationView, MovementsSearchFiltersState, MovementsSearchItemView, MovementsSearchModelProvided, MovementsSearchModelRequired } from './movementsView.types';
 import { type MovementsSearchFacetsPort, type MovementsSearchMutationPort } from './movementsSearch.port';
 import { type PostedTaxonomySearchPort } from './postedTaxonomySearch';
 import { runMovementsSearchQuery } from './movementsSearchQueryRunner';
@@ -21,6 +21,7 @@ type UseMovementsSearchModelInput = {
   accounts: SearchAccount[];
   accountId: string | null;
   enabled: boolean;
+  initialFilters?: Partial<MovementsSearchFiltersState>;
 };
 
 function toErrorMessage(error: unknown): string {
@@ -30,7 +31,7 @@ function toErrorMessage(error: unknown): string {
   return 'Unknown error';
 }
 export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
-  const { core, accounts, accountId, enabled } = input;
+  const { core, accounts, accountId, enabled, initialFilters } = input;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(0);
@@ -44,6 +45,7 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
 
   const filtersModel = useMovementsSearchFiltersModel({
     resetPage: () => setPage(0),
+    initialFilters,
   });
   const facetsModel = useMovementsSearchFacetsModel({
     core,

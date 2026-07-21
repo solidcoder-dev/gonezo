@@ -14,7 +14,7 @@ import { ProfilePage } from './ProfilePage';
 import { NetWorthSummaryComponent } from './NetWorthSummaryComponent';
 import { CurrencyAccountsSheetComponent } from '../../account/application/CurrencyAccountsSheet/CurrencyAccountsSheetComponent';
 import { ManageAccountSheetComponent } from '../../account/application/ManageAccountSheet/ManageAccountSheetComponent';
-import { ExpectedMovementsCardComponent } from '../../movements/application/ExpectedMovementsCardComponent';
+import { PendingExpectedOverviewComponent, type PendingExpectedOverviewPort } from './PendingExpectedOverviewComponent';
 import { AnalyticsPageComponent } from '../../analytics/application/AnalyticsPageComponent';
 import { HomeRecentMovementsComponent, type HomeRecentMovementsPort } from './HomeRecentMovementsComponent';
 import { WorkspacePageHeader } from '../ui/WorkspacePageHeader/WorkspacePageHeader';
@@ -35,7 +35,7 @@ export type WorkspacePageRequired = {
   experimentalFeatures: ExperimentalFeaturesPort;
 };
 
-export type WorkspacePagePort = AccountWorkspacePort & AnalyticsPort & HomeRecentMovementsPort;
+export type WorkspacePagePort = AccountWorkspacePort & AnalyticsPort & HomeRecentMovementsPort & PendingExpectedOverviewPort;
 
 type WorkspacePageProps = {
   required: WorkspacePageRequired;
@@ -438,7 +438,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   ) : null;
 
   const homeExpectedMovements = currentPage === 'home' ? (
-    <ExpectedMovementsCardComponent
+    <PendingExpectedOverviewComponent
       required={{
         context: {
           core: pageRequired.core,
@@ -450,9 +450,9 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       }}
       provided={{
         events: {
-          onPostExpectedMovement: postExpectedMovement,
-          onEditExpectedMovement: editExpectedMovement,
           onError: showError,
+          onExpenseSelected: () => { void navigate('/movements/search?source=expected&type=expense'); },
+          onIncomeSelected: () => { void navigate('/movements/search?source=expected&type=income'); },
         },
       }}
     />

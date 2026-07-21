@@ -84,6 +84,7 @@ import type {
   ExpectedPostMovementInput,
   ExpectedListMovementsInput,
   ExpectedListMovementsResult,
+  ExpectedPendingOverviewResult,
   ExpectedResolveMovementInput,
 } from '../../expected/application/expected.port';
 import type {
@@ -317,6 +318,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async expectedListMovements(options: ExpectedListMovementsInput): Promise<ExpectedListMovementsResult> {
     return this.core.expectedListMovements(options);
+  }
+
+  async expectedGetPendingOverview(): Promise<ExpectedPendingOverviewResult> {
+    return this.core.expectedGetPendingOverview();
   }
 
   async expectedResolveMovement(options: ExpectedResolveMovementInput): Promise<void> {

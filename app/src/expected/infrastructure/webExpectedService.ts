@@ -9,6 +9,8 @@ import type {
   ExpectedUpdateMovementResult,
 } from '../application/expected.port';
 import { filterExpectedMovements } from '../application/expectedMovementFilters';
+import { addDecimalAmounts } from '../../ledger/application/decimalAmount';
+import type { ExpectedPendingOverviewResult, ExpectedPendingTypeSummary } from '../application/expected.port';
 import type { ExpectedLedgerPort } from '../application/expectedLedger.port';
 import type { WebRuntimeDependencies } from '../../core/infrastructure/webRuntimeDependencies';
 import type { WebAppState } from '../../core/infrastructure/webAppState';
@@ -34,6 +36,31 @@ export class WebExpectedMovementsService {
     this.state = options.state;
     this.dependencies = options.dependencies;
     this.ledger = options.ledger;
+  }
+
+  pendingOverview(activeAccountIds: Set<string>, preferredCurrency?: string): ExpectedPendingOverviewResult {
+    const pending = this.state.expectedMovements.filter((movement) => activeAccountIds.has(movement.accountId) && movement.status === 'pending');
+    return {
+      expenses: this.summarize(pending.filter((movement) => movement.type === 'expense'), preferredCurrency),
+      incomes: this.summarize(pending.filter((movement) => movement.type === 'income'), preferredCurrency),
+    };
+  }
+
+  private summarize(movements: WebAppState['expectedMovements'], preferredCurrency?: string): ExpectedPendingTypeSummary {
+    const grouped = new Map<string, { amount: string; movementCount: number }>();
+    for (const movement of movements) {
+      const current = grouped.get(movement.currency) ?? { amount: '0', movementCount: 0 };
+      grouped.set(movement.currency, {
+        amount: addDecimalAmounts(current.amount, movement.amount),
+        movementCount: current.movementCount + 1,
+      });
+    }
+    const amountsByCurrency = [...grouped.entries()]
+      .map(([currency, value]) => ({ currency, ...value }))
+      .sort((left, right) => Number(right.currency === preferredCurrency) - Number(left.currency === preferredCurrency)
+        || right.movementCount - left.movementCount
+        || left.currency.localeCompare(right.currency));
+    return { totalCount: movements.length, amountsByCurrency };
   }
 
   private nowIso(): string {
