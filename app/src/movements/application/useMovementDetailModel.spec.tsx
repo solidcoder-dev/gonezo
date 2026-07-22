@@ -53,6 +53,7 @@ function expectedMovement(overrides: Record<string, unknown> = {}) {
     createdAt: '2026-07-01T00:00:00.000Z',
     updatedAt: '2026-07-01T00:00:00.000Z',
     ignored: true,
+    origin: { kind: 'manual' as const },
     ...overrides,
   };
 }
@@ -74,6 +75,24 @@ function makeInput(overrides: Record<string, unknown> = {}) {
       schedulingUpdateMovement: vi.fn(),
       schedulingDeactivateMovement: vi.fn(),
       schedulingListMovements: vi.fn(),
+      schedulingGetMovement: vi.fn().mockResolvedValue({
+        found: true,
+        item: {
+          id: 'series-1',
+          type: 'expense',
+          sourceAccountId: 'account-1',
+          amount: '15.00',
+          currency: 'EUR',
+          status: 'active',
+          startAt: '2026-07-01T00:00:00.000Z',
+          nextDueAt: '2026-08-01T00:00:00.000Z',
+          zoneId: 'UTC',
+          generatedOccurrences: 1,
+          splitItems: [],
+          rule: { frequency: 'monthly', interval: 1 },
+          recurrenceEnd: { kind: 'never' },
+        },
+      }),
       movementsGetOverview: vi.fn(),
       movementsListScheduled: vi.fn(),
     },
@@ -118,6 +137,39 @@ function makeInput(overrides: Record<string, unknown> = {}) {
 }
 
 describe('useMovementDetailModel', () => {
+  it('resolves a recurring expected series by its origin id even when the monthly list is empty', async () => {
+    const input = makeInput({
+      postedItems: [],
+      scheduledItems: [],
+      expectedItems: [expectedMovement({
+        id: 'expected-id',
+        origin: { kind: 'recurring', occurrenceId: 'occurrence-id', recurringMovementId: 'series-id' },
+      })],
+    });
+    input.ports.scheduling.schedulingGetMovement.mockResolvedValue({
+      found: true,
+      item: {
+        id: 'series-id', type: 'expense', sourceAccountId: 'account-1', amount: '15.00', currency: 'EUR',
+        status: 'active', startAt: '2026-07-01T00:00:00.000Z', nextDueAt: '2026-08-01T00:00:00.000Z', zoneId: 'UTC',
+        generatedOccurrences: 1, splitItems: [], rule: { frequency: 'monthly', interval: 1 }, recurrenceEnd: { kind: 'never' },
+      },
+    });
+    const { result } = renderHook(() => useMovementDetailModel(input));
+
+    act(() => result.current.actions.openExpectedMovementDetail('expected-id'));
+    expect(result.current.required.data.movement).toMatchObject({ source: 'expected' });
+    expect(input.ports.scheduling.schedulingGetMovement).toHaveBeenCalledWith({ recurringMovementId: 'series-id' });
+    await act(async () => { await Promise.resolve(); });
+
+    expect(result.current.required.data.movement).toMatchObject({
+      id: 'expected-id', series: { kind: 'recurring', series: { id: 'series-id', canStopFutureMovements: true } },
+    });
+    expect(result.current.required.data.overflowActions).toEqual(expect.arrayContaining([
+      { id: 'edit-expected', label: 'Edit expected', destructive: false },
+      { id: 'stop-recurring-series', label: 'Stop future movements', destructive: true },
+    ]));
+  });
+
   it('emits expected post and edit actions before closing the detail', () => {
     const onPostExpectedMovement = vi.fn();
     const onEditExpectedMovement = vi.fn();
@@ -138,6 +190,84 @@ describe('useMovementDetailModel', () => {
     act(() => result.current.provided.commands.runOverflowAction());
     expect(onEditExpectedMovement).toHaveBeenCalledWith(expect.objectContaining({ id: 'expected-1' }), 'Groceries');
     expect(result.current.state.selection).toBeNull();
+  });
+
+  it('stops an expected movement series with the series id and closes after refresh', async () => {
+    const refreshMovements = vi.fn().mockResolvedValue(undefined);
+    const scheduling = {
+      id: 'series-1',
+      type: 'expense' as const,
+      sourceAccountId: 'account-1',
+      amount: '15.00',
+      currency: 'EUR',
+      status: 'active' as const,
+      startAt: '2026-07-01T00:00:00.000Z',
+      nextDueAt: '2026-08-01T00:00:00.000Z',
+      zoneId: 'UTC',
+      generatedOccurrences: 1,
+      splitItems: [],
+      rule: { frequency: 'monthly' as const, interval: 1 },
+      recurrenceEnd: { kind: 'never' as const },
+    };
+    const input = makeInput({
+      postedItems: [],
+      expectedItems: [expectedMovement({
+        origin: { kind: 'recurring', occurrenceId: 'occ-1', recurringMovementId: 'series-1' },
+      })],
+      scheduledItems: [scheduling],
+      refreshMovements,
+    });
+    const { result } = renderHook(() => useMovementDetailModel(input));
+
+    act(() => result.current.actions.openExpectedMovementDetail('expected-1'));
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => {
+      result.current.provided.commands.runOverflowAction('stop-recurring-series');
+    });
+
+    expect(input.ports.scheduling.schedulingDeactivateMovement).toHaveBeenCalledWith({ recurringMovementId: 'series-1' });
+    expect(input.ports.scheduling.schedulingDeactivateMovement).not.toHaveBeenCalledWith({ recurringMovementId: 'expected-1' });
+    expect(refreshMovements).toHaveBeenCalledOnce();
+    expect(result.current.state.selection).toBeNull();
+  });
+
+  it('does not call scheduling or refresh when stopping an expected series is canceled', async () => {
+    const confirm = vi.fn().mockReturnValue(false);
+    const refreshMovements = vi.fn().mockResolvedValue(undefined);
+    const input = makeInput({
+      postedItems: [],
+      expectedItems: [expectedMovement({
+        origin: { kind: 'recurring', occurrenceId: 'occ-1', recurringMovementId: 'series-1' },
+      })],
+      scheduledItems: [{
+        id: 'series-1',
+        type: 'expense' as const,
+        sourceAccountId: 'account-1',
+        amount: '15.00',
+        currency: 'EUR',
+        status: 'active' as const,
+        startAt: '2026-07-01T00:00:00.000Z',
+        zoneId: 'UTC',
+        generatedOccurrences: 1,
+        splitItems: [],
+        rule: { frequency: 'monthly' as const, interval: 1 },
+        recurrenceEnd: { kind: 'never' as const },
+      }],
+      confirm,
+      refreshMovements,
+    });
+    const { result } = renderHook(() => useMovementDetailModel(input));
+
+    act(() => result.current.actions.openExpectedMovementDetail('expected-1'));
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => {
+      result.current.provided.commands.runOverflowAction('stop-recurring-series');
+    });
+
+    expect(confirm).toHaveBeenCalledWith('Stop future movements?\n\nNo more movements will be generated from this series.\nExisting expected and posted movements will not be deleted.');
+    expect(input.ports.scheduling.schedulingDeactivateMovement).not.toHaveBeenCalled();
+    expect(refreshMovements).not.toHaveBeenCalled();
+    expect(result.current.state.selection).toEqual({ source: 'expected', id: 'expected-1' });
   });
 
   it.each([

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { MovementDetailViewModel } from '../../application/movementDetailView.types';
 import { MovementDetailView, type MovementDetailViewProps } from './MovementDetailView';
+import { MovementDetailsSheetPreview } from '../MovementDetailSheet/MovementDetailsSheetPreview';
 
 function postedMovement(overrides: Partial<Extract<MovementDetailViewModel, { source: 'posted' }>> = {}): Extract<MovementDetailViewModel, { source: 'posted' }> {
   return {
@@ -112,6 +113,7 @@ function expectedMovement(overrides: Partial<Extract<MovementDetailViewModel, { 
       merchant: 'Mercadona',
       description: 'Weekly family grocery run',
       categoryId: 'cat-1',
+      origin: { kind: 'manual' },
     },
     financialType: 'expense',
     title: 'Mercadona',
@@ -133,6 +135,7 @@ function expectedMovement(overrides: Partial<Extract<MovementDetailViewModel, { 
     canPostExpected: true,
     expectedAtLabel: '12 Jul 2026 13:42',
     originLabel: 'Manual',
+    series: { kind: 'manual' },
     ...overrides,
   };
 }
@@ -154,7 +157,7 @@ function makeCommands(overrides: Partial<MovementDetailViewProps['provided']['co
     saveTags: vi.fn(),
     setIgnored: vi.fn(),
     runOverflowAction: vi.fn(),
-    deactivateScheduledMovement: vi.fn(),
+    stopFutureMovements: vi.fn(),
     postExpectedMovement: vi.fn(),
     ...overrides,
   };
@@ -225,7 +228,7 @@ describe('MovementDetailView', () => {
       <MovementDetailView
         required={{
           state: { open: true, activeSheet: null, overflowOpen: true, categoryQuery: '', tagsQuery: '' },
-          data: { movement: postedMovement(), categories: [], draftTags: [], suggestedTags: [], overflowActionLabel: 'Void movement' },
+          data: { movement: postedMovement(), categories: [], draftTags: [], suggestedTags: [], overflowActions: [{ id: 'void-posted', label: 'Void movement', destructive: true }] },
           status: { savingCategory: false, savingTags: false, tagsDirty: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
         }}
         provided={{ commands: makeCommands() }}
@@ -239,21 +242,21 @@ describe('MovementDetailView', () => {
       <MovementDetailView
         required={{
           state: { open: true, activeSheet: null, overflowOpen: true, categoryQuery: '', tagsQuery: '' },
-          data: { movement: scheduledMovement(), categories: [], draftTags: [], suggestedTags: [], overflowActionLabel: 'Deactivate movement' },
+          data: { movement: scheduledMovement(), categories: [], draftTags: [], suggestedTags: [], overflowActions: [{ id: 'stop-recurring-series', label: 'Stop future movements', destructive: true }] },
           status: { savingCategory: false, savingTags: false, tagsDirty: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
         }}
         provided={{ commands: makeCommands() }}
       />,
     );
 
-    expect(screen.getByRole('menuitem', { name: 'Deactivate movement' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Stop future movements' })).toBeInTheDocument();
     expect(screen.getByText('Scheduled')).toBeInTheDocument();
 
     rerender(
       <MovementDetailView
         required={{
           state: { open: true, activeSheet: null, overflowOpen: true, categoryQuery: '', tagsQuery: '' },
-          data: { movement: expectedMovement(), categories: [], draftTags: [], suggestedTags: [], overflowActionLabel: 'Edit expected' },
+          data: { movement: expectedMovement(), categories: [], draftTags: [], suggestedTags: [], overflowActions: [{ id: 'edit-expected', label: 'Edit expected', destructive: false }] },
           status: { savingCategory: false, savingTags: false, tagsDirty: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
         }}
         provided={{ commands: makeCommands() }}
@@ -262,6 +265,16 @@ describe('MovementDetailView', () => {
 
     expect(screen.getByRole('menuitem', { name: 'Edit expected' })).toBeInTheDocument();
     expect(screen.getByText('Expected')).toBeInTheDocument();
+  });
+
+  it('shows manual expected origin without scheduled details', () => {
+    render(<MovementDetailsSheetPreview movement={expectedMovement()} onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'More details' }));
+
+    expect(screen.getByText('Manual')).toBeInTheDocument();
+    expect(screen.queryByText('Schedule')).not.toBeInTheDocument();
+    expect(screen.queryByText('Series')).not.toBeInTheDocument();
   });
 
   it('keeps category and tags visible for posted, scheduled and expected', () => {

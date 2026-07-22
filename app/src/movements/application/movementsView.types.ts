@@ -37,6 +37,11 @@ export type ScheduledMovementView = {
   origin?: 'recurring' | 'one_shot';
 };
 
+export type ExpectedMovementOriginView =
+  | { kind: 'manual' }
+  | { kind: 'recurring'; occurrenceId: string; recurringMovementId: string }
+  | { kind: 'recurring_unlinked'; occurrenceId?: string; recurringMovementId?: string };
+
 export type ExpectedMovementView = {
   id: string;
   accountId: string;
@@ -48,8 +53,7 @@ export type ExpectedMovementView = {
   description?: string;
   merchant?: string;
   categoryId?: string;
-  originOccurrenceId?: string;
-  originRecurringMovementId?: string;
+  origin: ExpectedMovementOriginView;
   splitItems: Array<{ id: string; name: string; amount: string }>;
   status: 'pending' | 'resolved' | 'dismissed';
   resolvedTransactionId?: string;

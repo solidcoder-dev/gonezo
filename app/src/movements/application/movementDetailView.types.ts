@@ -1,6 +1,7 @@
 import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
 import type { TransactionHistoryItemView } from '../../transactions/application/transactionView.types';
 import type { TaxonomyCategoryItem, TaxonomyTagItem } from '../../taxonomy/application/taxonomy.port';
+import type { SchedulingMovementItem } from '../../scheduling/application/scheduling.port';
 
 export type MovementDetailSelection = {
   source: 'posted' | 'scheduled' | 'expected';
@@ -54,6 +55,29 @@ export type SharingDetailState =
   | { phase: 'loading' }
   | { phase: 'loaded'; value: SharingViewModel | null }
   | { phase: 'error'; message: string };
+
+export type ExpectedRecurringSeriesDetailViewModel = {
+  id: string;
+  status: 'active' | 'deactivated' | 'completed';
+  scheduleSummary: string;
+  nextDueLabel?: string;
+  canStopFutureMovements: boolean;
+};
+
+export type ExpectedSeriesState =
+  | { phase: 'idle' }
+  | { phase: 'loading'; recurringMovementId: string }
+  | { phase: 'loaded'; recurringMovementId: string; series: SchedulingMovementItem | null }
+  | { phase: 'error'; recurringMovementId: string; message: string };
+
+export type ExpectedMovementSeriesViewModel =
+  | { kind: 'manual' }
+  | { kind: 'recurring'; occurrenceId?: string; phase: ExpectedSeriesState['phase']; series: ExpectedRecurringSeriesDetailViewModel | null };
+
+export type MovementDetailOverflowAction =
+  | { id: 'void-posted'; label: 'Void movement'; destructive: true }
+  | { id: 'edit-expected'; label: 'Edit expected'; destructive: false }
+  | { id: 'stop-recurring-series'; label: 'Stop future movements'; destructive: true };
 
 export type MovementDetailBaseViewModel = {
   id: string;
@@ -117,6 +141,7 @@ export type ExpectedMovementDetailViewModel = MovementDetailBaseViewModel & {
   canPostExpected: boolean;
   expectedAtLabel: string;
   originLabel: string;
+  series: ExpectedMovementSeriesViewModel;
 };
 
 export type MovementDetailViewModel =

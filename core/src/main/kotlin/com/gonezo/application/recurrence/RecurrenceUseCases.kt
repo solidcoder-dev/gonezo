@@ -129,6 +129,14 @@ interface ListRecurringMovementsByAccountUC {
   fun execute(query: ListRecurringMovementsByAccountQuery): List<RecurringMovementView>
 }
 
+data class GetRecurringMovementQuery(
+  val recurringMovementId: RecurringMovementId,
+)
+
+interface GetRecurringMovementUC {
+  fun execute(query: GetRecurringMovementQuery): RecurringMovementView?
+}
+
 data class RecurringMovementView(
   val id: String,
   val type: String,

@@ -98,35 +98,36 @@ class ListRecurringMovementsByAccountService(
   private val recurringMovementRepository: RecurringMovementRepository,
 ) : ListRecurringMovementsByAccountUC {
   override fun execute(query: ListRecurringMovementsByAccountQuery): List<RecurringMovementView> =
-    recurringMovementRepository.listBySourceAccount(query.sourceAccountId).map { movement ->
-      RecurringMovementView(
-        id = movement.id.toString(),
-        type = movement.type.value,
-        sourceAccountId = movement.sourceAccountId,
-        targetAccountId = movement.targetAccountId,
-        amount = movement.amount.toPlainString(),
-        currency = movement.currency,
-        destinationAmount = movement.destinationAmount?.toPlainString(),
-        destinationCurrency = movement.destinationCurrency,
-        exchangeRate = movement.exchangeRate?.toPlainString(),
-        description = movement.description,
-        merchant = movement.merchant,
-        categoryId = movement.categoryId,
-        reviewPolicy = movement.reviewPolicy.value,
-        splitItems = movement.splitItems.map {
-          RecurringMovementView.SplitItem(
-            id = it.id,
-            name = it.name,
-            amount = it.amount.toPlainString(),
-          )
-        },
-        nextDueAt = movement.nextDueAt,
-        status = movement.status.value,
-        generatedOccurrences = movement.generatedOccurrences,
-        tagNames = movement.tagNames,
-      )
-    }
+    recurringMovementRepository.listBySourceAccount(query.sourceAccountId).map(::toRecurringMovementView)
 }
+
+class GetRecurringMovementService(
+  private val recurringMovementRepository: RecurringMovementRepository,
+) : GetRecurringMovementUC {
+  override fun execute(query: GetRecurringMovementQuery): RecurringMovementView? =
+    recurringMovementRepository.findById(query.recurringMovementId)?.let(::toRecurringMovementView)
+}
+
+private fun toRecurringMovementView(movement: RecurringMovement): RecurringMovementView = RecurringMovementView(
+  id = movement.id.toString(),
+  type = movement.type.value,
+  sourceAccountId = movement.sourceAccountId,
+  targetAccountId = movement.targetAccountId,
+  amount = movement.amount.toPlainString(),
+  currency = movement.currency,
+  destinationAmount = movement.destinationAmount?.toPlainString(),
+  destinationCurrency = movement.destinationCurrency,
+  exchangeRate = movement.exchangeRate?.toPlainString(),
+  description = movement.description,
+  merchant = movement.merchant,
+  categoryId = movement.categoryId,
+  reviewPolicy = movement.reviewPolicy.value,
+  splitItems = movement.splitItems.map { RecurringMovementView.SplitItem(it.id, it.name, it.amount.toPlainString()) },
+  nextDueAt = movement.nextDueAt,
+  status = movement.status.value,
+  generatedOccurrences = movement.generatedOccurrences,
+  tagNames = movement.tagNames,
+)
 
 class ProcessDueRecurringMovementsService(
   private val recurringMovementRepository: RecurringMovementRepository,

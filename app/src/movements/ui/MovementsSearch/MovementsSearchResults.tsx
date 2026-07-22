@@ -196,6 +196,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
                   createdAt: entry.occurredAt,
                   updatedAt: entry.occurredAt,
                   ignored: entry.ignored,
+                  origin: { kind: 'manual' },
                 })),
             },
           }}

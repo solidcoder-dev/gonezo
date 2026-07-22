@@ -70,6 +70,8 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
+  SchedulingGetMovementInput,
+  SchedulingGetMovementResult,
   SchedulingProcessDueMovementsInput,
   SchedulingProcessDueMovementsResult,
   SchedulingUpdateMovementInput,
@@ -317,6 +319,7 @@ export class CoreAdapterWeb implements CorePort {
 
   async schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void> { return this.schedulingService.deactivateMovement(input); }
   async schedulingListMovements(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult> { return this.schedulingService.listMovements(input); }
+  async schedulingGetMovement(input: SchedulingGetMovementInput): Promise<SchedulingGetMovementResult> { return this.schedulingService.getMovement(input); }
   async schedulingProcessDueMovements(input: SchedulingProcessDueMovementsInput = {}): Promise<SchedulingProcessDueMovementsResult> {
     void input;
     return {

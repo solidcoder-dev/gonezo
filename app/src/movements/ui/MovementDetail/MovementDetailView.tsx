@@ -1,6 +1,6 @@
 import { SheetView } from '../../../shared/ui/SheetView';
 import { SafeAreaScreenView } from '../../../shared/ui/SafeAreaScreenView';
-import type { MovementDetailSheet, MovementDetailTagView, MovementDetailViewModel } from '../../application/movementDetailView.types';
+import type { MovementDetailOverflowAction, MovementDetailSheet, MovementDetailTagView, MovementDetailViewModel } from '../../application/movementDetailView.types';
 import { buildMovementDetailSheetContent } from './MovementDetailSheetContentView';
 import { MovementDetailSummaryBodyView, MovementDetailSummaryHeaderView } from './MovementDetailSummaryView';
 import './MovementDetailView.css';
@@ -19,7 +19,7 @@ export type MovementDetailViewProps = {
       categories: Array<{ id: string; name: string }>;
       draftTags: MovementDetailTagView[];
       suggestedTags: Array<{ id: string; name: string }>;
-      overflowActionLabel?: string;
+      overflowActions?: MovementDetailOverflowAction[];
     };
     status: {
       savingCategory: boolean;
@@ -46,8 +46,8 @@ export type MovementDetailViewProps = {
       toggleDraftTag: (tag: MovementDetailTagView) => void;
       saveTags: () => void;
       setIgnored: (value: boolean) => void;
-      runOverflowAction: () => void;
-      deactivateScheduledMovement: () => void;
+      runOverflowAction: (actionId: MovementDetailOverflowAction['id']) => void;
+      stopFutureMovements: (recurringMovementId: string) => void;
       postExpectedMovement: () => void;
     };
   };
@@ -126,7 +126,7 @@ export function MovementDetailView(props: MovementDetailViewProps) {
   }) : null;
   const summaryProps = {
     movement,
-    overflowActionLabel: props.required.data.overflowActionLabel,
+    overflowActions: props.required.data.overflowActions ?? [],
     overflowOpen: props.required.state.overflowOpen,
     pendingVoid: props.required.status.pendingVoid,
     deactivating: props.required.status.deactivating,

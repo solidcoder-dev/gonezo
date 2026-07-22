@@ -9,6 +9,9 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
+  SchedulingGetMovementInput,
+  SchedulingGetMovementResult,
+  SchedulingMovementItem,
   SchedulingProcessDueMovementsInput,
   SchedulingProcessDueMovementsResult,
   SchedulingUpdateMovementInput,
@@ -70,17 +73,18 @@ export class SchedulingRuntimeAdapter {
     if (isNativeRuntime()) {
       const result = await CorePlugin.recurrenceListRecurringMovements(input);
       return {
-        items: result.items.map((item) => {
-          const kind = resolveSchedulingKind(item);
-          return {
-            ...item,
-            scheduleKind: kind,
-            origin: kind,
-          };
-        }),
+        items: result.items.map((item) => normalizeSchedulingMovement(item)),
       };
     }
-    return this.web.schedulingListMovements(input);
+    const result = await this.web.schedulingListMovements(input);
+    return { items: result.items.map((item) => normalizeSchedulingMovement(item)) };
+  }
+
+  async schedulingGetMovement(input: SchedulingGetMovementInput): Promise<SchedulingGetMovementResult> {
+    const result = isNativeRuntime()
+      ? await CorePlugin.schedulingGetMovement(input)
+      : await this.web.schedulingGetMovement(input);
+    return result.found ? { found: true, item: normalizeSchedulingMovement(result.item) } : result;
   }
 
   schedulingProcessDueMovements(
@@ -97,4 +101,9 @@ export class SchedulingRuntimeAdapter {
       advancedSchedules: 0,
     });
   }
+}
+
+function normalizeSchedulingMovement(item: SchedulingMovementItem): SchedulingMovementItem {
+  const kind = resolveSchedulingKind(item);
+  return { ...item, scheduleKind: kind, origin: kind };
 }

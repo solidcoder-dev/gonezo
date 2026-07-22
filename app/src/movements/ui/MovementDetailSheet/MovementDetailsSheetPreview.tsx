@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import type { MovementDetailViewModel } from '../../application/movementDetailView.types';
+import type { MovementDetailOverflowAction, MovementDetailViewModel } from '../../application/movementDetailView.types';
 import { MovementDetailView } from '../MovementDetail/MovementDetailView';
 
 type MovementDetailsSheetPreviewProps = {
   movement: MovementDetailViewModel | null;
-  overflowActionLabel?: string;
+  overflowActions?: MovementDetailOverflowAction[];
   pendingVoid?: boolean;
   deactivating?: boolean;
   onClose: () => void;
-  onRunOverflowAction?: () => void;
+  onRunOverflowAction?: (actionId: import('../../application/movementDetailView.types').MovementDetailOverflowAction['id']) => void;
   onPostExpectedMovement?: () => void;
 };
 
@@ -51,7 +51,7 @@ function MovementDetailsSheetPreviewInner(props: MovementDetailsSheetPreviewProp
           categories: [],
           draftTags: [],
           suggestedTags: [],
-          overflowActionLabel: props.overflowActionLabel,
+          overflowActions: props.overflowActions ?? [],
         },
         status: {
           savingCategory: false,
@@ -78,8 +78,8 @@ function MovementDetailsSheetPreviewInner(props: MovementDetailsSheetPreviewProp
           toggleDraftTag: () => undefined,
           saveTags: () => undefined,
           setIgnored: () => undefined,
-          runOverflowAction: () => props.onRunOverflowAction?.(),
-          deactivateScheduledMovement: () => undefined,
+          runOverflowAction: (actionId) => props.onRunOverflowAction?.(actionId),
+          stopFutureMovements: () => undefined,
           postExpectedMovement: () => props.onPostExpectedMovement?.(),
         },
       }}

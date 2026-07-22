@@ -144,6 +144,14 @@ export type SchedulingListMovementsResult = {
   items: SchedulingMovementItem[];
 };
 
+export type SchedulingGetMovementInput = {
+  recurringMovementId: string;
+};
+
+export type SchedulingGetMovementResult =
+  | { found: true; item: SchedulingMovementItem }
+  | { found: false };
+
 export type SchedulingProcessDueMovementsInput = {
   now?: string;
   limit?: number;
@@ -172,5 +180,6 @@ export interface SchedulingPort {
   schedulingUpdateMovement(input: SchedulingUpdateMovementInput): Promise<SchedulingUpdateMovementResult>;
   schedulingDeactivateMovement(input: SchedulingDeactivateMovementInput): Promise<void>;
   schedulingListMovements(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult>;
+  schedulingGetMovement(input: SchedulingGetMovementInput): Promise<SchedulingGetMovementResult>;
   schedulingProcessDueMovements?(input?: SchedulingProcessDueMovementsInput): Promise<SchedulingProcessDueMovementsResult>;
 }

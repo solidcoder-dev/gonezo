@@ -9,6 +9,8 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
+  SchedulingGetMovementInput,
+  SchedulingGetMovementResult,
   SchedulingMovementItem,
   SchedulingUpdateMovementInput,
   SchedulingUpdateMovementResult,
@@ -322,6 +324,25 @@ export class WebSchedulingService {
     return {
       items: result.items.map((item) => ({ ...item })) as SchedulingMovementItem[],
     };
+  }
+
+  async getMovement(input: SchedulingGetMovementInput): Promise<SchedulingGetMovementResult> {
+    const recurringMovementId = input.recurringMovementId.trim();
+    if (!recurringMovementId) {
+      throw new Error('recurringMovementId is required');
+    }
+    const movement = this.state.recurringMovements.find((item) => item.id === recurringMovementId);
+    return movement ? {
+      found: true,
+      item: {
+        ...movement,
+        tagIds: movement.tagIds ? [...movement.tagIds] : undefined,
+        tagNames: movement.tagNames ? [...movement.tagNames] : undefined,
+        splitItems: movement.splitItems.map((item) => ({ ...item })),
+        rule: { ...movement.rule, weeklyDays: movement.rule.weeklyDays ? [...movement.rule.weeklyDays] : undefined },
+        recurrenceEnd: { ...movement.recurrenceEnd },
+      },
+    } : { found: false };
   }
 
   async listScheduled(input: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult> {

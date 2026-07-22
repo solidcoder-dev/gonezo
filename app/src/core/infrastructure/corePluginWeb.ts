@@ -70,6 +70,8 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
+  SchedulingGetMovementInput,
+  SchedulingGetMovementResult,
   SchedulingProcessDueMovementsInput,
   SchedulingProcessDueMovementsResult,
   SchedulingUpdateMovementInput,
@@ -294,6 +296,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async schedulingListMovements(options: SchedulingListMovementsInput): Promise<SchedulingListMovementsResult> {
     return this.core.schedulingListMovements(options);
+  }
+
+  async schedulingGetMovement(options: SchedulingGetMovementInput): Promise<SchedulingGetMovementResult> {
+    return this.core.schedulingGetMovement(options);
   }
 
   async schedulingProcessDueMovements(

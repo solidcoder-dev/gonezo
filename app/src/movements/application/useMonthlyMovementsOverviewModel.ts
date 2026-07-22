@@ -4,6 +4,7 @@ import type { SchedulingGatewayPort } from '../../scheduling/application/schedul
 import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
 import type { MonthlyMovementsViewRequired } from '../ui/MonthlyMovements/MonthlyMovementsView.contract';
 import { filterProjectedScheduledMovements } from './monthlyMovementProjection';
+import { mapExpectedMovementView } from './movementDetailMappers';
 
 export type MonthlyMovementsPaginationState = MonthlyMovementsViewRequired['state']['pagination'];
 
@@ -129,7 +130,7 @@ export function useMonthlyMovementsOverviewModel(input: UseMonthlyMovementsOverv
     const visibleScheduledItems = enrichScheduledMovements(filterProjectedScheduledMovements(
       overview.scheduledPreview.items,
     ), accountNameById);
-    const visibleExpectedItems = enrichExpectedMovements(overview.expectedPreview.items, accountNameById);
+    const visibleExpectedItems = enrichExpectedMovements(overview.expectedPreview.items.map(mapExpectedMovementView), accountNameById);
     const visiblePostedItems = enrichPostedTransactions(overview.executedPage.content, accountNameById);
 
     setTransactions((previous) => {

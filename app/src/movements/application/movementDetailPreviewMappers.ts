@@ -53,6 +53,7 @@ export function mapPostedMovementPreview(transaction: TransactionHistoryItemView
     selection: { source: 'posted', id: transaction.id },
     postedItems: [transaction],
     scheduledItems: [],
+    expectedSeriesState: { phase: 'idle' },
     expectedItems: [],
     categories: categoryOptions(transaction),
     tags: tagOptions(transaction.tags),
@@ -83,6 +84,7 @@ export function mapExpectedMovementPreview(
     selection: { source: 'expected', id: movement.id },
     postedItems: [],
     scheduledItems: [],
+    expectedSeriesState: { phase: 'idle' },
     expectedItems: [movement],
     categories: categoryOptions(movement, options.categoryName),
     tags: [],
@@ -115,6 +117,7 @@ export function mapScheduledMovementPreview(
       ...movement,
       tagNames: options.tagNames ?? movement.tagNames,
     }],
+    expectedSeriesState: { phase: 'loaded', recurringMovementId: 'series-1', series: null },
     expectedItems: [],
     categories: categoryOptions(movement, options.categoryName),
     tags: tagOptions((options.tagNames ?? []).map((name, index) => ({ id: `tag-${index}`, name }))),
@@ -168,6 +171,7 @@ export function searchItemToExpectedMovement(entry: MovementsSearchItemView): Ex
     createdAt: entry.occurredAt,
     updatedAt: entry.occurredAt,
     ignored: entry.ignored,
+    origin: { kind: 'manual' },
   };
 }
 

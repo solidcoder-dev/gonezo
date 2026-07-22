@@ -136,6 +136,27 @@ final class RecurringPluginHandler {
     }
   }
 
+  void schedulingGetMovement(PluginCall call) {
+    try {
+      String recurringMovementId = call.getString("recurringMovementId");
+      if (recurringMovementId == null || recurringMovementId.trim().isEmpty()) {
+        throw new IllegalArgumentException("recurringMovementId is required");
+      }
+      AndroidRecurringCore.RecurringMovementView item =
+        AndroidRecurringCore.getInstance(context).getRecurringMovement(recurringMovementId);
+      JSObject result = new JSObject();
+      if (item == null) {
+        result.put("found", false);
+      } else {
+        result.put("found", true);
+        result.put("item", toRecurringMovementJson(item));
+      }
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
   void schedulingProcessDueMovements(PluginCall call) {
     try {
       String nowInput = nullIfBlank(call.getString("now"));

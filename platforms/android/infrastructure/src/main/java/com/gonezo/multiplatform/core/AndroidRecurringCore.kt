@@ -206,6 +206,11 @@ class AndroidRecurringCore internal constructor(
       .map(AndroidRecurringViewMapper::toView)
   }
 
+  fun getRecurringMovement(recurringMovementId: String): RecurringMovementView? {
+    val id = RecurringMovementId.from(requireText(recurringMovementId, "recurringMovementId is required"))
+    return recurringMovementRepository.findById(id)?.let(AndroidRecurringViewMapper::toView)
+  }
+
   private fun ensureAccountExists(accountId: String, label: String) {
     if (!accountExists(accountId)) {
       throw IllegalArgumentException("$label account not found")

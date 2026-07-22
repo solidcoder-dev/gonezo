@@ -529,6 +529,10 @@ function makeCore(transactionCount = 0): AppTestPort {
       const sourceAccountId = input.sourceAccountId;
       return { items: scheduledMovements.filter((item) => isScheduledVisibleForAccount(item, sourceAccountId)) };
     }),
+    schedulingGetMovement: vi.fn(async (input) => {
+      const item = scheduledMovements.find((movement) => movement.id === input.recurringMovementId);
+      return item ? { found: true as const, item } : { found: false as const };
+    }),
     expectedCreateMovement: vi.fn(async (input) => {
       const now = new Date().toISOString();
       const id = `exp-${expectedMovements.length + 1}`;
@@ -4083,7 +4087,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(scheduledRow.closest('button')!);
     const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
     fireEvent.click(within(detailDialog).getByRole('button', { name: 'Movement actions' }));
-    fireEvent.click(within(detailDialog).getByRole('menuitem', { name: 'Deactivate movement' }));
+      fireEvent.click(within(detailDialog).getByRole('menuitem', { name: 'Stop future movements' }));
 
     await waitFor(() => {
       expect(core.schedulingDeactivateMovement).toHaveBeenCalledWith({
@@ -4124,7 +4128,7 @@ describe('App Accounts UX', () => {
     const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
     fireEvent.click(within(detailDialog).getByRole('button', { name: 'Movement actions' }));
     const actionsMenu = within(detailDialog).getByRole('menu', { name: 'Movement actions' });
-    expect(within(actionsMenu).getByRole('menuitem', { name: 'Deactivate movement' })).toBeInTheDocument();
+    expect(within(actionsMenu).getByRole('menuitem', { name: 'Stop future movements' })).toBeInTheDocument();
     expect(within(actionsMenu).queryByRole('menuitem', { name: 'Edit movement' })).not.toBeInTheDocument();
     expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
     expect(core.schedulingUpdateMovement).not.toHaveBeenCalled();

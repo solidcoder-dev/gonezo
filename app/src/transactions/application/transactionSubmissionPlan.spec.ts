@@ -9,6 +9,7 @@ function baseInput() {
         schedulingUpdateMovement: vi.fn(),
         schedulingDeactivateMovement: vi.fn(),
         schedulingListMovements: vi.fn(),
+        schedulingGetMovement: vi.fn(),
         movementsGetOverview: vi.fn(),
         movementsListScheduled: vi.fn(),
       },

@@ -20,6 +20,7 @@ const baseExpectedMovement: ExpectedMovementView = {
   status: 'pending',
   createdAt: '2026-05-01T00:00:00.000Z',
   updatedAt: '2026-05-01T00:00:00.000Z',
+  origin: { kind: 'manual' },
 };
 
 const baseScheduledMovement: ScheduledMovementView = {

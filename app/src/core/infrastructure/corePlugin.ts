@@ -70,6 +70,8 @@ import type {
   SchedulingDeactivateMovementInput,
   SchedulingListMovementsInput,
   SchedulingListMovementsResult,
+  SchedulingGetMovementInput,
+  SchedulingGetMovementResult,
   SchedulingProcessDueMovementsInput,
   SchedulingProcessDueMovementsResult,
   SchedulingUpdateMovementInput,
@@ -171,6 +173,7 @@ export interface CorePlugin {
   schedulingListMovements(
     options: SchedulingListMovementsInput,
   ): Promise<SchedulingListMovementsResult>;
+  schedulingGetMovement(options: SchedulingGetMovementInput): Promise<SchedulingGetMovementResult>;
   schedulingProcessDueMovements(
     options?: SchedulingProcessDueMovementsInput,
   ): Promise<SchedulingProcessDueMovementsResult>;

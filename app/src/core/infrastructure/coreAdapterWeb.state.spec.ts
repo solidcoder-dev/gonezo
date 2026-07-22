@@ -67,6 +67,28 @@ describe('CoreAdapterWeb state and effects boundaries', () => {
     });
   });
 
+  it('gets a recurring movement directly by id without applying list filters', async () => {
+    const core = new CoreAdapterWeb({
+      state: createWebAppState(),
+      dependencies: {
+        clock: { nowIso: () => '2026-06-02T09:00:00.000Z' },
+        idGenerator: { nextId: () => 'id-1' },
+        backupDownloader: { downloadJson: vi.fn() },
+      },
+    });
+    const account = await core.ledgerOpenAccount({ name: 'Wallet', type: 'cash', currency: 'EUR' });
+    const created = await core.schedulingCreateMovement({
+      type: 'expense', sourceAccountId: account.id, amount: '25.00', currency: 'EUR',
+      rule: { frequency: 'monthly', interval: 1, dayOfMonth: 10 }, recurrenceEnd: { kind: 'never' },
+      startAt: '2026-06-10T09:00:00.000Z', zoneId: 'UTC', reviewPolicy: 'require_user_confirmation',
+    });
+
+    await expect(core.schedulingGetMovement({ recurringMovementId: created.id })).resolves.toMatchObject({
+      found: true, item: { id: created.id, reviewPolicy: 'require_user_confirmation' },
+    });
+    await expect(core.schedulingGetMovement({ recurringMovementId: 'missing-series' })).resolves.toEqual({ found: false });
+  });
+
   it('projects the first expected occurrence when an automatic schedule starts requiring confirmation', async () => {
     let nextId = 0;
     const core = new CoreAdapterWeb({

@@ -8,6 +8,7 @@ export function createSchedulingGateway(core: SchedulingGatewayPort): Scheduling
     schedulingUpdateMovement: (input) => core.schedulingUpdateMovement(input),
     schedulingDeactivateMovement: (input) => core.schedulingDeactivateMovement(input),
     schedulingListMovements: (input) => core.schedulingListMovements(input),
+    schedulingGetMovement: (input) => core.schedulingGetMovement(input),
     schedulingProcessDueMovements: (input) => (
       core.schedulingProcessDueMovements?.(input) ?? Promise.resolve({
         scanned: 0,

@@ -133,7 +133,7 @@ export function scheduledOrigin(item: ScheduledMovementView): string {
 }
 
 export function expectedOrigin(item: ExpectedMovementView): string {
-  return item.originOccurrenceId ? 'recurring' : 'manual';
+  return item.origin.kind === 'manual' ? 'manual' : 'recurring';
 }
 
 export function compactTags(tags?: Array<{ id: string; name: string }>): string | undefined {

@@ -206,7 +206,7 @@ public class CorePlugin extends Plugin {
   public void recurrenceListRecurringMovements(PluginCall call) {
     new RecurringPluginHandler(getContext()).recurrenceListRecurringMovements(call);
   }
-
+  @PluginMethod public void schedulingGetMovement(PluginCall call) { new RecurringPluginHandler(getContext()).schedulingGetMovement(call); }
   @PluginMethod
   public void schedulingProcessDueMovements(PluginCall call) {
     new RecurringPluginHandler(getContext()).schedulingProcessDueMovements(call);

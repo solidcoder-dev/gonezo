@@ -24,6 +24,8 @@ import type {
   MovementDetailTagView,
   SharingDetailState,
   SharingViewModel,
+  MovementDetailOverflowAction,
+  ExpectedSeriesState,
 } from './movementDetailView.types';
 import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
 
@@ -129,6 +131,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
   const [savingTags, setSavingTags] = useState(false);
   const [togglingIgnored, setTogglingIgnored] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
+  const [expectedSeriesState, setExpectedSeriesState] = useState<ExpectedSeriesState>({ phase: 'idle' });
 
   const movement = useMemo(
     () => mapMovementDetailViewModel({
@@ -136,11 +139,12 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
       postedItems,
       scheduledItems,
       expectedItems,
+      expectedSeriesState,
       categories,
       tags,
       sharing,
     }),
-    [selection, postedItems, scheduledItems, expectedItems, categories, tags, sharing],
+    [selection, postedItems, scheduledItems, expectedItems, expectedSeriesState, categories, tags, sharing],
   );
   const selectedPostedMovement = useMemo(
     () => selection?.source === 'posted'
@@ -157,10 +161,51 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
       setTagsQuery('');
       return;
     }
-    if (!movement) {
+    if (!movement && selection.source !== 'expected') {
       setSelection(null);
     }
   }, [movement, selection]);
+
+  const selectedExpectedMovement = selection?.source === 'expected'
+    ? expectedItems.find((item) => item.id === selection.id)
+    : undefined;
+  const selectedRecurringMovementId = selectedExpectedMovement?.origin.kind === 'recurring'
+    ? selectedExpectedMovement.origin.recurringMovementId
+    : undefined;
+
+  useEffect(() => {
+    if (!selectedRecurringMovementId) {
+      setExpectedSeriesState({ phase: 'idle' });
+      return;
+    }
+
+    let cancelled = false;
+    setExpectedSeriesState({ phase: 'loading', recurringMovementId: selectedRecurringMovementId });
+    void ports.scheduling.schedulingGetMovement({ recurringMovementId: selectedRecurringMovementId })
+      .then((result) => {
+        if (!cancelled) {
+          setExpectedSeriesState({
+            phase: 'loaded',
+            recurringMovementId: selectedRecurringMovementId,
+            series: result.found ? result.item : null,
+          });
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setExpectedSeriesState({
+            phase: 'error',
+            recurringMovementId: selectedRecurringMovementId,
+            message: error instanceof Error ? error.message : 'Recurring series unavailable',
+          });
+          reportError(error);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ports.scheduling, reportError, selectedRecurringMovementId]);
 
   useEffect(() => {
     if (!selectedPostedMovement || selectedPostedMovement.type !== 'expense') {
@@ -234,6 +279,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     setTagsQuery('');
     setDraftTags([]);
     setSharing(defaultSharingState());
+    setExpectedSeriesState({ phase: 'idle' });
   }
 
   function dismissSheet() {
@@ -258,6 +304,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     setTagsQuery('');
     setDraftTags([]);
     setSharing(defaultSharingState());
+    setExpectedSeriesState({ phase: 'idle' });
   }
 
   function openPostedMovementDetail(id: string) {
@@ -411,20 +458,26 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     }
   }
 
-  function runOverflowAction() {
-    if (!movement) {
-      return;
-    }
+  function runOverflowAction(actionId?: MovementDetailOverflowAction['id']) {
+    if (!movement) return;
+    const selectedActionId = actionId ?? overflowActions[0]?.id;
+    if (!selectedActionId) return;
     setOverflowOpen(false);
-    if (movement.source === 'posted' && movement.canVoid) {
+    if (selectedActionId === 'void-posted' && movement.source === 'posted' && movement.canVoid) {
       requestVoid(movement.id);
       return;
     }
-    if (movement.source === 'scheduled' && movement.canDeactivate) {
-      void deactivateScheduledMovement();
+    if (selectedActionId === 'stop-recurring-series') {
+      const recurringMovementId = movement.source === 'scheduled' && movement.canDeactivate
+        ? movement.id
+        : movement.source === 'expected' && movement.series.kind === 'recurring'
+          && movement.series.series?.canStopFutureMovements
+          ? movement.series.series.id
+          : undefined;
+      if (recurringMovementId) void stopFutureMovements(recurringMovementId);
       return;
     }
-    if (movement.source === 'expected' && movement.canEditExpected) {
+    if (selectedActionId === 'edit-expected' && movement.source === 'expected' && movement.canEditExpected) {
       if (!onEditExpectedMovement) {
         reportError(new Error('Expected movement edit action is not available'));
         return;
@@ -434,12 +487,9 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     }
   }
 
-  async function deactivateScheduledMovement() {
-    if (!movement || movement.source !== 'scheduled' || !movement.canDeactivate) {
-      return;
-    }
+  async function stopFutureMovements(recurringMovementId: string) {
     const confirmed = confirm(
-      'Deactivate movement?\n\nFuture occurrences will no longer be created.\nPreviously posted movements will not be affected.',
+      'Stop future movements?\n\nNo more movements will be generated from this series.\nExisting expected and posted movements will not be deleted.',
     );
     if (!confirmed) {
       return;
@@ -448,7 +498,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     setDeactivating(true);
     try {
       await ports.scheduling.schedulingDeactivateMovement({
-        recurringMovementId: movement.id,
+        recurringMovementId,
       });
       await refreshMovements();
       closeDetail();
@@ -471,13 +521,19 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     closeDetail();
   }
 
-  const overflowActionLabel = movement?.source === 'posted' && movement.canVoid
-    ? 'Void movement'
-    : movement?.source === 'scheduled' && movement.canDeactivate
-      ? 'Deactivate movement'
-      : movement?.source === 'expected' && movement.canEditExpected
-        ? 'Edit expected'
-        : undefined;
+  const overflowActions: MovementDetailOverflowAction[] = [];
+  if (movement?.source === 'posted' && movement.canVoid) {
+    overflowActions.push({ id: 'void-posted', label: 'Void movement', destructive: true });
+  }
+  if (movement?.source === 'scheduled' && movement.canDeactivate) {
+    overflowActions.push({ id: 'stop-recurring-series', label: 'Stop future movements', destructive: true });
+  }
+  if (movement?.source === 'expected' && movement.canEditExpected) {
+    overflowActions.push({ id: 'edit-expected', label: 'Edit expected', destructive: false });
+  }
+  if (movement?.source === 'expected' && movement.series.kind === 'recurring' && movement.series.series?.canStopFutureMovements) {
+    overflowActions.push({ id: 'stop-recurring-series', label: 'Stop future movements', destructive: true });
+  }
 
   return {
     state: {
@@ -497,7 +553,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
         categories: filteredCategories,
         draftTags,
         suggestedTags: filteredSuggestedTags,
-        overflowActionLabel,
+        overflowActions,
       },
       status: {
         savingCategory,
@@ -525,7 +581,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
         saveTags,
         setIgnored,
         runOverflowAction,
-        deactivateScheduledMovement,
+        stopFutureMovements,
         postExpectedMovement,
       },
     },

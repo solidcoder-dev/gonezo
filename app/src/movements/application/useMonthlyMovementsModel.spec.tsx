@@ -96,6 +96,7 @@ function makePorts(overrides: Partial<MonthlyMovementsModelPorts> = {}): Monthly
       schedulingUpdateMovement: vi.fn(),
       schedulingDeactivateMovement: vi.fn(),
       schedulingListMovements: vi.fn(),
+      schedulingGetMovement: vi.fn(),
       movementsGetOverview: vi.fn().mockResolvedValue(emptyOverview()),
       movementsListScheduled: vi.fn(),
     },
@@ -205,6 +206,7 @@ function expectedMovement(overrides: Partial<ExpectedMovementView> = {}): Expect
     createdAt: '2026-05-01T00:00:00.000Z',
     updatedAt: '2026-05-01T00:00:00.000Z',
     ignored: true,
+    origin: { kind: 'manual' },
     ...overrides,
   };
 }
@@ -424,7 +426,7 @@ describe('useMonthlyMovementsModel', () => {
     });
     await waitFor(() => expect(result.current.required.detail.data.movement?.id).toBe('tx-1'));
     act(() => {
-      result.current.provided.detail.commands.runOverflowAction();
+      result.current.provided.detail.commands.runOverflowAction('void-posted');
     });
 
     await waitFor(() => expect(result.current.required.state.pendingVoidTransactionId).toBe('tx-1'));
@@ -445,7 +447,7 @@ describe('useMonthlyMovementsModel', () => {
     });
     await waitFor(() => expect(result.current.required.detail.data.movement?.id).toBe('tx-1'));
     act(() => {
-      result.current.provided.detail.commands.runOverflowAction();
+      result.current.provided.detail.commands.runOverflowAction('void-posted');
     });
     act(() => {
       handlers[1]();
@@ -728,7 +730,7 @@ describe('useMonthlyMovementsModel', () => {
       splitItems: [{ id: 'item-1', name: 'Lunch', amount: '12.00' }],
     }));
     act(() => {
-      result.current.provided.detail.commands.runOverflowAction();
+      result.current.provided.detail.commands.runOverflowAction('edit-expected');
     });
     expect(onEditExpectedMovement).toHaveBeenCalledWith(expect.objectContaining({ id: 'exp-1' }), 'Food');
 
@@ -789,7 +791,7 @@ describe('useMonthlyMovementsModel', () => {
       result.current.provided.commands.openScheduledMovementDetail('sch-1');
     });
     await act(async () => {
-      result.current.provided.detail.commands.runOverflowAction();
+      result.current.provided.detail.commands.runOverflowAction('stop-recurring-series');
     });
     expect(confirm).toHaveBeenCalled();
     expect(ports.scheduling.schedulingDeactivateMovement).toHaveBeenCalledWith({ recurringMovementId: 'sch-1' });

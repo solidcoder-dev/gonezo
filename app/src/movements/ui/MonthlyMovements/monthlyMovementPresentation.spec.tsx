@@ -40,6 +40,7 @@ function expected(input: Partial<ExpectedMovementView> = {}): ExpectedMovementVi
     status: 'pending',
     createdAt: '2026-01-01T00:00:00',
     updatedAt: '2026-01-01T00:00:00',
+    origin: { kind: 'manual' },
     ...input,
   };
 }
@@ -106,7 +107,7 @@ describe('monthly movement detail builders', () => {
   });
 
   it('builds expected movement detail data', () => {
-    const data = buildExpectedMovementDetailData(expected({ originOccurrenceId: 'occ-1' }), {
+    const data = buildExpectedMovementDetailData(expected({ origin: { kind: 'recurring', occurrenceId: 'occ-1', recurringMovementId: 'series-1' } }), {
       categoryName: 'Income',
       now,
     });

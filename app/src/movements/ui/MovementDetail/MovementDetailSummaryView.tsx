@@ -4,17 +4,17 @@ import {
   movementDetailIconClassName,
   movementDetailTypeLabel,
 } from '../../application/movementDetailMappers';
-import type { MovementDetailTagView, MovementDetailViewModel } from '../../application/movementDetailView.types';
+import type { MovementDetailOverflowAction, MovementDetailTagView, MovementDetailViewModel } from '../../application/movementDetailView.types';
 
 type MovementDetailSummaryViewProps = {
   movement: MovementDetailViewModel;
-  overflowActionLabel?: string;
+  overflowActions: MovementDetailOverflowAction[];
   overflowOpen: boolean;
   pendingVoid: boolean;
   deactivating: boolean;
   onGoBack: () => void;
   onToggleOverflow: () => void;
-  onRunOverflowAction: () => void;
+  onRunOverflowAction: (actionId: MovementDetailOverflowAction['id']) => void;
   onOpenCategorySheet: () => void;
   onOpenTagsSheet: () => void;
   onOpenSharingSheet: () => void;
@@ -38,26 +38,9 @@ function summaryTags(tags: MovementDetailTagView[]) {
   );
 }
 
-function overflowLabel(
-  actionLabel: string | undefined,
-  pendingVoid: boolean,
-  deactivating: boolean,
-): string | undefined {
-  if (!actionLabel) {
-    return undefined;
-  }
-  if (pendingVoid) {
-    return 'Pending...';
-  }
-  if (deactivating) {
-    return 'Deactivating...';
-  }
-  return actionLabel;
-}
-
 export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryViewProps) {
   const {
-    overflowActionLabel,
+    overflowActions = [],
     overflowOpen,
     pendingVoid,
     deactivating,
@@ -65,7 +48,6 @@ export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryView
     onToggleOverflow,
     onRunOverflowAction,
   } = props;
-  const overflowAction = overflowLabel(overflowActionLabel, pendingVoid, deactivating);
 
   return (
     <div className="movement-detail-header">
@@ -79,7 +61,7 @@ export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryView
       </button>
       <h2>Movement</h2>
       <div className="movement-detail-header-side">
-        {overflowActionLabel ? (
+        {overflowActions.length > 0 ? (
           <button
             type="button"
             className="text-button icon-button movement-detail-header-action"
@@ -92,17 +74,22 @@ export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryView
           </button>
         ) : null}
       </div>
-      {overflowOpen && overflowAction ? (
+      {overflowOpen && overflowActions.length > 0 ? (
         <div className="movement-detail-overflow" role="menu" aria-label="Movement actions">
-          <button
-            type="button"
-            className="movement-detail-overflow-action"
-            role="menuitem"
-            onClick={onRunOverflowAction}
-            disabled={pendingVoid || deactivating}
-          >
-            {overflowAction}
-          </button>
+          {overflowActions.map((action) => (
+            <button
+              key={action.id}
+              type="button"
+              className="movement-detail-overflow-action"
+              role="menuitem"
+              onClick={() => onRunOverflowAction(action.id)}
+              disabled={(action.id === 'void-posted' && pendingVoid) || (action.id === 'stop-recurring-series' && deactivating)}
+            >
+              {(action.id === 'void-posted' && pendingVoid) || (action.id === 'stop-recurring-series' && deactivating)
+                ? 'Pending...'
+                : action.label}
+            </button>
+          ))}
         </div>
       ) : null}
     </div>

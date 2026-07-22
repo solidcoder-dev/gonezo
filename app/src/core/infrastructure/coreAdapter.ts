@@ -92,6 +92,7 @@ export class CoreAdapter implements CorePort {
   schedulingUpdateMovement = this.scheduling.schedulingUpdateMovement.bind(this.scheduling);
   schedulingDeactivateMovement = this.scheduling.schedulingDeactivateMovement.bind(this.scheduling);
   schedulingListMovements = this.scheduling.schedulingListMovements.bind(this.scheduling);
+  schedulingGetMovement = this.scheduling.schedulingGetMovement.bind(this.scheduling);
   schedulingProcessDueMovements = this.scheduling.schedulingProcessDueMovements.bind(this.scheduling);
 
   expectedCreateMovement = this.expected.expectedCreateMovement.bind(this.expected);

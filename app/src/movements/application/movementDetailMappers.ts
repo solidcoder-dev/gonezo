@@ -1,7 +1,8 @@
 import { formatCurrencyAmount, formatIsoDate, formatIsoDateTime } from '../../shared/utils/formatting';
 import { normalizeTaxonomyName } from '../../transactions/application/transactionTaxonomySelection';
 import type { TransactionHistoryItemView } from '../../transactions/application/transactionView.types';
-import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
+import type { ExpectedMovementItem } from '../../expected/application/expected.port';
+import type { ExpectedMovementOriginView, ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
 import type {
   MovementDetailCategoryOption,
   MovementDetailCategoryView,
@@ -12,6 +13,8 @@ import type {
   MovementDetailViewModel,
   SharingDetailState,
   SharingViewModel,
+  ExpectedMovementSeriesViewModel,
+  ExpectedSeriesState,
 } from './movementDetailView.types';
 
 function movementDetailFinancialType(type: TransactionHistoryItemView['type'] | ExpectedMovementView['type'] | ScheduledMovementView['type']): MovementDetailFinancialType {
@@ -152,8 +155,55 @@ function scheduleSummary(movement: ScheduledMovementView): string {
   return interval === 1 ? 'Every month' : `Every ${interval} months`;
 }
 
+export function normalizeExpectedMovementOrigin(movement: Pick<ExpectedMovementItem, 'originOccurrenceId' | 'originRecurringMovementId'>): ExpectedMovementOriginView {
+  const occurrenceId = movement.originOccurrenceId?.trim();
+  const recurringMovementId = movement.originRecurringMovementId?.trim();
+  if (occurrenceId && recurringMovementId) {
+    return { kind: 'recurring', occurrenceId, recurringMovementId };
+  }
+  if (occurrenceId || recurringMovementId) {
+    return { kind: 'recurring_unlinked', occurrenceId, recurringMovementId };
+  }
+  return { kind: 'manual' };
+}
+
+export function mapExpectedMovementView(movement: ExpectedMovementItem): ExpectedMovementView {
+  const view = { ...movement };
+  delete view.originOccurrenceId;
+  delete view.originRecurringMovementId;
+  return { ...view, origin: normalizeExpectedMovementOrigin(movement) };
+}
+
 function expectedOriginLabel(movement: ExpectedMovementView): string {
-  return movement.originOccurrenceId ? 'Recurring' : 'Manual';
+  return movement.origin.kind === 'manual' ? 'Manual' : 'Recurring';
+}
+
+function expectedSeriesViewModel(
+  movement: ExpectedMovementView,
+  seriesState: ExpectedSeriesState,
+): ExpectedMovementSeriesViewModel {
+  if (movement.origin.kind === 'manual') {
+    return { kind: 'manual' };
+  }
+  if (movement.origin.kind === 'recurring_unlinked') {
+    return { kind: 'recurring', occurrenceId: movement.origin.occurrenceId, phase: 'loaded', series: null };
+  }
+  const recurringOrigin = movement.origin;
+  const scheduled = seriesState.phase === 'loaded' && seriesState.recurringMovementId === recurringOrigin.recurringMovementId
+    ? seriesState.series
+    : null;
+  return {
+    kind: 'recurring',
+    occurrenceId: recurringOrigin.occurrenceId,
+    phase: seriesState.phase === 'idle' ? 'loading' : seriesState.phase,
+    series: scheduled ? {
+      id: scheduled.id,
+      status: scheduled.status,
+      scheduleSummary: scheduleSummary(scheduled),
+      nextDueLabel: scheduled.nextDueAt ? formatIsoDate(scheduled.nextDueAt) : undefined,
+      canStopFutureMovements: scheduled.status === 'active',
+    } : null,
+  };
 }
 
 function scheduledOriginLabel(movement: ScheduledMovementView): string {
@@ -250,6 +300,7 @@ function mapScheduledMovement(
 function mapExpectedMovement(
   movement: ExpectedMovementView,
   categories: MovementDetailCategoryOption[],
+  seriesState: ExpectedSeriesState,
 ): MovementDetailViewModel {
   const financialType = movementDetailFinancialType(movement.type);
   return {
@@ -285,6 +336,7 @@ function mapExpectedMovement(
     canPostExpected: movement.status === 'pending',
     expectedAtLabel: formatIsoDateTime(movement.expectedAt),
     originLabel: expectedOriginLabel(movement),
+    series: expectedSeriesViewModel(movement, seriesState),
   };
 }
 
@@ -292,6 +344,7 @@ export function mapMovementDetailViewModel(input: {
   selection: MovementDetailSelection | null;
   postedItems: TransactionHistoryItemView[];
   scheduledItems: ScheduledMovementView[];
+  expectedSeriesState: ExpectedSeriesState;
   expectedItems: ExpectedMovementView[];
   categories: MovementDetailCategoryOption[];
   tags: MovementDetailTagOption[];
@@ -309,7 +362,7 @@ export function mapMovementDetailViewModel(input: {
     return movement ? mapScheduledMovement(movement, input.categories, input.tags) : null;
   }
   const movement = input.expectedItems.find((item) => item.id === input.selection?.id);
-  return movement ? mapExpectedMovement(movement, input.categories) : null;
+  return movement ? mapExpectedMovement(movement, input.categories, input.expectedSeriesState) : null;
 }
 
 export function mapSharingViewModel(input: {

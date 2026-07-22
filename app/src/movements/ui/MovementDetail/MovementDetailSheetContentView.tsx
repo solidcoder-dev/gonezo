@@ -271,6 +271,18 @@ function moreDetailsContent(props: MovementDetailSheetContentViewProps): Movemen
             <>
               {detailRow('Expected at', movement.expectedAtLabel)}
               {detailRow('Origin', movement.originLabel)}
+              {movement.series.kind === 'recurring' && movement.series.series ? (
+                <>
+                  {detailRow('Series status', movement.series.series.status === 'active'
+                    ? 'Active'
+                    : movement.series.series.status === 'deactivated' ? 'Deactivated' : 'Completed')}
+                  {detailRow('Schedule', movement.series.series.scheduleSummary, true)}
+                  {movement.series.series.nextDueLabel ? detailRow('Next due', movement.series.series.nextDueLabel) : null}
+                </>
+              ) : null}
+              {movement.series.kind === 'recurring' && !movement.series.series
+                ? detailRow('Series', movement.series.phase === 'loading' ? 'Loading' : 'Unavailable')
+                : null}
             </>
           ) : null}
           {movement.source === 'scheduled' ? (

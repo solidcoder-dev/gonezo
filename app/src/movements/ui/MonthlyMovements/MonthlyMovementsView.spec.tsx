@@ -114,7 +114,7 @@ function makeProps(overrides: Partial<MonthlyMovementsViewProps> = {}): MonthlyM
         saveTags: vi.fn(),
         setIgnored: vi.fn(),
         runOverflowAction: vi.fn(),
-        deactivateScheduledMovement: vi.fn(),
+        stopFutureMovements: vi.fn(),
         postExpectedMovement: vi.fn(),
       },
     },
