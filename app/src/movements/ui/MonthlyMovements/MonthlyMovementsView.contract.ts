@@ -1,9 +1,13 @@
 import type { ExpectedMovementView, ScheduledMovementView } from '../../application/movementsView.types';
 import type { TransactionHistoryItemView } from '../../../transactions/application/transactionView.types';
 import type { MovementDetailViewProps } from '../MovementDetail/MovementDetailView';
+import type { MonthlyTimelineGroupViewModel } from '../../application/monthlyMovementsTimeline';
+
+export type MonthlyMovementsMode = 'posted' | 'planned';
 
 export type MonthlyMovementsViewRequired = {
   state: {
+    selectedMode: MonthlyMovementsMode;
     accountId: string;
     monthLabel: string;
     isCurrentMonth: boolean;
@@ -36,6 +40,8 @@ export type MonthlyMovementsViewRequired = {
     pendingVoidTransactionId?: string;
     pendingDeactivateScheduledId?: string;
     pendingDismissExpectedId?: string;
+    postedGroups: MonthlyTimelineGroupViewModel[];
+    plannedGroups: MonthlyTimelineGroupViewModel[];
   };
   status: {
     loading: boolean;
@@ -61,6 +67,7 @@ export type MonthlyMovementsViewProvided = {
     openPostedMovementDetail: (transactionId: string) => void;
     openScheduledMovementDetail: (scheduledMovementId: string) => void;
     openExpectedMovementDetail: (expectedMovementId: string) => void;
+    selectMode: (mode: MonthlyMovementsMode) => void;
   };
   detail: MovementDetailViewProps['provided'];
 };

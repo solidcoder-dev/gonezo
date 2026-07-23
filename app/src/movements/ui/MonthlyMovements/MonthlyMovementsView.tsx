@@ -1,28 +1,57 @@
-import { useMemo, useState } from 'react';
-import { groupPostedTransactionsByDate } from './postedGrouping';
-import { groupScheduledMovementsByDate } from './scheduledGrouping';
 import { MonthNavigatorView } from '../MonthNavigator/MonthNavigatorView';
 import { MonthPickerModalView } from '../MonthPickerModal/MonthPickerModalView';
 import { MovementDetailView } from '../MovementDetail/MovementDetailView';
-import { MovementRowView } from '../MovementRow/MovementRowView';
-import { MovementSectionView } from '../MovementSection/MovementSectionView';
 import { YearMonthSelectorView } from '../YearMonthSelector/YearMonthSelectorView';
-import {
-  buildExpectedMovementRowData,
-  buildPostedMovementRowData,
-  buildScheduledMovementRowData,
-  groupExpectedMovementsByDate,
-} from './monthlyMovementPresentation';
+import { MonthlyTimelineRowView } from './MonthlyTimelineRowView';
 import '../movements.css';
 import './MonthlyMovementsView.css';
-import type { MonthlyMovementsViewProps } from './MonthlyMovementsView.contract';
-import type { ScheduledMovementView } from '../../application/movementsView.types';
+import type { MonthlyMovementsMode, MonthlyMovementsViewProps } from './MonthlyMovementsView.contract';
+import type { MonthlyTimelineGroupViewModel } from '../../application/monthlyMovementsTimeline';
 
 export type { MonthlyMovementsViewProps } from './MonthlyMovementsView.contract';
 
+function TimelineSkeleton() {
+  return (
+    <div className="monthly-timeline-skeleton" aria-label="Loading movements">
+      <span className="monthly-timeline-skeleton__date" />
+      <span className="monthly-timeline-skeleton__row" />
+      <span className="monthly-timeline-skeleton__row" />
+    </div>
+  );
+}
+
+function TimelineGroups({
+  groups,
+  disabled,
+  onSelect,
+}: {
+  groups: MonthlyTimelineGroupViewModel[];
+  disabled: boolean;
+  onSelect: (source: MonthlyTimelineGroupViewModel['items'][number]['source'], id: string) => void;
+}) {
+  return (
+    <div className="monthly-timeline-groups">
+      {groups.map((group) => (
+        <section key={group.dateKey} className="monthly-timeline-group" aria-label={group.dateLabel}>
+          <h3 className="monthly-timeline-group__label">{group.dateLabel}</h3>
+          <ul className="monthly-timeline-list">
+            {group.items.map((item) => (
+              <MonthlyTimelineRowView
+                key={`${item.source}:${item.id}`}
+                item={item}
+                disabled={disabled}
+                onSelect={() => onSelect(item.source, item.id)}
+              />
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 export function MonthlyMovementsView({ required, provided }: MonthlyMovementsViewProps) {
   const {
-    accountId,
     monthLabel,
     isCurrentMonth,
     monthMenuOpen,
@@ -32,88 +61,37 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
     viewedYear,
     currentMonthIndex,
     currentYear,
-    items,
-    scheduledItems,
-    scheduledTotal,
-    expectedItems,
-    expectedTotal,
+    selectedMode,
+    postedGroups,
+    plannedGroups,
+    expectedHasMore,
+    scheduledHasMore,
     pagination,
-    filterOptions,
   } = required.state;
   const { loading, disabled } = required.status;
-  const expansionScope = `${accountId}:${monthLabel}`;
-  const [expansionState, setExpansionState] = useState({
-    scope: expansionScope,
-    expected: false,
-    scheduled: false,
-  });
-  const expectedExpanded = expansionState.scope === expansionScope ? expansionState.expected : false;
-  const scheduledExpanded = expansionState.scope === expansionScope ? expansionState.scheduled : false;
+  const activeGroups = selectedMode === 'posted' ? postedGroups : plannedGroups;
+  const hasActiveItems = activeGroups.length > 0;
+  const inactiveHasItems = selectedMode === 'posted' ? plannedGroups.length > 0 : postedGroups.length > 0;
+  const plannedPreviewHasMore = expectedHasMore || scheduledHasMore;
 
-  const categoryLabelById = useMemo(
-    () => new Map(filterOptions.categories.map((item) => [item.id, item.label] as const)),
-    [filterOptions.categories],
-  );
-  const tagLabelById = useMemo(
-    () => new Map(filterOptions.tags.map((item) => [item.id, item.label] as const)),
-    [filterOptions.tags],
-  );
-
-  const postedGroups = useMemo(() => groupPostedTransactionsByDate(items), [items]);
-  const upcomingGroups = useMemo(() => groupScheduledMovementsByDate(scheduledItems), [scheduledItems]);
-  const expectedGroups = useMemo(() => groupExpectedMovementsByDate(expectedItems), [expectedItems]);
-  const showScheduledSection = viewedYear > currentYear
-    || (viewedYear === currentYear && viewedMonthIndex >= currentMonthIndex);
-  const expectedHasItems = expectedTotal > 0;
-  const scheduledHasItems = scheduledTotal > 0;
-
-  function toggleExpectedExpanded() {
-    setExpansionState((previous) => previous.scope === expansionScope
-      ? { ...previous, expected: !previous.expected }
-      : { scope: expansionScope, expected: true, scheduled: false });
-  }
-
-  function toggleScheduledExpanded() {
-    setExpansionState((previous) => previous.scope === expansionScope
-      ? { ...previous, scheduled: !previous.scheduled }
-      : { scope: expansionScope, expected: false, scheduled: true });
-  }
-
-  function resolveScheduledCategoryName(categoryId?: string): string | undefined {
-    if (!categoryId || categoryId.trim().length === 0) {
-      return undefined;
+  function selectTimelineItem(source: MonthlyTimelineGroupViewModel['items'][number]['source'], id: string) {
+    if (source === 'posted') {
+      provided.commands.openPostedMovementDetail(id);
+    } else if (source === 'expected') {
+      provided.commands.openExpectedMovementDetail(id);
+    } else {
+      provided.commands.openScheduledMovementDetail(id);
     }
-    return categoryLabelById.get(categoryId);
   }
 
-  function resolveExpectedCategoryName(categoryId?: string): string | undefined {
-    if (!categoryId || categoryId.trim().length === 0) {
-      return undefined;
-    }
-    return categoryLabelById.get(categoryId);
-  }
-
-  function resolveScheduledTagNames(movement: ScheduledMovementView): string[] {
-    const namesFromMovement = (movement.tagNames ?? [])
-      .map((name: string) => name.trim())
-      .filter((name: string) => name.length > 0);
-    if (namesFromMovement.length > 0) {
-      return namesFromMovement;
-    }
-    return (movement.tagIds ?? [])
-      .map((tagId: string) => tagLabelById.get(tagId))
-      .filter((name): name is string => Boolean(name && name.trim().length > 0));
+  function selectMode(mode: MonthlyMovementsMode) {
+    provided.commands.selectMode(mode);
   }
 
   return (
     <section className="stack section-gap transactions-section" aria-busy={loading}>
       <MonthNavigatorView
-        required={{
-          monthLabel,
-          disabled,
-          monthMenuOpen,
-          isCurrentMonth,
-        }}
+        required={{ monthLabel, disabled, monthMenuOpen, isCurrentMonth }}
         provided={{
           onPreviousMonth: provided.commands.goToPreviousMonth,
           onNextMonth: provided.commands.goToNextMonth,
@@ -123,23 +101,9 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
         }}
       />
 
-      <MonthPickerModalView
-        required={{
-          open: monthPickerOpen,
-        }}
-        provided={{
-          onDismiss: provided.commands.closeMonthPicker,
-        }}
-      >
+      <MonthPickerModalView required={{ open: monthPickerOpen }} provided={{ onDismiss: provided.commands.closeMonthPicker }}>
         <YearMonthSelectorView
-          required={{
-            year: monthPickerYear,
-            viewedYear,
-            viewedMonthIndex,
-            currentYear,
-            currentMonthIndex,
-            disabled,
-          }}
+          required={{ year: monthPickerYear, viewedYear, viewedMonthIndex, currentYear, currentMonthIndex, disabled }}
           provided={{
             onPreviousYear: provided.commands.goToPreviousPickerYear,
             onNextYear: provided.commands.goToNextPickerYear,
@@ -148,156 +112,60 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
         />
       </MonthPickerModalView>
 
-      {loading ? <p role="status">Loading monthly movements...</p> : null}
+      <div className="monthly-movements-tabs" role="tablist" aria-label="Movement timeline">
+        {(['posted', 'planned'] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            role="tab"
+            id={`monthly-movements-tab-${mode}`}
+            aria-selected={selectedMode === mode}
+            aria-controls={`monthly-movements-panel-${mode}`}
+            tabIndex={selectedMode === mode ? 0 : -1}
+            className="monthly-movements-tab"
+            onClick={() => selectMode(mode)}
+            disabled={disabled}
+          >
+            {mode === 'posted' ? 'Posted' : 'Planned'}
+          </button>
+        ))}
+      </div>
 
-      {!loading ? (
-        <MovementSectionView
-          required={{
-            config: {
-              ariaLabel: 'Expected movements',
-              title: 'Expected',
-              toggleLabel: 'expected movements',
-            },
-            data: {
-              count: expectedTotal,
-              body: expectedGroups.map((group) => (
-                <div key={group.key} className="stack">
-                  <p className="hint date-group-label">{group.label}</p>
-                  <ul className="expense-list expense-list--compact" aria-label={`Expected group ${group.label}`}>
-                    {group.items.map((movement) => {
-                      const expectedCategoryName = resolveExpectedCategoryName(movement.categoryId);
-                      return (
-                        <MovementRowView
-                          key={movement.id}
-                          required={{
-                            config: {},
-                            data: buildExpectedMovementRowData(movement, { categoryName: expectedCategoryName }),
-                            state: {},
-                            status: { disabled },
-                          }}
-                          provided={{ commands: { select: () => provided.commands.openExpectedMovementDetail(movement.id) } }}
-                        />
-                      );
-                    })}
-                  </ul>
-                </div>
-              )),
-            },
-            state: {
-              collapsible: expectedHasItems,
-              expanded: expectedExpanded,
-            },
-            status: { disabled },
-          }}
-          provided={{ commands: { toggle: toggleExpectedExpanded } }}
-        />
-      ) : null}
+      {loading ? <TimelineSkeleton /> : (
+        <div
+          id={`monthly-movements-panel-${selectedMode}`}
+          role="tabpanel"
+          aria-labelledby={`monthly-movements-tab-${selectedMode}`}
+          className="monthly-movements-panel"
+        >
+          {!hasActiveItems ? (
+            <div className="monthly-movements-empty">
+              <p>
+                {selectedMode === 'planned' && plannedPreviewHasMore
+                  ? `No planned movements in ${monthLabel} in the current preview.`
+                  : `No ${selectedMode === 'posted' ? 'posted' : 'planned'} movements in ${monthLabel}.`}
+              </p>
+              {inactiveHasItems ? (
+                <button type="button" className="text-button" onClick={() => selectMode(selectedMode === 'posted' ? 'planned' : 'posted')}>
+                  {selectedMode === 'posted' ? 'View Planned' : 'View Posted'}
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <TimelineGroups groups={activeGroups} disabled={disabled} onSelect={selectTimelineItem} />
+          )}
 
-      {!loading && showScheduledSection ? (
-        <MovementSectionView
-          required={{
-            config: {
-              ariaLabel: 'Scheduled movements',
-              title: 'Scheduled',
-              toggleLabel: 'scheduled movements',
-            },
-            data: {
-              count: scheduledTotal,
-              body: upcomingGroups.map((group) => (
-                <div key={group.key} className="stack">
-                  <p className="hint date-group-label">{group.label}</p>
-                  <ul className="expense-list expense-list--compact" aria-label={`Scheduled group ${group.label}`}>
-                    {group.items.map((movement) => {
-                      const scheduledCategoryName = resolveScheduledCategoryName(movement.categoryId);
-                      const scheduledTagNames = resolveScheduledTagNames(movement);
-                      return (
-                        <MovementRowView
-                          key={movement.id}
-                          required={{
-                            config: {},
-                            data: buildScheduledMovementRowData(movement, {
-                              categoryName: scheduledCategoryName,
-                              tagNames: scheduledTagNames,
-                            }),
-                            state: {},
-                            status: { disabled },
-                          }}
-                          provided={{ commands: { select: () => provided.commands.openScheduledMovementDetail(movement.id) } }}
-                        />
-                      );
-                    })}
-                  </ul>
-                </div>
-              )),
-            },
-            state: {
-              collapsible: scheduledHasItems,
-              expanded: scheduledExpanded,
-            },
-            status: { disabled },
-          }}
-          provided={{ commands: { toggle: toggleScheduledExpanded } }}
-        />
-      ) : null}
-
-      {!loading ? (
-        <MovementSectionView
-          required={{
-            config: {
-              ariaLabel: 'Posted movements',
-              title: 'Posted',
-            },
-            data: {
-              count: pagination.totalElements,
-              body: (
-                <>
-                  {postedGroups.length === 0 ? <p className="hint">No posted movements in {monthLabel}.</p> : null}
-                  {postedGroups.map((group) => (
-                    <div key={group.key} className="stack">
-                      <p className="hint date-group-label">{group.label}</p>
-                      <ul className="expense-list expense-list--compact" aria-label={`Posted group ${group.label}`}>
-                        {group.items.map((transaction) => (
-                          <MovementRowView
-                            key={transaction.id}
-                            required={{
-                              config: {},
-                            data: buildPostedMovementRowData(transaction),
-                            state: {},
-                            status: { disabled },
-                          }}
-                            provided={{ commands: { select: () => provided.commands.openPostedMovementDetail(transaction.id) } }}
-                          />
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                  {pagination.hasNext ? (
-                    <div className="quick-row">
-                      <button
-                        type="button"
-                        className="text-button"
-                        disabled={disabled}
-                        onClick={provided.commands.goToNextPage}
-                      >
-                        Load more
-                      </button>
-                    </div>
-                  ) : null}
-                </>
-              ),
-            },
-            state: {
-              collapsible: false,
-              expanded: true,
-            },
-            status: { disabled },
-          }}
-          provided={{ commands: {} }}
-        />
-      ) : null}
+          {selectedMode === 'posted' && pagination.hasNext ? (
+            <div className="monthly-timeline-load-more">
+              <button type="button" className="text-button" disabled={disabled} onClick={provided.commands.goToNextPage}>
+                Load more
+              </button>
+            </div>
+          ) : null}
+        </div>
+      )}
 
       <MovementDetailView required={required.detail} provided={provided.detail} />
-
     </section>
   );
 }

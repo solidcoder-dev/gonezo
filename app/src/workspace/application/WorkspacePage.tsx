@@ -154,9 +154,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const voiceMovementExperimentActive = !experimentalFeatures.state.loading
     && voiceMovementExperimentEnabled
     && pageRequired.voiceEntry.enabled;
-  const dockNavigation = experimentalFeatures.state.loading
-    ? null
-    : voiceMovementExperimentActive
+  const dockNavigation = voiceMovementExperimentActive
       ? (
           <ExperimentalMovementDockNavigationComponent
             required={{

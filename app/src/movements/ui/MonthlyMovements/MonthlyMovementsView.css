@@ -2,6 +2,240 @@
   padding-bottom: calc(92px + var(--app-safe-area-bottom));
 }
 
+.monthly-movements-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 44px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.monthly-movements-tab {
+  position: relative;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.monthly-movements-tab[aria-selected='true'] {
+  color: var(--color-text-primary);
+}
+
+.monthly-movements-tab[aria-selected='true']::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 3px;
+  background: var(--color-brand);
+  content: '';
+}
+
+.monthly-movements-tab:hover:not(:disabled) {
+  background: var(--color-background-hover);
+}
+
+.monthly-movements-tab:active:not(:disabled),
+.monthly-timeline-row__button:active:not(:disabled) {
+  background: #e4eee1;
+}
+
+.monthly-movements-tab:focus-visible,
+.monthly-timeline-row__button:focus-visible {
+  outline: 2px solid var(--color-brand-strong);
+  outline-offset: -2px;
+}
+
+.monthly-movements-panel {
+  min-width: 0;
+}
+
+.monthly-timeline-groups {
+  display: grid;
+  gap: 24px;
+}
+
+.monthly-timeline-group {
+  min-width: 0;
+}
+
+.monthly-timeline-group__label {
+  margin: 0 0 10px;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+
+.monthly-timeline-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.monthly-timeline-row {
+  min-width: 0;
+}
+
+.monthly-timeline-row:not(:last-child) {
+  border-bottom: 1px solid rgba(230, 225, 215, 0.72);
+}
+
+.monthly-timeline-row--ignored {
+  opacity: 0.55;
+  filter: grayscale(0.15);
+}
+
+.monthly-timeline-row__button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 68px;
+  gap: 12px;
+  padding: 14px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.monthly-timeline-row__button:hover:not(:disabled),
+.monthly-timeline-row__button:active:not(:disabled) {
+  background: var(--color-background-hover);
+}
+
+.monthly-timeline-row__button:disabled,
+.monthly-movements-tab:disabled {
+  cursor: default;
+}
+
+.monthly-timeline-row__icon {
+  display: inline-grid;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--color-background-muted);
+  font-size: 1.1rem;
+}
+
+.monthly-timeline-row__icon--income {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+}
+
+.monthly-timeline-row__icon--expense {
+  background: #f9ebeb;
+  color: var(--color-status-danger-text);
+}
+
+.monthly-timeline-row__content {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 6px;
+}
+
+.monthly-timeline-row__primary {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.monthly-timeline-row__title,
+.monthly-timeline-row__metadata {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.monthly-timeline-row__title {
+  font-size: 0.95rem;
+}
+
+.monthly-timeline-row__amount {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.monthly-timeline-row__amount--income {
+  color: var(--color-brand-strong);
+}
+
+.monthly-timeline-row__amount--expense {
+  color: var(--color-status-danger-text);
+}
+
+.monthly-timeline-row__metadata {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+}
+
+.monthly-movements-empty {
+  display: grid;
+  min-height: 120px;
+  place-content: center;
+  gap: 8px;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.monthly-movements-empty p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.monthly-timeline-load-more {
+  padding: 16px 0 0;
+  text-align: center;
+}
+
+.monthly-timeline-skeleton {
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.monthly-timeline-skeleton__date,
+.monthly-timeline-skeleton__row {
+  display: block;
+  border-radius: 6px;
+  background: #e9e8df;
+  animation: monthly-timeline-pulse 1.3s ease-in-out infinite alternate;
+}
+
+.monthly-timeline-skeleton__date {
+  width: 56px;
+  height: 12px;
+}
+
+.monthly-timeline-skeleton__row {
+  height: 68px;
+}
+
+.monthly-movements-tabs + .monthly-timeline-skeleton,
+.monthly-movements-tabs + .monthly-movements-panel {
+  margin-top: 12px;
+}
+
+@keyframes monthly-timeline-pulse {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
 @media (min-width: 900px) {
   .transactions-section {
     padding-bottom: calc(24px + var(--app-safe-area-bottom));

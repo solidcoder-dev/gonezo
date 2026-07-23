@@ -175,12 +175,16 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
 
   useEffect(() => {
     if (!selectedRecurringMovementId) {
-      setExpectedSeriesState({ phase: 'idle' });
+      setExpectedSeriesState((previous) => previous.phase === 'idle' ? previous : { phase: 'idle' });
       return;
     }
 
     let cancelled = false;
-    setExpectedSeriesState({ phase: 'loading', recurringMovementId: selectedRecurringMovementId });
+    setExpectedSeriesState((previous) => (
+      previous.phase === 'loading' && previous.recurringMovementId === selectedRecurringMovementId
+        ? previous
+        : { phase: 'loading', recurringMovementId: selectedRecurringMovementId }
+    ));
     void ports.scheduling.schedulingGetMovement({ recurringMovementId: selectedRecurringMovementId })
       .then((result) => {
         if (!cancelled) {

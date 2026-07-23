@@ -36,7 +36,6 @@ function createPort(): HomeRecentMovementsPort {
           {
             id: 'tx-1',
             accountId: 'acc-1',
-            accountName: 'bbva',
             occurredAt: '2026-06-24T10:00:00.000Z',
             merchant: 'Cafe',
             amount: '10.00',
@@ -45,7 +44,10 @@ function createPort(): HomeRecentMovementsPort {
             status: 'posted',
             categoryId: 'cat-1',
             category: { id: 'cat-1', name: 'Food' },
-            tags: [{ id: 'tag-1', name: 'Coffee' }],
+            tags: [
+              { id: 'tag-1', name: 'Coffee' },
+              { id: 'tag-2', name: 'Dining' },
+            ],
             ignored: true,
             items: [],
           },
@@ -64,9 +66,15 @@ function createPort(): HomeRecentMovementsPort {
     taxonomyListTags: vi.fn(async () => ({
       items: [{ id: 'tag-1', name: 'Coffee', status: 'active' }],
     })),
+    ledgerListAccounts: vi.fn(async () => ({
+      items: [{ id: 'acc-1', name: 'BBVA' }],
+    })),
     sharingGetMovementDetails: vi.fn(async () => null),
     orchestrationCategorizeTransaction: vi.fn(async () => ({ status: 'assigned', categoryId: 'cat-1' })),
     orchestrationApplyTransactionTags: vi.fn(async () => ({ status: 'assigned', tagIds: ['tag-1'] })),
+    orchestrationListTransactionTaxonomy: vi.fn(async () => ({
+      items: [{ transactionId: 'tx-1', categoryId: 'cat-1', tagIds: ['tag-1', 'tag-2'] }],
+    })),
     analyticsSetMovementIgnored: vi.fn(async () => undefined),
     expectedUpdateMovement: vi.fn(async () => undefined),
     schedulingUpdateMovement: vi.fn(async () => undefined),
@@ -96,7 +104,9 @@ describe('HomeRecentMovementsComponent', () => {
       scheduledPreviewSize: 0,
     })));
     expect(await screen.findByText('Cafe')).toBeInTheDocument();
+    expect(screen.getByText('BBVA · Food · Coffee · Dining')).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Recent movements' })).toBeInTheDocument();
+    expect(screen.queryAllByRole('heading', { level: 3 })).toHaveLength(0);
   });
 
   it('keeps ignored recent movements faded but clickable', async () => {
@@ -112,7 +122,8 @@ describe('HomeRecentMovementsComponent', () => {
     );
 
     const movementButton = await screen.findByRole('button', { name: /Cafe/i });
-    expect(movementButton.className).toContain('ignored');
+    expect(movementButton.closest('li')).toHaveClass('monthly-timeline-row--ignored');
+    expect(screen.getByLabelText('Dining movement').querySelector('i')).toHaveClass('bi-cup-hot');
     expect(movementButton).toBeEnabled();
   });
 

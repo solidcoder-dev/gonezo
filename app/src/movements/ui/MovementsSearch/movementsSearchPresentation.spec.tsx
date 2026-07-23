@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { MovementsSearchItemView } from '../../application/movementsView.types';
 import {
   buildMovementSearchDetailData,
-  buildMovementSearchRowData,
+  buildMovementSearchTimelineItem,
   groupMovementSearchResultsByDay,
 } from './movementsSearchPresentation';
 
@@ -31,27 +31,6 @@ function searchItem(input: Partial<MovementsSearchItemView> = {}): MovementsSear
 
 describe('movements search presentation', () => {
   const now = new Date('2026-05-14T00:00:00');
-
-  it('builds row data with optional date metadata', () => {
-    const row = buildMovementSearchRowData(searchItem(), { includeDate: true, now });
-
-    expect(row).toEqual({
-      itemClassName: 'expense-item expense-item--expense',
-      iconClassName: 'bi bi-arrow-down-right',
-      title: 'Coffee',
-      amount: {
-        sign: '-',
-        label: '$12.50',
-        className: 'movement-amount movement-amount--expense',
-      },
-      details: [
-        { key: 'account', value: 'Checking', primary: true },
-        { key: 'date', value: '15 ene' },
-        { key: 'category', value: 'Food' },
-        { key: 'tags', value: '#work #client +1' },
-      ],
-    });
-  });
 
   it('builds detail sheet data for a selected search result', () => {
     const detail = buildMovementSearchDetailData(searchItem({
@@ -98,5 +77,25 @@ describe('movements search presentation', () => {
         items: [expect.objectContaining({ id: 'c' })],
       },
     ]);
+  });
+
+  it('projects search results into the monthly timeline row model', () => {
+    const item = buildMovementSearchTimelineItem(searchItem({
+      source: 'scheduled',
+      occurredAt: '2026-05-15T12:00:00',
+      tags: [{ id: 'tag-groceries', name: 'Groceries' }],
+    }), { includeDate: true, now });
+
+    expect(item).toMatchObject({
+      source: 'scheduled',
+      title: 'Coffee',
+      amountLabel: '$12.50',
+      amountSign: '-',
+      metadata: ['Scheduled', 'Checking', '15 may', 'Food'],
+      icon: {
+        className: 'bi bi-basket',
+        accessibleLabel: 'Groceries movement',
+      },
+    });
   });
 });

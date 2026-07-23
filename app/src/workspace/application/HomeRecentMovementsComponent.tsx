@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { LedgerTransactionListItem } from '../../ledger/application/ledger.port';
 import type { MovementsQueryPort } from '../../movements/application/movements.port';
 import type { TransactionHistoryItemView } from '../../transactions/application/transactionView.types';
 import type { TransactionsPort } from '../../transactions/application/transactions.port';
-import { formatCurrencyAmount } from '../../shared/utils/formatting';
+import { buildPostedTimelineGroups } from '../../movements/application/monthlyMovementsTimeline';
 import { MovementDetailOverlayComponent } from '../../movements/application/MovementDetailOverlayComponent';
+import { mapTransactionHistoryList } from '../../transactions/application/transactionViewMappers';
 import {
   HomeRecentMovementsView,
-  type HomeRecentMovementRowView,
 } from '../ui/HomeRecentMovements/HomeRecentMovementsView';
 
 export type HomeRecentMovementsPort = TransactionsPort & Pick<MovementsQueryPort, 'movementsGetOverview'>;
@@ -37,82 +38,59 @@ function toErrorMessage(error: unknown): string {
   return 'Unknown error';
 }
 
-function movementTone(type: TransactionHistoryItemView['type']): HomeRecentMovementRowView['amountTone'] {
-  if (type === 'income') {
-    return 'income';
+async function resolveRecentMovementTaxonomy(
+  core: HomeRecentMovementsPort,
+  transactions: LedgerTransactionListItem[],
+): Promise<TransactionHistoryItemView[]> {
+  const transactionIds = transactions.map((transaction) => transaction.id);
+  if (transactionIds.length === 0) {
+    return [];
   }
-  if (type === 'transfer' || type === 'transfer_in' || type === 'transfer_out') {
-    return 'transfer';
-  }
-  return 'expense';
-}
 
-function movementIconClass(type: TransactionHistoryItemView['type']): string {
-  if (type === 'income') {
-    return 'bi bi-arrow-down-left';
-  }
-  if (type === 'transfer' || type === 'transfer_in' || type === 'transfer_out') {
-    return 'bi bi-arrow-left-right';
-  }
-  return 'bi bi-arrow-up-right';
-}
-
-function movementAmountSign(type: TransactionHistoryItemView['type']): string {
-  if (type === 'income' || type === 'transfer_in') {
-    return '+';
-  }
-  if (type === 'expense' || type === 'transfer_out') {
-    return '-';
-  }
-  return '';
-}
-
-function movementTitle(movement: TransactionHistoryItemView): string {
-  if (movement.merchant) {
-    return movement.merchant;
-  }
-  if (movement.description) {
-    return movement.description;
-  }
-  if (movement.type === 'income') {
-    return 'Income';
-  }
-  if (movement.type === 'transfer' || movement.type === 'transfer_in' || movement.type === 'transfer_out') {
-    return 'Transfer';
-  }
-  return 'Expense';
-}
-
-function shortDateLabel(dateIso: string): string {
   try {
-    const date = new Date(dateIso);
-    if (Number.isNaN(date.getTime())) {
-      return dateIso.slice(0, 10);
-    }
-    return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' }).format(date);
+    const [accountsResult, categoriesResult, tagsResult, assignmentsResult] = await Promise.all([
+      typeof core.ledgerListAccounts === 'function'
+        ? core.ledgerListAccounts()
+        : Promise.resolve({ items: [] }),
+      core.taxonomyListCategories({ includeArchived: false }),
+      core.taxonomyListTags({ includeArchived: false }),
+      typeof core.orchestrationListTransactionTaxonomy === 'function'
+        ? core.orchestrationListTransactionTaxonomy({ transactionIds })
+        : Promise.resolve({ items: [] }),
+    ]);
+    const accountNameById = new Map(accountsResult.items.map((account) => [account.id, account.name] as const));
+    const categoryNameById = new Map(categoriesResult.items.map((category) => [category.id, category.name] as const));
+    const tagNameById = new Map(tagsResult.items.map((tag) => [tag.id, tag.name] as const));
+    const assignmentByTransactionId = new Map(
+      assignmentsResult.items.map((assignment) => [assignment.transactionId, assignment] as const),
+    );
+
+    return mapTransactionHistoryList(transactions.map((transaction) => {
+      const assignment = assignmentByTransactionId.get(transaction.id);
+      const categoryId = assignment?.categoryId ?? transaction.categoryId ?? transaction.category?.id;
+      const categoryName = categoryId
+        ? categoryNameById.get(categoryId) ?? transaction.category?.name
+        : undefined;
+      const existingTagsById = new Map((transaction.tags ?? []).map((tag) => [tag.id, tag.name] as const));
+      const tagIds = assignment?.tagIds ?? (transaction.tags ?? []).map((tag) => tag.id);
+      const tags = tagIds
+        .map((tagId) => {
+          const name = tagNameById.get(tagId) ?? existingTagsById.get(tagId);
+          return name ? { id: tagId, name } : undefined;
+        })
+        .filter((tag): tag is { id: string; name: string } => tag != null);
+
+      return {
+        ...transaction,
+        accountName: accountNameById.get(transaction.accountId) ?? transaction.accountName,
+        categoryId,
+        category: categoryId && categoryName ? { id: categoryId, name: categoryName } : undefined,
+        tags,
+      };
+    }));
   } catch {
-    return dateIso.slice(0, 10);
+    return mapTransactionHistoryList(transactions);
   }
-}
-
-function absoluteAmountLabel(amount: string, currency: string): string {
-  const numeric = Number(amount);
-  if (Number.isNaN(numeric)) {
-    return formatCurrencyAmount(amount, currency);
-  }
-  return formatCurrencyAmount(Math.abs(numeric).toString(), currency);
-}
-
-function buildHomeRecentMovementRow(movement: TransactionHistoryItemView): HomeRecentMovementRowView {
-  return {
-    id: movement.id,
-    title: movementTitle(movement),
-    subtitle: [movement.accountName, shortDateLabel(movement.occurredAt)].filter(Boolean).join(' · '),
-    iconClassName: movementIconClass(movement.type),
-    amountLabel: `${movementAmountSign(movement.type)}${absoluteAmountLabel(movement.amount, movement.currency)}`,
-    amountTone: movementTone(movement.type),
-    ignored: movement.ignored,
-  };
 }
 
 export function HomeRecentMovementsComponent({ required, provided }: HomeRecentMovementsComponentProps) {
@@ -139,7 +117,12 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
       if (requestId !== requestIdRef.current) {
         return;
       }
-      setMovements(overview.postedPage.content as TransactionHistoryItemView[]);
+      const postedTransactions = overview.postedPage.content as LedgerTransactionListItem[];
+      const resolvedMovements = await resolveRecentMovementTaxonomy(core, postedTransactions);
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+      setMovements(resolvedMovements);
     } catch (err) {
       if (requestId !== requestIdRef.current) {
         return;
@@ -165,7 +148,7 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
     void loadRecentMovements();
   }, [loadRecentMovements, required.config.enabled, required.config.refreshSignal]);
 
-  const rows = useMemo(() => movements.map(buildHomeRecentMovementRow), [movements]);
+  const postedGroups = useMemo(() => buildPostedTimelineGroups(movements), [movements]);
   function selectMovement(movementId: string) {
     const movement = movements.find((item) => item.id === movementId);
     if (movement) {
@@ -178,7 +161,7 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
     <>
       <HomeRecentMovementsView
         required={{
-          data: { movements: rows },
+          data: { groups: postedGroups },
           status: { loading },
         }}
         provided={{

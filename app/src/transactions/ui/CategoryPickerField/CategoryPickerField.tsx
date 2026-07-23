@@ -1,4 +1,5 @@
 import './CategoryPickerField.css';
+import { resolveTaxonomyIcon } from '../../application/movementIconPresentation';
 
 type CategoryOption = {
   id: string;
@@ -20,27 +21,6 @@ type Props = {
   required: CategoryPickerFieldRequired;
   provided: CategoryPickerFieldProvided;
 };
-
-const CATEGORY_ICON_BY_NAME: Record<string, string> = {
-  bills: 'bi-receipt',
-  beauty: 'bi-scissors',
-  groceries: 'bi-basket',
-  dining: 'bi-cup-hot',
-  transport: 'bi-bus-front',
-  health: 'bi-heart-pulse',
-  shopping: 'bi-bag',
-  entertainment: 'bi-controller',
-  travel: 'bi-airplane',
-  'work income': 'bi-briefcase',
-  investments: 'bi-graph-up-arrow',
-  reimbursements: 'bi-arrow-left-right',
-  'gifts & benefits': 'bi-gift',
-  other: 'bi-three-dots',
-};
-
-function iconForCategory(name: string): string {
-  return CATEGORY_ICON_BY_NAME[name.trim().toLowerCase()] ?? 'bi-tag';
-}
 
 export function CategoryPickerField({ required, provided }: Props) {
   const selectedCategory = required.options.find((category) => category.id === required.selectedCategoryId);
@@ -65,7 +45,7 @@ export function CategoryPickerField({ required, provided }: Props) {
               disabled={required.disabled}
               onClick={() => selectCategory(category.id)}
             >
-              <i className={`bi ${iconForCategory(category.name)}`} aria-hidden />
+              <i className={resolveTaxonomyIcon(category.name).className} aria-hidden />
               <span>{category.name}</span>
             </button>
           );

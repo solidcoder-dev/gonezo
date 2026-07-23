@@ -1,12 +1,12 @@
-import { HomeMovementListView, type HomeMovementRowView } from '../../../shared/ui/HomeMovementList/HomeMovementListView';
+import { MonthlyTimelineRowView } from '../../../movements/ui/MonthlyMovements/MonthlyTimelineRowView';
+import type { MonthlyTimelineGroupViewModel } from '../../../movements/application/monthlyMovementsTimeline';
+import '../../../movements/ui/MonthlyMovements/MonthlyMovementsView.css';
 import styles from './HomeRecentMovementsView.module.css';
-
-export type HomeRecentMovementRowView = HomeMovementRowView;
 
 export type HomeRecentMovementsViewProps = {
   required: {
     data: {
-      movements: HomeRecentMovementRowView[];
+      groups: MonthlyTimelineGroupViewModel[];
     };
     status: {
       loading: boolean;
@@ -22,8 +22,9 @@ export type HomeRecentMovementsViewProps = {
 };
 
 export function HomeRecentMovementsView({ required, provided }: HomeRecentMovementsViewProps) {
-  const { movements } = required.data;
+  const { groups } = required.data;
   const { loading, disabled } = required.status;
+  const movements = groups.flatMap((group) => group.items);
 
   return (
     <section className={styles.section} aria-label="Recent movements" aria-busy={loading}>
@@ -34,17 +35,26 @@ export function HomeRecentMovementsView({ required, provided }: HomeRecentMoveme
         </button>
       </div>
 
-      {loading ? <div className={styles.skeleton} role="status" aria-label="Loading recent movements" /> : null}
+      {loading ? (
+        <div className="monthly-timeline-skeleton" role="status" aria-label="Loading recent movements">
+          <span className="monthly-timeline-skeleton__row" />
+          <span className="monthly-timeline-skeleton__row" />
+        </div>
+      ) : null}
 
       {!loading && movements.length === 0 ? <p className={styles.empty}>No recent movements.</p> : null}
 
       {!loading && movements.length > 0 ? (
-        <HomeMovementListView
-          ariaLabel="Recent movements list"
-          movements={movements}
-          disabled={disabled}
-          selectMovement={provided.commands.selectMovement}
-        />
+        <ul className="monthly-timeline-list" aria-label="Recent movements list">
+          {movements.map((item) => (
+            <MonthlyTimelineRowView
+              key={`${item.source}:${item.id}`}
+              item={item}
+              disabled={disabled ?? false}
+              onSelect={() => provided.commands.selectMovement(item.id)}
+            />
+          ))}
+        </ul>
       ) : null}
     </section>
   );

@@ -7,12 +7,14 @@ import type {
 import type { MovementsSearchPagePort } from '../../application/movementsSearch.port';
 import type { ExpectedMovementView } from '../../application/movementsView.types';
 import { MovementDetailOverlayComponent } from '../../application/MovementDetailOverlayComponent';
-import { MovementRowView } from '../MovementRow/MovementRowView';
+import { MonthlyTimelineRowView } from '../MonthlyMovements/MonthlyTimelineRowView';
 import {
-  buildMovementSearchRowData,
+  buildMovementSearchTimelineGroups,
+  buildMovementSearchTimelineItem,
   groupMovementSearchResultsByDay,
 } from './movementsSearchPresentation';
 import '../movements.css';
+import '../MonthlyMovements/MonthlyMovementsView.css';
 import './MovementsSearch.css';
 
 export type MovementsSearchResultsRequired = {
@@ -56,12 +58,14 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
   const entries = useMemo(() => items, [items]);
   const selectedEntry = useMemo(
     () => selectedEntryKey
-      ? entries.find((entry) => `${entry.accountId ?? 'scope'}:${entry.source}:${entry.id}` === selectedEntryKey) ?? null
+      ? entries.find((entry) => `${entry.source}:${entry.id}` === selectedEntryKey) ?? null
       : null,
     [entries, selectedEntryKey],
   );
   const groupedByDay = appliedFilters.sortField === 'date' && appliedFilters.groupByDay;
-  const groups = useMemo(() => groupedByDay ? groupMovementSearchResultsByDay(entries) : [], [entries, groupedByDay]);
+  const groups = useMemo(() => groupedByDay
+    ? buildMovementSearchTimelineGroups(groupMovementSearchResultsByDay(entries))
+    : [], [entries, groupedByDay]);
   const sortSummary = `${appliedFilters.sortField === 'date' ? 'Date' : 'Amount'} ${appliedFilters.sortDirection}`;
   const resultsLabel = `${pagination.totalElements} ${pagination.totalElements === 1 ? 'movement' : 'movements'}`;
   const summaryLabel = groupedByDay ? `${resultsLabel} · Grouped by day · ${sortSummary}` : `${resultsLabel} · ${sortSummary}`;
@@ -75,39 +79,31 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
       {entries.length > 0 ? (
         <>
           {groupedByDay ? (
-            <div className="stack">
+            <div className="monthly-timeline-groups">
               {groups.map((group) => (
-                <div key={group.key} className="stack">
-                  <p className="hint date-group-label">{group.label}</p>
-                  <ul className="expense-list expense-list--compact" aria-label={`Movement results ${group.label}`}>
-                    {group.items.map((entry) => (
-                      <MovementRowView
-                        key={`${entry.accountId ?? 'scope'}-${entry.source}-${entry.id}`}
-                        required={{
-                          config: {},
-                          data: buildMovementSearchRowData(entry, { includeDate: false }),
-                          state: {},
-                          status: { disabled },
-                        }}
-                        provided={{ commands: { select: () => setSelectedEntryKey(`${entry.accountId ?? 'scope'}:${entry.source}:${entry.id}`) } }}
+                <section key={group.dateKey} className="monthly-timeline-group" aria-label={group.dateLabel}>
+                  <h3 className="monthly-timeline-group__label">{group.dateLabel}</h3>
+                  <ul className="monthly-timeline-list" aria-label={`Movement results ${group.dateLabel}`}>
+                    {group.items.map((item) => (
+                      <MonthlyTimelineRowView
+                        key={`${item.source}-${item.id}`}
+                        item={item}
+                        disabled={disabled}
+                        onSelect={() => setSelectedEntryKey(`${item.source}:${item.id}`)}
                       />
                     ))}
                   </ul>
-                </div>
+                </section>
               ))}
             </div>
           ) : (
-            <ul className="expense-list expense-list--compact" aria-label="Movement results">
+            <ul className="monthly-timeline-list" aria-label="Movement results">
               {entries.map((entry) => (
-                <MovementRowView
-                  key={`${entry.accountId ?? 'scope'}-${entry.source}-${entry.id}`}
-                  required={{
-                    config: {},
-                    data: buildMovementSearchRowData(entry, { includeDate: true }),
-                    state: {},
-                    status: { disabled },
-                  }}
-                  provided={{ commands: { select: () => setSelectedEntryKey(`${entry.accountId ?? 'scope'}:${entry.source}:${entry.id}`) } }}
+                <MonthlyTimelineRowView
+                  key={`${entry.source}-${entry.id}`}
+                  item={buildMovementSearchTimelineItem(entry, { includeDate: true })}
+                  disabled={disabled}
+                  onSelect={() => setSelectedEntryKey(`${entry.source}:${entry.id}`)}
                 />
               ))}
             </ul>

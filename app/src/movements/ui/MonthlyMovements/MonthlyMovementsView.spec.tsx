@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import type { TransactionHistoryItemView } from '../../../transactions/application/transactionView.types';
+import type { MonthlyTimelineGroupViewModel } from '../../application/monthlyMovementsTimeline';
 import { MonthlyMovementsView } from './MonthlyMovementsView';
 import type { MonthlyMovementsViewProps } from './MonthlyMovementsView.contract';
 
@@ -21,9 +22,28 @@ function postedMovement(input: Partial<TransactionHistoryItemView> = {}): Transa
   };
 }
 
+function timelineGroup(source: MonthlyTimelineGroupViewModel['items'][number]['source'], id: string, dateKey = '2026-6-10'): MonthlyTimelineGroupViewModel {
+  return {
+    dateKey,
+    dateLabel: '10 JUN',
+    items: [{
+      source,
+      id,
+      occurredOn: '2026-06-10T10:00:00.000Z',
+      title: source === 'expected' ? 'Expected rent' : source === 'scheduled' ? 'Scheduled gym' : 'Posted groceries',
+      amountLabel: '€12.50',
+      amountSign: '-',
+      direction: 'expense',
+      icon: { className: 'bi bi-arrow-down-right', tone: 'expense', accessibleLabel: 'Expense movement' },
+      metadata: source === 'expected' ? ['Expected', 'BBVA', 'Bills'] : source === 'scheduled' ? ['Scheduled', 'BBVA', 'Health'] : ['BBVA', 'Groceries'],
+    }],
+  };
+}
+
 function makeProps(overrides: Partial<MonthlyMovementsViewProps> = {}): MonthlyMovementsViewProps {
   const required: MonthlyMovementsViewProps['required'] = {
     state: {
+      selectedMode: 'posted',
       accountId: 'acc-1',
       monthLabel: 'June 2026',
       isCurrentMonth: true,
@@ -53,6 +73,8 @@ function makeProps(overrides: Partial<MonthlyMovementsViewProps> = {}): MonthlyM
       pendingVoidTransactionId: undefined,
       pendingDeactivateScheduledId: undefined,
       pendingDismissExpectedId: undefined,
+      postedGroups: [],
+      plannedGroups: [],
     },
     status: { loading: false, disabled: false },
     detail: {
@@ -96,6 +118,7 @@ function makeProps(overrides: Partial<MonthlyMovementsViewProps> = {}): MonthlyM
       openPostedMovementDetail: vi.fn(),
       openScheduledMovementDetail: vi.fn(),
       openExpectedMovementDetail: vi.fn(),
+      selectMode: vi.fn(),
     },
     detail: {
       commands: {
@@ -152,5 +175,45 @@ describe('MonthlyMovementsView', () => {
     expect(screen.queryByRole('button', { name: 'Previous' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
     expect(props.provided.commands.goToNextPage).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders accessible mode tabs and only the selected timeline panel', () => {
+    const props = makeProps();
+    props.required.state.postedGroups = [timelineGroup('posted', 'posted-1')];
+    props.required.state.plannedGroups = [timelineGroup('expected', 'expected-1')];
+
+    const { rerender } = render(<MonthlyMovementsView {...props} />);
+
+    expect(screen.getByRole('tablist')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Posted' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Planned' })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Posted groceries');
+    expect(screen.queryByText('Expected rent')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Planned' }));
+
+    expect(props.provided.commands.selectMode).toHaveBeenCalledWith('planned');
+    props.required.state.selectedMode = 'planned';
+    rerender(<MonthlyMovementsView {...props} />);
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Expected rent');
+    expect(screen.queryByText('Posted groceries')).not.toBeInTheDocument();
+  });
+
+  it('routes timeline rows to their source-specific detail commands', () => {
+    const props = makeProps();
+    props.required.state.postedGroups = [timelineGroup('posted', 'posted-1')];
+    props.required.state.plannedGroups = [timelineGroup('expected', 'expected-1')];
+
+    const { rerender } = render(<MonthlyMovementsView {...props} />);
+    fireEvent.click(screen.getByRole('button', { name: /Posted groceries/ }));
+    expect(props.provided.commands.openPostedMovementDetail).toHaveBeenCalledWith('posted-1');
+
+    props.required.state.selectedMode = 'planned';
+    props.required.state.plannedGroups = [timelineGroup('expected', 'expected-1'), timelineGroup('scheduled', 'scheduled-1', '2026-6-11')];
+    rerender(<MonthlyMovementsView {...props} />);
+    fireEvent.click(screen.getByRole('button', { name: /Expected rent/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Scheduled gym/ }));
+    expect(props.provided.commands.openExpectedMovementDetail).toHaveBeenCalledWith('expected-1');
+    expect(props.provided.commands.openScheduledMovementDetail).toHaveBeenCalledWith('scheduled-1');
   });
 });

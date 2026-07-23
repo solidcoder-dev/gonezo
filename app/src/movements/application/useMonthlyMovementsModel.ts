@@ -6,14 +6,14 @@ import type { SchedulingGatewayPort } from '../../scheduling/application/schedul
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
 import type { ExpectedMovementView } from './movementsView.types';
-import type { MonthlyMovementsViewProvided, MonthlyMovementsViewRequired } from '../ui/MonthlyMovements/MonthlyMovementsView.contract';
 import { useMovementDetailModel } from './useMovementDetailModel';
 import { useMonthlyMovementMutationsModel } from './useMonthlyMovementMutationsModel';
 import { useMonthlyMovementNavigationModel } from './useMonthlyMovementNavigationModel';
 import { useMonthlyMovementsFeedbackModel } from './useMonthlyMovementsFeedbackModel';
 import { useMonthlyMovementsOverviewModel } from './useMonthlyMovementsOverviewModel';
 import { useMonthlyMovementsTaxonomyModel } from './useMonthlyMovementsTaxonomyModel';
-
+import { useMonthlyMovementsTimelineModel } from './useMonthlyMovementsTimelineModel';
+import type { MonthlyMovementsMode, MonthlyMovementsViewProvided, MonthlyMovementsViewRequired } from '../ui/MonthlyMovements/MonthlyMovementsView.contract';
 export type MonthlyMovementsModelPorts = {
   analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
   ledger: LedgerGatewayPort;
@@ -27,6 +27,7 @@ export type MonthlyMovementsModelTimers = {
   setTimeout(handler: () => void, timeoutMs: number): number;
   clearTimeout(timerId: number): void;
 };
+
 type UseMonthlyMovementsModelInput = {
   ports: MonthlyMovementsModelPorts;
   accountId: string | null;
@@ -49,6 +50,7 @@ function toErrorMessage(error: unknown): string {
   }
   return 'Unknown error';
 }
+
 export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const {
     ports,
@@ -66,10 +68,10 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     confirm,
   } = input;
   const confirmMovementAction = confirm ?? (() => false);
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(0);
+  const [selectedMode, setSelectedMode] = useState<MonthlyMovementsMode>('posted');
   const previousAccountIdRef = useRef<string | null>(null);
   const feedbackModel = useMonthlyMovementsFeedbackModel();
   const navigationModel = useMonthlyMovementNavigationModel({
@@ -91,28 +93,35 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   });
   const monthStartTime = navigationModel.state.monthStartDate.getTime();
   const monthEndTime = navigationModel.state.monthEndDate.getTime();
+  const timeline = useMonthlyMovementsTimelineModel({
+    postedItems: taxonomyModel.state.historyItems,
+    expectedItems: overviewModel.state.expectedItems,
+    scheduledItems: overviewModel.state.scheduledItems,
+    categoryLabels: taxonomyModel.state.filterOptions.categories,
+    tagLabels: taxonomyModel.state.filterOptions.tags,
+    viewedYear: navigationModel.state.viewedYear,
+    viewedMonthIndex: navigationModel.state.viewedMonthIndex,
+    currentYear: navigationModel.state.currentYear,
+    currentMonthIndex: navigationModel.state.currentMonthIndex,
+  });
   function clearError() {
     setError('');
   }
-
   function reportError(raw: unknown) {
     const message = toErrorMessage(raw);
     setError(message);
     onError?.({ message });
   }
-
   async function loadAccountNameById(): Promise<Map<string, string>> {
     if (scope !== 'all') return new Map();
     const result = await ports.ledger.ledgerListAccounts();
     return new Map(result.items.map((account) => [account.id, account.name]));
   }
-
   async function refreshMovements() {
     const accountNameById = await loadAccountNameById();
     const loadedTransactions = await overviewModel.actions.refresh(accountNameById);
     await taxonomyModel.actions.refreshAssignments(loadedTransactions);
   }
-
   const mutationsModel = useMonthlyMovementMutationsModel({
     ports: {
       ledger: ports.ledger,
@@ -133,7 +142,6 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     onExpectedDismissed,
     onPostExpectedMovement,
   });
-
   const detailModel = useMovementDetailModel({
     ports: {
       analytics: ports.analytics,
@@ -157,7 +165,6 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     onEditExpectedMovement,
     onPostExpectedMovement,
   });
-
   function resetTransientState() {
     mutationsModel.actions.clearPendingVoidTimer();
     clearError();
@@ -167,7 +174,6 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     mutationsModel.actions.reset();
     navigationModel.actions.resetPanels();
   }
-
   useEffect(() => {
     if (!enabled || (scope === 'account' && !accountId)) {
       previousAccountIdRef.current = accountId;
@@ -175,7 +181,6 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       setLoading(false);
       return;
     }
-
     const accountChanged = previousAccountIdRef.current !== accountId;
     if (accountChanged) {
       previousAccountIdRef.current = accountId;
@@ -183,9 +188,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       resetTransientState();
       setLoading(true);
     }
-
     let cancelled = false;
-
     async function run() {
       setLoading(true);
       clearError();
@@ -201,9 +204,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
         }
       }
     }
-
     void run();
-
     return () => {
       cancelled = true;
       mutationsModel.actions.clearPendingVoidTimer();
@@ -218,11 +219,10 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     monthStartTime,
     monthEndTime,
   ]);
-
   const disabled = loading || mutationsModel.state.mutating || mutationsModel.state.postingTransaction || mutationsModel.state.voidMutationPhase === 'committing';
-
   const required: MonthlyMovementsViewRequired = {
     state: {
+      selectedMode,
       accountId: accountId ?? '',
       monthLabel: navigationModel.state.monthLabel,
       isCurrentMonth: navigationModel.state.isCurrentMonth,
@@ -245,6 +245,8 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       pendingVoidTransactionId: mutationsModel.state.pendingVoidTransactionId || undefined,
       pendingDeactivateScheduledId: mutationsModel.state.pendingDeactivateScheduledId || undefined,
       pendingDismissExpectedId: mutationsModel.state.pendingDismissExpectedId || undefined,
+      postedGroups: timeline.postedGroups,
+      plannedGroups: timeline.plannedGroups,
     },
     status: {
       loading,
@@ -252,7 +254,6 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     },
     detail: detailModel.required,
   };
-
   const provided: MonthlyMovementsViewProvided = {
     commands: {
       goToPreviousMonth: navigationModel.actions.goToPreviousMonth,
@@ -275,10 +276,10 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       openPostedMovementDetail: detailModel.actions.openPostedMovementDetail,
       openScheduledMovementDetail: detailModel.actions.openScheduledMovementDetail,
       openExpectedMovementDetail: detailModel.actions.openExpectedMovementDetail,
+      selectMode: setSelectedMode,
     },
     detail: detailModel.provided,
   };
-
   return {
     error,
     toast: {

@@ -137,6 +137,14 @@ function makeInput(overrides: Record<string, unknown> = {}) {
 }
 
 describe('useMovementDetailModel', () => {
+  it('does not update recurring-series state when no movement is selected', () => {
+    const input = makeInput();
+    const { result } = renderHook(() => useMovementDetailModel(input));
+
+    expect(result.current.required.state.open).toBe(false);
+    expect(input.ports.scheduling.schedulingGetMovement).not.toHaveBeenCalled();
+  });
+
   it('resolves a recurring expected series by its origin id even when the monthly list is empty', async () => {
     const input = makeInput({
       postedItems: [],

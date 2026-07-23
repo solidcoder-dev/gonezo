@@ -212,6 +212,39 @@ function expectedMovement(overrides: Partial<ExpectedMovementView> = {}): Expect
 }
 
 describe('useMonthlyMovementsModel', () => {
+  it('owns Posted as the default mode and preserves it while changing month', async () => {
+    const currentMonth = new Date(2026, 4, 15, 9, 30, 0, 0);
+    const movementsGetOverview = vi.fn().mockResolvedValue(emptyOverview());
+    const ports = makePorts({
+      scheduling: {
+        ...makePorts().scheduling,
+        movementsGetOverview,
+      },
+    });
+    const { result } = renderHook(() => useMonthlyMovementsModel({
+      ports,
+      accountId: 'account-1',
+      enabled: true,
+      refreshSignal: false,
+      clock: { now: () => currentMonth },
+      timers: makeTimers(),
+    }));
+
+    await waitFor(() => expect(result.current.required.status.loading).toBe(false));
+    expect(result.current.required.state.selectedMode).toBe('posted');
+
+    act(() => {
+      result.current.provided.commands.selectMode('planned');
+    });
+    expect(result.current.required.state.selectedMode).toBe('planned');
+
+    act(() => {
+      result.current.provided.commands.goToNextMonth();
+    });
+
+    expect(result.current.required.state.selectedMode).toBe('planned');
+  });
+
   it('loads monthly movements through injected ports using the injected clock', async () => {
     const currentMonth = new Date(2026, 4, 15, 9, 30, 0, 0);
     const clock: MonthlyMovementsModelClock = {

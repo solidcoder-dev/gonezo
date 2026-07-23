@@ -3,17 +3,14 @@ import type { MovementDetailViewModel } from '../../application/movementDetailVi
 import type {
   MovementsSearchItemView,
 } from '../../application/movementsView.types';
-import type { MovementDetailDataView, MovementAmountKindView } from '../MovementDetailSheet/MovementDetailSheetView';
-import type { MovementRowDataView } from '../MovementRow/MovementRowView';
+import type { MonthlyTimelineItemViewModel, MonthlyTimelineGroupViewModel } from '../../application/monthlyMovementsTimeline';
+import type { MovementDetailDataView } from '../MovementDetailSheet/MovementDetailSheetView';
+import { resolveMovementIcon } from '../../../transactions/application/movementIconPresentation';
 import {
   buildExpectedMovementDetailData,
   buildPostedMovementDetailData,
   buildScheduledMovementDetailData,
-  compactTags,
   txAmount,
-  txAmountKind,
-  txItemTypeClass,
-  txKindIconClass,
   txSign,
 } from '../MonthlyMovements/monthlyMovementPresentation';
 import {
@@ -29,14 +26,14 @@ type SearchPresentationOptions = {
   now?: Date;
 };
 
-type SearchRowOptions = SearchPresentationOptions & {
-  includeDate: boolean;
-};
-
 export type MovementSearchDateGroup = {
   key: string;
   label: string;
   items: MovementsSearchItemView[];
+};
+
+type SearchTimelineOptions = SearchPresentationOptions & {
+  includeDate?: boolean;
 };
 
 export function sourceLabel(source: MovementsSearchItemView['source']): string {
@@ -70,14 +67,6 @@ function groupKey(isoDateTime: string): string {
   return `${parsed.getFullYear()}-${parsed.getMonth() + 1}-${parsed.getDate()}`;
 }
 
-function amountClassName(kind: MovementAmountKindView): string {
-  return `movement-amount movement-amount--${kind}`;
-}
-
-function movementRowClassName(baseClassName: string, ignored?: boolean): string {
-  return ignored ? `${baseClassName} movement-row--ignored` : baseClassName;
-}
-
 export function groupMovementSearchResultsByDay(
   entries: MovementsSearchItemView[],
   options: SearchPresentationOptions = {},
@@ -99,37 +88,60 @@ export function groupMovementSearchResultsByDay(
   return groups;
 }
 
-export function buildMovementSearchRowData(
+function timelineDirection(entry: MovementsSearchItemView): MonthlyTimelineItemViewModel['direction'] {
+  return entry.type === 'income' || entry.type === 'transfer_in' ? 'income' : 'expense';
+}
+
+function timelineMetadata(entry: MovementsSearchItemView, includeDate: boolean, now?: Date): string[] {
+  const source = entry.source === 'posted'
+    ? undefined
+    : sourceLabel(entry.source);
+  return [
+    source,
+    entry.accountName,
+    includeDate ? formatCalendarDay(entry.occurredAt, now) : undefined,
+    entry.category?.name,
+  ].filter((value): value is string => Boolean(value && value.trim().length > 0));
+}
+
+export function buildMovementSearchTimelineItem(
   entry: MovementsSearchItemView,
-  options: SearchRowOptions,
-): MovementRowDataView {
-  const amountKind = txAmountKind(entry.type);
-  const tagLabel = compactTags(entry.tags);
-  const details: MovementRowDataView['details'] = [];
-  if (entry.accountName) {
-    details.push({ key: 'account', value: entry.accountName, primary: true });
-  }
-  if (options.includeDate) {
-    details.push({ key: 'date', value: formatCalendarDay(entry.occurredAt, options.now) });
-  }
-  if (entry.category?.name) {
-    details.push({ key: 'category', value: entry.category.name });
-  }
-  if (tagLabel) {
-    details.push({ key: 'tags', value: tagLabel });
-  }
+  options: SearchTimelineOptions = {},
+): MonthlyTimelineItemViewModel {
+  const direction = timelineDirection(entry);
+  const transfer = entry.type === 'transfer' || entry.type === 'transfer_in' || entry.type === 'transfer_out';
+  const icon = resolveMovementIcon({
+    direction: transfer ? 'transfer' : direction,
+    tagNames: entry.tags?.map((tag) => tag.name),
+    categoryName: entry.category?.name,
+  });
 
   return {
-    itemClassName: movementRowClassName(txItemTypeClass(entry.type), entry.ignored),
-    iconClassName: txKindIconClass(entry.type),
+    source: entry.source,
+    id: entry.id,
+    occurredOn: entry.occurredAt,
     title: entry.title,
-    amount: {
-      sign: txSign(entry.type),
-      label: txAmount(entry.amount, entry.currency),
-      className: amountClassName(amountKind),
+    amountLabel: txAmount(entry.amount, entry.currency),
+    amountSign: txSign(entry.type) as MonthlyTimelineItemViewModel['amountSign'],
+    direction,
+    icon: {
+      className: icon.className,
+      tone: direction,
+      accessibleLabel: icon.accessibleLabel,
     },
-    details,
+    metadata: timelineMetadata(entry, options.includeDate === true, options.now),
+    ignored: entry.ignored,
   };
+}
+
+export function buildMovementSearchTimelineGroups(
+  groups: MovementSearchDateGroup[],
+): MonthlyTimelineGroupViewModel[] {
+  return groups.map((group) => ({
+    dateKey: group.key,
+    dateLabel: group.label,
+    items: group.items.map((entry) => buildMovementSearchTimelineItem(entry)),
+  }));
 }
 
 export function buildMovementSearchDetailData(

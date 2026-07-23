@@ -342,6 +342,7 @@ describe('WorkspacePage', () => {
     renderSubject('/movements');
 
     expect(screen.getByRole('heading', { name: 'Movements' })).toBeInTheDocument();
+    expect(screen.getByTestId('standard-navigation')).toBeInTheDocument();
     const searchLink = screen.getByRole('link', { name: 'Search movements' });
     const notificationsButton = screen.getByRole('button', { name: 'Open notifications' });
     expect(searchLink.compareDocumentPosition(notificationsButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -422,7 +423,7 @@ describe('WorkspacePage', () => {
     expect(screen.queryAllByRole('navigation')).toHaveLength(1);
   });
 
-  it('does not flash the wrong navbar while the preference is loading', async () => {
+  it('keeps navigation available while the preference is loading', async () => {
     let resolveLoad: ((value: { voiceMovementEntryEnabled: boolean }) => void) | undefined;
     const loadDeferred = new Promise<{ voiceMovementEntryEnabled: boolean }>((resolve) => {
       resolveLoad = resolve;
@@ -435,8 +436,9 @@ describe('WorkspacePage', () => {
 
     renderSubject('/home', experimentalFeatures);
 
-    expect(screen.queryByTestId('standard-navigation')).toBeNull();
+    expect(screen.getByTestId('standard-navigation')).toBeInTheDocument();
     expect(screen.queryByTestId('experimental-navigation')).toBeNull();
     resolveLoad?.({ voiceMovementEntryEnabled: true });
+    await waitFor(() => expect(screen.getByTestId('experimental-navigation')).toBeInTheDocument());
   });
 });
