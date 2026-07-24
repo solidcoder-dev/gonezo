@@ -13,6 +13,7 @@ type AnalyticsMoreFiltersSheetViewProps = {
       open: boolean;
       draftAccountIds: string[];
       draftIncludeIgnoredMovements: boolean;
+      draftIncludePlannedMovements: boolean;
       draftSharedAmountMode: AnalyticsSharedAmountMode;
     };
     status: {
@@ -24,6 +25,7 @@ type AnalyticsMoreFiltersSheetViewProps = {
       close: () => void;
       setDraftAccountIds: (accountIds: string[]) => void;
       setDraftIncludeIgnoredMovements: (includeIgnoredMovements: boolean) => void;
+      setDraftIncludePlannedMovements: (includePlannedMovements: boolean) => void;
       setDraftSharedAmountMode: (sharedAmountMode: AnalyticsSharedAmountMode) => void;
       resetMoreFiltersDraft: () => void;
       applyMoreFiltersDraft: () => void;
@@ -95,6 +97,22 @@ export function AnalyticsMoreFiltersSheetView({ required, provided }: AnalyticsM
                   status: { disabled: required.status.disabled },
                 }}
                 provided={{ commands: { setValue: provided.commands.setDraftIncludeIgnoredMovements } }}
+              />
+
+              <BinarySwitchCardView
+                required={{
+                  config: {
+                    switchId: 'analytics-include-planned',
+                    title: 'Include scheduled and expected movements',
+                    description: 'Include pending expected movements and future scheduled occurrences.',
+                    iconClassName: 'bi bi-calendar2-event',
+                    ariaLabel: 'Include scheduled and expected movements',
+                  },
+                  data: {},
+                  state: { value: required.state.draftIncludePlannedMovements },
+                  status: { disabled: required.status.disabled },
+                }}
+                provided={{ commands: { setValue: provided.commands.setDraftIncludePlannedMovements } }}
               />
 
               <BinarySwitchCardView

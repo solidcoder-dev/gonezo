@@ -538,7 +538,9 @@ export async function analyticsGetFlowProjection(
       includeIgnoredMovements: scope.filters.includeIgnoredMovements,
       sharedAmountMode: 'full',
     }),
-    selectedSchedulingMovements(port, scope.selectedAccountIds),
+    scope.filters.includePlannedMovements
+      ? selectedSchedulingMovements(port, scope.selectedAccountIds)
+      : Promise.resolve([]),
   ]);
 
   const currentBalanceAmount = balances.reduce(
@@ -566,7 +568,9 @@ export async function analyticsGetFlowUpcoming(
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
   const now = new Date();
   const windows = buildSpendingTimelineWindow(scope.filters.period, now, 0, undefined, 5);
-  const scheduledMovements = await selectedSchedulingMovements(port, scope.selectedAccountIds);
+  const scheduledMovements = scope.filters.includePlannedMovements
+    ? await selectedSchedulingMovements(port, scope.selectedAccountIds)
+    : [];
 
   return buildFlowUpcoming({
     scheduledMovements,
