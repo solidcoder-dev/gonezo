@@ -269,7 +269,7 @@ describe('AnalyticsPageComponent', () => {
     })));
   }, 15000);
 
-  it('renders the overview snapshot before the insights rail finishes loading', async () => {
+  it('renders the overview snapshot before Starters finishes loading', async () => {
     const snapshotDeferred = deferred<Awaited<ReturnType<AnalyticsPort['analyticsGetOverviewSnapshot']>>>();
     const insightsDeferred = deferred<AnalyticsOverviewInsightsResult>();
     const core = createCore();
@@ -327,7 +327,7 @@ describe('AnalyticsPageComponent', () => {
     });
 
     expect(await screen.findByRole('heading', { name: 'Jun 1-Jun 30, 2026' })).toBeInTheDocument();
-    expect(screen.getByRole('status', { name: 'Loading overview insights' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Loading overview starters' })).toBeInTheDocument();
 
     await act(async () => {
       insightsDeferred.resolve({
@@ -339,7 +339,7 @@ describe('AnalyticsPageComponent', () => {
       await insightsDeferred.promise;
     });
 
-    expect(await screen.findByRole('heading', { name: 'More insights' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Starters' })).toBeInTheDocument();
     expect(screen.getByText('Top tags')).toBeInTheDocument();
     expect(screen.getByText('Transfers')).toBeInTheDocument();
   }, 15000);

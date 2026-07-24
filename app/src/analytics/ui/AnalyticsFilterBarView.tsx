@@ -28,7 +28,7 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
   const { state, status } = required;
 
   return (
-    <div className={styles.filterBar} aria-label="Analytics filters">
+    <div className={styles.filterBar} role="group" aria-label="Analytics filters">
       <button
         type="button"
         className={state.currency ? styles.filterChip : styles.filterChipMuted}

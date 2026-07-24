@@ -1,14 +1,3 @@
-export type OverviewSnapshotHighlightView = {
-  key: 'expense' | 'income';
-  label: string;
-  title: string;
-  subtitle?: string;
-  amount: string;
-  occurredOn: string;
-  iconClassName: string;
-  tone: 'expense' | 'income';
-};
-
 export type OverviewSnapshotCardViewProps = {
   required: {
     data: {
@@ -20,7 +9,9 @@ export type OverviewSnapshotCardViewProps = {
       netFlowAmount: string;
       incomeShare: number;
       expenseShare: number;
-      highlights: OverviewSnapshotHighlightView[];
+      netFlowTone: 'income' | 'expense' | 'neutral';
+      comparisonTone: 'income' | 'expense' | 'neutral';
+      comparisonDirection: 'up' | 'down' | 'flat';
     };
     status: {
       loading: boolean;

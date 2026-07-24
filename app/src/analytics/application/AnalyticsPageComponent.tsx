@@ -7,8 +7,7 @@ import { AnalyticsCurrencySheetView } from '../ui/AnalyticsCurrencySheetView';
 import { AnalyticsMoreFiltersSheetView } from '../ui/AnalyticsMoreFiltersSheetView';
 import { AnalyticsPeriodSheetView } from '../ui/AnalyticsPeriodSheetView';
 import { AnalyticsTagsSheetView } from '../ui/AnalyticsTagsSheetView';
-import { OverviewInsightsRailComponent } from './OverviewInsightsRailComponent';
-import { OverviewSnapshotCardComponent } from './OverviewSnapshotCardComponent';
+import { OverviewTabComponent } from './OverviewTabComponent';
 import { FlowTabComponent } from './FlowTabComponent';
 import { SpendingTabComponent } from './SpendingTabComponent';
 import { useAnalyticsFiltersModel } from './useAnalyticsFiltersModel';
@@ -158,32 +157,18 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
       />
 
       {filterModel.viewMode === 'overview' ? (
-        <div className={styles.stack}>
-          <OverviewSnapshotCardComponent
-            required={{
-              context: { core: required.context.core },
-              config: {
-                enabled: required.config.enabled,
-                currency,
-                filters: filterModel.filters,
-                refreshSignal: required.config.refreshSignal,
-              },
-            }}
-            provided={provided}
-          />
-          <OverviewInsightsRailComponent
-            required={{
-              context: { core: required.context.core },
-              config: {
-                enabled: required.config.enabled,
-                currency,
-                filters: filterModel.filters,
-                refreshSignal: required.config.refreshSignal,
-              },
-            }}
-            provided={provided}
-          />
-        </div>
+        <OverviewTabComponent
+          required={{
+            context: { core: required.context.core },
+            config: {
+              enabled: required.config.enabled,
+              currency,
+              filters: filterModel.filters,
+              refreshSignal: required.config.refreshSignal,
+            },
+          }}
+          provided={provided}
+        />
       ) : filterModel.viewMode === 'spending' ? (
         <SpendingTabComponent
           required={{

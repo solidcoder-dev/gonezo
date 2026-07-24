@@ -1069,7 +1069,7 @@ describe('App Accounts UX', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Analytics' }));
     expect(await screen.findByRole('heading', { name: 'Analytics' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Income vs Expenses' })).toBeInTheDocument();
+    expect(await screen.findByText('Net flow')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Profile' }));
     expect(await screen.findByText('Favorite account')).toBeInTheDocument();

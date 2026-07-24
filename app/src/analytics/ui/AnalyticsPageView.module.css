@@ -1,21 +1,18 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 0;
 }
 
 .filterBar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) minmax(0, .8fr) 44px;
   align-items: center;
-  gap: 12px;
+  gap: var(--spacing-1-5);
   min-width: 0;
-  overflow-x: auto;
+  width: 100%;
+  margin-top: var(--spacing-5);
   padding: 2px 0;
-  scrollbar-width: none;
-}
-
-.filterBar::-webkit-scrollbar {
-  display: none;
 }
 
 .filterChip,
@@ -34,15 +31,21 @@
   color: #1b1b17;
   font-size: 0.95rem;
   font-weight: 800;
-  white-space: nowrap;
-  box-shadow: 0 6px 18px rgb(17 17 17 / 5%);
+  min-width: 0;
+  overflow: hidden;
+  box-shadow: none;
 }
 
 .filterChip,
 .filterChipMuted,
 .filterChipSelected {
-  padding: 0 14px;
+  width: 100%;
+  padding: 0 8px;
 }
+
+.filterChip span,
+.filterChipMuted span,
+.filterChipSelected span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .filterChipMuted {
   color: #66665f;
@@ -81,21 +84,26 @@
 }
 
 .viewTabs {
-  display: flex;
+  position: sticky;
+  top: calc(var(--app-safe-area-top) + 60px);
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
-  gap: 8px;
   width: 100%;
   min-width: 0;
-  padding: 2px 0 4px;
+  border-bottom: 1px solid var(--color-divider);
+  background: var(--color-background-surface);
+  padding: 0;
 }
 
 .viewTab,
 .viewTabActive {
-  flex: 1 1 0;
-  min-height: 40px;
-  border: 1px solid #ecebe7;
-  border-radius: 999px;
-  padding: 0 22px;
+  position: relative;
+  min-height: 44px;
+  border: 0;
+  border-radius: 0;
+  padding: 0 8px;
   font-size: 0.88rem;
   font-weight: 800;
   letter-spacing: -0.01em;
@@ -104,15 +112,22 @@
 }
 
 .viewTab {
-  background: #fff;
-  color: #34342f;
+  background: transparent;
+  color: var(--color-text-muted);
 }
 
 .viewTabActive {
-  background: #111;
-  color: #fff;
-  border-color: #111;
-  box-shadow: 0 8px 18px rgb(17 17 17 / 10%);
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+.viewTabActive::after { position: absolute; right: 18%; bottom: -1px; left: 18%; height: 3px; border-radius: 3px 3px 0 0; background: var(--color-brand); content: ''; }
+
+.analyticsOverviewContent { display: grid; gap: 36px; margin-top: 28px; }
+
+@media (min-width: 390px) {
+  .filterBar { gap: var(--spacing-2); }
+  .filterChip, .filterChipMuted, .filterChipSelected { padding-inline: 10px; }
 }
 
 .stack {
