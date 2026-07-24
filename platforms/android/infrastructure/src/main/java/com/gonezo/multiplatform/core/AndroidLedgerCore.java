@@ -357,6 +357,31 @@ public final class AndroidLedgerCore {
     String merchant,
     Boolean includeVoided
   ) {
+    return listTransactions(accountId, limit, fromDate, toDate, categoryId, merchant, includeVoided, false);
+  }
+
+  public List<LedgerTransactionView> listTransactionsHalfOpen(
+    String accountId,
+    Integer limit,
+    String fromDate,
+    String toDate,
+    String categoryId,
+    String merchant,
+    Boolean includeVoided
+  ) {
+    return listTransactions(accountId, limit, fromDate, toDate, categoryId, merchant, includeVoided, true);
+  }
+
+  private List<LedgerTransactionView> listTransactions(
+    String accountId,
+    Integer limit,
+    String fromDate,
+    String toDate,
+    String categoryId,
+    String merchant,
+    Boolean includeVoided,
+    boolean toExclusive
+  ) {
     List<String> statuses = includeVoided != null && includeVoided
       ? null
       : List.of("draft", "posted");
@@ -372,7 +397,7 @@ public final class AndroidLedgerCore {
     );
     LedgerPageRequestInput pagination = new LedgerPageRequestInput(0, limit != null && limit > 0 ? limit : 20);
     List<LedgerTransactionSortInput> sort = List.of(new LedgerTransactionSortInput("occurredAt", "desc"));
-    return listTransactions(accountId, filters, pagination, sort).content();
+    return listTransactions(accountId, filters, pagination, sort, toExclusive).content();
   }
 
   public LedgerTransactionView getTransaction(String transactionId) {
@@ -387,6 +412,16 @@ public final class AndroidLedgerCore {
     LedgerTransactionFilterInput filters,
     LedgerPageRequestInput pagination,
     List<LedgerTransactionSortInput> sort
+  ) {
+    return listTransactions(accountId, filters, pagination, sort, false);
+  }
+
+  private LedgerTransactionPageView listTransactions(
+    String accountId,
+    LedgerTransactionFilterInput filters,
+    LedgerPageRequestInput pagination,
+    List<LedgerTransactionSortInput> sort,
+    boolean toExclusive
   ) {
     LedgerTransactionFilterInput resolvedFilters = filters == null
       ? new LedgerTransactionFilterInput(null, null, null, null, null, null, null)
@@ -458,7 +493,8 @@ public final class AndroidLedgerCore {
         primarySortField,
         primarySortDirection,
         requestedPage,
-        pageSize
+        pageSize,
+        toExclusive
       );
       int totalPages = page.totalElements() == 0 ? 0 : (int) Math.ceil((double) page.totalElements() / pageSize);
       int resolvedPage = totalPages == 0 ? 0 : Math.min(requestedPage, totalPages - 1);

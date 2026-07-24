@@ -65,6 +65,7 @@ export class CoreAdapter implements CorePort {
   analyticsGetFlowInsights = this.analytics.analyticsGetFlowInsights.bind(this.analytics);
   analyticsSetMovementIgnored = this.analytics.analyticsSetMovementIgnored.bind(this.analytics);
   analyticsListIgnoredMovements = this.analytics.analyticsListIgnoredMovements.bind(this.analytics);
+  analyticsListMovementFacts = this.analytics.analyticsListMovementFacts.bind(this.analytics);
 
   sharingListPeople = this.sharing.sharingListPeople.bind(this.sharing);
   sharingApplyShareToPostedTransaction = this.sharing.sharingApplyShareToPostedTransaction.bind(this.sharing);

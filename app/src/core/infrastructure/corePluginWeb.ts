@@ -102,6 +102,7 @@ import type {
 import type {
   AnalyticsListIgnoredMovementsResult,
   AnalyticsSetMovementIgnoredInput,
+  AnalyticsListMovementFactsResult,
 } from '../../analytics/application/analytics.port';
 import type {
   SharingApplyShareToPostedTransactionInput,
@@ -372,6 +373,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async analyticsListIgnoredMovements(): Promise<AnalyticsListIgnoredMovementsResult> {
     return this.core.analyticsListIgnoredMovements();
+  }
+
+  async analyticsListMovementFacts(): Promise<AnalyticsListMovementFactsResult> {
+    throw new Error('analyticsListMovementFacts is only available in the native runtime');
   }
 
   async movementsGetMonthOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> {

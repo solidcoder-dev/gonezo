@@ -40,6 +40,7 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
   const currency = filterModel.filters.currency;
   const moreFiltersCount = Number(filterModel.filters.accountIds.length > 0)
     + Number(filterModel.filters.includeIgnoredMovements)
+    + Number(!filterModel.filters.includePlannedMovements)
     + Number(filterModel.filters.sharedAmountMode === 'full');
 
   return (
@@ -138,6 +139,7 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
             open: filterModel.moreFiltersSheetOpen,
             draftAccountIds: filterModel.draftAccountIds,
             draftIncludeIgnoredMovements: filterModel.draftIncludeIgnoredMovements,
+            draftIncludePlannedMovements: filterModel.draftIncludePlannedMovements,
             draftSharedAmountMode: filterModel.draftSharedAmountMode,
           },
           status: {
@@ -149,6 +151,7 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
             close: filterModel.commands.closeMoreFiltersSheet,
             setDraftAccountIds: filterModel.commands.setDraftAccountIds,
             setDraftIncludeIgnoredMovements: filterModel.commands.setDraftIncludeIgnoredMovements,
+            setDraftIncludePlannedMovements: filterModel.commands.setDraftIncludePlannedMovements,
             setDraftSharedAmountMode: filterModel.commands.setDraftSharedAmountMode,
             resetMoreFiltersDraft: filterModel.commands.resetMoreFiltersDraft,
             applyMoreFiltersDraft: filterModel.commands.applyMoreFiltersDraft,

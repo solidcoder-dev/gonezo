@@ -6,6 +6,34 @@ export type AnalyticsCurrencyScopeInput = {
   filters?: AnalyticsFiltersInput;
 };
 
+export type AnalyticsListMovementFactsInput = {
+  fromLocalDate: string;
+  toLocalDate: string;
+  zoneId: string;
+  currency?: string;
+  includePlannedMovements?: boolean;
+};
+
+export type AnalyticsMovementFactItem = {
+  analyticsFactId: string;
+  reference:
+    | { source: 'posted'; transactionId: string }
+    | { source: 'expected'; expectedMovementId: string; recurringMovementId?: string; occurrenceId?: string }
+    | { source: 'scheduledProjection'; recurringMovementId: string; occurrenceId: string };
+  source: 'POSTED' | 'EXPECTED' | 'SCHEDULED_PROJECTION';
+  effectiveAt: string;
+  accountId: string;
+  type: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
+  currency: string;
+  personalAmount: string;
+  fullAmount: string;
+  ignored: boolean;
+  categoryId?: string;
+  tagIds: string[];
+};
+
+export type AnalyticsListMovementFactsResult = { items: AnalyticsMovementFactItem[] };
+
 export type AnalyticsCashFlowSeriesInput = AnalyticsCurrencyScopeInput & {
   granularity: LedgerCashFlowGranularity;
   periodOffset?: number;
@@ -225,6 +253,7 @@ export type AnalyticsListIgnoredMovementsResult = {
 };
 
 export type AnalyticsPort = {
+  analyticsListMovementFacts?: (input: AnalyticsListMovementFactsInput) => Promise<AnalyticsListMovementFactsResult>;
   analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult>;
   analyticsGetFilterFacets(input?: AnalyticsGetFilterFacetsInput): Promise<AnalyticsGetFilterFacetsResult>;
   analyticsGetOverviewSnapshot(input: AnalyticsOverviewSnapshotInput): Promise<AnalyticsOverviewSnapshotResult>;

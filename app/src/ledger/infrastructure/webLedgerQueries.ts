@@ -19,7 +19,9 @@ export function listWebLedgerTransactions(
   const size = Number.isFinite(requestedSize) && requestedSize > 0 ? Math.min(Math.trunc(requestedSize), 100) : 20;
 
   const fromDateEpoch = parseDateFilterEpoch(filters.fromDate, 'start');
-  const toDateEpoch = parseDateFilterEpoch(filters.toDate, 'end');
+  const toDateEpoch = filters.toDateExclusive
+    ? parseDateFilterEpoch(filters.toDateExclusive, 'start')
+    : parseDateFilterEpoch(filters.toDate, 'end');
   const hasFromDateEpoch = typeof fromDateEpoch === 'number' && Number.isFinite(fromDateEpoch);
   const hasToDateEpoch = typeof toDateEpoch === 'number' && Number.isFinite(toDateEpoch);
   const textFilter = filters.text?.trim().toLowerCase();
@@ -86,7 +88,9 @@ export function listWebLedgerTransactions(
         return true;
       }
       const occurredAtEpoch = Date.parse(tx.occurredAt);
-      return Number.isFinite(occurredAtEpoch) && occurredAtEpoch <= toDateEpoch!;
+      return Number.isFinite(occurredAtEpoch) && (filters.toDateExclusive
+        ? occurredAtEpoch < toDateEpoch!
+        : occurredAtEpoch <= toDateEpoch!);
     })
     .filter((tx) => {
       if (!merchantFilter) {

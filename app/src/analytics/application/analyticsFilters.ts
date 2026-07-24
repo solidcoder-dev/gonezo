@@ -21,6 +21,7 @@ export type AnalyticsFilters = {
   tagIds: string[];
   accountIds: string[];
   includeIgnoredMovements: boolean;
+  includePlannedMovements: boolean;
   sharedAmountMode: AnalyticsSharedAmountMode;
 };
 
@@ -34,6 +35,7 @@ export const DEFAULT_ANALYTICS_FILTERS: AnalyticsFilters = {
   tagIds: [],
   accountIds: [],
   includeIgnoredMovements: false,
+  includePlannedMovements: true,
   sharedAmountMode: 'personal',
 };
 
@@ -108,6 +110,10 @@ function normalizeIncludeIgnoredMovements(value?: boolean): boolean {
   return value === true;
 }
 
+function normalizeIncludePlannedMovements(value?: boolean): boolean {
+  return value !== false;
+}
+
 function normalizeSharedAmountMode(value?: AnalyticsSharedAmountMode): AnalyticsSharedAmountMode {
   return value === 'full' ? 'full' : 'personal';
 }
@@ -119,6 +125,7 @@ export function normalizeAnalyticsFilters(input?: AnalyticsFiltersInput): Analyt
     tagIds: normalizeIdentifierList(input?.tagIds),
     accountIds: normalizeIdentifierList(input?.accountIds),
     includeIgnoredMovements: normalizeIncludeIgnoredMovements(input?.includeIgnoredMovements),
+    includePlannedMovements: normalizeIncludePlannedMovements(input?.includePlannedMovements),
     sharedAmountMode: normalizeSharedAmountMode(input?.sharedAmountMode),
   };
 }

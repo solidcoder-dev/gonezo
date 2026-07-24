@@ -164,17 +164,22 @@ function toWindowRange(range: { from: string; to: string }, label: string): Anal
   };
 }
 
-function periodWindowOffset(period: AnalyticsPeriod, referenceDate: string, periodOffset: number) {
+function periodWindowOffset(
+  period: AnalyticsPeriod,
+  referenceDate: string,
+  periodOffset: number,
+  includePlannedMovements: boolean,
+) {
   let currentPeriod = period;
   let currentReferenceDate = referenceDate;
-  let resolved = resolveAnalyticsPeriodWindow(currentPeriod, currentReferenceDate);
+  let resolved = resolveAnalyticsPeriodWindow(currentPeriod, currentReferenceDate, includePlannedMovements);
   for (let index = 0; index > periodOffset; index -= 1) {
     if (!resolved.comparisonRange) {
       break;
     }
     currentPeriod = { kind: 'custom', from: resolved.comparisonRange.from, to: resolved.comparisonRange.to };
     currentReferenceDate = resolved.comparisonRange.to;
-    resolved = resolveAnalyticsPeriodWindow(currentPeriod, currentReferenceDate);
+    resolved = resolveAnalyticsPeriodWindow(currentPeriod, currentReferenceDate, includePlannedMovements);
   }
   return resolved;
 }
@@ -183,6 +188,7 @@ export function buildAnalyticsOverviewWindows(
   period: AnalyticsPeriod | LegacyAnalyticsPeriodPreset,
   now: Date,
   earliestOccurredAt?: Date,
+  includePlannedMovements = false,
 ): { currentWindow: AnalyticsOverviewWindowRange; previousWindow?: AnalyticsOverviewWindowRange } {
   const normalizedPeriod = normalizeAnalyticsPeriodInput(period);
   if (normalizedPeriod.kind === 'allTime') {
@@ -196,7 +202,11 @@ export function buildAnalyticsOverviewWindows(
       },
     };
   }
-  const resolved = resolveAnalyticsPeriodWindow(normalizedPeriod, analyticsReferenceDateFromNow(now));
+  const resolved = resolveAnalyticsPeriodWindow(
+    normalizedPeriod,
+    analyticsReferenceDateFromNow(now),
+    includePlannedMovements,
+  );
   const currentWindow = toWindowRange(resolved.currentRange!, resolved.currentWindowLabel);
   return {
     currentWindow,
@@ -212,6 +222,7 @@ export function buildSpendingTimelineWindow(
   inputPeriodOffset = 0,
   earliestOccurredAt?: Date,
   allPeriodYearPageSize = 5,
+  includePlannedMovements = false,
 ): AnalyticsNavigableWindowRange {
   const normalizedPeriod = normalizeAnalyticsPeriodInput(period);
   const periodOffset = Math.min(0, Math.trunc(inputPeriodOffset));
@@ -234,7 +245,7 @@ export function buildSpendingTimelineWindow(
     };
   }
 
-  const resolved = periodWindowOffset(normalizedPeriod, toLocalDate(now), periodOffset);
+  const resolved = periodWindowOffset(normalizedPeriod, toLocalDate(now), periodOffset, includePlannedMovements);
   const window = toWindowRange(resolved.currentRange!, resolved.currentWindowLabel);
   return {
     ...window,

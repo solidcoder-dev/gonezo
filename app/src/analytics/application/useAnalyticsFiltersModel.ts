@@ -51,6 +51,7 @@ export type AnalyticsFiltersModel = {
   moreFiltersSheetOpen: boolean;
   draftAccountIds: string[];
   draftIncludeIgnoredMovements: boolean;
+  draftIncludePlannedMovements: boolean;
   draftSharedAmountMode: AnalyticsSharedAmountMode;
   commands: {
     selectViewMode: (viewMode: AnalyticsViewMode) => void;
@@ -73,6 +74,7 @@ export type AnalyticsFiltersModel = {
     closeMoreFiltersSheet: () => void;
     setDraftAccountIds: (accountIds: string[]) => void;
     setDraftIncludeIgnoredMovements: (includeIgnoredMovements: boolean) => void;
+    setDraftIncludePlannedMovements: (includePlannedMovements: boolean) => void;
     setDraftSharedAmountMode: (sharedAmountMode: AnalyticsSharedAmountMode) => void;
     resetMoreFiltersDraft: () => void;
     applyMoreFiltersDraft: () => void;
@@ -164,6 +166,7 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput): Ana
   const [moreFiltersSheetOpen, setMoreFiltersSheetOpen] = useState(false);
   const [draftAccountIds, setDraftAccountIds] = useState<string[]>([]);
   const [draftIncludeIgnoredMovements, setDraftIncludeIgnoredMovements] = useState(false);
+  const [draftIncludePlannedMovements, setDraftIncludePlannedMovements] = useState(true);
   const [draftSharedAmountMode, setDraftSharedAmountMode] = useState<AnalyticsSharedAmountMode>('personal');
 
   useEffect(() => {
@@ -268,6 +271,7 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput): Ana
     moreFiltersSheetOpen,
     draftAccountIds,
     draftIncludeIgnoredMovements,
+    draftIncludePlannedMovements,
     draftSharedAmountMode,
     commands: {
       selectViewMode: setViewMode,
@@ -326,22 +330,26 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput): Ana
       openMoreFiltersSheet: () => {
         setDraftAccountIds(filters.accountIds);
         setDraftIncludeIgnoredMovements(filters.includeIgnoredMovements);
+        setDraftIncludePlannedMovements(filters.includePlannedMovements);
         setDraftSharedAmountMode(filters.sharedAmountMode);
         setMoreFiltersSheetOpen(true);
       },
       closeMoreFiltersSheet: () => setMoreFiltersSheetOpen(false),
       setDraftAccountIds,
       setDraftIncludeIgnoredMovements,
+      setDraftIncludePlannedMovements,
       setDraftSharedAmountMode,
       resetMoreFiltersDraft: () => {
         setDraftAccountIds([]);
         setDraftIncludeIgnoredMovements(false);
+        setDraftIncludePlannedMovements(true);
         setDraftSharedAmountMode('personal');
       },
       applyMoreFiltersDraft: () => {
         applyFilters({
           accountIds: draftAccountIds,
           includeIgnoredMovements: draftIncludeIgnoredMovements,
+          includePlannedMovements: draftIncludePlannedMovements,
           sharedAmountMode: draftSharedAmountMode,
         });
         setMoreFiltersSheetOpen(false);

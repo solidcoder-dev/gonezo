@@ -213,6 +213,7 @@ export type LedgerTransactionFilterInput = {
   amountMax?: string;
   fromDate?: string;
   toDate?: string;
+  toDateExclusive?: string;
   statuses?: LedgerTransactionStatus[];
   types?: LedgerTransactionType[];
 };

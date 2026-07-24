@@ -35,6 +35,7 @@ describe('useAnalyticsFiltersModel', () => {
       tagIds: [],
       accountIds: [],
       includeIgnoredMovements: false,
+      includePlannedMovements: true,
       sharedAmountMode: 'personal',
     });
     expect('movementTypes' in result.current.filters).toBe(false);
@@ -113,6 +114,7 @@ describe('useAnalyticsFiltersModel', () => {
     });
     act(() => {
       result.current.commands.setDraftIncludeIgnoredMovements(true);
+      result.current.commands.setDraftIncludePlannedMovements(false);
       result.current.commands.setDraftSharedAmountMode('full');
     });
     act(() => {
@@ -120,6 +122,7 @@ describe('useAnalyticsFiltersModel', () => {
     });
 
     await waitFor(() => expect(result.current.filters.includeIgnoredMovements).toBe(true));
+    expect(result.current.filters.includePlannedMovements).toBe(false);
     expect(result.current.filters.sharedAmountMode).toBe('full');
   });
 
@@ -148,6 +151,7 @@ describe('useAnalyticsFiltersModel', () => {
     act(() => {
       result.current.commands.setDraftAccountIds(['acc-eur']);
       result.current.commands.setDraftIncludeIgnoredMovements(true);
+      result.current.commands.setDraftIncludePlannedMovements(false);
       result.current.commands.setDraftSharedAmountMode('full');
     });
     act(() => {
@@ -162,6 +166,7 @@ describe('useAnalyticsFiltersModel', () => {
     expect(result.current.filters.period).toEqual({ kind: 'thisMonth' });
     expect(result.current.filters.accountIds).toEqual([]);
     expect(result.current.filters.includeIgnoredMovements).toBe(false);
+    expect(result.current.filters.includePlannedMovements).toBe(true);
     expect(result.current.filters.sharedAmountMode).toBe('personal');
   });
 

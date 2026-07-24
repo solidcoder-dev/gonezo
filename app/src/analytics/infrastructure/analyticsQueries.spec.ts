@@ -59,12 +59,16 @@ function createPort(
           return false;
         }
         const fromDateEpoch = input.filters?.fromDate ? Date.parse(input.filters.fromDate) : undefined;
-        const toDateEpoch = input.filters?.toDate ? Date.parse(input.filters.toDate) : undefined;
+        const toDateEpoch = input.filters?.toDateExclusive
+          ? Date.parse(input.filters.toDateExclusive)
+          : input.filters?.toDate ? Date.parse(input.filters.toDate) : undefined;
         const occurredAtEpoch = Date.parse(item.occurredAt);
         if (Number.isFinite(fromDateEpoch) && occurredAtEpoch < fromDateEpoch!) {
           return false;
         }
-        if (Number.isFinite(toDateEpoch) && occurredAtEpoch > toDateEpoch!) {
+        if (Number.isFinite(toDateEpoch) && (input.filters?.toDateExclusive
+          ? occurredAtEpoch >= toDateEpoch!
+          : occurredAtEpoch > toDateEpoch!)) {
           return false;
         }
         if (input.filters?.tagIds && input.filters.tagIds.length > 0) {
@@ -331,7 +335,7 @@ describe('analytics queries', () => {
     expect(port.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({
       filters: expect.objectContaining({
         fromDate: '2026-06-02T00:00:00.000Z',
-        toDate: '2026-07-01T23:59:59.999Z',
+        toDateExclusive: '2026-07-02T00:00:00.000Z',
       }),
     }));
   });
@@ -353,7 +357,7 @@ describe('analytics queries', () => {
     expect(port.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({
       filters: expect.objectContaining({
         fromDate: '2026-06-25T00:00:00.000Z',
-        toDate: '2026-07-01T23:59:59.999Z',
+        toDateExclusive: '2026-07-02T00:00:00.000Z',
       }),
     }));
   });
@@ -399,7 +403,7 @@ describe('analytics queries', () => {
     expect(port.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({
       filters: expect.objectContaining({
         fromDate: '2026-04-03T00:00:00.000Z',
-        toDate: '2026-07-01T23:59:59.999Z',
+        toDateExclusive: '2026-07-02T00:00:00.000Z',
       }),
     }));
   });

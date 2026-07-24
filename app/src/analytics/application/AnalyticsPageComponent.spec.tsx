@@ -222,7 +222,7 @@ describe('AnalyticsPageComponent', () => {
     })));
   }, 30000);
 
-  it('shows four independent sheets and keeps More filters limited to accounts, ignored movements and shared amount mode', async () => {
+  it('shows four independent sheets and exposes the planned movement filter in More filters', async () => {
     const core = createCore();
 
     render(
@@ -239,12 +239,14 @@ describe('AnalyticsPageComponent', () => {
     expect(screen.getByRole('dialog', { name: 'More analytics filters' })).toBeInTheDocument();
     expect(screen.getByText('Accounts')).toBeInTheDocument();
     expect(screen.getByText('Include ignored movements')).toBeInTheDocument();
+    expect(screen.getByText('Include scheduled and expected movements')).toBeInTheDocument();
     expect(screen.getByText('Count full shared amounts')).toBeInTheDocument();
     expect(screen.queryByText('Movement type')).not.toBeInTheDocument();
     expect(screen.queryByText('Add tag')).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Analytics account'), { target: { value: 'acc-1' } });
     fireEvent.click(screen.getByRole('switch', { name: 'Include ignored movements' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Include scheduled and expected movements' }));
     fireEvent.click(screen.getByRole('switch', { name: 'Count full shared amounts' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
@@ -252,6 +254,7 @@ describe('AnalyticsPageComponent', () => {
       filters: expect.objectContaining({
         accountIds: ['acc-1'],
         includeIgnoredMovements: true,
+        includePlannedMovements: false,
         sharedAmountMode: 'full',
       }),
     })));
@@ -264,6 +267,7 @@ describe('AnalyticsPageComponent', () => {
       filters: expect.objectContaining({
         accountIds: [],
         includeIgnoredMovements: false,
+        includePlannedMovements: true,
         sharedAmountMode: 'personal',
       }),
     })));

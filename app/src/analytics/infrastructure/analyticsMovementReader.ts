@@ -7,14 +7,24 @@ import type {
 } from '../../ledger/application/ledger.port';
 import type { AnalyticsSharedAmountMode } from '../application/analyticsFilters';
 import type { SharingListMovementDetailsInput, SharingListMovementDetailsResult } from '../../sharing/application/sharing.port';
+import type { AnalyticsListMovementFactsResult } from '../application/analytics.port';
 
 export type AnalyticsMovementReaderPort = {
   ledgerListAccounts(): Promise<LedgerListAccountsResult>;
   ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult>;
   sharingListMovementDetails(input: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult>;
+  analyticsListMovementFacts?: (input: {
+    fromLocalDate: string;
+    toLocalDate: string;
+    zoneId: string;
+    currency?: string;
+    includePlannedMovements?: boolean;
+  }) => Promise<AnalyticsListMovementFactsResult>;
 };
 
 export type AnalyticsTransactionReadModel = LedgerTransactionListItem & {
+  analyticsFactId?: string;
+  reference?: AnalyticsListMovementFactsResult['items'][number]['reference'];
   analyticsAmount: string;
   analyticsPersonalAmount: string;
   analyticsFullAmount: string;
@@ -27,7 +37,7 @@ export type AnalyticsMovementReadModel = {
 
 export type AnalyticsMovementReadScope = {
   accountIds?: string[];
-  filters?: LedgerTransactionFilterInput;
+  filters?: LedgerTransactionFilterInput & { currency?: string; includePlannedMovements?: boolean };
   includeIgnoredMovements?: boolean;
   sharedAmountMode?: AnalyticsSharedAmountMode;
 };
@@ -78,6 +88,12 @@ function attributedAmount(
   };
 }
 
+function previousLocalDate(value: string): string {
+  const date = new Date(`${value.slice(0, 10)}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
 export async function listAnalyticsMovements(
   port: AnalyticsMovementReaderPort,
   scope: AnalyticsMovementReadScope = {},
@@ -89,6 +105,44 @@ export async function listAnalyticsMovements(
   const scopedAccounts = requestedAccountIds
     ? accounts.items.filter((account) => requestedAccountIds.has(account.id))
     : accounts.items;
+
+  const fromDate = scope.filters?.fromDate;
+  const toDate = scope.filters?.toDate ?? scope.filters?.toDateExclusive;
+  if (port.analyticsListMovementFacts && fromDate && toDate) {
+    const result = await port.analyticsListMovementFacts({
+      fromLocalDate: fromDate.slice(0, 10),
+      toLocalDate: scope.filters?.toDateExclusive ? previousLocalDate(toDate) : toDate.slice(0, 10),
+      zoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      currency: scope.filters?.currency,
+      includePlannedMovements: scope.filters?.includePlannedMovements !== false,
+    });
+    const selected = result.items.filter((movement) => (
+      (requestedAccountIds === null || requestedAccountIds.has(movement.accountId))
+      && (!scope.filters?.categoryId || movement.categoryId === scope.filters.categoryId)
+      && (!scope.filters?.tagIds?.length || movement.tagIds.some((tagId) => scope.filters?.tagIds?.includes(tagId)))
+      && (scope.includeIgnoredMovements === true || !movement.ignored)
+    ));
+    return {
+      accounts: scopedAccounts,
+      transactions: selected.map((movement) => ({
+        id: movement.reference.source === 'posted' ? movement.reference.transactionId : movement.analyticsFactId,
+        analyticsFactId: movement.analyticsFactId,
+        reference: movement.reference,
+        accountId: movement.accountId,
+        type: movement.type,
+        status: 'posted',
+        amount: movement.fullAmount,
+        currency: movement.currency,
+        occurredAt: movement.effectiveAt,
+        categoryId: movement.categoryId,
+        ignored: movement.ignored,
+        items: [],
+        analyticsAmount: scope.sharedAmountMode === 'full' ? movement.fullAmount : movement.personalAmount,
+        analyticsPersonalAmount: movement.personalAmount,
+        analyticsFullAmount: movement.fullAmount,
+      })),
+    };
+  }
   const pages = await Promise.all(
     scopedAccounts.map((account) => listAllAccountTransactions(port, account.id, scope.filters)),
   );
@@ -108,6 +162,8 @@ export async function listAnalyticsMovements(
     accounts: scopedAccounts,
     transactions: transactions.map((movement) => ({
       ...movement,
+      analyticsFactId: `posted/${movement.id}`,
+      reference: { source: 'posted' as const, transactionId: movement.id },
       ...attributedAmount(
         movement,
         sharingDetailsByTransactionId,

@@ -102,6 +102,8 @@ import type {
 import type {
   AnalyticsListIgnoredMovementsResult,
   AnalyticsSetMovementIgnoredInput,
+  AnalyticsListMovementFactsInput,
+  AnalyticsListMovementFactsResult,
 } from '../../analytics/application/analytics.port';
 import type {
   SharingApplyShareToPostedTransactionInput,
@@ -199,6 +201,7 @@ export interface CorePlugin {
   sharingGetPlannedShare(options: SharingGetPlannedShareInput): Promise<SharingPlannedShareResult>;
   analyticsSetMovementIgnored(options: AnalyticsSetMovementIgnoredInput): Promise<void>;
   analyticsListIgnoredMovements(): Promise<AnalyticsListIgnoredMovementsResult>;
+  analyticsListMovementFacts(options: AnalyticsListMovementFactsInput): Promise<AnalyticsListMovementFactsResult>;
   movementsGetMonthOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;
   movementsSearch(options: MovementsSearchInput): Promise<MovementsSearchResult>;
   movementsGetOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;

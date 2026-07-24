@@ -14,6 +14,35 @@ describe('analyticsPeriodResolver', () => {
     });
   });
 
+  it('resolves the complete current and previous calendar months when planned movements are included', () => {
+    expect(resolveAnalyticsPeriodWindow(
+      { kind: 'thisMonth' },
+      '2026-07-24',
+      true,
+    )).toEqual({
+      currentRange: { from: '2026-07-01', to: '2026-07-31' },
+      comparisonRange: { from: '2026-06-01', to: '2026-06-30' },
+      currentWindowLabel: 'Jul 1-Jul 31, 2026',
+      comparisonWindowLabel: 'Jun 1-Jun 30, 2026',
+    });
+  });
+
+  it('keeps the month-to-date range when planned movements are disabled', () => {
+    expect(resolveAnalyticsPeriodWindow(
+      { kind: 'thisMonth' },
+      '2026-07-24',
+      false,
+    ).currentRange).toEqual({ from: '2026-07-01', to: '2026-07-24' });
+  });
+
+  it('extends the current year only when planned movements are included', () => {
+    expect(resolveAnalyticsPeriodWindow(
+      { kind: 'thisYear' },
+      '2026-07-24',
+      true,
+    ).currentRange).toEqual({ from: '2026-01-01', to: '2026-12-31' });
+  });
+
   it('resolves last month across year boundaries', () => {
     expect(resolveAnalyticsPeriodWindow(
       { kind: 'lastMonth' },

@@ -110,7 +110,34 @@ function resolveCurrentRange(period: AnalyticsPeriod, referenceDate: AnalyticsLo
   }
 }
 
-function resolveComparisonRange(period: AnalyticsPeriod, referenceDate: AnalyticsLocalDate, currentRange?: AnalyticsLocalDateRange) {
+function resolvePlannedCurrentRange(
+  period: AnalyticsPeriod,
+  referenceDate: AnalyticsLocalDate,
+  includePlannedMovements: boolean,
+): AnalyticsLocalDateRange | undefined {
+  if (!includePlannedMovements) {
+    return resolveCurrentRange(period, referenceDate);
+  }
+  switch (period.kind) {
+    case 'thisMonth': {
+      return {
+        from: startOfMonth(referenceDate),
+        to: endOfMonth(referenceDate),
+      };
+    }
+    case 'thisYear':
+      return { from: startOfYear(referenceDate), to: `${parseLocalDate(referenceDate).getUTCFullYear()}-12-31` };
+    default:
+      return resolveCurrentRange(period, referenceDate);
+  }
+}
+
+function resolveComparisonRange(
+  period: AnalyticsPeriod,
+  referenceDate: AnalyticsLocalDate,
+  currentRange: AnalyticsLocalDateRange | undefined,
+  includePlannedMovements: boolean,
+) {
   if (!currentRange) {
     return undefined;
   }
@@ -119,7 +146,9 @@ function resolveComparisonRange(period: AnalyticsPeriod, referenceDate: Analytic
       const reference = parseLocalDate(referenceDate);
       const previousMonthDate = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth() - 1, 1));
       const from = formatLocalDate(previousMonthDate);
-      const to = clampDay(previousMonthDate.getUTCFullYear(), previousMonthDate.getUTCMonth(), reference.getUTCDate());
+      const to = includePlannedMovements
+        ? endOfMonth(from)
+        : clampDay(previousMonthDate.getUTCFullYear(), previousMonthDate.getUTCMonth(), reference.getUTCDate());
       return { from, to };
     }
     case 'lastMonth': {
@@ -146,9 +175,10 @@ function resolveComparisonRange(period: AnalyticsPeriod, referenceDate: Analytic
 export function resolveAnalyticsPeriodWindow(
   period: AnalyticsPeriod,
   referenceDate: AnalyticsLocalDate,
+  includePlannedMovements = false,
 ): AnalyticsResolvedPeriodWindow {
-  const currentRange = resolveCurrentRange(period, referenceDate);
-  const comparisonRange = resolveComparisonRange(period, referenceDate, currentRange);
+  const currentRange = resolvePlannedCurrentRange(period, referenceDate, includePlannedMovements);
+  const comparisonRange = resolveComparisonRange(period, referenceDate, currentRange, includePlannedMovements);
 
   return {
     currentRange,

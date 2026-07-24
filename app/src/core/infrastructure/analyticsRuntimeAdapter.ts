@@ -13,6 +13,8 @@ import type {
   AnalyticsFlowUpcomingInput,
   AnalyticsFlowUpcomingResult,
   AnalyticsListIgnoredMovementsResult,
+  AnalyticsListMovementFactsInput,
+  AnalyticsListMovementFactsResult,
   AnalyticsOverviewInsightsInput,
   AnalyticsOverviewInsightsResult,
   AnalyticsOverviewSnapshotInput,
@@ -54,6 +56,13 @@ export class AnalyticsRuntimeAdapter {
   constructor(web: CoreAdapterWeb, queries: CorePort) {
     this.web = web;
     this.queries = queries;
+  }
+
+  analyticsListMovementFacts(input: AnalyticsListMovementFactsInput): Promise<AnalyticsListMovementFactsResult> {
+    if (!isNativeRuntime()) {
+      return Promise.reject(new Error('analyticsListMovementFacts is only available in the native runtime'));
+    }
+    return CorePlugin.analyticsListMovementFacts(input);
   }
 
   analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult> {

@@ -149,11 +149,12 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
     String sortField,
     String sortDirection,
     int page,
-    int size
+    int size,
+    boolean toExclusive
   ) {
     SQLiteDatabase database = db.getReadableDatabase();
     List<String> args = new ArrayList<>();
-    String whereClause = buildPageWhereClause(accountId, from, to, statuses, types, merchant, text, args);
+    String whereClause = buildPageWhereClause(accountId, from, to, statuses, types, merchant, text, args, toExclusive);
 
     int totalElements = countTransactions(database, whereClause, args);
     String orderBy = "amount".equalsIgnoreCase(sortField)
@@ -184,7 +185,8 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
     Set<String> types,
     String merchant,
     String text,
-    List<String> args
+    List<String> args,
+    boolean toExclusive
   ) {
     List<String> clauses = new ArrayList<>();
     clauses.add("account_id = ?");
@@ -194,7 +196,7 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
       args.add(from.toString());
     }
     if (to != null) {
-      clauses.add("occurred_at <= ?");
+      clauses.add(toExclusive ? "occurred_at < ?" : "occurred_at <= ?");
       args.add(to.toString());
     }
     appendInClause("lower(status)", statuses, clauses, args);
