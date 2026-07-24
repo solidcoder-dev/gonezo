@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
@@ -8,7 +8,7 @@ import { compareTaxonomyCategoriesByUsage } from '../../taxonomy/domain/category
 import {
   normalizeTaxonomyName,
 } from '../../transactions/application/transactionTaxonomySelection';
-import type { TransactionHistoryItemView } from '../../transactions/application/transactionView.types';
+import type { MovementsDetailData, MovementDetailQueryPort } from './movements.port';
 import { mapMovementDetailViewModel } from './movementDetailMappers';
 import {
   buildExpectedCategoryUpdateInput,
@@ -25,21 +25,18 @@ import type {
   SharingDetailState,
   SharingViewModel,
   MovementDetailOverflowAction,
-  ExpectedSeriesState,
 } from './movementDetailView.types';
-import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
+import type { ExpectedMovementView } from './movementsView.types';
 
 type MovementDetailModelInput = {
   ports: {
+    movements: MovementDetailQueryPort;
     analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
     expected: ExpectedGatewayPort;
     scheduling: SchedulingGatewayPort;
     sharing: SharingGatewayPort;
     taxonomy: TaxonomyGatewayPort;
   };
-  postedItems: TransactionHistoryItemView[];
-  scheduledItems: ScheduledMovementView[];
-  expectedItems: ExpectedMovementView[];
   categories: MovementDetailCategoryOption[];
   tags: MovementDetailTagOption[];
   refreshMovements(): Promise<void>;
@@ -104,9 +101,6 @@ function sharingViewModel(
 export function useMovementDetailModel(input: MovementDetailModelInput) {
   const {
     ports,
-    postedItems,
-    scheduledItems,
-    expectedItems,
     categories,
     tags,
     refreshMovements,
@@ -131,26 +125,34 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
   const [savingTags, setSavingTags] = useState(false);
   const [togglingIgnored, setTogglingIgnored] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
-  const [expectedSeriesState, setExpectedSeriesState] = useState<ExpectedSeriesState>({ phase: 'idle' });
+  const [detail, setDetail] = useState<MovementsDetailData | null>(null);
+  const [detailLoadState, setDetailLoadState] = useState<
+    | { phase: 'idle' }
+    | { phase: 'loading'; selection: MovementDetailSelection }
+    | { phase: 'loaded'; selection: MovementDetailSelection; detail: MovementsDetailData }
+    | { phase: 'error'; selection: MovementDetailSelection; message: string }
+  >({ phase: 'idle' });
+  const [detailRefreshVersion, setDetailRefreshVersion] = useState(0);
+  const detailRequestId = useRef(0);
+  const movementsGetDetail = ports.movements.movementsGetDetail;
+  const sharingGetMovementDetails = ports.sharing.sharingGetMovementDetails;
+  const selectedSource = selection?.source;
+  const selectedMovementId = selection?.id;
 
   const movement = useMemo(
     () => mapMovementDetailViewModel({
-      selection,
-      postedItems,
-      scheduledItems,
-      expectedItems,
-      expectedSeriesState,
+      detail,
       categories,
       tags,
       sharing,
     }),
-    [selection, postedItems, scheduledItems, expectedItems, expectedSeriesState, categories, tags, sharing],
+    [detail, categories, tags, sharing],
   );
   const selectedPostedMovement = useMemo(
-    () => selection?.source === 'posted'
-      ? postedItems.find((item) => item.id === selection.id) ?? null
+    () => movement?.source === 'posted'
+      ? movement.raw
       : null,
-    [postedItems, selection],
+    [movement],
   );
 
   useEffect(() => {
@@ -161,55 +163,42 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
       setTagsQuery('');
       return;
     }
-    if (!movement && selection.source !== 'expected') {
-      setSelection(null);
-    }
-  }, [movement, selection]);
-
-  const selectedExpectedMovement = selection?.source === 'expected'
-    ? expectedItems.find((item) => item.id === selection.id)
-    : undefined;
-  const selectedRecurringMovementId = selectedExpectedMovement?.origin.kind === 'recurring'
-    ? selectedExpectedMovement.origin.recurringMovementId
-    : undefined;
+    if (!movement && detailLoadState.phase !== 'loading') setDetail(null);
+  }, [detailLoadState.phase, movement, selection]);
 
   useEffect(() => {
-    if (!selectedRecurringMovementId) {
-      setExpectedSeriesState((previous) => previous.phase === 'idle' ? previous : { phase: 'idle' });
+    if (!selectedSource || !selectedMovementId) {
+      setDetail(null);
+      setDetailLoadState((previous) => (
+        previous.phase === 'idle' ? previous : { phase: 'idle' }
+      ));
+      detailRequestId.current += 1;
       return;
     }
-
-    let cancelled = false;
-    setExpectedSeriesState((previous) => (
-      previous.phase === 'loading' && previous.recurringMovementId === selectedRecurringMovementId
-        ? previous
-        : { phase: 'loading', recurringMovementId: selectedRecurringMovementId }
-    ));
-    void ports.scheduling.schedulingGetMovement({ recurringMovementId: selectedRecurringMovementId })
+    const selectedDetail = { source: selectedSource, id: selectedMovementId };
+    const requestId = ++detailRequestId.current;
+    setDetail(null);
+    setDetailLoadState({ phase: 'loading', selection: selectedDetail });
+    void movementsGetDetail({ source: selectedSource, movementId: selectedMovementId })
       .then((result) => {
-        if (!cancelled) {
-          setExpectedSeriesState({
-            phase: 'loaded',
-            recurringMovementId: selectedRecurringMovementId,
-            series: result.found ? result.item : null,
-          });
+        if (requestId !== detailRequestId.current) return;
+        if (!result.found) {
+          setDetailLoadState({ phase: 'error', selection: selectedDetail, message: 'Movement is no longer available' });
+          setSelection(null);
+          return;
         }
+        setDetail(result.detail);
+        setDetailLoadState({ phase: 'loaded', selection: selectedDetail, detail: result.detail });
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
-          setExpectedSeriesState({
-            phase: 'error',
-            recurringMovementId: selectedRecurringMovementId,
-            message: error instanceof Error ? error.message : 'Recurring series unavailable',
-          });
-          reportError(error);
-        }
+        if (requestId !== detailRequestId.current) return;
+        setDetail(null);
+        const message = error instanceof Error ? error.message : 'Movement detail unavailable';
+        setDetailLoadState({ phase: 'error', selection: selectedDetail, message });
+        reportError(error);
       });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [ports.scheduling, reportError, selectedRecurringMovementId]);
+    return () => { detailRequestId.current += 1; };
+  }, [detailRefreshVersion, movementsGetDetail, reportError, selectedMovementId, selectedSource]);
 
   useEffect(() => {
     if (!selectedPostedMovement || selectedPostedMovement.type !== 'expense') {
@@ -220,7 +209,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     let cancelled = false;
     setSharing({ phase: 'loading' });
 
-    void ports.sharing.sharingGetMovementDetails({ transactionId: selectedPostedMovement.id })
+    void sharingGetMovementDetails({ transactionId: selectedPostedMovement.id })
       .then((result) => {
         if (cancelled) {
           return;
@@ -243,7 +232,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     return () => {
       cancelled = true;
     };
-  }, [ports.sharing, selectedPostedMovement]);
+  }, [selectedPostedMovement, sharingGetMovementDetails]);
 
   const filteredCategories = useMemo(() => {
     if (!movement || movement.financialType === 'transfer') {
@@ -283,7 +272,9 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     setTagsQuery('');
     setDraftTags([]);
     setSharing(defaultSharingState());
-    setExpectedSeriesState({ phase: 'idle' });
+    setDetail(null);
+    setDetailLoadState({ phase: 'idle' });
+    detailRequestId.current += 1;
   }
 
   function dismissSheet() {
@@ -308,7 +299,9 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     setTagsQuery('');
     setDraftTags([]);
     setSharing(defaultSharingState());
-    setExpectedSeriesState({ phase: 'idle' });
+    setDetail(null);
+    setDetailLoadState({ phase: 'idle' });
+    detailRequestId.current += 1;
   }
 
   function openPostedMovementDetail(id: string) {
@@ -387,6 +380,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
         );
       }
       await refreshMovements();
+      setDetailRefreshVersion((version) => version + 1);
       setActiveSheet(null);
     } catch (error) {
       reportError(error);
@@ -427,6 +421,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
         );
       }
       await refreshMovements();
+      setDetailRefreshVersion((version) => version + 1);
       setActiveSheet(null);
     } catch (error) {
       reportError(error);
@@ -455,6 +450,7 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
         );
       }
       await refreshMovements();
+      setDetailRefreshVersion((version) => version + 1);
     } catch (error) {
       reportError(error);
     } finally {

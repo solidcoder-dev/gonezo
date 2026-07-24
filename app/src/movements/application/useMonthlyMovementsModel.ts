@@ -1,10 +1,11 @@
 import type { AnalyticsPort } from '../../analytics/application/analytics.port';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
 import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
+import type { MovementDetailQueryPort } from './movements.port';
 import type { ExpectedMovementView } from './movementsView.types';
 import { useMovementDetailModel } from './useMovementDetailModel';
 import { useMonthlyMovementMutationsModel } from './useMonthlyMovementMutationsModel';
@@ -15,6 +16,7 @@ import { useMonthlyMovementsTaxonomyModel } from './useMonthlyMovementsTaxonomyM
 import { useMonthlyMovementsTimelineModel } from './useMonthlyMovementsTimelineModel';
 import type { MonthlyMovementsMode, MonthlyMovementsViewProvided, MonthlyMovementsViewRequired } from '../ui/MonthlyMovements/MonthlyMovementsView.contract';
 export type MonthlyMovementsModelPorts = {
+  movements: MovementDetailQueryPort;
   analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
   ledger: LedgerGatewayPort;
   scheduling: SchedulingGatewayPort;
@@ -51,6 +53,10 @@ function toErrorMessage(error: unknown): string {
   return 'Unknown error';
 }
 
+function rejectConfirmation(): boolean {
+  return false;
+}
+
 export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const {
     ports,
@@ -67,7 +73,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     onError,
     confirm,
   } = input;
-  const confirmMovementAction = confirm ?? (() => false);
+  const confirmMovementAction = confirm ?? rejectConfirmation;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(0);
@@ -104,14 +110,17 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     currentYear: navigationModel.state.currentYear,
     currentMonthIndex: navigationModel.state.currentMonthIndex,
   });
-  function clearError() {
+  const clearError = useCallback(() => {
     setError('');
-  }
-  function reportError(raw: unknown) {
-    const message = toErrorMessage(raw);
-    setError(message);
-    onError?.({ message });
-  }
+  }, []);
+  const reportError = useCallback(
+    (raw: unknown) => {
+      const message = toErrorMessage(raw);
+      setError(message);
+      onError?.({ message });
+    },
+    [onError],
+  );
   async function loadAccountNameById(): Promise<Map<string, string>> {
     if (scope !== 'all') return new Map();
     const result = await ports.ledger.ledgerListAccounts();
@@ -145,14 +154,12 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const detailModel = useMovementDetailModel({
     ports: {
       analytics: ports.analytics,
+      movements: ports.movements,
       expected: ports.expected,
       scheduling: ports.scheduling,
       sharing: ports.sharing,
       taxonomy: ports.taxonomy,
     },
-    postedItems: taxonomyModel.state.historyItems,
-    scheduledItems: overviewModel.state.scheduledItems,
-    expectedItems: overviewModel.state.expectedItems,
     categories: taxonomyModel.state.categories,
     tags: taxonomyModel.state.tags,
     refreshMovements,

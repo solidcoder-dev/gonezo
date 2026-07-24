@@ -10,6 +10,8 @@ import type {
   MovementsSearchFacetsResult,
   MovementsSearchInput,
   MovementsSearchResult,
+  MovementsGetDetailInput,
+  MovementsGetDetailResult,
 } from '../../movements/application/movements.port';
 import {
   getNativeMovementsMonthOverview,
@@ -18,6 +20,7 @@ import {
 } from '../../movements/infrastructure/nativeMovements';
 import { getMovementsSearchFacets } from '../../movements/infrastructure/searchFacets';
 import { CoreAdapterWeb } from './coreAdapterWeb';
+import { CorePlugin } from './corePlugin';
 import { isNativeRuntime } from './runtimeAdapterSupport';
 
 export class MovementsRuntimeAdapter {
@@ -47,5 +50,9 @@ export class MovementsRuntimeAdapter {
 
   movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult> {
     return isNativeRuntime() ? listNativeScheduledMovements(this.queries, input) : this.web.movementsListScheduled(input);
+  }
+
+  movementsGetDetail(input: MovementsGetDetailInput): Promise<MovementsGetDetailResult> {
+    return isNativeRuntime() ? CorePlugin.movementsGetDetail(input) : this.web.movementsGetDetail(input);
   }
 }

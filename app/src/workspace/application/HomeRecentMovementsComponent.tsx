@@ -10,7 +10,7 @@ import {
   HomeRecentMovementsView,
 } from '../ui/HomeRecentMovements/HomeRecentMovementsView';
 
-export type HomeRecentMovementsPort = TransactionsPort & Pick<MovementsQueryPort, 'movementsGetOverview'>;
+export type HomeRecentMovementsPort = TransactionsPort & Pick<MovementsQueryPort, 'movementsGetOverview' | 'movementsGetDetail'>;
 
 export type HomeRecentMovementsComponentProps = {
   required: {
@@ -180,9 +180,6 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
             },
             data: {
               selection: { source: 'posted', id: selectedMovementId },
-              postedItems: movements,
-              scheduledItems: [],
-              expectedItems: [],
             },
           }}
           provided={{

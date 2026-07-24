@@ -7,6 +7,7 @@ import { createTaxonomyGateway } from '../../taxonomy/application/taxonomyGatewa
 import { MonthlyMovementsView } from '../ui/MonthlyMovements/MonthlyMovementsView';
 import { useMonthlyMovementsModel } from './useMonthlyMovementsModel';
 import type { TransactionsPort } from '../../transactions/application/transactions.port';
+import type { MovementDetailQueryPort } from './movements.port';
 import type { ExpectedMovementView } from './movementsView.types';
 
 const BROWSER_CLOCK = {
@@ -23,7 +24,7 @@ export type MonthlyMovementsComponentProps = {
     context: {
       accountId: string | null;
       scope?: 'account' | 'all';
-      core: TransactionsPort;
+      core: TransactionsPort & MovementDetailQueryPort;
     };
     config: {
       enabled: boolean;
@@ -44,6 +45,7 @@ export type MonthlyMovementsComponentProps = {
 export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMovementsComponentProps) {
   const ports = useMemo(() => ({
     analytics: required.context.core,
+    movements: required.context.core,
     ledger: createLedgerGateway(required.context.core),
     scheduling: createSchedulingGateway(required.context.core),
     expected: createExpectedGateway(required.context.core),

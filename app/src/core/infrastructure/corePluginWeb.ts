@@ -96,6 +96,8 @@ import type {
   MovementsSearchResult,
   MovementsListScheduledInput,
   MovementsListScheduledResult,
+  MovementsGetDetailInput,
+  MovementsGetDetailResult,
 } from '../../movements/application/movements.port';
 import type {
   AnalyticsListIgnoredMovementsResult,
@@ -386,5 +388,9 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async movementsListScheduled(options: MovementsListScheduledInput): Promise<MovementsListScheduledResult> {
     return this.core.movementsListScheduled(options);
+  }
+
+  async movementsGetDetail(options: MovementsGetDetailInput): Promise<MovementsGetDetailResult> {
+    return this.core.movementsGetDetail(options);
   }
 }

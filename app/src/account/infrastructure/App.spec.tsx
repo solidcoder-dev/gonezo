@@ -857,6 +857,7 @@ function makeCore(transactionCount = 0): AppTestPort {
         { id: 'tag-london', name: 'london' },
       ],
     })),
+    movementsGetDetail: vi.fn(),
     movementsListScheduled: vi.fn(async (input: MovementsListScheduledInput) => {
       const source = filterScheduledForOverview(scheduledMovements, input);
       const size = input.pagination?.size ?? 20;

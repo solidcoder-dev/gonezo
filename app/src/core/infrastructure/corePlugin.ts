@@ -96,6 +96,8 @@ import type {
   MovementsSearchResult,
   MovementsListScheduledInput,
   MovementsListScheduledResult,
+  MovementsGetDetailInput,
+  MovementsGetDetailResult,
 } from '../../movements/application/movements.port';
 import type {
   AnalyticsListIgnoredMovementsResult,
@@ -201,6 +203,7 @@ export interface CorePlugin {
   movementsSearch(options: MovementsSearchInput): Promise<MovementsSearchResult>;
   movementsGetOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;
   movementsListScheduled(options: MovementsListScheduledInput): Promise<MovementsListScheduledResult>;
+  movementsGetDetail(options: MovementsGetDetailInput): Promise<MovementsGetDetailResult>;
 }
 
 export const CorePlugin = registerPlugin<CorePlugin>('CorePlugin', {

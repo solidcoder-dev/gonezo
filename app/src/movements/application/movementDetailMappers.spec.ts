@@ -44,11 +44,13 @@ function scheduled(status: ScheduledMovementView['status'] = 'active'): Schedule
 function detail(expectedItem: ExpectedMovementItem, scheduledItems: ScheduledMovementView[] = []) {
   const movement = mapExpectedMovementView(expectedItem);
   return mapMovementDetailViewModel({
-    selection: { source: 'expected', id: movement.id },
-    postedItems: [],
-    scheduledItems,
-    expectedSeriesState: { phase: 'loaded', recurringMovementId: 'series-1', series: scheduledItems[0] },
-    expectedItems: [movement],
+    detail: {
+      source: 'expected',
+      movement,
+      origin: movement.origin.kind === 'manual'
+        ? { kind: 'manual' }
+        : { kind: 'recurring', recurringMovementId: movement.origin.recurringMovementId ?? 'series-1', occurrenceId: movement.origin.occurrenceId, series: scheduledItems[0] ?? null },
+    },
     categories: [],
     tags: [],
     sharing: { phase: 'idle' },

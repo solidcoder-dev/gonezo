@@ -3,6 +3,8 @@ import type {
   LedgerListTransactionsResult,
 } from '../application/ledger.port';
 import type { WebLedgerTransaction } from '../../core/infrastructure/webAppState';
+import type { WebAppState } from '../../core/infrastructure/webAppState';
+import type { LedgerTransactionListItem } from '../application/ledger.port';
 import { parseDateFilterEpoch } from '../../shared/domain/dateFilterRange';
 
 export function listWebLedgerTransactions(
@@ -149,5 +151,29 @@ export function listWebLedgerTransactions(
     totalPages,
     hasNext: totalPages > 0 && resolvedPage + 1 < totalPages,
     hasPrevious: resolvedPage > 0,
+  };
+}
+
+export function mapWebLedgerTransactionDetail(
+  transaction: WebLedgerTransaction,
+  state: WebAppState,
+  transactionTags: ReadonlyMap<string, readonly string[]>,
+): LedgerTransactionListItem {
+  const account = state.ledgerAccounts.find((item) => item.id === transaction.accountId);
+  const category = transaction.categoryId
+    ? state.taxonomyCategories.find((item) => item.id === transaction.categoryId)
+    : undefined;
+  const tags = (transactionTags.get(transaction.id) ?? [])
+    .map((id) => state.taxonomyTags.find((tag) => tag.id === id))
+    .filter((tag): tag is NonNullable<typeof tag> => Boolean(tag))
+    .map((tag) => ({ id: tag.id, name: tag.name }));
+  const ignored = state.analyticsExclusions.some((item) => item.scopeType === 'movement' && item.scopeId === transaction.id && item.reason === 'user_ignored');
+  return {
+    ...transaction,
+    accountName: account?.name,
+    category: category ? { id: category.id, name: category.name } : undefined,
+    tags,
+    ignored,
+    items: transaction.items.map((item) => ({ ...item })),
   };
 }

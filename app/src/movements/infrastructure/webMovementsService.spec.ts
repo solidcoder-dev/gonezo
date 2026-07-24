@@ -94,6 +94,28 @@ function createSubject(state: WebAppState = createWebAppState()) {
 }
 
 describe('WebMovementsService', () => {
+  it('gets detail directly by identity and resolves a recurring expected origin', async () => {
+    const state = createWebAppState({
+      recurringMovements: [{
+        id: 'series-1', type: 'expense', sourceAccountId: 'acc-1', amount: '12.00', currency: 'EUR',
+        status: 'active', startAt: '2026-07-01T00:00:00.000Z', nextDueAt: '2026-08-01T00:00:00.000Z',
+        zoneId: 'UTC', generatedOccurrences: 1, splitItems: [], rule: { frequency: 'monthly', interval: 1 },
+        recurrenceEnd: { kind: 'never' }, reviewPolicy: 'require_user_confirmation', createdAt: '2026-06-01T00:00:00.000Z',
+      }],
+      recurringMovementOccurrences: [{ id: 'occ-1', recurringMovementId: 'series-1', dueAt: '2026-07-01T00:00:00.000Z' }],
+      expectedMovements: [{
+        id: 'expected-1', accountId: 'acc-1', type: 'expense', amount: '12.00', currency: 'EUR',
+        expectedAt: '2026-07-01T00:00:00.000Z', originOccurrenceId: 'occ-1', originRecurringMovementId: 'series-1',
+        splitItems: [], status: 'pending', createdAt: '2026-06-01T00:00:00.000Z', updatedAt: '2026-06-01T00:00:00.000Z',
+      }],
+    });
+    const subject = createSubject(state);
+    await expect(subject.movements.getDetail({ source: 'expected', movementId: 'expected-1' })).resolves.toMatchObject({
+      found: true,
+      detail: { source: 'expected', origin: { kind: 'recurring', recurringMovementId: 'series-1', series: { id: 'series-1', status: 'active' } } },
+    });
+    await expect(subject.movements.getDetail({ source: 'expected', movementId: 'missing' })).resolves.toEqual({ found: false });
+  });
   it('builds a month overview from posted, scheduled and expected movements', async () => {
     const { movements, state } = createSubject(createWebAppState({
       ledgerAccounts: [

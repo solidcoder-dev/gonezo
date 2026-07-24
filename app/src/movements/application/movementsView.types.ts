@@ -39,7 +39,7 @@ export type ScheduledMovementView = {
 
 export type ExpectedMovementOriginView =
   | { kind: 'manual' }
-  | { kind: 'recurring'; occurrenceId: string; recurringMovementId: string }
+  | { kind: 'recurring'; occurrenceId?: string; recurringMovementId: string }
   | { kind: 'recurring_unlinked'; occurrenceId?: string; recurringMovementId?: string };
 
 export type ExpectedMovementView = {

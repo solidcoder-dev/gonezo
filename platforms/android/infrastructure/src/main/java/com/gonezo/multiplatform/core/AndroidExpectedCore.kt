@@ -171,6 +171,20 @@ class AndroidExpectedCore internal constructor(
     return cursor.use(viewMapper::readExpectedMovements)
   }
 
+  fun getMovement(expectedMovementId: String?): ExpectedMovementView? {
+    val id = requireText(expectedMovementId, "movementId is required")
+    val cursor = database.readableDatabase.query(
+      "expected_movements",
+      EXPECTED_COLUMNS,
+      "id = ?",
+      arrayOf(id),
+      null,
+      null,
+      null,
+    )
+    return cursor.use { viewMapper.readExpectedMovements(it).firstOrNull() }
+  }
+
   fun getPendingOverview(): PendingExpectedOverviewResult =
     pendingOverviewQuery.execute(PendingExpectedOverviewQuery(preferredCurrency()))
 

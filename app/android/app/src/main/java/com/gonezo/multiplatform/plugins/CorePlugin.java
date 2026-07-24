@@ -256,4 +256,6 @@ public class CorePlugin extends Plugin {
   public void analyticsSetMovementIgnored(PluginCall call) { new AnalyticsPluginHandler(getContext()).analyticsSetMovementIgnored(call); }
   @PluginMethod
   public void analyticsListIgnoredMovements(PluginCall call) { new AnalyticsPluginHandler(getContext()).analyticsListIgnoredMovements(call); }
+  @PluginMethod
+  public void movementsGetDetail(PluginCall call) { new MovementDetailPluginHandler(getContext()).getDetail(call); }
 }

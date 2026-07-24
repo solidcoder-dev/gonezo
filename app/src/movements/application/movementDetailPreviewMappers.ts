@@ -50,11 +50,11 @@ function scheduledStatus(status: MovementsSearchItemView['status']): ScheduledMo
 
 export function mapPostedMovementPreview(transaction: TransactionHistoryItemView): Extract<MovementDetailViewModel, { source: 'posted' }> {
   const mapped = mapMovementDetailViewModel({
-    selection: { source: 'posted', id: transaction.id },
-    postedItems: [transaction],
-    scheduledItems: [],
-    expectedSeriesState: { phase: 'idle' },
-    expectedItems: [],
+    detail: { source: 'posted', movement: {
+      ...transaction,
+      status: transaction.status === 'archived' ? 'voided' : transaction.status,
+      items: transaction.items.map((item) => ({ ...item, currency: transaction.currency })),
+    } },
     categories: categoryOptions(transaction),
     tags: tagOptions(transaction.tags),
     sharing: emptySharing(),
@@ -80,12 +80,22 @@ export function mapExpectedMovementPreview(
     canPostExpected?: boolean;
   } = {},
 ): Extract<MovementDetailViewModel, { source: 'expected' }> {
+  if (movement.origin.kind === 'recurring_unlinked' && !movement.origin.occurrenceId) {
+    throw new Error(`Expected movement origin occurrence is unavailable for ${movement.id}`);
+  }
+  const recurringUnlinkedOccurrenceId = movement.origin.kind === 'recurring_unlinked'
+    ? movement.origin.occurrenceId
+    : undefined;
   const mapped = mapMovementDetailViewModel({
-    selection: { source: 'expected', id: movement.id },
-    postedItems: [],
-    scheduledItems: [],
-    expectedSeriesState: { phase: 'idle' },
-    expectedItems: [movement],
+    detail: {
+      source: 'expected',
+      movement,
+      origin: movement.origin.kind === 'manual'
+        ? { kind: 'manual' }
+        : movement.origin.kind === 'recurring'
+          ? { kind: 'recurring', recurringMovementId: movement.origin.recurringMovementId, occurrenceId: movement.origin.occurrenceId, series: null }
+          : { kind: 'recurring_unlinked', occurrenceId: recurringUnlinkedOccurrenceId ?? '' },
+    },
     categories: categoryOptions(movement, options.categoryName),
     tags: [],
     sharing: emptySharing(),
@@ -111,14 +121,10 @@ export function mapScheduledMovementPreview(
   } = {},
 ): Extract<MovementDetailViewModel, { source: 'scheduled' }> {
   const mapped = mapMovementDetailViewModel({
-    selection: { source: 'scheduled', id: movement.id },
-    postedItems: [],
-    scheduledItems: [{
+    detail: { source: 'scheduled', movement: {
       ...movement,
       tagNames: options.tagNames ?? movement.tagNames,
-    }],
-    expectedSeriesState: { phase: 'loaded', recurringMovementId: 'series-1', series: null },
-    expectedItems: [],
+    } },
     categories: categoryOptions(movement, options.categoryName),
     tags: tagOptions((options.tagNames ?? []).map((name, index) => ({ id: `tag-${index}`, name }))),
     sharing: emptySharing(),

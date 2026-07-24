@@ -23,6 +23,21 @@ final class LedgerTransactionsQueryHandler {
     this.context = context;
   }
 
+  JSObject projectDirect(AndroidLedgerCore.LedgerTransactionView transaction) {
+    AndroidTaxonomyCore taxonomyCore = AndroidTaxonomyCore.getInstance(context);
+    Map<String, AndroidTaxonomyCore.TransactionTaxonomyView> taxonomy = taxonomyCore.listTransactionTaxonomy(List.of(transaction.id()));
+    JSObject projected = toTransactionJson(
+      transaction,
+      taxonomy.get(transaction.id()),
+      toTagsById(taxonomyCore.listTags(true)),
+      new HashSet<>(AndroidAnalyticsCore.getInstance(context).listIgnoredMovements())
+    );
+    AndroidLedgerCore.LedgerAccountView account = AndroidLedgerCore.getInstance(context).listAccounts().stream()
+      .filter(item -> item.id().equals(transaction.accountId())).findFirst().orElse(null);
+    if (account != null) projected.put("accountName", account.name());
+    return projected;
+  }
+
   void ledgerListTransactions(PluginCall call) {
     String accountId = call.getString("accountId");
     JSObject filters = call.getObject("filters");

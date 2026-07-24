@@ -267,7 +267,7 @@ final class ExpectedPluginHandler {
     return new FinalPlannedShareDraft(value.getString("payerName"), participants);
   }
 
-  private JSObject toExpectedMovementJson(
+  JSObject toExpectedMovementJson(
     AndroidExpectedCore.ExpectedMovementView movement,
     Set<String> ignoredExpectedMovementIds
   ) {

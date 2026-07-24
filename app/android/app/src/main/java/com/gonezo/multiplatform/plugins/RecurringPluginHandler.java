@@ -223,7 +223,7 @@ final class RecurringPluginHandler {
     );
   }
 
-  private JSObject toRecurringMovementJson(AndroidRecurringCore.RecurringMovementView movement) {
+  JSObject toRecurringMovementJson(AndroidRecurringCore.RecurringMovementView movement) {
     JSObject result = new JSObject();
     result.put("id", movement.getId());
     result.put("type", movement.getType());

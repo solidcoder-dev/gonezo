@@ -100,6 +100,8 @@ import type {
   MovementsSearchFacetsResult,
   MovementsSearchInput,
   MovementsSearchResult,
+  MovementsGetDetailInput,
+  MovementsGetDetailResult,
 } from '../../movements/application/movements.port';
 import type {
   SharingApplyShareToPostedTransactionInput,
@@ -384,6 +386,7 @@ export class CoreAdapterWeb implements CorePort {
   async movementsSearch(input: MovementsSearchInput): Promise<MovementsSearchResult> { return this.movementsService.search(input); }
   async movementsGetSearchFacets(input: MovementsSearchFacetsInput): Promise<MovementsSearchFacetsResult> { return this.movementsService.getSearchFacets(input); }
   async movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult> { return this.movementsService.listScheduled(input); }
+  async movementsGetDetail(input: MovementsGetDetailInput): Promise<MovementsGetDetailResult> { return this.movementsService.getDetail(input); }
   async analyticsSetMovementIgnored(input: AnalyticsSetMovementIgnoredInput): Promise<void> { this.analyticsExclusionService.setMovementIgnored(input); }
   async analyticsListIgnoredMovements() { return this.analyticsExclusionService.listIgnoredMovements(); }
   private async projectNextConfirmationRequiredOccurrence(recurringMovementId: string): Promise<void> {

@@ -2,6 +2,7 @@ import { formatCurrencyAmount, formatIsoDate, formatIsoDateTime } from '../../sh
 import { normalizeTaxonomyName } from '../../transactions/application/transactionTaxonomySelection';
 import type { TransactionHistoryItemView } from '../../transactions/application/transactionView.types';
 import type { ExpectedMovementItem } from '../../expected/application/expected.port';
+import type { MovementsDetailData } from './movements.port';
 import type { ExpectedMovementOriginView, ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
 import type {
   MovementDetailCategoryOption,
@@ -341,28 +342,40 @@ function mapExpectedMovement(
 }
 
 export function mapMovementDetailViewModel(input: {
-  selection: MovementDetailSelection | null;
-  postedItems: TransactionHistoryItemView[];
-  scheduledItems: ScheduledMovementView[];
-  expectedSeriesState: ExpectedSeriesState;
-  expectedItems: ExpectedMovementView[];
+  detail: MovementsDetailData | null;
   categories: MovementDetailCategoryOption[];
   tags: MovementDetailTagOption[];
   sharing: SharingDetailState;
 }): MovementDetailViewModel | null {
-  if (!input.selection) {
+  if (!input.detail) {
     return null;
   }
-  if (input.selection.source === 'posted') {
-    const transaction = input.postedItems.find((item) => item.id === input.selection?.id);
-    return transaction ? mapPostedMovement(transaction, input.categories, input.sharing) : null;
+  if (input.detail.source === 'posted') {
+    return mapPostedMovement(input.detail.movement, input.categories, input.sharing);
   }
-  if (input.selection.source === 'scheduled') {
-    const movement = input.scheduledItems.find((item) => item.id === input.selection?.id);
-    return movement ? mapScheduledMovement(movement, input.categories, input.tags) : null;
+  if (input.detail.source === 'scheduled') {
+    return mapScheduledMovement(input.detail.movement, input.categories, input.tags);
   }
-  const movement = input.expectedItems.find((item) => item.id === input.selection?.id);
-  return movement ? mapExpectedMovement(movement, input.categories, input.expectedSeriesState) : null;
+  const expected = {
+    ...input.detail.movement,
+    origin: input.detail.origin.kind === 'manual'
+      ? { kind: 'manual' as const }
+      : input.detail.origin.kind === 'recurring'
+        ? {
+            kind: 'recurring' as const,
+            ...(input.detail.origin.occurrenceId ? { occurrenceId: input.detail.origin.occurrenceId } : {}),
+            recurringMovementId: input.detail.origin.recurringMovementId,
+          }
+        : { kind: 'recurring_unlinked' as const, occurrenceId: input.detail.origin.occurrenceId },
+  };
+  const seriesState: ExpectedSeriesState = input.detail.origin.kind === 'recurring'
+    ? {
+        phase: 'loaded',
+        recurringMovementId: input.detail.origin.recurringMovementId,
+        series: input.detail.origin.series,
+      }
+    : { phase: 'idle' };
+  return mapExpectedMovement(expected, input.categories, seriesState);
 }
 
 export function mapSharingViewModel(input: {

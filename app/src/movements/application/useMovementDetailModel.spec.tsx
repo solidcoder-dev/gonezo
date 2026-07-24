@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { TransactionHistoryItemView } from '../../transactions/application/transactionView.types';
 import { useMovementDetailModel } from './useMovementDetailModel';
@@ -60,6 +60,9 @@ function expectedMovement(overrides: Record<string, unknown> = {}) {
 
 function makeInput(overrides: Record<string, unknown> = {}) {
   const ports = {
+    movements: {
+      movementsGetDetail: vi.fn().mockResolvedValue({ found: false }),
+    },
     analytics: {
       analyticsSetMovementIgnored: vi.fn(),
     },
@@ -137,6 +140,45 @@ function makeInput(overrides: Record<string, unknown> = {}) {
 }
 
 describe('useMovementDetailModel', () => {
+  it('loads a selected movement once across parent rerenders and ignores a late response after close', async () => {
+    const detailRequest = deferred<{ found: true; detail: { source: 'posted'; movement: TransactionHistoryItemView } }>();
+    const input = makeInput({
+      ports: {
+        ...makeInput().ports,
+        movements: {
+          movementsGetDetail: vi.fn().mockReturnValue(detailRequest.promise),
+        },
+      },
+    });
+    const { result, rerender } = renderHook(({ currentInput }) => useMovementDetailModel(currentInput), {
+      initialProps: { currentInput: input },
+    });
+
+    act(() => result.current.actions.openPostedMovementDetail('expected-id'));
+    await waitFor(() => expect(input.ports.movements.movementsGetDetail).toHaveBeenCalledWith({
+      source: 'posted',
+      movementId: 'expected-id',
+    }));
+
+    rerender({
+      currentInput: {
+        ...input,
+        ports: {
+          ...input.ports,
+          movements: { ...input.ports.movements },
+        },
+      },
+    });
+    expect(input.ports.movements.movementsGetDetail).toHaveBeenCalledOnce();
+
+    act(() => result.current.provided.commands.closeDetail());
+    detailRequest.resolve({ found: true, detail: { source: 'posted', movement: postedTransaction({ id: 'expected-id' }) } });
+    await act(async () => { await detailRequest.promise; });
+
+    expect(result.current.state.selection).toBeNull();
+    expect(result.current.required.data.movement).toBeNull();
+  });
+
   it('does not update recurring-series state when no movement is selected', () => {
     const input = makeInput();
     const { result } = renderHook(() => useMovementDetailModel(input));

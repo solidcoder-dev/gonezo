@@ -375,6 +375,13 @@ public final class AndroidLedgerCore {
     return listTransactions(accountId, filters, pagination, sort).content();
   }
 
+  public LedgerTransactionView getTransaction(String transactionId) {
+    Transaction transaction = transactionRepository.findById(
+      new TransactionId(UUID.fromString(requireText(transactionId, "movementId is required")))
+    );
+    return transaction == null ? null : AndroidLedgerViewMapper.toTransactionView(transaction);
+  }
+
   public LedgerTransactionPageView listTransactions(
     String accountId,
     LedgerTransactionFilterInput filters,

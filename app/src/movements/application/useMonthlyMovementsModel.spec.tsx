@@ -67,6 +67,9 @@ function baseOverview(): MovementsMonthOverviewResult {
 
 function makePorts(overrides: Partial<MonthlyMovementsModelPorts> = {}): MonthlyMovementsModelPorts {
   return {
+    movements: {
+      movementsGetDetail: vi.fn().mockResolvedValue({ found: false }),
+    },
     analytics: {
       analyticsSetMovementIgnored: vi.fn().mockResolvedValue(undefined),
     },

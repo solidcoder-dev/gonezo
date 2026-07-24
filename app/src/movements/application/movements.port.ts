@@ -1,5 +1,6 @@
 import type {
   LedgerListTransactionsResult,
+  LedgerTransactionListItem,
   LedgerPageRequestInput,
   LedgerSortDirection,
   LedgerTransactionSortInput,
@@ -37,6 +38,49 @@ export type MovementsMonthOverviewResult = {
 };
 
 export type MovementsSearchSource = 'posted' | 'scheduled' | 'expected';
+
+export type MovementsGetDetailInput = {
+  source: MovementsSearchSource;
+  movementId: string;
+};
+
+export type PostedMovementDetailData = {
+  source: 'posted';
+  movement: LedgerTransactionListItem;
+};
+
+export type ScheduledMovementDetailData = {
+  source: 'scheduled';
+  movement: SchedulingMovementItem;
+};
+
+export type ExpectedMovementDetailOrigin =
+  | { kind: 'manual' }
+  | {
+      kind: 'recurring';
+      recurringMovementId: string;
+      occurrenceId?: string;
+      series: SchedulingMovementItem | null;
+    }
+  | {
+      kind: 'recurring_unlinked';
+      occurrenceId: string;
+    };
+
+export type ExpectedMovementDetailData = {
+  source: 'expected';
+  movement: ExpectedMovementItem;
+  origin: ExpectedMovementDetailOrigin;
+};
+
+export type MovementsDetailData =
+  | PostedMovementDetailData
+  | ScheduledMovementDetailData
+  | ExpectedMovementDetailData;
+
+export type MovementsGetDetailResult =
+  | { found: false }
+  | { found: true; detail: MovementsDetailData };
 
 export type MovementsSearchFiltersInput = {
   text?: string;
@@ -156,4 +200,7 @@ export interface MovementsQueryPort {
   movementsGetSearchFacets(input: MovementsSearchFacetsInput): Promise<MovementsSearchFacetsResult>;
   movementsGetOverview(input: MovementsGetOverviewInput): Promise<MovementsGetOverviewResult>;
   movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult>;
+  movementsGetDetail(input: MovementsGetDetailInput): Promise<MovementsGetDetailResult>;
 }
+
+export type MovementDetailQueryPort = Pick<MovementsQueryPort, 'movementsGetDetail'>;

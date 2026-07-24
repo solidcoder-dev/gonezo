@@ -132,68 +132,6 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
             },
             data: {
               selection: { source: selectedEntry.source, id: selectedEntry.id },
-              postedItems: entries
-                .filter((entry): entry is MovementsSearchItemView & { source: 'posted' } => entry.source === 'posted')
-                .map((entry) => ({
-                  id: entry.id,
-                  accountId: entry.accountId ?? '',
-                  accountName: entry.accountName,
-                  occurredAt: entry.occurredAt,
-                  description: entry.description,
-                  merchant: entry.merchant || entry.title,
-                  amount: entry.amount,
-                  currency: entry.currency,
-                  type: entry.type,
-                  status: entry.status === 'voided' ? 'voided' : 'posted',
-                  categoryId: entry.categoryId,
-                  category: entry.category,
-                  tags: entry.tags,
-                  ignored: entry.ignored,
-                  items: entry.items ?? [],
-                })),
-              scheduledItems: entries
-                .filter((entry): entry is MovementsSearchItemView & { source: 'scheduled' } => entry.source === 'scheduled')
-                .map((entry) => ({
-                  id: entry.id,
-                  type: entry.type === 'income' || entry.type === 'transfer' ? entry.type : 'expense',
-                  sourceAccountId: entry.accountId ?? '',
-                  accountName: entry.accountName,
-                  amount: entry.amount,
-                  currency: entry.currency,
-                  description: entry.description,
-                  merchant: entry.merchant || entry.title,
-                  status: entry.status === 'deactivated' ? 'deactivated' : entry.status === 'failed' ? 'completed' : 'active',
-                  startAt: entry.occurredAt,
-                  nextDueAt: entry.occurredAt,
-                  zoneId: 'UTC',
-                  generatedOccurrences: 0,
-                  splitItems: entry.items ?? [],
-                  rule: { frequency: 'monthly', interval: 1 },
-                  recurrenceEnd: { kind: 'never' },
-                  categoryId: entry.categoryId ?? entry.category?.id,
-                  tagIds: entry.tags?.map((tag) => tag.id).filter((tagId): tagId is string => typeof tagId === 'string'),
-                  tagNames: entry.tags?.map((tag) => tag.name),
-                })),
-              expectedItems: entries
-                .filter((entry): entry is MovementsSearchItemView & { source: 'expected' } => entry.source === 'expected')
-                .map((entry) => ({
-                  id: entry.id,
-                  accountId: entry.accountId ?? '',
-                  accountName: entry.accountName,
-                  type: entry.type === 'income' ? 'income' : 'expense',
-                  amount: entry.amount,
-                  currency: entry.currency,
-                  expectedAt: entry.occurredAt,
-                  description: entry.description,
-                  merchant: entry.merchant || entry.title,
-                  categoryId: entry.categoryId ?? entry.category?.id,
-                  splitItems: entry.items ?? [],
-                  status: entry.status === 'resolved' || entry.status === 'dismissed' ? entry.status : 'pending',
-                  createdAt: entry.occurredAt,
-                  updatedAt: entry.occurredAt,
-                  ignored: entry.ignored,
-                  origin: { kind: 'manual' },
-                })),
             },
           }}
           provided={{

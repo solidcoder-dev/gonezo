@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TransactionsPort } from '../../transactions/application/transactions.port';
+import type { MovementDetailQueryPort } from './movements.port';
 import { MovementDetailView } from '../ui/MovementDetail/MovementDetailView';
 import { useMovementDetailModel } from './useMovementDetailModel';
 import type {
@@ -7,19 +8,15 @@ import type {
   MovementDetailSelection,
   MovementDetailTagOption,
 } from './movementDetailView.types';
-import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
-import type { TransactionHistoryItemView } from '../../transactions/application/transactionView.types';
+import type { ExpectedMovementView } from './movementsView.types';
 
 type MovementDetailOverlayComponentProps = {
   required: {
     context: {
-      core: TransactionsPort;
+      core: TransactionsPort & MovementDetailQueryPort;
     };
     data: {
       selection: MovementDetailSelection | null;
-      postedItems: TransactionHistoryItemView[];
-      scheduledItems: ScheduledMovementView[];
-      expectedItems: ExpectedMovementView[];
     };
   };
   provided: {
@@ -47,12 +44,14 @@ function toErrorMessage(error: unknown): string {
 
 export function MovementDetailOverlayComponent({ required, provided }: MovementDetailOverlayComponentProps) {
   const { core } = required.context;
-  const { selection, postedItems, scheduledItems, expectedItems } = required.data;
+  const { selection } = required.data;
   const [categories, setCategories] = useState<MovementDetailCategoryOption[]>([]);
   const [tags, setTags] = useState<MovementDetailTagOption[]>([]);
   const [error, setError] = useState('');
   const [pendingVoidTransactionId, setPendingVoidTransactionId] = useState<string>();
   const openedSelectionKeyRef = useRef<string | null>(null);
+  const onClose = provided.events.onClose;
+  const onError = provided.events.onError;
 
   function clearError() {
     setError('');
@@ -61,8 +60,8 @@ export function MovementDetailOverlayComponent({ required, provided }: MovementD
   const reportError = useCallback((raw: unknown) => {
     const message = toErrorMessage(raw);
     setError(message);
-    provided.events.onError?.({ message });
-  }, [provided.events]);
+    onError?.({ message });
+  }, [onError]);
 
   const fetchTaxonomy = useCallback(async () => Promise.all([
     core.taxonomyListCategories({ includeArchived: false }),
@@ -85,15 +84,13 @@ export function MovementDetailOverlayComponent({ required, provided }: MovementD
 
   const detailModel = useMovementDetailModel({
     ports: {
+      movements: core,
       analytics: core,
       expected: core,
       scheduling: core,
       sharing: core,
       taxonomy: core,
     },
-    postedItems,
-    scheduledItems,
-    expectedItems,
     categories,
     tags,
     refreshMovements: refreshDetailContext,
@@ -152,26 +149,31 @@ export function MovementDetailOverlayComponent({ required, provided }: MovementD
     };
   }, [fetchTaxonomy, reportError, selection]);
 
+  const openPostedMovementDetail = detailModel.actions.openPostedMovementDetail;
+  const openScheduledMovementDetail = detailModel.actions.openScheduledMovementDetail;
+  const openExpectedMovementDetail = detailModel.actions.openExpectedMovementDetail;
+  const detailSelection = detailModel.state.selection;
+
   useEffect(() => {
     if (!selection) {
       return;
     }
 
-    const currentSelection = detailModel.state.selection;
+    const currentSelection = detailSelection;
     if (currentSelection?.id === selection.id && currentSelection.source === selection.source) {
       return;
     }
 
     if (selection.source === 'posted') {
-      detailModel.actions.openPostedMovementDetail(selection.id);
+      openPostedMovementDetail(selection.id);
       return;
     }
     if (selection.source === 'scheduled') {
-      detailModel.actions.openScheduledMovementDetail(selection.id);
+      openScheduledMovementDetail(selection.id);
       return;
     }
-    detailModel.actions.openExpectedMovementDetail(selection.id);
-  }, [detailModel.actions, detailModel.state.selection, selection]);
+    openExpectedMovementDetail(selection.id);
+  }, [detailSelection, openExpectedMovementDetail, openPostedMovementDetail, openScheduledMovementDetail, selection]);
 
   useEffect(() => {
     if (detailModel.state.selection) {
@@ -184,11 +186,15 @@ export function MovementDetailOverlayComponent({ required, provided }: MovementD
     }
 
     openedSelectionKeyRef.current = null;
-    provided.events.onClose();
-  }, [detailModel.state.selection, provided.events]);
+    onClose();
+  }, [detailModel.state.selection, onClose]);
 
   if (!selection) {
     return null;
+  }
+
+  if (!detailModel.required.data.movement) {
+    return <div role="status" className="movement-detail-loading">Loading movement details...</div>;
   }
 
   return (
