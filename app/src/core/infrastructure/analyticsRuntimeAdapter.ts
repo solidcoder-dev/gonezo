@@ -28,6 +28,10 @@ import type {
   AnalyticsSpendingTimelineResult,
   AnalyticsSpendingTopExpensesInput,
   AnalyticsSpendingTopExpensesResult,
+  AnalyticsSpendingReportInput,
+  AnalyticsSpendingReport,
+  AnalyticsTopExpensesInput,
+  AnalyticsTopExpensesResult,
 } from '../../analytics/application/analytics.port';
 import type { LedgerGetCashFlowSeriesResult } from '../../ledger/application/ledger.port';
 import {
@@ -43,6 +47,8 @@ import {
   analyticsGetSpendingOverview,
   analyticsGetSpendingTimeline,
   analyticsGetSpendingTopExpenses,
+  analyticsGetSpendingReport,
+  analyticsGetAnalyticsTopExpenses,
   analyticsListCurrencies,
 } from '../../analytics/infrastructure/analyticsQueries';
 import { CoreAdapterWeb } from './coreAdapterWeb';
@@ -105,6 +111,14 @@ export class AnalyticsRuntimeAdapter {
 
   analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult> {
     return isNativeRuntime() ? analyticsGetSpendingOverview(this.queries, input) : this.web.analyticsGetSpendingOverview(input);
+  }
+
+  analyticsGetSpendingReport(input: AnalyticsSpendingReportInput): Promise<AnalyticsSpendingReport> {
+    return isNativeRuntime() ? analyticsGetSpendingReport(this.queries, input) : this.web.analyticsGetSpendingReport(input);
+  }
+
+  analyticsGetAnalyticsTopExpenses(input: AnalyticsTopExpensesInput): Promise<AnalyticsTopExpensesResult> {
+    return isNativeRuntime() ? analyticsGetAnalyticsTopExpenses(this.queries, input) : this.web.analyticsGetAnalyticsTopExpenses(input);
   }
 
   analyticsGetFlowProjection(input: AnalyticsFlowProjectionInput): Promise<AnalyticsFlowProjectionResult> {

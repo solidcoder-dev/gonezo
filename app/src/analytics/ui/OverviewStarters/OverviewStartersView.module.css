@@ -5,7 +5,6 @@
 .seeAllButton:focus-visible { outline: 3px solid var(--color-brand-soft); outline-offset: 2px; }
 .grid, .allItems { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; margin: 0; padding: 0; list-style: none; }
 .item { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 12px 0; }
-.grid .item:nth-child(n + 3) { border-top: 1px solid var(--color-divider); }
 .icon { display: inline-flex; flex: 0 0 46px; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 50%; font-size: 1.05rem; }
 .iconincome { background: var(--color-income-soft); color: var(--color-income); }
 .iconexpense { background: var(--color-expense-soft); color: var(--color-expense); }
@@ -17,9 +16,9 @@
 .supportingText { font-size: .75rem; }
 .emptyState { margin: 0; padding: 4px 0; color: var(--color-text-muted); font-size: .9rem; }
 .skeletonGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; }
-.skeletonItem { height: 70px; margin: 12px 0; border-bottom: 1px solid var(--color-divider); background: linear-gradient(90deg, transparent 0%, var(--color-border-subtle) 50%, transparent 100%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+.skeletonItem { height: 70px; margin: 12px 0; background: linear-gradient(90deg, transparent 0%, var(--color-border-subtle) 50%, transparent 100%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
 .sheetContent { max-height: 70vh; overflow-y: auto; }
 .allItems { grid-template-columns: 1fr; }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .skeletonItem { animation: none; } }
-@media (max-width: 340px) { .grid, .skeletonGrid { grid-template-columns: 1fr; } .grid .item:nth-child(n + 2) { border-top: 1px solid var(--color-divider); } .icon { flex-basis: 44px; width: 44px; height: 44px; } }
+@media (max-width: 340px) { .grid, .skeletonGrid { grid-template-columns: 1fr; } .icon { flex-basis: 44px; width: 44px; height: 44px; } }

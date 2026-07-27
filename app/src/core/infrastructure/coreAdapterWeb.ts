@@ -1,6 +1,6 @@
 import type { CorePort } from '../application/corePort';
 import type { AccountsListBalancesResult } from '../../account/application/accountBalances.port';
-import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsCurrencyScopeInput, AnalyticsFlowInsightsInput, AnalyticsFlowInsightsResult, AnalyticsFlowProjectionInput, AnalyticsFlowProjectionResult, AnalyticsFlowUpcomingInput, AnalyticsFlowUpcomingResult, AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingDashboardInput, AnalyticsSpendingDashboardResult, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult, AnalyticsSpendingTimelineInput, AnalyticsSpendingTimelineResult, AnalyticsSpendingTopExpensesInput, AnalyticsSpendingTopExpensesResult } from '../../analytics/application/analytics.port';
+import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsCurrencyScopeInput, AnalyticsFlowInsightsInput, AnalyticsFlowInsightsResult, AnalyticsFlowProjectionInput, AnalyticsFlowProjectionResult, AnalyticsFlowUpcomingInput, AnalyticsFlowUpcomingResult, AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingDashboardInput, AnalyticsSpendingDashboardResult, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult, AnalyticsSpendingTimelineInput, AnalyticsSpendingTimelineResult, AnalyticsSpendingTopExpensesInput, AnalyticsSpendingTopExpensesResult, AnalyticsSpendingReportInput, AnalyticsSpendingReport, AnalyticsTopExpensesInput, AnalyticsTopExpensesResult } from '../../analytics/application/analytics.port';
 import type { AnalyticsOverviewInsightsInput, AnalyticsOverviewInsightsResult, AnalyticsOverviewSnapshotInput, AnalyticsOverviewSnapshotResult } from '../../analytics/application/analytics.port';
 import type {
   PreferencesSetDefaultAccountInput,
@@ -136,7 +136,7 @@ import {
 import { WebTaxonomyService } from '../../taxonomy/infrastructure/webTaxonomyService';
 import { sortNetWorthCurrencies } from '../../ledger/application/netWorthOrdering';
 import { listAccountBalances } from './accountBalancesQuery';
-import { analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetFlowInsights, analyticsGetFlowProjection, analyticsGetFlowUpcoming, analyticsGetOverviewInsights, analyticsGetOverviewSnapshot, analyticsGetPeriodCashFlowSummary, analyticsGetSpendingDashboard, analyticsGetSpendingOverview, analyticsGetSpendingTimeline, analyticsGetSpendingTopExpenses, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
+import { analyticsGetAnalyticsTopExpenses, analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetFlowInsights, analyticsGetFlowProjection, analyticsGetFlowUpcoming, analyticsGetOverviewInsights, analyticsGetOverviewSnapshot, analyticsGetPeriodCashFlowSummary, analyticsGetSpendingDashboard, analyticsGetSpendingOverview, analyticsGetSpendingReport, analyticsGetSpendingTimeline, analyticsGetSpendingTopExpenses, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
 import { WebAnalyticsExclusionService } from '../../analytics/infrastructure/webAnalyticsExclusionService';
 
 export type CoreAdapterWebOptions = {
@@ -245,6 +245,8 @@ export class CoreAdapterWeb implements CorePort {
   async analyticsGetSpendingDashboard(input: AnalyticsSpendingDashboardInput): Promise<AnalyticsSpendingDashboardResult> { return analyticsGetSpendingDashboard(this, input); }
   async analyticsGetSpendingTimeline(input: AnalyticsSpendingTimelineInput): Promise<AnalyticsSpendingTimelineResult> { return analyticsGetSpendingTimeline(this, input); }
   async analyticsGetSpendingTopExpenses(input: AnalyticsSpendingTopExpensesInput): Promise<AnalyticsSpendingTopExpensesResult> { return analyticsGetSpendingTopExpenses(this, input); }
+  async analyticsGetSpendingReport(input: AnalyticsSpendingReportInput): Promise<AnalyticsSpendingReport> { return analyticsGetSpendingReport(this, input); }
+  async analyticsGetAnalyticsTopExpenses(input: AnalyticsTopExpensesInput): Promise<AnalyticsTopExpensesResult> { return analyticsGetAnalyticsTopExpenses(this, input); }
   async analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult> { return analyticsGetSpendingOverview(this, input); }
   async analyticsGetFlowProjection(input: AnalyticsFlowProjectionInput): Promise<AnalyticsFlowProjectionResult> { return analyticsGetFlowProjection(this, input); }
   async analyticsGetFlowUpcoming(input: AnalyticsFlowUpcomingInput): Promise<AnalyticsFlowUpcomingResult> { return analyticsGetFlowUpcoming(this, input); }

@@ -118,7 +118,8 @@ describe('transaction submission plan', () => {
     await runTransactionSubmissionPlan(input);
 
     expect(input.ports.analytics.analyticsSetMovementIgnored).toHaveBeenCalledWith({
-      movementId: 'tx-1',
+      source: 'posted',
+      transactionId: 'tx-1',
       ignored: true,
       changedAt: '2026-05-18T10:20:30.000Z',
     });

@@ -31,6 +31,23 @@ sealed interface AnalyticsMovementReference {
   ) : AnalyticsMovementReference
 }
 
+data class AnalyticsExclusionKey(
+  val scopeType: String,
+  val scopeId: String,
+)
+
+fun interface AnalyticsExclusionReader {
+  fun readIgnored(references: Collection<AnalyticsMovementReference>): Set<AnalyticsExclusionKey>
+}
+
+object AnalyticsExclusionKeyResolver {
+  fun resolve(reference: AnalyticsMovementReference): AnalyticsExclusionKey? = when (reference) {
+    is AnalyticsMovementReference.Posted -> AnalyticsExclusionKey("movement", reference.transactionId)
+    is AnalyticsMovementReference.Expected -> AnalyticsExclusionKey("expected_movement", reference.expectedMovementId)
+    is AnalyticsMovementReference.ScheduledProjection -> null
+  }
+}
+
 enum class AnalyticsMovementSource {
   POSTED,
   EXPECTED,
@@ -168,6 +185,7 @@ class AnalyticsMovementFactAssembler {
     expected: Iterable<AnalyticsExpectedMovement>,
     scheduled: Iterable<AnalyticsScheduledProjection>,
     includePlannedMovements: Boolean,
+    exclusionReader: AnalyticsExclusionReader? = null,
   ): List<AnalyticsMovementFact> {
     val postedFacts = posted.map { movement ->
       AnalyticsMovementFact(
@@ -188,7 +206,7 @@ class AnalyticsMovementFactAssembler {
       )
     }
     if (!includePlannedMovements) {
-      return AnalyticsMovementDeduplicator.select(postedFacts)
+      return resolveIgnored(postedFacts, exclusionReader)
     }
     val expectedFacts = expected.asSequence()
       .filter { it.pending }
@@ -235,7 +253,22 @@ class AnalyticsMovementFactAssembler {
         destinationAccountId = movement.destinationAccountId,
       )
     }
-    return AnalyticsMovementDeduplicator.select(postedFacts + expectedFacts.toList() + scheduledFacts)
+    return resolveIgnored(postedFacts + expectedFacts.toList() + scheduledFacts, exclusionReader)
+  }
+
+  private fun resolveIgnored(
+    facts: List<AnalyticsMovementFact>,
+    exclusionReader: AnalyticsExclusionReader?,
+  ): List<AnalyticsMovementFact> {
+    val resolvedFacts = if (exclusionReader == null) {
+      facts
+    } else {
+      val ignoredKeys = exclusionReader.readIgnored(facts.map(AnalyticsMovementFact::reference))
+      facts.map { fact ->
+        fact.copy(ignored = AnalyticsExclusionKeyResolver.resolve(fact.reference)?.let(ignoredKeys::contains) ?: false)
+      }
+    }
+    return AnalyticsMovementDeduplicator.select(resolvedFacts)
   }
 }
 
@@ -251,6 +284,7 @@ data class AnalyticsMovementQueryFilters(
 
 class AnalyticsMovementFactQueryService(
   private val assembler: AnalyticsMovementFactAssembler = AnalyticsMovementFactAssembler(),
+  private val exclusionReader: AnalyticsExclusionReader? = null,
 ) {
   fun query(
     posted: Iterable<AnalyticsPostedMovement>,
@@ -258,7 +292,7 @@ class AnalyticsMovementFactQueryService(
     scheduled: Iterable<AnalyticsScheduledProjection>,
     filters: AnalyticsMovementQueryFilters = AnalyticsMovementQueryFilters(),
     includePlannedMovements: Boolean = true,
-  ): List<AnalyticsMovementFact> = assembler.assemble(posted, expected, scheduled, includePlannedMovements)
+  ): List<AnalyticsMovementFact> = assembler.assemble(posted, expected, scheduled, includePlannedMovements, exclusionReader)
     .asSequence()
     .filter { filters.currency == null || it.currency == filters.currency }
     .filter { filters.accountIds.isEmpty() || it.accountId in filters.accountIds }

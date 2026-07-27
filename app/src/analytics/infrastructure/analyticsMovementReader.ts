@@ -19,6 +19,10 @@ export type AnalyticsMovementReaderPort = {
     zoneId: string;
     currency?: string;
     includePlannedMovements?: boolean;
+    includeIgnoredMovements?: boolean;
+    accountIds?: string[];
+    categoryId?: string;
+    tagIds?: string[];
   }) => Promise<AnalyticsListMovementFactsResult>;
 };
 
@@ -115,13 +119,12 @@ export async function listAnalyticsMovements(
       zoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
       currency: scope.filters?.currency,
       includePlannedMovements: scope.filters?.includePlannedMovements !== false,
+      includeIgnoredMovements: scope.includeIgnoredMovements === true,
+      accountIds: scope.accountIds,
+      categoryId: scope.filters?.categoryId,
+      tagIds: scope.filters?.tagIds,
     });
-    const selected = result.items.filter((movement) => (
-      (requestedAccountIds === null || requestedAccountIds.has(movement.accountId))
-      && (!scope.filters?.categoryId || movement.categoryId === scope.filters.categoryId)
-      && (!scope.filters?.tagIds?.length || movement.tagIds.some((tagId) => scope.filters?.tagIds?.includes(tagId)))
-      && (scope.includeIgnoredMovements === true || !movement.ignored)
-    ));
+    const selected = result.items;
     return {
       accounts: scopedAccounts,
       transactions: selected.map((movement) => ({

@@ -26,6 +26,15 @@ import {
   buildSpendingTopExpenses,
   listAnalyticsCurrencies,
 } from '../application/analyticsBuilders';
+import {
+  buildAnalyticsSpendingReport,
+  normalizeAnalyticsPeriodSelection,
+  resolveAnalyticsSpendingWindow,
+  type AnalyticsCategoryReference,
+  type AnalyticsPeriodSelection,
+  type AnalyticsSpendingMovement,
+  type AnalyticsSpendingPeriodWindow,
+} from '../application/spendingReport';
 import type {
   AnalyticsCashFlowSeriesInput,
   AnalyticsCashFlowSummaryResult,
@@ -51,6 +60,9 @@ import type {
   AnalyticsSpendingTimelineResult,
   AnalyticsSpendingTopExpensesInput,
   AnalyticsSpendingTopExpensesResult,
+  AnalyticsSpendingReportInput,
+  AnalyticsTopExpensesInput,
+  AnalyticsTopExpensesResult,
 } from '../application/analytics.port';
 import {
   normalizeAnalyticsFilters,
@@ -65,10 +77,58 @@ type AnalyticsQueryPort = AnalyticsMovementReaderPort & {
   ledgerGetAccountSummary(input: { accountId: string }): Promise<LedgerGetAccountSummaryResult>;
   preferencesGet(): Promise<UserPreferencesResult>;
   taxonomyListCategories(input?: { appliesTo?: 'income' | 'expense'; includeArchived?: boolean }): Promise<TaxonomyListCategoriesResult>;
+  analyticsListCategories?: () => Promise<{ items: AnalyticsCategoryReference[] }>;
   taxonomyListTags(input?: { includeArchived?: boolean }): Promise<TaxonomyListTagsResult>;
   orchestrationListTransactionTaxonomy(input: { transactionIds: string[] }): Promise<OrchestrationListTransactionTaxonomyResult>;
   schedulingListMovements(input: { sourceAccountId: string }): Promise<SchedulingListMovementsResult>;
 };
+
+async function listAnalyticsCategoryReferences(port: AnalyticsQueryPort): Promise<AnalyticsCategoryReference[]> {
+  if (port.analyticsListCategories) {
+    return (await port.analyticsListCategories()).items;
+  }
+  return (await port.taxonomyListCategories({ appliesTo: 'expense', includeArchived: true })).items.map((category) => ({
+    id: category.id,
+    name: category.name,
+  }));
+}
+
+function spendingMovement(transaction: Awaited<ReturnType<typeof listAnalyticsMovements>>['transactions'][number]): AnalyticsSpendingMovement {
+  return {
+    id: transaction.id,
+    occurredAt: transaction.occurredAt,
+    type: transaction.type === 'transfer' ? 'transfer_out' : transaction.type,
+    currency: transaction.currency,
+    amount: transaction.analyticsAmount,
+    categoryId: transaction.categoryId,
+    categoryName: transaction.category?.name,
+    description: transaction.description,
+    merchant: transaction.merchant,
+    items: transaction.items.map((item) => ({ amount: item.amount, categoryId: item.categoryId, categoryName: item.note })),
+  };
+}
+
+function spendingSelection(input: AnalyticsSpendingReportInput | AnalyticsTopExpensesInput): AnalyticsPeriodSelection {
+  return normalizeAnalyticsPeriodSelection(input.periodSelection);
+}
+
+async function listSpendingMovements(
+  port: AnalyticsQueryPort,
+  filters: AnalyticsFilters,
+  accountIds: string[],
+  window: AnalyticsSpendingPeriodWindow,
+): Promise<AnalyticsSpendingMovement[]> {
+  const result = await listAnalyticsMovements(port, {
+    accountIds,
+    filters: analyticsTransactionFilters(filters, {
+      start: new Date(`${window.start}T00:00:00.000Z`),
+      end: new Date(`${window.endExclusive}T00:00:00.000Z`),
+    }, true),
+    includeIgnoredMovements: filters.includeIgnoredMovements,
+    sharedAmountMode: filters.sharedAmountMode,
+  });
+  return result.transactions.map(spendingMovement);
+}
 
 type AnalyticsQueryScope = {
   filters: AnalyticsFilters;
@@ -222,6 +282,75 @@ export async function analyticsListCurrencies(port: AnalyticsQueryPort): Promise
     ? accounts.items.find((account) => account.id === preferences.defaultAccountId)
     : accounts.items[0];
   return { items: listAnalyticsCurrencies(accounts.items, preferredAccount?.currency) };
+}
+
+export async function analyticsGetSpendingReport(
+  port: AnalyticsQueryPort,
+  input: AnalyticsSpendingReportInput,
+): Promise<import('../application/spendingReport').AnalyticsSpendingReport> {
+  const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
+  const now = new Date();
+  const selection = spendingSelection(input);
+  let earliestMovement: string | undefined;
+  if (scope.filters.period.kind === 'allTime') {
+    const all = await listAnalyticsMovements(port, {
+      accountIds: scope.selectedAccountIds,
+      filters: analyticsTransactionFilters(scope.filters, undefined, true),
+      includeIgnoredMovements: scope.filters.includeIgnoredMovements,
+      sharedAmountMode: scope.filters.sharedAmountMode,
+    });
+    earliestMovement = earliestTransactionDate(all.transactions)?.toISOString().slice(0, 10);
+  }
+  const window = resolveAnalyticsSpendingWindow(selection, now.toISOString().slice(0, 10), earliestMovement, scope.filters.includePlannedMovements);
+  const previousWindow = scope.filters.period.kind !== 'allTime'
+    ? resolveAnalyticsSpendingWindow({ ...selection, shift: selection.shift - 1 }, now.toISOString().slice(0, 10), earliestMovement, scope.filters.includePlannedMovements)
+    : undefined;
+  const [currentMovements, previousMovements, categories] = await Promise.all([
+    listSpendingMovements(port, scope.filters, scope.selectedAccountIds, window),
+    previousWindow ? listSpendingMovements(port, scope.filters, scope.selectedAccountIds, previousWindow) : Promise.resolve([]),
+    listAnalyticsCategoryReferences(port),
+  ]);
+  return buildAnalyticsSpendingReport({
+    window,
+    previousWindow,
+    currency: input.currency,
+    currentMovements,
+    previousMovements,
+    categories,
+  });
+}
+
+export async function analyticsGetAnalyticsTopExpenses(
+  port: AnalyticsQueryPort,
+  input: AnalyticsTopExpensesInput,
+): Promise<AnalyticsTopExpensesResult> {
+  const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
+  const now = new Date();
+  const selection = spendingSelection(input);
+  const window = resolveAnalyticsSpendingWindow(selection, now.toISOString().slice(0, 10), undefined, scope.filters.includePlannedMovements);
+  const [movements, categories] = await Promise.all([
+    listSpendingMovements(port, scope.filters, scope.selectedAccountIds, window),
+    listAnalyticsCategoryReferences(port),
+  ]);
+  const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
+  const items = movements
+    .filter((movement) => movement.type === 'expense')
+    .sort((left, right) => Number(right.amount) - Number(left.amount) || left.id.localeCompare(right.id));
+  const offset = Math.max(0, Math.trunc(input.page?.offset ?? 0));
+  const limit = input.page?.limit === undefined ? items.length : Math.max(0, Math.trunc(input.page.limit));
+  return {
+    window,
+    totalCount: items.length,
+    items: items.slice(offset, offset + limit).map((movement) => ({
+      movementId: movement.id,
+      description: movement.description,
+      merchant: movement.merchant,
+      categoryId: movement.categoryId,
+      categoryName: movement.categoryId ? categoryNames.get(movement.categoryId) : undefined,
+      amount: { value: Number(movement.amount).toFixed(2), currency: input.currency.toUpperCase() },
+      occurredAt: movement.occurredAt,
+    })),
+  };
 }
 
 export async function analyticsGetFilterFacets(

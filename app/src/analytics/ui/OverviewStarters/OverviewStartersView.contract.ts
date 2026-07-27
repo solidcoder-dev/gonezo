@@ -8,7 +8,7 @@ export type OverviewStarterKey =
   | 'transfers';
 
 export type OverviewStarterItemView = {
-  key: OverviewStarterKey;
+  key: string;
   label: string;
   primaryText: string;
   amount: string;
@@ -25,6 +25,13 @@ export type OverviewStartersViewProps = {
     };
     status: {
       loading: boolean;
+    };
+    config?: {
+      title?: string;
+      ariaLabel?: string;
+      sheetTitle?: string;
+      emptyLabel?: string;
+      loadingLabel?: string;
     };
   };
 };

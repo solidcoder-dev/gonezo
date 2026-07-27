@@ -24,20 +24,22 @@ export class WebAnalyticsExclusionService {
   }
 
   setMovementIgnored(input: AnalyticsSetMovementIgnoredInput): void {
-    const movementId = input.movementId.trim();
-    if (!movementId) {
-      throw new Error('movementId is required');
+    if (input.source === 'scheduledProjection') {
+      throw new Error('scheduled projections cannot be ignored individually');
     }
+    const scopeType = input.source === 'posted' ? 'movement' : 'expected_movement';
+    const scopeId = input.source === 'posted' ? input.transactionId.trim() : input.expectedMovementId.trim();
+    if (!scopeId) throw new Error('analytics movement reference id is required');
 
     this.state.analyticsExclusions = this.state.analyticsExclusions.filter((item) => !(
-      isIgnoredMovementExclusion(item) && item.scopeId === movementId
+      item.scopeType === scopeType && item.reason === 'user_ignored' && item.scopeId === scopeId
     ));
 
     if (input.ignored) {
       this.state.analyticsExclusions.push({
         id: this.dependencies.idGenerator.nextId(),
-        scopeType: 'movement',
-        scopeId: movementId,
+        scopeType,
+        scopeId,
         reason: 'user_ignored',
         createdAt: input.changedAt ?? this.dependencies.clock.nowIso(),
       });

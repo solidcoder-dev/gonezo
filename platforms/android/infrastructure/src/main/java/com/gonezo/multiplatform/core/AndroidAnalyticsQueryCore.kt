@@ -27,8 +27,9 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
   private val recurring = AndroidRecurringMovementRepository(database)
   private val occurrences = AndroidRecurringMovementOccurrenceRepository(database)
   private val projector = AnalyticsScheduledOccurrenceProjector()
+  private val exclusionReader = AndroidAnalyticsExclusionReader(database)
 
-  fun query(fromInclusive: Instant, toExclusive: Instant, includePlannedMovements: Boolean, currency: String?): AnalyticsMovementReadResult {
+  fun query(fromInclusive: Instant, toExclusive: Instant, includePlannedMovements: Boolean, includeIgnoredMovements: Boolean, currency: String?, accountIds: Set<String> = emptySet(), categoryId: String? = null, tagIds: Set<String> = emptySet()): AnalyticsMovementReadResult {
     val window = AnalyticsMovementReadWindow(fromInclusive, toExclusive)
     val result = AnalyticsMovementFactQuery(
       postedReader = object : AnalyticsPostedMovementReader {
@@ -40,19 +41,28 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
       scheduledReader = object : AnalyticsScheduledMovementReader {
         override fun read(window: AnalyticsMovementReadWindow): Iterable<AnalyticsScheduledProjection> = scheduled(window)
       },
+      factQuery = com.gonezo.application.query.AnalyticsMovementFactQueryService(
+        exclusionReader = exclusionReader,
+      ),
     ).execute(
       window = window,
-      filters = AnalyticsMovementQueryFilters(currency = currency?.let { com.gonezo.domain.shared.CurrencyCode.from(it) }),
+      filters = AnalyticsMovementQueryFilters(
+        currency = currency?.let { com.gonezo.domain.shared.CurrencyCode.from(it) },
+        includeIgnoredMovements = includeIgnoredMovements,
+        accountIds = accountIds,
+        categoryId = categoryId,
+        tagIds = tagIds,
+      ),
       includePlannedMovements = includePlannedMovements,
     )
     return result
   }
 
-  fun query(fromLocalDate: String, toLocalDate: String, zoneId: String, includePlannedMovements: Boolean, currency: String?): AnalyticsMovementReadResult {
+  fun query(fromLocalDate: String, toLocalDate: String, zoneId: String, includePlannedMovements: Boolean, includeIgnoredMovements: Boolean, currency: String?, accountIds: Set<String> = emptySet(), categoryId: String? = null, tagIds: Set<String> = emptySet()): AnalyticsMovementReadResult {
     val zone = ZoneId.of(zoneId)
     val fromInclusive = LocalDate.parse(fromLocalDate).atStartOfDay(zone).toInstant()
     val toExclusive = LocalDate.parse(toLocalDate).plusDays(1).atStartOfDay(zone).toInstant()
-    return query(fromInclusive, toExclusive, includePlannedMovements, currency)
+    return query(fromInclusive, toExclusive, includePlannedMovements, includeIgnoredMovements, currency, accountIds, categoryId, tagIds)
   }
 
   private fun posted(window: AnalyticsMovementReadWindow): List<AnalyticsPostedMovement> = ledger.listAccounts().flatMap { account ->

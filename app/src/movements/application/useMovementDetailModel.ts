@@ -439,7 +439,8 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
     try {
       if (movement.source === 'posted' && movement.canToggleIgnored) {
         await ports.analytics.analyticsSetMovementIgnored({
-          movementId: movement.id,
+          source: 'posted',
+          transactionId: movement.id,
           ignored: value,
           changedAt: clock.now().toISOString(),
         });

@@ -675,7 +675,8 @@ async function handlePostedMovementIgnored(
   }
 
   await context.ports.analytics.analyticsSetMovementIgnored({
-    movementId: state.postedTransactionId,
+    source: 'posted',
+    transactionId: state.postedTransactionId,
     ignored: true,
     changedAt: context.clock.now().toISOString(),
   });

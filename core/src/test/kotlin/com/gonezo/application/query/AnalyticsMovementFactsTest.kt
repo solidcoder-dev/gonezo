@@ -238,6 +238,44 @@ class AnalyticsMovementFactsTest {
   }
 
   @Test
+  fun `ignored is resolved from typed references before filtering and posted does not reveal expected`() {
+    val posted = AnalyticsPostedMovement(
+      id = "same-transaction", effectiveAt = effectiveAt, accountId = "account",
+      type = AnalyticsMovementType.EXPENSE, currency = currency,
+      personalAmount = Money.of(BigDecimal("100.00"), "EUR"),
+      fullAmount = Money.of(BigDecimal("100.00"), "EUR"), occurrenceIdentity = AnalyticsMovementIdentity.occurrence("same-occurrence"),
+    )
+    val expected = AnalyticsExpectedMovement(
+      id = "expected-1", effectiveAt = effectiveAt, accountId = "account",
+      type = AnalyticsMovementType.EXPENSE, currency = currency,
+      personalAmount = Money.of(BigDecimal("100.00"), "EUR"),
+      fullAmount = Money.of(BigDecimal("100.00"), "EUR"), pending = true, originOccurrenceId = "same-occurrence",
+    )
+    var readerCalls = 0
+    val reader = AnalyticsExclusionReader { references ->
+      readerCalls += 1
+      assertThat(references).containsExactly(
+        AnalyticsMovementReference.Posted("same-transaction"),
+        AnalyticsMovementReference.Expected("expected-1", null, "same-occurrence"),
+      )
+      setOf(AnalyticsExclusionKey("movement", "same-transaction"))
+    }
+    val service = AnalyticsMovementFactQueryService(exclusionReader = reader)
+
+    val excluded = service.query(listOf(posted), listOf(expected), emptyList())
+    val included = service.query(
+      listOf(posted), listOf(expected), emptyList(),
+      filters = AnalyticsMovementQueryFilters(includeIgnoredMovements = true),
+    )
+
+    assertThat(readerCalls).isEqualTo(2)
+    assertThat(excluded).isEmpty()
+    assertThat(included).hasSize(1)
+    assertThat(included.single().source).isEqualTo(AnalyticsMovementSource.POSTED)
+    assertThat(included.single().ignored).isTrue()
+  }
+
+  @Test
   fun `scheduled projection uses a half open window and skips consumed occurrences`() {
     val startAt = Instant.parse("2026-01-01T10:00:00Z")
     val movement = RecurringMovement.create(

@@ -17,6 +17,7 @@ import {
   analyticsGetOverviewSnapshot,
   analyticsGetPeriodCashFlowSummary,
   analyticsGetSpendingDashboard,
+  analyticsGetSpendingReport,
   analyticsGetSpendingOverview,
   analyticsGetSpendingTimeline,
   analyticsGetSpendingTopExpenses,
@@ -834,6 +835,48 @@ describe('analytics queries', () => {
       categories: [
         { categoryId: 'cat-food', categoryName: 'Food', amount: '180.00', percentage: 100 },
       ],
+    });
+  });
+
+  it('compares a shifted spending window with the immediately previous window', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-31T12:00:00.000Z'));
+    const period = { kind: 'custom' as const, from: '2026-06-01', to: '2026-06-07' };
+    const port = createPort([
+      transaction({ id: 'selected', type: 'expense', amount: '80.00', occurredAt: '2026-06-01T09:00:00.000Z' }),
+      transaction({ id: 'previous', type: 'expense', amount: '50.00', occurredAt: '2026-05-25T09:00:00.000Z' }),
+      transaction({ id: 'older', type: 'expense', amount: '20.00', occurredAt: '2026-05-18T09:00:00.000Z' }),
+    ]);
+
+    await expect(analyticsGetSpendingReport(port, {
+      currency: 'EUR',
+      filters: { period },
+      periodSelection: { period, shift: -1 },
+    })).resolves.toMatchObject({
+      window: { start: '2026-05-25', endExclusive: '2026-06-01' },
+      previousWindow: { start: '2026-05-18', endExclusive: '2026-05-25' },
+      totalExpense: { value: '50.00' },
+      previousExpense: { value: '20.00' },
+      changePercent: 150,
+    });
+  });
+
+  it('includes planned movements through the last day of the current month in spending', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-27T12:00:00.000Z'));
+    const port = createPort([
+      transaction({ id: 'today', type: 'expense', amount: '10.00', occurredAt: '2026-07-27T09:00:00.000Z' }),
+      transaction({ id: 'planned', type: 'expense', amount: '25.00', occurredAt: '2026-07-31T09:00:00.000Z' }),
+      transaction({ id: 'outside', type: 'expense', amount: '99.00', occurredAt: '2026-08-01T09:00:00.000Z' }),
+    ]);
+
+    await expect(analyticsGetSpendingReport(port, {
+      currency: 'EUR',
+      filters: { period: { kind: 'thisMonth' } },
+      periodSelection: { period: { kind: 'thisMonth' }, shift: 0 },
+    })).resolves.toMatchObject({
+      window: { start: '2026-07-01', endExclusive: '2026-08-01' },
+      totalExpense: { value: '35.00' },
     });
   });
 

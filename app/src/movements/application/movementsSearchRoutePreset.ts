@@ -7,9 +7,14 @@ export function parseMovementsSearchRoutePreset(search: string): MovementsSearch
   const type = params.get('type');
   const state = params.get('state');
   const filters = createDefaultMovementsSearchFilters();
-  if (source !== 'expected' || (state !== null && state !== 'pending')) return filters;
+  if (source !== 'posted' && source !== 'expected' || (source === 'expected' && state !== null && state !== 'pending')) return filters;
   if (type !== null && type !== 'expense' && type !== 'income') return filters;
   filters.source = 'expected';
+  if (source === 'posted') filters.source = 'posted';
   filters.types = type ? [type] : [];
+  const fromDate = params.get('fromDate');
+  const toDate = params.get('toDate');
+  if (fromDate) filters.fromDate = fromDate;
+  if (toDate) filters.toDate = toDate;
   return filters;
 }

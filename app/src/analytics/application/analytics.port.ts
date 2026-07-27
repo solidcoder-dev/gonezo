@@ -1,5 +1,12 @@
 import type { LedgerCashFlowGranularity, LedgerGetCashFlowSeriesResult } from '../../ledger/application/ledger.port';
 import type { AnalyticsFiltersInput } from './analyticsFilters';
+import type {
+  AnalyticsCategoryReference,
+  AnalyticsPeriodSelection,
+  AnalyticsSpendingMovement,
+  AnalyticsSpendingReport,
+  AnalyticsSpendingPeriodWindow,
+} from './spendingReport';
 
 export type AnalyticsCurrencyScopeInput = {
   currency: string;
@@ -12,6 +19,10 @@ export type AnalyticsListMovementFactsInput = {
   zoneId: string;
   currency?: string;
   includePlannedMovements?: boolean;
+  includeIgnoredMovements?: boolean;
+  accountIds?: string[];
+  categoryId?: string;
+  tagIds?: string[];
 };
 
 export type AnalyticsMovementFactItem = {
@@ -242,11 +253,10 @@ export type AnalyticsFlowInsightsResult = {
   items: AnalyticsFlowInsightItem[];
 };
 
-export type AnalyticsSetMovementIgnoredInput = {
-  movementId: string;
-  ignored: boolean;
-  changedAt?: string;
-};
+export type AnalyticsSetMovementIgnoredInput =
+  | { source: 'posted'; transactionId: string; ignored: boolean; changedAt?: string }
+  | { source: 'expected'; expectedMovementId: string; ignored: boolean; changedAt?: string }
+  | { source: 'scheduledProjection'; recurringMovementId: string; occurrenceId: string; ignored: boolean; changedAt?: string };
 
 export type AnalyticsListIgnoredMovementsResult = {
   movementIds: string[];
@@ -264,9 +274,37 @@ export type AnalyticsPort = {
   analyticsGetSpendingTimeline(input: AnalyticsSpendingTimelineInput): Promise<AnalyticsSpendingTimelineResult>;
   analyticsGetSpendingTopExpenses(input: AnalyticsSpendingTopExpensesInput): Promise<AnalyticsSpendingTopExpensesResult>;
   analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult>;
+  analyticsGetSpendingReport?: (input: AnalyticsSpendingReportInput) => Promise<AnalyticsSpendingReport>;
+  analyticsGetAnalyticsTopExpenses?: (input: AnalyticsTopExpensesInput) => Promise<AnalyticsTopExpensesResult>;
   analyticsGetFlowProjection(input: AnalyticsFlowProjectionInput): Promise<AnalyticsFlowProjectionResult>;
   analyticsGetFlowUpcoming(input: AnalyticsFlowUpcomingInput): Promise<AnalyticsFlowUpcomingResult>;
   analyticsGetFlowInsights(input: AnalyticsFlowInsightsInput): Promise<AnalyticsFlowInsightsResult>;
   analyticsSetMovementIgnored(input: AnalyticsSetMovementIgnoredInput): Promise<void>;
   analyticsListIgnoredMovements(): Promise<AnalyticsListIgnoredMovementsResult>;
 };
+
+export type AnalyticsSpendingReportInput = AnalyticsCurrencyScopeInput & {
+  periodSelection: AnalyticsPeriodSelection;
+};
+
+export type AnalyticsTopExpenseDto = {
+  movementId: string;
+  description?: string;
+  merchant?: string;
+  categoryId?: string;
+  categoryName?: string;
+  amount: { value: string; currency: string };
+  occurredAt: string;
+};
+
+export type AnalyticsTopExpensesInput = AnalyticsSpendingReportInput & {
+  page?: { limit?: number; offset?: number };
+};
+
+export type AnalyticsTopExpensesResult = {
+  window: AnalyticsSpendingPeriodWindow;
+  items: AnalyticsTopExpenseDto[];
+  totalCount: number;
+};
+
+export type { AnalyticsCategoryReference, AnalyticsPeriodSelection, AnalyticsSpendingMovement, AnalyticsSpendingReport, AnalyticsSpendingPeriodWindow };

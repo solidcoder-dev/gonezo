@@ -9,6 +9,7 @@ import com.gonezo.application.query.AnalyticsMovementFact;
 import com.gonezo.application.query.AnalyticsMovementReference;
 import java.time.Instant;
 import org.json.JSONArray;
+import java.util.HashSet;
 
 final class AnalyticsPluginHandler {
   private final Context context;
@@ -19,11 +20,24 @@ final class AnalyticsPluginHandler {
 
   void analyticsSetMovementIgnored(PluginCall call) {
     try {
-      AndroidAnalyticsCore.getInstance(context).setMovementIgnored(
-        call.getString("movementId"),
-        call.getBoolean("ignored", false),
-        call.getString("changedAt")
-      );
+      String source = call.getString("source");
+      boolean ignored = call.getBoolean("ignored", false);
+      String changedAt = call.getString("changedAt");
+      if ("posted".equals(source)) {
+        AndroidAnalyticsCore.getInstance(context).setMovementIgnored(
+          call.getString("transactionId"), ignored, changedAt
+        );
+      } else if ("expected".equals(source)) {
+        AndroidAnalyticsCore.getInstance(context).setExpectedMovementIgnored(
+          call.getString("expectedMovementId"), ignored, changedAt
+        );
+      } else if ("scheduledProjection".equals(source)) {
+        call.reject("scheduled projections cannot be ignored individually");
+        return;
+      } else {
+        call.reject("source must be posted or expected");
+        return;
+      }
       call.resolve();
     } catch (Exception ex) {
       call.reject(ex.getMessage());
@@ -54,8 +68,12 @@ final class AnalyticsPluginHandler {
         return;
       }
       boolean includePlanned = call.getBoolean("includePlannedMovements", true);
+      boolean includeIgnored = call.getBoolean("includeIgnoredMovements", false);
+      JSONArray accountIds = call.getArray("accountIds");
+      JSONArray tagIds = call.getArray("tagIds");
       var result = new AndroidAnalyticsQueryCore(context).query(
-        from, to, zoneId, includePlanned, call.getString("currency")
+        from, to, zoneId, includePlanned, includeIgnored, call.getString("currency"),
+        toStringSet(accountIds), call.getString("categoryId"), toStringSet(tagIds)
       );
       JSONArray items = new JSONArray();
       for (AnalyticsMovementFact fact : result.getFacts()) {
@@ -94,5 +112,12 @@ final class AnalyticsPluginHandler {
     } catch (Exception ex) {
       call.reject(ex.getMessage());
     }
+  }
+
+  private static java.util.Set<String> toStringSet(JSONArray values) throws org.json.JSONException {
+    java.util.Set<String> result = new HashSet<>();
+    if (values == null) return result;
+    for (int index = 0; index < values.length(); index++) result.add(values.getString(index));
+    return result;
   }
 }
