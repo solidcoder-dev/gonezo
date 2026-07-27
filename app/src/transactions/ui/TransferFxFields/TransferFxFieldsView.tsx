@@ -30,8 +30,8 @@ export function TransferFxFieldsView({ required, provided }: TransferFxFieldsVie
   const { config, state, status } = required;
 
   return (
-    <div className="stack item-editor">
-      <label className="stack">
+    <div className="vstack gap-2 item-editor">
+      <label className="vstack gap-2">
         <span className="visually-hidden">{config.amountInLabel}</span>
         <input
           aria-label={config.amountInLabel}
@@ -48,7 +48,7 @@ export function TransferFxFieldsView({ required, provided }: TransferFxFieldsVie
       </label>
       {status.amountInError ? <p id="composer-transfer-amount-in-error" className="field-error">{status.amountInError}</p> : null}
 
-      <label className="stack">
+      <label className="vstack gap-2">
         <span className="visually-hidden">{config.fxLabel}</span>
         <input
           aria-label={config.fxLabel}

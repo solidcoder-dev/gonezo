@@ -200,7 +200,7 @@ export function MovementDetailOverlayComponent({ required, provided }: MovementD
   return (
     <>
       {error ? (
-        <div className="banner error" role="alert">
+        <div className="alert alert-danger mt-3" role="alert">
           {error}
         </div>
       ) : null}

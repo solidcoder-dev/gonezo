@@ -136,7 +136,7 @@ export function MovementsSearchFilterSheetView({
                 autoComplete="off"
               />
 
-              <div className="stack">
+              <div className="vstack gap-2">
                 <p className="hint">Date</p>
                 <div className="quick-row">
                   <input
@@ -154,7 +154,7 @@ export function MovementsSearchFilterSheetView({
                 </div>
               </div>
 
-              <div className="stack">
+              <div className="vstack gap-2">
                 <p className="hint">Type</p>
                 <div className="chip-row">
                   {TYPE_FILTERS.map((option) => {
@@ -175,7 +175,7 @@ export function MovementsSearchFilterSheetView({
                 </div>
               </div>
 
-              <div className="stack">
+              <div className="vstack gap-2">
                 <p className="hint">Category</p>
                 {filterOptions.categories.length > 0 ? (
                   <div className="chip-row">
@@ -210,7 +210,7 @@ export function MovementsSearchFilterSheetView({
                 )}
               </div>
 
-              <div className="stack">
+              <div className="vstack gap-2">
                 <p className="hint">Amount</p>
                 <div className="quick-row">
                   <input
@@ -236,7 +236,7 @@ export function MovementsSearchFilterSheetView({
                 </div>
               </div>
 
-              <div className="stack">
+              <div className="vstack gap-2">
                 <p className="hint">Tags</p>
                 {filterOptions.tags.length > 0 ? (
                   <div className="chip-row">
@@ -271,7 +271,7 @@ export function MovementsSearchFilterSheetView({
                 )}
               </div>
 
-              <div className="stack">
+              <div className="vstack gap-2">
                 <p className="hint">Sort by</p>
                 <div className="segmented segmented-2" role="radiogroup" aria-label="Sort by">
                   <button
@@ -295,7 +295,7 @@ export function MovementsSearchFilterSheetView({
                 </div>
               </div>
 
-              <div className="stack">
+              <div className="vstack gap-2">
                 <p className="hint">Order</p>
                 <div className="segmented segmented-2" role="radiogroup" aria-label="Sort direction">
                   <button
@@ -319,7 +319,7 @@ export function MovementsSearchFilterSheetView({
                 </div>
               </div>
 
-              <div className="stack">
+              <div className="vstack gap-2">
                 <p className="hint">Group</p>
                 <div className="segmented segmented-2" role="radiogroup" aria-label="Group results">
                   <button
@@ -344,7 +344,7 @@ export function MovementsSearchFilterSheetView({
               </div>
 
               {state.advancedOpen ? (
-                <div className="stack">
+                <div className="vstack gap-2">
                   <p className="hint">Page size</p>
                   <div className="chip-row" aria-label="Page size">
                     {pageSizes.map((size) => (
@@ -384,7 +384,7 @@ export function MovementsSearchFilterSheetView({
               <button type="button" className="text-button" onClick={provided.commands.reset} disabled={disabled}>
                 Reset
               </button>
-              <button type="button" className="primary-cta" onClick={provided.commands.apply} disabled={disabled}>
+              <button type="button" className="btn btn-primary w-100" onClick={provided.commands.apply} disabled={disabled}>
                 Apply
               </button>
             </div>

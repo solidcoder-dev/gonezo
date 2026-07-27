@@ -156,7 +156,7 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
   return (
     <>
       {model.error ? (
-        <div className="banner error" role="alert">
+        <div className="alert alert-danger mt-3" role="alert">
           {model.error}
         </div>
       ) : null}

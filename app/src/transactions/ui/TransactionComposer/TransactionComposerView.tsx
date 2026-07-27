@@ -634,7 +634,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                 />
               ) : null}
 
-              <div className="stack composer-advanced">
+              <div className="vstack gap-2 composer-advanced">
                 {mode === 'expense' || mode === 'income' ? (
                   <>
                     <CategoryPickerField

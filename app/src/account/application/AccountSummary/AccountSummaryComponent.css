@@ -1,9 +1,9 @@
 .summary-card {
   margin-top: 12px;
   padding: 14px;
-  border: 1px solid #e2e2d8;
+  border: 1px solid var(--gz-legacy-e2e2d8);
   border-radius: 12px;
-  background: #f4f4ef;
+  background: var(--gz-legacy-f4f4ef);
 }
 
 .summary-card h2 {
@@ -29,7 +29,7 @@
 
 .summary-label {
   margin: 8px 0 4px;
-  color: #585852;
+  color: var(--gz-legacy-585852);
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;

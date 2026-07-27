@@ -89,7 +89,7 @@ export function TaxonomyPage({ required }: TaxonomyPageProps) {
       </div>
 
       {error ? (
-        <div className="banner error" role="alert">
+        <div className="alert alert-danger mt-3" role="alert">
           {error}
         </div>
       ) : null}
@@ -135,8 +135,8 @@ export function TaxonomyPage({ required }: TaxonomyPageProps) {
             },
             data: {
               body: (
-                <form className="stack" onSubmit={submitRename} aria-busy={saving}>
-                  <label className="stack">
+                <form className="vstack gap-2" onSubmit={submitRename} aria-busy={saving}>
+                  <label className="vstack gap-2">
                     Name
                     <input
                       aria-label="Taxonomy name"

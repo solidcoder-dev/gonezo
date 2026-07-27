@@ -173,7 +173,7 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
   const filtersButtonLabel = activeFilterChips.length > 0 ? `Filters ${activeFilterChips.length}` : 'Filters';
 
   return (
-    <section className="stack search-controls" aria-label="Search controls">
+    <section className="vstack gap-2 search-controls" aria-label="Search controls">
       <div className="segmented" role="radiogroup" aria-label="Search source">
         <button
           type="button"
@@ -220,7 +220,7 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
         <button type="button" className="text-button" onClick={provided.commands.openFilters} disabled={disabled}>
           {filtersButtonLabel}
         </button>
-        <button type="button" className="primary-cta" onClick={provided.commands.applyFilters} disabled={disabled}>
+        <button type="button" className="btn btn-primary w-100" onClick={provided.commands.applyFilters} disabled={disabled}>
           Search
         </button>
       </div>

@@ -60,7 +60,7 @@ export function AccountSwitcherView({ required, provided }: Props) {
             data: {
               body: (
                 <>
-                  <div className="stack account-menu-list">
+                  <div className="vstack gap-2 account-menu-list">
                     {activeAccounts.map((account) => {
                       const isSelected = account.id === required.selectedAccountId;
                       const isDefault = account.id === required.defaultAccountId;
@@ -117,7 +117,7 @@ export function AccountSwitcherView({ required, provided }: Props) {
                           <span>Archived ({archivedAccounts.length})</span>
                         </button>
                         {showArchived ? (
-                          <div className="stack account-archived-list" aria-label="Archived accounts">
+                          <div className="vstack gap-2 account-archived-list" aria-label="Archived accounts">
                             {archivedAccounts.map((account) => (
                               <div key={account.id} className="chip account-choice account-choice--archived">
                                 <span aria-hidden />

@@ -14,9 +14,9 @@
   display: grid;
   gap: 4px;
   padding: 12px;
-  border-left: 4px solid #b0b0a5;
+  border-left: 4px solid var(--gz-legacy-b0b0a5);
   border-radius: 14px;
-  background: #fff;
+  background: var(--gz-legacy-fff);
 }
 
 .expense-item--compact {
@@ -42,7 +42,7 @@
 
 .expense-item-button:focus-visible {
   border-radius: 8px;
-  outline: 2px solid #1d1d1b;
+  outline: 2px solid var(--gz-legacy-1d1d1b);
   outline-offset: 2px;
 }
 
@@ -64,7 +64,7 @@
 }
 
 .expense-item--transfer {
-  border-left-color: #2563eb;
+  border-left-color: var(--gz-legacy-2563eb);
 }
 
 .expense-top-row {
@@ -121,12 +121,12 @@
 }
 
 .compact-account-name {
-  color: #3d3d38;
+  color: var(--gz-legacy-3d3d38);
   font-weight: 800;
 }
 
 .compact-meta-separator {
-  color: #8a8a80;
+  color: var(--gz-legacy-8a8a80);
   font-weight: 600;
 }
 
@@ -144,7 +144,7 @@
 }
 
 .movement-amount--transfer {
-  color: #2563eb;
+  color: var(--gz-legacy-2563eb);
 }
 
 .compact-action {
@@ -157,7 +157,7 @@
 .date-group-label {
   margin: 2px 0 0;
   padding-top: 8px;
-  border-top: 1px solid #e6e6da;
+  border-top: 1px solid var(--gz-legacy-e6e6da);
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -189,11 +189,11 @@
 }
 
 .tx-badge.income {
-  background: #e8f7ec;
-  color: #176434;
+  background: var(--gz-legacy-e8f7ec);
+  color: var(--gz-legacy-176434);
 }
 
 .tx-badge.expense {
-  background: #f9ebeb;
-  color: #8a2020;
+  background: var(--gz-legacy-f9ebeb);
+  color: var(--gz-legacy-8a2020);
 }

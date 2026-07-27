@@ -244,7 +244,7 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
           },
           data: {
             body: (
-              <form className="stack" onSubmit={submitCreateAccount} aria-busy={submitting}>
+              <form className="vstack gap-2" onSubmit={submitCreateAccount} aria-busy={submitting}>
                 <input
                   aria-label="Account name"
                   value={createName}
@@ -259,7 +259,7 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
                   placeholder="Opening balance (optional)"
                   inputMode="decimal"
                 />
-                <label className="stack">
+                <label className="vstack gap-2">
                   Currency
                   <select
                     aria-label="Currency"
@@ -294,8 +294,8 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
           },
           data: {
             body: (
-              <form className="stack" onSubmit={submitRename} aria-busy={submitting}>
-                <label className="stack">
+              <form className="vstack gap-2" onSubmit={submitRename} aria-busy={submitting}>
+                <label className="vstack gap-2">
                   Account name
                   <input
                     aria-label="Manage account name"
@@ -314,7 +314,7 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
                   </button>
                 </div>
                 <p className="hint">Archived accounts are hidden from the active list and cannot accept new transactions.</p>
-                <button type="button" className="danger-button" onClick={deleteAccount} disabled={submitting}>
+                <button type="button" className="btn btn-danger" onClick={deleteAccount} disabled={submitting}>
                   Delete account
                 </button>
                 <p className="hint">Delete removes the account and all its transactions permanently.</p>

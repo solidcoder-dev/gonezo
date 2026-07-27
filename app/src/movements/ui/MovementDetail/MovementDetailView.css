@@ -53,8 +53,8 @@
   padding: 12px 14px;
   border: 0;
   border-radius: 12px;
-  background: #fff5f5;
-  color: #9b2323;
+  background: var(--gz-legacy-fff5f5);
+  color: var(--gz-legacy-9b2323);
   font: inherit;
   font-weight: 700;
   text-align: left;
@@ -73,7 +73,7 @@
 }
 
 .movement-detail-section-title {
-  color: #77776d;
+  color: var(--gz-legacy-77776d);
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -88,15 +88,15 @@
 }
 
 .movement-detail-hero--expense {
-  background: #fff4f3;
+  background: var(--gz-legacy-fff4f3);
 }
 
 .movement-detail-hero--income {
-  background: #effaf0;
+  background: var(--gz-legacy-effaf0);
 }
 
 .movement-detail-hero--transfer {
-  background: #f1f6ff;
+  background: var(--gz-legacy-f1f6ff);
 }
 
 .movement-detail-hero-top,
@@ -139,7 +139,7 @@
 }
 
 .movement-detail-hero-copy span {
-  color: #6a6a63;
+  color: var(--gz-legacy-6a6a63);
   font-size: 0.92rem;
   font-weight: 600;
 }
@@ -169,7 +169,7 @@
 .movement-detail-group,
 .movement-detail-list {
   display: grid;
-  background: #fff;
+  background: var(--gz-legacy-fff);
 }
 
 .movement-detail-list--details {
@@ -184,9 +184,9 @@
   min-height: 58px;
   padding: 10px 0;
   border: 0;
-  border-bottom: 1px solid #ecece3;
+  border-bottom: 1px solid var(--gz-legacy-ecece3);
   background: transparent;
-  color: #171715;
+  color: var(--gz-legacy-171715);
   font: inherit;
   text-align: left;
 }
@@ -213,7 +213,7 @@
 
 .movement-detail-row-main--stacked small,
 .movement-detail-choice-stack small {
-  color: #6f6f68;
+  color: var(--gz-legacy-6f6f68);
   font-size: 0.84rem;
   font-weight: 600;
 }
@@ -236,7 +236,7 @@
 }
 
 .movement-detail-placeholder {
-  color: #8a8a82;
+  color: var(--gz-legacy-8a8a82);
 }
 
 .movement-detail-chip {
@@ -246,35 +246,35 @@
   min-height: 28px;
   padding: 0 10px;
   border-radius: 999px;
-  background: #f2f2ed;
-  color: #262620;
+  background: var(--gz-legacy-f2f2ed);
+  color: var(--gz-legacy-262620);
   font-size: 0.84rem;
   font-weight: 700;
 }
 
 .movement-detail-chip--filled {
-  background: #edf5ea;
+  background: var(--gz-legacy-edf5ea);
   color: var(--color-brand-strong);
 }
 
 .movement-detail-chip--secondary {
-  background: #f1efe8;
-  color: #615c51;
+  background: var(--gz-legacy-f1efe8);
+  color: var(--gz-legacy-615c51);
 }
 
 .movement-detail-chip--tone-expense {
-  background: #ffe8e5;
-  color: #9b2323;
+  background: var(--gz-legacy-ffe8e5);
+  color: var(--gz-legacy-9b2323);
 }
 
 .movement-detail-chip--tone-income {
-  background: #e3f4e7;
-  color: #245a36;
+  background: var(--gz-legacy-e3f4e7);
+  color: var(--gz-legacy-245a36);
 }
 
 .movement-detail-chip--tone-transfer {
-  background: #e8f0ff;
-  color: #2e5297;
+  background: var(--gz-legacy-e8f0ff);
+  color: var(--gz-legacy-2e5297);
 }
 
 .movement-detail-chip-button {
@@ -333,7 +333,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 14px 0;
-  border-bottom: 1px solid #ecece3;
+  border-bottom: 1px solid var(--gz-legacy-ecece3);
 }
 
 .movement-detail-detail-row:last-child {

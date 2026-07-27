@@ -115,7 +115,7 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
             },
             data: {
               body: (
-                <form className="stack" onSubmit={submitCreateAccount} aria-busy={creating}>
+                <form className="vstack gap-2" onSubmit={submitCreateAccount} aria-busy={creating}>
                   <input
                     aria-label="Account name"
                     value={createName}
@@ -130,7 +130,7 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
                     placeholder="Opening balance (optional)"
                     inputMode="decimal"
                   />
-                  <label className="stack">
+                  <label className="vstack gap-2">
                     Currency
                     <select
                       aria-label="Currency"

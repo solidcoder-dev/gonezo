@@ -8,17 +8,17 @@
   --app-safe-area-right: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right));
   --app-safe-area-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom));
   --app-safe-area-left: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left));
-  --color-background-surface: var(--bs-body-bg);
-  --color-background-muted: var(--bs-light);
-  --color-background-hover: #eef5ec;
-  --color-border-subtle: var(--bs-border-color);
-  --color-border-strong: #d8d2c6;
-  --color-text-primary: var(--bs-body-color);
-  --color-text-secondary: #343830;
-  --color-text-muted: var(--bs-secondary-color);
-  --color-brand: var(--bs-primary);
-  --color-brand-strong: #0f6427;
-  --color-brand-soft: #edf5ea;
+  --color-background-surface: var(--gz-surface);
+  --color-background-muted: var(--gz-surface-muted);
+  --color-background-hover: var(--gz-surface-hover);
+  --color-border-subtle: var(--gz-border);
+  --color-border-strong: var(--gz-border-strong);
+  --color-text-primary: var(--gz-text);
+  --color-text-secondary: var(--bs-secondary-color);
+  --color-text-muted: var(--gz-text-muted);
+  --color-brand: var(--gz-brand);
+  --color-brand-strong: var(--bs-primary-text-emphasis);
+  --color-brand-soft: var(--gz-brand-soft);
   --color-card-surface: rgba(255, 255, 252, 0.94);
   --color-card-inner: rgba(255, 255, 255, 0.92);
   --color-chart-soft: rgba(22, 117, 46, 0.12);
@@ -32,13 +32,13 @@
   --color-status-warning-background: var(--bs-warning-bg-subtle);
   --color-status-warning-border: var(--bs-warning-border-subtle);
   --color-status-danger-text: var(--bs-danger-text-emphasis);
-  --color-status-danger-muted-text: #6d3d3d;
-  --color-status-danger-muted-background: #f7eeee;
-  --color-income: var(--bs-success);
-  --color-income-soft: var(--bs-success-bg-subtle);
-  --color-expense: var(--bs-danger);
-  --color-expense-soft: #fbeceb;
-  --color-divider: #e6e1d7;
+  --color-status-danger-muted-text: var(--gz-legacy-6d3d3d);
+  --color-status-danger-muted-background: var(--gz-legacy-f7eeee);
+  --color-income: var(--gz-income);
+  --color-income-soft: var(--gz-income-soft);
+  --color-expense: var(--gz-expense);
+  --color-expense-soft: var(--gz-expense-soft);
+  --color-divider: var(--gz-border);
   --spacing-0-5: 2px;
   --spacing-1: 4px;
   --spacing-1-5: 6px;
@@ -78,7 +78,8 @@ body,
 body {
   color: var(--color-text-primary);
   font-family: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  background: radial-gradient(circle at 50% -10%, #fff 0, var(--color-background-muted) 58%, #f5f1ea 100%);
+  /* El gradiente conserva la atmósfera visual existente; sus extremos no son colores de componentes. */
+  background: radial-gradient(circle at 50% -10%, var(--bs-white) 0, var(--color-background-muted) 58%, var(--bs-tertiary-bg) 100%);
   min-width: 0;
   overflow-x: hidden;
 }

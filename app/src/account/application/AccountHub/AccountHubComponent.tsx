@@ -62,14 +62,15 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
     return (
       <>
         {error ? (
-          <div className="banner error" role="alert">
+          <div className="alert alert-danger mt-3" role="alert">
             {error}
           </div>
         ) : null}
 
-        <form className="stack section-gap" onSubmit={submitCreateAccount} aria-busy={creating}>
+        <form className="vstack gap-3 section-gap" onSubmit={submitCreateAccount} aria-busy={creating}>
           <h2>Create your first account</h2>
           <input
+            className="form-control"
             aria-label="Account name"
             value={createName}
             onChange={(event) => setCreateName(event.target.value)}
@@ -77,15 +78,17 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
             autoComplete="off"
           />
           <input
+            className="form-control"
             aria-label="Opening balance"
             value={createOpeningBalance}
             onChange={(event) => setCreateOpeningBalance(event.target.value)}
             placeholder="Opening balance (optional)"
             inputMode="decimal"
           />
-          <label className="stack">
+          <label className="d-grid gap-2">
             Currency
             <select
+              className="form-select"
               aria-label="Currency"
               value={createCurrency}
               onChange={(event) => setCreateCurrency(event.target.value)}
@@ -97,14 +100,14 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
               ))}
             </select>
           </label>
-          <button type="submit" disabled={creating}>
+          <button type="submit" className="btn btn-primary w-100" disabled={creating}>
             {creating ? 'Creating account...' : 'Create account'}
           </button>
           <div className="quick-row">
-            <button type="button" className="text-button" onClick={provided.events?.onImportRequested}>
+            <button type="button" className="btn btn-outline-secondary" onClick={provided.events?.onImportRequested}>
               Import backup
             </button>
-            <button type="button" className="text-button" onClick={provided.events?.onBackupRequested}>
+            <button type="button" className="btn btn-outline-secondary" onClick={provided.events?.onBackupRequested}>
               Backup
             </button>
           </div>
@@ -116,7 +119,7 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
   return (
     <>
       {error ? (
-        <div className="banner error" role="alert">
+        <div className="alert alert-danger mt-3" role="alert">
           {error}
         </div>
       ) : null}
@@ -133,8 +136,9 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
             },
             data: {
               body: (
-                <form className="stack" onSubmit={submitCreateAccount} aria-busy={creating}>
+                <form className="vstack gap-3" onSubmit={submitCreateAccount} aria-busy={creating}>
                   <input
+                    className="form-control"
                     aria-label="Account name"
                     value={createName}
                     onChange={(event) => setCreateName(event.target.value)}
@@ -142,15 +146,17 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
                     autoComplete="off"
                   />
                   <input
+                    className="form-control"
                     aria-label="Opening balance"
                     value={createOpeningBalance}
                     onChange={(event) => setCreateOpeningBalance(event.target.value)}
                     placeholder="Opening balance (optional)"
                     inputMode="decimal"
                   />
-                  <label className="stack">
+                  <label className="d-grid gap-2">
                     Currency
                     <select
+                      className="form-select"
                       aria-label="Currency"
                       value={createCurrency}
                       onChange={(event) => setCreateCurrency(event.target.value)}
@@ -162,7 +168,7 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
                       ))}
                     </select>
                   </label>
-                  <button type="submit" disabled={creating}>
+                  <button type="submit" className="btn btn-primary w-100" disabled={creating}>
                     {creating ? 'Creating account...' : 'Create account'}
                   </button>
                 </form>

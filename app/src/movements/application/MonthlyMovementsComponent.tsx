@@ -75,7 +75,7 @@ export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMo
   return (
     <>
       {model.error ? (
-        <div className="banner error" role="alert">
+        <div className="alert alert-danger mt-3" role="alert">
           {model.error}
         </div>
       ) : null}

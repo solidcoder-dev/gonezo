@@ -19,7 +19,7 @@
   padding: 3px;
   border: 0;
   border-radius: 10px;
-  background: #f3f4f1;
+  background: var(--gz-legacy-f3f4f1);
 }
 
 .modeTabs button {
@@ -34,7 +34,7 @@
 
 .modeTabs .activeModeTab {
   background: var(--color-status-success-text);
-  color: #fff;
+  color: var(--gz-legacy-fff);
 }
 
 .summaryCard {
@@ -46,7 +46,7 @@
   border: 1px solid color-mix(in srgb, var(--color-status-success-text) 16%, var(--color-border-subtle));
   border-radius: 16px;
   background:
-    linear-gradient(110deg, color-mix(in srgb, var(--color-status-success-background) 72%, #fff) 0%, #fff 92%);
+    linear-gradient(110deg, color-mix(in srgb, var(--color-status-success-background) 72%, var(--gz-legacy-fff)) 0%, var(--gz-legacy-fff) 92%);
 }
 
 .summaryHeader {
@@ -122,7 +122,7 @@
   padding: 0 12px;
   border: 1px solid color-mix(in srgb, var(--color-status-success-text) 14%, var(--color-border-subtle));
   border-radius: 10px;
-  background: color-mix(in srgb, #fff 72%, var(--color-status-success-background));
+  background: color-mix(in srgb, var(--gz-legacy-fff) 72%, var(--color-status-success-background));
   color: var(--color-text-primary);
   font-weight: 800;
   white-space: nowrap;
@@ -198,10 +198,10 @@
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, #946200 22%, var(--color-border-subtle));
+  border: 1px solid color-mix(in srgb, var(--gz-legacy-946200) 22%, var(--color-border-subtle));
   border-radius: 10px;
-  background: color-mix(in srgb, #fff7d6 72%, #fff);
-  color: #6f4d00;
+  background: color-mix(in srgb, var(--gz-legacy-fff7d6) 72%, var(--gz-legacy-fff));
+  color: var(--gz-legacy-6f4d00);
   font-size: 0.82rem;
   font-weight: 780;
 }
@@ -213,7 +213,7 @@
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: #fff;
+  background: var(--gz-legacy-fff);
   font-size: 1rem;
 }
 
@@ -278,7 +278,7 @@
   padding-right: 12px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 10px;
-  background: #fff;
+  background: var(--gz-legacy-fff);
 }
 
 .itemAmountField input {
@@ -301,7 +301,7 @@
   gap: 8px;
   border: 0;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--color-status-success-background) 78%, #fff);
+  background: color-mix(in srgb, var(--color-status-success-background) 78%, var(--gz-legacy-fff));
   color: var(--color-status-success-text);
   font-size: 0.92rem;
   font-weight: 850;
@@ -326,7 +326,7 @@
   max-height: 196px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 12px;
-  background: #fff;
+  background: var(--gz-legacy-fff);
   align-content: start;
   align-items: start;
   overflow-y: auto;
@@ -344,7 +344,7 @@
   gap: 12px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--color-border-subtle);
-  background: #fff;
+  background: var(--gz-legacy-fff);
   overflow: hidden;
 }
 
@@ -367,13 +367,13 @@
 
 .remainingItem {
   cursor: default;
-  background: color-mix(in srgb, var(--color-status-success-background) 58%, #fff);
+  background: color-mix(in srgb, var(--color-status-success-background) 58%, var(--gz-legacy-fff));
   color: var(--color-status-success-text);
   box-shadow: none;
 }
 
 .remainingItem .itemIcon {
-  background: #fff;
+  background: var(--gz-legacy-fff);
 }
 
 .remainingItem .itemName,
@@ -452,7 +452,7 @@
 .itemList .emptyState {
   border: 0;
   border-radius: 0;
-  background: #fff;
+  background: var(--gz-legacy-fff);
 }
 
 .emptyState i {
@@ -462,7 +462,7 @@
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: color-mix(in srgb, var(--color-status-success-background) 68%, #fff);
+  background: color-mix(in srgb, var(--color-status-success-background) 68%, var(--gz-legacy-fff));
   color: var(--color-status-success-text);
   font-size: 1.3rem;
 }

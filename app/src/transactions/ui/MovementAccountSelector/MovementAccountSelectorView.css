@@ -35,7 +35,7 @@
 }
 
 .movement-account-selector-check {
-  color: var(--accent, #111);
+  color: var(--accent, var(--gz-legacy-111));
   text-align: center;
 }
 
@@ -48,7 +48,7 @@
 }
 
 .movement-account-selector-balance {
-  color: var(--muted, #6b7280);
+  color: var(--muted, var(--gz-legacy-6b7280));
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }

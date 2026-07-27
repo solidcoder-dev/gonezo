@@ -18,7 +18,7 @@
 }
 
 .taxonomy-section-header span {
-  color: #575752;
+  color: var(--gz-legacy-575752);
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -48,9 +48,9 @@
 .taxonomy-token {
   min-height: 38px;
   padding: 5px 5px 5px 12px;
-  border: 1px solid #d8d8cc;
+  border: 1px solid var(--gz-legacy-d8d8cc);
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--gz-legacy-ffffff);
 }
 
 .taxonomy-token-name {
@@ -65,8 +65,8 @@
   flex: 0 0 auto;
   padding: 3px 8px;
   border-radius: 999px;
-  background: #f4f4ef;
-  color: #575752;
+  background: var(--gz-legacy-f4f4ef);
+  color: var(--gz-legacy-575752);
   font-size: 0.72rem;
   font-weight: 700;
   line-height: 1.1;

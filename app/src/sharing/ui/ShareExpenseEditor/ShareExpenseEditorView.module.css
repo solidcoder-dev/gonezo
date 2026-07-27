@@ -39,7 +39,7 @@
   padding: 3px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 10px;
-  background: #f8faf7;
+  background: var(--gz-legacy-f8faf7);
 }
 
 .modeTabs button {
@@ -53,7 +53,7 @@
 }
 
 .modeTabs .activeModeTab {
-  background: color-mix(in srgb, var(--color-status-success-background) 72%, #fff);
+  background: color-mix(in srgb, var(--color-status-success-background) 72%, var(--gz-legacy-fff));
   color: var(--color-status-success-text);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-status-success-text) 18%, transparent);
 }
@@ -105,7 +105,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: #fff;
+  color: var(--gz-legacy-fff);
   font-size: 0.66rem;
   font-weight: 900;
 }
@@ -116,25 +116,25 @@
 
 .avatarEmma,
 .avatarAlexandra {
-  background: #8b5cf6;
+  background: var(--gz-legacy-8b5cf6);
 }
 
 .avatarLuis,
 .avatarAli {
-  background: #0f766e;
+  background: var(--gz-legacy-0f766e);
 }
 
 .avatarMaria {
-  background: #db2777;
+  background: var(--gz-legacy-db2777);
 }
 
 .avatarJohn,
 .avatarAlex {
-  background: #ea580c;
+  background: var(--gz-legacy-ea580c);
 }
 
 .avatarCustom {
-  background: #475569;
+  background: var(--gz-legacy-475569);
 }
 
 .personRow strong {
@@ -165,13 +165,13 @@
   padding: 0;
   border: 0;
   border-radius: 6px;
-  color: #fff;
+  color: var(--gz-legacy-fff);
   background: var(--color-status-success-text);
   font-size: 0.82rem;
 }
 
 .reimburseOff {
-  background: #d1d5db;
+  background: var(--gz-legacy-d1d5db);
   color: var(--color-text-muted);
 }
 
@@ -196,7 +196,7 @@
   align-items: center;
   border: 1px solid var(--color-border-subtle);
   border-radius: 10px;
-  background: #fbfbf8;
+  background: var(--gz-legacy-fbfbf8);
   overflow: hidden;
 }
 
@@ -228,7 +228,7 @@
   padding-right: 8px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 10px;
-  background: #fff;
+  background: var(--gz-legacy-fff);
 }
 
 .amountField input {
@@ -266,7 +266,7 @@
   padding: 12px;
   border: 1px solid color-mix(in srgb, var(--color-status-danger-text) 22%, var(--color-border-subtle));
   border-radius: 12px;
-  background: color-mix(in srgb, var(--color-status-danger-background) 46%, #fff);
+  background: color-mix(in srgb, var(--color-status-danger-background) 46%, var(--gz-legacy-fff));
 }
 
 .amountSummary span {
@@ -311,7 +311,7 @@
   padding: 0 10px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 10px;
-  background: #fff;
+  background: var(--gz-legacy-fff);
   color: var(--color-text-muted);
 }
 
@@ -335,7 +335,7 @@
   padding: 8px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 12px;
-  background: #fff;
+  background: var(--gz-legacy-fff);
   box-shadow: 0 16px 42px rgba(24, 24, 22, 0.16);
 }
 
@@ -354,7 +354,7 @@
 
 .suggestions button:hover,
 .suggestions button:focus-visible {
-  background: #f8faf7;
+  background: var(--gz-legacy-f8faf7);
 }
 
 .suggestions span:not(.avatar) {
@@ -382,8 +382,8 @@
   min-height: 44px;
   border: 0;
   border-radius: 10px;
-  background: #060606;
-  color: #fff;
+  background: var(--gz-legacy-060606);
+  color: var(--gz-legacy-fff);
   font-weight: 860;
 }
 

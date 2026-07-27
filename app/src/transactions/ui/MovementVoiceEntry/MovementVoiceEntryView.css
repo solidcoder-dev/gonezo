@@ -15,7 +15,7 @@
 
 .movement-voice-entry-control--failed {
   border-color: var(--color-status-warning-border);
-  background: #fffaf0;
+  background: var(--gz-legacy-fffaf0);
 }
 
 .movement-voice-entry-status {
@@ -47,7 +47,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #d52b2b;
+  background: var(--gz-legacy-d52b2b);
   flex: 0 0 auto;
 }
 
@@ -65,7 +65,7 @@
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: #727a82;
+  color: var(--gz-legacy-727a82);
   font: inherit;
   touch-action: none;
   user-select: none;
@@ -76,7 +76,7 @@
 }
 
 .movement-voice-entry-microphone--recording {
-  color: #20a34a;
+  color: var(--gz-legacy-20a34a);
   background: rgba(50, 185, 87, 0.1);
 }
 

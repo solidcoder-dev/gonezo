@@ -7,9 +7,9 @@
   display: grid;
   gap: 14px;
   padding: 20px 16px 16px;
-  border: 1px solid #ecece6;
+  border: 1px solid var(--gz-legacy-ecece6);
   border-radius: 18px;
-  background: #fff;
+  background: var(--gz-legacy-fff);
   box-shadow: 0 8px 24px rgb(17 24 39 / 4%);
 }
 
@@ -37,7 +37,7 @@
 
 .metric span,
 .supporting {
-  color: #6d6d66;
+  color: var(--gz-legacy-6d6d66);
   font-size: .72rem;
   font-weight: 700;
   line-height: 1.2;
@@ -46,7 +46,7 @@
 .metric strong {
   min-width: 0;
   overflow-wrap: anywhere;
-  color: #1672e8;
+  color: var(--gz-legacy-1672e8);
   font-size: clamp(.82rem, 3.7vw, 1rem);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
@@ -54,13 +54,13 @@
 
 .metric:last-child strong,
 .negative {
-  color: #e23b30;
+  color: var(--gz-legacy-e23b30);
 }
 
 .chartHeader h2,
 .section h2 {
   margin: 0;
-  color: #22221d;
+  color: var(--gz-legacy-22221d);
   font-size: .95rem;
 }
 
@@ -79,20 +79,20 @@
   min-height: 44px;
   border: 0;
   background: transparent;
-  color: #22221d;
+  color: var(--gz-legacy-22221d);
   font: inherit;
   font-size: 1.55rem;
   font-weight: 400;
 }
 
 .nav button:disabled {
-  color: #b8b8b0;
+  color: var(--gz-legacy-b8b8b0);
 }
 
 .range {
   min-width: 0;
   overflow: hidden;
-  color: #6d6d66;
+  color: var(--gz-legacy-6d6d66);
   font-size: .82rem;
   font-weight: 700;
   text-align: center;
@@ -126,24 +126,24 @@
   height: 32px;
   flex: 0 0 32px;
   border-radius: 999px;
-  background: #e8f5ec;
-  color: #24864d;
+  background: var(--gz-legacy-e8f5ec);
+  color: var(--gz-legacy-24864d);
 }
 
 .expense .icon {
-  background: #fff0ed;
-  color: #d44a3f;
+  background: var(--gz-legacy-fff0ed);
+  color: var(--gz-legacy-d44a3f);
 }
 
 .upcomingItem strong {
   display: block;
-  color: #168d48;
+  color: var(--gz-legacy-168d48);
   font-size: .92rem;
   font-variant-numeric: tabular-nums;
 }
 
 .expense strong {
-  color: #e23b30;
+  color: var(--gz-legacy-e23b30);
 }
 
 .section {
@@ -165,18 +165,18 @@
 }
 
 .insight .icon {
-  background: #eef3ff;
-  color: #3679e8;
+  background: var(--gz-legacy-eef3ff);
+  color: var(--gz-legacy-3679e8);
 }
 
 .insight.expense .icon {
-  background: #fff0ed;
-  color: #d44a3f;
+  background: var(--gz-legacy-fff0ed);
+  color: var(--gz-legacy-d44a3f);
 }
 
 .insight.income .icon {
-  background: #e8f5ec;
-  color: #24864d;
+  background: var(--gz-legacy-e8f5ec);
+  color: var(--gz-legacy-24864d);
 }
 
 .insightText {
@@ -191,25 +191,25 @@
 }
 
 .amount {
-  color: #168d48;
+  color: var(--gz-legacy-168d48);
   font-variant-numeric: tabular-nums;
 }
 
 .expense .amount {
-  color: #e23b30;
+  color: var(--gz-legacy-e23b30);
 }
 
 .loading {
   display: grid;
   min-height: 220px;
   place-items: center;
-  color: #6d6d66;
+  color: var(--gz-legacy-6d6d66);
 }
 
 .error,
 .empty {
   margin: 0;
-  color: #6d6d66;
+  color: var(--gz-legacy-6d6d66);
   font-weight: 700;
 }
 

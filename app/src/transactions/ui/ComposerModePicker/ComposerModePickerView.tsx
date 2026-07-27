@@ -24,7 +24,7 @@ const MODES: Array<{ value: SelectableComposerMode; label: string; iconClassName
 
 export function ComposerModePickerView({ required, provided }: ComposerModePickerViewProps) {
   return (
-    <div className="stack">
+    <div className="vstack gap-2">
       {MODES.map((mode) => (
         <div key={mode.value} className="mode-row">
           <button

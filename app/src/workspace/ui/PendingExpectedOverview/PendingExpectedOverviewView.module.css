@@ -6,8 +6,8 @@
 .card:hover:not(:disabled) { transform: translateY(-1px); }
 .card:focus-visible { outline: 3px solid var(--color-brand-soft); outline-offset: 2px; }
 .card:active:not(:disabled) { transform: translateY(1px); }
-.expense { --card-tone: #8a2020; --card-tone-soft: #fdeceb; --card-surface: #fff5f5; --card-border: #efc8c8; }
-.income { --card-tone: var(--color-brand-strong); --card-tone-soft: #e5f7ea; --card-surface: #f2fbf5; --card-border: #bfe2c9; }
+.expense { --card-tone: var(--gz-legacy-8a2020); --card-tone-soft: var(--gz-legacy-fdeceb); --card-surface: var(--gz-legacy-fff5f5); --card-border: var(--gz-legacy-efc8c8); }
+.income { --card-tone: var(--color-brand-strong); --card-tone-soft: var(--gz-legacy-e5f7ea); --card-surface: var(--gz-legacy-f2fbf5); --card-border: var(--gz-legacy-bfe2c9); }
 .disabled { cursor: default; opacity: .68; }
 .cardHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
 .title { min-width: 0; color: var(--card-tone); font-size: .9rem; font-weight: 780; line-height: 1.15; white-space: nowrap; }

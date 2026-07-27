@@ -71,7 +71,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
   const summaryLabel = groupedByDay ? `${resultsLabel} · Grouped by day · ${sortSummary}` : `${resultsLabel} · ${sortSummary}`;
 
   return (
-    <section className="stack" aria-label="Search results">
+    <section className="vstack gap-2" aria-label="Search results">
       {loading && entries.length === 0 ? <p role="status">Loading movements...</p> : null}
       {!loading || entries.length > 0 ? <p className="hint search-results-summary">{summaryLabel}</p> : null}
       {!loading && entries.length === 0 ? <p>No movements match these filters.</p> : null}

@@ -80,7 +80,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
     <>
       {!showTransferFields && amountVisible ? (
         <>
-          <label className="stack composer-amount-field">
+          <label className="vstack gap-2 composer-amount-field">
             <span className="visually-hidden">{amountLabel}</span>
             <input
               ref={amountInputRef}
@@ -105,7 +105,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
       {!showTransferFields ? afterAmount : null}
 
       {showTransferFields ? (
-        <label className="stack">
+        <label className="vstack gap-2">
           <span className="visually-hidden">Destination account</span>
           <select
             aria-label="Destination account"
@@ -124,7 +124,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
 
       {showTransferFields && amountVisible ? (
         <>
-          <label className="stack composer-amount-field">
+          <label className="vstack gap-2 composer-amount-field">
             <span className="visually-hidden">{amountLabel}</span>
             <input
               ref={amountInputRef}
@@ -145,7 +145,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
           {status.amountError ? <p id="composer-amount-error" className="field-error">{status.amountError}</p> : null}
           {afterAmount}
 
-          <label className="stack">
+          <label className="vstack gap-2">
             <span className="visually-hidden">{noteLabel}</span>
             <input
               aria-label={noteLabel}
@@ -158,7 +158,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
       ) : null}
 
       {!showTransferFields ? (
-        <label className="stack">
+        <label className="vstack gap-2">
           <span className="visually-hidden">{noteLabel}</span>
           <input
             aria-label={noteLabel}

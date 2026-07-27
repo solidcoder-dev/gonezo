@@ -11,9 +11,9 @@
   transform: translateX(-50%);
   border: 0;
   border-radius: 999px;
-  background: #20201e;
+  background: var(--gz-legacy-20201e);
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
-  color: #fff;
+  color: var(--gz-legacy-fff);
   font-size: 24px;
 }
 
@@ -22,7 +22,7 @@
 }
 
 .floating-action-button:active:not(:disabled) {
-  background: #2b2b28;
+  background: var(--gz-legacy-2b2b28);
 }
 
 .floating-action-button:focus-visible {

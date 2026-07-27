@@ -19,7 +19,7 @@
 }
 
 .share-summary-chip {
-  background: color-mix(in srgb, var(--color-status-success-background) 50%, #fff);
+  background: color-mix(in srgb, var(--color-status-success-background) 50%, var(--gz-legacy-fff));
   color: var(--color-status-success-text);
 }
 

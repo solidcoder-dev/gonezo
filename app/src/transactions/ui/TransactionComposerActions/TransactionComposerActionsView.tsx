@@ -47,7 +47,7 @@ export function TransactionComposerActionsView({ required }: TransactionComposer
         type="submit"
         name="transactionIntent"
         value={primaryIntent}
-        className="primary-cta"
+        className="btn btn-primary w-100"
         disabled={disabled}
       >
         {submitLabel(required.state)}

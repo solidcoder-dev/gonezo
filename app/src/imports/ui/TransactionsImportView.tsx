@@ -16,19 +16,21 @@ export function TransactionsImportView({ required, provided }: TransactionsImpor
 
   return (
     <div className="import-sheet-content">
-      <form className="stack" onSubmit={provided.commands.submit} aria-busy={isSubmitting}>
-        <label className="inline-checkbox">
+      <form className="vstack gap-3" onSubmit={provided.commands.submit} aria-busy={isSubmitting}>
+        <label className="form-check d-flex align-items-center gap-2">
           <input
             type="checkbox"
+            className="form-check-input"
             checked={isMobillsImport}
             onChange={(event) => provided.commands.setUseMobillsImport(event.target.checked)}
           />
           Import Mobills TSV/CSV
         </label>
 
-        <label className="stack">
+        <label className="d-grid gap-2">
           {fileLabel}
           <input
+            className="form-control"
             aria-label={fileLabel}
             type="file"
             accept={isMobillsImport
@@ -41,34 +43,38 @@ export function TransactionsImportView({ required, provided }: TransactionsImpor
 
         {isMobillsImport ? (
           <>
-            <label className="inline-checkbox">
+            <label className="form-check d-flex align-items-center gap-2">
               <input
                 type="checkbox"
+                className="form-check-input"
                 checked={required.state.policy.createMissingAccounts}
                 onChange={(event) => provided.commands.setCreateMissingAccounts(event.target.checked)}
               />
               Create missing accounts
             </label>
-            <label className="inline-checkbox">
+            <label className="form-check d-flex align-items-center gap-2">
               <input
                 type="checkbox"
+                className="form-check-input"
                 checked={required.state.policy.createMissingCategories}
                 onChange={(event) => provided.commands.setCreateMissingCategories(event.target.checked)}
               />
               Create missing categories
             </label>
-            <label className="inline-checkbox">
+            <label className="form-check d-flex align-items-center gap-2">
               <input
                 type="checkbox"
+                className="form-check-input"
                 checked={required.state.policy.createMissingTags}
                 onChange={(event) => provided.commands.setCreateMissingTags(event.target.checked)}
               />
               Create missing tags
             </label>
 
-            <label className="stack">
+            <label className="d-grid gap-2">
               Duplicate transactions
               <select
+                className="form-select"
                 aria-label="Duplicate transactions"
                 value={required.state.policy.duplicatePolicy}
                 onChange={(event) => provided.commands.setDuplicatePolicy(event.target.value as 'skip' | 'fail' | 'import_anyway')}
@@ -81,19 +87,19 @@ export function TransactionsImportView({ required, provided }: TransactionsImpor
           </>
         ) : null}
 
-        <button type="submit" disabled={isSubmitting}>
+        <button type="submit" className="btn btn-primary w-100" disabled={isSubmitting}>
           {isSubmitting ? 'Importing...' : isMobillsImport ? 'Import Mobills file' : 'Import backup'}
         </button>
       </form>
 
       {required.status.error ? (
-        <div className="banner error" role="alert">
+        <div className="alert alert-danger mt-3" role="alert">
           {required.status.error}
         </div>
       ) : null}
 
       {required.state.result ? (
-        <section className="stack section-gap" aria-label="Import summary">
+        <section className="vstack gap-2 section-gap" aria-label="Import summary">
           <TransactionsImportSummaryView
             required={{
               result: required.state.result,

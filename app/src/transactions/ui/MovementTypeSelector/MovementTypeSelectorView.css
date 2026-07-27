@@ -30,7 +30,7 @@
 }
 
 .movement-type-selector-check {
-  color: var(--accent, #111);
+  color: var(--accent, var(--gz-legacy-111));
   text-align: center;
 }
 

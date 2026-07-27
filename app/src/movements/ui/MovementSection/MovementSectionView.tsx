@@ -30,7 +30,7 @@ export function MovementSectionView({ required, provided }: MovementSectionViewP
   const renderBody = !state.collapsible || state.expanded;
 
   return (
-    <div className="stack" aria-label={config.ariaLabel}>
+    <div className="vstack gap-2" aria-label={config.ariaLabel}>
       {state.collapsible && hasItems ? (
         <button
           type="button"

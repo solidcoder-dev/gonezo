@@ -164,15 +164,12 @@
 
 .skeletonLine {
   display: block;
-  background: linear-gradient(90deg, rgba(32, 32, 30, 0.06), rgba(32, 32, 30, 0.12), rgba(32, 32, 30, 0.06));
-  background-size: 180% 100%;
-  animation: skeletonPulse 1.2s ease-in-out infinite;
-}
-
-.skeletonLine {
   width: 100%;
   height: 34px;
   border-radius: 999px;
+  background: linear-gradient(90deg, rgba(32, 32, 30, 0.06), rgba(32, 32, 30, 0.12), rgba(32, 32, 30, 0.06));
+  background-size: 180% 100%;
+  animation: skeletonPulse 1.2s ease-in-out infinite;
 }
 
 .categoryList {
@@ -195,7 +192,7 @@
   width: 42px;
   height: 42px;
   border-radius: 999px;
-  color: #20201c;
+  color: var(--gz-legacy-20201c);
   font-size: 1.05rem;
 }
 
@@ -240,7 +237,7 @@
   height: 6px;
   overflow: hidden;
   border-radius: 999px;
-  background: #e7e7e2;
+  background: var(--gz-legacy-e7e7e2);
 }
 
 .progressFill {

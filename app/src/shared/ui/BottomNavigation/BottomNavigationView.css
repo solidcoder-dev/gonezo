@@ -25,7 +25,7 @@
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: #525b64;
+  color: var(--gz-legacy-525b64);
   font: inherit;
   font-size: 1.42rem;
   line-height: 1;
@@ -43,7 +43,7 @@
 }
 
 .bottom-navigation-item--active {
-  color: #2ea84f;
+  color: var(--gz-legacy-2ea84f);
 }
 
 .bottom-navigation-item:first-child {
@@ -61,7 +61,7 @@
   width: 22px;
   height: 4px;
   border-radius: 999px;
-  background: #2ea84f;
+  background: var(--gz-legacy-2ea84f);
   content: '';
   transform: translateX(-50%);
 }
@@ -70,9 +70,9 @@
   width: 66px;
   height: 66px;
   margin: -33px 18px 0;
-  border: 4px solid #fff;
-  background: linear-gradient(180deg, #32b957 0%, #20a34a 100%);
-  color: #fff;
+  border: 4px solid var(--gz-legacy-fff);
+  background: linear-gradient(180deg, var(--gz-legacy-32b957) 0%, var(--gz-legacy-20a34a) 100%);
+  color: var(--gz-legacy-fff);
   font-size: 2.04rem;
   box-shadow: 0 13px 24px rgba(19, 74, 39, 0.16), 0 4px 11px rgba(19, 74, 39, 0.11);
 }

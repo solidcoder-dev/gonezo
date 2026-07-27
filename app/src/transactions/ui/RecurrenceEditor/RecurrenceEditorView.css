@@ -97,8 +97,8 @@
 }
 
 .composer-recurring-summary-row:disabled .composer-recurring-icon {
-  background: #f2f2ed;
-  color: #9b9b91;
+  background: var(--gz-legacy-f2f2ed);
+  color: var(--gz-legacy-9b9b91);
 }
 
 .composer-recurring-summary-label {
@@ -128,7 +128,7 @@
   width: 100%;
   min-height: 58px;
   border-radius: 14px;
-  background: #181817;
+  background: var(--gz-legacy-181817);
   font-size: 1rem;
   font-weight: 790;
 }
@@ -166,7 +166,7 @@
   width: 18px;
   height: 18px;
   box-sizing: border-box;
-  border: 1.5px solid #c9c9c0;
+  border: 1.5px solid var(--gz-legacy-c9c9c0);
   border-radius: 999px;
 }
 

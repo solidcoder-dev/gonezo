@@ -274,7 +274,7 @@ export function MovementVoiceEntryComponent({ required, provided = {} }: Movemen
                 </button>
                 <button
                   type="button"
-                  className="primary-cta"
+                  className="btn btn-primary w-100"
                   onClick={async () => {
                     setExportDiagnosticsOpen(false);
                     const outcome = await voiceModel.commands.exportVoiceRun();

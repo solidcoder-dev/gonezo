@@ -12,9 +12,9 @@
   overflow: hidden;
   transform: translateX(-50%);
   border-radius: 999px;
-  background: #20201e;
+  background: var(--gz-legacy-20201e);
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
-  color: #fff;
+  color: var(--gz-legacy-fff);
 }
 
 .split-floating-action.is-disabled {

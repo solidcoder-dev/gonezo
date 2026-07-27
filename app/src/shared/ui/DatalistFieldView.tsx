@@ -33,7 +33,7 @@ export function DatalistFieldView({ required, provided }: DatalistFieldViewProps
   const { config, data, state, status } = required;
 
   return (
-    <label className="stack">
+    <label className="vstack gap-2">
       {config.label}
       <input
         aria-label={config.ariaLabel ?? config.label}

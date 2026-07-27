@@ -128,7 +128,7 @@ export function MovementVoicePermissionDialog({
           </button>
           <button
             type="button"
-            className="primary-cta"
+            className="btn btn-primary w-100"
             onClick={onSafeAction}
             disabled={busy}
           >

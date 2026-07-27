@@ -111,12 +111,12 @@ export function MovementsSearchPage({ required, provided }: MovementsSearchPageP
 
       {loading ? <p role="status">Loading accounts...</p> : null}
       {!loading && error ? (
-        <div className="banner error" role="alert">
+        <div className="alert alert-danger mt-3" role="alert">
           {error}
         </div>
       ) : null}
       {searchModel.error ? (
-        <div className="banner error" role="alert">
+        <div className="alert alert-danger mt-3" role="alert">
           {searchModel.error}
         </div>
       ) : null}

@@ -38,8 +38,8 @@
   min-height: 40px;
   padding: 6px 10px;
   border-radius: 8px;
-  background: #f7f7f1;
-  color: #1d1d1b;
+  background: var(--gz-legacy-f7f7f1);
+  color: var(--gz-legacy-1d1d1b);
 }
 
 .month-nav-trigger-label {
@@ -71,9 +71,9 @@
   display: grid;
   gap: 6px;
   padding: 8px;
-  border: 1px solid #d8d8cc;
+  border: 1px solid var(--gz-legacy-d8d8cc);
   border-radius: 8px;
-  background: #fff;
+  background: var(--gz-legacy-fff);
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
 }
 

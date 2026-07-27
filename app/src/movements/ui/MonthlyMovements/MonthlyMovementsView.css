@@ -41,7 +41,7 @@
 
 .monthly-movements-tab:active:not(:disabled),
 .monthly-timeline-row__button:active:not(:disabled) {
-  background: #e4eee1;
+  background: var(--gz-legacy-e4eee1);
 }
 
 .monthly-movements-tab:focus-visible,
@@ -134,7 +134,7 @@
 }
 
 .monthly-timeline-row__icon--expense {
-  background: #f9ebeb;
+  background: var(--gz-legacy-f9ebeb);
   color: var(--color-status-danger-text);
 }
 
@@ -213,7 +213,7 @@
 .monthly-timeline-skeleton__row {
   display: block;
   border-radius: 6px;
-  background: #e9e8df;
+  background: var(--gz-legacy-e9e8df);
   animation: monthly-timeline-pulse 1.3s ease-in-out infinite alternate;
 }
 

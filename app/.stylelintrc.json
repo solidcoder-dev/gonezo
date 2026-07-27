@@ -1,0 +1,30 @@
+{
+  "customSyntax": "postcss-scss",
+  "plugins": ["stylelint-scss"],
+  "ignoreFiles": [
+    "node_modules/**/*.css",
+    "dist/**/*.css",
+    "build/**/*.css"
+  ],
+  "overrides": [
+    {
+      "files": ["src/styles/bootstrap.scss", "src/styles/_gonezo-tokens.scss"],
+      "rules": {
+        "color-no-hex": null,
+        "color-function-notation": null
+      }
+    }
+  ],
+  "rules": {
+    "color-no-hex": true,
+    "color-function-notation": null,
+    "declaration-block-no-duplicate-properties": true,
+    "no-duplicate-selectors": true,
+    "selector-disallowed-list": [
+      "/^button$/",
+      "/^input$/",
+      "/^select$/",
+      "/^textarea$/"
+    ]
+  }
+}

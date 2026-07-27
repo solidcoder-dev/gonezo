@@ -89,7 +89,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
   }
 
   return (
-    <section className="stack section-gap transactions-section" aria-busy={loading}>
+    <section className="vstack gap-2 section-gap transactions-section" aria-busy={loading}>
       <MonthNavigatorView
         required={{ monthLabel, disabled, monthMenuOpen, isCurrentMonth }}
         provided={{

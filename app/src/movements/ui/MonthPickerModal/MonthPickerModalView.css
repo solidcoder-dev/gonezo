@@ -16,7 +16,7 @@
   padding: 12px;
   box-sizing: border-box;
   border-radius: 16px;
-  background: #fff;
+  background: var(--gz-legacy-fff);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
 }
 

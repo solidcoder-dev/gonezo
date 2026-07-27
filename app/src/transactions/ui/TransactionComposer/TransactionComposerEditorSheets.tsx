@@ -151,7 +151,7 @@ export function TransactionComposerEditorSheets({ required, provided }: Transact
           },
           data: {
             body: (
-              <div className="stack composer-items-editor">
+              <div className="vstack gap-2 composer-items-editor">
                 <ItemBreakdownEditorView
                   required={{
                     config: {},

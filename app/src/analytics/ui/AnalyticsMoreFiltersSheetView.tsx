@@ -68,6 +68,7 @@ export function AnalyticsMoreFiltersSheetView({ required, provided }: AnalyticsM
                 <label className={styles.accountSelectField}>
                   <i className="bi bi-wallet2" aria-hidden />
                   <select
+                    className="form-select"
                     aria-label="Analytics account"
                     value={selectedAccountId}
                     onChange={(event) => provided.commands.setDraftAccountIds(

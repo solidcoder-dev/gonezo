@@ -4,7 +4,7 @@
 }
 
 .category-picker-label {
-  color: #2f2f2a;
+  color: var(--gz-legacy-2f2f2a);
   font-size: 0.78rem;
   font-weight: 600;
 }
@@ -35,10 +35,10 @@
   height: 34px;
   min-height: 34px;
   padding: 0 10px;
-  border: 1px solid #c9c9c0;
+  border: 1px solid var(--gz-legacy-c9c9c0);
   border-radius: 999px;
-  background: #fff;
-  color: #1d1d1b;
+  background: var(--gz-legacy-fff);
+  color: var(--gz-legacy-1d1d1b);
 }
 
 .category-chip span {
@@ -49,9 +49,9 @@
 }
 
 .category-chip.selected {
-  border-color: #1d1d1b;
-  background: #1d1d1b;
-  color: #fff;
+  border-color: var(--gz-legacy-1d1d1b);
+  background: var(--gz-legacy-1d1d1b);
+  color: var(--gz-legacy-fff);
 }
 
 .category-chip .bi {

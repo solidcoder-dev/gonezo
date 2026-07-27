@@ -41,5 +41,5 @@
   height: 4px;
   margin: 0 auto 4px;
   border-radius: 999px;
-  background: #c9c9c0;
+  background: var(--gz-legacy-c9c9c0);
 }

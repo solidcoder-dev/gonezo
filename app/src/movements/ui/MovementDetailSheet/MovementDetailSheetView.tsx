@@ -56,10 +56,10 @@ function actionClassName(variant: MovementDetailActionView['variant']): string |
     return 'text-button';
   }
   if (variant === 'danger') {
-    return 'danger-button';
+    return 'btn btn-danger';
   }
   if (variant === 'text-danger') {
-    return 'text-button danger-button';
+    return 'btn btn-outline-danger';
   }
   return undefined;
 }

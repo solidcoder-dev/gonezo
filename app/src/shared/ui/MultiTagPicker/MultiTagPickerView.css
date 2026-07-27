@@ -14,9 +14,9 @@
   height: 42px;
   min-height: 42px;
   padding: 0 10px;
-  border: 1px solid var(--color-border-subtle, #deded6);
+  border: 1px solid var(--color-border-subtle, var(--gz-legacy-deded6));
   border-radius: var(--radius-md, 8px);
-  background: var(--color-background-surface, #fff);
+  background: var(--color-background-surface, var(--gz-legacy-fff));
 }
 
 .multi-tag-picker-selected {
@@ -107,9 +107,9 @@
   min-height: 34px;
   padding: 0 10px;
   overflow: hidden;
-  border: 1px solid var(--color-border-subtle, #deded6);
+  border: 1px solid var(--color-border-subtle, var(--gz-legacy-deded6));
   border-radius: 999px;
-  background: var(--color-background-surface, #fff);
+  background: var(--color-background-surface, var(--gz-legacy-fff));
   color: inherit;
   font: inherit;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);

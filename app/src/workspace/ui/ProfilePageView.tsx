@@ -10,10 +10,10 @@ export function ProfilePageView({ required, provided }: ProfilePageViewProps) {
   return (
     <div className="profile-page">
       <section className="profile-section">
-        <label className="stack">
+        <label className="d-grid gap-2">
           Favorite account
           <select
-            className="profile-select"
+            className="form-select profile-select"
             aria-label="Favorite account"
             value={required.state.favoriteAccountId}
             disabled={required.status.disabled}
@@ -32,16 +32,16 @@ export function ProfilePageView({ required, provided }: ProfilePageViewProps) {
       <section className="profile-section">
         <h2>Global actions</h2>
         <div className="profile-actions">
-          <button type="button" className="text-button" disabled={required.status.disabled} onClick={provided.commands.addAccount}>
+          <button type="button" className="btn btn-outline-secondary" disabled={required.status.disabled} onClick={provided.commands.addAccount}>
             Add account
           </button>
-          <button type="button" className="text-button" disabled={required.status.disabled} onClick={provided.commands.importBackup}>
+          <button type="button" className="btn btn-outline-secondary" disabled={required.status.disabled} onClick={provided.commands.importBackup}>
             Import backup
           </button>
-          <button type="button" className="text-button" disabled={required.status.disabled} onClick={provided.commands.exportBackup}>
+          <button type="button" className="btn btn-outline-secondary" disabled={required.status.disabled} onClick={provided.commands.exportBackup}>
             Backup
           </button>
-          <button type="button" className="text-button" disabled={required.status.disabled} onClick={provided.commands.manageTaxonomy}>
+          <button type="button" className="btn btn-outline-secondary" disabled={required.status.disabled} onClick={provided.commands.manageTaxonomy}>
             Taxonomy
           </button>
         </div>

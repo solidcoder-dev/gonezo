@@ -3,13 +3,13 @@
 .accountRow:last-child { border-bottom: 0; }
 .accountMain { display: flex; flex: 1; align-items: center; min-width: 0; gap: 12px; padding: 10px 12px; border: 0; background: transparent; color: var(--color-text-primary); text-align: left; cursor: pointer; }
 .accountMain:focus-visible, .settingsButton:focus-visible { outline: 3px solid var(--color-brand); outline-offset: -3px; }
-.accountMain:disabled { color: #8e8e86; cursor: not-allowed; }
+.accountMain:disabled { color: var(--gz-legacy-8e8e86); cursor: not-allowed; }
 .accountIcon { flex: 0 0 20px; color: var(--color-brand); font-size: 20px; }
 .details { display: grid; min-width: 0; gap: 3px; }
 .name { overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .balance { margin-left: auto; font-weight: 700; white-space: nowrap; }
-.meta { display: flex; flex-wrap: wrap; gap: 8px; color: #74746b; font-size: .78rem; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; color: var(--gz-legacy-74746b); font-size: .78rem; }
 .settingsButton { flex: 0 0 44px; min-width: 44px; padding: 0; border: 0; background: transparent; color: var(--color-brand); cursor: pointer; }
-.archived { color: #74746b; }
-.archivedRow .accountIcon { color: #8e8e86; }
-.message { margin: 0; color: #74746b; }
+.archived { color: var(--gz-legacy-74746b); }
+.archivedRow .accountIcon { color: var(--gz-legacy-8e8e86); }
+.message { margin: 0; color: var(--gz-legacy-74746b); }
