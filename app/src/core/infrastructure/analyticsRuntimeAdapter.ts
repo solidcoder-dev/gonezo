@@ -6,12 +6,6 @@ import type {
   AnalyticsGetFilterFacetsInput,
   AnalyticsGetFilterFacetsResult,
   AnalyticsListCurrenciesResult,
-  AnalyticsFlowInsightsInput,
-  AnalyticsFlowInsightsResult,
-  AnalyticsFlowProjectionInput,
-  AnalyticsFlowProjectionResult,
-  AnalyticsFlowUpcomingInput,
-  AnalyticsFlowUpcomingResult,
   AnalyticsListIgnoredMovementsResult,
   AnalyticsListMovementFactsInput,
   AnalyticsListMovementFactsResult,
@@ -32,14 +26,14 @@ import type {
   AnalyticsSpendingReport,
   AnalyticsTopExpensesInput,
   AnalyticsTopExpensesResult,
+  AnalyticsFlowReportInput,
+  AnalyticsFlowReport,
 } from '../../analytics/application/analytics.port';
 import type { LedgerGetCashFlowSeriesResult } from '../../ledger/application/ledger.port';
 import {
   analyticsGetCashFlowSeries,
   analyticsGetFilterFacets,
-  analyticsGetFlowInsights,
-  analyticsGetFlowProjection,
-  analyticsGetFlowUpcoming,
+  analyticsGetFlowReport,
   analyticsGetOverviewInsights,
   analyticsGetOverviewSnapshot,
   analyticsGetSpendingDashboard,
@@ -121,16 +115,8 @@ export class AnalyticsRuntimeAdapter {
     return isNativeRuntime() ? analyticsGetAnalyticsTopExpenses(this.queries, input) : this.web.analyticsGetAnalyticsTopExpenses(input);
   }
 
-  analyticsGetFlowProjection(input: AnalyticsFlowProjectionInput): Promise<AnalyticsFlowProjectionResult> {
-    return isNativeRuntime() ? analyticsGetFlowProjection(this.queries, input) : this.web.analyticsGetFlowProjection(input);
-  }
-
-  analyticsGetFlowUpcoming(input: AnalyticsFlowUpcomingInput): Promise<AnalyticsFlowUpcomingResult> {
-    return isNativeRuntime() ? analyticsGetFlowUpcoming(this.queries, input) : this.web.analyticsGetFlowUpcoming(input);
-  }
-
-  analyticsGetFlowInsights(input: AnalyticsFlowInsightsInput): Promise<AnalyticsFlowInsightsResult> {
-    return isNativeRuntime() ? analyticsGetFlowInsights(this.queries, input) : this.web.analyticsGetFlowInsights(input);
+  analyticsGetFlowReport(input: AnalyticsFlowReportInput): Promise<AnalyticsFlowReport> {
+    return isNativeRuntime() ? analyticsGetFlowReport(this.queries, input) : this.web.analyticsGetFlowReport(input);
   }
 
   analyticsSetMovementIgnored(input: AnalyticsSetMovementIgnoredInput): Promise<void> {

@@ -1,10 +1,8 @@
 import type { AnalyticsFilters, AnalyticsPeriod } from './analyticsFilters';
-import { normalizeAnalyticsPeriodInput } from './analyticsFilters';
+import { normalizeAnalyticsPeriodSelection, type AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 
-export type AnalyticsPeriodSelection = {
-  period: AnalyticsPeriod;
-  shift: number;
-};
+export type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
+export { normalizeAnalyticsPeriodSelection } from './analyticsPeriodSelection';
 
 export type AnalyticsSpendingPeriodWindow = {
   start: string;
@@ -122,13 +120,6 @@ function rangeToWindow(range: { from: string; to: string }, selection: Analytics
     selection,
     canGoPrevious: true,
     canGoNext: selection.shift < 0,
-  };
-}
-
-export function normalizeAnalyticsPeriodSelection(input: Partial<AnalyticsPeriodSelection> & { period: AnalyticsPeriod }): AnalyticsPeriodSelection {
-  return {
-    period: normalizeAnalyticsPeriodInput(input.period),
-    shift: Math.min(0, Math.trunc(input.shift ?? 0)),
   };
 }
 

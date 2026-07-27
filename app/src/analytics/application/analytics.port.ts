@@ -2,11 +2,12 @@ import type { LedgerCashFlowGranularity, LedgerGetCashFlowSeriesResult } from '.
 import type { AnalyticsFiltersInput } from './analyticsFilters';
 import type {
   AnalyticsCategoryReference,
-  AnalyticsPeriodSelection,
   AnalyticsSpendingMovement,
   AnalyticsSpendingReport,
   AnalyticsSpendingPeriodWindow,
 } from './spendingReport';
+import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
+import type { AnalyticsFlowReport } from './analyticsFlowReport';
 
 export type AnalyticsCurrencyScopeInput = {
   currency: string;
@@ -253,6 +254,9 @@ export type AnalyticsFlowInsightsResult = {
   items: AnalyticsFlowInsightItem[];
 };
 
+export type AnalyticsFlowReportInput = AnalyticsCurrencyScopeInput & { periodSelection: AnalyticsPeriodSelection };
+export type { AnalyticsFlowReport, AnalyticsPeriodSelection };
+
 export type AnalyticsSetMovementIgnoredInput =
   | { source: 'posted'; transactionId: string; ignored: boolean; changedAt?: string }
   | { source: 'expected'; expectedMovementId: string; ignored: boolean; changedAt?: string }
@@ -276,9 +280,10 @@ export type AnalyticsPort = {
   analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult>;
   analyticsGetSpendingReport?: (input: AnalyticsSpendingReportInput) => Promise<AnalyticsSpendingReport>;
   analyticsGetAnalyticsTopExpenses?: (input: AnalyticsTopExpensesInput) => Promise<AnalyticsTopExpensesResult>;
-  analyticsGetFlowProjection(input: AnalyticsFlowProjectionInput): Promise<AnalyticsFlowProjectionResult>;
-  analyticsGetFlowUpcoming(input: AnalyticsFlowUpcomingInput): Promise<AnalyticsFlowUpcomingResult>;
-  analyticsGetFlowInsights(input: AnalyticsFlowInsightsInput): Promise<AnalyticsFlowInsightsResult>;
+  analyticsGetFlowReport?: (input: AnalyticsFlowReportInput) => Promise<AnalyticsFlowReport>;
+  analyticsGetFlowProjection?: (input: AnalyticsFlowProjectionInput) => Promise<AnalyticsFlowProjectionResult>;
+  analyticsGetFlowUpcoming?: (input: AnalyticsFlowUpcomingInput) => Promise<AnalyticsFlowUpcomingResult>;
+  analyticsGetFlowInsights?: (input: AnalyticsFlowInsightsInput) => Promise<AnalyticsFlowInsightsResult>;
   analyticsSetMovementIgnored(input: AnalyticsSetMovementIgnoredInput): Promise<void>;
   analyticsListIgnoredMovements(): Promise<AnalyticsListIgnoredMovementsResult>;
 };
@@ -307,4 +312,4 @@ export type AnalyticsTopExpensesResult = {
   totalCount: number;
 };
 
-export type { AnalyticsCategoryReference, AnalyticsPeriodSelection, AnalyticsSpendingMovement, AnalyticsSpendingReport, AnalyticsSpendingPeriodWindow };
+export type { AnalyticsCategoryReference, AnalyticsSpendingMovement, AnalyticsSpendingReport, AnalyticsSpendingPeriodWindow };

@@ -62,9 +62,7 @@ export class CoreAdapter implements CorePort {
   analyticsGetSpendingReport = this.analytics.analyticsGetSpendingReport.bind(this.analytics);
   analyticsGetAnalyticsTopExpenses = this.analytics.analyticsGetAnalyticsTopExpenses.bind(this.analytics);
   analyticsGetSpendingOverview = this.analytics.analyticsGetSpendingOverview.bind(this.analytics);
-  analyticsGetFlowProjection = this.analytics.analyticsGetFlowProjection.bind(this.analytics);
-  analyticsGetFlowUpcoming = this.analytics.analyticsGetFlowUpcoming.bind(this.analytics);
-  analyticsGetFlowInsights = this.analytics.analyticsGetFlowInsights.bind(this.analytics);
+  analyticsGetFlowReport = this.analytics.analyticsGetFlowReport.bind(this.analytics);
   analyticsSetMovementIgnored = this.analytics.analyticsSetMovementIgnored.bind(this.analytics);
   analyticsListIgnoredMovements = this.analytics.analyticsListIgnoredMovements.bind(this.analytics);
   analyticsListMovementFacts = this.analytics.analyticsListMovementFacts.bind(this.analytics);

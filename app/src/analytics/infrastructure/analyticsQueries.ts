@@ -26,6 +26,7 @@ import {
   buildSpendingTopExpenses,
   listAnalyticsCurrencies,
 } from '../application/analyticsBuilders';
+import { buildAnalyticsFlowReport, type AnalyticsFlowFact } from '../application/analyticsFlowReport';
 import {
   buildAnalyticsSpendingReport,
   normalizeAnalyticsPeriodSelection,
@@ -63,6 +64,8 @@ import type {
   AnalyticsSpendingReportInput,
   AnalyticsTopExpensesInput,
   AnalyticsTopExpensesResult,
+  AnalyticsFlowReportInput,
+  AnalyticsFlowReport,
 } from '../application/analytics.port';
 import {
   normalizeAnalyticsFilters,
@@ -674,6 +677,42 @@ export async function analyticsGetFlowProjection(
     postedTransactions: transactions.transactions,
     scheduledMovements: [],
     now,
+  });
+}
+
+function flowFact(transaction: Awaited<ReturnType<typeof listAnalyticsMovements>>['transactions'][number], currency: string, amountMode: 'personal' | 'full'): AnalyticsFlowFact | undefined {
+  const source = transaction.reference?.source;
+  if (!source || transaction.type === 'transfer') return undefined;
+  return { id: transaction.analyticsFactId ?? transaction.id, source, effectiveAt: transaction.occurredAt, accountId: transaction.accountId, type: transaction.type, amount: { value: amountMode === 'full' ? transaction.analyticsFullAmount : transaction.analyticsPersonalAmount, currency } };
+}
+
+export async function analyticsGetFlowReport(port: AnalyticsQueryPort, input: AnalyticsFlowReportInput): Promise<AnalyticsFlowReport> {
+  const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
+  if (scope.selectedAccountIds.length === 0) throw new Error('No compatible accounts for this currency');
+  const now = new Date();
+  const selection = normalizeAnalyticsPeriodSelection(input.periodSelection);
+  const window = resolveAnalyticsSpendingWindow(selection, now.toISOString().slice(0, 10), undefined, scope.filters.includePlannedMovements);
+  const windowDates = { start: new Date(`${window.start}T00:00:00.000Z`), end: new Date(`${window.endExclusive}T00:00:00.000Z`) };
+  const [accounts, balanceMovements, selectedMovements] = await Promise.all([
+    selectedAccountSummaries(port, scope.selectedAccountIds),
+    listAnalyticsMovements(port, { accountIds: scope.selectedAccountIds, filters: analyticsTransactionFilters(scope.filters, undefined, false), includeIgnoredMovements: true, sharedAmountMode: 'full' }),
+    listAnalyticsMovements(port, { accountIds: scope.selectedAccountIds, filters: analyticsTransactionFilters(scope.filters, windowDates, true), includeIgnoredMovements: scope.filters.includeIgnoredMovements, sharedAmountMode: scope.filters.sharedAmountMode }),
+  ]);
+  const currency = input.currency.trim().toUpperCase();
+  const currentCents = accounts.reduce((sum, account) => sum + Math.round(Number(account.balanceAmount) * 100), 0);
+  const postedBalanceFacts = balanceMovements.transactions.map((transaction) => flowFact(transaction, currency, 'full')).filter((fact): fact is AnalyticsFlowFact => Boolean(fact && fact.source === 'posted' && fact.effectiveAt >= `${window.start}T00:00:00.000Z` && fact.effectiveAt < now.toISOString()));
+  const openingCents = currentCents - postedBalanceFacts.reduce((sum, fact) => sum + (fact.type === 'expense' || fact.type === 'transfer_out' ? -Math.abs(Math.round(Number(fact.amount.value) * 100)) : Math.round(Number(fact.amount.value) * 100)), 0);
+  const facts = selectedMovements.transactions.map((transaction) => flowFact(transaction, currency, scope.filters.sharedAmountMode)).filter((fact): fact is AnalyticsFlowFact => Boolean(fact));
+  const hasCompleteBalanceScope = scope.filters.sharedAmountMode === 'full' && scope.filters.tagIds.length === 0 && scope.filters.includeIgnoredMovements;
+  return buildAnalyticsFlowReport({
+    window,
+    windowRelation: window.endExclusive <= now.toISOString().slice(0, 10) ? 'past' : 'current',
+    projectionMode: hasCompleteBalanceScope ? 'accountBalance' : 'filteredImpact',
+    currency,
+    openingBalance: { value: (openingCents / 100).toFixed(2), currency },
+    currentBalance: { value: (currentCents / 100).toFixed(2), currency },
+    facts,
+    now: now.toISOString(),
   });
 }
 

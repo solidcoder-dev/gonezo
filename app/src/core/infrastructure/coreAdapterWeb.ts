@@ -1,6 +1,6 @@
 import type { CorePort } from '../application/corePort';
 import type { AccountsListBalancesResult } from '../../account/application/accountBalances.port';
-import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsCurrencyScopeInput, AnalyticsFlowInsightsInput, AnalyticsFlowInsightsResult, AnalyticsFlowProjectionInput, AnalyticsFlowProjectionResult, AnalyticsFlowUpcomingInput, AnalyticsFlowUpcomingResult, AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingDashboardInput, AnalyticsSpendingDashboardResult, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult, AnalyticsSpendingTimelineInput, AnalyticsSpendingTimelineResult, AnalyticsSpendingTopExpensesInput, AnalyticsSpendingTopExpensesResult, AnalyticsSpendingReportInput, AnalyticsSpendingReport, AnalyticsTopExpensesInput, AnalyticsTopExpensesResult } from '../../analytics/application/analytics.port';
+import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsCurrencyScopeInput, AnalyticsFlowReportInput, AnalyticsFlowReport, AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingDashboardInput, AnalyticsSpendingDashboardResult, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult, AnalyticsSpendingTimelineInput, AnalyticsSpendingTimelineResult, AnalyticsSpendingTopExpensesInput, AnalyticsSpendingTopExpensesResult, AnalyticsSpendingReportInput, AnalyticsSpendingReport, AnalyticsTopExpensesInput, AnalyticsTopExpensesResult } from '../../analytics/application/analytics.port';
 import type { AnalyticsOverviewInsightsInput, AnalyticsOverviewInsightsResult, AnalyticsOverviewSnapshotInput, AnalyticsOverviewSnapshotResult } from '../../analytics/application/analytics.port';
 import type {
   PreferencesSetDefaultAccountInput,
@@ -136,7 +136,7 @@ import {
 import { WebTaxonomyService } from '../../taxonomy/infrastructure/webTaxonomyService';
 import { sortNetWorthCurrencies } from '../../ledger/application/netWorthOrdering';
 import { listAccountBalances } from './accountBalancesQuery';
-import { analyticsGetAnalyticsTopExpenses, analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetFlowInsights, analyticsGetFlowProjection, analyticsGetFlowUpcoming, analyticsGetOverviewInsights, analyticsGetOverviewSnapshot, analyticsGetPeriodCashFlowSummary, analyticsGetSpendingDashboard, analyticsGetSpendingOverview, analyticsGetSpendingReport, analyticsGetSpendingTimeline, analyticsGetSpendingTopExpenses, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
+import { analyticsGetAnalyticsTopExpenses, analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetFlowReport, analyticsGetOverviewInsights, analyticsGetOverviewSnapshot, analyticsGetPeriodCashFlowSummary, analyticsGetSpendingDashboard, analyticsGetSpendingOverview, analyticsGetSpendingReport, analyticsGetSpendingTimeline, analyticsGetSpendingTopExpenses, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
 import { WebAnalyticsExclusionService } from '../../analytics/infrastructure/webAnalyticsExclusionService';
 
 export type CoreAdapterWebOptions = {
@@ -248,9 +248,7 @@ export class CoreAdapterWeb implements CorePort {
   async analyticsGetSpendingReport(input: AnalyticsSpendingReportInput): Promise<AnalyticsSpendingReport> { return analyticsGetSpendingReport(this, input); }
   async analyticsGetAnalyticsTopExpenses(input: AnalyticsTopExpensesInput): Promise<AnalyticsTopExpensesResult> { return analyticsGetAnalyticsTopExpenses(this, input); }
   async analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult> { return analyticsGetSpendingOverview(this, input); }
-  async analyticsGetFlowProjection(input: AnalyticsFlowProjectionInput): Promise<AnalyticsFlowProjectionResult> { return analyticsGetFlowProjection(this, input); }
-  async analyticsGetFlowUpcoming(input: AnalyticsFlowUpcomingInput): Promise<AnalyticsFlowUpcomingResult> { return analyticsGetFlowUpcoming(this, input); }
-  async analyticsGetFlowInsights(input: AnalyticsFlowInsightsInput): Promise<AnalyticsFlowInsightsResult> { return analyticsGetFlowInsights(this, input); }
+  async analyticsGetFlowReport(input: AnalyticsFlowReportInput): Promise<AnalyticsFlowReport> { return analyticsGetFlowReport(this, input); }
   async sharingListPeople(): Promise<SharingListPeopleResult> { return this.sharingService.listPeople(); }
 
   async sharingApplyShareToPostedTransaction(
