@@ -5,14 +5,18 @@
 }
 
 .filterBar {
+  position: sticky;
+  top: calc(var(--app-safe-area-top) + 104px);
+  z-index: 29;
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) minmax(0, .8fr) 44px;
   align-items: center;
-  gap: var(--spacing-1-5);
+  gap: 8px;
   min-width: 0;
   width: 100%;
   margin-top: var(--spacing-5);
-  padding: 2px 0;
+  padding: 6px 0;
+  background: var(--color-background-surface);
 }
 
 .filterChip,
@@ -23,13 +27,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   min-height: 44px;
   border: 1px solid #ecebe7;
   border-radius: 999px;
   background: #fff;
   color: #1b1b17;
-  font-size: 0.95rem;
+  font-size: 0.86rem;
   font-weight: 800;
   min-width: 0;
   overflow: hidden;
@@ -126,8 +130,8 @@
 .analyticsOverviewContent { display: grid; gap: 36px; margin-top: 28px; }
 
 @media (min-width: 390px) {
-  .filterBar { gap: var(--spacing-2); }
-  .filterChip, .filterChipMuted, .filterChipSelected { padding-inline: 10px; }
+  .filterBar { gap: 8px; }
+  .filterChip, .filterChipMuted, .filterChipSelected { padding-inline: 8px; }
 }
 
 .stack {
@@ -337,15 +341,16 @@
 
 @media (max-width: 420px) {
   .filterBar {
-    gap: 10px;
+    gap: 6px;
   }
 
   .filterChip,
   .filterChipMuted,
   .filterChipSelected {
     min-height: 40px;
-    padding: 0 12px;
-    font-size: 0.88rem;
+    min-height: 44px;
+    padding: 0 8px;
+    font-size: 0.8rem;
   }
 
   .viewTab,
