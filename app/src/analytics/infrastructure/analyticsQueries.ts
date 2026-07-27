@@ -434,10 +434,23 @@ export async function analyticsGetOverviewSnapshot(
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
   const now = new Date();
   const accountIds = scope.selectedAccountIds;
-  const windows = buildAnalyticsOverviewWindows(scope.filters.period, now, undefined, scope.filters.includePlannedMovements);
+  const allTimeResult = scope.filters.period.kind === 'allTime'
+    ? await listAnalyticsMovements(port, {
+        accountIds,
+        filters: analyticsTransactionFilters(scope.filters, undefined, true),
+        includeIgnoredMovements: scope.filters.includeIgnoredMovements,
+        sharedAmountMode: scope.filters.sharedAmountMode,
+      })
+    : undefined;
+  const windows = buildAnalyticsOverviewWindows(
+    scope.filters.period,
+    now,
+    allTimeResult ? earliestTransactionDate(allTimeResult.transactions) : undefined,
+    scope.filters.includePlannedMovements,
+  );
 
   const [currentResult, previousResult] = await Promise.all([
-    listAnalyticsMovements(port, {
+    allTimeResult ?? listAnalyticsMovements(port, {
       accountIds,
       filters: analyticsTransactionFilters(scope.filters, windows.currentWindow, true),
       includeIgnoredMovements: scope.filters.includeIgnoredMovements,

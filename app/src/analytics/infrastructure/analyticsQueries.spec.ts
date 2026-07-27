@@ -505,6 +505,23 @@ describe('analytics queries', () => {
     })).rejects.toThrow('Unsupported analytics period: CUSTOM');
   });
 
+  it('includes the complete transaction history in an all-time overview snapshot', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
+    const port = createPort([
+      transaction({ id: 'income-2018', type: 'income', amount: '1200.00', occurredAt: '2018-03-04T09:00:00.000Z' }),
+      transaction({ id: 'expense-2020', type: 'expense', amount: '250.00', occurredAt: '2020-07-08T09:00:00.000Z' }),
+    ]);
+
+    await expect(analyticsGetOverviewSnapshot(port, {
+      currency: 'EUR',
+      filters: { period: 'ALL' },
+    })).resolves.toMatchObject({
+      currentWindow: { label: 'All time', startDate: '2018-03-04T00:00:00.000Z' },
+      currentTotals: { incomeAmount: '1200.00', expenseAmount: '250.00', netFlowAmount: '950.00' },
+    });
+  });
+
   it('rejects an unknown analytics currency', async () => {
     const port = createPort([transaction({ id: 'expense', type: 'expense', amount: '25.00' })]);
 
