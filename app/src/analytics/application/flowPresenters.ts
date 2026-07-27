@@ -1,5 +1,5 @@
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
-import { buildNiceYAxisRange } from '../../shared/ui/Chart/chartScale';
+import { buildNiceYAxisRange, selectEvenlySpacedIndexes } from '../../shared/ui/Chart/chartScale';
 import type { AnalyticsFlowReport } from './analyticsFlowReport';
 
 export type FlowViewModel = {
@@ -22,13 +22,36 @@ function rangeLabel(start: string, endExclusive: string): string {
   const endLabel = dateLabel(end.toISOString());
   return startDate.getUTCFullYear() === end.getUTCFullYear() ? `${startLabel} – ${endLabel} ${end.getUTCFullYear()}` : `${startLabel} ${startDate.getUTCFullYear()} – ${endLabel} ${end.getUTCFullYear()}`;
 }
+function daysInWindow(start: string, endExclusive: string): number {
+  return Math.round((new Date(`${endExclusive}T00:00:00.000Z`).getTime() - new Date(`${start}T00:00:00.000Z`).getTime()) / 86_400_000);
+}
+function axisBucketLabel(occurredAt: string, windowStart: string, windowDays: number): string {
+  const dayOffset = Math.max(0, Math.floor((new Date(occurredAt).getTime() - new Date(`${windowStart}T00:00:00.000Z`).getTime()) / 86_400_000));
+  if (windowDays <= 14) return `D${dayOffset + 1}`;
+  if (windowDays <= 93) return `W${Math.floor(dayOffset / 7) + 1}`;
+  if (windowDays <= 730) return new Intl.DateTimeFormat('en-GB', { month: 'short', timeZone: 'UTC' }).format(new Date(occurredAt));
+  return new Date(occurredAt).getUTCFullYear().toString();
+}
 function insightTitle(key: string): string { return ({ bestPeriod: 'Best period', worstPeriod: 'Worst period', averageDailyFlow: 'Average daily flow', highestBalance: 'Highest balance', lowestBalance: 'Lowest balance', largestInflow: 'Largest inflow' } as Record<string, string>)[key] ?? key; }
 function insightTone(key: string): 'income' | 'expense' | 'neutral' { return key === 'worstPeriod' || key === 'lowestBalance' ? 'expense' : key === 'bestPeriod' || key === 'largestInflow' ? 'income' : 'neutral'; }
 function insightIcon(key: string): string { return key === 'worstPeriod' || key === 'lowestBalance' ? 'bi bi-arrow-down-right' : key === 'bestPeriod' || key === 'largestInflow' ? 'bi bi-arrow-up-right' : 'bi bi-activity'; }
 
 export function presentFlowReport(report: AnalyticsFlowReport): FlowViewModel {
   const currency = report.currency;
-  const points = report.projection.map((point) => ({ key: point.occurredAt, occurredAt: point.occurredAt, label: dateLabel(point.occurredAt), balance: Number(point.balance.value), phase: point.phase }));
+  const windowDays = daysInWindow(report.window.start, report.window.endExclusive);
+  const axisBuckets = new Set<string>();
+  const points = report.projection.map((point) => {
+    const isEndAnchor = point.occurredAt.slice(0, 10) >= report.window.endExclusive;
+    const bucketLabel = isEndAnchor ? '' : axisBucketLabel(point.occurredAt, report.window.start, windowDays);
+    const label = bucketLabel && !axisBuckets.has(bucketLabel) ? bucketLabel : '';
+    if (bucketLabel) axisBuckets.add(bucketLabel);
+    return { key: point.occurredAt, occurredAt: point.occurredAt, label, balance: Number(point.balance.value), phase: point.phase };
+  });
+  const labelledIndexes = points.map((point, index) => point.label ? index : -1).filter((index) => index >= 0);
+  const visibleIndexes = new Set(selectEvenlySpacedIndexes(labelledIndexes.length).map((index) => labelledIndexes[index]));
+  for (const [index, point] of points.entries()) {
+    if (point.label && !visibleIndexes.has(index)) points[index] = { ...point, label: '' };
+  }
   const scale = buildNiceYAxisRange(points.map((point) => point.balance));
   const current = report.windowRelation === 'current' ? points.find((point) => point.occurredAt >= report.window.start && point.occurredAt < report.window.endExclusive && point.occurredAt >= new Date().toISOString()) : undefined;
   return {

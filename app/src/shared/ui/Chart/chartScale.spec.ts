@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildUniformYAxisTicks, formatExactAxisValue } from './chartScale';
+import { buildUniformYAxisTicks, formatExactAxisValue, selectEvenlySpacedIndexes } from './chartScale';
 
 describe('chartScale', () => {
   it('builds evenly spaced y-axis ticks up to the visible maximum', () => {
@@ -14,5 +14,11 @@ describe('chartScale', () => {
     expect(formatExactAxisValue(1200)).toBe('1.2k');
     expect(formatExactAxisValue(1000)).toBe('1k');
     expect(formatExactAxisValue(300)).toBe('300');
+  });
+
+  it('selects a bounded set of evenly spaced indexes for dense x-axis labels', () => {
+    expect(selectEvenlySpacedIndexes(13, 5)).toEqual([0, 3, 6, 9, 12]);
+    expect(selectEvenlySpacedIndexes(3, 5)).toEqual([0, 1, 2]);
+    expect(selectEvenlySpacedIndexes(0, 5)).toEqual([]);
   });
 });

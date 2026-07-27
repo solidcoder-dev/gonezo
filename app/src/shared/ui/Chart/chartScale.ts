@@ -17,6 +17,14 @@ export function buildUniformYAxisTicks(maxValue: number, tickCount = DEFAULT_TIC
 
 export type NiceYAxisRange = { domain: [number, number]; ticks: number[] };
 
+export function selectEvenlySpacedIndexes(length: number, preferredCount = DEFAULT_TICK_COUNT): number[] {
+  const itemCount = Math.max(0, Math.trunc(length));
+  if (itemCount === 0) return [];
+  const count = Math.max(1, Math.min(itemCount, Math.trunc(preferredCount)));
+  if (count === 1) return [0];
+  return Array.from({ length: count }, (_, index) => Math.round((index * (itemCount - 1)) / (count - 1)));
+}
+
 export function buildNiceYAxisRange(values: number[], preferredTickCount = 5): NiceYAxisRange {
   const finiteValues = values.filter(Number.isFinite);
   if (finiteValues.length === 0) return { domain: [0, 0], ticks: [] };

@@ -704,11 +704,22 @@ export async function analyticsGetFlowReport(port: AnalyticsQueryPort, input: An
   if (scope.selectedAccountIds.length === 0) throw new Error('No compatible accounts for this currency');
   const now = new Date();
   const selection = normalizeAnalyticsPeriodSelection(input.periodSelection);
-  const window = resolveAnalyticsSpendingWindow(selection, now.toISOString().slice(0, 10), undefined, scope.filters.includePlannedMovements);
+  const balanceMovementsPromise = listAnalyticsMovements(port, {
+    accountIds: scope.selectedAccountIds,
+    filters: analyticsTransactionFilters(scope.filters, undefined, false),
+    includeIgnoredMovements: true,
+    sharedAmountMode: 'full',
+  });
+  const balanceHistory = selection.period.kind === 'allTime' ? await balanceMovementsPromise : undefined;
+  const earliestMovement = balanceHistory ? earliestTransactionDate(balanceHistory.transactions)?.toISOString().slice(0, 10) : undefined;
+  const resolvedWindow = resolveAnalyticsSpendingWindow(selection, now.toISOString().slice(0, 10), earliestMovement, scope.filters.includePlannedMovements);
+  const window = selection.period.kind === 'allTime' && earliestMovement
+    ? { ...resolvedWindow, start: `${new Date(`${earliestMovement}T00:00:00.000Z`).getUTCFullYear()}-01-01`, canGoPrevious: false }
+    : resolvedWindow;
   const windowDates = { start: new Date(`${window.start}T00:00:00.000Z`), end: new Date(`${window.endExclusive}T00:00:00.000Z`) };
   const [accounts, balanceMovements, selectedMovements] = await Promise.all([
     selectedAccountSummaries(port, scope.selectedAccountIds),
-    listAnalyticsMovements(port, { accountIds: scope.selectedAccountIds, filters: analyticsTransactionFilters(scope.filters, undefined, false), includeIgnoredMovements: true, sharedAmountMode: 'full' }),
+    balanceHistory ?? balanceMovementsPromise,
     listAnalyticsMovements(port, { accountIds: scope.selectedAccountIds, filters: analyticsTransactionFilters(scope.filters, windowDates, true), includeIgnoredMovements: scope.filters.includeIgnoredMovements, sharedAmountMode: scope.filters.sharedAmountMode }),
   ]);
   const currency = input.currency.trim().toUpperCase();
