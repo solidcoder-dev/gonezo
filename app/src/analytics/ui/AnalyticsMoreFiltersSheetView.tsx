@@ -55,7 +55,7 @@ export function AnalyticsMoreFiltersSheetView({ required, provided }: AnalyticsM
                 </div>
                 <button
                   type="button"
-                  className={styles.sheetTextButton}
+                  className={`btn btn-outline-secondary ${styles.sheetTextButton}`}
                   onClick={provided.commands.resetMoreFiltersDraft}
                   disabled={required.status.disabled}
                 >
@@ -65,7 +65,7 @@ export function AnalyticsMoreFiltersSheetView({ required, provided }: AnalyticsM
 
               <div className={styles.moreFiltersSection}>
                 <span className={styles.moreFiltersLabel}>Accounts</span>
-                <label className={styles.accountSelectField}>
+                  <label className={`${styles.accountSelectField} form-label`}>
                   <i className="bi bi-wallet2" aria-hidden />
                   <select
                     className="form-select"
@@ -141,7 +141,7 @@ export function AnalyticsMoreFiltersSheetView({ required, provided }: AnalyticsM
             <div className={styles.sheetActionFooter}>
               <button
                 type="button"
-                className={styles.applyFiltersButton}
+                className={`btn btn-primary ${styles.applyFiltersButton}`}
                 onClick={provided.commands.applyMoreFiltersDraft}
                 disabled={required.status.disabled}
               >

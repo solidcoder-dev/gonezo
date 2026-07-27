@@ -85,6 +85,7 @@ export function AnalyticsPeriodSheetView({ required, provided }: AnalyticsPeriod
                   <label className={styles.periodDateField}>
                     <span>From</span>
                     <input
+                      className="form-control"
                       type="date"
                       aria-label="Custom period from"
                       value={required.state.draftCustomFrom}
@@ -95,6 +96,7 @@ export function AnalyticsPeriodSheetView({ required, provided }: AnalyticsPeriod
                   <label className={styles.periodDateField}>
                     <span>To</span>
                     <input
+                      className="form-control"
                       type="date"
                       aria-label="Custom period to"
                       value={required.state.draftCustomTo}
@@ -111,7 +113,7 @@ export function AnalyticsPeriodSheetView({ required, provided }: AnalyticsPeriod
             <div className={styles.sheetActionFooter}>
               <button
                 type="button"
-                className={styles.applyFiltersButton}
+                className={`btn btn-primary ${styles.applyFiltersButton}`}
                 onClick={provided.commands.applyDraftPeriod}
                 disabled={required.status.disabled || Boolean(required.state.draftPeriodError)}
               >

@@ -22,6 +22,7 @@ const EXPECTED_TOP_LEVEL = new Set([
   'scheduling',
   'sharing',
   'shared',
+  'styles',
   'taxonomy',
   'transactions',
   'workspace',

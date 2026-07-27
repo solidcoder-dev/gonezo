@@ -45,7 +45,7 @@ export function AnalyticsTagsSheetView({ required, provided }: AnalyticsTagsShee
                 </div>
                 <button
                   type="button"
-                  className={styles.sheetTextButton}
+                  className={`btn btn-outline-secondary ${styles.sheetTextButton}`}
                   onClick={provided.commands.resetDraftTagIds}
                   disabled={required.status.disabled}
                 >
@@ -80,7 +80,7 @@ export function AnalyticsTagsSheetView({ required, provided }: AnalyticsTagsShee
             <div className={styles.sheetActionFooter}>
               <button
                 type="button"
-                className={styles.applyFiltersButton}
+                className={`btn btn-primary ${styles.applyFiltersButton}`}
                 onClick={provided.commands.applyDraftTagIds}
                 disabled={required.status.disabled}
               >

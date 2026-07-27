@@ -23,7 +23,7 @@ export type BinarySwitchCardViewProps = ViewProps<
 
 export function BinarySwitchCardView({ required, provided }: BinarySwitchCardViewProps) {
   return (
-    <label className="binary-switch-card" htmlFor={required.config.switchId}>
+    <label className="binary-switch-card form-check form-switch" htmlFor={required.config.switchId}>
       {required.config.iconClassName ? (
         <span className="binary-switch-card__icon">
           <i className={required.config.iconClassName} aria-hidden />
@@ -34,6 +34,7 @@ export function BinarySwitchCardView({ required, provided }: BinarySwitchCardVie
         {required.config.description ? <small>{required.config.description}</small> : null}
       </span>
       <input
+        className="form-check-input"
         id={required.config.switchId}
         type="checkbox"
         role="switch"

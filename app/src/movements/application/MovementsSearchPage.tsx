@@ -125,6 +125,7 @@ export function MovementsSearchPage({ required, provided }: MovementsSearchPageP
         <label className="search-account-context">
           <span className="visually-hidden">Account</span>
           <select
+            className="form-select form-select-sm"
             aria-label="Search account"
             value={selectedAccountId ?? ''}
             onChange={(event) => setSelectedAccountId(event.target.value || null)}

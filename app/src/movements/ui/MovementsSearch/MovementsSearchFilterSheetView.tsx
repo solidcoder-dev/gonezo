@@ -10,6 +10,7 @@ import type {
 } from '../../application/movementsView.types';
 import '../../../shared/ui/detailSheet.css';
 import './MovementsSearch.css';
+import { SegmentedControlView } from '../../../shared/ui/SegmentedControlView';
 
 type FilterOptionView = {
   value: LedgerTransactionTypeView;
@@ -128,6 +129,7 @@ export function MovementsSearchFilterSheetView({
           body: (
             <>
               <input
+                className="form-control"
                 type="text"
                 aria-label="Merchant"
                 value={filters.merchant ?? ''}
@@ -140,12 +142,14 @@ export function MovementsSearchFilterSheetView({
                 <p className="hint">Date</p>
                 <div className="quick-row">
                   <input
+                    className="form-control"
                     type="date"
                     aria-label="From date"
                     value={filters.fromDate}
                     onChange={(event) => provided.commands.setFromDate(event.target.value)}
                   />
                   <input
+                    className="form-control"
                     type="date"
                     aria-label="To date"
                     value={filters.toDate}
@@ -163,7 +167,7 @@ export function MovementsSearchFilterSheetView({
                       <button
                         key={option.value}
                         type="button"
-                        className={selected ? 'chip filter-chip selected' : 'chip filter-chip'}
+                        className={selected ? 'btn btn-primary filter-chip selected' : 'btn btn-outline-secondary filter-chip'}
                         aria-pressed={selected}
                         onClick={() => provided.commands.setTypes(toggleValue(filters.types, option.value))}
                         disabled={disabled}
@@ -185,7 +189,7 @@ export function MovementsSearchFilterSheetView({
                         <button
                           key={category.id}
                           type="button"
-                          className={selected ? 'chip filter-chip selected' : 'chip filter-chip'}
+                          className={selected ? 'btn btn-primary filter-chip selected' : 'btn btn-outline-secondary filter-chip'}
                           aria-pressed={selected}
                           onClick={() => provided.commands.setCategoryIds(toggleIdentifier(filters.categoryIds, category.id))}
                           disabled={disabled}
@@ -197,7 +201,7 @@ export function MovementsSearchFilterSheetView({
                     {hiddenCategoryCount > 0 ? (
                       <button
                         type="button"
-                        className="chip filter-chip filter-chip-more"
+                        className="btn btn-outline-secondary filter-chip filter-chip-more"
                         onClick={() => setCategoriesExpanded(true)}
                         disabled={disabled}
                       >
@@ -214,6 +218,7 @@ export function MovementsSearchFilterSheetView({
                 <p className="hint">Amount</p>
                 <div className="quick-row">
                   <input
+                    className="form-control"
                     type="number"
                     inputMode="decimal"
                     step="0.01"
@@ -224,6 +229,7 @@ export function MovementsSearchFilterSheetView({
                     placeholder="Min"
                   />
                   <input
+                    className="form-control"
                     type="number"
                     inputMode="decimal"
                     step="0.01"
@@ -246,7 +252,7 @@ export function MovementsSearchFilterSheetView({
                         <button
                           key={tag.id}
                           type="button"
-                          className={selected ? 'chip filter-chip selected' : 'chip filter-chip'}
+                          className={selected ? 'btn btn-primary filter-chip selected' : 'btn btn-outline-secondary filter-chip'}
                           aria-pressed={selected}
                           onClick={() => provided.commands.setTagIds(toggleIdentifier(filters.tagIds, tag.id))}
                           disabled={disabled}
@@ -258,7 +264,7 @@ export function MovementsSearchFilterSheetView({
                     {hiddenTagCount > 0 ? (
                       <button
                         type="button"
-                        className="chip filter-chip filter-chip-more"
+                        className="btn btn-outline-secondary filter-chip filter-chip-more"
                         onClick={() => setTagsExpanded(true)}
                         disabled={disabled}
                       >
@@ -273,74 +279,23 @@ export function MovementsSearchFilterSheetView({
 
               <div className="vstack gap-2">
                 <p className="hint">Sort by</p>
-                <div className="segmented segmented-2" role="radiogroup" aria-label="Sort by">
-                  <button
-                    type="button"
-                    className={filters.sortField === 'date' ? 'segment selected' : 'segment'}
-                    aria-pressed={filters.sortField === 'date'}
-                    onClick={() => provided.commands.setSortField('date')}
-                    disabled={disabled}
-                  >
-                    Date
-                  </button>
-                  <button
-                    type="button"
-                    className={filters.sortField === 'amount' ? 'segment selected' : 'segment'}
-                    aria-pressed={filters.sortField === 'amount'}
-                    onClick={() => provided.commands.setSortField('amount')}
-                    disabled={disabled}
-                  >
-                    Amount
-                  </button>
-                </div>
+                <SegmentedControlView required={{ config: { ariaLabel: 'Sort by', columns: 2 }, data: { options: [
+                  { value: 'date', label: 'Date' }, { value: 'amount', label: 'Amount' },
+                ] }, state: { value: filters.sortField }, status: { disabled } }} provided={{ commands: { select: provided.commands.setSortField } }} />
               </div>
 
               <div className="vstack gap-2">
                 <p className="hint">Order</p>
-                <div className="segmented segmented-2" role="radiogroup" aria-label="Sort direction">
-                  <button
-                    type="button"
-                    className={filters.sortDirection === 'desc' ? 'segment selected' : 'segment'}
-                    aria-pressed={filters.sortDirection === 'desc'}
-                    onClick={() => provided.commands.setSortDirection('desc')}
-                    disabled={disabled}
-                  >
-                    Descending
-                  </button>
-                  <button
-                    type="button"
-                    className={filters.sortDirection === 'asc' ? 'segment selected' : 'segment'}
-                    aria-pressed={filters.sortDirection === 'asc'}
-                    onClick={() => provided.commands.setSortDirection('asc')}
-                    disabled={disabled}
-                  >
-                    Ascending
-                  </button>
-                </div>
+                <SegmentedControlView required={{ config: { ariaLabel: 'Sort direction', columns: 2 }, data: { options: [
+                  { value: 'desc', label: 'Descending' }, { value: 'asc', label: 'Ascending' },
+                ] }, state: { value: filters.sortDirection }, status: { disabled } }} provided={{ commands: { select: provided.commands.setSortDirection } }} />
               </div>
 
               <div className="vstack gap-2">
                 <p className="hint">Group</p>
-                <div className="segmented segmented-2" role="radiogroup" aria-label="Group results">
-                  <button
-                    type="button"
-                    className={filters.groupByDay ? 'segment selected' : 'segment'}
-                    aria-pressed={filters.groupByDay}
-                    onClick={() => provided.commands.setGroupByDay(true)}
-                    disabled={disabled || filters.sortField !== 'date'}
-                  >
-                    By day
-                  </button>
-                  <button
-                    type="button"
-                    className={!filters.groupByDay ? 'segment selected' : 'segment'}
-                    aria-pressed={!filters.groupByDay}
-                    onClick={() => provided.commands.setGroupByDay(false)}
-                    disabled={disabled}
-                  >
-                    None
-                  </button>
-                </div>
+                <SegmentedControlView required={{ config: { ariaLabel: 'Group results', columns: 2 }, data: { options: [
+                  { value: 'day', label: 'By day', disabled: filters.sortField !== 'date' }, { value: 'none', label: 'None' },
+                ] }, state: { value: filters.groupByDay ? 'day' : 'none' }, status: { disabled } }} provided={{ commands: { select: (value) => provided.commands.setGroupByDay(value === 'day') } }} />
               </div>
 
               {state.advancedOpen ? (
@@ -351,7 +306,7 @@ export function MovementsSearchFilterSheetView({
                       <button
                         key={size}
                         type="button"
-                        className={filters.pageSize === size ? 'chip filter-chip selected' : 'chip filter-chip'}
+                        className={filters.pageSize === size ? 'btn btn-primary filter-chip selected' : 'btn btn-outline-secondary filter-chip'}
                         aria-pressed={filters.pageSize === size}
                         onClick={() => provided.commands.setPageSize(size)}
                         disabled={disabled}

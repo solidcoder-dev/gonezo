@@ -11,6 +11,31 @@ $dark: #111411;
 $body-bg: $light;
 $body-color: $dark;
 $border-color: #e6e1d7;
+$input-bg: #ffffff;
+$input-color: $dark;
+$input-placeholder-color: #77776d;
+$input-border-color: #d8d8cc;
+$input-border-radius: 12px;
+$input-focus-border-color: $primary;
+$input-focus-box-shadow: 0 0 0 0.22rem rgb(22 117 46 / 16%);
+$input-disabled-bg: #f2f2ed;
+$input-disabled-border-color: #e2e2d8;
+$input-disabled-color: #6d6d66;
+$input-height-border: 2px;
+$input-padding-y: 0.75rem;
+$input-padding-x: 0.875rem;
+$input-btn-focus-box-shadow: 0 0 0 0.22rem rgb(22 117 46 / 16%);
+$btn-border-radius: 12px;
+$btn-padding-y: 0.75rem;
+$btn-padding-x: 1rem;
+$btn-font-weight: 700;
+$form-label-font-size: 0.78rem;
+$form-label-font-weight: 700;
+$form-label-color: #525b64;
+$form-text-color: #6d6d66;
+$form-check-input-border: 1px solid #b8b8b0;
+$form-check-input-checked-bg-color: $primary;
+$form-check-input-checked-border-color: $primary;
 
 $font-family-sans-serif:
   "Space Grotesk",
@@ -22,12 +47,6 @@ $font-family-sans-serif:
 $border-radius: 10px;
 $border-radius-sm: 8px;
 $border-radius-lg: 16px;
-
-$btn-border-radius: 10px;
-$input-border-radius: 10px;
-
-$input-btn-padding-y: 0.625rem;
-$input-btn-padding-x: 0.75rem;
 
 $theme-colors: (
   "primary": $primary,

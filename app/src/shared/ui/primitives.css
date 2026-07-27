@@ -1,6 +1,6 @@
 .nested-card {
   margin-top: 14px;
-  border: 1px solid var(--gz-legacy-ececdf);
+  border: 1px solid var(--color-border-subtle);
   box-shadow: none;
 }
 
@@ -13,10 +13,10 @@
 
 .chip {
   padding: 10px 14px;
-  border: 1px solid var(--gz-legacy-c9c9c0);
+  border: 1px solid var(--color-text-secondary);
   border-radius: 999px;
-  background: var(--gz-legacy-ffffff);
-  color: var(--gz-legacy-1d1d1b);
+  background: var(--color-background-surface);
+  color: var(--color-text-secondary);
   white-space: nowrap;
   font-size: 0.85rem;
   font-weight: 600;
@@ -24,32 +24,9 @@
 
 .chip.active,
 .chip.selected {
-  border-color: var(--gz-legacy-1d1d1b);
-  background: var(--gz-legacy-1d1d1b);
-  color: var(--gz-legacy-ffffff);
-}
-
-.segmented {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.segmented-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.segment {
-  border: 1px solid var(--gz-legacy-c9c9c0);
-  background: var(--gz-legacy-ffffff);
-  color: var(--gz-legacy-1d1d1b);
-}
-
-.segment.active,
-.segment.selected {
-  border-color: var(--gz-legacy-1d1d1b);
-  background: var(--gz-legacy-1d1d1b);
-  color: var(--gz-legacy-ffffff);
+  border-color: var(--color-text-secondary);
+  background: var(--color-text-secondary);
+  color: var(--color-background-surface);
 }
 
 .quick-row {
@@ -71,9 +48,9 @@
 }
 
 .text-button {
-  border: 1px solid var(--gz-legacy-c9c9c0);
+  border: 1px solid var(--color-text-secondary);
   background: transparent;
-  color: var(--gz-legacy-1d1d1b);
+  color: var(--color-text-secondary);
 }
 
 .icon-button {
@@ -108,9 +85,9 @@
 
 .item-editor {
   padding: 12px;
-  border: 1px solid var(--gz-legacy-e3e3d7);
+  border: 1px solid var(--color-text-secondary);
   border-radius: 12px;
-  background: var(--gz-legacy-f8f8f3);
+  background: var(--color-background-muted);
 }
 
 .section-gap {
@@ -119,17 +96,17 @@
 
 .hint {
   margin: 0;
-  color: var(--gz-legacy-575752);
+  color: var(--color-text-secondary);
   font-size: 0.86rem;
 }
 
 .hint.success {
-  color: var(--gz-legacy-1b5b28);
+  color: var(--color-text-secondary);
 }
 
 .field-error {
   margin: -4px 0 0;
-  color: var(--gz-legacy-7a1d1d);
+  color: var(--color-text-secondary);
   font-size: 0.82rem;
 }
 
@@ -149,7 +126,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--gz-legacy-2d2d26);
+  color: var(--color-text-primary);
   box-shadow: none;
   font-weight: 600;
 }

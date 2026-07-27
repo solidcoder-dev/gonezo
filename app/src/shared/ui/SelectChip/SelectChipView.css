@@ -5,9 +5,9 @@
   min-width: 0;
   min-height: 40px;
   padding: 0 12px;
-  border: 1px solid var(--color-border-subtle, var(--gz-legacy-deded6));
+  border: 1px solid var(--color-border-subtle, var(--color-text-secondary));
   border-radius: 999px;
-  background: var(--color-background-surface, var(--gz-legacy-fff));
+  background: var(--color-background-surface, var(--color-background-surface));
   color: inherit;
   font: inherit;
   font-weight: 650;
@@ -17,20 +17,20 @@
 
 .select-chip--expense {
   border-color: rgba(180, 35, 24, 0.3);
-  background: var(--gz-legacy-fef3f2);
-  color: var(--gz-legacy-b42318);
+  background: var(--color-expense-soft);
+  color: var(--color-expense);
 }
 
 .select-chip--income {
   border-color: rgba(2, 122, 72, 0.3);
-  background: var(--gz-legacy-ecfdf3);
-  color: var(--gz-legacy-027a48);
+  background: var(--color-income-soft);
+  color: var(--color-income);
 }
 
 .select-chip--transfer {
   border-color: rgba(23, 92, 211, 0.3);
-  background: var(--gz-legacy-eff8ff);
-  color: var(--gz-legacy-175cd3);
+  background: var(--color-brand-soft);
+  color: var(--color-text-secondary);
 }
 
 .select-chip:disabled {
@@ -42,7 +42,7 @@
 }
 
 .select-chip:focus-visible {
-  outline: 2px solid var(--accent, var(--gz-legacy-111));
+  outline: 2px solid var(--accent, var(--color-brand-strong));
   outline-offset: 2px;
 }
 

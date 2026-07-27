@@ -7,15 +7,15 @@
   display: grid;
   gap: 16px;
   padding: 18px 16px;
-  border: 1px solid var(--gz-legacy-ecece6);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 18px;
-  background: var(--gz-legacy-fff);
+  background: var(--color-background-surface);
   box-shadow: 0 8px 24px rgb(17 24 39 / 4%);
 }
 
 .sectionTitle {
   margin: 0;
-  color: var(--gz-legacy-22221d);
+  color: var(--color-text-primary);
   font-size: 0.95rem;
   line-height: 1.15;
 }
@@ -27,7 +27,7 @@
 
 .comparisonLabel {
   margin: 0;
-  color: var(--gz-legacy-6d6d66);
+  color: var(--color-text-secondary);
   font-size: 0.84rem;
   font-weight: 600;
   line-height: 1.2;
@@ -41,7 +41,7 @@
 }
 
 .totalAmount {
-  color: var(--gz-legacy-ff3b30);
+  color: var(--color-expense);
   font-size: 2rem;
   line-height: 1;
   letter-spacing: -0.03em;
@@ -58,13 +58,13 @@
 }
 
 .badgeNegative {
-  background: var(--gz-legacy-fff1ef);
-  color: var(--gz-legacy-ff3b30);
+  background: var(--color-expense-soft);
+  color: var(--color-expense);
 }
 
 .badgePositive {
-  background: var(--gz-legacy-eef8f0);
-  color: var(--gz-legacy-149447);
+  background: var(--color-income-soft);
+  color: var(--color-income);
 }
 
 .badgeNegative strong,
@@ -94,7 +94,7 @@
 
 .categoryName {
   overflow: hidden;
-  color: var(--gz-legacy-22221d);
+  color: var(--color-text-primary);
   font-size: 0.9rem;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -124,7 +124,7 @@
   height: 0.62rem;
   overflow: hidden;
   border-radius: 999px;
-  background: var(--gz-legacy-f3f1eb);
+  background: var(--color-background-muted);
 }
 
 .categoryMetricFill {
@@ -144,7 +144,7 @@
 }
 
 .categoryAmount {
-  color: var(--gz-legacy-32312c);
+  color: var(--color-text-primary);
   font-weight: 700;
   overflow: hidden;
   text-align: right;
@@ -153,7 +153,7 @@
 
 .categoryPercentage {
   min-width: 2rem;
-  color: var(--gz-legacy-6d6d66);
+  color: var(--color-text-secondary);
   font-weight: 700;
   text-align: right;
 }
@@ -163,7 +163,7 @@
   display: block;
   width: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--gz-legacy-f2f2ee) 0%, var(--gz-legacy-fbfbf8) 50%, var(--gz-legacy-f2f2ee) 100%);
+  background: linear-gradient(90deg, var(--color-background-muted) 0%, var(--color-background-muted) 50%, var(--color-background-muted) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -183,7 +183,7 @@
 
 .empty {
   margin: 0;
-  color: var(--gz-legacy-6d6d66);
+  color: var(--color-text-secondary);
   font-size: 0.88rem;
 }
 
@@ -197,7 +197,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--gz-legacy-149447);
+  color: var(--color-income);
   font: inherit;
   font-size: 0.92rem;
   font-weight: 800;

@@ -1,5 +1,6 @@
 {
   "customSyntax": "postcss-scss",
+  "extends": ["stylelint-config-standard-scss"],
   "plugins": ["stylelint-scss"],
   "ignoreFiles": [
     "node_modules/**/*.css",
@@ -13,6 +14,14 @@
         "color-no-hex": null,
         "color-function-notation": null
       }
+    },
+    {
+      "files": ["src/analytics/**/*.{css,scss}", "src/movements/ui/MovementsSearch/**/*.{css,scss}"],
+      "rules": {
+        "declaration-property-value-disallowed-list": {
+          "/^.+$/": ["/var\\(--gz-legacy-/"]
+        }
+      }
     }
   ],
   "rules": {
@@ -20,11 +29,27 @@
     "color-function-notation": null,
     "declaration-block-no-duplicate-properties": true,
     "no-duplicate-selectors": true,
+    "selector-class-pattern": null,
+    "declaration-block-single-line-max-declarations": null,
+    "color-function-alias-notation": null,
+    "alpha-value-notation": null,
+    "media-feature-range-notation": null,
+    "no-descending-specificity": null,
+    "at-rule-empty-line-before": null,
+    "custom-property-empty-line-before": null,
+    "scss/dollar-variable-empty-line-before": null,
+    "scss/operator-no-newline-after": null,
+    "property-no-deprecated": null,
+    "selector-not-notation": null,
+    "keyframes-name-pattern": null,
+    "comment-empty-line-before": null,
+    "color-hex-length": null,
     "selector-disallowed-list": [
       "/^button$/",
       "/^input$/",
       "/^select$/",
       "/^textarea$/"
-    ]
+    ],
+    "declaration-block-no-redundant-longhand-properties": null
   }
 }

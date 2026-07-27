@@ -33,10 +33,10 @@
   justify-content: center;
   gap: 6px;
   min-height: 44px;
-  border: 1px solid var(--gz-legacy-ecebe7);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
-  background: var(--gz-legacy-fff);
-  color: var(--gz-legacy-1b1b17);
+  background: var(--color-background-surface);
+  color: var(--color-text-primary);
   font-size: 0.86rem;
   font-weight: 800;
   min-width: 0;
@@ -56,13 +56,13 @@
 .filterChipSelected span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .filterChipMuted {
-  color: var(--gz-legacy-66665f);
+  color: var(--color-text-muted);
 }
 
 .filterChipSelected,
 .moreFiltersButtonSelected {
-  border-color: var(--gz-legacy-d7d5cf);
-  background: var(--gz-legacy-f8f7f4);
+  border-color: var(--color-border-strong);
+  background: var(--color-background-muted);
 }
 
 .moreFiltersButton,
@@ -84,8 +84,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--gz-legacy-111);
-  color: var(--gz-legacy-fff);
+  background: var(--color-brand-strong);
+  color: var(--color-background-surface);
   font-size: 0.7rem;
   font-weight: 900;
   line-height: 1;
@@ -148,16 +148,16 @@
   display: grid;
   place-items: center;
   min-height: 180px;
-  border: 1px solid var(--gz-legacy-ecece6);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 8px;
-  background: var(--gz-legacy-fbfbf8);
-  color: var(--gz-legacy-6c6c64);
+  background: var(--color-background-muted);
+  color: var(--color-text-secondary);
   font-weight: 800;
 }
 
 .analyticsSheet {
   border-radius: 28px 28px 0 0;
-  background: var(--gz-legacy-fff);
+  background: var(--color-background-surface);
 }
 
 .analyticsSheetContent {
@@ -179,7 +179,7 @@
 
 .sheetIntro p {
   margin: 0;
-  color: var(--gz-legacy-6d6c66);
+  color: var(--color-text-secondary);
   font-size: 0.95rem;
   line-height: 1.45;
 }
@@ -194,7 +194,7 @@
 .sheetTextButton {
   border: 0;
   background: transparent;
-  color: var(--gz-legacy-1b1b17);
+  color: var(--color-text-primary);
   font-size: 0.88rem;
   font-weight: 800;
 }
@@ -210,7 +210,7 @@
   gap: 16px;
   min-height: 60px;
   border: 0;
-  border-bottom: 1px solid var(--gz-legacy-f0efeb);
+  border-bottom: 1px solid var(--color-border-subtle);
   background: transparent;
   padding: 0 4px;
   text-align: left;
@@ -222,13 +222,13 @@
 }
 
 .sheetOptionTitle {
-  color: var(--gz-legacy-1b1b17);
+  color: var(--color-text-primary);
   font-size: 1rem;
   font-weight: 800;
 }
 
 .sheetOptionDescription {
-  color: var(--gz-legacy-6d6c66);
+  color: var(--color-text-secondary);
   font-size: 0.94rem;
 }
 
@@ -241,11 +241,11 @@
 }
 
 .radio {
-  border: 2px solid var(--gz-legacy-cecdc7);
+  border: 2px solid var(--color-border-strong);
 }
 
 .radioChecked {
-  border: 7px solid var(--gz-legacy-111);
+  border: 7px solid var(--color-brand-strong);
 }
 
 .checkbox,
@@ -259,13 +259,13 @@
 }
 
 .checkbox {
-  border: 2px solid var(--gz-legacy-d8d8d2);
+  border: 2px solid var(--color-border-strong);
 }
 
 .checkboxChecked {
-  border: 2px solid var(--gz-legacy-111);
-  background: var(--gz-legacy-111);
-  color: var(--gz-legacy-fff);
+  border: 2px solid var(--color-brand-strong);
+  background: var(--color-brand-strong);
+  color: var(--color-background-surface);
 }
 
 .sheetActionFooter {
@@ -277,8 +277,8 @@
   min-height: 54px;
   border: 0;
   border-radius: 12px;
-  background: var(--gz-legacy-000);
-  color: var(--gz-legacy-fff);
+  background: var(--color-brand-strong);
+  color: var(--color-background-surface);
   font-size: 1rem;
   font-weight: 900;
 }
@@ -289,7 +289,7 @@
 }
 
 .moreFiltersLabel {
-  color: var(--gz-legacy-1b1b17);
+  color: var(--color-text-primary);
   font-size: 1rem;
   font-weight: 800;
 }
@@ -299,18 +299,18 @@
   align-items: center;
   gap: 10px;
   min-height: 50px;
-  border: 1px solid var(--gz-legacy-ecebe7);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 14px;
-  background: var(--gz-legacy-fff);
+  background: var(--color-background-surface);
   padding: 0 14px;
-  color: var(--gz-legacy-595852);
+  color: var(--color-text-secondary);
 }
 
 .accountSelectField select {
   width: 100%;
   border: 0;
   background: transparent;
-  color: var(--gz-legacy-1b1b17);
+  color: var(--color-text-primary);
   font: inherit;
   font-weight: 700;
 }
@@ -323,14 +323,14 @@
 .periodDateField {
   display: grid;
   gap: 6px;
-  color: var(--gz-legacy-1b1b17);
+  color: var(--color-text-primary);
   font-size: 0.92rem;
   font-weight: 750;
 }
 
 .periodDateField input {
   min-height: 46px;
-  border: 1px solid var(--gz-legacy-ecebe7);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 14px;
   padding: 0 14px;
   font: inherit;
@@ -338,7 +338,7 @@
 
 .periodError {
   margin: 0;
-  color: var(--gz-legacy-b42318);
+  color: var(--color-expense);
   font-size: 0.86rem;
   font-weight: 700;
 }

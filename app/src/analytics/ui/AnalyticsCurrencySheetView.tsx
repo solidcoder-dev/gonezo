@@ -66,7 +66,7 @@ export function AnalyticsCurrencySheetView({ required, provided }: AnalyticsCurr
             <div className={styles.sheetActionFooter}>
               <button
                 type="button"
-                className={styles.applyFiltersButton}
+                className={`btn btn-primary ${styles.applyFiltersButton}`}
                 onClick={provided.commands.applyDraftCurrency}
                 disabled={required.status.disabled}
               >

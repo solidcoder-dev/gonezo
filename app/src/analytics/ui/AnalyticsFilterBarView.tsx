@@ -31,7 +31,7 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
     <div className={styles.filterBar} role="group" aria-label="Analytics filters">
       <button
         type="button"
-        className={state.currency ? styles.filterChip : styles.filterChipMuted}
+        className={`btn ${state.currency ? styles.filterChip : styles.filterChipMuted}`}
         onClick={provided.commands.openCurrencySheet}
         disabled={status.disabled}
         aria-label="Open currency filter"
@@ -43,7 +43,7 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
 
       <button
         type="button"
-        className={styles.filterChip}
+        className={`btn ${styles.filterChip}`}
         onClick={provided.commands.openPeriodSheet}
         disabled={status.disabled}
         aria-label="Open period filter"
@@ -55,7 +55,7 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
 
       <button
         type="button"
-        className={state.tagsSelected ? styles.filterChipSelected : styles.filterChip}
+        className={`btn ${state.tagsSelected ? styles.filterChipSelected : styles.filterChip}`}
         onClick={provided.commands.openTagSheet}
         disabled={status.disabled}
         aria-label="Open tags filter"
@@ -67,7 +67,7 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
 
       <button
         type="button"
-        className={state.moreFiltersCount > 0 ? styles.moreFiltersButtonSelected : styles.moreFiltersButton}
+        className={`btn ${state.moreFiltersCount > 0 ? styles.moreFiltersButtonSelected : styles.moreFiltersButton}`}
         onClick={provided.commands.openMoreFiltersSheet}
         disabled={status.disabled}
         aria-label="Open more filters"

@@ -7,6 +7,7 @@ import type {
   MovementsSearchSourceView,
 } from '../../application/movementsView.types';
 import { MovementsSearchFilterSheetView } from './MovementsSearchFilterSheetView';
+import { SegmentedControlView } from '../../../shared/ui/SegmentedControlView';
 import './MovementsSearch.css';
 
 export type MovementsSearchFiltersRequired = {
@@ -174,51 +175,47 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
 
   return (
     <section className="vstack gap-2 search-controls" aria-label="Search controls">
-      <div className="segmented" role="radiogroup" aria-label="Search source">
-        <button
-          type="button"
-          className={filters.source === 'posted' ? 'segment selected' : 'segment'}
-          aria-pressed={filters.source === 'posted'}
-          onClick={() => provided.commands.setSource('posted')}
-          disabled={disabled}
-        >
-          Posted
-        </button>
-        <button
-          type="button"
-          className={filters.source === 'scheduled' ? 'segment selected' : 'segment'}
-          aria-pressed={filters.source === 'scheduled'}
-          onClick={() => provided.commands.setSource('scheduled')}
-          disabled={disabled}
-        >
-          Scheduled
-        </button>
-        <button
-          type="button"
-          className={filters.source === 'expected' ? 'segment selected' : 'segment'}
-          aria-pressed={filters.source === 'expected'}
-          onClick={() => provided.commands.setSource('expected')}
-          disabled={disabled}
-        >
-          Expected
-        </button>
-      </div>
+      <SegmentedControlView
+        required={{
+          config: { ariaLabel: 'Search source' },
+          data: { options: [
+            { value: 'posted', label: 'Posted' },
+            { value: 'scheduled', label: 'Scheduled' },
+            { value: 'expected', label: 'Expected' },
+          ] },
+          state: { value: filters.source },
+          status: { disabled },
+        }}
+        provided={{ commands: { select: provided.commands.setSource } }}
+      />
 
       <div className="search-input-wrap">
         <input
+          className="form-control"
           type="search"
           aria-label="Search movements"
           value={filters.text}
           onChange={(event) => provided.commands.setFilterText(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              provided.commands.applyFilters();
+            }
+          }}
           placeholder="Search merchant or description"
           autoComplete="off"
         />
         <i className="bi bi-search" aria-hidden />
+        {filters.text ? (
+          <button type="button" className="search-clear-button" aria-label="Clear search" onClick={() => provided.commands.setFilterText('')} disabled={disabled}>
+            <i className="bi bi-x-lg" aria-hidden />
+          </button>
+        ) : null}
       </div>
 
       <div className="search-action-row">
-        <button type="button" className="text-button" onClick={provided.commands.openFilters} disabled={disabled}>
-          {filtersButtonLabel}
+        <button type="button" className="btn btn-outline-secondary" onClick={provided.commands.openFilters} disabled={disabled}>
+          <i className="bi bi-sliders2" aria-hidden /> {filtersButtonLabel}
         </button>
         <button type="button" className="btn btn-primary w-100" onClick={provided.commands.applyFilters} disabled={disabled}>
           Search
@@ -231,7 +228,7 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
             <button
               key={chip.key}
               type="button"
-              className="chip filter-chip"
+              className="btn btn-outline-secondary filter-chip"
               onClick={() => provided.commands.applyFilterPatch(chip.clearPatch)}
               disabled={disabled}
             >

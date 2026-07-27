@@ -1,0 +1,42 @@
+.control {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+  min-height: 44px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--color-background-muted);
+}
+
+.twoColumns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.option {
+  min-width: 0;
+  min-height: 44px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 10px;
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.option:hover:not(:disabled) {
+  background: var(--color-background-hover);
+  color: var(--color-brand-strong);
+}
+
+.selected,
+.selected:hover:not(:disabled) {
+  background: var(--color-background-surface);
+  color: var(--color-brand-strong);
+  box-shadow: 0 1px 4px rgb(29 29 27 / 12%);
+}
+
+.option:disabled {
+  opacity: 0.5;
+}

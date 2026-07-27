@@ -34,8 +34,9 @@ export function DatalistFieldView({ required, provided }: DatalistFieldViewProps
 
   return (
     <label className="vstack gap-2">
-      {config.label}
+      <span className="form-label mb-0">{config.label}</span>
       <input
+        className="form-control"
         aria-label={config.ariaLabel ?? config.label}
         value={state.value}
         onChange={(event) => provided.commands.change(event.target.value)}
@@ -49,7 +50,7 @@ export function DatalistFieldView({ required, provided }: DatalistFieldViewProps
           <option key={option.id} value={option.value} />
         ))}
       </datalist>
-      {config.hint ? <span className="hint">{config.hint}</span> : null}
+      {config.hint ? <span className="form-text">{config.hint}</span> : null}
     </label>
   );
 }

@@ -1,4 +1,5 @@
 import type { ViewProps } from './ViewProps';
+import styles from './SegmentedControlView.module.css';
 
 export type SegmentedControlOption<TValue extends string> = {
   value: TValue;
@@ -29,10 +30,8 @@ export function SegmentedControlView<TValue extends string>({
   required,
   provided,
 }: SegmentedControlViewProps<TValue>) {
-  const columnsClass = required.config.columns === 2 ? ' segmented-2' : '';
-
   return (
-    <div className={`segmented${columnsClass}`} role="radiogroup" aria-label={required.config.ariaLabel}>
+    <div className={`${styles.control} ${required.config.columns === 2 ? styles.twoColumns : ''}`} role="radiogroup" aria-label={required.config.ariaLabel}>
       {required.data.options.map((option) => {
         const selected = option.value === required.state.value;
         const disabled = required.status.disabled || option.disabled;
@@ -42,7 +41,7 @@ export function SegmentedControlView<TValue extends string>({
             type="button"
             role="radio"
             aria-checked={selected}
-            className={selected ? 'segment active' : 'segment'}
+            className={`btn btn-outline-primary ${styles.option} ${selected ? styles.selected : ''}`}
             disabled={disabled}
             onClick={() => {
               if (!disabled) {
