@@ -1,0 +1,22 @@
+// Gonezo's Bootstrap theme. Keep semantic color decisions in this single file.
+$primary: #16752e;
+$secondary: #6d6d66;
+$success: #149447;
+$danger: #b42318;
+$warning: #b7791f;
+$info: #1672e8;
+$light: #fbfaf6;
+$dark: #111411;
+
+$theme-colors: (
+  "primary": $primary,
+  "secondary": $secondary,
+  "success": $success,
+  "danger": $danger,
+  "warning": $warning,
+  "info": $info,
+  "light": $light,
+  "dark": $dark
+);
+
+@import "bootstrap/scss/bootstrap";
