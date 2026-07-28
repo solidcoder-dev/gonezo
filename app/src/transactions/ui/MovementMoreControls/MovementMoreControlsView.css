@@ -29,7 +29,7 @@
 .movement-more-trigger-text strong {
   overflow: hidden;
   font-size: 0.91rem;
-  font-weight: 850;
+  font-weight: var(--font-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -38,7 +38,7 @@
   overflow: hidden;
   color: var(--color-text-secondary);
   font-size: 0.8rem;
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

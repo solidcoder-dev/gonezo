@@ -1,49 +1,59 @@
-// Gonezo's Bootstrap theme. Keep semantic color decisions in this single file.
-$primary: #16752e;
-$secondary: #6d6d66;
-$success: #149447;
-$danger: #b42318;
-$warning: #b7791f;
-$info: #1672e8;
-$light: #fbfaf6;
-$dark: #111411;
+// Bootstrap theme primitives. Application semantics live in _gonezo-tokens.scss.
+@import "theme-colors.generated";
 
-$body-bg: $light;
-$body-color: $dark;
-$border-color: #e6e1d7;
-$input-bg: #ffffff;
-$input-color: $dark;
-$input-placeholder-color: #77776d;
-$input-border-color: #d8d8cc;
+$neutral-0: #ffffff;
+$neutral-50: #fbfaf6;
+$neutral-100: #f2f2ed;
+$neutral-200: #e6e1d7;
+$neutral-300: #d8d8cc;
+$neutral-400: #b8b8b0;
+$neutral-500: #77776d;
+$neutral-600: #6d6d66;
+$neutral-700: #525b64;
+$neutral-800: #2d332f;
+$neutral-900: #111411;
+
+$primary: $brand-color;
+$secondary: $neutral-600;
+$success: $income-color;
+$danger: $expense-color;
+$warning: $warning-color;
+$info: $transfer-color;
+$light: $neutral-50;
+$dark: $neutral-900;
+
+$body-bg: $neutral-50;
+$body-color: $neutral-900;
+$secondary-color: $neutral-600;
+$tertiary-color: $neutral-500;
+$border-color: $neutral-200;
+$input-bg: $neutral-0;
+$input-color: $neutral-900;
+$input-placeholder-color: $neutral-500;
+$input-border-color: $neutral-300;
 $input-border-radius: 12px;
 $input-focus-border-color: $primary;
-$input-focus-box-shadow: 0 0 0 0.22rem rgb(22 117 46 / 16%);
-$input-disabled-bg: #f2f2ed;
-$input-disabled-border-color: #e2e2d8;
-$input-disabled-color: #6d6d66;
+$input-focus-box-shadow: 0 0 0 0.22rem rgba($primary, 0.16);
+$input-disabled-bg: $neutral-100;
+$input-disabled-border-color: $neutral-200;
+$input-disabled-color: $neutral-600;
 $input-height-border: 2px;
 $input-padding-y: 0.75rem;
 $input-padding-x: 0.875rem;
-$input-btn-focus-box-shadow: 0 0 0 0.22rem rgb(22 117 46 / 16%);
+$input-btn-focus-box-shadow: 0 0 0 0.22rem rgba($primary, 0.16);
 $btn-border-radius: 12px;
 $btn-padding-y: 0.75rem;
 $btn-padding-x: 1rem;
 $btn-font-weight: 700;
 $form-label-font-size: 0.78rem;
 $form-label-font-weight: 700;
-$form-label-color: #525b64;
-$form-text-color: #6d6d66;
-$form-check-input-border: 1px solid #b8b8b0;
+$form-label-color: $neutral-700;
+$form-text-color: $neutral-600;
+$form-check-input-border: 1px solid $neutral-400;
 $form-check-input-checked-bg-color: $primary;
 $form-check-input-checked-border-color: $primary;
 
-$font-family-sans-serif:
-  "Space Grotesk",
-  system-ui,
-  -apple-system,
-  "Segoe UI",
-  sans-serif;
-
+$font-family-sans-serif: system-ui, -apple-system, "Segoe UI", roboto, "Helvetica Neue", sans-serif;
 $border-radius: 10px;
 $border-radius-sm: 8px;
 $border-radius-lg: 16px;
@@ -60,5 +70,4 @@ $theme-colors: (
 );
 
 @import "bootstrap/scss/bootstrap";
-
 @import "gonezo-tokens";

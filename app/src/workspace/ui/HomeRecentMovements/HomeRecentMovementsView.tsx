@@ -1,6 +1,5 @@
-import { MonthlyTimelineRowView } from '../../../movements/ui/MonthlyMovements/MonthlyTimelineRowView';
+import { MovementTimelineRowView } from '../../../shared/ui/MovementTimelineRowView';
 import type { MonthlyTimelineGroupViewModel } from '../../../movements/application/monthlyMovementsTimeline';
-import '../../../movements/ui/MonthlyMovements/MonthlyMovementsView.css';
 import styles from './HomeRecentMovementsView.module.css';
 
 export type HomeRecentMovementsViewProps = {
@@ -36,18 +35,18 @@ export function HomeRecentMovementsView({ required, provided }: HomeRecentMoveme
       </div>
 
       {loading ? (
-        <div className="monthly-timeline-skeleton" role="status" aria-label="Loading recent movements">
-          <span className="monthly-timeline-skeleton__row" />
-          <span className="monthly-timeline-skeleton__row" />
+        <div className={styles.skeleton} role="status" aria-label="Loading recent movements">
+          <span className={styles.skeletonRow} />
+          <span className={styles.skeletonRow} />
         </div>
       ) : null}
 
       {!loading && movements.length === 0 ? <p className={styles.empty}>No recent movements.</p> : null}
 
       {!loading && movements.length > 0 ? (
-        <ul className="monthly-timeline-list" aria-label="Recent movements list">
+        <ul className={styles.list} aria-label="Recent movements list">
           {movements.map((item) => (
-            <MonthlyTimelineRowView
+            <MovementTimelineRowView
               key={`${item.source}:${item.id}`}
               item={item}
               disabled={disabled ?? false}

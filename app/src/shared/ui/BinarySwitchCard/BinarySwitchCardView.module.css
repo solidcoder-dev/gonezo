@@ -1,0 +1,107 @@
+.card {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 82px;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-elevated);
+  box-shadow: var(--shadow-card);
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-income-soft);
+  color: var(--color-income);
+  font-size: 1.15rem;
+}
+
+.text {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.title {
+  font-size: 0.94rem;
+  font-weight: var(--font-weight-bold);
+}
+
+.description {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: var(--font-weight-regular);
+  line-height: 1.35;
+}
+
+.switch {
+  position: relative;
+  flex: 0 0 44px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 10px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-income);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.switch::before {
+  content: '';
+  position: absolute;
+  inset: 10px 4px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
+  transition: background-color var(--motion-duration-fast) var(--motion-easing-standard), border-color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 13px;
+  left: 8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-surface-elevated);
+  box-shadow: var(--shadow-switch-thumb);
+  transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.switch[aria-checked='true']::before {
+  border-color: var(--color-income);
+  background: var(--color-income);
+}
+
+.switch[aria-checked='true']::after {
+  transform: translateX(16px);
+}
+
+.switch:focus-visible {
+  outline: 3px solid var(--color-action-primary-focus);
+  outline-offset: 2px;
+}
+
+.switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch::before,
+  .switch::after {
+    transition-duration: 1ms;
+  }
+}

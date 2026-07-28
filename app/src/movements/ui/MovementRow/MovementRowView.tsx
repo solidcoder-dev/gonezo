@@ -77,7 +77,7 @@ export function MovementRowView({ required, provided }: MovementRowViewProps) {
           </strong>
         </div>
         <div className="expense-bottom-row compact-row">
-          <span className="hint compact-subline">{renderDetails(data.details)}</span>
+          <span className="gz-hint compact-subline">{renderDetails(data.details)}</span>
         </div>
       </button>
     </li>

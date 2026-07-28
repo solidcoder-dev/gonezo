@@ -14,9 +14,9 @@
   display: grid;
   gap: 4px;
   padding: 12px;
-  border-left: 4px solid var(--gz-legacy-b0b0a5);
+  border-left: 4px solid var(--color-border-strong);
   border-radius: 14px;
-  background: var(--gz-legacy-fff);
+  background: var(--color-surface-primary);
 }
 
 .expense-item--compact {
@@ -42,7 +42,7 @@
 
 .expense-item-button:focus-visible {
   border-radius: 8px;
-  outline: 2px solid var(--gz-legacy-1d1d1b);
+  outline: 2px solid var(--color-text-primary);
   outline-offset: 2px;
 }
 
@@ -60,11 +60,11 @@
 }
 
 .expense-item--expense {
-  border-left-color: var(--color-status-danger-text);
+  border-left-color: var(--color-danger);
 }
 
 .expense-item--transfer {
-  border-left-color: var(--gz-legacy-2563eb);
+  border-left-color: var(--color-info);
 }
 
 .expense-top-row {
@@ -121,12 +121,12 @@
 }
 
 .compact-account-name {
-  color: var(--gz-legacy-3d3d38);
+  color: var(--color-text-primary);
   font-weight: 800;
 }
 
 .compact-meta-separator {
-  color: var(--gz-legacy-8a8a80);
+  color: var(--color-text-muted);
   font-weight: 600;
 }
 
@@ -136,15 +136,15 @@
 }
 
 .movement-amount--income {
-  color: var(--color-brand-strong);
+  color: var(--color-income);
 }
 
 .movement-amount--expense {
-  color: var(--color-status-danger-text);
+  color: var(--color-danger);
 }
 
 .movement-amount--transfer {
-  color: var(--gz-legacy-2563eb);
+  color: var(--color-info);
 }
 
 .compact-action {
@@ -157,7 +157,7 @@
 .date-group-label {
   margin: 2px 0 0;
   padding-top: 8px;
-  border-top: 1px solid var(--gz-legacy-e6e6da);
+  border-top: 1px solid var(--color-border-subtle);
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -189,11 +189,11 @@
 }
 
 .tx-badge.income {
-  background: var(--gz-legacy-e8f7ec);
-  color: var(--gz-legacy-176434);
+  background: var(--color-income-soft);
+  color: var(--color-income);
 }
 
 .tx-badge.expense {
-  background: var(--gz-legacy-f9ebeb);
-  color: var(--gz-legacy-8a2020);
+  background: var(--color-expense-soft);
+  color: var(--color-expense);
 }

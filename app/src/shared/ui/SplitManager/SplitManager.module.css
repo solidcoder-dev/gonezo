@@ -1,20 +1,20 @@
 .manager {
-  margin-top: var(--spacing-4);
+  margin-top: 1rem;
   display: grid;
-  gap: var(--spacing-2);
+  gap: 0.5rem;
 }
 
 .toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--spacing-3);
+  gap: 0.75rem;
   align-items: center;
 }
 
 .title {
   min-width: 0;
   display: grid;
-  gap: var(--spacing-0-5);
+  gap: 0.125rem;
 }
 
 .remaining {
@@ -27,13 +27,13 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--spacing-1-5);
+  gap: 0.375rem;
   flex-wrap: wrap;
 }
 
 .actionButton {
   min-height: 32px;
-  padding: 5px var(--spacing-2);
+  padding: 5px 0.5rem;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -62,10 +62,10 @@
   min-height: 40px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(34px, auto) auto;
-  gap: var(--spacing-2);
+  gap: 0.5rem;
   align-items: center;
-  padding: 6px var(--spacing-2) 6px 10px;
-  background: var(--color-background-muted);
+  padding: 6px 0.5rem 6px 10px;
+  background: var(--color-surface-muted);
 }
 
 .item:first-child {
@@ -97,7 +97,7 @@
   min-width: 0;
   display: inline-flex;
   justify-content: flex-end;
-  gap: var(--spacing-1);
+  gap: 0.25rem;
 }
 
 .statusIcon {
@@ -112,13 +112,13 @@
 }
 
 .expectedStatus {
-  color: var(--color-status-success-text);
-  background: var(--color-status-success-background);
+  color: var(--color-success);
+  background: var(--color-success-soft);
 }
 
 .ignoredStatus {
-  color: var(--color-status-danger-muted-text);
-  background: var(--color-status-danger-muted-background);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
 }
 
 .rowActions {
@@ -145,21 +145,21 @@
 
 .menu {
   position: absolute;
-  z-index: var(--z-menu);
-  top: calc(100% + var(--spacing-1));
+  z-index: var(--z-toast);
+  top: calc(100% + 0.25rem);
   right: 0;
   min-width: 160px;
   display: grid;
   padding: 5px;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
-  background: var(--color-background-surface);
-  box-shadow: var(--shadow-menu);
+  background: var(--color-surface-primary);
+  box-shadow: var(--shadow-md);
 }
 
 .menu button {
   min-height: 32px;
-  padding: 6px var(--spacing-2);
+  padding: 6px 0.5rem;
   border: 0;
   border-radius: 6px;
   background: transparent;
@@ -169,17 +169,17 @@
 
 .menu button:hover:not(:disabled),
 .menu button:focus-visible {
-  background: var(--color-background-hover);
+  background: var(--color-brand-soft);
 }
 
 .menu .dangerMenuItem {
-  color: var(--color-status-danger-text);
+  color: var(--color-danger);
 }
 
 .empty {
   margin: 0;
-  padding: 10px var(--spacing-3);
+  padding: 10px 0.75rem;
   border: 1px dashed var(--color-border-strong);
   border-radius: var(--radius-md);
-  background: var(--color-background-muted);
+  background: var(--color-surface-muted);
 }

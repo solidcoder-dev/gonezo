@@ -12,7 +12,7 @@ describe('WorkspacePageHeader', () => {
           required={{
             title: 'Movements',
             searchAction: (
-              <a className="text-button icon-button" href="/movements/search" aria-label="Search movements">
+              <a className="gz-text-button gz-icon-button" href="/movements/search" aria-label="Search movements">
                 <i className="bi bi-search" aria-hidden />
               </a>
             ),

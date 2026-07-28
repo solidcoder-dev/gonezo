@@ -31,24 +31,24 @@
 }
 
 .movement-account-selector-row:active:not(:disabled) {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--color-surface-shadow-subtle);
 }
 
 .movement-account-selector-check {
-  color: var(--accent, var(--gz-legacy-111));
+  color: var(--color-text-primary);
   text-align: center;
 }
 
 .movement-account-selector-name {
   min-width: 0;
   overflow: hidden;
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .movement-account-selector-balance {
-  color: var(--muted, var(--gz-legacy-6b7280));
+  color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }

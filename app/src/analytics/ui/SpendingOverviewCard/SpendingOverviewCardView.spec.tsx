@@ -12,8 +12,8 @@ describe('SpendingOverviewCardView', () => {
             totalAmount: '€250.00',
             windowLabel: 'Jun 2026',
             categories: [
-              { key: 'food', name: 'Dining', amount: '€120.00', percentage: 48, color: '#f7cf6d' },
-              { key: 'travel', name: 'Travel', amount: '€80.00', percentage: 32, color: '#8ab9ee' },
+              { key: 'food', name: 'Dining', amount: '€120.00', percentage: 48, color: 'var(--category-yellow-soft)' },
+              { key: 'travel', name: 'Travel', amount: '€80.00', percentage: 32, color: 'var(--category-blue-soft)' },
             ],
           },
           state: { granularity: 'monthly', canGoNextWindow: true, categoryBreakdownOpen: false },
@@ -49,7 +49,7 @@ describe('SpendingOverviewCardView', () => {
             totalAmount: '€250.00',
             windowLabel: 'Jun 2026',
             categories: [
-              { key: 'food', name: 'Food', amount: '€250.00', percentage: 100, color: '#86d69a' },
+              { key: 'food', name: 'Food', amount: '€250.00', percentage: 100, color: 'var(--category-green-mint)' },
             ],
           },
           state: { granularity: 'monthly', canGoNextWindow: false, categoryBreakdownOpen: false },
@@ -84,7 +84,7 @@ describe('SpendingOverviewCardView', () => {
             totalAmount: '€250.00',
             windowLabel: 'Jun 2026',
             categories: [
-              { key: 'food', name: 'Food', amount: '€250.00', percentage: 100, color: '#86d69a' },
+              { key: 'food', name: 'Food', amount: '€250.00', percentage: 100, color: 'var(--category-green-mint)' },
             ],
           },
           state: { granularity: 'monthly', canGoNextWindow: false, categoryBreakdownOpen: true },

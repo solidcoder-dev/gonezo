@@ -67,7 +67,7 @@ export function AccountSwitcherView({ required, provided }: Props) {
                       return (
                         <div
                           key={account.id}
-                          className={isSelected ? 'chip active account-choice account-choice--active' : 'chip account-choice account-choice--active'}
+                          className={isSelected ? 'gz-chip active account-choice account-choice--active' : 'gz-chip account-choice account-choice--active'}
                         >
                           <button
                             type="button"
@@ -84,7 +84,7 @@ export function AccountSwitcherView({ required, provided }: Props) {
                           </button>
                           <button
                             type="button"
-                            className={isDefault ? 'text-button icon-button account-default-button is-default' : 'text-button icon-button account-default-button'}
+                            className={isDefault ? 'gz-text-button gz-icon-button account-default-button is-default' : 'gz-text-button gz-icon-button account-default-button'}
                             aria-label={isDefault ? `Clear default account ${account.name}` : `Set ${account.name} as default account`}
                             title={isDefault ? 'Clear default account' : 'Set as default account'}
                             disabled={required.disabled || defaultUpdatingAccountId === account.id}
@@ -108,7 +108,7 @@ export function AccountSwitcherView({ required, provided }: Props) {
                       <>
                         <button
                           type="button"
-                          className="text-button account-archive-toggle"
+                          className="gz-text-button account-archive-toggle"
                           aria-expanded={showArchived}
                           disabled={required.disabled}
                           onClick={() => setShowArchived((current) => !current)}
@@ -119,14 +119,14 @@ export function AccountSwitcherView({ required, provided }: Props) {
                         {showArchived ? (
                           <div className="vstack gap-2 account-archived-list" aria-label="Archived accounts">
                             {archivedAccounts.map((account) => (
-                              <div key={account.id} className="chip account-choice account-choice--archived">
+                              <div key={account.id} className="gz-chip account-choice account-choice--archived">
                                 <span aria-hidden />
                                 <span>{account.name}</span>
                                 <span className="account-choice-currency">{account.currency}</span>
                                 <span className="account-choice-status">ARCH</span>
                                 <button
                                   type="button"
-                                  className="text-button icon-button account-restore-button"
+                                  className="gz-text-button gz-icon-button account-restore-button"
                                   aria-label={`Restore account ${account.name}`}
                                   title="Restore account"
                                   disabled={required.disabled || restoringAccountId === account.id}
@@ -149,11 +149,11 @@ export function AccountSwitcherView({ required, provided }: Props) {
                       </>
                     ) : null}
                   </div>
-                  <p className="hint account-menu-actions-label">Global actions</p>
-                  <div className="quick-row account-menu-actions">
+                  <p className="gz-hint account-menu-actions-label">Global actions</p>
+                  <div className="gz-quick-row account-menu-actions">
                     <button
                       type="button"
-                      className="text-button"
+                      className="gz-text-button"
                       disabled={required.disabled}
                       onClick={() => {
                         provided.onAddAccount();
@@ -164,7 +164,7 @@ export function AccountSwitcherView({ required, provided }: Props) {
                     </button>
                     <button
                       type="button"
-                      className="text-button"
+                      className="gz-text-button"
                       disabled={required.disabled}
                       onClick={() => {
                         provided.onImport();
@@ -175,7 +175,7 @@ export function AccountSwitcherView({ required, provided }: Props) {
                     </button>
                     <button
                       type="button"
-                      className="text-button"
+                      className="gz-text-button"
                       disabled={required.disabled}
                       onClick={() => {
                         provided.onManageTaxonomy();
@@ -186,7 +186,7 @@ export function AccountSwitcherView({ required, provided }: Props) {
                     </button>
                     <button
                       type="button"
-                      className="text-button"
+                      className="gz-text-button"
                       disabled={required.disabled}
                       onClick={() => {
                         provided.onBackup();

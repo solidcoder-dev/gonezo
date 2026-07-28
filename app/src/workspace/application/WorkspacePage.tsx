@@ -353,7 +353,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
               required={{
                 title: 'Movements',
                 searchAction: (
-                  <Link className="text-button icon-button" to="/movements/search" aria-label="Search movements">
+                  <Link className="gz-text-button gz-icon-button" to="/movements/search" aria-label="Search movements">
                     <i className="bi bi-search" aria-hidden />
                   </Link>
                 ),

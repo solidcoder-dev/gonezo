@@ -224,7 +224,7 @@ export function ShareExpenseEditorView({ required, provided }: ShareExpenseEdito
             ) : (
               <button
                 type="button"
-                className={`text-button icon-button ${styles.removePersonButton}`}
+                className={`gz-text-button gz-icon-button ${styles.removePersonButton}`}
                 aria-label={`Remove ${person.name}`}
                 disabled={required.status.disabled}
                 onClick={() => removePerson(person.id)}

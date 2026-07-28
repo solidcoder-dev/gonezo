@@ -46,11 +46,11 @@ export function YearMonthSelectorView({ required, provided }: YearMonthSelectorV
   } = required;
 
   return (
-    <div className="month-selector stack" aria-label="Month selector">
+    <div className="month-selector vstack gap-2" aria-label="Month selector">
       <div className="month-selector-year-row" role="group" aria-label="Select year">
         <button
           type="button"
-          className="text-button month-selector-year-button"
+          className="gz-text-button month-selector-year-button"
           onClick={provided.onPreviousYear}
           disabled={disabled}
           aria-label="Previous year"
@@ -62,7 +62,7 @@ export function YearMonthSelectorView({ required, provided }: YearMonthSelectorV
         </p>
         <button
           type="button"
-          className="text-button month-selector-year-button"
+          className="gz-text-button month-selector-year-button"
           onClick={provided.onNextYear}
           disabled={disabled}
           aria-label="Next year"

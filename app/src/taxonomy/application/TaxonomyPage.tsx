@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import type { TaxonomyTagItem } from './taxonomy.port';
 import { SheetView } from '../../shared/ui/SheetView';
 import type { TaxonomyGatewayPort } from './taxonomyGateway.port';
-import './TaxonomyPage.css';
+import styles from './TaxonomyPage.module.css';
 
 export type TaxonomyPagePort = Pick<
   TaxonomyGatewayPort,
@@ -80,10 +80,10 @@ export function TaxonomyPage({ required }: TaxonomyPageProps) {
   }
 
   return (
-    <section className="app-screen">
-      <div className="inline-header">
+    <section className="gz-app-screen">
+      <div className="gz-inline-header">
         <h2>Taxonomy</h2>
-        <Link to="/" className="text-button icon-button" aria-label="Close taxonomy">
+        <Link to="/" className="gz-text-button gz-icon-button" aria-label="Close taxonomy">
           <i className="bi bi-x-lg" aria-hidden />
         </Link>
       </div>
@@ -98,23 +98,23 @@ export function TaxonomyPage({ required }: TaxonomyPageProps) {
       {!loading && tags.length === 0 ? <p>No tags available.</p> : null}
 
       {!loading && tags.length > 0 ? (
-        <div className="taxonomy-section-header">
+        <div className={styles.sectionHeader}>
           <h3 id="taxonomy-list-title">Tags</h3>
           <span>{tags.length}</span>
         </div>
       ) : null}
 
       {!loading && tags.length > 0 ? (
-        <ul className="taxonomy-list" aria-labelledby="taxonomy-list-title">
+        <ul className={styles.list} aria-labelledby="taxonomy-list-title">
           {tags.map((tag) => (
-            <li key={tag.id} className="taxonomy-token taxonomy-row">
-              <div className="taxonomy-row-main">
-                <strong className="taxonomy-token-name">#{tag.name}</strong>
-                <span className="taxonomy-token-meta">Tag</span>
+            <li key={tag.id} className={`${styles.token} ${styles.row}`}>
+              <div className={styles.rowMain}>
+                <strong className={styles.tokenName}>#{tag.name}</strong>
+                <span className={styles.tokenMeta}>Tag</span>
               </div>
               <button
                 type="button"
-                className="text-button icon-button taxonomy-edit-button"
+                className={`gz-text-button gz-icon-button ${styles.editButton}`}
                 aria-label={`Rename tag ${tag.name}`}
                 onClick={() => openRename({ kind: 'tag', item: tag })}
               >
@@ -146,13 +146,13 @@ export function TaxonomyPage({ required }: TaxonomyPageProps) {
                     />
                   </label>
 
-                  <div className="quick-row">
+                  <div className="gz-quick-row">
                     <button type="submit" disabled={saving || renameDraft.trim().length === 0}>
                       Save name
                     </button>
                     <button
                       type="button"
-                      className="text-button"
+                      className="gz-text-button"
                       disabled={saving}
                       onClick={() => setRenameTarget(null)}
                     >

@@ -107,7 +107,7 @@ export function MovementsSearchFilterSheetView({
         config: {
           ariaLabel: 'Filters',
           panelClassName: 'search-filter-sheet',
-          contentClassName: 'stack search-filter-sheet-content',
+          contentClassName: 'vstack gap-2 search-filter-sheet-content',
           contentAriaLabel: 'Movement filters',
         },
         data: {
@@ -118,7 +118,7 @@ export function MovementsSearchFilterSheetView({
               </div>
               <button
                 type="button"
-                className="text-button icon-button"
+                className="gz-text-button gz-icon-button"
                 aria-label="Close filters"
                 onClick={provided.commands.close}
               >
@@ -139,8 +139,8 @@ export function MovementsSearchFilterSheetView({
               />
 
               <div className="vstack gap-2">
-                <p className="hint">Date</p>
-                <div className="quick-row">
+                <p className="gz-hint">Date</p>
+                <div className="gz-quick-row">
                   <input
                     className="form-control"
                     type="date"
@@ -159,8 +159,8 @@ export function MovementsSearchFilterSheetView({
               </div>
 
               <div className="vstack gap-2">
-                <p className="hint">Type</p>
-                <div className="chip-row">
+                <p className="gz-hint">Type</p>
+                <div className="gz-chip-row">
                   {TYPE_FILTERS.map((option) => {
                     const selected = filters.types.includes(option.value);
                     return (
@@ -180,9 +180,9 @@ export function MovementsSearchFilterSheetView({
               </div>
 
               <div className="vstack gap-2">
-                <p className="hint">Category</p>
+                <p className="gz-hint">Category</p>
                 {filterOptions.categories.length > 0 ? (
-                  <div className="chip-row">
+                  <div className="gz-chip-row">
                     {visibleCategories.map((category) => {
                       const selected = filters.categoryIds.includes(category.id);
                       return (
@@ -210,13 +210,13 @@ export function MovementsSearchFilterSheetView({
                     ) : null}
                   </div>
                 ) : (
-                  <p className="hint">No categories</p>
+                  <p className="gz-hint">No categories</p>
                 )}
               </div>
 
               <div className="vstack gap-2">
-                <p className="hint">Amount</p>
-                <div className="quick-row">
+                <p className="gz-hint">Amount</p>
+                <div className="gz-quick-row">
                   <input
                     className="form-control"
                     type="number"
@@ -243,9 +243,9 @@ export function MovementsSearchFilterSheetView({
               </div>
 
               <div className="vstack gap-2">
-                <p className="hint">Tags</p>
+                <p className="gz-hint">Tags</p>
                 {filterOptions.tags.length > 0 ? (
-                  <div className="chip-row">
+                  <div className="gz-chip-row">
                     {visibleTags.map((tag) => {
                       const selected = filters.tagIds.includes(tag.id);
                       return (
@@ -273,26 +273,26 @@ export function MovementsSearchFilterSheetView({
                     ) : null}
                   </div>
                 ) : (
-                  <p className="hint">No tags</p>
+                  <p className="gz-hint">No tags</p>
                 )}
               </div>
 
               <div className="vstack gap-2">
-                <p className="hint">Sort by</p>
+                <p className="gz-hint">Sort by</p>
                 <SegmentedControlView required={{ config: { ariaLabel: 'Sort by', columns: 2 }, data: { options: [
                   { value: 'date', label: 'Date' }, { value: 'amount', label: 'Amount' },
                 ] }, state: { value: filters.sortField }, status: { disabled } }} provided={{ commands: { select: provided.commands.setSortField } }} />
               </div>
 
               <div className="vstack gap-2">
-                <p className="hint">Order</p>
+                <p className="gz-hint">Order</p>
                 <SegmentedControlView required={{ config: { ariaLabel: 'Sort direction', columns: 2 }, data: { options: [
                   { value: 'desc', label: 'Descending' }, { value: 'asc', label: 'Ascending' },
                 ] }, state: { value: filters.sortDirection }, status: { disabled } }} provided={{ commands: { select: provided.commands.setSortDirection } }} />
               </div>
 
               <div className="vstack gap-2">
-                <p className="hint">Group</p>
+                <p className="gz-hint">Group</p>
                 <SegmentedControlView required={{ config: { ariaLabel: 'Group results', columns: 2 }, data: { options: [
                   { value: 'day', label: 'By day', disabled: filters.sortField !== 'date' }, { value: 'none', label: 'None' },
                 ] }, state: { value: filters.groupByDay ? 'day' : 'none' }, status: { disabled } }} provided={{ commands: { select: (value) => provided.commands.setGroupByDay(value === 'day') } }} />
@@ -300,8 +300,8 @@ export function MovementsSearchFilterSheetView({
 
               {state.advancedOpen ? (
                 <div className="vstack gap-2">
-                  <p className="hint">Page size</p>
-                  <div className="chip-row" aria-label="Page size">
+                  <p className="gz-hint">Page size</p>
+                  <div className="gz-chip-row" aria-label="Page size">
                     {pageSizes.map((size) => (
                       <button
                         key={size}
@@ -320,15 +320,15 @@ export function MovementsSearchFilterSheetView({
 
               <button
                 type="button"
-                className="composer-more-options"
+                className="gz-composer-more-options"
                 onClick={provided.commands.toggleAdvanced}
                 disabled={disabled}
               >
                 <span>{state.advancedOpen ? 'Less options' : 'More options'}</span>
                 <i
                   className={state.advancedOpen
-                    ? 'bi bi-chevron-up composer-more-options-caret'
-                    : 'bi bi-chevron-down composer-more-options-caret'}
+                    ? 'bi bi-chevron-up gz-composer-more-options-caret'
+                    : 'bi bi-chevron-down gz-composer-more-options-caret'}
                   aria-hidden
                 />
               </button>
@@ -336,7 +336,7 @@ export function MovementsSearchFilterSheetView({
           ),
           footer: (
             <div className="search-sheet-actions">
-              <button type="button" className="text-button" onClick={provided.commands.reset} disabled={disabled}>
+              <button type="button" className="gz-text-button" onClick={provided.commands.reset} disabled={disabled}>
                 Reset
               </button>
               <button type="button" className="btn btn-primary w-100" onClick={provided.commands.apply} disabled={disabled}>

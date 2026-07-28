@@ -47,9 +47,9 @@ export function MovementSectionView({ required, provided }: MovementSectionViewP
           <i className={state.expanded ? 'bi bi-chevron-up' : 'bi bi-chevron-down'} aria-hidden />
         </button>
       ) : (
-        <div className="inline-header">
+        <div className="gz-inline-header">
           <h3>{config.title}</h3>
-          <span className="hint">{data.count}</span>
+          <span className="gz-hint">{data.count}</span>
         </div>
       )}
       {renderBody ? data.body : null}

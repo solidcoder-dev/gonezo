@@ -89,7 +89,7 @@ export function MultiTagPickerView({ required, provided }: MultiTagPickerViewPro
           ) : null}
         </ul>
       ) : null}
-      {required.status.error ? <p className="field-error">{required.status.error}</p> : null}
+      {required.status.error ? <p className="gz-field-error">{required.status.error}</p> : null}
     </div>
   );
 }

@@ -30,7 +30,7 @@ export function TransferFxFieldsView({ required, provided }: TransferFxFieldsVie
   const { config, state, status } = required;
 
   return (
-    <div className="vstack gap-2 item-editor">
+    <div className="vstack gap-2 gz-item-editor">
       <label className="vstack gap-2">
         <span className="visually-hidden">{config.amountInLabel}</span>
         <input
@@ -46,7 +46,7 @@ export function TransferFxFieldsView({ required, provided }: TransferFxFieldsVie
           aria-describedby={status.amountInError ? 'composer-transfer-amount-in-error' : undefined}
         />
       </label>
-      {status.amountInError ? <p id="composer-transfer-amount-in-error" className="field-error">{status.amountInError}</p> : null}
+      {status.amountInError ? <p id="composer-transfer-amount-in-error" className="gz-field-error">{status.amountInError}</p> : null}
 
       <label className="vstack gap-2">
         <span className="visually-hidden">{config.fxLabel}</span>
@@ -63,7 +63,7 @@ export function TransferFxFieldsView({ required, provided }: TransferFxFieldsVie
           aria-describedby={status.fxRateError ? 'composer-transfer-fx-rate-error' : undefined}
         />
       </label>
-      {status.fxRateError ? <p id="composer-transfer-fx-rate-error" className="field-error">{status.fxRateError}</p> : null}
+      {status.fxRateError ? <p id="composer-transfer-fx-rate-error" className="gz-field-error">{status.fxRateError}</p> : null}
 
       <SegmentedControlView<TransferFxModeView>
         required={{
@@ -79,7 +79,7 @@ export function TransferFxFieldsView({ required, provided }: TransferFxFieldsVie
         }}
         provided={{ commands: { select: provided.commands.changeFxMode } }}
       />
-      <p className="hint">Edit two values; the third one is calculated automatically.</p>
+      <p className="gz-hint">Edit two values; the third one is calculated automatically.</p>
     </div>
   );
 }

@@ -223,7 +223,7 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
       </div>
 
       {searchApplied && activeFilterChips.length > 0 ? (
-        <div className="chip-row active-filter-row" aria-label="Applied filters">
+        <div className="gz-chip-row active-filter-row" aria-label="Applied filters">
           {activeFilterChips.map((chip) => (
             <button
               key={chip.key}
@@ -236,7 +236,7 @@ export function MovementsSearchFilters({ required, provided }: MovementsSearchFi
               <i className="bi bi-x-lg" aria-hidden />
             </button>
           ))}
-          <button type="button" className="text-button" onClick={provided.commands.resetFilters} disabled={disabled}>
+          <button type="button" className="gz-text-button" onClick={provided.commands.resetFilters} disabled={disabled}>
             Clear all
           </button>
         </div>

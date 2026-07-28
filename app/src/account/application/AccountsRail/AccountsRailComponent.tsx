@@ -305,19 +305,19 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
                     autoComplete="off"
                   />
                 </label>
-                <div className="quick-row">
+                <div className="gz-quick-row">
                   <button type="submit" disabled={submitting}>
                     Save name
                   </button>
-                  <button type="button" className="text-button" onClick={archiveAccount} disabled={submitting}>
+                  <button type="button" className="gz-text-button" onClick={archiveAccount} disabled={submitting}>
                     Archive account
                   </button>
                 </div>
-                <p className="hint">Archived accounts are hidden from the active list and cannot accept new transactions.</p>
+                <p className="gz-hint">Archived accounts are hidden from the active list and cannot accept new transactions.</p>
                 <button type="button" className="btn btn-danger" onClick={deleteAccount} disabled={submitting}>
                   Delete account
                 </button>
-                <p className="hint">Delete removes the account and all its transactions permanently.</p>
+                <p className="gz-hint">Delete removes the account and all its transactions permanently.</p>
               </form>
             ),
           },

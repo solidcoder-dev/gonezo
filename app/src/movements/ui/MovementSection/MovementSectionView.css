@@ -9,7 +9,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--gz-legacy-1d1d1b);
+  color: var(--color-text-primary);
   font-size: 1.05rem;
   line-height: 1.2;
   font-weight: 700;
@@ -34,7 +34,7 @@
   min-width: auto;
   margin-left: auto;
   overflow: visible;
-  color: var(--gz-legacy-6f6f67);
+  color: var(--color-text-secondary);
   text-overflow: clip;
   white-space: nowrap;
   font-size: 0.95rem;

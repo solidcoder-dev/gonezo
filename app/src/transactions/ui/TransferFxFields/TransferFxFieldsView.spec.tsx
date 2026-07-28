@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { TransferFxFieldsView } from './TransferFxFieldsView';
 
 describe('TransferFxFieldsView', () => {
-  it('renders FX inputs, errors, hint and auto mode controls', () => {
+  it('renders FX inputs, errors, gz-hint and auto mode controls', () => {
     const changeAmountIn = vi.fn();
     const changeFxRate = vi.fn();
     const changeFxMode = vi.fn();

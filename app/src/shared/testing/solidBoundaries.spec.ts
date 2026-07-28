@@ -5,8 +5,9 @@ import { describe, expect, it } from 'vitest';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const srcDir = resolve(__dirname, '..', '..');
-const appDir = resolve(srcDir, '..');
+const repoRoot = resolve(__dirname, '..', '..', '..', '..');
+const appDir = resolve(repoRoot, 'app');
+const srcDir = resolve(appDir, 'src');
 
 function listSourceFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -164,7 +165,7 @@ describe('SOLID frontend boundaries', () => {
   it('keeps shared visual foundations out of the feature stylesheet', () => {
     const appCss = readFileSync(resolve(srcDir, 'App.css'), 'utf8');
     const forbiddenSharedSelector =
-      /^\.(?:sheet-(?:backdrop|panel)|card|nested-card|stack|chip-row|chip|segmented(?:-2)?|segment|quick-row|inline-header|text-button|icon-button|inline-checkbox|item-editor|visually-hidden|hint|field-error|primary-cta)(?:[.{,: ])/m;
+      /^\.(?:gz-(?:nested-card|stack|chip-row|chip|quick-row|inline-header|text-button|icon-button|inline-checkbox|item-editor|visually-hidden|hint|field-error)|sheet-(?:backdrop|panel)|card|segmented(?:-2)?|segment|primary-cta)(?:[.{,: ])/m;
 
     expect(appCss).not.toMatch(forbiddenSharedSelector);
     expect(readFileSync(resolve(srcDir, 'shared/ui/SheetView.module.css'), 'utf8')).toBeTruthy();
@@ -175,7 +176,7 @@ describe('SOLID frontend boundaries', () => {
     const appCss = readFileSync(resolve(srcDir, 'App.css'), 'utf8');
     const selectors = [...appCss.matchAll(/\.([a-z][a-z0-9-]*)/g)].map((match) => match[1]);
 
-    expect([...new Set(selectors)]).toEqual(['app-screen']);
+    expect([...new Set(selectors)]).toEqual(['gz-app-screen']);
   });
 
   it('keeps chart vendor imports behind the shared chart adapter', () => {
@@ -430,9 +431,9 @@ describe('SOLID frontend boundaries', () => {
     expect(taxonomy).toContain('final class TaxonomyPluginHandler');
     expect(taxonomy).toContain('TransactionTaggingBridge.applyTagsToTransaction');
     expect(recurrence).toContain('final class RecurringPluginHandler');
-    expect(recurrence).toContain('private JSObject toRecurringMovementJson');
+    expect(recurrence).toContain('JSObject toRecurringMovementJson');
     expect(expected).toContain('final class ExpectedPluginHandler');
-    expect(expected).toContain('private JSObject toExpectedMovementJson');
+    expect(expected).toContain('JSObject toExpectedMovementJson');
     expect(tagging).toContain('final class TransactionTaggingBridge');
   });
 

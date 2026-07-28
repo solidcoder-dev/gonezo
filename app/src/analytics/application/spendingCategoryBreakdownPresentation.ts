@@ -1,7 +1,7 @@
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
 import type { SpendingDashboardCategoryView } from '../ui/SpendingDashboard/SpendingDashboardView.contract';
 
-const CATEGORY_COLORS = ['#ffb7b2', '#c6efd4', '#ffe08a', '#b9d4f7', '#d7d2ff'];
+const CATEGORY_COLORS = ['var(--category-red-soft)', 'var(--category-green-soft)', 'var(--category-yellow-soft)', 'var(--category-blue-soft)', 'var(--category-lilac-soft)'];
 const MAX_VISIBLE_CATEGORIES = 5;
 const MAX_PRIMARY_CATEGORIES = 4;
 

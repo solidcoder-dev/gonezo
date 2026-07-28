@@ -1,0 +1,21 @@
+.page { display: grid; gap: var(--space-xl); color: var(--color-text-primary); }
+.header { display: grid; gap: var(--space-sm); }
+.header h1, .header p, .section h2, .surface h3, .surface p { margin: 0; }
+.header h1 { font-size: var(--type-title-size); line-height: var(--type-title-line-height); }
+.header p { color: var(--color-text-secondary); }
+.eyebrow { color: var(--color-brand); font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); letter-spacing: 0.08em; text-transform: uppercase; }
+.section { display: grid; gap: var(--space-md); }
+.section h2 { font-size: var(--font-size-lg); }
+.swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--space-sm); }
+.swatch { display: grid; min-height: 72px; align-items: end; padding: var(--space-sm); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); color: var(--color-text-primary); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); }
+.swatch-brand { background: var(--color-brand); color: var(--color-on-brand); }
+.swatch-income { background: var(--color-income-soft); color: var(--color-income); }
+.swatch-expense { background: var(--color-expense-soft); color: var(--color-expense); }
+.swatch-transfer { background: var(--color-transfer-soft); color: var(--color-transfer); }
+.swatch-warning { background: var(--color-warning-soft); color: var(--color-warning); }
+.swatch-error { background: var(--color-error-soft); color: var(--color-error); }
+.swatch-surface { background: var(--color-surface); }
+.swatch-surface-elevated { background: var(--color-surface-elevated); box-shadow: var(--shadow-card); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); }
+.surface { display: grid; gap: var(--space-sm); min-width: 0; padding: var(--space-lg); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); background: var(--color-surface-elevated); box-shadow: var(--shadow-card); }
+.surface p { overflow-wrap: anywhere; color: var(--color-text-secondary); }

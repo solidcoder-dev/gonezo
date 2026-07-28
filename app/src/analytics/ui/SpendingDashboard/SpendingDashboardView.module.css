@@ -9,8 +9,8 @@
   padding: 18px 16px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 18px;
-  background: var(--color-background-surface);
-  box-shadow: 0 8px 24px rgb(17 24 39 / 4%);
+  background: var(--color-surface-primary);
+  box-shadow: var(--shadow-card);
 }
 
 .sectionTitle {
@@ -124,7 +124,7 @@
   height: 0.62rem;
   overflow: hidden;
   border-radius: 999px;
-  background: var(--color-background-muted);
+  background: var(--color-surface-muted);
 }
 
 .categoryMetricFill {
@@ -163,7 +163,7 @@
   display: block;
   width: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--color-background-muted) 0%, var(--color-background-muted) 50%, var(--color-background-muted) 100%);
+  background: linear-gradient(90deg, var(--color-surface-muted) 0%, var(--color-surface-muted) 50%, var(--color-surface-muted) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }

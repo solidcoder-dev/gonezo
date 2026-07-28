@@ -81,14 +81,14 @@ export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMo
       ) : null}
 
       {model.toast.message ? (
-        <div className="toast" role="status" aria-live="polite">
+        <div className="alert alert-success d-flex align-items-center gap-2 mb-0" role="status" aria-live="polite">
           <span>{model.toast.message}</span>
           {model.toast.actionLabel ? (
-            <button type="button" className="text-button" onClick={model.toast.runAction}>
+            <button type="button" className="gz-text-button" onClick={model.toast.runAction}>
               {model.toast.actionLabel}
             </button>
           ) : null}
-          <button type="button" className="text-button" onClick={model.toast.dismiss}>
+          <button type="button" className="gz-text-button" onClick={model.toast.dismiss}>
             Dismiss
           </button>
         </div>

@@ -22,7 +22,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--gz-legacy-1d1d1b);
+  color: var(--color-text-primary);
   font-size: 1.05rem;
   line-height: 1.2;
   font-weight: 700;
@@ -146,16 +146,16 @@
 }
 
 .account-choice--archived {
-  border-color: var(--gz-legacy-deded6);
-  background: var(--gz-legacy-f7f7f3);
-  color: var(--gz-legacy-6b6b62);
+  border-color: var(--color-border-default);
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
 }
 
 .account-choice-status {
   padding: 2px 6px;
   border-radius: 999px;
-  background: var(--gz-legacy-e7e7df);
-  color: var(--gz-legacy-56564f);
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0;

@@ -101,10 +101,10 @@ export function MovementsSearchPage({ required, provided }: MovementsSearchPageP
   }, [required.refreshSignal]);
 
   return (
-    <section className="app-screen">
-      <div className="inline-header">
+    <section className="gz-app-screen">
+      <div className="gz-inline-header">
         <h2>Search</h2>
-        <Link to="/" className="text-button icon-button" aria-label="Close search">
+        <Link to="/" className="gz-text-button gz-icon-button" aria-label="Close search">
           <i className="bi bi-x-lg" aria-hidden />
         </Link>
       </div>

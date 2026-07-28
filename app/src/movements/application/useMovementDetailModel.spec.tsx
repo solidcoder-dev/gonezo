@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { TransactionHistoryItemView } from '../../transactions/application/transactionView.types';
+import type { LedgerTransactionListItem } from '../../ledger/application/ledger.port';
+import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
 import { useMovementDetailModel } from './useMovementDetailModel';
 
 function deferred<T>() {
@@ -13,7 +14,7 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function postedTransaction(overrides: Partial<TransactionHistoryItemView> = {}): TransactionHistoryItemView {
+function postedTransaction(overrides: Partial<LedgerTransactionListItem> = {}): LedgerTransactionListItem {
   return {
     id: 'tx-1',
     accountId: 'account-1',
@@ -36,7 +37,7 @@ function postedTransaction(overrides: Partial<TransactionHistoryItemView> = {}):
   };
 }
 
-function expectedMovement(overrides: Record<string, unknown> = {}) {
+function expectedMovement(overrides: Partial<ExpectedMovementView> = {}): ExpectedMovementView {
   return {
     id: 'expected-1',
     accountId: 'account-1',
@@ -117,11 +118,11 @@ function makeInput(overrides: Record<string, unknown> = {}) {
     },
   };
 
-  return {
+  const input = {
     ports,
     postedItems: [postedTransaction()],
-    scheduledItems: [],
-    expectedItems: [],
+    scheduledItems: [] as ScheduledMovementView[],
+    expectedItems: [] as ExpectedMovementView[],
     categories: [{ id: 'cat-1', name: 'Groceries', appliesTo: 'expense' as const, usageCount: 1 }],
     tags: [
       { id: 'tag-1', name: 'Home' },
@@ -137,11 +138,54 @@ function makeInput(overrides: Record<string, unknown> = {}) {
     confirm: vi.fn().mockReturnValue(true),
     ...overrides,
   };
+
+  input.ports.movements.movementsGetDetail = vi.fn(async ({ source, movementId }) => {
+    if (source === 'posted') {
+      const movement = input.postedItems.find((item) => item.id === movementId);
+      return movement ? { found: true as const, detail: { source: 'posted' as const, movement } } : { found: false as const };
+    }
+    if (source === 'scheduled') {
+      const movement = input.scheduledItems.find((item) => item.id === movementId);
+      return movement ? { found: true as const, detail: { source: 'scheduled' as const, movement } } : { found: false as const };
+    }
+    const movement = input.expectedItems.find((item) => item.id === movementId);
+    if (!movement) {
+      return { found: false as const };
+    }
+    const recurringMovementId = movement.origin.kind === 'recurring'
+      ? movement.origin.recurringMovementId
+      : undefined;
+    const seriesResult = recurringMovementId
+      ? await input.ports.scheduling.schedulingGetMovement({ recurringMovementId })
+      : undefined;
+    const series: ScheduledMovementView | null = seriesResult?.found === true ? seriesResult.item : null;
+    return {
+      found: true as const,
+      detail: {
+        source: 'expected' as const,
+        movement,
+        origin: movement.origin.kind === 'manual'
+          ? { kind: 'manual' as const }
+          : movement.origin.kind === 'recurring'
+            ? {
+                kind: 'recurring' as const,
+                recurringMovementId: movement.origin.recurringMovementId,
+                occurrenceId: movement.origin.occurrenceId,
+                series,
+              }
+            : movement.origin.occurrenceId
+              ? { kind: 'recurring_unlinked' as const, occurrenceId: movement.origin.occurrenceId }
+              : { kind: 'manual' as const },
+      },
+    };
+  });
+
+  return input;
 }
 
 describe('useMovementDetailModel', () => {
   it('loads a selected movement once across parent rerenders and ignores a late response after close', async () => {
-    const detailRequest = deferred<{ found: true; detail: { source: 'posted'; movement: TransactionHistoryItemView } }>();
+    const detailRequest = deferred<{ found: true; detail: { source: 'posted'; movement: LedgerTransactionListItem } }>();
     const input = makeInput({
       ports: {
         ...makeInput().ports,

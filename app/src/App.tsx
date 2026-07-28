@@ -9,6 +9,7 @@ import { TaxonomyPage, type TaxonomyPagePort } from './taxonomy/application/Taxo
 import type { MovementVoiceEntryContext } from './transactions/application/MovementVoiceEntry/movementVoiceEntryContext';
 import { LocalExperimentalFeaturesAdapter } from './experiments/infrastructure/LocalExperimentalFeaturesAdapter';
 import type { ExperimentalFeaturesPort } from './experiments/application/experimentalFeatures.port';
+import { ComponentGalleryView } from './shared/ui/ComponentGallery/ComponentGalleryView';
 
 const defaultCore = new CoreAdapter();
 const defaultImportFileReader = { readAsBase64: readImportFileAsBase64 };
@@ -48,6 +49,7 @@ export function App({ required }: AppProps) {
         <Route key={path} path={path} element={workspacePage} />
       ))}
       <Route path="/taxonomy" element={<TaxonomyPage required={{ core: resolvedCore }} />} />
+      {import.meta.env.DEV ? <Route path="/__gallery" element={<ComponentGalleryView />} /> : null}
     </Routes>
   );
 }

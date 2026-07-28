@@ -9,10 +9,13 @@
   ],
   "overrides": [
     {
-      "files": ["src/styles/bootstrap.scss", "src/styles/_gonezo-tokens.scss"],
+      "files": ["src/styles/bootstrap.scss", "src/styles/_gonezo-tokens.scss", "src/styles/_theme-colors.generated.scss"],
       "rules": {
         "color-no-hex": null,
-        "color-function-notation": null
+        "color-named": null,
+        "color-function-notation": null,
+        "declaration-property-value-disallowed-list": null,
+        "selector-disallowed-list": null
       }
     },
     {
@@ -22,12 +25,20 @@
           "/^.+$/": ["/var\\(--gz-legacy-/"]
         }
       }
+    },
+    {
+      "files": ["src/**/*.module.css"],
+      "rules": {
+        "selector-disallowed-list": null
+      }
     }
   ],
   "rules": {
     "color-no-hex": true,
+    "color-named": "never",
     "color-function-notation": null,
     "declaration-block-no-duplicate-properties": true,
+    "declaration-no-important": true,
     "no-duplicate-selectors": true,
     "selector-class-pattern": null,
     "declaration-block-single-line-max-declarations": null,
@@ -48,8 +59,17 @@
       "/^button$/",
       "/^input$/",
       "/^select$/",
-      "/^textarea$/"
+      "/^textarea$/",
+      "/^\\.(?:card|toast|chip|hint|icon-button|text-button|field-error|stack)$/"
     ],
+    "declaration-property-value-disallowed-list": {
+      "/^.+$/": [
+        "/var\\(--gz-legacy-/",
+        "/#[0-9a-fA-F]{3,8}/",
+        "/rgba?\\(\\s*[0-9]/",
+        "/hsla?\\(\\s*[0-9]/"
+      ]
+    },
     "declaration-block-no-redundant-longhand-properties": null
   }
 }

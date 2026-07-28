@@ -172,6 +172,62 @@ describe('CoreAdapterWeb state and effects boundaries', () => {
     await expect(second.preferencesGet()).resolves.toEqual({ defaultAccountId: 'second-default' });
   });
 
+  it('restores a backup export into the web runtime state', async () => {
+    const state = createWebAppState();
+    const core = new CoreAdapterWeb({
+      state,
+      dependencies: {
+        clock: { nowIso: () => '2026-07-29T12:00:00.000Z' },
+        idGenerator: { nextId: () => 'id-1' },
+        backupDownloader: { downloadJson: vi.fn() },
+      },
+    });
+    const fileBase64 = Buffer.from(JSON.stringify({
+      schemaVersion: 2,
+      exportedAt: '2026-07-29T12:00:00.000Z',
+      accounts: [{
+        id: 'account-1',
+        name: 'Main',
+        type: 'cash',
+        currency: 'USD',
+        status: 'active',
+      }],
+      categories: [],
+      tags: [],
+      postedMovements: [{
+        id: 'tx-1',
+        accountId: 'account-1',
+        type: 'expense',
+        status: 'posted',
+        occurredAt: '2026-07-29T12:00:00.000Z',
+        amount: '20.00',
+        currency: 'USD',
+        description: 'Coffee',
+        tagIds: [],
+        splitItems: [],
+      }],
+    }), 'utf8').toString('base64');
+
+    const result = await core.movementsImportBackup({ fileBase64 });
+
+    expect(result).toMatchObject({
+      totalRows: 1,
+      importedCount: 1,
+      failedCount: 0,
+      skippedCount: 0,
+      rows: [{ sourceLine: 1, status: 'imported', transactionId: 'tx-1' }],
+    });
+    await expect(core.ledgerListAccounts()).resolves.toMatchObject({
+      items: [{ id: 'account-1', name: 'Main', currency: 'USD' }],
+    });
+    await expect(core.movementsGetOverview({ postedPagination: { page: 0, size: 3 }, expectedPreviewSize: 0, scheduledPreviewSize: 0 })).resolves.toMatchObject({
+      postedPage: {
+        totalElements: 1,
+        content: [{ id: 'tx-1', accountId: 'account-1', description: 'Coffee' }],
+      },
+    });
+  });
+
   it('marks sharing reimbursement expected movements as ignored', async () => {
     let nextId = 0;
     const state = createWebAppState();

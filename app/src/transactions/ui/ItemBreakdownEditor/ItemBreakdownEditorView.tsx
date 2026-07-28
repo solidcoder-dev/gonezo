@@ -110,8 +110,8 @@ function ItemForm({
       >
         <span>{submitLabel}</span>
       </button>
-      {state.itemAmountError ? <p id="composer-item-amount-error" className="field-error">{state.itemAmountError}</p> : null}
-      {state.itemNameError ? <p id="composer-item-name-error" className="field-error">{state.itemNameError}</p> : null}
+      {state.itemAmountError ? <p id="composer-item-amount-error" className="gz-field-error">{state.itemAmountError}</p> : null}
+      {state.itemNameError ? <p id="composer-item-name-error" className="gz-field-error">{state.itemNameError}</p> : null}
     </div>
   );
 }
@@ -144,9 +144,9 @@ export function ItemBreakdownEditorView({ required, provided }: ItemBreakdownEdi
   }
 
   return (
-    <div className={`stack ${styles.block}`}>
+    <div className={`vstack gap-2 ${styles.block}`}>
       {status.hideToggle ? null : (
-        <label className="inline-checkbox">
+        <label className="gz-inline-checkbox">
           <input
             type="checkbox"
             checked={state.enabled}
@@ -162,7 +162,7 @@ export function ItemBreakdownEditorView({ required, provided }: ItemBreakdownEdi
         </label>
       )}
       {managerVisible ? (
-        <div className={`stack ${styles.manager}`}>
+        <div className={`vstack gap-2 ${styles.manager}`}>
           <div className={styles.itemsBlock}>
             <div className={styles.totalLine}>
               <span>Items total</span>
@@ -210,7 +210,7 @@ export function ItemBreakdownEditorView({ required, provided }: ItemBreakdownEdi
                   <div className={styles.rowActions}>
                     <button
                       type="button"
-                      className={`text-button icon-button ${styles.rowActionButton} ${styles.dangerActionButton}`}
+                      className={`gz-text-button gz-icon-button ${styles.rowActionButton} ${styles.dangerActionButton}`}
                       aria-label={`Remove item ${item.name}`}
                       disabled={status.disabled}
                       onClick={(event) => {
@@ -243,7 +243,7 @@ export function ItemBreakdownEditorView({ required, provided }: ItemBreakdownEdi
           </div>
 
           {state.splitError ? (
-            <p className="field-error">{state.splitError}</p>
+            <p className="gz-field-error">{state.splitError}</p>
           ) : null}
         </div>
       ) : null}

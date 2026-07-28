@@ -5,13 +5,14 @@
   gap: 14px;
   padding: 14px 0 12px;
   margin-bottom: 8px;
-  background: var(--color-background-surface);
+  background: var(--color-surface-primary);
+  min-height: var(--app-header-height);
 }
 
 .sticky {
   position: sticky;
   top: 0;
-  z-index: 41;
+  z-index: var(--z-header);
 }
 
 .title {
@@ -34,10 +35,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  min-width: 40px;
-  height: 40px;
-  min-height: 40px;
+  width: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  min-height: var(--touch-target-min);
   padding: 0;
   border: 0;
   border-radius: 14px;

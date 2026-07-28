@@ -54,12 +54,12 @@ export function AccountSummaryComponent({ required, provided = {} }: AccountSumm
         </div>
       ) : null}
 
-      <section className="summary-card section-gap" aria-busy={loading}>
+      <section className="summary-card gz-section-gap" aria-busy={loading}>
         <div className="summary-header">
           {required.config.headerSlot ?? <h2>{summary.name}</h2>}
           <button
             type="button"
-            className="text-button icon-button summary-menu-button"
+            className="gz-text-button gz-icon-button summary-menu-button"
             aria-label="Account settings"
             onClick={openManage}
             disabled={managing}

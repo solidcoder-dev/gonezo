@@ -19,14 +19,17 @@
 }
 
 .seeAllButton {
-  min-height: 32px;
+  min-width: var(--touch-target-min);
+  width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  height: var(--touch-target-min);
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--color-brand-strong);
+  color: var(--color-action-primary);
   font: inherit;
   font-size: 0.86rem;
-  font-weight: 760;
+  font-weight: var(--font-weight-semibold);
 }
 
 .empty {
@@ -36,3 +39,8 @@
   font-size: 0.9rem;
   text-align: center;
 }
+
+.list { margin: 0; padding: 0; list-style: none; }
+.skeleton { display: grid; gap: var(--space-sm); padding-top: var(--space-xs); }
+.skeletonRow { display: block; height: 68px; border-radius: var(--radius-sm); background: var(--color-surface-secondary); animation: home-recent-pulse 1.3s ease-in-out infinite alternate; }
+@keyframes home-recent-pulse { from { opacity: 0.55; } to { opacity: 1; } }

@@ -39,7 +39,7 @@ export function ScheduleSummaryView({ required, provided }: ScheduleSummaryViewP
         <div className="schedule-summary-actions">
           <button
             type="button"
-            className="icon-button text-button schedule-summary-action"
+            className="gz-icon-button gz-text-button schedule-summary-action"
             aria-label="Edit schedule"
             onClick={provided.commands.edit}
             disabled={status.disabled}
@@ -48,7 +48,7 @@ export function ScheduleSummaryView({ required, provided }: ScheduleSummaryViewP
           </button>
           <button
             type="button"
-            className="icon-button text-button schedule-summary-action"
+            className="gz-icon-button gz-text-button schedule-summary-action"
             aria-label="Remove schedule"
             onClick={provided.commands.remove}
             disabled={status.disabled}

@@ -84,6 +84,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
             <span className="visually-hidden">{amountLabel}</span>
             <input
               ref={amountInputRef}
+              className="form-control"
               aria-label="Amount"
               type="number"
               min="0.01"
@@ -98,7 +99,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
             />
             {amountCurrency ? <span className="composer-amount-currency">{amountCurrency}</span> : null}
           </label>
-          {status.amountError ? <p id="composer-amount-error" className="field-error">{status.amountError}</p> : null}
+          {status.amountError ? <p id="composer-amount-error" className="gz-field-error">{status.amountError}</p> : null}
         </>
       ) : null}
 
@@ -108,6 +109,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
         <label className="vstack gap-2">
           <span className="visually-hidden">Destination account</span>
           <select
+            className="form-select"
             aria-label="Destination account"
             value={state.transferTargetAccountId}
             onChange={(event) => provided.commands.changeTransferTarget(event.target.value)}
@@ -128,6 +130,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
             <span className="visually-hidden">{amountLabel}</span>
             <input
               ref={amountInputRef}
+              className="form-control"
               aria-label="Amount"
               type="number"
               min="0.01"
@@ -142,12 +145,13 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
             />
             {amountCurrency ? <span className="composer-amount-currency">{amountCurrency}</span> : null}
           </label>
-          {status.amountError ? <p id="composer-amount-error" className="field-error">{status.amountError}</p> : null}
+          {status.amountError ? <p id="composer-amount-error" className="gz-field-error">{status.amountError}</p> : null}
           {afterAmount}
 
           <label className="vstack gap-2">
             <span className="visually-hidden">{noteLabel}</span>
             <input
+              className="form-control"
               aria-label={noteLabel}
               value={state.note}
               onChange={(event) => provided.commands.changeNote(event.target.value)}
@@ -161,6 +165,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
         <label className="vstack gap-2">
           <span className="visually-hidden">{noteLabel}</span>
           <input
+            className="form-control"
             aria-label={noteLabel}
             value={state.note}
             onChange={(event) => provided.commands.changeNote(event.target.value)}
@@ -176,6 +181,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
               <label className="visually-hidden" htmlFor={dateFieldId}>{dateInputLabel}</label>
               <input
                 id={dateFieldId}
+                className="form-control"
                 aria-label={dateInputLabel}
                 type="text"
                 value={state.date}
@@ -203,7 +209,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
               />
               <button
                 type="button"
-                className="text-button icon-button date-picker-button"
+                className="btn btn-link gz-icon-button date-picker-button"
                 aria-label="Open calendar"
                 onClick={() => {
                   dateInputRef?.current?.showPicker?.();
@@ -214,7 +220,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
               </button>
             </div>
           </div>
-          {status.dateError ? <p id="composer-date-error" className="field-error">{status.dateError}</p> : null}
+          {status.dateError ? <p id="composer-date-error" className="gz-field-error">{status.dateError}</p> : null}
         </>
       ) : null}
     </>

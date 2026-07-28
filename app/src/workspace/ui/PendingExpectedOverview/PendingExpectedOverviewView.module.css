@@ -6,14 +6,14 @@
 .card:hover:not(:disabled) { transform: translateY(-1px); }
 .card:focus-visible { outline: 3px solid var(--color-brand-soft); outline-offset: 2px; }
 .card:active:not(:disabled) { transform: translateY(1px); }
-.expense { --card-tone: var(--gz-legacy-8a2020); --card-tone-soft: var(--gz-legacy-fdeceb); --card-surface: var(--gz-legacy-fff5f5); --card-border: var(--gz-legacy-efc8c8); }
-.income { --card-tone: var(--color-brand-strong); --card-tone-soft: var(--gz-legacy-e5f7ea); --card-surface: var(--gz-legacy-f2fbf5); --card-border: var(--gz-legacy-bfe2c9); }
+.expense { --card-tone: var(--color-expense); --card-tone-soft: var(--color-expense-soft); --card-surface: var(--color-expense-soft); --card-border: var(--color-border-default); }
+.income { --card-tone: var(--color-income); --card-tone-soft: var(--color-income-soft); --card-surface: var(--color-income-soft); --card-border: var(--color-border-default); }
 .disabled { cursor: default; opacity: .68; }
 .cardHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
 .title { min-width: 0; color: var(--card-tone); font-size: .9rem; font-weight: 780; line-height: 1.15; white-space: nowrap; }
 .icon { display: inline-flex; flex: 0 0 40px; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 999px; background: var(--card-tone-soft); color: var(--card-tone); font-size: 1.2rem; }
 .count { min-width: 26px; padding: 4px 7px; border-radius: 999px; background: var(--card-tone-soft); color: var(--card-tone); font-size: .76rem; font-weight: 780; line-height: 1.1; text-align: center; font-variant-numeric: tabular-nums; }
 .amounts { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-variant-numeric: tabular-nums; }
-.primary { min-width: 0; color: var(--card-tone); font-size: clamp(1.12rem, 5.4vw, 1.5rem); font-weight: 850; line-height: 1.05; letter-spacing: -.02em; white-space: nowrap; }
-.secondary { color: color-mix(in srgb, var(--card-tone) 72%, var(--color-text-primary)); font-size: .78rem; font-weight: 650; line-height: 1.25; overflow-wrap: break-word; }
+.primary { min-width: 0; color: var(--card-tone); font-size: clamp(1.12rem, 5.4vw, 1.5rem); font-weight: var(--font-weight-bold); line-height: 1.05; letter-spacing: -.02em; white-space: nowrap; }
+.secondary { color: color-mix(in srgb, var(--card-tone) 72%, var(--color-text-primary)); font-size: .78rem; font-weight: var(--font-weight-semibold); line-height: 1.25; overflow-wrap: break-word; }
 .skeleton { min-height: 142px; border: 1px solid var(--color-border-subtle); border-radius: 20px; background: var(--color-border-subtle); opacity: .55; }

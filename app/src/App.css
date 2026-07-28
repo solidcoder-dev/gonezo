@@ -1,8 +1,8 @@
-.app-screen {
+.gz-app-screen {
   width: 100%;
-  max-width: 720px;
+  max-width: var(--app-content-max-width);
   min-height: 100dvh;
   margin: 0 auto;
-  padding: calc(18px + var(--app-safe-area-top)) calc(18px + var(--app-safe-area-right)) calc(96px + var(--app-safe-area-bottom)) calc(18px + var(--app-safe-area-left));
+  padding: calc(var(--app-page-horizontal-padding) + var(--app-safe-area-top)) calc(var(--app-page-horizontal-padding) + var(--app-safe-area-right)) calc(var(--app-bottom-navigation-height) + var(--space-xl) + var(--app-safe-area-bottom)) calc(var(--app-page-horizontal-padding) + var(--app-safe-area-left));
   box-sizing: border-box;
 }

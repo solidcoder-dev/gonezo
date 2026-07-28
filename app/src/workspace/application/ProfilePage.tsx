@@ -117,6 +117,7 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
               body: (
                 <form className="vstack gap-2" onSubmit={submitCreateAccount} aria-busy={creating}>
                   <input
+                    className="form-control"
                     aria-label="Account name"
                     value={createName}
                     onChange={(event) => setCreateName(event.target.value)}
@@ -124,15 +125,17 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
                     autoComplete="off"
                   />
                   <input
+                    className="form-control"
                     aria-label="Opening balance"
                     value={createOpeningBalance}
                     onChange={(event) => setCreateOpeningBalance(event.target.value)}
                     placeholder="Opening balance (optional)"
                     inputMode="decimal"
                   />
-                  <label className="vstack gap-2">
+                  <label className="d-grid gap-2">
                     Currency
                     <select
+                      className="form-select"
                       aria-label="Currency"
                       value={createCurrency}
                       onChange={(event) => setCreateCurrency(event.target.value)}
@@ -144,7 +147,7 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
                       ))}
                     </select>
                   </label>
-                  <button type="submit" disabled={creating}>
+                  <button type="submit" className="btn btn-primary w-100" disabled={creating}>
                     {creating ? 'Creating account...' : 'Create account'}
                   </button>
                 </form>

@@ -28,7 +28,7 @@ export function MonthNavigatorView({ required, provided }: MonthNavigatorViewPro
       <div className="month-nav-main month-nav-main--minimal" role="group" aria-label="Switch month">
         <button
           type="button"
-          className="text-button month-nav-arrow"
+          className="gz-text-button month-nav-arrow"
           onClick={provided.onPreviousMonth}
           disabled={disabled}
           aria-label="Previous month"
@@ -39,7 +39,7 @@ export function MonthNavigatorView({ required, provided }: MonthNavigatorViewPro
         <div className="month-nav-center">
           <button
             type="button"
-            className="text-button month-nav-trigger"
+            className="gz-text-button month-nav-trigger"
             onClick={provided.onToggleMenu}
             disabled={disabled}
             aria-haspopup="menu"
@@ -57,7 +57,7 @@ export function MonthNavigatorView({ required, provided }: MonthNavigatorViewPro
               {!isCurrentMonth ? (
                 <button
                   type="button"
-                  className="text-button month-nav-menu-item"
+                  className="gz-text-button month-nav-menu-item"
                   role="menuitem"
                   onClick={provided.onGoToCurrentMonth}
                   disabled={disabled}
@@ -68,7 +68,7 @@ export function MonthNavigatorView({ required, provided }: MonthNavigatorViewPro
               ) : null}
               <button
                 type="button"
-                className="text-button month-nav-menu-item"
+                className="gz-text-button month-nav-menu-item"
                 role="menuitem"
                 onClick={provided.onOpenMonthPicker}
                 disabled={disabled}
@@ -82,7 +82,7 @@ export function MonthNavigatorView({ required, provided }: MonthNavigatorViewPro
 
         <button
           type="button"
-          className="text-button month-nav-arrow"
+          className="gz-text-button month-nav-arrow"
           onClick={provided.onNextMonth}
           disabled={disabled}
           aria-label="Next month"

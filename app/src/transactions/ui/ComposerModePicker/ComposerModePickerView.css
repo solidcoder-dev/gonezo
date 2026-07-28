@@ -19,34 +19,34 @@
 }
 
 .mode-button--expense {
-  border-color: var(--gz-legacy-edcccc);
-  background: var(--gz-legacy-fff3f3);
-  color: var(--gz-legacy-8a2020);
+  border-color: var(--color-border-default);
+  background: var(--color-expense-soft);
+  color: var(--color-expense);
 }
 
 .mode-button--expense:hover:not(:disabled),
 .mode-button--expense:active:not(:disabled) {
-  background: var(--gz-legacy-fbe5e5);
+  background: var(--color-expense-soft);
 }
 
 .mode-button--income {
-  border-color: var(--gz-legacy-c8e1cf);
-  background: var(--gz-legacy-ecf8ef);
-  color: var(--gz-legacy-1b5b28);
+  border-color: var(--color-border-default);
+  background: var(--color-income-soft);
+  color: var(--color-income);
 }
 
 .mode-button--income:hover:not(:disabled),
 .mode-button--income:active:not(:disabled) {
-  background: var(--gz-legacy-dff1e4);
+  background: var(--color-income-soft);
 }
 
 .mode-button--transfer {
-  border-color: var(--gz-legacy-d4ddf5);
-  background: var(--gz-legacy-f3f6ff);
-  color: var(--gz-legacy-223c8b);
+  border-color: var(--color-border-default);
+  background: var(--color-info-soft);
+  color: var(--color-info);
 }
 
 .mode-button--transfer:hover:not(:disabled),
 .mode-button--transfer:active:not(:disabled) {
-  background: var(--gz-legacy-e5ebfc);
+  background: var(--color-info-soft);
 }

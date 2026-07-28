@@ -80,8 +80,8 @@ export function SheetView({ required, provided }: SheetViewProps) {
     ? { transform: `translateY(${drag.offset}px)` }
     : undefined;
   const handleHeaderClassName = config.showHandle && !config.title && !config.closeLabel
-    ? `${styles.handleHeader} inline-header`
-    : 'inline-header';
+    ? `${styles.handleHeader} gz-inline-header`
+    : 'gz-inline-header';
   const panelDragHandlers = config.dragSurface === 'panel' ? drag.handlers : {};
   const handleDragHandlers = config.dragSurface === 'panel' ? {} : drag.handlers;
 
@@ -118,8 +118,17 @@ export function SheetView({ required, provided }: SheetViewProps) {
               {config.closeLabel ? (
                 <button
                   type="button"
-                  className="text-button icon-button"
+                  className="gz-text-button gz-icon-button"
                   aria-label={closeLabel}
+                  style={{
+                    width: '56px',
+                    minWidth: '56px',
+                    maxWidth: '56px',
+                    height: '56px',
+                    minHeight: '56px',
+                    maxHeight: '56px',
+                    flex: '0 0 56px',
+                  }}
                   onClick={provided.commands.close}
                 >
                   <i className="bi bi-x-lg" aria-hidden />

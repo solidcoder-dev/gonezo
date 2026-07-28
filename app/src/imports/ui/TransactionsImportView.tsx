@@ -39,7 +39,7 @@ export function TransactionsImportView({ required, provided }: TransactionsImpor
             onChange={(event) => provided.commands.setFile(event.target.files?.[0] ?? null)}
           />
         </label>
-        {required.state.fileName ? <p className="hint">Selected: {required.state.fileName}</p> : null}
+        {required.state.fileName ? <p className="gz-hint">Selected: {required.state.fileName}</p> : null}
 
         {isMobillsImport ? (
           <>
@@ -99,7 +99,7 @@ export function TransactionsImportView({ required, provided }: TransactionsImpor
       ) : null}
 
       {required.state.result ? (
-        <section className="vstack gap-2 section-gap" aria-label="Import summary">
+        <section className="vstack gap-2 gz-section-gap" aria-label="Import summary">
           <TransactionsImportSummaryView
             required={{
               result: required.state.result,
@@ -107,7 +107,7 @@ export function TransactionsImportView({ required, provided }: TransactionsImpor
             }}
           />
           {required.state.result.importedCount > 0 && required.state.accountsCount === 0 ? (
-            <p className="hint">
+            <p className="gz-hint">
               Import reported successful rows, but no accounts are visible. Reopen the app and re-check account list.
               If this persists, share the failed-line examples below.
             </p>
@@ -125,7 +125,7 @@ export function TransactionsImportView({ required, provided }: TransactionsImpor
             </>
           ) : null}
           {required.state.accountNotFoundFailures > 0 ? (
-            <p className="hint">
+            <p className="gz-hint">
               Tip: many rows failed because account names were not found. Enable `Create missing accounts` and import
               again.
             </p>

@@ -17,7 +17,7 @@
   background: transparent;
   color: var(--color-text-muted);
   font: inherit;
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
 }
 
@@ -36,17 +36,17 @@
 }
 
 .monthly-movements-tab:hover:not(:disabled) {
-  background: var(--color-background-hover);
+  background: var(--color-brand-soft);
 }
 
 .monthly-movements-tab:active:not(:disabled),
 .monthly-timeline-row__button:active:not(:disabled) {
-  background: var(--gz-legacy-e4eee1);
+  background: var(--color-income-soft);
 }
 
 .monthly-movements-tab:focus-visible,
 .monthly-timeline-row__button:focus-visible {
-  outline: 2px solid var(--color-brand-strong);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: -2px;
 }
 
@@ -83,7 +83,7 @@
 }
 
 .monthly-timeline-row:not(:last-child) {
-  border-bottom: 1px solid rgba(230, 225, 215, 0.72);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-default) 72%, transparent);
 }
 
 .monthly-timeline-row--ignored {
@@ -109,7 +109,7 @@
 
 .monthly-timeline-row__button:hover:not(:disabled),
 .monthly-timeline-row__button:active:not(:disabled) {
-  background: var(--color-background-hover);
+  background: var(--color-brand-soft);
 }
 
 .monthly-timeline-row__button:disabled,
@@ -124,18 +124,18 @@
   height: 42px;
   place-items: center;
   border-radius: 12px;
-  background: var(--color-background-muted);
+  background: var(--color-surface-muted);
   font-size: 1.1rem;
 }
 
 .monthly-timeline-row__icon--income {
   background: var(--color-brand-soft);
-  color: var(--color-brand-strong);
+  color: var(--color-action-primary);
 }
 
 .monthly-timeline-row__icon--expense {
-  background: var(--gz-legacy-f9ebeb);
-  color: var(--color-status-danger-text);
+  background: var(--color-expense-soft);
+  color: var(--color-danger);
 }
 
 .monthly-timeline-row__content {
@@ -172,11 +172,11 @@
 }
 
 .monthly-timeline-row__amount--income {
-  color: var(--color-brand-strong);
+  color: var(--color-income);
 }
 
 .monthly-timeline-row__amount--expense {
-  color: var(--color-status-danger-text);
+  color: var(--color-danger);
 }
 
 .monthly-timeline-row__metadata {
@@ -213,7 +213,7 @@
 .monthly-timeline-skeleton__row {
   display: block;
   border-radius: 6px;
-  background: var(--gz-legacy-e9e8df);
+  background: var(--color-surface-secondary);
   animation: monthly-timeline-pulse 1.3s ease-in-out infinite alternate;
 }
 
@@ -236,7 +236,7 @@
   to { opacity: 1; }
 }
 
-@media (min-width: 900px) {
+@media (min-width: 992px) {
   .transactions-section {
     padding-bottom: calc(24px + var(--app-safe-area-bottom));
   }

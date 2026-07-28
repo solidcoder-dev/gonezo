@@ -19,8 +19,8 @@
 }
 
 .item-breakdown-summary-chip {
-  background: color-mix(in srgb, var(--color-status-success-background) 50%, var(--gz-legacy-fff));
-  color: var(--color-status-success-text);
+  background: color-mix(in srgb, var(--color-success-soft) 50%, var(--color-surface-primary));
+  color: var(--color-success);
 }
 
 .item-breakdown-trigger i,
@@ -43,13 +43,13 @@
 
 .item-breakdown-control-text strong {
   font-size: 0.91rem;
-  font-weight: 850;
+  font-weight: var(--font-weight-bold);
 }
 
 .item-breakdown-control-text small {
   color: var(--color-text-secondary);
   font-size: 0.8rem;
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold);
 }
 
 .item-breakdown-control-chevron {

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ShareControlsView } from './ShareControlsView';
 
 describe('ShareControlsView', () => {
-  it('opens share from the detail chip before it is applied', () => {
+  it('opens share from the detail gz-chip before it is applied', () => {
     const open = vi.fn();
 
     render(
@@ -23,7 +23,7 @@ describe('ShareControlsView', () => {
     expect(open).toHaveBeenCalledTimes(1);
   });
 
-  it('renders an applied share as a compact highlighted detail chip', () => {
+  it('renders an applied share as a compact highlighted detail gz-chip', () => {
     const open = vi.fn();
     const remove = vi.fn();
 

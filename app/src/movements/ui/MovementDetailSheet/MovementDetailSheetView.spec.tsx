@@ -58,7 +58,7 @@ describe('MovementDetailSheetView', () => {
     expect(close).toHaveBeenCalledTimes(1);
   });
 
-  it('shows the ignored chip only for ignored movements', () => {
+  it('shows the ignored gz-chip only for ignored movements', () => {
     const data = {
       title: 'Coffee',
       kicker: 'Expense · Posted',

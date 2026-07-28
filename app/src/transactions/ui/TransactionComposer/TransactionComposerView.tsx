@@ -483,7 +483,7 @@ export function TransactionComposerView({ required, provided }: Props) {
           data: {
             body: (
             <form className="composer-form" onSubmit={submitComposer} aria-busy={disabled} noValidate>
-            <div className="composer-form-content stack">
+            <div className="composer-form-content vstack gap-2">
               <TransactionComposerContextControls
                 required={{
                   state: {
@@ -673,7 +673,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                       }}
                     />
 
-                    {expectedConflictError ? <p className="field-error">{expectedConflictError}</p> : null}
+                    {expectedConflictError ? <p className="gz-field-error">{expectedConflictError}</p> : null}
 
                   </>
                 ) : (

@@ -66,7 +66,7 @@ function baseOverview(): MovementsMonthOverviewResult {
 }
 
 function makePorts(overrides: Partial<MonthlyMovementsModelPorts> = {}): MonthlyMovementsModelPorts {
-  return {
+  const ports: MonthlyMovementsModelPorts = {
     movements: {
       movementsGetDetail: vi.fn().mockResolvedValue({ found: false }),
     },
@@ -128,6 +128,62 @@ function makePorts(overrides: Partial<MonthlyMovementsModelPorts> = {}): Monthly
     },
     ...overrides,
   };
+
+  let latestOverview = emptyOverview();
+  const originalMovementsGetOverview = ports.scheduling.movementsGetOverview;
+  ports.scheduling.movementsGetOverview = vi.fn(async (input: MovementsMonthOverviewInput) => {
+    const result = await originalMovementsGetOverview(input);
+    latestOverview = result;
+    return result;
+  });
+  ports.movements.movementsGetDetail = vi.fn(async ({ source, movementId }) => {
+    if (source === 'posted') {
+      const movement =
+        latestOverview.postedPage.content.find((item) => item.id === movementId)
+        ?? latestOverview.executedPage.content.find((item) => item.id === movementId);
+      return movement
+        ? { found: true as const, detail: { source: 'posted' as const, movement } }
+        : { found: false as const };
+    }
+    if (source === 'scheduled') {
+      const movement = latestOverview.scheduledPreview.items.find((item) => item.id === movementId);
+      return movement
+        ? { found: true as const, detail: { source: 'scheduled' as const, movement } }
+        : { found: false as const };
+    }
+    const movement = latestOverview.expectedPreview.items.find((item) => item.id === movementId) as ExpectedMovementView | undefined;
+    if (!movement) {
+      return { found: false as const };
+    }
+    const recurringMovementId = movement.origin.kind === 'recurring'
+      ? movement.origin.recurringMovementId
+      : undefined;
+    const seriesResult = recurringMovementId
+      ? await ports.scheduling.schedulingGetMovement({ recurringMovementId })
+      : undefined;
+    const series: ScheduledMovementView | null = seriesResult?.found === true ? seriesResult.item : null;
+    return {
+      found: true as const,
+      detail: {
+        source: 'expected' as const,
+        movement,
+        origin: movement.origin.kind === 'manual'
+          ? { kind: 'manual' as const }
+          : movement.origin.kind === 'recurring'
+            ? {
+                kind: 'recurring' as const,
+                recurringMovementId: movement.origin.recurringMovementId,
+                occurrenceId: movement.origin.occurrenceId,
+                series,
+              }
+            : movement.origin.occurrenceId
+              ? { kind: 'recurring_unlinked' as const, occurrenceId: movement.origin.occurrenceId }
+              : { kind: 'manual' as const },
+      },
+    };
+  });
+
+  return ports;
 }
 
 function makeTimers(): MonthlyMovementsModelTimers {

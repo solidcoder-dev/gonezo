@@ -77,15 +77,15 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
     <section className={styles.manager} aria-labelledby="movement-splits-heading">
       <div className={styles.toolbar}>
         <div className={styles.title}>
-          <span id="movement-splits-heading" className="hint detail-meta-label">{label}</span>
-          {remaining ? <span className={`hint ${styles.remaining}`}>{remaining}</span> : null}
+          <span id="movement-splits-heading" className="gz-hint gz-detail-meta-label">{label}</span>
+          {remaining ? <span className={`gz-hint ${styles.remaining}`}>{remaining}</span> : null}
         </div>
         {showToolbar ? (
           <div className={styles.toolbarActions}>
             {commands.assignRemaining ? (
               <button
                 type="button"
-                className={`text-button ${styles.actionButton}`}
+                className={`gz-text-button ${styles.actionButton}`}
                 disabled={status.disabled}
                 onClick={commands.assignRemaining}
               >
@@ -95,7 +95,7 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
             {commands.splitParts ? (
               <button
                 type="button"
-                className={`text-button ${styles.actionButton}`}
+                className={`gz-text-button ${styles.actionButton}`}
                 disabled={status.disabled}
                 onClick={commands.splitParts}
               >
@@ -106,7 +106,7 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
             {commands.addSplit ? (
               <button
                 type="button"
-                className={`text-button ${styles.actionButton} ${styles.primaryAction}`}
+                className={`gz-text-button ${styles.actionButton} ${styles.primaryAction}`}
                 disabled={status.disabled}
                 onClick={commands.addSplit}
               >
@@ -139,7 +139,7 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
               {showRowActions ? (
                 <details className={styles.rowActions}>
                   <summary
-                    className={`text-button icon-button ${styles.menuButton}`}
+                    className={`gz-text-button gz-icon-button ${styles.menuButton}`}
                     role="button"
                     aria-label={`Item actions for ${item.name}`}
                     aria-disabled={status.disabled}
@@ -204,7 +204,7 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
           ))}
         </ul>
       ) : (
-        <p className={`hint ${styles.empty}`}>{emptyLabel}</p>
+        <p className={`gz-hint ${styles.empty}`}>{emptyLabel}</p>
       )}
     </section>
   );

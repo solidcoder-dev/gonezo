@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
+import type { LedgerTransactionListItem } from '../../ledger/application/ledger.port';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
@@ -8,6 +9,7 @@ import { compareTaxonomyCategoriesByUsage } from '../../taxonomy/domain/category
 import {
   normalizeTaxonomyName,
 } from '../../transactions/application/transactionTaxonomySelection';
+import type { TransactionHistoryItemView } from '../../transactions/application/transactionView.types';
 import type { MovementsDetailData, MovementDetailQueryPort } from './movements.port';
 import { mapMovementDetailViewModel } from './movementDetailMappers';
 import {
@@ -26,7 +28,7 @@ import type {
   SharingViewModel,
   MovementDetailOverflowAction,
 } from './movementDetailView.types';
-import type { ExpectedMovementView } from './movementsView.types';
+import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
 
 type MovementDetailModelInput = {
   ports: {
@@ -50,6 +52,12 @@ type MovementDetailModelInput = {
   confirm(message: string): boolean;
   onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
   onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
+};
+
+type MovementDetailModelInputWithSeed = MovementDetailModelInput & {
+  postedItems?: TransactionHistoryItemView[];
+  scheduledItems?: ScheduledMovementView[];
+  expectedItems?: ExpectedMovementView[];
 };
 
 function defaultSharingState(): SharingDetailState {
@@ -98,7 +106,7 @@ function sharingViewModel(
   };
 }
 
-export function useMovementDetailModel(input: MovementDetailModelInput) {
+export function useMovementDetailModel(input: MovementDetailModelInputWithSeed) {
   const {
     ports,
     categories,
@@ -139,14 +147,57 @@ export function useMovementDetailModel(input: MovementDetailModelInput) {
   const selectedSource = selection?.source;
   const selectedMovementId = selection?.id;
 
+  const seededDetail = useMemo(() => {
+    if (!selection) {
+      return null;
+    }
+    const seededInput = input as MovementDetailModelInputWithSeed;
+    if (selection.source === 'posted') {
+      const movement = seededInput.postedItems?.find((item) => item.id === selection.id);
+      return movement
+        ? { source: 'posted' as const, movement: movement as unknown as LedgerTransactionListItem }
+        : null;
+    }
+    if (selection.source === 'scheduled') {
+      const movement = seededInput.scheduledItems?.find((item) => item.id === selection.id);
+      return movement ? { source: 'scheduled' as const, movement } : null;
+    }
+    const movement = seededInput.expectedItems?.find((item) => item.id === selection.id);
+    if (!movement) {
+      return null;
+    }
+    const recurringMovementId = movement.origin.kind === 'recurring'
+      ? movement.origin.recurringMovementId
+      : undefined;
+    const series: ScheduledMovementView | null = recurringMovementId
+      ? seededInput.scheduledItems?.find((item) => item.id === recurringMovementId) ?? null
+      : null;
+    return {
+      source: 'expected' as const,
+      movement,
+      origin: movement.origin.kind === 'manual'
+        ? { kind: 'manual' as const }
+        : movement.origin.kind === 'recurring'
+          ? {
+              kind: 'recurring' as const,
+              recurringMovementId: movement.origin.recurringMovementId,
+              occurrenceId: movement.origin.occurrenceId,
+              series,
+            }
+          : movement.origin.occurrenceId
+            ? { kind: 'recurring_unlinked' as const, occurrenceId: movement.origin.occurrenceId }
+            : { kind: 'manual' as const },
+    };
+  }, [input, selection]);
+
   const movement = useMemo(
     () => mapMovementDetailViewModel({
-      detail,
+      detail: detail ?? seededDetail,
       categories,
       tags,
       sharing,
     }),
-    [detail, categories, tags, sharing],
+    [detail, seededDetail, categories, tags, sharing],
   );
   const selectedPostedMovement = useMemo(
     () => movement?.source === 'posted'

@@ -7,28 +7,28 @@
   padding: 0 12px;
   border: 1px solid var(--color-border-subtle, var(--color-text-secondary));
   border-radius: 999px;
-  background: var(--color-background-surface, var(--color-background-surface));
+  background: var(--color-surface-primary, var(--color-surface-primary));
   color: inherit;
   font: inherit;
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold);
   gap: 8px;
   white-space: nowrap;
 }
 
 .select-chip--expense {
-  border-color: rgba(180, 35, 24, 0.3);
+  border-color: color-mix(in srgb, var(--color-expense) 30%, transparent);
   background: var(--color-expense-soft);
   color: var(--color-expense);
 }
 
 .select-chip--income {
-  border-color: rgba(2, 122, 72, 0.3);
+  border-color: color-mix(in srgb, var(--color-income) 30%, transparent);
   background: var(--color-income-soft);
   color: var(--color-income);
 }
 
 .select-chip--transfer {
-  border-color: rgba(23, 92, 211, 0.3);
+  border-color: color-mix(in srgb, var(--color-transfer) 30%, transparent);
   background: var(--color-brand-soft);
   color: var(--color-text-secondary);
 }
@@ -38,11 +38,11 @@
 }
 
 .select-chip:active:not(:disabled) {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--color-surface-shadow-subtle);
 }
 
 .select-chip:focus-visible {
-  outline: 2px solid var(--accent, var(--color-brand-strong));
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 

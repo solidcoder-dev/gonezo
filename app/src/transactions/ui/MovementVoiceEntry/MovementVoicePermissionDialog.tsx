@@ -120,7 +120,7 @@ export function MovementVoicePermissionDialog({
           <button
             ref={dismissButtonRef}
             type="button"
-            className="text-button"
+            className="gz-text-button"
             onClick={onDismiss}
             disabled={busy}
           >

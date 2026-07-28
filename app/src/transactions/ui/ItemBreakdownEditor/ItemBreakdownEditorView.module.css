@@ -19,7 +19,7 @@
   padding: 3px;
   border: 0;
   border-radius: 10px;
-  background: var(--gz-legacy-f3f4f1);
+  background: var(--color-surface-secondary);
 }
 
 .modeTabs button {
@@ -33,8 +33,8 @@
 }
 
 .modeTabs .activeModeTab {
-  background: var(--color-status-success-text);
-  color: var(--gz-legacy-fff);
+  background: var(--color-success);
+  color: var(--color-on-success);
 }
 
 .summaryCard {
@@ -43,10 +43,10 @@
   gap: 10px;
   align-items: start;
   padding: 14px;
-  border: 1px solid color-mix(in srgb, var(--color-status-success-text) 16%, var(--color-border-subtle));
+  border: 1px solid color-mix(in srgb, var(--color-success) 16%, var(--color-border-subtle));
   border-radius: 16px;
   background:
-    linear-gradient(110deg, color-mix(in srgb, var(--color-status-success-background) 72%, var(--gz-legacy-fff)) 0%, var(--gz-legacy-fff) 92%);
+    linear-gradient(110deg, color-mix(in srgb, var(--color-success-soft) 72%, var(--color-surface-primary)) 0%, var(--color-surface-primary) 92%);
 }
 
 .summaryHeader {
@@ -63,7 +63,7 @@
 
 .summaryLabel {
   display: block;
-  color: var(--color-status-success-text);
+  color: var(--color-success);
   font-size: 0.78rem;
   font-weight: 800;
 }
@@ -82,12 +82,12 @@
   row-gap: 2px;
   align-items: center;
   padding-left: 12px;
-  border-left: 1px solid color-mix(in srgb, var(--color-status-success-text) 18%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--color-success) 18%, transparent);
 }
 
 .summaryMetric i {
   grid-row: 1 / span 2;
-  color: var(--color-status-success-text);
+  color: var(--color-success);
   font-size: 1.12rem;
 }
 
@@ -120,9 +120,9 @@
   justify-content: center;
   gap: 8px;
   padding: 0 12px;
-  border: 1px solid color-mix(in srgb, var(--color-status-success-text) 14%, var(--color-border-subtle));
+  border: 1px solid color-mix(in srgb, var(--color-success) 14%, var(--color-border-subtle));
   border-radius: 10px;
-  background: color-mix(in srgb, var(--gz-legacy-fff) 72%, var(--color-status-success-background));
+  background: color-mix(in srgb, var(--color-surface-primary) 72%, var(--color-success-soft));
   color: var(--color-text-primary);
   font-weight: 800;
   white-space: nowrap;
@@ -145,7 +145,7 @@
 }
 
 .summaryAmount span {
-  color: var(--color-status-success-text);
+  color: var(--color-success);
   font-size: 1.2rem;
   font-weight: 800;
 }
@@ -169,11 +169,11 @@
 
 .totalLine span:first-child {
   font-size: 1.05rem;
-  font-weight: 850;
+  font-weight: var(--font-weight-bold);
 }
 
 .totalLine strong {
-  color: var(--color-status-success-text);
+  color: var(--color-success);
   font-size: 1.1rem;
   font-weight: 900;
 }
@@ -198,10 +198,10 @@
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, var(--gz-legacy-946200) 22%, var(--color-border-subtle));
+  border: 1px solid color-mix(in srgb, var(--color-warning) 22%, var(--color-border-subtle));
   border-radius: 10px;
-  background: color-mix(in srgb, var(--gz-legacy-fff7d6) 72%, var(--gz-legacy-fff));
-  color: var(--gz-legacy-6f4d00);
+  background: color-mix(in srgb, var(--color-warning-soft) 72%, var(--color-surface-primary));
+  color: var(--color-warning);
   font-size: 0.82rem;
   font-weight: 780;
 }
@@ -213,7 +213,7 @@
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: var(--gz-legacy-fff);
+  background: var(--color-surface-primary);
   font-size: 1rem;
 }
 
@@ -241,7 +241,7 @@
 .itemFormTitle {
   color: var(--color-text-primary);
   font-size: 1rem;
-  font-weight: 850;
+  font-weight: var(--font-weight-bold);
 }
 
 .itemFormFields {
@@ -278,7 +278,7 @@
   padding-right: 12px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 10px;
-  background: var(--gz-legacy-fff);
+  background: var(--color-surface-primary);
 }
 
 .itemAmountField input {
@@ -289,7 +289,7 @@
 .itemAmountField span {
   color: var(--color-text-muted);
   font-size: 0.86rem;
-  font-weight: 850;
+  font-weight: var(--font-weight-bold);
   letter-spacing: 0;
 }
 
@@ -301,10 +301,10 @@
   gap: 8px;
   border: 0;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--color-status-success-background) 78%, var(--gz-legacy-fff));
-  color: var(--color-status-success-text);
+  background: color-mix(in srgb, var(--color-success-soft) 78%, var(--color-surface-primary));
+  color: var(--color-success);
   font-size: 0.92rem;
-  font-weight: 850;
+  font-weight: var(--font-weight-bold);
 }
 
 .list {
@@ -315,7 +315,7 @@
   max-height: 190px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 12px;
-  background: var(--color-background-surface);
+  background: var(--color-surface-primary);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -326,7 +326,7 @@
   max-height: 196px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 12px;
-  background: var(--gz-legacy-fff);
+  background: var(--color-surface-primary);
   align-content: start;
   align-items: start;
   overflow-y: auto;
@@ -344,7 +344,7 @@
   gap: 12px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--color-border-subtle);
-  background: var(--gz-legacy-fff);
+  background: var(--color-surface-primary);
   overflow: hidden;
 }
 
@@ -361,24 +361,24 @@
 }
 
 .itemList .item:focus-visible {
-  outline: 2px solid var(--color-status-success-text);
+  outline: 2px solid var(--color-success);
   outline-offset: -2px;
 }
 
 .remainingItem {
   cursor: default;
-  background: color-mix(in srgb, var(--color-status-success-background) 58%, var(--gz-legacy-fff));
-  color: var(--color-status-success-text);
+  background: color-mix(in srgb, var(--color-success-soft) 58%, var(--color-surface-primary));
+  color: var(--color-success);
   box-shadow: none;
 }
 
 .remainingItem .itemIcon {
-  background: var(--gz-legacy-fff);
+  background: var(--color-surface-primary);
 }
 
 .remainingItem .itemName,
 .remainingItem .itemAmount {
-  color: var(--color-status-success-text);
+  color: var(--color-success);
 }
 
 .itemIcon {
@@ -388,8 +388,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: var(--color-status-success-background);
-  color: var(--color-status-success-text);
+  background: var(--color-success-soft);
+  color: var(--color-success);
   font-size: 1.2rem;
 }
 
@@ -432,7 +432,7 @@
 }
 
 .dangerActionButton {
-  color: var(--color-status-danger-text);
+  color: var(--color-danger);
 }
 
 .emptyState {
@@ -452,7 +452,7 @@
 .itemList .emptyState {
   border: 0;
   border-radius: 0;
-  background: var(--gz-legacy-fff);
+  background: var(--color-surface-primary);
 }
 
 .emptyState i {
@@ -462,15 +462,15 @@
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: color-mix(in srgb, var(--color-status-success-background) 68%, var(--gz-legacy-fff));
-  color: var(--color-status-success-text);
+  background: color-mix(in srgb, var(--color-success-soft) 68%, var(--color-surface-primary));
+  color: var(--color-success);
   font-size: 1.3rem;
 }
 
 .emptyState strong {
   color: var(--color-text-primary);
   font-size: 0.94rem;
-  font-weight: 850;
+  font-weight: var(--font-weight-bold);
 }
 
 .emptyState span {
@@ -478,7 +478,7 @@
   font-size: 0.82rem;
 }
 
-@media (max-width: 380px) {
+@media (max-width: 360px) {
   .summaryMetrics {
     grid-template-columns: 1fr;
   }

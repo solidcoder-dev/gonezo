@@ -29,7 +29,7 @@ export type SpendingOverviewCardComponentProps = {
   };
 };
 
-const COLORS = ['#f28b8b', '#86d69a', '#f7cf6d', '#8ab9ee', '#a78bfa', '#7dd3fc'];
+const COLORS = ['var(--category-red-soft)', 'var(--category-green-soft)', 'var(--category-yellow-soft)', 'var(--category-blue-soft)', 'var(--category-lilac-soft)', 'var(--category-cyan-soft)'];
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unknown error';

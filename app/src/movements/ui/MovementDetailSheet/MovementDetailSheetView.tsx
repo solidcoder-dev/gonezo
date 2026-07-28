@@ -53,7 +53,7 @@ export type MovementDetailSheetViewProps = ViewProps<
 
 function actionClassName(variant: MovementDetailActionView['variant']): string | undefined {
   if (variant === 'text') {
-    return 'text-button';
+    return 'gz-text-button';
   }
   if (variant === 'danger') {
     return 'btn btn-danger';
@@ -98,7 +98,7 @@ export function MovementDetailSheetView({ required, provided }: MovementDetailSh
               </div>
               <button
                 type="button"
-                className="text-button icon-button"
+                className="gz-text-button gz-icon-button"
                 aria-label={closeLabel}
                 onClick={provided.commands.close}
               >
@@ -115,7 +115,7 @@ export function MovementDetailSheetView({ required, provided }: MovementDetailSh
               <div className="detail-meta-grid">
                 {data.meta.map((item) => (
                   <div key={item.label} className="detail-meta-item">
-                    <span className="hint detail-meta-label">{item.label}</span>
+                    <span className="gz-hint gz-detail-meta-label">{item.label}</span>
                     <strong>{item.value}</strong>
                   </div>
                 ))}

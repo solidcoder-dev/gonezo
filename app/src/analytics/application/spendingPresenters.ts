@@ -39,7 +39,7 @@ function categoryIcon(name: string): string {
   return 'bi bi-tag-fill';
 }
 
-const CATEGORY_COLORS = ['#ff9f94', '#8fd3a7', '#f2c765', '#8fb9e8', '#b4a5e8', '#7dc9d6'];
+const CATEGORY_COLORS = ['var(--category-red-soft)', 'var(--category-green-soft)', 'var(--category-yellow-soft)', 'var(--category-blue-soft)', 'var(--category-lilac-soft)', 'var(--category-cyan-soft)'];
 
 function categoryColor(index: number): string {
   return CATEGORY_COLORS[index % CATEGORY_COLORS.length];
@@ -113,7 +113,7 @@ export function presentSpendingSummary(report: AnalyticsSpendingReport): Spendin
       key: 'others',
       name: 'Others',
       icon: 'bi bi-three-dots',
-      color: '#a9a9a1',
+      color: 'var(--color-text-muted)',
       amount: formatCurrencyAmount(
         report.categories.slice(4).reduce((total, category) => total + Number(category.amount.value), 0).toFixed(2),
         report.currency,

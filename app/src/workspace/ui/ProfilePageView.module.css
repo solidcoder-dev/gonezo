@@ -1,0 +1,7 @@
+.page { display: grid; gap: var(--space-lg); }
+.section { display: grid; gap: var(--space-md); }
+.section h2 { margin: 0; font-size: var(--font-size-md); }
+.select { width: 100%; min-height: var(--touch-target-min); }
+.actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm); }
+.actions button { min-height: var(--touch-target-min); }
+@media (max-width: 360px) { .actions { grid-template-columns: 1fr; } }

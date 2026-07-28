@@ -1,6 +1,6 @@
 import { BinarySwitchCardView } from '../../shared/ui/BinarySwitchCard/BinarySwitchCardView';
 import type { ProfilePageViewProps } from './ProfilePageView.contract';
-import './ProfilePageView.css';
+import styles from './ProfilePageView.module.css';
 
 export type { ProfilePageViewProps } from './ProfilePageView.contract';
 
@@ -8,12 +8,12 @@ export function ProfilePageView({ required, provided }: ProfilePageViewProps) {
   const activeAccounts = required.data.accounts.filter((account) => account.status === 'active');
 
   return (
-    <div className="profile-page">
-      <section className="profile-section">
+    <div className={styles.page}>
+      <section className={styles.section}>
         <label className="d-grid gap-2">
           Favorite account
           <select
-            className="form-select profile-select"
+            className={`form-select ${styles.select}`}
             aria-label="Favorite account"
             value={required.state.favoriteAccountId}
             disabled={required.status.disabled}
@@ -29,9 +29,9 @@ export function ProfilePageView({ required, provided }: ProfilePageViewProps) {
         </label>
       </section>
 
-      <section className="profile-section">
+      <section className={styles.section}>
         <h2>Global actions</h2>
-        <div className="profile-actions">
+        <div className={styles.actions}>
           <button type="button" className="btn btn-outline-secondary" disabled={required.status.disabled} onClick={provided.commands.addAccount}>
             Add account
           </button>
@@ -47,7 +47,7 @@ export function ProfilePageView({ required, provided }: ProfilePageViewProps) {
         </div>
       </section>
 
-      <section className="profile-section profile-experimental-section" aria-labelledby="profile-experimental-heading">
+      <section className={styles.section} aria-labelledby="profile-experimental-heading">
         <h2 id="profile-experimental-heading">Experimental</h2>
         <BinarySwitchCardView
           required={{

@@ -26,14 +26,14 @@
 }
 
 .movement-type-selector-row:active:not(:disabled) {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--color-surface-shadow-subtle);
 }
 
 .movement-type-selector-check {
-  color: var(--accent, var(--gz-legacy-111));
+  color: var(--color-text-primary);
   text-align: center;
 }
 
 .movement-type-selector-name {
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold);
 }

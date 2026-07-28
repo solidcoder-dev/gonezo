@@ -4,6 +4,40 @@ import type { MovementsSearchPagePort } from '../../application/movementsSearch.
 import { MovementsSearchResults } from './MovementsSearchResults';
 
 function createCore(): MovementsSearchPagePort {
+  const postedMovement = {
+    id: 'tx-1',
+    accountId: 'acc-1',
+    accountName: 'Main',
+    source: 'posted' as const,
+    type: 'expense' as const,
+    status: 'posted' as const,
+    amount: '10.00',
+    currency: 'EUR',
+    occurredAt: '2026-06-24T10:00:00.000Z',
+    title: 'Cafe',
+    merchant: 'Cafe',
+    ignored: false,
+    items: [],
+  };
+  const expectedMovement = {
+    id: 'expected-1',
+    accountId: 'acc-1',
+    accountName: 'Main',
+    source: 'expected' as const,
+    type: 'income' as const,
+    status: 'pending' as const,
+    amount: '25.00',
+    currency: 'EUR',
+    occurredAt: '2026-06-25T10:00:00.000Z',
+    title: 'Refund',
+    description: 'Refund detail',
+    merchant: 'Store',
+    categoryId: 'cat-1',
+    category: { id: 'cat-1', name: 'Food' },
+    splitItems: [{ id: 'item-1', name: 'Item', amount: '25.00' }],
+    ignored: true,
+    items: [{ id: 'item-1', name: 'Item', amount: '25.00' }],
+  };
   return {
     taxonomyListCategories: vi.fn(async () => ({
       items: [{ id: 'cat-1', name: 'Food', appliesTo: 'expense', status: 'active' }],
@@ -19,6 +53,22 @@ function createCore(): MovementsSearchPagePort {
     schedulingUpdateMovement: vi.fn(async () => undefined),
     schedulingDeactivateMovement: vi.fn(async () => undefined),
     ledgerVoidTransaction: vi.fn(async () => undefined),
+    movementsGetDetail: vi.fn(async ({ source, movementId }) => {
+      if (source === 'posted' && movementId === postedMovement.id) {
+        return { found: true as const, detail: { source: 'posted' as const, movement: postedMovement } };
+      }
+      if (source === 'expected' && movementId === expectedMovement.id) {
+        return {
+          found: true as const,
+          detail: {
+            source: 'expected' as const,
+            movement: expectedMovement,
+            origin: { kind: 'manual' as const },
+          },
+        };
+      }
+      return { found: false as const };
+    }),
   } as unknown as MovementsSearchPagePort;
 }
 
@@ -122,6 +172,7 @@ describe('MovementsSearchResults', () => {
       merchant: 'Store',
       categoryId: 'cat-1',
       category: { id: 'cat-1', name: 'Food' },
+      splitItems: [],
       ignored: true,
       items: [{ id: 'item-1', name: 'Item', amount: '25.00' }],
     };

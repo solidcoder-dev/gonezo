@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { SchemaGuidedInterpretationRequest } from '../../application/interpretation/schemaGuidedInterpretationContract';
 import {
@@ -8,8 +9,9 @@ import {
   SchemaGuidedInterpretationJsonError,
 } from './schemaGuidedInterpretationJsonCodec';
 
-const requestFixturePath = resolve(process.cwd(), '../core/schema-guided-interpretation-json/src/test/resources/fixtures/interpretation-request.1.json');
-const resultFixturePath = resolve(process.cwd(), '../core/schema-guided-interpretation-json/src/test/resources/fixtures/interpretation-result.1.json');
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '..');
+const requestFixturePath = resolve(repoRoot, 'core/schema-guided-interpretation-json/src/test/resources/fixtures/interpretation-request.1.json');
+const resultFixturePath = resolve(repoRoot, 'core/schema-guided-interpretation-json/src/test/resources/fixtures/interpretation-result.1.json');
 
 describe('SchemaGuidedInterpretationJsonCodec', () => {
   it('encodes the semantic request into the shared Kotlin-compatible request fixture', () => {

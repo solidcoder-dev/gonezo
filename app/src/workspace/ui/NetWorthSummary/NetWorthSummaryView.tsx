@@ -65,9 +65,9 @@ export function NetWorthSummaryView({ required, provided }: NetWorthSummaryViewP
     <section className={styles.card} aria-busy={status.loadPhase === 'loading'}>
       <div className={styles.header}><h2>Balances by currency</h2></div>
       {status.loadPhase === 'failed' ? (
-        <p className={styles.hint} role="alert">{status.error ?? 'Unable to load net worth.'}</p>
+        <p className={styles.netWorthHint} role="alert">{status.error ?? 'Unable to load net worth.'}</p>
       ) : status.loadPhase === 'loading' && !activeItem ? (
-        <p className={styles.hint}>Loading balances...</p>
+        <p className={styles.netWorthHint}>Loading balances...</p>
       ) : activeItem ? (
         <>
           <div
@@ -122,7 +122,7 @@ export function NetWorthSummaryView({ required, provided }: NetWorthSummaryViewP
           ) : null}
         </>
       ) : (
-        <p className={styles.hint}>No balances yet</p>
+        <p className={styles.netWorthHint}>No balances yet</p>
       )}
     </section>
   );

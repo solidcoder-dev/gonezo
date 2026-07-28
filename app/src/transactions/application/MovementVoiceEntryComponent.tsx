@@ -268,8 +268,8 @@ export function MovementVoiceEntryComponent({ required, provided = {} }: Movemen
               <p>This ZIP contains the audio recording, transcript and interpretation. Store it somewhere secure.</p>
             ),
             footer: (
-              <div className="quick-row">
-                <button type="button" className="text-button" onClick={() => setExportDiagnosticsOpen(false)}>
+              <div className="gz-quick-row">
+                <button type="button" className="gz-text-button" onClick={() => setExportDiagnosticsOpen(false)}>
                   Cancel
                 </button>
                 <button

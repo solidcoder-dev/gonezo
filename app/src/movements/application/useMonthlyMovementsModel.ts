@@ -6,7 +6,7 @@ import type { SchedulingGatewayPort } from '../../scheduling/application/schedul
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
 import type { MovementDetailQueryPort } from './movements.port';
-import type { ExpectedMovementView } from './movementsView.types';
+import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
 import { useMovementDetailModel } from './useMovementDetailModel';
 import { useMonthlyMovementMutationsModel } from './useMonthlyMovementMutationsModel';
 import { useMonthlyMovementNavigationModel } from './useMonthlyMovementNavigationModel';
@@ -14,6 +14,7 @@ import { useMonthlyMovementsFeedbackModel } from './useMonthlyMovementsFeedbackM
 import { useMonthlyMovementsOverviewModel } from './useMonthlyMovementsOverviewModel';
 import { useMonthlyMovementsTaxonomyModel } from './useMonthlyMovementsTaxonomyModel';
 import { useMonthlyMovementsTimelineModel } from './useMonthlyMovementsTimelineModel';
+import { rejectConfirmation, toErrorMessage } from './useMonthlyMovementsModel.helpers';
 import type { MonthlyMovementsMode, MonthlyMovementsViewProvided, MonthlyMovementsViewRequired } from '../ui/MonthlyMovements/MonthlyMovementsView.contract';
 export type MonthlyMovementsModelPorts = {
   movements: MovementDetailQueryPort;
@@ -29,7 +30,6 @@ export type MonthlyMovementsModelTimers = {
   setTimeout(handler: () => void, timeoutMs: number): number;
   clearTimeout(timerId: number): void;
 };
-
 type UseMonthlyMovementsModelInput = {
   ports: MonthlyMovementsModelPorts;
   accountId: string | null;
@@ -44,19 +44,8 @@ type UseMonthlyMovementsModelInput = {
   onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
   onError?: (error: { message: string }) => void;
   confirm?: (message: string) => boolean;
+  postedItems?: import('../../ledger/application/ledger.port').LedgerTransactionListItem[]; scheduledItems?: ScheduledMovementView[]; expectedItems?: ExpectedMovementView[];
 };
-
-function toErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return 'Unknown error';
-}
-
-function rejectConfirmation(): boolean {
-  return false;
-}
-
 export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const {
     ports,
@@ -171,6 +160,9 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     confirm: confirmMovementAction,
     onEditExpectedMovement,
     onPostExpectedMovement,
+    postedItems: taxonomyModel.state.historyItems,
+    scheduledItems: overviewModel.state.scheduledItems,
+    expectedItems: overviewModel.state.expectedItems,
   });
   function resetTransientState() {
     mutationsModel.actions.clearPendingVoidTimer();

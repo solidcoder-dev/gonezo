@@ -12,7 +12,7 @@ const options = [
 ];
 
 describe('CategoryPickerField', () => {
-  it('renders all categories as a horizontal chip list with names', () => {
+  it('renders all categories as a horizontal gz-chip list with names', () => {
     const onSelect = vi.fn();
 
     render(

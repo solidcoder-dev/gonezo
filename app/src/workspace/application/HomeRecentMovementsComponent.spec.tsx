@@ -29,7 +29,37 @@ function emptyOverview(overrides = {}) {
 }
 
 function createPort(): HomeRecentMovementsPort {
-  return {
+  const overview = emptyOverview({
+    postedPage: {
+      content: [
+        {
+          id: 'tx-1',
+          accountId: 'acc-1',
+          occurredAt: '2026-06-24T10:00:00.000Z',
+          merchant: 'Cafe',
+          amount: '10.00',
+          currency: 'EUR',
+          type: 'expense',
+          status: 'posted',
+          categoryId: 'cat-1',
+          category: { id: 'cat-1', name: 'Food' },
+          tags: [
+            { id: 'tag-1', name: 'Coffee' },
+            { id: 'tag-2', name: 'Dining' },
+          ],
+          ignored: true,
+          items: [],
+        },
+      ],
+      page: 0,
+      size: 3,
+      totalElements: 1,
+      totalPages: 1,
+      hasNext: false,
+      hasPrevious: false,
+    },
+  });
+  const core = {
     movementsGetOverview: vi.fn(async () => emptyOverview({
       postedPage: {
         content: [
@@ -60,6 +90,19 @@ function createPort(): HomeRecentMovementsPort {
         hasPrevious: false,
       },
     })),
+    movementsGetDetail: vi.fn(async ({ source, movementId }) => {
+      if (source !== 'posted' || movementId !== 'tx-1') {
+        return { found: false as const };
+      }
+      const movement = overview.postedPage.content[0];
+      return {
+        found: true as const,
+        detail: {
+          source: 'posted' as const,
+          movement,
+        },
+      };
+    }),
     taxonomyListCategories: vi.fn(async () => ({
       items: [{ id: 'cat-1', name: 'Food', appliesTo: 'expense', status: 'active' }],
     })),
@@ -80,7 +123,8 @@ function createPort(): HomeRecentMovementsPort {
     schedulingUpdateMovement: vi.fn(async () => undefined),
     schedulingDeactivateMovement: vi.fn(async () => undefined),
     ledgerVoidTransaction: vi.fn(async () => undefined),
-  } as unknown as HomeRecentMovementsPort;
+  };
+  return core as unknown as HomeRecentMovementsPort;
 }
 
 describe('HomeRecentMovementsComponent', () => {

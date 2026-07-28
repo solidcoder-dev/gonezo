@@ -3,19 +3,19 @@
   gap: 12px;
   width: 100%;
   padding: 16px;
-  border: 1px solid rgba(38, 52, 65, 0.08);
+  border: 1px solid var(--color-border-shadow-subtle);
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 14px 28px rgba(19, 37, 25, 0.12), 0 4px 12px rgba(19, 37, 25, 0.08);
+  background: var(--color-surface-elevated);
+  box-shadow: var(--shadow-dock);
 }
 
 .movement-voice-entry-control--recording {
-  border-color: rgba(50, 185, 87, 0.24);
+  border-color: color-mix(in srgb, var(--color-income) 24%, transparent);
 }
 
 .movement-voice-entry-control--failed {
-  border-color: var(--color-status-warning-border);
-  background: var(--gz-legacy-fffaf0);
+  border-color: var(--color-border-default);
+  background: var(--color-surface-primary);
 }
 
 .movement-voice-entry-status {
@@ -47,7 +47,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--gz-legacy-d52b2b);
+  background: var(--color-danger);
   flex: 0 0 auto;
 }
 
@@ -65,19 +65,19 @@
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: var(--gz-legacy-727a82);
+  color: var(--color-text-secondary);
   font: inherit;
   touch-action: none;
   user-select: none;
 }
 
 .movement-voice-entry-microphone[aria-invalid='true'] {
-  color: var(--color-status-warning-text);
+  color: var(--color-warning);
 }
 
 .movement-voice-entry-microphone--recording {
-  color: var(--gz-legacy-20a34a);
-  background: rgba(50, 185, 87, 0.1);
+  color: var(--color-income);
+  background: color-mix(in srgb, var(--color-income) 10%, transparent);
 }
 
 .movement-voice-entry-microphone i {
@@ -92,11 +92,5 @@
 
   to {
     transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .movement-voice-entry-spinner {
-    animation: none;
   }
 }

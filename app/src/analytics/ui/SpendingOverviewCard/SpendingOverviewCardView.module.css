@@ -6,8 +6,8 @@
   padding: 22px 20px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 18px;
-  background: var(--color-card-surface);
-  box-shadow: var(--shadow-card);
+  background: var(--color-surface-primary);
+  box-shadow: var(--shadow-lg);
 }
 
 .header {
@@ -143,7 +143,7 @@
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: var(--color-brand-strong);
+  color: var(--color-action-primary);
   font: inherit;
   font-size: 0.95rem;
   font-weight: 900;
@@ -167,7 +167,7 @@
   width: 100%;
   height: 34px;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(32, 32, 30, 0.06), rgba(32, 32, 30, 0.12), rgba(32, 32, 30, 0.06));
+  background: linear-gradient(90deg, var(--color-surface-shadow-soft), var(--color-surface-shadow-subtle), var(--color-surface-shadow-soft));
   background-size: 180% 100%;
   animation: skeletonPulse 1.2s ease-in-out infinite;
 }
@@ -256,7 +256,7 @@
   }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 360px) {
   .categoryMeta {
     grid-template-columns: minmax(0, 1fr) auto 32px;
     gap: 8px;

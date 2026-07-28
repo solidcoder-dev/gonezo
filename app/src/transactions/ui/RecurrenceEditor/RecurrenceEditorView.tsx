@@ -217,14 +217,14 @@ function ScheduleDateInput({
         />
         <button
           type="button"
-          className="text-button icon-button composer-recurring-date-button"
+          className="gz-text-button gz-icon-button composer-recurring-date-button"
           aria-label="Open calendar"
           onClick={() => pickerRef.current?.showPicker?.()}
         >
           <i className="bi bi-calendar3" aria-hidden />
         </button>
       </div>
-      {error ? <p id={errorId} className="field-error">{error}</p> : null}
+      {error ? <p id={errorId} className="gz-field-error">{error}</p> : null}
     </>
   );
 }
@@ -276,12 +276,12 @@ function EditorHeader({
       {step === 'summary' ? (
         null
       ) : (
-        <button type="button" className="text-button icon-button" aria-label="Back to schedule summary" onClick={onBack}>
+        <button type="button" className="gz-text-button gz-icon-button" aria-label="Back to schedule summary" onClick={onBack}>
           <i className="bi bi-arrow-left" aria-hidden />
         </button>
       )}
       <h3>{title}</h3>
-      <button type="button" className="text-button icon-button" aria-label="Close schedule editor" onClick={onClose}>
+      <button type="button" className="gz-text-button gz-icon-button" aria-label="Close schedule editor" onClick={onClose}>
         <i className="bi bi-x-lg" aria-hidden />
       </button>
     </div>
@@ -354,9 +354,9 @@ export function RecurrenceEditorView({ required, provided }: RecurrenceEditorVie
             <SummaryRow icon="bi bi-clock" label="Ends" value={endsSummary(state)} onClick={() => setStep('ends')} />
           </div>
 
-          {status.intervalError ? <p id="composer-recurrence-interval-error" className="field-error">{status.intervalError}</p> : null}
-          {status.endDateError ? <p id="composer-recurrence-end-date-error" className="field-error">{status.endDateError}</p> : null}
-          {status.endCountError ? <p id="composer-recurrence-end-count-error" className="field-error">{status.endCountError}</p> : null}
+          {status.intervalError ? <p id="composer-recurrence-interval-error" className="gz-field-error">{status.intervalError}</p> : null}
+          {status.endDateError ? <p id="composer-recurrence-end-date-error" className="gz-field-error">{status.endDateError}</p> : null}
+          {status.endCountError ? <p id="composer-recurrence-end-count-error" className="gz-field-error">{status.endCountError}</p> : null}
 
           <button type="button" className="composer-recurring-primary-action" onClick={provided.commands.applySchedule}>
             Apply schedule
@@ -482,7 +482,7 @@ export function RecurrenceEditorView({ required, provided }: RecurrenceEditorVie
                 aria-invalid={Boolean(status.endCountError)}
                 aria-describedby={status.endCountError ? 'composer-recurrence-end-count-error' : undefined}
               />
-              {status.endCountError ? <p id="composer-recurrence-end-count-error" className="field-error">{status.endCountError}</p> : null}
+              {status.endCountError ? <p id="composer-recurrence-end-count-error" className="gz-field-error">{status.endCountError}</p> : null}
             </>
           ) : null}
           {state.endKind === 'never' ? (

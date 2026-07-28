@@ -1,22 +1,21 @@
 .card { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .header h2 { margin: 0; color: var(--color-text-primary); font-size: 1.08rem; font-weight: 780; }
-.hint { margin: 0; color: var(--gz-legacy-74746b); font-size: .9rem; }
+.netWorthHint { margin: 0; color: var(--color-text-muted); font-size: .9rem; }
 .viewport { display: flex; gap: 12px; min-width: 0; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .viewport::-webkit-scrollbar { display: none; }
-.slide { --net-worth-accent: rgba(34, 181, 85, 0.78); display: grid; grid-template-rows: auto auto minmax(96px, 1fr) auto; flex: 0 0 100%; min-width: 0; min-height: 240px; gap: 8px; padding: 20px; overflow: hidden; border: 1px solid var(--color-border-subtle); border-radius: 18px; background: var(--color-card-surface); box-shadow: 0 8px 22px rgba(24, 24, 22, .04); scroll-snap-align: start; }
+.slide { --net-worth-accent: color-mix(in srgb, var(--color-income) 78%, transparent); display: grid; grid-template-rows: auto auto minmax(96px, 1fr) auto; flex: 0 0 100%; min-width: 0; min-height: 240px; gap: 8px; padding: 20px; overflow: hidden; border: 1px solid var(--color-border-subtle); border-radius: 18px; background: var(--color-surface-primary); box-shadow: var(--shadow-card); scroll-snap-align: start; }
 .currencyHeading { display: flex; align-items: center; gap: 8px; color: var(--color-text-primary); font-weight: 700; }
-.currencySymbol { display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; border-radius: 50%; background: var(--color-brand); color: var(--gz-legacy-fff); }
-.balance { z-index: 1; color: var(--color-text-primary); font-size: clamp(1.8rem, 8vw, 2.5rem); }
-.trend { --net-worth-line: rgba(34, 181, 85, 0.72); --net-worth-area-start: rgba(34, 181, 85, 0.20); --net-worth-area-middle: rgba(34, 181, 85, 0.09); --net-worth-area-end: rgba(34, 181, 85, 0); position: relative; width: calc(100% + 32px); height: 108px; margin-inline: -16px; pointer-events: none; }
+.currencySymbol { display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; border-radius: 50%; background: var(--color-brand); color: var(--color-on-brand); }
+.balance { z-index: var(--z-content); color: var(--color-text-primary); font-size: clamp(1.8rem, 8vw, 2.5rem); }
+.trend { --net-worth-line: color-mix(in srgb, var(--color-income) 72%, transparent); --net-worth-area-start: color-mix(in srgb, var(--color-income) 20%, transparent); --net-worth-area-middle: color-mix(in srgb, var(--color-income) 9%, transparent); --net-worth-area-end: transparent; position: relative; width: calc(100% + 32px); height: 108px; margin-inline: -16px; pointer-events: none; }
 .trend svg { width: 100%; height: 100%; }
 .trendArea { fill: var(--net-worth-area-end); }
 .trendLine { fill: none; stroke: var(--net-worth-line); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
-.footer { z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; color: var(--gz-legacy-74746b); font-size: .85rem; }
+.footer { z-index: var(--z-content); display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; color: var(--color-text-muted); font-size: .85rem; }
 .accountCountIcon { color: var(--net-worth-accent); font-size: 1.2rem; vertical-align: -0.12em; }
 .footer button { min-height: 44px; padding: 8px 0 8px 8px; border: 0; background: transparent; color: var(--color-brand); font: inherit; font-weight: 700; cursor: pointer; }
 .footer button:focus-visible, .indicatorButton:focus-visible { outline: 3px solid var(--color-brand); outline-offset: 2px; }
 .indicators { display: flex; width: 100%; justify-content: center; gap: 0; }
 .indicatorButton { display: grid; width: 24px; height: 24px; min-width: 24px; min-height: 24px; padding: 0; place-items: center; border: 0; background: transparent; cursor: pointer; }
-.indicatorDot { display: block; width: 8px; height: 8px; border-radius: 999px; background: var(--gz-legacy-85857d); }
+.indicatorDot { display: block; width: 8px; height: 8px; border-radius: 999px; background: var(--color-text-muted); }
 .indicatorButton[aria-current="true"] .indicatorDot { background: var(--color-brand); }
-@media (prefers-reduced-motion: reduce) { .viewport { scroll-behavior: auto; } }

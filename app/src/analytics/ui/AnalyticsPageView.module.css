@@ -11,16 +11,17 @@
     var(--app-header-height) +
     var(--analytics-tabs-height)
   );
-  z-index: 29;
+  z-index: var(--z-sticky);
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) minmax(0, .8fr) 44px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) minmax(0, .8fr) var(--touch-target-min);
   align-items: center;
   gap: 8px;
   min-width: 0;
   width: 100%;
-  margin-top: var(--spacing-5);
+  min-height: var(--analytics-filter-bar-height);
+  margin-top: 1.25rem;
   padding: 6px 0;
-  background: var(--color-background-surface);
+  background: var(--color-surface-primary);
 }
 
 .filterChip,
@@ -32,10 +33,10 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 44px;
+  min-height: var(--touch-target-min);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-  background: var(--color-background-surface);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-primary);
   color: var(--color-text-primary);
   font-size: 0.86rem;
   font-weight: 800;
@@ -62,14 +63,14 @@
 .filterChipSelected,
 .moreFiltersButtonSelected {
   border-color: var(--color-border-strong);
-  background: var(--color-background-muted);
+  background: var(--color-surface-muted);
 }
 
 .moreFiltersButton,
 .moreFiltersButtonSelected {
   position: relative;
-  width: 44px;
-  flex: 0 0 44px;
+  width: var(--touch-target-min);
+  flex: 0 0 var(--touch-target-min);
   padding: 0;
   font-size: 1.05rem;
 }
@@ -84,8 +85,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--color-brand-strong);
-  color: var(--color-background-surface);
+  background: var(--color-action-primary);
+  color: var(--color-on-brand);
   font-size: 0.7rem;
   font-weight: 900;
   line-height: 1;
@@ -94,21 +95,21 @@
 .viewTabs {
   position: sticky;
   top: calc(var(--app-safe-area-top) + var(--app-header-height));
-  z-index: 30;
+  z-index: calc(var(--z-sticky) + 1);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
   width: 100%;
   min-width: 0;
-  border-bottom: 1px solid var(--color-divider);
-  background: var(--color-background-surface);
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-primary);
   padding: 0;
 }
 
 .viewTab,
 .viewTabActive {
   position: relative;
-  min-height: 44px;
+  min-height: var(--analytics-tabs-height);
   border: 0;
   border-radius: 0;
   padding: 0 8px;
@@ -133,11 +134,6 @@
 
 .analyticsOverviewContent { display: grid; gap: 36px; margin-top: 28px; }
 
-@media (min-width: 390px) {
-  .filterBar { gap: 8px; }
-  .filterChip, .filterChipMuted, .filterChipSelected { padding-inline: 8px; }
-}
-
 .stack {
   display: flex;
   flex-direction: column;
@@ -150,14 +146,14 @@
   min-height: 180px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 8px;
-  background: var(--color-background-muted);
+  background: var(--color-surface-muted);
   color: var(--color-text-secondary);
   font-weight: 800;
 }
 
 .analyticsSheet {
   border-radius: 28px 28px 0 0;
-  background: var(--color-background-surface);
+  background: var(--color-surface-primary);
 }
 
 .analyticsSheetContent {
@@ -245,7 +241,7 @@
 }
 
 .radioChecked {
-  border: 7px solid var(--color-brand-strong);
+  border: 7px solid var(--color-action-primary);
 }
 
 .checkbox,
@@ -263,9 +259,9 @@
 }
 
 .checkboxChecked {
-  border: 2px solid var(--color-brand-strong);
-  background: var(--color-brand-strong);
-  color: var(--color-background-surface);
+  border: 2px solid var(--color-action-primary);
+  background: var(--color-action-primary);
+  color: var(--color-on-brand);
 }
 
 .sheetActionFooter {
@@ -277,8 +273,8 @@
   min-height: 54px;
   border: 0;
   border-radius: 12px;
-  background: var(--color-brand-strong);
-  color: var(--color-background-surface);
+  background: var(--color-action-primary);
+  color: var(--color-on-brand);
   font-size: 1rem;
   font-weight: 900;
 }
@@ -301,7 +297,7 @@
   min-height: 50px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 14px;
-  background: var(--color-background-surface);
+  background: var(--color-surface-primary);
   padding: 0 14px;
   color: var(--color-text-secondary);
 }
@@ -325,7 +321,7 @@
   gap: 6px;
   color: var(--color-text-primary);
   font-size: 0.92rem;
-  font-weight: 750;
+  font-weight: var(--font-weight-bold);
 }
 
 .periodDateField input {
@@ -343,7 +339,8 @@
   font-weight: 700;
 }
 
-@media (max-width: 420px) {
+/* Narrow-device correction keeps labels readable without changing the sticky contract. */
+@media (max-width: 360px) {
   .filterBar {
     gap: 6px;
   }
@@ -354,13 +351,6 @@
     min-height: 44px;
     padding: 0 8px;
     font-size: 0.8rem;
-  }
-
-  .viewTab,
-  .viewTabActive {
-    min-height: 38px;
-    padding: 0 14px;
-    font-size: 0.84rem;
   }
 
   .sheetIntro h3 {

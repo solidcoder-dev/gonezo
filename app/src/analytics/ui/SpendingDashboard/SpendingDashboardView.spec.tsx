@@ -13,12 +13,12 @@ describe('SpendingDashboardView', () => {
             currentWindowLabel: 'Jun 1-Jun 30, 2026',
             previousWindowLabel: 'May 1-May 31, 2026',
             visibleCategories: [
-              { key: 'bills', name: 'Bills', amount: '€601,000.00', percentage: 79, color: '#ffb7b2' },
-              { key: 'dining', name: 'Dining', amount: '€100,050.00', percentage: 13, color: '#c6efd4' },
+              { key: 'bills', name: 'Bills', amount: '€601,000.00', percentage: 79, color: 'var(--category-red-soft)' },
+              { key: 'dining', name: 'Dining', amount: '€100,050.00', percentage: 13, color: 'var(--category-green-soft)' },
             ],
             allCategories: [
-              { key: 'bills', name: 'Bills', amount: '€601,000.00', percentage: 79, color: '#ffb7b2' },
-              { key: 'dining', name: 'Dining', amount: '€100,050.00', percentage: 13, color: '#c6efd4' },
+              { key: 'bills', name: 'Bills', amount: '€601,000.00', percentage: 79, color: 'var(--category-red-soft)' },
+              { key: 'dining', name: 'Dining', amount: '€100,050.00', percentage: 13, color: 'var(--category-green-soft)' },
             ],
           },
           state: {
@@ -61,10 +61,10 @@ describe('SpendingDashboardView', () => {
             currentWindowLabel: 'Jun 1-Jun 30, 2026',
             previousWindowLabel: 'May 1-May 31, 2026',
             visibleCategories: [
-              { key: 'bills', name: 'Bills', amount: '€601,000.00', percentage: 79, color: '#ffb7b2' },
+              { key: 'bills', name: 'Bills', amount: '€601,000.00', percentage: 79, color: 'var(--category-red-soft)' },
             ],
             allCategories: [
-              { key: 'bills', name: 'Bills', amount: '€601,000.00', percentage: 79, color: '#ffb7b2' },
+              { key: 'bills', name: 'Bills', amount: '€601,000.00', percentage: 79, color: 'var(--category-red-soft)' },
             ],
           },
           state: {

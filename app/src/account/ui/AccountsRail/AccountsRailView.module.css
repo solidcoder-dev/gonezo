@@ -30,7 +30,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--color-brand-strong);
+  color: var(--color-action-primary);
   font: inherit;
   font-size: 0.84rem;
   font-weight: 740;
@@ -44,7 +44,7 @@
 
 .seeAllButton:focus-visible {
   border-radius: 8px;
-  outline: 2px solid var(--color-brand-strong);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 3px;
 }
 
@@ -52,7 +52,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-brand-strong);
+  color: var(--color-action-primary);
 }
 
 .rail {
@@ -61,7 +61,7 @@
   overflow: hidden;
   border: 1px solid var(--color-border-subtle);
   border-radius: 13px;
-  background: var(--color-card-surface);
+  background: var(--color-surface-primary);
 }
 
 .accountCard {
@@ -78,7 +78,7 @@
   border: 0;
   border-bottom: 1px solid var(--color-border-subtle);
   border-radius: 0;
-  background: var(--color-card-surface);
+  background: var(--color-surface-primary);
   color: inherit;
   cursor: pointer;
   font: inherit;
@@ -95,13 +95,13 @@
 }
 
 .accountCard:focus-visible {
-  outline: 2px solid var(--color-brand-strong);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 3px;
 }
 
 .accountHeader {
   position: relative;
-  z-index: 1;
+  z-index: var(--z-content);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -117,7 +117,7 @@
   border-radius: 12px;
   flex: 0 0 auto;
   background: var(--color-brand-soft);
-  color: var(--color-brand-strong);
+  color: var(--color-action-primary);
   font-size: 1.18rem;
 }
 
@@ -136,7 +136,7 @@
   display: block;
   overflow: hidden;
   position: relative;
-  z-index: 1;
+  z-index: var(--z-content);
   color: var(--color-text-primary);
   font-size: 0.96rem;
   font-weight: 760;
@@ -154,12 +154,12 @@
 }
 
 .trendArea {
-  fill: var(--color-chart-soft);
+  fill: var(--color-brand-soft);
 }
 
 .trendLine {
   fill: none;
-  stroke: var(--color-chart-line);
+  stroke: var(--color-brand);
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -178,7 +178,7 @@
   overflow: hidden;
   border: 1px solid var(--color-border-subtle);
   border-radius: 14px;
-  background: var(--color-card-surface);
+  background: var(--color-surface-primary);
 }
 
 .sheetList .accountCard {

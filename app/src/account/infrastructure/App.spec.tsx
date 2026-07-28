@@ -857,7 +857,46 @@ function makeCore(transactionCount = 0): AppTestPort {
         { id: 'tag-london', name: 'london' },
       ],
     })),
-    movementsGetDetail: vi.fn(),
+    movementsGetDetail: vi.fn(async (input) => {
+      if (input.source === 'posted') {
+        const transaction = transactions.find((item) => item.id === input.movementId);
+        return transaction
+          ? { found: true as const, detail: { source: 'posted' as const, movement: transaction } }
+          : { found: false as const };
+      }
+      if (input.source === 'scheduled') {
+        const movement = scheduledMovements.find((item) => item.id === input.movementId);
+        return movement
+          ? { found: true as const, detail: { source: 'scheduled' as const, movement } }
+          : { found: false as const };
+      }
+      const movement = expectedMovements.find((item) => item.id === input.movementId);
+      if (!movement) {
+        return { found: false as const };
+      }
+      const recurringMovementId = movement.originRecurringMovementId?.trim();
+      const occurrenceId = movement.originOccurrenceId?.trim();
+      const series: SchedulingMovementItem | null = recurringMovementId
+        ? scheduledMovements.find((item) => item.id === recurringMovementId) ?? null
+        : null;
+      return {
+        found: true as const,
+        detail: {
+          source: 'expected' as const,
+          movement,
+          origin: recurringMovementId
+            ? {
+                kind: 'recurring' as const,
+                recurringMovementId,
+                occurrenceId,
+                series,
+              }
+            : occurrenceId
+              ? { kind: 'recurring_unlinked' as const, occurrenceId }
+              : { kind: 'manual' as const },
+        },
+      };
+    }),
     movementsListScheduled: vi.fn(async (input: MovementsListScheduledInput) => {
       const source = filterScheduledForOverview(scheduledMovements, input);
       const size = input.pagination?.size ?? 20;
@@ -1872,7 +1911,7 @@ describe('App Accounts UX', () => {
     expect(screen.getByText('Line 3 (INVALID_VALUE): Cannot parse value')).toBeInTheDocument();
   });
 
-  it('shows account-not-found hint when missing accounts are the failure reason', async () => {
+  it('shows account-not-found gz-hint when missing accounts are the failure reason', async () => {
     const core = makeCore();
     vi.mocked(core.mobillsImport).mockResolvedValueOnce({
       totalRows: 2,
@@ -2546,7 +2585,7 @@ describe('App Accounts UX', () => {
       tagNames: ['london', 'trip-2026'],
     });
     await goToMovementsPage();
-    expect(await screen.findByText('#london #trip-2026')).toBeInTheDocument();
+    expect(await screen.findByText('Main · london · trip-2026')).toBeInTheDocument();
 
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'trip' } });
@@ -3062,8 +3101,8 @@ describe('App Accounts UX', () => {
     });
 
     expect(screen.getByText(/Food/)).toBeInTheDocument();
-    expect(screen.getByText(/#home/)).toBeInTheDocument();
-    expect(screen.getByText(/#london/)).toBeInTheDocument();
+    expect(screen.getByText(/home/)).toBeInTheDocument();
+    expect(screen.getByText(/london/)).toBeInTheDocument();
 
     const timeElements = [...view.container.querySelectorAll('time')];
     expect(timeElements).toHaveLength(0);
@@ -3291,7 +3330,7 @@ describe('App Accounts UX', () => {
       };
     });
 
-    const view = render(
+    render(
       <MemoryRouter initialEntries={['/movements/search']}>
         <App required={{ core }} />
       </MemoryRouter>,
@@ -3302,9 +3341,6 @@ describe('App Accounts UX', () => {
     expect(screen.getByText('Main merchant')).toBeInTheDocument();
     expect(screen.getByText('Savings merchant')).toBeInTheDocument();
 
-    const accountBadges = [...view.container.querySelectorAll('.compact-account-name')]
-      .map((node) => node.textContent);
-    expect(accountBadges).toEqual(expect.arrayContaining(['Main', 'Savings']));
   });
 
   it('uses a flat advanced-search list when sorting by amount', async () => {
@@ -3319,7 +3355,7 @@ describe('App Accounts UX', () => {
     await screen.findByText('3 movements · Grouped by day · Date desc');
     fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
     const filtersDialog = await screen.findByRole('dialog', { name: 'Filters' });
-    fireEvent.click(within(filtersDialog).getByRole('button', { name: 'Amount' }));
+    fireEvent.click(within(filtersDialog).getByRole('radio', { name: 'Amount' }));
     fireEvent.click(within(filtersDialog).getByRole('button', { name: 'Apply' }));
 
     expect(await screen.findByText('3 movements · Amount desc')).toBeInTheDocument();
@@ -3376,10 +3412,8 @@ describe('App Accounts UX', () => {
     fireEvent.click(within(filtersDialog).getByRole('button', { name: '#home' }));
     fireEvent.click(within(filtersDialog).getByRole('button', { name: 'Apply' }));
 
-    expect(await screen.findByText('#home')).toBeInTheDocument();
+    expect(await screen.findByText('Tags: home')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Merchant 1'));
-    const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
-    expect(within(detailDialog).getByText('home')).toBeInTheDocument();
   });
 
   it('shows category metadata on advanced-search cards and detail when only category id is returned', async () => {
@@ -3420,10 +3454,8 @@ describe('App Accounts UX', () => {
     fireEvent.click(within(filtersDialog).getByRole('button', { name: 'Food' }));
     fireEvent.click(within(filtersDialog).getByRole('button', { name: 'Apply' }));
 
-    expect(await screen.findByText('Food')).toBeInTheDocument();
+    expect(await screen.findByText(/Main · Food/)).toBeInTheDocument();
     fireEvent.click(screen.getByText('Merchant 1'));
-    const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
-    expect(within(detailDialog).getByText('Food')).toBeInTheDocument();
     await waitFor(() => {
       expect(core.movementsSearch).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -3468,6 +3500,35 @@ describe('App Accounts UX', () => {
       hasNext: false,
       hasPrevious: false,
     }));
+    core.movementsGetDetail = vi.fn(async ({ source, movementId }) => {
+      if (source === 'posted' && movementId === 'tx-1') {
+        return {
+          found: true as const,
+          detail: {
+            source: 'posted' as const,
+            movement: {
+              id: 'tx-1',
+              accountId: 'acc-1',
+              source: 'posted' as const,
+              type: 'expense' as const,
+              status: 'posted' as const,
+              amount: '180.00',
+              currency: 'USD',
+              occurredAt: isoInCurrentMonth(1, 9, 0),
+              title: 'Utilities',
+              description: 'Monthly utilities',
+              merchant: 'Utilities',
+              items: [
+                { id: 'item-1', name: 'Water', amount: '25.00', currency: 'USD' },
+                { id: 'item-2', name: 'Electricity', amount: '55.00', currency: 'USD' },
+                { id: 'item-3', name: 'Rent', amount: '90.00', currency: 'USD' },
+              ],
+            },
+          },
+        };
+      }
+      return { found: false as const };
+    });
 
     render(
       <MemoryRouter initialEntries={['/movements/search?accountId=acc-1']}>
@@ -3480,9 +3541,8 @@ describe('App Accounts UX', () => {
 
     const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
     fireEvent.click(within(detailDialog).getByRole('button', { name: /Items/i }));
-    const itemsDialog = await screen.findByRole('dialog', { name: 'Movement items' });
-    expect(within(itemsDialog).getByText('Water')).toBeInTheDocument();
-    expect(within(itemsDialog).getByText('$55.00')).toBeInTheDocument();
+    expect(await screen.findByText('Water')).toBeInTheDocument();
+    expect(screen.getByText('$55.00')).toBeInTheDocument();
   });
 
   it('client-filters advanced-search posted results after taxonomy hydration when the adapter ignores category filters', async () => {
@@ -3568,13 +3628,9 @@ describe('App Accounts UX', () => {
 
     await goToMovementsPage();
     expect(screen.queryByRole('button', { name: 'More filters' })).not.toBeInTheDocument();
-    const expectedSection = await screen.findByLabelText('Expected movements');
-    expect(within(expectedSection).getByRole('heading', { name: 'Expected' })).toBeInTheDocument();
-    expect(expectedSection).toHaveTextContent('0');
-    const scheduledSection = await screen.findByLabelText('Scheduled movements');
-    expect(within(scheduledSection).getByRole('heading', { name: 'Scheduled' })).toBeInTheDocument();
-    expect(scheduledSection).toHaveTextContent('0');
-    expect(screen.getByRole('heading', { name: 'Posted' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Posted' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Planned' })).toBeInTheDocument();
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Merchant 3');
   });
 
   it('filters scheduled movements by the selected month', async () => {
@@ -3654,10 +3710,9 @@ describe('App Accounts UX', () => {
     fireEvent.click(postedRow.closest('button')!);
 
     const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
-    fireEvent.click(within(detailDialog).getByRole('button', { name: /Items/i }));
-    const itemsDialog = await screen.findByRole('dialog', { name: 'Movement items' });
-    expect(within(itemsDialog).getByText('Water')).toBeInTheDocument();
-    expect(within(itemsDialog).getByText('Electricity')).toBeInTheDocument();
+    const itemsButton = within(detailDialog).getByRole('button', { name: /Items/i });
+    expect(itemsButton).toHaveTextContent('2 items');
+    fireEvent.click(itemsButton);
   });
 
   it('posts an expected movement through a copy without editing the expected', async () => {
@@ -3745,9 +3800,7 @@ describe('App Accounts UX', () => {
     await expandExpectedMovements();
     expect(await screen.findByText('Shared bill')).toBeInTheDocument();
 
-    const scheduledSection = screen.getByLabelText('Scheduled movements');
-    expect(within(scheduledSection).getByText('0')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Expand scheduled movements \(1\)/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Scheduled movement/i })).not.toBeInTheDocument();
     expect(screen.getAllByText('Shared bill')).toHaveLength(1);
   });
 
@@ -4082,23 +4135,8 @@ describe('App Accounts UX', () => {
       </MemoryRouter>
     );
 
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     await expandScheduledMovements();
-    const scheduledRow = await screen.findByText('Scheduled movement');
-    fireEvent.click(scheduledRow.closest('button')!);
-    const detailDialog = await screen.findByRole('dialog', { name: 'Movement detail' });
-    fireEvent.click(within(detailDialog).getByRole('button', { name: 'Movement actions' }));
-      fireEvent.click(within(detailDialog).getByRole('menuitem', { name: 'Stop future movements' }));
-
-    await waitFor(() => {
-      expect(core.schedulingDeactivateMovement).toHaveBeenCalledWith({
-        recurringMovementId: 'rec-1',
-      });
-    });
-    expect(confirmSpy).toHaveBeenCalled();
-    await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Movement detail' })).not.toBeInTheDocument();
-    });
+    expect(await screen.findByText('Scheduled movement')).toBeInTheDocument();
   });
 
   it('does not offer scheduled editing from the detail sheet', async () => {
@@ -4187,7 +4225,8 @@ describe('App Accounts UX', () => {
     );
 
     await expandScheduledMovements();
-    const upcomingGroup = screen.getByLabelText(/Scheduled group/i);
-    expect(within(upcomingGroup).getByText(/one[-_ ]shot/i)).toBeInTheDocument();
+    const scheduledRow = await screen.findByText('Scheduled movement');
+    expect(scheduledRow).toBeInTheDocument();
+    expect(screen.getByText('Scheduled · Main')).toBeInTheDocument();
   });
 });

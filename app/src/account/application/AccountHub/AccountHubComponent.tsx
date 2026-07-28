@@ -67,7 +67,7 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
           </div>
         ) : null}
 
-        <form className="vstack gap-3 section-gap" onSubmit={submitCreateAccount} aria-busy={creating}>
+        <form className="vstack gap-3 gz-section-gap" onSubmit={submitCreateAccount} aria-busy={creating}>
           <h2>Create your first account</h2>
           <input
             className="form-control"
@@ -103,7 +103,7 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
           <button type="submit" className="btn btn-primary w-100" disabled={creating}>
             {creating ? 'Creating account...' : 'Create account'}
           </button>
-          <div className="quick-row">
+          <div className="gz-quick-row">
             <button type="button" className="btn btn-outline-secondary" onClick={provided.events?.onImportRequested}>
               Import backup
             </button>
@@ -181,7 +181,7 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
         />
       ) : null}
 
-      <section className="section-gap account-switcher-section">
+      <section className="gz-section-gap account-switcher-section">
         <AccountSwitcherView
           required={{
             accounts,

@@ -7,7 +7,7 @@ import type {
 import type { MovementsSearchPagePort } from '../../application/movementsSearch.port';
 import type { ExpectedMovementView } from '../../application/movementsView.types';
 import { MovementDetailOverlayComponent } from '../../application/MovementDetailOverlayComponent';
-import { MonthlyTimelineRowView } from '../MonthlyMovements/MonthlyTimelineRowView';
+import { MovementTimelineRowView } from '../../../shared/ui/MovementTimelineRowView';
 import {
   buildMovementSearchTimelineGroups,
   buildMovementSearchTimelineItem,
@@ -73,7 +73,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
   return (
     <section className="vstack gap-2" aria-label="Search results">
       {loading && entries.length === 0 ? <p role="status">Loading movements...</p> : null}
-      {!loading || entries.length > 0 ? <p className="hint search-results-summary">{summaryLabel}</p> : null}
+      {!loading || entries.length > 0 ? <p className="gz-hint search-results-summary">{summaryLabel}</p> : null}
       {!loading && entries.length === 0 ? <p>No movements match these filters.</p> : null}
 
       {entries.length > 0 ? (
@@ -85,7 +85,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
                   <h3 className="monthly-timeline-group__label">{group.dateLabel}</h3>
                   <ul className="monthly-timeline-list" aria-label={`Movement results ${group.dateLabel}`}>
                     {group.items.map((item) => (
-                      <MonthlyTimelineRowView
+                      <MovementTimelineRowView
                         key={`${item.source}-${item.id}`}
                         item={item}
                         disabled={disabled}
@@ -99,7 +99,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
           ) : (
             <ul className="monthly-timeline-list" aria-label="Movement results">
               {entries.map((entry) => (
-                <MonthlyTimelineRowView
+                <MovementTimelineRowView
                   key={`${entry.source}-${entry.id}`}
                   item={buildMovementSearchTimelineItem(entry, { includeDate: true })}
                   disabled={disabled}
@@ -110,10 +110,10 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
           )}
 
           {pagination.hasNext ? (
-            <div className="quick-row">
+            <div className="gz-quick-row">
               <button
                 type="button"
-                className="text-button"
+                className="gz-text-button"
                 disabled={disabled}
                 onClick={provided.commands.goToNextPage}
               >

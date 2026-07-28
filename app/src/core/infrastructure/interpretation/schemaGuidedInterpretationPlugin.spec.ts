@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   SchemaGuidedInterpretationPlugin,
@@ -18,7 +19,8 @@ vi.mock('@capacitor/core', () => ({
   })),
 }));
 
-const requestFixturePath = resolve(process.cwd(), '../core/schema-guided-interpretation-json/src/test/resources/fixtures/interpretation-request.1.json');
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '..');
+const requestFixturePath = resolve(repoRoot, 'core/schema-guided-interpretation-json/src/test/resources/fixtures/interpretation-request.1.json');
 
 describe('SchemaGuidedInterpretationPlugin', () => {
   beforeEach(() => {

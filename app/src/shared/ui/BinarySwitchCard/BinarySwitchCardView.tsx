@@ -1,5 +1,5 @@
 import type { ViewProps } from '../ViewProps';
-import './BinarySwitchCardView.css';
+import styles from './BinarySwitchCardView.module.css';
 
 export type BinarySwitchCardViewProps = ViewProps<
   {
@@ -22,27 +22,29 @@ export type BinarySwitchCardViewProps = ViewProps<
 >;
 
 export function BinarySwitchCardView({ required, provided }: BinarySwitchCardViewProps) {
+  const checked = required.state.value;
+
   return (
-    <label className="binary-switch-card form-check form-switch" htmlFor={required.config.switchId}>
+    <div className={styles.card}>
       {required.config.iconClassName ? (
-        <span className="binary-switch-card__icon">
+        <span className={styles.icon}>
           <i className={required.config.iconClassName} aria-hidden />
         </span>
       ) : null}
-      <span className="binary-switch-card__text">
-        <strong>{required.config.title}</strong>
-        {required.config.description ? <small>{required.config.description}</small> : null}
+      <span className={styles.text}>
+        <strong className={styles.title}>{required.config.title}</strong>
+        {required.config.description ? <small className={styles.description}>{required.config.description}</small> : null}
       </span>
-      <input
-        className="form-check-input"
+      <button
+        type="button"
+        className={styles.switch}
         id={required.config.switchId}
-        type="checkbox"
         role="switch"
         aria-label={required.config.ariaLabel}
-        checked={required.state.value}
+        aria-checked={checked}
         disabled={required.status.disabled}
-        onChange={(event) => provided.commands.setValue(event.currentTarget.checked)}
+        onClick={() => provided.commands.setValue(!checked)}
       />
-    </label>
+    </div>
   );
 }

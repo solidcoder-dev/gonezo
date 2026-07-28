@@ -10,7 +10,7 @@
   display: grid;
   min-height: 180px;
   place-items: center;
-  color: var(--gz-legacy-74746b);
+  color: var(--color-text-muted);
   font-size: 0.86rem;
 }
 

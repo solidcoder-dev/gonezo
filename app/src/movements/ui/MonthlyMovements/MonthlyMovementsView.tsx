@@ -89,7 +89,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
   }
 
   return (
-    <section className="vstack gap-2 section-gap transactions-section" aria-busy={loading}>
+    <section className="vstack gap-2 gz-section-gap transactions-section" aria-busy={loading}>
       <MonthNavigatorView
         required={{ monthLabel, disabled, monthMenuOpen, isCurrentMonth }}
         provided={{
@@ -146,7 +146,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
                   : `No ${selectedMode === 'posted' ? 'posted' : 'planned'} movements in ${monthLabel}.`}
               </p>
               {inactiveHasItems ? (
-                <button type="button" className="text-button" onClick={() => selectMode(selectedMode === 'posted' ? 'planned' : 'posted')}>
+                <button type="button" className="gz-text-button" onClick={() => selectMode(selectedMode === 'posted' ? 'planned' : 'posted')}>
                   {selectedMode === 'posted' ? 'View Planned' : 'View Posted'}
                 </button>
               ) : null}
@@ -157,7 +157,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
 
           {selectedMode === 'posted' && pagination.hasNext ? (
             <div className="monthly-timeline-load-more">
-              <button type="button" className="text-button" disabled={disabled} onClick={provided.commands.goToNextPage}>
+              <button type="button" className="gz-text-button" disabled={disabled} onClick={provided.commands.goToNextPage}>
                 Load more
               </button>
             </div>

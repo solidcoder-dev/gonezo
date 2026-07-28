@@ -15,7 +15,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--gz-legacy-63635b);
+  color: var(--color-text-secondary);
   font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -46,8 +46,8 @@
   min-height: 22px;
   padding: 0 8px;
   border-radius: 999px;
-  background: var(--gz-legacy-f1f1eb);
-  color: var(--gz-legacy-5f5f56);
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.72rem;
   font-weight: 800;
 }
@@ -63,23 +63,23 @@
 }
 
 .detail-sheet-amount--expense {
-  background: var(--gz-legacy-fff3f3);
-  color: var(--gz-legacy-8a2020);
+  background: var(--color-expense-soft);
+  color: var(--color-expense);
 }
 
 .detail-sheet-amount--income {
-  background: var(--gz-legacy-ecf8ef);
-  color: var(--gz-legacy-1b5b28);
+  background: var(--color-income-soft);
+  color: var(--color-income);
 }
 
 .detail-sheet-amount--transfer {
-  background: var(--gz-legacy-f4f4ef);
-  color: var(--gz-legacy-2f2f2a);
+  background: var(--color-surface-secondary);
+  color: var(--color-text-primary);
 }
 
 .detail-sheet-amount--scheduled {
-  background: var(--gz-legacy-f3f6ff);
-  color: var(--gz-legacy-223c8b);
+  background: var(--color-info-soft);
+  color: var(--color-info);
 }
 
 .detail-meta-grid {
@@ -94,9 +94,9 @@
   gap: 4px;
   min-width: 0;
   padding: 10px 12px;
-  border: 1px solid var(--gz-legacy-e6e6da);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 10px;
-  background: var(--gz-legacy-fafaf6);
+  background: var(--color-surface-primary);
 }
 
 .detail-meta-item strong {

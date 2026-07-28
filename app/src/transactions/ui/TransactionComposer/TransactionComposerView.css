@@ -63,7 +63,7 @@
   gap: 0;
   border: 1px solid var(--color-border-subtle);
   border-radius: 14px;
-  background: var(--gz-legacy-fff);
+  background: var(--color-surface-primary);
   overflow: hidden;
 }
 
@@ -74,7 +74,7 @@
   display: grid;
   align-items: center;
   border: 0;
-  background: var(--gz-legacy-fff);
+  background: var(--color-surface-primary);
   color: var(--color-text-primary);
   font: inherit;
   text-align: left;
@@ -87,7 +87,7 @@
   padding: 18px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 16px;
-  box-shadow: 0 10px 26px rgba(24, 24, 22, 0.04);
+  box-shadow: var(--shadow-card);
 }
 
 .composer-account-choice-row {
@@ -117,25 +117,25 @@
 }
 
 .composer-choice-row--expense .composer-choice-icon {
-  background: rgba(220, 38, 38, 0.1);
-  color: var(--gz-legacy-dc2626);
+  background: color-mix(in srgb, var(--color-expense) 10%, transparent);
+  color: var(--color-danger);
 }
 
 .composer-choice-row--income .composer-choice-icon {
-  background: color-mix(in srgb, var(--color-status-success-background) 72%, var(--gz-legacy-fff));
-  color: var(--color-status-success-text);
+  background: color-mix(in srgb, var(--color-success-soft) 72%, var(--color-surface-primary));
+  color: var(--color-success);
 }
 
 .composer-choice-row--transfer .composer-choice-icon {
-  background: rgba(23, 92, 211, 0.1);
-  color: var(--gz-legacy-175cd3);
+  background: color-mix(in srgb, var(--color-transfer) 10%, transparent);
+  color: var(--color-info);
 }
 
 .composer-account-choice-icon {
   width: 34px;
   height: 34px;
   background: var(--color-brand-soft);
-  color: var(--color-brand-strong);
+  color: var(--color-action-primary);
   font-size: 1.05rem;
 }
 
@@ -144,7 +144,7 @@
   overflow: hidden;
   color: var(--color-text-primary);
   font-size: 1rem;
-  font-weight: 850;
+  font-weight: var(--font-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -156,15 +156,15 @@
   align-items: center;
   justify-content: center;
   justify-self: end;
-  border: 2px solid var(--gz-legacy-c9c9c0);
+  border: 2px solid var(--color-border-default);
   border-radius: 50%;
-  color: var(--gz-legacy-fff);
+  color: var(--color-on-success);
   font-size: 0.9rem;
 }
 
 .composer-choice-check--selected {
-  border-color: var(--color-status-success-text);
-  background: var(--color-status-success-text);
+  border-color: var(--color-success);
+  background: var(--color-success);
 }
 
 .composer-default-pill {
@@ -173,10 +173,10 @@
   align-items: center;
   padding: 0 10px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--color-status-success-background) 62%, var(--gz-legacy-fff));
-  color: var(--color-status-success-text);
+  background: color-mix(in srgb, var(--color-success-soft) 62%, var(--color-surface-primary));
+  color: var(--color-success);
   font-size: 0.78rem;
-  font-weight: 850;
+  font-weight: var(--font-weight-bold);
 }
 
 .composer-amount-accessory {
@@ -187,7 +187,7 @@
 .composer-details-title {
   color: var(--color-text-primary);
   font-size: 0.82rem;
-  font-weight: 850;
+  font-weight: var(--font-weight-bold);
 }
 
 .composer-details-chips {
@@ -195,9 +195,9 @@
   gap: 0;
   border: 1px solid var(--color-border-subtle);
   border-radius: 14px;
-  background: var(--gz-legacy-fff);
+  background: var(--color-surface-primary);
   overflow: hidden;
-  box-shadow: 0 8px 22px rgba(24, 24, 22, 0.04);
+  box-shadow: var(--shadow-card);
 }
 
 .composer-details-chips > * + * {
@@ -244,9 +244,9 @@
   padding: 0 14px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
-  background: var(--color-card-surface);
+  background: var(--color-surface-primary);
   color: var(--color-text-primary);
-  box-shadow: 0 6px 18px rgba(24, 24, 22, 0.04);
+  box-shadow: var(--shadow-card);
 }
 
 .composer-context-value {
@@ -269,7 +269,7 @@
   height: 32px;
   border-radius: 11px;
   background: var(--color-brand-soft);
-  color: var(--color-brand-strong);
+  color: var(--color-action-primary);
   font-size: 1.12rem;
 }
 
@@ -281,27 +281,27 @@
   font-size: 0.96rem;
 }
 
-.composer-form-content .field-error {
+.composer-form-content .gz-field-error {
   margin-top: -2px;
 }
 
 .composer-context-select--expense {
-  border-color: rgba(220, 38, 38, 0.16);
-  background: rgba(254, 242, 242, 0.9);
-  color: var(--gz-legacy-dc2626);
+  border-color: color-mix(in srgb, var(--color-expense) 16%, transparent);
+  background: var(--color-expense-soft);
+  color: var(--color-danger);
 }
 
 .composer-context-select--expense > .bi:first-child {
-  background: rgba(220, 38, 38, 0.1);
-  color: var(--gz-legacy-dc2626);
+  background: color-mix(in srgb, var(--color-expense) 10%, transparent);
+  color: var(--color-danger);
 }
 
 .composer-context-select--income {
-  color: var(--color-brand-strong);
+  color: var(--color-income);
 }
 
 .composer-context-select--transfer {
-  color: var(--gz-legacy-175cd3);
+  color: var(--color-info);
 }
 
 .composer-advanced {
@@ -322,8 +322,8 @@
   width: 100%;
   min-height: 44px;
   border-radius: 10px;
-  background: var(--gz-legacy-060606);
-  color: var(--gz-legacy-fff);
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
   font-weight: 860;
 }
 
@@ -331,13 +331,13 @@
   display: grid;
   gap: 2px;
   padding: 2px 0 4px;
-  color: var(--muted);
+  color: var(--color-text-muted);
   font-size: 0.78rem;
   letter-spacing: 0;
 }
 
 .composer-account-context strong {
-  color: var(--text);
+  color: var(--color-text-primary);
   font-size: 0.92rem;
   font-weight: 700;
 }
@@ -360,27 +360,27 @@
 }
 
 .composer-movement-context--expense {
-  color: var(--gz-legacy-b42318);
+  color: var(--color-danger);
 }
 
 .composer-movement-context--expense::before {
-  background: var(--gz-legacy-b42318);
+  background: var(--color-danger);
 }
 
 .composer-movement-context--income {
-  color: var(--gz-legacy-027a48);
+  color: var(--color-income);
 }
 
 .composer-movement-context--income::before {
-  background: var(--gz-legacy-027a48);
+  background: var(--color-income);
 }
 
 .composer-movement-context--transfer {
-  color: var(--gz-legacy-175cd3);
+  color: var(--color-info);
 }
 
 .composer-movement-context--transfer::before {
-  background: var(--gz-legacy-175cd3);
+  background: var(--color-info);
 }
 
 @media (max-width: 360px) {

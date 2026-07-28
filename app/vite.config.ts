@@ -19,6 +19,6 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: './src/shared/testing/setup.ts',
-    exclude: ['android/**', 'node_modules/**', '**/node_modules/**'],
+    exclude: ['android/**', 'node_modules/**', '**/node_modules/**', 'tests/e2e/**'],
   },
 });

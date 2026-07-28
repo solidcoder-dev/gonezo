@@ -1,5 +1,5 @@
-.share-trigger,
-.share-summary-chip {
+.shareTrigger,
+.shareSummaryChip {
   width: 100%;
   min-width: 0;
   min-height: 52px;
@@ -18,51 +18,51 @@
   cursor: pointer;
 }
 
-.share-summary-chip {
-  background: color-mix(in srgb, var(--color-status-success-background) 50%, var(--gz-legacy-fff));
-  color: var(--color-status-success-text);
+.shareSummaryChip {
+  background: color-mix(in srgb, var(--color-success-soft) 50%, var(--color-surface-primary));
+  color: var(--color-success);
 }
 
-.share-trigger i,
-.share-summary-chip i {
+.shareTrigger i,
+.shareSummaryChip i {
   font-size: 1rem;
 }
 
-.share-control-text {
+.shareControlText {
   display: grid;
   gap: 2px;
   min-width: 0;
 }
 
-.share-control-text strong,
-.share-control-text small {
+.shareControlText strong,
+.shareControlText small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.share-control-text strong {
+.shareControlText strong {
   font-size: 0.91rem;
-  font-weight: 850;
+  font-weight: var(--font-weight-bold);
 }
 
-.share-control-text small {
+.shareControlText small {
   color: var(--color-text-secondary);
   font-size: 0.8rem;
-  font-weight: 650;
+  font-weight: var(--font-weight-medium);
 }
 
-.share-control-chevron {
+.shareControlChevron {
   color: var(--color-text-secondary);
 }
 
-.share-trigger:disabled,
-.share-summary-chip:disabled {
+.shareTrigger:disabled,
+.shareSummaryChip:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
 
-.share-summary {
+.shareSummary {
   min-width: 0;
   width: 100%;
 }

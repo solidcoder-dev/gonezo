@@ -11,7 +11,7 @@ type TransactionsImportSummaryViewProps = {
 
 export function TransactionsImportSummaryView({ required }: TransactionsImportSummaryViewProps) {
   return (
-    <section className="vstack gap-2 section-gap" aria-label="Import summary">
+    <section className="vstack gap-2 gz-section-gap" aria-label="Import summary">
       <p>
         Imported {required.result.importedCount} / {required.result.totalRows} rows
       </p>

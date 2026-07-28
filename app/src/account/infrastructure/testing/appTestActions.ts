@@ -54,12 +54,12 @@ export function selectMonthlyScheduleEveryTwoMonthsOnDay11() {
 
 export async function expandExpectedMovements() {
   await goToMovementsPage();
-  fireEvent.click(await screen.findByRole('button', { name: /Expand expected movements/i }));
+  fireEvent.click(await screen.findByRole('tab', { name: 'Planned' }));
 }
 
 export async function expandScheduledMovements() {
   await goToMovementsPage();
-  fireEvent.click(await screen.findByRole('button', { name: /Expand scheduled movements/i }));
+  fireEvent.click(await screen.findByRole('tab', { name: 'Planned' }));
 }
 
 export async function goToMovementsPage() {

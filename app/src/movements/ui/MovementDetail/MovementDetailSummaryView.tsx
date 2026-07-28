@@ -53,7 +53,7 @@ export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryView
     <div className="movement-detail-header">
       <button
         type="button"
-        className="text-button icon-button movement-detail-header-action"
+        className="gz-text-button gz-icon-button movement-detail-header-action"
         aria-label="Back to movements"
         onClick={onGoBack}
       >
@@ -64,7 +64,7 @@ export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryView
         {overflowActions.length > 0 ? (
           <button
             type="button"
-            className="text-button icon-button movement-detail-header-action"
+            className="gz-text-button gz-icon-button movement-detail-header-action"
             aria-label="Movement actions"
             aria-haspopup="menu"
             aria-expanded={overflowOpen}
