@@ -61,6 +61,16 @@ android {
     kotlinOptions {
         jvmTarget = '21'
     }
+    lint {
+        abortOnError = true
+        warningsAsErrors = true
+        checkDependencies = true
+        checkReleaseBuilds = true
+        checkTestSources = true
+        htmlReport = true
+        xmlReport = true
+        sarifReport = true
+    }
 }
 
 tasks.register('stageSpeechModel') {
@@ -113,6 +123,11 @@ tasks.register('verifyInterpretationModel') {
     }
 }
 
+tasks.matching { it.name in ['mergeDebugAssets', 'mergeReleaseAssets'] }.configureEach {
+    dependsOn tasks.named('verifySpeechModel')
+    dependsOn tasks.named('verifyInterpretationModel')
+}
+
 tasks.register('provisionSpeechModel') {
     outputs.file(speechModelSourceFile)
     doLast {
@@ -144,11 +159,6 @@ static String sha256(File file) {
         }
     }
     digest.digest().collect { String.format('%02x', it) }.join()
-}
-
-tasks.named('preBuild') {
-    dependsOn tasks.named('verifySpeechModel')
-    dependsOn tasks.named('verifyInterpretationModel')
 }
 
 configurations.configureEach {

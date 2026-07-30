@@ -16,7 +16,7 @@ export function TransactionsImportView({ required, provided }: TransactionsImpor
 
   return (
     <div className="import-sheet-content">
-      <form className="vstack gap-3" onSubmit={provided.commands.submit} aria-busy={isSubmitting}>
+      <form className="vstack gap-3" onSubmit={(event) => { void provided.commands.submit(event); }} aria-busy={isSubmitting}>
         <label className="form-check d-flex align-items-center gap-2">
           <input
             type="checkbox"

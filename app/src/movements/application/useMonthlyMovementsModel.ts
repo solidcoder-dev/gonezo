@@ -2,6 +2,7 @@ import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
 import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
+import type { LedgerTransactionListItem } from '../../ledger/application/ledger.port';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
@@ -44,7 +45,9 @@ type UseMonthlyMovementsModelInput = {
   onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
   onError?: (error: { message: string }) => void;
   confirm?: (message: string) => boolean;
-  postedItems?: import('../../ledger/application/ledger.port').LedgerTransactionListItem[]; scheduledItems?: ScheduledMovementView[]; expectedItems?: ExpectedMovementView[];
+  postedItems?: LedgerTransactionListItem[];
+  scheduledItems?: ScheduledMovementView[];
+  expectedItems?: ExpectedMovementView[];
 };
 export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const {
@@ -267,10 +270,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       selectPickerMonth: navigationModel.actions.selectPickerMonth,
       goToPreviousPage: () => setPage((previous) => Math.max(0, previous - 1)),
       goToNextPage: () => {
-        if (!overviewModel.state.pagination.hasNext) {
-          return;
-        }
-        setPage((previous) => previous + 1);
+        if (overviewModel.state.pagination.hasNext) setPage((previous) => previous + 1);
       },
       openPostedMovementDetail: detailModel.actions.openPostedMovementDetail,
       openScheduledMovementDetail: detailModel.actions.openScheduledMovementDetail,

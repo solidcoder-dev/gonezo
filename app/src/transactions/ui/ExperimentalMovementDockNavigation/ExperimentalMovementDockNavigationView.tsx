@@ -73,7 +73,7 @@ export function ExperimentalMovementDockNavigationView({ required, provided }: E
   function bindPointerGesture(
     callback: (gesture: { pointerId: number; clientX: number; clientY: number }) => Promise<void> | void,
   ) {
-    return async (event: ReactPointerEvent<HTMLButtonElement>) => {
+    return (event: ReactPointerEvent<HTMLButtonElement>) => {
       if (event.pointerType === 'mouse' && event.button !== 0) {
         return;
       }
@@ -81,7 +81,7 @@ export function ExperimentalMovementDockNavigationView({ required, provided }: E
         event.currentTarget.setPointerCapture(event.pointerId);
       }
       event.preventDefault();
-      await callback({
+      void callback({
         pointerId: event.pointerId,
         clientX: event.clientX,
         clientY: event.clientY,
@@ -92,7 +92,7 @@ export function ExperimentalMovementDockNavigationView({ required, provided }: E
   function bindPointerFinish(
     callback: (gesture: { pointerId: number }) => Promise<void> | void,
   ) {
-    return async (event: ReactPointerEvent<HTMLButtonElement>) => {
+    return (event: ReactPointerEvent<HTMLButtonElement>) => {
       if ('releasePointerCapture' in event.currentTarget) {
         try {
           event.currentTarget.releasePointerCapture(event.pointerId);
@@ -101,7 +101,7 @@ export function ExperimentalMovementDockNavigationView({ required, provided }: E
         }
       }
       event.preventDefault();
-      await callback({ pointerId: event.pointerId });
+      void callback({ pointerId: event.pointerId });
     };
   }
 
@@ -119,7 +119,7 @@ export function ExperimentalMovementDockNavigationView({ required, provided }: E
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
                 disabled={required.status.disabled}
-                onClick={() => selectItem(item.id)}
+                onClick={() => { void selectItem(item.id); }}
               >
                 <i className={item.iconClassName} aria-hidden />
                 <span className="movement-dock-item-label">{item.label}</span>
@@ -172,7 +172,7 @@ export function ExperimentalMovementDockNavigationView({ required, provided }: E
               className="movement-dock-add"
               aria-label={required.config.addAriaLabel}
               disabled={required.status.addDisabled}
-              onClick={pressAdd}
+              onClick={() => { void pressAdd(); }}
             >
               <i className="bi bi-plus-lg" aria-hidden />
             </button>
@@ -191,7 +191,7 @@ export function ExperimentalMovementDockNavigationView({ required, provided }: E
               : required.config.microphoneAriaLabel}
           aria-invalid={voiceCaptureKind === 'failed' ? 'true' : undefined}
           aria-pressed={voiceCaptureKind === 'recording' || voiceCaptureKind === 'locked'}
-          onClick={handleMicrophoneClick}
+          onClick={() => { void handleMicrophoneClick(); }}
           onPointerDown={(event) => {
             stopArmedRef.current = recordingState;
             void bindPointerGesture(onVoicePointerDown)(event);

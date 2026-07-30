@@ -24,263 +24,238 @@ import com.gonezo.recurrence.domain.RecurringMovementType
 import com.gonezo.recurrence.domain.ports.RecurringMovementOccurrenceRepository
 import com.gonezo.recurrence.domain.ports.RecurringMovementRepository
 import com.gonezo.recurrence.domain.services.RecurrenceScheduleCalculator
-import java.time.Instant
-import java.util.UUID
 import com.gonezo.sharing.application.ExpectedOccurrenceShareSnapshot
 import com.gonezo.sharing.application.NoOpPlannedShareInstantiator
 import com.gonezo.sharing.application.PlannedShareInstantiator
+import java.time.Instant
+import java.util.UUID
 
-data class DueScheduledMovementContext(
-  val movement: RecurringMovement,
-  val occurrence: RecurringMovementOccurrence,
-  val handledAt: Instant,
-)
+data class DueScheduledMovementContext(val movement: RecurringMovement, val occurrence: RecurringMovementOccurrence, val handledAt: Instant)
 
 sealed class DueScheduledMovementHandlerResult {
-  data class Posted(val ledgerTransactionId: String) : DueScheduledMovementHandlerResult()
-  data class ExpectedCreated(val expectedMovementId: String) : DueScheduledMovementHandlerResult()
+    data class Posted(val ledgerTransactionId: String) : DueScheduledMovementHandlerResult()
+    data class ExpectedCreated(val expectedMovementId: String) : DueScheduledMovementHandlerResult()
 }
 
 interface DueScheduledMovementHandler {
-  fun supports(movement: RecurringMovement): Boolean
-  fun handle(context: DueScheduledMovementContext): DueScheduledMovementHandlerResult
+    fun supports(movement: RecurringMovement): Boolean
+    fun handle(context: DueScheduledMovementContext): DueScheduledMovementHandlerResult
 }
 
-class ProcessDueScheduledMovementsService(
-  private val recurringMovementRepository: RecurringMovementRepository,
-  private val occurrenceRepository: RecurringMovementOccurrenceRepository,
-  private val handlers: List<DueScheduledMovementHandler>,
-  private val scheduleCalculator: RecurrenceScheduleCalculator,
-  private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary,
-) : ProcessDueScheduledMovementsUC {
-  override fun execute(command: ProcessDueScheduledMovementsCommand): ProcessDueScheduledMovementsResult {
-    require(command.limit > 0) { "limit must be greater than 0" }
+class ProcessDueScheduledMovementsService(private val recurringMovementRepository: RecurringMovementRepository, private val occurrenceRepository: RecurringMovementOccurrenceRepository, private val handlers: List<DueScheduledMovementHandler>, private val scheduleCalculator: RecurrenceScheduleCalculator, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary) : ProcessDueScheduledMovementsUC {
+    override fun execute(command: ProcessDueScheduledMovementsCommand): ProcessDueScheduledMovementsResult {
+        require(command.limit > 0) { "limit must be greater than 0" }
 
-    var posted = 0
-    var expectedCreated = 0
-    var failed = 0
-    var advancedSchedules = 0
-    val dueMovements = recurringMovementRepository.findDue(command.now, command.limit)
+        var posted = 0
+        var expectedCreated = 0
+        var failed = 0
+        var advancedSchedules = 0
+        val dueMovements = recurringMovementRepository.findDue(command.now, command.limit)
 
-    dueMovements.forEach { movement ->
-      val outcome = consistencyBoundary.withinConsistencyBoundary {
-        processMovement(movement, command.now)
-      }
-      when (outcome) {
-        ProcessedDueMovementOutcome.POSTED -> posted += 1
-        ProcessedDueMovementOutcome.EXPECTED_CREATED -> expectedCreated += 1
-        ProcessedDueMovementOutcome.FAILED -> failed += 1
-      }
-      if (outcome != ProcessedDueMovementOutcome.FAILED) {
-        advancedSchedules += 1
-      }
-    }
-
-    return ProcessDueScheduledMovementsResult(
-      scanned = dueMovements.size,
-      posted = posted,
-      expectedCreated = expectedCreated,
-      failed = failed,
-      advancedSchedules = advancedSchedules,
-    )
-  }
-
-  private fun processMovement(
-    movement: RecurringMovement,
-    handledAt: Instant,
-  ): ProcessedDueMovementOutcome {
-    val dueAt = checkNotNull(movement.nextDueAt) { "Active recurring movement must have nextDueAt" }
-    val existingOccurrence = occurrenceRepository.findByRecurringMovementAndDueAt(movement.id, dueAt)
-    if (existingOccurrence?.status == RecurringMovementOccurrenceStatus.POSTED) {
-      advanceMovement(movement, dueAt, handledAt)
-      return ProcessedDueMovementOutcome.POSTED
-    }
-
-    val occurrence = existingOccurrence ?: RecurringMovementOccurrence.pending(
-      id = UUID.randomUUID(),
-      recurringMovementId = movement.id,
-      dueAt = dueAt,
-      createdAt = handledAt,
-    ).also(occurrenceRepository::save)
-
-    val handler = handlers.firstOrNull { it.supports(movement) }
-      ?: throw IllegalStateException("No due scheduled movement handler for ${movement.type.value}/${movement.reviewPolicy.value}")
-
-    return try {
-      when (val result = handler.handle(DueScheduledMovementContext(movement, occurrence, handledAt))) {
-        is DueScheduledMovementHandlerResult.Posted -> {
-          occurrenceRepository.save(occurrence.acknowledgePosted(result.ledgerTransactionId, handledAt))
-          advanceMovement(movement, dueAt, handledAt)
-          ProcessedDueMovementOutcome.POSTED
+        dueMovements.forEach { movement ->
+            val outcome = consistencyBoundary.withinConsistencyBoundary {
+                processMovement(movement, command.now)
+            }
+            when (outcome) {
+                ProcessedDueMovementOutcome.POSTED -> posted += 1
+                ProcessedDueMovementOutcome.EXPECTED_CREATED -> expectedCreated += 1
+                ProcessedDueMovementOutcome.FAILED -> failed += 1
+            }
+            if (outcome != ProcessedDueMovementOutcome.FAILED) {
+                advancedSchedules += 1
+            }
         }
 
-        is DueScheduledMovementHandlerResult.ExpectedCreated -> {
-          occurrenceRepository.save(occurrence)
-          advanceMovement(movement, dueAt, handledAt)
-          ProcessedDueMovementOutcome.EXPECTED_CREATED
+        return ProcessDueScheduledMovementsResult(
+            scanned = dueMovements.size,
+            posted = posted,
+            expectedCreated = expectedCreated,
+            failed = failed,
+            advancedSchedules = advancedSchedules,
+        )
+    }
+
+    private fun processMovement(movement: RecurringMovement, handledAt: Instant): ProcessedDueMovementOutcome {
+        val dueAt = checkNotNull(movement.nextDueAt) { "Active recurring movement must have nextDueAt" }
+        val existingOccurrence = occurrenceRepository.findByRecurringMovementAndDueAt(movement.id, dueAt)
+        if (existingOccurrence?.status == RecurringMovementOccurrenceStatus.POSTED) {
+            advanceMovement(movement, dueAt, handledAt)
+            return ProcessedDueMovementOutcome.POSTED
         }
-      }
-    } catch (ex: RuntimeException) {
-      occurrenceRepository.save(
-        occurrence.acknowledgeFailed(
-          errorCodeValue = "DUE_SCHEDULED_PROCESSING_FAILED",
-          errorMessageValue = ex.message,
-          at = handledAt,
-        ),
-      )
-      ProcessedDueMovementOutcome.FAILED
+
+        val occurrence = existingOccurrence ?: RecurringMovementOccurrence.pending(
+            id = UUID.randomUUID(),
+            recurringMovementId = movement.id,
+            dueAt = dueAt,
+            createdAt = handledAt,
+        ).also(occurrenceRepository::save)
+
+        val handler = handlers.firstOrNull { it.supports(movement) }
+            ?: throw IllegalStateException("No due scheduled movement handler for ${movement.type.value}/${movement.reviewPolicy.value}")
+
+        return try {
+            when (val result = handler.handle(DueScheduledMovementContext(movement, occurrence, handledAt))) {
+                is DueScheduledMovementHandlerResult.Posted -> {
+                    occurrenceRepository.save(occurrence.acknowledgePosted(result.ledgerTransactionId, handledAt))
+                    advanceMovement(movement, dueAt, handledAt)
+                    ProcessedDueMovementOutcome.POSTED
+                }
+
+                is DueScheduledMovementHandlerResult.ExpectedCreated -> {
+                    occurrenceRepository.save(occurrence)
+                    advanceMovement(movement, dueAt, handledAt)
+                    ProcessedDueMovementOutcome.EXPECTED_CREATED
+                }
+            }
+        } catch (ex: RuntimeException) {
+            occurrenceRepository.save(
+                occurrence.acknowledgeFailed(
+                    errorCodeValue = "DUE_SCHEDULED_PROCESSING_FAILED",
+                    errorMessageValue = ex.message,
+                    at = handledAt,
+                ),
+            )
+            ProcessedDueMovementOutcome.FAILED
+        }
     }
-  }
 
-  private fun advanceMovement(movement: RecurringMovement, dueAt: Instant, handledAt: Instant) {
-    recurringMovementRepository.save(
-      movement.advanceAfterDue(
-        dueAt = dueAt,
-        advancedAt = handledAt,
-        scheduleCalculator = scheduleCalculator,
-      ),
-    )
-  }
+    private fun advanceMovement(movement: RecurringMovement, dueAt: Instant, handledAt: Instant) {
+        recurringMovementRepository.save(
+            movement.advanceAfterDue(
+                dueAt = dueAt,
+                advancedAt = handledAt,
+                scheduleCalculator = scheduleCalculator,
+            ),
+        )
+    }
 
-  private enum class ProcessedDueMovementOutcome {
-    POSTED,
-    EXPECTED_CREATED,
-    FAILED,
-  }
+    private enum class ProcessedDueMovementOutcome {
+        POSTED,
+        EXPECTED_CREATED,
+        FAILED,
+    }
 }
 
-class AutomaticDueScheduledMovementHandler(
-  private val recordLedgerIncomeUC: RecordLedgerIncomeUC,
-  private val recordLedgerExpenseUC: RecordLedgerExpenseUC,
-  private val recordLedgerTransferUC: RecordLedgerTransferUC,
-  private val recordLedgerTransferFxUC: RecordLedgerTransferFxUC,
-) : DueScheduledMovementHandler {
-  override fun supports(movement: RecurringMovement): Boolean =
-    movement.reviewPolicy == RecurringMovementReviewPolicy.AUTOMATIC
+class AutomaticDueScheduledMovementHandler(private val recordLedgerIncomeUC: RecordLedgerIncomeUC, private val recordLedgerExpenseUC: RecordLedgerExpenseUC, private val recordLedgerTransferUC: RecordLedgerTransferUC, private val recordLedgerTransferFxUC: RecordLedgerTransferFxUC) : DueScheduledMovementHandler {
+    override fun supports(movement: RecurringMovement): Boolean = movement.reviewPolicy == RecurringMovementReviewPolicy.AUTOMATIC
 
-  override fun handle(context: DueScheduledMovementContext): DueScheduledMovementHandlerResult {
-    val movement = context.movement
-    val transactionId = when (movement.type) {
-      RecurringMovementType.INCOME -> recordLedgerIncomeUC.execute(
-        RecordLedgerIncomeCommand(
-          accountId = AccountId.from(movement.sourceAccountId),
-          amount = Money(movement.amount, movement.currency),
-          occurredAt = context.occurrence.dueAt,
-          description = movement.description,
-          merchant = movement.merchant,
-        ),
-      ).toString()
+    override fun handle(context: DueScheduledMovementContext): DueScheduledMovementHandlerResult {
+        val movement = context.movement
+        val transactionId = when (movement.type) {
+            RecurringMovementType.INCOME -> recordLedgerIncomeUC.execute(
+                RecordLedgerIncomeCommand(
+                    accountId = AccountId.from(movement.sourceAccountId),
+                    amount = Money(movement.amount, movement.currency),
+                    occurredAt = context.occurrence.dueAt,
+                    description = movement.description,
+                    merchant = movement.merchant,
+                ),
+            ).toString()
 
-      RecurringMovementType.EXPENSE -> recordLedgerExpenseUC.execute(
-        RecordLedgerExpenseCommand(
-          accountId = AccountId.from(movement.sourceAccountId),
-          amount = Money(movement.amount, movement.currency),
-          occurredAt = context.occurrence.dueAt,
-          description = movement.description,
-          merchant = movement.merchant,
-        ),
-      ).toString()
+            RecurringMovementType.EXPENSE -> recordLedgerExpenseUC.execute(
+                RecordLedgerExpenseCommand(
+                    accountId = AccountId.from(movement.sourceAccountId),
+                    amount = Money(movement.amount, movement.currency),
+                    occurredAt = context.occurrence.dueAt,
+                    description = movement.description,
+                    merchant = movement.merchant,
+                ),
+            ).toString()
 
-      RecurringMovementType.TRANSFER -> postTransfer(movement, context.occurrence.dueAt)
+            RecurringMovementType.TRANSFER -> postTransfer(movement, context.occurrence.dueAt)
+        }
+
+        return DueScheduledMovementHandlerResult.Posted(transactionId)
     }
 
-    return DueScheduledMovementHandlerResult.Posted(transactionId)
-  }
+    private fun postTransfer(movement: RecurringMovement, dueAt: Instant): String {
+        val targetAccountId = movement.targetAccountId
+            ?: throw IllegalStateException("targetAccountId is required for scheduled transfer")
 
-  private fun postTransfer(movement: RecurringMovement, dueAt: Instant): String {
-    val targetAccountId = movement.targetAccountId
-      ?: throw IllegalStateException("targetAccountId is required for scheduled transfer")
-
-    val result = if (movement.destinationAmount != null && movement.destinationCurrency != null) {
-      recordLedgerTransferFxUC.execute(
-        RecordLedgerTransferFxCommand(
-          fromAccountId = AccountId.from(movement.sourceAccountId),
-          toAccountId = AccountId.from(targetAccountId),
-          sourceAmount = Money(movement.amount, movement.currency),
-          destinationAmount = Money(movement.destinationAmount, movement.destinationCurrency),
-          occurredAt = dueAt,
-          description = movement.description,
-          exchangeRate = movement.exchangeRate,
-        ),
-      )
-    } else {
-      recordLedgerTransferUC.execute(
-        RecordLedgerTransferCommand(
-          fromAccountId = AccountId.from(movement.sourceAccountId),
-          toAccountId = AccountId.from(targetAccountId),
-          amount = Money(movement.amount, movement.currency),
-          occurredAt = dueAt,
-          description = movement.description,
-        ),
-      )
+        val result = if (movement.destinationAmount != null && movement.destinationCurrency != null) {
+            recordLedgerTransferFxUC.execute(
+                RecordLedgerTransferFxCommand(
+                    fromAccountId = AccountId.from(movement.sourceAccountId),
+                    toAccountId = AccountId.from(targetAccountId),
+                    sourceAmount = Money(movement.amount, movement.currency),
+                    destinationAmount = Money(movement.destinationAmount, movement.destinationCurrency),
+                    occurredAt = dueAt,
+                    description = movement.description,
+                    exchangeRate = movement.exchangeRate,
+                ),
+            )
+        } else {
+            recordLedgerTransferUC.execute(
+                RecordLedgerTransferCommand(
+                    fromAccountId = AccountId.from(movement.sourceAccountId),
+                    toAccountId = AccountId.from(targetAccountId),
+                    amount = Money(movement.amount, movement.currency),
+                    occurredAt = dueAt,
+                    description = movement.description,
+                ),
+            )
+        }
+        return result.transferOutId.toString()
     }
-    return result.transferOutId.toString()
-  }
 }
 
-class ConfirmationRequiredDueScheduledMovementHandler(
-  private val createExpectedMovementUC: CreateExpectedMovementUC,
-  private val expectedOccurrenceFactory: ExpectedOccurrenceFactory = DefaultExpectedOccurrenceFactory(),
-  private val expectedMovementRepository: ExpectedMovementRepository? = null,
-  private val plannedShareInstantiator: PlannedShareInstantiator = NoOpPlannedShareInstantiator,
-) : DueScheduledMovementHandler {
-  override fun supports(movement: RecurringMovement): Boolean =
-    movement.reviewPolicy == RecurringMovementReviewPolicy.REQUIRE_USER_CONFIRMATION &&
-      movement.type != RecurringMovementType.TRANSFER
+class ConfirmationRequiredDueScheduledMovementHandler(private val createExpectedMovementUC: CreateExpectedMovementUC, private val expectedOccurrenceFactory: ExpectedOccurrenceFactory = DefaultExpectedOccurrenceFactory(), private val expectedMovementRepository: ExpectedMovementRepository? = null, private val plannedShareInstantiator: PlannedShareInstantiator = NoOpPlannedShareInstantiator) : DueScheduledMovementHandler {
+    override fun supports(movement: RecurringMovement): Boolean = movement.reviewPolicy == RecurringMovementReviewPolicy.REQUIRE_USER_CONFIRMATION &&
+        movement.type != RecurringMovementType.TRANSFER
 
-  override fun handle(context: DueScheduledMovementContext): DueScheduledMovementHandlerResult {
-    val movement = context.movement
-    when (movement.type) {
-      RecurringMovementType.EXPENSE, RecurringMovementType.INCOME -> Unit
-      RecurringMovementType.TRANSFER -> throw IllegalArgumentException("Scheduled transfer cannot be projected as expected")
+    override fun handle(context: DueScheduledMovementContext): DueScheduledMovementHandlerResult {
+        val movement = context.movement
+        when (movement.type) {
+            RecurringMovementType.EXPENSE, RecurringMovementType.INCOME -> Unit
+            RecurringMovementType.TRANSFER -> throw IllegalArgumentException("Scheduled transfer cannot be projected as expected")
+        }
+        val draft = expectedOccurrenceFactory.create(
+            RecurringOccurrenceSnapshot(
+                recurringMovementId = movement.id.toString(),
+                occurrenceId = context.occurrence.id.toString(),
+                accountId = movement.sourceAccountId,
+                movementType = movement.type.value,
+                amount = movement.amount,
+                currency = movement.currency,
+                dueAt = context.occurrence.dueAt,
+                description = movement.description,
+                merchant = movement.merchant,
+                categoryId = movement.categoryId,
+                createdAt = context.handledAt,
+                items = movement.splitItems.map {
+                    RecurringOccurrenceSnapshot.Item(it.id, it.name, it.amount)
+                },
+                tagNames = movement.tagNames,
+            ),
+        )
+
+        val expectedId = expectedMovementRepository?.findByOriginOccurrenceId(context.occurrence.id.toString())?.id
+            ?: createExpectedMovementUC.execute(
+                CreateExpectedMovementCommand(
+                    accountId = draft.accountId,
+                    type = draft.type.value,
+                    amount = draft.amount,
+                    currency = draft.currency,
+                    expectedAt = draft.expectedAt,
+                    description = draft.description,
+                    merchant = draft.merchant,
+                    categoryId = draft.categoryId,
+                    originOccurrenceId = draft.originOccurrenceId,
+                    originRecurringMovementId = draft.originRecurringMovementId,
+                    splitItems = draft.splitItems,
+                    createdAt = draft.createdAt,
+                    tagNames = draft.tagNames,
+                ),
+            )
+        plannedShareInstantiator.instantiate(
+            ExpectedOccurrenceShareSnapshot(
+                expectedMovementId = expectedId.toString(),
+                recurringMovementId = movement.id.toString(),
+                totalAmount = movement.amount,
+                currency = movement.currency,
+                createdAt = context.handledAt,
+            ),
+        )
+        return DueScheduledMovementHandlerResult.ExpectedCreated(expectedId.toString())
     }
-    val draft = expectedOccurrenceFactory.create(
-      RecurringOccurrenceSnapshot(
-        recurringMovementId = movement.id.toString(),
-        occurrenceId = context.occurrence.id.toString(),
-        accountId = movement.sourceAccountId,
-        movementType = movement.type.value,
-        amount = movement.amount,
-        currency = movement.currency,
-        dueAt = context.occurrence.dueAt,
-        description = movement.description,
-        merchant = movement.merchant,
-        categoryId = movement.categoryId,
-        createdAt = context.handledAt,
-        items = movement.splitItems.map {
-          RecurringOccurrenceSnapshot.Item(it.id, it.name, it.amount)
-        },
-        tagNames = movement.tagNames,
-      ),
-    )
-
-    val expectedId = expectedMovementRepository?.findByOriginOccurrenceId(context.occurrence.id.toString())?.id
-      ?: createExpectedMovementUC.execute(
-        CreateExpectedMovementCommand(
-          accountId = draft.accountId,
-          type = draft.type.value,
-          amount = draft.amount,
-          currency = draft.currency,
-          expectedAt = draft.expectedAt,
-          description = draft.description,
-          merchant = draft.merchant,
-          categoryId = draft.categoryId,
-          originOccurrenceId = draft.originOccurrenceId,
-          originRecurringMovementId = draft.originRecurringMovementId,
-          splitItems = draft.splitItems,
-          createdAt = draft.createdAt,
-          tagNames = draft.tagNames,
-        ),
-      )
-    plannedShareInstantiator.instantiate(
-      ExpectedOccurrenceShareSnapshot(
-        expectedMovementId = expectedId.toString(),
-        recurringMovementId = movement.id.toString(),
-        totalAmount = movement.amount,
-        currency = movement.currency,
-        createdAt = context.handledAt,
-      ),
-    )
-    return DueScheduledMovementHandlerResult.ExpectedCreated(expectedId.toString())
-  }
 }

@@ -6,13 +6,13 @@ import com.gonezo.ledger.domain.Transaction
 import com.gonezo.ledger.domain.TransactionId
 
 interface LedgerTransactionRepository {
-  fun save(transaction: Transaction)
+    fun save(transaction: Transaction)
 
-  fun findById(id: TransactionId): Transaction?
+    fun findById(id: TransactionId): Transaction?
 
-  fun findByAccount(accountId: AccountId, limit: Int? = null): List<Transaction>
+    fun findByAccount(accountId: AccountId, limit: Int? = null): List<Transaction>
 
-  fun findByAccountAndPeriod(accountId: AccountId, range: DateRange): List<Transaction>
+    fun findByAccountAndPeriod(accountId: AccountId, range: DateRange): List<Transaction>
 
-  fun findByAccountAndMerchant(accountId: AccountId, merchant: String): List<Transaction>
+    fun findByAccountAndMerchant(accountId: AccountId, merchant: String): List<Transaction>
 }

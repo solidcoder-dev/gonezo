@@ -57,8 +57,8 @@ vi.mock('../../transactions/application/ExperimentalMovementDockNavigationCompon
       <button
         type="button"
         data-testid="emit-voice-draft"
-        onClick={() =>
-          props.provided?.events?.onMovementEntryDraftReady?.({
+        onClick={() => {
+          void props.provided?.events?.onMovementEntryDraftReady?.({
             account: {
               id: 'account-main',
               name: 'Main account',
@@ -72,8 +72,8 @@ vi.mock('../../transactions/application/ExperimentalMovementDockNavigationCompon
               categoryId: 'cat-food',
               issues: [],
             },
-          })
-        }
+          });
+        }}
       >
         Emit voice draft
       </button>

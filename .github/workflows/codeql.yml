@@ -1,0 +1,80 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '21 4 * * 0'
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  analyze-javascript-typescript:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+      - uses: github/codeql-action/analyze@v3
+
+  analyze-java-kotlin:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: java-kotlin
+      - run: ./gradlew testClasses
+      - uses: github/codeql-action/analyze@v3
+
+  analyze-c-cpp:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app/android/app/src/main/cpp/speech-transcription
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - run: yes | sdkmanager --licenses >/dev/null
+      - run: sdkmanager "platforms;android-36" "ndk;28.0.13004108" "cmake;3.22.1"
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: c-cpp
+      - run: >
+          cmake -S .
+          -B /tmp/gonezo-codeql-whisper-jni
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=Debug
+          -DGONEZO_ENABLE_CLANG_TIDY=OFF
+          -DANDROID_ABI=arm64-v8a
+          -DANDROID_PLATFORM=android-24
+          -DANDROID_NDK=$ANDROID_SDK_ROOT/ndk/28.0.13004108
+          -DCMAKE_TOOLCHAIN_FILE=$ANDROID_SDK_ROOT/ndk/28.0.13004108/build/cmake/android.toolchain.cmake
+      - run: cmake --build /tmp/gonezo-codeql-whisper-jni --target gonezo_whisper_jni
+      - uses: github/codeql-action/analyze@v3

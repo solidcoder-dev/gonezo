@@ -61,7 +61,7 @@ describe('ItemBreakdownEditorView', () => {
 
     const row = screen.getByText('Coffee').closest('li');
     expect(row).not.toBeNull();
-    fireEvent.click(row as HTMLElement);
+    fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Edit item Coffee' }));
     fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Remove item Coffee' }));
     expect(commands.editItem).toHaveBeenCalledWith('item-1');
     expect(commands.removeItem).toHaveBeenCalledWith('item-1');
@@ -197,9 +197,9 @@ describe('ItemBreakdownEditorView', () => {
     fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '5.00' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
 
-    expect(editItem).toHaveBeenCalledWith('item-1');
     expect(commands.changeItemAmount).toHaveBeenCalledWith('5.00');
     expect(addItem).toHaveBeenCalledTimes(1);
+    expect(editItem).not.toHaveBeenCalled();
   });
 
   it('renders validation feedback and hides editor body when disabled by state', () => {

@@ -1,14 +1,13 @@
 package com.gonezo.ledger.domain
 
 enum class TransactionStatus(val value: String) {
-  DRAFT("draft"),
-  POSTED("posted"),
-  VOIDED("voided"),
-  ;
+    DRAFT("draft"),
+    POSTED("posted"),
+    VOIDED("voided"),
+    ;
 
-  companion object {
-    fun from(value: String): TransactionStatus =
-      entries.firstOrNull { it.value.equals(value, ignoreCase = true) }
-        ?: throw IllegalArgumentException("Unsupported transaction status: $value")
-  }
+    companion object {
+        fun from(value: String): TransactionStatus = entries.firstOrNull { it.value.equals(value, ignoreCase = true) }
+            ?: throw IllegalArgumentException("Unsupported transaction status: $value")
+    }
 }

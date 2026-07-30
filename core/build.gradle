@@ -1,5 +1,7 @@
 plugins {
   id 'org.jetbrains.kotlin.jvm'
+  id 'com.diffplug.spotless'
+  id 'com.autonomousapps.dependency-analysis'
 }
 
 group = 'com.gonezo'
@@ -19,6 +21,34 @@ kotlin {
 
 repositories {
   mavenCentral()
+}
+
+allprojects {
+  apply plugin: 'com.diffplug.spotless'
+  apply plugin: 'com.autonomousapps.dependency-analysis'
+
+  repositories {
+    mavenCentral()
+  }
+
+  spotless {
+    kotlin {
+      target '**/*.kt'
+      ktlint().editorConfigOverride(['max_line_length': '720'])
+      trimTrailingWhitespace()
+      endWithNewline()
+    }
+    groovyGradle {
+      target '*.gradle'
+      trimTrailingWhitespace()
+      endWithNewline()
+    }
+    format('misc') {
+      target '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties'
+      trimTrailingWhitespace()
+      endWithNewline()
+    }
+  }
 }
 
 def interpretationProjectPath = findProject(':schema-guided-interpretation') != null
@@ -44,6 +74,7 @@ dependencies {
 
   testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
   testImplementation 'org.assertj:assertj-core:3.26.3'
+  testImplementation 'com.tngtech.archunit:archunit:1.4.2'
   testImplementation 'org.springframework:spring-context:6.2.3'
   testImplementation 'org.springframework:spring-jdbc:6.2.3'
   testImplementation 'org.springframework:spring-tx:6.2.3'
@@ -66,6 +97,7 @@ tasks.named('check') {
   dependsOn "${interpretationProjectPath}:check"
   dependsOn "${interpretationJsonProjectPath}:check"
   dependsOn "${speechTranscriptionProjectPath}:check"
+  dependsOn tasks.named('checkLayerBoundaries')
 }
 
 tasks.register('checkLayerBoundaries') {
@@ -119,6 +151,22 @@ tasks.register('checkLayerBoundaries') {
         include '**/com/gonezo/domain/**/*.java'
       },
       [~/import\s+dev\.solidcoder\.interpretation\./]
+    )
+
+    checkForbidden(
+      'core/sharing/domain',
+      fileTree('src/main') {
+        include '**/com/gonezo/sharing/domain/**/*.kt'
+        include '**/com/gonezo/sharing/domain/**/*.java'
+      },
+      [
+        ~/org\.springframework\./,
+        ~/com\.getcapacitor\./,
+        ~/android\./,
+        ~/import\s+com\.gonezo\.application\./,
+        ~/import\s+com\.gonezo\.infrastructure\./,
+        ~/import\s+com\.gonezo\.domain\.(?:ledger|taxonomy|expected|recurrence)\./,
+      ]
     )
 
     def boundedContexts = ['ledger', 'taxonomy', 'expected', 'recurrence']

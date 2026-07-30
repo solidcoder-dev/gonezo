@@ -53,6 +53,7 @@ import type {
   AnalyticsOverviewInsightsResult,
   AnalyticsOverviewSnapshotInput,
   AnalyticsOverviewSnapshotResult,
+  AnalyticsSpendingReport,
   AnalyticsSpendingDashboardInput,
   AnalyticsSpendingDashboardResult,
   AnalyticsSpendingOverviewInput,
@@ -290,7 +291,7 @@ export async function analyticsListCurrencies(port: AnalyticsQueryPort): Promise
 export async function analyticsGetSpendingReport(
   port: AnalyticsQueryPort,
   input: AnalyticsSpendingReportInput,
-): Promise<import('../application/spendingReport').AnalyticsSpendingReport> {
+): Promise<AnalyticsSpendingReport> {
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
   const now = new Date();
   const selection = spendingSelection(input);

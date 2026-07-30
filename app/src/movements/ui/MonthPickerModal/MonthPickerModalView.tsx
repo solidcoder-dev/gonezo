@@ -41,13 +41,20 @@ export function MonthPickerModalView({ required, provided, children }: MonthPick
   }
 
   return (
-    <div className="month-picker-backdrop" aria-label="Close month picker" onClick={onDismiss}>
+    <div>
+      <button
+        type="button"
+        className="month-picker-backdrop"
+        aria-hidden="true"
+        tabIndex={-1}
+        data-testid="sheet-backdrop"
+        onClick={onDismiss}
+      />
       <div
         className="month-picker-panel"
         role="dialog"
         aria-modal="true"
         aria-label="Choose month"
-        onClick={(event) => event.stopPropagation()}
       >
         {children}
       </div>

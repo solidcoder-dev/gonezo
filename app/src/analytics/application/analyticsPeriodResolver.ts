@@ -125,10 +125,14 @@ function resolvePlannedCurrentRange(
         to: endOfMonth(referenceDate),
       };
     }
+    case 'lastMonth':
+    case 'rollingDays':
+    case 'rollingMonths':
+    case 'custom':
+    case 'allTime':
+      return resolveCurrentRange(period, referenceDate);
     case 'thisYear':
       return { from: startOfYear(referenceDate), to: `${parseLocalDate(referenceDate).getUTCFullYear()}-12-31` };
-    default:
-      return resolveCurrentRange(period, referenceDate);
   }
 }
 

@@ -58,7 +58,7 @@ export function MovementVoiceEntryView({ required, provided }: MovementVoiceEntr
   function bindPointerGesture(
     callback: (gesture: { pointerId: number; clientX: number; clientY: number }) => Promise<void> | void,
   ) {
-    return async (event: ReactPointerEvent<HTMLButtonElement>) => {
+    return (event: ReactPointerEvent<HTMLButtonElement>) => {
       if (event.pointerType === 'mouse' && event.button !== 0) {
         return;
       }
@@ -66,7 +66,7 @@ export function MovementVoiceEntryView({ required, provided }: MovementVoiceEntr
         event.currentTarget.setPointerCapture(event.pointerId);
       }
       event.preventDefault();
-      await callback({
+      void callback({
         pointerId: event.pointerId,
         clientX: event.clientX,
         clientY: event.clientY,
@@ -77,7 +77,7 @@ export function MovementVoiceEntryView({ required, provided }: MovementVoiceEntr
   function bindPointerFinish(
     callback: (gesture: { pointerId: number }) => Promise<void> | void,
   ) {
-    return async (event: ReactPointerEvent<HTMLButtonElement>) => {
+    return (event: ReactPointerEvent<HTMLButtonElement>) => {
       if ('releasePointerCapture' in event.currentTarget) {
         try {
           event.currentTarget.releasePointerCapture(event.pointerId);
@@ -86,7 +86,7 @@ export function MovementVoiceEntryView({ required, provided }: MovementVoiceEntr
         }
       }
       event.preventDefault();
-      await callback({ pointerId: event.pointerId });
+      void callback({ pointerId: event.pointerId });
     };
   }
 
@@ -120,7 +120,7 @@ export function MovementVoiceEntryView({ required, provided }: MovementVoiceEntr
             : required.config.microphoneAriaLabel}
         aria-invalid={voiceCaptureKind === 'failed' ? 'true' : undefined}
         aria-pressed={voiceCaptureKind === 'recording' || voiceCaptureKind === 'locked'}
-        onClick={handleMicrophoneClick}
+        onClick={() => { void handleMicrophoneClick(); }}
         onPointerDown={(event) => {
           stopArmedRef.current = recordingState;
           void bindPointerGesture(onVoicePointerDown)(event);

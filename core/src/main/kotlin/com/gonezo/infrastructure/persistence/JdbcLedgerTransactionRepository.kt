@@ -1,5 +1,6 @@
 package com.gonezo.ledger.infrastructure.persistence
 
+import com.gonezo.domain.shared.Money
 import com.gonezo.ledger.domain.AccountId
 import com.gonezo.ledger.domain.DateRange
 import com.gonezo.ledger.domain.Transaction
@@ -9,7 +10,6 @@ import com.gonezo.ledger.domain.TransactionItemId
 import com.gonezo.ledger.domain.TransactionStatus
 import com.gonezo.ledger.domain.TransactionType
 import com.gonezo.ledger.domain.ports.LedgerTransactionRepository
-import com.gonezo.domain.shared.Money
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -19,179 +19,191 @@ import java.sql.ResultSet
 import java.time.Instant
 
 @Repository
-class JdbcLedgerTransactionRepository(
-  private val jdbcTemplate: NamedParameterJdbcTemplate,
-) : LedgerTransactionRepository {
-  override fun save(transaction: Transaction) {
-    val upsertTransaction = """
-      insert into ledger_transactions (
-        id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id
-      ) values (
-        :id, :account_id, :type, :amount, :currency, :occurred_at, :description, :merchant, :status, :linked_transaction_id
-      )
-      on conflict(id) do update set
-        account_id = excluded.account_id,
-        type = excluded.type,
-        amount = excluded.amount,
-        currency = excluded.currency,
-        occurred_at = excluded.occurred_at,
-        description = excluded.description,
-        merchant = excluded.merchant,
-        status = excluded.status,
-        linked_transaction_id = excluded.linked_transaction_id
-    """.trimIndent()
+class JdbcLedgerTransactionRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) : LedgerTransactionRepository {
+    override fun save(transaction: Transaction) {
+        val upsertTransaction =
+            """
+            insert into ledger_transactions (
+              id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id
+            ) values (
+              :id, :account_id, :type, :amount, :currency, :occurred_at, :description, :merchant, :status, :linked_transaction_id
+            )
+            on conflict(id) do update set
+              account_id = excluded.account_id,
+              type = excluded.type,
+              amount = excluded.amount,
+              currency = excluded.currency,
+              occurred_at = excluded.occurred_at,
+              description = excluded.description,
+              merchant = excluded.merchant,
+              status = excluded.status,
+              linked_transaction_id = excluded.linked_transaction_id
+            """.trimIndent()
 
-    val txParams = MapSqlParameterSource()
-      .addValue("id", transaction.id.toString())
-      .addValue("account_id", transaction.accountId.toString())
-      .addValue("type", transaction.type.value)
-      .addValue("amount", transaction.amount.amount)
-      .addValue("currency", transaction.amount.currency)
-      .addValue("occurred_at", transaction.occurredAt.toString())
-      .addValue("description", transaction.description)
-      .addValue("merchant", transaction.merchant)
-      .addValue("status", transaction.status.value)
-      .addValue("linked_transaction_id", transaction.linkedTransactionId?.toString())
+        val txParams =
+            MapSqlParameterSource()
+                .addValue("id", transaction.id.toString())
+                .addValue("account_id", transaction.accountId.toString())
+                .addValue("type", transaction.type.value)
+                .addValue("amount", transaction.amount.amount)
+                .addValue("currency", transaction.amount.currency)
+                .addValue("occurred_at", transaction.occurredAt.toString())
+                .addValue("description", transaction.description)
+                .addValue("merchant", transaction.merchant)
+                .addValue("status", transaction.status.value)
+                .addValue("linked_transaction_id", transaction.linkedTransactionId?.toString())
 
-    jdbcTemplate.update(upsertTransaction, txParams)
+        jdbcTemplate.update(upsertTransaction, txParams)
 
-    val deleteItems = "delete from ledger_transaction_items where transaction_id = :transaction_id"
-    jdbcTemplate.update(deleteItems, MapSqlParameterSource("transaction_id", transaction.id.toString()))
+        val deleteItems = "delete from ledger_transaction_items where transaction_id = :transaction_id"
+        jdbcTemplate.update(deleteItems, MapSqlParameterSource("transaction_id", transaction.id.toString()))
 
-    val insertItem = """
-      insert into ledger_transaction_items (
-        id, transaction_id, name, amount, currency, note
-      ) values (
-        :id, :transaction_id, :name, :amount, :currency, :note
-      )
-    """.trimIndent()
-    transaction.items.forEach { item ->
-      val itemParams = MapSqlParameterSource()
-        .addValue("id", item.id.toString())
-        .addValue("transaction_id", transaction.id.toString())
-        .addValue("name", item.name)
-        .addValue("amount", item.amount.amount)
-        .addValue("currency", item.amount.currency)
-        .addValue("note", item.note)
-      jdbcTemplate.update(insertItem, itemParams)
-    }
-  }
-
-  override fun findById(id: TransactionId): Transaction? {
-    val sql = """
-      select id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id
-      from ledger_transactions
-      where id = :id
-    """.trimIndent()
-    val params = MapSqlParameterSource("id", id.toString())
-    return hydrateItems(jdbcTemplate.query(sql, params, transactionRowMapper())).firstOrNull()
-  }
-
-  override fun findByAccount(accountId: AccountId, limit: Int?): List<Transaction> {
-    val sql = buildString {
-      append(
-        """
-      select id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id
-      from ledger_transactions
-      where account_id = :account_id
-      order by occurred_at desc, id desc
-        """.trimIndent(),
-      )
-      if (limit != null && limit > 0) {
-        append("\nlimit :limit")
-      }
-    }
-    val params = MapSqlParameterSource("account_id", accountId.toString())
-      .addValue("limit", limit)
-    return hydrateItems(jdbcTemplate.query(sql, params, transactionRowMapper()))
-  }
-
-  override fun findByAccountAndPeriod(accountId: AccountId, range: DateRange): List<Transaction> {
-    val sql = """
-      select id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id
-      from ledger_transactions
-      where account_id = :account_id
-        and occurred_at >= :from_date
-        and occurred_at <= :to_date
-      order by occurred_at desc, id desc
-    """.trimIndent()
-    val params = MapSqlParameterSource()
-      .addValue("account_id", accountId.toString())
-      .addValue("from_date", range.from.toString())
-      .addValue("to_date", range.to.toString())
-    return hydrateItems(jdbcTemplate.query(sql, params, transactionRowMapper()))
-  }
-
-  override fun findByAccountAndMerchant(accountId: AccountId, merchant: String): List<Transaction> {
-    val sql = """
-      select id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id
-      from ledger_transactions
-      where account_id = :account_id
-        and lower(merchant) = lower(:merchant)
-      order by occurred_at desc, id desc
-    """.trimIndent()
-    val params = MapSqlParameterSource()
-      .addValue("account_id", accountId.toString())
-      .addValue("merchant", merchant.trim())
-    return hydrateItems(jdbcTemplate.query(sql, params, transactionRowMapper()))
-  }
-
-  private fun hydrateItems(transactions: List<Transaction>): List<Transaction> {
-    if (transactions.isEmpty()) {
-      return emptyList()
+        val insertItem =
+            """
+            insert into ledger_transaction_items (
+              id, transaction_id, name, amount, currency, note
+            ) values (
+              :id, :transaction_id, :name, :amount, :currency, :note
+            )
+            """.trimIndent()
+        transaction.items.forEach { item ->
+            val itemParams =
+                MapSqlParameterSource()
+                    .addValue("id", item.id.toString())
+                    .addValue("transaction_id", transaction.id.toString())
+                    .addValue("name", item.name)
+                    .addValue("amount", item.amount.amount)
+                    .addValue("currency", item.amount.currency)
+                    .addValue("note", item.note)
+            jdbcTemplate.update(insertItem, itemParams)
+        }
     }
 
-    val sql = """
-      select id, transaction_id, name, amount, currency, note
-      from ledger_transaction_items
-      where transaction_id in (:transaction_ids)
-      order by transaction_id asc, id asc
-    """.trimIndent()
-    val params = MapSqlParameterSource("transaction_ids", transactions.map { it.id.toString() })
-    val itemsByTransactionId = jdbcTemplate.query(sql, params, transactionItemRowMapper())
-      .groupBy { it.transactionId }
-      .mapValues { (_, rows) -> rows.map(TransactionItemRow::item) }
-
-    return transactions.map { transaction ->
-      transaction.copy(items = itemsByTransactionId[transaction.id] ?: emptyList())
+    override fun findById(id: TransactionId): Transaction? {
+        val sql =
+            """
+            select id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id
+            from ledger_transactions
+            where id = :id
+            """.trimIndent()
+        val params = MapSqlParameterSource("id", id.toString())
+        return hydrateItems(jdbcTemplate.query(sql, params, transactionRowMapper())).firstOrNull()
     }
-  }
 
-  private fun transactionRowMapper(): RowMapper<Transaction> = RowMapper { rs: ResultSet, _ ->
-    Transaction(
-      id = TransactionId.from(rs.getString("id")),
-      accountId = AccountId.from(rs.getString("account_id")),
-      type = TransactionType.from(rs.getString("type")),
-      amount = Money(
-        amount = rs.getObject("amount", BigDecimal::class.java),
-        currency = rs.getString("currency"),
-      ),
-      occurredAt = Instant.parse(rs.getString("occurred_at")),
-      description = rs.getString("description"),
-      merchant = rs.getString("merchant"),
-      status = TransactionStatus.from(rs.getString("status")),
-      items = emptyList(),
-      linkedTransactionId = rs.getString("linked_transaction_id")?.let(TransactionId::from),
-    )
-  }
+    override fun findByAccount(accountId: AccountId, limit: Int?): List<Transaction> {
+        val sql =
+            buildString {
+                append(
+                    """
+                    select id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id
+                    from ledger_transactions
+                    where account_id = :account_id
+                    order by occurred_at desc, id desc
+                    """.trimIndent(),
+                )
+                if (limit != null && limit > 0) {
+                    append("\nlimit :limit")
+                }
+            }
+        val params =
+            MapSqlParameterSource("account_id", accountId.toString())
+                .addValue("limit", limit)
+        return hydrateItems(jdbcTemplate.query(sql, params, transactionRowMapper()))
+    }
 
-  private fun transactionItemRowMapper(): RowMapper<TransactionItemRow> = RowMapper { rs: ResultSet, _ ->
-    TransactionItemRow(
-      transactionId = TransactionId.from(rs.getString("transaction_id")),
-      item = TransactionItem(
-        id = TransactionItemId.from(rs.getString("id")),
-        name = rs.getString("name"),
-        amount = Money(
-          amount = rs.getObject("amount", BigDecimal::class.java),
-          currency = rs.getString("currency"),
-        ),
-        note = rs.getString("note"),
-      ),
-    )
-  }
+    override fun findByAccountAndPeriod(accountId: AccountId, range: DateRange): List<Transaction> {
+        val sql =
+            """
+            select id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id
+            from ledger_transactions
+            where account_id = :account_id
+              and occurred_at >= :from_date
+              and occurred_at <= :to_date
+            order by occurred_at desc, id desc
+            """.trimIndent()
+        val params =
+            MapSqlParameterSource()
+                .addValue("account_id", accountId.toString())
+                .addValue("from_date", range.from.toString())
+                .addValue("to_date", range.to.toString())
+        return hydrateItems(jdbcTemplate.query(sql, params, transactionRowMapper()))
+    }
 
-  private data class TransactionItemRow(
-    val transactionId: TransactionId,
-    val item: TransactionItem,
-  )
+    override fun findByAccountAndMerchant(accountId: AccountId, merchant: String): List<Transaction> {
+        val sql =
+            """
+            select id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id
+            from ledger_transactions
+            where account_id = :account_id
+              and lower(merchant) = lower(:merchant)
+            order by occurred_at desc, id desc
+            """.trimIndent()
+        val params =
+            MapSqlParameterSource()
+                .addValue("account_id", accountId.toString())
+                .addValue("merchant", merchant.trim())
+        return hydrateItems(jdbcTemplate.query(sql, params, transactionRowMapper()))
+    }
+
+    private fun hydrateItems(transactions: List<Transaction>): List<Transaction> {
+        if (transactions.isEmpty()) {
+            return emptyList()
+        }
+
+        val sql =
+            """
+            select id, transaction_id, name, amount, currency, note
+            from ledger_transaction_items
+            where transaction_id in (:transaction_ids)
+            order by transaction_id asc, id asc
+            """.trimIndent()
+        val params = MapSqlParameterSource("transaction_ids", transactions.map { it.id.toString() })
+        val itemsByTransactionId =
+            jdbcTemplate
+                .query(sql, params, transactionItemRowMapper())
+                .groupBy { it.transactionId }
+                .mapValues { (_, rows) -> rows.map(TransactionItemRow::item) }
+
+        return transactions.map { transaction ->
+            transaction.copy(items = itemsByTransactionId[transaction.id] ?: emptyList())
+        }
+    }
+
+    private fun transactionRowMapper(): RowMapper<Transaction> = RowMapper { rs: ResultSet, _ ->
+        Transaction(
+            id = TransactionId.from(rs.getString("id")),
+            accountId = AccountId.from(rs.getString("account_id")),
+            type = TransactionType.from(rs.getString("type")),
+            amount =
+            Money(
+                amount = rs.getObject("amount", BigDecimal::class.java),
+                currency = rs.getString("currency"),
+            ),
+            occurredAt = Instant.parse(rs.getString("occurred_at")),
+            description = rs.getString("description"),
+            merchant = rs.getString("merchant"),
+            status = TransactionStatus.from(rs.getString("status")),
+            items = emptyList(),
+            linkedTransactionId = rs.getString("linked_transaction_id")?.let(TransactionId::from),
+        )
+    }
+
+    private fun transactionItemRowMapper(): RowMapper<TransactionItemRow> = RowMapper { rs: ResultSet, _ ->
+        TransactionItemRow(
+            transactionId = TransactionId.from(rs.getString("transaction_id")),
+            item =
+            TransactionItem(
+                id = TransactionItemId.from(rs.getString("id")),
+                name = rs.getString("name"),
+                amount =
+                Money(
+                    amount = rs.getObject("amount", BigDecimal::class.java),
+                    currency = rs.getString("currency"),
+                ),
+                note = rs.getString("note"),
+            ),
+        )
+    }
+
+    private data class TransactionItemRow(val transactionId: TransactionId, val item: TransactionItem)
 }

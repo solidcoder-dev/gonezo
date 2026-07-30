@@ -4,3 +4,4 @@
 core/bin/
 **/.idea
 **/nvim.log
+.reports/

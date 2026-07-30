@@ -5,7 +5,7 @@ import type {
   MovementsBackupImportInput,
   MovementsBackupImportResult,
 } from '../../imports/application/imports.port';
-import { CoreAdapterWeb } from './coreAdapterWeb';
+import type { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
 import { isNativeRuntime } from './runtimeAdapterSupport';
 

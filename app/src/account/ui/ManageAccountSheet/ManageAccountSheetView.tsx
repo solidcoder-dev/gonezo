@@ -18,7 +18,7 @@ export function ManageAccountSheetView({ required, provided }: ManageAccountShee
           body: status.loading ? (
             <p>Loading account...</p>
           ) : (
-            <form className="vstack gap-2" onSubmit={provided.commands.submitRename} aria-busy={status.managing}>
+            <form className="vstack gap-2" onSubmit={(event) => { void provided.commands.submitRename(event); }} aria-busy={status.managing}>
               {status.error ? <p role="alert">{status.error}</p> : null}
               <label className="vstack gap-2">
                 Account name
@@ -33,9 +33,9 @@ export function ManageAccountSheetView({ required, provided }: ManageAccountShee
               </label>
               <div className="gz-quick-row">
                 <button type="submit" disabled={status.managing || !data.summary}>Save name</button>
-                <button type="button" className="gz-text-button" onClick={() => void provided.commands.archive()} disabled={status.managing || !data.summary}>Archive account</button>
+                <button type="button" className="gz-text-button" onClick={() => { void provided.commands.archive(); }} disabled={status.managing || !data.summary}>Archive account</button>
               </div>
-              <button type="button" className="btn btn-danger" onClick={() => void provided.commands.delete()} disabled={status.managing || !data.summary}>Delete account</button>
+              <button type="button" className="btn btn-danger" onClick={() => { void provided.commands.delete(); }} disabled={status.managing || !data.summary}>Delete account</button>
             </form>
           ),
         },

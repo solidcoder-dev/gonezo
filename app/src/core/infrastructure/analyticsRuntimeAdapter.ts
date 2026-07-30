@@ -45,7 +45,7 @@ import {
   analyticsGetAnalyticsTopExpenses,
   analyticsListCurrencies,
 } from '../../analytics/infrastructure/analyticsQueries';
-import { CoreAdapterWeb } from './coreAdapterWeb';
+import type { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
 import { isNativeRuntime } from './runtimeAdapterSupport';
 

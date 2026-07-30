@@ -42,7 +42,7 @@ export function AnalyticsPeriodMenuView({ required, provided }: AnalyticsPeriodM
             type="button"
             className={styles.option}
             role="menuitemradio"
-            aria-pressed={granularity.value === required.state.granularity}
+            aria-checked={granularity.value === required.state.granularity}
             disabled={required.status.disabled}
             onClick={() => provided.commands.selectGranularity(granularity.value)}
           >

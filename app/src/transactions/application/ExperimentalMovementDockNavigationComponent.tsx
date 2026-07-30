@@ -103,7 +103,7 @@ export function ExperimentalMovementDockNavigationComponent({ required, provided
   function selectItem(itemId: string) {
     const path = PAGE_PATH_BY_ID[itemId];
     if (path) {
-      navigate(path);
+      void navigate(path);
     }
   }
 

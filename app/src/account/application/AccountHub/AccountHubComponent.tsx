@@ -67,7 +67,7 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
           </div>
         ) : null}
 
-        <form className="vstack gap-3 gz-section-gap" onSubmit={submitCreateAccount} aria-busy={creating}>
+        <form className="vstack gap-3 gz-section-gap" onSubmit={(event) => { void submitCreateAccount(event); }} aria-busy={creating}>
           <h2>Create your first account</h2>
           <input
             className="form-control"
@@ -104,10 +104,10 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
             {creating ? 'Creating account...' : 'Create account'}
           </button>
           <div className="gz-quick-row">
-            <button type="button" className="btn btn-outline-secondary" onClick={provided.events?.onImportRequested}>
+            <button type="button" className="btn btn-outline-secondary" onClick={() => { void provided.events?.onImportRequested?.(); }}>
               Import backup
             </button>
-            <button type="button" className="btn btn-outline-secondary" onClick={provided.events?.onBackupRequested}>
+            <button type="button" className="btn btn-outline-secondary" onClick={() => { void provided.events?.onBackupRequested?.(); }}>
               Backup
             </button>
           </div>
@@ -136,7 +136,7 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
             },
             data: {
               body: (
-                <form className="vstack gap-3" onSubmit={submitCreateAccount} aria-busy={creating}>
+                <form className="vstack gap-3" onSubmit={(event) => { void submitCreateAccount(event); }} aria-busy={creating}>
                   <input
                     className="form-control"
                     aria-label="Account name"
@@ -190,14 +190,12 @@ export function AccountHubComponent({ required, provided = {} }: AccountHubCompo
             disabled: controlsDisabled,
           }}
           provided={{
-            onSelect: async (accountId) => {
-              selectAccount(accountId);
-            },
+            onSelect: (accountId) => { void selectAccount(accountId); },
             onRestoreAccount: restoreAccount,
             onSetDefaultAccount: setDefaultAccount,
             onClearDefaultAccount: clearDefaultAccount,
             onAddAccount: openCreateForm,
-            onManageTaxonomy: () => navigate('/taxonomy'),
+            onManageTaxonomy: () => { void navigate('/taxonomy'); },
             onImport: provided.events?.onImportRequested ?? (() => undefined),
             onBackup: provided.events?.onBackupRequested ?? (() => undefined),
           }}

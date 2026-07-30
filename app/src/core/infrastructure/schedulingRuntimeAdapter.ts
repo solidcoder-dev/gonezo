@@ -18,7 +18,7 @@ import type {
   SchedulingUpdateMovementResult,
 } from '../../scheduling/application/scheduling.port';
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
-import { CoreAdapterWeb } from './coreAdapterWeb';
+import type { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
 import { isNativeRuntime } from './runtimeAdapterSupport';
 

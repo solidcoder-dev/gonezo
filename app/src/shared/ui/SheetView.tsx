@@ -86,19 +86,25 @@ export function SheetView({ required, provided }: SheetViewProps) {
   const handleDragHandlers = config.dragSurface === 'panel' ? {} : drag.handlers;
 
   return (
-    <div
-      className={backdropClassName}
-      role="presentation"
-      data-testid="sheet-backdrop"
-      onClick={closeFromBackdrop}
-    >
+    <div>
+      {closeOnBackdrop ? (
+        <button
+          type="button"
+          className={backdropClassName}
+          aria-hidden="true"
+          tabIndex={-1}
+          data-testid="sheet-backdrop"
+          onClick={closeFromBackdrop}
+        />
+      ) : (
+        <div className={backdropClassName} aria-hidden="true" data-testid="sheet-backdrop" />
+      )}
       <section
         className={panelClassName}
         role="dialog"
         aria-modal="true"
         aria-label={config.ariaLabel}
         style={panelStyle}
-        onClick={(event) => event.stopPropagation()}
         {...panelDragHandlers}
       >
         {data.header ?? (

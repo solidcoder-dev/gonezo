@@ -31,7 +31,7 @@ import type {
 } from '../../ledger/application/ledger.port';
 import { getNativeCashFlowSeries } from '../../ledger/infrastructure/nativeCashFlowSeries';
 import { listAccountBalances } from './accountBalancesQuery';
-import { CoreAdapterWeb } from './coreAdapterWeb';
+import type { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
 import { isNativeRuntime } from './runtimeAdapterSupport';
 

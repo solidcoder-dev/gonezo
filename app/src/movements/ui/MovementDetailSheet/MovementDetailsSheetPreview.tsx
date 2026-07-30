@@ -8,7 +8,7 @@ type MovementDetailsSheetPreviewProps = {
   pendingVoid?: boolean;
   deactivating?: boolean;
   onClose: () => void;
-  onRunOverflowAction?: (actionId: import('../../application/movementDetailView.types').MovementDetailOverflowAction['id']) => void;
+  onRunOverflowAction?: (actionId: MovementDetailOverflowAction['id']) => void;
   onPostExpectedMovement?: () => void;
 };
 

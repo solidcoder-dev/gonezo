@@ -7,7 +7,7 @@ import {
 import type { ExpectedMovementView, ScheduledMovementView } from '../../movements/application/movementsView.types';
 import type { TransactionEntryPrefillRequest } from '../../transactions/application/TransactionEntryComponent.contract';
 import type { MovementEntryDraft } from '../../transactions/application/MovementVoiceEntry/MovementEntryDraftInterpreterPort';
-import { mapMovementEntryDraftToTransactionEntryPrefill } from '../../transactions/application/MovementVoiceEntry/mapMovementEntryDraftToTransactionEntryPrefill';
+import { mapMovementEntryDraftToTransactionEntryPrefill } from '../../transactions/application/movementEntryPrefill';
 import type { TransactionType } from '../../transactions/application/transactions.types';
 
 type MovementComposerCoordinatorInput = {

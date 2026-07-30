@@ -407,7 +407,7 @@ describe('WorkspacePage', () => {
     await waitFor(() => expect(screen.getByTestId('standard-navigation')).toBeInTheDocument());
     firstRender.unmount();
 
-    experimentalFeatures.setFeature({ feature: 'voiceMovementEntry', enabled: true });
+    void experimentalFeatures.setFeature({ feature: 'voiceMovementEntry', enabled: true });
 
     renderSubject('/home', experimentalFeatures);
     await waitFor(() => expect(screen.getByTestId('experimental-navigation')).toBeInTheDocument());

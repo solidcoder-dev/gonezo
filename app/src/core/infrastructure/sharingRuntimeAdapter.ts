@@ -9,7 +9,7 @@ import type {
   SharingPlannedShareResult,
   SharingMovementDetailsResult,
 } from '../../sharing/application/sharing.port';
-import { CoreAdapterWeb } from './coreAdapterWeb';
+import type { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
 import { isNativeRuntime } from './runtimeAdapterSupport';
 

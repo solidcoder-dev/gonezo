@@ -43,13 +43,13 @@ export function MovementDockNavigationComponent({ required, provided = {} }: Mov
 
   function selectItem(itemId: string) {
     if (itemId === 'add') {
-      model.provided.commands.openDraft();
+      void model.provided.commands.openDraft();
       return;
     }
 
     const path = PAGE_PATH_BY_ID[itemId];
     if (path) {
-      navigate(path);
+      void navigate(path);
     }
   }
 

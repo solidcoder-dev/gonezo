@@ -5,6 +5,8 @@ pluginManagement {
   }
   plugins {
     id 'org.jetbrains.kotlin.jvm' version '2.3.0'
+    id 'com.diffplug.spotless' version '8.8.0'
+    id 'com.autonomousapps.dependency-analysis' version '3.17.0'
   }
 }
 

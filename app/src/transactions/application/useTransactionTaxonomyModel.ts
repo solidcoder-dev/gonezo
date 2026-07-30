@@ -5,8 +5,8 @@ import { useTagSuggestions } from '../../taxonomy/application/useTagSuggestions'
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
 import { useTransactionClassification } from '../../taxonomy/application/useTransactionClassification';
 import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.types';
-import { compareTaxonomyCategoriesByUsage } from '../../taxonomy/domain/categoryOrdering';
-import { findMasterCategoryById, listMasterCategories } from '../../taxonomy/domain/masterCategories';
+import { compareTaxonomyCategoriesByUsage } from '../../taxonomy/application/categoryOrdering';
+import { findMasterCategoryById, listMasterCategories } from '../../taxonomy/application/masterCategories';
 import type { ComposerMode } from './transactions.types';
 import {
   mergeCategories,

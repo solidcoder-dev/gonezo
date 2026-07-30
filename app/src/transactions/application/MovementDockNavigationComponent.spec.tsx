@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type * as ReactRouterDom from 'react-router-dom';
 import type { MovementDockNavigationComponentProps } from './MovementDockNavigationComponent.contract';
 import { MovementDockNavigationComponent } from './MovementDockNavigationComponent';
 
@@ -9,7 +10,7 @@ const openDraft = vi.fn();
 let draftOpen = false;
 
 vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  const actual = await vi.importActual<typeof ReactRouterDom>('react-router-dom');
 
   return {
     ...actual,

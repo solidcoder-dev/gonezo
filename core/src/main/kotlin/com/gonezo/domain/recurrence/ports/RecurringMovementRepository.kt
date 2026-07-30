@@ -5,11 +5,11 @@ import com.gonezo.recurrence.domain.RecurringMovementId
 import java.time.Instant
 
 interface RecurringMovementRepository {
-  fun save(movement: RecurringMovement)
+    fun save(movement: RecurringMovement)
 
-  fun findById(id: RecurringMovementId): RecurringMovement?
+    fun findById(id: RecurringMovementId): RecurringMovement?
 
-  fun findDue(now: Instant, limit: Int): List<RecurringMovement>
+    fun findDue(now: Instant, limit: Int): List<RecurringMovement>
 
-  fun listBySourceAccount(accountId: String): List<RecurringMovement>
+    fun listBySourceAccount(accountId: String): List<RecurringMovement>
 }

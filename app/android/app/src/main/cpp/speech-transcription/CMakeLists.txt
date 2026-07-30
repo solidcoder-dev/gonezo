@@ -3,6 +3,8 @@ project(gonezo_whisper_jni CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+option(GONEZO_ENABLE_CLANG_TIDY "Enable clang-tidy for the Gonezo JNI target" OFF)
 set(WHISPER_CPP_DIR "" CACHE PATH "Optional path to a separately provisioned whisper.cpp checkout")
 set(WHISPER_CPP_ARCHIVE "${CMAKE_CURRENT_LIST_DIR}/../../../../../third_party/whisper.cpp-v1.7.6.tar.gz" CACHE FILEPATH "Pinned local whisper.cpp archive")
 set(WHISPER_CPP_ARCHIVE_SHA256 "166140e9a6d8a36f787a2bd77f8f44dd64874f12dd8359ff7c1f4f9acb86202e")
@@ -43,6 +45,11 @@ add_subdirectory("${WHISPER_CPP_DIR}" whisper_cpp_build)
 add_library(gonezo_whisper_jni SHARED whisper_jni.cpp)
 target_include_directories(gonezo_whisper_jni PRIVATE "${WHISPER_CPP_DIR}/include" "${WHISPER_CPP_DIR}/ggml/include")
 target_link_libraries(gonezo_whisper_jni PRIVATE whisper log)
+
+if(GONEZO_ENABLE_CLANG_TIDY)
+  find_program(CLANG_TIDY_EXE clang-tidy REQUIRED)
+  set_target_properties(gonezo_whisper_jni PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+endif()
 
 if(DEFINED CMAKE_ANDROID_NDK_VERSION AND CMAKE_ANDROID_NDK_VERSION VERSION_LESS 28)
   target_link_options(

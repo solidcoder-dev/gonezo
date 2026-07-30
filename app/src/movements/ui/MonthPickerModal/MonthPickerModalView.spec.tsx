@@ -38,7 +38,7 @@ describe('MonthPickerModalView', () => {
 
     expect(screen.getByRole('dialog', { name: 'Choose month' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText('Close month picker'));
+    fireEvent.click(screen.getByTestId('sheet-backdrop'));
     fireEvent.keyDown(window, { key: 'Escape' });
 
     expect(onDismiss).toHaveBeenCalledTimes(2);

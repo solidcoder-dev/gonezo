@@ -55,100 +55,111 @@ async function listNames(path) {
   };
 }
 
-function fail(message) {
-  console.error(`check:structure failed: ${message}`);
-  process.exitCode = 1;
-}
-
-function assertContainsAll(actual, expected, prefix) {
+function collectMissingEntries(actual, expected, prefix) {
+  const failures = [];
   for (const name of expected) {
     if (!actual.includes(name)) {
-      fail(`${prefix} is missing required entry "${name}"`);
+      failures.push(`${prefix} is missing required entry "${name}"`);
     }
   }
+  return failures;
 }
 
-function assertContainsOnly(actual, expected, prefix) {
+function collectUnexpectedEntries(actual, expected, prefix) {
   const allowed = new Set(expected);
+  const failures = [];
   for (const name of actual) {
     if (!allowed.has(name)) {
-      fail(`${prefix} has unexpected entry "${name}"`);
+      failures.push(`${prefix} has unexpected entry "${name}"`);
     }
   }
+  return failures;
 }
 
-async function checkTopLevel() {
-  const { files, dirs } = await listNames(SRC_DIR);
+async function checkTopLevel(srcDir) {
+  const { files, dirs } = await listNames(srcDir);
   const actual = [...files, ...dirs];
+  const failures = [];
 
   for (const name of actual) {
     if (!EXPECTED_TOP_LEVEL.has(name)) {
-      fail(`src has unexpected top-level entry "${name}"`);
+      failures.push(`src has unexpected top-level entry "${name}"`);
     }
   }
 
   for (const name of EXPECTED_TOP_LEVEL) {
     if (!actual.includes(name)) {
-      fail(`src is missing required top-level entry "${name}"`);
+      failures.push(`src is missing required top-level entry "${name}"`);
     }
   }
+
+  return failures;
 }
 
-async function checkDomainLayers(domainName) {
-  const { dirs } = await listNames(resolve(SRC_DIR, domainName));
+async function checkDomainLayers(srcDir, domainName) {
+  const { dirs } = await listNames(resolve(srcDir, domainName));
   const expected = EXPECTED_CONTEXT_DIRS[domainName];
-  assertContainsAll(dirs, expected, `src/${domainName}`);
-  assertContainsOnly(dirs, expected, `src/${domainName}`);
+  return [
+    ...collectMissingEntries(dirs, expected, `src/${domainName}`),
+    ...collectUnexpectedEntries(dirs, expected, `src/${domainName}`),
+  ];
 }
 
-async function checkShared() {
-  const { dirs } = await listNames(resolve(SRC_DIR, 'shared'));
-  assertContainsAll(dirs, EXPECTED_SHARED_DIRS, 'src/shared');
-  assertContainsOnly(dirs, EXPECTED_SHARED_DIRS, 'src/shared');
+async function checkShared(srcDir) {
+  const { dirs } = await listNames(resolve(srcDir, 'shared'));
+  return [
+    ...collectMissingEntries(dirs, EXPECTED_SHARED_DIRS, 'src/shared'),
+    ...collectUnexpectedEntries(dirs, EXPECTED_SHARED_DIRS, 'src/shared'),
+  ];
 }
 
-async function checkImports() {
-  const importsPath = resolve(SRC_DIR, 'imports');
+async function checkImports(srcDir) {
+  const failures = [];
+  const importsPath = resolve(srcDir, 'imports');
   const { dirs: importsDirs } = await listNames(importsPath);
-  assertContainsAll(importsDirs, EXPECTED_LAYER_DIRS, 'src/imports');
-
-  for (const dir of importsDirs) {
-    if (!EXPECTED_LAYER_DIRS.includes(dir)) {
-      fail(`src/imports has unexpected entry "${dir}"`);
-    }
-  }
+  failures.push(...collectMissingEntries(importsDirs, EXPECTED_LAYER_DIRS, 'src/imports'));
+  failures.push(...collectUnexpectedEntries(importsDirs, EXPECTED_LAYER_DIRS, 'src/imports'));
 
   const importsInfrastructurePath = resolve(importsPath, 'infrastructure');
   const { dirs: infrastructureDirs } = await listNames(importsInfrastructurePath);
-  assertContainsAll(infrastructureDirs, EXPECTED_IMPORTS_INFRASTRUCTURE_DIRS, 'src/imports/infrastructure');
-
-  for (const dir of infrastructureDirs) {
-    if (dir !== 'providers') {
-      fail(`src/imports/infrastructure has unexpected entry "${dir}"`);
-    }
-  }
+  failures.push(...collectMissingEntries(infrastructureDirs, EXPECTED_IMPORTS_INFRASTRUCTURE_DIRS, 'src/imports/infrastructure'));
+  failures.push(...collectUnexpectedEntries(infrastructureDirs, EXPECTED_IMPORTS_INFRASTRUCTURE_DIRS, 'src/imports/infrastructure'));
 
   const providersPath = resolve(importsInfrastructurePath, 'providers');
   const { dirs: providerDirs } = await listNames(providersPath);
-  assertContainsAll(providerDirs, EXPECTED_IMPORTS_PROVIDER_MODULES, 'src/imports/infrastructure/providers');
+  failures.push(...collectMissingEntries(providerDirs, EXPECTED_IMPORTS_PROVIDER_MODULES, 'src/imports/infrastructure/providers'));
+  failures.push(...collectUnexpectedEntries(providerDirs, EXPECTED_IMPORTS_PROVIDER_MODULES, 'src/imports/infrastructure/providers'));
+
+  return failures;
+}
+
+export async function findStructureViolations(srcDir = SRC_DIR) {
+  const violations = [
+    ...(await checkTopLevel(srcDir)),
+    ...(await Promise.all(Object.keys(EXPECTED_CONTEXT_DIRS).map((domainName) => checkDomainLayers(srcDir, domainName)))).flat(),
+    ...(await checkImports(srcDir)),
+    ...(await checkShared(srcDir)),
+  ];
+
+  return violations;
 }
 
 async function main() {
-  await checkTopLevel();
-  for (const domainName of Object.keys(EXPECTED_CONTEXT_DIRS)) {
-    await checkDomainLayers(domainName);
+  const violations = await findStructureViolations();
+  for (const violation of violations) {
+    console.error(`check:structure failed: ${violation}`);
   }
-  await checkImports();
-  await checkShared();
 
-  if (process.exitCode && process.exitCode !== 0) {
-    process.exit(process.exitCode);
+  if (violations.length > 0) {
+    process.exit(1);
   }
 
   console.log('check:structure passed');
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (process.argv[1] && resolve(process.argv[1]) === __filename) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

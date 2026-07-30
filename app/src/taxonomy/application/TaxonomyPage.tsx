@@ -135,7 +135,7 @@ export function TaxonomyPage({ required }: TaxonomyPageProps) {
             },
             data: {
               body: (
-                <form className="vstack gap-2" onSubmit={submitRename} aria-busy={saving}>
+                  <form className="vstack gap-2" onSubmit={(event) => { void submitRename(event); }} aria-busy={saving}>
                   <label className="vstack gap-2">
                     Name
                     <input

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+run_step() {
+  local label="$1"
+  shift
+  printf '\n== %s ==\n' "$label"
+  "$@"
+}
+
+run_step "Frontend" bash -lc "cd '$root_dir/app' && npm ci && npm run check"
+run_step "Core" bash -lc "cd '$root_dir/core' && ./gradlew test spotlessCheck buildHealth checkLayerBoundaries"
+run_step "Android" bash -lc "cd '$root_dir/app/android' && ./gradlew :app:lintDebug :app:testDebugUnitTest"
+run_step "Native format" bash -lc "clang-format --dry-run --Werror '$root_dir/app/android/app/src/main/cpp/speech-transcription/whisper_jni.cpp'"
+run_step "Native tidy" bash -lc "cmake -S '$root_dir/app/android/app/src/main/cpp/speech-transcription' -B /tmp/gonezo-whisper-jni -DGONEZO_ENABLE_CLANG_TIDY=ON && cmake --build /tmp/gonezo-whisper-jni"

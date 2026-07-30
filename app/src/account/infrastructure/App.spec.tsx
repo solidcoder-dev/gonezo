@@ -2930,7 +2930,7 @@ describe('App Accounts UX', () => {
 
     const waterItem = screen.getByText('Water').closest('li');
     expect(waterItem).not.toBeNull();
-    fireEvent.click(waterItem!);
+    fireEvent.click(within(waterItem as HTMLElement).getByRole('button', { name: 'Edit item Water' }));
 
     expect(screen.getByLabelText('Description')).toHaveValue('Water');
     expect(screen.getByLabelText('Item amount')).toHaveValue(20);

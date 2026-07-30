@@ -6,13 +6,13 @@ import com.gonezo.taxonomy.domain.CategoryId
 import com.gonezo.taxonomy.domain.CategoryWithUsage
 
 interface CategoryRepository {
-  fun save(category: Category)
+    fun save(category: Category)
 
-  fun findById(id: CategoryId): Category?
+    fun findById(id: CategoryId): Category?
 
-  fun findByIds(ids: Collection<CategoryId>): Map<CategoryId, Category>
+    fun findByIds(ids: Collection<CategoryId>): Map<CategoryId, Category>
 
-  fun findByNormalizedNameAndAppliesTo(name: String, appliesTo: CategoryAppliesTo): Category?
+    fun findByNormalizedNameAndAppliesTo(name: String, appliesTo: CategoryAppliesTo): Category?
 
-  fun listAll(): List<CategoryWithUsage>
+    fun listAll(): List<CategoryWithUsage>
 }

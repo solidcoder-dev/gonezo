@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createLedgerGateway } from '../../ledger/application/ledgerGateway';
 import { SheetView } from '../../shared/ui/SheetView';
-import { useAccountHubModel } from '../../account/application/AccountHub/useAccountHubModel';
+import { useAccountHubModel } from '../../account/application/accountHub';
 import type { AccountWorkspacePort } from '../../account/application/accounts.port';
 import { ProfilePageView } from '../ui/ProfilePageView';
 import type { LoadPhase } from '../../account/application/accountPage.types';
@@ -115,7 +115,7 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
             },
             data: {
               body: (
-                <form className="vstack gap-2" onSubmit={submitCreateAccount} aria-busy={creating}>
+                <form className="vstack gap-2" onSubmit={(event) => { void submitCreateAccount(event); }} aria-busy={creating}>
                   <input
                     className="form-control"
                     aria-label="Account name"
@@ -181,9 +181,9 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
               });
             },
             addAccount: openCreateForm,
-            importBackup: provided.events?.onImportRequested ?? (() => undefined),
-            exportBackup: provided.events?.onBackupRequested ?? (() => undefined),
-            manageTaxonomy: () => navigate('/taxonomy'),
+            importBackup: () => { void provided.events?.onImportRequested?.(); },
+            exportBackup: () => { void provided.events?.onBackupRequested?.(); },
+            manageTaxonomy: () => { void navigate('/taxonomy'); },
             setVoiceMovementExperimentEnabled: (enabled) => {
               provided.events?.onSetVoiceMovementExperimentEnabled?.(enabled);
             },

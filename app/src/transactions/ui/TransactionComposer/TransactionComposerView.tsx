@@ -6,7 +6,7 @@ import { MultiTagPickerView } from '../../../shared/ui/MultiTagPicker/MultiTagPi
 import {
   FREQUENT_EXPENSE_CATEGORY_IDS,
   FREQUENT_INCOME_CATEGORY_IDS,
-} from '../../../taxonomy/domain/masterCategories';
+} from '../../../taxonomy/application/masterCategories';
 import { CategoryPickerField } from '../CategoryPickerField/CategoryPickerField';
 import { ScheduleSummaryView } from '../ScheduleControls/ScheduleSummaryView';
 import { ScheduleTriggerView } from '../ScheduleControls/ScheduleTriggerView';
@@ -482,7 +482,7 @@ export function TransactionComposerView({ required, provided }: Props) {
           },
           data: {
             body: (
-            <form className="composer-form" onSubmit={submitComposer} aria-busy={disabled} noValidate>
+            <form className="composer-form" onSubmit={(event) => { void submitComposer(event); }} aria-busy={disabled} noValidate>
             <div className="composer-form-content vstack gap-2">
               <TransactionComposerContextControls
                 required={{

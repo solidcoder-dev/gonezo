@@ -1,4 +1,3 @@
-import type { KeyboardEvent } from 'react';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
 import type { ComposerExpenseItem } from '../TransactionComposer/TransactionComposerView';
 import styles from './ItemBreakdownEditorView.module.css';
@@ -136,13 +135,6 @@ export function ItemBreakdownEditorView({ required, provided }: ItemBreakdownEdi
     provided.commands.editItem(itemId);
   }
 
-  function editItemFromKeyboard(event: KeyboardEvent, itemId: string) {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      editItem(itemId);
-    }
-  }
-
   return (
     <div className={`vstack gap-2 ${styles.block}`}>
       {status.hideToggle ? null : (
@@ -191,32 +183,29 @@ export function ItemBreakdownEditorView({ required, provided }: ItemBreakdownEdi
                 </li>
               ) : null}
               {data.items.map((item) => (
-                <li
-                  key={item.id}
-                  className={styles.item}
-                  role="button"
-                  tabIndex={status.disabled ? -1 : 0}
-                  aria-label={`Edit item ${item.name}`}
-                  onClick={() => editItem(item.id)}
-                  onKeyDown={(event) => editItemFromKeyboard(event, item.id)}
-                >
-                  <span className={styles.itemIcon} aria-hidden>
-                    <i className="bi bi-bag" />
-                  </span>
-                  <strong className={styles.itemName}>{item.name}</strong>
-                  <span className={styles.itemAmount}>
-                    {item.amount} {state.currencyCode ?? ''}
-                  </span>
+                <li key={item.id} className={styles.itemRow}>
+                  <button
+                    type="button"
+                    className={`${styles.item} ${styles.itemButton}`}
+                    disabled={status.disabled}
+                    aria-label={`Edit item ${item.name}`}
+                    onClick={() => editItem(item.id)}
+                  >
+                    <span className={styles.itemIcon} aria-hidden>
+                      <i className="bi bi-bag" />
+                    </span>
+                    <strong className={styles.itemName}>{item.name}</strong>
+                    <span className={styles.itemAmount}>
+                      {item.amount} {state.currencyCode ?? ''}
+                    </span>
+                  </button>
                   <div className={styles.rowActions}>
                     <button
                       type="button"
                       className={`gz-text-button gz-icon-button ${styles.rowActionButton} ${styles.dangerActionButton}`}
                       aria-label={`Remove item ${item.name}`}
                       disabled={status.disabled}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        provided.commands.removeItem(item.id);
-                      }}
+                      onClick={() => { provided.commands.removeItem(item.id); }}
                     >
                       <i className="bi bi-trash" aria-hidden />
                     </button>

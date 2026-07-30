@@ -15,6 +15,8 @@
   max-width: 420px;
   padding: 12px;
   box-sizing: border-box;
+  position: relative;
+  z-index: calc(var(--z-modal) + 1);
   border-radius: 16px;
   background: var(--color-surface-primary);
   box-shadow: var(--shadow-lg);

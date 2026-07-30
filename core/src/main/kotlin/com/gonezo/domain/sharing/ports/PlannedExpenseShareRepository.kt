@@ -5,7 +5,9 @@ import com.gonezo.sharing.domain.PlannedExpenseShare
 import com.gonezo.sharing.domain.PlannedExpenseShareId
 
 interface PlannedExpenseShareRepository {
-  fun save(share: PlannedExpenseShare)
-  fun findById(id: PlannedExpenseShareId): PlannedExpenseShare?
-  fun findByExpectedMovementRef(ref: ExpectedMovementRef): PlannedExpenseShare?
+    fun save(share: PlannedExpenseShare)
+
+    fun findById(id: PlannedExpenseShareId): PlannedExpenseShare?
+
+    fun findByExpectedMovementRef(ref: ExpectedMovementRef): PlannedExpenseShare?
 }

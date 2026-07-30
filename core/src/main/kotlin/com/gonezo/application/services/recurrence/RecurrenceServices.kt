@@ -15,292 +15,264 @@ import com.gonezo.recurrence.domain.services.RecurrenceScheduleCalculator
 import java.time.Instant
 import java.util.UUID
 
-class CreateRecurringMovementService(
-  private val recurringMovementRepository: RecurringMovementRepository,
-  private val scheduleCalculator: RecurrenceScheduleCalculator,
-) : CreateRecurringMovementUC {
-  override fun execute(command: CreateRecurringMovementCommand): RecurringMovementId {
-    val movementId = RecurringMovementId.random()
-    val movement = RecurringMovement.create(
-      id = movementId,
-      type = command.type,
-      sourceAccountId = command.sourceAccountId,
-      targetAccountId = command.targetAccountId,
-      amount = command.amount,
-      currency = command.currency,
-      destinationAmount = command.destinationAmount,
-      destinationCurrency = command.destinationCurrency,
-      exchangeRate = command.exchangeRate,
-      description = command.description,
-      merchant = command.merchant,
-      categoryId = command.categoryId,
-      reviewPolicy = command.reviewPolicy,
-      splitItems = command.splitItems,
-      tagNames = command.tagNames,
-      rule = command.rule,
-      recurrenceEnd = command.recurrenceEnd,
-      startAt = command.startAt,
-      zoneId = command.zoneId,
-      createdAt = command.createdAt,
-      scheduleCalculator = scheduleCalculator,
-    )
-    recurringMovementRepository.save(movement)
-    return movement.id
-  }
-}
-
-class DeactivateRecurringMovementService(
-  private val recurringMovementRepository: RecurringMovementRepository,
-) : DeactivateRecurringMovementUC {
-  override fun execute(command: DeactivateRecurringMovementCommand) {
-    val movement = requireRecurringMovement(recurringMovementRepository, command.recurringMovementId)
-    recurringMovementRepository.save(movement.deactivate(command.deactivatedAt))
-  }
-}
-
-class UpdateRecurringMovementService(
-  private val recurringMovementRepository: RecurringMovementRepository,
-  private val scheduleCalculator: RecurrenceScheduleCalculator,
-) : UpdateRecurringMovementUC {
-  override fun execute(command: UpdateRecurringMovementCommand) {
-    val existing = requireRecurringMovement(recurringMovementRepository, command.recurringMovementId)
-    check(existing.status == com.gonezo.recurrence.domain.RecurringMovementStatus.ACTIVE) {
-      "Only active recurring movements can be updated"
+class CreateRecurringMovementService(private val recurringMovementRepository: RecurringMovementRepository, private val scheduleCalculator: RecurrenceScheduleCalculator) : CreateRecurringMovementUC {
+    override fun execute(command: CreateRecurringMovementCommand): RecurringMovementId {
+        val movementId = RecurringMovementId.random()
+        val movement = RecurringMovement.create(
+            id = movementId,
+            type = command.type,
+            sourceAccountId = command.sourceAccountId,
+            targetAccountId = command.targetAccountId,
+            amount = command.amount,
+            currency = command.currency,
+            destinationAmount = command.destinationAmount,
+            destinationCurrency = command.destinationCurrency,
+            exchangeRate = command.exchangeRate,
+            description = command.description,
+            merchant = command.merchant,
+            categoryId = command.categoryId,
+            reviewPolicy = command.reviewPolicy,
+            splitItems = command.splitItems,
+            tagNames = command.tagNames,
+            rule = command.rule,
+            recurrenceEnd = command.recurrenceEnd,
+            startAt = command.startAt,
+            zoneId = command.zoneId,
+            createdAt = command.createdAt,
+            scheduleCalculator = scheduleCalculator,
+        )
+        recurringMovementRepository.save(movement)
+        return movement.id
     }
-    recurringMovementRepository.save(
-      existing.update(
-        type = command.type,
-        sourceAccountId = command.sourceAccountId,
-        targetAccountId = command.targetAccountId,
-        amount = command.amount,
-        currency = command.currency,
-        destinationAmount = command.destinationAmount,
-        destinationCurrency = command.destinationCurrency,
-        exchangeRate = command.exchangeRate,
-        description = command.description,
-        merchant = command.merchant,
-        categoryId = command.categoryId,
-        reviewPolicy = command.reviewPolicy,
-        splitItems = command.splitItems,
-        tagNames = command.tagNames,
-        rule = command.rule,
-        recurrenceEnd = command.recurrenceEnd,
-        startAt = command.startAt,
-        zoneId = command.zoneId,
-        updatedAt = command.updatedAt,
-        scheduleCalculator = scheduleCalculator,
-      ),
-    )
-  }
 }
 
-class ListRecurringMovementsByAccountService(
-  private val recurringMovementRepository: RecurringMovementRepository,
-) : ListRecurringMovementsByAccountUC {
-  override fun execute(query: ListRecurringMovementsByAccountQuery): List<RecurringMovementView> =
-    recurringMovementRepository.listBySourceAccount(query.sourceAccountId).map(::toRecurringMovementView)
+class DeactivateRecurringMovementService(private val recurringMovementRepository: RecurringMovementRepository) : DeactivateRecurringMovementUC {
+    override fun execute(command: DeactivateRecurringMovementCommand) {
+        val movement = requireRecurringMovement(recurringMovementRepository, command.recurringMovementId)
+        recurringMovementRepository.save(movement.deactivate(command.deactivatedAt))
+    }
 }
 
-class GetRecurringMovementService(
-  private val recurringMovementRepository: RecurringMovementRepository,
-) : GetRecurringMovementUC {
-  override fun execute(query: GetRecurringMovementQuery): RecurringMovementView? =
-    recurringMovementRepository.findById(query.recurringMovementId)?.let(::toRecurringMovementView)
+class UpdateRecurringMovementService(private val recurringMovementRepository: RecurringMovementRepository, private val scheduleCalculator: RecurrenceScheduleCalculator) : UpdateRecurringMovementUC {
+    override fun execute(command: UpdateRecurringMovementCommand) {
+        val existing = requireRecurringMovement(recurringMovementRepository, command.recurringMovementId)
+        check(existing.status == com.gonezo.recurrence.domain.RecurringMovementStatus.ACTIVE) {
+            "Only active recurring movements can be updated"
+        }
+        recurringMovementRepository.save(
+            existing.update(
+                type = command.type,
+                sourceAccountId = command.sourceAccountId,
+                targetAccountId = command.targetAccountId,
+                amount = command.amount,
+                currency = command.currency,
+                destinationAmount = command.destinationAmount,
+                destinationCurrency = command.destinationCurrency,
+                exchangeRate = command.exchangeRate,
+                description = command.description,
+                merchant = command.merchant,
+                categoryId = command.categoryId,
+                reviewPolicy = command.reviewPolicy,
+                splitItems = command.splitItems,
+                tagNames = command.tagNames,
+                rule = command.rule,
+                recurrenceEnd = command.recurrenceEnd,
+                startAt = command.startAt,
+                zoneId = command.zoneId,
+                updatedAt = command.updatedAt,
+                scheduleCalculator = scheduleCalculator,
+            ),
+        )
+    }
+}
+
+class ListRecurringMovementsByAccountService(private val recurringMovementRepository: RecurringMovementRepository) : ListRecurringMovementsByAccountUC {
+    override fun execute(query: ListRecurringMovementsByAccountQuery): List<RecurringMovementView> = recurringMovementRepository.listBySourceAccount(query.sourceAccountId).map(::toRecurringMovementView)
+}
+
+class GetRecurringMovementService(private val recurringMovementRepository: RecurringMovementRepository) : GetRecurringMovementUC {
+    override fun execute(query: GetRecurringMovementQuery): RecurringMovementView? = recurringMovementRepository.findById(query.recurringMovementId)?.let(::toRecurringMovementView)
 }
 
 private fun toRecurringMovementView(movement: RecurringMovement): RecurringMovementView = RecurringMovementView(
-  id = movement.id.toString(),
-  type = movement.type.value,
-  sourceAccountId = movement.sourceAccountId,
-  targetAccountId = movement.targetAccountId,
-  amount = movement.amount.toPlainString(),
-  currency = movement.currency,
-  destinationAmount = movement.destinationAmount?.toPlainString(),
-  destinationCurrency = movement.destinationCurrency,
-  exchangeRate = movement.exchangeRate?.toPlainString(),
-  description = movement.description,
-  merchant = movement.merchant,
-  categoryId = movement.categoryId,
-  reviewPolicy = movement.reviewPolicy.value,
-  splitItems = movement.splitItems.map { RecurringMovementView.SplitItem(it.id, it.name, it.amount.toPlainString()) },
-  nextDueAt = movement.nextDueAt,
-  status = movement.status.value,
-  generatedOccurrences = movement.generatedOccurrences,
-  tagNames = movement.tagNames,
+    id = movement.id.toString(),
+    type = movement.type.value,
+    sourceAccountId = movement.sourceAccountId,
+    targetAccountId = movement.targetAccountId,
+    amount = movement.amount.toPlainString(),
+    currency = movement.currency,
+    destinationAmount = movement.destinationAmount?.toPlainString(),
+    destinationCurrency = movement.destinationCurrency,
+    exchangeRate = movement.exchangeRate?.toPlainString(),
+    description = movement.description,
+    merchant = movement.merchant,
+    categoryId = movement.categoryId,
+    reviewPolicy = movement.reviewPolicy.value,
+    splitItems = movement.splitItems.map { RecurringMovementView.SplitItem(it.id, it.name, it.amount.toPlainString()) },
+    nextDueAt = movement.nextDueAt,
+    status = movement.status.value,
+    generatedOccurrences = movement.generatedOccurrences,
+    tagNames = movement.tagNames,
 )
 
-class ProcessDueRecurringMovementsService(
-  private val recurringMovementRepository: RecurringMovementRepository,
-  private val occurrenceRepository: RecurringMovementOccurrenceRepository,
-  private val outboxRepository: RecurrenceOutboxRepository,
-  private val scheduleCalculator: RecurrenceScheduleCalculator,
-  private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary,
-) : ProcessDueRecurringMovementsUC {
-  override fun execute(command: ProcessDueRecurringMovementsCommand): ProcessDueRecurringMovementsResult {
-    require(command.limit > 0) { "limit must be greater than 0" }
+class ProcessDueRecurringMovementsService(private val recurringMovementRepository: RecurringMovementRepository, private val occurrenceRepository: RecurringMovementOccurrenceRepository, private val outboxRepository: RecurrenceOutboxRepository, private val scheduleCalculator: RecurrenceScheduleCalculator, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary) : ProcessDueRecurringMovementsUC {
+    override fun execute(command: ProcessDueRecurringMovementsCommand): ProcessDueRecurringMovementsResult {
+        require(command.limit > 0) { "limit must be greater than 0" }
 
-    val dueMovements = recurringMovementRepository.findDue(command.now, command.limit)
-    var createdOccurrences = 0
-    var advancedSchedules = 0
+        val dueMovements = recurringMovementRepository.findDue(command.now, command.limit)
+        var createdOccurrences = 0
+        var advancedSchedules = 0
 
-    dueMovements.forEach { movement ->
-      val createdOccurrence = consistencyBoundary.withinConsistencyBoundary {
-        val dueAt = checkNotNull(movement.nextDueAt) { "Active recurring movement must have nextDueAt" }
-        var created = false
+        dueMovements.forEach { movement ->
+            val createdOccurrence = consistencyBoundary.withinConsistencyBoundary {
+                val dueAt = checkNotNull(movement.nextDueAt) { "Active recurring movement must have nextDueAt" }
+                var created = false
 
-        val existingOccurrence = occurrenceRepository.findByRecurringMovementAndDueAt(movement.id, dueAt)
-        if (existingOccurrence == null) {
-          val occurrence = RecurringMovementOccurrence.pending(
-            id = UUID.randomUUID(),
-            recurringMovementId = movement.id,
-            dueAt = dueAt,
-            createdAt = command.now,
-          )
-          occurrenceRepository.save(occurrence)
-          outboxRepository.save(
-            RecurrenceOutboxMessage(
-              id = UUID.randomUUID(),
-              aggregateId = movement.id,
-              occurrenceId = occurrence.id,
-              eventType = RecurringMovementDueIntegrationEvent.EVENT_TYPE,
-              payloadJson = RecurringMovementDueIntegrationEvent(
-                eventId = UUID.randomUUID(),
-                recurringMovementId = movement.id.toString(),
-                occurrenceId = occurrence.id.toString(),
-                dueAt = dueAt.toString(),
-                movementType = movement.type.value,
-                sourceAccountId = movement.sourceAccountId,
-                targetAccountId = movement.targetAccountId,
-                amount = movement.amount.toPlainString(),
-                currency = movement.currency,
-                destinationAmount = movement.destinationAmount?.toPlainString(),
-                destinationCurrency = movement.destinationCurrency,
-                exchangeRate = movement.exchangeRate?.toPlainString(),
-                description = movement.description,
-                merchant = movement.merchant,
-                categoryId = movement.categoryId,
-                tagNames = movement.tagNames,
-                reviewPolicy = movement.reviewPolicy.value,
-                splitItems = movement.splitItems.map {
-                  RecurringMovementDueIntegrationEvent.SplitItem(
-                    id = it.id,
-                    name = it.name,
-                    amount = it.amount.toPlainString(),
-                  )
-                },
-              ).toJson(),
-              status = RecurrenceOutboxStatus.PENDING,
-              attempts = 0,
-              lastError = null,
-              createdAt = command.now,
-              publishedAt = null,
-            ),
-          )
-          created = true
+                val existingOccurrence = occurrenceRepository.findByRecurringMovementAndDueAt(movement.id, dueAt)
+                if (existingOccurrence == null) {
+                    val occurrence = RecurringMovementOccurrence.pending(
+                        id = UUID.randomUUID(),
+                        recurringMovementId = movement.id,
+                        dueAt = dueAt,
+                        createdAt = command.now,
+                    )
+                    occurrenceRepository.save(occurrence)
+                    outboxRepository.save(
+                        RecurrenceOutboxMessage(
+                            id = UUID.randomUUID(),
+                            aggregateId = movement.id,
+                            occurrenceId = occurrence.id,
+                            eventType = RecurringMovementDueIntegrationEvent.EVENT_TYPE,
+                            payloadJson = RecurringMovementDueIntegrationEvent(
+                                eventId = UUID.randomUUID(),
+                                recurringMovementId = movement.id.toString(),
+                                occurrenceId = occurrence.id.toString(),
+                                dueAt = dueAt.toString(),
+                                movementType = movement.type.value,
+                                sourceAccountId = movement.sourceAccountId,
+                                targetAccountId = movement.targetAccountId,
+                                amount = movement.amount.toPlainString(),
+                                currency = movement.currency,
+                                destinationAmount = movement.destinationAmount?.toPlainString(),
+                                destinationCurrency = movement.destinationCurrency,
+                                exchangeRate = movement.exchangeRate?.toPlainString(),
+                                description = movement.description,
+                                merchant = movement.merchant,
+                                categoryId = movement.categoryId,
+                                tagNames = movement.tagNames,
+                                reviewPolicy = movement.reviewPolicy.value,
+                                splitItems = movement.splitItems.map {
+                                    RecurringMovementDueIntegrationEvent.SplitItem(
+                                        id = it.id,
+                                        name = it.name,
+                                        amount = it.amount.toPlainString(),
+                                    )
+                                },
+                            ).toJson(),
+                            status = RecurrenceOutboxStatus.PENDING,
+                            attempts = 0,
+                            lastError = null,
+                            createdAt = command.now,
+                            publishedAt = null,
+                        ),
+                    )
+                    created = true
+                }
+
+                val advanced = movement.advanceAfterDue(
+                    dueAt = dueAt,
+                    advancedAt = command.now,
+                    scheduleCalculator = scheduleCalculator,
+                )
+                recurringMovementRepository.save(advanced)
+                created
+            }
+            if (createdOccurrence) {
+                createdOccurrences += 1
+            }
+            advancedSchedules += 1
         }
 
-        val advanced = movement.advanceAfterDue(
-          dueAt = dueAt,
-          advancedAt = command.now,
-          scheduleCalculator = scheduleCalculator,
+        return ProcessDueRecurringMovementsResult(
+            scanned = dueMovements.size,
+            createdOccurrences = createdOccurrences,
+            advancedSchedules = advancedSchedules,
         )
-        recurringMovementRepository.save(advanced)
-        created
-      }
-      if (createdOccurrence) {
-        createdOccurrences += 1
-      }
-      advancedSchedules += 1
     }
-
-    return ProcessDueRecurringMovementsResult(
-      scanned = dueMovements.size,
-      createdOccurrences = createdOccurrences,
-      advancedSchedules = advancedSchedules,
-    )
-  }
 }
 
-class AcknowledgeRecurringMovementOccurrenceService(
-  private val occurrenceRepository: RecurringMovementOccurrenceRepository,
-) : AcknowledgeRecurringMovementOccurrenceUC {
-  override fun execute(command: AcknowledgeRecurringMovementOccurrenceCommand): RecurringMovementOccurrence {
-    val occurrence = occurrenceRepository.findById(command.occurrenceId)
-      ?: throw RecurringMovementOccurrenceNotFound(command.occurrenceId)
+class AcknowledgeRecurringMovementOccurrenceService(private val occurrenceRepository: RecurringMovementOccurrenceRepository) : AcknowledgeRecurringMovementOccurrenceUC {
+    override fun execute(command: AcknowledgeRecurringMovementOccurrenceCommand): RecurringMovementOccurrence {
+        val occurrence = occurrenceRepository.findById(command.occurrenceId)
+            ?: throw RecurringMovementOccurrenceNotFound(command.occurrenceId)
 
-    val acknowledged = when (command.status) {
-      AcknowledgeRecurringMovementOccurrenceStatus.POSTED -> {
-        val ledgerTransactionId = command.ledgerTransactionId?.trim().orEmpty()
-        require(ledgerTransactionId.isNotBlank()) { "ledgerTransactionId is required when status is posted" }
-        if (occurrence.status == RecurringMovementOccurrenceStatus.POSTED && occurrence.ledgerTransactionId == ledgerTransactionId) {
-          return occurrence
+        val acknowledged = when (command.status) {
+            AcknowledgeRecurringMovementOccurrenceStatus.POSTED -> {
+                val ledgerTransactionId = command.ledgerTransactionId?.trim().orEmpty()
+                require(ledgerTransactionId.isNotBlank()) { "ledgerTransactionId is required when status is posted" }
+                if (occurrence.status == RecurringMovementOccurrenceStatus.POSTED && occurrence.ledgerTransactionId == ledgerTransactionId) {
+                    return occurrence
+                }
+                occurrence.acknowledgePosted(ledgerTxId = ledgerTransactionId, at = command.acknowledgedAt)
+            }
+
+            AcknowledgeRecurringMovementOccurrenceStatus.FAILED -> {
+                if (occurrence.status == RecurringMovementOccurrenceStatus.FAILED) {
+                    return occurrence
+                }
+                occurrence.acknowledgeFailed(
+                    errorCodeValue = command.errorCode,
+                    errorMessageValue = command.errorMessage,
+                    at = command.acknowledgedAt,
+                )
+            }
         }
-        occurrence.acknowledgePosted(ledgerTxId = ledgerTransactionId, at = command.acknowledgedAt)
-      }
 
-      AcknowledgeRecurringMovementOccurrenceStatus.FAILED -> {
-        if (occurrence.status == RecurringMovementOccurrenceStatus.FAILED) {
-          return occurrence
+        occurrenceRepository.save(acknowledged)
+        return acknowledged
+    }
+}
+
+class PublishRecurrenceOutboxService(private val outboxRepository: RecurrenceOutboxRepository, private val publisher: RecurrenceOutboxEventPublisher) : PublishRecurrenceOutboxUC {
+    override fun execute(command: PublishRecurrenceOutboxCommand): PublishRecurrenceOutboxResult {
+        require(command.limit > 0) { "limit must be greater than 0" }
+
+        val pending = outboxRepository.findPending(command.limit)
+        var published = 0
+        var failed = 0
+
+        pending.forEach { message ->
+            try {
+                publisher.publish(message)
+                outboxRepository.save(
+                    message.copy(
+                        status = RecurrenceOutboxStatus.PUBLISHED,
+                        attempts = message.attempts + 1,
+                        lastError = null,
+                        publishedAt = command.publishedAt,
+                    ),
+                )
+                published += 1
+            } catch (ex: RuntimeException) {
+                outboxRepository.save(
+                    message.copy(
+                        status = RecurrenceOutboxStatus.FAILED,
+                        attempts = message.attempts + 1,
+                        lastError = ex.message ?: "outbox publish failed",
+                        publishedAt = null,
+                    ),
+                )
+                failed += 1
+            }
         }
-        occurrence.acknowledgeFailed(
-          errorCodeValue = command.errorCode,
-          errorMessageValue = command.errorMessage,
-          at = command.acknowledgedAt,
-        )
-      }
-    }
 
-    occurrenceRepository.save(acknowledged)
-    return acknowledged
-  }
+        return PublishRecurrenceOutboxResult(
+            processed = pending.size,
+            published = published,
+            failed = failed,
+        )
+    }
 }
 
-class PublishRecurrenceOutboxService(
-  private val outboxRepository: RecurrenceOutboxRepository,
-  private val publisher: RecurrenceOutboxEventPublisher,
-) : PublishRecurrenceOutboxUC {
-  override fun execute(command: PublishRecurrenceOutboxCommand): PublishRecurrenceOutboxResult {
-    require(command.limit > 0) { "limit must be greater than 0" }
-
-    val pending = outboxRepository.findPending(command.limit)
-    var published = 0
-    var failed = 0
-
-    pending.forEach { message ->
-      try {
-        publisher.publish(message)
-        outboxRepository.save(
-          message.copy(
-            status = RecurrenceOutboxStatus.PUBLISHED,
-            attempts = message.attempts + 1,
-            lastError = null,
-            publishedAt = command.publishedAt,
-          ),
-        )
-        published += 1
-      } catch (ex: RuntimeException) {
-        outboxRepository.save(
-          message.copy(
-            status = RecurrenceOutboxStatus.FAILED,
-            attempts = message.attempts + 1,
-            lastError = ex.message ?: "outbox publish failed",
-            publishedAt = null,
-          ),
-        )
-        failed += 1
-      }
-    }
-
-    return PublishRecurrenceOutboxResult(
-      processed = pending.size,
-      published = published,
-      failed = failed,
-    )
-  }
-}
-
-private fun requireRecurringMovement(
-  recurringMovementRepository: RecurringMovementRepository,
-  recurringMovementId: RecurringMovementId,
-): RecurringMovement = recurringMovementRepository.findById(recurringMovementId)
-  ?: throw RecurringMovementNotFound(recurringMovementId)
+private fun requireRecurringMovement(recurringMovementRepository: RecurringMovementRepository, recurringMovementId: RecurringMovementId): RecurringMovement = recurringMovementRepository.findById(recurringMovementId)
+    ?: throw RecurringMovementNotFound(recurringMovementId)

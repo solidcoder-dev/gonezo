@@ -1,0 +1,8 @@
+#
+#Thu Jul 30 18:26:57 BST 2026
+classes\ that\ reside\ in\ any\ package\ ['com.gonezo.application..']\ should\ depend\ on\ classes\ that\ reside\ in\ any\ package\ ['com.gonezo.infrastructure..',\ '..ui..']=d4a06e2c-9b70-4279-8d95-55aa471ae73c
+classes\ that\ reside\ in\ any\ package\ ['com.gonezo.domain..',\ 'com.gonezo.sharing.domain..']\ should\ depend\ on\ classes\ that\ reside\ in\ any\ package\ ['android..',\ 'com.getcapacitor..',\ 'com.gonezo.application..',\ 'com.gonezo.infrastructure..',\ 'org.springframework..',\ '..ui..']=fd3b53a7-a86f-43b8-8f2c-587a7e4ee508
+classes\ that\ reside\ outside\ of\ package\ 'com.gonezo.application.orchestration..'\ should\ depend\ on\ classes\ that\ reside\ in\ any\ package\ ['dev.solidcoder.interpretation..']=804fb479-a481-4ce7-a5f8-a5c92d6730ce
+slices\ matching\ 'com.gonezo.(*)..'\ should\ be\ free\ of\ cycles=0e7535db-adf1-455c-b4d3-75c79d039f36
+slices\ matching\ 'com.gonezo.domain.(*)..'\ should\ be\ free\ of\ cycles=6154c37a-af2f-4e09-b8ca-bbcae0e0b8f4
+slices\ matching\ 'com.gonezo.domain.(*)..'\ should\ not\ depend\ on\ each\ other=ca3a18ca-b2ef-411e-8f7d-d98efcec2097

@@ -16,7 +16,7 @@ import type {
 } from '../../taxonomy/application/taxonomy.port';
 import { compareTaxonomyCategoriesByUsage } from '../../taxonomy/domain/categoryOrdering';
 import { listMasterCategories } from '../../taxonomy/domain/masterCategories';
-import { CoreAdapterWeb } from './coreAdapterWeb';
+import type { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
 import { isNativeRuntime } from './runtimeAdapterSupport';
 

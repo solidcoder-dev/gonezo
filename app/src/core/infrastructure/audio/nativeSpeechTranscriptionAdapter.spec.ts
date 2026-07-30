@@ -66,7 +66,7 @@ describe('NativeSpeechTranscriptionAdapter', () => {
     expect(cancel).toHaveBeenCalledTimes(1);
 
     let settled = false;
-    cancelPromise.then(() => {
+    void cancelPromise.then(() => {
       settled = true;
     });
     await Promise.resolve();

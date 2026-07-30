@@ -209,6 +209,28 @@ export function MovementVoiceEntryComponent({ required, provided = {} }: Movemen
     onCompleted: handleVoiceCompleted,
     onError: handleVoiceError,
   });
+  const permissionDialog = voiceModel.state.permissionDialog;
+
+  async function exportVoiceRun() {
+    setExportDiagnosticsOpen(false);
+    const outcome = await voiceModel.commands.exportVoiceRun();
+    if (!outcome) {
+      return;
+    }
+    if (outcome.kind === 'success') {
+      provided.events?.onNotice?.({
+        message: 'Diagnostic ZIP exported.',
+        tone: 'success',
+      });
+      return;
+    }
+    if (outcome.kind === 'failure') {
+      provided.events?.onError?.({
+        message: outcome.failure.message,
+        tone: 'error',
+      });
+    }
+  }
 
   return (
     <>
@@ -227,32 +249,34 @@ export function MovementVoiceEntryComponent({ required, provided = {} }: Movemen
         }}
         provided={{
           commands: {
-            retryVoiceCapture: voiceModel.commands.clearFailure,
-            stopLockedRecording: voiceModel.commands.stopLockedRecording,
-            cancelVoicePipeline: voiceModel.commands.cancelVoicePipeline,
+            retryVoiceCapture: () => { void voiceModel.commands.clearFailure(); },
+            stopLockedRecording: () => { void voiceModel.commands.stopLockedRecording(); },
+            cancelVoicePipeline: () => { void voiceModel.commands.cancelVoicePipeline(); },
             setMicrophoneButtonElement,
-            onVoicePointerDown: voiceModel.commands.beginGesture,
-            onVoicePointerMove: voiceModel.commands.moveGesture,
-            onVoicePointerUp: voiceModel.commands.finishGesture,
-            onVoicePointerCancel: voiceModel.commands.cancelGesture,
+            onVoicePointerDown: (gesture) => { void voiceModel.commands.beginGesture(gesture); },
+            onVoicePointerMove: (gesture) => { void voiceModel.commands.moveGesture(gesture); },
+            onVoicePointerUp: (gesture) => { void voiceModel.commands.finishGesture(gesture); },
+            onVoicePointerCancel: (gesture) => { void voiceModel.commands.cancelGesture(gesture); },
           },
         }}
       />
-      {voiceModel.state.permissionDialog.open ? (
+      {permissionDialog.open ? (
         <MovementVoicePermissionDialog
           open
-          title={voiceModel.state.permissionDialog.title}
-          description={voiceModel.state.permissionDialog.description}
-          dismissActionLabel={voiceModel.state.permissionDialog.dismissActionLabel}
-          safeActionLabel={voiceModel.state.permissionDialog.safeActionLabel}
-          busy={voiceModel.state.permissionDialog.busy}
+          title={permissionDialog.title}
+          description={permissionDialog.description}
+          dismissActionLabel={permissionDialog.dismissActionLabel}
+          safeActionLabel={permissionDialog.safeActionLabel}
+          busy={permissionDialog.busy}
           restoreFocusTo={microphoneButtonRef}
-          onDismiss={voiceModel.commands.dismissPermissionDialog}
-          onSafeAction={
-            voiceModel.state.permissionDialog.kind === 'open-settings'
-              ? voiceModel.commands.openMicrophoneSettings
-              : voiceModel.commands.requestPermissionAndRecord
-          }
+          onDismiss={() => { void voiceModel.commands.dismissPermissionDialog(); }}
+          onSafeAction={() => {
+            if (permissionDialog.kind === 'open-settings') {
+              void voiceModel.commands.openMicrophoneSettings();
+              return;
+            }
+            void voiceModel.commands.requestPermissionAndRecord();
+          }}
         />
       ) : null}
       <SheetView
@@ -269,32 +293,13 @@ export function MovementVoiceEntryComponent({ required, provided = {} }: Movemen
             ),
             footer: (
               <div className="gz-quick-row">
-                <button type="button" className="gz-text-button" onClick={() => setExportDiagnosticsOpen(false)}>
+                <button type="button" className="gz-text-button" onClick={() => { setExportDiagnosticsOpen(false); }}>
                   Cancel
                 </button>
                 <button
                   type="button"
                   className="btn btn-primary w-100"
-                  onClick={async () => {
-                    setExportDiagnosticsOpen(false);
-                    const outcome = await voiceModel.commands.exportVoiceRun();
-                    if (!outcome) {
-                      return;
-                    }
-                    if (outcome.kind === 'success') {
-                      provided.events?.onNotice?.({
-                        message: 'Diagnostic ZIP exported.',
-                        tone: 'success',
-                      });
-                      return;
-                    }
-                    if (outcome.kind === 'failure') {
-                      provided.events?.onError?.({
-                        message: outcome.failure.message,
-                        tone: 'error',
-                      });
-                    }
-                  }}
+                  onClick={() => { void exportVoiceRun(); }}
                 >
                   Export ZIP
                 </button>

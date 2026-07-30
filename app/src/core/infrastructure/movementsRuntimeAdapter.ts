@@ -19,7 +19,7 @@ import {
   searchNativeMovements,
 } from '../../movements/infrastructure/nativeMovements';
 import { getMovementsSearchFacets } from '../../movements/infrastructure/searchFacets';
-import { CoreAdapterWeb } from './coreAdapterWeb';
+import type { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
 import { isNativeRuntime } from './runtimeAdapterSupport';
 
