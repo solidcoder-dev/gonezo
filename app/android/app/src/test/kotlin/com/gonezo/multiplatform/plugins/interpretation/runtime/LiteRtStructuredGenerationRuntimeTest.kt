@@ -2,6 +2,7 @@ package com.gonezo.multiplatform.plugins.interpretation.runtime
 
 import com.gonezo.multiplatform.plugins.interpretation.model.InterpretationModelConfiguration
 import com.gonezo.multiplatform.plugins.interpretation.model.InterpretationModelStore
+import com.gonezo.multiplatform.plugins.ml.MlExecutionTarget
 import com.google.ai.edge.litertlm.ConversationConfig
 import dev.solidcoder.interpretation.application.InterpretationFailureCode
 import dev.solidcoder.interpretation.application.StructuredGenerationException
@@ -78,6 +79,7 @@ class LiteRtStructuredGenerationRuntimeTest {
         engineFactory = factory,
         modelConfiguration = modelConfiguration(),
         cacheDirectoryPath = "/tmp/gonezo-cache",
+        executionTarget = MlExecutionTarget.GPU,
       )
 
       runtime.generate(request("prompt"))
@@ -87,6 +89,38 @@ class LiteRtStructuredGenerationRuntimeTest {
       assertEquals("/tmp/gonezo-cache", factory.configurations.single().cacheDirectoryPath)
       assertEquals(LiteRtStructuredGenerationRuntime.MAX_NUM_TOKENS, factory.configurations.single().maxNumTokens)
       assertEquals(1, engine.initializeCalls.get())
+    }
+  }
+
+  @Test
+  fun `passes the selected NPU target to the LiteRT engine factory`() {
+    runBlocking {
+      val engine = FakeLiteRtEngine()
+      val factory = FakeLiteRtEngineFactory(engine)
+      val runtime = LiteRtStructuredGenerationRuntime(
+        modelStore = FakeModelStore("/tmp/sm8850.litertlm"),
+        engineFactory = factory,
+        modelConfiguration = modelConfiguration(MlExecutionTarget.NPU),
+        cacheDirectoryPath = "/tmp/gonezo-cache",
+        executionTarget = MlExecutionTarget.NPU,
+      )
+
+      runtime.generate(request("prompt"))
+
+      assertEquals(MlExecutionTarget.NPU, factory.configurations.single().executionTarget)
+    }
+  }
+
+  @Test
+  fun `rejects a model that is incompatible with the selected execution target`() {
+    assertThrows(IllegalArgumentException::class.java) {
+      LiteRtStructuredGenerationRuntime(
+        modelStore = FakeModelStore("/tmp/model.litertlm"),
+        engineFactory = FakeLiteRtEngineFactory(FakeLiteRtEngine()),
+        modelConfiguration = modelConfiguration(MlExecutionTarget.NPU),
+        cacheDirectoryPath = "/tmp/gonezo-cache",
+        executionTarget = MlExecutionTarget.GPU,
+      )
     }
   }
 
@@ -174,6 +208,7 @@ class LiteRtStructuredGenerationRuntimeTest {
         engineFactory = factory,
         modelConfiguration = modelConfiguration(),
         cacheDirectoryPath = "/tmp/gonezo-cache",
+        executionTarget = MlExecutionTarget.GPU,
         initializationTimeoutMs = 1,
       )
 
@@ -316,7 +351,7 @@ class LiteRtStructuredGenerationRuntimeTest {
   fun `source delegates backend selection and avoids CPU or multimodal fallbacks`() {
     val source = java.nio.file.Path.of("src/main/kotlin/com/gonezo/multiplatform/plugins/interpretation/runtime/LiteRtStructuredGenerationRuntime.kt").readText()
 
-    assertTrue(source.contains("backendStrategy"))
+    assertTrue(source.contains("executionTarget"))
     assertTrue(source.contains("cacheDirectoryPath"))
     assertTrue(source.contains("maxNumTokens = MAX_NUM_TOKENS"))
     assertFalse(source.contains("Backend.GPU"))
@@ -333,6 +368,7 @@ class LiteRtStructuredGenerationRuntimeTest {
       engineFactory = FakeLiteRtEngineFactory(engine),
       modelConfiguration = modelConfiguration(),
       cacheDirectoryPath = "/tmp/gonezo-cache",
+      executionTarget = MlExecutionTarget.GPU,
       generationTimeoutMs = generationTimeoutMs,
     )
   }
@@ -356,13 +392,15 @@ class LiteRtStructuredGenerationRuntimeTest {
     generationTimeoutMs = generationTimeoutMs,
   )
 
-  private fun modelConfiguration(): InterpretationModelConfiguration = InterpretationModelConfiguration(
+  private fun modelConfiguration(target: MlExecutionTarget = MlExecutionTarget.GPU): InterpretationModelConfiguration = InterpretationModelConfiguration(
     modelId = "litert-community/Gemma3-1B-IT",
     modelVersion = "dynamic-int4-q4-ekv4096",
     assetPath = "schema-guided-interpretation/litertlm/Gemma3-1B-IT_multi-prefill-seq_q4_ekv4096.litertlm",
     fileName = "Gemma3-1B-IT_multi-prefill-seq_q4_ekv4096.litertlm",
     expectedSizeBytes = 584417280L,
     sha256 = "1325ae366d31950f137c9c357b9fa89448b176d76998180c08ceaca78bba98be",
+    target = target,
+    npuTarget = if (target == MlExecutionTarget.NPU) com.gonezo.multiplatform.plugins.ml.NpuTarget.QUALCOMM_SM8850 else null,
   )
 
   private class FakeModelStore(

@@ -40,8 +40,7 @@ internal data class LiteRtEngineConfiguration(
   val modelPath: String,
   val cacheDirectoryPath: String,
   val maxNumTokens: Int = DEFAULT_MAX_NUM_TOKENS,
-  val executionTarget: MlExecutionTarget = MlExecutionTarget.GPU,
-  val nativeLibraryDir: String? = null,
+  val executionTarget: MlExecutionTarget,
 )
 
 internal fun interface LiteRtEngineFactory {
@@ -53,13 +52,18 @@ internal class LiteRtStructuredGenerationRuntime(
   private val engineFactory: LiteRtEngineFactory,
   private val modelConfiguration: InterpretationModelConfiguration,
   private val cacheDirectoryPath: String,
-  private val backendStrategy: LiteRtBackendStrategy = LiteRtGpuBackendStrategy(),
-  private val nativeLibraryDir: String? = null,
+  private val executionTarget: MlExecutionTarget,
   private val logger: InterpretationRuntimeLogger = NoOpInterpretationRuntimeLogger,
   private val elapsedRealtimeProvider: ElapsedRealtimeProvider = NoOpElapsedRealtimeProvider,
   private val initializationTimeoutMs: Long = ENGINE_INITIALIZATION_TIMEOUT_MS,
   private val generationTimeoutMs: Long = GENERATION_TIMEOUT_MS,
 ) : StructuredGenerationRuntime, Closeable {
+  init {
+    require(modelConfiguration.target == executionTarget) {
+      "Interpretation model target ${modelConfiguration.target} does not match execution target $executionTarget."
+    }
+  }
+
   private val engineMutex = Mutex()
   private val generationMutex = Mutex()
 
@@ -107,50 +111,50 @@ internal class LiteRtStructuredGenerationRuntime(
       engine?.let { return it }
 
       logEvent(
-        event = "interpretation.model.resolve.start",
-        modelId = modelConfiguration.modelId,
-        modelVersion = modelConfiguration.modelVersion,
-      )
+          event = "interpretation.model.resolve.start",
+          modelId = modelConfiguration.modelId,
+          modelVersion = modelConfiguration.modelVersion,
+        )
       val resolveStartedAt = elapsedRealtimeProvider.now()
       val modelPath = resolveModelPath()
       logEvent(
-        event = "interpretation.model.resolve.success",
-        modelId = modelConfiguration.modelId,
-        modelVersion = modelConfiguration.modelVersion,
-        durationMs = elapsedRealtimeProvider.now() - resolveStartedAt,
-      )
+          event = "interpretation.model.resolve.success",
+          modelId = modelConfiguration.modelId,
+          modelVersion = modelConfiguration.modelVersion,
+          durationMs = elapsedRealtimeProvider.now() - resolveStartedAt,
+        )
 
       val created = engineFactory.create(
         LiteRtEngineConfiguration(
           modelPath = modelPath,
           cacheDirectoryPath = cacheDirectoryPath,
           maxNumTokens = MAX_NUM_TOKENS,
-          executionTarget = backendStrategy.target,
-          nativeLibraryDir = nativeLibraryDir,
+          executionTarget = executionTarget,
         ),
       )
 
       try {
-      logEvent(
-        event = "interpretation.engine.initialize.start",
-        modelId = modelConfiguration.modelId,
-        modelVersion = modelConfiguration.modelVersion,
-      )
+        logEvent(
+          event = "interpretation.engine.initialize.start",
+          modelId = modelConfiguration.modelId,
+          modelVersion = modelConfiguration.modelVersion,
+        )
         val initializeStartedAt = elapsedRealtimeProvider.now()
         withTimeout(initializationTimeoutMs) {
           created.initialize()
         }
-      logEvent(
-        event = "interpretation.engine.initialize.success",
-        modelId = modelConfiguration.modelId,
-        modelVersion = modelConfiguration.modelVersion,
-        durationMs = elapsedRealtimeProvider.now() - initializeStartedAt,
-      )
-      logger.log(
-        TAG,
-        "interpretation_initialization_ms=${elapsedRealtimeProvider.now() - initializeStartedAt} " +
-          "interpretation_execution_target=${backendStrategy.target}",
-      )
+        logEvent(
+          event = "interpretation.engine.initialize.success",
+          modelId = modelConfiguration.modelId,
+          modelVersion = modelConfiguration.modelVersion,
+          durationMs = elapsedRealtimeProvider.now() - initializeStartedAt,
+        )
+        logger.log(
+          TAG,
+          "interpretation_initialization_ms=${elapsedRealtimeProvider.now() - initializeStartedAt} " +
+            "interpretation_execution_target=$executionTarget " +
+            "interpretation_model=${modelConfiguration.fileName}",
+        )
       } catch (exception: StructuredGenerationException) {
         created.close()
         throw exception
@@ -300,7 +304,8 @@ internal class LiteRtStructuredGenerationRuntime(
         logger.log(
           TAG,
           "interpretation_generation_ms=${elapsedRealtimeProvider.now() - startedAt} " +
-            "interpretation_execution_target=${backendStrategy.target}",
+            "interpretation_execution_target=$executionTarget " +
+              "interpretation_model=${modelConfiguration.fileName}",
         )
         rawOutput
       }
@@ -378,7 +383,8 @@ internal class LiteRtStructuredGenerationRuntime(
         append(' ')
         append("modelVersion=").append(modelVersion)
         append(' ')
-        append("backend=").append(backendStrategy.target)
+        append("backend=").append(executionTarget)
+        append(' ').append("interpretation_model=").append(modelConfiguration.fileName)
         durationMs?.let { append(' ').append("durationMs=").append(it) }
         outputLength?.let { append(' ').append("outputLength=").append(it) }
       },
@@ -400,7 +406,8 @@ internal class LiteRtStructuredGenerationRuntime(
         append(' ')
         append("modelVersion=").append(modelConfiguration.modelVersion)
         append(' ')
-        append("backend=").append(backendStrategy.target)
+        append("backend=").append(executionTarget)
+        append(' ').append("interpretation_model=").append(modelConfiguration.fileName)
         request.fieldKey?.let { append(' ').append("fieldKey=").append(it) }
         request.fieldIndex?.let { append(' ').append("fieldIndex=").append(it) }
         request.attemptNumber?.let { append(' ').append("attemptNumber=").append(it) }
@@ -424,7 +431,8 @@ internal class LiteRtStructuredGenerationRuntime(
         append(' ')
         append("modelVersion=").append(modelConfiguration.modelVersion)
         append(' ')
-        append("backend=").append(backendStrategy.target)
+        append("backend=").append(executionTarget)
+        append(' ').append("interpretation_model=").append(modelConfiguration.fileName)
         append(' ')
         append("phase=").append(phase.name.lowercase())
         append(' ')
@@ -470,16 +478,13 @@ internal object AndroidElapsedRealtimeProvider : ElapsedRealtimeProvider {
 }
 
 internal fun liteRtEngineFactory(
-  backendStrategyFactory: LiteRtBackendStrategyFactory = LiteRtBackendStrategyFactory(),
+  backendFactory: LiteRtBackendFactory,
 ): LiteRtEngineFactory = LiteRtEngineFactory { configuration ->
   object : LiteRtEngineHandle {
     private val engine = Engine(
       EngineConfig(
         modelPath = configuration.modelPath,
-        backend = backendStrategyFactory.create(
-          target = configuration.executionTarget,
-          nativeLibraryDir = configuration.nativeLibraryDir,
-        ).createBackend(),
+        backend = backendFactory.create(configuration.executionTarget),
         maxNumTokens = configuration.maxNumTokens,
         cacheDir = configuration.cacheDirectoryPath,
       ),

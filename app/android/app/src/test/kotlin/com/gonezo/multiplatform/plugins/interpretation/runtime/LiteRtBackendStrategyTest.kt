@@ -9,14 +9,14 @@ import org.junit.Test
 class LiteRtBackendStrategyTest {
   @Test
   fun `maps GPU to LiteRT GPU`() {
-    val backend = LiteRtBackendStrategyFactory().create(MlExecutionTarget.GPU, null).createBackend()
+    val backend = AndroidLiteRtBackendFactory("/app/lib").create(MlExecutionTarget.GPU)
 
     assertTrue(backend is Backend.GPU)
   }
 
   @Test
   fun `maps NPU to LiteRT NPU with the composition root library directory`() {
-    val backend = LiteRtBackendStrategyFactory().create(MlExecutionTarget.NPU, "/app/lib").createBackend()
+    val backend = AndroidLiteRtBackendFactory("/app/lib").create(MlExecutionTarget.NPU)
 
     assertTrue(backend is Backend.NPU)
     assertEquals("/app/lib", (backend as Backend.NPU).nativeLibraryDir)

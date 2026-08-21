@@ -42,7 +42,7 @@ The module models a reusable interpretation contract with neutral language under
 
 The voice path is now entirely local on Android:
 
-`Audio -> Whisper local -> transcript -> OnDeviceInputInterpreter -> StructuredGenerationRuntime -> LiteRtStructuredGenerationRuntime (GPU-only Gemma 3 1B dynamic-int4 QAT) -> strict JSON -> JsonInterpretationResultDecoder -> InterpretationOutcome -> MovementEntryDraft -> composer`
+`Audio -> Whisper local -> transcript -> OnDeviceInputInterpreter -> StructuredGenerationRuntime -> LiteRtStructuredGenerationRuntime (SM8850 NPU or GPU fallback Gemma 3 1B) -> strict JSON -> JsonInterpretationResultDecoder -> InterpretationOutcome -> MovementEntryDraft -> composer`
 
 `OnDeviceInputInterpreter` remains the portable coordinator. `StructuredGenerationRuntime` remains the runtime port, so a future remote implementation can replace the local adapter without changing the request, result, domain mapping, or composer contracts.
 
@@ -55,7 +55,7 @@ The voice path is now entirely local on Android:
 ## Model provisioning
 
 - The model is not versioned in Git.
-- The current model is `litert-community/Gemma3-1B-IT` and Android expects `Gemma3-1B-IT_multi-prefill-seq_q4_ekv4096.litertlm`.
+- The GPU model is `Gemma3-1B-IT_multi-prefill-seq_q4_ekv4096.litertlm`; SM8850 NPU execution uses `Gemma3-1B-IT_q4_ekv1280_sm8850.litertlm`. Both are selected from the Android ML execution plan.
 - Android expects a local file with a fixed file name, size, and SHA-256.
 - The build stages the verified asset into generated Android assets and then copies it into private app storage on device.
 - If the model file is missing or corrupt, the runtime fails with a typed, actionable interpretation failure.

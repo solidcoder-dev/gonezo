@@ -7,7 +7,7 @@ import com.gonezo.multiplatform.plugins.interpretation.model.InterpretationModel
 import com.gonezo.multiplatform.plugins.interpretation.runtime.AndroidInterpretationRuntimeLogger
 import com.gonezo.multiplatform.plugins.interpretation.runtime.AndroidElapsedRealtimeProvider
 import com.gonezo.multiplatform.plugins.interpretation.runtime.LiteRtStructuredGenerationRuntime
-import com.gonezo.multiplatform.plugins.interpretation.runtime.LiteRtBackendStrategyFactory
+import com.gonezo.multiplatform.plugins.interpretation.runtime.AndroidLiteRtBackendFactory
 import com.gonezo.multiplatform.plugins.interpretation.runtime.liteRtEngineFactory
 import com.gonezo.multiplatform.plugins.ml.MlExecutionPlan
 import com.gonezo.multiplatform.plugins.ml.MlExecutionPlanFactory
@@ -58,8 +58,7 @@ class SchemaGuidedInterpretationCompositionRoot internal constructor(
         target = executionPlan.interpretation,
         descriptors = listOf(modelReader.read(), modelReader.read(com.gonezo.multiplatform.plugins.ml.MlExecutionTarget.NPU)),
       )
-      val backendStrategy = LiteRtBackendStrategyFactory().create(
-        target = executionPlan.interpretation,
+      val backendFactory = AndroidLiteRtBackendFactory(
         nativeLibraryDir = context.applicationInfo.nativeLibraryDir,
       )
       val runtime = LiteRtStructuredGenerationRuntime(
@@ -67,11 +66,10 @@ class SchemaGuidedInterpretationCompositionRoot internal constructor(
           context = context,
           configuration = configuration,
         ),
-        engineFactory = liteRtEngineFactory(),
+        engineFactory = liteRtEngineFactory(backendFactory),
         modelConfiguration = configuration,
         cacheDirectoryPath = context.cacheDir.absolutePath,
-        backendStrategy = backendStrategy,
-        nativeLibraryDir = context.applicationInfo.nativeLibraryDir,
+        executionTarget = executionPlan.interpretation,
         logger = AndroidInterpretationRuntimeLogger,
         elapsedRealtimeProvider = AndroidElapsedRealtimeProvider,
       )
