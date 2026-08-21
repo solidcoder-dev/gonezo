@@ -60,6 +60,24 @@
         <meta-data
             android:name="gonezo.interpretation.model.sha256"
             android:value="1325ae366d31950f137c9c357b9fa89448b176d76998180c08ceaca78bba98be" />
+        <meta-data
+            android:name="gonezo.interpretation.model.npu.asset"
+            android:value="schema-guided-interpretation/litertlm/Gemma3-1B-IT_q4_ekv1280_sm8850.litertlm" />
+        <meta-data
+            android:name="gonezo.interpretation.model.npu.id"
+            android:value="litert-community/Gemma3-1B-IT" />
+        <meta-data
+            android:name="gonezo.interpretation.model.npu.version"
+            android:value="a16w4-q4-ekv1280-sm8850" />
+        <meta-data
+            android:name="gonezo.interpretation.model.npu.fileName"
+            android:value="Gemma3-1B-IT_q4_ekv1280_sm8850.litertlm" />
+        <meta-data
+            android:name="gonezo.interpretation.model.npu.size"
+            android:value="693747712" />
+        <meta-data
+            android:name="gonezo.interpretation.model.npu.sha256"
+            android:value="fda5dca0e8c1c6f65ca5625c326ff79920c7eb82625a0c6515ae4f5711957b1f" />
 
         <uses-native-library
             android:name="libvndksupport.so"

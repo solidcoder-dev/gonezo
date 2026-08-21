@@ -10,6 +10,10 @@ def interpretationModelAssetPath = 'schema-guided-interpretation/litertlm/Gemma3
 def interpretationModelSourceFile = file("$projectDir/../third_party/Gemma3-1B-IT_multi-prefill-seq_q4_ekv4096.litertlm")
 def interpretationModelExpectedBytes = 584417280L
 def interpretationModelSha256 = '1325ae366d31950f137c9c357b9fa89448b176d76998180c08ceaca78bba98be'
+def npuInterpretationModelAssetPath = 'schema-guided-interpretation/litertlm/Gemma3-1B-IT_q4_ekv1280_sm8850.litertlm'
+def npuInterpretationModelSourceFile = file("$projectDir/../third_party/Gemma3-1B-IT_q4_ekv1280_sm8850.litertlm")
+def npuInterpretationModelExpectedBytes = 693747712L
+def npuInterpretationModelSha256 = 'fda5dca0e8c1c6f65ca5625c326ff79920c7eb82625a0c6515ae4f5711957b1f'
 
 android {
     namespace = "com.gonezo.multiplatform"
@@ -123,9 +127,25 @@ tasks.register('verifyInterpretationModel') {
     }
 }
 
+tasks.register('stageNpuInterpretationModel') {
+    def modelFile = file("$buildDir/generated/interpretation-assets/$npuInterpretationModelAssetPath")
+    outputs.file(modelFile)
+    onlyIf {
+        npuInterpretationModelSourceFile.isFile()
+    }
+    doLast {
+        if (npuInterpretationModelSourceFile.length() != npuInterpretationModelExpectedBytes || sha256(npuInterpretationModelSourceFile) != npuInterpretationModelSha256) {
+            throw new GradleException("Local SM8850 interpretation model failed size or SHA-256 validation.")
+        }
+        modelFile.parentFile.mkdirs()
+        java.nio.file.Files.copy(npuInterpretationModelSourceFile.toPath(), modelFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+    }
+}
+
 tasks.matching { it.name in ['mergeDebugAssets', 'mergeReleaseAssets'] }.configureEach {
     dependsOn tasks.named('verifySpeechModel')
     dependsOn tasks.named('verifyInterpretationModel')
+    dependsOn tasks.named('stageNpuInterpretationModel')
 }
 
 tasks.register('provisionSpeechModel') {

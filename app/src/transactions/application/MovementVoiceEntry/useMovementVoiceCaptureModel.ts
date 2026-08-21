@@ -258,6 +258,7 @@ export function useMovementVoiceCaptureModel(input: UseMovementVoiceCaptureModel
   const selectedAccountRef = useRef(selectedAccount);
   const mountedRef = useRef(true);
   const stopInFlightRef = useRef<Promise<void> | null>(null);
+  const toggleInFlightRef = useRef<Promise<void> | null>(null);
   const flowIdRef = useRef(0);
   const permissionRequestIdRef = useRef(0);
   const awaitingSettingsReturnRef = useRef(false);
@@ -283,7 +284,7 @@ export function useMovementVoiceCaptureModel(input: UseMovementVoiceCaptureModel
       void transcribeVoiceInput.cancel();
       void interpretMovementEntryDraft.cancel();
     };
-  }, [captureVoiceInput, interpretMovementEntryDraft, onError, transcribeVoiceInput]);
+  }, [captureVoiceInput, interpretMovementEntryDraft, transcribeVoiceInput]);
 
   useEffect(() => {
     if (enabled) {
@@ -675,6 +676,60 @@ export function useMovementVoiceCaptureModel(input: UseMovementVoiceCaptureModel
     }
   }
 
+  async function toggleCapture() {
+    if (toggleInFlightRef.current) {
+      await toggleInFlightRef.current;
+      return;
+    }
+
+    const operation = toggleCaptureInternal();
+    toggleInFlightRef.current = operation;
+    try {
+      await operation;
+    } finally {
+      if (toggleInFlightRef.current === operation) {
+        toggleInFlightRef.current = null;
+      }
+    }
+  }
+
+  async function toggleCaptureInternal() {
+    if (!enabled || !selectedAccountRef.current) {
+      return;
+    }
+
+    const currentState = functionalStateRef.current;
+    if (currentState.kind === 'failed') {
+      setFunctionalState({ kind: 'idle' });
+      return;
+    }
+    if (currentState.kind === 'recording' || currentState.kind === 'locked') {
+      await stopActiveRecording();
+      return;
+    }
+    if (isOperationalState(currentState)) {
+      return;
+    }
+
+    resetPointerGesture();
+    setPermissionDialog({ kind: 'closed' });
+    try {
+      const status = await microphonePermission.getStatus();
+      if (!mountedRef.current) {
+        return;
+      }
+      if (status === 'granted') {
+        await startVoiceCapture('recording');
+        return;
+      }
+      setPermissionDialog(status === 'permanently-denied' ? { kind: 'open-settings' } : { kind: 'request-access' });
+    } catch (error) {
+      if (mountedRef.current) {
+        failWith(error, 'Microphone permission could not be checked.');
+      }
+    }
+  }
+
   async function moveGesture(gesture: MoveGestureInput) {
     const currentState = functionalStateRef.current;
     if (gesture.pointerId !== activePointerIdRef.current || currentState.kind !== 'recording' || !originRef.current) {
@@ -911,6 +966,7 @@ export function useMovementVoiceCaptureModel(input: UseMovementVoiceCaptureModel
     },
     commands: {
       beginGesture,
+      toggleCapture,
       moveGesture,
       finishGesture,
       cancelGesture,

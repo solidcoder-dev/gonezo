@@ -25,6 +25,7 @@ export type MovementVoiceEntryControllerDiagnosticsState = Readonly<{
 export type MovementVoiceEntryControllerState = Readonly<{
   presentation: MovementVoiceCapturePresentationState;
   navigationDimmed: boolean;
+  microphoneDisabled: boolean;
   manualAddDisabled: boolean;
   busy: boolean;
   permissionDialog: MovementVoicePermissionDialogPresentation;
@@ -33,6 +34,7 @@ export type MovementVoiceEntryControllerState = Readonly<{
 
 export type MovementVoiceEntryControllerCommands = Readonly<{
   beginGesture(input: PointerInput): void;
+  toggleCapture(): void;
   moveGesture(input: PointerInput): void;
   finishGesture(input: PointerFinishInput): void;
   cancelGesture(input: PointerFinishInput): void;
@@ -167,7 +169,7 @@ export function useMovementVoiceEntryController({
   );
 
   const voiceModel = useMovementVoiceCaptureModel({
-    enabled: enabled && Boolean(selectedAccount) && !categoryLoading,
+    enabled,
     selectedAccount: selectedAccount ?? undefined,
     clockNow: () => Date.now(),
     captureVoiceInput,
@@ -228,6 +230,10 @@ export function useMovementVoiceEntryController({
   const beginGesture = useCallback((input: PointerInput) => {
     void voiceModel.commands.beginGesture(input);
     setDiagnostics(null);
+  }, [voiceModel.commands]);
+
+  const toggleCapture = useCallback(() => {
+    void voiceModel.commands.toggleCapture();
   }, [voiceModel.commands]);
 
   const moveGesture = useCallback((input: PointerInput) => {
@@ -295,6 +301,7 @@ export function useMovementVoiceEntryController({
     state: {
       presentation: voiceModel.state.presentation,
       navigationDimmed: voiceModel.state.navigationDimmed,
+      microphoneDisabled: !enabled || !selectedAccount || categoryLoading,
       manualAddDisabled: voiceModel.state.addDisabled,
       busy: voiceModel.state.navigationDimmed,
       permissionDialog: voiceModel.state.permissionDialog,
@@ -302,6 +309,7 @@ export function useMovementVoiceEntryController({
     },
     commands: {
       beginGesture,
+      toggleCapture,
       moveGesture,
       finishGesture,
       cancelGesture,

@@ -1,4 +1,3 @@
-import { useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import type { ExperimentalMovementDockNavigationViewProps } from './ExperimentalMovementDockNavigationView.contract';
 import './ExperimentalMovementDockNavigationView.css';
 
@@ -17,7 +16,6 @@ function isRecordingState(kind: ExperimentalMovementDockNavigationViewProps['req
 }
 
 export function ExperimentalMovementDockNavigationView({ required, provided }: ExperimentalMovementDockNavigationViewProps) {
-  const stopArmedRef = useRef(false);
   const voiceCaptureState = required.state.voiceCapture;
   const draftReadyState = voiceCaptureState.kind === 'draft-ready';
   const compactPipelineState = voiceCaptureState.kind === 'cancelling'
@@ -27,15 +25,11 @@ export function ExperimentalMovementDockNavigationView({ required, provided }: E
   const showVoiceCaptureStatus = voiceCaptureState.kind !== 'idle';
   const {
     cancelVoicePipeline,
-    onVoicePointerCancel,
-    onVoicePointerDown,
-    onVoicePointerMove,
-    onVoicePointerUp,
     pressAdd,
     retryVoiceCapture,
     selectItem,
     setMicrophoneButtonElement,
-    stopLockedRecording,
+    toggleCapture,
   } = provided.commands;
   const voiceCaptureKind = voiceCaptureState.kind;
   const voiceCaptureBusy = voiceCaptureState.busy;
@@ -50,59 +44,19 @@ export function ExperimentalMovementDockNavigationView({ required, provided }: E
     voiceCaptureState.kind === 'failed' ? 'movement-dock-capsule--failed' : '',
   ].filter(Boolean).join(' ');
 
-  function handleMicrophoneClick() {
+  function handleMicrophoneTap() {
     if (voiceCaptureKind === 'failed') {
       retryVoiceCapture();
       return;
     }
-
     if (compactPipelineState) {
       cancelVoicePipeline?.();
       return;
     }
-
-    if (voiceCaptureBusy) {
+    if (voiceCaptureBusy && voiceCaptureKind !== 'recording' && voiceCaptureKind !== 'locked') {
       return;
     }
-
-    if (voiceCaptureKind === 'locked' || (voiceCaptureKind === 'recording' && stopArmedRef.current)) {
-      stopLockedRecording();
-    }
-  }
-
-  function bindPointerGesture(
-    callback: (gesture: { pointerId: number; clientX: number; clientY: number }) => Promise<void> | void,
-  ) {
-    return (event: ReactPointerEvent<HTMLButtonElement>) => {
-      if (event.pointerType === 'mouse' && event.button !== 0) {
-        return;
-      }
-      if ('setPointerCapture' in event.currentTarget && event.type === 'pointerdown') {
-        event.currentTarget.setPointerCapture(event.pointerId);
-      }
-      event.preventDefault();
-      void callback({
-        pointerId: event.pointerId,
-        clientX: event.clientX,
-        clientY: event.clientY,
-      });
-    };
-  }
-
-  function bindPointerFinish(
-    callback: (gesture: { pointerId: number }) => Promise<void> | void,
-  ) {
-    return (event: ReactPointerEvent<HTMLButtonElement>) => {
-      if ('releasePointerCapture' in event.currentTarget) {
-        try {
-          event.currentTarget.releasePointerCapture(event.pointerId);
-        } catch {
-          // noop
-        }
-      }
-      event.preventDefault();
-      void callback({ pointerId: event.pointerId });
-    };
+    toggleCapture();
   }
 
   return (
@@ -189,24 +143,10 @@ export function ExperimentalMovementDockNavigationView({ required, provided }: E
             : recordingState && !draftReadyState
               ? required.config.stopLockedAriaLabel
               : required.config.microphoneAriaLabel}
+          disabled={required.status.microphoneDisabled}
           aria-invalid={voiceCaptureKind === 'failed' ? 'true' : undefined}
           aria-pressed={voiceCaptureKind === 'recording' || voiceCaptureKind === 'locked'}
-          onClick={() => { void handleMicrophoneClick(); }}
-          onPointerDown={(event) => {
-            stopArmedRef.current = recordingState;
-            void bindPointerGesture(onVoicePointerDown)(event);
-          }}
-          onPointerMove={bindPointerGesture(onVoicePointerMove)}
-          onPointerUp={(event) => {
-            if (voiceCaptureKind === 'locked') {
-              stopArmedRef.current = false;
-            }
-            void bindPointerFinish(onVoicePointerUp)(event);
-          }}
-          onPointerCancel={(event) => {
-            stopArmedRef.current = false;
-            void bindPointerFinish(onVoicePointerCancel)(event);
-          }}
+          onClick={() => { void handleMicrophoneTap(); }}
         >
           <i
             className={`bi ${

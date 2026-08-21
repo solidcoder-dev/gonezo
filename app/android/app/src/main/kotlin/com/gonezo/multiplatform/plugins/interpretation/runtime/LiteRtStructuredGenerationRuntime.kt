@@ -2,7 +2,7 @@ package com.gonezo.multiplatform.plugins.interpretation.runtime
 
 import com.gonezo.multiplatform.plugins.interpretation.model.InterpretationModelConfiguration
 import com.gonezo.multiplatform.plugins.interpretation.model.InterpretationModelStore
-import com.google.ai.edge.litertlm.Backend
+import com.gonezo.multiplatform.plugins.ml.MlExecutionTarget
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
@@ -40,6 +40,8 @@ internal data class LiteRtEngineConfiguration(
   val modelPath: String,
   val cacheDirectoryPath: String,
   val maxNumTokens: Int = DEFAULT_MAX_NUM_TOKENS,
+  val executionTarget: MlExecutionTarget = MlExecutionTarget.GPU,
+  val nativeLibraryDir: String? = null,
 )
 
 internal fun interface LiteRtEngineFactory {
@@ -51,6 +53,8 @@ internal class LiteRtStructuredGenerationRuntime(
   private val engineFactory: LiteRtEngineFactory,
   private val modelConfiguration: InterpretationModelConfiguration,
   private val cacheDirectoryPath: String,
+  private val backendStrategy: LiteRtBackendStrategy = LiteRtGpuBackendStrategy(),
+  private val nativeLibraryDir: String? = null,
   private val logger: InterpretationRuntimeLogger = NoOpInterpretationRuntimeLogger,
   private val elapsedRealtimeProvider: ElapsedRealtimeProvider = NoOpElapsedRealtimeProvider,
   private val initializationTimeoutMs: Long = ENGINE_INITIALIZATION_TIMEOUT_MS,
@@ -121,6 +125,8 @@ internal class LiteRtStructuredGenerationRuntime(
           modelPath = modelPath,
           cacheDirectoryPath = cacheDirectoryPath,
           maxNumTokens = MAX_NUM_TOKENS,
+          executionTarget = backendStrategy.target,
+          nativeLibraryDir = nativeLibraryDir,
         ),
       )
 
@@ -139,6 +145,11 @@ internal class LiteRtStructuredGenerationRuntime(
         modelId = modelConfiguration.modelId,
         modelVersion = modelConfiguration.modelVersion,
         durationMs = elapsedRealtimeProvider.now() - initializeStartedAt,
+      )
+      logger.log(
+        TAG,
+        "interpretation_initialization_ms=${elapsedRealtimeProvider.now() - initializeStartedAt} " +
+          "interpretation_execution_target=${backendStrategy.target}",
       )
       } catch (exception: StructuredGenerationException) {
         created.close()
@@ -286,6 +297,11 @@ internal class LiteRtStructuredGenerationRuntime(
           durationMs = elapsedRealtimeProvider.now() - startedAt,
           outputLength = rawOutput.length,
         )
+        logger.log(
+          TAG,
+          "interpretation_generation_ms=${elapsedRealtimeProvider.now() - startedAt} " +
+            "interpretation_execution_target=${backendStrategy.target}",
+        )
         rawOutput
       }
     } catch (exception: TimeoutCancellationException) {
@@ -362,7 +378,7 @@ internal class LiteRtStructuredGenerationRuntime(
         append(' ')
         append("modelVersion=").append(modelVersion)
         append(' ')
-        append("backend=").append(BACKEND_NAME)
+        append("backend=").append(backendStrategy.target)
         durationMs?.let { append(' ').append("durationMs=").append(it) }
         outputLength?.let { append(' ').append("outputLength=").append(it) }
       },
@@ -384,7 +400,7 @@ internal class LiteRtStructuredGenerationRuntime(
         append(' ')
         append("modelVersion=").append(modelConfiguration.modelVersion)
         append(' ')
-        append("backend=").append(BACKEND_NAME)
+        append("backend=").append(backendStrategy.target)
         request.fieldKey?.let { append(' ').append("fieldKey=").append(it) }
         request.fieldIndex?.let { append(' ').append("fieldIndex=").append(it) }
         request.attemptNumber?.let { append(' ').append("attemptNumber=").append(it) }
@@ -408,7 +424,7 @@ internal class LiteRtStructuredGenerationRuntime(
         append(' ')
         append("modelVersion=").append(modelConfiguration.modelVersion)
         append(' ')
-        append("backend=").append(BACKEND_NAME)
+        append("backend=").append(backendStrategy.target)
         append(' ')
         append("phase=").append(phase.name.lowercase())
         append(' ')
@@ -421,7 +437,6 @@ internal class LiteRtStructuredGenerationRuntime(
 
   companion object {
     private const val TAG = "GonezoInterpretation"
-    private const val BACKEND_NAME = "GPU"
     internal const val MAX_NUM_TOKENS = 1_024
     internal const val ENGINE_INITIALIZATION_TIMEOUT_MS = 90_000L
     internal const val GENERATION_TIMEOUT_MS = 15_000L
@@ -454,12 +469,17 @@ internal object AndroidElapsedRealtimeProvider : ElapsedRealtimeProvider {
   override fun now(): Long = android.os.SystemClock.elapsedRealtime()
 }
 
-internal fun liteRtEngineFactory(): LiteRtEngineFactory = LiteRtEngineFactory { configuration ->
+internal fun liteRtEngineFactory(
+  backendStrategyFactory: LiteRtBackendStrategyFactory = LiteRtBackendStrategyFactory(),
+): LiteRtEngineFactory = LiteRtEngineFactory { configuration ->
   object : LiteRtEngineHandle {
     private val engine = Engine(
       EngineConfig(
         modelPath = configuration.modelPath,
-        backend = Backend.GPU(),
+        backend = backendStrategyFactory.create(
+          target = configuration.executionTarget,
+          nativeLibraryDir = configuration.nativeLibraryDir,
+        ).createBackend(),
         maxNumTokens = configuration.maxNumTokens,
         cacheDir = configuration.cacheDirectoryPath,
       ),

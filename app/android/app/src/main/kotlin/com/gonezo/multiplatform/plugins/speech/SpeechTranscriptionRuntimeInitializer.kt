@@ -2,7 +2,7 @@ package com.gonezo.multiplatform.plugins.speech
 
 internal class SpeechTranscriptionRuntimeInitializer(
   private val configurationReader: SpeechModelConfigurationReader,
-  private val transcriberFactory: (SpeechModelConfiguration) -> WhisperCppTranscriber,
+  private val transcriberFactory: (SpeechModelConfiguration) -> AndroidSpeechTranscriber,
 ) {
   fun initialize(): SpeechTranscriptionRuntimeState {
     return try {

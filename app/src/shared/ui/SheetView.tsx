@@ -86,7 +86,7 @@ export function SheetView({ required, provided }: SheetViewProps) {
   const handleDragHandlers = config.dragSurface === 'panel' ? {} : drag.handlers;
 
   return (
-    <div>
+    <div className={styles.root}>
       {closeOnBackdrop ? (
         <button
           type="button"

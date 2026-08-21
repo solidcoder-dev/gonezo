@@ -25,18 +25,15 @@ export type ExperimentalMovementDockNavigationViewProps = ViewProps<
   {
     disabled: boolean;
     addDisabled: boolean;
+    microphoneDisabled: boolean;
     navigationDimmed: boolean;
   },
   {
     selectItem(itemId: string): void;
     pressAdd(): void;
+    toggleCapture(): Promise<void> | void;
     retryVoiceCapture(): void;
-    stopLockedRecording(): void;
     cancelVoicePipeline?: () => void;
     setMicrophoneButtonElement?: (element: HTMLButtonElement | null) => void;
-    onVoicePointerDown: (gesture: { pointerId: number; clientX: number; clientY: number }) => Promise<void> | void;
-    onVoicePointerMove: (gesture: { pointerId: number; clientX: number; clientY: number }) => Promise<void> | void;
-    onVoicePointerUp: (gesture: { pointerId: number }) => Promise<void> | void;
-    onVoicePointerCancel: (gesture: { pointerId: number }) => Promise<void> | void;
   }
 >;

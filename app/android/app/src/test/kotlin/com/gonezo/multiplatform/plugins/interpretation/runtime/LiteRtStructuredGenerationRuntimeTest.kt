@@ -313,13 +313,13 @@ class LiteRtStructuredGenerationRuntimeTest {
   }
 
   @Test
-  fun `source declares the GPU backend cache directory and avoids CPU or multimodal fallbacks`() {
+  fun `source delegates backend selection and avoids CPU or multimodal fallbacks`() {
     val source = java.nio.file.Path.of("src/main/kotlin/com/gonezo/multiplatform/plugins/interpretation/runtime/LiteRtStructuredGenerationRuntime.kt").readText()
 
-    assertTrue(source.contains("Backend.GPU"))
+    assertTrue(source.contains("backendStrategy"))
     assertTrue(source.contains("cacheDirectoryPath"))
     assertTrue(source.contains("maxNumTokens = MAX_NUM_TOKENS"))
-    assertFalse(source.contains("Backend.CPU"))
+    assertFalse(source.contains("Backend.GPU"))
     assertFalse(source.contains("visionBackend"))
     assertFalse(source.contains("audioBackend"))
   }

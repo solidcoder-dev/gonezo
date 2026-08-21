@@ -5,7 +5,7 @@ import dev.solidcoder.speech.TranscriptionIssueSeverity
 
 internal sealed interface SpeechTranscriptionRuntimeState {
   data class Ready(
-    val transcriber: WhisperCppTranscriber,
+    val transcriber: AndroidSpeechTranscriber,
   ) : SpeechTranscriptionRuntimeState
 
   data class Unavailable(

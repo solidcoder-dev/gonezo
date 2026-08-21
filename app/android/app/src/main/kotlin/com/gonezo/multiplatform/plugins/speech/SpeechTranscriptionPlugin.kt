@@ -9,6 +9,9 @@ import com.getcapacitor.annotation.CapacitorPlugin
 import com.gonezo.multiplatform.plugins.interpretation.artifacts.AndroidPrivateInterpretationArtifactStore
 import com.gonezo.multiplatform.plugins.interpretation.artifacts.InterpretationArtifactStore
 import com.gonezo.multiplatform.plugins.interpretation.artifacts.InterpretationRunStage
+import com.gonezo.multiplatform.plugins.ml.MlPipelineDiagnostics
+import com.gonezo.multiplatform.plugins.ml.AndroidDeviceMlCapabilities
+import com.gonezo.multiplatform.plugins.ml.MlExecutionPlanFactory
 import dev.solidcoder.speech.AudioSourceRef
 import dev.solidcoder.speech.TranscriptionRequest
 import dev.solidcoder.speech.TranscriptionResult
@@ -25,6 +28,7 @@ import org.json.JSONObject
 
 @CapacitorPlugin(name = "SpeechTranscriptionPlugin")
 class SpeechTranscriptionPlugin : Plugin() {
+  private val executionPlan = MlExecutionPlanFactory().create(AndroidDeviceMlCapabilities())
   private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
     Thread(runnable, "GonezoSpeechTranscription")
   }
@@ -103,6 +107,7 @@ class SpeechTranscriptionPlugin : Plugin() {
     val detectAutomatically = call.getBoolean("detectLanguageAutomatically", language == null) ?: (language == null)
     val future = executor.submit {
       try {
+        MlPipelineDiagnostics.transcriptionStarted(runId, executionPlan.speech)
         if (operation.cancelRequested.get()) {
           completeCancelledTranscription(operation)
           return@submit
@@ -133,6 +138,7 @@ class SpeechTranscriptionPlugin : Plugin() {
         }
 
         handleTranscription(operation, language, detectAutomatically, result)
+        MlPipelineDiagnostics.transcriptionCompleted(runId, executionPlan.speech)
       } finally {
         operation.completion.countDown()
         activeOperation.compareAndSet(operation, null)
@@ -301,7 +307,7 @@ class SpeechTranscriptionPlugin : Plugin() {
     }
   }
 
-  private fun readyTranscriber(): WhisperCppTranscriber? {
+  private fun readyTranscriber(): AndroidSpeechTranscriber? {
     return (runtimeState as? SpeechTranscriptionRuntimeState.Ready)?.transcriber
   }
 

@@ -14,6 +14,7 @@ import com.gonezo.multiplatform.plugins.interpretation.artifacts.InterpretationR
 import com.gonezo.multiplatform.plugins.interpretation.application.ExecuteSchemaGuidedInterpretation
 import com.gonezo.multiplatform.plugins.interpretation.application.InterpretationExecutionException
 import com.gonezo.multiplatform.plugins.interpretation.bootstrap.SchemaGuidedInterpretationCompositionRoot
+import com.gonezo.multiplatform.plugins.ml.MlPipelineDiagnostics
 import dev.solidcoder.interpretation.application.InterpretationCancellationException
 import dev.solidcoder.interpretation.application.InterpretationFailureCode
 import dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase
@@ -161,6 +162,11 @@ class SchemaGuidedInterpretationPlugin : Plugin() {
         payload.put("kind", "success")
         payload.put("resultJson", execution.resultJson)
         resolveOnce(operation, payload)
+        MlPipelineDiagnostics.draftReady(
+          runId = runId,
+          speechTarget = compositionRoot.executionPlan.speech,
+          interpretationTarget = compositionRoot.executionPlan.interpretation,
+        )
       } catch (exception: IllegalArgumentException) {
         if (operation.cancelRequested.get()) {
           completeCancelledOperation(operation)

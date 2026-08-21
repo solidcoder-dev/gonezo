@@ -1,6 +1,8 @@
 package com.gonezo.multiplatform.plugins.interpretation.model
 
 import android.content.Context
+import com.gonezo.multiplatform.plugins.ml.MlExecutionTarget
+import com.gonezo.multiplatform.plugins.ml.NpuTarget
 
 internal class InterpretationModelConfigurationReader(
   private val metadataValue: (String) -> Any?,
@@ -9,14 +11,18 @@ internal class InterpretationModelConfigurationReader(
     metadataValue = { key -> context.applicationInfo.metaData?.get(key) },
   )
 
-  fun read(): InterpretationModelConfiguration {
+  fun read(target: MlExecutionTarget = MlExecutionTarget.GPU): InterpretationModelConfiguration {
+    val metadataPrefix = if (target == MlExecutionTarget.NPU) NPU_METADATA_PREFIX else METADATA_PREFIX
+    val npuTarget = if (target == MlExecutionTarget.NPU) NpuTarget.QUALCOMM_SM8850 else null
     return InterpretationModelConfiguration(
-      modelId = requireText(MODEL_ID_METADATA),
-      modelVersion = requireText(MODEL_VERSION_METADATA),
-      assetPath = requireAssetPath(MODEL_ASSET_METADATA),
-      fileName = requireFileName(MODEL_FILE_NAME_METADATA),
-      expectedSizeBytes = requirePositiveLong(MODEL_SIZE_METADATA),
-      sha256 = requireSha256(MODEL_SHA256_METADATA),
+      modelId = requireText(metadataPrefix + MODEL_ID_SUFFIX),
+      modelVersion = requireText(metadataPrefix + MODEL_VERSION_SUFFIX),
+      assetPath = requireAssetPath(metadataPrefix + MODEL_ASSET_SUFFIX),
+      fileName = requireFileName(metadataPrefix + MODEL_FILE_NAME_SUFFIX),
+      expectedSizeBytes = requirePositiveLong(metadataPrefix + MODEL_SIZE_SUFFIX),
+      sha256 = requireSha256(metadataPrefix + MODEL_SHA256_SUFFIX),
+      target = target,
+      npuTarget = npuTarget,
     )
   }
 
@@ -67,12 +73,14 @@ internal class InterpretationModelConfigurationReader(
   }
 
   companion object {
-    private const val MODEL_ID_METADATA = "gonezo.interpretation.model.id"
-    private const val MODEL_VERSION_METADATA = "gonezo.interpretation.model.version"
-    private const val MODEL_ASSET_METADATA = "gonezo.interpretation.model.asset"
-    private const val MODEL_FILE_NAME_METADATA = "gonezo.interpretation.model.fileName"
-    private const val MODEL_SIZE_METADATA = "gonezo.interpretation.model.size"
-    private const val MODEL_SHA256_METADATA = "gonezo.interpretation.model.sha256"
+    private const val METADATA_PREFIX = "gonezo.interpretation.model."
+    private const val NPU_METADATA_PREFIX = "gonezo.interpretation.model.npu."
+    private const val MODEL_ID_SUFFIX = "id"
+    private const val MODEL_VERSION_SUFFIX = "version"
+    private const val MODEL_ASSET_SUFFIX = "asset"
+    private const val MODEL_FILE_NAME_SUFFIX = "fileName"
+    private const val MODEL_SIZE_SUFFIX = "size"
+    private const val MODEL_SHA256_SUFFIX = "sha256"
     private val SHA256_PATTERN = Regex("^[a-f0-9]{64}$")
   }
 }

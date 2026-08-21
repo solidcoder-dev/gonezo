@@ -10,7 +10,6 @@ import com.gonezo.multiplatform.plugins.speech.quality.TranscriptQualityResult
 import com.gonezo.multiplatform.plugins.speech.quality.TranscriptTextValidation
 import com.gonezo.multiplatform.plugins.speech.quality.TranscriptTextValidator
 import dev.solidcoder.speech.AudioSourceRef
-import dev.solidcoder.speech.SpeechTranscriber
 import dev.solidcoder.speech.Transcript
 import dev.solidcoder.speech.TranscriptSegment
 import dev.solidcoder.speech.TranscriptionIssue
@@ -29,7 +28,7 @@ internal class WhisperCppTranscriber(
   private val textValidator: TranscriptTextValidator = DefaultTranscriptTextValidator(),
   private val nativeBridge: WhisperNativeBridgeApi = WhisperNativeBridge,
   private val threadCount: Int = Runtime.getRuntime().availableProcessors().coerceIn(1, 4),
-) : SpeechTranscriber {
+) : AndroidSpeechTranscriber {
   private val lock = Any()
   private val cancelled = AtomicBoolean(false)
   @Volatile
@@ -38,7 +37,7 @@ internal class WhisperCppTranscriber(
 
   override suspend fun transcribe(request: TranscriptionRequest): TranscriptionResult = transcribeBlocking(request)
 
-  fun transcribeBlocking(request: TranscriptionRequest): TranscriptionResult = synchronized(lock) {
+  override fun transcribeBlocking(request: TranscriptionRequest): TranscriptionResult = synchronized(lock) {
     cancelled.set(false)
     val audioFile = try {
       sourceResolver(request.audioSource)
@@ -197,7 +196,7 @@ internal class WhisperCppTranscriber(
     }
   }
 
-  fun cancelBlocking() {
+  override fun cancelBlocking() {
     cancelled.set(true)
     val activeContext = context
     if (activeContext != 0L) {
@@ -208,7 +207,7 @@ internal class WhisperCppTranscriber(
     }
   }
 
-  fun close() = synchronized(lock) {
+  override fun close() = synchronized(lock) {
     if (context != 0L) {
       nativeBridge.freeContext(context)
       context = 0L

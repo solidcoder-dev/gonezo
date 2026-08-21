@@ -1,4 +1,4 @@
-.backdrop {
+.root {
   position: fixed;
   inset: 0;
   z-index: var(--z-sheet);
@@ -9,6 +9,11 @@
   box-sizing: border-box;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
   background: var(--color-overlay);
 }
 

@@ -34,22 +34,19 @@ function makeProps(overrides: Partial<ExperimentalMovementDockNavigationViewProp
       status: {
         disabled: false,
         addDisabled: false,
+        microphoneDisabled: false,
         navigationDimmed: false,
       },
       ...overrides.required,
     },
     provided: {
       commands: {
-        selectItem: vi.fn(),
-        pressAdd: vi.fn(),
+          selectItem: vi.fn(),
+          pressAdd: vi.fn(),
+          toggleCapture: vi.fn(),
         retryVoiceCapture: vi.fn(),
-        stopLockedRecording: vi.fn(),
         cancelVoicePipeline: vi.fn(),
         setMicrophoneButtonElement: vi.fn(),
-        onVoicePointerDown: vi.fn(),
-        onVoicePointerMove: vi.fn(),
-        onVoicePointerUp: vi.fn(),
-        onVoicePointerCancel: vi.fn(),
       },
       ...overrides.provided,
     },
@@ -69,26 +66,25 @@ describe('ExperimentalMovementDockNavigationView', () => {
   it('dispatches add and navigation commands', () => {
     const selectItem = vi.fn();
     const pressAdd = vi.fn();
+    const toggleCapture = vi.fn();
     render(<ExperimentalMovementDockNavigationView {...makeProps({
       provided: {
         commands: {
           selectItem,
           pressAdd,
+          toggleCapture,
           retryVoiceCapture: vi.fn(),
-          stopLockedRecording: vi.fn(),
-          onVoicePointerDown: vi.fn(),
-          onVoicePointerMove: vi.fn(),
-          onVoicePointerUp: vi.fn(),
-          onVoicePointerCancel: vi.fn(),
         },
       },
     })} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Movements' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add movement' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Record movement with voice' }));
 
     expect(selectItem).toHaveBeenCalledWith('movements');
     expect(pressAdd).toHaveBeenCalledTimes(1);
+    expect(toggleCapture).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the microphone on the existing stop affordance while recording', () => {
@@ -121,6 +117,7 @@ describe('ExperimentalMovementDockNavigationView', () => {
         status: {
           disabled: true,
           addDisabled: true,
+          microphoneDisabled: true,
           navigationDimmed: true,
         },
       },
@@ -128,5 +125,22 @@ describe('ExperimentalMovementDockNavigationView', () => {
 
     expect(screen.getByText('00:06')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Stop locked voice recording' })).toBeInTheDocument();
+  });
+
+  it('disables the microphone while voice prerequisites are unavailable', () => {
+    const defaults = makeProps().required;
+    render(<ExperimentalMovementDockNavigationView {...makeProps({
+      required: {
+        ...defaults,
+        status: {
+          disabled: false,
+          addDisabled: false,
+          microphoneDisabled: true,
+          navigationDimmed: false,
+        },
+      },
+    })} />);
+
+    expect(screen.getByRole('button', { name: 'Record movement with voice' })).toBeDisabled();
   });
 });

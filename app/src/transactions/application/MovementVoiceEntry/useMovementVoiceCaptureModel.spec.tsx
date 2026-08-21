@@ -164,6 +164,47 @@ function renderSubject(overrides: Partial<Parameters<typeof useMovementVoiceCapt
 }
 
 describe('useMovementVoiceCaptureModel', () => {
+  it('starts and stops recording with tap toggles', async () => {
+    const { result, captureVoiceInput } = renderSubject();
+
+    await act(async () => {
+      await result.current.commands.toggleCapture();
+    });
+
+    await waitFor(() => expect(result.current.state.functionalState).toBe('recording'));
+    expect(captureVoiceInput.start).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await result.current.commands.toggleCapture();
+    });
+
+    await waitFor(() => expect(captureVoiceInput.stop).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not interpret concurrent tap events as start and stop', async () => {
+    const permissionStatus = createDeferred<'granted'>();
+    const { result, captureVoiceInput, microphonePermission } = renderSubject({
+      microphonePermission: {
+        getStatus: vi.fn(() => permissionStatus.promise),
+        request: vi.fn(async () => 'granted' as const),
+        openSettings: vi.fn(async () => undefined),
+      },
+    });
+
+    const firstToggle = result.current.commands.toggleCapture();
+    const secondToggle = result.current.commands.toggleCapture();
+    permissionStatus.resolve('granted');
+
+    await act(async () => {
+      await Promise.all([firstToggle, secondToggle]);
+    });
+
+    await waitFor(() => expect(result.current.state.functionalState).toBe('recording'));
+    expect(microphonePermission.getStatus).toHaveBeenCalledTimes(1);
+    expect(captureVoiceInput.start).toHaveBeenCalledTimes(1);
+    expect(captureVoiceInput.stop).not.toHaveBeenCalled();
+  });
+
   it.each(['prompt', 'denied'] as const)('opens the request-access dialog when getStatus returns %s', async (status) => {
     const microphonePermission: MicrophonePermissionPort = {
       getStatus: vi.fn(async () => status),

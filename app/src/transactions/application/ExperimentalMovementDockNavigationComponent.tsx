@@ -85,11 +85,11 @@ export function ExperimentalMovementDockNavigationComponent({ required, provided
     voiceEntry: required.context.voiceEntry,
     selectedAccount,
     voiceInterpretationContext: required.config.voiceInterpretationContext,
-    events: {
+    events: useMemo(() => ({
       onMovementEntryDraftReady: provided.events?.onMovementEntryDraftReady,
       onNotice: provided.events?.onNotice,
       onError: provided.events?.onError,
-    },
+    }), [provided.events]),
   });
 
   useEffect(() => {
@@ -128,6 +128,7 @@ export function ExperimentalMovementDockNavigationComponent({ required, provided
           status: {
             disabled: voiceController.state.navigationDimmed,
             addDisabled: voiceController.state.manualAddDisabled || quickActionModel.required.status.disabled,
+            microphoneDisabled: voiceController.state.microphoneDisabled,
             navigationDimmed: voiceController.state.navigationDimmed,
           },
         }}
@@ -135,16 +136,12 @@ export function ExperimentalMovementDockNavigationComponent({ required, provided
           commands: {
             selectItem,
             pressAdd: quickActionModel.provided.commands.openDraft,
+            toggleCapture: voiceController.commands.toggleCapture,
             retryVoiceCapture: voiceController.commands.retry,
-            stopLockedRecording: voiceController.commands.stopLockedRecording,
             cancelVoicePipeline: voiceController.commands.cancelVoicePipeline,
             setMicrophoneButtonElement: (element) => {
               microphoneButtonRef.current = element;
             },
-            onVoicePointerDown: voiceController.commands.beginGesture,
-            onVoicePointerMove: voiceController.commands.moveGesture,
-            onVoicePointerUp: voiceController.commands.finishGesture,
-            onVoicePointerCancel: voiceController.commands.cancelGesture,
           },
         }}
       />
