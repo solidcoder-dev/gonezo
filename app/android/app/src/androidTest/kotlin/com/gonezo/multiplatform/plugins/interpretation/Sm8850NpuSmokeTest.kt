@@ -3,10 +3,10 @@ package com.gonezo.multiplatform.plugins.interpretation
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.gonezo.multiplatform.plugins.interpretation.bootstrap.SchemaGuidedInterpretationCompositionRoot
-import com.gonezo.multiplatform.plugins.ml.AndroidDeviceMlCapabilities
-import com.gonezo.multiplatform.plugins.ml.MlExecutionPlanFactory
-import com.gonezo.multiplatform.plugins.ml.MlExecutionTarget
-import dev.solidcoder.interpretation.application.StructuredGenerationRequest
+import com.gonezo.multiplatform.infrastructure.ml.AndroidDeviceMlCapabilities
+import com.gonezo.multiplatform.infrastructure.ml.MlExecutionPlanFactory
+import com.gonezo.multiplatform.infrastructure.ml.MlExecutionTarget
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationRequest
 import dev.solidcoder.interpretation.domain.FieldDescription
 import dev.solidcoder.interpretation.domain.FieldKey
 import dev.solidcoder.interpretation.domain.FieldSpec

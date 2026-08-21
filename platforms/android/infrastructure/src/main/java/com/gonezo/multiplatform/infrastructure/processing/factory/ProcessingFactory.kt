@@ -1,0 +1,96 @@
+package com.gonezo.multiplatform.infrastructure.processing.factory
+
+import android.content.Context
+import com.gonezo.multiplatform.infrastructure.configuration.AndroidProcessingConfiguration
+import com.gonezo.multiplatform.infrastructure.configuration.ProcessingProvider
+import com.gonezo.multiplatform.infrastructure.ml.AndroidDeviceMlCapabilities
+import com.gonezo.multiplatform.infrastructure.ml.MlExecutionPlan
+import com.gonezo.multiplatform.infrastructure.ml.MlExecutionPlanFactory
+import com.gonezo.multiplatform.infrastructure.processing.litert.model.AndroidInterpretationModelStore
+import com.gonezo.multiplatform.infrastructure.processing.litert.model.InterpretationModelConfiguration
+import com.gonezo.multiplatform.infrastructure.processing.litert.model.InterpretationModelConfigurationReader
+import com.gonezo.multiplatform.infrastructure.processing.litert.model.InterpretationModelSelector
+import com.gonezo.multiplatform.infrastructure.processing.litert.runtime.AndroidElapsedRealtimeProvider
+import com.gonezo.multiplatform.infrastructure.processing.litert.runtime.AndroidInterpretationRuntimeLogger
+import com.gonezo.multiplatform.infrastructure.processing.litert.runtime.AndroidLiteRtBackendFactory
+import com.gonezo.multiplatform.infrastructure.processing.litert.runtime.LiteRtStructuredGenerationRuntime
+import com.gonezo.multiplatform.infrastructure.processing.litert.runtime.liteRtEngineFactory
+import dev.solidcoder.interpretation.application.FieldProcessingOrder
+import dev.solidcoder.interpretation.application.OnDeviceInputInterpreter
+import dev.solidcoder.interpretation.application.port.InputInterpreter
+import dev.solidcoder.interpretation.application.port.generation.FieldInterpretationPromptCompiler
+import dev.solidcoder.interpretation.application.port.generation.FieldInterpretationResultDecoder
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationRuntime
+import java.io.Closeable
+
+internal class ProcessingFactory(
+  private val context: Context?,
+  private val configuration: AndroidProcessingConfiguration,
+  private val promptCompiler: FieldInterpretationPromptCompiler,
+  private val resultDecoder: FieldInterpretationResultDecoder,
+  private val fieldProcessingOrder: FieldProcessingOrder,
+) {
+  fun create(): ProcessingAssembly {
+    return when (configuration.processingProvider) {
+      ProcessingProvider.LOCAL_LITERT -> createLocalLiteRtAssembly()
+      ProcessingProvider.REMOTE -> throw ProcessingConfigurationException(
+        "Processing provider REMOTE is not implemented yet",
+      )
+    }
+  }
+
+  private fun createLocalLiteRtAssembly(): ProcessingAssembly {
+    val androidContext = requireNotNull(context)
+    val executionPlan = MlExecutionPlanFactory().create(AndroidDeviceMlCapabilities())
+    val modelReader = InterpretationModelConfigurationReader(androidContext)
+    val modelConfiguration = InterpretationModelSelector().select(
+      target = executionPlan.interpretation,
+      descriptors = listOf(
+        modelReader.read(),
+        modelReader.read(com.gonezo.multiplatform.infrastructure.ml.MlExecutionTarget.NPU),
+      ),
+    )
+    val runtime = createRuntime(androidContext, modelConfiguration, executionPlan)
+    return ProcessingAssembly(
+      inputInterpreter = OnDeviceInputInterpreter(
+        promptCompiler = promptCompiler,
+        runtime = runtime,
+        resultDecoder = resultDecoder,
+        fieldProcessingOrder = fieldProcessingOrder,
+      ),
+      runtime = runtime,
+      configuration = modelConfiguration,
+      executionPlan = executionPlan,
+    )
+  }
+
+  private fun createRuntime(
+    context: Context,
+    modelConfiguration: InterpretationModelConfiguration,
+    executionPlan: MlExecutionPlan,
+  ): LiteRtStructuredGenerationRuntime {
+    val backendFactory = AndroidLiteRtBackendFactory(context.applicationInfo.nativeLibraryDir)
+    return LiteRtStructuredGenerationRuntime(
+      modelStore = AndroidInterpretationModelStore(context, modelConfiguration),
+      engineFactory = liteRtEngineFactory(backendFactory),
+      modelConfiguration = modelConfiguration,
+      cacheDirectoryPath = context.cacheDir.absolutePath,
+      executionTarget = executionPlan.interpretation,
+      logger = AndroidInterpretationRuntimeLogger,
+      elapsedRealtimeProvider = AndroidElapsedRealtimeProvider,
+    )
+  }
+}
+
+internal class ProcessingAssembly(
+  val inputInterpreter: InputInterpreter,
+  val runtime: StructuredGenerationRuntime,
+  val configuration: InterpretationModelConfiguration,
+  val executionPlan: MlExecutionPlan,
+) : Closeable {
+  override fun close() {
+    (runtime as? Closeable)?.close()
+  }
+}
+
+internal class ProcessingConfigurationException(message: String) : IllegalArgumentException(message)

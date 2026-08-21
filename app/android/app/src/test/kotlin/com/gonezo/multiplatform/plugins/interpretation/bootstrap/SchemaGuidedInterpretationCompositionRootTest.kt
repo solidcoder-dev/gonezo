@@ -1,15 +1,15 @@
 package com.gonezo.multiplatform.plugins.interpretation.bootstrap
 
-import dev.solidcoder.interpretation.application.InputInterpreter
-import dev.solidcoder.interpretation.application.FieldInterpretationPromptCompiler
+import dev.solidcoder.interpretation.application.port.InputInterpreter
+import dev.solidcoder.interpretation.application.port.generation.FieldInterpretationPromptCompiler
 import dev.solidcoder.interpretation.application.InterpretationRequest
-import dev.solidcoder.interpretation.application.FieldInterpretationResultDecoder
+import dev.solidcoder.interpretation.application.port.generation.FieldInterpretationResultDecoder
 import dev.solidcoder.interpretation.application.OnDeviceInputInterpreter
 import dev.solidcoder.interpretation.application.FieldPromptVariant
 import dev.solidcoder.interpretation.application.FieldOutputViolation
-import dev.solidcoder.interpretation.application.StructuredGenerationRequest
-import dev.solidcoder.interpretation.application.StructuredGenerationResult
-import dev.solidcoder.interpretation.application.StructuredGenerationRuntime
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationRequest
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationResult
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationRuntime
 import dev.solidcoder.interpretation.application.UnstructuredText
 import dev.solidcoder.interpretation.domain.FieldInterpretation
 import dev.solidcoder.interpretation.domain.FieldSpec
@@ -64,16 +64,15 @@ class SchemaGuidedInterpretationCompositionRootTest {
   fun `does not reference the heuristic interpreter`() {
     val source = File("src/main/kotlin/com/gonezo/multiplatform/plugins/interpretation/bootstrap/SchemaGuidedInterpretationCompositionRoot.kt").readText()
 
-    assertTrue(source.contains("LiteRtStructuredGenerationRuntime"))
-    assertTrue(source.contains("JsonFieldInterpretationPromptCompiler"))
-    assertTrue(source.contains("JsonFieldInterpretationResultDecoder"))
-    assertTrue(source.contains("AndroidInterpretationModelStore"))
-    assertTrue(source.contains("InterpretationModelConfigurationReader"))
+    assertTrue(source.contains("ProcessingFactory"))
+    assertFalse(source.contains("LiteRtStructuredGenerationRuntime"))
+    assertFalse(source.contains("AndroidInterpretationModelStore"))
+    assertFalse(source.contains("InterpretationModelConfigurationReader"))
     assertTrue(source.contains("context.applicationContext"))
     assertFalse(source.contains(listOf("GonezoMovementEntry", "Heu", "ristic", "InputInterpreter").joinToString("")))
   }
 
-  private fun configuration() = com.gonezo.multiplatform.plugins.interpretation.model.InterpretationModelConfiguration(
+  private fun configuration() = com.gonezo.multiplatform.infrastructure.processing.litert.model.InterpretationModelConfiguration(
     modelId = "litert-community/Gemma3-1B-IT",
     modelVersion = "dynamic-int4-q4-ekv4096",
     assetPath = "schema-guided-interpretation/litertlm/Gemma3-1B-IT_multi-prefill-seq_q4_ekv4096.litertlm",

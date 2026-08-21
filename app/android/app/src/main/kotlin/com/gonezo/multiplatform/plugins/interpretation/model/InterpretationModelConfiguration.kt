@@ -1,3 +1,0 @@
-package com.gonezo.multiplatform.plugins.interpretation.model
-
-internal typealias InterpretationModelConfiguration = InterpretationModelDescriptor

@@ -1,12 +1,13 @@
 package com.gonezo.multiplatform.plugins.interpretation.application
 
 import dev.solidcoder.interpretation.application.FieldInterpretationAttempt
-import dev.solidcoder.interpretation.application.InputInterpreter
+import dev.solidcoder.interpretation.application.port.InputInterpreter
 import dev.solidcoder.interpretation.application.InterpretationFailure
 import dev.solidcoder.interpretation.application.InterpretationFailureCode
 import dev.solidcoder.interpretation.application.InterpretationOutcome
 import dev.solidcoder.interpretation.json.InterpretationJsonCodec
 import dev.solidcoder.interpretation.application.InterpretationCancellationException
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationFailurePhase
 
 class ExecuteSchemaGuidedInterpretation(
   private val inputInterpreter: InputInterpreter,
@@ -50,13 +51,13 @@ class ExecuteSchemaGuidedInterpretation(
     )
   }
 
-  private fun InterpretationFailureCode.toFailurePhase(): dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase = when (this) {
+  private fun InterpretationFailureCode.toFailurePhase(): StructuredGenerationFailurePhase = when (this) {
     InterpretationFailureCode.MODEL_UNAVAILABLE,
-    InterpretationFailureCode.MODEL_CORRUPT -> dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase.MODEL_RESOLUTION
-    InterpretationFailureCode.UNSUPPORTED_DEVICE -> dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase.ENGINE_INITIALIZATION
-    InterpretationFailureCode.MALFORMED_OUTPUT -> dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase.DECODING
-    InterpretationFailureCode.INFERENCE_FAILED -> dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase.GENERATION
-    InterpretationFailureCode.INVALID_REQUEST -> dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase.DECODING
-    InterpretationFailureCode.CANCELLED -> dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase.GENERATION
+    InterpretationFailureCode.MODEL_CORRUPT -> StructuredGenerationFailurePhase.MODEL_RESOLUTION
+    InterpretationFailureCode.UNSUPPORTED_DEVICE -> StructuredGenerationFailurePhase.ENGINE_INITIALIZATION
+    InterpretationFailureCode.MALFORMED_OUTPUT -> StructuredGenerationFailurePhase.DECODING
+    InterpretationFailureCode.INFERENCE_FAILED -> StructuredGenerationFailurePhase.GENERATION
+    InterpretationFailureCode.INVALID_REQUEST -> StructuredGenerationFailurePhase.DECODING
+    InterpretationFailureCode.CANCELLED -> StructuredGenerationFailurePhase.GENERATION
   }
 }

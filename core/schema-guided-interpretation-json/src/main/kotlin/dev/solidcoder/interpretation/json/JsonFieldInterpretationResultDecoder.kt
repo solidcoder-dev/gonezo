@@ -1,9 +1,9 @@
 package dev.solidcoder.interpretation.json
 
-import dev.solidcoder.interpretation.application.FieldInterpretationResultDecoder
 import dev.solidcoder.interpretation.application.FieldOutputDecodingException
 import dev.solidcoder.interpretation.application.FieldOutputViolation
-import dev.solidcoder.interpretation.application.StructuredGenerationResult
+import dev.solidcoder.interpretation.application.port.generation.FieldInterpretationResultDecoder
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationResult
 import dev.solidcoder.interpretation.domain.Confidence
 import dev.solidcoder.interpretation.domain.FieldCandidate
 import dev.solidcoder.interpretation.domain.FieldInterpretation

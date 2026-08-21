@@ -1,10 +1,10 @@
 package dev.solidcoder.interpretation.json
 
-import dev.solidcoder.interpretation.application.FieldInterpretationPromptCompiler
 import dev.solidcoder.interpretation.application.FieldOutputViolation
 import dev.solidcoder.interpretation.application.FieldPromptVariant
 import dev.solidcoder.interpretation.application.InterpretationRequest
-import dev.solidcoder.interpretation.application.StructuredGenerationRequest
+import dev.solidcoder.interpretation.application.port.generation.FieldInterpretationPromptCompiler
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationRequest
 import dev.solidcoder.interpretation.domain.ContextKey
 import dev.solidcoder.interpretation.domain.FieldSpec
 import dev.solidcoder.interpretation.domain.FieldType

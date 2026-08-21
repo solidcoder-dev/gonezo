@@ -4,7 +4,7 @@ import androidx.core.util.AtomicFile
 import dev.solidcoder.interpretation.application.FieldInterpretationAttempt
 import dev.solidcoder.interpretation.application.FieldInterpretationAttemptStatus
 import dev.solidcoder.interpretation.application.InterpretationFailureCode
-import dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationFailurePhase
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream

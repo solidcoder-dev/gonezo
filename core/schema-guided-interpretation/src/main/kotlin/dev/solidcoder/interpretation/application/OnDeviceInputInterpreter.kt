@@ -1,5 +1,14 @@
 package dev.solidcoder.interpretation.application
 
+import dev.solidcoder.interpretation.application.port.InputInterpreter
+import dev.solidcoder.interpretation.application.port.generation.FieldInterpretationPromptCompiler
+import dev.solidcoder.interpretation.application.port.generation.FieldInterpretationResultDecoder
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationException
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationFailurePhase
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationRequest
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationRuntime
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationTimeoutException
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationTimeoutKind
 import dev.solidcoder.interpretation.domain.FieldInterpretation
 import dev.solidcoder.interpretation.domain.FieldKey
 import dev.solidcoder.interpretation.domain.FieldResult

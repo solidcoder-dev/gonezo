@@ -1,22 +1,15 @@
 package com.gonezo.multiplatform.plugins.interpretation.bootstrap
 
 import android.content.Context
-import com.gonezo.multiplatform.plugins.interpretation.model.AndroidInterpretationModelStore
-import com.gonezo.multiplatform.plugins.interpretation.model.InterpretationModelConfigurationReader
-import com.gonezo.multiplatform.plugins.interpretation.model.InterpretationModelSelector
-import com.gonezo.multiplatform.plugins.interpretation.runtime.AndroidInterpretationRuntimeLogger
-import com.gonezo.multiplatform.plugins.interpretation.runtime.AndroidElapsedRealtimeProvider
-import com.gonezo.multiplatform.plugins.interpretation.runtime.LiteRtStructuredGenerationRuntime
-import com.gonezo.multiplatform.plugins.interpretation.runtime.AndroidLiteRtBackendFactory
-import com.gonezo.multiplatform.plugins.interpretation.runtime.liteRtEngineFactory
-import com.gonezo.multiplatform.plugins.ml.MlExecutionPlan
-import com.gonezo.multiplatform.plugins.ml.MlExecutionPlanFactory
-import com.gonezo.multiplatform.plugins.ml.AndroidDeviceMlCapabilities
-import dev.solidcoder.interpretation.application.FieldInterpretationPromptCompiler
-import dev.solidcoder.interpretation.application.InputInterpreter
-import dev.solidcoder.interpretation.application.FieldInterpretationResultDecoder
-import dev.solidcoder.interpretation.application.OnDeviceInputInterpreter
+import com.gonezo.multiplatform.infrastructure.configuration.AndroidProcessingConfigurationReader
+import com.gonezo.multiplatform.infrastructure.processing.factory.ProcessingFactory
+import com.gonezo.multiplatform.infrastructure.ml.MlExecutionPlan
+import dev.solidcoder.interpretation.application.port.generation.FieldInterpretationPromptCompiler
+import dev.solidcoder.interpretation.application.port.generation.FieldInterpretationResultDecoder
 import dev.solidcoder.interpretation.application.FieldProcessingOrder
+import dev.solidcoder.interpretation.application.OnDeviceInputInterpreter
+import dev.solidcoder.interpretation.application.port.InputInterpreter
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationRuntime
 import dev.solidcoder.interpretation.json.JsonFieldInterpretationPromptCompiler
 import dev.solidcoder.interpretation.json.JsonFieldInterpretationResultDecoder
 import java.io.Closeable
@@ -39,7 +32,7 @@ class SchemaGuidedInterpretationCompositionRoot internal constructor(
   internal val executionPlan get() = runtimeAssembly.executionPlan
 
   fun createInputInterpreter(): InputInterpreter =
-    OnDeviceInputInterpreter(
+    runtimeAssembly.inputInterpreter ?: OnDeviceInputInterpreter(
       promptCompiler = promptCompiler,
       runtime = runtimeAssembly.runtime,
       resultDecoder = resultDecoder,
@@ -52,43 +45,32 @@ class SchemaGuidedInterpretationCompositionRoot internal constructor(
 
   companion object {
     private fun createRuntimeAssembly(context: Context): RuntimeAssembly {
-      val executionPlan = MlExecutionPlanFactory().create(AndroidDeviceMlCapabilities())
-      val modelReader = InterpretationModelConfigurationReader(context)
-      val configuration = InterpretationModelSelector().select(
-        target = executionPlan.interpretation,
-        descriptors = listOf(modelReader.read(), modelReader.read(com.gonezo.multiplatform.plugins.ml.MlExecutionTarget.NPU)),
-      )
-      val backendFactory = AndroidLiteRtBackendFactory(
-        nativeLibraryDir = context.applicationInfo.nativeLibraryDir,
-      )
-      val runtime = LiteRtStructuredGenerationRuntime(
-        modelStore = AndroidInterpretationModelStore(
-          context = context,
-          configuration = configuration,
-        ),
-        engineFactory = liteRtEngineFactory(backendFactory),
-        modelConfiguration = configuration,
-        cacheDirectoryPath = context.cacheDir.absolutePath,
-        executionTarget = executionPlan.interpretation,
-        logger = AndroidInterpretationRuntimeLogger,
-        elapsedRealtimeProvider = AndroidElapsedRealtimeProvider,
-      )
+      val processingConfiguration = AndroidProcessingConfigurationReader().read()
+      val assembly = ProcessingFactory(
+        context = context,
+        configuration = processingConfiguration,
+        promptCompiler = JsonFieldInterpretationPromptCompiler(),
+        resultDecoder = JsonFieldInterpretationResultDecoder(),
+        fieldProcessingOrder = GonezoFieldProcessingOrder,
+      ).create()
       return RuntimeAssembly(
-        runtime = runtime,
-        closeable = runtime,
-        configuration = configuration,
-        executionPlan = executionPlan,
+        runtime = assembly.runtime,
+        closeable = assembly,
+        configuration = assembly.configuration,
+        executionPlan = assembly.executionPlan,
+        inputInterpreter = assembly.inputInterpreter,
       )
     }
   }
 }
 
 internal class RuntimeAssembly(
-  val runtime: dev.solidcoder.interpretation.application.StructuredGenerationRuntime,
-  val configuration: com.gonezo.multiplatform.plugins.interpretation.model.InterpretationModelConfiguration,
+  val runtime: StructuredGenerationRuntime,
+  val configuration: com.gonezo.multiplatform.infrastructure.processing.litert.model.InterpretationModelConfiguration,
   private val closeable: Closeable,
   val executionPlan: MlExecutionPlan = MlExecutionPlan(
-    speech = com.gonezo.multiplatform.plugins.ml.MlExecutionTarget.CPU,
-    interpretation = com.gonezo.multiplatform.plugins.ml.MlExecutionTarget.GPU,
+    speech = com.gonezo.multiplatform.infrastructure.ml.MlExecutionTarget.CPU,
+    interpretation = com.gonezo.multiplatform.infrastructure.ml.MlExecutionTarget.GPU,
   ),
+  val inputInterpreter: InputInterpreter? = null,
 ) : Closeable by closeable

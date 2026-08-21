@@ -14,6 +14,9 @@ def npuInterpretationModelAssetPath = 'schema-guided-interpretation/litertlm/Gem
 def npuInterpretationModelSourceFile = file("$projectDir/../third_party/Gemma3-1B-IT_q4_ekv1280_sm8850.litertlm")
 def npuInterpretationModelExpectedBytes = 693747712L
 def npuInterpretationModelSha256 = 'fda5dca0e8c1c6f65ca5625c326ff79920c7eb82625a0c6515ae4f5711957b1f'
+def gonezoTranscriptionMode = findProperty('gonezoTranscriptionMode') ?: 'FULL'
+def gonezoTranscriptionProvider = findProperty('gonezoTranscriptionProvider') ?: 'WHISPER_CPP'
+def gonezoProcessingProvider = findProperty('gonezoProcessingProvider') ?: 'LOCAL_LITERT'
 
 android {
     namespace = "com.gonezo.multiplatform"
@@ -23,6 +26,9 @@ android {
         applicationId "com.gonezo.multiplatform"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
+        buildConfigField 'String', 'GONEZO_TRANSCRIPTION_MODE', "\"${gonezoTranscriptionMode}\""
+        buildConfigField 'String', 'GONEZO_TRANSCRIPTION_PROVIDER', "\"${gonezoTranscriptionProvider}\""
+        buildConfigField 'String', 'GONEZO_PROCESSING_PROVIDER', "\"${gonezoProcessingProvider}\""
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -34,6 +40,9 @@ android {
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
+    }
+    buildFeatures {
+        buildConfig true
     }
     packaging {
         resources {

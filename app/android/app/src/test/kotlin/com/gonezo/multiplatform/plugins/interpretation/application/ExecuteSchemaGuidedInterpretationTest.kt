@@ -1,6 +1,7 @@
 package com.gonezo.multiplatform.plugins.interpretation.application
 
-import dev.solidcoder.interpretation.application.InputInterpreter
+import dev.solidcoder.interpretation.application.port.InputInterpreter
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationFailurePhase
 import dev.solidcoder.interpretation.application.InputSource
 import dev.solidcoder.interpretation.application.FieldInterpretationAttempt
 import dev.solidcoder.interpretation.application.FieldInterpretationAttemptStatus
@@ -103,27 +104,27 @@ class ExecuteSchemaGuidedInterpretationTest {
         code = InterpretationFailureCode.MODEL_UNAVAILABLE,
         message = "model missing",
         recoverable = true,
-      ) to dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase.MODEL_RESOLUTION,
+      ) to dev.solidcoder.interpretation.application.port.generation.StructuredGenerationFailurePhase.MODEL_RESOLUTION,
       InterpretationFailure(
         code = InterpretationFailureCode.MODEL_CORRUPT,
         message = "model corrupt",
         recoverable = false,
-      ) to dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase.MODEL_RESOLUTION,
+      ) to dev.solidcoder.interpretation.application.port.generation.StructuredGenerationFailurePhase.MODEL_RESOLUTION,
       InterpretationFailure(
         code = InterpretationFailureCode.UNSUPPORTED_DEVICE,
         message = "gpu unavailable",
         recoverable = false,
-      ) to dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase.ENGINE_INITIALIZATION,
+      ) to dev.solidcoder.interpretation.application.port.generation.StructuredGenerationFailurePhase.ENGINE_INITIALIZATION,
       InterpretationFailure(
         code = InterpretationFailureCode.INFERENCE_FAILED,
         message = "generation failed",
         recoverable = true,
-      ) to dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase.GENERATION,
+      ) to dev.solidcoder.interpretation.application.port.generation.StructuredGenerationFailurePhase.GENERATION,
       InterpretationFailure(
         code = InterpretationFailureCode.MALFORMED_OUTPUT,
         message = "invalid json",
         recoverable = true,
-      ) to dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase.DECODING,
+      ) to dev.solidcoder.interpretation.application.port.generation.StructuredGenerationFailurePhase.DECODING,
     ).forEach { (failure, expectedPhase) ->
       val useCase = ExecuteSchemaGuidedInterpretation(
         inputInterpreter = object : InputInterpreter {

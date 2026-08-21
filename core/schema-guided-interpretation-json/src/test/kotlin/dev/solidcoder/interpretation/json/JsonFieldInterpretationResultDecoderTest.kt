@@ -2,7 +2,7 @@ package dev.solidcoder.interpretation.json
 
 import dev.solidcoder.interpretation.application.FieldOutputDecodingException
 import dev.solidcoder.interpretation.application.FieldOutputViolation
-import dev.solidcoder.interpretation.application.StructuredGenerationResult
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationResult
 import dev.solidcoder.interpretation.domain.AllowedValue
 import dev.solidcoder.interpretation.domain.FieldDescription
 import dev.solidcoder.interpretation.domain.FieldInterpretation

@@ -1,5 +1,6 @@
 package dev.solidcoder.interpretation.application
 
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationFailurePhase
 import dev.solidcoder.interpretation.domain.FieldKey
 import dev.solidcoder.interpretation.domain.InterpretationContext
 import dev.solidcoder.interpretation.domain.InterpretationSpec

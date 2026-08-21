@@ -16,7 +16,7 @@ class SpeechTranscriptionPluginArchitectureTest {
     assertTrue(source.contains("transcription-cancellation-failed"))
     assertTrue(source.contains("CANCELLATION_TIMEOUT_SECONDS"))
     assertTrue(source.contains("cancelRequested"))
-    assertTrue(source.contains("SpeechModelConfigurationReader"))
+    assertTrue(source.contains("TranscriberFactory"))
     assertTrue(source.contains("SpeechTranscriptionRuntimeState"))
     assertFalse(source.contains("requireModelSize"))
     assertFalse(source.contains("getLong(\"gonezo.speech.model.size\""))

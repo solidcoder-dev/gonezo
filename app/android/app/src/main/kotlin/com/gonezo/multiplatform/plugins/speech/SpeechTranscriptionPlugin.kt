@@ -9,9 +9,13 @@ import com.getcapacitor.annotation.CapacitorPlugin
 import com.gonezo.multiplatform.plugins.interpretation.artifacts.AndroidPrivateInterpretationArtifactStore
 import com.gonezo.multiplatform.plugins.interpretation.artifacts.InterpretationArtifactStore
 import com.gonezo.multiplatform.plugins.interpretation.artifacts.InterpretationRunStage
-import com.gonezo.multiplatform.plugins.ml.MlPipelineDiagnostics
-import com.gonezo.multiplatform.plugins.ml.AndroidDeviceMlCapabilities
-import com.gonezo.multiplatform.plugins.ml.MlExecutionPlanFactory
+import com.gonezo.multiplatform.infrastructure.configuration.AndroidProcessingConfigurationReader
+import com.gonezo.multiplatform.infrastructure.ml.MlExecutionTarget
+import com.gonezo.multiplatform.infrastructure.ml.MlPipelineDiagnostics
+import com.gonezo.multiplatform.infrastructure.transcription.factory.TranscriberFactory
+import com.gonezo.multiplatform.infrastructure.transcription.runtime.AndroidSpeechTranscriber
+import com.gonezo.multiplatform.infrastructure.transcription.runtime.SpeechTranscriptionRuntimeInitializer
+import com.gonezo.multiplatform.infrastructure.transcription.runtime.SpeechTranscriptionRuntimeState
 import dev.solidcoder.speech.AudioSourceRef
 import dev.solidcoder.speech.TranscriptionRequest
 import dev.solidcoder.speech.TranscriptionResult
@@ -25,10 +29,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import org.json.JSONArray
 import org.json.JSONObject
+import dev.solidcoder.speech.TranscriptionIssue
+import dev.solidcoder.speech.TranscriptionIssueSeverity
 
 @CapacitorPlugin(name = "SpeechTranscriptionPlugin")
 class SpeechTranscriptionPlugin : Plugin() {
-  private val executionPlan = MlExecutionPlanFactory().create(AndroidDeviceMlCapabilities())
+  private val speechExecutionTarget = MlExecutionTarget.CPU
   private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
     Thread(runnable, "GonezoSpeechTranscription")
   }
@@ -38,9 +44,7 @@ class SpeechTranscriptionPlugin : Plugin() {
   private lateinit var artifactStore: InterpretationArtifactStore
   private lateinit var transcriptionFinalizer: SpeechTranscriptionRunFinalizer
   private var runtimeState: SpeechTranscriptionRuntimeState =
-    SpeechTranscriptionRuntimeState.Unavailable(
-      modelUnavailableSpeechTranscriptionIssue(),
-    )
+    SpeechTranscriptionRuntimeState.Unavailable
   private val activeOperation = AtomicReference<ActiveTranscriptionOperation?>(null)
 
   override fun load() {
@@ -50,20 +54,14 @@ class SpeechTranscriptionPlugin : Plugin() {
       artifactStore.cleanupTemporaryArtifacts()
     }
 
-    runtimeState = SpeechTranscriptionRuntimeInitializer(
-      configurationReader = SpeechModelConfigurationReader(context),
-      transcriberFactory = { configuration ->
-        WhisperCppTranscriber(
-          sourceResolver = { source -> artifactStore.resolveAudio(source.value) },
-          modelProvider = AssetModelProvider(
-            context = context,
-            assetPath = configuration.assetPath,
-            expectedSize = configuration.expectedSize,
-            expectedSha256 = configuration.expectedSha256,
-          ),
-        )
-      },
-    ).initialize()
+    val processingConfiguration = AndroidProcessingConfigurationReader().read()
+    runtimeState = SpeechTranscriptionRuntimeInitializer {
+      TranscriberFactory(
+        context = context,
+        configuration = processingConfiguration,
+        sourceResolver = { source -> artifactStore.resolveAudio(source.value) },
+      ).create()
+    }.initialize()
 
     when (runtimeState) {
       is SpeechTranscriptionRuntimeState.Ready -> {
@@ -107,7 +105,7 @@ class SpeechTranscriptionPlugin : Plugin() {
     val detectAutomatically = call.getBoolean("detectLanguageAutomatically", language == null) ?: (language == null)
     val future = executor.submit {
       try {
-        MlPipelineDiagnostics.transcriptionStarted(runId, executionPlan.speech)
+        MlPipelineDiagnostics.transcriptionStarted(runId, speechExecutionTarget)
         if (operation.cancelRequested.get()) {
           completeCancelledTranscription(operation)
           return@submit
@@ -129,7 +127,7 @@ class SpeechTranscriptionPlugin : Plugin() {
               )
             }
           is SpeechTranscriptionRuntimeState.Unavailable ->
-            TranscriptionResult.failure(state.issue)
+            TranscriptionResult.failure(modelUnavailableSpeechTranscriptionIssue())
         }
 
         if (operation.cancelRequested.get()) {
@@ -138,7 +136,7 @@ class SpeechTranscriptionPlugin : Plugin() {
         }
 
         handleTranscription(operation, language, detectAutomatically, result)
-        MlPipelineDiagnostics.transcriptionCompleted(runId, executionPlan.speech)
+        MlPipelineDiagnostics.transcriptionCompleted(runId, speechExecutionTarget)
       } finally {
         operation.completion.countDown()
         activeOperation.compareAndSet(operation, null)
@@ -326,3 +324,9 @@ class SpeechTranscriptionPlugin : Plugin() {
     val future = AtomicReference<Future<*>?>(null)
   }
 }
+
+private fun modelUnavailableSpeechTranscriptionIssue(): TranscriptionIssue = TranscriptionIssue(
+  SpeechTranscriptionFailureCodes.MODEL_UNAVAILABLE,
+  "Local speech transcription model is unavailable.",
+  TranscriptionIssueSeverity.DEFINITIVE,
+)

@@ -1,10 +1,10 @@
 package com.gonezo.application.orchestration.interpretation
 
-import dev.solidcoder.interpretation.application.InputInterpreter
 import dev.solidcoder.interpretation.application.InputSource
 import dev.solidcoder.interpretation.application.InterpretationFailureCode
 import dev.solidcoder.interpretation.application.InterpretationOutcome
 import dev.solidcoder.interpretation.application.InterpretationRequest
+import dev.solidcoder.interpretation.application.port.InputInterpreter
 import dev.solidcoder.interpretation.domain.ContextEntry
 import dev.solidcoder.interpretation.domain.ContextKey
 import dev.solidcoder.interpretation.domain.InterpretationContext

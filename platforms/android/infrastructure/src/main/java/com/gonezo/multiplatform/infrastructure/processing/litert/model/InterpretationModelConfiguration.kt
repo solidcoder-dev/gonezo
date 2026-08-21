@@ -1,0 +1,3 @@
+package com.gonezo.multiplatform.infrastructure.processing.litert.model
+
+internal typealias InterpretationModelConfiguration = InterpretationModelDescriptor

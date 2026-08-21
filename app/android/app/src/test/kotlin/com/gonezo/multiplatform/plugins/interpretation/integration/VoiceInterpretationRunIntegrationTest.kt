@@ -9,7 +9,7 @@ import dev.solidcoder.interpretation.application.FieldInterpretationAttempt
 import dev.solidcoder.interpretation.application.InputSource
 import dev.solidcoder.interpretation.application.InterpretationRequest
 import dev.solidcoder.interpretation.application.InterpretationOutcome
-import dev.solidcoder.interpretation.application.InputInterpreter
+import dev.solidcoder.interpretation.application.port.InputInterpreter
 import dev.solidcoder.interpretation.application.FieldInterpretationAttemptStatus
 import dev.solidcoder.interpretation.application.FieldPromptVariant
 import dev.solidcoder.interpretation.domain.Confidence

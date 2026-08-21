@@ -14,10 +14,10 @@ import com.gonezo.multiplatform.plugins.interpretation.artifacts.InterpretationR
 import com.gonezo.multiplatform.plugins.interpretation.application.ExecuteSchemaGuidedInterpretation
 import com.gonezo.multiplatform.plugins.interpretation.application.InterpretationExecutionException
 import com.gonezo.multiplatform.plugins.interpretation.bootstrap.SchemaGuidedInterpretationCompositionRoot
-import com.gonezo.multiplatform.plugins.ml.MlPipelineDiagnostics
+import com.gonezo.multiplatform.infrastructure.ml.MlPipelineDiagnostics
 import dev.solidcoder.interpretation.application.InterpretationCancellationException
 import dev.solidcoder.interpretation.application.InterpretationFailureCode
-import dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationFailurePhase
 import dev.solidcoder.interpretation.json.InterpretationJsonCodec
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap

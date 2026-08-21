@@ -1,8 +1,6 @@
 package dev.solidcoder.interpretation
 
 import dev.solidcoder.interpretation.application.FieldInterpretationAttemptStatus
-import dev.solidcoder.interpretation.application.FieldInterpretationPromptCompiler
-import dev.solidcoder.interpretation.application.FieldInterpretationResultDecoder
 import dev.solidcoder.interpretation.application.FieldOutputDecodingException
 import dev.solidcoder.interpretation.application.FieldOutputViolation
 import dev.solidcoder.interpretation.application.FieldProcessingOrder
@@ -13,14 +11,16 @@ import dev.solidcoder.interpretation.application.InterpretationFailureCode
 import dev.solidcoder.interpretation.application.InterpretationOutcome
 import dev.solidcoder.interpretation.application.InterpretationRequest
 import dev.solidcoder.interpretation.application.OnDeviceInputInterpreter
-import dev.solidcoder.interpretation.application.StructuredGenerationException
-import dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase
-import dev.solidcoder.interpretation.application.StructuredGenerationRequest
-import dev.solidcoder.interpretation.application.StructuredGenerationResult
-import dev.solidcoder.interpretation.application.StructuredGenerationRuntime
-import dev.solidcoder.interpretation.application.StructuredGenerationTimeoutException
-import dev.solidcoder.interpretation.application.StructuredGenerationTimeoutKind
 import dev.solidcoder.interpretation.application.UnstructuredText
+import dev.solidcoder.interpretation.application.port.generation.FieldInterpretationPromptCompiler
+import dev.solidcoder.interpretation.application.port.generation.FieldInterpretationResultDecoder
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationException
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationFailurePhase
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationRequest
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationResult
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationRuntime
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationTimeoutException
+import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationTimeoutKind
 import dev.solidcoder.interpretation.domain.AllowedValue
 import dev.solidcoder.interpretation.domain.Confidence
 import dev.solidcoder.interpretation.domain.FieldCandidate
@@ -552,7 +552,7 @@ class OnDeviceInputInterpreterTest {
         assertThat(outcome).isInstanceOf(InterpretationOutcome.Failure::class.java)
         val failure = (outcome as InterpretationOutcome.Failure).failure
         assertThat(failure.code).isEqualTo(InterpretationFailureCode.INFERENCE_FAILED)
-        assertThat(requireNotNull(failure.diagnostics).phase).isEqualTo(dev.solidcoder.interpretation.application.StructuredGenerationFailurePhase.GENERATION)
+        assertThat(requireNotNull(failure.diagnostics).phase).isEqualTo(dev.solidcoder.interpretation.application.port.generation.StructuredGenerationFailurePhase.GENERATION)
         assertThat(outcome.attempts).hasSize(1)
         assertThat(outcome.attempts.single().fieldKey.value).isEqualTo("type")
         assertThat(outcome.attempts.single().promptVariant).isEqualTo(FieldPromptVariant.PRIMARY)
