@@ -124,7 +124,7 @@ static jstring toJString(JNIEnv *env, const std::string &value) {
 }
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_gonezo_multiplatform_plugins_speech_WhisperNativeBridge_initContext(JNIEnv *env, jclass, jstring modelPath) {
+Java_com_gonezo_multiplatform_infrastructure_transcription_whisper_WhisperNativeBridge_initContext(JNIEnv *env, jclass, jstring modelPath) {
   if (modelPath == nullptr) return 0;
   const char *path = env->GetStringUTFChars(modelPath, nullptr);
   auto contextParams = whisper_context_default_params();
@@ -140,7 +140,7 @@ Java_com_gonezo_multiplatform_plugins_speech_WhisperNativeBridge_initContext(JNI
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_gonezo_multiplatform_plugins_speech_WhisperNativeBridge_freeContext(JNIEnv *, jclass, jlong contextPtr) {
+Java_com_gonezo_multiplatform_infrastructure_transcription_whisper_WhisperNativeBridge_freeContext(JNIEnv *, jclass, jlong contextPtr) {
   if (contextPtr == 0) return;
   auto *context = reinterpret_cast<NativeWhisperContext *>(contextPtr);
   whisper_free(context->context);
@@ -148,14 +148,14 @@ Java_com_gonezo_multiplatform_plugins_speech_WhisperNativeBridge_freeContext(JNI
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_gonezo_multiplatform_plugins_speech_WhisperNativeBridge_isMultilingual(JNIEnv *, jclass, jlong contextPtr) {
+Java_com_gonezo_multiplatform_infrastructure_transcription_whisper_WhisperNativeBridge_isMultilingual(JNIEnv *, jclass, jlong contextPtr) {
   if (contextPtr == 0) return JNI_FALSE;
   auto *context = reinterpret_cast<NativeWhisperContext *>(contextPtr);
   return whisper_is_multilingual(context->context) != 0 ? JNI_TRUE : JNI_FALSE;
 }
 
 extern "C" JNIEXPORT jint JNICALL
-Java_com_gonezo_multiplatform_plugins_speech_WhisperNativeBridge_languageId(JNIEnv *env, jclass, jstring language) {
+Java_com_gonezo_multiplatform_infrastructure_transcription_whisper_WhisperNativeBridge_languageId(JNIEnv *env, jclass, jstring language) {
   if (language == nullptr) return -1;
   const char *chars = env->GetStringUTFChars(language, nullptr);
   const int result = whisper_lang_id(chars);
@@ -164,7 +164,7 @@ Java_com_gonezo_multiplatform_plugins_speech_WhisperNativeBridge_languageId(JNIE
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_gonezo_multiplatform_plugins_speech_WhisperNativeBridge_transcribe(JNIEnv *env, jclass, jlong contextPtr, jint threads, jstring language, jboolean detectLanguageAutomatically, jfloatArray samples) {
+Java_com_gonezo_multiplatform_infrastructure_transcription_whisper_WhisperNativeBridge_transcribe(JNIEnv *env, jclass, jlong contextPtr, jint threads, jstring language, jboolean detectLanguageAutomatically, jfloatArray samples) {
   if (contextPtr == 0 || samples == nullptr) return toJString(env, buildFailureJson("invalid-audio", "Audio source is empty.", false));
   auto *nativeContext = reinterpret_cast<NativeWhisperContext *>(contextPtr);
   const jsize length = env->GetArrayLength(samples);
@@ -202,7 +202,7 @@ Java_com_gonezo_multiplatform_plugins_speech_WhisperNativeBridge_transcribe(JNIE
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_gonezo_multiplatform_plugins_speech_WhisperNativeBridge_cancel(JNIEnv *, jclass, jlong contextPtr) {
+Java_com_gonezo_multiplatform_infrastructure_transcription_whisper_WhisperNativeBridge_cancel(JNIEnv *, jclass, jlong contextPtr) {
   if (contextPtr == 0) return;
   auto *context = reinterpret_cast<NativeWhisperContext *>(contextPtr);
   context->cancelled.store(true);

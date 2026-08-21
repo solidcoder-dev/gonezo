@@ -10,10 +10,12 @@ import com.gonezo.multiplatform.plugins.interpretation.artifacts.AndroidPrivateI
 import com.gonezo.multiplatform.plugins.interpretation.artifacts.InterpretationArtifactStore
 import com.gonezo.multiplatform.plugins.interpretation.artifacts.InterpretationRunStage
 import com.gonezo.multiplatform.infrastructure.configuration.AndroidProcessingConfigurationReader
+import com.gonezo.multiplatform.infrastructure.configuration.TranscriptionMode
 import com.gonezo.multiplatform.infrastructure.ml.MlExecutionTarget
 import com.gonezo.multiplatform.infrastructure.ml.MlPipelineDiagnostics
 import com.gonezo.multiplatform.infrastructure.transcription.factory.TranscriberFactory
 import com.gonezo.multiplatform.infrastructure.transcription.runtime.AndroidSpeechTranscriber
+import com.gonezo.multiplatform.infrastructure.transcription.runtime.AndroidTranscriber
 import com.gonezo.multiplatform.infrastructure.transcription.runtime.SpeechTranscriptionRuntimeInitializer
 import com.gonezo.multiplatform.infrastructure.transcription.runtime.SpeechTranscriptionRuntimeState
 import dev.solidcoder.speech.AudioSourceRef
@@ -55,13 +57,17 @@ class SpeechTranscriptionPlugin : Plugin() {
     }
 
     val processingConfiguration = AndroidProcessingConfigurationReader().read()
-    runtimeState = SpeechTranscriptionRuntimeInitializer {
-      TranscriberFactory(
-        context = context,
-        configuration = processingConfiguration,
-        sourceResolver = { source -> artifactStore.resolveAudio(source.value) },
-      ).create()
-    }.initialize()
+    runtimeState = if (processingConfiguration.transcriptionMode == TranscriptionMode.STREAMING) {
+      SpeechTranscriptionRuntimeState.Unavailable
+    } else {
+      SpeechTranscriptionRuntimeInitializer {
+        TranscriberFactory(
+          context = context,
+          configuration = processingConfiguration,
+          sourceResolver = { source -> artifactStore.resolveAudio(source.value) },
+        ).create()
+      }.initialize()
+    }
 
     when (runtimeState) {
       is SpeechTranscriptionRuntimeState.Ready -> {
@@ -114,9 +120,9 @@ class SpeechTranscriptionPlugin : Plugin() {
         val result = when (val state = runtimeState) {
           is SpeechTranscriptionRuntimeState.Ready ->
             try {
-              state.transcriber.transcribeBlocking(
+              (state.transcriber as? AndroidSpeechTranscriber)?.transcribeBlocking(
                 TranscriptionRequest(AudioSourceRef.of(runId), language, detectAutomatically),
-              )
+              ) ?: TranscriptionResult.failure(modelUnavailableSpeechTranscriptionIssue())
             } catch (exception: RuntimeException) {
               TranscriptionResult.failure(
                 dev.solidcoder.speech.TranscriptionIssue(
@@ -183,7 +189,7 @@ class SpeechTranscriptionPlugin : Plugin() {
   override fun handleOnDestroy() {
     activeOperation.get()?.cancelRequested?.set(true)
     readyTranscriber()?.cancelBlocking()
-    readyTranscriber()?.close()
+    readyRuntimeTranscriber()?.close()
     activeOperation.getAndSet(null)?.future?.get()?.cancel(true)
     executor.shutdownNow()
     cancellationExecutor.shutdownNow()
@@ -306,6 +312,10 @@ class SpeechTranscriptionPlugin : Plugin() {
   }
 
   private fun readyTranscriber(): AndroidSpeechTranscriber? {
+    return readyRuntimeTranscriber() as? AndroidSpeechTranscriber
+  }
+
+  private fun readyRuntimeTranscriber(): AndroidTranscriber? {
     return (runtimeState as? SpeechTranscriptionRuntimeState.Ready)?.transcriber
   }
 

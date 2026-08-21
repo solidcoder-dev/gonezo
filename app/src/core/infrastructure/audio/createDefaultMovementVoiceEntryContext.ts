@@ -18,7 +18,7 @@ export function createDefaultMovementVoiceEntryContext(): Omit<MovementVoiceEntr
   };
   return {
     enabled: isNativeRuntime(),
-    captureVoiceInput: new CaptureVoiceInput(audioCapture),
+    captureVoiceInput: new CaptureVoiceInput(audioCapture, transcriptionSettings),
     transcribeVoiceInput: new TranscribeVoiceInput(new NativeSpeechTranscriptionAdapter(), transcriptionSettings),
     interpretMovementEntryDraft: new NativeMovementEntryDraftInterpreterAdapter(),
     interpretationRunExporter: isNativeRuntime() ? new NativeInterpretationRunExporter() : undefined,

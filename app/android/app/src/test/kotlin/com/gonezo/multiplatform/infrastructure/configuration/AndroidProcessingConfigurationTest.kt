@@ -1,7 +1,6 @@
 package com.gonezo.multiplatform.infrastructure.configuration
 
 import com.gonezo.multiplatform.infrastructure.processing.factory.ProcessingFactory
-import com.gonezo.multiplatform.infrastructure.transcription.factory.TranscriberFactory
 import dev.solidcoder.interpretation.application.SpecFieldProcessingOrder
 import dev.solidcoder.interpretation.json.JsonFieldInterpretationPromptCompiler
 import dev.solidcoder.interpretation.json.JsonFieldInterpretationResultDecoder
@@ -22,7 +21,7 @@ class AndroidProcessingConfigurationTest {
   }
 
   @Test
-  fun parsesStreamingModeWithoutAddingAStreamingImplementation() {
+  fun parsesStreamingModeForWhisperCpp() {
     assertEquals(
       TranscriptionMode.STREAMING,
       reader.read("STREAMING", "WHISPER_CPP", "LOCAL_LITERT").transcriptionMode,
@@ -39,17 +38,11 @@ class AndroidProcessingConfigurationTest {
   }
 
   @Test
-  fun rejectsUnsupportedTranscriptionCombinationWithoutFallback() {
+  fun keepsStreamingModeAsAnExplicitWhisperCppSelection() {
     val configuration = reader.read("STREAMING", "WHISPER_CPP", "LOCAL_LITERT")
 
-    val exception = assertThrows(IllegalArgumentException::class.java) {
-      TranscriberFactory(null, configuration) { error("not used") }.create()
-    }
-
-    assertEquals(
-      "Transcription configuration STREAMING + WHISPER_CPP is not implemented yet",
-      exception.message,
-    )
+    assertEquals(TranscriptionMode.STREAMING, configuration.transcriptionMode)
+    assertEquals(TranscriptionProvider.WHISPER_CPP, configuration.transcriptionProvider)
   }
 
   @Test

@@ -78,4 +78,6 @@ export type CapturedAudio = {
   mimeType: string;
   durationMs: number;
   sizeBytes: number;
+  transcription?: SpeechTranscriptionResult;
 };
+import type { SpeechTranscriptionResult } from './SpeechTranscriptionPort';

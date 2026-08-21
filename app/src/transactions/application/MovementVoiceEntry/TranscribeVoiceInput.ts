@@ -20,6 +20,9 @@ export class TranscribeVoiceInput implements TranscribeVoiceInputPort {
   }
 
   transcribe(audio: CapturedAudio): Promise<SpeechTranscriptionResult> {
+    if (audio.transcription) {
+      return Promise.resolve(audio.transcription);
+    }
     return this.speechTranscription.transcribe({
       runId: audio.runId,
       audioRef: audio.audioRef,

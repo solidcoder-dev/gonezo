@@ -17,8 +17,13 @@ import com.gonezo.multiplatform.plugins.interpretation.artifacts.AudioArtifactMe
 import com.gonezo.multiplatform.plugins.interpretation.artifacts.InterpretationArtifactStorageException;
 import com.gonezo.multiplatform.plugins.interpretation.artifacts.InterpretationArtifactStore;
 import com.gonezo.multiplatform.plugins.interpretation.artifacts.InterpretationRunStage;
+import com.gonezo.multiplatform.infrastructure.configuration.AndroidProcessingConfigurationReader;
+import com.gonezo.multiplatform.infrastructure.configuration.TranscriptionMode;
 import java.io.File;
 import java.util.UUID;
+import dev.solidcoder.speech.TranscriptionResult;
+import dev.solidcoder.speech.Transcript;
+import dev.solidcoder.speech.TranscriptionIssue;
 
 @CapacitorPlugin(
   name = "AudioCapturePlugin",
@@ -32,11 +37,21 @@ public class AudioCapturePlugin extends Plugin {
   private final AndroidAudioRecorder audioRecorder = new AndroidAudioRecorder();
 
   private InterpretationArtifactStore artifactStore;
+  private StreamingAudioTranscriptionController streamingTranscription;
+  private boolean streamingMode;
   private ActiveRecordingSession activeSession;
 
   @Override
   public void load() {
     artifactStore = new AndroidPrivateInterpretationArtifactStore(getContext().getNoBackupFilesDir());
+    streamingMode = new AndroidProcessingConfigurationReader().read().getTranscriptionMode() == TranscriptionMode.STREAMING;
+    if (streamingMode) {
+      try {
+        streamingTranscription = new StreamingAudioTranscriptionController(getContext());
+      } catch (RuntimeException ignored) {
+        streamingTranscription = null;
+      }
+    }
     try {
       artifactStore.cleanupTemporaryArtifacts();
     } catch (InterpretationArtifactStorageException ignored) {
@@ -56,6 +71,10 @@ public class AudioCapturePlugin extends Plugin {
   @Override
   protected void handleOnDestroy() {
     cancelActiveSessionSilently();
+    if (streamingTranscription != null) {
+      streamingTranscription.close();
+      streamingTranscription = null;
+    }
   }
 
   @PluginMethod
@@ -112,7 +131,17 @@ public class AudioCapturePlugin extends Plugin {
     try {
       runId = UUID.randomUUID().toString();
       File recordingFile = artifactStore().beginRun(runId, System.currentTimeMillis());
-      audioRecorder.start(recordingFile);
+      String language = call.getString("language");
+      boolean detectLanguageAutomatically = call.getBoolean("detectLanguageAutomatically", language == null);
+      PcmChunkListener chunkListener = null;
+      if (streamingMode) {
+        if (streamingTranscription == null) {
+          throw new AudioCapturePluginException(AudioCaptureErrorCode.NATIVE_RECORDER_FAILURE, "Streaming speech transcription is unavailable.");
+        }
+        streamingTranscription.start(language, detectLanguageAutomatically);
+        chunkListener = this::acceptStreamingPcm;
+      }
+      audioRecorder.start(recordingFile, chunkListener);
       long startedAt = System.currentTimeMillis();
       activeSession = new ActiveRecordingSession(runId, startedAt, recordingFile);
 
@@ -150,6 +179,7 @@ public class AudioCapturePlugin extends Plugin {
 
     try {
       audioRecorder.stopAndFinalize();
+      TranscriptionResult streamingResult = streamingTranscription == null ? null : streamingTranscription.finish();
       activeSession = null;
 
       long durationMs = Math.max(0L, System.currentTimeMillis() - currentSession.startedAt);
@@ -184,6 +214,9 @@ public class AudioCapturePlugin extends Plugin {
       result.put("mimeType", "audio/wav");
       result.put("durationMs", durationMs);
       result.put("sizeBytes", sizeBytes);
+      if (streamingResult != null) {
+        putTranscriptionResult(result, streamingResult);
+      }
       call.resolve(result);
     } catch (AudioCapturePluginException exception) {
       markCaptureFailed(currentSession.runId, exception.code());
@@ -247,7 +280,34 @@ public class AudioCapturePlugin extends Plugin {
       }
     }
     audioRecorder.cancelAndDelete();
+    if (streamingTranscription != null) {
+      streamingTranscription.cancel();
+    }
     activeSession = null;
+  }
+
+  private void acceptStreamingPcm(byte[] buffer, int length) {
+    if (streamingTranscription != null) {
+      streamingTranscription.acceptPcm16(buffer, length);
+    }
+  }
+
+  private void putTranscriptionResult(JSObject result, TranscriptionResult transcription) {
+    Transcript transcript = transcription.getTranscript();
+    if (transcript != null) {
+      result.put("transcript", new JSObject().put("text", transcript.getText()));
+    }
+    if (!transcription.getIssues().isEmpty()) {
+      TranscriptionIssue issue = transcription.getIssues().get(0);
+      result.put(
+        "transcriptionError",
+        new JSObject()
+          .put("code", issue.getCode())
+          .put("message", issue.getMessage())
+          .put("recoverable", issue.getRecoverable())
+          .put("retryable", issue.getRetryable())
+      );
+    }
   }
 
   private InterpretationArtifactStore artifactStore() {

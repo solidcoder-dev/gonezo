@@ -20,6 +20,7 @@ final class AndroidAudioRecorder {
   private final AudioRecordFactory audioRecordFactory;
 
   private File outputFile;
+  private PcmChunkListener chunkListener;
   private Thread worker;
   private CountDownLatch startupSignal;
 
@@ -32,6 +33,10 @@ final class AndroidAudioRecorder {
   }
 
   void start(File nextOutputFile) throws AudioCapturePluginException {
+    start(nextOutputFile, null);
+  }
+
+  void start(File nextOutputFile, PcmChunkListener nextChunkListener) throws AudioCapturePluginException {
     if (worker != null && worker.isAlive()) {
       throw new AudioCapturePluginException(
         AudioCaptureErrorCode.RECORDING_ALREADY_ACTIVE,
@@ -39,6 +44,7 @@ final class AndroidAudioRecorder {
       );
     }
     outputFile = nextOutputFile;
+    chunkListener = nextChunkListener;
     recording.set(true);
     asyncError.set(null);
     asyncErrorCode.set(null);
@@ -182,6 +188,9 @@ final class AndroidAudioRecorder {
         int read = audioRecord.read(buffer, 0, buffer.length);
         if (read > 0) {
           output.write(buffer, 0, read);
+          if (chunkListener != null) {
+            chunkListener.onPcmChunk(buffer, read);
+          }
           pcmBytes += read;
           startupSignal.countDown();
           if (System.currentTimeMillis() - startedAt >= AudioCaptureConfiguration.MAX_RECORDING_DURATION_MS) {
@@ -214,6 +223,7 @@ final class AndroidAudioRecorder {
         activeAudioRecord.compareAndSet(audioRecord, null);
       }
       recording.set(false);
+      chunkListener = null;
       if (startupSignal != null) {
         startupSignal.countDown();
       }

@@ -1,4 +1,5 @@
 import { registerPlugin } from '@capacitor/core';
+import type { TranscriptionSettings } from '../../../transactions/application/MovementVoiceEntry/TranscriptionSettings';
 
 export type AudioCapturePluginSession = {
   runId: string;
@@ -11,6 +12,8 @@ export type AudioCapturePluginResult = {
   mimeType: string;
   durationMs: number;
   sizeBytes: number;
+  transcript?: { text: string; segments?: Array<{ text: string; startMs: number; endMs: number; noSpeechProbability: number }> };
+  transcriptionError?: { code: string; message: string; recoverable: boolean; retryable: boolean };
 };
 
 export type AudioCapturePluginPermissionResult = {
@@ -25,7 +28,7 @@ export interface AudioCapturePlugin {
   getMicrophonePermissionStatus(): Promise<AudioCapturePluginPermissionResult>;
   requestMicrophonePermission(): Promise<AudioCapturePluginPermissionResult>;
   openAppSettings(): Promise<void>;
-  startRecording(): Promise<AudioCapturePluginSession>;
+  startRecording(settings?: TranscriptionSettings): Promise<AudioCapturePluginSession>;
   stopRecording(): Promise<AudioCapturePluginResult>;
   cancelRecording(): Promise<void>;
   discardRun(input: AudioCapturePluginDiscardRunInput): Promise<void>;

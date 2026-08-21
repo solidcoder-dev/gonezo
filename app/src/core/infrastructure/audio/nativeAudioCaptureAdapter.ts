@@ -1,6 +1,28 @@
 import type { AudioCapturePort } from '../../../transactions/application/MovementVoiceEntry/AudioCapturePort';
 import type { CapturedAudio, CapturedAudioRef, RecordingSession } from '../../../transactions/application/MovementVoiceEntry/movementVoiceCapture.types';
-import { AudioCapturePlugin } from './audioCapturePlugin';
+import { AudioCapturePlugin, type AudioCapturePluginResult } from './audioCapturePlugin';
+import type { TranscriptionSettings } from '../../../transactions/application/MovementVoiceEntry/TranscriptionSettings';
+import type { SpeechTranscriptionResult, TranscriptionFailure } from '../../../transactions/application/MovementVoiceEntry/SpeechTranscriptionPort';
+
+const TRANSCRIPTION_FAILURE_CODES = new Set([
+  'artifact-storage-failed', 'audio-not-found', 'invalid-audio', 'model-corrupt', 'model-unavailable',
+  'native-transcription-failed', 'no-speech-detected', 'transcription-cancelled', 'transcription-empty',
+  'transcription-invalid-output', 'transcription-unavailable', 'unsupported-transcription-language',
+]);
+
+function mapStreamingTranscription(result: AudioCapturePluginResult): SpeechTranscriptionResult | undefined {
+  if (!result.transcript && !result.transcriptionError) return undefined;
+  if (result.transcript) return { transcript: result.transcript };
+  const failure = result.transcriptionError!;
+  return {
+    failure: {
+      code: TRANSCRIPTION_FAILURE_CODES.has(failure.code) ? failure.code as TranscriptionFailure['code'] : 'native-transcription-failed',
+      message: failure.message,
+      recoverable: failure.recoverable,
+      retryable: failure.retryable,
+    },
+  };
+}
 
 type NativePluginError = {
   code?: string;
@@ -20,9 +42,9 @@ function toAudioCaptureError(error: unknown): NativePluginError {
 }
 
 export class NativeAudioCaptureAdapter implements AudioCapturePort {
-  async start(): Promise<RecordingSession> {
+  async start(settings?: TranscriptionSettings): Promise<RecordingSession> {
     try {
-      return await AudioCapturePlugin.startRecording();
+      return await AudioCapturePlugin.startRecording(settings);
     } catch (error) {
       throw toAudioCaptureError(error);
     }
@@ -31,7 +53,11 @@ export class NativeAudioCaptureAdapter implements AudioCapturePort {
   async stop(): Promise<CapturedAudio> {
     try {
       const result = await AudioCapturePlugin.stopRecording();
-      return { ...result, audioRef: result.audioRef as CapturedAudioRef };
+      return {
+        ...result,
+        audioRef: result.audioRef as CapturedAudioRef,
+        transcription: mapStreamingTranscription(result),
+      };
     } catch (error) {
       throw toAudioCaptureError(error);
     }

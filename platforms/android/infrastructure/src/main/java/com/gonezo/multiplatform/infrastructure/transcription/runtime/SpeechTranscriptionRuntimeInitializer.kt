@@ -3,7 +3,7 @@ package com.gonezo.multiplatform.infrastructure.transcription.runtime
 import com.gonezo.multiplatform.infrastructure.transcription.factory.TranscriptionConfigurationException
 
 internal class SpeechTranscriptionRuntimeInitializer(
-  private val transcriberFactory: () -> AndroidSpeechTranscriber,
+  private val transcriberFactory: () -> AndroidTranscriber,
 ) {
   fun initialize(): SpeechTranscriptionRuntimeState {
     return try {

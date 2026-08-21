@@ -10,14 +10,19 @@ internal object MlPipelineDiagnostics {
 
   fun transcriptionStarted(runId: String, target: MlExecutionTarget) {
     processingStartedAt[runId] = SystemClock.elapsedRealtime()
-    Log.d(TAG, "recording_stopped speech_execution_target=$target")
+    Log.d(
+      TAG,
+      "recording_stopped transcription_mode=FULL transcription_provider=WHISPER_CPP speech_execution_target=$target",
+    )
   }
 
   fun transcriptionCompleted(runId: String, target: MlExecutionTarget) {
     val startedAt = processingStartedAt[runId] ?: return
     Log.d(
       TAG,
-      "transcription_ms=${SystemClock.elapsedRealtime() - startedAt} speech_execution_target=$target",
+      "transcription_ms=${SystemClock.elapsedRealtime() - startedAt} " +
+        "stop_to_final_transcript_ms=${SystemClock.elapsedRealtime() - startedAt} " +
+        "speech_execution_target=$target",
     )
   }
 

@@ -6,8 +6,9 @@ import com.gonezo.multiplatform.infrastructure.configuration.TranscriptionMode
 import com.gonezo.multiplatform.infrastructure.configuration.TranscriptionProvider
 import com.gonezo.multiplatform.infrastructure.transcription.model.AssetModelProvider
 import com.gonezo.multiplatform.infrastructure.transcription.model.SpeechModelConfigurationReader
-import com.gonezo.multiplatform.infrastructure.transcription.runtime.AndroidSpeechTranscriber
+import com.gonezo.multiplatform.infrastructure.transcription.runtime.AndroidTranscriber
 import com.gonezo.multiplatform.infrastructure.transcription.whisper.WhisperCppTranscriber
+import com.gonezo.multiplatform.infrastructure.transcription.whisper.WhisperCppStreamingTranscriber
 import dev.solidcoder.speech.AudioSourceRef
 import java.io.File
 
@@ -16,10 +17,8 @@ internal class TranscriberFactory(
   private val configuration: AndroidProcessingConfiguration,
   private val sourceResolver: (AudioSourceRef) -> File,
 ) {
-  fun create(): AndroidSpeechTranscriber {
-    if (configuration.transcriptionMode != TranscriptionMode.FULL ||
-      configuration.transcriptionProvider != TranscriptionProvider.WHISPER_CPP
-    ) {
+  fun create(): AndroidTranscriber {
+    if (configuration.transcriptionProvider != TranscriptionProvider.WHISPER_CPP) {
       throw TranscriptionConfigurationException(
         "Transcription configuration ${configuration.transcriptionMode} + " +
           "${configuration.transcriptionProvider} is not implemented yet",
@@ -27,15 +26,16 @@ internal class TranscriberFactory(
     }
 
     val modelConfiguration = SpeechModelConfigurationReader(requireNotNull(context)).read()
-    return WhisperCppTranscriber(
-      sourceResolver = sourceResolver,
-      modelProvider = AssetModelProvider(
-        context = context,
-        assetPath = modelConfiguration.assetPath,
-        expectedSize = modelConfiguration.expectedSize,
-        expectedSha256 = modelConfiguration.expectedSha256,
-      ),
+    val modelProvider = AssetModelProvider(
+      context = context,
+      assetPath = modelConfiguration.assetPath,
+      expectedSize = modelConfiguration.expectedSize,
+      expectedSha256 = modelConfiguration.expectedSha256,
     )
+    return when (configuration.transcriptionMode) {
+      TranscriptionMode.FULL -> WhisperCppTranscriber(sourceResolver, modelProvider)
+      TranscriptionMode.STREAMING -> WhisperCppStreamingTranscriber(modelProvider)
+    }
   }
 }
 
