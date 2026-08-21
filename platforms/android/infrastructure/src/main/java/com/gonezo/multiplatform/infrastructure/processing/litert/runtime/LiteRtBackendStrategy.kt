@@ -11,10 +11,11 @@ internal class AndroidLiteRtBackendFactory(
   private val nativeLibraryDir: String,
 ) : LiteRtBackendFactory {
   override fun create(target: MlExecutionTarget): Backend {
-    return when (target) {
+    val backend = when (target) {
       MlExecutionTarget.GPU -> Backend.GPU()
       MlExecutionTarget.NPU -> Backend.NPU(nativeLibraryDir)
       MlExecutionTarget.CPU -> error("LiteRT CPU interpretation is not supported by this runtime.")
     }
+    return backend
   }
 }

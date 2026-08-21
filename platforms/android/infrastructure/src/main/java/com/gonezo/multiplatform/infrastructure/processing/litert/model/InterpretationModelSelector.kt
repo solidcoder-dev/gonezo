@@ -7,10 +7,11 @@ internal class InterpretationModelSelector {
   fun select(
     target: MlExecutionTarget,
     descriptors: List<InterpretationModelDescriptor>,
+    npuTarget: NpuTarget = NpuTarget.QUALCOMM_SM8850,
   ): InterpretationModelDescriptor {
     return descriptors.singleOrNull { descriptor ->
       descriptor.target == target && when (target) {
-        MlExecutionTarget.NPU -> descriptor.npuTarget == NpuTarget.QUALCOMM_SM8850
+        MlExecutionTarget.NPU -> descriptor.npuTarget == npuTarget
         MlExecutionTarget.CPU,
         MlExecutionTarget.GPU -> descriptor.npuTarget == null
       }

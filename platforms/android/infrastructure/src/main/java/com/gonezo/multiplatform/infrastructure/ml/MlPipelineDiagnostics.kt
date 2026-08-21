@@ -39,4 +39,21 @@ internal object MlPipelineDiagnostics {
     )
   }
 
+  fun executionPlanResolved(
+    rawSocModel: String?,
+    resolvedNpuTarget: NpuTarget?,
+    plan: MlExecutionPlan,
+    interpretationModel: String,
+  ) {
+    Log.i(
+      TAG,
+      "raw_soc_model=${rawSocModel ?: "unknown"} " +
+        "resolved_npu_target=${resolvedNpuTarget ?: "none"} " +
+        "speech_execution_target=${plan.speech} " +
+        "interpretation_execution_target=${plan.interpretation} " +
+        "interpretation_model=$interpretationModel " +
+        "litert_backend=${plan.interpretation.name.lowercase()}",
+    )
+  }
+
 }

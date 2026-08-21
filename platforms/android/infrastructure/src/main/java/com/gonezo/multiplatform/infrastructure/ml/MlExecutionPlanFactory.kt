@@ -2,7 +2,7 @@ package com.gonezo.multiplatform.infrastructure.ml
 
 internal class MlExecutionPlanFactory {
   fun create(capabilities: DeviceMlCapabilities): MlExecutionPlan {
-    return if (capabilities.npuTarget == NpuTarget.QUALCOMM_SM8850 && capabilities.supportsNpu) {
+    return if (capabilities.npuTarget != null && capabilities.supportsNpu) {
       MlExecutionPlan(
         speech = MlExecutionTarget.CPU,
         interpretation = MlExecutionTarget.NPU,

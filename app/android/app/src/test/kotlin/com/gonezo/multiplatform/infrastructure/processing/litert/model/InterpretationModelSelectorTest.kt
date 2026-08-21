@@ -9,6 +9,7 @@ import org.junit.Test
 class InterpretationModelSelectorTest {
   private val gpu = descriptor(MlExecutionTarget.GPU, null, "gpu.litertlm")
   private val npu = descriptor(MlExecutionTarget.NPU, NpuTarget.QUALCOMM_SM8850, "sm8850.litertlm")
+  private val sm8750Npu = descriptor(MlExecutionTarget.NPU, NpuTarget.QUALCOMM_SM8750, "sm8750.litertlm")
 
   @Test
   fun `selects the SM8850 model for NPU`() {
@@ -18,6 +19,18 @@ class InterpretationModelSelectorTest {
   @Test
   fun `selects the existing GPU model for GPU`() {
     assertEquals("gpu.litertlm", InterpretationModelSelector().select(MlExecutionTarget.GPU, listOf(gpu, npu)).fileName)
+  }
+
+  @Test
+  fun `selects the SM8750 model for the SM8750 NPU target`() {
+    assertEquals(
+      "sm8750.litertlm",
+      InterpretationModelSelector().select(
+        target = MlExecutionTarget.NPU,
+        descriptors = listOf(gpu, npu, sm8750Npu),
+        npuTarget = NpuTarget.QUALCOMM_SM8750,
+      ).fileName,
+    )
   }
 
   @Test

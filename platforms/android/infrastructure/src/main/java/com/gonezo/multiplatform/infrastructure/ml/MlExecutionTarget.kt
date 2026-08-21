@@ -12,5 +12,6 @@ data class MlExecutionPlan(
 )
 
 enum class NpuTarget {
+  QUALCOMM_SM8750,
   QUALCOMM_SM8850,
 }

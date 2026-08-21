@@ -14,6 +14,10 @@ def npuInterpretationModelAssetPath = 'schema-guided-interpretation/litertlm/Gem
 def npuInterpretationModelSourceFile = file("$projectDir/../third_party/Gemma3-1B-IT_q4_ekv1280_sm8850.litertlm")
 def npuInterpretationModelExpectedBytes = 693747712L
 def npuInterpretationModelSha256 = 'fda5dca0e8c1c6f65ca5625c326ff79920c7eb82625a0c6515ae4f5711957b1f'
+def sm8750InterpretationModelAssetPath = 'schema-guided-interpretation/litertlm/Gemma3-1B-IT_q4_ekv1280_sm8750.litertlm'
+def sm8750InterpretationModelSourceFile = file("$projectDir/../third_party/Gemma3-1B-IT_q4_ekv1280_sm8750.litertlm")
+def sm8750InterpretationModelExpectedBytes = 689291264L
+def sm8750InterpretationModelSha256 = '1904ceff9591e7a140df3a672c800e8e7bee8337526484b00f69ccef4fa2d60a'
 def gonezoTranscriptionMode = findProperty('gonezoTranscriptionMode') ?: 'FULL'
 def gonezoTranscriptionProvider = findProperty('gonezoTranscriptionProvider') ?: 'WHISPER_CPP'
 def gonezoProcessingProvider = findProperty('gonezoProcessingProvider') ?: 'LOCAL_LITERT'
@@ -151,10 +155,26 @@ tasks.register('stageNpuInterpretationModel') {
     }
 }
 
+tasks.register('stageSm8750InterpretationModel') {
+    def modelFile = file("$buildDir/generated/interpretation-assets/$sm8750InterpretationModelAssetPath")
+    outputs.file(modelFile)
+    doLast {
+        if (!sm8750InterpretationModelSourceFile.isFile()) {
+            throw new GradleException("Local SM8750 interpretation model is missing: ${sm8750InterpretationModelSourceFile}")
+        }
+        if (sm8750InterpretationModelSourceFile.length() != sm8750InterpretationModelExpectedBytes || sha256(sm8750InterpretationModelSourceFile) != sm8750InterpretationModelSha256) {
+            throw new GradleException("Local SM8750 interpretation model failed size or SHA-256 validation.")
+        }
+        modelFile.parentFile.mkdirs()
+        java.nio.file.Files.copy(sm8750InterpretationModelSourceFile.toPath(), modelFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+    }
+}
+
 tasks.matching { it.name in ['mergeDebugAssets', 'mergeReleaseAssets'] }.configureEach {
     dependsOn tasks.named('verifySpeechModel')
     dependsOn tasks.named('verifyInterpretationModel')
     dependsOn tasks.named('stageNpuInterpretationModel')
+    dependsOn tasks.named('stageSm8750InterpretationModel')
 }
 
 tasks.register('provisionSpeechModel') {

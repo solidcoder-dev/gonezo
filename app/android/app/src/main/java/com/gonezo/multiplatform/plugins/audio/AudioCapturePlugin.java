@@ -17,8 +17,10 @@ import com.gonezo.multiplatform.plugins.interpretation.artifacts.AudioArtifactMe
 import com.gonezo.multiplatform.plugins.interpretation.artifacts.InterpretationArtifactStorageException;
 import com.gonezo.multiplatform.plugins.interpretation.artifacts.InterpretationArtifactStore;
 import com.gonezo.multiplatform.plugins.interpretation.artifacts.InterpretationRunStage;
+import com.gonezo.multiplatform.plugins.speech.SpeechTranscriptionRunFinalizer;
 import com.gonezo.multiplatform.infrastructure.configuration.AndroidProcessingConfigurationReader;
 import com.gonezo.multiplatform.infrastructure.configuration.TranscriptionMode;
+import com.gonezo.multiplatform.infrastructure.transcription.orchestration.StreamingAudioTranscriptionCoordinator;
 import java.io.File;
 import java.util.UUID;
 import dev.solidcoder.speech.TranscriptionResult;
@@ -37,20 +39,18 @@ public class AudioCapturePlugin extends Plugin {
   private final AndroidAudioRecorder audioRecorder = new AndroidAudioRecorder();
 
   private InterpretationArtifactStore artifactStore;
-  private StreamingAudioTranscriptionController streamingTranscription;
+  private SpeechTranscriptionRunFinalizer transcriptionFinalizer;
+  private StreamingAudioTranscriptionCoordinator streamingTranscription;
   private boolean streamingMode;
   private ActiveRecordingSession activeSession;
 
   @Override
   public void load() {
     artifactStore = new AndroidPrivateInterpretationArtifactStore(getContext().getNoBackupFilesDir());
+    transcriptionFinalizer = new SpeechTranscriptionRunFinalizer(artifactStore);
     streamingMode = new AndroidProcessingConfigurationReader().read().getTranscriptionMode() == TranscriptionMode.STREAMING;
     if (streamingMode) {
-      try {
-        streamingTranscription = new StreamingAudioTranscriptionController(getContext());
-      } catch (RuntimeException ignored) {
-        streamingTranscription = null;
-      }
+      streamingTranscription = new StreamingAudioTranscriptionCoordinator(getContext());
     }
     try {
       artifactStore.cleanupTemporaryArtifacts();
@@ -143,7 +143,13 @@ public class AudioCapturePlugin extends Plugin {
       }
       audioRecorder.start(recordingFile, chunkListener);
       long startedAt = System.currentTimeMillis();
-      activeSession = new ActiveRecordingSession(runId, startedAt, recordingFile);
+      activeSession = new ActiveRecordingSession(
+        runId,
+        startedAt,
+        recordingFile,
+        language,
+        detectLanguageAutomatically
+      );
 
       JSObject result = new JSObject();
       result.put("runId", activeSession.runId);
@@ -166,6 +172,15 @@ public class AudioCapturePlugin extends Plugin {
       }
       cancelActiveSessionSilently();
       reject(call, exception);
+    } catch (RuntimeException exception) {
+      if (runId != null) {
+        try {
+          artifactStore().deleteRun(runId);
+        } catch (InterpretationArtifactStorageException ignored) {
+        }
+      }
+      cancelActiveSessionSilently();
+      reject(call, AudioCaptureErrorCode.NATIVE_RECORDER_FAILURE, exception.getMessage());
     }
   }
 
@@ -180,6 +195,17 @@ public class AudioCapturePlugin extends Plugin {
     try {
       audioRecorder.stopAndFinalize();
       TranscriptionResult streamingResult = streamingTranscription == null ? null : streamingTranscription.finish();
+      if (streamingResult != null && !transcriptionFinalizer.finalizeFromResult(
+        currentSession.runId,
+        currentSession.language,
+        currentSession.detectLanguageAutomatically,
+        streamingResult
+      )) {
+        markCaptureFailed(currentSession.runId, AudioCaptureErrorCode.ARTIFACT_STORAGE_FAILED);
+        reject(call, AudioCaptureErrorCode.ARTIFACT_STORAGE_FAILED, "Interpretation artifact storage failed.");
+        activeSession = null;
+        return;
+      }
       activeSession = null;
 
       long durationMs = Math.max(0L, System.currentTimeMillis() - currentSession.startedAt);
@@ -220,6 +246,9 @@ public class AudioCapturePlugin extends Plugin {
       call.resolve(result);
     } catch (AudioCapturePluginException exception) {
       markCaptureFailed(currentSession.runId, exception.code());
+      if (streamingTranscription != null) {
+        streamingTranscription.cancel();
+      }
       activeSession = null;
       reject(call, exception);
     }
@@ -329,12 +358,22 @@ public class AudioCapturePlugin extends Plugin {
     private final long startedAt;
     private final File recordingFile;
     private final String audioRef;
+    private final String language;
+    private final boolean detectLanguageAutomatically;
 
-    private ActiveRecordingSession(String runId, long startedAt, File recordingFile) {
+    private ActiveRecordingSession(
+      String runId,
+      long startedAt,
+      File recordingFile,
+      String language,
+      boolean detectLanguageAutomatically
+    ) {
       this.runId = runId;
       this.startedAt = startedAt;
       this.recordingFile = recordingFile;
       this.audioRef = runId;
+      this.language = language;
+      this.detectLanguageAutomatically = detectLanguageAutomatically;
     }
   }
 }

@@ -34,6 +34,7 @@ class AndroidPrivateInterpretationArtifactStoreTest {
     assertEquals(1, manifest.getInt("version"))
     assertEquals(runId, manifest.getString("runId"))
     assertEquals("recording", manifest.getString("status"))
+    assertFalse(manifest.getJSONObject("artifacts").has("transcript"))
   }
 
   @Test
@@ -75,6 +76,7 @@ class AndroidPrivateInterpretationArtifactStoreTest {
     assertEquals("transcribed", manifest.getString("status"))
     assertEquals(1_700_000_200_000, manifest.getLong("updatedAtEpochMs"))
     assertEquals(1_700_000_200_000, manifest.getJSONObject("transcription").getLong("completedAtEpochMs"))
+    assertEquals("transcript.v1.json", manifest.getJSONObject("artifacts").getString("transcript"))
   }
 
   @Test

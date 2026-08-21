@@ -11,6 +11,8 @@ internal interface AndroidStreamingSpeechTranscriber : AndroidTranscriber, Strea
 }
 
 internal interface AndroidStreamingTranscriptionSession : StreamingTranscriptionSession {
+    fun acceptPcm16NonBlocking(bytes: ByteArray, length: Int)
+
     fun acceptBlocking(chunk: AudioChunk)
 
     fun finishBlocking(): TranscriptionResult

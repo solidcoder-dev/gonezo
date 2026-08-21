@@ -35,6 +35,16 @@ class MlExecutionPlanFactoryTest {
   }
 
   @Test
+  fun `selects CPU speech and NPU interpretation for SM8750`() {
+    val plan = MlExecutionPlanFactory().create(
+      AndroidDeviceMlCapabilities(socModelProvider = { "SM8750" }),
+    )
+
+    assertEquals(MlExecutionTarget.CPU, plan.speech)
+    assertEquals(MlExecutionTarget.NPU, plan.interpretation)
+  }
+
+  @Test
   fun `preserves CPU speech and GPU interpretation for unsupported devices`() {
     val plan = MlExecutionPlanFactory().create(
       AndroidDeviceMlCapabilities(socModelProvider = { "unknown" }),

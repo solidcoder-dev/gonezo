@@ -6,6 +6,9 @@ import com.gonezo.multiplatform.infrastructure.configuration.ProcessingProvider
 import com.gonezo.multiplatform.infrastructure.ml.AndroidDeviceMlCapabilities
 import com.gonezo.multiplatform.infrastructure.ml.MlExecutionPlan
 import com.gonezo.multiplatform.infrastructure.ml.MlExecutionPlanFactory
+import com.gonezo.multiplatform.infrastructure.ml.MlPipelineDiagnostics
+import com.gonezo.multiplatform.infrastructure.ml.MlExecutionTarget
+import com.gonezo.multiplatform.infrastructure.ml.NpuTarget
 import com.gonezo.multiplatform.infrastructure.processing.litert.model.AndroidInterpretationModelStore
 import com.gonezo.multiplatform.infrastructure.processing.litert.model.InterpretationModelConfiguration
 import com.gonezo.multiplatform.infrastructure.processing.litert.model.InterpretationModelConfigurationReader
@@ -41,14 +44,23 @@ internal class ProcessingFactory(
 
   private fun createLocalLiteRtAssembly(): ProcessingAssembly {
     val androidContext = requireNotNull(context)
-    val executionPlan = MlExecutionPlanFactory().create(AndroidDeviceMlCapabilities())
+    val capabilities = AndroidDeviceMlCapabilities()
+    val executionPlan = MlExecutionPlanFactory().create(capabilities)
     val modelReader = InterpretationModelConfigurationReader(androidContext)
     val modelConfiguration = InterpretationModelSelector().select(
       target = executionPlan.interpretation,
       descriptors = listOf(
         modelReader.read(),
-        modelReader.read(com.gonezo.multiplatform.infrastructure.ml.MlExecutionTarget.NPU),
+        modelReader.read(MlExecutionTarget.NPU, NpuTarget.QUALCOMM_SM8750),
+        modelReader.read(MlExecutionTarget.NPU, NpuTarget.QUALCOMM_SM8850),
       ),
+      npuTarget = capabilities.npuTarget ?: NpuTarget.QUALCOMM_SM8850,
+    )
+    MlPipelineDiagnostics.executionPlanResolved(
+      rawSocModel = capabilities.rawSocModel,
+      resolvedNpuTarget = capabilities.npuTarget,
+      plan = executionPlan,
+      interpretationModel = modelConfiguration.fileName,
     )
     val runtime = createRuntime(androidContext, modelConfiguration, executionPlan)
     return ProcessingAssembly(

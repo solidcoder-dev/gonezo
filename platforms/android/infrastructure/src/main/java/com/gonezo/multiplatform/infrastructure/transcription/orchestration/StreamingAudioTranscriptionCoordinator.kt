@@ -1,25 +1,23 @@
-package com.gonezo.multiplatform.plugins.audio
+package com.gonezo.multiplatform.infrastructure.transcription.orchestration
 
 import android.content.Context
 import com.gonezo.multiplatform.infrastructure.configuration.AndroidProcessingConfigurationReader
 import com.gonezo.multiplatform.infrastructure.transcription.factory.TranscriberFactory
 import com.gonezo.multiplatform.infrastructure.transcription.runtime.AndroidStreamingSpeechTranscriber
 import com.gonezo.multiplatform.infrastructure.transcription.runtime.AndroidStreamingTranscriptionSession
-import dev.solidcoder.speech.AudioChunk
 import dev.solidcoder.speech.StreamingTranscriptionRequest
 import dev.solidcoder.speech.TranscriptionResult
 
-internal class StreamingAudioTranscriptionController(context: Context) {
-  private val transcriber: AndroidStreamingSpeechTranscriber
+class StreamingAudioTranscriptionCoordinator(context: Context) : AutoCloseable {
+  private val transcriber = TranscriberFactory(
+    context = context,
+    configuration = AndroidProcessingConfigurationReader().read(),
+    sourceResolver = { error("streaming transcription does not resolve an audio file") },
+  ).create() as? AndroidStreamingSpeechTranscriber
+    ?: error("streaming transcription is not available")
   private var session: AndroidStreamingTranscriptionSession? = null
 
-  init {
-    val configuration = AndroidProcessingConfigurationReader().read()
-    transcriber = TranscriberFactory(context, configuration) { error("streaming does not resolve an audio file") }
-      .create() as? AndroidStreamingSpeechTranscriber
-      ?: error("streaming transcription is not available")
-  }
-
+  @Synchronized
   fun start(language: String?, detectLanguageAutomatically: Boolean) {
     check(session == null) { "streaming transcription is already active" }
     session = transcriber.startBlocking(
@@ -28,15 +26,11 @@ internal class StreamingAudioTranscriptionController(context: Context) {
   }
 
   fun acceptPcm16(bytes: ByteArray, length: Int) {
-    val samples = FloatArray(length / 2)
-    for (index in samples.indices) {
-      val low = bytes[index * 2].toInt() and 0xff
-      val high = bytes[index * 2 + 1].toInt()
-      samples[index] = (((high shl 8) or low) / 32768f)
-    }
-    session?.acceptBlocking(AudioChunk(samples, SAMPLE_RATE_HZ))
+    check(length in 1..bytes.size && length % 2 == 0) { "PCM16 chunk length must be a positive even number" }
+    sessionOrThrow().acceptPcm16NonBlocking(bytes, length)
   }
 
+  @Synchronized
   fun finish(): TranscriptionResult {
     val activeSession = checkNotNull(session) { "streaming transcription is not active" }
     return try {
@@ -46,17 +40,18 @@ internal class StreamingAudioTranscriptionController(context: Context) {
     }
   }
 
+  @Synchronized
   fun cancel() {
     session?.cancelBlocking()
     session = null
   }
 
-  fun close() {
+  override fun close() {
     cancel()
     transcriber.close()
   }
 
-  companion object {
-    private const val SAMPLE_RATE_HZ = 16_000
-  }
+  @Synchronized
+  private fun sessionOrThrow(): AndroidStreamingTranscriptionSession =
+    checkNotNull(session) { "streaming transcription is not active" }
 }

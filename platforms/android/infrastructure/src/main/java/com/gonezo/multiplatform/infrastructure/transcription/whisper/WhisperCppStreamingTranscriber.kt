@@ -14,7 +14,6 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
-import kotlinx.coroutines.runBlocking
 
 internal class WhisperCppStreamingTranscriber(
   private val modelProvider: ModelProvider,
@@ -24,37 +23,49 @@ internal class WhisperCppStreamingTranscriber(
   private val contextLock = Any()
   private var context = 0L
   private var contextModelPath: String? = null
+  private var activeSession: WhisperCppStreamingSession? = null
 
   override suspend fun start(request: StreamingTranscriptionRequest): StreamingTranscriptionSession = startBlocking(request)
 
   override fun startBlocking(request: StreamingTranscriptionRequest): AndroidStreamingTranscriptionSession {
     val modelPath = modelProvider.modelPath()
     val resolvedLanguage = request.language?.trim().takeUnless(String?::isNullOrBlank) ?: "auto"
-    if (!request.detectLanguageAutomatically && nativeBridge.languageId(resolvedLanguage) < 0) {
-      throw IllegalArgumentException("Speech transcription language is not supported.")
-    }
-    val activeContext = synchronized(contextLock) {
+    synchronized(contextLock) {
+      check(activeSession == null) { "a streaming transcription session is already active for the Whisper context" }
       ensureContext(modelPath)
-      if (request.detectLanguageAutomatically || nativeBridge.isMultilingual(context)) {
-        context
-      } else {
+      if (!request.detectLanguageAutomatically && nativeBridge.languageId(resolvedLanguage) < 0) {
+        throw IllegalArgumentException("Speech transcription language is not supported.")
+      }
+      if (!request.detectLanguageAutomatically && !nativeBridge.isMultilingual(context)) {
         throw IllegalArgumentException("The loaded speech model does not support this transcription language.")
       }
+      val session = WhisperCppStreamingSession(
+        context = context,
+        language = resolvedLanguage,
+        detectLanguageAutomatically = request.detectLanguageAutomatically,
+        threadCount = threadCount,
+        nativeBridge = nativeBridge,
+        onClosed = ::releaseSession,
+      )
+      activeSession = session
+      return session
     }
-    return WhisperCppStreamingSession(
-      context = activeContext,
-      language = resolvedLanguage,
-      detectLanguageAutomatically = request.detectLanguageAutomatically,
-      threadCount = threadCount,
-      nativeBridge = nativeBridge,
-    )
   }
 
-  override fun close() = synchronized(contextLock) {
-    if (context != 0L) {
-      nativeBridge.freeContext(context)
+  override fun close() {
+    val session = synchronized(contextLock) { activeSession }
+    session?.cancelBlocking()
+    synchronized(contextLock) {
+      if (context != 0L) nativeBridge.freeContext(context)
       context = 0L
       contextModelPath = null
+      activeSession = null
+    }
+  }
+
+  private fun releaseSession(session: WhisperCppStreamingSession) {
+    synchronized(contextLock) {
+      if (activeSession === session) activeSession = null
     }
   }
 
@@ -74,8 +85,10 @@ private class WhisperCppStreamingSession(
   private val detectLanguageAutomatically: Boolean,
   private val threadCount: Int,
   private val nativeBridge: WhisperNativeBridgeApi,
+  private val onClosed: (WhisperCppStreamingSession) -> Unit,
 ) : AndroidStreamingTranscriptionSession {
   private val state = AtomicReference(SessionState.CREATED)
+  private val lifecycleLock = Any()
   private val commands = ArrayBlockingQueue<Command>(MAX_BUFFERED_CHUNKS)
   private val finished = CountDownLatch(1)
   private val result = AtomicReference<TranscriptionResult>()
@@ -85,6 +98,9 @@ private class WhisperCppStreamingSession(
   private var inferenceCount = 0
   private var totalInferenceMs = 0L
   private var firstInferenceMs: Long? = null
+  private var chunksReceived = 0
+  private var samplesReceived = 0L
+  private var maxQueueDepth = 0
   private val startedAt = System.currentTimeMillis()
   private var finishRequestedAt: Long? = null
 
@@ -95,36 +111,63 @@ private class WhisperCppStreamingSession(
   override suspend fun accept(chunk: AudioChunk) = acceptBlocking(chunk)
 
   override fun acceptBlocking(chunk: AudioChunk) {
-    check(state.compareAndSet(SessionState.CREATED, SessionState.RUNNING) || state.get() == SessionState.RUNNING) {
-      "streaming transcription session is not accepting audio"
+    val copy = chunk.samples.copyOf()
+    enqueueAudio(Command.Samples(copy, chunk.sampleRateHz), copy.size)
+  }
+
+  override fun acceptPcm16NonBlocking(bytes: ByteArray, length: Int) {
+    val copy = bytes.copyOf(length)
+    enqueueAudio(Command.Pcm16(copy), length / 2)
+  }
+
+  private fun enqueueAudio(command: Command, sampleCount: Int) {
+    synchronized(lifecycleLock) {
+      val currentState = state.get()
+      check(currentState == SessionState.CREATED || currentState == SessionState.RUNNING) {
+        "streaming transcription session is not accepting audio in state $currentState"
+      }
+      if (!commands.offer(command)) {
+        throw StreamingAudioBackpressureException("Streaming audio queue capacity is exhausted.")
+      }
+      state.compareAndSet(SessionState.CREATED, SessionState.RUNNING)
+      chunksReceived++
+      samplesReceived += sampleCount
+      maxQueueDepth = maxOf(maxQueueDepth, commands.size)
     }
-    commands.put(Command.Chunk(AudioChunk(chunk.samples.copyOf(), chunk.sampleRateHz)))
   }
 
   override suspend fun finish(): TranscriptionResult = finishBlocking()
 
   override fun finishBlocking(): TranscriptionResult {
     finishRequestedAt = System.currentTimeMillis()
-    check(state.compareAndSet(SessionState.CREATED, SessionState.FINISHING) || state.compareAndSet(SessionState.RUNNING, SessionState.FINISHING)) {
-      "streaming transcription session cannot be finished"
+    synchronized(lifecycleLock) {
+      when (state.get()) {
+        SessionState.CREATED, SessionState.RUNNING -> state.set(SessionState.FINISHING)
+        SessionState.FINISHED -> error("streaming transcription session has already finished")
+        SessionState.CANCELLED -> error("streaming transcription session was cancelled")
+        SessionState.FINISHING -> error("streaming transcription session is already finishing")
+        SessionState.FAILED -> return result.get() ?: failure(TranscriptionFailureCodes.NATIVE_TRANSCRIPTION_FAILED, "Local speech transcription failed.", true)
+      }
+      while (!commands.offer(Command.Finish)) {
+        Thread.yield()
+      }
     }
-    commands.put(Command.Finish)
     finished.await()
-    return result.get() ?: failure(
-      TranscriptionFailureCodes.TRANSCRIPTION_CANCELLED,
-      "Speech transcription was cancelled.",
-      true,
-    )
+    return result.get() ?: failure(TranscriptionFailureCodes.TRANSCRIPTION_CANCELLED, "Speech transcription was cancelled.", true)
   }
 
-  override suspend fun cancel() = cancelBlocking()
+  override suspend fun cancel(): Unit = cancelBlocking()
 
   override fun cancelBlocking() {
-    val previous = state.getAndSet(SessionState.CANCELLED)
-    if (previous == SessionState.FINISHED || previous == SessionState.CANCELLED) return
-    nativeBridge.cancel(context)
-    commands.clear()
-    commands.offer(Command.Cancel)
+    val previous = synchronized(lifecycleLock) {
+      val current = state.get()
+      if (current == SessionState.FINISHED || current == SessionState.CANCELLED) return
+      state.set(SessionState.CANCELLED)
+      commands.clear()
+      commands.offer(Command.Cancel)
+      current
+    }
+    if (previous != SessionState.FAILED) nativeBridge.cancel(context)
     finished.await(CANCEL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
   }
 
@@ -132,14 +175,11 @@ private class WhisperCppStreamingSession(
     try {
       while (true) {
         when (val command = commands.take()) {
-          is Command.Chunk -> {
-            if (state.get() == SessionState.CANCELLED) return
-            window.append(command.chunk)
-            processReadyWindows(finalize = false)
-          }
+          is Command.Samples -> processSamples(command.samples, command.sampleRateHz)
+          is Command.Pcm16 -> processPcm16(command.bytes)
           Command.Finish -> {
             processReadyWindows(finalize = true)
-            result.set(finalResult())
+            result.compareAndSet(null, finalResult())
             state.set(SessionState.FINISHED)
             return
           }
@@ -147,12 +187,30 @@ private class WhisperCppStreamingSession(
         }
       }
     } catch (exception: Exception) {
-      state.set(SessionState.FAILED)
-      result.set(failure(TranscriptionFailureCodes.NATIVE_TRANSCRIPTION_FAILED, exception.message ?: "Local speech transcription failed.", true))
+      if (state.get() != SessionState.CANCELLED) {
+        state.set(SessionState.FAILED)
+        result.set(failure(TranscriptionFailureCodes.NATIVE_TRANSCRIPTION_FAILED, exception.message ?: "Local speech transcription failed.", true))
+      }
     } finally {
       finished.countDown()
+      onClosed(this)
       logDiagnostics()
     }
+  }
+
+  private fun processPcm16(bytes: ByteArray) {
+    val samples = FloatArray(bytes.size / 2)
+    for (index in samples.indices) {
+      val low = bytes[index * 2].toInt() and 0xff
+      val high = bytes[index * 2 + 1].toInt()
+      samples[index] = (((high shl 8) or low) / 32768f)
+    }
+    processSamples(samples, SAMPLE_RATE_HZ)
+  }
+
+  private fun processSamples(samples: FloatArray, sampleRateHz: Int) {
+    window.append(AudioChunk(samples, sampleRateHz))
+    processReadyWindows(finalize = false)
   }
 
   private fun processReadyWindows(finalize: Boolean) {
@@ -168,13 +226,10 @@ private class WhisperCppStreamingSession(
       nativeBridge.transcribe(context, threadCount, language, detectLanguageAutomatically, samples),
     )
     inferenceCount++
-    val inferenceDurationMs = System.currentTimeMillis() - inferenceStartedAt
+    totalInferenceMs += System.currentTimeMillis() - inferenceStartedAt
     firstInferenceMs = firstInferenceMs ?: (System.currentTimeMillis() - startedAt)
-    totalInferenceMs += inferenceDurationMs
     when (payload) {
-      is WhisperNativeTranscriptionPayload.Failure -> {
-        result.compareAndSet(null, failure(payload.code, payload.message, payload.recoverable, payload.retryable))
-      }
+      is WhisperNativeTranscriptionPayload.Failure -> result.compareAndSet(null, failure(payload.code, payload.message, payload.recoverable, payload.retryable))
       is WhisperNativeTranscriptionPayload.Success -> merger.add(payload.text)
     }
   }
@@ -190,29 +245,24 @@ private class WhisperCppStreamingSession(
   }
 
   private fun failure(code: String, message: String, recoverable: Boolean, retryable: Boolean = recoverable) = TranscriptionResult.failure(
-    TranscriptionIssue(
-      code,
-      message,
-      if (recoverable) TranscriptionIssueSeverity.RECOVERABLE else TranscriptionIssueSeverity.DEFINITIVE,
-      recoverable,
-      retryable,
-    ),
+    TranscriptionIssue(code, message, if (recoverable) TranscriptionIssueSeverity.RECOVERABLE else TranscriptionIssueSeverity.DEFINITIVE, recoverable, retryable),
   )
 
   private fun logDiagnostics() {
     android.util.Log.i(
       "GonezoWhisperStreaming",
-      "recording_duration_ms=${System.currentTimeMillis() - startedAt}, " +
-        "streaming_first_inference_ms=${firstInferenceMs ?: -1}, " +
-        "streaming_inference_count=$inferenceCount, streaming_total_inference_ms=$totalInferenceMs, " +
-        "streaming_finalize_ms=${finishRequestedAt?.let { System.currentTimeMillis() - it } ?: -1}, " +
-        "stop_to_final_transcript_ms=${finishRequestedAt?.let { System.currentTimeMillis() - it } ?: -1}, " +
-        "transcription_mode=STREAMING, transcription_provider=WHISPER_CPP",
+      "recording_duration_ms=" + (System.currentTimeMillis() - startedAt) + ", " +
+        "audio_chunks_received=" + chunksReceived + ", audio_samples_received=" + samplesReceived + ", max_audio_queue_depth=" + maxQueueDepth + ", " +
+        "streaming_inference_count=" + inferenceCount + ", streaming_total_inference_ms=" + totalInferenceMs + ", " +
+        "streaming_finalize_ms=" + (finishRequestedAt?.let { System.currentTimeMillis() - it } ?: -1) + ", " +
+        "stop_to_final_transcript_ms=" + (finishRequestedAt?.let { System.currentTimeMillis() - it } ?: -1) + ", " +
+        "mode=STREAMING, provider=WHISPER_CPP",
     )
   }
 
   private sealed interface Command {
-    data class Chunk(val chunk: AudioChunk) : Command
+    data class Samples(val samples: FloatArray, val sampleRateHz: Int) : Command
+    data class Pcm16(val bytes: ByteArray) : Command
     data object Finish : Command
     data object Cancel : Command
   }
@@ -225,3 +275,5 @@ private class WhisperCppStreamingSession(
     private const val CANCEL_TIMEOUT_SECONDS = 5L
   }
 }
+
+internal class StreamingAudioBackpressureException(message: String) : IllegalStateException(message)

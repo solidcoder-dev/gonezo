@@ -9,10 +9,38 @@ import dev.solidcoder.speech.TranscriptionIssueSeverity
 import org.json.JSONArray
 import org.json.JSONObject
 
-internal class SpeechTranscriptionRunFinalizer(
+internal class SpeechTranscriptionRunFinalizer @JvmOverloads constructor(
   private val artifactStore: InterpretationArtifactStore,
   private val clockNow: () -> Long = { System.currentTimeMillis() },
 ) {
+  fun finalizeFromResult(
+    runId: String,
+    language: String?,
+    detectAutomatically: Boolean,
+    result: dev.solidcoder.speech.TranscriptionResult,
+  ): Boolean {
+    var persisted = false
+    completeTranscription(
+      runId = runId,
+      language = language,
+      detectAutomatically = detectAutomatically,
+      transcript = result.transcript,
+      issues = result.issues,
+      onResolve = { persisted = true },
+      onArtifactStorageFailure = {},
+      markStorageFailure = {
+        runCatching {
+          artifactStore.markFailed(
+            runId,
+            InterpretationRunStage.STORAGE,
+            SpeechTranscriptionFailureCodes.ARTIFACT_STORAGE_FAILED,
+          )
+        }
+      },
+    )
+    return persisted
+  }
+
   fun completeTranscription(
     runId: String,
     language: String?,

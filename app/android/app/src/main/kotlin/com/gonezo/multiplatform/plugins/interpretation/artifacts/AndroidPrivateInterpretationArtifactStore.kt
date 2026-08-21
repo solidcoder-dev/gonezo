@@ -12,6 +12,8 @@ import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 
+private val ARTIFACT_NAMES = listOf("audio.wav", "transcript.v1.json", "interpretation.v1.json")
+
 internal class AndroidPrivateInterpretationArtifactStore internal constructor(
   private val baseDirectory: File,
   private val clock: InterpretationArtifactClock,
@@ -363,7 +365,9 @@ internal class AndroidPrivateInterpretationArtifactStore internal constructor(
   }
 
   private fun writeManifest(runId: String, manifest: RunManifest) {
-    writeJsonAtomically(manifestFile(runId), manifest.toJson().toString())
+    val runDirectory = requireExistingRun(runId)
+    val artifactNames = ARTIFACT_NAMES.filter { File(runDirectory, it).isFile }
+    writeJsonAtomically(manifestFile(runId), manifest.toJson(artifactNames).toString())
   }
 
   private fun resolvedFieldCount(resultJson: String): Int {
@@ -490,7 +494,7 @@ internal class AndroidPrivateInterpretationArtifactStore internal constructor(
     val interpretation: InterpretationMetadata? = null,
     val failure: FailureMetadata? = null,
   ) {
-    fun toJson(): JSONObject = JSONObject()
+    fun toJson(artifactNames: List<String>): JSONObject = JSONObject()
       .put("version", version)
       .put("runId", runId)
       .put("createdAtEpochMs", createdAtEpochMs)
@@ -498,10 +502,19 @@ internal class AndroidPrivateInterpretationArtifactStore internal constructor(
       .put("status", status)
       .put(
         "artifacts",
-        JSONObject()
-          .put("audio", "audio.wav")
-          .put("transcript", "transcript.v1.json")
-          .put("interpretation", "interpretation.v1.json")
+        JSONObject().apply {
+          artifactNames.forEach { artifactName ->
+            put(
+              when (artifactName) {
+                "audio.wav" -> "audio"
+                "transcript.v1.json" -> "transcript"
+                "interpretation.v1.json" -> "interpretation"
+                else -> artifactName
+              },
+              artifactName,
+            )
+          }
+        }
       )
       .apply {
         audio?.let {

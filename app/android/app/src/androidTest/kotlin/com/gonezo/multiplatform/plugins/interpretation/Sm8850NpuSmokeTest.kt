@@ -27,7 +27,7 @@ class Sm8850NpuSmokeTest {
   @Test
   fun initializesNpuLoadsTheSm8850ModelAndGenerates() = runBlocking {
     val plan = MlExecutionPlanFactory().create(AndroidDeviceMlCapabilities())
-    assumeTrue("Run this manual test on an SM8850 device.", plan.interpretation == MlExecutionTarget.NPU)
+    assumeTrue("Run this manual test on a supported Qualcomm NPU device.", plan.interpretation == MlExecutionTarget.NPU)
 
     val context = InstrumentationRegistry.getInstrumentation().targetContext
     val root = SchemaGuidedInterpretationCompositionRoot(context)

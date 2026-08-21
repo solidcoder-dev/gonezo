@@ -11,9 +11,16 @@ internal class InterpretationModelConfigurationReader(
     metadataValue = { key -> context.applicationInfo.metaData?.get(key) },
   )
 
-  fun read(target: MlExecutionTarget = MlExecutionTarget.GPU): InterpretationModelConfiguration {
-    val metadataPrefix = if (target == MlExecutionTarget.NPU) NPU_METADATA_PREFIX else METADATA_PREFIX
-    val npuTarget = if (target == MlExecutionTarget.NPU) NpuTarget.QUALCOMM_SM8850 else null
+  fun read(
+    target: MlExecutionTarget = MlExecutionTarget.GPU,
+    npuTarget: NpuTarget = NpuTarget.QUALCOMM_SM8850,
+  ): InterpretationModelConfiguration {
+    val metadataPrefix = when {
+      target != MlExecutionTarget.NPU -> METADATA_PREFIX
+      npuTarget == NpuTarget.QUALCOMM_SM8750 -> NPU_SM8750_METADATA_PREFIX
+      else -> NPU_METADATA_PREFIX
+    }
+    val descriptorNpuTarget = if (target == MlExecutionTarget.NPU) npuTarget else null
     return InterpretationModelConfiguration(
       modelId = requireText(metadataPrefix + MODEL_ID_SUFFIX),
       modelVersion = requireText(metadataPrefix + MODEL_VERSION_SUFFIX),
@@ -22,7 +29,7 @@ internal class InterpretationModelConfigurationReader(
       expectedSizeBytes = requirePositiveLong(metadataPrefix + MODEL_SIZE_SUFFIX),
       sha256 = requireSha256(metadataPrefix + MODEL_SHA256_SUFFIX),
       target = target,
-      npuTarget = npuTarget,
+      npuTarget = descriptorNpuTarget,
     )
   }
 
@@ -75,6 +82,7 @@ internal class InterpretationModelConfigurationReader(
   companion object {
     private const val METADATA_PREFIX = "gonezo.interpretation.model."
     private const val NPU_METADATA_PREFIX = "gonezo.interpretation.model.npu."
+    private const val NPU_SM8750_METADATA_PREFIX = "gonezo.interpretation.model.npu.sm8750."
     private const val MODEL_ID_SUFFIX = "id"
     private const val MODEL_VERSION_SUFFIX = "version"
     private const val MODEL_ASSET_SUFFIX = "asset"

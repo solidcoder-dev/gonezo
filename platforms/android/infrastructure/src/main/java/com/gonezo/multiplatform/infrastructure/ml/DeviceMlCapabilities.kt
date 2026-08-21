@@ -8,17 +8,14 @@ interface DeviceMlCapabilities {
 
 internal class AndroidDeviceMlCapabilities(
   private val socModelProvider: () -> String? = { android.os.Build.SOC_MODEL },
+  private val socResolver: AndroidSocResolver = KnownAndroidSocResolver,
   override val supportsGpu: Boolean = true,
 ) : DeviceMlCapabilities {
-  override val npuTarget: NpuTarget? = when (socModelProvider()?.trim()?.uppercase()) {
-    SM8850 -> NpuTarget.QUALCOMM_SM8850
-    else -> null
-  }
+  internal val rawSocModel: String? = socModelProvider()
+
+  override val npuTarget: NpuTarget? = socResolver.resolve(rawSocModel)
 
   override val supportsNpu: Boolean
     get() = npuTarget != null
 
-  companion object {
-    private const val SM8850 = "SM8850"
-  }
 }

@@ -78,6 +78,24 @@
         <meta-data
             android:name="gonezo.interpretation.model.npu.sha256"
             android:value="fda5dca0e8c1c6f65ca5625c326ff79920c7eb82625a0c6515ae4f5711957b1f" />
+        <meta-data
+            android:name="gonezo.interpretation.model.npu.sm8750.asset"
+            android:value="schema-guided-interpretation/litertlm/Gemma3-1B-IT_q4_ekv1280_sm8750.litertlm" />
+        <meta-data
+            android:name="gonezo.interpretation.model.npu.sm8750.id"
+            android:value="litert-community/Gemma3-1B-IT" />
+        <meta-data
+            android:name="gonezo.interpretation.model.npu.sm8750.version"
+            android:value="a16w4-q4-ekv1280-sm8750" />
+        <meta-data
+            android:name="gonezo.interpretation.model.npu.sm8750.fileName"
+            android:value="Gemma3-1B-IT_q4_ekv1280_sm8750.litertlm" />
+        <meta-data
+            android:name="gonezo.interpretation.model.npu.sm8750.size"
+            android:value="689291264" />
+        <meta-data
+            android:name="gonezo.interpretation.model.npu.sm8750.sha256"
+            android:value="1904ceff9591e7a140df3a672c800e8e7bee8337526484b00f69ccef4fa2d60a" />
 
         <uses-native-library
             android:name="libvndksupport.so"
