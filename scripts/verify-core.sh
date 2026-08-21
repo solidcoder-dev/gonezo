@@ -12,6 +12,10 @@ source "$script_dir/verify-common.sh"
 verify_init_report_dir "$report_dir"
 : >"$summary_file"
 
+gradle_user_home="${GRADLE_USER_HOME:-${XDG_CACHE_HOME:-/tmp}/gonezo-docker/core-gradle}"
+mkdir -p "$gradle_user_home"
+export GRADLE_USER_HOME="$gradle_user_home"
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -22,13 +26,14 @@ Usage:
 
 Available steps:
   clean
+  fast
   check
   health
 EOF
 }
 
 list_steps() {
-  printf '%s\n' clean check health
+  printf '%s\n' clean fast check health
 }
 
 append_summary() {
@@ -63,7 +68,7 @@ resolve_steps() {
       all)
         selected+=("check" "health")
         ;;
-      clean|check|health)
+      clean|fast|check|health)
         selected+=("$step")
         ;;
       *)
@@ -120,6 +125,9 @@ run_step() {
       ;;
     check)
       run_logged_command "$step" "$log_file" bash -lc "cd '$core_root' && ./gradlew check spotlessCheck checkLayerBoundaries"
+      ;;
+    fast)
+      run_logged_command "$step" "$log_file" bash -lc "cd '$core_root' && ./gradlew spotlessCheck checkLayerBoundaries"
       ;;
     health)
       run_logged_command "$step" "$log_file" bash -lc "cd '$core_root' && ./gradlew buildHealth"

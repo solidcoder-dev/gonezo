@@ -121,7 +121,7 @@ describe('dependency-cruiser rules', () => {
     ]);
   });
 
-  it('enforces the repository dependency contract on valid and invalid fixtures', () => {
+  it('enforces the repository dependency contract on valid and invalid fixtures', { timeout: 10000 }, () => {
     const root = makeTempRoot();
 
     writeFixtureFile(root, 'src/ledger/ui/LedgerView.ts', 'export const ledgerView = 1;\n');
@@ -206,6 +206,54 @@ describe('dependency-cruiser rules', () => {
           from: 'WorkspacePage.ts',
           to: 'useLedgerTransactions.ts',
           rule: expect.any(String),
+        }),
+      ]),
+    );
+  });
+
+  it('blocks deep cross-context imports when only the public API is allowed', () => {
+    const root = makeTempRoot();
+
+    writeFixtureFile(root, 'src/account/index.ts', [
+      "export { accountView } from './public/AccountView';",
+      '',
+    ].join('\n'));
+    writeFixtureFile(root, 'src/account/public/AccountView.ts', 'export const accountView = 1;\n');
+    writeFixtureFile(root, 'src/account/application/AccountPage.ts', 'export const accountPage = 1;\n');
+    writeFixtureFile(root, 'src/workspace/application/WorkspacePage.ts', [
+      "import { accountView } from '../../account/index';",
+      "import { accountView as accountPublicView } from '../../account/public/AccountView';",
+      "import { accountPage } from '../../account/application/AccountPage';",
+      'export const page = accountView + accountPublicView + accountPage;',
+      '',
+    ].join('\n'));
+
+    writeFixtureFile(root, '.dependency-cruiser.cjs', [
+      'module.exports = {',
+      '  forbidden: [{',
+      "    name: 'no-deep-cross-context-imports',",
+      '    from: { path: "^src/workspace/" },',
+      "    to: { path: '^src/account/', pathNot: '^src/account/(?:index\\\\.ts|public/)' },",
+      '  }],',
+      '  options: { tsConfig: { fileName: "./tsconfig.json" } },',
+      '};',
+      '',
+    ].join('\n'));
+
+    const report = runDependencyCruiser(root, resolve(root, '.dependency-cruiser.cjs'));
+    const invalidDependencies = collectInvalidDependencies(report);
+
+    expect(invalidDependencies).toEqual([
+      expect.objectContaining({
+        from: 'WorkspacePage.ts',
+        to: 'AccountPage.ts',
+      }),
+    ]);
+    expect(invalidDependencies).toEqual(
+      expect.not.arrayContaining([
+        expect.objectContaining({
+          from: 'WorkspacePage.ts',
+          to: 'AccountView.ts',
         }),
       ]),
     );

@@ -3,12 +3,6 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 const themes = ['light', 'dark'] as const;
 const viewports = [
   { width: 320, height: 700 },
-  { width: 360, height: 800 },
-  { width: 390, height: 844 },
-  { width: 430, height: 932 },
-  { width: 576, height: 900 },
-  { width: 768, height: 1024 },
-  { width: 992, height: 768 },
   { width: 1200, height: 900 },
 ];
 

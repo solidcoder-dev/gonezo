@@ -16,10 +16,11 @@ function forbiddenToContexts(contexts, suffix = '') {
   return `^src/(?:${joinContexts(contexts)})/${suffix}`;
 }
 
-function publicSurfacePatterns(contexts) {
+function publicApiPatterns(contexts) {
   const targetContexts = joinContexts(contexts);
   return [
     `^src/(?:${targetContexts})/index\\.ts$`,
+    `^src/(?:${targetContexts})/public/`,
     `^src/(?:${targetContexts})/application/[^/]+\\.(?:ts|tsx)$`,
     `^src/(?:${targetContexts})/(?:application|ui)/[A-Z][^/]*\\.(?:ts|tsx)$`,
     `^src/(?:${targetContexts})/(?:application|ui)/[^/]+/[A-Z][^/]*\\.(?:ts|tsx)$`,
@@ -38,7 +39,7 @@ function crossContextInternalsRule(sourceContext) {
     },
     to: {
       path: forbiddenToContexts(targets, ''),
-      pathNot: publicSurfacePatterns(targets),
+      pathNot: publicApiPatterns(targets),
     },
   };
 }

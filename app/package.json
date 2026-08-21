@@ -3,15 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": "22.14.0"
+  },
   "scripts": {
     "dev": "vite",
     "prebuild": "node ./scripts/generate-theme-colors.mjs",
     "build": "npm run typecheck && vite build",
     "build:bundle": "vite build",
-    "precheck": "node ./scripts/generate-theme-colors.mjs",
-    "precheck:styles": "node ./scripts/generate-theme-colors.mjs",
-    "precheck:contrast": "node ./scripts/generate-theme-colors.mjs",
-    "lint:js": "eslint .",
+    "lint:js": "eslint . --max-warnings 0 --cache --cache-location node_modules/.cache/eslint",
     "lint": "npm run lint:js && npm run lint:css",
     "stylelint": "stylelint \"src/**/*.{css,scss}\" --max-warnings 0",
     "stylelint:fix": "stylelint \"src/**/*.{css,scss}\" --fix",

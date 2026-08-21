@@ -150,11 +150,50 @@ run_theme_precheck_once() {
   return "$status"
 }
 
+changed_frontend_script_files() {
+  {
+    git -C "$repo_root" diff --name-only HEAD -- app
+    git -C "$repo_root" ls-files --others --exclude-standard -- app
+  } | while IFS= read -r path; do
+    local relative_path="${path#app/}"
+    if [[ "$relative_path" == src/* && -f "$app_root/$relative_path" && "$relative_path" =~ \.(js|jsx|ts|tsx)$ ]]; then
+      printf '%s\n' "$relative_path"
+    fi
+  done
+}
+
+run_javascript_lint() {
+  if [[ "${VERIFY_CHANGED_ONLY:-0}" != 1 ]]; then
+    npm run lint:js
+    return
+  fi
+
+  if ! git -C "$repo_root" diff --quiet HEAD -- app/eslint.config.js; then
+    npm run lint:js
+    return
+  fi
+
+  local -a changed_files=()
+  mapfile -t changed_files < <(changed_frontend_script_files)
+  if ((${#changed_files[@]} == 0)); then
+    return 0
+  fi
+
+  ./node_modules/.bin/eslint \
+    --max-warnings 0 \
+    --cache \
+    --cache-location node_modules/.cache/eslint \
+    "${changed_files[@]}"
+}
+
 run_step_command() {
   local step="$1"
   case "$step" in
-    typecheck|lint:js|check:architecture|lint:css|test)
+    typecheck|check:architecture|lint:css|test)
       (cd "$app_root" && npm run "$step")
+      ;;
+    lint:js)
+      (cd "$app_root" && run_javascript_lint)
       ;;
     check:structure)
       (cd "$app_root" && npm run check:structure)
@@ -265,7 +304,7 @@ main() {
     exit 1
   fi
 
-  printf 'frontend OK -> %s\n' "$(display_path "$report_dir")"
+  printf 'frontend OK -> %s\n' "$(verify_display_path "$repo_root" "$report_dir")"
 }
 
 main "$@"

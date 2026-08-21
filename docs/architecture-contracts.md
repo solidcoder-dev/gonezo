@@ -20,8 +20,9 @@ Allowed layer shapes are context-specific and are enforced by `app/scripts/check
 
 ## Frontend checks
 
-- `./scripts/verify.sh` is the canonical repo-wide entry point. Use `./scripts/verify.sh frontend` for the frontend gate, `./scripts/verify.sh core` for the JVM gate, and `./scripts/verify.sh build-frontend` or `./scripts/verify.sh health` when you need those parts separately.
+- `./scripts/verify.sh` is the canonical repo-wide entry point. Use `./scripts/verify.sh fast` for local frontend plus core architecture/style/type checks, `./scripts/verify.sh standard` for complete local frontend/core checks, and `./scripts/verify.sh all` for standard plus Docker E2E.
 - `npm run check` inside `app/` remains a compatibility wrapper over the frontend verifier.
+- Fast and standard frontend/core lanes use local Node/Java tools. Docker is currently reserved for Chromium Playwright; Android and native compatibility checks are tracked on a separate future branch.
 - Verification runs write private logs and summaries under `.reports/verify/`.
 - `check-src-structure.mjs` validates top-level entries, allowed context layers, and the special `shared` and `imports` trees.
 - `dependency-cruiser` rejects unresolved imports, circular imports, domain/framework leakage, `shared` depending on feature contexts, and cross-context deep imports into internals.

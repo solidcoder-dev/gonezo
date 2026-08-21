@@ -17,6 +17,8 @@ npm test
 npm run build
 ```
 
+From the repository root, coding agents should use `./scripts/verify.sh fast`. Complete frontend checks run locally through `./scripts/verify.sh frontend`; Playwright uses the Docker toolchain through `./scripts/verify.sh frontend-e2e`.
+
 ## Android Runtime
 
 - `app/android/app/src/main/java/com/gonezo/multiplatform/plugins/CorePlugin.java`: Capacitor plugin surface.
