@@ -7,13 +7,17 @@ import {
   type SchemaGuidedInterpretationPluginRequest,
 } from './schemaGuidedInterpretationPlugin';
 
-const { nativeInterpret, nativeCancel } = vi.hoisted(() => ({
+const { nativePrepare, nativeCancelPreparation, nativeInterpret, nativeCancel } = vi.hoisted(() => ({
+  nativePrepare: vi.fn(),
+  nativeCancelPreparation: vi.fn(),
   nativeInterpret: vi.fn(),
   nativeCancel: vi.fn(),
 }));
 
 vi.mock('@capacitor/core', () => ({
   registerPlugin: vi.fn(() => ({
+    prepare: nativePrepare,
+    cancelPreparation: nativeCancelPreparation,
     interpret: nativeInterpret,
     cancel: nativeCancel,
   })),
@@ -25,7 +29,17 @@ const requestFixturePath = resolve(repoRoot, 'core/schema-guided-interpretation-
 describe('SchemaGuidedInterpretationPlugin', () => {
   beforeEach(() => {
     nativeInterpret.mockReset();
+    nativePrepare.mockReset();
+    nativeCancelPreparation.mockReset();
     nativeCancel.mockReset();
+  });
+
+  it('delegates preparation lifecycle to the native interpretation bridge', async () => {
+    await SchemaGuidedInterpretationPlugin.prepare();
+    await SchemaGuidedInterpretationPlugin.cancelPreparation();
+
+    expect(nativePrepare).toHaveBeenCalledTimes(1);
+    expect(nativeCancelPreparation).toHaveBeenCalledTimes(1);
   });
 
   it('encodes semantic requests for Capacitor and decodes native results', async () => {

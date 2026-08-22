@@ -2,6 +2,7 @@ package com.gonezo.multiplatform.infrastructure.processing.litert.runtime
 
 import com.gonezo.multiplatform.infrastructure.processing.litert.model.InterpretationModelConfiguration
 import com.gonezo.multiplatform.infrastructure.processing.litert.model.InterpretationModelStore
+import com.gonezo.multiplatform.infrastructure.processing.preparation.ProcessingPreparer
 import com.gonezo.multiplatform.infrastructure.ml.MlExecutionTarget
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
@@ -57,7 +58,7 @@ internal class LiteRtStructuredGenerationRuntime(
   private val elapsedRealtimeProvider: ElapsedRealtimeProvider = NoOpElapsedRealtimeProvider,
   private val initializationTimeoutMs: Long = ENGINE_INITIALIZATION_TIMEOUT_MS,
   private val generationTimeoutMs: Long = GENERATION_TIMEOUT_MS,
-) : StructuredGenerationRuntime, Closeable {
+) : StructuredGenerationRuntime, ProcessingPreparer, Closeable {
   init {
     require(modelConfiguration.target == executionTarget) {
       "Interpretation model target ${modelConfiguration.target} does not match execution target $executionTarget."
@@ -78,7 +79,7 @@ internal class LiteRtStructuredGenerationRuntime(
 
     return generationMutex.withLock {
       ensureOpen()
-      val handle = engine()
+      val handle = ensureEngineReady()
       val output = generate(handle, request)
       if (output.isBlank()) {
         throw StructuredGenerationException(
@@ -89,6 +90,54 @@ internal class LiteRtStructuredGenerationRuntime(
         )
       }
       StructuredGenerationResult(output)
+    }
+  }
+
+  override suspend fun prepare() {
+    ensureOpen()
+    val startedAt = elapsedRealtimeProvider.now()
+    logEvent(
+      event = "interpretation.prepare.start",
+      modelId = modelConfiguration.modelId,
+      modelVersion = modelConfiguration.modelVersion,
+    )
+    try {
+      ensureEngineReady()
+      logEvent(
+        event = "interpretation.prepare.success",
+        modelId = modelConfiguration.modelId,
+        modelVersion = modelConfiguration.modelVersion,
+        durationMs = elapsedRealtimeProvider.now() - startedAt,
+      )
+      logger.log(
+        TAG,
+        "interpretation_prepare_ms=${elapsedRealtimeProvider.now() - startedAt} " +
+          "interpretation_execution_target=$executionTarget " +
+          "interpretation_model=${modelConfiguration.fileName}",
+      )
+    } catch (exception: CancellationException) {
+      throw exception
+    } catch (exception: StructuredGenerationException) {
+      logEvent(
+        event = "interpretation.prepare.failure",
+        modelId = modelConfiguration.modelId,
+        modelVersion = modelConfiguration.modelVersion,
+        durationMs = elapsedRealtimeProvider.now() - startedAt,
+      )
+      throw exception
+    } catch (exception: RuntimeException) {
+      logFailure(
+        code = InterpretationFailureCode.INFERENCE_FAILED,
+        phase = StructuredGenerationFailurePhase.ENGINE_INITIALIZATION,
+        exception = exception,
+      )
+      logEvent(
+        event = "interpretation.prepare.failure",
+        modelId = modelConfiguration.modelId,
+        modelVersion = modelConfiguration.modelVersion,
+        durationMs = elapsedRealtimeProvider.now() - startedAt,
+      )
+      throw exception
     }
   }
 
@@ -105,7 +154,7 @@ internal class LiteRtStructuredGenerationRuntime(
     handle?.close()
   }
 
-  private suspend fun engine(): LiteRtEngineHandle {
+  private suspend fun ensureEngineReady(): LiteRtEngineHandle {
     engine?.let { return it }
     return engineMutex.withLock {
       engine?.let { return it }
@@ -124,16 +173,23 @@ internal class LiteRtStructuredGenerationRuntime(
           durationMs = elapsedRealtimeProvider.now() - resolveStartedAt,
         )
 
-      val created = engineFactory.create(
-        LiteRtEngineConfiguration(
-          modelPath = modelPath,
-          cacheDirectoryPath = cacheDirectoryPath,
-          maxNumTokens = MAX_NUM_TOKENS,
-          executionTarget = executionTarget,
-        ),
-      )
-
+      var created: LiteRtEngineHandle? = null
       try {
+        val createStartedAt = elapsedRealtimeProvider.now()
+        created = engineFactory.create(
+          LiteRtEngineConfiguration(
+            modelPath = modelPath,
+            cacheDirectoryPath = cacheDirectoryPath,
+            maxNumTokens = MAX_NUM_TOKENS,
+            executionTarget = executionTarget,
+          ),
+        )
+        logger.log(
+          TAG,
+          "interpretation_engine_create_ms=${elapsedRealtimeProvider.now() - createStartedAt} " +
+            "actual_execution_target=$executionTarget " +
+            "actual_model_version=${modelConfiguration.modelVersion}",
+        )
         logEvent(
           event = "interpretation.engine.initialize.start",
           modelId = modelConfiguration.modelId,
@@ -156,10 +212,10 @@ internal class LiteRtStructuredGenerationRuntime(
             "interpretation_model=${modelConfiguration.fileName}",
         )
       } catch (exception: StructuredGenerationException) {
-        created.close()
+        created?.close()
         throw exception
       } catch (exception: TimeoutCancellationException) {
-        created.close()
+        created?.close()
         logFailure(
           code = InterpretationFailureCode.INFERENCE_FAILED,
           phase = StructuredGenerationFailurePhase.ENGINE_INITIALIZATION,
@@ -173,10 +229,10 @@ internal class LiteRtStructuredGenerationRuntime(
           cause = exception,
         )
       } catch (exception: CancellationException) {
-        created.close()
+        created?.close()
         throw exception
       } catch (exception: IllegalStateException) {
-        created.close()
+        created?.close()
         logFailure(
           code = InterpretationFailureCode.UNSUPPORTED_DEVICE,
           phase = StructuredGenerationFailurePhase.ENGINE_INITIALIZATION,
@@ -190,7 +246,7 @@ internal class LiteRtStructuredGenerationRuntime(
           cause = exception,
         )
       } catch (exception: LinkageError) {
-        created.close()
+        created?.close()
         logFailure(
           code = InterpretationFailureCode.UNSUPPORTED_DEVICE,
           phase = StructuredGenerationFailurePhase.ENGINE_INITIALIZATION,
@@ -204,7 +260,7 @@ internal class LiteRtStructuredGenerationRuntime(
           cause = exception,
         )
       } catch (exception: RuntimeException) {
-        created.close()
+        created?.close()
         logFailure(
           code = InterpretationFailureCode.INFERENCE_FAILED,
           phase = StructuredGenerationFailurePhase.ENGINE_INITIALIZATION,
@@ -219,7 +275,13 @@ internal class LiteRtStructuredGenerationRuntime(
         )
       }
 
-      engine = created
+      synchronized(this@LiteRtStructuredGenerationRuntime) {
+        if (closed) {
+          created.close()
+          throw CancellationException("LiteRT runtime was closed during initialization.")
+        }
+        engine = checkNotNull(created)
+      }
       created
     }
   }

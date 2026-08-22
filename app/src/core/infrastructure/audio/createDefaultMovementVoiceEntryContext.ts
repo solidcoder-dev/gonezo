@@ -9,9 +9,12 @@ import { NativeAudioCaptureAdapter } from './nativeAudioCaptureAdapter';
 import { NativeMicrophonePermissionAdapter } from './nativeMicrophonePermissionAdapter';
 import { NativeSpeechTranscriptionAdapter } from './nativeSpeechTranscriptionAdapter';
 import { NativeInterpretationRunExporter } from '../interpretation/nativeInterpretationRunExporter';
+import { NativeInterpretationProcessingPreparer } from '../interpretation/nativeInterpretationProcessingPreparer';
 
 export function createDefaultMovementVoiceEntryContext(): Omit<MovementVoiceEntryContext, 'categorySource'> {
-  const audioCapture = new NativeAudioCaptureAdapter();
+  const audioCapture = new NativeAudioCaptureAdapter(
+    isNativeRuntime() ? new NativeInterpretationProcessingPreparer() : undefined,
+  );
   const transcriptionSettings: TranscriptionSettings = {
     language: 'es',
     detectLanguageAutomatically: false,

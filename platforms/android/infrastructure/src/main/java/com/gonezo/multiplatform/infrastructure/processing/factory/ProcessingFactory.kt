@@ -32,6 +32,8 @@ internal class ProcessingFactory(
   private val promptCompiler: FieldInterpretationPromptCompiler,
   private val resultDecoder: FieldInterpretationResultDecoder,
   private val fieldProcessingOrder: FieldProcessingOrder,
+  private val runtimeFactory: ((Context, InterpretationModelConfiguration, MlExecutionPlan) -> StructuredGenerationRuntime)? = null,
+  private val modelConfigurationOverride: InterpretationModelConfiguration? = null,
 ) {
   fun create(): ProcessingAssembly {
     return when (configuration.processingProvider) {
@@ -46,16 +48,18 @@ internal class ProcessingFactory(
     val androidContext = requireNotNull(context)
     val capabilities = AndroidDeviceMlCapabilities()
     val executionPlan = MlExecutionPlanFactory().create(capabilities)
-    val modelReader = InterpretationModelConfigurationReader(androidContext)
-    val modelConfiguration = InterpretationModelSelector().select(
-      target = executionPlan.interpretation,
-      descriptors = listOf(
-        modelReader.read(),
-        modelReader.read(MlExecutionTarget.NPU, NpuTarget.QUALCOMM_SM8750),
-        modelReader.read(MlExecutionTarget.NPU, NpuTarget.QUALCOMM_SM8850),
-      ),
-      npuTarget = capabilities.npuTarget ?: NpuTarget.QUALCOMM_SM8850,
-    )
+    val modelConfiguration = modelConfigurationOverride ?: run {
+      val modelReader = InterpretationModelConfigurationReader(androidContext)
+      InterpretationModelSelector().select(
+        target = executionPlan.interpretation,
+        descriptors = listOf(
+          modelReader.read(),
+          modelReader.read(MlExecutionTarget.NPU, NpuTarget.QUALCOMM_SM8750),
+          modelReader.read(MlExecutionTarget.NPU, NpuTarget.QUALCOMM_SM8850),
+        ),
+        npuTarget = capabilities.npuTarget ?: NpuTarget.QUALCOMM_SM8850,
+      )
+    }
     MlPipelineDiagnostics.executionPlanResolved(
       rawSocModel = capabilities.rawSocModel,
       resolvedNpuTarget = capabilities.npuTarget,
@@ -80,10 +84,19 @@ internal class ProcessingFactory(
     context: Context,
     modelConfiguration: InterpretationModelConfiguration,
     executionPlan: MlExecutionPlan,
-  ): LiteRtStructuredGenerationRuntime {
+  ): StructuredGenerationRuntime {
+    runtimeFactory?.let { factory ->
+      return factory(context, modelConfiguration, executionPlan)
+    }
     val backendFactory = AndroidLiteRtBackendFactory(context.applicationInfo.nativeLibraryDir)
     return LiteRtStructuredGenerationRuntime(
-      modelStore = AndroidInterpretationModelStore(context, modelConfiguration),
+      modelStore = AndroidInterpretationModelStore(
+        baseDirectory = context.noBackupFilesDir,
+        assetReader = { assetPath -> context.assets.open(assetPath) },
+        configuration = modelConfiguration,
+        logger = AndroidInterpretationRuntimeLogger,
+        elapsedRealtimeProvider = AndroidElapsedRealtimeProvider,
+      ),
       engineFactory = liteRtEngineFactory(backendFactory),
       modelConfiguration = modelConfiguration,
       cacheDirectoryPath = context.cacheDir.absolutePath,

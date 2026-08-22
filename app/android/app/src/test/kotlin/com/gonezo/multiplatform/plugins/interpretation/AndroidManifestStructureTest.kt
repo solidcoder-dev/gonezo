@@ -23,6 +23,9 @@ class AndroidManifestStructureTest {
     val nativeLibraries = children(application as Node).filter { it.nodeName == "uses-native-library" }
     assertEquals(2, nativeLibraries.size)
     assertEquals(setOf("libOpenCL.so", "libvndksupport.so"), nativeLibraries.mapNotNull { it.attributes?.getNamedItemNS("http://schemas.android.com/apk/res/android", "name")?.nodeValue }.toSet())
+    val worker = children(application).single { it.nodeName == "service" }
+    assertEquals(":interpretation", worker.attributes.getNamedItemNS("http://schemas.android.com/apk/res/android", "process").nodeValue)
+    assertEquals("false", worker.attributes.getNamedItemNS("http://schemas.android.com/apk/res/android", "exported").nodeValue)
   }
 
   private fun children(node: Node): List<Node> {

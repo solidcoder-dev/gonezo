@@ -15,6 +15,8 @@ import com.gonezo.multiplatform.plugins.interpretation.application.ExecuteSchema
 import com.gonezo.multiplatform.plugins.interpretation.application.InterpretationExecutionException
 import com.gonezo.multiplatform.plugins.interpretation.bootstrap.SchemaGuidedInterpretationCompositionRoot
 import com.gonezo.multiplatform.infrastructure.ml.MlPipelineDiagnostics
+import android.os.SystemClock
+import android.util.Log
 import dev.solidcoder.interpretation.application.InterpretationCancellationException
 import dev.solidcoder.interpretation.application.InterpretationFailureCode
 import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationFailurePhase
@@ -25,6 +27,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
+import java.util.concurrent.FutureTask
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -44,6 +47,7 @@ class SchemaGuidedInterpretationPlugin : Plugin() {
   private lateinit var compositionRoot: SchemaGuidedInterpretationCompositionRoot
   private lateinit var executeInterpretation: ExecuteSchemaGuidedInterpretation
   private val activeRequests = ConcurrentHashMap<String, ActiveInterpretationOperation>()
+  private val preparationFuture = AtomicReference<Future<*>?>(null)
 
   override fun load() {
     compositionRoot = SchemaGuidedInterpretationCompositionRoot(context.applicationContext)
@@ -57,6 +61,48 @@ class SchemaGuidedInterpretationPlugin : Plugin() {
       artifactStore.cleanupTemporaryArtifacts()
     } catch (_: InterpretationArtifactStorageException) {
     }
+  }
+
+  @PluginMethod
+  fun prepare(call: PluginCall) {
+    val preparer = compositionRoot.preparer
+    if (preparer == null) {
+      call.resolve()
+      return
+    }
+    val existing = preparationFuture.get()
+    if (existing?.isDone == false) {
+      call.resolve()
+      return
+    }
+    val taskReference = AtomicReference<FutureTask<*>?>()
+    val task = FutureTask {
+      try {
+        runBlocking { preparer.prepare() }
+        resolveOnMainThread(call)
+      } catch (_: CancellationException) {
+        rejectOnMainThread(call, "cancelled", "Interpretation preparation was cancelled.", true)
+      } catch (exception: RuntimeException) {
+        Log.e(TAG, "interpretation.prepare.failure", exception)
+        rejectOnMainThread(
+          call,
+          "interpretation_prepare_failed",
+          "Interpretation preparation failed.",
+          true,
+        )
+      } finally {
+        preparationFuture.compareAndSet(taskReference.get(), null)
+      }
+    }
+    taskReference.set(task)
+    preparationFuture.set(task)
+    executor.execute(task)
+  }
+
+  @PluginMethod
+  fun cancelPreparation(call: PluginCall) {
+    preparationFuture.getAndSet(null)?.cancel(true)
+    call.resolve()
   }
 
   @PluginMethod
@@ -86,13 +132,14 @@ class SchemaGuidedInterpretationPlugin : Plugin() {
     }
 
     val future = executor.submit {
+      val interpretationStartedAt = SystemClock.elapsedRealtime()
       try {
         if (operation.cancelRequested.get()) {
           completeCancelledOperation(operation)
           return@submit
         }
 
-        val execution = try {
+      val execution = try {
           runBlocking {
             executeInterpretation.execute(requestJson)
           }
@@ -201,6 +248,12 @@ class SchemaGuidedInterpretationPlugin : Plugin() {
         )
         reject(operation.call, failure.failureCode.toExternalCode(), failure.safePublicMessage, failure.recoverable)
       } finally {
+        Log.d(
+          TAG,
+          "interpretation_total_ms=${SystemClock.elapsedRealtime() - interpretationStartedAt} " +
+            "actual_execution_target=${compositionRoot.executionPlan.interpretation.name.lowercase()} " +
+            "actual_model_version=${compositionRoot.modelConfiguration.modelVersion}",
+        )
         operation.completion.countDown()
         activeRequests.remove(requestId, operation)
       }
@@ -249,6 +302,7 @@ class SchemaGuidedInterpretationPlugin : Plugin() {
   }
 
   override fun handleOnDestroy() {
+    preparationFuture.getAndSet(null)?.cancel(true)
     activeRequests.values.forEach { operation ->
       operation.cancelRequested.set(true)
     }
@@ -353,7 +407,7 @@ class SchemaGuidedInterpretationPlugin : Plugin() {
       runtime = InterpretationRuntimeMetadata(
         modelId = compositionRoot.modelConfiguration.modelId,
         modelVersion = compositionRoot.modelConfiguration.modelVersion,
-        backend = "gpu",
+        backend = compositionRoot.executionPlan.interpretation.name.lowercase(),
       ),
     )
     storeInterpretationFailure(
@@ -375,7 +429,7 @@ class SchemaGuidedInterpretationPlugin : Plugin() {
       runtime = InterpretationRuntimeMetadata(
         modelId = compositionRoot.modelConfiguration.modelId,
         modelVersion = compositionRoot.modelConfiguration.modelVersion,
-        backend = "gpu",
+        backend = compositionRoot.executionPlan.interpretation.name.lowercase(),
       ),
       fieldKey = exception.diagnostics?.fieldKey?.value,
       fieldIndex = exception.diagnostics?.fieldIndex,
@@ -401,6 +455,7 @@ class SchemaGuidedInterpretationPlugin : Plugin() {
 
   companion object {
     private const val CANCELLATION_TIMEOUT_SECONDS = 10L
+    private const val TAG = "GonezoInterpretation"
   }
 }
 

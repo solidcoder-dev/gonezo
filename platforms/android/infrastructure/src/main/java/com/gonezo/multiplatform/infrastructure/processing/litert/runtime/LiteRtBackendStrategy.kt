@@ -9,11 +9,20 @@ internal interface LiteRtBackendFactory {
 
 internal class AndroidLiteRtBackendFactory(
   private val nativeLibraryDir: String,
+  private val runtimeLogger: InterpretationRuntimeLogger = AndroidInterpretationRuntimeLogger,
 ) : LiteRtBackendFactory {
+  private val runtimeBundle = QualcommLiteRtRuntimeBundle(
+    nativeLibraryDir = java.io.File(nativeLibraryDir),
+    logger = runtimeLogger,
+  )
+
   override fun create(target: MlExecutionTarget): Backend {
     val backend = when (target) {
       MlExecutionTarget.GPU -> Backend.GPU()
-      MlExecutionTarget.NPU -> Backend.NPU(nativeLibraryDir)
+      MlExecutionTarget.NPU -> {
+        runtimeBundle.validateBeforeNpuInitialization()
+        Backend.NPU(nativeLibraryDir)
+      }
       MlExecutionTarget.CPU -> error("LiteRT CPU interpretation is not supported by this runtime.")
     }
     return backend

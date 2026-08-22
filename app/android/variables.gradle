@@ -13,4 +13,10 @@ ext {
     androidxJunitVersion = '1.3.0'
     androidxEspressoCoreVersion = '3.7.0'
     cordovaAndroidVersion = '14.0.1'
+
+    // These versions are one native compatibility bundle. Upgrade them together.
+    litertLmAndroidVersion = '0.12.0'
+    litertSourceCommit = 'd865fd82cd7fe6752908b3a0836895461c305679'
+    qairtVersion = '2.44.0.260225'
+    qualcommNpuHtpArchitecture = 'V79'
 }

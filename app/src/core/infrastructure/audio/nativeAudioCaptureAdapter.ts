@@ -3,6 +3,7 @@ import type { CapturedAudio, CapturedAudioRef, RecordingSession } from '../../..
 import { AudioCapturePlugin, type AudioCapturePluginResult } from './audioCapturePlugin';
 import type { TranscriptionSettings } from '../../../transactions/application/MovementVoiceEntry/TranscriptionSettings';
 import type { SpeechTranscriptionResult, TranscriptionFailure } from '../../../transactions/application/MovementVoiceEntry/SpeechTranscriptionPort';
+import type { ProcessingPreparer } from '../processing/processingPreparer';
 
 const TRANSCRIPTION_FAILURE_CODES = new Set([
   'artifact-storage-failed', 'audio-not-found', 'invalid-audio', 'model-corrupt', 'model-unavailable',
@@ -42,9 +43,19 @@ function toAudioCaptureError(error: unknown): NativePluginError {
 }
 
 export class NativeAudioCaptureAdapter implements AudioCapturePort {
+  private readonly processingPreparer?: ProcessingPreparer;
+
+  constructor(processingPreparer?: ProcessingPreparer) {
+    this.processingPreparer = processingPreparer;
+  }
+
   async start(settings?: TranscriptionSettings): Promise<RecordingSession> {
     try {
-      return await AudioCapturePlugin.startRecording(settings);
+      const session = await AudioCapturePlugin.startRecording(settings);
+      void Promise.resolve()
+        .then(() => this.processingPreparer?.prepare())
+        .catch(() => undefined);
+      return session;
     } catch (error) {
       throw toAudioCaptureError(error);
     }
@@ -65,6 +76,7 @@ export class NativeAudioCaptureAdapter implements AudioCapturePort {
 
   async cancel(): Promise<void> {
     try {
+      this.processingPreparer?.cancel();
       await AudioCapturePlugin.cancelRecording();
     } catch (error) {
       throw toAudioCaptureError(error);

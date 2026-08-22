@@ -55,6 +55,68 @@ class LiteRtStructuredGenerationRuntimeTest {
   }
 
   @Test
+  fun `preparation initializes once and generation reuses the prepared engine`() {
+    runBlocking {
+      val engine = FakeLiteRtEngine()
+      val modelStore = FakeModelStore("/tmp/model.litertlm")
+      val factory = FakeLiteRtEngineFactory(engine)
+      val runtime = LiteRtStructuredGenerationRuntime(
+        modelStore = modelStore,
+        engineFactory = factory,
+        modelConfiguration = modelConfiguration(),
+        cacheDirectoryPath = "/tmp/gonezo-cache",
+        executionTarget = MlExecutionTarget.GPU,
+      )
+
+      runtime.prepare()
+      runtime.prepare()
+      runtime.generate(request("prompt"))
+
+      assertEquals(1, modelStore.resolveCalls.get())
+      assertEquals(1, factory.configurations.size)
+      assertEquals(1, engine.initializeCalls.get())
+    }
+  }
+
+  @Test
+  fun `concurrent preparation and generation share one initialization`() {
+    runBlocking {
+      val initializationStarted = CompletableDeferred<Unit>()
+      val allowInitialization = CompletableDeferred<Unit>()
+      val engine = FakeLiteRtEngine(
+        initializeAction = {
+          initializationStarted.complete(Unit)
+          allowInitialization.await()
+        },
+      )
+      val modelStore = FakeModelStore("/tmp/model.litertlm")
+      val factory = FakeLiteRtEngineFactory(engine)
+      val runtime = LiteRtStructuredGenerationRuntime(
+        modelStore = modelStore,
+        engineFactory = factory,
+        modelConfiguration = modelConfiguration(),
+        cacheDirectoryPath = "/tmp/gonezo-cache",
+        executionTarget = MlExecutionTarget.GPU,
+      )
+
+      coroutineScope {
+        val preparation = async { runtime.prepare() }
+        initializationStarted.await()
+        val generation = async { runtime.generate(request("prompt")) }
+        delay(25)
+        assertFalse(generation.isCompleted)
+        allowInitialization.complete(Unit)
+        preparation.await()
+        generation.await()
+      }
+
+      assertEquals(1, modelStore.resolveCalls.get())
+      assertEquals(1, factory.configurations.size)
+      assertEquals(1, engine.initializeCalls.get())
+    }
+  }
+
+  @Test
   fun `creates a new conversation for each request and does not leak history`() {
     runBlocking {
       val engine = FakeLiteRtEngine()
@@ -225,6 +287,27 @@ class LiteRtStructuredGenerationRuntimeTest {
 
       assertEquals("""{"ok":true}""", result.output)
       assertEquals(1, secondEngine.initializeCalls.get())
+    }
+  }
+
+  @Test
+  fun `maps a JVM failure while creating the engine without retaining a broken runtime`() {
+    runBlocking {
+      val modelStore = FakeModelStore("/tmp/model.litertlm")
+      val runtime = LiteRtStructuredGenerationRuntime(
+        modelStore = modelStore,
+        engineFactory = LiteRtEngineFactory { throw RuntimeException("native engine construction failed") },
+        modelConfiguration = modelConfiguration(),
+        cacheDirectoryPath = "/tmp/gonezo-cache",
+        executionTarget = MlExecutionTarget.GPU,
+      )
+
+      val failure = assertThrows(StructuredGenerationException::class.java) {
+        runBlocking { runtime.generate(request("prompt")) }
+      }
+
+      assertEquals(InterpretationFailureCode.INFERENCE_FAILED, failure.failureCode)
+      assertEquals(1, modelStore.resolveCalls.get())
     }
   }
 
@@ -406,7 +489,12 @@ class LiteRtStructuredGenerationRuntimeTest {
   private class FakeModelStore(
     private val modelPath: String,
   ) : InterpretationModelStore {
-    override fun resolveModelPath(): String = modelPath
+    val resolveCalls = AtomicInteger(0)
+
+    override fun resolveModelPath(): String {
+      resolveCalls.incrementAndGet()
+      return modelPath
+    }
   }
 
   private class FakeLiteRtEngineFactory(

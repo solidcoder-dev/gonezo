@@ -33,6 +33,8 @@ export type SchemaGuidedInterpretationPluginRequest = {
 };
 
 export interface SchemaGuidedInterpretationPlugin {
+  prepare(): Promise<void>;
+  cancelPreparation(): Promise<void>;
   interpret(request: SchemaGuidedInterpretationPluginRequest): Promise<InterpretationContract.SchemaGuidedInterpretationOutcome>;
   cancel(requestId: string): Promise<void>;
 }
@@ -47,6 +49,12 @@ const SchemaGuidedInterpretationCapacitorPlugin = registerPlugin<SchemaGuidedInt
 const jsonCodec = new SchemaGuidedInterpretationJsonCodec();
 
 export const SchemaGuidedInterpretationPlugin = {
+  async prepare(): Promise<void> {
+    await SchemaGuidedInterpretationCapacitorPlugin.prepare();
+  },
+  async cancelPreparation(): Promise<void> {
+    await SchemaGuidedInterpretationCapacitorPlugin.cancelPreparation();
+  },
   async interpret(request: SchemaGuidedInterpretationPluginRequest): Promise<InterpretationContract.SchemaGuidedInterpretationOutcome> {
     let requestJson: string;
     try {

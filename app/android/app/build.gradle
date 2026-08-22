@@ -21,6 +21,18 @@ def sm8750InterpretationModelSha256 = '1904ceff9591e7a140df3a672c800e8e7bee83375
 def gonezoTranscriptionMode = findProperty('gonezoTranscriptionMode') ?: 'FULL'
 def gonezoTranscriptionProvider = findProperty('gonezoTranscriptionProvider') ?: 'WHISPER_CPP'
 def gonezoProcessingProvider = findProperty('gonezoProcessingProvider') ?: 'LOCAL_LITERT'
+def qualcommNpuRuntimeEnabled = (findProperty('gonezoQualcommNpuRuntimeEnabled') ?: 'false').toBoolean()
+def qualcommRuntimeRoot = file("$projectDir/../third_party/qualcomm")
+def qualcommRuntimeJniRoot = file("$qualcommRuntimeRoot/jniLibs")
+def qualcommRuntimeAbi = 'arm64-v8a'
+// SM8750 is HTP V79; do not combine its runtime with V73/V75/V81 artifacts.
+def qualcommRuntimeLibraries = [
+    'libLiteRtDispatch_Qualcomm.so',
+    'libQnnSystem.so',
+    'libQnnHtp.so',
+    'libQnnHtpV79Stub.so',
+    'libQnnHtpV79Skel.so',
+]
 
 android {
     namespace = "com.gonezo.multiplatform"
@@ -33,6 +45,10 @@ android {
         buildConfigField 'String', 'GONEZO_TRANSCRIPTION_MODE', "\"${gonezoTranscriptionMode}\""
         buildConfigField 'String', 'GONEZO_TRANSCRIPTION_PROVIDER', "\"${gonezoTranscriptionProvider}\""
         buildConfigField 'String', 'GONEZO_PROCESSING_PROVIDER', "\"${gonezoProcessingProvider}\""
+        buildConfigField 'String', 'LITERTLM_ANDROID_VERSION', "\"${litertLmAndroidVersion}\""
+        buildConfigField 'String', 'LITERT_SOURCE_COMMIT', "\"${litertSourceCommit}\""
+        buildConfigField 'String', 'QAIRT_VERSION', "\"${qairtVersion}\""
+        buildConfigField 'String', 'QUALCOMM_NPU_HTP_ARCHITECTURE', "\"${qualcommNpuHtpArchitecture}\""
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -67,6 +83,9 @@ android {
             java.srcDirs += ['../../../platforms/android/infrastructure/src/main/java']
             assets.srcDir("$buildDir/generated/speech-assets")
             assets.srcDir("$buildDir/generated/interpretation-assets")
+            if (qualcommNpuRuntimeEnabled) {
+                jniLibs.srcDir(qualcommRuntimeJniRoot)
+            }
         }
     }
     externalNativeBuild {
@@ -137,6 +156,78 @@ tasks.register('verifyInterpretationModel') {
         if (modelFile.length() != interpretationModelExpectedBytes || sha256(modelFile) != interpretationModelSha256) {
             throw new GradleException("Staged interpretation model failed size or SHA-256 validation.")
         }
+    }
+}
+
+tasks.register('verifyQualcommNpuRuntime') {
+    onlyIf { qualcommNpuRuntimeEnabled }
+    doLast {
+        def metadataFile = file("$qualcommRuntimeRoot/bundle.properties")
+        if (!metadataFile.isFile()) {
+            throw new GradleException(
+                "Qualcomm NPU runtime is incomplete: missing ${metadataFile}. " +
+                    "Provision only the verified LiteRT-LM/LiteRT/QAIRT bundle."
+            )
+        }
+        def metadata = new java.util.Properties()
+        metadataFile.withInputStream { metadata.load(it) }
+        def expectedMetadata = [
+            litertlm: litertLmAndroidVersion,
+            litertSourceCommit: litertSourceCommit,
+            qairt: qairtVersion,
+            htp: qualcommNpuHtpArchitecture,
+            abi: qualcommRuntimeAbi,
+        ]
+        def mismatches = expectedMetadata.findAll { key, expected -> metadata.getProperty(key) != expected }
+        if (!mismatches.isEmpty()) {
+            throw new GradleException(
+                "Qualcomm NPU runtime compatibility metadata does not match the configured bundle: " +
+                    mismatches.collect { key, expected -> "${key}=${metadata.getProperty(key)} (expected ${expected})" }.join(', ')
+            )
+        }
+        def nativeDirectory = file("$qualcommRuntimeJniRoot/$qualcommRuntimeAbi")
+        def missing = qualcommRuntimeLibraries.findAll { library ->
+            !file("$nativeDirectory/$library").isFile()
+        }
+        if (!missing.isEmpty()) {
+            throw new GradleException(
+                "Qualcomm NPU runtime is incomplete for SM8750 / HTP V79 " +
+                    "(LiteRT-LM ${litertLmAndroidVersion}, LiteRT ${litertSourceCommit}, QAIRT ${qairtVersion}): " +
+                    "missing ${missing.join(', ')}"
+            )
+        }
+    }
+}
+
+tasks.register('verifyQualcommNpuApk') {
+    onlyIf { qualcommNpuRuntimeEnabled }
+    dependsOn tasks.named('verifyQualcommNpuRuntime')
+    doLast {
+        def apk = file("$buildDir/outputs/apk/debug/${android.defaultConfig.applicationId}-debug.apk")
+        if (!apk.isFile()) {
+            throw new GradleException("Qualcomm NPU APK verification expected ${apk} after assembleDebug.")
+        }
+        def entries = new java.util.zip.ZipFile(apk).withCloseable { zip ->
+            zip.entries().collect { it.name }.toSet()
+        }
+        def missing = qualcommRuntimeLibraries.collect { library ->
+            "lib/$qualcommRuntimeAbi/$library"
+        }.findAll { entry -> !entries.contains(entry) }
+        if (!missing.isEmpty()) {
+            throw new GradleException("Qualcomm NPU APK is incomplete: missing ${missing.join(', ')}")
+        }
+    }
+}
+
+tasks.matching { it.name == 'check' }.configureEach {
+    if (qualcommNpuRuntimeEnabled) {
+        dependsOn tasks.named('verifyQualcommNpuRuntime')
+    }
+}
+
+tasks.matching { it.name == 'assembleDebug' }.configureEach {
+    if (qualcommNpuRuntimeEnabled) {
+        finalizedBy tasks.named('verifyQualcommNpuApk')
     }
 }
 
@@ -227,7 +318,7 @@ dependencies {
     implementation project(':core:schema-guided-interpretation')
     implementation project(':core:schema-guided-interpretation-json')
     implementation project(':speech-transcription-contract')
-    implementation 'com.google.ai.edge.litertlm:litertlm-android:0.12.0'
+    implementation "com.google.ai.edge.litertlm:litertlm-android:$litertLmAndroidVersion"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test:core:1.6.1"

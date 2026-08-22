@@ -24,6 +24,11 @@
 
         </activity>
 
+        <service
+            android:name=".plugins.interpretation.worker.SchemaGuidedInterpretationWorkerService"
+            android:exported="false"
+            android:process=":interpretation" />
+
         <meta-data
             android:name="gonezo.speech.model.asset"
             android:value="speech-transcription/whisper/ggml-tiny.bin" />

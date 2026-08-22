@@ -15,6 +15,10 @@ function unavailableFailure(): SchemaGuidedInterpretationFailure {
 }
 
 export class SchemaGuidedInterpretationPluginWeb extends WebPlugin implements SchemaGuidedInterpretationPlugin {
+  async prepare(): Promise<void> {}
+
+  async cancelPreparation(): Promise<void> {}
+
   async interpret(request: SchemaGuidedInterpretationPluginRequest): Promise<SchemaGuidedInterpretationOutcome> {
     void request;
     return {

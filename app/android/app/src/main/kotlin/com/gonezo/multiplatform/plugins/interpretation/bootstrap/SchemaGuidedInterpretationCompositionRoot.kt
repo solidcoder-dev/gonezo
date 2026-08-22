@@ -1,9 +1,13 @@
 package com.gonezo.multiplatform.plugins.interpretation.bootstrap
 
 import android.content.Context
+import android.content.Intent
 import com.gonezo.multiplatform.infrastructure.configuration.AndroidProcessingConfigurationReader
 import com.gonezo.multiplatform.infrastructure.processing.factory.ProcessingFactory
+import com.gonezo.multiplatform.infrastructure.processing.isolation.IsolatedStructuredGenerationRuntime
+import com.gonezo.multiplatform.infrastructure.processing.preparation.ProcessingPreparer
 import com.gonezo.multiplatform.infrastructure.ml.MlExecutionPlan
+import com.gonezo.multiplatform.plugins.interpretation.worker.SchemaGuidedInterpretationWorkerService
 import dev.solidcoder.interpretation.application.port.generation.FieldInterpretationPromptCompiler
 import dev.solidcoder.interpretation.application.port.generation.FieldInterpretationResultDecoder
 import dev.solidcoder.interpretation.application.FieldProcessingOrder
@@ -30,6 +34,8 @@ class SchemaGuidedInterpretationCompositionRoot internal constructor(
   internal val runtime get() = runtimeAssembly.runtime
   internal val modelConfiguration get() = runtimeAssembly.configuration
   internal val executionPlan get() = runtimeAssembly.executionPlan
+  internal val preparer: ProcessingPreparer?
+    get() = runtimeAssembly.runtime as? ProcessingPreparer
 
   fun createInputInterpreter(): InputInterpreter =
     runtimeAssembly.inputInterpreter ?: OnDeviceInputInterpreter(
@@ -52,6 +58,13 @@ class SchemaGuidedInterpretationCompositionRoot internal constructor(
         promptCompiler = JsonFieldInterpretationPromptCompiler(),
         resultDecoder = JsonFieldInterpretationResultDecoder(),
         fieldProcessingOrder = GonezoFieldProcessingOrder,
+        runtimeFactory = { runtimeContext, selectedModelConfiguration, _ ->
+          IsolatedStructuredGenerationRuntime(
+            context = runtimeContext,
+            workerIntent = Intent(runtimeContext, SchemaGuidedInterpretationWorkerService::class.java),
+            modelConfiguration = selectedModelConfiguration,
+          )
+        },
       ).create()
       return RuntimeAssembly(
         runtime = assembly.runtime,

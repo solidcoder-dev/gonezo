@@ -108,6 +108,52 @@ class AndroidInterpretationModelStoreTest {
     assertEquals(1, reads.get())
   }
 
+  @Test
+  fun `hashes a fresh installation once and does not hash a normal cached resolve`() {
+    val baseDirectory = Files.createTempDirectory("gonezo-interpretation-model").toFile()
+    val assetBytes = "model-bytes".toByteArray()
+    val configuration = modelConfiguration(assetBytes)
+    val verificationCalls = AtomicInteger(0)
+    val store = AndroidInterpretationModelStore(
+      baseDirectory = baseDirectory,
+      assetReader = { ByteArrayInputStream(assetBytes) },
+      configuration = configuration,
+      integrityVerifier = InterpretationModelIntegrityVerifier { file, expected ->
+        verificationCalls.incrementAndGet()
+        file.readBytes().contentEquals(assetBytes) && file.length() == expected.expectedSizeBytes
+      },
+    )
+
+    store.resolveModelPath()
+    store.resolveModelPath()
+
+    assertEquals(1, verificationCalls.get())
+  }
+
+  @Test
+  fun `recreates a missing marker through full validation`() {
+    val baseDirectory = Files.createTempDirectory("gonezo-interpretation-model").toFile()
+    val assetBytes = "model-bytes".toByteArray()
+    val configuration = modelConfiguration(assetBytes)
+    val verificationCalls = AtomicInteger(0)
+    val store = AndroidInterpretationModelStore(
+      baseDirectory = baseDirectory,
+      assetReader = { ByteArrayInputStream(assetBytes) },
+      configuration = configuration,
+      integrityVerifier = InterpretationModelIntegrityVerifier { file, expected ->
+        verificationCalls.incrementAndGet()
+        file.readBytes().contentEquals(assetBytes) && file.length() == expected.expectedSizeBytes
+      },
+    )
+
+    val path = store.resolveModelPath()
+    File(baseDirectory, "${configuration.fileName}.validation.properties").delete()
+    store.resolveModelPath()
+
+    assertTrue(File(path).isFile)
+    assertEquals(2, verificationCalls.get())
+  }
+
   private fun modelConfiguration(assetBytes: ByteArray): InterpretationModelConfiguration {
     return InterpretationModelConfiguration(
       modelId = "litert-community/Gemma3-1B-IT",
