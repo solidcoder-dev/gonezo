@@ -2,14 +2,22 @@ package com.gonezo.application.orchestration.backup
 
 import com.gonezo.application.ConsistencyBoundary
 import com.gonezo.application.ImmediateConsistencyBoundary
+import com.gonezo.application.backup.contract.*
+import com.gonezo.application.backup.contract.ApplicationBackupDocument
+import com.gonezo.application.backup.contract.BackupDependencyException
+import com.gonezo.application.backup.contract.BackupErrorCode
+import com.gonezo.application.backup.contract.BackupImportContext
+import com.gonezo.application.backup.contract.BackupImportException
+import com.gonezo.application.backup.contract.BackupSection
+import com.gonezo.application.backup.contract.BackupSectionDependencyResolver
+import com.gonezo.application.backup.contract.BackupSectionExporter
+import com.gonezo.application.backup.contract.BackupSectionId
+import com.gonezo.application.backup.contract.BackupSectionImporter
+import com.gonezo.application.backup.contract.BackupValidationResult
+import com.gonezo.application.backup.contract.PortableStateReset
 import java.time.Instant
 
-class ApplicationBackupCoordinator(
-    private val exporters: Set<BackupSectionExporter>,
-    private val importers: Set<BackupSectionImporter>,
-    private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary,
-    private val portableStateReset: PortableStateReset = PortableStateReset { },
-) {
+class ApplicationBackupCoordinator(private val exporters: Set<BackupSectionExporter>, private val importers: Set<BackupSectionImporter>, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary, private val portableStateReset: PortableStateReset = PortableStateReset { }, private val formatRegistry: BackupFormatRegistry = currentBackupFormatRegistry()) {
     fun export(createdAt: Instant): ApplicationBackupDocument {
         val exporterById = exporters.associateBy { it.sectionId }
         require(exporterById.size == exporters.size) { "Duplicate backup section exporter" }
@@ -19,7 +27,9 @@ class ApplicationBackupCoordinator(
             require(section.version == exporter.version) { "Backup exporter returned the wrong version" }
             exporter.sectionId to section
         }
-        return ApplicationBackupDocument(FORMAT, ROOT_VERSION, createdAt, sections)
+        val format = formatRegistry.resolve(ROOT_VERSION)
+        require(format.requiredSections == sections.keys) { "Backup exporters do not match the current backup format" }
+        return ApplicationBackupDocument(FORMAT, format.version, createdAt, sections)
     }
 
     fun import(document: ApplicationBackupDocument, importedAt: Instant) {
@@ -30,6 +40,7 @@ class ApplicationBackupCoordinator(
             throw BackupImportException(BackupErrorCode.DEPENDENCY_ERROR, error.message ?: "Invalid backup dependency graph", error)
         }
         val context = BackupImportContext(importedAt, document.sections)
+        BackupIdentifierValidator.validate(document.sections)
         orderedImporters.forEach { importer ->
             val section = document.sections[importer.sectionId]
                 ?: throw BackupImportException(BackupErrorCode.MISSING_SECTION, "Missing backup section: ${importer.sectionId}")
@@ -38,7 +49,7 @@ class ApplicationBackupCoordinator(
             }
             when (val validation = importer.validate(section, context)) {
                 BackupValidationResult.Valid -> Unit
-                is BackupValidationResult.Invalid -> throw BackupImportException(validation.code, validation.message)
+                is com.gonezo.application.backup.contract.BackupValidationResult.Invalid -> throw BackupImportException(validation.code, validation.message)
             }
         }
         try {
@@ -57,10 +68,12 @@ class ApplicationBackupCoordinator(
 
     private fun validateRoot(document: ApplicationBackupDocument) {
         if (document.format != FORMAT) throw BackupImportException(BackupErrorCode.INVALID_FORMAT, "Unsupported backup format: ${document.format}")
-        if (document.formatVersion != ROOT_VERSION) throw BackupImportException(BackupErrorCode.UNSUPPORTED_FORMAT_VERSION, "Unsupported backup format version: ${document.formatVersion}")
-        val required = importers.map { it.sectionId }.toSet()
+        val descriptor = formatRegistry.resolve(document.formatVersion)
+        val required = descriptor.requiredSections
         val missing = required - document.sections.keys
         if (missing.isNotEmpty()) throw BackupImportException(BackupErrorCode.MISSING_SECTION, "Missing backup sections: ${missing.joinToString()}")
+        val unknown = document.sections.keys - descriptor.supportedSections
+        if (unknown.isNotEmpty()) throw BackupImportException(BackupErrorCode.UNSUPPORTED_SECTION, "Unsupported backup sections: ${unknown.joinToString()}")
     }
 
     companion object {
@@ -68,9 +81,3 @@ class ApplicationBackupCoordinator(
         const val ROOT_VERSION = 1
     }
 }
-
-class BackupImportException(
-    val code: BackupErrorCode,
-    override val message: String,
-    cause: Throwable? = null,
-) : IllegalArgumentException(message, cause)

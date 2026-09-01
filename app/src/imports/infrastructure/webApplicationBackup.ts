@@ -5,10 +5,21 @@ import { resolveBackupSectionOrder } from '../application/backupSectionDependenc
 const FORMAT = 'gonezo-backup' as const;
 const FORMAT_VERSION = 1 as const;
 
+export type BackupFormatDescriptor = {
+  version: number;
+  requiredSections: readonly string[];
+  optionalSections?: readonly string[];
+};
+
+export const CURRENT_BACKUP_FORMATS: readonly BackupFormatDescriptor[] = [
+  { version: 1, requiredSections: ['taxonomy', 'ledger', 'recurrence', 'expected', 'sharing', 'analytics', 'preferences'] },
+];
+
 export type ApplicationBackupErrorCode =
   | 'INVALID_FORMAT'
   | 'UNSUPPORTED_FORMAT_VERSION'
   | 'UNSUPPORTED_SECTION_VERSION'
+  | 'UNSUPPORTED_SECTION'
   | 'MISSING_SECTION'
   | 'INVALID_REFERENCE'
   | 'INVALID_DATA'
@@ -35,9 +46,6 @@ export function exportWebApplicationBackup(state: WebAppState, createdAt: string
       taxonomy: { version: 1, data: {
         categories: [...state.taxonomyCategories].sort((left, right) => left.id.localeCompare(right.id)),
         tags: [...state.taxonomyTags].sort((left, right) => left.id.localeCompare(right.id)),
-        transactionTags: [...state.taxonomyTransactionTags.entries()]
-          .sort(([left], [right]) => left.localeCompare(right))
-          .map(([transactionId, tagIds]) => ({ transactionId, tagIds: [...tagIds].sort() })),
       } },
       ledger: { version: 1, data: {
         accounts: [...state.ledgerAccounts].sort((left, right) => left.id.localeCompare(right.id)),
@@ -67,9 +75,12 @@ export function exportWebApplicationBackup(state: WebAppState, createdAt: string
   };
 }
 
-export function validateWebApplicationBackup(value: unknown): ApplicationBackupDocument {
+export function validateWebApplicationBackup(
+  value: unknown,
+  options: { formatRegistry?: readonly BackupFormatDescriptor[]; supportedSectionVersions?: Readonly<Record<string, readonly number[]>> } = {},
+): ApplicationBackupDocument {
   try {
-    return validateWebApplicationBackupDocument(value);
+    return validateWebApplicationBackupDocument(value, options);
   } catch (error) {
     if (error instanceof ApplicationBackupError) throw error;
     const message = error instanceof Error ? error.message : 'Invalid application backup data';
@@ -78,10 +89,16 @@ export function validateWebApplicationBackup(value: unknown): ApplicationBackupD
   }
 }
 
-function validateWebApplicationBackupDocument(value: unknown): ApplicationBackupDocument {
-  if (!isRecord(value) || value.format !== FORMAT || value.formatVersion !== FORMAT_VERSION) {
-    const code = isRecord(value) && value.format === FORMAT ? 'UNSUPPORTED_FORMAT_VERSION' : 'INVALID_FORMAT';
-    throw new ApplicationBackupError(code, 'Unsupported Gonezo application backup format or version');
+function validateWebApplicationBackupDocument(
+  value: unknown,
+  options: { formatRegistry?: readonly BackupFormatDescriptor[]; supportedSectionVersions?: Readonly<Record<string, readonly number[]>> },
+): ApplicationBackupDocument {
+  if (!isRecord(value) || value.format !== FORMAT) {
+    throw new ApplicationBackupError('INVALID_FORMAT', 'Unsupported Gonezo application backup format or version');
+  }
+  const descriptor = (options.formatRegistry ?? CURRENT_BACKUP_FORMATS).find((candidate) => candidate.version === value.formatVersion);
+  if (!descriptor) {
+    throw new ApplicationBackupError('UNSUPPORTED_FORMAT_VERSION', 'Unsupported Gonezo application backup format or version');
   }
   if (typeof value.createdAt !== 'string' || !Number.isFinite(Date.parse(value.createdAt))) {
     throw new Error('Backup createdAt must be a valid timestamp');
@@ -89,11 +106,30 @@ function validateWebApplicationBackupDocument(value: unknown): ApplicationBackup
   if (!isRecord(value.sections)) {
     throw new Error('Backup sections are required');
   }
-  const sectionNames = ['taxonomy', 'ledger', 'recurrence', 'expected', 'sharing', 'analytics', 'preferences'] as const;
-  for (const name of sectionNames) {
+  const supportedSections = new Set([...descriptor.requiredSections, ...(descriptor.optionalSections ?? [])]);
+  const actualSections = Object.keys(value.sections);
+  const missingSections = descriptor.requiredSections.filter((name) => !actualSections.includes(name));
+  if (missingSections.length > 0) throw new ApplicationBackupError('MISSING_SECTION', `Missing backup sections: ${missingSections.join(', ')}`);
+  const unknownSections = actualSections.filter((name) => !supportedSections.has(name));
+  if (unknownSections.length > 0) throw new ApplicationBackupError('UNSUPPORTED_SECTION', `Unsupported backup section: ${unknownSections.join(', ')}`);
+  const sections = value.sections as Record<string, any>;
+  if (isRecord(sections.ledger?.data) && !sections.ledger.data.postedMovements && sections.ledger.data.movements) {
+    sections.ledger.data.postedMovements = sections.ledger.data.movements;
+  }
+  if (isRecord(sections.sharing?.data)) {
+    sections.sharing.data.recurringSharingPlans ??= sections.sharing.data.recurringPlans;
+    sections.sharing.data.plannedExpenseShares ??= sections.sharing.data.plannedShares;
+    for (const share of sections.sharing.data.expenseShares ?? []) {
+      if (share.transactionId === undefined && share.sourceTransactionId !== undefined) share.transactionId = share.sourceTransactionId;
+    }
+  }
+  const supportedSectionVersions = options.supportedSectionVersions ?? {
+    taxonomy: [1], ledger: [1], recurrence: [1], expected: [1], sharing: [1], analytics: [1], preferences: [1],
+  };
+  for (const name of actualSections) {
     const section = value.sections[name];
-    if (!isRecord(section) || section.version !== 1 || !isRecord(section.data)) {
-      throw new Error(`Unsupported or invalid ${name} backup section`);
+    if (!isRecord(section) || !supportedSectionVersions[name]?.includes(section.version as number) || !isRecord(section.data)) {
+      throw new ApplicationBackupError('UNSUPPORTED_SECTION_VERSION', `Unsupported or invalid ${name} backup section`);
     }
   }
   const document = value as ApplicationBackupDocument;
@@ -102,7 +138,6 @@ function validateWebApplicationBackupDocument(value: unknown): ApplicationBackup
   const requiredArrays: Array<[unknown, string]> = [
     [document.sections.taxonomy.data.categories, 'categories'],
     [document.sections.taxonomy.data.tags, 'tags'],
-    [document.sections.taxonomy.data.transactionTags, 'transactionTags'],
     [document.sections.ledger.data.accounts, 'accounts'],
     [document.sections.ledger.data.postedMovements, 'postedMovements'],
     [document.sections.recurrence.data.movements, 'recurrence movements'],
@@ -131,16 +166,47 @@ function validateWebApplicationBackupDocument(value: unknown): ApplicationBackup
       if (item.categoryId) requireReference(categoryIds, item.categoryId, 'item category');
     }
   }
-  for (const assignment of document.sections.taxonomy.data.transactionTags) {
-    requireReference(movementIds, requireString(assignment.transactionId, 'transactionId'), 'transaction tag movement');
-    for (const tagId of assignment.tagIds) requireReference(tagIds, tagId, 'transaction tag');
-  }
   const recurringIds = uniqueIds(document.sections.recurrence.data.movements as Array<{ id: string }>, 'recurring movement');
+  const recurringItemOwners = new Map<string, string>();
+  for (const movement of document.sections.recurrence.data.movements as Array<{ id: string; splitItems?: Array<{ id: string }> }>) {
+    for (const item of movement.splitItems ?? []) {
+      if (recurringItemOwners.has(item.id)) throw new Error(`Duplicate recurring split item id: ${item.id}`);
+      recurringItemOwners.set(item.id, movement.id);
+    }
+  }
   const occurrenceIds = uniqueIds(document.sections.recurrence.data.occurrences as Array<{ id: string }>, 'recurrence occurrence');
   const expectedIds = uniqueIds(document.sections.expected.data.movements as Array<{ id: string }>, 'expected movement');
   const personIds = uniqueIds(document.sections.sharing.data.persons as Array<{ id: string }>, 'sharing person');
   const expenseShareIds = uniqueIds(document.sections.sharing.data.expenseShares as Array<{ id: string }>, 'expense share');
   const planIds = uniqueIds(document.sections.sharing.data.recurringSharingPlans, 'recurring sharing plan');
+  const expectedItemIds = new Set<string>();
+  const registerExpectedItem = (id: string) => {
+    if (!expectedItemIds.add(id)) throw new Error(`Duplicate expected split item id: ${id}`);
+  };
+  const participantIds = new Set<string>();
+  const registerParticipant = (id: string, label: string) => {
+    if (!participantIds.add(id)) throw new Error(`Duplicate ${label} id: ${id}`);
+  };
+  const recurringParticipantIds = new Set<string>();
+  const plannedParticipantIds = new Set<string>();
+  for (const movement of document.sections.expected.data.movements) {
+    for (const split of (movement as any).splitItems ?? []) registerExpectedItem(requireString(requireRecord(split, 'expected split item').id, 'id'));
+  }
+  for (const share of document.sections.sharing.data.expenseShares as any[]) {
+    for (const participant of share.participants) registerParticipant(participantIdentifier(participant, 'share participant'), 'share participant');
+  }
+  for (const plan of document.sections.sharing.data.recurringSharingPlans as any[]) {
+    for (const participant of plan.participants) {
+      const id = requireString(requireRecord(participant, 'recurring plan participant').id, 'id');
+      if (!recurringParticipantIds.add(id)) throw new Error(`Duplicate recurring share participant id: ${id}`);
+    }
+  }
+  for (const planned of document.sections.sharing.data.plannedExpenseShares as any[]) {
+    for (const participant of planned.participants) {
+      const id = requireString(requireRecord(participant, 'planned share participant').id, 'id');
+      if (!plannedParticipantIds.add(id)) throw new Error(`Duplicate planned share participant id: ${id}`);
+    }
+  }
   for (const occurrence of document.sections.recurrence.data.occurrences) {
     const item = requireRecord(occurrence, 'recurrence occurrence');
     requireReference(recurringIds, requireString(item.recurringMovementId, 'recurringMovementId'), 'occurrence recurring movement');
@@ -157,6 +223,14 @@ function validateWebApplicationBackupDocument(value: unknown): ApplicationBackup
     if (item.originRecurringMovementId) requireReference(recurringIds, requireString(item.originRecurringMovementId, 'originRecurringMovementId'), 'expected recurring movement');
     if (item.originOccurrenceId) requireReference(occurrenceIds, requireString(item.originOccurrenceId, 'originOccurrenceId'), 'expected occurrence');
     if (item.categoryId) requireReference(categoryIds, requireString(item.categoryId, 'categoryId'), 'expected movement category');
+    for (const split of item.splitItems ?? []) {
+      if (split.sourceTemplateItemId) {
+        requireReference(new Set(recurringItemOwners.keys()), requireString(split.sourceTemplateItemId, 'sourceTemplateItemId'), 'expected source template item');
+        if (recurringItemOwners.get(split.sourceTemplateItemId) !== item.originRecurringMovementId) {
+          throw new Error(`Invalid expected source template item reference: ${split.sourceTemplateItemId}`);
+        }
+      }
+    }
   }
   for (const share of document.sections.sharing.data.expenseShares) {
     const item = requireRecord(share, 'expense share');
@@ -197,7 +271,11 @@ export function applyWebApplicationBackup(state: WebAppState, document: Applicat
   try {
     state.taxonomyCategories = document.sections.taxonomy.data.categories.map((item) => ({ ...(item as object) })) as WebAppState['taxonomyCategories'];
     state.taxonomyTags = document.sections.taxonomy.data.tags.map((item) => ({ ...(item as object) })) as WebAppState['taxonomyTags'];
-    state.taxonomyTransactionTags = new Map(document.sections.taxonomy.data.transactionTags.map((item) => [item.transactionId, [...item.tagIds]]));
+    state.taxonomyTransactionTags = new Map(
+      (document.sections.ledger.data.postedMovements as MovementsBackupPostedMovementItem[])
+        .filter((movement) => movement.tagIds.length > 0)
+        .map((movement) => [movement.id, [...movement.tagIds]]),
+    );
     state.ledgerAccounts = document.sections.ledger.data.accounts.map((item) => ({ ...(item as object) })) as WebAppState['ledgerAccounts'];
     state.ledgerTransactions = (document.sections.ledger.data.postedMovements as MovementsBackupPostedMovementItem[]).map((item) => {
       const { tagIds: _tagIds, splitItems, category: _category, ...transaction } = item;
@@ -254,6 +332,10 @@ function requireRecord(value: unknown, label: string): Record<string, any> {
 function requireString(value: unknown, label: string): string {
   if (typeof value !== 'string' || !value.trim()) throw new Error(`Invalid ${label}`);
   return value;
+}
+function participantIdentifier(value: unknown, label: string): string {
+  const record = requireRecord(value, label);
+  return requireString(record.id ?? record.participantId, `${label} id`);
 }
 function array(value: unknown, label: string): unknown[] {
   if (!Array.isArray(value)) throw new Error(`Invalid ${label}`);

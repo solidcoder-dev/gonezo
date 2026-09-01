@@ -19,7 +19,14 @@ public final class CoreDatabase extends SQLiteOpenHelper {
   }
 
   void clearPortableState() {
-    SQLiteDatabase db = getWritableDatabase();
+    dbCleanupRuntimeState(getWritableDatabase());
+  }
+
+  private void dbCleanupRuntimeState(SQLiteDatabase db) {
+    db.delete("workflow_tx_categorization", null, null);
+    db.delete("recurrence_outbox", null, null);
+    db.delete("expected_posting_attempts", null, null);
+    db.delete("mobills_import_fingerprints", null, null);
     db.delete("sharing_planned_expense_share_participants", null, null);
     db.delete("sharing_planned_expense_shares", null, null);
     db.delete("sharing_recurring_plan_participants", null, null);

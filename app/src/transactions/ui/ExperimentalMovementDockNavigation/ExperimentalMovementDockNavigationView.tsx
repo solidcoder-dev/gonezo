@@ -56,7 +56,7 @@ export function ExperimentalMovementDockNavigationView({ required, provided }: E
     if (voiceCaptureBusy && voiceCaptureKind !== 'recording' && voiceCaptureKind !== 'locked') {
       return;
     }
-    toggleCapture();
+    void toggleCapture();
   }
 
   return (
@@ -95,7 +95,7 @@ export function ExperimentalMovementDockNavigationView({ required, provided }: E
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
                 disabled={required.status.disabled}
-                onClick={() => selectItem(item.id)}
+                onClick={() => { void selectItem(item.id); }}
               >
                 <i className={item.iconClassName} aria-hidden />
                 <span className="movement-dock-item-label">{item.label}</span>

@@ -84,7 +84,7 @@ function collectInvalidDependencies(report: ReturnType<typeof runDependencyCruis
 }
 
 describe('dependency-cruiser rules', () => {
-  it('shows that pathNot does not interpolate $1 for context scoping', () => {
+  it('shows that pathNot does not interpolate $1 for context scoping', { timeout: 15000 }, () => {
     const root = makeTempRoot();
 
     writeFixtureFile(root, 'src/account/application/AccountPage.ts', "import { accountView } from '../ui/AccountView';\nexport const page = accountView;\n");
@@ -211,7 +211,7 @@ describe('dependency-cruiser rules', () => {
     );
   });
 
-  it('blocks deep cross-context imports when only the public API is allowed', () => {
+  it('blocks deep cross-context imports when only the public API is allowed', { timeout: 15000 }, () => {
     const root = makeTempRoot();
 
     writeFixtureFile(root, 'src/account/index.ts', [

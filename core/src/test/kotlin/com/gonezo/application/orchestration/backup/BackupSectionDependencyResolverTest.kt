@@ -1,5 +1,7 @@
 package com.gonezo.application.orchestration.backup
 
+import com.gonezo.application.backup.contract.*
+import com.gonezo.application.backup.contract.BackupValidationResult
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
@@ -20,10 +22,12 @@ class BackupSectionDependencyResolverTest {
     @Test
     fun `rejects dependency cycles`() {
         assertThatThrownBy {
-            BackupSectionDependencyResolver.resolve(listOf(
-                fake(BackupSectionId.TAXONOMY, setOf(BackupSectionId.LEDGER)),
-                fake(BackupSectionId.LEDGER, setOf(BackupSectionId.TAXONOMY)),
-            ))
+            BackupSectionDependencyResolver.resolve(
+                listOf(
+                    fake(BackupSectionId.TAXONOMY, setOf(BackupSectionId.LEDGER)),
+                    fake(BackupSectionId.LEDGER, setOf(BackupSectionId.TAXONOMY)),
+                ),
+            )
         }.isInstanceOf(BackupDependencyException::class.java)
     }
 

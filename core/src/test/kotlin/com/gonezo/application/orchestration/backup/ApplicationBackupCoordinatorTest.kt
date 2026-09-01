@@ -1,12 +1,17 @@
 package com.gonezo.application.orchestration.backup
 
 import com.gonezo.application.ConsistencyBoundary
+import com.gonezo.application.backup.contract.*
+import com.gonezo.application.backup.contract.BackupValidationResult
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import java.time.Instant
 
 class ApplicationBackupCoordinatorTest {
+    private val taxonomyOnlyFormatRegistry = RegisteredBackupFormatRegistry(
+        listOf(BackupFormatDescriptor(1, setOf(BackupSectionId.TAXONOMY))),
+    )
     private val taxonomySection = object : BackupSection {
         override val sectionId = BackupSectionId.TAXONOMY
         override val version = 1
@@ -19,8 +24,12 @@ class ApplicationBackupCoordinatorTest {
             exporters = emptySet(),
             importers = setOf(importer { entered = true }),
             consistencyBoundary = object : ConsistencyBoundary {
-                override fun <T> withinConsistencyBoundary(block: () -> T): T { entered = true; return block() }
+                override fun <T> withinConsistencyBoundary(block: () -> T): T {
+                    entered = true
+                    return block()
+                }
             },
+            formatRegistry = taxonomyOnlyFormatRegistry,
         )
 
         assertThatThrownBy {
@@ -46,9 +55,12 @@ class ApplicationBackupCoordinatorTest {
                     override val supportedVersions = setOf(1)
                     override val dependencies = setOf(BackupSectionId.TAXONOMY)
                     override fun validate(section: BackupSection, context: BackupImportContext) = BackupValidationResult.Invalid(BackupErrorCode.INVALID_DATA, "bad ledger")
-                    override fun import(section: BackupSection, context: BackupImportContext) { applied += section.sectionId }
+                    override fun import(section: BackupSection, context: BackupImportContext) {
+                        applied += section.sectionId
+                    }
                 },
             ),
+            formatRegistry = RegisteredBackupFormatRegistry(listOf(BackupFormatDescriptor(1, setOf(BackupSectionId.TAXONOMY, BackupSectionId.LEDGER)))),
         )
 
         assertThatThrownBy {
@@ -70,11 +82,37 @@ class ApplicationBackupCoordinatorTest {
                 }
             },
             portableStateReset = PortableStateReset { events += "reset" },
+            formatRegistry = taxonomyOnlyFormatRegistry,
         )
 
         coordinator.import(ApplicationBackupDocument("gonezo-backup", 1, Instant.EPOCH, mapOf(BackupSectionId.TAXONOMY to taxonomySection)), Instant.EPOCH)
 
         assertThat(events).containsExactly("boundary", "reset", "import")
+    }
+
+    @Test
+    fun `rejects duplicate identifiers before resetting existing state`() {
+        var reset = false
+        val invalidSection = object : BackupSection {
+            override val sectionId = BackupSectionId.TAXONOMY
+            override val version = 1
+            override fun references() = listOf(
+                BackupReference.Category("category-1"),
+                BackupReference.Category("category-1"),
+            )
+        }
+        val coordinator = ApplicationBackupCoordinator(
+            exporters = emptySet(),
+            importers = setOf(importer { error("must not import") }),
+            portableStateReset = PortableStateReset { reset = true },
+            formatRegistry = taxonomyOnlyFormatRegistry,
+        )
+
+        assertThatThrownBy {
+            coordinator.import(ApplicationBackupDocument("gonezo-backup", 1, Instant.EPOCH, mapOf(BackupSectionId.TAXONOMY to invalidSection)), Instant.EPOCH)
+        }.isInstanceOf(BackupImportException::class.java)
+            .extracting("code").isEqualTo(BackupErrorCode.INVALID_DATA)
+        assertThat(reset).isFalse()
     }
 
     private fun importer(action: () -> Unit) = object : BackupSectionImporter {

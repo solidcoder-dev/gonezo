@@ -128,13 +128,12 @@ export interface MovementsBackupPort {
 
 export type ApplicationBackupDocument = {
   format: 'gonezo-backup';
-  formatVersion: 1;
+  formatVersion: number;
   createdAt: string;
   sections: {
     taxonomy: { version: 1; data: {
       categories: unknown[];
       tags: unknown[];
-      transactionTags: Array<{ transactionId: string; tagIds: string[] }>;
     } };
     ledger: { version: 1; data: {
       accounts: unknown[];
@@ -148,6 +147,7 @@ export type ApplicationBackupDocument = {
     sharing: { version: 1; data: { persons: unknown[]; expenseShares: unknown[]; recurringSharingPlans: PortableRecurringSharingPlan[]; plannedExpenseShares: PortablePlannedExpenseShare[] } };
     analytics: { version: 1; data: { exclusions: unknown[] } };
     preferences: { version: 1; data: { defaultAccountId: string | null } };
+    budgets?: { version: number; data: unknown };
   };
 };
 

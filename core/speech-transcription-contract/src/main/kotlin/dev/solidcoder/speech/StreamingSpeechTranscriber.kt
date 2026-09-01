@@ -12,10 +12,7 @@ interface StreamingTranscriptionSession {
     suspend fun cancel()
 }
 
-data class StreamingTranscriptionRequest(
-    val language: String? = null,
-    val detectLanguageAutomatically: Boolean = language == null,
-) {
+data class StreamingTranscriptionRequest(val language: String? = null, val detectLanguageAutomatically: Boolean = language == null) {
     init {
         require(language == null || language.trim().isNotEmpty()) { "language cannot be blank" }
         require(language == null || !detectLanguageAutomatically) {
@@ -24,10 +21,7 @@ data class StreamingTranscriptionRequest(
     }
 }
 
-data class AudioChunk(
-    val samples: FloatArray,
-    val sampleRateHz: Int,
-) {
+data class AudioChunk(val samples: FloatArray, val sampleRateHz: Int) {
     init {
         require(samples.isNotEmpty()) { "audio chunk cannot be empty" }
         require(sampleRateHz > 0) { "audio chunk sample rate must be positive" }

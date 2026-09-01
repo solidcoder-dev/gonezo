@@ -1,15 +1,15 @@
 package com.gonezo.multiplatform.core
 
 import android.content.Context
-import com.gonezo.application.orchestration.backup.ApplicationBackupComposition
-import com.gonezo.application.orchestration.backup.PortableStateReset
+import com.gonezo.application.backup.contract.PortableStateReset
 import com.gonezo.infrastructure.backup.ApplicationBackupJsonCodec
+import com.gonezo.infrastructure.backup.defaultBackupSectionCodecRegistry
 import com.gonezo.preferences.domain.PreferencesOwnerId
 import java.time.Instant
 
 class AndroidApplicationBackupCore private constructor(context: Context) {
   private val database = CoreDatabase(context.applicationContext)
-  private val codec = ApplicationBackupJsonCodec()
+  private val codec = ApplicationBackupJsonCodec(defaultBackupSectionCodecRegistry())
   private val boundary = AndroidConsistencyBoundary(database)
   private val composition = ApplicationBackupComposition(
     categoryRepository = AndroidTaxonomyCategoryRepository(database),

@@ -24,8 +24,8 @@ import com.gonezo.taxonomy.domain.ports.TransactionCategoryAssignmentRepository
 import com.gonezo.taxonomy.domain.ports.TransactionTagAssignmentRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import java.time.Instant
 import java.math.BigDecimal
+import java.time.Instant
 import java.util.UUID
 
 class LedgerTaxonomyBackupSectionExporterTest {

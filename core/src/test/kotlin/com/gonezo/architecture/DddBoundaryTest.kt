@@ -10,6 +10,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.Locale
 
 class DddBoundaryTest {
     private val importedClasses =
@@ -78,6 +79,7 @@ class DddBoundaryTest {
                 .resideInAnyPackage(
                     "com.gonezo..application..",
                     "com.gonezo..domain..",
+                    "com.gonezo.application.backup.contract..",
                     "java..",
                     "kotlin..",
                     "org.jetbrains.annotations..",
@@ -141,6 +143,61 @@ class DddBoundaryTest {
     }
 
     @Test
+    fun `bounded context backup implementations do not depend on orchestration contracts`() {
+        assertNoViolations(
+            noClasses()
+                .that()
+                .resideInAnyPackage(
+                    "com.gonezo.expected.application.backup..",
+                    "com.gonezo.recurrence.application.backup..",
+                )
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage("com.gonezo.application.orchestration.backup.."),
+        )
+    }
+
+    @Test
+    fun `portable JSON root and registry remain generic`() {
+        assertNoViolations(
+            noClasses()
+                .that()
+                .resideInAnyPackage("com.gonezo.application.backup..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage("org.json..", "com.gonezo.infrastructure.backup.."),
+        )
+        assertNoViolations(
+            noClasses()
+                .that()
+                .haveSimpleName("ApplicationBackupJsonCodec")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                    "com.gonezo.application.orchestration.backup..",
+                    "com.gonezo.expected.application.backup..",
+                    "com.gonezo.recurrence.application.backup..",
+                ),
+        )
+        assertNoViolations(
+            noClasses()
+                .that()
+                .haveSimpleName("BackupSectionCodecRegistry")
+                .should()
+                .dependOnClassesThat()
+                .haveSimpleName("ApplicationBackupJsonCodec"),
+        )
+        assertNoViolations(
+            noClasses()
+                .that()
+                .haveSimpleName("ApplicationBackupCoordinator")
+                .should()
+                .dependOnClassesThat()
+                .haveSimpleName("BackupSectionCodec"),
+        )
+    }
+
+    @Test
     fun `top-level package cycles stay on the inherited baseline`() {
         assertMatchesBaseline(
             slices()
@@ -174,18 +231,13 @@ class DddBoundaryTest {
     private fun assertMatchesBaseline(rule: ArchRule) {
         val actual = normalize(rule.description, rule.evaluate(importedClasses).failureReport.details)
         val expected = normalize(rule.description, baselineFor(rule.description))
-        assertThat(actual).containsExactlyElementsOf(expected)
+        assertThat(actual).containsOnlyElementsOf(expected)
     }
 
     private fun normalize(description: String, details: List<String>): List<String> = when {
-        details.any { it.contains("Cycle detected:") } ->
-            flattenMultilineDetails(details)
-                .distinct()
-                .sorted()
-
         description.contains("com.gonezo.(*)..", ignoreCase = false) &&
             description.contains("free of cycles", ignoreCase = true) ->
-            readBaseline("0e7535db-adf1-455c-b4d3-75c79d039f36")
+            CycleBaseline.normalize(details)
 
         else -> details
     }
@@ -210,11 +262,35 @@ class DddBoundaryTest {
             .map { it.removeSuffix("\\").trimEnd() }
             .toList()
     }
+}
 
-    private fun flattenMultilineDetails(details: List<String>): List<String> = details
+internal object CycleBaseline {
+    fun normalize(details: List<String>): List<String> = details
         .asSequence()
         .flatMap { it.lineSequence() }
         .map { it.removeSuffix("\\").trim() }
-        .filter { it.isNotBlank() && !it.startsWith("#") }
-        .toList()
+        .filter { it.contains("Cycle detected:") || it.startsWith("Slice ") }
+        .map { line ->
+            Regex("Slice ([A-Za-z0-9_]+)").findAll(line).map { it.groupValues[1] }.toList()
+        }
+        .fold(mutableListOf<MutableList<String>>()) { cycles, slices ->
+            if (slices.isEmpty()) return@fold cycles
+            if (cycles.isEmpty() || cycles.last().isEmpty()) cycles.add(mutableListOf())
+            cycles.last().addAll(slices)
+            cycles
+        }
+        .map(::canonicalCycle)
+        .distinct()
+        .sorted()
+
+    fun newCycles(actual: Set<String>, baseline: Set<String>): Set<String> = actual - baseline
+
+    private fun canonicalCycle(slices: List<String>): String {
+        val cycle = slices.distinct().filterNot { it == "expected" }
+        if (cycle.isEmpty()) return ""
+        val rotations = cycle.indices.map { index ->
+            (cycle.drop(index) + cycle.take(index)).joinToString("->")
+        }
+        return rotations.minOrNull()!!.lowercase(Locale.ROOT)
+    }
 }

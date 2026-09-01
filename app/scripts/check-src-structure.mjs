@@ -44,7 +44,7 @@ const EXPECTED_CONTEXT_DIRS = {
   workspace: ['application', 'ui'],
 };
 const EXPECTED_SHARED_DIRS = ['domain', 'testing', 'ui', 'utils'];
-const EXPECTED_IMPORTS_INFRASTRUCTURE_DIRS = ['providers'];
+const EXPECTED_IMPORTS_INFRASTRUCTURE_DIRS = ['fixtures', 'providers'];
 const EXPECTED_IMPORTS_PROVIDER_MODULES = ['mobills'];
 
 async function listNames(path) {
