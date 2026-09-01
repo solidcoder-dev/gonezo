@@ -53,6 +53,11 @@ class JdbcSharingPersonRepository(private val jdbcTemplate: NamedParameterJdbcTe
         rowMapper(),
     )
 
+    override fun listAll(): List<SharingPerson> = jdbcTemplate.query(
+        "select id, display_name, normalized_name, created_at, archived_at from sharing_persons order by display_name asc, id asc",
+        rowMapper(),
+    )
+
     private fun params(person: SharingPerson): MapSqlParameterSource = MapSqlParameterSource()
         .addValue("id", person.id.toString())
         .addValue("display_name", person.displayName)

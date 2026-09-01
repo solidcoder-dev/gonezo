@@ -331,7 +331,8 @@ public final class AndroidLedgerCore {
         new TransactionId(UUID.fromString(requireText(transactionId, "transactionId is required"))),
         requireText(name, "name is required"),
         new Money(new BigDecimal(requireText(amount, "amount is required")), requireText(currency, "currency is required").toUpperCase()),
-        blankToNull(note)
+        blankToNull(note),
+        blankToNull(categoryId)
       )
     );
   }

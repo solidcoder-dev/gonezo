@@ -1,5 +1,6 @@
 import type { RecurrenceMovementItem } from '../../scheduling/application/scheduling.port';
 import type { ExpectedMovementItem } from '../../expected/application/expected.port';
+import type { PortablePlannedExpenseShare, PortableRecurringSharingPlan } from '../../imports/application/imports.port';
 
 export type WebLedgerAccount = {
   id: string;
@@ -95,6 +96,9 @@ export type WebExpenseShare = {
   updatedAt: string;
 };
 
+export type WebRecurringSharingPlan = PortableRecurringSharingPlan;
+export type WebPlannedExpenseShare = PortablePlannedExpenseShare;
+
 export type WebAnalyticsExclusion = {
   id: string;
   scopeType: 'movement' | 'split_item' | 'share_participant' | 'expected_movement';
@@ -122,6 +126,8 @@ export type WebAppState = {
   expectedMovements: WebExpectedMovement[];
   sharingPersons: WebSharingPerson[];
   expenseShares: WebExpenseShare[];
+  recurringSharingPlans: WebRecurringSharingPlan[];
+  plannedExpenseShares: WebPlannedExpenseShare[];
   analyticsExclusions: WebAnalyticsExclusion[];
   defaultAccountId: string | null;
 };
@@ -153,6 +159,8 @@ export function createWebAppState(overrides: Partial<WebAppState> = {}): WebAppS
     expectedMovements: [],
     sharingPersons: [],
     expenseShares: [],
+    recurringSharingPlans: [],
+    plannedExpenseShares: [],
     analyticsExclusions: [],
     defaultAccountId: null,
     ...overrides,

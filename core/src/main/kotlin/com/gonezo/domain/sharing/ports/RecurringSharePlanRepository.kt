@@ -12,4 +12,6 @@ interface RecurringSharePlanRepository {
     fun findByRecurringMovementRef(ref: RecurringMovementRef): RecurringSharePlan?
 
     fun delete(id: RecurringSharePlanId)
+
+    fun listAll(): List<RecurringSharePlan> = error("Listing all recurring sharing plans is not supported by this adapter")
 }

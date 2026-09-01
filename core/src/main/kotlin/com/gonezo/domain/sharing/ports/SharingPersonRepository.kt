@@ -11,4 +11,6 @@ interface SharingPersonRepository {
     fun findByNormalizedName(normalizedName: String): SharingPerson?
 
     fun listActive(): List<SharingPerson>
+
+    fun listAll(): List<SharingPerson> = error("Listing all sharing people is not supported by this adapter")
 }

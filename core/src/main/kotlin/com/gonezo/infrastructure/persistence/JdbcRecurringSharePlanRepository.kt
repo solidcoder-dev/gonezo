@@ -51,6 +51,11 @@ class JdbcRecurringSharePlanRepository(private val jdbc: NamedParameterJdbcTempl
         jdbc.update("delete from sharing_recurring_plans where id = :id", MapSqlParameterSource("id", id.toString()))
     }
 
+    override fun listAll(): List<RecurringSharePlan> = jdbc.query(
+        "select id from sharing_recurring_plans order by id",
+        MapSqlParameterSource(),
+    ) { rs, _ -> find("p.id = :id", MapSqlParameterSource("id", rs.getString("id"))) }.mapNotNull { it }
+
     private fun find(where: String, params: MapSqlParameterSource): RecurringSharePlan? {
         val rows =
             jdbc.query("select p.* from sharing_recurring_plans p where $where limit 1", params) { rs, _ ->

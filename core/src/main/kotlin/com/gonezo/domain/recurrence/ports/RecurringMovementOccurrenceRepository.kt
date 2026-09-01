@@ -13,4 +13,6 @@ interface RecurringMovementOccurrenceRepository {
     fun findByRecurringMovementAndDueAt(recurringMovementId: RecurringMovementId, dueAt: Instant): RecurringMovementOccurrence?
 
     fun listByRecurringMovement(recurringMovementId: RecurringMovementId): List<RecurringMovementOccurrence>
+
+    fun listAll(): List<RecurringMovementOccurrence> = error("Listing all recurring occurrences is not supported by this adapter")
 }

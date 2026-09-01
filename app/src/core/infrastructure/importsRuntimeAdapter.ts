@@ -4,6 +4,8 @@ import type {
   MovementsBackupExportResult,
   MovementsBackupImportInput,
   MovementsBackupImportResult,
+  ApplicationBackupExportResult,
+  ApplicationBackupImportInput,
 } from '../../imports/application/imports.port';
 import type { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
@@ -26,5 +28,13 @@ export class ImportsRuntimeAdapter {
 
   movementsImportBackup(input: MovementsBackupImportInput): Promise<MovementsBackupImportResult> {
     return isNativeRuntime() ? CorePlugin.movementsImportBackup(input) : this.web.movementsImportBackup(input);
+  }
+
+  applicationExportBackup(): Promise<ApplicationBackupExportResult> {
+    return isNativeRuntime() ? CorePlugin.applicationExportBackup() : this.web.applicationExportBackup();
+  }
+
+  applicationImportBackup(input: ApplicationBackupImportInput): Promise<void> {
+    return isNativeRuntime() ? CorePlugin.applicationImportBackup(input) : this.web.applicationImportBackup(input);
   }
 }

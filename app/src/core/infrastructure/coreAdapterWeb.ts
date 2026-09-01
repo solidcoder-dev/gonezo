@@ -121,6 +121,11 @@ import {
   webMovementsBackupFileName,
 } from '../../imports/infrastructure/webBackup';
 import {
+  applyWebApplicationBackup,
+  exportWebApplicationBackup,
+  validateWebApplicationBackup,
+} from '../../imports/infrastructure/webApplicationBackup';
+import {
   defaultWebRuntimeDependencies,
   type WebRuntimeDependencies,
 } from './webRuntimeDependencies';
@@ -446,7 +451,26 @@ export class CoreAdapterWeb implements CorePort {
       })),
     };
   }
-
+  async applicationExportBackup() {
+    const createdAt = this.dependencies.clock.nowIso();
+    const document = exportWebApplicationBackup(this.state, createdAt);
+    const json = JSON.stringify(document, null, 2);
+    const fileName = `gonezo-application-backup-${createdAt.replace(/[:]/g, '-').replace(/\.\d{3}Z$/, 'Z')}.json`;
+    this.dependencies.backupDownloader.downloadJson(fileName, json);
+    return { fileName, createdAt, json };
+  }
+  async applicationImportBackup(input: { fileBase64: string }): Promise<void> {
+    if (!input.fileBase64.trim()) throw new Error('fileBase64 is required');
+    try {
+      const document = validateWebApplicationBackup(JSON.parse(decodeBase64Utf8(input.fileBase64)));
+      applyWebApplicationBackup(this.state, document);
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        throw new Error('Invalid application backup JSON', { cause: error });
+      }
+      throw error;
+    }
+  }
   async movementsSearch(input: MovementsSearchInput): Promise<MovementsSearchResult> { return this.movementsService.search(input); }
   async movementsGetSearchFacets(input: MovementsSearchFacetsInput): Promise<MovementsSearchFacetsResult> { return this.movementsService.getSearchFacets(input); }
   async movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult> { return this.movementsService.listScheduled(input); }
@@ -483,7 +507,7 @@ function parseWebMovementsBackupImport(fileBase64: string): MovementsBackupExpor
   return exportData;
 }
 
-function decodeBase64Utf8(fileBase64: string): string {
+export function decodeBase64Utf8(fileBase64: string): string {
   const binary = atob(fileBase64);
   const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
   return new TextDecoder().decode(bytes);

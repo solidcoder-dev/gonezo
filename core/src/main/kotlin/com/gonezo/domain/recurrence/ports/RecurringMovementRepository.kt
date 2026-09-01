@@ -12,4 +12,6 @@ interface RecurringMovementRepository {
     fun findDue(now: Instant, limit: Int): List<RecurringMovement>
 
     fun listBySourceAccount(accountId: String): List<RecurringMovement>
+
+    fun listAll(): List<RecurringMovement> = error("Listing all recurring movements is not supported by this adapter")
 }

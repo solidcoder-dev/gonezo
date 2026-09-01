@@ -64,6 +64,11 @@ class JdbcExpenseShareRepository(private val jdbcTemplate: NamedParameterJdbcTem
             )
         }
 
+    override fun listAll(): List<ExpenseShare> = jdbcTemplate.query(
+        "select source_transaction_id from sharing_expense_shares order by id",
+        MapSqlParameterSource(),
+    ) { rs, _ -> rs.getString("source_transaction_id") }.mapNotNull(::findBySourceTransactionId)
+
     private fun saveParticipant(shareId: ExpenseShareId, participant: ShareParticipant) {
         jdbcTemplate.update(
             """

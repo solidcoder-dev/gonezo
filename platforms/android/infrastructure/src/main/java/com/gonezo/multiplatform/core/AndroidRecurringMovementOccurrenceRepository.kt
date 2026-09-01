@@ -86,6 +86,13 @@ internal class AndroidRecurringMovementOccurrenceRepository(
     }
   }
 
+  override fun listAll(): List<RecurringMovementOccurrence> {
+    val cursor = db.readableDatabase.query("recurring_movement_occurrences", COLUMNS, null, null, null, null, "due_at asc, id asc")
+    return cursor.use {
+      buildList { while (it.moveToNext()) add(mapOccurrence(it)) }
+    }
+  }
+
   private fun mapOccurrence(cursor: Cursor): RecurringMovementOccurrence = RecurringMovementOccurrence(
     id = UUID.fromString(cursor.string("id")),
     recurringMovementId = RecurringMovementId.from(cursor.string("recurring_movement_id")),

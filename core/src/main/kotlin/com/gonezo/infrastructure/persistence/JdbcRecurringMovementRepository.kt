@@ -152,6 +152,10 @@ class JdbcRecurringMovementRepository(private val jdbcTemplate: NamedParameterJd
             ).map { it.toMovement() }
     }
 
+    override fun listAll(): List<RecurringMovement> = jdbcTemplate
+        .query("select * from recurring_movements order by created_at asc, id asc", baseRowMapper())
+        .map { it.toMovement() }
+
     private fun baseRowMapper(): RowMapper<RecurringMovementRow> = RowMapper { rs: ResultSet, _ ->
         val movementId = RecurringMovementId.from(rs.getString("id"))
         val recurrenceEnd =

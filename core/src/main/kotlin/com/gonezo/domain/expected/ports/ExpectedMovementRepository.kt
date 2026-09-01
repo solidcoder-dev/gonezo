@@ -11,4 +11,6 @@ interface ExpectedMovementRepository {
     fun findByOriginOccurrenceId(originOccurrenceId: String): ExpectedMovement?
 
     fun listByAccount(accountId: String, includeClosed: Boolean): List<ExpectedMovement>
+
+    fun listAll(): List<ExpectedMovement> = error("Listing all expected movements is not supported by this adapter")
 }

@@ -8,6 +8,8 @@ import com.gonezo.ledger.domain.TransactionId
 interface LedgerTransactionRepository {
     fun save(transaction: Transaction)
 
+    fun listAll(): List<Transaction>
+
     fun findById(id: TransactionId): Transaction?
 
     fun findByAccount(accountId: AccountId, limit: Int? = null): List<Transaction>

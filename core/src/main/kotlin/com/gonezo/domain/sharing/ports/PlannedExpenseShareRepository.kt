@@ -10,4 +10,6 @@ interface PlannedExpenseShareRepository {
     fun findById(id: PlannedExpenseShareId): PlannedExpenseShare?
 
     fun findByExpectedMovementRef(ref: ExpectedMovementRef): PlannedExpenseShare?
+
+    fun listAll(): List<PlannedExpenseShare> = error("Listing all planned expense shares is not supported by this adapter")
 }

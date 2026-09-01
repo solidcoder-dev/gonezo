@@ -128,6 +128,10 @@ class JdbcExpectedMovementRepository(private val jdbcTemplate: NamedParameterJdb
             .map { it.toMovement() }
     }
 
+    override fun listAll(): List<ExpectedMovement> = jdbcTemplate
+        .query("select * from expected_movements order by expected_at asc, id asc", baseRowMapper())
+        .map { it.toMovement() }
+
     private fun baseRowMapper(): RowMapper<ExpectedMovementRow> = RowMapper { rs: ResultSet, _ ->
         ExpectedMovementRow(
             id = ExpectedMovementId.from(rs.getString("id")),

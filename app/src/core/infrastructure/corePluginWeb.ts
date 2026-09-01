@@ -58,6 +58,7 @@ import type {
   MovementsBackupExportResult,
   MovementsBackupImportInput,
   MovementsBackupImportResult,
+  ApplicationBackupImportInput,
 } from '../../imports/application/imports.port';
 import type {
   RecurrenceCreateRecurringMovementInput,
@@ -257,6 +258,14 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async movementsExportBackup(): Promise<MovementsBackupExportResult> {
     return this.core.movementsExportBackup();
+  }
+
+  async applicationExportBackup() {
+    return this.core.applicationExportBackup();
+  }
+
+  async applicationImportBackup(options: ApplicationBackupImportInput) {
+    return this.core.applicationImportBackup(options);
   }
 
   async movementsImportBackup(options: MovementsBackupImportInput): Promise<MovementsBackupImportResult> {

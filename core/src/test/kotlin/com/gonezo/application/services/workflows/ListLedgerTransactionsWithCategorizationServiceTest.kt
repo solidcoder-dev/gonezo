@@ -150,6 +150,7 @@ class ListLedgerTransactionsWithCategorizationServiceTest {
 }
 
 private class InMemoryLedgerTransactionRepository(private val transactions: List<Transaction>) : LedgerTransactionRepository {
+    override fun listAll(): List<Transaction> = transactions
     override fun save(transaction: Transaction) = Unit
 
     override fun findById(id: TransactionId): Transaction? = transactions.firstOrNull { it.id == id }

@@ -85,6 +85,8 @@ export class CoreAdapter implements CorePort {
   mobillsImport = this.imports.mobillsImport.bind(this.imports);
   movementsExportBackup = this.imports.movementsExportBackup.bind(this.imports);
   movementsImportBackup = this.imports.movementsImportBackup.bind(this.imports);
+  applicationExportBackup = this.imports.applicationExportBackup.bind(this.imports);
+  applicationImportBackup = this.imports.applicationImportBackup.bind(this.imports);
 
   recurrenceCreateRecurringMovement = this.scheduling.recurrenceCreateRecurringMovement.bind(this.scheduling);
   recurrenceDeactivateRecurringMovement = this.scheduling.recurrenceDeactivateRecurringMovement.bind(this.scheduling);

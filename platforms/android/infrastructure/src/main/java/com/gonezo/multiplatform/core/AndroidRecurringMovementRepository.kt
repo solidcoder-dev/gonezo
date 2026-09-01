@@ -135,6 +135,11 @@ internal class AndroidRecurringMovementRepository(
     return cursor.use(::mapMovements)
   }
 
+  override fun listAll(): List<RecurringMovement> {
+    val cursor = db.readableDatabase.query("recurring_movements", COLUMNS, null, null, null, null, "created_at asc, id asc")
+    return cursor.use(::mapMovements)
+  }
+
   private fun mapMovements(cursor: Cursor): List<RecurringMovement> {
     val items = mutableListOf<RecurringMovement>()
     while (cursor.moveToNext()) {

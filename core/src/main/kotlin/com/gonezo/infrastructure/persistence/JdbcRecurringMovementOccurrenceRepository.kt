@@ -90,6 +90,11 @@ class JdbcRecurringMovementOccurrenceRepository(private val jdbcTemplate: NamedP
         )
     }
 
+    override fun listAll(): List<RecurringMovementOccurrence> = jdbcTemplate.query(
+        "select * from recurring_movement_occurrences order by due_at asc, id asc",
+        rowMapper(),
+    )
+
     private fun rowMapper(): RowMapper<RecurringMovementOccurrence> = RowMapper { rs: ResultSet, _ ->
         RecurringMovementOccurrence(
             id = UUID.fromString(rs.getString("id")),

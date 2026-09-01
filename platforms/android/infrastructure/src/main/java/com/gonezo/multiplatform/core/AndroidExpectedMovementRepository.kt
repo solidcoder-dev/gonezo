@@ -37,9 +37,10 @@ internal class AndroidExpectedMovementRepository(private val database: CoreDatab
     "account_id = ?" + if (includeClosed) "" else " and status = ?",
     if (includeClosed) arrayOf(accountId) else arrayOf(accountId, ExpectedMovementStatus.PENDING.value),
   )
+  override fun listAll(): List<ExpectedMovement> = query(null, emptyArray())
 
   private fun find(selection: String, args: Array<String>): ExpectedMovement? = query(selection, args).firstOrNull()
-  private fun query(selection: String, args: Array<String>): List<ExpectedMovement> {
+  private fun query(selection: String?, args: Array<String>): List<ExpectedMovement> {
     val cursor = database.readableDatabase.query("expected_movements", null, selection, args, null, null, "expected_at asc, id asc")
     return cursor.use {
       buildList { while (it.moveToNext()) add(mapMovement(it)) }

@@ -98,6 +98,34 @@ class ImportMovementsBackupServiceTest {
     }
 
     @Test
+    fun `imports split item category reference`() {
+        val accountId = "7b7ef4ef-a26a-4f58-9e2c-bd0a31b54899"
+        val categoryId = "52ca1a46-4561-470d-8e58-066f0670bb5f"
+        val transactionId = "13ee04e4-874c-4bc6-a1ce-75b82c11f813"
+        val itemId = "6b68e7fc-260a-4f91-80b8-ec3c3a5c8c3a"
+        val repositories = BackupRepositories()
+        val service = repositories.service()
+
+        service.execute(
+            ImportMovementsBackupCommand(
+                snapshot = minimalBackupSnapshot().copy(
+                    categories = listOf(BackupCategory(categoryId, "Food", "expense", "active")),
+                    postedMovements = listOf(
+                        minimalBackupSnapshot().postedMovements.single().copy(
+                            id = transactionId,
+                            splitItems = listOf(BackupSplitItem(itemId, "Lunch", "12.30", "EUR", null, categoryId)),
+                        ),
+                    ),
+                ),
+                importedAt = importedAt,
+            ),
+        )
+
+        assertThat(repositories.transactions.findById(TransactionId.from(transactionId))!!.items.single().categoryId)
+            .isEqualTo(categoryId)
+    }
+
+    @Test
     fun `reimporting same backup skips existing movements`() {
         val repositories = BackupRepositories()
         val service = repositories.service()
@@ -246,6 +274,8 @@ private class MutableLedgerTransactionRepository : LedgerTransactionRepository {
     }
 
     override fun findById(id: TransactionId): Transaction? = values[id]
+
+    override fun listAll(): List<Transaction> = values.values.toList()
 
     override fun findByAccount(accountId: AccountId, limit: Int?): List<Transaction> = values.values.filter { it.accountId == accountId }.let { if (limit == null) it else it.take(limit) }
 

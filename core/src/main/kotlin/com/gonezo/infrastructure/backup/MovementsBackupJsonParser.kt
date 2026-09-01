@@ -27,6 +27,8 @@ class MovementsBackupJsonParser {
                     type = item.optString("type", "cash"),
                     currency = item.getString("currency"),
                     status = item.optString("status", "active"),
+                    createdAt = item.instantOrNull("createdAt"),
+                    archivedAt = item.instantOrNull("archivedAt"),
                 )
             },
             categories =
@@ -36,6 +38,8 @@ class MovementsBackupJsonParser {
                     name = item.getString("name"),
                     appliesTo = item.getString("appliesTo"),
                     status = item.optString("status", "active"),
+                    createdAt = item.instantOrNull("createdAt"),
+                    archivedAt = item.instantOrNull("archivedAt"),
                 )
             },
             tags =
@@ -44,6 +48,8 @@ class MovementsBackupJsonParser {
                     id = item.getString("id"),
                     name = item.getString("name"),
                     status = item.optString("status", "active"),
+                    createdAt = item.instantOrNull("createdAt"),
+                    archivedAt = item.instantOrNull("archivedAt"),
                 )
             },
             postedMovements =
@@ -69,6 +75,7 @@ class MovementsBackupJsonParser {
                             amount = split.getString("amount"),
                             currency = split.stringOrNull("currency") ?: currency,
                             note = split.stringOrNull("note"),
+                            categoryId = split.stringOrNull("categoryId"),
                         )
                     },
                     tagIds = item.optJSONArray("tagIds").orEmpty().mapStrings(),
@@ -89,4 +96,6 @@ class MovementsBackupJsonParser {
         }
         return optString(name).trim().ifBlank { null }
     }
+
+    private fun JSONObject.instantOrNull(name: String): Instant? = stringOrNull(name)?.let(Instant::parse)
 }

@@ -175,11 +175,20 @@ class ImportMovementsBackupService(private val accountRepository: LedgerAccountR
             status = TransactionStatus.from(movement.status),
             items =
             movement.splitItems.map { item ->
+                val itemCategoryId =
+                    item.categoryId
+                        ?.trim()
+                        ?.ifBlank { null }
+                        ?.let(CategoryId::from)
+                if (itemCategoryId != null && categoryRepository.findById(itemCategoryId) == null) {
+                    throw BackupImportRowException("CATEGORY_NOT_FOUND", "Category not found: $itemCategoryId")
+                }
                 TransactionItem(
                     id = TransactionItemId.from(item.id),
                     name = item.name,
                     amount = Money(BigDecimal(item.amount), CurrencyCode.from(item.currency).value),
                     note = item.note,
+                    categoryId = item.categoryId,
                 )
             },
             linkedTransactionId = linkedTransactionId,

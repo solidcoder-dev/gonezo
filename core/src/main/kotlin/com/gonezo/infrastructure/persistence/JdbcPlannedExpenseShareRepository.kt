@@ -39,6 +39,10 @@ class JdbcPlannedExpenseShareRepository(private val jdbc: NamedParameterJdbcTemp
     }
     override fun findById(id: PlannedExpenseShareId): PlannedExpenseShare? = find("s.id = :id", MapSqlParameterSource("id", id.toString()))
     override fun findByExpectedMovementRef(ref: ExpectedMovementRef): PlannedExpenseShare? = find("s.expected_movement_ref = :expected", MapSqlParameterSource("expected", ref.value))
+    override fun listAll(): List<PlannedExpenseShare> = jdbc.query(
+        "select id from sharing_planned_expense_shares order by id",
+        MapSqlParameterSource(),
+    ) { rs, _ -> find("s.id = :id", MapSqlParameterSource("id", rs.getString("id"))) }.mapNotNull { it }
     private fun find(where: String, params: MapSqlParameterSource): PlannedExpenseShare? = jdbc.query("select s.* from sharing_planned_expense_shares s where $where limit 1", params) { rs, _ ->
         val id = PlannedExpenseShareId(java.util.UUID.fromString(rs.getString("id")))
         val participants = jdbc.query("select * from sharing_planned_expense_share_participants where planned_share_id = :id order by participant_order", MapSqlParameterSource("id", id.toString())) { child, _ -> PlannedExpenseShareParticipant(PlannedExpenseShareParticipantId(java.util.UUID.fromString(child.getString("id"))), SharingPersonId.from(child.getString("person_id")), child.getObject("participant_parts")?.toString()?.toInt(), BigDecimal(child.getString("amount")), child.getInt("reimbursable") == 1, child.getInt("participant_order")) }

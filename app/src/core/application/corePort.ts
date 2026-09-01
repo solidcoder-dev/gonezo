@@ -2,7 +2,7 @@ import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 import type { PreferencesPort } from '../../account/application/preferences.port';
 import type { AccountBalancesPort } from '../../account/application/accountBalances.port';
 import type { ExpectedPort } from '../../expected/application/expected.port';
-import type { MobillsImportPort, MovementsBackupPort } from '../../imports/application/imports.port';
+import type { ApplicationBackupPort, MobillsImportPort, MovementsBackupPort } from '../../imports/application/imports.port';
 import type { LedgerPort } from '../../ledger/application/ledger.port';
 import type { MovementsQueryPort } from '../../movements/application/movements.port';
 import type { RecurrencePort, SchedulingPort } from '../../scheduling/application/scheduling.port';
@@ -16,6 +16,7 @@ export interface CorePort
     TaxonomyPort,
     MobillsImportPort,
     MovementsBackupPort,
+    ApplicationBackupPort,
     RecurrencePort,
     SchedulingPort,
     ExpectedPort,

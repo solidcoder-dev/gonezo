@@ -61,9 +61,9 @@ class JdbcLedgerTransactionRepository(private val jdbcTemplate: NamedParameterJd
         val insertItem =
             """
             insert into ledger_transaction_items (
-              id, transaction_id, name, amount, currency, note
+              id, transaction_id, name, amount, currency, category_id, note
             ) values (
-              :id, :transaction_id, :name, :amount, :currency, :note
+              :id, :transaction_id, :name, :amount, :currency, :category_id, :note
             )
             """.trimIndent()
         transaction.items.forEach { item ->
@@ -74,6 +74,7 @@ class JdbcLedgerTransactionRepository(private val jdbcTemplate: NamedParameterJd
                     .addValue("name", item.name)
                     .addValue("amount", item.amount.amount)
                     .addValue("currency", item.amount.currency)
+                    .addValue("category_id", item.categoryId)
                     .addValue("note", item.note)
             jdbcTemplate.update(insertItem, itemParams)
         }
@@ -88,6 +89,16 @@ class JdbcLedgerTransactionRepository(private val jdbcTemplate: NamedParameterJd
             """.trimIndent()
         val params = MapSqlParameterSource("id", id.toString())
         return hydrateItems(jdbcTemplate.query(sql, params, transactionRowMapper())).firstOrNull()
+    }
+
+    override fun listAll(): List<Transaction> {
+        val sql =
+            """
+            select id, account_id, type, amount, currency, occurred_at, description, merchant, status, linked_transaction_id
+            from ledger_transactions
+            order by id asc
+            """.trimIndent()
+        return hydrateItems(jdbcTemplate.query(sql, transactionRowMapper()))
     }
 
     override fun findByAccount(accountId: AccountId, limit: Int?): List<Transaction> {
@@ -152,7 +163,7 @@ class JdbcLedgerTransactionRepository(private val jdbcTemplate: NamedParameterJd
 
         val sql =
             """
-            select id, transaction_id, name, amount, currency, note
+            select id, transaction_id, name, amount, currency, category_id, note
             from ledger_transaction_items
             where transaction_id in (:transaction_ids)
             order by transaction_id asc, id asc
@@ -201,6 +212,7 @@ class JdbcLedgerTransactionRepository(private val jdbcTemplate: NamedParameterJd
                     currency = rs.getString("currency"),
                 ),
                 note = rs.getString("note"),
+                categoryId = rs.getString("category_id"),
             ),
         )
     }

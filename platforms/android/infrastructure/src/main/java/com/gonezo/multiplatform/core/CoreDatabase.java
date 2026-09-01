@@ -18,6 +18,31 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     super(context, databaseName, null, DB_VERSION);
   }
 
+  void clearPortableState() {
+    SQLiteDatabase db = getWritableDatabase();
+    db.delete("sharing_planned_expense_share_participants", null, null);
+    db.delete("sharing_planned_expense_shares", null, null);
+    db.delete("sharing_recurring_plan_participants", null, null);
+    db.delete("sharing_recurring_plans", null, null);
+    db.delete("sharing_expense_share_participants", null, null);
+    db.delete("sharing_expense_shares", null, null);
+    db.delete("sharing_persons", null, null);
+    db.delete("analytics_exclusions", null, null);
+    db.delete("expected_movement_items", null, null);
+    db.delete("expected_movements", null, null);
+    db.delete("recurring_movement_occurrences", null, null);
+    db.delete("recurring_movement_items", null, null);
+    db.delete("recurring_movements", null, null);
+    db.delete("taxonomy_transaction_tag_assignments", null, null);
+    db.delete("taxonomy_transaction_assignments", null, null);
+    db.delete("taxonomy_tags", null, null);
+    db.delete("taxonomy_categories", null, null);
+    db.delete("ledger_transaction_items", null, null);
+    db.delete("ledger_transactions", null, null);
+    db.delete("ledger_accounts", null, null);
+    db.delete("user_preferences", null, null);
+  }
+
   @Override
   public void onConfigure(SQLiteDatabase db) {
     db.setForeignKeyConstraintsEnabled(true);

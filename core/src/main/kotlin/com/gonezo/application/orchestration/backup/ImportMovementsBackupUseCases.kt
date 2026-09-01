@@ -5,15 +5,15 @@ import java.time.Instant
 
 data class MovementsBackupSnapshot(val schemaVersion: Int, val exportedAt: Instant?, val accounts: List<BackupAccount>, val categories: List<BackupCategory>, val tags: List<BackupTag>, val postedMovements: List<BackupPostedMovement>)
 
-data class BackupAccount(val id: String, val name: String, val type: String, val currency: String, val status: String)
+data class BackupAccount(val id: String, val name: String, val type: String, val currency: String, val status: String, val createdAt: Instant? = null, val archivedAt: Instant? = null)
 
-data class BackupCategory(val id: String, val name: String, val appliesTo: String, val status: String)
+data class BackupCategory(val id: String, val name: String, val appliesTo: String, val status: String, val createdAt: Instant? = null, val archivedAt: Instant? = null)
 
-data class BackupTag(val id: String, val name: String, val status: String)
+data class BackupTag(val id: String, val name: String, val status: String, val createdAt: Instant? = null, val archivedAt: Instant? = null)
 
 data class BackupPostedMovement(val id: String, val accountId: String, val type: String, val status: String, val occurredAt: Instant, val amount: String, val currency: String, val description: String?, val merchant: String?, val categoryId: String?, val linkedTransactionId: String?, val splitItems: List<BackupSplitItem>, val tagIds: List<String>)
 
-data class BackupSplitItem(val id: String, val name: String, val amount: String, val currency: String, val note: String?)
+data class BackupSplitItem(val id: String, val name: String, val amount: String, val currency: String, val note: String?, val categoryId: String? = null)
 
 data class ImportMovementsBackupCommand(val snapshot: MovementsBackupSnapshot, val importedAt: Instant)
 

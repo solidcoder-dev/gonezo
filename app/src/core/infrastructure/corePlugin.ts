@@ -58,6 +58,8 @@ import type {
   MovementsBackupExportResult,
   MovementsBackupImportInput,
   MovementsBackupImportResult,
+  ApplicationBackupExportResult,
+  ApplicationBackupImportInput,
 } from '../../imports/application/imports.port';
 import type {
   RecurrenceCreateRecurringMovementInput,
@@ -157,6 +159,8 @@ export interface CorePlugin {
   ): Promise<OrchestrationListTransactionTaxonomyResult>;
   movementsExportBackup(): Promise<MovementsBackupExportResult>;
   movementsImportBackup(options: MovementsBackupImportInput): Promise<MovementsBackupImportResult>;
+  applicationExportBackup(): Promise<ApplicationBackupExportResult>;
+  applicationImportBackup(options: ApplicationBackupImportInput): Promise<void>;
   recurrenceCreateRecurringMovement(
     options: RecurrenceCreateRecurringMovementInput,
   ): Promise<RecurrenceCreateRecurringMovementResult>;

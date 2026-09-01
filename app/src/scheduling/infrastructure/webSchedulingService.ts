@@ -160,6 +160,32 @@ export class WebSchedulingService {
       completedAt: nextDueAt ? undefined : this.nowIso(),
     };
     this.state.recurringMovements.push(movement);
+    if (input.sharingPlan) {
+      const planCreatedAt = this.nowIso();
+      const payer = this.findOrCreateSharingPerson(input.sharingPlan.payerName, planCreatedAt);
+      const participants = input.sharingPlan.participants.map((participant, order) => {
+        const person = this.findOrCreateSharingPerson(participant.personName, planCreatedAt);
+        return {
+          id: this.nextId(),
+          personId: person.id,
+          ...(participant.parts == null ? {} : { parts: participant.parts }),
+          ...(participant.amount == null ? {} : { amount: Number(participant.amount).toFixed(2) }),
+          reimbursable: participant.reimbursable,
+          order,
+        };
+      });
+      this.state.recurringSharingPlans.push({
+        id: this.nextId(),
+        recurringMovementId: id,
+        payerPersonId: payer.id,
+        mode: input.sharingPlan.mode,
+        payerParts: input.sharingPlan.payerParts,
+        currency: movement.currency,
+        participants,
+        createdAt: planCreatedAt,
+        updatedAt: planCreatedAt,
+      });
+    }
     return { id };
   }
 
@@ -234,6 +260,15 @@ export class WebSchedulingService {
       .sort(compareScheduledMovementByDue)
       .map((movement) => ({ ...movement }));
     return { items };
+  }
+
+  private findOrCreateSharingPerson(name: string, createdAt: string): { id: string } {
+    const normalizedName = name.trim().toLowerCase().replace(/\s+/g, ' ');
+    const existing = this.state.sharingPersons.find((person) => person.normalizedName === normalizedName && !person.archivedAt);
+    if (existing) return existing;
+    const person = { id: this.nextId(), name: name.trim(), normalizedName, createdAt };
+    this.state.sharingPersons.push(person);
+    return person;
   }
 
   async createMovement(

@@ -171,7 +171,6 @@ public class CorePlugin extends Plugin {
       call.reject(ex.getMessage());
     }
   }
-
   @PluginMethod
   public void movementsImportBackup(PluginCall call) {
     String fileBase64 = call.getString("fileBase64");
@@ -186,7 +185,8 @@ public class CorePlugin extends Plugin {
       call.reject(ex.getMessage());
     }
   }
-
+  @PluginMethod public void applicationExportBackup(PluginCall call) { new ApplicationBackupPluginHandler(getContext()).exportBackup(call); }
+  @PluginMethod public void applicationImportBackup(PluginCall call) { new ApplicationBackupPluginHandler(getContext()).importBackup(call); }
   @PluginMethod
   public void recurrenceCreateRecurringMovement(PluginCall call) {
     new RecurringPluginHandler(getContext()).recurrenceCreateRecurringMovement(call);
