@@ -12,7 +12,7 @@ export type {
 export function TransactionsImportView({ required, provided }: TransactionsImportViewProps) {
   const isSubmitting = required.status.submitPhase === 'submitting';
   const isMobillsImport = required.state.importSource === 'mobills';
-  const fileLabel = isMobillsImport ? 'Mobills file (TSV/CSV)' : 'Backup file (JSON)';
+  const fileLabel = isMobillsImport ? 'Mobills file (TSV/CSV)' : 'Movements backup file (JSON)';
 
   return (
     <div className="import-sheet-content">
@@ -88,7 +88,7 @@ export function TransactionsImportView({ required, provided }: TransactionsImpor
         ) : null}
 
         <button type="submit" className="btn btn-primary w-100" disabled={isSubmitting}>
-          {isSubmitting ? 'Importing...' : isMobillsImport ? 'Import Mobills file' : 'Import backup'}
+          {isSubmitting ? 'Importing...' : isMobillsImport ? 'Import Mobills file' : 'Import movements'}
         </button>
       </form>
 

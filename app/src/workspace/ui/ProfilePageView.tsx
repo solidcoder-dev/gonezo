@@ -36,7 +36,10 @@ export function ProfilePageView({ required, provided }: ProfilePageViewProps) {
             Add account
           </button>
           <button type="button" className="btn btn-outline-secondary" disabled={required.status.disabled} onClick={provided.commands.importBackup}>
-            Import backup
+            Restore backup
+          </button>
+          <button type="button" className="btn btn-outline-secondary" disabled={required.status.disabled} onClick={provided.commands.importMovements}>
+            Import movements
           </button>
           <button type="button" className="btn btn-outline-secondary" disabled={required.status.disabled} onClick={provided.commands.exportBackup}>
             Backup

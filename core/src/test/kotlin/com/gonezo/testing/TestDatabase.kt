@@ -30,6 +30,24 @@ class TestDatabase {
         flyway.migrate()
     }
 
+    fun migrateTo(version: Int) {
+        jdbcTemplate.execute("PRAGMA foreign_keys = ON")
+        flyway.clean()
+        Flyway
+            .configure()
+            .dataSource(dataSource)
+            .locations("classpath:db/migration")
+            .cleanDisabled(false)
+            .target(version.toString())
+            .load()
+            .migrate()
+    }
+
+    fun migratePending() {
+        jdbcTemplate.execute("PRAGMA foreign_keys = ON")
+        flyway.migrate()
+    }
+
     fun executeSqlResource(resourcePath: String) {
         val resource =
             requireNotNull(javaClass.classLoader.getResource(resourcePath)) {

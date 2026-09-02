@@ -11,9 +11,29 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class CoreDatabaseMigration29To30Test {
+class CoreDatabaseMigration29To32Test {
   @Test
-  fun upgradesProductionDatabaseFrom29To30WithoutChangingExistingRows() {
+  fun normalizesHistoricalAnalyticsReasonsInPlace() {
+    val name = uniqueDatabaseName()
+    val initial = CoreDatabase(context(), name)
+    val sqlite = initial.writableDatabase
+    sqlite.execSQL("insert into analytics_exclusions(id, scope_type, scope_id, reason, created_at) values ('00000000-0000-4000-8000-000000000100', 'movement', 'movement-1', 'shared_expense_lent_amount', '2026-07-01T00:00:00Z')")
+    sqlite.execSQL("insert into analytics_exclusions(id, scope_type, scope_id, reason, created_at) values ('00000000-0000-4000-8000-000000000101', 'movement', 'movement-2', 'shared_expense_reimbursement', '2026-07-02T00:00:00Z')")
+    sqlite.setVersion(30)
+    initial.close()
+
+    val upgraded = CoreDatabase(context(), name)
+    val migrated = upgraded.readableDatabase
+    assertEquals(32, migrated.version)
+    assertEquals("shared_expense", migrated.scalar("select reason from analytics_exclusions where id = '00000000-0000-4000-8000-000000000100'"))
+    assertEquals("reimbursement", migrated.scalar("select reason from analytics_exclusions where id = '00000000-0000-4000-8000-000000000101'"))
+    assertEquals("2026-07-01T00:00:00Z", migrated.scalar("select created_at from analytics_exclusions where id = '00000000-0000-4000-8000-000000000100'"))
+    assertEquals("ok", migrated.scalar("pragma integrity_check"))
+    upgraded.close()
+  }
+
+  @Test
+  fun upgradesProductionDatabaseFrom29To31WithoutChangingExistingRows() {
     val name = uniqueDatabaseName()
     val initial = CoreDatabase(context(), name)
     val sqlite = initial.writableDatabase
@@ -42,19 +62,19 @@ class CoreDatabaseMigration29To30Test {
 
     val upgraded = CoreDatabase(context(), name)
     val migrated = upgraded.writableDatabase
-    assertEquals(30, migrated.version)
+    assertEquals(32, migrated.version)
     assertTrue(migrated.hasObject("workflow_tx_categorization", "table"))
     assertEquals(setOf("workflow_tx_categorization"), migrated.tableNames().toSet() - tablesBeforeUpgrade)
     assertTrue(migrated.hasObject("idx_workflow_tx_categorization_status_next_attempt", "index"))
     assertEquals(0, migrated.scalar("select count(*) from workflow_tx_categorization")!!.toInt())
-    assertEquals(snapshot, migrated.snapshot())
+    assertEquals(snapshot + ("analytics_exclusions_legacy_archive" to emptyList()), migrated.snapshot())
     assertEquals("ok", migrated.scalar("pragma integrity_check"))
     assertTrue(migrated.rawQuery("pragma foreign_key_check", null).use { !it.moveToNext() })
     upgraded.close()
 
     val reopened = CoreDatabase(context(), name)
-    assertEquals(snapshot, reopened.readableDatabase.snapshot())
-    assertEquals(30, reopened.readableDatabase.version)
+    assertEquals(snapshot + ("analytics_exclusions_legacy_archive" to emptyList()), reopened.readableDatabase.snapshot())
+    assertEquals(32, reopened.readableDatabase.version)
     assertEquals(0, reopened.readableDatabase.scalar("select count(*) from workflow_tx_categorization")!!.toInt())
     reopened.close()
   }

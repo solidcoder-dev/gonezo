@@ -175,11 +175,15 @@ vi.mock('./useWorkspaceImportCoordinator', () => ({
     state: {
       importSheetOpen: false,
       importSubmitPhase: 'idle',
+      restoreSheetOpen: false,
     },
     actions: {
       closeImportSheet: () => undefined,
       openImportSheet: () => undefined,
-      requestMovementsBackup: async () => undefined,
+      closeRestoreSheet: () => undefined,
+      openRestoreSheet: () => undefined,
+      requestApplicationBackup: async () => undefined,
+      requestApplicationBackupRestore: async () => undefined,
       submitTransactionsImport: async () => ({ importedCount: 0, failedCount: 0 }),
     },
   }),

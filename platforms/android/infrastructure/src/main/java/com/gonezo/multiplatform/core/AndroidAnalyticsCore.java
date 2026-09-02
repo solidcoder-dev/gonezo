@@ -1,5 +1,6 @@
 package com.gonezo.multiplatform.core;
 
+import com.gonezo.analytics.domain.AnalyticsExclusionReason;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 public final class AndroidAnalyticsCore {
+  private static final String USER_IGNORED_REASON = AnalyticsExclusionReason.USER_IGNORED.getValue();
   private static AndroidAnalyticsCore instance;
   private final CoreDatabase database;
 
@@ -41,7 +43,7 @@ public final class AndroidAnalyticsCore {
     writableDatabase.delete(
       "analytics_exclusions",
       "scope_type = ? and scope_id = ? and reason = ?",
-      new String[] { scopeType, scopeId, "user_ignored" }
+      new String[] { scopeType, scopeId, USER_IGNORED_REASON }
     );
 
     if (!ignored) {
@@ -52,7 +54,7 @@ public final class AndroidAnalyticsCore {
     values.put("id", UUID.randomUUID().toString());
     values.put("scope_type", scopeType);
     values.put("scope_id", scopeId);
-    values.put("reason", "user_ignored");
+    values.put("reason", USER_IGNORED_REASON);
     values.put("created_at", changedAt != null && !changedAt.trim().isEmpty() ? changedAt : Instant.now().toString());
     writableDatabase.insertWithOnConflict(
       "analytics_exclusions",

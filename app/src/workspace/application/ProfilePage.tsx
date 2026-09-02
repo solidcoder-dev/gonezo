@@ -28,6 +28,7 @@ export type ProfilePageProvided = {
     onSelectedAccountChanged?: (accountId: string | null) => void;
     onAccountsCountChanged?: (count: number) => void;
     onImportRequested?: () => void;
+    onMovementsImportRequested?: () => void;
     onBackupRequested?: () => void;
     onAccountMutated?: () => void;
     onError?: (error: { message: string }) => void;
@@ -182,6 +183,7 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
             },
             addAccount: openCreateForm,
             importBackup: () => { void provided.events?.onImportRequested?.(); },
+            importMovements: () => { void provided.events?.onMovementsImportRequested?.(); },
             exportBackup: () => { void provided.events?.onBackupRequested?.(); },
             manageTaxonomy: () => { void navigate('/taxonomy'); },
             setVoiceMovementExperimentEnabled: (enabled) => {

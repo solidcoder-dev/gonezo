@@ -19,8 +19,8 @@ export function TransactionsImportComponent({ required, provided }: Transactions
     <SheetView
       required={{
         config: {
-          ariaLabel: 'Import backup',
-          title: 'Import backup',
+          ariaLabel: 'Import movements',
+          title: 'Import movements',
           closeLabel: 'Close import sheet',
           panelClassName: 'import-sheet',
         },

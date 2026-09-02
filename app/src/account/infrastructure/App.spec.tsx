@@ -489,6 +489,18 @@ function makeCore(transactionCount = 0): AppTestPort {
       skippedCount: 0,
       rows: [],
     })),
+    applicationExportBackup: vi.fn(async () => ({
+      fileName: 'gonezo-application-backup-2026-01-01T00-00-00Z.json',
+      createdAt: '2026-01-01T00:00:00Z',
+      json: JSON.stringify({
+        format: 'gonezo-backup',
+        formatVersion: 1,
+        sections: {
+          taxonomy: {}, ledger: {}, recurrence: {}, expected: {}, sharing: {}, analytics: {}, preferences: {},
+        },
+      }),
+    })),
+    applicationImportBackup: vi.fn(async () => undefined),
     orchestrationCategorizeTransaction: vi.fn(async () => ({ status: 'assigned' as const })),
     orchestrationApplyTransactionTags: vi.fn(async () => ({ status: 'assigned' as const })),
     orchestrationListTransactionTaxonomy: vi.fn(async () => ({ items: [] })),
@@ -1073,11 +1085,18 @@ describe('App Accounts UX', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
     await screen.findByRole('heading', { name: 'Profile' });
-    expect(await screen.findByRole('button', { name: 'Import backup' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Restore backup' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Backup' }));
     await waitFor(() => {
-      expect(core.movementsExportBackup).toHaveBeenCalledTimes(1);
+      expect(core.applicationExportBackup).toHaveBeenCalledTimes(1);
+      expect(core.movementsExportBackup).not.toHaveBeenCalled();
     });
+    const exported = JSON.parse((await vi.mocked(core.applicationExportBackup).mock.results[0]?.value)!.json);
+    expect(exported.format).toBe('gonezo-backup');
+    expect(exported.formatVersion).toBe(1);
+    expect(Object.keys(exported.sections)).toEqual(['taxonomy', 'ledger', 'recurrence', 'expected', 'sharing', 'analytics', 'preferences']);
+    expect(exported).not.toHaveProperty('schemaVersion');
+    expect(exported).not.toHaveProperty('postedMovements');
   });
 
   it('places the preferred account currency first on Home', async () => {
@@ -1112,7 +1131,7 @@ describe('App Accounts UX', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Profile' }));
     expect(await screen.findByText('Favorite account')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Import backup' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Restore backup' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Movements' }));
     expect(await screen.findByText('Posted')).toBeInTheDocument();
@@ -1760,10 +1779,11 @@ describe('App Accounts UX', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
     await screen.findByRole('heading', { name: 'Profile' });
-    expect(screen.getByRole('button', { name: 'Import backup' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Restore backup' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Backup' }));
     await waitFor(() => {
-      expect(core.movementsExportBackup).toHaveBeenCalledTimes(1);
+      expect(core.applicationExportBackup).toHaveBeenCalledTimes(1);
+      expect(core.movementsExportBackup).not.toHaveBeenCalled();
     });
   });
 
@@ -1778,14 +1798,14 @@ describe('App Accounts UX', () => {
 
     await screen.findByRole('heading', { name: 'Balances by currency' });
     await openImportSheetFromAccounts();
-    const dialog = await screen.findByRole('dialog', { name: 'Import backup' });
+    const dialog = await screen.findByRole('dialog', { name: 'Import movements' });
     expect(dialog).toBeInTheDocument();
     expect(dialog).toHaveClass('import-sheet');
     expect(view.container.querySelector('.import-sheet-content')).not.toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Close import sheet' }));
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Import backup' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'Import movements' })).not.toBeInTheDocument();
     });
   });
 
@@ -1806,7 +1826,7 @@ describe('App Accounts UX', () => {
     expect(fileInput).toHaveAttribute('accept', expect.stringContaining('.csv'));
   });
 
-  it('imports a Gonezo backup by default and keeps Mobills options hidden', async () => {
+  it('restores an application backup without exposing movement-import semantics', async () => {
     const core = makeCore();
 
     render(
@@ -1816,27 +1836,51 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Balances by currency' });
-    await openImportSheetFromAccounts();
+    fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
+    await screen.findByRole('heading', { name: 'Profile' });
+    fireEvent.click(screen.getByRole('button', { name: 'Restore backup' }));
 
-    expect(screen.getByLabelText('Import Mobills TSV/CSV')).not.toBeChecked();
-    expect(screen.queryByLabelText('Create missing accounts')).not.toBeInTheDocument();
-
-    const fileInput = await screen.findByLabelText('Backup file (JSON)');
+    const dialog = await screen.findByRole('dialog', { name: 'Restore backup' });
+    const fileInput = await screen.findByLabelText('Application backup file (JSON)');
     expect(fileInput).toHaveAttribute('accept', expect.stringContaining('.json'));
 
     const file = new File(
-      [JSON.stringify({ schemaVersion: 2, accounts: [], categories: [], tags: [], postedMovements: [] })],
-      'gonezo-backup.json',
+      ['application backup'],
+      'gonezo-application-backup.json',
       { type: 'application/json' },
     );
     fireEvent.change(fileInput, { target: { files: [file] } });
-    fireEvent.click(within(screen.getByRole('dialog', { name: 'Import backup' })).getByRole('button', { name: 'Import backup' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Restore backup' }));
 
     await waitFor(() => {
-      expect(core.movementsImportBackup).toHaveBeenCalledTimes(1);
+      expect(core.applicationImportBackup).toHaveBeenCalledTimes(1);
+      expect(core.movementsImportBackup).not.toHaveBeenCalled();
     });
-    expect(core.mobillsImport).not.toHaveBeenCalled();
-    expect(await screen.findByText('Imported 0 / 0 rows')).toBeInTheDocument();
+    expect(await within(dialog).findByRole('status')).toHaveTextContent('Restore completed.');
+  });
+
+  it('shows application restore failures and preserves movement importer isolation', async () => {
+    const core = makeCore();
+    vi.mocked(core.applicationImportBackup).mockRejectedValueOnce(new Error('Invalid application backup'));
+
+    render(
+      <MemoryRouter>
+        <App required={{ core }} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
+    await screen.findByRole('heading', { name: 'Profile' });
+    fireEvent.click(screen.getByRole('button', { name: 'Restore backup' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Restore backup' });
+    fireEvent.change(screen.getByLabelText('Application backup file (JSON)'), {
+      target: { files: [new File(['broken'], 'broken.json', { type: 'application/json' })] },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Restore backup' }));
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Invalid application backup');
+    expect(core.applicationImportBackup).toHaveBeenCalledTimes(1);
+    expect(core.movementsImportBackup).not.toHaveBeenCalled();
   });
 
   it('uses the Mobills importer only when the legacy checkbox is enabled', async () => {
@@ -2015,7 +2059,7 @@ describe('App Accounts UX', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
     await screen.findByRole('heading', { name: 'Profile' });
-    fireEvent.click(screen.getByRole('button', { name: 'Import backup' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import movements' }));
     await enableMobillsImport();
 
     const fileInput = await screen.findByLabelText('Mobills file (TSV/CSV)');
@@ -2107,7 +2151,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Import Mobills file' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Import failed hard');
-    expect(screen.getByRole('dialog', { name: 'Import backup' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Import movements' })).toBeInTheDocument();
   });
 
   it('records quick expense from dedicated expense flow', async () => {

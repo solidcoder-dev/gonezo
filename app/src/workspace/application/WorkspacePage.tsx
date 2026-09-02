@@ -8,6 +8,8 @@ import { MovementsSearchPage } from '../../movements/index';
 import type { MovementsSearchPagePort } from '../../movements/application/movementsSearch.port';
 import { AccountPageView } from '../../account/ui/AccountPageView/AccountPageView';
 import { TransactionsImportComponent } from '../../account/ui/capabilities/TransactionsImport/TransactionsImportComponent';
+import { ApplicationBackupRestoreComponent } from '../../imports/application/ApplicationBackupRestoreComponent';
+import type { ApplicationBackupPort, MovementsBackupPort } from '../../imports/application/imports.port';
 import type { AccountPageViewProvided, AccountPageViewRequired } from '../../account/ui/AccountPageView/accountPageView.contract';
 import type { LoadPhase } from '../../account/application/accountPage.types';
 import type { AccountWorkspacePort } from '../../account/application/accounts.port';
@@ -37,7 +39,7 @@ export type WorkspacePageRequired = {
   experimentalFeatures: ExperimentalFeaturesPort;
 };
 
-export type WorkspacePagePort = AccountWorkspacePort & AnalyticsPort & HomeRecentMovementsPort & PendingExpectedOverviewPort & MovementsSearchPagePort;
+export type WorkspacePagePort = AccountWorkspacePort & MovementsBackupPort & ApplicationBackupPort & AnalyticsPort & HomeRecentMovementsPort & PendingExpectedOverviewPort & MovementsSearchPagePort;
 
 type WorkspacePageProps = {
   required: WorkspacePageRequired;
@@ -72,14 +74,20 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   } = workspaceRefresh.signals;
   const importCoordinator = useWorkspaceImportCoordinator({
     core: pageRequired.core,
+    movementsImport: pageRequired.core,
+    applicationBackup: pageRequired.core,
+    fileReader: pageRequired.importFileReader,
     refresh,
     showToast,
   });
-  const { importSheetOpen, importSubmitPhase } = importCoordinator.state;
+  const { importSheetOpen, importSubmitPhase, restoreSheetOpen } = importCoordinator.state;
   const {
     closeImportSheet,
+    closeRestoreSheet,
     openImportSheet,
-    requestMovementsBackup,
+    openRestoreSheet,
+    requestApplicationBackup,
+    requestApplicationBackupRestore,
     submitTransactionsImport,
   } = importCoordinator.actions;
   const movementComposer = useMovementComposerCoordinator({ selectedAccountId });
@@ -246,9 +254,10 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           onLoadPhaseChanged: setScreenLoadPhase,
           onSelectedAccountChanged: handleSelectedAccountChanged,
           onAccountsCountChanged: setAccountsCount,
-          onImportRequested: openImportSheet,
+          onImportRequested: openRestoreSheet,
+          onMovementsImportRequested: openImportSheet,
           onBackupRequested: () => {
-            void requestMovementsBackup().catch((err) => {
+            void requestApplicationBackup().catch((err) => {
               showError(err instanceof Error ? err : { message: 'Unknown error' });
             });
           },
@@ -533,28 +542,22 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       ),
       recentTransactions: currentPage === 'movements' ? movementsPage : null,
       transactionsImport: (
-        <TransactionsImportComponent
-          required={{
-            context: {
-              fileReader: pageRequired.importFileReader,
-            },
-            state: {
-              accountsCount,
-              isOpen: importSheetOpen,
-            },
-            status: {
-              loadPhase: screenLoadPhase,
-              submitPhase: importSubmitPhase,
-            },
-          }}
-          provided={{
-            commands: {
-              open: openImportSheet,
-              close: closeImportSheet,
-              submit: submitTransactionsImport,
-            },
-          }}
-        />
+        <>
+          <TransactionsImportComponent
+            required={{
+              context: { fileReader: pageRequired.importFileReader },
+              state: { accountsCount, isOpen: importSheetOpen },
+              status: { loadPhase: screenLoadPhase, submitPhase: importSubmitPhase },
+            }}
+            provided={{
+              commands: { open: openImportSheet, close: closeImportSheet, submit: submitTransactionsImport },
+            }}
+          />
+          <ApplicationBackupRestoreComponent
+            required={{ isOpen: restoreSheetOpen }}
+            provided={{ close: closeRestoreSheet, restore: requestApplicationBackupRestore }}
+          />
+        </>
       ),
     },
   };

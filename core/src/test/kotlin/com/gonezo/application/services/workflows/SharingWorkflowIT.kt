@@ -14,11 +14,26 @@ import com.gonezo.sharing.application.ApplyShareToPostedTransactionCommand
 import com.gonezo.sharing.application.GetMovementSharingDetailsQuery
 import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import java.time.Instant
 
 class SharingWorkflowIT : SqliteE2ETest() {
+    @Test
+    fun `analytics exclusion repository rejects the exact historical reason before migration`() {
+        db.jdbcTemplate.update(
+            """
+            insert into analytics_exclusions(id, scope_type, scope_id, reason, created_at)
+            values ('00000000-0000-4000-8000-000000000001', 'movement', 'movement-1', 'shared_expense_lent_amount', '2026-06-29T10:15:00Z')
+            """.trimIndent(),
+        )
+
+        assertThatThrownBy { app.analyticsExclusionRepository.listAll() }
+            .isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessage("Unsupported analytics exclusion reason: shared_expense_lent_amount")
+    }
+
     @Test
     fun `sharing an expense creates reusable person expected repayment and analytics exclusions`() {
         val accountId = openCashAccount()

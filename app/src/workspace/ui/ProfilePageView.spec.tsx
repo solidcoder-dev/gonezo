@@ -32,6 +32,7 @@ function renderSubject(overrides: Partial<Parameters<typeof ProfilePageView>[0]>
           selectFavoriteAccount: () => undefined,
           addAccount: () => undefined,
           importBackup: () => undefined,
+          importMovements: () => undefined,
           exportBackup: () => undefined,
           manageTaxonomy: () => undefined,
           setVoiceMovementExperimentEnabled: vi.fn(),
@@ -63,7 +64,7 @@ describe('ProfilePageView', () => {
     expect(screen.getByRole('combobox', { name: 'Favorite account' })).toHaveValue('a');
     expect(screen.queryByRole('region', { name: 'Accounts' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add account' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Import backup' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Restore backup' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Backup' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Taxonomy' })).toBeInTheDocument();
   });

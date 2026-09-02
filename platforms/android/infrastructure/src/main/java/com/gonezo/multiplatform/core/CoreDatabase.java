@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteException;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 30;
+  private static final int DB_VERSION = 32;
 
   CoreDatabase(Context context) {
     this(context, DB_NAME);
@@ -153,6 +153,14 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion < 30) {
       createCategorizationWorkflowTable(db);
     }
+
+    if (oldVersion < 31) {
+      normalizeLegacyAnalyticsExclusionReasons(db);
+    }
+
+    if (oldVersion < 32) {
+      normalizeSharedExpenseLentAmountReason(db);
+    }
   }
 
   @Override
@@ -183,6 +191,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     addNextExpectedPostingId(db);
     addRecurringAndExpectedTagColumns(db);
     createCategorizationWorkflowTable(db);
+    createAnalyticsExclusionLegacyArchiveTable(db);
   }
 
   private static void createCategorizationWorkflowTable(SQLiteDatabase db) {
@@ -202,6 +211,61 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     db.execSQL(
       "create index if not exists idx_workflow_tx_categorization_status_next_attempt " +
         "on workflow_tx_categorization(status, next_attempt_at);"
+    );
+  }
+
+  private static void normalizeLegacyAnalyticsExclusionReasons(SQLiteDatabase db) {
+    createAnalyticsExclusionLegacyArchiveTable(db);
+    db.execSQL(
+      "insert into analytics_exclusions_legacy_archive (id, scope_type, scope_id, reason, created_at) " +
+        "select legacy.id, legacy.scope_type, legacy.scope_id, legacy.reason, legacy.created_at " +
+        "from analytics_exclusions legacy " +
+        "where (legacy.reason = 'shared-expense_lent_amount' or legacy.reason = 'shared_expense_reimbursement') " +
+        "and exists (select 1 from analytics_exclusions canonical " +
+        "where canonical.scope_type = legacy.scope_type " +
+        "and canonical.scope_id = legacy.scope_id " +
+        "and canonical.reason = case legacy.reason when 'shared-expense_lent_amount' then 'shared_expense' when 'shared_expense_reimbursement' then 'reimbursement' end)"
+    );
+    db.execSQL(
+      "delete from analytics_exclusions " +
+        "where reason in ('shared-expense_lent_amount', 'shared_expense_reimbursement') " +
+        "and exists (select 1 from analytics_exclusions canonical " +
+        "where canonical.scope_type = analytics_exclusions.scope_type " +
+        "and canonical.scope_id = analytics_exclusions.scope_id " +
+        "and canonical.reason = case analytics_exclusions.reason when 'shared-expense_lent_amount' then 'shared_expense' when 'shared_expense_reimbursement' then 'reimbursement' end)"
+    );
+    db.execSQL("update analytics_exclusions set reason = 'shared_expense' where reason = 'shared-expense_lent_amount'");
+    db.execSQL("update analytics_exclusions set reason = 'reimbursement' where reason = 'shared_expense_reimbursement'");
+  }
+
+  private static void normalizeSharedExpenseLentAmountReason(SQLiteDatabase db) {
+    createAnalyticsExclusionLegacyArchiveTable(db);
+    db.execSQL(
+      "insert or ignore into analytics_exclusions_legacy_archive (id, scope_type, scope_id, reason, created_at) " +
+        "select id, scope_type, scope_id, reason, created_at " +
+        "from analytics_exclusions " +
+        "where reason = 'shared_expense_lent_amount'"
+    );
+    db.execSQL(
+      "delete from analytics_exclusions " +
+        "where reason = 'shared_expense_lent_amount' " +
+        "and exists (select 1 from analytics_exclusions canonical " +
+        "where canonical.scope_type = analytics_exclusions.scope_type " +
+        "and canonical.scope_id = analytics_exclusions.scope_id " +
+        "and canonical.reason = 'shared_expense')"
+    );
+    db.execSQL("update analytics_exclusions set reason = 'shared_expense' where reason = 'shared_expense_lent_amount'");
+  }
+
+  private static void createAnalyticsExclusionLegacyArchiveTable(SQLiteDatabase db) {
+    db.execSQL(
+      "create table if not exists analytics_exclusions_legacy_archive (" +
+        "id text primary key," +
+        "scope_type text not null," +
+        "scope_id text not null," +
+        "reason text not null," +
+        "created_at text not null" +
+      ");"
     );
   }
 

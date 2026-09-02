@@ -72,7 +72,7 @@ export async function goToMovementsPage() {
 export async function openImportSheetFromAccounts() {
   fireEvent.click(await screen.findByRole('button', { name: 'Profile' }));
   await screen.findByRole('heading', { name: 'Profile' });
-  fireEvent.click(screen.getByRole('button', { name: 'Import backup' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Import movements' }));
 }
 
 export async function enableMobillsImport() {

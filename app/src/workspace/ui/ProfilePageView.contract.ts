@@ -25,6 +25,7 @@ export type ProfilePageViewProps = ViewProps<
     selectFavoriteAccount: (accountId: string) => void;
     addAccount: () => void;
     importBackup: () => void;
+    importMovements: () => void;
     exportBackup: () => void;
     manageTaxonomy: () => void;
     setVoiceMovementExperimentEnabled: (enabled: boolean) => void;

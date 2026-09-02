@@ -2,8 +2,9 @@
 
 ## Objetivo
 
-Importar backups nativos de Gonezo como flujo principal de restauracion/migracion.
-Mobills sigue existiendo como import legado, activado explicitamente desde la UI.
+Transportar movimientos publicados como una capacidad especializada.
+La restauracion completa de Gonezo usa [Application Backup](application-backup.md); Mobills sigue
+existiendo como import legado, activado explicitamente desde la UI.
 
 El caso de uso coordina datos de varios bounded contexts sin mover reglas de negocio:
 
@@ -23,7 +24,7 @@ El caso de uso coordina datos de varios bounded contexts sin mover reglas de neg
 
 ## Formato
 
-El backup actual usa `schemaVersion: 2`.
+Este formato legacy usa `schemaVersion: 2` y no es un backup completo de la aplicacion.
 
 Incluye:
 
@@ -38,7 +39,7 @@ transferencia sin enlace se rechaza por fila porque no puede restaurar la relaci
 
 ## Flujo Android
 
-1. Usuario abre `Import backup`.
+1. Usuario abre `Import movements`.
 2. Selecciona un JSON de backup de Gonezo.
 3. App llama a `movementsImportBackup` con `fileBase64`.
 4. `CorePlugin` delega en `AndroidMovementsBackupCore`.

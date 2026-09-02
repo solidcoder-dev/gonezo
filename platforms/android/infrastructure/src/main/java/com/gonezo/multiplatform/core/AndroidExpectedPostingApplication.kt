@@ -5,6 +5,7 @@ import com.gonezo.application.ConsistencyBoundary
 import com.gonezo.application.events.DomainEventPublisher
 import com.gonezo.application.orchestration.*
 import com.gonezo.expected.application.*
+import com.gonezo.analytics.domain.AnalyticsExclusionReason
 import com.gonezo.ledger.application.*
 import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceService
 import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceUC
@@ -57,9 +58,8 @@ internal class AndroidExpectedPostingApplication private constructor(context: Co
   private val workflow = PostExpectedMovementWorkflow(
     expected, ledgerRecordExpense, ledgerRecordIncome, ledgerCreateDraft, ledgerAddItem, ledgerPostDraft,
     categorize, applyTags, MovementIgnoredWriter { id, ignored, at ->
-      val values = android.content.ContentValues().apply { put("movement_id", id); put("scope", "expected_movement"); put("reason", "user_ignored"); put("created_at", at.toString()) }
-      if (ignored) database.writableDatabase.insertWithOnConflict("analytics_exclusions", null, android.content.ContentValues().apply { put("id", java.util.UUID.randomUUID().toString()); put("scope_type", "expected_movement"); put("scope_id", id); put("reason", "user_ignored"); put("created_at", at.toString()) }, android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE)
-      else database.writableDatabase.delete("analytics_exclusions", "scope_type = ? and scope_id = ? and reason = ?", arrayOf("expected_movement", id, "user_ignored"))
+      if (ignored) database.writableDatabase.insertWithOnConflict("analytics_exclusions", null, android.content.ContentValues().apply { put("id", java.util.UUID.randomUUID().toString()); put("scope_type", "expected_movement"); put("scope_id", id); put("reason", AnalyticsExclusionReason.USER_IGNORED.value); put("created_at", at.toString()) }, android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE)
+      else database.writableDatabase.delete("analytics_exclusions", "scope_type = ? and scope_id = ? and reason = ?", arrayOf("expected_movement", id, AnalyticsExclusionReason.USER_IGNORED.value))
     },
     ResolveExpectedMovementService(expected), materializeShare, plannedShares, acknowledgeOccurrence, projection,
     consistencyBoundary, AndroidExpectedPostingIdempotencyRepository(database),
@@ -71,7 +71,7 @@ internal class AndroidExpectedPostingApplication private constructor(context: Co
             put("id", java.util.UUID.randomUUID().toString())
             put("scope_type", "movement")
             put("scope_id", id)
-            put("reason", "user_ignored")
+            put("reason", AnalyticsExclusionReason.USER_IGNORED.value)
             put("created_at", at.toString())
           },
           android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE,
@@ -80,7 +80,7 @@ internal class AndroidExpectedPostingApplication private constructor(context: Co
         database.writableDatabase.delete(
           "analytics_exclusions",
           "scope_type = ? and scope_id = ? and reason = ?",
-          arrayOf("movement", id, "user_ignored"),
+          arrayOf("movement", id, AnalyticsExclusionReason.USER_IGNORED.value),
         )
       }
     },
