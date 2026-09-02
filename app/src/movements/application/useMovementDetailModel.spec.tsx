@@ -231,6 +231,44 @@ describe('useMovementDetailModel', () => {
     expect(input.ports.scheduling.schedulingGetMovement).not.toHaveBeenCalled();
   });
 
+  it('does not expose or execute duplicate while sharing is loading, then exposes it when loaded', async () => {
+    const sharingRequest = deferred<null>();
+    const onDuplicateMovement = vi.fn();
+    const input = makeInput({ onDuplicateMovement });
+    input.ports.sharing.sharingGetMovementDetails.mockReturnValue(sharingRequest.promise);
+    const { result } = renderHook(() => useMovementDetailModel(input));
+
+    act(() => result.current.actions.openPostedMovementDetail('tx-1'));
+    expect(result.current.required.data.overflowActions).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'duplicate-movement' }),
+    ]));
+    act(() => result.current.provided.commands.runOverflowAction({
+      id: 'duplicate-movement', source: 'posted', movementId: 'tx-1', label: 'Duplicate', destructive: false,
+    }));
+    expect(onDuplicateMovement).not.toHaveBeenCalled();
+
+    sharingRequest.resolve(null);
+    await waitFor(() => expect(result.current.required.data.overflowActions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'duplicate-movement' }),
+    ])));
+  });
+
+  it('keeps duplicate unavailable after sharing error without changing the original detail', async () => {
+    const onDuplicateMovement = vi.fn();
+    const input = makeInput({ onDuplicateMovement });
+    input.ports.sharing.sharingGetMovementDetails.mockRejectedValue(new Error('sharing failed'));
+    const { result } = renderHook(() => useMovementDetailModel(input));
+
+    act(() => result.current.actions.openPostedMovementDetail('tx-1'));
+    await waitFor(() => expect(result.current.required.data.movement).toMatchObject({
+      id: 'tx-1', duplicateReadiness: 'unavailable',
+    }));
+    expect(result.current.required.data.overflowActions).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'duplicate-movement' }),
+    ]));
+    expect(result.current.state.selection).toEqual({ source: 'posted', id: 'tx-1' });
+  });
+
   it('resolves a recurring expected series by its origin id even when the monthly list is empty', async () => {
     const input = makeInput({
       postedItems: [],

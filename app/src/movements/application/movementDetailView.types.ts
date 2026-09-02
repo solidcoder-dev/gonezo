@@ -56,6 +56,8 @@ export type SharingDetailState =
   | { phase: 'loaded'; value: SharingViewModel | null }
   | { phase: 'error'; message: string };
 
+export type DuplicateReadiness = 'ready' | 'loading' | 'unavailable';
+
 export type ExpectedRecurringSeriesDetailViewModel = {
   id: string;
   status: 'active' | 'deactivated' | 'completed';
@@ -76,6 +78,7 @@ export type ExpectedMovementSeriesViewModel =
 
 export type MovementDetailOverflowAction =
   | { id: 'void-posted'; transactionId: string; label: 'Void movement'; destructive: true }
+  | { id: 'duplicate-movement'; source: MovementDetailSelection['source']; movementId: string; label: 'Duplicate'; destructive: false }
   | { id: 'edit-expected'; expectedMovementId: string; label: 'Edit expected'; destructive: false }
   | { id: 'dismiss-expected'; expectedMovementId: string; label: 'Delete expected'; destructive: true }
   | { id: 'stop-recurring-series'; recurringMovementId: string; label: 'Stop future movements'; destructive: true };
@@ -111,6 +114,7 @@ export type PostedMovementDetailViewModel = MovementDetailBaseViewModel & {
   canToggleIgnored: boolean;
   canVoid: boolean;
   sharing: SharingDetailState;
+  duplicateReadiness: DuplicateReadiness;
   postedAtLabel: string;
 };
 
@@ -144,6 +148,7 @@ export type ExpectedMovementDetailViewModel = MovementDetailBaseViewModel & {
   expectedAtLabel: string;
   originLabel: string;
   series: ExpectedMovementSeriesViewModel;
+  recurringSchedule?: ScheduledMovementView;
 };
 
 export type MovementDetailViewModel =

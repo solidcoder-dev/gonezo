@@ -143,6 +143,10 @@ export function listWebLedgerTransactions(
     description: tx.description,
     merchant: tx.merchant,
     linkedTransactionId: tx.linkedTransactionId,
+    targetAccountId: tx.targetAccountId,
+    destinationAmount: tx.destinationAmount,
+    destinationCurrency: tx.destinationCurrency,
+    exchangeRate: tx.exchangeRate,
     categoryId: tx.categoryId,
     items: tx.items.map((item) => ({ ...item })),
   }));

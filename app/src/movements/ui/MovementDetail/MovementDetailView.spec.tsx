@@ -41,6 +41,7 @@ function postedMovement(overrides: Partial<Extract<MovementDetailViewModel, { so
     canToggleIgnored: true,
     canVoid: true,
     sharing: { phase: 'loaded', value: null },
+    duplicateReadiness: 'ready',
     postedAtLabel: '12 Jul 2026 13:42',
     ...overrides,
   };

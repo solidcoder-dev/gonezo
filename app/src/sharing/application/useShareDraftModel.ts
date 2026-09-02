@@ -25,6 +25,20 @@ export function useShareDraftModel(sharing: SharingGatewayPort) {
     setEditorOpen(false);
   }
 
+  function prefill(nextDraft?: ShareDraft) {
+    if (!nextDraft) {
+      setSummary(undefined);
+      setDraft(undefined);
+      return;
+    }
+    setDraft(nextDraft);
+    setSummary({
+      peopleCount: Math.max(0, nextDraft.people.length - 1),
+      total: nextDraft.people.reduce((sum, person) => (Number(sum) + Number(person.amount)).toFixed(2), '0.00'),
+    });
+    setEditorOpen(false);
+  }
+
   function removeShareDraft() {
     setSummary(undefined);
     setDraft(undefined);
@@ -43,6 +57,7 @@ export function useShareDraftModel(sharing: SharingGatewayPort) {
       openEditor: () => setEditorOpen(true),
       closeEditor: () => setEditorOpen(false),
       applyShareDraft,
+      prefill,
       removeShareDraft,
     },
   };

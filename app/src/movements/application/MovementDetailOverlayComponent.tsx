@@ -9,6 +9,7 @@ import type {
   MovementDetailTagOption,
 } from './movementDetailView.types';
 import type { ExpectedMovementView } from './movementsView.types';
+import type { MovementDetailViewModel } from './movementDetailView.types';
 
 type MovementDetailOverlayComponentProps = {
   required: {
@@ -31,6 +32,7 @@ type MovementDetailOverlayComponentProps = {
       onVoided?: (transactionId: string) => void;
       onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
       onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
+      onDuplicateMovement?: (movement: MovementDetailViewModel) => void;
     };
   };
 };
@@ -121,6 +123,7 @@ export function MovementDetailOverlayComponent({ required, provided }: MovementD
     confirm: provided.commands.confirm ?? ((message) => window.confirm(message)),
     onEditExpectedMovement: provided.events.onEditExpectedMovement,
     onPostExpectedMovement: provided.events.onPostExpectedMovement,
+    onDuplicateMovement: provided.events.onDuplicateMovement,
   });
 
   useEffect(() => {

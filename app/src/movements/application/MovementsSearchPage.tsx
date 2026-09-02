@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import type { LedgerAccountItem } from '../../ledger/application/ledger.port';
 import type { MovementsSearchPagePort } from './movementsSearch.port';
 import type { ExpectedMovementView } from './movementsView.types';
+import type { MovementDetailViewModel } from './movementDetailView.types';
 import { useMovementsSearchModel } from './useMovementsSearchModel';
 import { MovementsSearchFilters } from '../ui/MovementsSearch/MovementsSearchFilters';
 import { MovementsSearchResults } from '../ui/MovementsSearch/MovementsSearchResults';
@@ -17,6 +18,7 @@ type MovementsSearchPageProps = {
     events: {
       onPostExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => void;
       onEditExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => void;
+      onDuplicateMovement?: (movement: MovementDetailViewModel) => void;
     };
   };
 };

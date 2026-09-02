@@ -20,10 +20,20 @@ final class MovementDetailPluginHandler {
       String movementId = required(call.getString("movementId"), "movementId");
       JSObject result = new JSObject();
       if ("posted".equals(source)) {
-        AndroidLedgerCore.LedgerTransactionView movement = AndroidLedgerCore.getInstance(context).getTransaction(movementId);
+        AndroidLedgerCore ledgerCore = AndroidLedgerCore.getInstance(context);
+        AndroidLedgerCore.LedgerTransactionView movement = ledgerCore.getTransaction(movementId);
         if (movement == null) { result.put("found", false); call.resolve(result); return; }
+        AndroidLedgerCore.LedgerTransactionView linked = movement.linkedTransactionId() == null
+          ? null : ledgerCore.getTransaction(movement.linkedTransactionId());
+        JSObject projected = new LedgerTransactionsQueryHandler(context).projectDirect(movement);
+        if (linked != null && ("transfer_out".equals(movement.type()) || "transfer_in".equals(movement.type()))) {
+          projected.put("targetAccountId", linked.accountId());
+          projected.put("destinationAmount", linked.amount());
+          projected.put("destinationCurrency", linked.currency());
+          projected.put("exchangeRate", movement.currency().equals(linked.currency()) ? "1" : null);
+        }
         result.put("found", true).put("detail", new JSObject().put("source", "posted")
-          .put("movement", new LedgerTransactionsQueryHandler(context).projectDirect(movement)));
+          .put("movement", projected));
       } else if ("scheduled".equals(source)) {
         AndroidRecurringCore.RecurringMovementView movement = AndroidRecurringCore.getInstance(context).getRecurringMovement(movementId);
         if (movement == null) { result.put("found", false); call.resolve(result); return; }

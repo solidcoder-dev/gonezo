@@ -28,6 +28,11 @@ export type TransactionHistoryItemView = {
   merchant?: string;
   amount: string;
   currency: string;
+  linkedTransactionId?: string;
+  targetAccountId?: string;
+  destinationAmount?: string;
+  destinationCurrency?: string;
+  exchangeRate?: string;
   type: TransactionHistoryItemTypeView;
   status: TransactionHistoryItemStatusView;
   categoryId?: string;

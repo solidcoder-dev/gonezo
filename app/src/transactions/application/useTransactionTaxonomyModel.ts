@@ -100,6 +100,8 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
     setTagQuery('');
   }
 
+  function prefill(tagNames: string[]) { setSelectedTagNames([...tagNames]); setTagQuery(''); }
+
   async function refreshLookups() {
     const taxonomyCategories = await categorySuggestions.listCategories({ includeArchived: false });
     setCategories(taxonomyCategories.items);
@@ -232,6 +234,7 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
     },
     actions: {
       resetInputs,
+      prefill,
       refreshLookups,
       refreshCategories,
       setTransactionCategoryId,

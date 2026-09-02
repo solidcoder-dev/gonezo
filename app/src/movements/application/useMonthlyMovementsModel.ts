@@ -7,7 +7,7 @@ import type { SchedulingGatewayPort } from '../../scheduling/application/schedul
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
 import type { MovementDetailQueryPort } from './movements.port';
-import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
+import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types'; import type { MovementDetailViewModel } from './movementDetailView.types';
 import { useMovementDetailModel } from './useMovementDetailModel';
 import { useMonthlyMovementMutationsModel } from './useMonthlyMovementMutationsModel';
 import { useMonthlyMovementNavigationModel } from './useMonthlyMovementNavigationModel';
@@ -41,9 +41,8 @@ type UseMonthlyMovementsModelInput = {
   timers: MonthlyMovementsModelTimers;
   onVoided?: (transactionId: string) => void;
   onExpectedDismissed?: () => void;
-  onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
-  onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
-  onError?: (error: { message: string }) => void;
+  onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void; onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
+  onDuplicateMovement?: (movement: MovementDetailViewModel) => void; onError?: (error: { message: string }) => void;
   confirm?: (message: string) => boolean;
   postedItems?: LedgerTransactionListItem[];
   scheduledItems?: ScheduledMovementView[];
@@ -60,8 +59,8 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     timers,
     onVoided,
     onExpectedDismissed,
-    onPostExpectedMovement,
-    onEditExpectedMovement,
+    onPostExpectedMovement, onEditExpectedMovement,
+    onDuplicateMovement,
     onError,
     confirm,
   } = input;
@@ -163,6 +162,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     confirm: confirmMovementAction,
     onEditExpectedMovement,
     onPostExpectedMovement,
+    onDuplicateMovement,
     postedItems: taxonomyModel.state.historyItems,
     scheduledItems: overviewModel.state.scheduledItems,
     expectedItems: overviewModel.state.expectedItems,

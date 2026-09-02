@@ -9,6 +9,7 @@ import { useMonthlyMovementsModel } from './useMonthlyMovementsModel';
 import type { TransactionsPort } from '../../transactions/application/transactions.port';
 import type { MovementDetailQueryPort } from './movements.port';
 import type { ExpectedMovementView } from './movementsView.types';
+import type { MovementDetailViewModel } from './movementDetailView.types';
 
 const BROWSER_CLOCK = {
   now: () => new Date(),
@@ -37,6 +38,7 @@ export type MonthlyMovementsComponentProps = {
       onExpectedDismissed?: () => void;
       onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
       onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
+      onDuplicateMovement?: (movement: MovementDetailViewModel) => void;
       onError?: (error: { message: string }) => void;
     };
   };
@@ -64,6 +66,7 @@ export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMo
     onExpectedDismissed: provided.events?.onExpectedDismissed,
     onPostExpectedMovement: provided.events?.onPostExpectedMovement,
     onEditExpectedMovement: provided.events?.onEditExpectedMovement,
+    onDuplicateMovement: provided.events?.onDuplicateMovement,
     onError: provided.events?.onError,
     confirm: (message) => window.confirm(message),
   });

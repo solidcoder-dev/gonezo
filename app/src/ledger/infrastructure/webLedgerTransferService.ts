@@ -53,6 +53,10 @@ export class WebLedgerTransferService {
       occurredAt: input.occurredAt,
       description: input.description,
       linkedTransactionId: transferInId,
+      targetAccountId: toAccount.id,
+      destinationAmount: input.amount,
+      destinationCurrency: currency,
+      exchangeRate: '1',
       items: [],
     });
     this.state.ledgerTransactions.push({
@@ -65,6 +69,10 @@ export class WebLedgerTransferService {
       occurredAt: input.occurredAt,
       description: input.description,
       linkedTransactionId: transferOutId,
+      targetAccountId: fromAccount.id,
+      destinationAmount: input.amount,
+      destinationCurrency: currency,
+      exchangeRate: '1',
       items: [],
     });
 
@@ -132,6 +140,10 @@ export class WebLedgerTransferService {
       occurredAt: input.occurredAt,
       description: input.description,
       linkedTransactionId: transferInId,
+      targetAccountId: toAccount.id,
+      destinationAmount: normalizedDestinationAmount.toFixed(2),
+      destinationCurrency,
+      exchangeRate: resolvedExchangeRate.toString(),
       items: [],
     });
     this.state.ledgerTransactions.push({
@@ -144,6 +156,10 @@ export class WebLedgerTransferService {
       occurredAt: input.occurredAt,
       description: input.description,
       linkedTransactionId: transferOutId,
+      targetAccountId: fromAccount.id,
+      destinationAmount: normalizedSourceAmount.toFixed(2),
+      destinationCurrency: sourceCurrency,
+      exchangeRate: resolvedExchangeRate.toString(),
       items: [],
     });
 

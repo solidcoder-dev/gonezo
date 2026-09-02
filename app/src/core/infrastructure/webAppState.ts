@@ -33,6 +33,10 @@ export type WebLedgerTransaction = {
   merchant?: string;
   categoryId?: string;
   linkedTransactionId?: string;
+  targetAccountId?: string;
+  destinationAmount?: string;
+  destinationCurrency?: string;
+  exchangeRate?: string;
   items: WebLedgerTransactionItem[];
 };
 

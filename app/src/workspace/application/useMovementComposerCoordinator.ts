@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   expectedMovementToComposerPrefill,
   postExpectedMovementToComposerPrefill,
   scheduledMovementToComposerPrefill,
 } from '../../account/application/movementComposerPrefill';
 import type { ExpectedMovementView, ScheduledMovementView } from '../../movements/application/movementsView.types';
+import type { MovementDetailViewModel } from '../../movements/application/movementDetailView.types';
+import { createDraftFromMovementDetail } from '../../movements/application/movementDuplicateDraft';
 import type { TransactionEntryPrefillRequest } from '../../transactions/application/TransactionEntryComponent.contract';
 import type { MovementEntryDraft } from '../../transactions/application/MovementVoiceEntry/MovementEntryDraftInterpreterPort';
 import { mapMovementEntryDraftToTransactionEntryPrefill } from '../../transactions/application/movementEntryPrefill';
@@ -20,6 +22,7 @@ export function useMovementComposerCoordinator({ selectedAccountId }: MovementCo
   const [movementEntryAccountName, setMovementEntryAccountName] = useState<string | null>(null);
   const [movementEntryType, setMovementEntryType] = useState<TransactionType | undefined>();
   const [movementEntryOpenSignal, setMovementEntryOpenSignal] = useState(0);
+  const duplicateRequestId = useRef(0);
 
   function editExpectedMovement(movement: ExpectedMovementView, categoryName?: string) {
     setMovementEntryAccountId(movement.accountId);
@@ -37,6 +40,21 @@ export function useMovementComposerCoordinator({ selectedAccountId }: MovementCo
     setMovementEntryAccountId(movement.accountId);
     setMovementEntryAccountName(null);
     setTransactionEntryPrefill(postExpectedMovementToComposerPrefill(movement, categoryName));
+  }
+
+  function duplicateMovement(movement: MovementDetailViewModel) {
+    const accountId = movement.source === 'posted'
+      ? movement.raw.accountId
+      : movement.source === 'scheduled'
+        ? movement.raw.sourceAccountId
+        : movement.raw.accountId;
+    setMovementEntryAccountId(accountId);
+    setMovementEntryAccountName(null);
+    setTransactionEntryPrefill({
+      ...createDraftFromMovementDetail(movement),
+      requestId: ++duplicateRequestId.current,
+    });
+    setMovementEntryOpenSignal((previous) => previous + 1);
   }
 
   function clearMovementEntryAccount() {
@@ -93,6 +111,7 @@ export function useMovementComposerCoordinator({ selectedAccountId }: MovementCo
       editExpectedMovement,
       editScheduledMovement,
       postExpectedMovement,
+      duplicateMovement,
       resetTransactionEntryPrefill: () => setTransactionEntryPrefill(undefined),
     },
   };

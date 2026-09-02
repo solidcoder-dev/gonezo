@@ -5,9 +5,11 @@ import type {
   RecurrenceFrequency,
   RecurrenceMonthlyPattern,
 } from '../../scheduling/application/scheduling.port';
+import type { ShareDraft } from '../../sharing/domain/shareDraft';
 
 export type TransactionEntryPrefillRequest = {
   requestId: number;
+  initialIntent?: 'now' | 'expected' | 'scheduled';
   editedExpectedMovementId?: string;
   editedScheduledMovementId?: string;
   postExpectedMovementId?: string;
@@ -16,8 +18,10 @@ export type TransactionEntryPrefillRequest = {
   date: string;
   note?: string;
   categoryId?: string;
+  tagNames?: string[];
+  shareDraft?: ShareDraft;
   movementIgnored?: boolean;
-  splitItems?: Array<{ id: string; name: string; amount: string }>;
+  splitItems?: Array<{ id?: string; name: string; amount: string }>;
   transferTargetAccountId?: string;
   transferAmountIn?: string;
   transferFxRate?: string;

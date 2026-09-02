@@ -260,6 +260,10 @@ export type LedgerTransactionListItem = {
   description?: string;
   merchant?: string;
   linkedTransactionId?: string;
+  targetAccountId?: string;
+  destinationAmount?: string;
+  destinationCurrency?: string;
+  exchangeRate?: string;
   categoryId?: string;
   category?: {
     id: string;

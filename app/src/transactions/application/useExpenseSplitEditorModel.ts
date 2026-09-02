@@ -87,13 +87,13 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setEditingExpenseItemId('');
   }
 
-  function prefill(items: Array<{ id: string; name: string; amount: string }>) {
+  function prefill(items: Array<{ id?: string; name: string; amount: string }>) {
     setExpenseDetailed(items.length > 0);
     setSplitApplied(items.length > 0);
     setSplitEditorOpen(false);
     setSplitEditorSnapshot(null);
     setSplitDraftMode('items');
-    setManualExpenseItems(cloneSplitItems(items, nextId));
+    setManualExpenseItems(cloneSplitItems(items.map(({ name, amount }) => ({ id: '', name, amount })), nextId));
     setPartsExpenseItems([]);
     setPartsBaseAmount('');
     setEditingExpenseItemId('');

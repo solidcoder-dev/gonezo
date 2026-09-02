@@ -79,7 +79,9 @@ export function useTransactionSchedulingModel(input: UseTransactionSchedulingMod
     const isScheduledEdit = Boolean(prefillRequest.editedScheduledMovementId);
     const isExpectedEdit = Boolean(prefillRequest.editedExpectedMovementId);
     const isPostExpected = Boolean(prefillRequest.postExpectedMovementId);
-    setSchedulingMode(prefillRequest.schedulingMode ?? (isScheduledEdit ? 'scheduled' : 'now'));
+    setSchedulingMode(prefillRequest.initialIntent === 'scheduled'
+      ? 'scheduled'
+      : prefillRequest.schedulingMode ?? (isScheduledEdit ? 'scheduled' : 'now'));
     setSchedulingKind(prefillRequest.schedulingKind ?? 'one_shot');
     if (prefillRequest.recurrenceFrequency) {
       setRecurrenceFrequency(prefillRequest.recurrenceFrequency);
@@ -111,7 +113,8 @@ export function useTransactionSchedulingModel(input: UseTransactionSchedulingMod
     if (prefillRequest.recurrenceEndCount != null) {
       setRecurrenceEndCount(prefillRequest.recurrenceEndCount);
     }
-    setExpectedMovement(isExpectedEdit && !isPostExpected && !isScheduledEdit);
+    setExpectedMovement(prefillRequest.initialIntent === 'expected'
+      || (isExpectedEdit && !isPostExpected && !isScheduledEdit));
     setEditedExpectedMovementId(prefillRequest.postExpectedMovementId ? '' : (prefillRequest.editedExpectedMovementId ?? ''));
     setEditedScheduledMovementId(prefillRequest.editedScheduledMovementId ?? '');
     setPostExpectedMovementId(prefillRequest.postExpectedMovementId ?? '');

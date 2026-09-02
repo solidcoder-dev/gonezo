@@ -38,33 +38,33 @@ function actionIds(movement: MovementDetailViewModel) {
 
 describe('movement detail action projection', () => {
   it.each([
-    ['posted + posted', true, ['void-posted']], ['posted + voided', false, []],
+    ['posted + posted', true, ['void-posted', 'duplicate-movement']], ['posted + voided', false, ['duplicate-movement']],
   ])('%s', (_, canVoid, expectedActions) => {
     const movement = { source: 'posted', id: 'tx-1', canVoid } as MovementDetailViewModel;
     expect(actionIds(movement)).toEqual(expectedActions);
   });
 
   it.each([
-    ['active', ['stop-recurring-series']], ['inactive', []], ['completed', []],
+    ['active', ['stop-recurring-series', 'duplicate-movement']], ['inactive', ['duplicate-movement']], ['completed', ['duplicate-movement']],
   ])('scheduled + %s', (status, expectedActions) => {
     const movement = { source: 'scheduled', id: 'series-1', canStopFutureMovements: status === 'active' } as MovementDetailViewModel;
     expect(actionIds(movement)).toEqual(expectedActions);
   });
 
-  it('expected manual pending has edit and dismiss, while resolved and dismissed have none', () => {
-    expect(actionIds(expectedDetail(expected('pending')))).toEqual(['edit-expected', 'dismiss-expected']);
-    expect(actionIds(expectedDetail(expected('resolved')))).toEqual([]);
-    expect(actionIds(expectedDetail(expected('dismissed')))).toEqual([]);
+  it('expected manual movements can be duplicated regardless of lifecycle', () => {
+    expect(actionIds(expectedDetail(expected('pending')))).toEqual(['edit-expected', 'dismiss-expected', 'duplicate-movement']);
+    expect(actionIds(expectedDetail(expected('resolved')))).toEqual(['duplicate-movement']);
+    expect(actionIds(expectedDetail(expected('dismissed')))).toEqual(['duplicate-movement']);
   });
 
   it('expected recurring pending adds stop only when its series is active', () => {
     const item = expected('pending', { originOccurrenceId: 'occ-1', originRecurringMovementId: 'series-1' });
-    expect(actionIds(expectedDetail(item, scheduled('active')))).toEqual(['edit-expected', 'dismiss-expected', 'stop-recurring-series']);
-    expect(actionIds(expectedDetail(item, scheduled('deactivated')))).toEqual(['edit-expected', 'dismiss-expected']);
+    expect(actionIds(expectedDetail(item, scheduled('active')))).toEqual(['edit-expected', 'dismiss-expected', 'stop-recurring-series', 'duplicate-movement']);
+    expect(actionIds(expectedDetail(item, scheduled('deactivated')))).toEqual(['edit-expected', 'dismiss-expected', 'duplicate-movement']);
   });
 
   it('expected recurring_unlinked has edit and dismiss without stop', () => {
-    expect(actionIds(expectedDetail(expected('pending', { originOccurrenceId: 'occ-1' })))).toEqual(['edit-expected', 'dismiss-expected']);
+    expect(actionIds(expectedDetail(expected('pending', { originOccurrenceId: 'occ-1' })))).toEqual(['edit-expected', 'dismiss-expected', 'duplicate-movement']);
   });
 
   it('keeps expected and recurring identifiers on their own actions', () => {
@@ -76,5 +76,23 @@ describe('movement detail action projection', () => {
     expect(projectedActions.find((action) => action.id === 'stop-recurring-series')).toMatchObject({ recurringMovementId: 'series-1' });
     expect(projectedActions.find((action) => action.id === 'dismiss-expected')).not.toMatchObject({ expectedMovementId: 'series-1' });
     expect(projectedActions.find((action) => action.id === 'stop-recurring-series')).not.toMatchObject({ recurringMovementId: 'expected-1' });
+  });
+
+  it('duplicate is never destructive and only carries source identity', () => {
+    const action = buildMovementDetailActions({ source: 'posted', id: 'tx-1', canVoid: false } as MovementDetailViewModel)
+      .find((candidate) => candidate.id === 'duplicate-movement');
+    expect(action).toEqual({ id: 'duplicate-movement', source: 'posted', movementId: 'tx-1', label: 'Duplicate', destructive: false });
+    expect(action).not.toHaveProperty('raw');
+  });
+
+  it.each([
+    ['loading', false],
+    ['unavailable', false],
+    ['ready', true],
+  ] as const)('only exposes duplicate when posted detail is %s', (duplicateReadiness, available) => {
+    const action = buildMovementDetailActions({
+      source: 'posted', id: 'tx-1', canVoid: false, duplicateReadiness,
+    } as MovementDetailViewModel).find((candidate) => candidate.id === 'duplicate-movement');
+    expect(action !== undefined).toBe(available);
   });
 });

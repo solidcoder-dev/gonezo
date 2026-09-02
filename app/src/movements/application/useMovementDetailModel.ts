@@ -28,6 +28,7 @@ import type {
   SharingDetailState,
   SharingViewModel,
   MovementDetailOverflowAction,
+  MovementDetailViewModel,
 } from './movementDetailView.types';
 import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
 
@@ -53,6 +54,7 @@ type MovementDetailModelInput = {
   confirm(message: string): boolean;
   onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
   onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
+  onDuplicateMovement?: (movement: MovementDetailViewModel) => void;
 };
 
 type MovementDetailModelInputWithSeed = MovementDetailModelInput & {
@@ -121,6 +123,7 @@ export function useMovementDetailModel(input: MovementDetailModelInputWithSeed) 
     confirm,
     onEditExpectedMovement,
     onPostExpectedMovement,
+    onDuplicateMovement,
   } = input;
 
   const [selection, setSelection] = useState<MovementDetailSelection | null>(null);
@@ -537,6 +540,21 @@ export function useMovementDetailModel(input: MovementDetailModelInputWithSeed) 
         return;
       }
       onEditExpectedMovement(movement.raw, movement.category?.name);
+      closeDetail();
+      return;
+    }
+    if (action.id === 'duplicate-movement') {
+      if (!movement) {
+        return;
+      }
+      if (movement.source === 'posted' && movement.duplicateReadiness !== 'ready') {
+        return;
+      }
+      if (!onDuplicateMovement) {
+        reportError(new Error('Movement duplication is not available'));
+        return;
+      }
+      onDuplicateMovement(movement);
       closeDetail();
     }
   }

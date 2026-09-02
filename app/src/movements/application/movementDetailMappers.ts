@@ -14,6 +14,7 @@ import type {
   MovementDetailViewModel,
   SharingDetailState,
   SharingViewModel,
+  DuplicateReadiness,
   ExpectedMovementSeriesViewModel,
   ExpectedSeriesState,
 } from './movementDetailView.types';
@@ -217,6 +218,17 @@ function mapPostedMovement(
   sharing: SharingDetailState,
 ): MovementDetailViewModel {
   const financialType = movementDetailFinancialType(transaction.type);
+  const transferDataComplete = financialType !== 'transfer'
+    || Boolean(transaction.targetAccountId && transaction.destinationAmount && transaction.destinationCurrency);
+  const duplicateReadiness: DuplicateReadiness = !transferDataComplete
+    ? 'loading'
+    : financialType !== 'expense'
+      ? 'ready'
+      : sharing.phase === 'loaded'
+      ? 'ready'
+      : sharing.phase === 'error'
+        ? 'unavailable'
+        : 'loading';
   return {
     id: transaction.id,
     source: 'posted',
@@ -248,6 +260,7 @@ function mapPostedMovement(
     canToggleIgnored: financialType !== 'transfer',
     canVoid: transaction.status === 'posted',
     sharing,
+    duplicateReadiness,
     postedAtLabel: formatIsoDateTime(transaction.occurredAt),
   };
 }
@@ -339,6 +352,7 @@ function mapExpectedMovement(
     expectedAtLabel: formatIsoDateTime(movement.expectedAt),
     originLabel: expectedOriginLabel(movement),
     series: expectedSeriesViewModel(movement, seriesState),
+    recurringSchedule: seriesState.phase === 'loaded' ? seriesState.series ?? undefined : undefined,
   };
 }
 

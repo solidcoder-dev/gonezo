@@ -105,6 +105,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     createMovementForDraft,
     editExpectedMovement,
     postExpectedMovement,
+    duplicateMovement,
     resetTransactionEntryPrefill,
   } = movementComposer.actions;
   const currentPage = resolveWorkspaceRoutePage(location.pathname);
@@ -291,6 +292,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           },
           onPostExpectedMovement: postExpectedMovement,
           onEditExpectedMovement: editExpectedMovement,
+          onDuplicateMovement: duplicateMovement,
         },
       }}
     />
@@ -306,6 +308,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         events: {
           onPostExpectedMovement: postExpectedMovement,
           onEditExpectedMovement: editExpectedMovement,
+          onDuplicateMovement: duplicateMovement,
         },
       }}
     />

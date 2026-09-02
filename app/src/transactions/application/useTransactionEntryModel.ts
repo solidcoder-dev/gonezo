@@ -62,7 +62,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     nextId: idGenerator.nextId,
     setFieldErrors,
   });
-  const schedulingModel = useTransactionSchedulingModel({
+  const { prefill: prefillShareDraft } = shareDraftModel.actions; const schedulingModel = useTransactionSchedulingModel({
     clock,
     initialToday,
     setFieldErrors,
@@ -158,7 +158,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     resetInputs: resetTaxonomyInputs,
     refreshLookups: refreshTaxonomyLookups,
     refreshCategories: refreshTaxonomyCategories,
-    setTransactionCategoryId,
+    setTransactionCategoryId, prefill: prefillTaxonomy,
     setTransactionTagInput,
     selectTag,
     createTag,
@@ -219,11 +219,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     refreshTaxonomyLookups,
     reportError,
     resetComposerState,
-    setTransactionCategoryId,
+    setTransactionCategoryId, prefillTaxonomy,
     setTransferAmountIn,
     setTransferFxMode,
     setTransferFxRate,
-    setTransferToAccountId,
+    setTransferToAccountId, prefillShareDraft,
   });
   modelEffectsRef.current = {
     prefillExpenseSplit,
@@ -233,11 +233,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     refreshTaxonomyLookups,
     reportError,
     resetComposerState,
-    setTransactionCategoryId,
+    setTransactionCategoryId, prefillTaxonomy,
     setTransferAmountIn,
     setTransferFxMode,
     setTransferFxRate,
-    setTransferToAccountId,
+    setTransferToAccountId, prefillShareDraft,
   };
 
   useEffect(() => {
@@ -284,6 +284,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setTransactionDate(currentPrefillRequest.date);
     setTransactionNote(currentPrefillRequest.note ?? '');
     modelEffectsRef.current.setTransactionCategoryId(currentPrefillRequest.categoryId ?? '');
+    modelEffectsRef.current.prefillTaxonomy(currentPrefillRequest.tagNames ?? []); modelEffectsRef.current.prefillShareDraft(currentPrefillRequest.shareDraft);
     setMovementIgnored((currentPrefillRequest.mode === 'expense' || currentPrefillRequest.mode === 'income') && currentPrefillRequest.movementIgnored === true);
     if (currentPrefillRequest.mode === 'transfer') {
       modelEffectsRef.current.setTransferToAccountId(currentPrefillRequest.transferTargetAccountId ?? '');
