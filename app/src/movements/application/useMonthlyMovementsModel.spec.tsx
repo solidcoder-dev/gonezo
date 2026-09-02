@@ -518,7 +518,7 @@ describe('useMonthlyMovementsModel', () => {
     });
     await waitFor(() => expect(result.current.required.detail.data.movement?.id).toBe('tx-1'));
     act(() => {
-      result.current.provided.detail.commands.runOverflowAction('void-posted');
+      result.current.provided.detail.commands.runOverflowAction({ id: 'void-posted', transactionId: 'tx-1', label: 'Void movement', destructive: true });
     });
 
     await waitFor(() => expect(result.current.required.state.pendingVoidTransactionId).toBe('tx-1'));
@@ -539,7 +539,7 @@ describe('useMonthlyMovementsModel', () => {
     });
     await waitFor(() => expect(result.current.required.detail.data.movement?.id).toBe('tx-1'));
     act(() => {
-      result.current.provided.detail.commands.runOverflowAction('void-posted');
+      result.current.provided.detail.commands.runOverflowAction({ id: 'void-posted', transactionId: 'tx-1', label: 'Void movement', destructive: true });
     });
     act(() => {
       handlers[1]();
@@ -822,7 +822,7 @@ describe('useMonthlyMovementsModel', () => {
       splitItems: [{ id: 'item-1', name: 'Lunch', amount: '12.00' }],
     }));
     act(() => {
-      result.current.provided.detail.commands.runOverflowAction('edit-expected');
+      result.current.provided.detail.commands.runOverflowAction({ id: 'edit-expected', expectedMovementId: 'exp-1', label: 'Edit expected', destructive: false });
     });
     expect(onEditExpectedMovement).toHaveBeenCalledWith(expect.objectContaining({ id: 'exp-1' }), 'Food');
 
@@ -883,7 +883,7 @@ describe('useMonthlyMovementsModel', () => {
       result.current.provided.commands.openScheduledMovementDetail('sch-1');
     });
     await act(async () => {
-      result.current.provided.detail.commands.runOverflowAction('stop-recurring-series');
+      result.current.provided.detail.commands.runOverflowAction({ id: 'stop-recurring-series', recurringMovementId: 'sch-1', label: 'Stop future movements', destructive: true });
     });
     expect(confirm).toHaveBeenCalled();
     expect(ports.scheduling.schedulingDeactivateMovement).toHaveBeenCalledWith({ recurringMovementId: 'sch-1' });

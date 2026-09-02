@@ -85,7 +85,7 @@ function scheduledMovement(overrides: Partial<Extract<MovementDetailViewModel, {
     lifecycleChip: 'Scheduled',
     canEditCategory: true,
     canEditTags: true,
-    canDeactivate: true,
+    canStopFutureMovements: true,
     nextDueLabel: '20 Jul 2026',
     scheduleSummary: 'Every month',
     originLabel: 'Recurring',
@@ -133,6 +133,7 @@ function expectedMovement(overrides: Partial<Extract<MovementDetailViewModel, { 
     canToggleIgnored: true,
     canEditExpected: true,
     canPostExpected: true,
+    canDismissExpected: true,
     expectedAtLabel: '12 Jul 2026 13:42',
     originLabel: 'Manual',
     series: { kind: 'manual' },
@@ -228,7 +229,7 @@ describe('MovementDetailView', () => {
       <MovementDetailView
         required={{
           state: { open: true, activeSheet: null, overflowOpen: true, categoryQuery: '', tagsQuery: '' },
-          data: { movement: postedMovement(), categories: [], draftTags: [], suggestedTags: [], overflowActions: [{ id: 'void-posted', label: 'Void movement', destructive: true }] },
+          data: { movement: postedMovement(), categories: [], draftTags: [], suggestedTags: [], overflowActions: [{ id: 'void-posted', transactionId: 'tx-1', label: 'Void movement', destructive: true }] },
           status: { savingCategory: false, savingTags: false, tagsDirty: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
         }}
         provided={{ commands: makeCommands() }}
@@ -242,7 +243,7 @@ describe('MovementDetailView', () => {
       <MovementDetailView
         required={{
           state: { open: true, activeSheet: null, overflowOpen: true, categoryQuery: '', tagsQuery: '' },
-          data: { movement: scheduledMovement(), categories: [], draftTags: [], suggestedTags: [], overflowActions: [{ id: 'stop-recurring-series', label: 'Stop future movements', destructive: true }] },
+          data: { movement: scheduledMovement(), categories: [], draftTags: [], suggestedTags: [], overflowActions: [{ id: 'stop-recurring-series', recurringMovementId: 'series-1', label: 'Stop future movements', destructive: true }] },
           status: { savingCategory: false, savingTags: false, tagsDirty: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
         }}
         provided={{ commands: makeCommands() }}
@@ -256,7 +257,7 @@ describe('MovementDetailView', () => {
       <MovementDetailView
         required={{
           state: { open: true, activeSheet: null, overflowOpen: true, categoryQuery: '', tagsQuery: '' },
-          data: { movement: expectedMovement(), categories: [], draftTags: [], suggestedTags: [], overflowActions: [{ id: 'edit-expected', label: 'Edit expected', destructive: false }] },
+          data: { movement: expectedMovement(), categories: [], draftTags: [], suggestedTags: [], overflowActions: [{ id: 'edit-expected', expectedMovementId: 'expected-1', label: 'Edit expected', destructive: false }] },
           status: { savingCategory: false, savingTags: false, tagsDirty: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
         }}
         provided={{ commands: makeCommands() }}

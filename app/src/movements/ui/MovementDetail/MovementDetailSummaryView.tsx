@@ -12,9 +12,10 @@ type MovementDetailSummaryViewProps = {
   overflowOpen: boolean;
   pendingVoid: boolean;
   deactivating: boolean;
+  dismissingExpected?: boolean;
   onGoBack: () => void;
   onToggleOverflow: () => void;
-  onRunOverflowAction: (actionId: MovementDetailOverflowAction['id']) => void;
+  onRunOverflowAction: (action: MovementDetailOverflowAction) => void;
   onOpenCategorySheet: () => void;
   onOpenTagsSheet: () => void;
   onOpenSharingSheet: () => void;
@@ -44,6 +45,7 @@ export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryView
     overflowOpen,
     pendingVoid,
     deactivating,
+    dismissingExpected = false,
     onGoBack,
     onToggleOverflow,
     onRunOverflowAction,
@@ -82,10 +84,10 @@ export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryView
               type="button"
               className="movement-detail-overflow-action"
               role="menuitem"
-              onClick={() => onRunOverflowAction(action.id)}
-              disabled={(action.id === 'void-posted' && pendingVoid) || (action.id === 'stop-recurring-series' && deactivating)}
+              onClick={() => onRunOverflowAction(action)}
+              disabled={(action.id === 'void-posted' && pendingVoid) || (action.id === 'stop-recurring-series' && deactivating) || (action.id === 'dismiss-expected' && dismissingExpected)}
             >
-              {(action.id === 'void-posted' && pendingVoid) || (action.id === 'stop-recurring-series' && deactivating)
+              {(action.id === 'void-posted' && pendingVoid) || (action.id === 'stop-recurring-series' && deactivating) || (action.id === 'dismiss-expected' && dismissingExpected)
                 ? 'Pending...'
                 : action.label}
             </button>

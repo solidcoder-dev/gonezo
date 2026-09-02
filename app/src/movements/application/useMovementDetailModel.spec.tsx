@@ -259,8 +259,9 @@ describe('useMovementDetailModel', () => {
       id: 'expected-id', series: { kind: 'recurring', series: { id: 'series-id', canStopFutureMovements: true } },
     });
     expect(result.current.required.data.overflowActions).toEqual(expect.arrayContaining([
-      { id: 'edit-expected', label: 'Edit expected', destructive: false },
-      { id: 'stop-recurring-series', label: 'Stop future movements', destructive: true },
+      { id: 'edit-expected', expectedMovementId: 'expected-id', label: 'Edit expected', destructive: false },
+      { id: 'dismiss-expected', expectedMovementId: 'expected-id', label: 'Delete expected', destructive: true },
+      { id: 'stop-recurring-series', recurringMovementId: 'series-id', label: 'Stop future movements', destructive: true },
     ]));
   });
 
@@ -281,9 +282,54 @@ describe('useMovementDetailModel', () => {
     expect(result.current.state.selection).toBeNull();
 
     act(() => result.current.actions.openExpectedMovementDetail('expected-1'));
-    act(() => result.current.provided.commands.runOverflowAction());
+    act(() => result.current.provided.commands.runOverflowAction({ id: 'edit-expected', expectedMovementId: 'expected-1', label: 'Edit expected', destructive: false }));
     expect(onEditExpectedMovement).toHaveBeenCalledWith(expect.objectContaining({ id: 'expected-1' }), 'Groceries');
     expect(result.current.state.selection).toBeNull();
+  });
+
+  it('dismisses only the selected expected movement, refreshes, and closes after success', async () => {
+    const refreshMovements = vi.fn().mockResolvedValue(undefined);
+    const input = makeInput({ postedItems: [], expectedItems: [expectedMovement({
+      id: 'expected-id',
+      origin: { kind: 'recurring', occurrenceId: 'occurrence-id', recurringMovementId: 'series-id' },
+    })], refreshMovements });
+    const { result } = renderHook(() => useMovementDetailModel(input));
+
+    act(() => result.current.actions.openExpectedMovementDetail('expected-id'));
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => {
+      result.current.provided.commands.runOverflowAction({ id: 'dismiss-expected', expectedMovementId: 'expected-id', label: 'Delete expected', destructive: true });
+    });
+
+    expect(input.confirm).toHaveBeenCalledWith(expect.stringContaining('Only this expected movement will be dismissed'));
+    expect(input.ports.expected.expectedDismissMovement).toHaveBeenCalledOnce();
+    expect(input.ports.expected.expectedDismissMovement).toHaveBeenCalledWith({
+      expectedMovementId: 'expected-id', dismissedAt: '2026-07-13T12:00:00.000Z',
+    });
+    expect(input.ports.scheduling.schedulingDeactivateMovement).not.toHaveBeenCalled();
+    expect(refreshMovements).toHaveBeenCalledOnce();
+    expect(result.current.state.selection).toBeNull();
+  });
+
+  it('prevents double dismiss execution and keeps the detail open after an error', async () => {
+    const dismissal = deferred<void>();
+    const input = makeInput({ postedItems: [], expectedItems: [expectedMovement()] });
+    input.ports.expected.expectedDismissMovement.mockReturnValue(dismissal.promise);
+    const { result } = renderHook(() => useMovementDetailModel(input));
+
+    act(() => result.current.actions.openExpectedMovementDetail('expected-1'));
+    act(() => {
+      const action = { id: 'dismiss-expected' as const, expectedMovementId: 'expected-1', label: 'Delete expected' as const, destructive: true as const };
+      result.current.provided.commands.runOverflowAction(action);
+      result.current.provided.commands.runOverflowAction(action);
+    });
+    expect(input.ports.expected.expectedDismissMovement).toHaveBeenCalledOnce();
+
+    dismissal.reject(new Error('dismiss failed'));
+    await act(async () => { await dismissal.promise.catch(() => undefined); });
+    expect(input.reportError).toHaveBeenCalledWith(expect.any(Error));
+    expect(result.current.state.selection).toEqual({ source: 'expected', id: 'expected-1' });
+    expect(result.current.required.status.dismissingExpected).toBe(false);
   });
 
   it('stops an expected movement series with the series id and closes after refresh', async () => {
@@ -316,7 +362,7 @@ describe('useMovementDetailModel', () => {
     act(() => result.current.actions.openExpectedMovementDetail('expected-1'));
     await act(async () => { await Promise.resolve(); });
     await act(async () => {
-      result.current.provided.commands.runOverflowAction('stop-recurring-series');
+      result.current.provided.commands.runOverflowAction({ id: 'stop-recurring-series', recurringMovementId: 'series-1', label: 'Stop future movements', destructive: true });
     });
 
     expect(input.ports.scheduling.schedulingDeactivateMovement).toHaveBeenCalledWith({ recurringMovementId: 'series-1' });
@@ -355,7 +401,7 @@ describe('useMovementDetailModel', () => {
     act(() => result.current.actions.openExpectedMovementDetail('expected-1'));
     await act(async () => { await Promise.resolve(); });
     await act(async () => {
-      result.current.provided.commands.runOverflowAction('stop-recurring-series');
+      result.current.provided.commands.runOverflowAction({ id: 'stop-recurring-series', recurringMovementId: 'series-1', label: 'Stop future movements', destructive: true });
     });
 
     expect(confirm).toHaveBeenCalledWith('Stop future movements?\n\nNo more movements will be generated from this series.\nExisting expected and posted movements will not be deleted.');
@@ -372,7 +418,11 @@ describe('useMovementDetailModel', () => {
     const { result } = renderHook(() => useMovementDetailModel(input));
 
     act(() => result.current.actions.openExpectedMovementDetail('expected-1'));
-    act(() => result.current.provided.commands[action as 'postExpectedMovement' | 'runOverflowAction']());
+    if (action === 'postExpectedMovement') {
+      act(() => result.current.provided.commands.postExpectedMovement());
+    } else {
+      act(() => result.current.provided.commands.runOverflowAction({ id: 'edit-expected', expectedMovementId: 'expected-1', label: 'Edit expected', destructive: false }));
+    }
 
     expect(input.reportError).toHaveBeenCalledWith(expect.any(Error));
     expect(result.current.state.selection).toEqual({ source: 'expected', id: 'expected-1' });

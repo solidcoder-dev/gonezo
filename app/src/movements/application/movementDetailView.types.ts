@@ -75,9 +75,10 @@ export type ExpectedMovementSeriesViewModel =
   | { kind: 'recurring'; occurrenceId?: string; phase: ExpectedSeriesState['phase']; series: ExpectedRecurringSeriesDetailViewModel | null };
 
 export type MovementDetailOverflowAction =
-  | { id: 'void-posted'; label: 'Void movement'; destructive: true }
-  | { id: 'edit-expected'; label: 'Edit expected'; destructive: false }
-  | { id: 'stop-recurring-series'; label: 'Stop future movements'; destructive: true };
+  | { id: 'void-posted'; transactionId: string; label: 'Void movement'; destructive: true }
+  | { id: 'edit-expected'; expectedMovementId: string; label: 'Edit expected'; destructive: false }
+  | { id: 'dismiss-expected'; expectedMovementId: string; label: 'Delete expected'; destructive: true }
+  | { id: 'stop-recurring-series'; recurringMovementId: string; label: 'Stop future movements'; destructive: true };
 
 export type MovementDetailBaseViewModel = {
   id: string;
@@ -121,7 +122,7 @@ export type ScheduledMovementDetailViewModel = MovementDetailBaseViewModel & {
   tags: MovementDetailTagView[];
   canEditCategory: boolean;
   canEditTags: boolean;
-  canDeactivate: boolean;
+  canStopFutureMovements: boolean;
   nextDueLabel: string;
   scheduleSummary: string;
   originLabel: string;
@@ -139,6 +140,7 @@ export type ExpectedMovementDetailViewModel = MovementDetailBaseViewModel & {
   canToggleIgnored: boolean;
   canEditExpected: boolean;
   canPostExpected: boolean;
+  canDismissExpected: boolean;
   expectedAtLabel: string;
   originLabel: string;
   series: ExpectedMovementSeriesViewModel;

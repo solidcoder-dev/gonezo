@@ -8,7 +8,7 @@ type MovementDetailsSheetPreviewProps = {
   pendingVoid?: boolean;
   deactivating?: boolean;
   onClose: () => void;
-  onRunOverflowAction?: (actionId: MovementDetailOverflowAction['id']) => void;
+  onRunOverflowAction?: (action: MovementDetailOverflowAction) => void;
   onPostExpectedMovement?: () => void;
 };
 
@@ -59,6 +59,7 @@ function MovementDetailsSheetPreviewInner(props: MovementDetailsSheetPreviewProp
           tagsDirty: activeSheet === 'tags',
           togglingIgnored: false,
           deactivating: props.deactivating === true,
+          dismissingExpected: false,
           pendingVoid: props.pendingVoid === true,
         },
       }}
@@ -78,7 +79,7 @@ function MovementDetailsSheetPreviewInner(props: MovementDetailsSheetPreviewProp
           toggleDraftTag: () => undefined,
           saveTags: () => undefined,
           setIgnored: () => undefined,
-          runOverflowAction: (actionId) => props.onRunOverflowAction?.(actionId),
+          runOverflowAction: (action) => props.onRunOverflowAction?.(action),
           stopFutureMovements: () => undefined,
           postExpectedMovement: () => props.onPostExpectedMovement?.(),
         },

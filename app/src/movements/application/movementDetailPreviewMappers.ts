@@ -117,7 +117,7 @@ export function mapScheduledMovementPreview(
   options: {
     categoryName?: string;
     tagNames?: string[];
-    canDeactivate?: boolean;
+    canStopFutureMovements?: boolean;
   } = {},
 ): Extract<MovementDetailViewModel, { source: 'scheduled' }> {
   const mapped = mapMovementDetailViewModel({
@@ -136,7 +136,7 @@ export function mapScheduledMovementPreview(
     ...mapped,
     canEditCategory: false,
     canEditTags: false,
-    canDeactivate: options.canDeactivate === true && mapped.status === 'active',
+    canStopFutureMovements: options.canStopFutureMovements === true && mapped.status === 'active',
   };
 }
 

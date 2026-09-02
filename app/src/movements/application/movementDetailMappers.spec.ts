@@ -58,6 +58,14 @@ function detail(expectedItem: ExpectedMovementItem, scheduledItems: ScheduledMov
 }
 
 describe('expected movement detail mapping', () => {
+  it.each([
+    ['pending', true],
+    ['resolved', false],
+    ['dismissed', false],
+  ] as const)('projects canDismissExpected for %s expected movements', (status, canDismissExpected) => {
+    expect(detail(expected({ status }))).toMatchObject({ canDismissExpected });
+  });
+
   it('normalizes manual, recurring and partial origins explicitly', () => {
     expect(normalizeExpectedMovementOrigin(expected())).toEqual({ kind: 'manual' });
     expect(normalizeExpectedMovementOrigin(expected({

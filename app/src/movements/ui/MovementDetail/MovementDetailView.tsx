@@ -27,6 +27,7 @@ export type MovementDetailViewProps = {
       tagsDirty: boolean;
       togglingIgnored: boolean;
       deactivating: boolean;
+      dismissingExpected?: boolean;
       pendingVoid: boolean;
     };
   };
@@ -46,7 +47,7 @@ export type MovementDetailViewProps = {
       toggleDraftTag: (tag: MovementDetailTagView) => void;
       saveTags: () => void;
       setIgnored: (value: boolean) => void;
-      runOverflowAction: (actionId: MovementDetailOverflowAction['id']) => void;
+      runOverflowAction: (action: MovementDetailOverflowAction) => void;
       stopFutureMovements: (recurringMovementId: string) => void;
       postExpectedMovement: () => void;
     };
@@ -130,6 +131,7 @@ export function MovementDetailView(props: MovementDetailViewProps) {
     overflowOpen: props.required.state.overflowOpen,
     pendingVoid: props.required.status.pendingVoid,
     deactivating: props.required.status.deactivating,
+    dismissingExpected: props.required.status.dismissingExpected === true,
     onGoBack: activeSheet ? props.provided.commands.dismissSheet : props.provided.commands.closeDetail,
     onToggleOverflow: props.provided.commands.toggleOverflow,
     onRunOverflowAction: props.provided.commands.runOverflowAction,
