@@ -22,11 +22,7 @@ value class BackupSectionId(val value: String) {
     }
 }
 
-data class BackupFormatDescriptor(
-    val version: Int,
-    val requiredSections: Set<BackupSectionId>,
-    val optionalSections: Set<BackupSectionId> = emptySet(),
-) {
+data class BackupFormatDescriptor(val version: Int, val requiredSections: Set<BackupSectionId>, val optionalSections: Set<BackupSectionId> = emptySet()) {
     init {
         require(version > 0) { "Backup format version must be positive" }
         require(requiredSections.intersect(optionalSections).isEmpty()) { "A backup section cannot be both required and optional" }

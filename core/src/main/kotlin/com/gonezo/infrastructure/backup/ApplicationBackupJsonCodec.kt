@@ -2,24 +2,24 @@ package com.gonezo.infrastructure.backup
 
 import com.gonezo.application.backup.contract.ApplicationBackupDocument
 import com.gonezo.application.backup.contract.BackupErrorCode
+import com.gonezo.application.backup.contract.BackupFormatRegistry
 import com.gonezo.application.backup.contract.BackupImportException
 import com.gonezo.application.backup.contract.BackupSectionId
-import com.gonezo.application.backup.contract.BackupFormatRegistry
 import com.gonezo.application.backup.contract.currentBackupFormatRegistry
 import org.json.JSONObject
 import java.time.Instant
 
-class ApplicationBackupJsonCodec(
-    private val sectionCodecs: BackupSectionCodecRegistry = defaultBackupSectionCodecRegistry(),
-    private val formatRegistry: BackupFormatRegistry = currentBackupFormatRegistry(),
-) {
+class ApplicationBackupJsonCodec(private val sectionCodecs: BackupSectionCodecRegistry = defaultBackupSectionCodecRegistry(), private val formatRegistry: BackupFormatRegistry = currentBackupFormatRegistry()) {
     fun encode(document: ApplicationBackupDocument): String = JSONObject()
         .put("format", document.format)
         .put("formatVersion", document.formatVersion)
         .put("createdAt", document.createdAt.toString())
-        .put("sections", JSONObject().apply {
-            document.sections.toSortedMap(compareBy { it.name }).forEach { (id, section) -> put(id.jsonName(), sectionCodecs.encode(section)) }
-        }).toString(2)
+        .put(
+            "sections",
+            JSONObject().apply {
+                document.sections.toSortedMap(compareBy { it.name }).forEach { (id, section) -> put(id.jsonName(), sectionCodecs.encode(section)) }
+            },
+        ).toString(2)
 
     fun decode(json: String): ApplicationBackupDocument = try {
         val root = JSONObject(json)

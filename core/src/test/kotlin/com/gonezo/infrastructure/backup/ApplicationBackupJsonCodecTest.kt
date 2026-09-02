@@ -2,9 +2,9 @@ package com.gonezo.infrastructure.backup
 
 import com.gonezo.application.backup.contract.ApplicationBackupDocument
 import com.gonezo.application.backup.contract.BackupErrorCode
+import com.gonezo.application.backup.contract.BackupFormatDescriptor
 import com.gonezo.application.backup.contract.BackupImportException
 import com.gonezo.application.backup.contract.BackupSectionId
-import com.gonezo.application.backup.contract.BackupFormatDescriptor
 import com.gonezo.application.backup.contract.RegisteredBackupFormatRegistry
 import com.gonezo.application.backup.contract.currentBackupFormatRegistry
 import com.gonezo.application.orchestration.backup.AnalyticsBackupSection
@@ -108,8 +108,13 @@ class ApplicationBackupJsonCodecTest {
         val document = codec.decode(fixture)
 
         assertThat(document.sections.keys).containsExactlyInAnyOrder(
-            BackupSectionId.TAXONOMY, BackupSectionId.LEDGER, BackupSectionId.RECURRENCE,
-            BackupSectionId.EXPECTED, BackupSectionId.SHARING, BackupSectionId.ANALYTICS, BackupSectionId.PREFERENCES,
+            BackupSectionId.TAXONOMY,
+            BackupSectionId.LEDGER,
+            BackupSectionId.RECURRENCE,
+            BackupSectionId.EXPECTED,
+            BackupSectionId.SHARING,
+            BackupSectionId.ANALYTICS,
+            BackupSectionId.PREFERENCES,
         )
     }
 
@@ -213,7 +218,13 @@ class ApplicationBackupJsonCodecTest {
 }
 
 private fun defaultBackupSectionRegistryCodecs(): List<BackupSectionCodec<*>> = listOf(
-    TaxonomyBackupSectionCodec(), LedgerBackupSectionCodec(), RecurrenceBackupSectionCodec(), ExpectedBackupSectionCodec(), SharingBackupSectionCodec(), AnalyticsBackupSectionCodec(), PreferencesBackupSectionCodec(),
+    TaxonomyBackupSectionCodec(),
+    LedgerBackupSectionCodec(),
+    RecurrenceBackupSectionCodec(),
+    ExpectedBackupSectionCodec(),
+    SharingBackupSectionCodec(),
+    AnalyticsBackupSectionCodec(),
+    PreferencesBackupSectionCodec(),
 )
 
 private fun defaultBackupSectionCodecRegistryCodecs(): List<BackupSectionCodec<*>> = defaultBackupSectionRegistryCodecs()

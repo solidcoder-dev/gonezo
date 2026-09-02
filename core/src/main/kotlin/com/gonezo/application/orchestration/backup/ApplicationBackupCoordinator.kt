@@ -2,10 +2,10 @@ package com.gonezo.application.orchestration.backup
 
 import com.gonezo.application.ConsistencyBoundary
 import com.gonezo.application.ImmediateConsistencyBoundary
-import com.gonezo.application.backup.contract.*
 import com.gonezo.application.backup.contract.ApplicationBackupDocument
 import com.gonezo.application.backup.contract.BackupDependencyException
 import com.gonezo.application.backup.contract.BackupErrorCode
+import com.gonezo.application.backup.contract.BackupFormatRegistry
 import com.gonezo.application.backup.contract.BackupImportContext
 import com.gonezo.application.backup.contract.BackupImportException
 import com.gonezo.application.backup.contract.BackupSection
@@ -15,6 +15,7 @@ import com.gonezo.application.backup.contract.BackupSectionId
 import com.gonezo.application.backup.contract.BackupSectionImporter
 import com.gonezo.application.backup.contract.BackupValidationResult
 import com.gonezo.application.backup.contract.PortableStateReset
+import com.gonezo.application.backup.contract.currentBackupFormatRegistry
 import java.time.Instant
 
 class ApplicationBackupCoordinator(private val exporters: Set<BackupSectionExporter>, private val importers: Set<BackupSectionImporter>, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary, private val portableStateReset: PortableStateReset = PortableStateReset { }, private val formatRegistry: BackupFormatRegistry = currentBackupFormatRegistry()) {
