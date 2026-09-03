@@ -3,10 +3,6 @@ import type { FormEvent } from 'react';
 import type { ReactNode } from 'react';
 import { SheetView } from '../../../shared/ui/SheetView';
 import { MultiTagPickerView } from '../../../shared/ui/MultiTagPicker/MultiTagPickerView';
-import {
-  FREQUENT_EXPENSE_CATEGORY_IDS,
-  FREQUENT_INCOME_CATEGORY_IDS,
-} from '../../../taxonomy/application/masterCategories';
 import { CategoryPickerField } from '../CategoryPickerField/CategoryPickerField';
 import { ScheduleSummaryView } from '../ScheduleControls/ScheduleSummaryView';
 import { ScheduleTriggerView } from '../ScheduleControls/ScheduleTriggerView';
@@ -408,9 +404,6 @@ export function TransactionComposerView({ required, provided }: Props) {
   const recurringScheduleConfigured = recurringScheduleAvailable && repeatEnabled;
   const shareEnabled = Number(amount) > 0;
   const amountLocked = splitApplied || (shareEnabled && shareApplied);
-  const frequentCategoryIds = mode === 'income'
-    ? FREQUENT_INCOME_CATEGORY_IDS
-    : FREQUENT_EXPENSE_CATEGORY_IDS;
   const transferScheduleAvailable = mode === 'transfer';
   const transferScheduleConfigured = transferScheduleAvailable && schedulingMode === 'scheduled';
   const scheduleControlsDate = recurringScheduleConfigured || transferScheduleConfigured;
@@ -641,7 +634,6 @@ export function TransactionComposerView({ required, provided }: Props) {
                       required={{
                         selectedCategoryId: categoryId,
                         options: categoryOptions,
-                        frequentCategoryIds,
                         disabled,
                       }}
                       provided={{

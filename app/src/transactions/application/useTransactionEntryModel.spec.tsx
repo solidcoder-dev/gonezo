@@ -125,7 +125,6 @@ describe('useTransactionEntryModel', () => {
     }));
 
     await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
-
     expect(result.current.error).toBe('');
     expect(ports.ledger.ledgerListAccounts).not.toHaveBeenCalled();
     expect(ports.taxonomy.taxonomyListCategories).not.toHaveBeenCalled();
@@ -174,7 +173,6 @@ describe('useTransactionEntryModel', () => {
     }));
 
     await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
-
     act(() => {
       result.current.provided.commands.open();
       result.current.provided.commands.selectMode('expense');
@@ -396,8 +394,11 @@ describe('useTransactionEntryModel', () => {
     expect(result.current.required.state.date).toBe('2026-05-18');
   });
 
-  it('uses a selected master expense category without creating categories', async () => {
+  it('uses a selected expense category without creating categories', async () => {
     const ports = makePorts();
+    vi.mocked(ports.taxonomy.taxonomyListCategories).mockResolvedValue({
+      items: [{ id: '00000000-0000-4000-8000-000000000102', name: 'Groceries', appliesTo: 'expense', status: 'active', usageCount: 0 }],
+    });
 
     const { result } = renderHook(() => useTransactionEntryModel({
       ports,
@@ -408,10 +409,15 @@ describe('useTransactionEntryModel', () => {
     }));
 
     await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
-
     act(() => {
       result.current.provided.commands.open();
       result.current.provided.commands.selectMode('expense');
+    });
+    await waitFor(() => expect(result.current.required.state.categoryOptions).toContainEqual({
+      id: '00000000-0000-4000-8000-000000000102',
+      name: 'Groceries',
+    }));
+    act(() => {
       result.current.provided.commands.setAmount('12');
       result.current.provided.commands.setCategoryId('00000000-0000-4000-8000-000000000102');
     });
@@ -423,7 +429,7 @@ describe('useTransactionEntryModel', () => {
     expect(ports.ledger.ledgerRecordExpense).toHaveBeenCalledWith(expect.objectContaining({
       categoryId: '00000000-0000-4000-8000-000000000102',
     }));
-    expect(ports.taxonomy.orchestrationCategorizeTransaction).not.toHaveBeenCalled();
+    expect(ports.taxonomy.orchestrationCategorizeTransaction).toHaveBeenCalled();
   });
 
   it('creates an expected movement from the expected submit action', async () => {

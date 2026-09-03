@@ -2418,7 +2418,11 @@ describe('App Accounts UX', () => {
     expect(core.ledgerRecordExpense).toHaveBeenCalledWith(expect.objectContaining({
       categoryId: '00000000-0000-4000-8000-000000000102',
     }));
-    expect(core.orchestrationCategorizeTransaction).not.toHaveBeenCalled();
+    expect(core.orchestrationCategorizeTransaction).toHaveBeenCalledWith({
+      transactionId: 'tx-exp',
+      transactionType: 'expense',
+      categoryId: '00000000-0000-4000-8000-000000000102',
+    });
   });
 
   it('does not create categories from the expense composer', async () => {
@@ -2447,6 +2451,13 @@ describe('App Accounts UX', () => {
 
   it('selects categories from the all-categories search', async () => {
     const core = makeCore();
+    vi.mocked(core.taxonomyListCategories).mockResolvedValue({
+      items: [
+        { id: 'cat-food', name: 'Food', appliesTo: 'expense', status: 'active' },
+        { id: '00000000-0000-4000-8000-000000000102', name: 'Groceries', appliesTo: 'expense', status: 'active' },
+        { id: '00000000-0000-4000-8000-000000000108', name: 'Travel', appliesTo: 'expense', status: 'active' },
+      ],
+    });
 
     render(
       <MemoryRouter>
@@ -2466,7 +2477,7 @@ describe('App Accounts UX', () => {
         categoryId: '00000000-0000-4000-8000-000000000108',
       }));
     });
-    expect(core.orchestrationCategorizeTransaction).not.toHaveBeenCalled();
+    expect(core.orchestrationCategorizeTransaction).toHaveBeenCalled();
   });
 
   it('refreshes categories from backend when opening transaction composer', async () => {

@@ -38,7 +38,7 @@ function makeTaxonomyWithNativeMasterCategory(): TaxonomyGatewayPort {
 }
 
 describe('useTransactionTaxonomyModel', () => {
-  it('uses master categories as selectable options instead of custom backend categories', async () => {
+  it('uses runtime taxonomy categories as selectable options', async () => {
     const taxonomy = makeTaxonomy();
     const { result } = renderHook(() => useTransactionTaxonomyModel({
       taxonomy,
@@ -49,8 +49,7 @@ describe('useTransactionTaxonomyModel', () => {
       await result.current.actions.refreshLookups();
     });
 
-    expect(result.current.state.categoryOptions.map((category) => category.id)).toContain('00000000-0000-4000-8000-000000000102');
-    expect(result.current.state.categoryOptions.map((category) => category.id)).not.toContain('cat-custom');
+    expect(result.current.state.categoryOptions).toEqual([{ id: 'cat-custom', name: 'Custom' }]);
   });
 
   it('does not create categories while resolving selection', async () => {
@@ -63,15 +62,13 @@ describe('useTransactionTaxonomyModel', () => {
     await act(async () => {
       await result.current.actions.refreshLookups();
     });
-    act(() => {
-      result.current.actions.setTransactionCategoryId('00000000-0000-4000-8000-000000000101');
-    });
+    act(() => result.current.actions.setTransactionCategoryId('cat-custom'));
 
-    await expect(result.current.actions.resolveCategorySelection('expense')).resolves.toBe('00000000-0000-4000-8000-000000000101');
+    await expect(result.current.actions.resolveCategorySelection('expense')).resolves.toBe('cat-custom');
     expect(taxonomy.taxonomyCreateCategory).not.toHaveBeenCalled();
   });
 
-  it('does not orchestrate master category assignments', async () => {
+  it('orchestrates runtime category assignments', async () => {
     const taxonomy = makeTaxonomy();
     const { result } = renderHook(() => useTransactionTaxonomyModel({
       taxonomy,
@@ -82,11 +79,15 @@ describe('useTransactionTaxonomyModel', () => {
       await result.current.actions.categorizeTransaction(
         'tx-1',
         'expense',
-        '00000000-0000-4000-8000-000000000102',
+        'cat-custom',
       );
     });
 
-    expect(taxonomy.orchestrationCategorizeTransaction).not.toHaveBeenCalled();
+    expect(taxonomy.orchestrationCategorizeTransaction).toHaveBeenCalledWith({
+      transactionId: 'tx-1',
+      transactionType: 'expense',
+      categoryId: 'cat-custom',
+    });
   });
 
   it('uses backend ids for native-seeded master categories', async () => {
@@ -130,7 +131,7 @@ describe('useTransactionTaxonomyModel', () => {
     });
   });
 
-  it('orders master categories by usage count and deterministic fallback keys', async () => {
+  it('orders runtime categories by usage count and deterministic fallback keys', async () => {
     const taxonomy: TaxonomyGatewayPort = {
       ...makeTaxonomy(),
       taxonomyListCategories: vi.fn(async () => ({
@@ -150,12 +151,10 @@ describe('useTransactionTaxonomyModel', () => {
       await result.current.actions.refreshLookups();
     });
 
-    expect(result.current.state.categoryOptions.slice(0, 5)).toEqual([
+    expect(result.current.state.categoryOptions).toEqual([
       { id: 'cat-groceries', name: 'Groceries' },
       { id: 'cat-dining', name: 'Dining' },
-      { id: '00000000-0000-4000-8000-000000000110', name: 'Beauty' },
-      { id: '00000000-0000-4000-8000-000000000101', name: 'Bills' },
-      { id: '00000000-0000-4000-8000-000000000107', name: 'Entertainment' },
+      { id: 'cat-other', name: 'Other' },
     ]);
   });
 });

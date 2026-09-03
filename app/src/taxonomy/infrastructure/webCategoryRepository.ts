@@ -10,12 +10,9 @@ import type {
   WebAppState,
   WebTaxonomyCategory,
 } from '../../core/infrastructure/webAppState';
-import {
-  findMasterCategoryById,
-  listMasterCategories,
-} from '../domain/masterCategories';
 import { compareTaxonomyCategoriesByUsage } from '../domain/categoryOrdering';
 import { normalizeWebTaxonomyCategoryName } from './webTaxonomyNames';
+import { WEB_MASTER_CATEGORY_SEED } from './webMasterCategorySeed';
 
 export type WebCategoryLookupPort = {
   categoryNameById(categoryId?: string): string | undefined;
@@ -46,27 +43,22 @@ export class WebCategoryRepository implements WebCategoryImportPort {
     void options.dependencies;
   }
 
-  private masterCategoryAsWebCategory(categoryId: string): WebTaxonomyCategory | undefined {
-    const category = findMasterCategoryById(categoryId);
-    if (!category) {
-      return undefined;
+  private persistedCategories(): WebTaxonomyCategory[] {
+    const categoriesByScopeAndName = new Map<string, WebTaxonomyCategory>();
+    for (const category of WEB_MASTER_CATEGORY_SEED) {
+      categoriesByScopeAndName.set(`${category.appliesTo}:${category.normalizedName}`, category);
     }
-    return {
-      id: category.id,
-      name: category.name,
-      normalizedName: normalizeWebTaxonomyCategoryName(category.name),
-      appliesTo: category.appliesTo,
-      status: category.status,
-      createdAt: 'master',
-    };
+    for (const category of this.state.taxonomyCategories) {
+      categoriesByScopeAndName.set(`${category.appliesTo}:${category.normalizedName}`, category);
+    }
+    return [...categoriesByScopeAndName.values()];
   }
 
   categoryNameById(categoryId?: string): string | undefined {
     if (!categoryId) {
       return undefined;
     }
-    return findMasterCategoryById(categoryId)?.name
-      ?? this.state.taxonomyCategories.find((category) => category.id === categoryId)?.name;
+    return this.persistedCategories().find((category) => category.id === categoryId)?.name;
   }
 
   findActiveCategoryByName(
@@ -74,23 +66,15 @@ export class WebCategoryRepository implements WebCategoryImportPort {
     appliesTo: 'expense' | 'income',
   ): WebTaxonomyCategory | undefined {
     const normalizedName = normalizeWebTaxonomyCategoryName(name);
-    const master = listMasterCategories(appliesTo).find(
-      (item) => normalizeWebTaxonomyCategoryName(item.name) === normalizedName,
-    );
-    if (master) {
-      return this.masterCategoryAsWebCategory(master.id);
-    }
-    return this.state.taxonomyCategories.find(
-      (item) =>
-        item.status === 'active'
+    return this.persistedCategories().find(
+      (item) => item.status === 'active'
         && item.appliesTo === appliesTo
         && item.normalizedName === normalizedName,
     );
   }
 
   findCategoryById(categoryId: string): WebTaxonomyCategory | undefined {
-    return this.masterCategoryAsWebCategory(categoryId)
-      ?? this.state.taxonomyCategories.find((item) => item.id === categoryId);
+    return this.persistedCategories().find((item) => item.id === categoryId);
   }
 
   async listCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult> {
@@ -106,7 +90,8 @@ export class WebCategoryRepository implements WebCategoryImportPort {
       );
     }
 
-    const items = listMasterCategories(input?.appliesTo)
+    const items = this.persistedCategories()
+      .filter((category) => !input?.appliesTo || category.appliesTo === input.appliesTo)
       .filter((category) => includeArchived || category.status !== 'archived')
       .map((category) => ({
         id: category.id,

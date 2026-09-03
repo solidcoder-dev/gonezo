@@ -6,7 +6,6 @@ import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGat
 import { useTransactionClassification } from '../../taxonomy/application/useTransactionClassification';
 import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.types';
 import { compareTaxonomyCategoriesByUsage } from '../../taxonomy/application/categoryOrdering';
-import { findMasterCategoryById, listMasterCategories } from '../../taxonomy/application/masterCategories';
 import type { ComposerMode } from './transactions.types';
 import {
   mergeCategories,
@@ -36,18 +35,6 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
       return [] as Array<{ id: string; name: string }>;
     }
     const scope = composerMode === 'expense' || composerMode === 'income' ? composerMode : undefined;
-    const masterCategories = listMasterCategories(scope);
-    const backendMasterCategoriesByName = new Map(
-      categories
-        .filter((category) => category.status === 'active' && category.appliesTo === composerMode)
-        .map((category) => [category.name.trim().toLowerCase(), category]),
-    );
-    const selectableMasterCategories = masterCategories.map(
-      (master) => backendMasterCategoriesByName.get(master.name.trim().toLowerCase()) ?? {
-        ...master,
-        usageCount: 0,
-      },
-    );
     const selectedExistingCategory = categories.find(
       (category) =>
         category.id === transactionCategoryId
@@ -55,7 +42,7 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
         && category.appliesTo === composerMode,
     );
     return mergeCategories(
-      selectableMasterCategories,
+      categories.filter((category) => category.status === 'active' && category.appliesTo === scope),
       selectedExistingCategory ? [selectedExistingCategory] : [],
     )
       .filter((category) => category.status === 'active')
@@ -120,7 +107,7 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
       return undefined;
     }
 
-    const existing = mergeCategories(listMasterCategories(type), categories).find(
+    const existing = categories.find(
       (category) =>
         category.id === selectedCategoryId
         && category.status === 'active'
@@ -132,7 +119,7 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
 
     const fresh = await categorySuggestions.listCategories({ appliesTo: type, includeArchived: false });
     setCategories((previous) => mergeCategories(previous, fresh.items));
-    const existingFromBackend = mergeCategories(listMasterCategories(type), fresh.items).find(
+    const existingFromBackend = fresh.items.find(
       (category) =>
         category.id === selectedCategoryId
         && category.status === 'active'
@@ -158,9 +145,6 @@ export function useTransactionTaxonomyModel(input: UseTransactionTaxonomyModelIn
     categoryId?: string,
   ) {
     if (!categoryId) {
-      return;
-    }
-    if (findMasterCategoryById(categoryId)) {
       return;
     }
     const result = await transactionClassification.categorizeTransaction({

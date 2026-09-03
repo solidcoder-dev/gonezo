@@ -29,6 +29,20 @@ function createSubject(state: WebAppState = createWebAppState()) {
 }
 
 describe('WebTaxonomyService', () => {
+  it('lists Services from the web infrastructure seed', async () => {
+    const taxonomy = createSubject();
+
+    await expect(taxonomy.listCategories({ appliesTo: 'expense' })).resolves.toMatchObject({
+      items: expect.arrayContaining([expect.objectContaining({
+        id: '00000000-0000-4000-8000-000000000111',
+        name: 'Services',
+        appliesTo: 'expense',
+        status: 'active',
+      })]),
+    });
+    expect((await taxonomy.listCategories({ appliesTo: 'expense' })).items.filter((item) => item.name === 'Services')).toHaveLength(1);
+  });
+
   it('lists categories and tags while respecting archived filters and sort order', async () => {
     const taxonomy = createSubject(createWebAppState({
       ledgerTransactions: [

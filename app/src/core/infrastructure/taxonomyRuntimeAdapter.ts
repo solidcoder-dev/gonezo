@@ -14,53 +14,9 @@ import type {
   TaxonomyRenameCategoryInput,
   TaxonomyRenameTagInput,
 } from '../../taxonomy/application/taxonomy.port';
-import { compareTaxonomyCategoriesByUsage } from '../../taxonomy/domain/categoryOrdering';
-import { listMasterCategories } from '../../taxonomy/domain/masterCategories';
 import type { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
 import { isNativeRuntime } from './runtimeAdapterSupport';
-
-function normalizeMasterCategoryKey(name: string, appliesTo: string): string {
-  return `${appliesTo}:${name.trim().toLowerCase()}`;
-}
-
-async function listNativeMasterCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult> {
-  const nativeCategories = await CorePlugin.taxonomyListCategories({ includeArchived: true });
-  const nativeByNameAndType = new Map(
-    nativeCategories.items.map((category) => [
-      normalizeMasterCategoryKey(category.name, category.appliesTo),
-      category,
-    ]),
-  );
-
-  const items: TaxonomyListCategoriesResult['items'] = [];
-  for (const master of listMasterCategories(input?.appliesTo)) {
-    const key = normalizeMasterCategoryKey(master.name, master.appliesTo);
-    const existing = nativeByNameAndType.get(key);
-    if (existing) {
-      if (input?.includeArchived === true || existing.status !== 'archived') {
-        items.push(existing);
-      }
-      continue;
-    }
-
-    const created = await CorePlugin.taxonomyCreateCategory({
-      name: master.name,
-      appliesTo: master.appliesTo,
-    });
-    items.push({
-      id: created.id,
-      name: master.name,
-      appliesTo: master.appliesTo,
-      status: 'active',
-      usageCount: 0,
-    });
-  }
-
-  return {
-    items: items.sort(compareTaxonomyCategoriesByUsage),
-  };
-}
 
 export class TaxonomyRuntimeAdapter {
   private readonly web: CoreAdapterWeb;
@@ -70,7 +26,7 @@ export class TaxonomyRuntimeAdapter {
   }
 
   taxonomyListCategories(input?: TaxonomyListCategoriesInput): Promise<TaxonomyListCategoriesResult> {
-    return isNativeRuntime() ? listNativeMasterCategories(input) : this.web.taxonomyListCategories(input);
+    return isNativeRuntime() ? CorePlugin.taxonomyListCategories(input) : this.web.taxonomyListCategories(input);
   }
 
   taxonomyCreateCategory(input: TaxonomyCreateCategoryInput): Promise<TaxonomyCreateCategoryResult> {

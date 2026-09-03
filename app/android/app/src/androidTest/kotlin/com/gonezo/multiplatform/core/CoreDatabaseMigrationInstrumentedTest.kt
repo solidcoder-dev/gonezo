@@ -11,7 +11,56 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class CoreDatabaseMigration29To32Test {
+class CoreDatabaseMigrationInstrumentedTest {
+  @Test
+  fun v32UpgradeAddsServicesWithoutChangingExistingLedgerOrTaxonomyRows() {
+    val name = uniqueDatabaseName()
+    val initial = CoreDatabase(context(), name)
+    val sqlite = initial.writableDatabase
+    sqlite.execSQL("insert into taxonomy_categories(id, name, name_normalized, applies_to, status, created_at, archived_at) values ('custom-category', 'Household', 'household', 'expense', 'active', '2026-07-01T00:00:00Z', null)")
+    sqlite.execSQL("insert into ledger_accounts(id, name, type, currency, status, created_at) values ('account-1', 'Checking', 'asset', 'USD', 'active', '2026-07-01T00:00:00Z')")
+    sqlite.execSQL("insert into ledger_transactions(id, account_id, type, amount, currency, occurred_at, description, merchant, category_id, status) values ('transaction-1', 'account-1', 'expense', '12.34', 'USD', '2026-07-02T00:00:00Z', 'Supplies', 'Store', 'custom-category', 'posted')")
+    sqlite.execSQL("insert into taxonomy_transaction_assignments(transaction_id, category_id, assigned_at) values ('transaction-1', 'custom-category', '2026-07-02T00:00:00Z')")
+    val accountBefore = sqlite.row("select id, name, type, currency, status, created_at, archived_at from ledger_accounts where id = 'account-1'")
+    val categoryBefore = sqlite.row("select id, name, name_normalized, applies_to, status, created_at, archived_at from taxonomy_categories where id = 'custom-category'")
+    val movementBefore = sqlite.row("select id, account_id, type, amount, currency, occurred_at, description, merchant, category_id, status from ledger_transactions where id = 'transaction-1'")
+    val assignmentBefore = sqlite.row("select transaction_id, category_id, assigned_at from taxonomy_transaction_assignments where transaction_id = 'transaction-1'")
+    sqlite.setVersion(32)
+    initial.close()
+
+    val upgraded = CoreDatabase(context(), name)
+    val migrated = upgraded.readableDatabase
+
+    assertEquals(33, migrated.version)
+    assertEquals(1, migrated.scalar("select count(*) from taxonomy_categories where name_normalized = 'services' and applies_to = 'expense'")!!.toInt())
+    assertEquals("active", migrated.scalar("select status from taxonomy_categories where name_normalized = 'services' and applies_to = 'expense'"))
+    assertEquals(accountBefore, migrated.row("select id, name, type, currency, status, created_at, archived_at from ledger_accounts where id = 'account-1'"))
+    assertEquals(categoryBefore, migrated.row("select id, name, name_normalized, applies_to, status, created_at, archived_at from taxonomy_categories where id = 'custom-category'"))
+    assertEquals(movementBefore, migrated.row("select id, account_id, type, amount, currency, occurred_at, description, merchant, category_id, status from ledger_transactions where id = 'transaction-1'"))
+    assertEquals(assignmentBefore, migrated.row("select transaction_id, category_id, assigned_at from taxonomy_transaction_assignments where transaction_id = 'transaction-1'"))
+    assertEquals("ok", migrated.scalar("pragma integrity_check"))
+    upgraded.close()
+  }
+
+  @Test
+  fun v32UpgradePreservesExistingServicesIdentityAndData() {
+    val name = uniqueDatabaseName()
+    val initial = CoreDatabase(context(), name)
+    val sqlite = initial.writableDatabase
+    sqlite.execSQL("insert into taxonomy_categories(id, name, name_normalized, applies_to, status, created_at, archived_at) values ('user-services', 'Services', 'services', 'expense', 'archived', '2026-07-01T00:00:00Z', '2026-08-01T00:00:00Z')")
+    val servicesBefore = sqlite.row("select id, name, name_normalized, applies_to, status, created_at, archived_at from taxonomy_categories where name_normalized = 'services' and applies_to = 'expense'")
+    sqlite.setVersion(32)
+    initial.close()
+
+    val upgraded = CoreDatabase(context(), name)
+    val migrated = upgraded.readableDatabase
+
+    assertEquals(33, migrated.version)
+    assertEquals(1, migrated.scalar("select count(*) from taxonomy_categories where name_normalized = 'services' and applies_to = 'expense'")!!.toInt())
+    assertEquals(servicesBefore, migrated.row("select id, name, name_normalized, applies_to, status, created_at, archived_at from taxonomy_categories where name_normalized = 'services' and applies_to = 'expense'"))
+    upgraded.close()
+  }
+
   @Test
   fun normalizesHistoricalAnalyticsReasonsInPlace() {
     val name = uniqueDatabaseName()
@@ -120,5 +169,10 @@ class CoreDatabaseMigration29To32Test {
   private fun SQLiteDatabase.hasObject(name: String, type: String) = scalar("select name from sqlite_master where type = '$type' and name = '$name'") == name
 
   private fun SQLiteDatabase.scalar(sql: String): String? = rawQuery(sql, null).use { if (it.moveToFirst() && !it.isNull(0)) it.getString(0) else null }
+
+  private fun SQLiteDatabase.row(sql: String): List<String?> = rawQuery(sql, null).use { cursor ->
+    assertTrue(cursor.moveToFirst())
+    (0 until cursor.columnCount).map { if (cursor.isNull(it)) null else cursor.getString(it) }
+  }
 
 }

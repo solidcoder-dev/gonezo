@@ -14,7 +14,8 @@ class CoreDatabaseFreshInstallTest {
     val database = CoreDatabase(ApplicationProvider.getApplicationContext(), "gonezo-fresh-${System.nanoTime()}.db")
     val sqlite = database.writableDatabase
 
-    assertEquals(30, sqlite.version)
+    assertEquals(33, sqlite.version)
+    assertEquals(1, sqlite.scalar("select count(*) from taxonomy_categories where name = 'Services' and name_normalized = 'services' and applies_to = 'expense' and status = 'active'")!!.toInt())
     assertEquals("table", sqlite.scalar("select type from sqlite_master where name = 'workflow_tx_categorization'"))
     assertEquals("index", sqlite.scalar("select type from sqlite_master where name = 'idx_workflow_tx_categorization_status_next_attempt'"))
     assertEquals(

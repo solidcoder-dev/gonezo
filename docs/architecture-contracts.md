@@ -18,6 +18,8 @@ Allowed layer shapes are context-specific and are enforced by `app/scripts/check
 
 `application` components may coordinate same-context `ui` and may use public entry points from other contexts. Public cross-context surfaces are `index.ts`, `*Component.tsx`, `*View.tsx`, `*Page.tsx`, `*Gateway.ts`, `*Port.ts`, and `*.contract.ts`.
 
+Taxonomy category rows are persisted data owned by the taxonomy persistence/application layers. The native runtime lists them from Core/SQLite, while the web repository uses its infrastructure seed for browser parity. Frontend taxonomy domain code must not define or reconcile persisted master-category rows.
+
 ## Frontend checks
 
 - `./scripts/verify.sh` is the canonical repo-wide entry point. Use `./scripts/verify.sh fast` for local frontend plus core architecture/style/type checks, `./scripts/verify.sh standard` for complete local frontend/core checks, and `./scripts/verify.sh all` for standard plus Docker E2E.

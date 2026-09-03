@@ -9,7 +9,6 @@ type CategoryOption = {
 export type CategoryPickerFieldRequired = {
   selectedCategoryId?: string;
   options: CategoryOption[];
-  frequentCategoryIds: string[];
   disabled: boolean;
 };
 

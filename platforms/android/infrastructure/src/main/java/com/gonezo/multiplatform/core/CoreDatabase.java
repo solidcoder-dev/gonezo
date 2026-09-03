@@ -8,7 +8,8 @@ import android.database.sqlite.SQLiteException;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 32;
+  private static final int DB_VERSION = 33;
+  private static final String SERVICES_CATEGORY_ID = "00000000-0000-4000-8000-000000000111";
 
   CoreDatabase(Context context) {
     this(context, DB_NAME);
@@ -160,6 +161,10 @@ public final class CoreDatabase extends SQLiteOpenHelper {
 
     if (oldVersion < 32) {
       normalizeSharedExpenseLentAmountReason(db);
+    }
+
+    if (oldVersion < 33) {
+      seedServicesCategory(db);
     }
   }
 
@@ -386,6 +391,11 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     seedMasterCategory(db, "00000000-0000-4000-8000-000000000203", "Reimbursements", "income");
     seedMasterCategory(db, "00000000-0000-4000-8000-000000000204", "Gifts & Benefits", "income");
     seedMasterCategory(db, "00000000-0000-4000-8000-000000000205", "Other", "income");
+    seedServicesCategory(db);
+  }
+
+  private static void seedServicesCategory(SQLiteDatabase db) {
+    seedMasterCategory(db, SERVICES_CATEGORY_ID, "Services", "expense");
   }
 
   private static void seedMasterCategory(SQLiteDatabase db, String id, String name, String appliesTo) {
