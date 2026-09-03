@@ -7,11 +7,14 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import './index.css';
 import './shared/ui/primitives.css';
 import { App } from './App';
+import { BackNavigationBridge } from './workspace/application/BackNavigationBridge';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <HashRouter>
-      <App />
+      <BackNavigationBridge>
+        <App />
+      </BackNavigationBridge>
     </HashRouter>
   </React.StrictMode>
 );

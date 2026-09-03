@@ -3,6 +3,7 @@ import type { ViewProps } from './ViewProps';
 import styles from './SheetView.module.css';
 import { useSheetDragToClose } from './useSheetDragToClose';
 import { useEffect } from 'react';
+import { useBackDismissable } from './useBackDismissable';
 
 export type SheetViewProps = ViewProps<
   {
@@ -41,6 +42,10 @@ export type SheetViewProps = ViewProps<
 export function SheetView({ required, provided }: SheetViewProps) {
   const { config, data, state } = required;
   const closeOnBackdrop = config.closeOnBackdrop ?? true;
+  useBackDismissable({
+    canDismiss: () => state.open,
+    dismiss: provided.commands.close,
+  }, state.open);
   const drag = useSheetDragToClose(
     Boolean(config.dragToClose || config.dragUpToExpand || config.dragDownToCollapse),
     provided.commands.close,
