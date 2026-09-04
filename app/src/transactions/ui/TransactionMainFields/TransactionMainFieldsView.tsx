@@ -14,6 +14,7 @@ export type TransactionMainFieldsViewProps = ViewProps<
     afterAmount?: ReactNode;
     amountInputRef?: RefObject<HTMLInputElement | null>;
     dateInputRef?: RefObject<HTMLInputElement | null>;
+    noteInputRef?: RefObject<HTMLInputElement | null>;
   },
   {
     transferTargetOptions: Array<{ id: string; name: string; currency: string }>;
@@ -39,6 +40,7 @@ export type TransactionMainFieldsViewProps = ViewProps<
     changeDate: (value: string) => void;
     changeNote: (value: string) => void;
     changeTransferTarget: (value: string) => void;
+    continueEditing?: () => void;
   }
 >;
 
@@ -65,6 +67,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
     amountInputRef,
     dateInputLabel,
     dateInputRef,
+    noteInputRef,
     datePlaceholder,
     noteLabel,
     notePlaceholder,
@@ -83,7 +86,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
         <>
           <AmountInputView
             required={{ config: { label: 'Amount', currency: amountCurrency, inputRef: amountInputRef }, data: {}, state: { value: state.amount }, status: { disabled: amountDisabled, error: status.amountError } }}
-            provided={{ commands: { change: provided.commands.changeAmount } }}
+            provided={{ commands: { change: provided.commands.changeAmount, continueEditing: provided.commands.continueEditing } }}
           />
         </>
       ) : null}
@@ -113,13 +116,14 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
         <>
           <AmountInputView
             required={{ config: { label: 'Amount', currency: amountCurrency, inputRef: amountInputRef }, data: {}, state: { value: state.amount }, status: { disabled: amountDisabled, error: status.amountError } }}
-            provided={{ commands: { change: provided.commands.changeAmount } }}
+            provided={{ commands: { change: provided.commands.changeAmount, continueEditing: provided.commands.continueEditing } }}
           />
           {afterAmount}
 
           <label className="vstack gap-2">
             <span className="visually-hidden">{noteLabel}</span>
             <input
+              ref={noteInputRef}
               className="form-control"
               aria-label={noteLabel}
               value={state.note}
@@ -134,6 +138,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
         <label className="vstack gap-2">
           <span className="visually-hidden">{noteLabel}</span>
           <input
+            ref={noteInputRef}
             className="form-control"
             aria-label={noteLabel}
             value={state.note}

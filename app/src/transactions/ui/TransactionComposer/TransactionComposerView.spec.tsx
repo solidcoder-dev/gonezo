@@ -59,7 +59,6 @@ function makeRequired(overrides: Partial<TransactionComposerViewRequired> = {}):
 
 function makeProvided(overrides: Partial<TransactionComposerViewProvided> = {}): TransactionComposerViewProvided {
   return {
-    onOpen: vi.fn(),
     onClose: vi.fn(),
     onSelectMode: vi.fn(),
     onSelectSourceAccount: vi.fn(),
@@ -119,18 +118,51 @@ function makeProvided(overrides: Partial<TransactionComposerViewProvided> = {}):
 describe('TransactionComposerView movement more control', () => {
   it('shows More for expense and updates Ignore movement from the sheet', () => {
     const onSetMovementIgnored = vi.fn();
+    const provided = makeProvided({ onSetMovementIgnored });
     render(
       <TransactionComposerView
         required={makeRequired()}
-        provided={makeProvided({ onSetMovementIgnored })}
+        provided={provided}
       />,
     );
+
+    const page = screen.getByRole('main', { name: 'Transaction composer' });
+    const form = page.querySelector<HTMLFormElement>('form.composer-form');
+    const formContent = page.querySelector<HTMLDivElement>('.composer-form-content');
+    const actions = page.querySelector<HTMLDivElement>('.composer-actions');
+
+    expect(page).toBeInTheDocument();
+    expect(page).not.toHaveAttribute('aria-modal');
+    expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
+    expect(form).toContainElement(formContent);
+    expect(form).toContainElement(actions);
+    expect(formContent).not.toContainElement(actions);
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(provided.onClose).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole('button', { name: /More/i }));
     fireEvent.click(screen.getByRole('switch', { name: /Ignore movement/i }));
 
     expect(screen.getByRole('dialog', { name: 'More' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Post now' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Save expected' })).toBeEnabled();
     expect(onSetMovementIgnored).toHaveBeenCalledWith(true);
+  });
+
+  it('submits from the persistent footer through the composer form', () => {
+    const onSubmit = vi.fn();
+
+    render(
+      <TransactionComposerView
+        required={makeRequired()}
+        provided={makeProvided({ onSubmit })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0][0].nativeEvent.submitter).toBe(screen.getByRole('button', { name: 'Post now' }));
   });
 
   it('does not show More for transfer', () => {

@@ -62,7 +62,6 @@ export type TransactionEntryComponentProvided = {
   events?: {
     onRecorded?: () => void;
     onClosed?: () => void;
-    onCollapsed?: () => void;
     onAccountChanged?: (account: { id: string; name: string }) => void;
     onError?: (error: { message: string }) => void;
   };

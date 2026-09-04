@@ -368,6 +368,12 @@ describe('WorkspacePage', () => {
     expect(movementsSearchPageProps).not.toBeNull();
   });
 
+  it('safely leaves a direct movement entry route when no account is selected', async () => {
+    renderSubject('/movements/new');
+
+    await waitFor(() => expect(screen.getByTestId('workspace-path')).toHaveTextContent('/movements'));
+  });
+
   it('renders the profile page header with Profile and notifications', async () => {
     renderSubject('/profile');
 

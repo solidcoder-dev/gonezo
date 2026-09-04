@@ -43,7 +43,7 @@ export function TransactionComposerChoiceSheets({ required, provided }: Transact
             ariaLabel: 'Movement type',
             title: 'Movement type',
             closeLabel: 'Close movement type',
-            panelClassName: 'composer-sheet composer-choice-sheet',
+            panelClassName: 'composer-auxiliary-sheet composer-choice-sheet',
             contentClassName: 'composer-choice-content',
           },
           data: {
@@ -88,7 +88,7 @@ export function TransactionComposerChoiceSheets({ required, provided }: Transact
             ariaLabel: 'Choose account',
             title: 'Choose account',
             closeLabel: 'Close account chooser',
-            panelClassName: 'composer-sheet composer-choice-sheet',
+            panelClassName: 'composer-auxiliary-sheet composer-choice-sheet',
             contentClassName: 'composer-choice-content',
           },
           data: {

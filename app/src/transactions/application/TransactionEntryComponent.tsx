@@ -102,7 +102,6 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
     movementAccountContext: required.config.movementAccountContext,
     onRecorded: provided.events?.onRecorded,
     onClosed: provided.events?.onClosed,
-    onCollapsed: provided.events?.onCollapsed,
     onAccountChanged: provided.events?.onAccountChanged,
     onError: provided.events?.onError,
   });

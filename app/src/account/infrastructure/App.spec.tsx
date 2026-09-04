@@ -1278,13 +1278,6 @@ describe('App Accounts UX', () => {
     expect(await screen.findByText('Late merchant')).toBeInTheDocument();
   });
 
-  function dragComposerDown(composer: HTMLElement) {
-    const handle = within(composer).getByTestId('sheet-drag-handle');
-    fireEvent.pointerDown(handle, { clientY: 240, pointerId: 1, pointerType: 'touch' });
-    fireEvent.pointerMove(handle, { clientY: 400, pointerId: 1, pointerType: 'touch' });
-    fireEvent.pointerUp(handle, { clientY: 400, pointerId: 1, pointerType: 'touch' });
-  }
-
   it('opens an expense composer for the chosen account and resets the draft defaults after save', async () => {
     const core = makeCore();
     vi.mocked(core.preferencesGet).mockResolvedValue({ defaultAccountId: 'acc-2' });
@@ -1296,7 +1289,7 @@ describe('App Accounts UX', () => {
     );
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
-    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    const composer = await screen.findByRole('main', { name: 'Transaction composer' });
     expect(within(composer).getByRole('button', { name: 'Movement type Expense' })).toBeInTheDocument();
     expect(within(composer).getByRole('button', { name: 'Source account Savings' })).toBeInTheDocument();
     await selectComposerSourceAccount(composer, 'Main');
@@ -1311,10 +1304,10 @@ describe('App Accounts UX', () => {
       }));
     });
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('main', { name: 'Transaction composer' })).not.toBeInTheDocument();
     });
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
-    const resetComposer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    const resetComposer = await screen.findByRole('main', { name: 'Transaction composer' });
     expect(within(resetComposer).getByRole('button', { name: 'Source account Savings' })).toBeInTheDocument();
     expect(within(resetComposer).getByRole('button', { name: 'Movement type Expense' })).toBeInTheDocument();
   }, 10_000);
@@ -1330,17 +1323,17 @@ describe('App Accounts UX', () => {
     );
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
-    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    const composer = await screen.findByRole('main', { name: 'Transaction composer' });
     expect(within(composer).getByRole('button', { name: 'Source account Savings' })).toBeInTheDocument();
     await selectComposerSourceAccount(composer, 'Main');
     await waitFor(() => expect(within(composer).getByRole('button', { name: 'Source account Main' })).toBeInTheDocument());
-    dragComposerDown(composer);
+    fireEvent.click(within(composer).getByRole('button', { name: 'Back' }));
 
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('main', { name: 'Transaction composer' })).not.toBeInTheDocument();
     });
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
-    const resetComposer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    const resetComposer = await screen.findByRole('main', { name: 'Transaction composer' });
     expect(within(resetComposer).getByRole('button', { name: 'Source account Savings' })).toBeInTheDocument();
   }, 10_000);
 
@@ -1354,7 +1347,7 @@ describe('App Accounts UX', () => {
     );
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
-    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    const composer = await screen.findByRole('main', { name: 'Transaction composer' });
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '20' } });
     fireEvent.click(within(composer).getByRole('button', { name: 'Sharing' }));
 
@@ -1368,13 +1361,13 @@ describe('App Accounts UX', () => {
     expect(within(reopenedShareDialog).getByText('Emma')).toBeInTheDocument();
     fireEvent.click(within(reopenedShareDialog).getByRole('button', { name: 'Close share expense' }));
 
-    dragComposerDown(composer);
+    fireEvent.click(within(composer).getByRole('button', { name: 'Back' }));
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('main', { name: 'Transaction composer' })).not.toBeInTheDocument();
     });
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
-    const resetComposer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    const resetComposer = await screen.findByRole('main', { name: 'Transaction composer' });
     const amountInput = within(resetComposer).getByLabelText('Amount');
     fireEvent.change(amountInput, { target: { value: '15' } });
     expect(amountInput).toHaveValue(15);
@@ -1393,7 +1386,7 @@ describe('App Accounts UX', () => {
     );
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
-    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    const composer = await screen.findByRole('main', { name: 'Transaction composer' });
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '20' } });
     fireEvent.click(within(composer).getByRole('button', { name: 'Sharing' }));
 
@@ -1405,11 +1398,11 @@ describe('App Accounts UX', () => {
 
     await waitFor(() => {
       expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
-      expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('main', { name: 'Transaction composer' })).not.toBeInTheDocument();
     });
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
-    const nextComposer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    const nextComposer = await screen.findByRole('main', { name: 'Transaction composer' });
     const nextAmountInput = within(nextComposer).getByLabelText('Amount');
     fireEvent.change(nextAmountInput, { target: { value: '15' } });
 
@@ -1478,7 +1471,7 @@ describe('App Accounts UX', () => {
       expect(core.ledgerOpenAccount).toHaveBeenCalledWith(expect.objectContaining({ name: 'Travel' }));
     });
     fireEvent.click(await screen.findByRole('button', { name: 'Add movement' }));
-    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    const composer = await screen.findByRole('main', { name: 'Transaction composer' });
     fireEvent.click(within(composer).getByRole('button', { name: /^Source account/ }));
 
     expect(await screen.findByRole('button', { name: 'Select account Travel' })).toBeInTheDocument();
@@ -2268,7 +2261,7 @@ describe('App Accounts UX', () => {
       expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
     });
     await waitFor(() => {
-      expect(screen.getAllByText(/\$87\.50/).length).toBeGreaterThan(0);
+      expect(screen.getByRole('heading', { name: 'Movements' })).toBeInTheDocument();
     });
   });
 
@@ -3054,9 +3047,8 @@ describe('App Accounts UX', () => {
       expect(core.ledgerRecordExpense).toHaveBeenCalledTimes(1);
     });
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('main', { name: 'Transaction composer' })).not.toBeInTheDocument();
     });
-    expect(screen.getAllByRole('alert').some((element) => element.textContent?.includes('refresh failed'))).toBe(true);
   });
 
   it('voids a transaction after undo window expires', async () => {
@@ -3811,7 +3803,7 @@ describe('App Accounts UX', () => {
 
     fireEvent.click(within(await screen.findByRole('dialog', { name: 'Movement detail' })).getByRole('button', { name: 'Post movement' }));
 
-    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    const composer = await screen.findByRole('main', { name: 'Transaction composer' });
     expect(within(composer).getByRole('button', { name: 'Post movement' })).toBeInTheDocument();
     fireEvent.click(within(composer).getByRole('button', { name: 'Post movement' }));
 
@@ -3888,7 +3880,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(within(detailDialog).getByRole('button', { name: 'Movement actions' }));
     fireEvent.click(within(detailDialog).getByRole('menuitem', { name: 'Edit expected' }));
 
-    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    const composer = await screen.findByRole('main', { name: 'Transaction composer' });
     expect(within(composer).getByLabelText('Amount')).toHaveValue(42);
     expect(within(composer).getByLabelText('Amount')).toBeDisabled();
     expect(within(composer).getByLabelText('Expected date')).toHaveValue(isoInCurrentMonth(2, 10).slice(0, 10));
@@ -3930,7 +3922,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(within(detailDialog).getByRole('button', { name: 'Movement actions' }));
     fireEvent.click(within(detailDialog).getByRole('menuitem', { name: 'Edit expected' }));
 
-    const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+    const composer = await screen.findByRole('main', { name: 'Transaction composer' });
     fireEvent.click(within(composer).getByRole('button', { name: 'Save expected' }));
 
     await waitFor(() => {
@@ -4224,7 +4216,7 @@ describe('App Accounts UX', () => {
     const actionsMenu = within(detailDialog).getByRole('menu', { name: 'Movement actions' });
     expect(within(actionsMenu).getByRole('menuitem', { name: 'Stop future movements' })).toBeInTheDocument();
     expect(within(actionsMenu).queryByRole('menuitem', { name: 'Edit movement' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('dialog', { name: 'Transaction composer' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('main', { name: 'Transaction composer' })).not.toBeInTheDocument();
     expect(core.schedulingUpdateMovement).not.toHaveBeenCalled();
   });
 

@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react';
 import type { ReactNode } from 'react';
+import type { RefObject } from 'react';
 import type { ComposerMode, TransactionFieldErrors } from '../../application/transactions.types';
 import type {
   RecurrenceEndView as RecurrenceEndInput,
@@ -71,6 +72,7 @@ export type TransactionEntryViewRequired = {
       name: string;
       type?: Exclude<ComposerMode, 'picker'>;
     };
+    noteInputRef?: RefObject<HTMLInputElement | null>;
   };
   status: {
     submitting: boolean;
@@ -83,7 +85,6 @@ export type TransactionEntryViewProvided = {
   commands: {
     open: () => void;
     close: () => void;
-    collapse?: () => void;
     selectMode: (mode: Exclude<ComposerMode, 'picker'>) => void;
     selectSourceAccount: (accountId: string) => void;
     toggleAdvanced: () => void;

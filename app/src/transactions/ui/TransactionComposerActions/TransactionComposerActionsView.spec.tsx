@@ -24,6 +24,9 @@ describe('TransactionComposerActionsView', () => {
 
     expect(screen.getByRole('button', { name: 'Post now' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Save expected' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Post now' })).toHaveAttribute('name', 'transactionIntent');
+    expect(screen.getByRole('button', { name: 'Post now' })).toHaveValue('post');
+    expect(screen.getByRole('button', { name: 'Save expected' })).toHaveValue('expected');
     expect(screen.getByRole('button', { name: 'Save expected' })).toHaveClass('composer-secondary-cta');
   });
 
@@ -90,5 +93,28 @@ describe('TransactionComposerActionsView', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Update scheduled' })).toBeEnabled();
+  });
+
+  it('disables every available action when the composer is disabled', () => {
+    render(
+      <TransactionComposerActionsView
+        required={{
+          config: {},
+          data: {},
+          state: {
+            splitReady: true,
+            expectedAvailable: true,
+            expected: false,
+            editingScheduledMovement: false,
+            postExpectedMovement: false,
+          },
+          status: { disabled: true },
+        }}
+        provided={{ commands: {} }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Post now' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save expected' })).toBeDisabled();
   });
 });

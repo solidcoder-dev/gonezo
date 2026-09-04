@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { ReactNode } from 'react';
-import { SheetView } from '../../../shared/ui/SheetView';
+import type { RefObject } from 'react';
 import { MultiTagPickerView } from '../../../shared/ui/MultiTagPicker/MultiTagPickerView';
 import { CategoryPickerField } from '../CategoryPickerField/CategoryPickerField';
 import { ScheduleSummaryView } from '../ScheduleControls/ScheduleSummaryView';
@@ -13,6 +13,7 @@ import { TransactionComposerAmountAccessories } from './TransactionComposerAmoun
 import { TransactionComposerChoiceSheets } from './TransactionComposerChoiceSheets';
 import { TransactionComposerContextControls } from './TransactionComposerContextControls';
 import { TransactionComposerEditorSheets } from './TransactionComposerEditorSheets';
+import { TransactionComposerPageView } from './TransactionComposerPageView';
 import { COMPOSER_MODES } from './transactionComposerPresentation';
 import type {
   RecurrenceEndView as RecurrenceEndInput,
@@ -43,6 +44,7 @@ export type TransactionComposerShellRequired = {
     name: string;
     type?: Exclude<ComposerMode, 'picker'>;
   };
+  noteInputRef?: RefObject<HTMLInputElement | null>;
 };
 
 export type TransactionComposerMainFieldsRequired = {
@@ -131,9 +133,7 @@ export type TransactionComposerViewRequired =
   & TransactionComposerSharingRequired;
 
 export type TransactionComposerShellProvided = {
-  onOpen: () => void;
   onClose: () => void;
-  onCollapse?: () => void;
   onSelectMode: (mode: Exclude<ComposerMode, 'picker'>) => void;
   onToggleAdvanced: () => void;
   onSetExpected: (value: boolean) => void;
@@ -315,10 +315,10 @@ export function TransactionComposerView({ required, provided }: Props) {
     recurrenceEndDateError,
     recurrenceEndCountError,
     expectedConflictError,
+    noteInputRef,
   } = required;
   const {
     onClose,
-    onCollapse,
     onSelectMode,
     onSelectSourceAccount,
     onSetAmount,
@@ -456,25 +456,9 @@ export function TransactionComposerView({ required, provided }: Props) {
     onClose();
   }
 
-  function collapseComposer() {
-    resetLocalComposerState();
-    onCollapse?.();
-  }
-
   return (
     <>
-      <SheetView
-        required={{
-          config: {
-            ariaLabel: 'Transaction composer',
-            panelClassName: 'composer-sheet',
-            showHandle: true,
-            dragToClose: !onCollapse,
-            dragDownToCollapse: Boolean(onCollapse),
-            dragSurface: onCollapse ? 'panel' : 'handle',
-          },
-          data: {
-            body: (
+      <TransactionComposerPageView onBack={closeComposer}>
             <form className="composer-form" onSubmit={(event) => { void submitComposer(event); }} aria-busy={disabled} noValidate>
             <div className="composer-form-content vstack gap-2">
               <TransactionComposerContextControls
@@ -504,6 +488,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                     notePlaceholder: mode === 'transfer' ? 'Description' : mode === 'expense' ? 'Cafe' : 'Salary',
                     amountInputRef,
                     dateInputRef,
+                    noteInputRef,
                   },
                   data: {
                     transferTargetOptions,
@@ -530,6 +515,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                     changeDate: onSetDate,
                     changeNote: onSetNote,
                     changeTransferTarget: onSetTransferTarget,
+                    continueEditing: () => noteInputRef?.current?.focus(),
                   },
                 }}
               />
@@ -734,13 +720,7 @@ export function TransactionComposerView({ required, provided }: Props) {
               provided={{ commands: {} }}
             />
             </form>
-          ),
-          },
-          state: { open: true },
-          status: {},
-        }}
-        provided={{ commands: { close: closeComposer, collapse: collapseComposer } }}
-      />
+      </TransactionComposerPageView>
       <TransactionComposerChoiceSheets
         required={{
           disabled,

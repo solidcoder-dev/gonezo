@@ -4,7 +4,7 @@ export type ComposerMovementMode = 'Expense' | 'Income' | 'Transfer';
 
 export async function openMode(mode: ComposerMovementMode) {
   fireEvent.click(screen.getByRole('button', { name: 'Add movement' }));
-  const composer = await screen.findByRole('dialog', { name: 'Transaction composer' });
+  const composer = await screen.findByRole('main', { name: 'Transaction composer' });
   if (mode !== 'Expense') {
     await selectComposerMovementType(composer, mode);
   }

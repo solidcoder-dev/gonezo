@@ -27,10 +27,10 @@ export type TransactionEntryModelPorts = {
 };
 export type TransactionEntryModelClock = { now(): Date; todayIso(): string; resolveOccurredAt(dateInput: string): string; dayOfMonthFromDateInput(dateInput: string): string; weekDayIsoFromDateInput(dateInput: string): string; resolveTimeZoneId(): string };
 export type TransactionEntryModelIdGenerator = { nextId(): string };
-type UseTransactionEntryModelInput = { ports: TransactionEntryModelPorts; clock: TransactionEntryModelClock; idGenerator: TransactionEntryModelIdGenerator; accountId: string | null; enabled: boolean; prefillRequest?: TransactionEntryPrefillRequest; openSignal?: number; initialMode?: TransactionEntryInitialMode; movementAccountContext?: { name: string; type?: TransactionEntryInitialMode }; onRecorded?: () => void; onClosed?: () => void; onCollapsed?: () => void; onAccountChanged?: (account: { id: string; name: string }) => void; onError?: (error: { message: string }) => void };
+type UseTransactionEntryModelInput = { ports: TransactionEntryModelPorts; clock: TransactionEntryModelClock; idGenerator: TransactionEntryModelIdGenerator; accountId: string | null; enabled: boolean; prefillRequest?: TransactionEntryPrefillRequest; openSignal?: number; initialMode?: TransactionEntryInitialMode; movementAccountContext?: { name: string; type?: TransactionEntryInitialMode }; onRecorded?: () => void; onClosed?: () => void; onAccountChanged?: (account: { id: string; name: string }) => void; onError?: (error: { message: string }) => void };
 
 export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
-  const { ports, clock, idGenerator, accountId, enabled, prefillRequest, openSignal, initialMode, movementAccountContext, onRecorded, onClosed, onCollapsed, onAccountChanged, onError } = input;
+  const { ports, clock, idGenerator, accountId, enabled, prefillRequest, openSignal, initialMode, movementAccountContext, onRecorded, onClosed, onAccountChanged, onError } = input;
   const initialToday = clock.todayIso();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -523,6 +523,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
           await refreshAccountSnapshot();
         } finally {
           setRefreshing(false);
+          onClosed?.();
         }
       }
     } catch (err) {
@@ -602,7 +603,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     commands: {
       open: openTransactionComposer,
       close: () => finishTransactionComposer(onClosed),
-      collapse: () => finishTransactionComposer(onCollapsed),
       selectMode: selectComposerMode,
       selectSourceAccount,
       toggleAdvanced: () => setComposerAdvancedOpen((previous) => !previous),

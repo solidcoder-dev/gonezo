@@ -1,4 +1,4 @@
-import { useState, type RefObject } from 'react';
+import { useEffect, useState, type RefObject } from 'react';
 import type { ViewProps } from '../ViewProps';
 import { AmountCalculatorSheetView } from './AmountCalculatorSheetView';
 import styles from './AmountInputView.module.css';
@@ -14,17 +14,19 @@ export type AmountInputViewProps = ViewProps<
   Record<string, never>,
   { value: string },
   { disabled?: boolean; error?: string },
-  { change: (value: string) => void }
+  { change: (value: string) => void; continueEditing?: () => void }
 >;
 
 export function AmountInputView({ required, provided }: AmountInputViewProps) {
   const { label, currency, placeholder, inputRef, calculatorEnabled: configuredCalculatorEnabled } = required.config;
   const { state, status } = required;
   const [calculatorOpen, setCalculatorOpen] = useState(false);
+  const [continueAfterCalculator, setContinueAfterCalculator] = useState(false);
   const calculatorEnabled = configuredCalculatorEnabled ?? true;
   const errorId = `${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-error`;
 
   function openCalculator() {
+    setContinueAfterCalculator(false);
     setCalculatorOpen(true);
   }
 
@@ -32,9 +34,16 @@ export function AmountInputView({ required, provided }: AmountInputViewProps) {
     setCalculatorOpen(false);
   }
 
-  function commitCalculatorValue(value: string) {
+  function useCalculatorResult(value: string) {
     provided.commands.change(value);
+    setContinueAfterCalculator(true);
+    closeCalculator();
   }
+
+  useEffect(() => {
+    if (calculatorOpen || !continueAfterCalculator) return;
+    provided.commands.continueEditing?.();
+  }, [calculatorOpen, continueAfterCalculator, provided.commands]);
 
   return (
     <>
@@ -77,7 +86,7 @@ export function AmountInputView({ required, provided }: AmountInputViewProps) {
         open={calculatorOpen}
         initialValue={state.value}
         currency={currency}
-        onCommit={commitCalculatorValue}
+        onUseResult={useCalculatorResult}
         onDismiss={closeCalculator}
       />
     </>

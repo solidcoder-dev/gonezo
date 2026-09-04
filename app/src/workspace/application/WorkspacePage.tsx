@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { TransactionsImportFileReaderPort } from '../../imports/application/transactionsImportFileReader.port';
 import { MovementDockNavigationComponent, TransactionEntryComponent } from '../../transactions/index';
@@ -44,6 +44,20 @@ export type WorkspacePagePort = AccountWorkspacePort & MovementsBackupPort & App
 type WorkspacePageProps = {
   required: WorkspacePageRequired;
 };
+
+type MovementEntryNavigationState = {
+  returnTo: string;
+};
+
+function readMovementEntryReturnTo(state: unknown): string | null {
+  if (!state || typeof state !== 'object' || !('returnTo' in state)) {
+    return null;
+  }
+  const returnTo = state.returnTo;
+  return typeof returnTo === 'string' && returnTo.startsWith('/') && returnTo !== '/movements/new'
+    ? returnTo
+    : null;
+}
 
 export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const location = useLocation();
@@ -123,11 +137,55 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   });
   const openNotifications = () => undefined;
 
-  function collapseMovementComposerToDraft() {
-    clearMovementEntryAccount();
+  function navigateToMovementEntry() {
+    const state: MovementEntryNavigationState = {
+      returnTo: `${location.pathname}${location.search}`,
+    };
+    void navigate('/movements/new', { state });
   }
 
-  const transactionEntry = transactionEntryAccountId
+  function handleCreateMovement(movement: Parameters<typeof createMovementForAccount>[0]) {
+    createMovementForAccount(movement);
+    navigateToMovementEntry();
+  }
+
+  function handleCreateMovementFromDraft(movement: Parameters<typeof createMovementForDraft>[0]) {
+    createMovementForDraft(movement);
+    navigateToMovementEntry();
+  }
+
+  function handleDuplicateMovement(movement: Parameters<typeof duplicateMovement>[0]) {
+    duplicateMovement(movement);
+    navigateToMovementEntry();
+  }
+
+  function handleEditExpectedMovement(...args: Parameters<typeof editExpectedMovement>) {
+    editExpectedMovement(...args);
+    navigateToMovementEntry();
+  }
+
+  function handlePostExpectedMovement(...args: Parameters<typeof postExpectedMovement>) {
+    postExpectedMovement(...args);
+    navigateToMovementEntry();
+  }
+
+  function closeMovementEntry() {
+    clearMovementEntryAccount();
+    const returnTo = readMovementEntryReturnTo(location.state);
+    if (returnTo) {
+      void navigate(returnTo);
+      return;
+    }
+    void navigate('/movements');
+  }
+
+  useEffect(() => {
+    if (currentPage === 'movementNew' && !transactionEntryAccountId) {
+      void navigate('/movements');
+    }
+  }, [currentPage, navigate, screenLoadPhase, transactionEntryAccountId]);
+
+  const transactionEntry = currentPage === 'movementNew' && transactionEntryAccountId
     ? (
         <TransactionEntryComponent
           required={{
@@ -138,7 +196,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             config: {
               enabled: Boolean(transactionEntryAccountId),
               prefillRequest: transactionEntryPrefill,
-              openSignal: movementEntryOpenSignal,
+              openSignal: movementEntryOpenSignal || (currentPage === 'movementNew' ? 1 : undefined),
               initialMode: movementEntryType,
               movementAccountContext,
             },
@@ -150,8 +208,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
                 resetTransactionEntryPrefill();
                 clearMovementEntryAccount();
               },
-              onClosed: clearMovementEntryAccount,
-              onCollapsed: collapseMovementComposerToDraft,
+              onClosed: closeMovementEntry,
               onAccountChanged: changeMovementComposerAccount,
             },
           }}
@@ -178,9 +235,9 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             }}
             provided={{
               events: {
-                onCreateMovementRequested: createMovementForAccount,
+                onCreateMovementRequested: handleCreateMovement,
                 onMovementEntryDraftReady: ({ account, draft }) => {
-                  createMovementForDraft({ account, draft });
+                  handleCreateMovementFromDraft({ account, draft });
                 },
                 onNotice: (notice) => {
                   if (notice.tone === 'info') {
@@ -226,7 +283,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             }}
             provided={{
               events: {
-                onCreateMovementRequested: createMovementForAccount,
+                onCreateMovementRequested: handleCreateMovement,
                 onError: (notice) => {
                   showError({ message: notice.message });
                 },
@@ -290,9 +347,9 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           onVoided: () => {
             refresh('accountSummary', 'netWorth', 'recentTransactions', 'analytics');
           },
-          onPostExpectedMovement: postExpectedMovement,
-          onEditExpectedMovement: editExpectedMovement,
-          onDuplicateMovement: duplicateMovement,
+          onPostExpectedMovement: handlePostExpectedMovement,
+          onEditExpectedMovement: handleEditExpectedMovement,
+          onDuplicateMovement: handleDuplicateMovement,
         },
       }}
     />
@@ -306,9 +363,9 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       }}
       provided={{
         events: {
-          onPostExpectedMovement: postExpectedMovement,
-          onEditExpectedMovement: editExpectedMovement,
-          onDuplicateMovement: duplicateMovement,
+          onPostExpectedMovement: handlePostExpectedMovement,
+          onEditExpectedMovement: handleEditExpectedMovement,
+          onDuplicateMovement: handleDuplicateMovement,
         },
       }}
     />
@@ -540,7 +597,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       transactionEntry: (
         <>
           {transactionEntry}
-          {currentPage === 'movementsSearch' ? null : dockNavigation}
+          {currentPage === 'movementsSearch' || currentPage === 'movementNew' ? null : dockNavigation}
         </>
       ),
       recentTransactions: currentPage === 'movements' ? movementsPage : null,

@@ -19,8 +19,6 @@ export type CalculatorAction =
 
 export type CalculatorTransition = {
   state: CalculatorState;
-  resolvedValue?: string;
-  finished?: boolean;
 };
 
 const MONEY_SCALE = 100n;
@@ -102,17 +100,26 @@ export function transitionCalculator(state: CalculatorState, action: CalculatorA
     const result = calculate(state.leftOperand ?? '0', state.display, state.pendingOperator);
     return result === null
       ? { state: { ...state, display: 'Error', error: 'Cannot divide by zero' } }
-      : { state: { ...state, display: result, leftOperand: result, pendingOperator: action.value, awaitingOperand: true }, resolvedValue: result };
+      : { state: { ...state, display: result, leftOperand: result, pendingOperator: action.value, awaitingOperand: true } };
   }
 
   if (!state.pendingOperator || state.leftOperand === null) {
     const result = formatMoney(parseMoney(state.display));
-    return { state: { ...state, display: result, awaitingOperand: true }, resolvedValue: result, finished: true };
+    return { state: { ...state, display: result, awaitingOperand: true } };
   }
   const result = calculate(state.leftOperand, state.display, state.pendingOperator);
   return result === null
     ? { state: { ...state, display: 'Error', error: 'Cannot divide by zero' } }
-    : { state: { display: result, leftOperand: null, pendingOperator: null, awaitingOperand: true, error: null }, resolvedValue: result, finished: true };
+    : { state: { display: result, leftOperand: null, pendingOperator: null, awaitingOperand: true, error: null } };
+}
+
+export function resolveCalculatorValue(state: CalculatorState): string | null {
+  if (state.error || state.display === 'Error') return null;
+  if (state.pendingOperator && state.awaitingOperand) return null;
+  if (!state.pendingOperator || state.leftOperand === null) {
+    return normalizeCalculatorAmount(state.display);
+  }
+  return calculate(state.leftOperand, state.display, state.pendingOperator);
 }
 
 export function calculatorReducer(state: CalculatorState, action: CalculatorAction): CalculatorState {

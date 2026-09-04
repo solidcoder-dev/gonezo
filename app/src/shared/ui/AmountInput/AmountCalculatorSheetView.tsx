@@ -3,6 +3,7 @@ import { SheetView } from '../SheetView';
 import styles from './AmountCalculatorSheetView.module.css';
 import {
   createCalculatorState,
+  resolveCalculatorValue,
   transitionCalculator,
   type CalculatorAction,
 } from './calculatorEngine';
@@ -11,7 +12,7 @@ export type AmountCalculatorSheetViewProps = {
   open: boolean;
   initialValue: string;
   currency?: string;
-  onCommit: (value: string) => void;
+  onUseResult: (value: string) => void;
   onDismiss: () => void;
 };
 
@@ -30,14 +31,17 @@ const KEYPAD_ROWS: Array<Array<CalculatorAction & { label: string; display: stri
   ],
 ];
 
-export function AmountCalculatorSheetView({ open, initialValue, currency, onCommit, onDismiss }: AmountCalculatorSheetViewProps) {
+export function AmountCalculatorSheetView({ open, initialValue, currency, onUseResult, onDismiss }: AmountCalculatorSheetViewProps) {
   const [calculatorState, setCalculatorState] = useState(() => createCalculatorState(initialValue));
 
   function dispatch(action: CalculatorAction) {
     const transition = transitionCalculator(calculatorState, action);
     setCalculatorState(transition.state);
-    if (transition.resolvedValue) onCommit(transition.resolvedValue);
-    if (transition.finished && transition.resolvedValue) onDismiss();
+  }
+
+  function useResultAndContinue() {
+    const result = resolveCalculatorValue(calculatorState);
+    if (result !== null) onUseResult(result);
   }
 
   return (
@@ -60,6 +64,9 @@ export function AmountCalculatorSheetView({ open, initialValue, currency, onComm
               <div className={styles.keypad} role="group" aria-label="Calculator keypad">
                 {KEYPAD_ROWS.flat().map((key) => <button key={key.label} type="button" className={`${styles.key} ${key.type === 'operator' ? styles.operator : ''} ${key.type === 'equals' ? styles.equals : ''}`} aria-label={key.label} onClick={() => dispatch(key)}>{key.display}</button>)}
               </div>
+              <button type="button" className={styles.continue} aria-label="Use result and continue" onClick={useResultAndContinue}>
+                <i className="bi bi-arrow-right" aria-hidden />
+              </button>
             </div>
           ),
         },

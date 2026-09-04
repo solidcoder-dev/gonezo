@@ -11,4 +11,16 @@ describe('resolveWorkspaceRoutePage', () => {
     expect(resolveWorkspaceRoutePage('/movements')).toBe('movements');
     expect(resolveWorkspaceRoutePage('/movements/2026-07')).toBe('movements');
   });
+
+  it('resolves the movement entry screen before the generic movement route', () => {
+    expect(resolveWorkspaceRoutePage('/movements/new')).toBe('movementNew');
+  });
+
+  it('keeps current workspace routes stable', () => {
+    expect(resolveWorkspaceRoutePage('/')).toBe('home');
+    expect(resolveWorkspaceRoutePage('/home')).toBe('home');
+    expect(resolveWorkspaceRoutePage('/accounts')).toBe('home');
+    expect(resolveWorkspaceRoutePage('/analytics')).toBe('analytics');
+    expect(resolveWorkspaceRoutePage('/profile')).toBe('profile');
+  });
 });

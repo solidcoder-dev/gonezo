@@ -6,5 +6,6 @@
 .key { min-height: var(--touch-target-min); padding: var(--space-sm); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-primary); font-size: 1.35rem; font-variant-numeric: tabular-nums; }
 .key:hover, .key:focus-visible, .displayControl:hover, .displayControl:focus-visible { background: var(--color-surface-muted); }
 .operator { color: var(--color-action-primary); font-weight: 700; }
-.equals { background: var(--color-action-primary); color: var(--color-on-brand); font-weight: 700; }
-.equals:hover, .equals:focus-visible { background: var(--color-action-primary-hover); }
+.equals { color: var(--color-action-primary); font-weight: 600; }
+.continue { width: 100%; min-height: var(--touch-target-min); border: 0; border-radius: var(--radius-sm); background: var(--color-action-primary); color: var(--color-on-brand); font-size: 1.35rem; }
+.continue:hover, .continue:focus-visible { background: var(--color-action-primary-hover); }

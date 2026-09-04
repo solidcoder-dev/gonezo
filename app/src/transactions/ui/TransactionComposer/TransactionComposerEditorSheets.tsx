@@ -89,7 +89,7 @@ export function TransactionComposerEditorSheets({ required, provided }: Transact
         required={{
           config: {
             ariaLabel: required.scheduleEditorTitle,
-            panelClassName: 'composer-sheet composer-schedule-sheet',
+            panelClassName: 'composer-auxiliary-sheet composer-schedule-sheet',
           },
           data: {
             body: (
@@ -146,7 +146,7 @@ export function TransactionComposerEditorSheets({ required, provided }: Transact
             ariaLabel: 'Items',
             title: 'Items',
             closeLabel: 'Close items',
-            panelClassName: 'composer-sheet composer-items-sheet',
+            panelClassName: 'composer-auxiliary-sheet composer-items-sheet',
             contentClassName: 'composer-items-content',
           },
           data: {
@@ -210,7 +210,7 @@ export function TransactionComposerEditorSheets({ required, provided }: Transact
             ariaLabel: 'Share expense',
             title: 'Share expense',
             closeLabel: 'Close share expense',
-            panelClassName: 'composer-sheet composer-share-sheet',
+            panelClassName: 'composer-auxiliary-sheet composer-share-sheet',
             contentClassName: 'composer-share-content',
           },
           data: {
@@ -227,7 +227,7 @@ export function TransactionComposerEditorSheets({ required, provided }: Transact
             ariaLabel: 'More',
             title: 'More',
             closeLabel: 'Close more',
-            panelClassName: 'composer-sheet composer-more-sheet',
+            panelClassName: 'composer-auxiliary-sheet composer-more-sheet',
           },
           data: {
             body: (

@@ -14,7 +14,7 @@ function renderAmount(value = '10.00', change = vi.fn()) {
 }
 
 describe('AmountInputView calculator', () => {
-  it('opens with an accessible, minimal calculator and commits equals', () => {
+  it('calculates with equals and commits only with the arrow', () => {
     const change = vi.fn();
     renderAmount('10.00', change);
 
@@ -35,6 +35,9 @@ describe('AmountInputView calculator', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Decimal' }));
     fireEvent.click(screen.getByRole('button', { name: 'Digit 5' }));
     fireEvent.click(screen.getByRole('button', { name: 'Equals' }));
+    expect(change).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: 'Amount calculator' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Use result and continue' }));
     expect(change).toHaveBeenCalledTimes(1);
     expect(change).toHaveBeenCalledWith('12.50');
     expect(screen.queryByRole('dialog', { name: 'Amount calculator' })).not.toBeInTheDocument();
@@ -67,7 +70,7 @@ describe('AmountInputView calculator', () => {
     expect(screen.queryByRole('dialog', { name: 'Amount calculator' })).not.toBeInTheDocument();
   });
 
-  it('keeps the last resolved amount when dismissed after a new incomplete operand', () => {
+  it('keeps the original amount when dismissed after calculations', () => {
     const change = vi.fn();
     const registry = createBackDismissableRegistry();
     render(
@@ -81,12 +84,10 @@ describe('AmountInputView calculator', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Digit 2' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     fireEvent.click(screen.getByRole('button', { name: 'Digit 3' }));
-    expect(change).toHaveBeenLastCalledWith('12.00');
-
     act(() => {
       expect(registry.dismissTopmost()).toBe(true);
     });
-    expect(change).toHaveBeenCalledTimes(1);
+    expect(change).not.toHaveBeenCalled();
   });
 
   it('keeps division by zero controlled and exposes disabled behavior', () => {
@@ -101,7 +102,37 @@ describe('AmountInputView calculator', () => {
     expect(change).not.toHaveBeenCalled();
   });
 
-  it('commits an immediate result and keeps the sheet open for the next operand', () => {
+  it('does not commit an incomplete operation with the arrow', () => {
+    const change = vi.fn();
+    renderAmount('10.00', change);
+    fireEvent.click(screen.getByRole('button', { name: 'Open amount calculator' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use result and continue' }));
+
+    expect(change).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: 'Amount calculator' })).toBeInTheDocument();
+  });
+
+  it('requests focus continuation only after using a result', () => {
+    const change = vi.fn();
+    const continueEditing = vi.fn();
+    render(
+      <AmountInputView
+        required={{ config: { label: 'Amount', currency: 'EUR' }, data: {}, state: { value: '10.00' }, status: {} }}
+        provided={{ commands: { change, continueEditing } }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open amount calculator' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Digit 5' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use result and continue' }));
+
+    expect(change).toHaveBeenCalledWith('15.00');
+    expect(continueEditing).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps intermediate results local and the sheet open', () => {
     const change = vi.fn();
     renderAmount('10.00', change);
     fireEvent.click(screen.getByRole('button', { name: 'Open amount calculator' }));
@@ -109,15 +140,15 @@ describe('AmountInputView calculator', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Digit 2' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
-    expect(change).toHaveBeenCalledWith('12.00');
+    expect(change).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog', { name: 'Amount calculator' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Digit 3' }));
     fireEvent.click(screen.getByRole('button', { name: 'Equals' }));
-    expect(change).toHaveBeenLastCalledWith('15.00');
+    expect(change).not.toHaveBeenCalled();
   });
 
-  it('commits a direct amount when equals is pressed without an operation', () => {
+  it('commits a direct amount only with the arrow', () => {
     const change = vi.fn();
     renderAmount('0.00', change);
     fireEvent.click(screen.getByRole('button', { name: 'Open amount calculator' }));
@@ -125,6 +156,8 @@ describe('AmountInputView calculator', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Digit 2' }));
     fireEvent.click(screen.getByRole('button', { name: 'Digit 5' }));
     fireEvent.click(screen.getByRole('button', { name: 'Equals' }));
+    expect(change).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Use result and continue' }));
 
     expect(change).toHaveBeenCalledWith('25.00');
   });

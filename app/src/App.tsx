@@ -15,7 +15,7 @@ const defaultCore = new CoreAdapter();
 const defaultImportFileReader = { readAsBase64: readImportFileAsBase64 };
 const defaultMovementVoiceEntryContext = createDefaultMovementVoiceEntryContext();
 const defaultExperimentalFeatures = new LocalExperimentalFeaturesAdapter();
-const workspaceRoutes = ['/', '/home', '/accounts', '/analytics', '/movements', '/movements/search', '/profile'];
+const workspaceRoutes = ['/', '/home', '/accounts', '/analytics', '/movements', '/movements/new', '/movements/search', '/profile'];
 
 export type AppPort = WorkspacePagePort & TaxonomyPagePort;
 

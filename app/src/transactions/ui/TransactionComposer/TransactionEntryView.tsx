@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { TransactionComposerView } from './TransactionComposerView';
 import type { TransactionEntryViewProps } from './TransactionEntryView.contract';
 
@@ -8,6 +9,7 @@ export type {
 } from './TransactionEntryView.contract';
 
 export function TransactionEntryView({ required, provided }: TransactionEntryViewProps) {
+  const noteInputRef = useRef<HTMLInputElement | null>(null);
   return (
     <TransactionComposerView
       required={{
@@ -68,6 +70,7 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         postExpectedMovementId: required.state.postExpectedMovementId,
         currencyCode: required.state.currencyCode,
         movementAccountContext: required.state.movementAccountContext,
+        noteInputRef,
         expenseItemNameError: required.status.errors.expenseItemName,
         expenseItemAmountError: required.status.errors.expenseItemAmount,
         expenseSplitError: required.status.errors.expenseSplit,
@@ -81,9 +84,7 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         expectedConflictError: required.status.errors.expectedConflict,
       }}
       provided={{
-        onOpen: provided.commands.open,
         onClose: provided.commands.close,
-        onCollapse: provided.commands.collapse,
         onSelectMode: provided.commands.selectMode,
         onSelectSourceAccount: provided.commands.selectSourceAccount,
         onToggleAdvanced: provided.commands.toggleAdvanced,
