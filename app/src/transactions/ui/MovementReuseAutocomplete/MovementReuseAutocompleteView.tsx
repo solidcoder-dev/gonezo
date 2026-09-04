@@ -1,5 +1,6 @@
 import type { MovementReuseSuggestionGroup, MovementReuseSuggestionVariant } from '../../../movements/application/movementReuseSuggestions.port';
 import styles from './MovementReuseAutocompleteView.module.css';
+import { MovementReuseVariantMetadata } from './MovementReuseVariantMetadata';
 
 export type MovementReuseAutocompleteViewProps = {
   query: string;
@@ -14,11 +15,6 @@ export type MovementReuseAutocompleteViewProps = {
   onToggleGroup: (group: MovementReuseSuggestionGroup) => void;
   onSelectVariant: (selection: { title: string; variant: MovementReuseSuggestionVariant }) => void;
 };
-
-function variantSummary(variant: MovementReuseSuggestionVariant): string {
-  const parts = [variant.accountName, variant.category?.name, ...variant.tags.map((tag) => `#${tag.name}`)].filter(Boolean);
-  return parts.join(' · ');
-}
 
 export function MovementReuseAutocompleteView({
   query,
@@ -58,7 +54,7 @@ export function MovementReuseAutocompleteView({
               <div className={styles.row}>
                 <button type="button" role="option" aria-selected="false" className={styles.selection} onClick={() => onSelectVariant({ title: group.title, variant: group.primaryVariant })}>
                   <span className={styles.title}>{group.title}</span>
-                  <span className={styles.meta}>{variantSummary(group.primaryVariant)}{group.primaryVariant.itemCount > 0 ? ` · ◫ ${group.primaryVariant.itemCount}` : ''}{group.primaryVariant.shareCount > 0 ? ` · 👥 ${group.primaryVariant.shareCount}` : ''}</span>
+                  <MovementReuseVariantMetadata variant={group.primaryVariant} />
                 </button>
                 {group.variantCount > 1 ? (
                   <button type="button" className={styles.expand} aria-label={`Show ${group.variantCount - 1} other ${group.title} variants`} onClick={() => onToggleGroup(group)}>
@@ -68,7 +64,7 @@ export function MovementReuseAutocompleteView({
               </div>
               {expandedTitle === group.normalizedTitle ? variants.map((variant) => (
                 <button key={variant.deterministicKey} type="button" role="option" aria-selected="false" className={styles.alternative} onClick={() => onSelectVariant({ title: group.title, variant })}>
-                  {variantSummary(variant)}
+                  <MovementReuseVariantMetadata variant={variant} />
                 </button>
               )) : null}
             </div>

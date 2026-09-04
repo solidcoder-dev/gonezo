@@ -117,4 +117,17 @@ describe('TransactionEntryComponent movement reuse integration', () => {
     }));
     expect(group).not.toBeInTheDocument();
   });
+
+  it('passes template tags to taxonomy prefill and keeps them selected', async () => {
+    const { core, movementReuseGetTemplate } = makeCore();
+    vi.mocked(movementReuseGetTemplate).mockResolvedValue({
+      representativeMovementId: 'movement-mercadona', title: 'Mercadona', accountId: 'account-1', accountName: 'Checking', financialType: 'expense',
+      category: { id: 'cat-1', name: 'Groceries' }, tags: [{ id: 'tag-food', name: 'Food' }, { id: 'tag-weekly', name: 'Weekly' }], itemNames: [], sharingPeople: [], ignored: false,
+    });
+    renderComposer(core);
+    fireEvent.change(await screen.findByLabelText('Merchant'), { target: { value: 'merc' } });
+    fireEvent.click(await screen.findByText('Mercadona'));
+    expect(await screen.findByRole('button', { name: 'Remove tag Food' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Remove tag Weekly' })).toBeVisible();
+  });
 });

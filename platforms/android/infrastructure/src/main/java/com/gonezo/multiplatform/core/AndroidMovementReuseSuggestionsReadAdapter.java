@@ -37,10 +37,10 @@ public final class AndroidMovementReuseSuggestionsReadAdapter implements Movemen
     List<String> ids = transactions.stream().map(AndroidLedgerCore.LedgerTransactionView::id).toList();
     var assignments = taxonomy.listTransactionTaxonomy(ids);
     Map<String, AndroidTaxonomyCore.TaxonomyCategoryView> categories = new HashMap<>();
-    taxonomy.listCategories("expense", false).forEach(value -> categories.put(value.id(), value));
-    taxonomy.listCategories("income", false).forEach(value -> categories.put(value.id(), value));
+    taxonomy.listCategories("expense", true).forEach(value -> categories.put(value.id(), value));
+    taxonomy.listCategories("income", true).forEach(value -> categories.put(value.id(), value));
     Map<String, AndroidTaxonomyCore.TaxonomyTagView> tags = new HashMap<>();
-    taxonomy.listTags(false).forEach(value -> tags.put(value.id(), value));
+    taxonomy.listTags(true).forEach(value -> tags.put(value.id(), value));
     Map<String, AndroidSharingCore.MovementDetailsView> shares = new HashMap<>();
     sharing.listMovementDetails(ids).forEach(value -> { if (value != null && value.share() != null) shares.put(value.share().transactionId(), value); });
     List<MovementReuseCandidateRead> result = new ArrayList<>();
@@ -70,12 +70,13 @@ public final class AndroidMovementReuseSuggestionsReadAdapter implements Movemen
   private MovementReuseTemplateRead template(AndroidLedgerCore.LedgerTransactionView transaction, AndroidLedgerCore.LedgerAccountView account) {
     var assignment = taxonomy.listTransactionTaxonomy(List.of(transaction.id())).get(transaction.id());
     Map<String, AndroidTaxonomyCore.TaxonomyCategoryView> categories = new HashMap<>();
-    taxonomy.listCategories(transaction.type(), false).forEach(value -> categories.put(value.id(), value));
+    taxonomy.listCategories(transaction.type(), true).forEach(value -> categories.put(value.id(), value));
     var category = assignment == null || assignment.categoryId() == null ? null : categories.get(assignment.categoryId());
+    if (category != null && !"active".equals(category.status())) category = null;
     Map<String, AndroidTaxonomyCore.TaxonomyTagView> tags = new HashMap<>();
-    taxonomy.listTags(false).forEach(value -> tags.put(value.id(), value));
+    taxonomy.listTags(true).forEach(value -> tags.put(value.id(), value));
     List<MovementReuseTemplateTaxonomyRef> templateTags = new ArrayList<>();
-    if (assignment != null && assignment.tagIds() != null) for (String tagId : assignment.tagIds()) { var tag = tags.get(tagId); if (tag != null) templateTags.add(new MovementReuseTemplateTaxonomyRef(tag.id(), tag.name())); }
+    if (assignment != null && assignment.tagIds() != null) for (String tagId : assignment.tagIds()) { var tag = tags.get(tagId); if (tag != null && "active".equals(tag.status())) templateTags.add(new MovementReuseTemplateTaxonomyRef(tag.id(), tag.name())); }
     List<MovementReuseTemplatePerson> people = new ArrayList<>();
     var details = sharing.getMovementDetails(transaction.id());
     if (details != null && details.share() != null) for (var participant : details.share().participants()) people.add(new MovementReuseTemplatePerson(participant.personId(), participant.displayName(), null, participant.reimbursable(), null));

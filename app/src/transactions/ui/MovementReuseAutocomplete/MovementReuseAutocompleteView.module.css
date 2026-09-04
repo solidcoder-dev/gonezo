@@ -34,16 +34,36 @@
 }
 
 .title,
-.meta {
+.metadataSummary {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.meta,
-.status {
+.metadataRow {
+  display: flex;
+  min-width: 0;
+  gap: 0.5rem;
   color: var(--color-text-muted);
   font-size: 0.8rem;
+}
+
+.metadataSummary {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.metadataCounters {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.status {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  padding: 0.5rem 0.75rem;
 }
 
 .expand {
@@ -53,12 +73,6 @@
   padding: 0.6rem 0.75rem;
 }
 
-.alternative,
-.status {
+.alternative {
   padding: 0.5rem 0.75rem 0.5rem 1.5rem;
-}
-
-.status {
-  padding-left: 0.75rem;
-  font-size: 0.85rem;
 }

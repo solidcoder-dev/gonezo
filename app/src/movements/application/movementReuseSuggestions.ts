@@ -69,7 +69,9 @@ function candidateToVariant(candidate: MovementReuseCandidate, usageCount: numbe
     category: candidate.categoryId && candidate.categoryName
       ? { id: candidate.categoryId, name: candidate.categoryName }
       : undefined,
-    tags: sortedUnique(candidate.tagIds).map((id) => ({ id, name: candidate.tagNames?.[id] ?? id })),
+    tags: sortedUnique(candidate.tagIds)
+      .map((id) => candidate.tagNames?.[id] ? { id, name: candidate.tagNames[id] } : undefined)
+      .filter((tag): tag is { id: string; name: string } => tag != null),
     itemCount: candidate.itemNames.length,
     shareCount: candidate.sharePersonIds.length,
     usageCount,

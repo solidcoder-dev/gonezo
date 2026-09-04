@@ -88,8 +88,11 @@ export class WebMovementReuseSuggestionsService implements MovementReuseSuggesti
               ? categoryById.get(transaction.categoryId)?.name
               : undefined
             : undefined,
-          tagIds: tags.filter((id) => tagById.get(id)?.status === 'active'),
-          tagNames: Object.fromEntries(tags.map((id) => [id, tagById.get(id)?.name ?? id])),
+          tagIds: tags.filter((id) => tagById.has(id)),
+          tagNames: Object.fromEntries(tags.flatMap((id) => {
+            const tag = tagById.get(id);
+            return tag ? [[id, tag.name]] : [];
+          })),
           itemNames: transaction.items.map((item) => item.name),
           sharePersonIds: share?.participants.map((participant) => participant.personId).filter((id) => personById.get(id)?.archivedAt == null) ?? [],
           lastUsedAt: transaction.occurredAt,

@@ -49,10 +49,22 @@ class MovementReuseSuggestionsQueryTest {
         assertThat(variant.tags).allMatch { it.name != it.id }
     }
 
-    private fun row(id: String, accountName: String, accountId: String = "main", posted: Boolean = true, valid: Boolean = true, title: String = " Mercadona ") = MovementReuseCandidateRead(
+    @Test
+    fun `calculates item and share counts in the query read model`() {
+        val variant = MovementReuseSuggestionsQueryService(object : MovementReuseSuggestionsReadPort {
+            override fun readPostedCandidates(accountIds: Set<String>) = listOf(
+                row("one", "Main", itemNames = listOf("Milk", "Bread"), sharePersonIds = listOf("person-1", "person-2", "person-3")),
+            )
+        }).search(MovementReuseSuggestionsQuery("merc", emptySet())).groups.single().primaryVariant
+
+        assertThat(variant.itemCount).isEqualTo(2)
+        assertThat(variant.shareCount).isEqualTo(3)
+    }
+
+    private fun row(id: String, accountName: String, accountId: String = "main", posted: Boolean = true, valid: Boolean = true, title: String = " Mercadona ", itemNames: List<String> = emptyList(), sharePersonIds: List<String> = emptyList()) = MovementReuseCandidateRead(
         movementId = id, title = title, accountId = accountId, accountName = accountName,
         financialType = "expense", category = MovementReuseTaxonomyRef("groceries", "Groceries"),
-        tags = listOf(MovementReuseTaxonomyRef("food", "Food")), itemNames = emptyList(), sharePersonIds = emptyList(),
+        tags = listOf(MovementReuseTaxonomyRef("food", "Food")), itemNames = itemNames, sharePersonIds = sharePersonIds,
         posted = posted, valid = valid, occurredAt = "2026-01-01T00:00:00Z",
     )
 }
