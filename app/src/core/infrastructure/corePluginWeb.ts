@@ -407,4 +407,7 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
   async movementsGetDetail(options: MovementsGetDetailInput): Promise<MovementsGetDetailResult> {
     return this.core.movementsGetDetail(options);
   }
+
+  async movementReuseSearchGroups(options: Parameters<CorePlugin['movementReuseSearchGroups']>[0]) { return this.core.movementReuseSearchGroups(options); }
+  async movementReuseListVariants(options: Parameters<CorePlugin['movementReuseListVariants']>[0]) { return this.core.movementReuseListVariants(options); }
 }

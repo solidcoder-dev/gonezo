@@ -71,6 +71,7 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         currencyCode: required.state.currencyCode,
         movementAccountContext: required.state.movementAccountContext,
         noteInputRef,
+        movementReuse: required.state.movementReuse,
         expenseItemNameError: required.status.errors.expenseItemName,
         expenseItemAmountError: required.status.errors.expenseItemAmount,
         expenseSplitError: required.status.errors.expenseSplit,
@@ -136,6 +137,10 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         onSetMovementIgnored: provided.commands.setMovementIgnored,
         onCloseShareEditor: provided.commands.closeShareEditor,
         onSubmit: provided.commands.submit,
+        onChangeMovementReuseQuery: provided.commands.changeMovementReuseQuery,
+        onCloseMovementReuse: provided.commands.closeMovementReuse,
+        onToggleMovementReuseGroup: provided.commands.toggleMovementReuseGroup,
+        onSelectMovementReuseVariant: provided.commands.selectMovementReuseVariant,
       }}
     />
   );

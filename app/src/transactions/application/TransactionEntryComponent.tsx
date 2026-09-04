@@ -88,6 +88,12 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
     sharing: createSharingGateway(required.context.core),
     taxonomy: createTaxonomyGateway(required.context.core),
     analytics: required.context.core,
+    reuse: required.context.core.movementReuseSearchGroups && required.context.core.movementReuseListVariants
+      ? {
+        movementReuseSearchGroups: required.context.core.movementReuseSearchGroups.bind(required.context.core),
+        movementReuseListVariants: required.context.core.movementReuseListVariants.bind(required.context.core),
+      }
+      : undefined,
   }), [required.context.core]);
 
   const model = useTransactionEntryModel({

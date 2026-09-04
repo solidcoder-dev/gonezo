@@ -11,9 +11,11 @@ class ServicesMasterCategoryMigrationE2ETest {
         try {
             database.migrate()
 
-            assertThat(database.jdbcTemplate.queryForMap(
-                "select name, name_normalized, applies_to, status from taxonomy_categories where name_normalized = 'services' and applies_to = 'expense'",
-            )).containsExactlyEntriesOf(
+            assertThat(
+                database.jdbcTemplate.queryForMap(
+                    "select name, name_normalized, applies_to, status from taxonomy_categories where name_normalized = 'services' and applies_to = 'expense'",
+                ),
+            ).containsExactlyEntriesOf(
                 mapOf(
                     "name" to "Services",
                     "name_normalized" to "services",
@@ -21,14 +23,18 @@ class ServicesMasterCategoryMigrationE2ETest {
                     "status" to "active",
                 ),
             )
-            assertThat(database.jdbcTemplate.queryForObject(
-                "select count(*) from taxonomy_categories where name_normalized = 'services' and applies_to = 'expense'",
-                Int::class.java,
-            )).isEqualTo(1)
-            assertThat(database.jdbcTemplate.queryForObject(
-                "select count(*) from taxonomy_categories where name_normalized in ('bills', 'groceries', 'beauty', 'other')",
-                Int::class.java,
-            )).isEqualTo(5)
+            assertThat(
+                database.jdbcTemplate.queryForObject(
+                    "select count(*) from taxonomy_categories where name_normalized = 'services' and applies_to = 'expense'",
+                    Int::class.java,
+                ),
+            ).isEqualTo(1)
+            assertThat(
+                database.jdbcTemplate.queryForObject(
+                    "select count(*) from taxonomy_categories where name_normalized in ('bills', 'groceries', 'beauty', 'other')",
+                    Int::class.java,
+                ),
+            ).isEqualTo(5)
         } finally {
             database.close()
         }
@@ -49,22 +55,30 @@ class ServicesMasterCategoryMigrationE2ETest {
 
             database.migratePending()
 
-            assertThat(database.jdbcTemplate.queryForList(
-                "select id, name, name_normalized, applies_to, status, created_at, archived_at from taxonomy_categories where id <> '00000000-0000-4000-8000-000000000111' order by id",
-            )).containsExactlyElementsOf(categoriesBefore)
+            assertThat(
+                database.jdbcTemplate.queryForList(
+                    "select id, name, name_normalized, applies_to, status, created_at, archived_at from taxonomy_categories where id <> '00000000-0000-4000-8000-000000000111' order by id",
+                ),
+            ).containsExactlyElementsOf(categoriesBefore)
             assertThat(database.jdbcTemplate.queryForObject("select id from ledger_transactions where id = 'transaction-1'", String::class.java))
                 .isEqualTo("transaction-1")
-            assertThat(database.jdbcTemplate.queryForMap(
-                "select transaction_id, category_id, assigned_at from taxonomy_transaction_assignments where transaction_id = 'transaction-1'",
-            )).isEqualTo(assignmentBefore)
-            assertThat(database.jdbcTemplate.queryForObject(
-                "select count(*) from taxonomy_categories where name_normalized = 'services' and applies_to = 'expense'",
-                Int::class.java,
-            )).isEqualTo(1)
-            assertThat(database.jdbcTemplate.queryForObject(
-                "select status from taxonomy_categories where name_normalized = 'services' and applies_to = 'expense'",
-                String::class.java,
-            )).isEqualTo("active")
+            assertThat(
+                database.jdbcTemplate.queryForMap(
+                    "select transaction_id, category_id, assigned_at from taxonomy_transaction_assignments where transaction_id = 'transaction-1'",
+                ),
+            ).isEqualTo(assignmentBefore)
+            assertThat(
+                database.jdbcTemplate.queryForObject(
+                    "select count(*) from taxonomy_categories where name_normalized = 'services' and applies_to = 'expense'",
+                    Int::class.java,
+                ),
+            ).isEqualTo(1)
+            assertThat(
+                database.jdbcTemplate.queryForObject(
+                    "select status from taxonomy_categories where name_normalized = 'services' and applies_to = 'expense'",
+                    String::class.java,
+                ),
+            ).isEqualTo("active")
         } finally {
             database.close()
         }
@@ -84,9 +98,11 @@ class ServicesMasterCategoryMigrationE2ETest {
 
             database.migratePending()
 
-            assertThat(database.jdbcTemplate.queryForMap(
-                "select id, name, name_normalized, applies_to, status, created_at, archived_at from taxonomy_categories where name_normalized = 'services' and applies_to = 'expense'",
-            )).containsExactlyEntriesOf(
+            assertThat(
+                database.jdbcTemplate.queryForMap(
+                    "select id, name, name_normalized, applies_to, status, created_at, archived_at from taxonomy_categories where name_normalized = 'services' and applies_to = 'expense'",
+                ),
+            ).containsExactlyEntriesOf(
                 mapOf(
                     "id" to "user-services",
                     "name" to "My Services",

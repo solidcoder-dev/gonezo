@@ -101,6 +101,7 @@ import type {
   MovementsGetDetailInput,
   MovementsGetDetailResult,
 } from '../../movements/application/movements.port';
+import type { MovementReuseSuggestionsSearchInput, MovementReuseSuggestionsSearchResult, MovementReuseSuggestionsVariantsInput, MovementReuseSuggestionsVariantsResult } from '../../movements/application/movementReuseSuggestions.port';
 import type {
   AnalyticsListIgnoredMovementsResult,
   AnalyticsSetMovementIgnoredInput,
@@ -211,6 +212,8 @@ export interface CorePlugin {
   movementsGetOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;
   movementsListScheduled(options: MovementsListScheduledInput): Promise<MovementsListScheduledResult>;
   movementsGetDetail(options: MovementsGetDetailInput): Promise<MovementsGetDetailResult>;
+  movementReuseSearchGroups(options: MovementReuseSuggestionsSearchInput): Promise<MovementReuseSuggestionsSearchResult>;
+  movementReuseListVariants(options: MovementReuseSuggestionsVariantsInput): Promise<MovementReuseSuggestionsVariantsResult>;
 }
 
 export const CorePlugin = registerPlugin<CorePlugin>('CorePlugin', {

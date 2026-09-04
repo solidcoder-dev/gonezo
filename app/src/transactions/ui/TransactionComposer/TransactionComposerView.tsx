@@ -21,6 +21,7 @@ import type {
   RecurrenceMonthlyPatternView as RecurrenceMonthlyPattern,
 } from '../../../shared/domain/schedulingView.types';
 import './TransactionComposerView.css';
+import type { MovementReuseSuggestionGroup, MovementReuseSuggestionVariant } from '../../../movements/application/movementReuseSuggestions.port';
 
 export type ComposerMode = 'picker' | 'expense' | 'income' | 'transfer';
 
@@ -54,6 +55,10 @@ export type TransactionComposerMainFieldsRequired = {
   note: string;
   amountError?: string;
   dateError?: string;
+  movementReuse?: {
+    query: string; open: boolean; loading: boolean; groups: MovementReuseSuggestionGroup[];
+    expandedTitle: string | null; variants: MovementReuseSuggestionVariant[]; error: string;
+  };
 };
 
 export type TransactionComposerTaxonomyRequired = {
@@ -146,6 +151,10 @@ export type TransactionComposerMainFieldsProvided = {
   onSetAmount: (value: string) => void;
   onSetDate: (value: string) => void;
   onSetNote: (value: string) => void;
+  onChangeMovementReuseQuery?: (value: string) => void;
+  onCloseMovementReuse?: () => void;
+  onToggleMovementReuseGroup?: (group: MovementReuseSuggestionGroup) => void;
+  onSelectMovementReuseVariant?: (variant: MovementReuseSuggestionVariant, title?: string) => void;
 };
 
 export type TransactionComposerTaxonomyProvided = {
@@ -258,6 +267,7 @@ export function TransactionComposerView({ required, provided }: Props) {
     date,
     nextScheduledOccurrenceDate,
     note,
+    movementReuse,
     categoryId,
     categoryOptions,
     tagInput,
@@ -489,6 +499,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                     amountInputRef,
                     dateInputRef,
                     noteInputRef,
+                    movementReuse,
                   },
                   data: {
                     transferTargetOptions,
@@ -516,6 +527,10 @@ export function TransactionComposerView({ required, provided }: Props) {
                     changeNote: onSetNote,
                     changeTransferTarget: onSetTransferTarget,
                     continueEditing: () => noteInputRef?.current?.focus(),
+                    changeMovementReuseQuery: provided.onChangeMovementReuseQuery,
+                    closeMovementReuse: provided.onCloseMovementReuse,
+                    toggleMovementReuseGroup: provided.onToggleMovementReuseGroup,
+                    selectMovementReuseVariant: provided.onSelectMovementReuseVariant,
                   },
                 }}
               />

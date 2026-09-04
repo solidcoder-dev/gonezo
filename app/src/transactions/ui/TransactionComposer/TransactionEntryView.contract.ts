@@ -8,6 +8,7 @@ import type {
   RecurrenceMonthlyPatternView as RecurrenceMonthlyPattern,
 } from '../../../shared/domain/schedulingView.types';
 import type { ShareDraft, SharingPersonSuggestion } from '../../../sharing/domain/shareDraft';
+import type { MovementReuseSuggestionGroup, MovementReuseSuggestionVariant } from '../../../movements/application/movementReuseSuggestions.port';
 
 export type TransactionEntryViewRequired = {
   state: {
@@ -73,6 +74,10 @@ export type TransactionEntryViewRequired = {
       type?: Exclude<ComposerMode, 'picker'>;
     };
     noteInputRef?: RefObject<HTMLInputElement | null>;
+    movementReuse?: {
+      query: string; open: boolean; loading: boolean; groups: MovementReuseSuggestionGroup[];
+      expandedTitle: string | null; variants: MovementReuseSuggestionVariant[]; error: string;
+    };
   };
   status: {
     submitting: boolean;
@@ -139,6 +144,10 @@ export type TransactionEntryViewProvided = {
     applyShareDraft: (summary: { peopleCount: number; total: string }, draft: ShareDraft) => void;
     removeShareDraft: () => void;
     submit: (event: FormEvent) => Promise<void>;
+    changeMovementReuseQuery?: (value: string) => void;
+    closeMovementReuse?: () => void;
+    toggleMovementReuseGroup?: (group: MovementReuseSuggestionGroup) => void;
+    selectMovementReuseVariant?: (variant: MovementReuseSuggestionVariant, title?: string) => void;
   };
 };
 

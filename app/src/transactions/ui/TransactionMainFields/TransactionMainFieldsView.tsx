@@ -3,6 +3,8 @@ import type { ViewProps } from '../../../shared/ui/ViewProps';
 import { AmountInputView } from '../../../shared/ui/AmountInput/AmountInputView';
 import type { ComposerMode } from '../../application/transactions.types';
 import './TransactionMainFieldsView.css';
+import { MovementReuseAutocompleteView } from '../MovementReuseAutocomplete/MovementReuseAutocompleteView';
+import type { MovementReuseSuggestionGroup, MovementReuseSuggestionVariant } from '../../../movements/application/movementReuseSuggestions.port';
 
 export type TransactionMainFieldsViewProps = ViewProps<
   {
@@ -15,6 +17,10 @@ export type TransactionMainFieldsViewProps = ViewProps<
     amountInputRef?: RefObject<HTMLInputElement | null>;
     dateInputRef?: RefObject<HTMLInputElement | null>;
     noteInputRef?: RefObject<HTMLInputElement | null>;
+    movementReuse?: {
+      query: string; open: boolean; loading: boolean; groups: MovementReuseSuggestionGroup[];
+      expandedTitle: string | null; variants: MovementReuseSuggestionVariant[]; error: string;
+    };
   },
   {
     transferTargetOptions: Array<{ id: string; name: string; currency: string }>;
@@ -41,6 +47,10 @@ export type TransactionMainFieldsViewProps = ViewProps<
     changeNote: (value: string) => void;
     changeTransferTarget: (value: string) => void;
     continueEditing?: () => void;
+    changeMovementReuseQuery?: (value: string) => void;
+    closeMovementReuse?: () => void;
+    toggleMovementReuseGroup?: (group: MovementReuseSuggestionGroup) => void;
+    selectMovementReuseVariant?: (variant: MovementReuseSuggestionVariant, title?: string) => void;
   }
 >;
 
@@ -72,6 +82,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
     noteLabel,
     notePlaceholder,
     afterAmount,
+    movementReuse,
   } = config;
   const showTransferFields = state.mode === 'transfer';
   const amountVisible = status.amountVisible ?? true;
@@ -137,14 +148,22 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
       {!showTransferFields ? (
         <label className="vstack gap-2">
           <span className="visually-hidden">{noteLabel}</span>
-          <input
+          {movementReuse && provided.commands.changeMovementReuseQuery && provided.commands.closeMovementReuse && provided.commands.toggleMovementReuseGroup && provided.commands.selectMovementReuseVariant ? (
+            <MovementReuseAutocompleteView
+              {...movementReuse}
+              onChange={(value) => { provided.commands.changeMovementReuseQuery?.(value); provided.commands.changeNote(value); }}
+              onClose={provided.commands.closeMovementReuse}
+              onToggleGroup={provided.commands.toggleMovementReuseGroup}
+              onSelectVariant={provided.commands.selectMovementReuseVariant}
+            />
+          ) : <input
             ref={noteInputRef}
             className="form-control"
             aria-label={noteLabel}
             value={state.note}
             onChange={(event) => provided.commands.changeNote(event.target.value)}
             placeholder={notePlaceholder}
-          />
+          />}
         </label>
       ) : null}
 

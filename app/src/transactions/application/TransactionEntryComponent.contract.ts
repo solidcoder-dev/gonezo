@@ -6,6 +6,7 @@ import type {
   RecurrenceMonthlyPattern,
 } from '../../scheduling/application/scheduling.port';
 import type { ShareDraft } from '../../sharing/domain/shareDraft';
+import type { MovementReuseSuggestionsPort } from '../../movements/application/movementReuseSuggestions.port';
 
 export type TransactionEntryPrefillRequest = {
   requestId: number;
@@ -44,7 +45,7 @@ export type TransactionEntryPrefillRequest = {
 export type TransactionEntryComponentRequired = {
   context: {
     accountId: string | null;
-    core: TransactionsPort;
+    core: TransactionsPort & Partial<MovementReuseSuggestionsPort>;
   };
   config: {
     enabled: boolean;

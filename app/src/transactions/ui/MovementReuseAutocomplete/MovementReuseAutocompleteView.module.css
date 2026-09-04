@@ -1,0 +1,64 @@
+.autocomplete {
+  position: relative;
+}
+
+.listbox {
+  position: absolute;
+  z-index: var(--z-menu);
+  width: 100%;
+  max-height: min(18rem, 45vh);
+  overflow-y: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: 0.5rem;
+}
+
+.row,
+.alternative {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.selection {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.6rem 0.75rem;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.title,
+.meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta,
+.status {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.expand {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  padding: 0.6rem 0.75rem;
+}
+
+.alternative,
+.status {
+  padding: 0.5rem 0.75rem 0.5rem 1.5rem;
+}
+
+.status {
+  padding-left: 0.75rem;
+  font-size: 0.85rem;
+}
