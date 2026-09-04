@@ -1,61 +1,64 @@
 import { useState } from 'react';
 import { SheetView } from '../SheetView';
-import styles from './AmountInputView.module.css';
+import styles from './AmountCalculatorSheetView.module.css';
 import {
-  calculatorReducer,
   createCalculatorState,
-  type CalculatorOperator,
+  transitionCalculator,
+  type CalculatorAction,
 } from './calculatorEngine';
 
 export type AmountCalculatorSheetViewProps = {
   open: boolean;
   initialValue: string;
   currency?: string;
-  onApply: (value: string) => void;
-  onCancel: () => void;
+  onCommit: (value: string) => void;
+  onDismiss: () => void;
 };
 
-const operators: Array<{ value: CalculatorOperator; label: string }> = [
-  { value: '÷', label: 'Divide' },
-  { value: '×', label: 'Multiply' },
-  { value: '-', label: 'Subtract' },
-  { value: '+', label: 'Add' },
+const KEYPAD_ROWS: Array<Array<CalculatorAction & { label: string; display: string }>> = [
+  [
+    { type: 'digit', value: '7', label: 'Digit 7', display: '7' }, { type: 'digit', value: '8', label: 'Digit 8', display: '8' }, { type: 'digit', value: '9', label: 'Digit 9', display: '9' }, { type: 'operator', value: '÷', label: 'Divide', display: '÷' },
+  ],
+  [
+    { type: 'digit', value: '4', label: 'Digit 4', display: '4' }, { type: 'digit', value: '5', label: 'Digit 5', display: '5' }, { type: 'digit', value: '6', label: 'Digit 6', display: '6' }, { type: 'operator', value: '×', label: 'Multiply', display: '×' },
+  ],
+  [
+    { type: 'digit', value: '1', label: 'Digit 1', display: '1' }, { type: 'digit', value: '2', label: 'Digit 2', display: '2' }, { type: 'digit', value: '3', label: 'Digit 3', display: '3' }, { type: 'operator', value: '-', label: 'Subtract', display: '−' },
+  ],
+  [
+    { type: 'digit', value: '0', label: 'Digit 0', display: '0' }, { type: 'decimal', label: 'Decimal', display: '.' }, { type: 'equals', label: 'Equals', display: '=' }, { type: 'operator', value: '+', label: 'Add', display: '+' },
+  ],
 ];
 
-export function AmountCalculatorSheetView({ open, initialValue, currency, onApply, onCancel }: AmountCalculatorSheetViewProps) {
+export function AmountCalculatorSheetView({ open, initialValue, currency, onCommit, onDismiss }: AmountCalculatorSheetViewProps) {
   const [calculatorState, setCalculatorState] = useState(() => createCalculatorState(initialValue));
+
+  function dispatch(action: CalculatorAction) {
+    const transition = transitionCalculator(calculatorState, action);
+    setCalculatorState(transition.state);
+    if (transition.resolvedValue) onCommit(transition.resolvedValue);
+    if (transition.finished && transition.resolvedValue) onDismiss();
+  }
 
   return (
     <SheetView
       required={{
         config: {
           ariaLabel: 'Amount calculator',
-          title: 'Amount calculator',
-          closeLabel: 'Close amount calculator',
           showHandle: true,
+          dragToClose: true,
         },
         data: {
           body: (
             <div className={styles.calculator}>
-              <output className={styles.display} aria-live="polite" aria-label={`Calculator result ${calculatorState.display}${currency ? ` ${currency}` : ''}`}>
-                {calculatorState.display}
-              </output>
-              {calculatorState.error ? <p className="gz-field-error" role="alert">{calculatorState.error}</p> : null}
-              <div className={styles.keypad} aria-label="Calculator keypad">
-                {(['7', '8', '9', '4', '5', '6', '1', '2', '3', '0'] as const).map((digit) => (
-                  <button key={digit} type="button" className="btn btn-outline-primary" aria-label={`Digit ${digit}`} onClick={() => setCalculatorState((current) => calculatorReducer(current, { type: 'digit', value: digit }))}>{digit}</button>
-                ))}
-                <button type="button" className="btn btn-outline-primary" aria-label="Decimal" onClick={() => setCalculatorState((current) => calculatorReducer(current, { type: 'decimal' }))}>.</button>
-                <button type="button" className="btn btn-outline-primary" aria-label="Backspace" onClick={() => setCalculatorState((current) => calculatorReducer(current, { type: 'backspace' }))}>⌫</button>
-                {operators.map((operator) => (
-                  <button key={operator.value} type="button" className="btn btn-outline-primary" aria-label={operator.label} onClick={() => setCalculatorState((current) => calculatorReducer(current, { type: 'operator', value: operator.value }))}>{operator.value}</button>
-                ))}
-                <button type="button" className="btn btn-primary" aria-label="Equals" onClick={() => setCalculatorState((current) => calculatorReducer(current, { type: 'equals' }))}>=</button>
-                <button type="button" className="btn btn-outline-secondary" aria-label="Clear" onClick={() => setCalculatorState((current) => calculatorReducer(current, { type: 'clear' }))}>Clear</button>
+              <div className={styles.displayArea}>
+                <button type="button" className={styles.displayControl} aria-label="Clear" onClick={() => dispatch({ type: 'clear' })}>C</button>
+                <output className={styles.display} aria-live="polite" aria-label={`Calculator result ${calculatorState.display}${currency ? ` ${currency}` : ''}`}>{calculatorState.display}</output>
+                <button type="button" className={styles.displayControl} aria-label="Backspace" onClick={() => dispatch({ type: 'backspace' })}><i className="bi bi-backspace" aria-hidden /></button>
               </div>
-              <div className={styles.actions}>
-                <button type="button" className="btn btn-outline-secondary" onClick={onCancel}>Cancel</button>
-                <button type="button" className="btn btn-primary" onClick={() => onApply(calculatorState.display)} disabled={Boolean(calculatorState.error)}>Apply</button>
+              {calculatorState.error ? <p className="gz-field-error" role="alert">{calculatorState.error}</p> : null}
+              <div className={styles.keypad} role="group" aria-label="Calculator keypad">
+                {KEYPAD_ROWS.flat().map((key) => <button key={key.label} type="button" className={`${styles.key} ${key.type === 'operator' ? styles.operator : ''} ${key.type === 'equals' ? styles.equals : ''}`} aria-label={key.label} onClick={() => dispatch(key)}>{key.display}</button>)}
               </div>
             </div>
           ),
@@ -63,7 +66,7 @@ export function AmountCalculatorSheetView({ open, initialValue, currency, onAppl
         state: { open },
         status: {},
       }}
-      provided={{ commands: { close: onCancel } }}
+      provided={{ commands: { close: onDismiss } }}
     />
   );
 }

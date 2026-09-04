@@ -14,7 +14,7 @@ function renderAmount(value = '10.00', change = vi.fn()) {
 }
 
 describe('AmountInputView calculator', () => {
-  it('opens with the current amount, calculates locally and applies once', () => {
+  it('opens with an accessible, minimal calculator and commits equals', () => {
     const change = vi.fn();
     renderAmount('10.00', change);
 
@@ -22,22 +22,25 @@ describe('AmountInputView calculator', () => {
     expect(screen.getByRole('dialog', { name: 'Amount calculator' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Digit 1' })).toBeInTheDocument();
     expect(screen.getByLabelText(/Calculator result 10\.00/)).toHaveTextContent('10.00');
+    expect(screen.queryByRole('heading', { name: 'Amount calculator' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Close amount calculator' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Apply' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('sheet-drag-handle')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Backspace' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     fireEvent.click(screen.getByRole('button', { name: 'Digit 2' }));
     fireEvent.click(screen.getByRole('button', { name: 'Decimal' }));
     fireEvent.click(screen.getByRole('button', { name: 'Digit 5' }));
     fireEvent.click(screen.getByRole('button', { name: 'Equals' }));
-    expect(change).not.toHaveBeenCalled();
-    expect(screen.getByLabelText(/Calculator result 12\.50/)).toHaveTextContent('12.50');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     expect(change).toHaveBeenCalledTimes(1);
     expect(change).toHaveBeenCalledWith('12.50');
     expect(screen.queryByRole('dialog', { name: 'Amount calculator' })).not.toBeInTheDocument();
   });
 
-  it('does not change the amount on cancel, backdrop or Android back', () => {
+  it('does not change an incomplete operation on dismiss, backdrop or Android back', () => {
     const change = vi.fn();
     const registry = createBackDismissableRegistry();
     render(
@@ -47,7 +50,9 @@ describe('AmountInputView calculator', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Open amount calculator' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Digit 2' }));
+    fireEvent.click(screen.getByTestId('sheet-backdrop'));
     expect(change).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Open amount calculator' }));
@@ -62,6 +67,28 @@ describe('AmountInputView calculator', () => {
     expect(screen.queryByRole('dialog', { name: 'Amount calculator' })).not.toBeInTheDocument();
   });
 
+  it('keeps the last resolved amount when dismissed after a new incomplete operand', () => {
+    const change = vi.fn();
+    const registry = createBackDismissableRegistry();
+    render(
+      <BackNavigationProvider registry={registry}>
+        <AmountInputView required={{ config: { label: 'Amount', currency: 'EUR' }, data: {}, state: { value: '10.00' }, status: {} }} provided={{ commands: { change } }} />
+      </BackNavigationProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open amount calculator' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Digit 2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Digit 3' }));
+    expect(change).toHaveBeenLastCalledWith('12.00');
+
+    act(() => {
+      expect(registry.dismissTopmost()).toBe(true);
+    });
+    expect(change).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps division by zero controlled and exposes disabled behavior', () => {
     const change = vi.fn();
     renderAmount('10.00', change);
@@ -71,8 +98,47 @@ describe('AmountInputView calculator', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Equals' }));
 
     expect(screen.getByRole('alert')).toHaveTextContent('Cannot divide by zero');
-    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
     expect(change).not.toHaveBeenCalled();
+  });
+
+  it('commits an immediate result and keeps the sheet open for the next operand', () => {
+    const change = vi.fn();
+    renderAmount('10.00', change);
+    fireEvent.click(screen.getByRole('button', { name: 'Open amount calculator' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Digit 2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+    expect(change).toHaveBeenCalledWith('12.00');
+    expect(screen.getByRole('dialog', { name: 'Amount calculator' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Digit 3' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Equals' }));
+    expect(change).toHaveBeenLastCalledWith('15.00');
+  });
+
+  it('commits a direct amount when equals is pressed without an operation', () => {
+    const change = vi.fn();
+    renderAmount('0.00', change);
+    fireEvent.click(screen.getByRole('button', { name: 'Open amount calculator' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Digit 2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Digit 5' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Equals' }));
+
+    expect(change).toHaveBeenCalledWith('25.00');
+  });
+
+  it('renders keypad buttons in conventional accessible order', () => {
+    renderAmount();
+    fireEvent.click(screen.getByRole('button', { name: 'Open amount calculator' }));
+    const keypad = screen.getByRole('group', { name: 'Calculator keypad' });
+    expect(Array.from(keypad.querySelectorAll('button')).map((button) => button.getAttribute('aria-label'))).toEqual([
+      'Digit 7', 'Digit 8', 'Digit 9', 'Divide',
+      'Digit 4', 'Digit 5', 'Digit 6', 'Multiply',
+      'Digit 1', 'Digit 2', 'Digit 3', 'Subtract',
+      'Digit 0', 'Decimal', 'Equals', 'Add',
+    ]);
   });
 
   it('disables the calculator action with the amount', () => {

@@ -37,39 +37,6 @@
   pointer-events: none;
 }
 
-.calculator {
-  display: grid;
-  gap: var(--space-sm);
-}
-
-.display {
-  min-height: 3.5rem;
-  padding: var(--space-md);
-  overflow-wrap: anywhere;
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-muted);
-  color: var(--color-text-primary);
-  font-size: 2rem;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.keypad {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-sm);
-}
-
-.keypad button {
-  min-height: var(--touch-target-min);
-}
-
-.actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-sm);
-}
-
 @media (max-width: 360px) {
   .input {
     min-height: 66px;

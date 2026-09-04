@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculatorReducer, createCalculatorState, type CalculatorAction, type CalculatorDigit } from './calculatorEngine';
+import { calculatorReducer, createCalculatorState, transitionCalculator, type CalculatorAction, type CalculatorDigit } from './calculatorEngine';
 
 function press(state: ReturnType<typeof createCalculatorState>, ...actions: Parameters<typeof calculatorReducer>[1][]) {
   return actions.reduce(calculatorReducer, state);
@@ -42,6 +42,35 @@ describe('calculatorEngine', () => {
     );
 
     expect(result.display).toBe('19.00');
+  });
+
+  it('reports immediate results while keeping the next operator pending', () => {
+    let state = createCalculatorState('10');
+    state = press(state, { type: 'operator', value: '+' }, { type: 'digit', value: '2' });
+    const transition = transitionCalculator(state, { type: 'operator', value: '+' });
+
+    expect(transition.resolvedValue).toBe('12.00');
+    expect(transition.state.display).toBe('12.00');
+    expect(transition.state.pendingOperator).toBe('+');
+  });
+
+  it('resolves repeated immediate operations and final equals', () => {
+    let state = createCalculatorState('10');
+    state = press(state, { type: 'operator', value: '+' }, { type: 'digit', value: '2' });
+    const first = transitionCalculator(state, { type: 'operator', value: '+' });
+    const second = transitionCalculator(first.state, { type: 'digit', value: '3' });
+    const final = transitionCalculator(second.state, { type: 'operator', value: '+' });
+
+    expect(first.resolvedValue).toBe('12.00');
+    expect(final.resolvedValue).toBe('15.00');
+    expect(final.state.pendingOperator).toBe('+');
+  });
+
+  it('reports a final direct value without a pending operation', () => {
+    const transition = transitionCalculator(createCalculatorState('25'), { type: 'equals' });
+
+    expect(transition.resolvedValue).toBe('25.00');
+    expect(transition.finished).toBe(true);
   });
 
   it('uses decimal money arithmetic and controls division by zero', () => {

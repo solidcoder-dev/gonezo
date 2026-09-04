@@ -17,6 +17,12 @@ export type CalculatorAction =
   | { type: 'backspace' }
   | { type: 'clear' };
 
+export type CalculatorTransition = {
+  state: CalculatorState;
+  resolvedValue?: string;
+  finished?: boolean;
+};
+
 const MONEY_SCALE = 100n;
 
 function parseMoney(value: string): bigint {
@@ -68,40 +74,49 @@ export function createCalculatorState(initialValue: string): CalculatorState {
   };
 }
 
-export function calculatorReducer(state: CalculatorState, action: CalculatorAction): CalculatorState {
-  if (action.type === 'clear') return clearState();
-  if (state.error) return action.type === 'digit' || action.type === 'decimal' ? calculatorReducer(clearState(), action) : state;
+export function transitionCalculator(state: CalculatorState, action: CalculatorAction): CalculatorTransition {
+  if (action.type === 'clear') return { state: clearState() };
+  if (state.error) return {
+    state: action.type === 'digit' || action.type === 'decimal' ? transitionCalculator(clearState(), action).state : state,
+  };
 
   if (action.type === 'digit') {
     const display = state.awaitingOperand || state.display === '0' ? action.value : `${state.display}${action.value}`;
-    return { ...state, display, awaitingOperand: false };
+    return { state: { ...state, display, awaitingOperand: false } };
   }
 
   if (action.type === 'decimal') {
-    if (state.awaitingOperand) return { ...state, display: '0.', awaitingOperand: false };
-    return state.display.includes('.') ? state : { ...state, display: `${state.display}.` };
+    if (state.awaitingOperand) return { state: { ...state, display: '0.', awaitingOperand: false } };
+    return { state: state.display.includes('.') ? state : { ...state, display: `${state.display}.` } };
   }
 
   if (action.type === 'backspace') {
-    if (state.awaitingOperand) return state;
+    if (state.awaitingOperand) return { state };
     const display = state.display.length > 1 ? state.display.slice(0, -1) : '0';
-    return { ...state, display };
+    return { state: { ...state, display } };
   }
 
   if (action.type === 'operator') {
-    if (state.pendingOperator && state.awaitingOperand) return { ...state, pendingOperator: action.value };
-    if (!state.pendingOperator) return { ...state, leftOperand: state.display, pendingOperator: action.value, awaitingOperand: true };
+    if (state.pendingOperator && state.awaitingOperand) return { state: { ...state, pendingOperator: action.value } };
+    if (!state.pendingOperator) return { state: { ...state, leftOperand: state.display, pendingOperator: action.value, awaitingOperand: true } };
     const result = calculate(state.leftOperand ?? '0', state.display, state.pendingOperator);
     return result === null
-      ? { ...state, display: 'Error', error: 'Cannot divide by zero' }
-      : { ...state, display: result, leftOperand: result, pendingOperator: action.value, awaitingOperand: true };
+      ? { state: { ...state, display: 'Error', error: 'Cannot divide by zero' } }
+      : { state: { ...state, display: result, leftOperand: result, pendingOperator: action.value, awaitingOperand: true }, resolvedValue: result };
   }
 
-  if (!state.pendingOperator || state.leftOperand === null) return state;
+  if (!state.pendingOperator || state.leftOperand === null) {
+    const result = formatMoney(parseMoney(state.display));
+    return { state: { ...state, display: result, awaitingOperand: true }, resolvedValue: result, finished: true };
+  }
   const result = calculate(state.leftOperand, state.display, state.pendingOperator);
   return result === null
-    ? { ...state, display: 'Error', error: 'Cannot divide by zero' }
-    : { display: result, leftOperand: null, pendingOperator: null, awaitingOperand: true, error: null };
+    ? { state: { ...state, display: 'Error', error: 'Cannot divide by zero' } }
+    : { state: { display: result, leftOperand: null, pendingOperator: null, awaitingOperand: true, error: null }, resolvedValue: result, finished: true };
+}
+
+export function calculatorReducer(state: CalculatorState, action: CalculatorAction): CalculatorState {
+  return transitionCalculator(state, action).state;
 }
 
 export function normalizeCalculatorAmount(value: string): string {

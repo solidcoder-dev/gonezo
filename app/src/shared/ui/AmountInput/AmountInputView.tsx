@@ -2,7 +2,6 @@ import { useState, type RefObject } from 'react';
 import type { ViewProps } from '../ViewProps';
 import { AmountCalculatorSheetView } from './AmountCalculatorSheetView';
 import styles from './AmountInputView.module.css';
-import { normalizeCalculatorAmount } from './calculatorEngine';
 
 export type AmountInputViewProps = ViewProps<
   {
@@ -33,9 +32,8 @@ export function AmountInputView({ required, provided }: AmountInputViewProps) {
     setCalculatorOpen(false);
   }
 
-  function applyCalculatorValue(value: string) {
-    provided.commands.change(normalizeCalculatorAmount(value));
-    closeCalculator();
+  function commitCalculatorValue(value: string) {
+    provided.commands.change(value);
   }
 
   return (
@@ -79,8 +77,8 @@ export function AmountInputView({ required, provided }: AmountInputViewProps) {
         open={calculatorOpen}
         initialValue={state.value}
         currency={currency}
-        onApply={applyCalculatorValue}
-        onCancel={closeCalculator}
+        onCommit={commitCalculatorValue}
+        onDismiss={closeCalculator}
       />
     </>
   );
