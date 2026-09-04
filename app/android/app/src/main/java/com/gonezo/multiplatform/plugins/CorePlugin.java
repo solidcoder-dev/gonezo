@@ -253,7 +253,7 @@ public class CorePlugin extends Plugin {
   public void sharingGetPlannedShare(PluginCall call) { new SharingPluginHandler(getContext()).sharingGetPlannedShare(call); }
   @PluginMethod public void analyticsSetMovementIgnored(PluginCall call) { new AnalyticsPluginHandler(getContext()).analyticsSetMovementIgnored(call); }
   @PluginMethod public void analyticsListIgnoredMovements(PluginCall call) { new AnalyticsPluginHandler(getContext()).analyticsListIgnoredMovements(call); } @PluginMethod public void analyticsListMovementFacts(PluginCall call) { new AnalyticsPluginHandler(getContext()).analyticsListMovementFacts(call); }
-  @PluginMethod public void movementsGetDetail(PluginCall call) { new MovementDetailPluginHandler(getContext()).getDetail(call); }
-  @PluginMethod public void movementReuseSearchGroups(PluginCall call) { new MovementReusePluginHandler(getContext()).searchGroups(call); }
+  @PluginMethod public void movementsGetDetail(PluginCall call) { new MovementDetailPluginHandler(getContext()).getDetail(call); } @PluginMethod public void movementReuseSearchGroups(PluginCall call) { new MovementReusePluginHandler(getContext()).searchGroups(call); }
   @PluginMethod public void movementReuseListVariants(PluginCall call) { new MovementReusePluginHandler(getContext()).listVariants(call); }
+  @PluginMethod public void movementReuseGetTemplate(PluginCall call) { new MovementReusePluginHandler(getContext()).getTemplate(call); }
 }

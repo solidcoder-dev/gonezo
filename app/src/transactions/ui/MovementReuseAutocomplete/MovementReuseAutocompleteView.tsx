@@ -12,7 +12,7 @@ export type MovementReuseAutocompleteViewProps = {
   onChange: (value: string) => void;
   onClose: () => void;
   onToggleGroup: (group: MovementReuseSuggestionGroup) => void;
-  onSelectVariant: (variant: MovementReuseSuggestionVariant, title?: string) => void;
+  onSelectVariant: (selection: { title: string; variant: MovementReuseSuggestionVariant }) => void;
 };
 
 function variantSummary(variant: MovementReuseSuggestionVariant): string {
@@ -47,7 +47,7 @@ export function MovementReuseAutocompleteView({
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === 'Escape') onClose();
-          if (event.key === 'Enter' && groups[0]) onSelectVariant(groups[0].primaryVariant, groups[0].title);
+          if (event.key === 'Enter' && groups[0]) onSelectVariant({ title: groups[0].title, variant: groups[0].primaryVariant });
         }}
       />
       {open ? (
@@ -56,9 +56,9 @@ export function MovementReuseAutocompleteView({
           {!loading && !error && groups.map((group) => (
             <div key={group.normalizedTitle} className={styles.group}>
               <div className={styles.row}>
-                <button type="button" role="option" aria-selected="false" className={styles.selection} onClick={() => onSelectVariant(group.primaryVariant, group.title)}>
+                <button type="button" role="option" aria-selected="false" className={styles.selection} onClick={() => onSelectVariant({ title: group.title, variant: group.primaryVariant })}>
                   <span className={styles.title}>{group.title}</span>
-                  <span className={styles.meta}>{variantSummary(group.primaryVariant)} · ◫ {group.primaryVariant.itemCount} · 👥 {group.primaryVariant.shareCount}</span>
+                  <span className={styles.meta}>{variantSummary(group.primaryVariant)}{group.primaryVariant.itemCount > 0 ? ` · ◫ ${group.primaryVariant.itemCount}` : ''}{group.primaryVariant.shareCount > 0 ? ` · 👥 ${group.primaryVariant.shareCount}` : ''}</span>
                 </button>
                 {group.variantCount > 1 ? (
                   <button type="button" className={styles.expand} aria-label={`Show ${group.variantCount - 1} other ${group.title} variants`} onClick={() => onToggleGroup(group)}>
@@ -67,7 +67,7 @@ export function MovementReuseAutocompleteView({
                 ) : null}
               </div>
               {expandedTitle === group.normalizedTitle ? variants.map((variant) => (
-                <button key={variant.deterministicKey} type="button" role="option" aria-selected="false" className={styles.alternative} onClick={() => onSelectVariant(variant)}>
+                <button key={variant.deterministicKey} type="button" role="option" aria-selected="false" className={styles.alternative} onClick={() => onSelectVariant({ title: group.title, variant })}>
                   {variantSummary(variant)}
                 </button>
               )) : null}

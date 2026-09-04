@@ -101,7 +101,7 @@ import type {
   MovementsGetDetailInput,
   MovementsGetDetailResult,
 } from '../../movements/application/movements.port';
-import type { MovementReuseSuggestionsSearchInput, MovementReuseSuggestionsSearchResult, MovementReuseSuggestionsVariantsInput, MovementReuseSuggestionsVariantsResult } from '../../movements/application/movementReuseSuggestions.port';
+import type { MovementReuseSuggestionsSearchInput, MovementReuseSuggestionsSearchResult, MovementReuseSuggestionsVariantsInput, MovementReuseSuggestionsVariantsResult, MovementReuseTemplate } from '../../movements/application/movementReuseSuggestions.port';
 import type {
   AnalyticsListIgnoredMovementsResult,
   AnalyticsSetMovementIgnoredInput,
@@ -214,6 +214,7 @@ export interface CorePlugin {
   movementsGetDetail(options: MovementsGetDetailInput): Promise<MovementsGetDetailResult>;
   movementReuseSearchGroups(options: MovementReuseSuggestionsSearchInput): Promise<MovementReuseSuggestionsSearchResult>;
   movementReuseListVariants(options: MovementReuseSuggestionsVariantsInput): Promise<MovementReuseSuggestionsVariantsResult>;
+  movementReuseGetTemplate(input: { representativeMovementId: string }): Promise<MovementReuseTemplate>;
 }
 
 export const CorePlugin = registerPlugin<CorePlugin>('CorePlugin', {

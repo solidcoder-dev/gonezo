@@ -88,10 +88,11 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
     sharing: createSharingGateway(required.context.core),
     taxonomy: createTaxonomyGateway(required.context.core),
     analytics: required.context.core,
-    reuse: required.context.core.movementReuseSearchGroups && required.context.core.movementReuseListVariants
+    reuse: required.context.core.movementReuseSearchGroups && required.context.core.movementReuseListVariants && required.context.core.movementReuseGetTemplate
       ? {
         movementReuseSearchGroups: required.context.core.movementReuseSearchGroups.bind(required.context.core),
         movementReuseListVariants: required.context.core.movementReuseListVariants.bind(required.context.core),
+        movementReuseGetTemplate: required.context.core.movementReuseGetTemplate.bind(required.context.core),
       }
       : undefined,
   }), [required.context.core]);

@@ -3,119 +3,49 @@ package com.gonezo.multiplatform.plugins;
 import android.content.Context;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
+import com.gonezo.application.query.MovementReuseSuggestionGroup;
+import com.gonezo.application.query.MovementReuseSuggestionVariant;
+import com.gonezo.application.query.MovementReuseSuggestionsQuery;
+import com.gonezo.application.query.MovementReuseSuggestionsQueryService;
+import com.gonezo.application.query.MovementReuseTemplateQuery;
+import com.gonezo.application.query.MovementReuseTemplateQueryService;
 import com.gonezo.multiplatform.core.AndroidLedgerCore;
+import com.gonezo.multiplatform.core.AndroidMovementReuseSuggestionsReadAdapter;
 import com.gonezo.multiplatform.core.AndroidSharingCore;
 import com.gonezo.multiplatform.core.AndroidTaxonomyCore;
-import java.text.Normalizer;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 import org.json.JSONArray;
 
 final class MovementReusePluginHandler {
   private final Context context;
-
   MovementReusePluginHandler(Context context) { this.context = context; }
 
-  void searchGroups(PluginCall call) { respond(call, call.getString("query"), call.getArray("accountIds"), call.getInt("limit", 5), false); }
+  void searchGroups(PluginCall call) {
+    try { call.resolve(groupsJson(service().search(new MovementReuseSuggestionsQuery(call.getString("query", ""), ids(call.getArray("accountIds")), call.getInt("limit", 5))))); }
+    catch (Exception ex) { call.reject(ex.getMessage()); }
+  }
 
-  void listVariants(PluginCall call) { respond(call, call.getString("normalizedTitle"), call.getArray("accountIds"), 0, true); }
+  void listVariants(PluginCall call) {
+    try { JSONArray variants = new JSONArray(); for (var value : service().variants(call.getString("normalizedTitle", ""), ids(call.getArray("accountIds")))) variants.put(variantJson(value)); call.resolve(new JSObject().put("variants", variants)); }
+    catch (Exception ex) { call.reject(ex.getMessage()); }
+  }
 
-  private void respond(PluginCall call, String query, JSONArray accountIds, int limit, boolean variantsOnly) {
+  void getTemplate(PluginCall call) {
     try {
-      String normalizedQuery = normalize(query == null ? "" : query);
-      if (normalizedQuery.isEmpty()) { call.resolve(new JSObject().put(variantsOnly ? "variants" : "groups", new JSONArray())); return; }
-      List<Candidate> candidates = readCandidates(accountIds);
-      List<Variant> rankedVariants = variants(candidates, normalizedQuery);
-      if (variantsOnly) {
-        JSONArray result = new JSONArray();
-        for (Variant variant : rankedVariants) result.put(variant.toJson());
-        call.resolve(new JSObject().put("variants", result));
-        return;
-      }
-      Map<String, List<Candidate>> groups = new HashMap<>();
-      for (Candidate candidate : candidates) {
-        if (candidate.titleKey().contains(normalizedQuery)) groups.computeIfAbsent(candidate.titleKey(), ignored -> new ArrayList<>()).add(candidate);
-      }
-      List<Group> rankedGroups = new ArrayList<>();
-      for (Map.Entry<String, List<Candidate>> entry : groups.entrySet()) {
-        List<Variant> groupVariants = variants(entry.getValue(), entry.getKey());
-        rankedGroups.add(new Group(entry.getValue().get(0).title, entry.getKey(), groupVariants));
-      }
-      rankedGroups.sort((left, right) -> left.compareTo(right, normalizedQuery));
-      JSONArray result = new JSONArray();
-      for (Group group : rankedGroups.subList(0, Math.min(Math.max(limit, 0), rankedGroups.size()))) result.put(group.toJson());
-      call.resolve(new JSObject().put("groups", result));
+      var template = new MovementReuseTemplateQueryService(adapter()).get(new MovementReuseTemplateQuery(call.getString("representativeMovementId", "")));
+      if (template == null) { call.reject("Movement reuse template not found"); return; }
+      JSONArray tags = new JSONArray(); template.getTags().forEach(tag -> tags.put(new JSObject().put("id", tag.getId()).put("name", tag.getName())));
+      JSONArray items = new JSONArray(); template.getItemNames().forEach(items::put);
+      JSONArray people = new JSONArray(); template.getSharingPeople().forEach(person -> people.put(new JSObject().put("id", person.getId()).put("name", person.getName()).put("reimbursable", person.getReimbursable()).put("parts", person.getParts())));
+      var category = template.getCategory();
+      call.resolve(new JSObject().put("representativeMovementId", template.getMovementId()).put("title", template.getTitle()).put("accountId", template.getAccountId()).put("accountName", template.getAccountName()).put("financialType", template.getFinancialType()).put("category", category == null ? null : new JSObject().put("id", category.getId()).put("name", category.getName())).put("tags", tags).put("itemNames", items).put("sharingPeople", people).put("targetAccountId", template.getTargetAccountId()).put("ignored", template.getIgnored()));
     } catch (Exception ex) { call.reject(ex.getMessage()); }
   }
 
-  private List<Candidate> readCandidates(JSONArray accountIds) {
-    AndroidLedgerCore ledger = AndroidLedgerCore.getInstance(context);
-    AndroidTaxonomyCore taxonomy = AndroidTaxonomyCore.getInstance(context);
-    Set<String> scope = new HashSet<>();
-    if (accountIds != null) for (int index = 0; index < accountIds.length(); index++) scope.add(accountIds.optString(index));
-    List<Candidate> result = new ArrayList<>();
-    for (AndroidLedgerCore.LedgerAccountView account : ledger.listAccounts()) {
-      if (!scope.isEmpty() && !scope.contains(account.id())) continue;
-      int pageNumber = 0;
-      boolean hasNext;
-      do {
-        AndroidLedgerCore.LedgerTransactionPageView page = ledger.listTransactions(
-          account.id(), new AndroidLedgerCore.LedgerTransactionFilterInput(null, null, null, null, null, List.of("posted"), null),
-          new AndroidLedgerCore.LedgerPageRequestInput(pageNumber, 100), List.of(new AndroidLedgerCore.LedgerTransactionSortInput("occurredAt", "desc")));
-        for (AndroidLedgerCore.LedgerTransactionView transaction : page.content()) {
-          String title = transaction.merchant() == null || transaction.merchant().isBlank() ? transaction.description() : transaction.merchant();
-          if (title == null || title.isBlank()) continue;
-          AndroidTaxonomyCore.TransactionTaxonomyView assignment = taxonomy.listTransactionTaxonomy(List.of(transaction.id())).get(transaction.id());
-          List<String> tagIds = assignment == null || assignment.tagIds() == null ? List.of() : assignment.tagIds();
-          AndroidSharingCore.MovementDetailsView share = AndroidSharingCore.getInstance(context).getMovementDetails(transaction.id());
-          List<String> sharePersonIds = share == null ? List.of() : share.share().participants().stream().map(AndroidSharingCore.ParticipantView::personId).toList();
-          result.add(new Candidate(transaction.id(), title, account.id(), account.name(), transaction.type(), transaction.categoryId(), transaction.occurredAt(), tagIds, transaction.items().size(), sharePersonIds));
-        }
-        hasNext = page.hasNext();
-        pageNumber++;
-      } while (hasNext);
-    }
-    return result;
-  }
-
-  private List<Variant> variants(List<Candidate> candidates, String titleKey) {
-    Map<String, List<Candidate>> byKey = new HashMap<>();
-    for (Candidate candidate : candidates) if (candidate.titleKey().equals(titleKey)) byKey.computeIfAbsent(candidate.variantKey(), ignored -> new ArrayList<>()).add(candidate);
-    List<Variant> result = new ArrayList<>();
-    for (Map.Entry<String, List<Candidate>> entry : byKey.entrySet()) {
-      Candidate representative = entry.getValue().stream().max(Comparator.comparing(Candidate::occurredAt).thenComparing(Candidate::id)).orElseThrow();
-      result.add(new Variant(representative, entry.getValue().size(), entry.getKey()));
-    }
-    result.sort(Comparator.comparingInt(Variant::usageCount).reversed().thenComparing(Variant::lastUsedAt, Comparator.reverseOrder()).thenComparing(Variant::key));
-    return result;
-  }
-
-  private String normalize(String value) { return Normalizer.normalize(value, Normalizer.Form.NFD).replaceAll("\\p{M}+", "").trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT); }
-
-  private record Candidate(String id, String title, String accountId, String accountName, String type, String categoryId, String occurredAt, List<String> tagIds, int itemCount, List<String> sharePersonIds) {
-    String titleKey() { return Normalizer.normalize(title, Normalizer.Form.NFD).replaceAll("\\p{M}+", "").trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT); }
-    String variantKey() { return accountId + "|" + type + "|" + (categoryId == null ? "" : categoryId) + "|" + tagIds.stream().sorted().toList() + "|" + itemCount + "|" + sharePersonIds.stream().sorted().toList(); }
-  }
-
-  private record Variant(Candidate candidate, int usageCount, String key) {
-    String lastUsedAt() { return candidate.occurredAt(); }
-    JSObject toJson() { JSONArray tags = new JSONArray(); for (String tagId : candidate.tagIds()) tags.put(new JSObject().put("id", tagId).put("name", tagId)); return new JSObject().put("representativeMovementId", candidate.id()).put("accountId", candidate.accountId()).put("accountName", candidate.accountName()).put("financialType", candidate.type()).put("category", candidate.categoryId() == null ? null : new JSObject().put("id", candidate.categoryId()).put("name", candidate.categoryId())).put("tags", tags).put("itemCount", candidate.itemCount()).put("shareCount", candidate.sharePersonIds().size()).put("usageCount", usageCount).put("lastUsedAt", lastUsedAt()).put("deterministicKey", key); }
-  }
-
-  private record Group(String title, String normalizedTitle, List<Variant> variants) {
-    int compareTo(Group other, String query) {
-      return Boolean.compare(!normalizedTitle.equals(query), !other.normalizedTitle.equals(query)) != 0
-        ? Boolean.compare(!normalizedTitle.equals(query), !other.normalizedTitle.equals(query))
-        : Boolean.compare(!normalizedTitle.startsWith(query), !other.normalizedTitle.startsWith(query)) != 0
-          ? Boolean.compare(!normalizedTitle.startsWith(query), !other.normalizedTitle.startsWith(query))
-          : Comparator.comparingInt((Group group) -> group.variants.get(0).usageCount()).reversed().thenComparing(group -> group.variants.get(0).lastUsedAt(), Comparator.reverseOrder()).thenComparing(Group::normalizedTitle).compare(this, other);
-    }
-    JSObject toJson() { return new JSObject().put("title", title.trim()).put("normalizedTitle", normalizedTitle).put("variantCount", variants.size()).put("primaryVariant", variants.get(0).toJson()); }
-  }
+  private AndroidMovementReuseSuggestionsReadAdapter adapter() { return new AndroidMovementReuseSuggestionsReadAdapter(context, AndroidLedgerCore.getInstance(context), AndroidTaxonomyCore.getInstance(context), AndroidSharingCore.getInstance(context)); }
+  private MovementReuseSuggestionsQueryService service() { return new MovementReuseSuggestionsQueryService(adapter()); }
+  private Set<String> ids(JSONArray values) { Set<String> result = new HashSet<>(); if (values != null) for (int i = 0; i < values.length(); i++) result.add(values.optString(i)); return result; }
+  private JSObject groupsJson(com.gonezo.application.query.MovementReuseSuggestionsResult result) { JSONArray groups = new JSONArray(); for (MovementReuseSuggestionGroup group : result.getGroups()) groups.put(new JSObject().put("title", group.getTitle()).put("normalizedTitle", group.getNormalizedTitle()).put("variantCount", group.getVariantCount()).put("primaryVariant", variantJson(group.getPrimaryVariant()))); return new JSObject().put("groups", groups); }
+  private JSObject variantJson(MovementReuseSuggestionVariant value) { JSONArray tags = new JSONArray(); value.getTags().forEach(tag -> tags.put(new JSObject().put("id", tag.getId()).put("name", tag.getName()))); var category = value.getCategory(); return new JSObject().put("representativeMovementId", value.getRepresentativeMovementId()).put("accountId", value.getAccountId()).put("accountName", value.getAccountName()).put("financialType", value.getFinancialType()).put("category", category == null ? null : new JSObject().put("id", category.getId()).put("name", category.getName())).put("tags", tags).put("itemCount", value.getItemCount()).put("shareCount", value.getShareCount()).put("usageCount", value.getUsageCount()).put("lastUsedAt", value.getLastUsedAt()).put("deterministicKey", value.getDeterministicKey()); }
 }

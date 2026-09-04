@@ -410,4 +410,5 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async movementReuseSearchGroups(options: Parameters<CorePlugin['movementReuseSearchGroups']>[0]) { return this.core.movementReuseSearchGroups(options); }
   async movementReuseListVariants(options: Parameters<CorePlugin['movementReuseListVariants']>[0]) { return this.core.movementReuseListVariants(options); }
+  async movementReuseGetTemplate(options: Parameters<CorePlugin['movementReuseGetTemplate']>[0]) { return this.core.movementReuseGetTemplate(options); }
 }

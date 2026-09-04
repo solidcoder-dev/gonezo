@@ -44,3 +44,21 @@ export interface MovementReuseSuggestionsPort {
   movementReuseSearchGroups(input: MovementReuseSuggestionsSearchInput): Promise<MovementReuseSuggestionsSearchResult>;
   movementReuseListVariants(input: MovementReuseSuggestionsVariantsInput): Promise<MovementReuseSuggestionsVariantsResult>;
 }
+
+export type MovementReuseTemplate = {
+  representativeMovementId: string;
+  title: string;
+  accountId: string;
+  accountName: string;
+  financialType: LedgerTransactionType;
+  category?: { id: string; name: string };
+  tags: Array<{ id: string; name: string }>;
+  itemNames: string[];
+  sharingPeople: Array<{ id: string; name: string; email?: string; reimbursable: boolean; parts?: number }>;
+  targetAccountId?: string;
+  ignored: boolean;
+};
+
+export interface MovementReuseTemplatePort {
+  movementReuseGetTemplate(input: { representativeMovementId: string }): Promise<MovementReuseTemplate>;
+}

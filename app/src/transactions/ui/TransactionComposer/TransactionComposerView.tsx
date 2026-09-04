@@ -151,10 +151,9 @@ export type TransactionComposerMainFieldsProvided = {
   onSetAmount: (value: string) => void;
   onSetDate: (value: string) => void;
   onSetNote: (value: string) => void;
-  onChangeMovementReuseQuery?: (value: string) => void;
   onCloseMovementReuse?: () => void;
   onToggleMovementReuseGroup?: (group: MovementReuseSuggestionGroup) => void;
-  onSelectMovementReuseVariant?: (variant: MovementReuseSuggestionVariant, title?: string) => void;
+  onSelectMovementReuseVariant?: (selection: { title: string; variant: MovementReuseSuggestionVariant }) => void;
 };
 
 export type TransactionComposerTaxonomyProvided = {
@@ -527,7 +526,6 @@ export function TransactionComposerView({ required, provided }: Props) {
                     changeNote: onSetNote,
                     changeTransferTarget: onSetTransferTarget,
                     continueEditing: () => noteInputRef?.current?.focus(),
-                    changeMovementReuseQuery: provided.onChangeMovementReuseQuery,
                     closeMovementReuse: provided.onCloseMovementReuse,
                     toggleMovementReuseGroup: provided.onToggleMovementReuseGroup,
                     selectMovementReuseVariant: provided.onSelectMovementReuseVariant,

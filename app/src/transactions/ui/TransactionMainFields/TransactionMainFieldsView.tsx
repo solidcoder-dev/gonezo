@@ -47,10 +47,9 @@ export type TransactionMainFieldsViewProps = ViewProps<
     changeNote: (value: string) => void;
     changeTransferTarget: (value: string) => void;
     continueEditing?: () => void;
-    changeMovementReuseQuery?: (value: string) => void;
     closeMovementReuse?: () => void;
     toggleMovementReuseGroup?: (group: MovementReuseSuggestionGroup) => void;
-    selectMovementReuseVariant?: (variant: MovementReuseSuggestionVariant, title?: string) => void;
+    selectMovementReuseVariant?: (selection: { title: string; variant: MovementReuseSuggestionVariant }) => void;
   }
 >;
 
@@ -148,10 +147,10 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
       {!showTransferFields ? (
         <label className="vstack gap-2">
           <span className="visually-hidden">{noteLabel}</span>
-          {movementReuse && provided.commands.changeMovementReuseQuery && provided.commands.closeMovementReuse && provided.commands.toggleMovementReuseGroup && provided.commands.selectMovementReuseVariant ? (
+          {movementReuse && provided.commands.closeMovementReuse && provided.commands.toggleMovementReuseGroup && provided.commands.selectMovementReuseVariant ? (
             <MovementReuseAutocompleteView
               {...movementReuse}
-              onChange={(value) => { provided.commands.changeMovementReuseQuery?.(value); provided.commands.changeNote(value); }}
+              onChange={provided.commands.changeNote}
               onClose={provided.commands.closeMovementReuse}
               onToggleGroup={provided.commands.toggleMovementReuseGroup}
               onSelectVariant={provided.commands.selectMovementReuseVariant}

@@ -39,10 +39,20 @@ class MovementReuseSuggestionsQueryTest {
         assertThat(variant.shareCount).isZero()
     }
 
+    @Test
+    fun `keeps taxonomy ids and presentation names`() {
+        val variant = MovementReuseSuggestionsQueryService(object : MovementReuseSuggestionsReadPort {
+            override fun readPostedCandidates(accountIds: Set<String>) = listOf(row("one", "Main"))
+        }).search(MovementReuseSuggestionsQuery("merc", emptySet())).groups.single().primaryVariant
+        assertThat(variant.category).isEqualTo(MovementReuseTaxonomyRef("groceries", "Groceries"))
+        assertThat(variant.tags).containsExactly(MovementReuseTaxonomyRef("food", "Food"))
+        assertThat(variant.tags).allMatch { it.name != it.id }
+    }
+
     private fun row(id: String, accountName: String, accountId: String = "main", posted: Boolean = true, valid: Boolean = true, title: String = " Mercadona ") = MovementReuseCandidateRead(
         movementId = id, title = title, accountId = accountId, accountName = accountName,
-        financialType = "expense", categoryId = "groceries", categoryName = "Groceries",
-        tagIds = listOf("food"), itemNames = emptyList(), sharePersonIds = emptyList(),
+        financialType = "expense", category = MovementReuseTaxonomyRef("groceries", "Groceries"),
+        tags = listOf(MovementReuseTaxonomyRef("food", "Food")), itemNames = emptyList(), sharePersonIds = emptyList(),
         posted = posted, valid = valid, occurredAt = "2026-01-01T00:00:00Z",
     )
 }

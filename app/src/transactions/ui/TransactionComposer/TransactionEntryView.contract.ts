@@ -144,10 +144,9 @@ export type TransactionEntryViewProvided = {
     applyShareDraft: (summary: { peopleCount: number; total: string }, draft: ShareDraft) => void;
     removeShareDraft: () => void;
     submit: (event: FormEvent) => Promise<void>;
-    changeMovementReuseQuery?: (value: string) => void;
     closeMovementReuse?: () => void;
     toggleMovementReuseGroup?: (group: MovementReuseSuggestionGroup) => void;
-    selectMovementReuseVariant?: (variant: MovementReuseSuggestionVariant, title?: string) => void;
+    selectMovementReuseVariant?: (selection: { title: string; variant: MovementReuseSuggestionVariant }) => void;
   };
 };
 

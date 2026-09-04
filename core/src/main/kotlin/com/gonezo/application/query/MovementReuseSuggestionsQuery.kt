@@ -1,10 +1,11 @@
 package com.gonezo.application.query
 
-data class MovementReuseCandidateRead(val movementId: String, val title: String, val accountId: String, val accountName: String, val financialType: String, val categoryId: String?, val categoryName: String?, val tagIds: List<String>, val itemNames: List<String>, val sharePersonIds: List<String>, val posted: Boolean, val valid: Boolean, val occurredAt: String)
+data class MovementReuseTaxonomyRef(val id: String, val name: String)
+data class MovementReuseCandidateRead(val movementId: String, val title: String, val accountId: String, val accountName: String, val financialType: String, val category: MovementReuseTaxonomyRef?, val tags: List<MovementReuseTaxonomyRef>, val itemNames: List<String>, val sharePersonIds: List<String>, val posted: Boolean, val valid: Boolean, val occurredAt: String)
 
 data class MovementReuseSuggestionsQuery(val query: String, val accountIds: Set<String>, val groupLimit: Int = 5)
 
-data class MovementReuseSuggestionVariant(val representativeMovementId: String, val accountId: String, val accountName: String, val financialType: String, val categoryId: String?, val categoryName: String?, val tags: List<String>, val itemCount: Int, val shareCount: Int, val usageCount: Int, val lastUsedAt: String, val deterministicKey: String)
+data class MovementReuseSuggestionVariant(val representativeMovementId: String, val accountId: String, val accountName: String, val financialType: String, val category: MovementReuseTaxonomyRef?, val tags: List<MovementReuseTaxonomyRef>, val itemCount: Int, val shareCount: Int, val usageCount: Int, val lastUsedAt: String, val deterministicKey: String)
 
 data class MovementReuseSuggestionGroup(val title: String, val normalizedTitle: String, val variantCount: Int, val primaryVariant: MovementReuseSuggestionVariant)
 
@@ -65,9 +66,8 @@ class MovementReuseSuggestionsQueryService(private val readPort: MovementReuseSu
                 accountId = representative.accountId,
                 accountName = representative.accountName,
                 financialType = representative.financialType,
-                categoryId = representative.categoryId,
-                categoryName = representative.categoryName,
-                tags = representative.tagIds.distinct().sorted(),
+                category = representative.category,
+                tags = representative.tags.distinctBy { it.id }.sortedBy { it.id },
                 itemCount = representative.itemNames.size,
                 shareCount = representative.sharePersonIds.size,
                 usageCount = occurrences.size,
@@ -80,8 +80,8 @@ class MovementReuseSuggestionsQueryService(private val readPort: MovementReuseSu
     private fun variantKey(candidate: MovementReuseCandidateRead): String = listOf(
         candidate.accountId,
         candidate.financialType,
-        candidate.categoryId.orEmpty(),
-        candidate.tagIds.distinct().sorted().joinToString(","),
+        candidate.category?.id.orEmpty(),
+        candidate.tags.distinctBy { it.id }.map { it.id }.sorted().joinToString(","),
         candidate.itemNames.distinct().sorted().joinToString(","),
         candidate.sharePersonIds.distinct().sorted().joinToString(","),
     ).joinToString("|")

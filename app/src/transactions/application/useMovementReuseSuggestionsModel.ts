@@ -8,12 +8,12 @@ import type {
 type MovementReuseSuggestionsModelInput = {
   port: MovementReuseSuggestionsPort;
   accountIds: string[];
+  query: string;
   enabled: boolean;
-  onSelected?: (variant: MovementReuseSuggestionVariant, title?: string) => void;
+  onSelected?: (selection: { title: string; variant: MovementReuseSuggestionVariant }) => void;
 };
 
 export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestionsModelInput) {
-  const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [groups, setGroups] = useState<MovementReuseSuggestionGroup[]>([]);
@@ -21,13 +21,21 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
   const [variants, setVariants] = useState<MovementReuseSuggestionVariant[]>([]);
   const [error, setError] = useState('');
   const [loadedTitle, setLoadedTitle] = useState<string | null>(null);
+  const dismissedSelection = useRef(false);
   const requestVersion = useRef(0);
   const inputRef = useRef(input);
   const accountScopeKey = input.accountIds.join('\u0000');
   inputRef.current = input;
 
   useEffect(() => {
-    const normalizedQuery = query.trim();
+    const normalizedQuery = input.query.trim();
+    if (dismissedSelection.current) {
+      dismissedSelection.current = false;
+      setOpen(false);
+      setGroups([]);
+      setLoading(false);
+      return;
+    }
     setExpandedTitle(null);
     setVariants([]);
     setLoadedTitle(null);
@@ -58,12 +66,7 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
       });
     }, 250);
     return () => clearTimeout(timer);
-  }, [accountScopeKey, input.enabled, input.port, query]);
-
-  function changeQuery(value: string) {
-    setQuery(value);
-    setOpen(value.trim().length >= 2);
-  }
+  }, [accountScopeKey, input.enabled, input.port, input.query]);
 
   function close() {
     requestVersion.current += 1;
@@ -72,10 +75,15 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
     setVariants([]);
   }
 
+  function dismissCurrentQuery() {
+    dismissedSelection.current = true;
+    close();
+  }
+
   async function toggleGroup(group: MovementReuseSuggestionGroup) {
     if (group.variantCount <= 1) {
-      inputRef.current.onSelected?.(group.primaryVariant, group.title);
-      close();
+      inputRef.current.onSelected?.({ title: group.title, variant: group.primaryVariant });
+      dismissCurrentQuery();
       return;
     }
     if (expandedTitle === group.normalizedTitle) {
@@ -101,13 +109,13 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
     }
   }
 
-  function selectVariant(variant: MovementReuseSuggestionVariant) {
-    inputRef.current.onSelected?.(variant, expandedTitle ?? undefined);
-    close();
+  function selectVariant(selection: { title: string; variant: MovementReuseSuggestionVariant }) {
+    inputRef.current.onSelected?.(selection);
+    dismissCurrentQuery();
   }
 
   return {
-    state: { query, open, loading, groups, expandedTitle, variants, error },
-    actions: { changeQuery, close, toggleGroup, selectVariant },
+    state: { query: input.query, open, loading, groups, expandedTitle, variants, error },
+    actions: { close, toggleGroup, selectVariant },
   };
 }

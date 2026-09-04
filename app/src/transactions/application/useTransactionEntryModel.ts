@@ -22,11 +22,14 @@ import { useTransactionEntryOpenSignal } from './useTransactionEntryOpenSignal';
 import { nextRecurrenceDateIso } from '../../shared/domain/nextRecurrenceDate';
 import { applyTransactionEntryInitialMode, type TransactionEntryInitialMode } from './transactionEntryInitialMode';
 import { resolveSubmitExpectedIntent, toErrorMessage } from './transactionEntryModelUtils';
-import type { MovementReuseSuggestionsPort } from '../../movements/application/movementReuseSuggestions.port';
+import type { MovementReuseSuggestionsPort, MovementReuseTemplatePort } from '../../movements/application/movementReuseSuggestions.port';
 import { useTransactionMovementReuseModel } from './useTransactionMovementReuseModel';
+import type { MovementReuseTemplate } from '../../movements/application/movementReuseSuggestions.port';
+import { applyMovementReuseTemplate } from './applyMovementReuseTemplate';
+import { refreshTransactionAccountSnapshot } from './refreshTransactionAccountSnapshot';
 export type TransactionEntryModelPorts = {
   ledger: LedgerGatewayPort; scheduling: SchedulingGatewayPort; expected: ExpectedGatewayPort; sharing: SharingGatewayPort; taxonomy: TaxonomyGatewayPort; analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
-  reuse?: MovementReuseSuggestionsPort;
+  reuse?: MovementReuseSuggestionsPort & Partial<MovementReuseTemplatePort>;
 };
 export type TransactionEntryModelClock = { now(): Date; todayIso(): string; resolveOccurredAt(dateInput: string): string; dayOfMonthFromDateInput(dateInput: string): string; weekDayIsoFromDateInput(dateInput: string): string; resolveTimeZoneId(): string };
 export type TransactionEntryModelIdGenerator = { nextId(): string };
@@ -173,7 +176,15 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     categorizeTransaction,
     applyTransactionTags,
   } = taxonomyModel.actions;
-  const movementReuseModel = useTransactionMovementReuseModel({ port: ports.reuse, accountIds: accounts.map((account) => account.id), enabled: composerOpen && !loading, accountId, setNote: setTransactionNote, setCategoryId: setTransactionCategoryId, prefillTags: prefillTaxonomy, setIgnored: setMovementIgnored, onAccountChanged });
+  const applyReuseTemplate = (template: MovementReuseTemplate) => applyMovementReuseTemplate(template, accountId, {
+    setComposerMode, setComposerAdvancedOpen,
+    setTransactionNote, setTransactionCategoryId,
+    prefillTaxonomy, prefillExpenseSplit,
+    prefillShareDraft, setMovementIgnored,
+    setTransferToAccountId,
+    syncForTransferMode,
+  }, onAccountChanged);
+  const movementReuseModel = useTransactionMovementReuseModel({ port: ports.reuse, accountIds: accounts.map((account) => account.id), enabled: composerOpen && !loading, query: transactionNote, accountId, applyTemplate: applyReuseTemplate });
 
   function reportError(raw: unknown) {
     const message = toErrorMessage(raw);
@@ -196,25 +207,14 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     shareDraftModel.actions.reset();
     setFieldErrors({});
   }
-  async function refreshAccountSnapshot() {
-    const accountResult = await ledgerAccounts.listAccounts();
-    setAccounts(accountResult.items);
-    if (!accountId) {
-      setAccountCurrency('USD');
-      setTransferToAccountId('');
-      return;
-    }
-    const selectedAccount = accountResult.items.find((item) => item.id === accountId);
-    if (!selectedAccount) {
-      setAccountCurrency('USD');
-      setTransferToAccountId('');
-      return;
-    }
-
-    const summary = await ledgerAccounts.getAccountSummary({ accountId });
-    setAccountCurrency(summary.currency);
-    setDefaultTargetForAccounts(accountResult.items, accountId);
-  }
+  const refreshAccountSnapshot = () => refreshTransactionAccountSnapshot(
+    ledgerAccounts,
+    accountId,
+    setAccounts,
+    setAccountCurrency,
+    setTransferToAccountId,
+    setDefaultTargetForAccounts,
+  );
   const modelEffectsRef = useRef({
     prefillExpenseSplit,
     prefillScheduling,
@@ -655,7 +655,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       openShareEditor: shareDraftModel.actions.openEditor, closeShareEditor: shareDraftModel.actions.closeEditor,
       applyShareDraft: shareDraftModel.actions.applyShareDraft, removeShareDraft: shareDraftModel.actions.removeShareDraft,
       submit: submitTransaction,
-      changeMovementReuseQuery: movementReuseModel.actions.changeQuery, closeMovementReuse: movementReuseModel.actions.close,
+      closeMovementReuse: movementReuseModel.actions.close,
       toggleMovementReuseGroup: (group) => { void movementReuseModel.actions.toggleGroup(group); }, selectMovementReuseVariant: movementReuseModel.actions.selectVariant,
     },
   };

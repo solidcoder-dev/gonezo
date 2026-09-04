@@ -18,6 +18,7 @@ export type MovementReuseCandidate = {
   categoryId?: string;
   categoryName?: string;
   tagIds: string[];
+  tagNames?: Record<string, string>;
   itemNames: string[];
   sharePersonIds: string[];
   lastUsedAt: string;
@@ -68,7 +69,7 @@ function candidateToVariant(candidate: MovementReuseCandidate, usageCount: numbe
     category: candidate.categoryId && candidate.categoryName
       ? { id: candidate.categoryId, name: candidate.categoryName }
       : undefined,
-    tags: sortedUnique(candidate.tagIds).map((id) => ({ id, name: id })),
+    tags: sortedUnique(candidate.tagIds).map((id) => ({ id, name: candidate.tagNames?.[id] ?? id })),
     itemCount: candidate.itemNames.length,
     shareCount: candidate.sharePersonIds.length,
     usageCount,
