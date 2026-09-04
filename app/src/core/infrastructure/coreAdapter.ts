@@ -99,6 +99,7 @@ export class CoreAdapter implements CorePort {
   movementsGetDetail = this.movements.movementsGetDetail.bind(this.movements);
   movementReuseSearchGroups = this.movements.movementReuseSearchGroups.bind(this.movements);
   movementReuseListVariants = this.movements.movementReuseListVariants.bind(this.movements);
+  movementReuseGetTemplate = this.movements.movementReuseGetTemplate.bind(this.movements);
   schedulingProcessDueMovements = this.scheduling.schedulingProcessDueMovements.bind(this.scheduling);
 
   expectedCreateMovement = this.expected.expectedCreateMovement.bind(this.expected);

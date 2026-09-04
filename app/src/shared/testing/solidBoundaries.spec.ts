@@ -206,6 +206,7 @@ describe('SOLID frontend boundaries', () => {
     const schedulingPort = readFileSync(resolve(srcDir, 'scheduling/application/scheduling.port.ts'), 'utf8');
     const expectedPort = readFileSync(resolve(srcDir, 'expected/application/expected.port.ts'), 'utf8');
     const movementsPort = readFileSync(resolve(srcDir, 'movements/application/movements.port.ts'), 'utf8');
+    const movementReusePort = readFileSync(resolve(srcDir, 'movements/application/movementReuseSuggestions.port.ts'), 'utf8');
     const analyticsPort = readFileSync(resolve(srcDir, 'analytics/application/analytics.port.ts'), 'utf8');
     const sharingPort = readFileSync(resolve(srcDir, 'sharing/application/sharing.port.ts'), 'utf8');
 
@@ -219,14 +220,25 @@ describe('SOLID frontend boundaries', () => {
     expect(corePort).toContain("from '../../movements/application/movements.port'");
     expect(corePort).toContain("from '../../sharing/application/sharing.port'");
     expect(corePort).toMatch(/export interface CorePort\s+extends\s+PreferencesPort,/);
-    expect(corePort).toMatch(/MovementsQueryPort,\s+AnalyticsPort,\s+SharingPort \{\}/);
+    expect(corePort).toMatch(/MovementsQueryPort,\s+MovementReuseSuggestionsPort,\s+MovementReuseTemplatePort,\s+AnalyticsPort,\s+SharingPort \{\}/);
     expect(ledgerPort).toContain('LedgerPort');
     expect(taxonomyPort).toContain('TaxonomyPort');
     expect(schedulingPort).toContain('SchedulingPort');
     expect(expectedPort).toContain('ExpectedPort');
     expect(movementsPort).toContain('MovementsQueryPort');
+    expect(movementReusePort).toContain('MovementReuseSuggestionsPort');
+    expect(movementReusePort).toContain('MovementReuseTemplatePort');
+    expect(corePort).toContain("from '../../movements/application/movementReuseSuggestions.port'");
+    expect(corePort).toMatch(/MovementReuseSuggestionsPort,\s+MovementReuseTemplatePort/);
     expect(analyticsPort).toContain('AnalyticsPort');
     expect(sharingPort).toContain('SharingPort');
+  });
+
+  it('requires every CoreAdapter implementation to expose movement reuse capabilities', () => {
+    const coreAdapter = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapter.ts'), 'utf8');
+    expect(coreAdapter).toContain('movementReuseSearchGroups =');
+    expect(coreAdapter).toContain('movementReuseListVariants =');
+    expect(coreAdapter).toContain('movementReuseGetTemplate =');
   });
 
   it('keeps CorePort as an infrastructure facade instead of an application dependency', () => {

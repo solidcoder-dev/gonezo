@@ -29,7 +29,7 @@ import { applyMovementReuseTemplate } from './applyMovementReuseTemplate';
 import { refreshTransactionAccountSnapshot } from './refreshTransactionAccountSnapshot';
 export type TransactionEntryModelPorts = {
   ledger: LedgerGatewayPort; scheduling: SchedulingGatewayPort; expected: ExpectedGatewayPort; sharing: SharingGatewayPort; taxonomy: TaxonomyGatewayPort; analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
-  reuse?: MovementReuseSuggestionsPort & Partial<MovementReuseTemplatePort>;
+  reuse: MovementReuseSuggestionsPort & MovementReuseTemplatePort;
 };
 export type TransactionEntryModelClock = { now(): Date; todayIso(): string; resolveOccurredAt(dateInput: string): string; dayOfMonthFromDateInput(dateInput: string): string; weekDayIsoFromDateInput(dateInput: string): string; resolveTimeZoneId(): string };
 export type TransactionEntryModelIdGenerator = { nextId(): string };

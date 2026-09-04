@@ -5,6 +5,7 @@ import type { ExpectedPort } from '../../expected/application/expected.port';
 import type { ApplicationBackupPort, MobillsImportPort, MovementsBackupPort } from '../../imports/application/imports.port';
 import type { LedgerPort } from '../../ledger/application/ledger.port';
 import type { MovementsQueryPort } from '../../movements/application/movements.port';
+import type { MovementReuseSuggestionsPort, MovementReuseTemplatePort } from '../../movements/application/movementReuseSuggestions.port';
 import type { RecurrencePort, SchedulingPort } from '../../scheduling/application/scheduling.port';
 import type { SharingPort } from '../../sharing/application/sharing.port';
 import type { TaxonomyPort } from '../../taxonomy/application/taxonomy.port';
@@ -21,5 +22,7 @@ export interface CorePort
     SchedulingPort,
     ExpectedPort,
     MovementsQueryPort,
+    MovementReuseSuggestionsPort,
+    MovementReuseTemplatePort,
     AnalyticsPort,
     SharingPort {}

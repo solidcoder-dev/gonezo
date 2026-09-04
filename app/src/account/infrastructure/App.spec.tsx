@@ -18,6 +18,7 @@ import type {
   MovementsSearchResult,
   MovementsListScheduledInput,
 } from '../../movements/application/movements.port';
+import type { MovementReuseSuggestionsPort, MovementReuseTemplatePort } from '../../movements/application/movementReuseSuggestions.port';
 import {
   applySchedule,
   enableMobillsImport,
@@ -32,7 +33,7 @@ import {
   selectMonthlyScheduleEveryTwoMonthsOnDay11,
 } from './testing/appTestActions';
 
-type AppTestPort = AppPort & RecurrencePort & SchedulingPort & ExpectedPort & MovementsQueryPort;
+type AppTestPort = AppPort & RecurrencePort & SchedulingPort & ExpectedPort & MovementsQueryPort & MovementReuseSuggestionsPort & MovementReuseTemplatePort;
 
 function uniqueById<T extends { id: string }>(items: T[]): T[] {
   return Array.from(new Map(items.map((item) => [item.id, item])).values());
@@ -928,6 +929,19 @@ function makeCore(transactionCount = 0): AppTestPort {
         hasPrevious: resolvedPage > 0,
       };
     }),
+    movementReuseSearchGroups: vi.fn(async () => ({ groups: [] })),
+    movementReuseListVariants: vi.fn(async () => ({ variants: [] })),
+    movementReuseGetTemplate: vi.fn(async (input) => ({
+      representativeMovementId: input.representativeMovementId,
+      title: '',
+      accountId: '',
+      accountName: '',
+      financialType: 'expense' as const,
+      tags: [],
+      itemNames: [],
+      sharingPeople: [],
+      ignored: false,
+    })),
   };
 
   vi.mocked(core.recurrenceCreateRecurringMovement).mockImplementation(async (input) => {

@@ -67,6 +67,11 @@ function makePorts(): TransactionEntryModelPorts {
     analytics: {
       analyticsSetMovementIgnored: vi.fn(),
     },
+    reuse: {
+      movementReuseSearchGroups: vi.fn().mockResolvedValue({ groups: [] }),
+      movementReuseListVariants: vi.fn().mockResolvedValue({ variants: [] }),
+      movementReuseGetTemplate: vi.fn(),
+    },
     taxonomy: {
       taxonomyListCategories: vi.fn().mockResolvedValue({ items: [] }),
       taxonomyCreateCategory: vi.fn().mockResolvedValue({ id: 'cat-1' }),

@@ -22,9 +22,9 @@ import { getMovementsSearchFacets } from '../../movements/infrastructure/searchF
 import type { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
 import { isNativeRuntime } from './runtimeAdapterSupport';
-import type { MovementReuseSuggestionsPort } from '../../movements/application/movementReuseSuggestions.port';
+import type { MovementReuseSuggestionsPort, MovementReuseTemplatePort } from '../../movements/application/movementReuseSuggestions.port';
 
-export class MovementsRuntimeAdapter implements Pick<MovementReuseSuggestionsPort, 'movementReuseSearchGroups' | 'movementReuseListVariants'> {
+export class MovementsRuntimeAdapter implements MovementReuseSuggestionsPort, MovementReuseTemplatePort {
   private readonly web: CoreAdapterWeb;
   private readonly queries: CorePort;
 
@@ -63,5 +63,9 @@ export class MovementsRuntimeAdapter implements Pick<MovementReuseSuggestionsPor
 
   movementReuseListVariants(input: Parameters<MovementReuseSuggestionsPort['movementReuseListVariants']>[0]) {
     return isNativeRuntime() ? CorePlugin.movementReuseListVariants(input) : this.web.movementReuseListVariants(input);
+  }
+
+  movementReuseGetTemplate(input: Parameters<MovementReuseTemplatePort['movementReuseGetTemplate']>[0]) {
+    return isNativeRuntime() ? CorePlugin.movementReuseGetTemplate(input) : this.web.movementReuseGetTemplate(input);
   }
 }

@@ -9,7 +9,6 @@ import type {
 import type { ExpectedMovementItem } from '../../expected/application/expected.port';
 import type { SchedulingMovementItem } from '../../scheduling/application/scheduling.port';
 import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/application/taxonomy.port';
-import type { MovementReuseSuggestionsPort, MovementReuseTemplatePort } from './movementReuseSuggestions.port';
 
 export type MovementsMonthOverviewInput = {
   accountId?: string;
@@ -195,7 +194,7 @@ export type MovementsListScheduledResult = {
   hasPrevious: boolean;
 };
 
-export interface MovementsQueryPort extends Partial<MovementReuseSuggestionsPort & MovementReuseTemplatePort> {
+export interface MovementsQueryPort {
   movementsGetMonthOverview(input: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;
   movementsSearch(input: MovementsSearchInput): Promise<MovementsSearchResult>;
   movementsGetSearchFacets(input: MovementsSearchFacetsInput): Promise<MovementsSearchFacetsResult>;

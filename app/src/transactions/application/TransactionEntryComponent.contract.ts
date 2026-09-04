@@ -45,7 +45,7 @@ export type TransactionEntryPrefillRequest = {
 export type TransactionEntryComponentRequired = {
   context: {
     accountId: string | null;
-    core: TransactionsPort & Partial<MovementReuseSuggestionsPort & MovementReuseTemplatePort>;
+    core: TransactionsPort & MovementReuseSuggestionsPort & MovementReuseTemplatePort;
   };
   config: {
     enabled: boolean;

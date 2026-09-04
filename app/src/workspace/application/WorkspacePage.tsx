@@ -14,6 +14,7 @@ import type { AccountPageViewProvided, AccountPageViewRequired } from '../../acc
 import type { LoadPhase } from '../../account/application/accountPage.types';
 import type { AccountWorkspacePort } from '../../account/application/accounts.port';
 import type { AnalyticsPort } from '../../analytics/application/analytics.port';
+import type { MovementReuseSuggestionsPort, MovementReuseTemplatePort } from '../../movements/application/movementReuseSuggestions.port';
 import { ProfilePage } from './ProfilePage';
 import { NetWorthSummaryComponent } from './NetWorthSummaryComponent';
 import { CurrencyAccountsSheetComponent } from '../../account/application/CurrencyAccountsSheet/CurrencyAccountsSheetComponent';
@@ -39,7 +40,7 @@ export type WorkspacePageRequired = {
   experimentalFeatures: ExperimentalFeaturesPort;
 };
 
-export type WorkspacePagePort = AccountWorkspacePort & MovementsBackupPort & ApplicationBackupPort & AnalyticsPort & HomeRecentMovementsPort & PendingExpectedOverviewPort & MovementsSearchPagePort;
+export type WorkspacePagePort = AccountWorkspacePort & MovementsBackupPort & ApplicationBackupPort & AnalyticsPort & HomeRecentMovementsPort & PendingExpectedOverviewPort & MovementsSearchPagePort & MovementReuseSuggestionsPort & MovementReuseTemplatePort;
 
 type WorkspacePageProps = {
   required: WorkspacePageRequired;
