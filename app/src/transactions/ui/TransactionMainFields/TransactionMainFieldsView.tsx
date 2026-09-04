@@ -1,5 +1,6 @@
 import { useId, type ReactNode, type RefObject } from 'react';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
+import { AmountInputView } from '../../../shared/ui/AmountInput/AmountInputView';
 import type { ComposerMode } from '../../application/transactions.types';
 import './TransactionMainFieldsView.css';
 
@@ -80,26 +81,10 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
     <>
       {!showTransferFields && amountVisible ? (
         <>
-          <label className="vstack gap-2 composer-amount-field">
-            <span className="visually-hidden">{amountLabel}</span>
-            <input
-              ref={amountInputRef}
-              className="form-control"
-              aria-label="Amount"
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={state.amount}
-              placeholder="Amount"
-              disabled={amountDisabled}
-              onChange={(event) => provided.commands.changeAmount(event.target.value)}
-              inputMode="decimal"
-              aria-invalid={Boolean(status.amountError)}
-              aria-describedby={status.amountError ? 'composer-amount-error' : undefined}
-            />
-            {amountCurrency ? <span className="composer-amount-currency">{amountCurrency}</span> : null}
-          </label>
-          {status.amountError ? <p id="composer-amount-error" className="gz-field-error">{status.amountError}</p> : null}
+          <AmountInputView
+            required={{ config: { label: 'Amount', currency: amountCurrency, inputRef: amountInputRef }, data: {}, state: { value: state.amount }, status: { disabled: amountDisabled, error: status.amountError } }}
+            provided={{ commands: { change: provided.commands.changeAmount } }}
+          />
         </>
       ) : null}
 
@@ -126,26 +111,10 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
 
       {showTransferFields && amountVisible ? (
         <>
-          <label className="vstack gap-2 composer-amount-field">
-            <span className="visually-hidden">{amountLabel}</span>
-            <input
-              ref={amountInputRef}
-              className="form-control"
-              aria-label="Amount"
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={state.amount}
-              placeholder="Amount"
-              disabled={amountDisabled}
-              onChange={(event) => provided.commands.changeAmount(event.target.value)}
-              inputMode="decimal"
-              aria-invalid={Boolean(status.amountError)}
-              aria-describedby={status.amountError ? 'composer-amount-error' : undefined}
-            />
-            {amountCurrency ? <span className="composer-amount-currency">{amountCurrency}</span> : null}
-          </label>
-          {status.amountError ? <p id="composer-amount-error" className="gz-field-error">{status.amountError}</p> : null}
+          <AmountInputView
+            required={{ config: { label: 'Amount', currency: amountCurrency, inputRef: amountInputRef }, data: {}, state: { value: state.amount }, status: { disabled: amountDisabled, error: status.amountError } }}
+            provided={{ commands: { change: provided.commands.changeAmount } }}
+          />
           {afterAmount}
 
           <label className="vstack gap-2">

@@ -49,6 +49,7 @@ describe('TransactionMainFieldsView', () => {
     expect(changeAmount).toHaveBeenCalledWith('24');
     expect(changeNote).toHaveBeenCalledWith('Market');
     expect(changeDate).toHaveBeenCalledWith('2026-05-11');
+    expect(screen.getByRole('button', { name: 'Open amount calculator' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Destination account')).not.toBeInTheDocument();
   });
 
@@ -102,6 +103,7 @@ describe('TransactionMainFieldsView', () => {
 
     expect(screen.getByLabelText('Destination account')).toHaveValue('acc-2');
     expect(screen.getByRole('option', { name: 'Savings (EUR)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open amount calculator' })).toBeInTheDocument();
     expect(screen.getByText('Amount required')).toBeInTheDocument();
     expect(screen.getByText('Invalid date')).toBeInTheDocument();
 

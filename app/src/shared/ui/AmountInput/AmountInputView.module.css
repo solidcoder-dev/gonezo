@@ -1,0 +1,84 @@
+.field {
+  position: relative;
+  gap: 4px;
+  min-width: 0;
+  margin-top: 2px;
+  margin-bottom: 10px;
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  min-height: 72px;
+  box-sizing: border-box;
+  padding: 14px 116px 14px 18px;
+  border-radius: 12px;
+  font-size: 2.18rem;
+  font-weight: 820;
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+.suffix {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  transform: translateY(-50%);
+}
+
+.currency {
+  padding-inline: 8px;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  font-weight: 820;
+  pointer-events: none;
+}
+
+.calculator {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.display {
+  min-height: 3.5rem;
+  padding: var(--space-md);
+  overflow-wrap: anywhere;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  color: var(--color-text-primary);
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.keypad button {
+  min-height: var(--touch-target-min);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
+@media (max-width: 360px) {
+  .input {
+    min-height: 66px;
+    padding-right: 108px;
+    font-size: 1.9rem;
+  }
+
+  .currency {
+    padding-inline: 5px;
+    font-size: 0.92rem;
+  }
+}

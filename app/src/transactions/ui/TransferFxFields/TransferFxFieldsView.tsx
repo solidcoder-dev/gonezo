@@ -1,4 +1,5 @@
 import { SegmentedControlView } from '../../../shared/ui/SegmentedControlView';
+import { AmountInputView } from '../../../shared/ui/AmountInput/AmountInputView';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
 
 export type TransferFxModeView = 'auto_destination' | 'auto_rate';
@@ -26,27 +27,19 @@ export type TransferFxFieldsViewProps = ViewProps<
   }
 >;
 
+function currencyFromLabel(label: string): string {
+  return label.match(/\(([^)]+)\)/)?.[1] ?? '';
+}
+
 export function TransferFxFieldsView({ required, provided }: TransferFxFieldsViewProps) {
   const { config, state, status } = required;
 
   return (
     <div className="vstack gap-2 gz-item-editor">
-      <label className="vstack gap-2">
-        <span className="visually-hidden">{config.amountInLabel}</span>
-        <input
-          aria-label={config.amountInLabel}
-          type="number"
-          min="0.01"
-          step="0.01"
-          value={state.amountIn}
-          onChange={(event) => provided.commands.changeAmountIn(event.target.value)}
-          inputMode="decimal"
-          disabled={state.fxMode === 'auto_destination'}
-          aria-invalid={Boolean(status.amountInError)}
-          aria-describedby={status.amountInError ? 'composer-transfer-amount-in-error' : undefined}
-        />
-      </label>
-      {status.amountInError ? <p id="composer-transfer-amount-in-error" className="gz-field-error">{status.amountInError}</p> : null}
+      <AmountInputView
+        required={{ config: { label: config.amountInLabel, currency: currencyFromLabel(config.amountInLabel) }, data: {}, state: { value: state.amountIn }, status: { disabled: status.disabled || state.fxMode === 'auto_destination', error: status.amountInError } }}
+        provided={{ commands: { change: provided.commands.changeAmountIn } }}
+      />
 
       <label className="vstack gap-2">
         <span className="visually-hidden">{config.fxLabel}</span>

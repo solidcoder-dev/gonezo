@@ -38,6 +38,8 @@ describe('TransferFxFieldsView', () => {
 
     expect(screen.getByRole('spinbutton', { name: 'Amount in (EUR)' })).toBeDisabled();
     expect(screen.getByRole('spinbutton', { name: 'FX rate (EUR/USD)' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Open amount calculator' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open FX rate calculator' })).not.toBeInTheDocument();
     expect(screen.getByText('Amount in is required')).toBeInTheDocument();
     expect(screen.getByText('FX rate is required')).toBeInTheDocument();
     expect(screen.getByText('Edit two values; the third one is calculated automatically.')).toBeInTheDocument();
