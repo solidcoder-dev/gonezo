@@ -1,5 +1,5 @@
 import type { ViewProps } from '../../../shared/ui/ViewProps';
-import './TransactionComposerActionsView.css';
+import styles from './TransactionComposerActionsView.module.css';
 
 export type TransactionComposerActionsViewProps = ViewProps<
   Record<string, never>,
@@ -42,12 +42,12 @@ export function TransactionComposerActionsView({ required }: TransactionComposer
   const primaryIntent = required.state.expected ? 'expected' : 'post';
 
   return (
-    <div className="composer-actions">
+    <div className={`${styles.root} composer-actions`}>
       <button
         type="submit"
         name="transactionIntent"
         value={primaryIntent}
-        className="btn btn-primary w-100"
+        className={`${styles.primary} btn w-100`}
         disabled={disabled}
       >
         {submitLabel(required.state)}
@@ -57,7 +57,7 @@ export function TransactionComposerActionsView({ required }: TransactionComposer
           type="submit"
           name="transactionIntent"
           value="expected"
-          className="composer-secondary-cta"
+          className={`${styles.secondary} btn btn-link`}
           disabled={disabled}
         >
           Save expected

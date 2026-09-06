@@ -4,6 +4,7 @@ import type { MovementDetailOverflowAction, MovementDetailSheet, MovementDetailT
 import { buildMovementDetailSheetContent } from './MovementDetailSheetContentView';
 import { MovementDetailSummaryBodyView, MovementDetailSummaryHeaderView } from './MovementDetailSummaryView';
 import './MovementDetailView.css';
+import styles from './MovementDetailView.module.css';
 
 export type MovementDetailViewProps = {
   required: {
@@ -94,10 +95,10 @@ export function MovementDetailView(props: MovementDetailViewProps) {
   }
 
   const expectedFooter = movement.source === 'expected' && movement.canPostExpected ? (
-    <div className="movement-detail-footer-content">
+    <div>
       <button
         type="button"
-        className="primary-button movement-detail-primary"
+        className="btn btn-primary w-100"
         onClick={props.provided.commands.postExpectedMovement}
       >
         Post movement
@@ -148,8 +149,8 @@ export function MovementDetailView(props: MovementDetailViewProps) {
         required={{
           config: {
             ariaLabel: 'Movement detail',
-            rootClassName: 'movement-detail-screen',
-            footerClassName: expectedFooter ? 'movement-detail-footer' : undefined,
+            rootClassName: styles.screen,
+            footerClassName: expectedFooter ? styles.footer : undefined,
           },
           data: {
             header: <MovementDetailSummaryHeaderView {...summaryProps} />,

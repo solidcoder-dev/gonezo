@@ -10,6 +10,8 @@ export type AmountInputViewProps = ViewProps<
     placeholder?: string;
     inputRef?: RefObject<HTMLInputElement | null>;
     calculatorEnabled?: boolean;
+    variant?: 'default' | 'primary';
+    showCurrencyLabel?: boolean;
   },
   Record<string, never>,
   { value: string },
@@ -18,7 +20,7 @@ export type AmountInputViewProps = ViewProps<
 >;
 
 export function AmountInputView({ required, provided }: AmountInputViewProps) {
-  const { label, currency, placeholder, inputRef, calculatorEnabled: configuredCalculatorEnabled } = required.config;
+  const { label, currency, placeholder, inputRef, calculatorEnabled: configuredCalculatorEnabled, variant = 'default', showCurrencyLabel = true } = required.config;
   const { state, status } = required;
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [continueAfterCalculator, setContinueAfterCalculator] = useState(false);
@@ -51,7 +53,7 @@ export function AmountInputView({ required, provided }: AmountInputViewProps) {
         <span className="visually-hidden">{label}</span>
         <input
           ref={inputRef}
-          className={`${styles.input} form-control`}
+          className={`${styles.input} ${variant === 'primary' ? styles.primary : ''} form-control`}
           aria-label={label}
           type="number"
           min="0.01"
@@ -65,7 +67,7 @@ export function AmountInputView({ required, provided }: AmountInputViewProps) {
           aria-describedby={status.error ? errorId : undefined}
         />
         <span className={styles.suffix}>
-          {currency ? <span className={styles.currency}>{currency}</span> : null}
+          {currency && showCurrencyLabel ? <span className={styles.currency}>{currency}</span> : null}
           {calculatorEnabled ? (
             <button
               type="button"

@@ -1,0 +1,54 @@
+.field {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.identityLabel {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.33;
+}
+
+.identityInput,
+.dateInput,
+.destinationInput {
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.4;
+}
+
+.identityInput::placeholder,
+.dateInput::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+.dateField {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.dateInput { padding-right: var(--touch-target-min); }
+
+.dateButton {
+  position: absolute;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+}

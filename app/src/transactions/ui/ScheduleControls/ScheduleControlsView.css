@@ -2,19 +2,16 @@
   align-self: flex-start;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  min-height: 20px;
-  margin-top: 1px;
-  margin-bottom: 4px;
-  margin-left: 8px;
-  padding: 1px 0;
+  gap: var(--space-xs);
+  min-height: var(--touch-target-min);
+  margin: 0;
+  padding: 0;
   border: 0;
   background: transparent;
   color: var(--color-info);
   font: inherit;
-  font-size: 0.84rem;
-  line-height: 1.2;
-  text-decoration: underline;
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
 }
 
@@ -25,33 +22,29 @@
 
 .schedule-summary {
   display: grid;
-  gap: 0.25rem;
-  margin-top: 1px;
-  margin-bottom: 4px;
+  gap: var(--space-xs);
+  margin: 0;
 }
 
 .schedule-summary-heading {
   color: var(--color-text-muted);
-  font-size: 0.76rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-semibold);
 }
 
 .schedule-summary-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.4rem;
-  border: 1px solid var(--color-border-default);
-  border-radius: 8px;
-  padding: 0.5rem 0.6rem;
-  background: var(--color-surface-primary);
+  gap: var(--space-sm);
+  min-height: 52px;
 }
 
 .schedule-summary-main {
   display: grid;
   min-width: 0;
-  gap: 0.15rem;
-  padding: 0;
+  gap: var(--space-xs);
+  min-height: var(--touch-target-min);
   border: 0;
   background: transparent;
   color: inherit;
@@ -68,7 +61,7 @@
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--space-xs);
   font-weight: 600;
 }
 
@@ -80,16 +73,16 @@
 
 .schedule-summary-next {
   color: var(--color-text-muted);
-  font-size: 0.82rem;
+  font-size: 0.875rem;
 }
 
 .schedule-summary-actions {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--space-xs);
 }
 
 .schedule-summary-action {
-  width: 1.8rem;
-  height: 1.8rem;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
 }

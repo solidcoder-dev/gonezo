@@ -1,10 +1,10 @@
-import { useId, type ReactNode, type RefObject } from 'react';
+import { useId, useState, type ReactNode, type RefObject } from 'react';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
 import { AmountInputView } from '../../../shared/ui/AmountInput/AmountInputView';
 import type { ComposerMode } from '../../application/transactions.types';
-import './TransactionMainFieldsView.css';
 import { MovementReuseAutocompleteView } from '../MovementReuseAutocomplete/MovementReuseAutocompleteView';
 import type { MovementReuseSuggestionGroup, MovementReuseSuggestionVariant } from '../../../movements/application/movementReuseSuggestions.port';
+import styles from './TransactionMainFieldsView.module.css';
 
 export type TransactionMainFieldsViewProps = ViewProps<
   {
@@ -69,6 +69,18 @@ function currencyFromAmountLabel(label: string): string {
   return match?.[1] ?? '';
 }
 
+function datePresentationLabel(value: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const dayDifference = Math.round((todayStart.getTime() - date.getTime()) / 86400000);
+  if (dayDifference === 0) return 'Today';
+  if (dayDifference === 1) return 'Yesterday';
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(date);
+}
+
 export function TransactionMainFieldsView({ required, provided }: TransactionMainFieldsViewProps) {
   const { config, data, state, status } = required;
   const {
@@ -89,13 +101,14 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
   const dateVisible = status.dateVisible ?? true;
   const amountCurrency = currencyFromAmountLabel(amountLabel);
   const dateFieldId = useId();
+  const [dateEditing, setDateEditing] = useState(false);
 
   return (
     <>
       {!showTransferFields && amountVisible ? (
         <>
           <AmountInputView
-            required={{ config: { label: 'Amount', currency: amountCurrency, inputRef: amountInputRef }, data: {}, state: { value: state.amount }, status: { disabled: amountDisabled, error: status.amountError } }}
+            required={{ config: { label: 'Amount', currency: amountCurrency, showCurrencyLabel: false, variant: 'primary', inputRef: amountInputRef }, data: {}, state: { value: state.amount }, status: { disabled: amountDisabled, error: status.amountError } }}
             provided={{ commands: { change: provided.commands.changeAmount, continueEditing: provided.commands.continueEditing } }}
           />
         </>
@@ -104,10 +117,10 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
       {!showTransferFields ? afterAmount : null}
 
       {showTransferFields ? (
-        <label className="vstack gap-2">
+        <label className={styles.field}>
           <span className="visually-hidden">Destination account</span>
           <select
-            className="form-select"
+            className={`${styles.destinationInput} form-select`}
             aria-label="Destination account"
             value={state.transferTargetAccountId}
             onChange={(event) => provided.commands.changeTransferTarget(event.target.value)}
@@ -125,16 +138,16 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
       {showTransferFields && amountVisible ? (
         <>
           <AmountInputView
-            required={{ config: { label: 'Amount', currency: amountCurrency, inputRef: amountInputRef }, data: {}, state: { value: state.amount }, status: { disabled: amountDisabled, error: status.amountError } }}
+            required={{ config: { label: 'Amount', currency: amountCurrency, showCurrencyLabel: false, variant: 'primary', inputRef: amountInputRef }, data: {}, state: { value: state.amount }, status: { disabled: amountDisabled, error: status.amountError } }}
             provided={{ commands: { change: provided.commands.changeAmount, continueEditing: provided.commands.continueEditing } }}
           />
           {afterAmount}
 
-          <label className="vstack gap-2">
-            <span className="visually-hidden">{noteLabel}</span>
+          <label className={styles.field}>
+            <span className={styles.identityLabel}>{noteLabel}</span>
             <input
               ref={noteInputRef}
-              className="form-control"
+              className={`${styles.identityInput} form-control`}
               aria-label={noteLabel}
               value={state.note}
               onChange={(event) => provided.commands.changeNote(event.target.value)}
@@ -145,8 +158,8 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
       ) : null}
 
       {!showTransferFields ? (
-        <label className="vstack gap-2">
-          <span className="visually-hidden">{noteLabel}</span>
+        <label className={styles.field}>
+          <span className={styles.identityLabel}>{noteLabel}</span>
           {movementReuse && provided.commands.closeMovementReuse && provided.commands.toggleMovementReuseGroup && provided.commands.selectMovementReuseVariant ? (
             <MovementReuseAutocompleteView
               {...movementReuse}
@@ -157,7 +170,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
             />
           ) : <input
             ref={noteInputRef}
-            className="form-control"
+            className={`${styles.identityInput} form-control`}
             aria-label={noteLabel}
             value={state.note}
             onChange={(event) => provided.commands.changeNote(event.target.value)}
@@ -168,23 +181,26 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
 
       {dateVisible ? (
         <>
-          <div className="date-input-row">
-            <div className="date-input-field">
+          <div className={styles.field}>
+            <span className={styles.identityLabel}>{dateInputLabel}</span>
+            <div className={styles.dateField}>
               <label className="visually-hidden" htmlFor={dateFieldId}>{dateInputLabel}</label>
               <input
                 id={dateFieldId}
-                className="form-control"
+                className={`${styles.dateInput} form-control`}
                 aria-label={dateInputLabel}
                 type="text"
-                value={state.date}
+                value={dateEditing ? state.date : datePresentationLabel(state.date)}
                 placeholder={datePlaceholder}
                 inputMode="numeric"
                 disabled={status.dateDisabled}
                 onFocus={() => {
+                  setDateEditing(true);
                   if (state.date === datePlaceholder) {
                     provided.commands.changeDate('');
                   }
                 }}
+                onBlur={() => setDateEditing(false)}
                 onChange={(event) => provided.commands.changeDate(formatDateInput(event.target.value))}
                 aria-invalid={Boolean(status.dateError)}
                 aria-describedby={status.dateError ? 'composer-date-error' : undefined}
@@ -201,7 +217,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
               />
               <button
                 type="button"
-                className="btn btn-link gz-icon-button date-picker-button"
+                className={`${styles.dateButton} btn btn-link gz-icon-button date-picker-button`}
                 aria-label="Open calendar"
                 onClick={() => {
                   dateInputRef?.current?.showPicker?.();

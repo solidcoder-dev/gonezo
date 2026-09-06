@@ -13,16 +13,15 @@ const legacyGlobalStyles = new Set([
   'movements/ui/MovementsSearch/MovementsSearch.css', 'movements/ui/YearMonthSelector/YearMonthSelectorView.css',
   'movements/ui/movements.css',
   'shared/ui/BottomNavigation/BottomNavigationView.css', 'shared/ui/FloatingActionButton/FloatingActionButtonView.css',
-  'shared/ui/MultiTagPicker/MultiTagPickerView.css', 'shared/ui/SelectChip/SelectChipView.css',
+  'shared/ui/SelectChip/SelectChipView.css',
   'shared/ui/SplitFloatingAction/SplitFloatingActionView.css', 'shared/ui/detailSheet.css',
-  'transactions/ui/CategoryPickerField/CategoryPickerField.css', 'transactions/ui/ComposerModePicker/ComposerModePickerView.css',
+  'transactions/ui/ComposerModePicker/ComposerModePickerView.css',
   'transactions/ui/ExperimentalMovementDockNavigation/ExperimentalMovementDockNavigationView.css',
   'transactions/ui/ItemBreakdownControls/ItemBreakdownControlsView.css', 'transactions/ui/MovementAccountSelector/MovementAccountSelectorView.css',
   'transactions/ui/MovementDraftPicker/MovementDraftPickerView.css', 'transactions/ui/MovementMoreControls/MovementMoreControlsView.css',
   'transactions/ui/MovementTypeSelector/MovementTypeSelectorView.css', 'transactions/ui/MovementVoiceEntry/MovementVoiceEntryView.css',
   'transactions/ui/MovementVoiceEntry/MovementVoicePermissionDialog.css', 'transactions/ui/RecurrenceEditor/RecurrenceEditorView.css',
   'transactions/ui/ScheduleControls/ScheduleControlsView.css', 'transactions/ui/TransactionComposer/TransactionComposerView.css',
-  'transactions/ui/TransactionComposerActions/TransactionComposerActionsView.css', 'transactions/ui/TransactionMainFields/TransactionMainFieldsView.css',
 ]);
 export const LEGACY_GLOBAL_STYLE_LIMIT = 32;
 const boundedContexts = new Set(['account', 'analytics', 'expected', 'imports', 'ledger', 'movements', 'scheduling', 'sharing', 'taxonomy', 'transactions', 'workspace']);

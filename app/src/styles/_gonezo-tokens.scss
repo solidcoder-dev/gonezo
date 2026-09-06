@@ -3,6 +3,12 @@
 :root {
   color-scheme: light;
 
+  --brand-color: #197a36;
+  --income-color: #197a36;
+  --expense-color: #b83a32;
+  --danger-color: #b3261e;
+  --transfer-color: #276fbf;
+
   // Brand and actions are independent from financial meanings.
   --color-brand: var(--bs-primary);
   --color-brand-hover: var(--bs-primary-text-emphasis);
@@ -18,17 +24,18 @@
   --color-income: var(--bs-success);
   --color-income-text: var(--bs-success-text-emphasis);
   --color-income-soft: var(--bs-success-bg-subtle);
-  --color-on-income: #111411;
-  --color-expense: var(--bs-danger);
-  --color-expense-text: var(--bs-danger-text-emphasis);
-  --color-expense-soft: var(--bs-danger-bg-subtle);
+  --color-on-income: #ffffff;
+  --color-expense: var(--expense-color);
+  --color-expense-foreground: var(--expense-color);
+  --color-expense-text: var(--expense-color);
+  --color-expense-soft: #fbe9e6;
   --color-on-expense: #ffffff;
   --color-transfer: var(--bs-info);
   --color-transfer-text: var(--bs-info-text-emphasis);
   --color-transfer-soft: var(--bs-info-bg-subtle);
   --color-on-transfer: #ffffff;
   --color-on-warning: #111411;
-  --color-on-success: #111411;
+  --color-on-success: #ffffff;
   --color-on-info: #ffffff;
 
   --color-success: var(--bs-success);
@@ -37,41 +44,42 @@
   --color-warning-soft: var(--bs-warning-bg-subtle);
   --color-error: var(--bs-danger);
   --color-error-soft: var(--bs-danger-bg-subtle);
-  --color-danger: var(--color-error);
-  --color-danger-text: var(--color-expense-text);
+  --color-danger: var(--danger-color);
+  --color-danger-text: var(--danger-color);
   --color-danger-soft: var(--color-error-soft);
   --color-on-danger: #ffffff;
   --color-info: var(--bs-info);
   --color-info-soft: var(--bs-info-bg-subtle);
 
   --color-navigation-active: var(--color-income);
-  --color-selected: var(--color-brand);
-  --color-text-primary: var(--bs-body-color);
-  --color-text-secondary: var(--bs-secondary-color);
-  --color-text-muted: var(--bs-tertiary-color);
+  --color-selected: var(--brand-color);
+  --color-text-primary: #141414;
+  --color-text-secondary: #6f6d67;
+  --color-text-muted: #73716b;
   --color-text-danger: var(--color-danger-text);
   --color-text-inverse: var(--color-on-brand); /* Deprecated alias: migrate consumers to `--color-on-brand`. */
   --color-text-disabled: var(--bs-secondary-color);
   --color-on-brand: #ffffff;
-  --color-surface: var(--bs-body-bg);
-  --color-surface-primary: var(--color-surface);
-  --color-surface-secondary: var(--bs-tertiary-bg);
-  --color-surface-elevated: var(--bs-white);
+  --color-surface: #f7f6f2;
+  --color-surface-primary: #fffefb;
+  --color-surface-secondary: #f7f6f2;
+  --color-surface-elevated: #fffefb;
   --color-surface-muted: var(--bs-secondary-bg);
-  --color-border-subtle: var(--bs-border-color-translucent);
-  --color-border-default: var(--bs-border-color);
+  --color-border-subtle: #dfddd6;
+  --color-border-default: #dfddd6;
   --color-border-strong: var(--bs-secondary-border-subtle);
   --color-focus-ring: var(--bs-primary-bg-subtle);
   --color-overlay: rgb(var(--bs-dark-rgb) / 32%);
 
-  --space-2xs: 0.125rem;
-  --space-xs: 0.25rem;
-  --space-sm: 0.5rem;
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
   --space-md: 1rem;
   --space-lg: 1.5rem;
   --space-xl: 2rem;
   --space-2xl: 2.5rem;
   --space-3xl: 3rem;
+  --space-4xl: 4rem;
 
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -110,10 +118,10 @@
   --shadow-dock: 0 14px 28px rgb(var(--bs-dark-rgb) / 12%), 0 4px 12px rgb(var(--bs-dark-rgb) / 8%);
   --shadow-switch-thumb: 0 1px 3px rgb(var(--bs-dark-rgb) / 18%);
 
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-sm: 0;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
   --radius-pill: 999px;
   --app-header-height: 60px;
   --app-content-max-width: 720px;
@@ -168,8 +176,16 @@
 
 [data-bs-theme='dark'] {
   color-scheme: dark;
-  --color-surface-elevated: var(--bs-secondary-bg);
-  --color-surface-muted: var(--bs-secondary-bg);
+  --color-text-primary: #fffefb;
+  --color-text-secondary: #d2d0c8;
+  --color-text-muted: #b8b6af;
+  --color-surface: #1b1b1b;
+  --color-surface-primary: #242424;
+  --color-surface-secondary: #2b2b2b;
+  --color-surface-elevated: #303030;
+  --color-surface-muted: #2b2b2b;
+  --color-border-subtle: #464640;
+  --color-border-default: #5a5952;
   --color-overlay: rgb(var(--bs-black-rgb) / 54%);
   --shadow-switch-thumb: 0 1px 3px rgb(var(--bs-black-rgb) / 30%);
 }

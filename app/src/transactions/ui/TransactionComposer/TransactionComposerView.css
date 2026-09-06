@@ -117,17 +117,17 @@
 }
 
 .composer-choice-row--expense .composer-choice-icon {
-  background: color-mix(in srgb, var(--color-expense) 10%, transparent);
+  background: var(--color-expense-soft);
   color: var(--color-danger);
 }
 
 .composer-choice-row--income .composer-choice-icon {
-  background: color-mix(in srgb, var(--color-success-soft) 72%, var(--color-surface-primary));
+  background: var(--color-success-soft);
   color: var(--color-success);
 }
 
 .composer-choice-row--transfer .composer-choice-icon {
-  background: color-mix(in srgb, var(--color-transfer) 10%, transparent);
+  background: var(--color-info-soft);
   color: var(--color-info);
 }
 
@@ -173,141 +173,10 @@
   align-items: center;
   padding: 0 10px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--color-success-soft) 62%, var(--color-surface-primary));
+  background: var(--color-success-soft);
   color: var(--color-success);
   font-size: 0.78rem;
   font-weight: var(--font-weight-bold);
-}
-
-.composer-amount-accessory {
-  display: grid;
-  gap: 6px;
-}
-
-.composer-details-title {
-  color: var(--color-text-primary);
-  font-size: 0.82rem;
-  font-weight: var(--font-weight-bold);
-}
-
-.composer-details-chips {
-  display: grid;
-  gap: 0;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 14px;
-  background: var(--color-surface-primary);
-  overflow: hidden;
-  box-shadow: var(--shadow-card);
-}
-
-.composer-details-chips > * + * {
-  border-top: 1px solid var(--color-border-subtle);
-}
-
-.composer-form {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: 8px;
-  height: 100%;
-  min-height: 0;
-}
-
-.composer-form-content {
-  gap: 12px;
-  min-height: 0;
-  align-content: start;
-  padding-top: 10px;
-  padding-right: 4px;
-  padding-bottom: 10px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.composer-form-content > .stack {
-  margin-top: 0;
-}
-
-.composer-context-controls {
-  display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.composer-context-select {
-  position: relative;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  min-height: 54px;
-  padding: 0 14px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-  background: var(--color-surface-primary);
-  color: var(--color-text-primary);
-  box-shadow: var(--shadow-card);
-}
-
-.composer-context-value {
-  width: 100%;
-  min-width: 0;
-  color: inherit;
-  font-size: 0.96rem;
-  font-weight: 760;
-  overflow: hidden;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.composer-context-select > .bi:first-child {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 11px;
-  background: var(--color-brand-soft);
-  color: var(--color-action-primary);
-  font-size: 1.12rem;
-}
-
-.composer-form-content input:not([aria-label='Amount']):not(.visually-hidden),
-.composer-form-content select {
-  min-height: 48px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-size: 0.96rem;
-}
-
-.composer-form-content .gz-field-error {
-  margin-top: -2px;
-}
-
-.composer-context-select--expense {
-  border-color: color-mix(in srgb, var(--color-expense) 16%, transparent);
-  background: var(--color-expense-soft);
-  color: var(--color-danger);
-}
-
-.composer-context-select--expense > .bi:first-child {
-  background: color-mix(in srgb, var(--color-expense) 10%, transparent);
-  color: var(--color-danger);
-}
-
-.composer-context-select--income {
-  color: var(--color-income);
-}
-
-.composer-context-select--transfer {
-  color: var(--color-info);
-}
-
-.composer-advanced {
-  margin-top: 8px;
-  gap: 12px;
 }
 
 .composer-items-editor {
@@ -325,78 +194,5 @@
   border-radius: 10px;
   background: var(--color-text-primary);
   color: var(--color-text-inverse);
-  font-weight: 860;
-}
-
-.composer-account-context {
-  display: grid;
-  gap: 2px;
-  padding: 2px 0 4px;
-  color: var(--color-text-muted);
-  font-size: 0.78rem;
-  letter-spacing: 0;
-}
-
-.composer-account-context strong {
-  color: var(--color-text-primary);
-  font-size: 0.92rem;
-  font-weight: 700;
-}
-
-.composer-account-context--compact {
-  padding-bottom: 0;
-}
-
-.composer-movement-context {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.composer-movement-context::before {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  content: "";
-}
-
-.composer-movement-context--expense {
-  color: var(--color-danger);
-}
-
-.composer-movement-context--expense::before {
-  background: var(--color-danger);
-}
-
-.composer-movement-context--income {
-  color: var(--color-income);
-}
-
-.composer-movement-context--income::before {
-  background: var(--color-income);
-}
-
-.composer-movement-context--transfer {
-  color: var(--color-info);
-}
-
-.composer-movement-context--transfer::before {
-  background: var(--color-info);
-}
-
-@media (max-width: 360px) {
-  .composer-context-select {
-    gap: 7px;
-    min-height: 50px;
-    padding: 0 12px;
-  }
-
-  .composer-context-select > .bi:first-child {
-    width: 30px;
-    height: 30px;
-  }
-
-  .composer-context-value {
-    font-size: 0.9rem;
-  }
+  font-weight: var(--font-weight-semibold);
 }

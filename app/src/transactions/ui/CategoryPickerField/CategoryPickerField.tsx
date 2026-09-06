@@ -1,5 +1,5 @@
-import './CategoryPickerField.css';
 import { resolveTaxonomyIcon } from '../../application/movementIconPresentation';
+import styles from './CategoryPickerField.module.css';
 
 type CategoryOption = {
   id: string;
@@ -29,23 +29,25 @@ export function CategoryPickerField({ required, provided }: Props) {
   }
 
   return (
-    <div className="category-picker">
-      <span className="category-picker-label">Category</span>
-      <div className="category-picker-row" role="group" aria-label="Category">
+    <div className={styles.root}>
+      <span className={styles.label}>Category</span>
+      <div className={styles.row} role="group" aria-label="Category">
         {required.options.map((category) => {
           const selected = category.id === selectedCategory?.id;
           return (
             <button
               key={category.id}
               type="button"
-              className={selected ? 'category-chip selected' : 'category-chip'}
+              className={selected ? `${styles.chip} ${styles.selected}` : styles.chip}
               aria-label={`Select category ${category.name}`}
               title={category.name}
               disabled={required.disabled}
               onClick={() => selectCategory(category.id)}
             >
-              <i className={resolveTaxonomyIcon(category.name).className} aria-hidden />
-              <span>{category.name}</span>
+              <span className={styles.chipSurface}>
+                <i className={resolveTaxonomyIcon(category.name).className} aria-hidden />
+                <span>{category.name}</span>
+              </span>
             </button>
           );
         })}

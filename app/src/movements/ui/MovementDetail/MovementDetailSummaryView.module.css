@@ -1,0 +1,21 @@
+.body { display: grid; gap: var(--space-xl); padding-bottom: var(--space-3xl); }
+.context { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); min-height: 44px; }
+.type { font-weight: var(--font-weight-medium); }
+.expense { color: var(--color-expense); }
+.income { color: var(--color-income); }
+.transfer { color: var(--color-transfer); }
+.account { min-width: 0; overflow: hidden; color: var(--color-text-primary); text-overflow: ellipsis; white-space: nowrap; }
+.amount { color: var(--color-text-primary); font-size: 3rem; font-variant-numeric: tabular-nums; font-weight: var(--font-weight-bold); line-height: 1.2; }
+.identity { display: grid; gap: var(--space-xs); }
+.title { margin: 0; color: var(--color-text-primary); font-size: 1.25rem; font-weight: var(--font-weight-semibold); line-height: 1.4; }
+.meta { color: var(--color-text-secondary); font-size: 0.875rem; line-height: 1.43; }
+.section { display: grid; gap: var(--space-md); }
+.sectionLabel { color: var(--color-text-muted); font-size: 0.75rem; font-weight: var(--font-weight-semibold); letter-spacing: 0.08em; text-transform: uppercase; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); min-height: 52px; padding: 0; border: 0; background: transparent; color: var(--color-text-primary); font: inherit; text-align: left; }
+.rowMain { min-width: 0; }
+.rowValue { display: inline-flex; align-items: center; gap: var(--space-sm); min-width: 0; color: var(--color-text-primary); }
+.supporting { color: var(--color-text-secondary); font-size: 0.875rem; }
+.placeholder { color: var(--color-text-muted); }
+.chipList { display: flex; flex-wrap: wrap; gap: var(--space-xs); justify-content: flex-end; }
+.chip { display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--space-sm); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-pill); color: var(--color-text-secondary); font-size: 0.875rem; }
+.status { display: inline-flex; min-height: 32px; align-items: center; padding: 0 var(--space-sm); border-radius: var(--radius-pill); background: var(--color-surface-secondary); color: var(--color-text-secondary); font-size: 0.875rem; }

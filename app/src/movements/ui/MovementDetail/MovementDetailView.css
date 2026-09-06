@@ -148,7 +148,7 @@
   flex-shrink: 0;
   white-space: nowrap;
   font-size: 2rem;
-  font-weight: 900;
+  font-weight: var(--font-weight-bold);
   letter-spacing: -0.03em;
 }
 

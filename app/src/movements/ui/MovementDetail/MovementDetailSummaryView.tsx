@@ -1,10 +1,7 @@
 import { formatCurrencyAmount } from '../../../shared/utils/formatting';
-import {
-  movementDetailAmountLabel,
-  movementDetailIconClassName,
-  movementDetailTypeLabel,
-} from '../../application/movementDetailMappers';
+import { movementDetailAmountLabel, movementDetailTypeLabel } from '../../application/movementDetailMappers';
 import type { MovementDetailOverflowAction, MovementDetailTagView, MovementDetailViewModel } from '../../application/movementDetailView.types';
+import styles from './MovementDetailSummaryView.module.css';
 
 type MovementDetailSummaryViewProps = {
   movement: MovementDetailViewModel;
@@ -52,21 +49,21 @@ export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryView
   } = props;
 
   return (
-    <div className="movement-detail-header">
+    <div className={styles.header}>
       <button
         type="button"
-        className="gz-text-button gz-icon-button movement-detail-header-action"
+        className="gz-text-button gz-icon-button"
         aria-label="Back to movements"
         onClick={onGoBack}
       >
         <i className="bi bi-arrow-left" aria-hidden />
       </button>
-      <h2>Movement</h2>
-      <div className="movement-detail-header-side">
+      <h2 className={styles.headerTitle}>Movement</h2>
+      <div>
         {overflowActions.length > 0 ? (
           <button
             type="button"
-            className="gz-text-button gz-icon-button movement-detail-header-action"
+            className="gz-text-button gz-icon-button"
             aria-label="Movement actions"
             aria-haspopup="menu"
             aria-expanded={overflowOpen}
@@ -82,7 +79,7 @@ export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryView
             <button
               key={action.id}
               type="button"
-              className="movement-detail-overflow-action"
+              className={`${styles.overflowAction} ${action.destructive ? styles.overflowActionDestructive : ''}`}
               role="menuitem"
               onClick={() => onRunOverflowAction(action)}
               disabled={(action.id === 'void-posted' && pendingVoid) || (action.id === 'stop-recurring-series' && deactivating) || (action.id === 'dismiss-expected' && dismissingExpected)}
@@ -107,7 +104,6 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
     onOpenItemsSheet,
     onOpenMoreDetailsSheet,
   } = props;
-  const iconClassName = movementDetailIconClassName(movement.financialType);
   const showCategory = movement.financialType !== 'transfer' && (movement.canEditCategory || movement.category != null);
   const showTags = ('canEditTags' in movement && movement.canEditTags) || movement.tags.length > 0 || movement.source === 'expected';
   const canEditTags = 'canEditTags' in movement && movement.canEditTags;
@@ -124,43 +120,26 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
     ? movement.sharing.value
     : null;
   return (
-    <div className="movement-detail-body">
-      <section className={`movement-detail-hero movement-detail-hero--${movement.financialType}`}>
-        <div className="movement-detail-hero-top">
-          <span className="movement-detail-hero-icon">
-            <i className={iconClassName} aria-hidden />
-          </span>
-          <div className="movement-detail-hero-copy">
-            <strong>{movement.title}</strong>
-            <span>{[movement.accountLabel, movement.dateLabel].filter(Boolean).join(' · ')}</span>
-          </div>
-        </div>
-        <div className="movement-detail-hero-bottom">
-          <strong className="movement-detail-hero-amount">
-            {`${movement.amount.sign}${movementDetailAmountLabel(movement.amount.value, movement.amount.currency)}`}
-          </strong>
-          <div className="movement-detail-chip-list movement-detail-chip-list--wrap">
-            <span className={`movement-detail-chip movement-detail-chip--tone-${movement.financialType}`}>
-              {movementDetailTypeLabel(movement.financialType)}
-            </span>
-            {'lifecycleChip' in movement && movement.lifecycleChip ? (
-              <span className="movement-detail-chip movement-detail-chip--secondary">{movement.lifecycleChip}</span>
-            ) : null}
-          </div>
-        </div>
-      </section>
+    <div className={`${styles.body} movement-detail-body`}>
+      <div className={styles.context}>
+        <span className={`${styles.type} ${styles[movement.financialType]}`}>{movementDetailTypeLabel(movement.financialType)}</span>
+        <span className={styles.account}>{movement.accountLabel}</span>
+      </div>
+      <strong className={styles.amount}>{`${movement.amount.sign}${movementDetailAmountLabel(movement.amount.value, movement.amount.currency)}`}</strong>
+      <div className={styles.identity}>
+        <h3 className={styles.title}>{movement.title}</h3>
+        <span className={styles.meta}>{movement.dateLabel}</span>
+        {'lifecycleChip' in movement && movement.lifecycleChip ? <span className={styles.status}>{movement.lifecycleChip}</span> : null}
+      </div>
 
-      <div className="movement-detail-section">
-        <span className="movement-detail-section-title">Classification</span>
-        <div className="movement-detail-group">
+      <div className={styles.section}>
+        <span className={styles.sectionLabel}>Classification</span>
+        <div>
           {showCategory && movement.canEditCategory ? (
-            <button type="button" className="movement-detail-row" onClick={onOpenCategorySheet}>
-              <span className="movement-detail-row-main">
-                <i className="bi bi-bookmark" aria-hidden />
-                <span>Category</span>
-              </span>
-              <span className="movement-detail-row-value">
-                <span className={movement.category ? 'movement-detail-chip movement-detail-chip--filled' : 'movement-detail-placeholder'}>
+            <button type="button" className={styles.row} onClick={onOpenCategorySheet}>
+              <span className={styles.rowMain}>Category</span>
+              <span className={styles.rowValue}>
+                <span className={movement.category ? undefined : styles.placeholder}>
                   {movement.category?.name ?? 'No category'}
                 </span>
                 <i className="bi bi-chevron-right" aria-hidden />
@@ -168,37 +147,28 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
             </button>
           ) : null}
           {showCategory && !movement.canEditCategory ? (
-            <div className="movement-detail-row movement-detail-row--static">
-              <span className="movement-detail-row-main">
-                <i className="bi bi-bookmark" aria-hidden />
-                <span>Category</span>
-              </span>
-              <span className="movement-detail-row-value">
-                <span className={movement.category ? 'movement-detail-chip movement-detail-chip--filled' : 'movement-detail-placeholder'}>
+            <div className={styles.row}>
+              <span className={styles.rowMain}>Category</span>
+              <span className={styles.rowValue}>
+                <span className={movement.category ? undefined : styles.placeholder}>
                   {movement.category?.name ?? 'No category'}
                 </span>
               </span>
             </div>
           ) : null}
           {showTags && canEditTags ? (
-            <button type="button" className="movement-detail-row" onClick={onOpenTagsSheet}>
-              <span className="movement-detail-row-main">
-                <i className="bi bi-tags" aria-hidden />
-                <span>Tags</span>
-              </span>
-              <span className="movement-detail-row-value movement-detail-row-value--tags">
+            <button type="button" className={styles.row} onClick={onOpenTagsSheet}>
+              <span className={styles.rowMain}>Tags</span>
+              <span className={styles.rowValue}>
                 {summaryTags(movement.tags)}
                 <i className="bi bi-chevron-right" aria-hidden />
               </span>
             </button>
           ) : null}
           {showTags && !canEditTags ? (
-            <div className="movement-detail-row movement-detail-row--static">
-              <span className="movement-detail-row-main">
-                <i className="bi bi-tags" aria-hidden />
-                <span>Tags</span>
-              </span>
-              <span className="movement-detail-row-value movement-detail-row-value--tags">
+            <div className={styles.row}>
+              <span className={styles.rowMain}>Tags</span>
+              <span className={styles.rowValue}>
                 {summaryTags(movement.tags)}
               </span>
             </div>
@@ -206,51 +176,42 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
         </div>
       </div>
 
-      <div className="movement-detail-section">
-        {showMovementSectionTitle ? <span className="movement-detail-section-title">Movement</span> : null}
-        <div className="movement-detail-group">
+      <div className={styles.section}>
+        {showMovementSectionTitle ? <span className={styles.sectionLabel}>Details</span> : null}
+        <div>
           {showSharing ? (
-            <button type="button" className="movement-detail-row" onClick={onOpenSharingSheet}>
-              <span className="movement-detail-row-main movement-detail-row-main--stacked">
-                <span className="movement-detail-row-leading">
-                  <i className="bi bi-people" aria-hidden />
-                  <span>
-                    {movement.sharing.phase === 'error'
-                      ? 'Sharing unavailable'
-                      : movement.sharing.phase === 'loading'
-                        ? 'Loading sharing...'
-                        : `Shared with ${sharingValue?.participantCount ?? 0} people`}
-                  </span>
+            <button type="button" className={styles.row} onClick={onOpenSharingSheet}>
+              <span className={styles.rowMain}>
+                <span>
+                  {movement.sharing.phase === 'error'
+                    ? 'Sharing unavailable'
+                    : movement.sharing.phase === 'loading'
+                      ? 'Loading sharing...'
+                      : `Shared with ${sharingValue?.participantCount ?? 0} people`}
                 </span>
                 {sharingValue ? (
-                  <small>Your share · {formatCurrencyAmount(sharingValue.personalExpenseAmount, movement.amount.currency)}</small>
+                  <small className={styles.supporting}>Your share · {formatCurrencyAmount(sharingValue.personalExpenseAmount, movement.amount.currency)}</small>
                 ) : null}
               </span>
-              <span className="movement-detail-row-value">
+              <span className={styles.rowValue}>
                 <i className="bi bi-chevron-right" aria-hidden />
               </span>
             </button>
           ) : null}
           {showItems ? (
-            <button type="button" className="movement-detail-row" onClick={onOpenItemsSheet}>
-              <span className="movement-detail-row-main movement-detail-row-main--stacked">
-                <span className="movement-detail-row-leading">
-                  <i className="bi bi-list-ul" aria-hidden />
-                  <span>Items</span>
-                </span>
-                <small>{movement.items.length} items · {movementDetailAmountLabel(movement.amount.value, movement.amount.currency)}</small>
+            <button type="button" className={styles.row} onClick={onOpenItemsSheet}>
+              <span className={styles.rowMain}>
+                <span>Items</span>
+                <small className={styles.supporting}>{movement.items.length} items · {movementDetailAmountLabel(movement.amount.value, movement.amount.currency)}</small>
               </span>
-              <span className="movement-detail-row-value">
+              <span className={styles.rowValue}>
                 <i className="bi bi-chevron-right" aria-hidden />
               </span>
             </button>
           ) : null}
-          <button type="button" className="movement-detail-row" onClick={onOpenMoreDetailsSheet}>
-            <span className="movement-detail-row-main">
-              <i className="bi bi-card-list" aria-hidden />
-              <span>More details</span>
-            </span>
-            <span className="movement-detail-row-value">
+          <button type="button" className={styles.row} onClick={onOpenMoreDetailsSheet}>
+            <span className={styles.rowMain}>More details</span>
+            <span className={styles.rowValue}>
               <i className="bi bi-chevron-right" aria-hidden />
             </span>
           </button>

@@ -1,0 +1,25 @@
+.root {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-sm) 0 calc(var(--space-md) + var(--app-safe-area-bottom));
+  background: var(--color-surface-primary);
+}
+
+.primary {
+  min-height: 52px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--color-action-primary);
+  color: var(--color-on-brand);
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.secondary {
+  min-height: var(--touch-target-min);
+  border: 0;
+  background: transparent;
+  color: var(--color-info);
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-medium);
+}

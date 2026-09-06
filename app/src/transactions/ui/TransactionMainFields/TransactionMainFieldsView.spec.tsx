@@ -49,6 +49,7 @@ describe('TransactionMainFieldsView', () => {
     expect(changeAmount).toHaveBeenCalledWith('24');
     expect(changeNote).toHaveBeenCalledWith('Market');
     expect(changeDate).toHaveBeenCalledWith('2026-05-11');
+    expect(screen.getByLabelText('Date')).toHaveValue('10 May');
     expect(screen.getByRole('button', { name: 'Open amount calculator' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Destination account')).not.toBeInTheDocument();
   });

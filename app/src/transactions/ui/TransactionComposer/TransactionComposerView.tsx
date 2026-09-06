@@ -21,6 +21,7 @@ import type {
   RecurrenceMonthlyPatternView as RecurrenceMonthlyPattern,
 } from '../../../shared/domain/schedulingView.types';
 import './TransactionComposerView.css';
+import styles from './TransactionComposerView.module.css';
 import type { MovementReuseSuggestionGroup, MovementReuseSuggestionVariant } from '../../../movements/application/movementReuseSuggestions.port';
 
 export type ComposerMode = 'picker' | 'expense' | 'income' | 'transfer';
@@ -467,9 +468,12 @@ export function TransactionComposerView({ required, provided }: Props) {
 
   return (
     <>
-      <TransactionComposerPageView onBack={closeComposer}>
-            <form className="composer-form" onSubmit={(event) => { void submitComposer(event); }} aria-busy={disabled} noValidate>
-            <div className="composer-form-content vstack gap-2">
+      <TransactionComposerPageView
+        onBack={closeComposer}
+        title={postExpectedMovement ? 'Post expected movement' : editingScheduledMovement ? 'Edit scheduled movement' : 'New movement'}
+      >
+            <form className={`${styles.form} composer-form`} onSubmit={(event) => { void submitComposer(event); }} aria-busy={disabled} noValidate>
+            <div className={`${styles.content} composer-form-content`}>
               <TransactionComposerContextControls
                 required={{
                   state: {
@@ -626,7 +630,8 @@ export function TransactionComposerView({ required, provided }: Props) {
                 />
               ) : null}
 
-              <div className="vstack gap-2 composer-advanced">
+              <section className={styles.classification} aria-labelledby="composer-classification-label">
+                <div id="composer-classification-label" className={styles.sectionLabel}>Classification</div>
                 {mode === 'expense' || mode === 'income' ? (
                   <>
                     <CategoryPickerField
@@ -694,7 +699,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                     />
                   </>
                 )}
-              </div>
+              </section>
               <TransactionComposerAmountAccessories
                 required={{
                   state: {

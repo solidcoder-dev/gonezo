@@ -1,6 +1,6 @@
 import { useId, type KeyboardEvent } from 'react';
 import type { MultiTagPickerViewProps } from './MultiTagPickerView.contract';
-import './MultiTagPickerView.css';
+import styles from './MultiTagPickerView.module.css';
 
 export type { MultiTagPickerOption, MultiTagPickerViewProps } from './MultiTagPickerView.contract';
 
@@ -29,32 +29,32 @@ export function MultiTagPickerView({ required, provided }: MultiTagPickerViewPro
   }
 
   return (
-    <div className="multi-tag-picker">
-      <label className="multi-tag-picker-label" htmlFor={inputId}>
+    <div className={styles.root}>
+      <label className={styles.label} htmlFor={inputId}>
         {required.config.label}
       </label>
       {required.data.selectedTags.length > 0 ? (
-        <div className="multi-tag-picker-selected" aria-label="Selected tags">
+        <div className={styles.selected} aria-label="Selected tags">
           {required.data.selectedTags.map((tag) => (
             <button
               key={tag.id}
               type="button"
-              className="multi-tag-picker-chip"
+              className={styles.chip}
               title={tag.name}
               aria-label={`Remove tag ${tag.name}`}
               disabled={required.status.disabled}
               onClick={() => provided.commands.removeTag(tag.id)}
             >
-              <span className="multi-tag-picker-chip-name">#{tag.name}</span>
-              <span className="multi-tag-picker-chip-remove" aria-hidden>×</span>
+              <span>#{tag.name}</span>
+              <span aria-hidden>×</span>
             </button>
           ))}
         </div>
       ) : null}
-      <span className="multi-tag-picker-field">
+      <span className={styles.field}>
         <input
           id={inputId}
-          className="multi-tag-picker-input"
+          className={styles.input}
           disabled={required.status.disabled}
           placeholder={required.data.selectedTags.length === 0 ? required.config.placeholder : 'Add tag...'}
           value={required.state.query}
@@ -63,12 +63,12 @@ export function MultiTagPickerView({ required, provided }: MultiTagPickerViewPro
         />
       </span>
       {listOpen ? (
-        <ul className="multi-tag-picker-list" aria-label={`${required.config.label} suggestions`}>
+        <ul className={styles.suggestions} aria-label={`${required.config.label} suggestions`}>
           {suggestions.map((tag) => (
             <li key={tag.id}>
               <button
                 type="button"
-                className="multi-tag-picker-option"
+                className={styles.suggestion}
                 title={tag.name}
                 onClick={() => provided.commands.selectTag(tag.id)}
               >
@@ -80,7 +80,7 @@ export function MultiTagPickerView({ required, provided }: MultiTagPickerViewPro
             <li>
               <button
                 type="button"
-                className="multi-tag-picker-option multi-tag-picker-create"
+                className={styles.suggestion}
                 onClick={() => provided.commands.createTag(required.state.createCandidate!)}
               >
                 + {required.state.createCandidate}

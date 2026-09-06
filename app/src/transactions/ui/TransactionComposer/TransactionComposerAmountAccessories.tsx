@@ -3,6 +3,7 @@ import { ItemBreakdownSummaryView } from '../ItemBreakdownControls/ItemBreakdown
 import { ItemBreakdownTriggerView } from '../ItemBreakdownControls/ItemBreakdownTriggerView';
 import { MovementMoreTriggerView } from '../MovementMoreControls/MovementMoreTriggerView';
 import type { ComposerMode } from './TransactionComposerView';
+import styles from './TransactionComposerAmountAccessories.module.css';
 
 type Props = {
   required: {
@@ -85,13 +86,13 @@ export function TransactionComposerAmountAccessories({ required, provided }: Pro
   }
 
   return (
-    <div className="composer-amount-accessory">
-      <div className="composer-details-title">Details</div>
-      <div className="composer-details-chips">
+    <section className={styles.root} aria-labelledby="composer-details-label">
+      <div id="composer-details-label" className={styles.label}>Details</div>
+      <div className={styles.rows}>
         {splitControl}
         {visibleShareControl}
         {movementMoreControl}
       </div>
-    </div>
+    </section>
   );
 }
