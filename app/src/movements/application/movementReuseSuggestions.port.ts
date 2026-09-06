@@ -45,6 +45,23 @@ export interface MovementReuseSuggestionsPort {
   movementReuseListVariants(input: MovementReuseSuggestionsVariantsInput): Promise<MovementReuseSuggestionsVariantsResult>;
 }
 
+export type ReusableItem = { name: string; amount: string };
+export type ReusableShare = { person: string; amount: string; reimbursable: boolean };
+export type MovementReuseSetup = {
+  title: string;
+  type: LedgerTransactionType;
+  account: { id: string; name: string };
+  category?: { id: string; name: string };
+  tags: Array<{ id: string; name: string }>;
+  ignored: boolean;
+  transferTarget?: string;
+};
+export type MovementReuseDetails = {
+  amount: string;
+  items: ReusableItem[];
+  sharing: ReusableShare[];
+};
+
 export type MovementReuseTemplate = {
   representativeMovementId: string;
   title: string;
@@ -54,9 +71,11 @@ export type MovementReuseTemplate = {
   category?: { id: string; name: string };
   tags: Array<{ id: string; name: string }>;
   itemNames: string[];
-  sharingPeople: Array<{ id: string; name: string; email?: string; reimbursable: boolean; parts?: number }>;
+  sharingPeople: Array<{ id: string; name: string; email?: string; reimbursable: boolean; parts?: number; amount?: string }>;
   targetAccountId?: string;
   ignored: boolean;
+  setup?: MovementReuseSetup;
+  details?: MovementReuseDetails;
 };
 
 export interface MovementReuseTemplatePort {

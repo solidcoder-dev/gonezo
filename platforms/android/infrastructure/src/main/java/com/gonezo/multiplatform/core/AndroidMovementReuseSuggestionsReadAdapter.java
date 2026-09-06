@@ -6,6 +6,9 @@ import com.gonezo.application.query.MovementReuseTaxonomyRef;
 import com.gonezo.application.query.MovementReuseTemplateRead;
 import com.gonezo.application.query.MovementReuseTemplateReadPort;
 import com.gonezo.application.query.MovementReuseTemplatePerson;
+import com.gonezo.application.query.MovementReuseTemplateDetails;
+import com.gonezo.application.query.MovementReuseTemplateItem;
+import com.gonezo.application.query.MovementReuseTemplateShare;
 import com.gonezo.application.query.MovementReuseTemplateTaxonomyRef;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,11 +63,10 @@ public final class AndroidMovementReuseSuggestionsReadAdapter implements Movemen
   }
 
   @Override public MovementReuseTemplateRead readTemplate(String representativeMovementId) {
-    for (AndroidLedgerCore.LedgerAccountView account : ledger.listAccounts()) {
-      var page = ledger.listTransactions(account.id(), new AndroidLedgerCore.LedgerTransactionFilterInput(null, null, null, null, null, List.of("posted"), null), new AndroidLedgerCore.LedgerPageRequestInput(0, 1000), List.of(new AndroidLedgerCore.LedgerTransactionSortInput("occurredAt", "desc")));
-      for (var transaction : page.content()) if (transaction.id().equals(representativeMovementId)) return template(transaction, account);
-    }
-    return null;
+    var transaction = ledger.getTransaction(representativeMovementId);
+    if (transaction == null || !"posted".equals(transaction.status())) return null;
+    var account = ledger.listAccounts().stream().filter(value -> value.id().equals(transaction.accountId())).findFirst().orElse(null);
+    return account == null ? null : template(transaction, account);
   }
 
   private MovementReuseTemplateRead template(AndroidLedgerCore.LedgerTransactionView transaction, AndroidLedgerCore.LedgerAccountView account) {
@@ -80,14 +82,17 @@ public final class AndroidMovementReuseSuggestionsReadAdapter implements Movemen
     List<MovementReuseTemplatePerson> people = new ArrayList<>();
     var details = sharing.getMovementDetails(transaction.id());
     if (details != null && details.share() != null) for (var participant : details.share().participants()) people.add(new MovementReuseTemplatePerson(participant.personId(), participant.displayName(), null, participant.reimbursable(), null));
+    List<MovementReuseTemplateItem> items = transaction.items().stream().map(item -> new MovementReuseTemplateItem(item.name(), item.amount())).toList();
+    List<MovementReuseTemplateShare> shares = details == null || details.share() == null ? List.of() : details.share().participants().stream().map(value -> new MovementReuseTemplateShare(value.displayName(), value.amount(), value.reimbursable())).toList();
+    var templateDetails = items.isEmpty() && shares.isEmpty() ? null : new MovementReuseTemplateDetails(transaction.amount(), items, shares);
     String targetAccountId = null;
-    if (transaction.linkedTransactionId() != null) for (var target : ledger.listAccounts()) {
-      var targetPage = ledger.listTransactions(target.id(), new AndroidLedgerCore.LedgerTransactionFilterInput(null, null, null, null, null, List.of("posted"), null), new AndroidLedgerCore.LedgerPageRequestInput(0, 1000), List.of(new AndroidLedgerCore.LedgerTransactionSortInput("occurredAt", "desc")));
-      if (targetPage.content().stream().anyMatch(value -> transaction.linkedTransactionId().equals(value.id()))) { targetAccountId = target.id(); break; }
+    if (transaction.linkedTransactionId() != null) {
+      var linkedTransaction = ledger.getTransaction(transaction.linkedTransactionId());
+      if (linkedTransaction != null) targetAccountId = linkedTransaction.accountId();
     }
     boolean ignored;
     try (var cursor = new CoreDatabase(context).getReadableDatabase().query("analytics_exclusions", new String[]{"id"}, "scope_type = ? and scope_id = ? and reason = ?", new String[]{"movement", transaction.id(), "user_ignored"}, null, null, null, "1")) { ignored = cursor.moveToFirst(); }
-    return new MovementReuseTemplateRead(transaction.id(), transaction.merchant() == null || transaction.merchant().isBlank() ? transaction.description() : transaction.merchant(), account.id(), account.name(), transaction.type(), category == null ? null : new MovementReuseTemplateTaxonomyRef(category.id(), category.name()), templateTags, transaction.items().stream().map(AndroidLedgerCore.LedgerTransactionItemView::name).toList(), people, targetAccountId, ignored);
+    return new MovementReuseTemplateRead(transaction.id(), transaction.merchant() == null || transaction.merchant().isBlank() ? transaction.description() : transaction.merchant(), account.id(), account.name(), transaction.type(), category == null ? null : new MovementReuseTemplateTaxonomyRef(category.id(), category.name()), templateTags, transaction.items().stream().map(AndroidLedgerCore.LedgerTransactionItemView::name).toList(), people, targetAccountId, ignored, templateDetails);
   }
 
 }

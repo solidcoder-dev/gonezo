@@ -7,7 +7,7 @@ export type MovementReuseTemplateSource = {
   type: Exclude<ComposerMode, 'picker'>;
   categoryId?: string;
   tagNames?: string[];
-  items?: Array<{ name: string }>;
+  items?: Array<{ name: string; amount?: string }>;
   sharing?: {
     people: Array<{
       id: string;
@@ -15,10 +15,12 @@ export type MovementReuseTemplateSource = {
       email?: string;
       reimbursable: boolean;
       parts?: number;
+      amount?: string;
     }>;
   };
   targetAccountId?: string;
   ignored?: boolean;
+  amount?: string;
 };
 
 export type MovementReuseTemplate = {
@@ -27,7 +29,8 @@ export type MovementReuseTemplate = {
   mode: Exclude<ComposerMode, 'picker'>;
   categoryId?: string;
   tagNames: string[];
-  splitItems: Array<{ name: string; amount: '' }>;
+  splitItems: Array<{ name: string; amount: string }>;
+  amount?: string;
   shareDraft?: ShareDraft;
   transferTargetAccountId?: string;
   movementIgnored?: boolean;
@@ -44,17 +47,18 @@ export function createMovementReuseTemplate(source: MovementReuseTemplateSource)
     mode: source.type,
     categoryId: source.categoryId,
     tagNames: [...(source.tagNames ?? [])],
-    splitItems: (source.items ?? []).map((item) => ({ name: item.name, amount: '' })),
+    amount: source.amount,
+    splitItems: (source.items ?? []).map((item) => ({ name: item.name, amount: item.amount ?? '' })),
     shareDraft: source.sharing
       ? {
-        mode: 'parts',
+        mode: source.sharing.people.some((person) => person.amount != null) ? 'amounts' : 'parts',
         people: source.sharing.people.map((person, index) => ({
           id: person.id,
           name: person.name,
           email: person.email,
           reimbursable: person.reimbursable,
           parts: person.parts ?? 1,
-          amount: '',
+          amount: person.amount ?? '',
           avatarTone: avatarToneFor(index),
         })),
       }

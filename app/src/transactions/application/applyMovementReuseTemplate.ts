@@ -2,47 +2,43 @@ import type { MovementReuseTemplate as ReadTemplate } from '../../movements/appl
 import { createMovementReuseTemplate, type MovementReuseTemplate } from './movementReuseTemplate';
 import type { ComposerMode } from './transactions.types';
 
-type MovementReuseApplicationActions = {
-  setComposerMode: (mode: ComposerMode) => void;
-  setComposerAdvancedOpen: (open: boolean) => void;
-  setTransactionNote: (note: string) => void;
-  setTransactionCategoryId: (categoryId: string) => void;
-  prefillTaxonomy: (tagNames: string[]) => void;
-  prefillExpenseSplit: (items: MovementReuseTemplate['splitItems']) => void;
-  prefillShareDraft: (draft: MovementReuseTemplate['shareDraft']) => void;
-  setMovementIgnored: (ignored: boolean) => void;
-  setTransferToAccountId: (accountId: string) => void;
-  syncForTransferMode: () => void;
+export type MovementReuseApplicationActions = {
+  setComposerMode: (mode: ComposerMode) => void; setComposerAdvancedOpen: (open: boolean) => void;
+  setTransactionNote: (note: string) => void; setTransactionCategoryId: (categoryId: string) => void;
+  prefillTaxonomy: (tagNames: string[]) => void; prefillExpenseSplit: (items: MovementReuseTemplate['splitItems']) => void;
+  prefillShareDraft: (draft: MovementReuseTemplate['shareDraft']) => void; setMovementIgnored: (ignored: boolean) => void;
+  setTransferToAccountId: (accountId: string) => void; syncForTransferMode: () => void;
+  setTransactionAmountValue: (amount: string) => void;
 };
 
-export function applyMovementReuseTemplate(
+function toComposerTemplate(template: ReadTemplate): MovementReuseTemplate {
+  const setup = template.setup;
+  const financialType = setup?.type ?? template.financialType;
+  const mode: 'expense' | 'income' | 'transfer' = financialType === 'transfer' || financialType === 'transfer_in' || financialType === 'transfer_out' ? 'transfer' : financialType;
+  const detailItems = template.details?.items;
+  const detailSharing = template.details?.sharing;
+  const people = template.sharingPeople.map((person) => ({ ...person, amount: detailSharing?.find((share) => share.person === person.name)?.amount ?? person.amount }));
+  return createMovementReuseTemplate({
+    title: setup?.title ?? template.title, accountId: setup?.account.id ?? template.accountId,
+    type: mode,
+    categoryId: (setup?.category ?? template.category)?.id, tagNames: (setup?.tags ?? template.tags).map((tag) => tag.name),
+    items: detailItems ?? template.itemNames.map((name) => ({ name })), sharing: people.length > 0 ? { people } : undefined,
+    targetAccountId: setup?.transferTarget ?? template.targetAccountId, ignored: setup?.ignored ?? template.ignored, amount: template.details?.amount,
+  });
+}
+
+export function applyMovementReuseSetup(
   template: ReadTemplate,
   currentAccountId: string | null,
   actions: MovementReuseApplicationActions,
   onAccountChanged?: (account: { id: string; name: string }) => void,
 ) {
-  const mode = template.financialType === 'transfer' || template.financialType === 'transfer_in' || template.financialType === 'transfer_out'
-    ? 'transfer'
-    : template.financialType;
-  const reusable = createMovementReuseTemplate({
-    title: template.title,
-    accountId: template.accountId,
-    type: mode,
-    categoryId: template.category?.id,
-    tagNames: template.tags.map((tag) => tag.name),
-    items: template.itemNames.map((name) => ({ name })),
-    sharing: template.sharingPeople.length > 0 ? { people: template.sharingPeople } : undefined,
-    targetAccountId: template.targetAccountId,
-    ignored: template.ignored,
-  });
-
+  const reusable = toComposerTemplate(template);
   actions.setComposerMode(reusable.mode);
   actions.setComposerAdvancedOpen(true);
   actions.setTransactionNote(reusable.note);
   actions.setTransactionCategoryId(reusable.categoryId ?? '');
   actions.prefillTaxonomy(reusable.tagNames);
-  actions.prefillExpenseSplit(reusable.splitItems);
-  actions.prefillShareDraft(reusable.shareDraft);
   actions.setMovementIgnored(reusable.mode === 'expense' || reusable.mode === 'income' ? reusable.movementIgnored === true : false);
   if (reusable.mode === 'transfer') {
     actions.setTransferToAccountId(reusable.transferTargetAccountId ?? '');
@@ -51,4 +47,17 @@ export function applyMovementReuseTemplate(
   if (reusable.accountId !== currentAccountId) {
     onAccountChanged?.({ id: reusable.accountId, name: template.accountName });
   }
+}
+
+export function applyMovementReuseWithDetails(
+  template: ReadTemplate,
+  currentAccountId: string | null,
+  actions: MovementReuseApplicationActions,
+  onAccountChanged?: (account: { id: string; name: string }) => void,
+) {
+  const reusable = toComposerTemplate(template);
+  applyMovementReuseSetup(template, currentAccountId, actions, onAccountChanged);
+  if (reusable.amount != null) actions.setTransactionAmountValue(reusable.amount);
+  actions.prefillExpenseSplit(reusable.splitItems);
+  actions.prefillShareDraft(reusable.shareDraft);
 }

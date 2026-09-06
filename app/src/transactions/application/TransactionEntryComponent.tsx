@@ -10,6 +10,7 @@ import { TransactionEntryView } from '../ui/TransactionComposer/TransactionEntry
 import type { TransactionEntryComponentProps } from './TransactionEntryComponent.contract';
 import type { TransactionEntryModelClock, TransactionEntryModelIdGenerator } from './useTransactionEntryModel';
 import { useTransactionEntryModel } from './useTransactionEntryModel';
+import { MovementReuseConfirmationView } from '../ui/MovementReuseConfirmation/MovementReuseConfirmationView';
 
 export type {
   TransactionEntryComponentProps,
@@ -159,9 +160,22 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
 
   return (
     <>
+      {model.required.state.movementReuse?.pendingTemplate ? <MovementReuseConfirmationView
+        itemCount={model.required.state.movementReuse.pendingTemplate.details?.items.length ?? 0}
+        shareCount={model.required.state.movementReuse.pendingTemplate.details?.sharing.length ?? 0}
+        historicalAmount={model.required.state.movementReuse.pendingTemplate.details?.amount ?? ''}
+        onSetupOnly={model.provided.commands.reuseSetupOnly ?? (() => undefined)}
+        onReuseDetails={model.provided.commands.reuseWithDetails ?? (() => undefined)}
+        onCancel={model.provided.commands.cancelReuse ?? (() => undefined)}
+      /> : null}
       {model.error ? (
         <div className="alert alert-danger mt-3" role="alert">
           {model.error}
+        </div>
+      ) : null}
+      {!model.error && model.required.state.movementReuse?.error ? (
+        <div className="alert alert-warning mt-3" role="alert">
+          {model.required.state.movementReuse.error}
         </div>
       ) : null}
       <TransactionEntryView

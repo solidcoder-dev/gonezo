@@ -24,8 +24,7 @@ import { applyTransactionEntryInitialMode, type TransactionEntryInitialMode } fr
 import { resolveSubmitExpectedIntent, toErrorMessage } from './transactionEntryModelUtils';
 import type { MovementReuseSuggestionsPort, MovementReuseTemplatePort } from '../../movements/application/movementReuseSuggestions.port';
 import { useTransactionMovementReuseModel } from './useTransactionMovementReuseModel';
-import type { MovementReuseTemplate } from '../../movements/application/movementReuseSuggestions.port';
-import { applyMovementReuseTemplate } from './applyMovementReuseTemplate';
+import { applyMovementReuseSetup, applyMovementReuseWithDetails } from './applyMovementReuseTemplate';
 import { refreshTransactionAccountSnapshot } from './refreshTransactionAccountSnapshot';
 export type TransactionEntryModelPorts = {
   ledger: LedgerGatewayPort; scheduling: SchedulingGatewayPort; expected: ExpectedGatewayPort; sharing: SharingGatewayPort; taxonomy: TaxonomyGatewayPort; analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
@@ -176,15 +175,12 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     categorizeTransaction,
     applyTransactionTags,
   } = taxonomyModel.actions;
-  const applyReuseTemplate = (template: MovementReuseTemplate) => applyMovementReuseTemplate(template, accountId, {
-    setComposerMode, setComposerAdvancedOpen,
-    setTransactionNote, setTransactionCategoryId,
-    prefillTaxonomy, prefillExpenseSplit,
-    prefillShareDraft, setMovementIgnored,
-    setTransferToAccountId,
-    syncForTransferMode,
-  }, onAccountChanged);
-  const movementReuseModel = useTransactionMovementReuseModel({ port: ports.reuse, accountIds: accounts.map((account) => account.id), enabled: composerOpen && !loading, query: transactionNote, accountId, applyTemplate: applyReuseTemplate });
+  const reuseActions = { setComposerMode, setComposerAdvancedOpen, setTransactionNote, setTransactionCategoryId, prefillTaxonomy, prefillExpenseSplit, prefillShareDraft, setMovementIgnored, setTransferToAccountId, syncForTransferMode, setTransactionAmountValue };
+  const movementReuseModel = useTransactionMovementReuseModel({
+    port: ports.reuse, accountIds: accounts.map((account) => account.id), enabled: composerOpen && !loading, query: transactionNote, accountId,
+    applySetup: (template) => applyMovementReuseSetup(template, accountId, reuseActions, onAccountChanged),
+    applyWithDetails: (template) => applyMovementReuseWithDetails(template, accountId, reuseActions, onAccountChanged),
+  });
 
   function reportError(raw: unknown) {
     const message = toErrorMessage(raw);
@@ -655,8 +651,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       openShareEditor: shareDraftModel.actions.openEditor, closeShareEditor: shareDraftModel.actions.closeEditor,
       applyShareDraft: shareDraftModel.actions.applyShareDraft, removeShareDraft: shareDraftModel.actions.removeShareDraft,
       submit: submitTransaction,
-      closeMovementReuse: movementReuseModel.actions.close,
+      closeMovementReuse: () => { movementReuseModel.actions.close(); movementReuseModel.actions.cancelReuse(); },
       toggleMovementReuseGroup: (group) => { void movementReuseModel.actions.toggleGroup(group); }, selectMovementReuseVariant: movementReuseModel.actions.selectVariant,
+      reuseSetupOnly: movementReuseModel.actions.reuseSetupOnly,
+      reuseWithDetails: movementReuseModel.actions.reuseWithDetails,
+      cancelReuse: movementReuseModel.actions.cancelReuse,
     },
   };
 

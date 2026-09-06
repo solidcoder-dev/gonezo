@@ -42,10 +42,21 @@ export class WebMovementReuseSuggestionsService implements MovementReuseSuggesti
     const peopleById = new Map(this.state.sharingPersons.map((person) => [person.id, person]));
     const sharingPeople = share?.participants.map((participant) => {
       const person = peopleById.get(participant.personId);
-      return person ? { id: person.id, name: person.name, reimbursable: participant.reimbursable, parts: undefined } : undefined;
+      return person ? { id: person.id, name: person.name, reimbursable: participant.reimbursable, amount: participant.amount, parts: undefined } : undefined;
     }).filter((person): person is NonNullable<typeof person> => Boolean(person)) ?? [];
     const targetAccountId = transaction.linkedTransactionId
       ? this.state.ledgerTransactions.find((item) => item.id === transaction.linkedTransactionId)?.accountId
+      : undefined;
+    const details = transaction.items.length > 0 || sharingPeople.length > 0
+      ? {
+        amount: transaction.amount,
+        items: transaction.items.map((item) => ({ name: item.name, amount: item.amount })),
+        sharing: sharingPeople.map((person) => ({
+          person: person.name,
+          amount: share?.participants.find((participant) => participant.personId === person.id)?.amount ?? '0.00',
+          reimbursable: person.reimbursable,
+        })),
+      }
       : undefined;
     return {
       representativeMovementId: transaction.id,
@@ -59,6 +70,16 @@ export class WebMovementReuseSuggestionsService implements MovementReuseSuggesti
       sharingPeople,
       targetAccountId,
       ignored: this.state.analyticsExclusions.some((item) => item.scopeType === 'movement' && item.scopeId === transaction.id && item.reason === 'user_ignored'),
+      setup: {
+        title: transaction.merchant?.trim() || transaction.description?.trim() || '',
+        type: transaction.type,
+        account: { id: transaction.accountId, name: account?.name ?? transaction.accountId },
+        category: category ? { id: category.id, name: category.name } : undefined,
+        tags,
+        ignored: this.state.analyticsExclusions.some((item) => item.scopeType === 'movement' && item.scopeId === transaction.id && item.reason === 'user_ignored'),
+        transferTarget: targetAccountId,
+      },
+      details,
     };
   }
 

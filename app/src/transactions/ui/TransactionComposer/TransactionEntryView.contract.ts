@@ -77,6 +77,8 @@ export type TransactionEntryViewRequired = {
     movementReuse?: {
       query: string; open: boolean; loading: boolean; groups: MovementReuseSuggestionGroup[];
       expandedTitle: string | null; variants: MovementReuseSuggestionVariant[]; error: string;
+      pendingTemplate?: { details?: { amount: string; items: Array<unknown>; sharing: Array<unknown> } } | null;
+      requiresDetailsDecision?: boolean;
     };
   };
   status: {
@@ -147,6 +149,9 @@ export type TransactionEntryViewProvided = {
     closeMovementReuse?: () => void;
     toggleMovementReuseGroup?: (group: MovementReuseSuggestionGroup) => void;
     selectMovementReuseVariant?: (selection: { title: string; variant: MovementReuseSuggestionVariant }) => void;
+    reuseSetupOnly?: () => void;
+    reuseWithDetails?: () => void;
+    cancelReuse?: () => void;
   };
 };
 

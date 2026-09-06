@@ -130,4 +130,65 @@ describe('TransactionEntryComponent movement reuse integration', () => {
     expect(await screen.findByRole('button', { name: 'Remove tag Food' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Remove tag Weekly' })).toBeVisible();
   });
+
+  it('waits for one details decision and applies full historical details only when requested', async () => {
+    const { core, movementReuseGetTemplate } = makeCore();
+    vi.mocked(movementReuseGetTemplate).mockResolvedValue({
+      representativeMovementId: 'movement-mercadona', title: 'Mercadona', accountId: 'account-1', accountName: 'Checking', financialType: 'expense',
+      tags: [], itemNames: ['Food'], sharingPeople: [{ id: 'alice', name: 'Alice', reimbursable: true }], ignored: false,
+      details: { amount: '63.00', items: [{ name: 'Food', amount: '63.00' }], sharing: [{ person: 'Alice', amount: '63.00', reimbursable: true }] },
+    });
+    renderComposer(core);
+    const amount = await screen.findByLabelText('Amount');
+    fireEvent.change(amount, { target: { value: '25' } });
+    fireEvent.change(await screen.findByLabelText('Merchant'), { target: { value: 'merc' } });
+    fireEvent.click(await screen.findByText('Mercadona'));
+    expect(await screen.findByRole('dialog', { name: 'Reuse movement details?' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Amount')).toHaveValue(25);
+    fireEvent.click(screen.getByRole('button', { name: 'Reuse details' }));
+    await waitFor(() => expect(screen.getByLabelText('Amount')).toHaveValue(63));
+  });
+
+  it('cancelling details reuse leaves the composer unchanged', async () => {
+    const { core, movementReuseGetTemplate } = makeCore();
+    vi.mocked(movementReuseGetTemplate).mockResolvedValue({
+      representativeMovementId: 'movement-mercadona', title: 'Mercadona', accountId: 'account-1', accountName: 'Checking', financialType: 'expense',
+      tags: [], itemNames: ['Food'], sharingPeople: [], ignored: false,
+      details: { amount: '63.00', items: [{ name: 'Food', amount: '63.00' }], sharing: [] },
+    });
+    renderComposer(core);
+    fireEvent.change(await screen.findByLabelText('Amount'), { target: { value: '25' } });
+    fireEvent.change(await screen.findByLabelText('Merchant'), { target: { value: 'merc' } });
+    fireEvent.click(await screen.findByText('Mercadona'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog', { name: 'Reuse movement details?' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Amount')).toHaveValue(25);
+  });
+
+  it('applies setup immediately when the read model has no details', async () => {
+    const { core, movementReuseGetTemplate } = makeCore();
+    vi.mocked(movementReuseGetTemplate).mockResolvedValue({
+      representativeMovementId: 'movement-mercadona', title: 'Mercadona', accountId: 'account-1', accountName: 'Checking', financialType: 'expense',
+      category: undefined, tags: [{ id: 'tag-food', name: 'Food' }], itemNames: ['Food'], sharingPeople: [], ignored: false,
+    });
+    renderComposer(core);
+    fireEvent.change(await screen.findByLabelText('Merchant'), { target: { value: 'merc' } });
+    fireEvent.click(await screen.findByText('Mercadona'));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Reuse movement details?' })).not.toBeInTheDocument());
+    expect(screen.getByLabelText('Merchant')).toHaveValue('Mercadona');
+  });
+
+  it('keeps the composer usable when loading a reuse template fails', async () => {
+    const { core, movementReuseGetTemplate } = makeCore();
+    vi.mocked(movementReuseGetTemplate).mockRejectedValue(new Error('unavailable'));
+    renderComposer(core);
+    const amount = await screen.findByLabelText('Amount');
+    fireEvent.change(amount, { target: { value: '25' } });
+    fireEvent.change(await screen.findByLabelText('Merchant'), { target: { value: 'merc' } });
+    fireEvent.click(await screen.findByText('Mercadona'));
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Reuse movement details?' })).not.toBeInTheDocument());
+    expect(screen.getByLabelText('Amount')).toHaveValue(25);
+    expect(screen.getByRole('alert')).toHaveTextContent('Unable to load movement reuse details');
+  });
 });

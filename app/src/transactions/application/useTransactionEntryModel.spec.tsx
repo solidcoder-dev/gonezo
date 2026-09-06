@@ -201,13 +201,14 @@ describe('useTransactionEntryModel', () => {
     expect(onRecorded).toHaveBeenCalledTimes(1);
   });
 
-  it('applies a complete reuse template without replacing amount or date', async () => {
+  it('applies setup only without replacing amount, date or details', async () => {
     const ports = makePorts();
     const onAccountChanged = vi.fn();
     vi.mocked(ports.reuse!.movementReuseGetTemplate!).mockResolvedValue({
       representativeMovementId: 'movement-1', title: 'Mercadona', accountId: 'account-2', accountName: 'Savings', financialType: 'income',
       category: { id: 'cat-1', name: 'Groceries' }, tags: [{ id: 'tag-1', name: 'Food' }], itemNames: ['Fruit'],
       sharingPeople: [{ id: 'person-1', name: 'Alex', reimbursable: true, parts: 2 }], ignored: false,
+      details: { amount: '63.00', items: [{ name: 'Fruit', amount: '63.00' }], sharing: [{ person: 'Alex', amount: '63.00', reimbursable: true }] },
     });
     const { result } = renderHook(() => useTransactionEntryModel({ ports, clock: makeClock(), idGenerator: makeIdGenerator(['split-1']), accountId: 'account-1', enabled: true, onAccountChanged }));
     await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
@@ -223,6 +224,8 @@ describe('useTransactionEntryModel', () => {
         variant: { representativeMovementId: 'movement-1', accountId: 'account-2', accountName: 'Savings', financialType: 'income', category: { id: 'cat-1', name: 'Groceries' }, tags: [{ id: 'tag-1', name: 'Food' }], itemCount: 1, shareCount: 1, usageCount: 1, lastUsedAt: '2026-01-01', deterministicKey: 'key' },
       });
       });
+    await waitFor(() => expect(result.current.required.state.movementReuse?.requiresDetailsDecision).toBe(true));
+    act(() => result.current.provided.commands.reuseSetupOnly!());
     await waitFor(() => expect(result.current.required.state.note).toBe('Mercadona'));
     expect(result.current.required.state.mode).toBe('income');
     expect(result.current.required.state.note).toBe('Mercadona');
@@ -230,9 +233,29 @@ describe('useTransactionEntryModel', () => {
     expect(result.current.required.state.date).toBe('2026-05-14');
     expect(result.current.required.state.categoryId).toBe('cat-1');
     expect(result.current.required.state.selectedTagOptions).toEqual([{ id: 'new:food', name: 'Food' }]);
-    expect(result.current.required.state.splitItems).toMatchObject([{ name: 'Fruit', amount: '' }]);
-    expect(result.current.required.state.shareDraft?.people[0]).toMatchObject({ id: 'person-1', parts: 2, amount: '' });
+    expect(result.current.required.state.splitItems).toEqual([]);
+    expect(result.current.required.state.shareDraft).toBeUndefined();
     expect(onAccountChanged).toHaveBeenCalledWith({ id: 'account-2', name: 'Savings' });
+  });
+
+  it('reuses historical amount, item amounts and sharing amounts only after explicit confirmation', async () => {
+    const ports = makePorts();
+    vi.mocked(ports.reuse!.movementReuseGetTemplate!).mockResolvedValue({
+      representativeMovementId: 'movement-1', title: 'Mercadona', accountId: 'account-1', accountName: 'Checking', financialType: 'expense',
+      category: undefined, tags: [], itemNames: ['Food', 'Drinks'], sharingPeople: [{ id: 'person-1', name: 'Alice', reimbursable: true }], ignored: false,
+      details: { amount: '63.00', items: [{ name: 'Food', amount: '40.00' }, { name: 'Drinks', amount: '23.00' }], sharing: [{ person: 'Alice', amount: '63.00', reimbursable: true }] },
+    });
+    const { result } = renderHook(() => useTransactionEntryModel({ ports, clock: makeClock(), idGenerator: makeIdGenerator(['split-1', 'split-2']), accountId: 'account-1', enabled: true }));
+    await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
+    act(() => { result.current.provided.commands.open(); result.current.provided.commands.setAmount('25'); result.current.provided.commands.setNote('merc'); });
+    act(() => result.current.provided.commands.selectMovementReuseVariant!({ title: 'Mercadona', variant: { representativeMovementId: 'movement-1', accountId: 'account-1', accountName: 'Checking', financialType: 'expense', tags: [], itemCount: 2, shareCount: 1, usageCount: 1, lastUsedAt: '2026-01-01', deterministicKey: 'key' } }));
+    await waitFor(() => expect(result.current.required.state.movementReuse?.requiresDetailsDecision).toBe(true));
+    expect(result.current.required.state.amount).toBe('25');
+    act(() => result.current.provided.commands.reuseWithDetails!());
+    await waitFor(() => expect(result.current.required.state.amount).toBe('63.00'));
+    expect(result.current.required.state.splitItems).toMatchObject([{ name: 'Food', amount: '40.00' }, { name: 'Drinks', amount: '23.00' }]);
+    expect(result.current.required.state.shareDraft?.mode).toBe('amounts');
+    expect(result.current.required.state.shareDraft?.people[0]).toMatchObject({ name: 'Alice', amount: '63.00' });
   });
 
   it('keeps cross-currency transfer FX fields synchronized through composer commands', async () => {

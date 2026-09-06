@@ -2,24 +2,25 @@ import { describe, expect, it } from 'vitest';
 import { createMovementReuseTemplate } from './movementReuseTemplate';
 
 describe('movement reuse template', () => {
-  it('keeps reusable structure and drops historical values', () => {
+  it('keeps setup separate from optional historical details', () => {
     const template = createMovementReuseTemplate({
       title: ' Mercadona ',
       accountId: 'main',
       type: 'expense',
       categoryId: 'groceries',
       tagNames: ['food'],
-      items: [{ name: 'Fruit' }, { name: 'Cleaning' }],
-      sharing: { people: [{ id: 'person-1', name: 'Alex', reimbursable: true, parts: 2 }] },
+      items: [{ name: 'Fruit', amount: '5.00' }, { name: 'Cleaning', amount: '2.00' }],
+      sharing: { people: [{ id: 'person-1', name: 'Alex', reimbursable: true, parts: 2, amount: '7.00' }] },
+      amount: '7.00',
       ignored: true,
     });
     expect(template).toMatchObject({
       note: 'Mercadona', accountId: 'main', mode: 'expense', categoryId: 'groceries',
       tagNames: ['food'], movementIgnored: true,
-      splitItems: [{ name: 'Fruit', amount: '' }, { name: 'Cleaning', amount: '' }],
-      shareDraft: { mode: 'parts', people: [{ id: 'person-1', name: 'Alex', parts: 2, amount: '' }] },
+      splitItems: [{ name: 'Fruit', amount: '5.00' }, { name: 'Cleaning', amount: '2.00' }],
+      shareDraft: { mode: 'amounts', people: [{ id: 'person-1', name: 'Alex', parts: 2, amount: '7.00' }] },
     });
-    expect(template).not.toHaveProperty('amount');
+    expect(template.amount).toBe('7.00');
     expect(template).not.toHaveProperty('date');
     expect(template).not.toHaveProperty('historicalMovementId');
     expect(template).not.toHaveProperty('recurrence');

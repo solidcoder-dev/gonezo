@@ -38,8 +38,15 @@ final class MovementReusePluginHandler {
       JSONArray tags = new JSONArray(); template.getTags().forEach(tag -> tags.put(new JSObject().put("id", tag.getId()).put("name", tag.getName())));
       JSONArray items = new JSONArray(); template.getItemNames().forEach(items::put);
       JSONArray people = new JSONArray(); template.getSharingPeople().forEach(person -> people.put(new JSObject().put("id", person.getId()).put("name", person.getName()).put("reimbursable", person.getReimbursable()).put("parts", person.getParts())));
+      JSObject details = null;
+      if (template.getDetails() != null) {
+        JSONArray detailItems = new JSONArray(); template.getDetails().getItems().forEach(item -> detailItems.put(new JSObject().put("name", item.getName()).put("amount", item.getAmount())));
+        JSONArray detailSharing = new JSONArray(); template.getDetails().getSharing().forEach(share -> detailSharing.put(new JSObject().put("person", share.getPerson()).put("amount", share.getAmount()).put("reimbursable", share.getReimbursable())));
+        details = new JSObject().put("amount", template.getDetails().getAmount()).put("items", detailItems).put("sharing", detailSharing);
+      }
+      JSObject setup = new JSObject().put("title", template.getTitle()).put("type", template.getFinancialType()).put("account", new JSObject().put("id", template.getAccountId()).put("name", template.getAccountName())).put("category", template.getCategory() == null ? null : new JSObject().put("id", template.getCategory().getId()).put("name", template.getCategory().getName())).put("tags", tags).put("ignored", template.getIgnored()).put("transferTarget", template.getTargetAccountId());
       var category = template.getCategory();
-      call.resolve(new JSObject().put("representativeMovementId", template.getMovementId()).put("title", template.getTitle()).put("accountId", template.getAccountId()).put("accountName", template.getAccountName()).put("financialType", template.getFinancialType()).put("category", category == null ? null : new JSObject().put("id", category.getId()).put("name", category.getName())).put("tags", tags).put("itemNames", items).put("sharingPeople", people).put("targetAccountId", template.getTargetAccountId()).put("ignored", template.getIgnored()));
+      call.resolve(new JSObject().put("representativeMovementId", template.getMovementId()).put("title", template.getTitle()).put("accountId", template.getAccountId()).put("accountName", template.getAccountName()).put("financialType", template.getFinancialType()).put("category", category == null ? null : new JSObject().put("id", category.getId()).put("name", category.getName())).put("tags", tags).put("itemNames", items).put("sharingPeople", people).put("targetAccountId", template.getTargetAccountId()).put("ignored", template.getIgnored()).put("setup", setup).put("details", details));
     } catch (Exception ex) { call.reject(ex.getMessage()); }
   }
 
