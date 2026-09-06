@@ -132,6 +132,14 @@ final class TaxonomyPluginHandler {
     }
   }
 
+  void orchestrationApplyTransactionItemTags(PluginCall call) {
+    try {
+      call.resolve(TransactionItemTaggingBridge.applyTagsToItem(context, call.getString("transactionItemId"), call.getArray("tagNames")));
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
   void orchestrationListTransactionTaxonomy(PluginCall call) {
     JSONArray transactionIds = call.getArray("transactionIds");
     try {

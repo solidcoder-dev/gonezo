@@ -1,6 +1,8 @@
 import type { ViewProps } from '../../../shared/ui/ViewProps';
 import type { ComposerExpenseItem } from '../TransactionComposer/TransactionComposerView';
 import styles from './ItemBreakdownEditorView.module.css';
+import { AmountInputView } from '../../../shared/ui/AmountInput/AmountInputView';
+import { MultiTagPickerView } from '../../../shared/ui/MultiTagPicker/MultiTagPickerView';
 
 type BreakdownMode = 'items' | 'parts';
 
@@ -23,6 +25,11 @@ export type ItemBreakdownEditorViewProps = ViewProps<
     itemNameError?: string;
     itemAmountError?: string;
     splitError?: string;
+    itemTagNames?: string[];
+    tagQuery?: string;
+    itemTagOptions?: Array<{ id: string; name: string }>;
+    itemTagSuggestions?: Array<{ id: string; name: string }>;
+    tagCreateCandidate?: string;
   },
   {
     disabled?: boolean;
@@ -40,6 +47,11 @@ export type ItemBreakdownEditorViewProps = ViewProps<
     selectMode: (mode: BreakdownMode) => void;
     editItem: (itemId: string) => void;
     removeItem: (itemId: string) => void;
+    changeTagQuery?: (value: string) => void;
+    selectTag?: (tagId: string) => void;
+    createTag?: (name: string) => void;
+    removeTag?: (tagId: string) => void;
+    removeLastTag?: () => void;
   }
 >;
 
@@ -68,7 +80,7 @@ function ItemForm({
 
   return (
     <div className={styles.itemForm}>
-      <div className={styles.itemFormTitle}>Add / edit item</div>
+      <div className={styles.itemFormTitle}>{state.editingItemId ? 'Edit item' : 'Add item'}</div>
       <div className={styles.itemFormFields}>
         <label className={styles.itemField}>
           <span>Item name</span>
@@ -81,24 +93,18 @@ function ItemForm({
             aria-describedby={state.itemNameError ? 'composer-item-name-error' : undefined}
           />
         </label>
-        <label className={styles.itemField}>
-          <span>Amount</span>
-          <div className={styles.itemAmountField}>
-            <input
-              aria-label="Item amount"
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={state.itemAmount}
-              onChange={(event) => provided.commands.changeItemAmount(event.target.value)}
-              placeholder="Amount"
-              inputMode="decimal"
-              aria-invalid={Boolean(state.itemAmountError)}
-              aria-describedby={state.itemAmountError ? 'composer-item-amount-error' : undefined}
-            />
-            {currencyCode ? <span>{currencyCode}</span> : null}
-          </div>
-        </label>
+        <div className={styles.itemField}>
+          <AmountInputView
+            required={{ config: { label: 'Item amount', currency: currencyCode, variant: 'default' }, data: {}, state: { value: state.itemAmount }, status: { disabled: status.disabled, error: state.itemAmountError } }}
+            provided={{ commands: { change: provided.commands.changeItemAmount } }}
+          />
+        </div>
+        {provided.commands.selectTag ? (
+          <MultiTagPickerView
+            required={{ config: { label: 'Tags', placeholder: 'Add tag...' }, data: { selectedTags: state.itemTagOptions ?? [], suggestions: state.itemTagSuggestions ?? [] }, state: { query: state.tagQuery ?? '', createCandidate: state.tagCreateCandidate }, status: { disabled: status.disabled } }}
+            provided={{ commands: { changeQuery: provided.commands.changeTagQuery!, selectTag: provided.commands.selectTag, createTag: provided.commands.createTag!, removeTag: provided.commands.removeTag!, removeLastTag: provided.commands.removeLastTag! } }}
+          />
+        ) : null}
       </div>
       <button
         type="button"
@@ -109,6 +115,16 @@ function ItemForm({
       >
         <span>{submitLabel}</span>
       </button>
+      {state.editingItemId ? (
+        <button
+          type="button"
+          className="btn btn-link text-danger p-0 align-self-start"
+          onClick={() => provided.commands.removeItem(state.editingItemId)}
+          disabled={status.disabled}
+        >
+          Delete item
+        </button>
+      ) : null}
       {state.itemAmountError ? <p id="composer-item-amount-error" className="gz-field-error">{state.itemAmountError}</p> : null}
       {state.itemNameError ? <p id="composer-item-name-error" className="gz-field-error">{state.itemNameError}</p> : null}
     </div>
@@ -191,25 +207,14 @@ export function ItemBreakdownEditorView({ required, provided }: ItemBreakdownEdi
                     aria-label={`Edit item ${item.name}`}
                     onClick={() => editItem(item.id)}
                   >
-                    <span className={styles.itemIcon} aria-hidden>
-                      <i className="bi bi-bag" />
+                    <span className="vstack gap-1">
+                      <strong className={styles.itemName}>{item.name}</strong>
+                      {item.tagNames?.length ? <span className="small text-muted">{item.tagNames.join(', ')}</span> : null}
                     </span>
-                    <strong className={styles.itemName}>{item.name}</strong>
                     <span className={styles.itemAmount}>
                       {item.amount} {state.currencyCode ?? ''}
                     </span>
                   </button>
-                  <div className={styles.rowActions}>
-                    <button
-                      type="button"
-                      className={`gz-text-button gz-icon-button ${styles.rowActionButton} ${styles.dangerActionButton}`}
-                      aria-label={`Remove item ${item.name}`}
-                      disabled={status.disabled}
-                      onClick={() => { provided.commands.removeItem(item.id); }}
-                    >
-                      <i className="bi bi-trash" aria-hidden />
-                    </button>
-                  </div>
                 </li>
               ))}
               {data.items.length === 0 ? (

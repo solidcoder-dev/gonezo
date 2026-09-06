@@ -11,7 +11,6 @@ public class CorePlugin extends Plugin {
   public void preferencesGet(PluginCall call) {
     new PreferencesPluginHandler(getContext()).preferencesGet(call);
   }
-
   @PluginMethod
   public void preferencesSetDefaultAccount(PluginCall call) {
     new PreferencesPluginHandler(getContext()).preferencesSetDefaultAccount(call);
@@ -157,6 +156,7 @@ public class CorePlugin extends Plugin {
   public void orchestrationApplyTransactionTags(PluginCall call) {
     new TaxonomyPluginHandler(getContext()).orchestrationApplyTransactionTags(call);
   }
+  @PluginMethod public void orchestrationApplyTransactionItemTags(PluginCall call) { new TaxonomyPluginHandler(getContext()).orchestrationApplyTransactionItemTags(call); }
 
   @PluginMethod
   public void orchestrationListTransactionTaxonomy(PluginCall call) {

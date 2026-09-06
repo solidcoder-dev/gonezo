@@ -1,6 +1,8 @@
 import type {
   OrchestrationApplyTransactionTagsInput,
   OrchestrationApplyTransactionTagsResult,
+  OrchestrationApplyTransactionItemTagsInput,
+  OrchestrationApplyTransactionItemTagsResult,
   OrchestrationCategorizeTransactionInput,
   OrchestrationCategorizeTransactionResult,
   OrchestrationListTransactionTaxonomyInput,
@@ -67,6 +69,12 @@ export class TaxonomyRuntimeAdapter {
     return isNativeRuntime()
       ? CorePlugin.orchestrationApplyTransactionTags(input)
       : this.web.orchestrationApplyTransactionTags(input);
+  }
+
+  orchestrationApplyTransactionItemTags(input: OrchestrationApplyTransactionItemTagsInput): Promise<OrchestrationApplyTransactionItemTagsResult> {
+    return isNativeRuntime()
+      ? CorePlugin.orchestrationApplyTransactionItemTags(input)
+      : this.web.orchestrationApplyTransactionItemTags(input);
   }
 
   orchestrationListTransactionTaxonomy(

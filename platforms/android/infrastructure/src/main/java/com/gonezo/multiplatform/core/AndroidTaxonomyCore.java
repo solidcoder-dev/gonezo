@@ -274,6 +274,35 @@ public final class AndroidTaxonomyCore {
     }
   }
 
+  public TaxonomyTaggingResultView applyTagsToTransactionItem(String transactionItemId, List<String> tagNames) {
+    String resolvedItemId = requireText(transactionItemId, "transactionItemId is required");
+    LinkedHashMap<String, String> unique = new LinkedHashMap<>();
+    if (tagNames != null) for (String raw : tagNames) if (raw != null && !raw.trim().isEmpty()) unique.putIfAbsent(normalizeTagName(raw), raw.trim());
+    SQLiteDatabase db = database.getWritableDatabase();
+    db.delete("taxonomy_transaction_item_tag_assignments", "transaction_item_id = ?", new String[] {resolvedItemId});
+    List<String> ids = new ArrayList<>();
+    for (Map.Entry<String, String> entry : unique.entrySet()) {
+      String tagId = findTagIdByNormalizedName(db, entry.getKey());
+      if (tagId == null) {
+        tagId = UUID.randomUUID().toString();
+        ContentValues values = new ContentValues();
+        values.put("id", tagId);
+        values.put("name", entry.getValue());
+        values.put("name_normalized", entry.getKey());
+        values.put("status", "active");
+        values.put("created_at", Instant.now().toString());
+        db.insertOrThrow("taxonomy_tags", null, values);
+      }
+      ids.add(tagId);
+      ContentValues assignment = new ContentValues();
+      assignment.put("transaction_item_id", resolvedItemId);
+      assignment.put("tag_id", tagId);
+      assignment.put("assigned_at", Instant.now().toString());
+      db.insertOrThrow("taxonomy_transaction_item_tag_assignments", null, assignment);
+    }
+    return new TaxonomyTaggingResultView(ids.isEmpty() ? "none" : "assigned", ids, null, null);
+  }
+
   public Map<String, TransactionTaxonomyView> listTransactionTaxonomy(Collection<String> transactionIds) {
     if (transactionIds == null || transactionIds.isEmpty()) {
       return Collections.emptyMap();

@@ -222,7 +222,8 @@ final class ExpectedPluginHandler {
       items.add(new ExpectedPostingSplitItem(
         requiredString(item, "id"),
         requiredString(item, "name"),
-        new BigDecimal(requiredString(item, "amount"))
+        new BigDecimal(requiredString(item, "amount")),
+        toTagNames(item.optJSONArray("tagNames"))
       ));
     }
     return items;

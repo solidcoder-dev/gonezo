@@ -8,6 +8,7 @@ import type {
 } from '../../account/application/preferences.port';
 import type {
   LedgerAddTransactionItemInput,
+  LedgerAddTransactionItemResult,
   LedgerArchiveAccountInput,
   LedgerCreateExpenseDraftInput,
   LedgerCreateExpenseDraftResult,
@@ -37,8 +38,7 @@ import type {
   LedgerVoidTransactionInput,
 } from '../../ledger/application/ledger.port';
 import type {
-  OrchestrationApplyTransactionTagsInput,
-  OrchestrationApplyTransactionTagsResult,
+  OrchestrationApplyTransactionTagsInput, OrchestrationApplyTransactionTagsResult, OrchestrationApplyTransactionItemTagsInput, OrchestrationApplyTransactionItemTagsResult,
   OrchestrationCategorizeTransactionInput,
   OrchestrationCategorizeTransactionResult,
   OrchestrationListTransactionTaxonomyInput,
@@ -274,7 +274,7 @@ export class CoreAdapterWeb implements CorePort {
   async ledgerRecordTransfer(input: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult> { return this.ledgerService.recordTransfer(input); }
   async ledgerRecordTransferFx(input: LedgerRecordTransferFxInput): Promise<LedgerRecordTransferFxResult> { return this.ledgerService.recordTransferFx(input); }
   async ledgerCreateExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult> { return this.ledgerService.createExpenseDraft(input); }
-  async ledgerAddTransactionItem(input: LedgerAddTransactionItemInput): Promise<void> { return this.ledgerService.addTransactionItem(input); }
+  async ledgerAddTransactionItem(input: LedgerAddTransactionItemInput): Promise<LedgerAddTransactionItemResult> { return this.ledgerService.addTransactionItem(input); }
   async ledgerPostDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void> { return this.ledgerService.postDraftTransaction(input); }
   async ledgerVoidTransaction(input: LedgerVoidTransactionInput): Promise<void> { return this.ledgerService.voidTransaction(input); }
   async ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult> { return this.analyticsExclusionService.applyIgnoredMovements(await this.ledgerService.listTransactions(input)); }
@@ -296,7 +296,7 @@ export class CoreAdapterWeb implements CorePort {
   ): Promise<OrchestrationApplyTransactionTagsResult> {
     return this.taxonomyService.applyTransactionTags(input);
   }
-
+  async orchestrationApplyTransactionItemTags(input: OrchestrationApplyTransactionItemTagsInput): Promise<OrchestrationApplyTransactionItemTagsResult> { return this.taxonomyService.applyTransactionItemTags(input); }
   async orchestrationListTransactionTaxonomy(
     input: OrchestrationListTransactionTaxonomyInput,
   ): Promise<OrchestrationListTransactionTaxonomyResult> {

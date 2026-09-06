@@ -11,3 +11,9 @@ data class ApplyTransactionTagsResult(val tagIds: List<TagId>)
 interface ApplyTransactionTagsUC {
     fun execute(command: ApplyTransactionTagsCommand): ApplyTransactionTagsResult
 }
+
+data class ApplyTransactionItemTagsCommand(val transactionItemId: com.gonezo.ledger.domain.TransactionItemId, val tagNames: List<String>, val requestedAt: Instant)
+
+fun interface ApplyTransactionItemTagsUC {
+    fun execute(command: ApplyTransactionItemTagsCommand): ApplyTransactionTagsResult
+}

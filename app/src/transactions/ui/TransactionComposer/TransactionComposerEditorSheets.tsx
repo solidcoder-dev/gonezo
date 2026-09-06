@@ -26,6 +26,11 @@ type TransactionComposerEditorSheetsProps = {
     expenseSplitError?: string;
     expenseSplitRemaining: string;
     expenseSplitTotal: string;
+    expenseItemTagNames: string[];
+    expenseItemTagQuery: string;
+    expenseItemTagOptions: Array<{ id: string; name: string }>;
+    expenseItemTagSuggestions: Array<{ id: string; name: string }>;
+    expenseItemTagCreateCandidate?: string;
     movementIgnored: boolean;
     movementMoreOpen: boolean;
     nextScheduledOccurrenceDate?: string;
@@ -75,6 +80,11 @@ type TransactionComposerEditorSheetsProps = {
     addExpenseItem: () => boolean;
     editExpenseItem: (itemId: string) => void;
     removeExpenseItem: (itemId: string) => void;
+    changeTagQuery: (value: string) => void;
+    selectTag: (tagId: string) => void;
+    createTag: (name: string) => void;
+    removeTag: (tagId: string) => void;
+    removeLastTag: () => void;
     splitByParts: (amount: string, parts: string, addedPersonName?: string) => void;
     splitByWeightedParts: (amount: string, parts: Array<{ id?: string; name: string; parts: number }>) => void;
     selectSplitMode: (mode: 'items' | 'parts') => void;
@@ -169,6 +179,11 @@ export function TransactionComposerEditorSheets({ required, provided }: Transact
                       itemNameError: required.expenseItemNameError,
                       itemAmountError: required.expenseItemAmountError,
                       splitError: required.expenseSplitError,
+                      itemTagNames: required.expenseItemTagNames,
+                      tagQuery: required.expenseItemTagQuery,
+                      itemTagOptions: required.expenseItemTagOptions,
+                      itemTagSuggestions: required.expenseItemTagSuggestions,
+                      tagCreateCandidate: required.expenseItemTagCreateCandidate,
                     },
                     status: { disabled: required.disabled, hideToggle: true },
                   }}
@@ -182,6 +197,11 @@ export function TransactionComposerEditorSheets({ required, provided }: Transact
                       addItem: provided.addExpenseItem,
                       editItem: provided.editExpenseItem,
                       removeItem: provided.removeExpenseItem,
+                      changeTagQuery: provided.changeTagQuery,
+                      selectTag: provided.selectTag,
+                      createTag: provided.createTag,
+                      removeTag: provided.removeTag,
+                      removeLastTag: provided.removeLastTag,
                       splitByParts: provided.splitByParts,
                       splitByWeightedParts: provided.splitByWeightedParts,
                       selectMode: provided.selectSplitMode,

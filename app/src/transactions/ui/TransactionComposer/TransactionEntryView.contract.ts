@@ -46,6 +46,11 @@ export type TransactionEntryViewRequired = {
     editingSplitItemId: string;
     splitTotal: string;
     splitRemaining: string;
+    splitItemTagNames: string[];
+    splitItemTagQuery: string;
+    splitItemTagOptions: Array<{ id: string; name: string }>;
+    splitItemTagSuggestions: Array<{ id: string; name: string }>;
+    splitItemTagCreateCandidate?: string;
     schedulingMode: 'now' | 'scheduled';
     schedulingKind: 'one_shot' | 'recurring';
     recurrenceFrequency: RecurrenceFrequency;
@@ -121,6 +126,11 @@ export type TransactionEntryViewProvided = {
     addSplitItem: () => boolean;
     editSplitItem: (itemId: string) => void;
     removeSplitItem: (itemId: string) => void;
+    setSplitItemTagQuery: (value: string) => void;
+    selectSplitItemTag: (tagId: string) => void;
+    createSplitItemTag: (name: string) => void;
+    removeSplitItemTag: (tagId: string) => void;
+    removeLastSplitItemTag: () => void;
     splitByParts: (amount: string, parts: string, addedPersonName?: string) => void;
     splitByWeightedParts: (amount: string, parts: Array<{ id?: string; name: string; parts: number }>) => void;
     selectSplitMode: (mode: 'items' | 'parts') => void;

@@ -7,17 +7,23 @@
 .input {
   width: 100%;
   min-width: 0;
-  min-height: 52px;
+  min-height: 2.5rem;
   box-sizing: border-box;
   padding: 0 72px 0 0;
   border: 0;
   border-radius: 0;
   background: transparent;
-  font-size: 40px;
+  font-size: 1rem;
   font-variant-numeric: tabular-nums;
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-medium);
   line-height: 1.2;
   letter-spacing: 0;
+}
+
+.primary {
+  min-height: 52px;
+  font-size: 40px;
+  font-weight: var(--font-weight-bold);
 }
 
 .primary:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }

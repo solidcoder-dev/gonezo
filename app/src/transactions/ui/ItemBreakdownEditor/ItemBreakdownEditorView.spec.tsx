@@ -62,9 +62,7 @@ describe('ItemBreakdownEditorView', () => {
     const row = screen.getByText('Coffee').closest('li');
     expect(row).not.toBeNull();
     fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Edit item Coffee' }));
-    fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Remove item Coffee' }));
     expect(commands.editItem).toHaveBeenCalledWith('item-1');
-    expect(commands.removeItem).toHaveBeenCalledWith('item-1');
   });
 
   it('renders empty, remaining and over-base item breakdown states', () => {

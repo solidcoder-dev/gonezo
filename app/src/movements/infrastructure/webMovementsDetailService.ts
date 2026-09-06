@@ -60,6 +60,7 @@ export class WebMovementsDetailService {
         transaction,
         this.ledgerDetailState(),
         this.options.state.taxonomyTransactionTags,
+        this.options.state.taxonomyTransactionItemTags,
       );
       return { found: true, detail: { source: 'posted', movement: detail } };
     }

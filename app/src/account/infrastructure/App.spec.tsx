@@ -448,7 +448,7 @@ function makeCore(transactionCount = 0): AppTestPort {
     ledgerRecordTransfer: vi.fn(async () => ({ transferOutId: 'tx-tr-out', transferInId: 'tx-tr-in' })),
     ledgerRecordTransferFx: vi.fn(async () => ({ transferOutId: 'tx-tr-fx-out', transferInId: 'tx-tr-fx-in' })),
     ledgerCreateExpenseDraft: vi.fn(async () => ({ id: 'tx-draft' })),
-    ledgerAddTransactionItem: vi.fn(async () => undefined),
+    ledgerAddTransactionItem: vi.fn(async () => ({ id: 'item-1' })),
     ledgerPostDraftTransaction: vi.fn(async () => undefined),
     ledgerVoidTransaction: vi.fn(async () => undefined),
     taxonomyListCategories: vi.fn(async () => ({
@@ -3005,7 +3005,8 @@ describe('App Accounts UX', () => {
 
     const electricityItem = screen.getByText('Electricity').closest('li');
     expect(electricityItem).not.toBeNull();
-    fireEvent.click(within(electricityItem!).getByRole('button', { name: 'Remove item Electricity' }));
+    fireEvent.click(within(electricityItem!).getByRole('button', { name: 'Edit item Electricity' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete item' }));
 
     await waitFor(() => {
       expect(screen.getByLabelText('Amount')).toHaveValue(80);
@@ -3897,7 +3898,7 @@ describe('App Accounts UX', () => {
     const composer = await screen.findByRole('main', { name: 'Transaction composer' });
     expect(within(composer).getByLabelText('Amount')).toHaveValue(42);
     expect(within(composer).getByLabelText('Amount')).toBeDisabled();
-    expect(within(composer).getByLabelText('Expected date')).toHaveValue(isoInCurrentMonth(2, 10).slice(0, 10));
+    expect(within(composer).getByLabelText('Expected date')).toHaveValue('2 Sept');
     expect(within(composer).getByLabelText('Merchant')).toHaveValue('Expected rent');
     expect(within(composer).getByRole('button', { name: 'Select category Groceries' })).toHaveTextContent('Groceries');
     expect(within(composer).getByRole('button', { name: 'Edit items, 2 items, 42.00 USD' })).toBeInTheDocument();

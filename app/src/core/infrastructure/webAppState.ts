@@ -124,6 +124,7 @@ export type WebAppState = {
   taxonomyCategories: WebTaxonomyCategory[];
   taxonomyTags: WebTaxonomyTag[];
   taxonomyTransactionTags: Map<string, string[]>;
+  taxonomyTransactionItemTags: Map<string, string[]>;
   mobillsImportFingerprintToTransactionId: Map<string, string>;
   recurringMovements: WebRecurringMovement[];
   recurringMovementOccurrences: WebRecurringMovementOccurrence[];
@@ -157,6 +158,7 @@ export function createWebAppState(overrides: Partial<WebAppState> = {}): WebAppS
     taxonomyCategories: [],
     taxonomyTags: [],
     taxonomyTransactionTags: new Map(),
+    taxonomyTransactionItemTags: new Map(),
     mobillsImportFingerprintToTransactionId: new Map(),
     recurringMovements: [],
     recurringMovementOccurrences: [],

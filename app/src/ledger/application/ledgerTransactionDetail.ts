@@ -16,6 +16,7 @@ export function mapWebLedgerTransactionDetail(
   transaction: WebLedgerTransaction,
   state: LedgerTransactionDetailState,
   transactionTags: ReadonlyMap<string, readonly string[]>,
+  itemTags: ReadonlyMap<string, readonly string[]> = new Map(),
 ): LedgerTransactionListItem {
   const account = state.ledgerAccounts.find((item) => item.id === transaction.accountId);
   const category = transaction.categoryId
@@ -32,6 +33,12 @@ export function mapWebLedgerTransactionDetail(
     category: category ? { id: category.id, name: category.name } : undefined,
     tags,
     ignored,
-    items: transaction.items.map((item) => ({ ...item })),
+    items: transaction.items.map((item) => ({
+      ...item,
+      tags: (itemTags.get(item.id) ?? [])
+        .map((id) => state.taxonomyTags.find((tag) => tag.id === id))
+        .filter((tag): tag is NonNullable<typeof tag> => Boolean(tag))
+        .map((tag) => ({ id: tag.id, name: tag.name })),
+    })),
   };
 }

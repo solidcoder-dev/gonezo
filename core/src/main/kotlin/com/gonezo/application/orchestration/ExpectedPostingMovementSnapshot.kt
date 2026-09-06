@@ -5,7 +5,7 @@ import com.gonezo.expected.domain.ExpectedMovementType
 import com.gonezo.ledger.domain.AccountId
 import java.math.BigDecimal
 
-data class ExpectedPostingSplitItem(val id: String, val name: String, val amount: BigDecimal) {
+data class ExpectedPostingSplitItem(val id: String, val name: String, val amount: BigDecimal, val tagNames: List<String> = emptyList()) {
     init {
         require(id.isNotBlank()) { "split item id is required" }
         require(name.isNotBlank()) { "split item name is required" }

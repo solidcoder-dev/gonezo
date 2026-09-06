@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { BinarySwitchCardView } from '../../../shared/ui/BinarySwitchCard/BinarySwitchCardView';
+import { TagOverflowPreview } from '../../../shared/ui/TagOverflowPreview/TagOverflowPreview';
 import { formatCurrencyAmount } from '../../../shared/utils/formatting';
 import {
   movementDetailRowAmount,
@@ -229,19 +230,17 @@ function itemsContent(movement: MovementDetailViewModel): MovementDetailSheetCon
   return {
     title: 'Items',
     body: (
-      <>
-        <div className="movement-detail-summary-card">
-          <strong>{movement.items.length} items · {formatCurrencyAmount(movement.amount.value, movement.amount.currency)}</strong>
-        </div>
-        <div className="movement-detail-list">
+      <div className="movement-detail-list">
           {movement.items.map((item) => (
             <div key={item.id} className="movement-detail-choice movement-detail-choice--static">
-              <span>{item.name}</span>
+              <span className="movement-detail-choice-stack">
+                <span>{item.name}</span>
+                <TagOverflowPreview tags={(item.tags ?? []).map((tag) => tag.name)} />
+              </span>
               <strong>{movementDetailRowAmount(item.amount, item.currency)}</strong>
             </div>
           ))}
-        </div>
-      </>
+      </div>
     ),
   };
 }

@@ -56,9 +56,9 @@ class JdbcExpectedMovementRepository(private val jdbcTemplate: NamedParameterJdb
             jdbcTemplate.update(
                 """
                 insert into expected_movement_items (
-                  id, expected_movement_id, item_order, name, amount, source_template_item_id
+                  id, expected_movement_id, item_order, name, amount, source_template_item_id, tag_names
                 ) values (
-                  :id, :expected_movement_id, :item_order, :name, :amount, :source_template_item_id
+                  :id, :expected_movement_id, :item_order, :name, :amount, :source_template_item_id, :tag_names
                 )
                 """.trimIndent(),
                 MapSqlParameterSource()
@@ -67,7 +67,8 @@ class JdbcExpectedMovementRepository(private val jdbcTemplate: NamedParameterJdb
                     .addValue("item_order", index)
                     .addValue("name", item.name)
                     .addValue("amount", item.amount.toPlainString())
-                    .addValue("source_template_item_id", item.sourceTemplateItemId),
+                    .addValue("source_template_item_id", item.sourceTemplateItemId)
+                    .addValue("tag_names", encodeTags(item.tagNames)),
             )
         }
     }
@@ -200,7 +201,7 @@ class JdbcExpectedMovementRepository(private val jdbcTemplate: NamedParameterJdb
     private fun loadSplitItems(expectedMovementId: String): List<ExpectedMovement.SplitItem> {
         val sql =
             """
-            select id, name, amount, source_template_item_id
+            select id, name, amount, source_template_item_id, tag_names
             from expected_movement_items
             where expected_movement_id = :expected_movement_id
             order by item_order asc, id asc
@@ -215,6 +216,7 @@ class JdbcExpectedMovementRepository(private val jdbcTemplate: NamedParameterJdb
                 name = rs.getString("name"),
                 amount = BigDecimal(rs.getString("amount")),
                 sourceTemplateItemId = rs.getString("source_template_item_id"),
+                tagNames = decodeTags(rs.getString("tag_names")),
             )
         }
     }

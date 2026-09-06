@@ -1,6 +1,7 @@
 import type { AccountsListBalancesResult } from '../../account/application/accountBalances.port';
 import type {
   LedgerAddTransactionItemInput,
+  LedgerAddTransactionItemResult,
   LedgerArchiveAccountInput,
   LedgerCreateExpenseDraftInput,
   LedgerCreateExpenseDraftResult,
@@ -122,12 +123,11 @@ export class LedgerRuntimeAdapter {
     return isNativeRuntime() ? CorePlugin.ledgerCreateExpenseDraft(input) : this.web.ledgerCreateExpenseDraft(input);
   }
 
-  async ledgerAddTransactionItem(input: LedgerAddTransactionItemInput): Promise<void> {
+  async ledgerAddTransactionItem(input: LedgerAddTransactionItemInput): Promise<LedgerAddTransactionItemResult> {
     if (isNativeRuntime()) {
-      await CorePlugin.ledgerAddTransactionItem(input);
-      return;
+      return CorePlugin.ledgerAddTransactionItem(input);
     }
-    await this.web.ledgerAddTransactionItem(input);
+    return this.web.ledgerAddTransactionItem(input);
   }
 
   async ledgerPostDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void> {

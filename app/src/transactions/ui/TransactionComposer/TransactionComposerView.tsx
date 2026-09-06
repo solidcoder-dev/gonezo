@@ -30,6 +30,7 @@ export type ComposerExpenseItem = {
   id: string;
   name: string;
   amount: string;
+  tagNames?: string[];
 };
 
 export type TransactionComposerShellRequired = {
@@ -101,6 +102,11 @@ export type TransactionComposerSplitRequired = {
   expenseItemNameError?: string;
   expenseItemAmountError?: string;
   expenseSplitError?: string;
+  expenseItemTagNames?: string[];
+  expenseItemTagQuery?: string;
+  expenseItemTagOptions?: Array<{ id: string; name: string }>;
+  expenseItemTagSuggestions?: Array<{ id: string; name: string }>;
+  expenseItemTagCreateCandidate?: string;
 };
 
 export type TransactionComposerSchedulingRequired = {
@@ -187,6 +193,11 @@ export type TransactionComposerSplitProvided = {
   onAddExpenseItem: () => boolean;
   onEditExpenseItem: (itemId: string) => void;
   onRemoveExpenseItem: (itemId: string) => void;
+  onSetExpenseItemTagQuery?: (value: string) => void;
+  onSelectExpenseItemTag?: (tagId: string) => void;
+  onCreateExpenseItemTag?: (name: string) => void;
+  onRemoveExpenseItemTag?: (tagId: string) => void;
+  onRemoveLastExpenseItemTag?: () => void;
   onSplitByParts: (amount: string, parts: string, addedPersonName?: string) => void;
   onSplitByWeightedParts: (amount: string, parts: Array<{ id?: string; name: string; parts: number }>) => void;
   onSelectSplitMode: (mode: 'items' | 'parts') => void;
@@ -318,6 +329,11 @@ export function TransactionComposerView({ required, provided }: Props) {
     expenseItemNameError,
     expenseItemAmountError,
     expenseSplitError,
+    expenseItemTagNames = [],
+    expenseItemTagQuery = '',
+    expenseItemTagOptions = [],
+    expenseItemTagSuggestions = [],
+    expenseItemTagCreateCandidate,
     amountError,
     transferAmountInError,
     transferFxRateError,
@@ -357,6 +373,11 @@ export function TransactionComposerView({ required, provided }: Props) {
     onAddExpenseItem,
     onEditExpenseItem,
     onRemoveExpenseItem,
+    onSetExpenseItemTagQuery = () => {},
+    onSelectExpenseItemTag = () => {},
+    onCreateExpenseItemTag = () => {},
+    onRemoveExpenseItemTag = () => {},
+    onRemoveLastExpenseItemTag = () => {},
     onSplitByParts,
     onSplitByWeightedParts,
     onSelectSplitMode,
@@ -779,6 +800,11 @@ export function TransactionComposerView({ required, provided }: Props) {
           expenseSplitError,
           expenseSplitRemaining,
           expenseSplitTotal,
+          expenseItemTagNames,
+          expenseItemTagQuery,
+          expenseItemTagOptions,
+          expenseItemTagSuggestions,
+          expenseItemTagCreateCandidate,
           movementIgnored,
           movementMoreOpen,
           nextScheduledOccurrenceDate,
@@ -814,6 +840,11 @@ export function TransactionComposerView({ required, provided }: Props) {
           closeSplitEditor: onCloseSplitEditor,
           editExpenseItem: onEditExpenseItem,
           removeExpenseItem: onRemoveExpenseItem,
+          changeTagQuery: onSetExpenseItemTagQuery,
+          selectTag: onSelectExpenseItemTag,
+          createTag: onCreateExpenseItemTag,
+          removeTag: onRemoveExpenseItemTag,
+          removeLastTag: onRemoveLastExpenseItemTag,
           selectSplitMode: onSelectSplitMode,
           setExpenseItemAmount: onSetExpenseItemAmount,
           setExpenseItemName: onSetExpenseItemName,

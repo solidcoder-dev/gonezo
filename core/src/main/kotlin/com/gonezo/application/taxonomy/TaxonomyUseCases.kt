@@ -53,3 +53,9 @@ data class ReplaceTransactionTagsCommand(val transactionId: UUID, val tagIds: Li
 interface ReplaceTransactionTagsUC {
     fun execute(command: ReplaceTransactionTagsCommand)
 }
+
+data class ReplaceTransactionItemTagsCommand(val transactionItemId: UUID, val tagIds: List<TagId>, val assignedAt: Instant)
+
+interface ReplaceTransactionItemTagsUC {
+    fun execute(command: ReplaceTransactionItemTagsCommand)
+}

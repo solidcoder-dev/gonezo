@@ -325,8 +325,8 @@ public final class AndroidLedgerCore {
     return createExpenseDraftUC.execute(command).getValue();
   }
 
-  public void addTransactionItem(String transactionId, String name, String amount, String currency, String categoryId, String note) {
-    addTransactionItemUC.execute(
+  public UUID addTransactionItem(String transactionId, String name, String amount, String currency, String categoryId, String note) {
+    return addTransactionItemUC.execute(
       new AddLedgerTransactionItemCommand(
         new TransactionId(UUID.fromString(requireText(transactionId, "transactionId is required"))),
         requireText(name, "name is required"),
@@ -334,7 +334,7 @@ public final class AndroidLedgerCore {
         blankToNull(note),
         blankToNull(categoryId)
       )
-    );
+    ).getValue();
   }
 
   public void postDraftTransaction(String transactionId) {

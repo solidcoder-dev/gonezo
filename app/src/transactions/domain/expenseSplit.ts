@@ -1,4 +1,4 @@
-export type ExpenseItemDraft = {
+export type ExpenseSplitItem = {
   id: string;
   name: string;
   amount: string;
@@ -55,7 +55,7 @@ export function splitAmountByWeightedParts(amountInput: string, parts: WeightedS
 export function cloneSplitItems(
   items: Array<{ id: string; name: string; amount: string }>,
   nextId: () => string,
-): ExpenseItemDraft[] {
+): ExpenseSplitItem[] {
   return items.map((item) => ({
     id: nextId(),
     name: item.name,
@@ -63,27 +63,27 @@ export function cloneSplitItems(
   }));
 }
 
-export function sumSplitItems(items: ExpenseItemDraft[]): number {
+export function sumSplitItems(items: ExpenseSplitItem[]): number {
   return items.reduce((acc, item) => acc + parseAmount(item.amount), 0);
 }
 
-export function formatSplitTotal(items: ExpenseItemDraft[]): string {
+export function formatSplitTotal(items: ExpenseSplitItem[]): string {
   return formatAmount(sumSplitItems(items));
 }
 
-export function calculateSplitRemaining(transactionAmount: string, items: ExpenseItemDraft[]): string {
+export function calculateSplitRemaining(transactionAmount: string, items: ExpenseSplitItem[]): string {
   const total = parseAmount(transactionAmount);
   return (Math.round((total - sumSplitItems(items)) * 100) / 100).toFixed(2);
 }
 
 export function upsertSplitItem(input: {
-  items: ExpenseItemDraft[];
+  items: ExpenseSplitItem[];
   editingItemId: string;
   nameInput: string;
   amountInput: string;
   nextId: () => string;
 }): {
-  items: ExpenseItemDraft[];
+  items: ExpenseSplitItem[];
   errors: ExpenseSplitFieldErrors;
 } {
   const name = input.nameInput.trim();
@@ -104,7 +104,7 @@ export function upsertSplitItem(input: {
     };
   }
 
-  const nextItem: ExpenseItemDraft = {
+  const nextItem: ExpenseSplitItem = {
     id: input.editingItemId || input.nextId(),
     name,
     amount: formatAmount(amount),
@@ -124,7 +124,7 @@ export function createRemainingSplitItem(input: {
   remaining: string;
   nameInput: string;
   nextId: () => string;
-}): ExpenseItemDraft | null {
+}): ExpenseSplitItem | null {
   const remaining = parseAmount(input.remaining);
   if (remaining <= 0) {
     return null;
@@ -138,11 +138,11 @@ export function createRemainingSplitItem(input: {
 }
 
 export function rebalanceEditedPartSplit(input: {
-  items: ExpenseItemDraft[];
+  items: ExpenseSplitItem[];
   editedItemId: string;
   totalAmount: string;
 }): {
-  items: ExpenseItemDraft[];
+  items: ExpenseSplitItem[];
   errors: ExpenseSplitFieldErrors;
 } {
   const editedItem = input.items.find((item) => item.id === input.editedItemId);

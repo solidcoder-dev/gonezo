@@ -33,7 +33,6 @@ export type TransactionEntryModelPorts = {
 export type TransactionEntryModelClock = { now(): Date; todayIso(): string; resolveOccurredAt(dateInput: string): string; dayOfMonthFromDateInput(dateInput: string): string; weekDayIsoFromDateInput(dateInput: string): string; resolveTimeZoneId(): string };
 export type TransactionEntryModelIdGenerator = { nextId(): string };
 type UseTransactionEntryModelInput = { ports: TransactionEntryModelPorts; clock: TransactionEntryModelClock; idGenerator: TransactionEntryModelIdGenerator; accountId: string | null; enabled: boolean; prefillRequest?: TransactionEntryPrefillRequest; openSignal?: number; initialMode?: TransactionEntryInitialMode; movementAccountContext?: { name: string; type?: TransactionEntryInitialMode }; onRecorded?: () => void; onClosed?: () => void; onAccountChanged?: (account: { id: string; name: string }) => void; onError?: (error: { message: string }) => void };
-
 export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const { ports, clock, idGenerator, accountId, enabled, prefillRequest, openSignal, initialMode, movementAccountContext, onRecorded, onClosed, onAccountChanged, onError } = input;
   const initialToday = clock.todayIso();
@@ -62,11 +61,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     transactionAmount,
     setFieldErrors,
   });
-  const splitEditorModel = useExpenseSplitEditorModel({
-    transactionAmount,
-    nextId: idGenerator.nextId,
-    setFieldErrors,
-  });
   const { prefill: prefillShareDraft } = shareDraftModel.actions; const schedulingModel = useTransactionSchedulingModel({
     clock,
     initialToday,
@@ -75,6 +69,12 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const taxonomyModel = useTransactionTaxonomyModel({
     taxonomy: ports.taxonomy,
     composerMode,
+  });
+  const splitEditorModel = useExpenseSplitEditorModel({
+    transactionAmount,
+    nextId: idGenerator.nextId,
+    setFieldErrors,
+    tags: taxonomyModel.state.tags,
   });
   const { transferToAccountId, transferTargetOptions, transferAmountIn, transferFxRate, transferFxMode, transferDestinationCurrency, transferCrossCurrency } =
     transferFxModel.state;
@@ -85,7 +85,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   } = transferFxModel.actions;
   const {
     expenseDetailed, splitEditorOpen, splitApplied, splitDraftMode, expenseItemName, expenseItemAmount,
-    editingExpenseItemId, expenseItems, expenseItemOptions, expenseRemaining, expenseSplitTotal,
+    editingExpenseItemId, expenseItems, expenseItemOptions, expenseRemaining, expenseSplitTotal, expenseItemTagNames,
+    itemTagSelection,
   } = splitEditorModel.state;
   const {
     reset: resetExpenseSplit, prefill: prefillExpenseSplit, openSplitEditor, closeSplitEditor, applySplit, removeSplit,
@@ -181,13 +182,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     applySetup: (template) => applyMovementReuseSetup(template, accountId, reuseActions, onAccountChanged),
     applyWithDetails: (template) => applyMovementReuseWithDetails(template, accountId, reuseActions, onAccountChanged),
   });
-
   function reportError(raw: unknown) {
     const message = toErrorMessage(raw);
     setError(message);
     onError?.({ message });
   }
-
   function resetComposerState() {
     const today = clock.todayIso();
     setComposerMode('expense');
@@ -239,7 +238,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setTransferFxRate,
     setTransferToAccountId, prefillShareDraft,
   };
-
   useEffect(() => {
     if (!enabled || !accountId) {
       setLoading(false);
@@ -269,7 +267,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       cancelled = true;
     };
   }, [enabled, accountId]);
-
   useEffect(() => {
     const currentPrefillRequest = modelEffectsRef.current.prefillRequest;
     if (!enabled || !accountId || !currentPrefillRequest) {
@@ -323,7 +320,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       }
     })();
   }
-
   useTransactionEntryOpenSignal(prefillRequest ? undefined : openSignal, enabled, accountId, openTransactionComposer);
 
   function finishTransactionComposer(callback?: () => void) {
@@ -331,7 +327,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     resetComposerState();
     callback?.();
   }
-
   function selectComposerMode(mode: Exclude<ComposerMode, 'picker'>) {
     setComposerMode(mode);
     setComposerAdvancedOpen(false);
@@ -344,7 +339,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setExpectedMovement(false);
     syncForTransferMode();
   }
-
   function selectSourceAccount(accountIdValue: string) {
     const account = accounts.find((item) => item.id === accountIdValue);
     if (account && account.id !== accountId) onAccountChanged?.({ id: account.id, name: account.name });
@@ -362,7 +356,6 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     }));
     syncSourceAmount(normalized);
   }
-
   function setTransactionDateValue(value: string) {
     setTransactionDate(value);
     setFieldErrors((previous) => ({
@@ -372,18 +365,15 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     }));
     syncDateFields(value);
   }
-
   function applyRecurringScheduleValue() {
     const nextDate = nextScheduledOccurrenceDate ?? scheduleBaseDate;
     setTransactionDate(nextDate);
     applyRecurringSchedule();
   }
-
   function removeRecurringScheduleValue() {
     setTransactionDate(effectiveTransactionDate);
     removeRecurringSchedule();
   }
-
   function applySplitValue() {
     if (expenseItems.length === 0) {
       setFieldErrors((previous) => ({
@@ -406,17 +396,14 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     }
     applySplit();
   }
-
   async function submitTransaction(event: FormEvent) {
     event.preventDefault();
     setError('');
     setFieldErrors({});
-
     if (!accountId) {
       setError('Select an account first.');
       return;
     }
-
     const transferTarget = composerMode === 'transfer'
       ? accounts.find((account) => account.id === transferToAccountId)
       : undefined;
@@ -511,6 +498,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         resolveTagSelectionIds,
         categorizeTransaction,
         applyTransactionTags,
+        applyTransactionItemTags: async (itemId, tagNames) => {
+          const result = await taxonomyModel.actions.applyTransactionItemTags?.({ transactionItemId: itemId, tagNames });
+          if (!result) return;
+          if (result.status === 'failed') throw new Error(result.errorCode ?? result.errorMessage ?? 'Item tag assignment failed');
+        },
       });
 
       if (result.recorded) {
@@ -568,6 +560,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       editingSplitItemId: editingExpenseItemId,
       splitTotal: expenseSplitTotal,
       splitRemaining: expenseRemaining,
+      splitItemTagNames: expenseItemTagNames,
+      splitItemTagQuery: itemTagSelection.query,
+      splitItemTagOptions: itemTagSelection.selectedOptions,
+      splitItemTagSuggestions: itemTagSelection.suggestions,
+      splitItemTagCreateCandidate: itemTagSelection.createCandidate,
       schedulingMode,
       schedulingKind,
       recurrenceFrequency,
@@ -627,6 +624,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       cancelSplitItem: cancelExpenseItem,
       editSplitItem: editExpenseItem,
       removeSplitItem: removeExpenseItem,
+      setSplitItemTagQuery: splitEditorModel.actions.setExpenseItemTagQuery,
+      selectSplitItemTag: splitEditorModel.actions.selectExpenseItemTag,
+      createSplitItemTag: splitEditorModel.actions.createExpenseItemTag,
+      removeSplitItemTag: splitEditorModel.actions.removeExpenseItemTag,
+      removeLastSplitItemTag: splitEditorModel.actions.removeLastExpenseItemTag,
       splitByParts: splitExpenseByParts,
       splitByWeightedParts: splitEditorModel.actions.splitExpenseByWeightedParts,
       selectSplitMode: setSplitDraftMode,
@@ -658,6 +660,5 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       cancelReuse: movementReuseModel.actions.cancelReuse,
     },
   };
-
   return { error, required, provided };
 }

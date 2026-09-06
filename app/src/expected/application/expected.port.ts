@@ -10,7 +10,7 @@ export type ExpectedCreateMovementInput = {
   ignored?: boolean;
   originOccurrenceId?: string;
   originRecurringMovementId?: string;
-  splitItems?: Array<{ id: string; name: string; amount: string }>;
+  splitItems?: Array<{ id: string; name: string; amount: string; tagNames?: string[] }>;
 };
 
 export type ExpectedCreateMovementResult = {
@@ -28,7 +28,7 @@ export type ExpectedUpdateMovementInput = {
   merchant?: string;
   categoryId?: string;
   ignored?: boolean;
-  splitItems?: Array<{ id: string; name: string; amount: string }>;
+  splitItems?: Array<{ id: string; name: string; amount: string; tagNames?: string[] }>;
 };
 
 export type ExpectedUpdateMovementResult = {
@@ -49,7 +49,7 @@ export type ExpectedMovementItem = {
   categoryId?: string;
   originOccurrenceId?: string;
   originRecurringMovementId?: string;
-  splitItems: Array<{ id: string; name: string; amount: string }>;
+  splitItems: Array<{ id: string; name: string; amount: string; tagNames?: string[] }>;
   status: ExpectedMovementStatus;
   resolvedTransactionId?: string;
   createdAt: string;
@@ -106,6 +106,7 @@ export type ExpectedPostingMovementSnapshot = Readonly<{
     id: string;
     name: string;
     amount: string;
+    tagNames?: string[];
   }>>;
 }>;
 

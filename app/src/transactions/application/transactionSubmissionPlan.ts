@@ -77,6 +77,7 @@ export type TransactionSubmissionPlanInput = {
     categoryId?: string,
   ): Promise<void>;
   applyTransactionTags(transactionId: string, tagNames: string[]): Promise<void>;
+  applyTransactionItemTags?: (transactionItemId: string, tagNames: string[]) => Promise<void>;
 };
 
 export type TransactionSubmissionPlanResult = {
@@ -137,6 +138,7 @@ export function buildExpectedPostingMovementSnapshot(
       id: item.id,
       name: item.name,
       amount: formatAmount(parseAmount(item.amount)),
+      ...(item.tagNames?.length ? { tagNames: item.tagNames } : {}),
     })),
   };
 }
@@ -203,12 +205,13 @@ function buildSharingPlan(context: TransactionSubmissionContext) {
 
 async function addDraftItems(context: TransactionSubmissionContext, transactionId: string) {
   for (const item of context.expenseItems) {
-    await context.ledgerTransactionCommands.addTransactionItem({
+    const result = await context.ledgerTransactionCommands.addTransactionItem({
       transactionId,
       name: item.name,
       amount: item.amount,
       currency: context.accountCurrency,
     });
+    await context.applyTransactionItemTags?.(result.id, item.tagNames ?? []);
   }
 }
 

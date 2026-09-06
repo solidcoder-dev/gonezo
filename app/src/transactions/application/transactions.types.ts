@@ -17,4 +17,8 @@ export type TransactionFieldErrors = {
   expenseSplit?: string;
 };
 
-export type { ExpenseItemDraft } from '../domain/expenseSplit';
+import type { ExpenseSplitItem } from '../domain/expenseSplit';
+
+export type ExpenseItemDraft = ExpenseSplitItem & {
+  tagNames?: string[];
+};

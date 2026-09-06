@@ -14,6 +14,11 @@ export function useTransactionClassification(gateway: TaxonomyGatewayPort) {
     [gateway],
   );
 
+  const applyTransactionItemTags = useCallback(
+    (input: { transactionItemId: string; tagNames: string[] }) => gateway.orchestrationApplyTransactionItemTags?.(input) ?? Promise.resolve({ status: 'none' as const }),
+    [gateway],
+  );
+
   const listTransactionTaxonomy = useCallback(
     (input: { transactionIds: string[] }) => gateway.orchestrationListTransactionTaxonomy(input),
     [gateway],
@@ -22,6 +27,7 @@ export function useTransactionClassification(gateway: TaxonomyGatewayPort) {
   return {
     categorizeTransaction,
     applyTransactionTags,
+    applyTransactionItemTags,
     listTransactionTaxonomy,
   };
 }

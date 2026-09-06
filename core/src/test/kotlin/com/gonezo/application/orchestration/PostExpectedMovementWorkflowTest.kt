@@ -20,6 +20,7 @@ import com.gonezo.ledger.application.RecordLedgerExpenseUC
 import com.gonezo.ledger.application.RecordLedgerIncomeCommand
 import com.gonezo.ledger.application.RecordLedgerIncomeUC
 import com.gonezo.ledger.domain.TransactionId
+import com.gonezo.ledger.domain.TransactionItemId
 import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceCommand
 import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceUC
 import com.gonezo.recurrence.domain.RecurringMovementId
@@ -208,8 +209,9 @@ class PostExpectedMovementWorkflowTest {
                 override fun execute(command: CreateLedgerExpenseDraftCommand) = TransactionId.random().also { fixture.draftCommands.add(command) }
             },
             addItem = object : AddLedgerTransactionItemUC {
-                override fun execute(command: AddLedgerTransactionItemCommand) {
+                override fun execute(command: AddLedgerTransactionItemCommand): TransactionItemId {
                     fixture.itemCommands.add(command)
+                    return TransactionItemId.random()
                 }
             },
             postDraft = object : PostLedgerDraftTransactionUC {

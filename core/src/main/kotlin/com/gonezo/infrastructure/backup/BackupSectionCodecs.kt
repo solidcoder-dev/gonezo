@@ -35,12 +35,13 @@ import java.time.Instant
 private fun category(v: BackupCategory) = JSONObject().put("id", v.id).put("name", v.name).put("appliesTo", v.appliesTo).put("status", v.status).putNullable("createdAt", v.createdAt?.toString()).putNullable("archivedAt", v.archivedAt?.toString())
 private fun tag(v: BackupTag) = JSONObject().put("id", v.id).put("name", v.name).put("status", v.status).putNullable("createdAt", v.createdAt?.toString()).putNullable("archivedAt", v.archivedAt?.toString())
 private fun account(v: BackupAccount) = JSONObject().put("id", v.id).put("name", v.name).put("type", v.type).put("currency", v.currency).put("status", v.status).putNullable("createdAt", v.createdAt?.toString()).putNullable("archivedAt", v.archivedAt?.toString())
-private fun movement(v: BackupPostedMovement) = JSONObject().put("id", v.id).put("accountId", v.accountId).put("type", v.type).put("status", v.status).put("occurredAt", v.occurredAt.toString()).put("amount", v.amount).put("currency", v.currency).putNullable("description", v.description).putNullable("merchant", v.merchant).putNullable("categoryId", v.categoryId).putNullable("linkedTransactionId", v.linkedTransactionId).put("splitItems", JSONArray(v.splitItems.map { JSONObject().put("id", it.id).put("name", it.name).put("amount", it.amount).put("currency", it.currency).putNullable("note", it.note).putNullable("categoryId", it.categoryId) })).put("tagIds", JSONArray(v.tagIds.sorted()))
+private fun movement(v: BackupPostedMovement) =
+    JSONObject().put("id", v.id).put("accountId", v.accountId).put("type", v.type).put("status", v.status).put("occurredAt", v.occurredAt.toString()).put("amount", v.amount).put("currency", v.currency).putNullable("description", v.description).putNullable("merchant", v.merchant).putNullable("categoryId", v.categoryId).putNullable("linkedTransactionId", v.linkedTransactionId).put("splitItems", JSONArray(v.splitItems.map { JSONObject().put("id", it.id).put("name", it.name).put("amount", it.amount).put("currency", it.currency).putNullable("note", it.note).putNullable("categoryId", it.categoryId).put("tagIds", JSONArray(it.tagIds.sorted())) })).put("tagIds", JSONArray(v.tagIds.sorted()))
 private fun recurring(v: BackupRecurringMovement) = JSONObject().put("id", v.id).put("type", v.type).put("sourceAccountId", v.sourceAccountId).putNullable("targetAccountId", v.targetAccountId).put("amount", v.amount).put("currency", v.currency).putNullable("destinationAmount", v.destinationAmount).putNullable("destinationCurrency", v.destinationCurrency).putNullable("exchangeRate", v.exchangeRate).putNullable("description", v.description).putNullable("merchant", v.merchant).putNullable("categoryId", v.categoryId).put("reviewPolicy", v.reviewPolicy).put(
     "splitItems",
     JSONArray(
         v.splitItems.map {
-            JSONObject().put("id", it.id).put("name", it.name).put("amount", it.amount)
+            JSONObject().put("id", it.id).put("name", it.name).put("amount", it.amount).put("tagNames", JSONArray(it.tagNames.sorted()))
         },
     ),
 ).put(
@@ -51,7 +52,7 @@ private fun expected(v: BackupExpectedMovement) = JSONObject().put("id", v.id).p
     "splitItems",
     JSONArray(
         v.splitItems.map {
-            JSONObject().put("id", it.id).put("name", it.name).put("amount", it.amount).putNullable("sourceTemplateItemId", it.sourceTemplateItemId)
+            JSONObject().put("id", it.id).put("name", it.name).put("amount", it.amount).putNullable("sourceTemplateItemId", it.sourceTemplateItemId).put("tagNames", JSONArray(it.tagNames.sorted()))
         },
     ),
 ).put("status", v.status).putNullable("resolvedTransactionId", v.resolvedTransactionId).put("createdAt", v.createdAt).put("updatedAt", v.updatedAt).putNullable("resolvedAt", v.resolvedAt).putNullable("dismissedAt", v.dismissedAt).put("tagNames", JSONArray(v.tagNames.sorted()))
@@ -72,14 +73,14 @@ private fun exclusion(v: BackupAnalyticsExclusion) = JSONObject().put("id", v.id
 private fun decodeCategory(o: JSONObject) = BackupCategory(o.getString("id"), o.getString("name"), o.getString("appliesTo"), o.getString("status"), o.instantOrNull("createdAt"), o.instantOrNull("archivedAt"))
 private fun decodeTag(o: JSONObject) = BackupTag(o.getString("id"), o.getString("name"), o.getString("status"), o.instantOrNull("createdAt"), o.instantOrNull("archivedAt"))
 private fun decodeAccount(o: JSONObject) = BackupAccount(o.getString("id"), o.getString("name"), o.getString("type"), o.getString("currency"), o.getString("status"), o.instantOrNull("createdAt"), o.instantOrNull("archivedAt"))
-private fun decodeMovement(o: JSONObject) = BackupPostedMovement(o.getString("id"), o.getString("accountId"), o.getString("type"), o.getString("status"), Instant.parse(o.getString("occurredAt")), o.getString("amount"), o.getString("currency"), o.stringOrNull("description"), o.stringOrNull("merchant"), o.stringOrNull("categoryId"), o.stringOrNull("linkedTransactionId"), o.array("splitItems").objects { item -> BackupSplitItem(item.getString("id"), item.getString("name"), item.getString("amount"), item.getString("currency"), item.stringOrNull("note"), item.stringOrNull("categoryId")) }, o.array("tagIds").values())
+private fun decodeMovement(o: JSONObject) = BackupPostedMovement(o.getString("id"), o.getString("accountId"), o.getString("type"), o.getString("status"), Instant.parse(o.getString("occurredAt")), o.getString("amount"), o.getString("currency"), o.stringOrNull("description"), o.stringOrNull("merchant"), o.stringOrNull("categoryId"), o.stringOrNull("linkedTransactionId"), o.array("splitItems").objects { item -> BackupSplitItem(item.getString("id"), item.getString("name"), item.getString("amount"), item.getString("currency"), item.stringOrNull("note"), item.stringOrNull("categoryId"), item.arrayOrEmpty("tagIds").values()) }, o.array("tagIds").values())
 private fun decodeRecurring(o: JSONObject): BackupRecurringMovement {
     val rule = o.getJSONObject("rule")
     val end = o.getJSONObject("recurrenceEnd")
     return BackupRecurringMovement(
         o.getString("id"), o.getString("type"), o.getString("sourceAccountId"), o.stringOrNull("targetAccountId"), o.getString("amount"), o.getString("currency"), o.stringOrNull("destinationAmount"), o.stringOrNull("destinationCurrency"), o.stringOrNull("exchangeRate"), o.stringOrNull("description"), o.stringOrNull("merchant"), o.stringOrNull("categoryId"), o.getString("reviewPolicy"),
         o.array("splitItems").objects { item ->
-            BackupRecurringSplitItem(item.getString("id"), item.getString("name"), item.getString("amount"))
+            BackupRecurringSplitItem(item.getString("id"), item.getString("name"), item.getString("amount"), item.arrayOrEmpty("tagNames").values())
         },
         BackupRecurrenceRule(rule.getString("frequency"), rule.getInt("interval"), rule.array("weeklyDays").values(), rule.getString("monthlyPattern"), rule.intOrNull("dayOfMonth"), rule.intOrNull("monthlyWeekOrdinal"), rule.stringOrNull("monthlyWeekday")), BackupRecurrenceEnd(end.getString("kind"), end.stringOrNull("date"), end.intOrNull("count")), o.getString("startAt"), o.getString("zoneId"), o.stringOrNull("nextDueAt"), o.getString("status"), o.getInt("generatedOccurrences"), o.getString("createdAt"), o.getString("updatedAt"), o.stringOrNull("deactivatedAt"), o.stringOrNull("completedAt"), o.array("tagNames").values(),
     )
@@ -88,7 +89,7 @@ private fun decodeOccurrence(o: JSONObject) = BackupRecurringOccurrence(o.getStr
 private fun decodeExpectedMovement(o: JSONObject) = BackupExpectedMovement(
     o.getString("id"), o.getString("accountId"), o.getString("type"), o.getString("amount"), o.getString("currency"), o.getString("expectedAt"), o.stringOrNull("description"), o.stringOrNull("merchant"), o.stringOrNull("categoryId"), o.stringOrNull("originOccurrenceId"), o.stringOrNull("originRecurringMovementId"),
     o.array("splitItems").objects { item ->
-        BackupExpectedSplitItem(item.getString("id"), item.getString("name"), item.getString("amount"), item.stringOrNull("sourceTemplateItemId"))
+        BackupExpectedSplitItem(item.getString("id"), item.getString("name"), item.getString("amount"), item.stringOrNull("sourceTemplateItemId"), item.arrayOrEmpty("tagNames").values())
     },
     o.getString("status"), o.stringOrNull("resolvedTransactionId"), o.getString("createdAt"), o.getString("updatedAt"), o.stringOrNull("resolvedAt"), o.stringOrNull("dismissedAt"), o.array("tagNames").values(),
 )
@@ -98,6 +99,7 @@ private fun decodeRecurringPlan(o: JSONObject) = BackupRecurringSharePlan(o.getS
 private fun decodePlannedShare(o: JSONObject) = BackupPlannedExpenseShare(o.getString("id"), o.getString("expectedMovementId"), o.stringOrNull("sourcePlanId"), o.getString("payerPersonId"), o.getString("mode"), o.intOrNull("payerParts"), o.getString("totalAmount"), o.getString("currency"), o.array("participants").objects { item -> BackupPlannedShareParticipant(item.getString("id"), item.getString("personId"), item.intOrNull("parts"), item.getString("amount"), item.getBoolean("reimbursable"), item.getInt("order")) }, o.getString("status"), o.stringOrNull("materializedTransactionId"), o.stringOrNull("materializedShareId"), o.getString("createdAt"), o.getString("updatedAt"))
 private fun decodeExclusion(o: JSONObject) = BackupAnalyticsExclusion(o.getString("id"), o.getString("scopeType"), o.getString("scopeId"), o.getString("reason"), o.getString("createdAt"))
 private fun JSONObject.array(name: String) = getJSONArray(name)
+private fun JSONObject.arrayOrEmpty(name: String) = optJSONArray(name) ?: JSONArray()
 private fun JSONObject.arrayOrLegacy(name: String, legacy: String) = if (has(name)) getJSONArray(name) else getJSONArray(legacy)
 private fun JSONObject.stringOrNull(name: String): String? = if (has(name) && !isNull(name)) getString(name) else null
 private fun JSONObject.stringOrLegacy(name: String, legacy: String) = stringOrNull(name) ?: stringOrNull(legacy)

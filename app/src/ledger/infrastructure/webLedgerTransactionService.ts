@@ -1,5 +1,6 @@
 import type {
   LedgerAddTransactionItemInput,
+  LedgerAddTransactionItemResult,
   LedgerCreateExpenseDraftInput,
   LedgerCreateExpenseDraftResult,
   LedgerListTransactionsInput,
@@ -106,7 +107,7 @@ export class WebLedgerTransactionService {
     return { id };
   }
 
-  async addTransactionItem(input: LedgerAddTransactionItemInput): Promise<void> {
+  async addTransactionItem(input: LedgerAddTransactionItemInput): Promise<LedgerAddTransactionItemResult> {
     const tx = this.getTransactionOrThrow(input.transactionId);
     if (tx.status !== 'draft') {
       throw new Error('Items can only be modified in draft status');
@@ -114,14 +115,16 @@ export class WebLedgerTransactionService {
     if (tx.currency !== input.currency.toUpperCase()) {
       throw new Error('Item currency must match transaction currency');
     }
+    const id = this.nextId();
     tx.items.push({
-      id: this.nextId(),
+      id,
       name: input.name,
       amount: input.amount,
       currency: input.currency.toUpperCase(),
       categoryId: input.categoryId,
       note: input.note,
     });
+    return { id };
   }
 
   async postDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void> {

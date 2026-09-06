@@ -38,7 +38,7 @@ export function CategoryPickerField({ required, provided }: Props) {
             <button
               key={category.id}
               type="button"
-              className={selected ? `${styles.chip} ${styles.selected}` : styles.chip}
+              className={selected ? `${styles.chip} ${styles.selected} selected` : styles.chip}
               aria-label={`Select category ${category.name}`}
               title={category.name}
               disabled={required.disabled}

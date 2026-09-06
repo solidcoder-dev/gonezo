@@ -31,6 +31,7 @@ internal class AndroidExpectedPostingApplication private constructor(context: Co
   private val categoryAssignments = AndroidTaxonomyTransactionCategoryAssignmentRepository(database)
   private val tags = AndroidTaxonomyTagRepository(database)
   private val tagAssignments = AndroidTaxonomyTransactionTagAssignmentRepository(database)
+  private val itemTagAssignments = AndroidTaxonomyTransactionItemTagAssignmentRepository(database)
   private val categorizationState = AndroidCategorizationStateRepository(database)
   private val expectedCreate: CreateExpectedMovementUC = CreateExpectedMovementService(expected)
   private val ledgerRecordExpense: RecordLedgerExpenseUC = RecordLedgerExpenseService(accounts, transactions, eventPublisher)
@@ -41,7 +42,9 @@ internal class AndroidExpectedPostingApplication private constructor(context: Co
   private val taxonomyAssign = AssignCategoryToTransactionService(categories, categoryAssignments)
   private val taxonomyProcess = ProcessTransactionCategorizationService(taxonomyAssign, categorizationState)
   private val categorize: CategorizeLedgerTransactionUC = CategorizeLedgerTransactionService(categories, CreateCategoryService(categories), taxonomyProcess)
-  private val applyTags: ApplyTransactionTagsUC = ApplyTransactionTagsService(tags, CreateTagService(tags), ReplaceTransactionTagsService(tags, tagAssignments))
+  private val tagResolver = AssignableTagNameResolver(tags, CreateTagService(tags))
+  private val applyTags: ApplyTransactionTagsUC = ApplyTransactionTagsService(ReplaceTransactionTagsService(tags, tagAssignments), tagResolver)
+  private val applyItemTags: ApplyTransactionItemTagsUC = ApplyTransactionItemTagsService(ReplaceTransactionItemTagsService(itemTagAssignments, AssignableTagResolver(tags)), tagResolver)
   private val occurrenceRepository = AndroidRecurringMovementOccurrenceRepository(database)
   private val recurringRepository = AndroidRecurringMovementRepository(database)
   private val acknowledgeOccurrence: AcknowledgeRecurringMovementOccurrenceUC = AcknowledgeRecurringMovementOccurrenceService(occurrenceRepository)
@@ -62,7 +65,7 @@ internal class AndroidExpectedPostingApplication private constructor(context: Co
       else database.writableDatabase.delete("analytics_exclusions", "scope_type = ? and scope_id = ? and reason = ?", arrayOf("expected_movement", id, AnalyticsExclusionReason.USER_IGNORED.value))
     },
     ResolveExpectedMovementService(expected), materializeShare, plannedShares, acknowledgeOccurrence, projection,
-    consistencyBoundary, AndroidExpectedPostingIdempotencyRepository(database),
+    consistencyBoundary, AndroidExpectedPostingIdempotencyRepository(database), applyItemTags,
     TransactionIgnoredWriter { id, ignored, at ->
       if (ignored) {
         database.writableDatabase.insertWithOnConflict(

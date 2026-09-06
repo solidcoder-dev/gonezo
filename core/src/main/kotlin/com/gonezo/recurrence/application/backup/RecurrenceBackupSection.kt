@@ -59,7 +59,7 @@ data class BackupRecurringMovement(
     val tagNames: List<String>,
 )
 
-data class BackupRecurringSplitItem(val id: String, val name: String, val amount: String)
+data class BackupRecurringSplitItem(val id: String, val name: String, val amount: String, val tagNames: List<String> = emptyList())
 data class BackupRecurrenceRule(val frequency: String, val interval: Int, val weeklyDays: List<String>, val monthlyPattern: String, val dayOfMonth: Int?, val monthlyWeekOrdinal: Int?, val monthlyWeekday: String?)
 data class BackupRecurrenceEnd(val kind: String, val date: String?, val count: Int?)
 data class BackupRecurringOccurrence(val id: String, val recurringMovementId: String, val dueAt: String, val status: String, val ledgerTransactionId: String?, val errorCode: String?, val errorMessage: String?, val createdAt: String, val updatedAt: String, val acknowledgedAt: String?)
@@ -94,7 +94,7 @@ class RecurrenceBackupSectionExporter(private val accountRepository: LedgerAccou
         destinationAmount = value.destinationAmount?.toPlainString(), destinationCurrency = value.destinationCurrency,
         exchangeRate = value.exchangeRate?.toPlainString(), description = value.description, merchant = value.merchant,
         categoryId = value.categoryId, reviewPolicy = value.reviewPolicy.value,
-        splitItems = value.splitItems.map { BackupRecurringSplitItem(it.id, it.name, it.amount.toPlainString()) },
+        splitItems = value.splitItems.map { BackupRecurringSplitItem(it.id, it.name, it.amount.toPlainString(), it.tagNames.sorted()) },
         rule = BackupRecurrenceRule(value.rule.frequency.value, value.rule.interval, value.rule.weeklyDays.map { it.name }.sorted(), value.rule.monthlyPattern.value, value.rule.dayOfMonth, value.rule.monthlyWeekOrdinal, value.rule.monthlyWeekday?.name),
         recurrenceEnd = when (val end = value.recurrenceEnd) {
             RecurrenceEnd.Never -> BackupRecurrenceEnd("never", null, null)
@@ -162,7 +162,7 @@ class RecurrenceBackupSectionImporter(private val movementRepository: RecurringM
                 RecurringMovement(
                     RecurringMovementId.from(value.id), RecurringMovementType.from(value.type), value.sourceAccountId, value.targetAccountId, BigDecimal(value.amount), value.currency, value.destinationAmount?.let(::BigDecimal), value.destinationCurrency, value.exchangeRate?.let(::BigDecimal), value.description, value.merchant, value.categoryId, RecurringMovementReviewPolicy.from(value.reviewPolicy),
                     value.splitItems.map {
-                        RecurringMovement.SplitItem(it.id, it.name, BigDecimal(it.amount))
+                        RecurringMovement.SplitItem(it.id, it.name, BigDecimal(it.amount), it.tagNames)
                     },
                     rule, end, Instant.parse(value.startAt), value.zoneId, value.nextDueAt?.let(Instant::parse), RecurringMovementStatus.from(value.status), value.generatedOccurrences, Instant.parse(value.createdAt), Instant.parse(value.updatedAt), value.deactivatedAt?.let(Instant::parse), value.completedAt?.let(Instant::parse), value.tagNames,
                 ),

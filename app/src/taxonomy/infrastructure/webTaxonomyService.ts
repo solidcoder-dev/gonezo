@@ -1,6 +1,8 @@
 import type {
   OrchestrationApplyTransactionTagsInput,
   OrchestrationApplyTransactionTagsResult,
+  OrchestrationApplyTransactionItemTagsInput,
+  OrchestrationApplyTransactionItemTagsResult,
   OrchestrationCategorizeTransactionInput,
   OrchestrationCategorizeTransactionResult,
   OrchestrationListTransactionTaxonomyInput,
@@ -100,6 +102,12 @@ export class WebTaxonomyService {
     input: OrchestrationApplyTransactionTagsInput,
   ): Promise<OrchestrationApplyTransactionTagsResult> {
     return this.transactionTaxonomy.applyTransactionTags(input);
+  }
+
+  async applyTransactionItemTags(
+    input: OrchestrationApplyTransactionItemTagsInput,
+  ): Promise<OrchestrationApplyTransactionItemTagsResult> {
+    return this.transactionTaxonomy.applyTransactionItemTags(input);
   }
 
   async listTransactionTaxonomy(

@@ -4,7 +4,7 @@ import java.math.BigDecimal
 import java.time.Instant
 
 data class ExpectedMovement(val id: ExpectedMovementId, val accountId: String, val type: ExpectedMovementType, val amount: BigDecimal, val currency: String, val expectedAt: Instant, val description: String?, val merchant: String?, val categoryId: String?, val originOccurrenceId: String?, val originRecurringMovementId: String?, val splitItems: List<SplitItem> = emptyList(), val status: ExpectedMovementStatus, val resolvedTransactionId: String?, val createdAt: Instant, val updatedAt: Instant, val resolvedAt: Instant?, val dismissedAt: Instant?, val tagNames: List<String> = emptyList()) {
-    data class SplitItem(val id: String, val name: String, val amount: BigDecimal, val sourceTemplateItemId: String? = null)
+    data class SplitItem(val id: String, val name: String, val amount: BigDecimal, val sourceTemplateItemId: String? = null, val tagNames: List<String> = emptyList())
 
     init {
         require(accountId.isNotBlank()) { "accountId is required" }
@@ -82,6 +82,7 @@ data class ExpectedMovement(val id: ExpectedMovementId, val accountId: String, v
                     name = it.name.trim(),
                     amount = it.amount,
                     sourceTemplateItemId = it.sourceTemplateItemId?.trim()?.ifBlank { null },
+                    tagNames = it.tagNames.map(String::trim).filter(String::isNotBlank).distinct(),
                 )
             },
             updatedAt = updatedAt,
@@ -120,6 +121,7 @@ data class ExpectedMovement(val id: ExpectedMovementId, val accountId: String, v
                     name = it.name.trim(),
                     amount = it.amount,
                     sourceTemplateItemId = it.sourceTemplateItemId?.trim()?.ifBlank { null },
+                    tagNames = it.tagNames.map(String::trim).filter(String::isNotBlank).distinct(),
                 )
             },
             status = ExpectedMovementStatus.PENDING,

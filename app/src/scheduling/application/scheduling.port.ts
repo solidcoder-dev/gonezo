@@ -56,7 +56,7 @@ export type RecurrenceCreateRecurringMovementInput = {
   description?: string;
   merchant?: string;
   categoryId?: string;
-  splitItems?: Array<{ id: string; name: string; amount: string }>;
+  splitItems?: Array<{ id: string; name: string; amount: string; tagNames?: string[] }>;
   tagIds?: string[];
   tagNames?: string[];
   rule: RecurrenceRuleInput;
@@ -98,7 +98,7 @@ export type RecurrenceMovementItem = {
   zoneId: string;
   reviewPolicy?: RecurrenceReviewPolicy;
   generatedOccurrences: number;
-  splitItems: Array<{ id: string; name: string; amount: string }>;
+  splitItems: Array<{ id: string; name: string; amount: string; tagNames?: string[] }>;
   rule: RecurrenceRuleInput;
   recurrenceEnd: RecurrenceEndInput;
 };

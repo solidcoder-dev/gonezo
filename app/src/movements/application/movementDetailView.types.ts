@@ -27,6 +27,7 @@ export type MovementDetailItemView = {
   name: string;
   amount: string;
   currency?: string;
+  tags?: MovementDetailTagView[];
 };
 
 export type MovementDetailCategoryView = {

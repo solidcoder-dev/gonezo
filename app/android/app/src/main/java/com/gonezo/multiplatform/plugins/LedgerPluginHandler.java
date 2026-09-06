@@ -248,15 +248,17 @@ final class LedgerPluginHandler {
 
   void ledgerAddTransactionItem(PluginCall call) {
     try {
-      AndroidLedgerCore.getInstance(context).addTransactionItem(
+      String id = AndroidLedgerCore.getInstance(context).addTransactionItem(
         call.getString("transactionId"),
         call.getString("name"),
         call.getString("amount"),
         call.getString("currency"),
         call.getString("categoryId"),
         call.getString("note")
-      );
-      call.resolve();
+      ).toString();
+      JSObject result = new JSObject();
+      result.put("id", id);
+      call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());
     }

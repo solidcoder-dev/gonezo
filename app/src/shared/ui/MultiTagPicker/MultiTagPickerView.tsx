@@ -33,6 +33,17 @@ export function MultiTagPickerView({ required, provided }: MultiTagPickerViewPro
       <label className={styles.label} htmlFor={inputId}>
         {required.config.label}
       </label>
+      <span className={`${styles.field} multi-tag-picker-field`}>
+        <input
+          id={inputId}
+          className={styles.input}
+          disabled={required.status.disabled}
+          placeholder={required.data.selectedTags.length === 0 ? required.config.placeholder : 'Add tag...'}
+          value={required.state.query}
+          onChange={(event) => provided.commands.changeQuery(event.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+      </span>
       {required.data.selectedTags.length > 0 ? (
         <div className={styles.selected} aria-label="Selected tags">
           {required.data.selectedTags.map((tag) => (
@@ -51,17 +62,6 @@ export function MultiTagPickerView({ required, provided }: MultiTagPickerViewPro
           ))}
         </div>
       ) : null}
-      <span className={styles.field}>
-        <input
-          id={inputId}
-          className={styles.input}
-          disabled={required.status.disabled}
-          placeholder={required.data.selectedTags.length === 0 ? required.config.placeholder : 'Add tag...'}
-          value={required.state.query}
-          onChange={(event) => provided.commands.changeQuery(event.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-      </span>
       {listOpen ? (
         <ul className={styles.suggestions} aria-label={`${required.config.label} suggestions`}>
           {suggestions.map((tag) => (

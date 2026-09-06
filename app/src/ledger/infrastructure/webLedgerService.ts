@@ -1,5 +1,6 @@
 import type {
   LedgerAddTransactionItemInput,
+  LedgerAddTransactionItemResult,
   LedgerArchiveAccountInput,
   LedgerCreateExpenseDraftInput,
   LedgerCreateExpenseDraftResult,
@@ -135,7 +136,7 @@ export class WebLedgerService {
 
   async createExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult> { return this.transactionService.createExpenseDraft(input); }
 
-  async addTransactionItem(input: LedgerAddTransactionItemInput): Promise<void> { return this.transactionService.addTransactionItem(input); }
+  async addTransactionItem(input: LedgerAddTransactionItemInput): Promise<LedgerAddTransactionItemResult> { return this.transactionService.addTransactionItem(input); }
 
   async postDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void> { return this.transactionService.postDraftTransaction(input); }
 

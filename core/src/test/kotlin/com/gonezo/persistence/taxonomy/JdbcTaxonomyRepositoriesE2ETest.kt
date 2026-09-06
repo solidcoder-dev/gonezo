@@ -6,10 +6,12 @@ import com.gonezo.taxonomy.domain.CategoryId
 import com.gonezo.taxonomy.domain.Tag
 import com.gonezo.taxonomy.domain.TagId
 import com.gonezo.taxonomy.domain.TransactionCategoryAssignment
+import com.gonezo.taxonomy.domain.TransactionItemTagAssignment
 import com.gonezo.taxonomy.domain.TransactionTagAssignment
 import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyCategoryRepository
 import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTagRepository
 import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTransactionCategoryAssignmentRepository
+import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTransactionItemTagAssignmentRepository
 import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTransactionTagAssignmentRepository
 import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat
@@ -264,5 +266,37 @@ class JdbcTaxonomyRepositoriesE2ETest : SqliteE2ETest() {
 
         val assigned = assignmentRepository.findByTransactionId(txId)
         assertThat(assigned.map { it.tagId }).containsExactlyInAnyOrder(travel.id, london.id)
+    }
+
+    @Test
+    fun `replaces and reads item tag assignments individually and in batch`() {
+        val tagRepository = JdbcTaxonomyTagRepository(db.namedJdbcTemplate)
+        val assignmentRepository = JdbcTaxonomyTransactionItemTagAssignmentRepository(db.namedJdbcTemplate)
+        val itemId = UUID.randomUUID()
+        val otherItemId = UUID.randomUUID()
+        val food = Tag.create(TagId.random(), "food", Instant.parse("2026-03-22T12:00:00Z"))
+        val home = Tag.create(TagId.random(), "home", Instant.parse("2026-03-22T12:01:00Z"))
+        tagRepository.save(food)
+        tagRepository.save(home)
+
+        assignmentRepository.replaceByTransactionItemId(
+            itemId,
+            listOf(
+                TransactionItemTagAssignment.assign(itemId, food.id, Instant.parse("2026-03-22T13:00:00Z")),
+                TransactionItemTagAssignment.assign(itemId, food.id, Instant.parse("2026-03-22T13:01:00Z")),
+            ),
+        )
+        assignmentRepository.replaceByTransactionItemId(
+            otherItemId,
+            listOf(TransactionItemTagAssignment.assign(otherItemId, home.id, Instant.parse("2026-03-22T14:00:00Z"))),
+        )
+
+        assertThat(assignmentRepository.findByTransactionItemId(itemId).map { it.tagId }).containsExactly(food.id)
+        assertThat(assignmentRepository.findByTransactionItemIds(listOf(itemId, otherItemId))).containsKeys(itemId, otherItemId)
+
+        assignmentRepository.replaceByTransactionItemId(itemId, emptyList())
+        assertThat(assignmentRepository.findByTransactionItemId(itemId)).isEmpty()
+        assignmentRepository.deleteByTransactionItemIds(listOf(otherItemId))
+        assertThat(assignmentRepository.findByTransactionItemIds(listOf(itemId, otherItemId))).isEmpty()
     }
 }

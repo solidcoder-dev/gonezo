@@ -53,7 +53,7 @@ class DefaultExpectedOccurrenceProjectionService(private val recurringMovementRe
                             merchant = movement.merchant,
                             categoryId = movement.categoryId,
                             createdAt = projectedAt,
-                            items = movement.splitItems.map { RecurringOccurrenceSnapshot.Item(it.id, it.name, it.amount) },
+                            items = movement.splitItems.map { RecurringOccurrenceSnapshot.Item(it.id, it.name, it.amount, it.tagNames) },
                             tagNames = movement.tagNames,
                         ),
                     )

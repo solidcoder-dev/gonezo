@@ -11,6 +11,7 @@ export function createTaxonomyGateway(core: TaxonomyGatewayPort): TaxonomyGatewa
     taxonomyRenameTag: (input) => core.taxonomyRenameTag(input),
     orchestrationCategorizeTransaction: (input) => core.orchestrationCategorizeTransaction(input),
     orchestrationApplyTransactionTags: (input) => core.orchestrationApplyTransactionTags(input),
+    orchestrationApplyTransactionItemTags: (input) => core.orchestrationApplyTransactionItemTags?.(input) ?? Promise.resolve({ status: 'none' }),
     orchestrationListTransactionTaxonomy: (input) => core.orchestrationListTransactionTaxonomy(input),
   };
 }

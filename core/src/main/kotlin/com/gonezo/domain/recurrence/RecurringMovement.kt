@@ -33,7 +33,7 @@ data class RecurringMovement(
     val completedAt: Instant?,
     val tagNames: List<String> = emptyList(),
 ) {
-    data class SplitItem(val id: String, val name: String, val amount: BigDecimal)
+    data class SplitItem(val id: String, val name: String, val amount: BigDecimal, val tagNames: List<String> = emptyList())
 
     init {
         require(sourceAccountId.isNotBlank()) { "sourceAccountId is required" }
@@ -193,6 +193,7 @@ data class RecurringMovement(
                         id = it.id.trim(),
                         name = it.name.trim(),
                         amount = it.amount,
+                        tagNames = it.tagNames.map(String::trim).filter(String::isNotBlank).distinct(),
                     )
                 },
                 rule = rule,

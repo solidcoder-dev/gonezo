@@ -79,6 +79,13 @@ export type OrchestrationApplyTransactionTagsResult = {
   errorMessage?: string;
 };
 
+export type OrchestrationApplyTransactionItemTagsInput = {
+  transactionItemId: string;
+  tagNames: string[];
+};
+
+export type OrchestrationApplyTransactionItemTagsResult = OrchestrationApplyTransactionTagsResult;
+
 export type OrchestrationListTransactionTaxonomyInput = {
   transactionIds: string[];
 };
@@ -107,6 +114,9 @@ export interface TaxonomyPort {
   orchestrationApplyTransactionTags(
     input: OrchestrationApplyTransactionTagsInput,
   ): Promise<OrchestrationApplyTransactionTagsResult>;
+  orchestrationApplyTransactionItemTags?(
+    input: OrchestrationApplyTransactionItemTagsInput,
+  ): Promise<OrchestrationApplyTransactionItemTagsResult>;
   orchestrationListTransactionTaxonomy(
     input: OrchestrationListTransactionTaxonomyInput,
   ): Promise<OrchestrationListTransactionTaxonomyResult>;

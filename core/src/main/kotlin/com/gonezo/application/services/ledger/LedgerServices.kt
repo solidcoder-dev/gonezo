@@ -297,7 +297,7 @@ class CreateLedgerExpenseDraftService(private val accountRepository: LedgerAccou
 }
 
 class AddLedgerTransactionItemService(private val transactionRepository: LedgerTransactionRepository, private val domainEventPublisher: DomainEventPublisher) : AddLedgerTransactionItemUC {
-    override fun execute(command: AddLedgerTransactionItemCommand) {
+    override fun execute(command: AddLedgerTransactionItemCommand): TransactionItemId {
         val transaction = requireTransaction(transactionRepository, command.transactionId)
         val item =
             TransactionItem.create(
@@ -310,6 +310,7 @@ class AddLedgerTransactionItemService(private val transactionRepository: LedgerT
         val updated = transaction.addItem(item)
         transactionRepository.save(updated)
         domainEventPublisher.publish(TransactionItemAdded(updated.id, item.id))
+        return item.id
     }
 }
 

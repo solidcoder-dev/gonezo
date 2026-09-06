@@ -191,7 +191,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
                 className={`${styles.dateInput} form-control`}
                 aria-label={dateInputLabel}
                 type="text"
-                value={dateEditing ? state.date : datePresentationLabel(state.date)}
+                value={status.dateDisabled || dateEditing ? state.date : datePresentationLabel(state.date)}
                 placeholder={datePlaceholder}
                 inputMode="numeric"
                 disabled={status.dateDisabled}

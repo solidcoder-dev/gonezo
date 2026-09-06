@@ -67,6 +67,7 @@ class PostExpectedMovementWorkflow(
     private val projectNext: ExpectedOccurrenceProjectionService,
     private val consistencyBoundary: ConsistencyBoundary,
     private val idempotency: ExpectedPostingIdempotencyRepository,
+    private val applyItemTags: ApplyTransactionItemTagsUC = ApplyTransactionItemTagsUC { ApplyTransactionTagsResult(emptyList()) },
     private val transactionIgnoredWriter: TransactionIgnoredWriter = TransactionIgnoredWriter { _, _, _ -> },
 ) {
     fun execute(command: PostExpectedMovementCommand): PostExpectedMovementResult = consistencyBoundary.withinConsistencyBoundary {
@@ -122,7 +123,10 @@ class PostExpectedMovementWorkflow(
         val money = com.gonezo.domain.shared.Money.of(movement.amount, movement.currency)
         if (movement.type == ExpectedMovementType.EXPENSE && movement.splitItems.isNotEmpty()) {
             val draft = createExpenseDraft.execute(CreateLedgerExpenseDraftCommand(account, money, at, movement.description, movement.merchant))
-            movement.splitItems.forEach { item -> addItem.execute(AddLedgerTransactionItemCommand(draft, item.name, com.gonezo.domain.shared.Money.of(item.amount, movement.currency), null)) }
+            movement.splitItems.forEach { item ->
+                val itemId = addItem.execute(AddLedgerTransactionItemCommand(draft, item.name, com.gonezo.domain.shared.Money.of(item.amount, movement.currency), null))
+                applyItemTags.execute(ApplyTransactionItemTagsCommand(itemId, item.tagNames, at))
+            }
             postDraft.execute(PostLedgerDraftTransactionCommand(draft))
             return draft.toString()
         }

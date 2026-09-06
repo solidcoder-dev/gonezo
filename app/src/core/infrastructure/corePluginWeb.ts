@@ -31,12 +31,15 @@ import type {
   LedgerCreateExpenseDraftInput,
   LedgerCreateExpenseDraftResult,
   LedgerAddTransactionItemInput,
+  LedgerAddTransactionItemResult,
   LedgerPostDraftTransactionInput,
   LedgerVoidTransactionInput,
   LedgerListTransactionsInput,
   LedgerListTransactionsResult,
 } from '../../ledger/application/ledger.port';
 import type {
+  OrchestrationApplyTransactionItemTagsInput,
+  OrchestrationApplyTransactionItemTagsResult,
   TaxonomyListCategoriesInput,
   TaxonomyListCategoriesResult,
   TaxonomyCreateCategoryInput,
@@ -198,7 +201,7 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
     return this.core.ledgerCreateExpenseDraft(options);
   }
 
-  async ledgerAddTransactionItem(options: LedgerAddTransactionItemInput): Promise<void> {
+  async ledgerAddTransactionItem(options: LedgerAddTransactionItemInput): Promise<LedgerAddTransactionItemResult> {
     return this.core.ledgerAddTransactionItem(options);
   }
 
@@ -248,6 +251,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
     options: OrchestrationApplyTransactionTagsInput,
   ): Promise<OrchestrationApplyTransactionTagsResult> {
     return this.core.orchestrationApplyTransactionTags(options);
+  }
+
+  async orchestrationApplyTransactionItemTags(input: OrchestrationApplyTransactionItemTagsInput): Promise<OrchestrationApplyTransactionItemTagsResult> {
+    return this.core.orchestrationApplyTransactionItemTags(input);
   }
 
   async orchestrationListTransactionTaxonomy(

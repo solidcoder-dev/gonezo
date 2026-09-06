@@ -84,9 +84,9 @@ class JdbcRecurringMovementRepository(private val jdbcTemplate: NamedParameterJd
             jdbcTemplate.update(
                 """
                 insert into recurring_movement_items (
-                  id, recurring_movement_id, item_order, name, amount
+                  id, recurring_movement_id, item_order, name, amount, tag_names
                 ) values (
-                  :id, :recurring_movement_id, :item_order, :name, :amount
+                  :id, :recurring_movement_id, :item_order, :name, :amount, :tag_names
                 )
                 """.trimIndent(),
                 MapSqlParameterSource()
@@ -94,7 +94,8 @@ class JdbcRecurringMovementRepository(private val jdbcTemplate: NamedParameterJd
                     .addValue("recurring_movement_id", movement.id.toString())
                     .addValue("item_order", index)
                     .addValue("name", item.name)
-                    .addValue("amount", item.amount.toPlainString()),
+                    .addValue("amount", item.amount.toPlainString())
+                    .addValue("tag_names", encodeTags(item.tagNames)),
             )
         }
     }
@@ -269,7 +270,7 @@ class JdbcRecurringMovementRepository(private val jdbcTemplate: NamedParameterJd
     private fun loadSplitItems(recurringMovementId: String): List<RecurringMovement.SplitItem> {
         val sql =
             """
-            select id, name, amount
+            select id, name, amount, tag_names
             from recurring_movement_items
             where recurring_movement_id = :recurring_movement_id
             order by item_order asc, id asc
@@ -283,6 +284,7 @@ class JdbcRecurringMovementRepository(private val jdbcTemplate: NamedParameterJd
                 id = rs.getString("id"),
                 name = rs.getString("name"),
                 amount = BigDecimal(rs.getString("amount")),
+                tagNames = decodeTags(rs.getString("tag_names")),
             )
         }
     }
@@ -320,6 +322,7 @@ class JdbcRecurringMovementRepository(private val jdbcTemplate: NamedParameterJd
         updatedAt = updatedAt,
         deactivatedAt = deactivatedAt,
         completedAt = completedAt,
+        tagNames = tagNames,
     )
 
     private data class RecurringMovementRow(

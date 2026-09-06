@@ -80,6 +80,7 @@ export class CoreAdapter implements CorePort {
   taxonomyRenameTag = this.taxonomy.taxonomyRenameTag.bind(this.taxonomy);
   orchestrationCategorizeTransaction = this.taxonomy.orchestrationCategorizeTransaction.bind(this.taxonomy);
   orchestrationApplyTransactionTags = this.taxonomy.orchestrationApplyTransactionTags.bind(this.taxonomy);
+  orchestrationApplyTransactionItemTags = this.taxonomy.orchestrationApplyTransactionItemTags.bind(this.taxonomy);
   orchestrationListTransactionTaxonomy = this.taxonomy.orchestrationListTransactionTaxonomy.bind(this.taxonomy);
 
   mobillsImport = this.imports.mobillsImport.bind(this.imports);

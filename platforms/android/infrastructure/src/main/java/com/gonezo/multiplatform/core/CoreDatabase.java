@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteException;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 33;
+  private static final int DB_VERSION = 35;
   private static final String SERVICES_CATEGORY_ID = "00000000-0000-4000-8000-000000000111";
 
   CoreDatabase(Context context) {
@@ -166,6 +166,14 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion < 33) {
       seedServicesCategory(db);
     }
+
+    if (oldVersion < 34) {
+      createTransactionItemTagAssignmentTable(db);
+    }
+
+    if (oldVersion < 35) {
+      addPlannedItemTagNames(db);
+    }
   }
 
   @Override
@@ -197,6 +205,27 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     addRecurringAndExpectedTagColumns(db);
     createCategorizationWorkflowTable(db);
     createAnalyticsExclusionLegacyArchiveTable(db);
+    createTransactionItemTagAssignmentTable(db);
+    addPlannedItemTagNames(db);
+  }
+
+  private static void createTransactionItemTagAssignmentTable(SQLiteDatabase db) {
+    db.execSQL("create table if not exists taxonomy_transaction_item_tag_assignments (transaction_item_id text not null, tag_id text not null references taxonomy_tags(id), assigned_at text not null, primary key(transaction_item_id, tag_id));");
+    db.execSQL("create index if not exists idx_taxonomy_transaction_item_tags_item on taxonomy_transaction_item_tag_assignments(transaction_item_id);");
+    db.execSQL("create index if not exists idx_taxonomy_transaction_item_tags_tag on taxonomy_transaction_item_tag_assignments(tag_id);");
+  }
+
+  private static void addPlannedItemTagNames(SQLiteDatabase db) {
+    addColumnIfMissing(db, "expected_movement_items", "tag_names", "text not null default '[]'");
+    addColumnIfMissing(db, "recurring_movement_items", "tag_names", "text not null default '[]'");
+  }
+
+  private static void addColumnIfMissing(SQLiteDatabase db, String table, String column, String definition) {
+    try {
+      db.execSQL("alter table " + table + " add column " + column + " " + definition);
+    } catch (SQLiteException ignored) {
+      // Existing installations may already contain the column after a partial upgrade.
+    }
   }
 
   private static void createCategorizationWorkflowTable(SQLiteDatabase db) {

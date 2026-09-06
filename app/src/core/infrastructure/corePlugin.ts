@@ -31,6 +31,7 @@ import type {
   LedgerCreateExpenseDraftInput,
   LedgerCreateExpenseDraftResult,
   LedgerAddTransactionItemInput,
+  LedgerAddTransactionItemResult,
   LedgerPostDraftTransactionInput,
   LedgerVoidTransactionInput,
   LedgerListTransactionsInput,
@@ -47,7 +48,7 @@ import type {
   TaxonomyRenameTagInput,
   OrchestrationCategorizeTransactionInput,
   OrchestrationCategorizeTransactionResult,
-  OrchestrationApplyTransactionTagsInput,
+  OrchestrationApplyTransactionTagsInput, OrchestrationApplyTransactionItemTagsInput, OrchestrationApplyTransactionItemTagsResult,
   OrchestrationApplyTransactionTagsResult,
   OrchestrationListTransactionTaxonomyInput,
   OrchestrationListTransactionTaxonomyResult,
@@ -139,7 +140,7 @@ export interface CorePlugin {
   ledgerRecordTransfer(options: LedgerRecordTransferInput): Promise<LedgerRecordTransferResult>;
   ledgerRecordTransferFx(options: LedgerRecordTransferFxInput): Promise<LedgerRecordTransferFxResult>;
   ledgerCreateExpenseDraft(options: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult>;
-  ledgerAddTransactionItem(options: LedgerAddTransactionItemInput): Promise<void>;
+  ledgerAddTransactionItem(options: LedgerAddTransactionItemInput): Promise<LedgerAddTransactionItemResult>;
   ledgerPostDraftTransaction(options: LedgerPostDraftTransactionInput): Promise<void>;
   ledgerVoidTransaction(options: LedgerVoidTransactionInput): Promise<void>;
   ledgerListTransactions(options: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult>;
@@ -155,6 +156,9 @@ export interface CorePlugin {
   orchestrationApplyTransactionTags(
     options: OrchestrationApplyTransactionTagsInput,
   ): Promise<OrchestrationApplyTransactionTagsResult>;
+  orchestrationApplyTransactionItemTags(
+    options: OrchestrationApplyTransactionItemTagsInput,
+  ): Promise<OrchestrationApplyTransactionItemTagsResult>;
   orchestrationListTransactionTaxonomy(
     options: OrchestrationListTransactionTaxonomyInput,
   ): Promise<OrchestrationListTransactionTaxonomyResult>;

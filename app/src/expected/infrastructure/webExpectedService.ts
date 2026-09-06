@@ -120,6 +120,7 @@ export class WebExpectedMovementsService {
         id: item.id,
         name: item.name,
         amount: Number(item.amount).toFixed(2),
+        tagNames: [...(item.tagNames ?? [])],
       })),
       status: 'pending',
       createdAt: now,
@@ -160,6 +161,7 @@ export class WebExpectedMovementsService {
         id: item.id,
         name: item.name,
         amount: Number(item.amount).toFixed(2),
+        tagNames: [...(item.tagNames ?? [])],
       })),
       updatedAt: now,
     };

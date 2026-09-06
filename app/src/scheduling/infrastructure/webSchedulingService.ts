@@ -145,6 +145,7 @@ export class WebSchedulingService {
         id: item.id,
         name: item.name,
         amount: Number(item.amount).toFixed(2),
+        tagNames: [...(item.tagNames ?? [])],
       })),
       scheduleKind: 'recurring',
       origin: 'recurring',
@@ -334,6 +335,7 @@ export class WebSchedulingService {
       id: item.id,
       name: item.name,
       amount: Number(item.amount).toFixed(2),
+      tagNames: [...(item.tagNames ?? [])],
     }));
     movement.scheduleKind = input.scheduleKind ?? movement.scheduleKind ?? resolveSchedulingKind(movement);
     movement.origin = movement.scheduleKind;

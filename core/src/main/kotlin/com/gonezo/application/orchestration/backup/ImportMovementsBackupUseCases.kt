@@ -13,7 +13,7 @@ data class BackupTag(val id: String, val name: String, val status: String, val c
 
 data class BackupPostedMovement(val id: String, val accountId: String, val type: String, val status: String, val occurredAt: Instant, val amount: String, val currency: String, val description: String?, val merchant: String?, val categoryId: String?, val linkedTransactionId: String?, val splitItems: List<BackupSplitItem>, val tagIds: List<String>)
 
-data class BackupSplitItem(val id: String, val name: String, val amount: String, val currency: String, val note: String?, val categoryId: String? = null)
+data class BackupSplitItem(val id: String, val name: String, val amount: String, val currency: String, val note: String?, val categoryId: String? = null, val tagIds: List<String> = emptyList())
 
 data class ImportMovementsBackupCommand(val snapshot: MovementsBackupSnapshot, val importedAt: Instant)
 

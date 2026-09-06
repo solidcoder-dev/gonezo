@@ -1,6 +1,8 @@
 import type {
   OrchestrationApplyTransactionTagsInput,
   OrchestrationApplyTransactionTagsResult,
+  OrchestrationApplyTransactionItemTagsInput,
+  OrchestrationApplyTransactionItemTagsResult,
   OrchestrationCategorizeTransactionInput,
   OrchestrationCategorizeTransactionResult,
   OrchestrationListTransactionTaxonomyInput,
@@ -21,6 +23,7 @@ export type WebTransactionTaxonomyPort = {
   applyTransactionTags(
     input: OrchestrationApplyTransactionTagsInput,
   ): Promise<OrchestrationApplyTransactionTagsResult>;
+  applyTransactionItemTags(input: OrchestrationApplyTransactionItemTagsInput): Promise<OrchestrationApplyTransactionItemTagsResult>;
   listTransactionTaxonomy(
     input: OrchestrationListTransactionTaxonomyInput,
   ): Promise<OrchestrationListTransactionTaxonomyResult>;
@@ -121,6 +124,18 @@ export class WebTransactionTaxonomyService implements WebTransactionTaxonomyPort
       status: 'assigned',
       tagIds: [...assigned.tagIds],
     };
+  }
+
+  async applyTransactionItemTags(input: OrchestrationApplyTransactionItemTagsInput): Promise<OrchestrationApplyTransactionItemTagsResult> {
+    const uniqueByNormalizedName = uniqueWebTaxonomyTagNames(input.tagNames);
+    if (uniqueByNormalizedName.size === 0) {
+      this.state.taxonomyTransactionItemTags.set(input.transactionItemId, []);
+      return { status: 'none' };
+    }
+    const assigned = this.tags.assignActiveTagNames(uniqueByNormalizedName);
+    if (assigned.status === 'failed') return assigned;
+    this.state.taxonomyTransactionItemTags.set(input.transactionItemId, assigned.tagIds);
+    return { status: 'assigned', tagIds: [...assigned.tagIds] };
   }
 
   async listTransactionTaxonomy(
