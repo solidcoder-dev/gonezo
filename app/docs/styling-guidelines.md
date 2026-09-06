@@ -88,7 +88,6 @@ El checker bloquea colores directos fuera del tema, `!important`, z-index numér
 | `src/transactions/ui/ItemBreakdownControls/ItemBreakdownControlsView.css` | transactions | Controles compartidos dentro del editor legacy | Encapsular cuando el editor pase a Module completo |
 | `src/transactions/ui/MovementAccountSelector/MovementAccountSelectorView.css` | transactions | Selector usado por composer y movimientos | Migrar al reducir dependencias cruzadas |
 | `src/transactions/ui/MovementDraftPicker/MovementDraftPickerView.css` | transactions | Picker legacy del composer | Convertir con el composer cuando quede modular |
-| `src/transactions/ui/MovementMoreControls/MovementMoreControlsView.css` | transactions | Panel de acciones compartidas del composer | Migrar junto con el composer completo |
 | `src/transactions/ui/MovementTypeSelector/MovementTypeSelectorView.css` | transactions | Selector legacy con estados compartidos | Encapsular con la siguiente iteración del composer |
 | `src/transactions/ui/MovementVoiceEntry/MovementVoiceEntryView.css` | transactions | Integración con estados y controles del shell | Mantener mientras dependa de permisos/voice flow |
 | `src/transactions/ui/MovementVoiceEntry/MovementVoicePermissionDialog.css` | transactions | Diálogo de permisos con clases globales del shell | Migrar cuando la integración de voz se aísle |

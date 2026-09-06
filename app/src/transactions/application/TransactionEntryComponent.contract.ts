@@ -56,6 +56,7 @@ export type TransactionEntryComponentRequired = {
       name: string;
       type?: Exclude<ComposerMode, 'picker'>;
     };
+    favoriteAccountId?: string | null;
   };
 };
 

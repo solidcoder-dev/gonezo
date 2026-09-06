@@ -1,0 +1,6 @@
+.trigger { display: grid; grid-template-columns: 24px minmax(0, 1fr) 16px; align-items: center; gap: var(--space-md); width: 100%; min-width: 0; min-height: 52px; padding: 0; border: 0; background: transparent; color: var(--color-text-primary); font: inherit; text-align: left; }
+.text { display: grid; gap: var(--space-xs); min-width: 0; }
+.text strong, .text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.text strong { font-size: 16px; font-weight: var(--font-weight-semibold); line-height: 24px; }
+.text small { color: var(--color-text-secondary); font-size: 12px; line-height: 16px; }
+.chevron { justify-self: end; color: var(--color-text-secondary); }

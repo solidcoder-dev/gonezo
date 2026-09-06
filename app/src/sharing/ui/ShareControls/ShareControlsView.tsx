@@ -36,7 +36,6 @@ export function ShareControlsView({ required, provided }: ShareControlsViewProps
         onClick={provided.commands.open}
         disabled={status.disabled}
       >
-        <i className="bi bi-people" aria-hidden />
         <span className={styles.shareControlText}>
           <strong>Sharing</strong>
         </span>
@@ -54,7 +53,6 @@ export function ShareControlsView({ required, provided }: ShareControlsViewProps
         disabled={status.disabled}
         aria-label={`Edit share, ${shareLabel}, ${formatCurrencyAmount(state.total, state.currencyCode)}`}
       >
-        <i className="bi bi-people" aria-hidden />
         <span className={styles.shareControlText}>
           <strong>Sharing</strong>
           <small>{shareLabel}</small>

@@ -1,6 +1,7 @@
 import { SheetView } from '../../../shared/ui/SheetView';
 import type { ComposerMode } from './TransactionComposerView';
 import { accountIconClass, COMPOSER_MODES } from './transactionComposerPresentation';
+import styles from './TransactionComposerChoiceSheets.module.css';
 
 type SourceAccountOption = {
   id: string;
@@ -15,6 +16,7 @@ type TransactionComposerChoiceSheetsProps = {
     sourceAccountSheetOpen: boolean;
     selectedMode: Exclude<ComposerMode, 'picker'>;
     sourceAccountId: string;
+    favoriteAccountId?: string | null;
     sourceAccountOptions: SourceAccountOption[];
   };
   provided: {
@@ -31,6 +33,7 @@ export function TransactionComposerChoiceSheets({ required, provided }: Transact
     movementTypeSheetOpen,
     selectedMode,
     sourceAccountId,
+    favoriteAccountId,
     sourceAccountOptions,
     sourceAccountSheetOpen,
   } = required;
@@ -42,20 +45,22 @@ export function TransactionComposerChoiceSheets({ required, provided }: Transact
           config: {
             ariaLabel: 'Movement type',
             title: 'Movement type',
-            closeLabel: 'Close movement type',
-            panelClassName: 'composer-auxiliary-sheet composer-choice-sheet',
-            contentClassName: 'composer-choice-content',
+            showHandle: true,
+            dragToClose: true,
+            closeOnBackdrop: true,
+            panelClassName: styles.sheet,
+            contentClassName: styles.content,
           },
           data: {
             body: (
-              <ul className="composer-choice-list" aria-label="Movement types">
+              <ul className={styles.list} aria-label="Movement types">
                 {COMPOSER_MODES.map((item) => {
                   const selected = item.value === selectedMode;
                   return (
                     <li key={item.value}>
                       <button
                         type="button"
-                        className={`composer-choice-row composer-choice-row--${item.value}`}
+                        className={`${styles.row} ${styles[item.value]}`}
                         aria-label={selected ? `Selected movement type ${item.label}` : `Select movement type ${item.label}`}
                         disabled={disabled}
                         onClick={() => {
@@ -63,11 +68,11 @@ export function TransactionComposerChoiceSheets({ required, provided }: Transact
                           provided.closeMovementTypeSheet();
                         }}
                       >
-                        <span className="composer-choice-icon" aria-hidden>
+                        <span className={styles.icon} aria-hidden>
                           <i className={item.iconClassName} />
                         </span>
-                        <span className="composer-choice-name">{item.label}</span>
-                        <span className={selected ? 'composer-choice-check composer-choice-check--selected' : 'composer-choice-check'} aria-hidden>
+                        <span className={styles.name}>{item.label}</span>
+                        <span className={selected ? `${styles.check} ${styles.selected}` : styles.check} aria-hidden>
                           {selected ? <i className="bi bi-check-lg" /> : null}
                         </span>
                       </button>
@@ -87,20 +92,24 @@ export function TransactionComposerChoiceSheets({ required, provided }: Transact
           config: {
             ariaLabel: 'Choose account',
             title: 'Choose account',
-            closeLabel: 'Close account chooser',
-            panelClassName: 'composer-auxiliary-sheet composer-choice-sheet',
-            contentClassName: 'composer-choice-content',
+            showHandle: true,
+            dragToClose: true,
+            closeOnBackdrop: true,
+            panelClassName: styles.sheet,
+            contentClassName: styles.content,
           },
           data: {
             body: (
-              <ul className="composer-account-choice-list" aria-label="Accounts">
-                {sourceAccountOptions.map((account) => {
+              <div className={styles.accountGroups} aria-label="Accounts">
+                <span className={styles.sectionLabel}>Favorite</span>
+                <ul className={styles.list}>
+                {sourceAccountOptions.filter((account) => account.id === favoriteAccountId).map((account) => {
                   const selected = account.id === sourceAccountId;
                   return (
                     <li key={account.id}>
                       <button
                         type="button"
-                        className="composer-account-choice-row"
+                        className={styles.accountRow}
                         aria-label={selected ? `Selected account ${account.name}` : `Select account ${account.name}`}
                         disabled={disabled}
                         onClick={() => {
@@ -108,19 +117,35 @@ export function TransactionComposerChoiceSheets({ required, provided }: Transact
                           provided.closeSourceAccountSheet();
                         }}
                       >
-                        <span className="composer-account-choice-icon" aria-hidden>
+                        <span className={styles.accountIcon} aria-hidden>
                           <i className={accountIconClass(account.type)} />
                         </span>
-                        <span className="composer-choice-name">{account.name}</span>
-                        {selected ? <span className="composer-default-pill">Selected</span> : null}
-                        <span className={selected ? 'composer-choice-check composer-choice-check--selected' : 'composer-choice-check'} aria-hidden>
+                        <span className={styles.name}>{account.name}</span>
+                        <span className={styles.favoriteBadge}>Favorite</span>
+                        <span className={selected ? `${styles.check} ${styles.selected}` : styles.check} aria-hidden>
                           {selected ? <i className="bi bi-check-lg" /> : null}
                         </span>
                       </button>
                     </li>
                   );
                 })}
-              </ul>
+                </ul>
+                <span className={styles.sectionLabel}>All accounts</span>
+                <ul className={styles.list}>
+                {sourceAccountOptions.filter((account) => account.id !== favoriteAccountId).map((account) => {
+                  const selected = account.id === sourceAccountId;
+                  return (
+                    <li key={account.id}>
+                      <button type="button" className={styles.accountRow} aria-label={selected ? `Selected account ${account.name}` : `Select account ${account.name}`} disabled={disabled} onClick={() => { provided.selectSourceAccount(account.id); provided.closeSourceAccountSheet(); }}>
+                        <span className={styles.accountIcon} aria-hidden><i className={accountIconClass(account.type)} /></span>
+                        <span className={styles.name}>{account.name}</span>
+                        <span className={selected ? `${styles.check} ${styles.selected}` : styles.check} aria-hidden>{selected ? <i className="bi bi-check-lg" /> : null}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+                </ul>
+              </div>
             ),
           },
           state: { open: sourceAccountSheetOpen },

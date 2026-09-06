@@ -104,7 +104,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
   const [dateEditing, setDateEditing] = useState(false);
 
   return (
-    <>
+    <div className={styles.root}>
       {!showTransferFields && amountVisible ? (
         <>
           <AmountInputView
@@ -231,6 +231,6 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
           {status.dateError ? <p id="composer-date-error" className="gz-field-error">{status.dateError}</p> : null}
         </>
       ) : null}
-    </>
+    </div>
   );
 }

@@ -22,13 +22,13 @@ type MovementDetailSummaryViewProps = {
 
 function summaryTags(tags: MovementDetailTagView[]) {
   if (tags.length === 0) {
-    return <span className="movement-detail-placeholder">No tags</span>;
+    return <span className={styles.placeholder}>No tags</span>;
   }
 
   return (
-    <span className="movement-detail-chip-list movement-detail-chip-list--wrap">
+    <span className={styles.chipList}>
       {tags.map((tag) => (
-        <span key={tag.id ?? tag.name} className="movement-detail-chip">
+        <span key={tag.id ?? tag.name} className={styles.chip}>
           {tag.name}
         </span>
       ))}
@@ -74,7 +74,7 @@ export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryView
         ) : null}
       </div>
       {overflowOpen && overflowActions.length > 0 ? (
-        <div className="movement-detail-overflow" role="menu" aria-label="Movement actions">
+        <div className={styles.overflow} role="menu" aria-label="Movement actions">
           {overflowActions.map((action) => (
             <button
               key={action.id}
@@ -115,12 +115,11 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
       || (movement.sharing.phase === 'loaded' && movement.sharing.value != null)
     );
   const showItems = movement.items.length > 0;
-  const showMovementSectionTitle = showSharing || showItems;
   const sharingValue = movement.source === 'posted' && movement.sharing.phase === 'loaded'
     ? movement.sharing.value
     : null;
   return (
-    <div className={`${styles.body} movement-detail-body`}>
+    <div className={styles.body}>
       <div className={styles.context}>
         <span className={`${styles.type} ${styles[movement.financialType]}`}>{movementDetailTypeLabel(movement.financialType)}</span>
         <span className={styles.account}>{movement.accountLabel}</span>
@@ -177,7 +176,7 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
       </div>
 
       <div className={styles.section}>
-        {showMovementSectionTitle ? <span className={styles.sectionLabel}>Details</span> : null}
+        <span className={styles.sectionLabel}>Details</span>
         <div>
           {showSharing ? (
             <button type="button" className={styles.row} onClick={onOpenSharingSheet}>

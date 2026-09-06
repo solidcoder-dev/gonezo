@@ -1,5 +1,6 @@
 import { useEffect, useState, type RefObject } from 'react';
 import type { ViewProps } from '../ViewProps';
+import { currencySymbol } from '../../utils/formatting';
 import { AmountCalculatorSheetView } from './AmountCalculatorSheetView';
 import styles from './AmountInputView.module.css';
 
@@ -25,6 +26,9 @@ export function AmountInputView({ required, provided }: AmountInputViewProps) {
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [continueAfterCalculator, setContinueAfterCalculator] = useState(false);
   const calculatorEnabled = configuredCalculatorEnabled ?? true;
+  const emptyValuePresentation = variant === 'primary' && currency
+    ? `${currencySymbol(currency)}0.00`
+    : variant === 'primary' ? '0.00' : placeholder ?? 'Amount';
   const errorId = `${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-error`;
 
   function openCalculator() {
@@ -59,7 +63,7 @@ export function AmountInputView({ required, provided }: AmountInputViewProps) {
           min="0.01"
           step="0.01"
           value={state.value}
-          placeholder={placeholder ?? 'Amount'}
+          placeholder={emptyValuePresentation}
           disabled={status.disabled}
           onChange={(event) => provided.commands.change(event.target.value)}
           inputMode="decimal"

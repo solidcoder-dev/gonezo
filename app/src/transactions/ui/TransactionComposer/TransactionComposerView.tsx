@@ -74,6 +74,7 @@ export type TransactionComposerTaxonomyRequired = {
 export type TransactionComposerTransferRequired = {
   transferTargetAccountId: string;
   sourceAccountId: string;
+  favoriteAccountId?: string | null;
   sourceAccountOptions: Array<{ id: string; name: string; currency: string; type?: string }>;
   transferTargetOptions: Array<{ id: string; name: string; currency: string }>;
   transferAmountIn: string;
@@ -474,7 +475,8 @@ export function TransactionComposerView({ required, provided }: Props) {
       >
             <form className={`${styles.form} composer-form`} onSubmit={(event) => { void submitComposer(event); }} aria-busy={disabled} noValidate>
             <div className={`${styles.content} composer-form-content`}>
-              <TransactionComposerContextControls
+              <div className={styles.context}>
+                <TransactionComposerContextControls
                 required={{
                   state: {
                     selectedMode,
@@ -490,7 +492,8 @@ export function TransactionComposerView({ required, provided }: Props) {
                     openSourceAccountSheet: () => setSourceAccountSheetOpen(true),
                   },
                 }}
-              />
+                />
+              </div>
               <TransactionMainFieldsView
                 required={{
                   config: {
@@ -537,6 +540,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                 }}
               />
 
+              <div className={styles.schedule}>
               {recurringScheduleAvailable ? (
                 recurringScheduleConfigured ? (
                   <ScheduleSummaryView
@@ -600,6 +604,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                   />
                 )
               ) : null}
+              </div>
 
               {mode === 'transfer' && transferCrossCurrency ? (
                 <TransferFxFieldsView
@@ -700,6 +705,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                   </>
                 )}
               </section>
+              {mode === 'expense' || mode === 'income' ? <div className={styles.details}>
               <TransactionComposerAmountAccessories
                 required={{
                   state: {
@@ -720,6 +726,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                   },
                 }}
               />
+              </div> : null}
             </div>
 
             <TransactionComposerActionsView
@@ -745,6 +752,7 @@ export function TransactionComposerView({ required, provided }: Props) {
           movementTypeSheetOpen,
           selectedMode,
           sourceAccountId: required.sourceAccountId,
+          favoriteAccountId: required.favoriteAccountId,
           sourceAccountOptions: required.sourceAccountOptions,
           sourceAccountSheetOpen,
         }}

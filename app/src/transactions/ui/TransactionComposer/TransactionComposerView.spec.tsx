@@ -116,6 +116,58 @@ function makeProvided(overrides: Partial<TransactionComposerViewProvided> = {}):
 }
 
 describe('TransactionComposerView movement more control', () => {
+  it('keeps type and account selectors independent and dispatches their callbacks', () => {
+    const onSelectMode = vi.fn();
+    const onSelectSourceAccount = vi.fn();
+    render(
+      <TransactionComposerView
+        required={makeRequired({ sourceAccountOptions: [
+          { id: 'account-1', name: 'Checking', currency: 'EUR', type: 'bank' },
+          { id: 'account-2', name: 'Savings', currency: 'EUR', type: 'bank' },
+        ] })}
+        provided={makeProvided({ onSelectMode, onSelectSourceAccount })}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /Movement type Expense/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Source account Checking/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Movement type Expense/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select movement type Income' }));
+    expect(onSelectMode).toHaveBeenCalledWith('income');
+    fireEvent.click(screen.getByRole('button', { name: /Source account Checking/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select account Savings' }));
+    expect(onSelectSourceAccount).toHaveBeenCalledWith('account-2');
+  });
+
+  it('keeps favorite and active account state separate in the chooser', () => {
+    render(
+      <TransactionComposerView
+        required={makeRequired({
+          sourceAccountId: 'account-2',
+          favoriteAccountId: 'account-1',
+          sourceAccountOptions: [
+            { id: 'account-1', name: 'Checking', currency: 'EUR', type: 'bank' },
+            { id: 'account-2', name: 'Savings', currency: 'EUR', type: 'bank' },
+          ],
+        })}
+        provided={makeProvided()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Source account Savings/i }));
+    expect(screen.getByRole('dialog', { name: 'Choose account' })).toBeInTheDocument();
+    const favoriteLabels = screen.getAllByText('Favorite');
+    expect(favoriteLabels).toHaveLength(2);
+    expect(screen.getByText('All accounts')).toBeInTheDocument();
+    expect(favoriteLabels[0].parentElement).toContainElement(screen.getByText('Checking'));
+    expect(favoriteLabels[0].nextElementSibling).not.toHaveTextContent('Savings');
+    expect(screen.getByText('Checking').parentElement).toHaveTextContent('Favorite');
+    expect(screen.getByRole('button', { name: 'Selected account Savings' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Select account Checking' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Close movement type' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('sheet-drag-handle')).toBeInTheDocument();
+  });
+
   it('shows More for expense and updates Ignore movement from the sheet', () => {
     const onSetMovementIgnored = vi.fn();
     const provided = makeProvided({ onSetMovementIgnored });

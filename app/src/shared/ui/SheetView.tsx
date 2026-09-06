@@ -84,9 +84,8 @@ export function SheetView({ required, provided }: SheetViewProps) {
   const panelStyle = (config.dragToClose || config.dragUpToExpand || config.dragDownToCollapse) && drag.offset !== 0
     ? { transform: `translateY(${drag.offset}px)` }
     : undefined;
-  const handleHeaderClassName = config.showHandle && !config.title && !config.closeLabel
-    ? `${styles.handleHeader} gz-inline-header`
-    : 'gz-inline-header';
+  const handleHeaderClassName = `${styles.handleHeader} gz-inline-header`;
+  const titleHeaderClassName = `${styles.titleHeader} gz-inline-header`;
   const panelDragHandlers = config.dragSurface === 'panel' ? drag.handlers : {};
   const handleDragHandlers = config.dragSurface === 'panel' ? {} : drag.handlers;
 
@@ -114,18 +113,18 @@ export function SheetView({ required, provided }: SheetViewProps) {
       >
         {data.header ?? (
           config.title || config.closeLabel || config.showHandle ? (
-            <div
-              className={handleHeaderClassName}
-              {...handleDragHandlers}
-            >
+            <>
               {config.showHandle ? (
-                <span
-                  className={styles.handle}
-                  aria-hidden
-                  data-testid={config.dragToClose || config.dragUpToExpand || config.dragDownToCollapse ? 'sheet-drag-handle' : undefined}
-                />
+                <div className={handleHeaderClassName} {...handleDragHandlers}>
+                  <span
+                    className={styles.handle}
+                    aria-hidden
+                    data-testid={config.dragToClose || config.dragUpToExpand || config.dragDownToCollapse ? 'sheet-drag-handle' : undefined}
+                  />
+                </div>
               ) : null}
-              {config.title ? <h3>{config.title}</h3> : null}
+              {config.title || config.closeLabel ? <div className={titleHeaderClassName}>
+                {config.title ? <h3>{config.title}</h3> : null}
               {config.closeLabel ? (
                 <button
                   type="button"
@@ -145,7 +144,8 @@ export function SheetView({ required, provided }: SheetViewProps) {
                   <i className="bi bi-x-lg" aria-hidden />
                 </button>
               ) : null}
-            </div>
+              </div> : null}
+            </>
           ) : null
         )}
         {config.contentClassName ? (

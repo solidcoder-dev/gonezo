@@ -14,7 +14,6 @@ export function TransactionComposerPageView({ children, onBack, title = 'New mov
         <nav className={styles.navigation} aria-label="Transaction composer navigation">
           <button type="button" className={`${styles.backButton} gz-text-button gz-icon-button`} aria-label="Back" onClick={onBack}>
             <i className="bi bi-arrow-left" aria-hidden />
-            <i className="bi bi-chevron-left d-none" aria-hidden />
           </button>
           <h1 className={styles.title}>{title}</h1>
         </nav>

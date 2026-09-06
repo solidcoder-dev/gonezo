@@ -60,12 +60,6 @@
   text-align: left;
 }
 
-.movement-detail-body {
-  display: grid;
-  gap: 1rem;
-  padding: 0 0 24px;
-}
-
 .movement-detail-section,
 .movement-detail-tags-block {
   display: grid;

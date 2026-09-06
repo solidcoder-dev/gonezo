@@ -29,6 +29,7 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         advancedOpen: required.state.advancedOpen,
         transferTargetAccountId: required.state.transferTargetAccountId,
         sourceAccountId: required.state.sourceAccountId,
+        favoriteAccountId: required.state.favoriteAccountId,
         sourceAccountOptions: required.state.sourceAccountOptions,
         transferTargetOptions: required.state.transferTargetOptions,
         transferAmountIn: required.state.transferAmountIn,

@@ -14,6 +14,20 @@ function renderAmount(value = '10.00', change = vi.fn()) {
 }
 
 describe('AmountInputView calculator', () => {
+  it('keeps an empty primary amount empty while presenting a currency zero value', () => {
+    render(
+      <AmountInputView
+        required={{ config: { label: 'Amount', currency: 'EUR', variant: 'primary' }, data: {}, state: { value: '' }, status: {} }}
+        provided={{ commands: { change: vi.fn() } }}
+      />,
+    );
+
+    const input = document.querySelector<HTMLInputElement>('input[aria-label="Amount"]');
+    expect(input).not.toBeNull();
+    expect(input?.value).toBe('');
+    expect(input).toHaveAttribute('placeholder', '€0.00');
+  });
+
   it('calculates with equals and commits only with the arrow', () => {
     const change = vi.fn();
     renderAmount('10.00', change);

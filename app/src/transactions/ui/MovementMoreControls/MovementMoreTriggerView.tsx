@@ -1,5 +1,5 @@
 import type { ViewProps } from '../../../shared/ui/ViewProps';
-import './MovementMoreControlsView.css';
+import styles from './MovementMoreTriggerView.module.css';
 
 export type MovementMoreTriggerViewProps = ViewProps<
   Record<string, never>,
@@ -17,16 +17,15 @@ export function MovementMoreTriggerView({ required, provided }: MovementMoreTrig
   return (
     <button
       type="button"
-      className="movement-more-trigger"
+      className={styles.trigger}
       onClick={provided.commands.open}
       disabled={required.status.disabled}
     >
-      <i className="bi bi-sliders" aria-hidden />
-      <span className="movement-more-trigger-text">
+      <span className={styles.text}>
         <strong>More</strong>
         <small>Advanced actions</small>
       </span>
-      <i className="bi bi-chevron-right movement-more-trigger-chevron" aria-hidden />
+      <i className={`bi bi-chevron-right ${styles.chevron}`} aria-hidden />
     </button>
   );
 }

@@ -1,6 +1,6 @@
 import type { ViewProps } from '../../../shared/ui/ViewProps';
 import { BinarySwitchCardView } from '../../../shared/ui/BinarySwitchCard/BinarySwitchCardView';
-import './MovementMoreControlsView.css';
+import styles from './MovementMoreControlsView.module.css';
 
 export type MovementMoreSheetViewProps = ViewProps<
   Record<string, never>,
@@ -21,7 +21,7 @@ export function MovementMoreSheetView({ required, provided }: MovementMoreSheetV
   const switchId = 'composer-ignore-movement';
 
   return (
-    <div className="movement-more-sheet">
+    <div className={styles.sheet}>
       <BinarySwitchCardView
         required={{
           config: {
@@ -40,7 +40,7 @@ export function MovementMoreSheetView({ required, provided }: MovementMoreSheetV
 
       <button
         type="button"
-        className="movement-more-done primary-button"
+        className={`${styles.done} primary-button`}
         disabled={required.status.disabled}
         onClick={provided.commands.done}
       >

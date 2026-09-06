@@ -183,6 +183,7 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
           ...model.required,
           state: {
             ...model.required.state,
+            favoriteAccountId: required.config.favoriteAccountId,
             shareControl,
             shareEditorBody,
           },

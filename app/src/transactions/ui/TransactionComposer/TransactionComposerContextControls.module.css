@@ -1,16 +1,18 @@
 .root {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
   min-width: 0;
 }
 
 .selector {
   display: inline-flex;
+  width: 100%;
+  box-sizing: border-box;
   align-items: center;
   gap: var(--space-sm);
   min-width: 0;
-  min-height: var(--touch-target-min);
+  min-height: 48px;
   padding: 0 var(--space-md);
   border: 0;
   border-radius: var(--radius-pill);
@@ -27,7 +29,6 @@
 }
 
 .selector:last-child {
-  margin-left: auto;
   background: var(--color-brand-soft);
   color: var(--color-selected);
 }

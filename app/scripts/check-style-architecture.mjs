@@ -18,7 +18,7 @@ const legacyGlobalStyles = new Set([
   'transactions/ui/ComposerModePicker/ComposerModePickerView.css',
   'transactions/ui/ExperimentalMovementDockNavigation/ExperimentalMovementDockNavigationView.css',
   'transactions/ui/ItemBreakdownControls/ItemBreakdownControlsView.css', 'transactions/ui/MovementAccountSelector/MovementAccountSelectorView.css',
-  'transactions/ui/MovementDraftPicker/MovementDraftPickerView.css', 'transactions/ui/MovementMoreControls/MovementMoreControlsView.css',
+  'transactions/ui/MovementDraftPicker/MovementDraftPickerView.css',
   'transactions/ui/MovementTypeSelector/MovementTypeSelectorView.css', 'transactions/ui/MovementVoiceEntry/MovementVoiceEntryView.css',
   'transactions/ui/MovementVoiceEntry/MovementVoicePermissionDialog.css', 'transactions/ui/RecurrenceEditor/RecurrenceEditorView.css',
   'transactions/ui/ScheduleControls/ScheduleControlsView.css', 'transactions/ui/TransactionComposer/TransactionComposerView.css',

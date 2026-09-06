@@ -106,13 +106,13 @@ function formatHeroDateLabel(value: string): string {
     hour12: false,
   }).format(date);
   if (sameDay) {
-    return `Today, ${time}`;
+    return `Today · ${time}`;
   }
   const day = new Intl.DateTimeFormat(undefined, {
     day: 'numeric',
     month: 'short',
   }).format(date);
-  return `${day}, ${time}`;
+  return `${day} · ${time}`;
 }
 
 function movementCategory(categoryId: string | undefined, options: MovementDetailCategoryOption[]): MovementDetailCategoryView | undefined {

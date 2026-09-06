@@ -22,7 +22,7 @@ describe('TransactionComposerPageView', () => {
     expect(navigation).toContainElement(backButton);
     expect(backButton).toHaveClass('gz-icon-button');
     expect(backButton).not.toHaveClass('btn-link');
-    expect(backButton.querySelector('.bi-chevron-left')).toBeInTheDocument();
+    expect(backButton.querySelector('.bi-arrow-left')).toBeInTheDocument();
     expect(backButton).not.toHaveTextContent('Back');
 
     fireEvent.click(backButton);

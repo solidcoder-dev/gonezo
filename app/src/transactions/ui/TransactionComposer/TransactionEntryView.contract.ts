@@ -27,6 +27,7 @@ export type TransactionEntryViewRequired = {
     tagCreateCandidate?: string;
     transferTargetAccountId: string;
     sourceAccountId: string;
+    favoriteAccountId?: string | null;
     sourceAccountOptions: Array<{ id: string; name: string; currency: string; type?: string }>;
     transferTargetOptions: Array<{ id: string; name: string; currency: string }>;
     transferAmountIn: string;

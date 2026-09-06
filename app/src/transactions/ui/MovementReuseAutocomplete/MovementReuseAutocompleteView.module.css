@@ -76,3 +76,20 @@
 .alternative {
   padding: 0.5rem 0.75rem 0.5rem 1.5rem;
 }
+
+.autocomplete > input {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 28px;
+}
+
+.autocomplete > input:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}

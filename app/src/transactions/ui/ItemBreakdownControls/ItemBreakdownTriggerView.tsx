@@ -21,7 +21,6 @@ export function ItemBreakdownTriggerView({ required, provided }: ItemBreakdownTr
       onClick={provided.commands.open}
       disabled={required.status.disabled}
     >
-      <i className="bi bi-receipt" aria-hidden />
       <span className="item-breakdown-control-text">
         <strong>Items</strong>
       </span>

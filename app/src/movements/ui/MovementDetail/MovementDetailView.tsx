@@ -150,6 +150,8 @@ export function MovementDetailView(props: MovementDetailViewProps) {
           config: {
             ariaLabel: 'Movement detail',
             rootClassName: styles.screen,
+            headerClassName: styles.headerGutter,
+            contentClassName: styles.contentGutter,
             footerClassName: expectedFooter ? styles.footer : undefined,
           },
           data: {

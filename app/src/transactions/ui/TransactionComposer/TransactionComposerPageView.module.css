@@ -20,7 +20,7 @@
 .navigation {
   display: flex;
   align-items: center;
-  min-height: var(--touch-target-min);
+  min-height: 56px;
   gap: var(--space-sm);
 }
 

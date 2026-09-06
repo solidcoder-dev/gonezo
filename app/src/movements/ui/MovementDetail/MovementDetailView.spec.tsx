@@ -376,7 +376,6 @@ describe('MovementDetailView', () => {
 
     const postButton = screen.getByRole('button', { name: 'Post movement' });
     expect(postButton.closest('footer')).not.toBeNull();
-    expect(document.querySelector('.movement-detail-body')?.contains(postButton)).toBe(false);
 
     rerender(
       <MovementDetailView

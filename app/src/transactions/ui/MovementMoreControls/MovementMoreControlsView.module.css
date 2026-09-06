@@ -1,0 +1,2 @@
+.sheet { display: grid; gap: var(--space-md); padding: var(--space-xs) 0 0; }
+.done { width: 100%; min-height: 44px; }

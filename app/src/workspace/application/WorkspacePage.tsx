@@ -65,6 +65,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const navigate = useNavigate();
   const [screenLoadPhase, setScreenLoadPhase] = useState<LoadPhase>('loading');
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [favoriteAccountId, setFavoriteAccountId] = useState<string | null>(null);
   const [accountsSheetCurrency, setAccountsSheetCurrency] = useState<string | null>(null);
   const [managedAccountId, setManagedAccountId] = useState<string | null>(null);
   const [accountsCount, setAccountsCount] = useState(0);
@@ -138,6 +139,18 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   });
   const openNotifications = () => undefined;
 
+  useEffect(() => {
+    const preferencesGet = pageRequired.core.preferencesGet;
+    if (typeof preferencesGet !== 'function') {
+      return undefined;
+    }
+    let active = true;
+    void preferencesGet.call(pageRequired.core).then((preferences) => {
+      if (active) setFavoriteAccountId(preferences.defaultAccountId ?? null);
+    });
+    return () => { active = false; };
+  }, [pageRequired.core]);
+
   function navigateToMovementEntry() {
     const state: MovementEntryNavigationState = {
       returnTo: `${location.pathname}${location.search}`,
@@ -200,6 +213,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
               openSignal: movementEntryOpenSignal || (currentPage === 'movementNew' ? 1 : undefined),
               initialMode: movementEntryType,
               movementAccountContext,
+              favoriteAccountId,
             },
           }}
           provided={{

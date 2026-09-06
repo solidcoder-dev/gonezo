@@ -9,9 +9,8 @@
 .content {
   display: grid;
   align-content: start;
-  gap: var(--space-md);
   min-height: 0;
-  padding: var(--space-md) 0 var(--space-3xl);
+  padding: var(--space-lg) 0 var(--space-3xl);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -25,8 +24,8 @@
 .sectionLabel {
   color: var(--color-text-muted);
   font-size: 0.75rem;
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.08em;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.06em;
   line-height: 1.33;
   text-transform: uppercase;
 }
@@ -34,8 +33,11 @@
 .details {
   display: grid;
   gap: var(--space-md);
-  margin-top: var(--space-lg);
+  margin-top: var(--space-2xl);
 }
+
+.context { margin-bottom: var(--space-2xl); }
+.schedule { margin-top: var(--space-xs); }
 
 .detailsRows {
   display: grid;
