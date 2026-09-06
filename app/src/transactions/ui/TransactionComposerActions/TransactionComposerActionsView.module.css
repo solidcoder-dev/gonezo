@@ -2,7 +2,7 @@
   display: grid;
   gap: var(--space-xs);
   padding: var(--space-sm) 0 calc(var(--space-md) + var(--app-safe-area-bottom));
-  background: var(--color-surface-primary);
+  background: transparent;
 }
 
 .primary {

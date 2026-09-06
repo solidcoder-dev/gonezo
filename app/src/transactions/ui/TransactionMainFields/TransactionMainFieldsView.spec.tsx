@@ -4,6 +4,75 @@ import { describe, expect, it, vi } from 'vitest';
 import { TransactionMainFieldsView } from './TransactionMainFieldsView';
 
 describe('TransactionMainFieldsView', () => {
+  it('shows the note placeholder through movement reuse autocomplete without changing empty state', () => {
+    const changeNote = vi.fn();
+
+    render(
+      <TransactionMainFieldsView
+        required={{
+          config: {
+            amountLabel: 'Amount',
+            dateInputLabel: 'Date',
+            datePlaceholder: '2026-05-14',
+            noteLabel: 'Merchant',
+            notePlaceholder: 'Add merchant…',
+            movementReuse: {
+              query: '', open: false, loading: false, groups: [], expandedTitle: null, variants: [], error: '',
+            },
+          },
+          data: { transferTargetOptions: [] },
+          state: { mode: 'expense', amount: '', date: '2026-05-14', note: '', transferTargetAccountId: '' },
+          status: { disabled: false },
+        }}
+        provided={{
+          commands: {
+            changeAmount: vi.fn(),
+            changeDate: vi.fn(),
+            changeNote,
+            changeTransferTarget: vi.fn(),
+            closeMovementReuse: vi.fn(),
+            toggleMovementReuseGroup: vi.fn(),
+            selectMovementReuseVariant: vi.fn(),
+          },
+        }}
+      />,
+    );
+
+    const input = screen.getByRole('combobox');
+    expect(input).toHaveAttribute('placeholder', 'Add merchant…');
+    expect(input).toHaveValue('');
+    expect(changeNote).not.toHaveBeenCalled();
+  });
+
+  it('shows the same note placeholder on the regular input path', () => {
+    render(
+      <TransactionMainFieldsView
+        required={{
+          config: {
+            amountLabel: 'Amount',
+            dateInputLabel: 'Date',
+            datePlaceholder: '2026-05-14',
+            noteLabel: 'Source',
+            notePlaceholder: 'Add source…',
+          },
+          data: { transferTargetOptions: [] },
+          state: { mode: 'income', amount: '', date: '2026-05-14', note: '', transferTargetAccountId: '' },
+          status: { disabled: false },
+        }}
+        provided={{
+          commands: {
+            changeAmount: vi.fn(),
+            changeDate: vi.fn(),
+            changeNote: vi.fn(),
+            changeTransferTarget: vi.fn(),
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText('Source')).toHaveAttribute('placeholder', 'Add source…');
+  });
+
   it('renders expense amount, merchant and formatted date fields', () => {
     const changeAmount = vi.fn();
     const changeNote = vi.fn();

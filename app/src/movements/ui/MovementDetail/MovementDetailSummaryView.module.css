@@ -14,11 +14,11 @@
 .meta { color: var(--color-text-secondary); font-size: 0.875rem; line-height: 1.43; }
 .section { display: grid; gap: var(--space-md); margin-top: var(--space-2xl); }
 .sectionLabel { color: var(--color-text-muted); font-size: 0.75rem; font-weight: var(--font-weight-medium); letter-spacing: 0.06em; text-transform: uppercase; }
-.row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); min-height: 52px; padding: 0; border: 0; background: transparent; color: var(--color-text-primary); font: inherit; text-align: left; }
-.rowMain { display: flex; flex-direction: column; gap: var(--space-xs); min-width: 0; }
-.rowValue { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--space-sm); min-width: 0; margin-left: auto; color: var(--color-text-primary); text-align: right; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; width: 100%; gap: var(--space-md); min-height: 52px; padding: 0; border: 0; background: transparent; color: var(--color-text-primary); font: inherit; text-align: left; }
+.rowMain { display: flex; flex-direction: column; gap: var(--space-xs); min-width: 0; color: var(--color-text-primary); font-size: 16px; font-weight: var(--font-weight-semibold); line-height: 24px; }
+.rowValue { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--space-sm); min-width: 0; color: var(--color-text-secondary); font-size: 16px; font-weight: var(--font-weight-regular); line-height: 24px; text-align: right; }
 .rowMain > span, .rowMain > small { display: block; }
-.supporting { color: var(--color-text-secondary); font-size: 0.875rem; }
+.supporting { color: var(--color-text-secondary); font-size: 14px; font-weight: var(--font-weight-regular); line-height: 20px; }
 .placeholder { color: var(--color-text-muted); }
 .chipList { display: flex; flex-wrap: wrap; gap: var(--space-xs); justify-content: flex-end; }
 .chip { display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--space-sm); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-pill); color: var(--color-text-secondary); font-size: 0.875rem; }

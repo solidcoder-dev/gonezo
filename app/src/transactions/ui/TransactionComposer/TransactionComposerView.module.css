@@ -1,7 +1,7 @@
 .form {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
-  gap: var(--space-sm);
+  gap: 0;
   height: 100%;
   min-height: 0;
 }

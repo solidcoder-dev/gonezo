@@ -163,6 +163,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
           {movementReuse && provided.commands.closeMovementReuse && provided.commands.toggleMovementReuseGroup && provided.commands.selectMovementReuseVariant ? (
             <MovementReuseAutocompleteView
               {...movementReuse}
+              placeholder={notePlaceholder}
               onChange={provided.commands.changeNote}
               onClose={provided.commands.closeMovementReuse}
               onToggleGroup={provided.commands.toggleMovementReuseGroup}

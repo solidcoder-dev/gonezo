@@ -57,7 +57,7 @@ export function TransactionComposerActionsView({ required }: TransactionComposer
           type="submit"
           name="transactionIntent"
           value="expected"
-          className={`${styles.secondary} btn btn-link`}
+          className={`${styles.secondary} btn btn-link composer-secondary-cta`}
           disabled={disabled}
         >
           Save expected

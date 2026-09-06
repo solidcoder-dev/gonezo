@@ -501,7 +501,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                     dateInputLabel,
                     datePlaceholder,
                     noteLabel: mode === 'transfer' ? 'Description' : mode === 'expense' ? 'Merchant' : 'Source',
-                    notePlaceholder: mode === 'transfer' ? 'Description' : mode === 'expense' ? 'Cafe' : 'Salary',
+                    notePlaceholder: mode === 'transfer' ? 'Add description…' : mode === 'expense' ? 'Add merchant…' : 'Add source…',
                     amountInputRef,
                     dateInputRef,
                     noteInputRef,

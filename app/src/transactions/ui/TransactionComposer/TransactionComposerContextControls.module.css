@@ -12,7 +12,7 @@
   align-items: center;
   gap: var(--space-sm);
   min-width: 0;
-  min-height: 48px;
+  min-height: 44px;
   padding: 0 var(--space-md);
   border: 0;
   border-radius: var(--radius-pill);
@@ -23,14 +23,32 @@
   text-align: left;
 }
 
-.selector:first-child {
-  color: var(--color-expense);
+.typeSelector--expense {
+  color: var(--color-expense-foreground);
   background: var(--color-expense-soft);
 }
 
-.selector:last-child {
-  background: var(--color-brand-soft);
+.typeSelector--income {
+  color: var(--color-income-text);
+  background: var(--color-income-soft);
+}
+
+.typeSelector--transfer {
+  color: var(--color-transfer-text);
+  background: var(--color-transfer-soft);
+}
+
+.accountSelector {
+  background: var(--color-surface-secondary);
+  color: var(--color-text-primary);
+}
+
+.accountIcon {
   color: var(--color-selected);
+}
+
+.disclosure {
+  margin-left: auto;
 }
 
 .value {

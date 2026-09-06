@@ -36,7 +36,7 @@ export function TransactionComposerContextControls({ required, provided }: Props
     <div className={styles.root}>
       <button
         type="button"
-        className={`${styles.selector} composer-context-select--${selectedMode}`}
+        className={`${styles.selector} ${styles.typeSelector} ${styles[`typeSelector--${selectedMode}`]}`}
         aria-label={`Movement type ${selectedModeLabel}`}
         aria-haspopup="dialog"
         disabled={disabled}
@@ -44,19 +44,19 @@ export function TransactionComposerContextControls({ required, provided }: Props
       >
         <i className={selectedModeIconClassName} aria-hidden />
         <span className={styles.value}>{selectedModeLabel}</span>
-        <i className="bi bi-chevron-down" aria-hidden />
+        <i className={`bi bi-chevron-down ${styles.disclosure}`} aria-hidden />
       </button>
       <button
         type="button"
-        className={`${styles.selector} composer-context-select--account`}
+        className={`${styles.selector} ${styles.accountSelector}`}
         aria-label={`Source account ${selectedSourceAccount?.name ?? 'Select account'}`}
         aria-haspopup="dialog"
         disabled={disabled}
         onClick={provided.commands.openSourceAccountSheet}
       >
-        <i className={accountIconClass(selectedSourceAccount?.type)} aria-hidden />
+        <i className={`${accountIconClass(selectedSourceAccount?.type)} ${styles.accountIcon}`} aria-hidden />
         <span className={styles.value}>{selectedSourceAccount?.name ?? 'Select account'}</span>
-        <i className="bi bi-chevron-down" aria-hidden />
+        <i className={`bi bi-chevron-down ${styles.disclosure}`} aria-hidden />
       </button>
     </div>
   );

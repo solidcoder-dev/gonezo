@@ -9,6 +9,7 @@ export type MovementReuseAutocompleteViewProps = {
   groups: MovementReuseSuggestionGroup[];
   expandedTitle: string | null;
   variants: MovementReuseSuggestionVariant[];
+  placeholder?: string;
   error?: string;
   onChange: (value: string) => void;
   onClose: () => void;
@@ -23,6 +24,7 @@ export function MovementReuseAutocompleteView({
   groups,
   expandedTitle,
   variants,
+  placeholder,
   error,
   onChange,
   onClose,
@@ -39,6 +41,7 @@ export function MovementReuseAutocompleteView({
         aria-expanded={open}
         aria-controls={listboxId}
         aria-autocomplete="list"
+        placeholder={placeholder}
         value={query}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={(event) => {

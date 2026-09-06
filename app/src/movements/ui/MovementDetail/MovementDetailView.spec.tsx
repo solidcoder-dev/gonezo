@@ -324,6 +324,18 @@ describe('MovementDetailView', () => {
     expect(screen.getByText('No tags')).toBeInTheDocument();
   });
 
+  it('keeps classification and detail rows interactive through their existing callbacks', () => {
+    const { commands } = renderView();
+
+    fireEvent.click(screen.getByRole('button', { name: 'CategoryGroceries' }));
+    fireEvent.click(screen.getByRole('button', { name: 'TagsHomeTrip' }));
+    fireEvent.click(screen.getByRole('button', { name: 'More details' }));
+
+    expect(commands.openCategorySheet).toHaveBeenCalledTimes(1);
+    expect(commands.openTagsSheet).toHaveBeenCalledTimes(1);
+    expect(commands.openMoreDetailsSheet).toHaveBeenCalledTimes(1);
+  });
+
   it('shows no category and no tags placeholders while keeping editable rows actionable', () => {
     const commands = makeCommands();
 
