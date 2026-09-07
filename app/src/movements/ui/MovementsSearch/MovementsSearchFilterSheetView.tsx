@@ -8,7 +8,6 @@ import type {
   MovementsSearchSortFieldView,
   LedgerSortDirectionView,
 } from '../../application/movementsView.types';
-import '../../../shared/ui/detailSheet.css';
 import './MovementsSearch.css';
 import { SegmentedControlView } from '../../../shared/ui/SegmentedControlView';
 
@@ -107,72 +106,71 @@ export function MovementsSearchFilterSheetView({
         config: {
           ariaLabel: 'Filters',
           panelClassName: 'search-filter-sheet',
-          contentClassName: 'vstack gap-2 search-filter-sheet-content',
+          title: 'Filters',
+          closeLabel: 'Close filters',
+          contentClassName: 'vstack gap-4 search-filter-sheet-content',
           contentAriaLabel: 'Movement filters',
         },
         data: {
-          header: (
-            <div className="detail-sheet-header">
-              <div className="detail-sheet-title">
-                <h3>Filters</h3>
-              </div>
-              <button
-                type="button"
-                className="gz-text-button gz-icon-button"
-                aria-label="Close filters"
-                onClick={provided.commands.close}
-              >
-                <i className="bi bi-x-lg" aria-hidden />
-              </button>
-            </div>
-          ),
           body: (
             <>
-              <input
-                className="form-control"
-                type="text"
-                aria-label="Merchant"
-                value={filters.merchant ?? ''}
-                onChange={(event) => provided.commands.setMerchant(event.target.value)}
-                placeholder="Merchant"
-                autoComplete="off"
-              />
+              <div className="vstack gap-1">
+                <label className="form-label text-secondary small mb-0" htmlFor="movement-filter-merchant">Merchant</label>
+                <input
+                  id="movement-filter-merchant"
+                  className="form-control"
+                  type="text"
+                  aria-label="Merchant"
+                  value={filters.merchant ?? ''}
+                  onChange={(event) => provided.commands.setMerchant(event.target.value)}
+                  placeholder="Merchant"
+                  autoComplete="off"
+                />
+              </div>
 
               <div className="vstack gap-2">
-                <p className="gz-hint">Date</p>
-                <div className="gz-quick-row">
-                  <input
-                    className="form-control"
-                    type="date"
-                    aria-label="From date"
-                    value={filters.fromDate}
-                    onChange={(event) => provided.commands.setFromDate(event.target.value)}
-                  />
-                  <input
-                    className="form-control"
-                    type="date"
-                    aria-label="To date"
-                    value={filters.toDate}
-                    onChange={(event) => provided.commands.setToDate(event.target.value)}
-                  />
+                <span className="text-secondary small">Date</span>
+                <div className="row g-2">
+                  <div className="col-6 vstack gap-1">
+                    <label className="form-label text-secondary small mb-0" htmlFor="movement-filter-from-date">From</label>
+                    <input
+                      id="movement-filter-from-date"
+                      className="form-control"
+                      type="date"
+                      aria-label="From date"
+                      value={filters.fromDate}
+                      onChange={(event) => provided.commands.setFromDate(event.target.value)}
+                    />
+                  </div>
+                  <div className="col-6 vstack gap-1">
+                    <label className="form-label text-secondary small mb-0" htmlFor="movement-filter-to-date">To</label>
+                    <input
+                      id="movement-filter-to-date"
+                      className="form-control"
+                      type="date"
+                      aria-label="To date"
+                      value={filters.toDate}
+                      onChange={(event) => provided.commands.setToDate(event.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="vstack gap-2">
-                <p className="gz-hint">Type</p>
-                <div className="gz-chip-row">
+                <span className="text-secondary small">Type</span>
+                <div className="d-flex gap-2 movement-filter-chip-row">
                   {TYPE_FILTERS.map((option) => {
                     const selected = filters.types.includes(option.value);
                     return (
                       <button
                         key={option.value}
                         type="button"
-                        className={selected ? 'btn btn-primary filter-chip selected' : 'btn btn-outline-secondary filter-chip'}
+                        className={selected ? 'btn movement-filter-chip selected' : 'btn movement-filter-chip'}
                         aria-pressed={selected}
                         onClick={() => provided.commands.setTypes(toggleValue(filters.types, option.value))}
                         disabled={disabled}
                       >
-                        {option.label}
+                        <span className="movement-filter-chip-surface">{option.label}</span>
                       </button>
                     );
                   })}
@@ -180,138 +178,142 @@ export function MovementsSearchFilterSheetView({
               </div>
 
               <div className="vstack gap-2">
-                <p className="gz-hint">Category</p>
+                <span className="text-secondary small">Category</span>
                 {filterOptions.categories.length > 0 ? (
-                  <div className="gz-chip-row">
+                  <div className="d-flex gap-2 movement-filter-chip-row">
                     {visibleCategories.map((category) => {
                       const selected = filters.categoryIds.includes(category.id);
                       return (
                         <button
                           key={category.id}
                           type="button"
-                          className={selected ? 'btn btn-primary filter-chip selected' : 'btn btn-outline-secondary filter-chip'}
+                          className={selected ? 'btn movement-filter-chip selected' : 'btn movement-filter-chip'}
                           aria-pressed={selected}
                           onClick={() => provided.commands.setCategoryIds(toggleIdentifier(filters.categoryIds, category.id))}
                           disabled={disabled}
                         >
-                          {category.label}
+                          <span className="movement-filter-chip-surface">{category.label}</span>
                         </button>
                       );
                     })}
                     {hiddenCategoryCount > 0 ? (
                       <button
                         type="button"
-                        className="btn btn-outline-secondary filter-chip filter-chip-more"
+                        className="btn movement-filter-chip movement-filter-chip-more"
                         onClick={() => setCategoriesExpanded(true)}
                         disabled={disabled}
                       >
-                        +{hiddenCategoryCount} categories
+                        <span className="movement-filter-chip-surface">+{hiddenCategoryCount} categories</span>
                       </button>
                     ) : null}
                   </div>
                 ) : (
-                  <p className="gz-hint">No categories</p>
+                  <p className="text-secondary small mb-0">No categories</p>
                 )}
               </div>
 
               <div className="vstack gap-2">
-                <p className="gz-hint">Amount</p>
-                <div className="gz-quick-row">
-                  <input
-                    className="form-control"
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    min="0"
-                    aria-label="Min amount"
-                    value={filters.amountMin}
-                    onChange={(event) => provided.commands.setAmountMin(event.target.value)}
-                    placeholder="Min"
-                  />
-                  <input
-                    className="form-control"
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    min="0"
-                    aria-label="Max amount"
-                    value={filters.amountMax}
-                    onChange={(event) => provided.commands.setAmountMax(event.target.value)}
-                    placeholder="Max"
-                  />
+                <span className="text-secondary small">Amount</span>
+                <div className="row g-2">
+                  <div className="col-6">
+                    <input
+                      className="form-control"
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      aria-label="Min amount"
+                      value={filters.amountMin}
+                      onChange={(event) => provided.commands.setAmountMin(event.target.value)}
+                      placeholder="Min"
+                    />
+                  </div>
+                  <div className="col-6">
+                    <input
+                      className="form-control"
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      aria-label="Max amount"
+                      value={filters.amountMax}
+                      onChange={(event) => provided.commands.setAmountMax(event.target.value)}
+                      placeholder="Max"
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="vstack gap-2">
-                <p className="gz-hint">Tags</p>
+                <span className="text-secondary small">Tags</span>
                 {filterOptions.tags.length > 0 ? (
-                  <div className="gz-chip-row">
+                  <div className="d-flex gap-2 movement-filter-chip-row">
                     {visibleTags.map((tag) => {
                       const selected = filters.tagIds.includes(tag.id);
                       return (
                         <button
                           key={tag.id}
                           type="button"
-                          className={selected ? 'btn btn-primary filter-chip selected' : 'btn btn-outline-secondary filter-chip'}
+                          className={selected ? 'btn movement-filter-chip selected' : 'btn movement-filter-chip'}
                           aria-pressed={selected}
                           onClick={() => provided.commands.setTagIds(toggleIdentifier(filters.tagIds, tag.id))}
                           disabled={disabled}
                         >
-                          #{tag.label}
+                          <span className="movement-filter-chip-surface">#{tag.label}</span>
                         </button>
                       );
                     })}
                     {hiddenTagCount > 0 ? (
                       <button
                         type="button"
-                        className="btn btn-outline-secondary filter-chip filter-chip-more"
+                        className="btn movement-filter-chip movement-filter-chip-more"
                         onClick={() => setTagsExpanded(true)}
                         disabled={disabled}
                       >
-                        +{hiddenTagCount} tags
+                        <span className="movement-filter-chip-surface">+{hiddenTagCount} tags</span>
                       </button>
                     ) : null}
                   </div>
                 ) : (
-                  <p className="gz-hint">No tags</p>
+                  <p className="text-secondary small mb-0">No tags</p>
                 )}
               </div>
 
               <div className="vstack gap-2">
-                <p className="gz-hint">Sort by</p>
-                <SegmentedControlView required={{ config: { ariaLabel: 'Sort by', columns: 2 }, data: { options: [
+                <span className="text-secondary small">Sort by</span>
+                <SegmentedControlView required={{ config: { ariaLabel: 'Sort by', columns: 2, variant: 'quiet' }, data: { options: [
                   { value: 'date', label: 'Date' }, { value: 'amount', label: 'Amount' },
                 ] }, state: { value: filters.sortField }, status: { disabled } }} provided={{ commands: { select: provided.commands.setSortField } }} />
               </div>
 
               <div className="vstack gap-2">
-                <p className="gz-hint">Order</p>
-                <SegmentedControlView required={{ config: { ariaLabel: 'Sort direction', columns: 2 }, data: { options: [
+                <span className="text-secondary small">Order</span>
+                <SegmentedControlView required={{ config: { ariaLabel: 'Sort direction', columns: 2, variant: 'quiet' }, data: { options: [
                   { value: 'desc', label: 'Descending' }, { value: 'asc', label: 'Ascending' },
                 ] }, state: { value: filters.sortDirection }, status: { disabled } }} provided={{ commands: { select: provided.commands.setSortDirection } }} />
               </div>
 
               <div className="vstack gap-2">
-                <p className="gz-hint">Group</p>
-                <SegmentedControlView required={{ config: { ariaLabel: 'Group results', columns: 2 }, data: { options: [
+                <span className="text-secondary small">Group</span>
+                <SegmentedControlView required={{ config: { ariaLabel: 'Group results', columns: 2, variant: 'quiet' }, data: { options: [
                   { value: 'day', label: 'By day', disabled: filters.sortField !== 'date' }, { value: 'none', label: 'None' },
                 ] }, state: { value: filters.groupByDay ? 'day' : 'none' }, status: { disabled } }} provided={{ commands: { select: (value) => provided.commands.setGroupByDay(value === 'day') } }} />
               </div>
 
               {state.advancedOpen ? (
                 <div className="vstack gap-2">
-                  <p className="gz-hint">Page size</p>
-                  <div className="gz-chip-row" aria-label="Page size">
+                  <span className="text-secondary small">Page size</span>
+                  <div className="d-flex gap-2 movement-filter-chip-row" aria-label="Page size">
                     {pageSizes.map((size) => (
                       <button
                         key={size}
                         type="button"
-                        className={filters.pageSize === size ? 'btn btn-primary filter-chip selected' : 'btn btn-outline-secondary filter-chip'}
+                        className={filters.pageSize === size ? 'btn movement-filter-chip selected' : 'btn movement-filter-chip'}
                         aria-pressed={filters.pageSize === size}
                         onClick={() => provided.commands.setPageSize(size)}
                         disabled={disabled}
                       >
-                        {size}
+                        <span className="movement-filter-chip-surface">{size}</span>
                       </button>
                     ))}
                   </div>
@@ -320,7 +322,7 @@ export function MovementsSearchFilterSheetView({
 
               <button
                 type="button"
-                className="gz-composer-more-options"
+                className="d-flex align-items-center justify-content-between w-100 btn btn-link text-secondary movement-filter-more-options"
                 onClick={provided.commands.toggleAdvanced}
                 disabled={disabled}
               >
@@ -335,8 +337,8 @@ export function MovementsSearchFilterSheetView({
             </>
           ),
           footer: (
-            <div className="search-sheet-actions">
-              <button type="button" className="gz-text-button" onClick={provided.commands.reset} disabled={disabled}>
+            <div className="d-flex align-items-center gap-3 search-sheet-actions">
+              <button type="button" className="btn btn-link text-secondary" onClick={provided.commands.reset} disabled={disabled}>
                 Reset
               </button>
               <button type="button" className="btn btn-primary w-100" onClick={provided.commands.apply} disabled={disabled}>

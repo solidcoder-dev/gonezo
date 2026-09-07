@@ -11,6 +11,7 @@ export type SegmentedControlViewProps<TValue extends string> = ViewProps<
   {
     ariaLabel: string;
     columns?: 2 | 3;
+    variant?: 'default' | 'quiet';
   },
   {
     options: Array<SegmentedControlOption<TValue>>;
@@ -31,7 +32,7 @@ export function SegmentedControlView<TValue extends string>({
   provided,
 }: SegmentedControlViewProps<TValue>) {
   return (
-    <div className={`${styles.control} ${required.config.columns === 2 ? styles.twoColumns : ''}`} role="radiogroup" aria-label={required.config.ariaLabel}>
+    <div className={`${styles.control} ${required.config.columns === 2 ? styles.twoColumns : ''} ${required.config.variant === 'quiet' ? styles.quiet : ''}`} role="radiogroup" aria-label={required.config.ariaLabel}>
       {required.data.options.map((option) => {
         const selected = option.value === required.state.value;
         const disabled = required.status.disabled || option.disabled;

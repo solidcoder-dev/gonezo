@@ -37,6 +37,14 @@
   box-shadow: var(--shadow-sm);
 }
 
+.quiet .selected,
+.quiet .selected:hover:not(:disabled) {
+  background: var(--color-brand-soft);
+  border-radius: var(--radius-pill);
+  box-shadow: none;
+  color: var(--color-action-primary-selected);
+}
+
 .option:disabled {
   opacity: 0.5;
 }
