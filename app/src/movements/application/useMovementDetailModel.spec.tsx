@@ -186,14 +186,8 @@ function makeInput(overrides: Record<string, unknown> = {}) {
 describe('useMovementDetailModel', () => {
   it('loads a selected movement once across parent rerenders and ignores a late response after close', async () => {
     const detailRequest = deferred<{ found: true; detail: { source: 'posted'; movement: LedgerTransactionListItem } }>();
-    const input = makeInput({
-      ports: {
-        ...makeInput().ports,
-        movements: {
-          movementsGetDetail: vi.fn().mockReturnValue(detailRequest.promise),
-        },
-      },
-    });
+    const input = makeInput();
+    input.ports.movements.movementsGetDetail = vi.fn().mockReturnValue(detailRequest.promise);
     const { result, rerender } = renderHook(({ currentInput }) => useMovementDetailModel(currentInput), {
       initialProps: { currentInput: input },
     });

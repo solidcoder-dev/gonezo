@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync as readSourceFileFromDisk } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -19,17 +19,50 @@ function listSourceFiles(dir: string): string[] {
   });
 }
 
+const sourceFiles = listSourceFiles(srcDir);
+const sourceByFile = new Map(
+  sourceFiles.map((file) => [file, readSourceFileFromDisk(file, 'utf8')]),
+);
+
+function readFileSync(file: string, encoding: 'utf8' = 'utf8'): string {
+  return sourceByFile.get(file) ?? readSourceFileFromDisk(file, encoding);
+}
+
 function normalizePath(path: string): string {
   return path.replaceAll('\\', '/');
 }
 
 describe('SOLID frontend boundaries', () => {
+  it('classifies DOM-dependent tests separately from Node tests', () => {
+    const violations: string[] = [];
+    const domImportPattern = /from\s+['"]@testing-library\/(?:react|jest-dom)(?:\/[^'"]*)?['"]/;
+    const domApiPattern = /\bdocument\s*\.\s*(?:body|createElement|querySelector|querySelectorAll|getElementById|addEventListener|removeEventListener)\b|\bwindow\s*\.\s*(?:confirm|setTimeout|clearTimeout|location|addEventListener|removeEventListener|matchMedia)\b|\b(?:HTMLElement|HTML\w+Element)\b/;
+
+    for (const file of sourceFiles) {
+      const normalized = normalizePath(file);
+      if (
+        !normalized.endsWith('.spec.ts') ||
+        normalized.endsWith('.dom.spec.ts') ||
+        normalized.includes('/src/shared/testing/')
+      ) {
+        continue;
+      }
+
+      const source = readFileSync(file, 'utf8');
+      if (domImportPattern.test(source) || domApiPattern.test(source)) {
+        violations.push(`${normalized}: classify this test as DOM and use .dom.spec.ts when appropriate`);
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
   it('keeps domain modules independent from application, UI, infrastructure, and React', () => {
     const violations: string[] = [];
     const forbiddenLayerImportPattern = /from\s+['"][^'"]*\/(?:application|ui|infrastructure)(?:\/[^'"]*)?['"]/;
     const reactImportPattern = /from\s+['"]react['"]/;
 
-    for (const file of listSourceFiles(srcDir)) {
+    for (const file of sourceFiles) {
       const normalized = normalizePath(file);
       if (!normalized.includes('/domain/')) {
         continue;
@@ -51,7 +84,7 @@ describe('SOLID frontend boundaries', () => {
     const violations: string[] = [];
     const crossFeatureUiImportPattern = /from\s+['"](?:\.\.\/)+([^/'"]+)\/ui(?:\/[^'"]*)?['"]/g;
 
-    for (const file of listSourceFiles(srcDir)) {
+    for (const file of sourceFiles) {
       const normalized = normalizePath(file);
       const matchContext = normalized.match(/\/src\/([^/]+)\/ui\//);
       if (!matchContext) {
@@ -83,7 +116,7 @@ describe('SOLID frontend boundaries', () => {
       'Capacitor.',
     ];
 
-    for (const file of listSourceFiles(srcDir)) {
+    for (const file of sourceFiles) {
       const normalized = normalizePath(file);
       if (!normalized.includes('/ui/')) {
         continue;
@@ -108,7 +141,7 @@ describe('SOLID frontend boundaries', () => {
   it('keeps MovementVoiceEntry application files independent from the component contract import cycle', () => {
     const violations: string[] = [];
 
-    for (const file of listSourceFiles(srcDir)) {
+    for (const file of sourceFiles) {
       const normalized = normalizePath(file);
       if (!normalized.includes('/src/transactions/application/MovementVoiceEntry/')) {
         continue;
@@ -182,7 +215,7 @@ describe('SOLID frontend boundaries', () => {
   it('keeps chart vendor imports behind the shared chart adapter', () => {
     const violations: string[] = [];
 
-    for (const file of listSourceFiles(srcDir)) {
+    for (const file of sourceFiles) {
       const normalized = normalizePath(file);
       if (normalized.endsWith('/src/shared/testing/solidBoundaries.spec.ts')) {
         continue;
@@ -244,7 +277,7 @@ describe('SOLID frontend boundaries', () => {
   it('keeps CorePort as an infrastructure facade instead of an application dependency', () => {
     const violations: string[] = [];
 
-    for (const file of listSourceFiles(srcDir)) {
+    for (const file of sourceFiles) {
       const normalized = normalizePath(file);
       if (
         normalized.endsWith('/src/core/application/corePort.ts') ||
@@ -275,7 +308,7 @@ describe('SOLID frontend boundaries', () => {
       'globalThis.clearTimeout',
     ];
 
-    for (const file of listSourceFiles(srcDir)) {
+    for (const file of sourceFiles) {
       const normalized = normalizePath(file);
       const source = readFileSync(file, 'utf8');
       const isApplicationFile = normalized.includes('/application/');
@@ -309,7 +342,7 @@ describe('SOLID frontend boundaries', () => {
   it('keeps movement voice application modules free from core infrastructure audio imports', () => {
     const violations: string[] = [];
 
-    for (const file of listSourceFiles(resolve(srcDir, 'transactions/application'))) {
+    for (const file of sourceFiles.filter((sourceFile) => sourceFile.startsWith(`${resolve(srcDir, 'transactions/application')}/`))) {
       const normalized = normalizePath(file);
       const source = readFileSync(file, 'utf8');
       if (source.includes("/core/infrastructure/audio/") || source.includes('/core/infrastructure/audio/')) {
@@ -380,7 +413,7 @@ describe('SOLID frontend boundaries', () => {
     const crossContextInfrastructureImportPattern =
       /from\s+['"](?:\.\.\/)+(account|expected|imports|ledger|movements|scheduling|taxonomy)\/infrastructure(?:\/[^'"]*)?['"]/g;
 
-    for (const file of listSourceFiles(srcDir)) {
+    for (const file of sourceFiles) {
       const normalized = normalizePath(file);
       if (normalized.endsWith('.spec.ts') || normalized.endsWith('.spec.tsx')) {
         continue;
