@@ -46,6 +46,10 @@ describe('ItemBreakdownControlsView', () => {
 
     expect(screen.getByRole('button', { name: 'Edit items, 2 items, 100.00 EUR' })).toBeInTheDocument();
     expect(screen.getByText('2 items · 100.00 EUR')).toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit items, 2 items, 100.00 EUR' })).toHaveClass(
+      'w-100', 'd-flex', 'align-items-center', 'justify-content-between', 'text-start', 'border-0', 'bg-transparent', 'p-0',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit items, 2 items, 100.00 EUR' }));
 

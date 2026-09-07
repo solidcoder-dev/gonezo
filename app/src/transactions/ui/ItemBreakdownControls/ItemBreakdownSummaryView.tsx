@@ -1,5 +1,4 @@
 import type { ViewProps } from '../../../shared/ui/ViewProps';
-import './ItemBreakdownControlsView.css';
 
 export type ItemBreakdownSummaryViewProps = ViewProps<
   Record<string, never>,
@@ -30,17 +29,16 @@ export function ItemBreakdownSummaryView({ required, provided }: ItemBreakdownSu
     <section className="item-breakdown-summary" aria-label="Items">
       <button
         type="button"
-        className="item-breakdown-summary-chip"
+        className="w-100 d-flex align-items-center justify-content-between text-start border-0 bg-transparent p-0"
         onClick={provided.commands.edit}
         disabled={status.disabled}
         aria-label={`Edit items, ${state.itemsCount} ${itemLabel}, ${formatCurrencyAmount(state.total, state.currencyCode)}`}
       >
-        <i className="bi bi-receipt" aria-hidden />
-        <span className="item-breakdown-control-text">
+        <span className="d-flex flex-column gap-1 min-w-0">
           <strong>Items</strong>
           <small>{state.itemsCount} {itemLabel} · {formatCurrencyAmount(state.total, state.currencyCode)}</small>
         </span>
-        <i className="bi bi-chevron-right item-breakdown-control-chevron" aria-hidden />
+        <i className="bi bi-chevron-right text-secondary" aria-hidden />
       </button>
     </section>
   );

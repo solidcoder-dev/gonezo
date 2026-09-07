@@ -52,9 +52,9 @@ describe('ItemBreakdownEditorView', () => {
     expect(screen.getByLabelText('Remaining auto 6.00 USD')).toBeInTheDocument();
     expect(within(screen.getByRole('list', { name: 'Expense items' })).getByText('4.00 USD')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Tea' } });
-    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '2.50' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Tea' } });
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '2.50' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
     expect(commands.changeItemName).toHaveBeenCalledWith('Tea');
     expect(commands.changeItemAmount).toHaveBeenCalledWith('2.50');
     expect(commands.addItem).toHaveBeenCalledTimes(1);
@@ -191,9 +191,9 @@ describe('ItemBreakdownEditorView', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Description')).toHaveValue('Coffee');
-    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '5.00' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    expect(screen.getByLabelText('Item name')).toHaveValue('Coffee');
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '5.00' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(commands.changeItemAmount).toHaveBeenCalledWith('5.00');
     expect(addItem).toHaveBeenCalledTimes(1);
@@ -225,7 +225,7 @@ describe('ItemBreakdownEditorView', () => {
     );
 
     expect(screen.getByLabelText('Add items')).toBeDisabled();
-    expect(screen.queryByLabelText('Description')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Item name')).not.toBeInTheDocument();
     expect(screen.queryByText('Item name is required')).not.toBeInTheDocument();
     expect(screen.queryByText('Items must match amount')).not.toBeInTheDocument();
   });

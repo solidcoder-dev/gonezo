@@ -1,0 +1,5 @@
+.measurements {
+  position: absolute;
+  visibility: hidden;
+  white-space: nowrap;
+}

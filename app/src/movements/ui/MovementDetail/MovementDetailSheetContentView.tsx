@@ -10,6 +10,7 @@ import type {
   MovementDetailTagView,
   MovementDetailViewModel,
 } from '../../application/movementDetailView.types';
+import styles from './MovementDetailSheetContentView.module.css';
 
 type MovementDetailSheetContentViewProps = {
   movement: MovementDetailViewModel;
@@ -230,16 +231,18 @@ function itemsContent(movement: MovementDetailViewModel): MovementDetailSheetCon
   return {
     title: 'Items',
     body: (
-      <div className="movement-detail-list">
-          {movement.items.map((item) => (
-            <div key={item.id} className="movement-detail-choice movement-detail-choice--static">
-              <span className="movement-detail-choice-stack">
-                <span>{item.name}</span>
-                <TagOverflowPreview tags={(item.tags ?? []).map((tag) => tag.name)} />
-              </span>
-              <strong>{movementDetailRowAmount(item.amount, item.currency)}</strong>
-            </div>
-          ))}
+      <div className={`${styles.itemsList} d-flex flex-column gap-4`}>
+        {movement.items.map((item) => (
+          <div key={item.id} className="d-flex justify-content-between align-items-start gap-3">
+            <span className="d-flex flex-column gap-1 min-w-0">
+              <strong>{item.name}</strong>
+              <TagOverflowPreview tags={(item.tags ?? []).map((tag) => tag.name)} />
+            </span>
+            <strong className={`${styles.itemAmount} text-nowrap fw-semibold`}>
+              {movementDetailRowAmount(item.amount, item.currency)}
+            </strong>
+          </div>
+        ))}
       </div>
     ),
   };

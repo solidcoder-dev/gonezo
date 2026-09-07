@@ -13,6 +13,7 @@ export type AmountInputViewProps = ViewProps<
     calculatorEnabled?: boolean;
     variant?: 'default' | 'primary';
     showCurrencyLabel?: boolean;
+    showLabel?: boolean;
   },
   Record<string, never>,
   { value: string },
@@ -21,7 +22,7 @@ export type AmountInputViewProps = ViewProps<
 >;
 
 export function AmountInputView({ required, provided }: AmountInputViewProps) {
-  const { label, currency, placeholder, inputRef, calculatorEnabled: configuredCalculatorEnabled, variant = 'default', showCurrencyLabel = true } = required.config;
+  const { label, currency, placeholder, inputRef, calculatorEnabled: configuredCalculatorEnabled, variant = 'default', showCurrencyLabel = true, showLabel = false } = required.config;
   const { state, status } = required;
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [continueAfterCalculator, setContinueAfterCalculator] = useState(false);
@@ -54,10 +55,10 @@ export function AmountInputView({ required, provided }: AmountInputViewProps) {
   return (
     <>
       <label className={`${styles.field} vstack gap-2`}>
-        <span className="visually-hidden">{label}</span>
+        <span className={showLabel ? '' : 'visually-hidden'}>{label}</span>
         <input
           ref={inputRef}
-          className={`${styles.input} ${variant === 'primary' ? styles.primary : ''} form-control`}
+          className={`${styles.input} ${variant === 'primary' ? styles.primary : ''} form-control border-0 bg-transparent shadow-none px-0 pe-5`}
           aria-label={label}
           type="number"
           min="0.01"

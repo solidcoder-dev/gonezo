@@ -47,18 +47,19 @@ export function MultiTagPickerView({ required, provided }: MultiTagPickerViewPro
       {required.data.selectedTags.length > 0 ? (
         <div className={styles.selected} aria-label="Selected tags">
           {required.data.selectedTags.map((tag) => (
-            <button
-              key={tag.id}
-              type="button"
-              className={styles.chip}
-              title={tag.name}
-              aria-label={`Remove tag ${tag.name}`}
-              disabled={required.status.disabled}
-              onClick={() => provided.commands.removeTag(tag.id)}
-            >
-              <span>#{tag.name}</span>
-              <span aria-hidden>×</span>
-            </button>
+              <span key={tag.id} className={styles.chipHitArea}>
+                <button
+                  type="button"
+                  className={styles.chip}
+                  title={tag.name}
+                  aria-label={`Remove tag ${tag.name}`}
+                  disabled={required.status.disabled}
+                  onClick={() => provided.commands.removeTag(tag.id)}
+                >
+                  <span>#{tag.name}</span>
+                  <span aria-hidden>×</span>
+                </button>
+              </span>
           ))}
         </div>
       ) : null}

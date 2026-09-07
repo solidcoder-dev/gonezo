@@ -292,7 +292,7 @@ describe('MovementDetailView', () => {
     );
 
     expect(screen.getByRole('button', { name: 'CategoryGroceries' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'TagsHomeTrip' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'TagsHome, Trip' })).toBeInTheDocument();
 
     rerender(
       <MovementDetailView
@@ -328,7 +328,7 @@ describe('MovementDetailView', () => {
     const { commands } = renderView();
 
     fireEvent.click(screen.getByRole('button', { name: 'CategoryGroceries' }));
-    fireEvent.click(screen.getByRole('button', { name: 'TagsHomeTrip' }));
+    fireEvent.click(screen.getByRole('button', { name: 'TagsHome, Trip' }));
     fireEvent.click(screen.getByRole('button', { name: 'More details' }));
 
     expect(commands.openCategorySheet).toHaveBeenCalledTimes(1);
@@ -687,7 +687,7 @@ describe('MovementDetailView', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Back to movements' }));
     fireEvent.click(screen.getByRole('button', { name: 'CategoryGroceries' }));
-    fireEvent.click(screen.getByRole('button', { name: 'TagsHomeTrip' }));
+    fireEvent.click(screen.getByRole('button', { name: 'TagsHome, Trip' }));
     fireEvent.click(screen.getByRole('button', { name: 'Shared with 2 peopleYour share · €5.00' }));
     fireEvent.click(screen.getByRole('button', { name: 'Items1 items · €15.00' }));
     fireEvent.click(screen.getByRole('button', { name: /More details/i }));

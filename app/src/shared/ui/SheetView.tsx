@@ -130,15 +130,6 @@ export function SheetView({ required, provided }: SheetViewProps) {
                   type="button"
                   className="gz-text-button gz-icon-button"
                   aria-label={closeLabel}
-                  style={{
-                    width: '56px',
-                    minWidth: '56px',
-                    maxWidth: '56px',
-                    height: '56px',
-                    minHeight: '56px',
-                    maxHeight: '56px',
-                    flex: '0 0 56px',
-                  }}
                   onClick={provided.commands.close}
                 >
                   <i className="bi bi-x-lg" aria-hidden />

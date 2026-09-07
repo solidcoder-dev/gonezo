@@ -161,7 +161,7 @@ export function TransactionComposerEditorSheets({ required, provided }: Transact
           },
           data: {
             body: (
-              <div className="vstack gap-2 composer-items-editor">
+              <div className="d-flex flex-column h-100 min-vh-0 composer-items-editor">
                 <ItemBreakdownEditorView
                   required={{
                     config: {},
@@ -208,9 +208,13 @@ export function TransactionComposerEditorSheets({ required, provided }: Transact
                     },
                   }}
                 />
+              </div>
+            ),
+            footer: (
+              <div className="composer-items-footer">
                 <button
                   type="button"
-                  className="primary-button composer-items-apply"
+                  className="btn btn-primary w-100 composer-items-apply"
                   onClick={provided.applySplit}
                   disabled={required.disabled}
                 >

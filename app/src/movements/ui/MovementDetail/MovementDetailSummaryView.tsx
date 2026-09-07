@@ -1,6 +1,7 @@
 import { formatCurrencyAmount } from '../../../shared/utils/formatting';
+import { TagOverflowPreview } from '../../../shared/ui/TagOverflowPreview/TagOverflowPreview';
 import { movementDetailAmountLabel, movementDetailTypeLabel } from '../../application/movementDetailMappers';
-import type { MovementDetailOverflowAction, MovementDetailTagView, MovementDetailViewModel } from '../../application/movementDetailView.types';
+import type { MovementDetailOverflowAction, MovementDetailViewModel } from '../../application/movementDetailView.types';
 import styles from './MovementDetailSummaryView.module.css';
 
 type MovementDetailSummaryViewProps = {
@@ -19,22 +20,6 @@ type MovementDetailSummaryViewProps = {
   onOpenItemsSheet: () => void;
   onOpenMoreDetailsSheet: () => void;
 };
-
-function summaryTags(tags: MovementDetailTagView[]) {
-  if (tags.length === 0) {
-    return <span className={styles.placeholder}>No tags</span>;
-  }
-
-  return (
-    <span className={styles.chipList}>
-      {tags.map((tag) => (
-        <span key={tag.id ?? tag.name} className={styles.chip}>
-          {tag.name}
-        </span>
-      ))}
-    </span>
-  );
-}
 
 export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryViewProps) {
   const {
@@ -157,18 +142,18 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
           ) : null}
           {showTags && canEditTags ? (
             <button type="button" className={styles.row} onClick={onOpenTagsSheet}>
-              <span className={styles.rowMain}>Tags</span>
-              <span className={styles.rowValue}>
-                {summaryTags(movement.tags)}
-                <i className="bi bi-chevron-right" aria-hidden />
+              <span className={styles.rowMain}>
+                <span>Tags</span>
+                <TagOverflowPreview tags={movement.tags.map((tag) => tag.name)} />
               </span>
+              <i className="bi bi-chevron-right text-secondary" aria-hidden />
             </button>
           ) : null}
           {showTags && !canEditTags ? (
             <div className={styles.row}>
-              <span className={styles.rowMain}>Tags</span>
-              <span className={styles.rowValue}>
-                {summaryTags(movement.tags)}
+              <span className={styles.rowMain}>
+                <span>Tags</span>
+                <TagOverflowPreview tags={movement.tags.map((tag) => tag.name)} />
               </span>
             </div>
           ) : null}

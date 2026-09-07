@@ -14,6 +14,17 @@ function renderAmount(value = '10.00', change = vi.fn()) {
 }
 
 describe('AmountInputView calculator', () => {
+  it('shows the configured label when requested', () => {
+    render(
+      <AmountInputView
+        required={{ config: { label: 'Amount', currency: 'EUR', showLabel: true }, data: {}, state: { value: '' }, status: {} }}
+        provided={{ commands: { change: vi.fn() } }}
+      />,
+    );
+
+    expect(screen.getByText('Amount')).toBeVisible();
+  });
+
   it('keeps an empty primary amount empty while presenting a currency zero value', () => {
     render(
       <AmountInputView

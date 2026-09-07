@@ -1,0 +1,2 @@
+.itemsList { display: flex; min-height: 0; }
+.itemAmount { font-variant-numeric: tabular-nums; }
