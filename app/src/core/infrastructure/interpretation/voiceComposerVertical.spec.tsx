@@ -147,15 +147,19 @@ describe('voice composer vertical flow', () => {
       note: prefill.note,
     }));
 
+    const coordinatorState = coordinator.result.current.state;
+    coordinator.unmount();
+    const ports = makePorts();
+
     const composer = renderHook(() => useTransactionEntryModel({
-      ports: makePorts(),
+      ports,
       clock: makeClock(),
       idGenerator: makeIdGenerator([]),
-      accountId: coordinator.result.current.state.transactionEntryAccountId,
+      accountId: coordinatorState.transactionEntryAccountId,
       enabled: true,
-      prefillRequest: coordinator.result.current.state.transactionEntryPrefill,
-      openSignal: coordinator.result.current.state.movementEntryOpenSignal,
-      initialMode: coordinator.result.current.state.movementEntryType,
+      prefillRequest: coordinatorState.transactionEntryPrefill,
+      openSignal: coordinatorState.movementEntryOpenSignal,
+      initialMode: coordinatorState.movementEntryType,
     }));
 
     await waitFor(() => expect(composer.result.current.required.state.open).toBe(true));
