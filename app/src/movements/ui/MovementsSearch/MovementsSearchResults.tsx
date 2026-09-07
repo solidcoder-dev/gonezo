@@ -8,7 +8,7 @@ import type { MovementsSearchPagePort } from '../../application/movementsSearch.
 import type { ExpectedMovementView } from '../../application/movementsView.types';
 import type { MovementDetailViewModel } from '../../application/movementDetailView.types';
 import { MovementDetailOverlayComponent } from '../../application/MovementDetailOverlayComponent';
-import { MovementTimelineRowView } from '../../../shared/ui/MovementTimelineRowView';
+import { MovementSummaryTileView } from '../../../shared/ui/MovementSummaryTileView';
 import {
   buildMovementSearchTimelineGroups,
   buildMovementSearchTimelineItem,
@@ -87,7 +87,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
                   <h3 className="monthly-timeline-group__label">{group.dateLabel}</h3>
                   <ul className="monthly-timeline-list" aria-label={`Movement results ${group.dateLabel}`}>
                     {group.items.map((item) => (
-                      <MovementTimelineRowView
+                      <MovementSummaryTileView
                         key={`${item.source}-${item.id}`}
                         item={item}
                         disabled={disabled}
@@ -101,7 +101,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
           ) : (
             <ul className="monthly-timeline-list" aria-label="Movement results">
               {entries.map((entry) => (
-                <MovementTimelineRowView
+                <MovementSummaryTileView
                   key={`${entry.source}-${entry.id}`}
                   item={buildMovementSearchTimelineItem(entry, { includeDate: true })}
                   disabled={disabled}

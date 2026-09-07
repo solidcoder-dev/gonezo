@@ -2,7 +2,7 @@ import { MonthNavigatorView } from '../MonthNavigator/MonthNavigatorView';
 import { MonthPickerModalView } from '../MonthPickerModal/MonthPickerModalView';
 import { MovementDetailView } from '../MovementDetail/MovementDetailView';
 import { YearMonthSelectorView } from '../YearMonthSelector/YearMonthSelectorView';
-import { MonthlyTimelineRowView } from './MonthlyTimelineRowView';
+import { MovementSummaryTileView } from '../../../shared/ui/MovementSummaryTileView';
 import '../movements.css';
 import './MonthlyMovementsView.css';
 import type { MonthlyMovementsMode, MonthlyMovementsViewProps } from './MonthlyMovementsView.contract';
@@ -36,7 +36,7 @@ function TimelineGroups({
           <h3 className="monthly-timeline-group__label">{group.dateLabel}</h3>
           <ul className="monthly-timeline-list">
             {group.items.map((item) => (
-              <MonthlyTimelineRowView
+              <MovementSummaryTileView
                 key={`${item.source}:${item.id}`}
                 item={item}
                 disabled={disabled}

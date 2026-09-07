@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { MovementTimelineRowView } from './MovementTimelineRowView';
+import { MovementSummaryTileView } from './MovementSummaryTileView';
 import type { MonthlyTimelineItemViewModel } from '../../movements/application/monthlyMovementsTimeline';
 
 const item: MonthlyTimelineItemViewModel = {
@@ -15,14 +15,13 @@ const item: MonthlyTimelineItemViewModel = {
   metadata: ['bbva', 'Bills'],
 };
 
-describe('MovementTimelineRowView', () => {
-  it('renders Home title, metadata, amount, date, and counters', () => {
+describe('MovementSummaryTileView', () => {
+  it('renders title, metadata, amount, date, and counters', () => {
     render(
-      <MovementTimelineRowView
+      <MovementSummaryTileView
         item={item}
         disabled={false}
         onSelect={vi.fn()}
-        variant="home"
         trailingMetadata="Today"
         metadataCounters={{ itemCount: 3, shareCount: 2 }}
       />,
@@ -36,14 +35,14 @@ describe('MovementTimelineRowView', () => {
     expect(screen.getByLabelText('2 shares')).toHaveTextContent('2');
   });
 
-  it('selects the Home row and preserves disabled behavior', () => {
+  it('selects the tile and preserves disabled behavior', () => {
     const onSelect = vi.fn();
-    const { rerender } = render(<MovementTimelineRowView item={item} disabled={false} onSelect={onSelect} variant="home" />);
+    const { rerender } = render(<MovementSummaryTileView item={item} disabled={false} onSelect={onSelect} />);
 
     fireEvent.click(screen.getByRole('button', { name: /digi/ }));
     expect(onSelect).toHaveBeenCalledTimes(1);
 
-    rerender(<MovementTimelineRowView item={item} disabled onSelect={onSelect} variant="home" />);
+    rerender(<MovementSummaryTileView item={item} disabled onSelect={onSelect} />);
     expect(screen.getByRole('button', { name: /digi/ })).toBeDisabled();
   });
 });

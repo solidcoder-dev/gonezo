@@ -39,13 +39,11 @@
   background: var(--color-brand-soft);
 }
 
-.monthly-movements-tab:active:not(:disabled),
-.monthly-timeline-row__button:active:not(:disabled) {
+.monthly-movements-tab:active:not(:disabled) {
   background: var(--color-income-soft);
 }
 
-.monthly-movements-tab:focus-visible,
-.monthly-timeline-row__button:focus-visible {
+.monthly-movements-tab:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: -2px;
 }
@@ -73,115 +71,15 @@
 }
 
 .monthly-timeline-list {
+  display: grid;
+  gap: var(--space-sm);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.monthly-timeline-row {
-  min-width: 0;
-}
-
-.monthly-timeline-row:not(:last-child) {
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border-default) 72%, transparent);
-}
-
-.monthly-timeline-row--ignored {
-  opacity: 0.55;
-  filter: grayscale(0.15);
-}
-
-.monthly-timeline-row__button {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-width: 0;
-  min-height: 68px;
-  gap: 12px;
-  padding: 14px 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
-}
-
-.monthly-timeline-row__button:hover:not(:disabled),
-.monthly-timeline-row__button:active:not(:disabled) {
-  background: var(--color-brand-soft);
-}
-
-.monthly-timeline-row__button:disabled,
 .monthly-movements-tab:disabled {
   cursor: default;
-}
-
-.monthly-timeline-row__icon {
-  display: inline-grid;
-  flex: 0 0 42px;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  border-radius: 12px;
-  background: var(--color-surface-muted);
-  font-size: 1.1rem;
-}
-
-.monthly-timeline-row__icon--income {
-  background: var(--color-brand-soft);
-  color: var(--color-action-primary);
-}
-
-.monthly-timeline-row__icon--expense {
-  background: var(--color-expense-soft);
-  color: var(--color-danger);
-}
-
-.monthly-timeline-row__content {
-  display: grid;
-  min-width: 0;
-  flex: 1 1 auto;
-  gap: 6px;
-}
-
-.monthly-timeline-row__primary {
-  display: flex;
-  min-width: 0;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.monthly-timeline-row__title,
-.monthly-timeline-row__metadata {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.monthly-timeline-row__title {
-  font-size: 0.95rem;
-}
-
-.monthly-timeline-row__amount {
-  flex: 0 0 auto;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.monthly-timeline-row__amount--income {
-  color: var(--color-income);
-}
-
-.monthly-timeline-row__amount--expense {
-  color: var(--color-danger);
-}
-
-.monthly-timeline-row__metadata {
-  color: var(--color-text-muted);
-  font-size: 0.78rem;
 }
 
 .monthly-movements-empty {

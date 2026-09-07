@@ -1,0 +1,21 @@
+.row { min-width: 0; }
+.ignored { opacity: 0.55; filter: grayscale(0.15); }
+.button { width: 100%; min-width: 0; min-height: 64px; padding: var(--space-xs) 0; border: 0; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.button:hover:not(:disabled), .button:active:not(:disabled) { background: var(--color-brand-soft); }
+.button:focus-visible { outline: 3px solid var(--color-focus-ring); outline-offset: -2px; }
+.button:disabled { cursor: default; }
+.icon { display: inline-grid; flex: 0 0 32px; width: 32px; height: 32px; place-items: center; border-radius: 0; background: transparent; color: var(--color-text-primary); font-size: 1.25rem; }
+.content { min-width: 0; }
+.homeLayout { grid-template-columns: minmax(0, 1fr) auto; }
+.homeMain, .homeMetadataRow { min-width: 0; }
+.title, .metadata { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.title { color: var(--color-text-primary); font-size: var(--font-size-md); line-height: 1.5rem; font-weight: var(--font-weight-semibold); }
+.trailing { flex: 0 0 auto; min-width: 0; }
+.amount { white-space: nowrap; font-size: var(--font-size-md); line-height: 1.5rem; font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums; }
+.amount--income { color: var(--color-income); }
+.amount--expense { color: var(--color-expense); }
+.amount--transfer { color: var(--color-transfer); }
+.metadata, .trailingMetadata { color: var(--color-text-secondary); font-size: var(--type-metadata-font-size); line-height: var(--type-metadata-line-height); }
+.trailingMetadata { white-space: nowrap; }
+.metadataCounter { flex: 0 0 auto; color: var(--color-text-muted); font-size: var(--type-metadata-font-size); line-height: var(--type-metadata-line-height); white-space: nowrap; }
+.metadataCounter i { font-size: 16px; }

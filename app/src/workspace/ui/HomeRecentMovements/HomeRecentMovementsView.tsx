@@ -1,4 +1,4 @@
-import { MovementTimelineRowView } from '../../../shared/ui/MovementTimelineRowView';
+import { MovementSummaryTileView } from '../../../shared/ui/MovementSummaryTileView';
 import type { MonthlyTimelineGroupViewModel } from '../../../movements/application/monthlyMovementsTimeline';
 import styles from './HomeRecentMovementsView.module.css';
 import { formatHomeMovementDate } from './formatHomeMovementDate';
@@ -55,12 +55,11 @@ export function HomeRecentMovementsView({ required, provided }: HomeRecentMoveme
           {movements.map((item) => {
             const metadata = movementMetadataById[item.id];
             return (
-              <MovementTimelineRowView
+              <MovementSummaryTileView
                 key={`${item.source}:${item.id}`}
                 item={item}
                 disabled={disabled ?? false}
                 onSelect={() => provided.commands.selectMovement(item.id)}
-                variant="home"
                 trailingMetadata={formatHomeMovementDate(item.occurredOn, new Date())}
                 metadataCounters={{
                   itemCount: metadata?.itemCount ?? 0,
