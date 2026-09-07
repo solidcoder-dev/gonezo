@@ -32,7 +32,7 @@ export function ShareControlsView({ required, provided }: ShareControlsViewProps
     return (
       <button
         type="button"
-        className={styles.shareTrigger}
+        className={`${styles.shareTrigger} w-100 d-flex align-items-center justify-content-between p-0`}
         onClick={provided.commands.open}
         disabled={status.disabled}
       >
@@ -48,7 +48,7 @@ export function ShareControlsView({ required, provided }: ShareControlsViewProps
     <section className={styles.shareSummary} aria-label="Share">
       <button
         type="button"
-        className={styles.shareSummaryChip}
+        className={`${styles.shareSummaryChip} w-100 d-flex align-items-center justify-content-between p-0`}
         onClick={provided.commands.open}
         disabled={status.disabled}
         aria-label={`Edit share, ${shareLabel}, ${formatCurrencyAmount(state.total, state.currencyCode)}`}

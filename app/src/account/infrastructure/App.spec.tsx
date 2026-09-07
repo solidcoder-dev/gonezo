@@ -35,6 +35,14 @@ import {
 
 type AppTestPort = AppPort & RecurrencePort & SchedulingPort & ExpectedPort & MovementsQueryPort & MovementReuseSuggestionsPort & MovementReuseTemplatePort;
 
+function itemField(label: string) {
+  return within(screen.getByRole('dialog', { name: 'Items' })).getByLabelText(label);
+}
+
+function composerField(label: string) {
+  return within(screen.getByRole('main', { name: 'Transaction composer' })).getByLabelText(label);
+}
+
 function uniqueById<T extends { id: string }>(items: T[]): T[] {
   return Array.from(new Map(items.map((item) => [item.id, item])).values());
 }
@@ -2551,15 +2559,15 @@ describe('App Accounts UX', () => {
     expect(itemsDialog.getByText('No items yet')).toBeInTheDocument();
 
     await openNewItemDialog();
-    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Bonus' } });
-    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
+    fireEvent.change(itemField('Item name'), { target: { value: 'Bonus' } });
+    fireEvent.change(itemField('Amount'), { target: { value: '50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     await openNewItemDialog();
-    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Base' } });
-    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '30' } });
+    fireEvent.change(itemField('Item name'), { target: { value: 'Base' } });
+    fireEvent.change(itemField('Amount'), { target: { value: '30' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply items' }));
-    expect(screen.getByLabelText('Amount')).toHaveValue(80);
+    expect(composerField('Amount')).toHaveValue(80);
     expect(screen.getByLabelText('Amount')).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
@@ -2907,12 +2915,12 @@ describe('App Accounts UX', () => {
     await openItemsEditor();
 
     await openNewItemDialog();
-    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Groceries' } });
-    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
+    fireEvent.change(itemField('Item name'), { target: { value: 'Groceries' } });
+    fireEvent.change(itemField('Amount'), { target: { value: '50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     await openNewItemDialog();
-    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Household' } });
-    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '30' } });
+    fireEvent.change(itemField('Item name'), { target: { value: 'Household' } });
+    fireEvent.change(itemField('Amount'), { target: { value: '30' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply items' }));
 
@@ -2939,12 +2947,12 @@ describe('App Accounts UX', () => {
     await openItemsEditor();
 
     await openNewItemDialog();
-    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Groceries' } });
-    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '22' } });
+    fireEvent.change(itemField('Item name'), { target: { value: 'Groceries' } });
+    fireEvent.change(itemField('Amount'), { target: { value: '22' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
 
     expect(screen.queryByText('Enter an amount before adding items.')).not.toBeInTheDocument();
-    expect(screen.getByRole('alert')).toHaveTextContent('Movement amount: 0.00 USD. Items total: 22.00 USD.');
+    expect(screen.getByRole('alert')).toHaveTextContent('Items exceed the movement amount (0.00 USD).');
     fireEvent.click(screen.getByRole('button', { name: 'Apply items' }));
 
     await waitFor(() => {
@@ -2977,30 +2985,30 @@ describe('App Accounts UX', () => {
     await openItemsEditor();
 
     await openNewItemDialog();
-    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Water' } });
-    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '20' } });
+    fireEvent.change(itemField('Item name'), { target: { value: 'Water' } });
+    fireEvent.change(itemField('Amount'), { target: { value: '20' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
 
-    expect(screen.getByLabelText('Amount')).toHaveValue(80);
+    expect(composerField('Amount')).toHaveValue(80);
 
     await openNewItemDialog();
-    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Electricity' } });
-    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '40' } });
+    fireEvent.change(itemField('Item name'), { target: { value: 'Electricity' } });
+    fireEvent.change(itemField('Amount'), { target: { value: '40' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
 
-    expect(screen.getByLabelText('Amount')).toHaveValue(80);
+    expect(composerField('Amount')).toHaveValue(80);
 
     const waterItem = screen.getByText('Water').closest('li');
     expect(waterItem).not.toBeNull();
     fireEvent.click(within(waterItem as HTMLElement).getByRole('button', { name: 'Edit item Water' }));
 
-    expect(screen.getByLabelText('Description')).toHaveValue('Water');
-    expect(screen.getByLabelText('Item amount')).toHaveValue(20);
+    expect(itemField('Item name')).toHaveValue('Water');
+    expect(itemField('Amount')).toHaveValue(20);
 
-    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '25' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    fireEvent.change(itemField('Amount'), { target: { value: '25' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply changes' }));
 
-    expect(screen.getByLabelText('Amount')).toHaveValue(80);
+    expect(composerField('Amount')).toHaveValue(80);
     expect(screen.getByText(/25\.00/)).toBeInTheDocument();
 
     const electricityItem = screen.getByText('Electricity').closest('li');
@@ -3009,7 +3017,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete item' }));
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Amount')).toHaveValue(80);
+      expect(composerField('Amount')).toHaveValue(80);
     });
     expect(screen.queryByText('Electricity')).not.toBeInTheDocument();
   }, 10000);
@@ -3033,8 +3041,8 @@ describe('App Accounts UX', () => {
     expect(saveButton).toBeDisabled();
 
     await openNewItemDialog();
-    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Groceries' } });
-    fireEvent.change(screen.getByLabelText('Item amount'), { target: { value: '50' } });
+    fireEvent.change(itemField('Item name'), { target: { value: 'Groceries' } });
+    fireEvent.change(itemField('Amount'), { target: { value: '50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     expect(saveButton).toBeDisabled();
 

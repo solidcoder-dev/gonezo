@@ -85,6 +85,7 @@ export function upsertSplitItem(input: {
 }): {
   items: ExpenseSplitItem[];
   errors: ExpenseSplitFieldErrors;
+  upsertedItemId?: string;
 } {
   const name = input.nameInput.trim();
   const amount = parseAmount(input.amountInput);
@@ -101,6 +102,7 @@ export function upsertSplitItem(input: {
     return {
       items: input.items,
       errors,
+      upsertedItemId: undefined,
     };
   }
 
@@ -116,6 +118,7 @@ export function upsertSplitItem(input: {
   return {
     items,
     errors,
+    upsertedItemId: nextItem.id,
   };
 }
 

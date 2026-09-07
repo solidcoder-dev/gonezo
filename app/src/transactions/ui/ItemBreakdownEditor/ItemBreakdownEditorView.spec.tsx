@@ -54,7 +54,9 @@ describe('ItemBreakdownEditorView', () => {
 
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Tea' } });
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '2.50' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+    expect(screen.queryByText('Add item', { selector: 'div' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete item' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     expect(commands.changeItemName).toHaveBeenCalledWith('Tea');
     expect(commands.changeItemAmount).toHaveBeenCalledWith('2.50');
     expect(commands.addItem).toHaveBeenCalledTimes(1);
@@ -138,7 +140,8 @@ describe('ItemBreakdownEditorView', () => {
       />,
     );
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Movement amount: 20.00 EUR. Items total: 22.00 EUR.');
+    expect(screen.getByRole('alert')).toHaveTextContent('Items exceed the movement amount (20.00 EUR).');
+    expect(screen.getByRole('alert')).not.toHaveTextContent('Items total:');
   });
 
   it('edits an existing item inline', () => {
@@ -193,11 +196,59 @@ describe('ItemBreakdownEditorView', () => {
 
     expect(screen.getByLabelText('Item name')).toHaveValue('Coffee');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '5.00' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(screen.getByText('EDIT ITEM')).toBeInTheDocument();
+    expect(screen.queryByText('NEW ITEM')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save item' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete item' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Apply changes' }));
 
     expect(commands.changeItemAmount).toHaveBeenCalledWith('5.00');
     expect(addItem).toHaveBeenCalledTimes(1);
     expect(editItem).not.toHaveBeenCalled();
+  });
+
+  it('keeps item tag previews only when an item has tags', () => {
+    const commands = makeCommands({
+      changeTagQuery: vi.fn(),
+      selectTag: vi.fn(),
+      createTag: vi.fn(),
+      removeTag: vi.fn(),
+      removeLastTag: vi.fn(),
+    });
+
+    render(
+      <ItemBreakdownEditorView
+        required={{
+          config: {},
+          data: {
+            items: [
+              { id: 'item-1', name: 'Coffee', amount: '4.00' },
+              { id: 'item-2', name: 'Groceries', amount: '20.00', tagNames: ['home', 'utilities'] },
+            ],
+          },
+          state: {
+            enabled: true,
+            itemName: '',
+            itemAmount: '',
+            editingItemId: '',
+            splitMode: 'items',
+            splitTotal: '24.00',
+            splitBaseAmount: '24.00',
+            splitRemaining: '0.00',
+            currencyCode: 'EUR',
+            itemTagOptions: [],
+            itemTagSuggestions: [],
+          },
+          status: { disabled: false },
+        }}
+        provided={{ commands }}
+      />,
+    );
+
+    const itemsList = screen.getByRole('list', { name: 'Expense items' });
+    expect(within(itemsList).getByTestId('tag-overflow-preview')).toHaveAttribute('aria-label', 'home, utilities');
+    expect(within(itemsList).queryByText('No tags')).not.toBeInTheDocument();
   });
 
   it('renders validation feedback and hides editor body when disabled by state', () => {

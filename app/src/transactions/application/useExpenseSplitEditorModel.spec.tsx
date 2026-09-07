@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { TransactionFieldErrors } from './transactions.types';
 import { useExpenseSplitEditorModel } from './useExpenseSplitEditorModel';
 
-function renderSplitModel(initialAmount = '100.00') {
+function renderSplitModel(initialAmount = '100.00', tags = [{ id: 'tag-utilities', name: 'utilities', status: 'active' as const }]) {
   let nextIdNumber = 1;
   return renderHook(() => {
     const [amount] = useState(initialAmount);
@@ -13,12 +13,43 @@ function renderSplitModel(initialAmount = '100.00') {
       transactionAmount: amount,
       nextId: vi.fn(() => `item-${nextIdNumber++}`),
       setFieldErrors,
+      tags,
     });
     return { amount, model };
   });
 }
 
 describe('useExpenseSplitEditorModel', () => {
+  it('persists selected tags on a newly created item and clears the selector', () => {
+    const { result } = renderSplitModel();
+
+    act(() => {
+      result.current.model.actions.selectExpenseItemTag('tag-utilities');
+      result.current.model.actions.setExpenseItemNameValue('Groceries');
+      result.current.model.actions.setExpenseItemAmountValue('12.50');
+    });
+    act(() => {
+      result.current.model.actions.addExpenseItem();
+    });
+
+    expect(result.current.model.state.expenseItems[0]).toEqual({
+      id: 'item-1', name: 'Groceries', amount: '12.50', tagNames: ['utilities'],
+    });
+    expect(result.current.model.state.expenseItemTagNames).toEqual([]);
+    expect(result.current.model.state.itemTagSelection.selectedNames).toEqual([]);
+  });
+
+  it('keeps selected tags after an invalid add', () => {
+    const { result } = renderSplitModel();
+
+    act(() => {
+      result.current.model.actions.selectExpenseItemTag('tag-utilities');
+      result.current.model.actions.addExpenseItem();
+    });
+
+    expect(result.current.model.state.itemTagSelection.selectedNames).toEqual(['utilities']);
+  });
+
   it('keeps movement amount unchanged when adding items', () => {
     const { result } = renderSplitModel('100.00');
 

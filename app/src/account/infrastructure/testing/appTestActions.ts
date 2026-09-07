@@ -21,7 +21,7 @@ export async function selectComposerSourceAccount(composer: HTMLElement, account
 }
 
 export async function openNewItemDialog() {
-  await screen.findByLabelText('Description');
+  await screen.findByLabelText('Item name');
 }
 
 export async function openItemsEditor() {

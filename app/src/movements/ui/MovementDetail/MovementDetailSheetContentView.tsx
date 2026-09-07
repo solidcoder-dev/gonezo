@@ -236,7 +236,7 @@ function itemsContent(movement: MovementDetailViewModel): MovementDetailSheetCon
           <div key={item.id} className="d-flex justify-content-between align-items-start gap-3">
             <span className="d-flex flex-column gap-1 min-w-0">
               <strong>{item.name}</strong>
-              <TagOverflowPreview tags={(item.tags ?? []).map((tag) => tag.name)} />
+              {item.tags && item.tags.length > 0 ? <TagOverflowPreview tags={item.tags.map((tag) => tag.name)} /> : null}
             </span>
             <strong className={`${styles.itemAmount} text-nowrap fw-semibold`}>
               {movementDetailRowAmount(item.amount, item.currency)}

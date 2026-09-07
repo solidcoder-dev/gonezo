@@ -34,6 +34,7 @@ describe('transaction split item helpers', () => {
     });
 
     expect(added.errors).toEqual({});
+    expect(added.upsertedItemId).toBe('new-id');
     expect(added.items).toEqual([{ id: 'new-id', name: 'Food', amount: '12.00' }]);
 
     const edited = upsertSplitItem({
@@ -45,6 +46,7 @@ describe('transaction split item helpers', () => {
     });
 
     expect(edited.errors).toEqual({});
+    expect(edited.upsertedItemId).toBe('new-id');
     expect(edited.items).toEqual([{ id: 'new-id', name: 'Groceries', amount: '15.50' }]);
   });
 
@@ -89,6 +91,7 @@ describe('transaction split item helpers', () => {
         expenseItemName: 'Item name is required.',
         expenseItemAmount: 'Item amount must be greater than 0.',
       },
+      upsertedItemId: undefined,
     });
   });
 

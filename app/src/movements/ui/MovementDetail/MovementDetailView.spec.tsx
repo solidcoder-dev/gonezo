@@ -435,7 +435,10 @@ describe('MovementDetailView', () => {
           : activeSheet === 'items'
             ? postedMovement({
               canOpenItems: true,
-              items: [{ id: 'item-1', name: 'Milk', amount: '3.20', currency: 'EUR' }],
+              items: [
+                { id: 'item-1', name: 'Milk', amount: '3.20', currency: 'EUR', tags: [] },
+                { id: 'item-2', name: 'Groceries', amount: '11.80', currency: 'EUR', tags: [{ id: 'tag-home', name: 'home' }, { id: 'tag-utilities', name: 'utilities' }] },
+              ],
             })
             : postedMovement(),
         categories: [{ id: 'cat-1', name: 'Groceries' }],
@@ -606,7 +609,10 @@ describe('MovementDetailView', () => {
           data: {
             movement: postedMovement({
               canOpenItems: true,
-              items: [{ id: 'item-1', name: 'Milk', amount: '3.20', currency: 'EUR' }],
+              items: [
+                { id: 'item-1', name: 'Milk', amount: '3.20', currency: 'EUR', tags: [] },
+                { id: 'item-2', name: 'Groceries', amount: '11.80', currency: 'EUR', tags: [{ id: 'tag-home', name: 'home' }, { id: 'tag-utilities', name: 'utilities' }] },
+              ],
             }),
             categories: [],
             draftTags: [],
@@ -619,6 +625,9 @@ describe('MovementDetailView', () => {
     );
 
     expect(screen.queryByRole('button', { name: /add item/i })).not.toBeInTheDocument();
+    const itemsSheet = screen.getByRole('dialog', { name: 'Movement items' });
+    expect(within(itemsSheet).getByTestId('tag-overflow-preview')).toHaveAttribute('aria-label', 'home, utilities');
+    expect(within(itemsSheet).queryByText('No tags')).not.toBeInTheDocument();
 
     const commands = makeCommands();
     rerender(

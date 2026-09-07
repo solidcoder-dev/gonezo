@@ -77,27 +77,28 @@ function ItemForm({
     onSubmit: () => void;
     currencyCode?: string;
   }) {
-  const submitLabel = state.editingItemId ? 'Save changes' : 'Save item';
+  const submitLabel = state.editingItemId ? 'Apply changes' : 'Add item';
 
   return (
-    <div className="d-flex flex-column gap-3">
-      <div className={styles.itemFormTitle}>{state.editingItemId ? 'Edit item' : 'Add item'}</div>
-      <div className="d-flex flex-column gap-3">
+    <div className="d-flex flex-column gap-4">
+      {state.editingItemId ? <span className={styles.sectionLabel}>EDIT ITEM</span> : null}
+      <div className="d-flex flex-column gap-4">
         <label className={`${styles.itemField} d-flex flex-column gap-1`}>
-          <span>Item name</span>
+          <span className="text-secondary">Item name</span>
           <input
             aria-label="Item name"
             className="form-control border-0 bg-transparent shadow-none px-0"
             value={state.itemName}
             onChange={(event) => provided.commands.changeItemName(event.target.value)}
-            placeholder="Enter item name"
+            placeholder="e.g. Groceries"
             aria-invalid={Boolean(state.itemNameError)}
             aria-describedby={state.itemNameError ? 'composer-item-name-error' : undefined}
           />
+          {state.itemNameError ? <p id="composer-item-name-error" className="gz-field-error">{state.itemNameError}</p> : null}
         </label>
         <div className={`${styles.itemField} d-flex flex-column gap-1`}>
           <AmountInputView
-            required={{ config: { label: 'Amount', currency: currencyCode, variant: 'default', showLabel: true }, data: {}, state: { value: state.itemAmount }, status: { disabled: status.disabled, error: state.itemAmountError } }}
+            required={{ config: { label: 'Amount', currency: currencyCode, placeholder: '0.00', variant: 'default', showLabel: true }, data: {}, state: { value: state.itemAmount }, status: { disabled: status.disabled, error: state.itemAmountError } }}
             provided={{ commands: { change: provided.commands.changeItemAmount } }}
           />
         </div>
@@ -111,7 +112,7 @@ function ItemForm({
       <button
         type="button"
         aria-label={submitLabel}
-        className={`${styles.saveButton} btn btn-link align-self-start fw-semibold text-decoration-none`}
+        className={`${styles.saveButton} btn btn-link align-self-center fw-semibold text-decoration-none`}
         disabled={status.disabled}
         onClick={onSubmit}
       >
@@ -127,8 +128,6 @@ function ItemForm({
           Delete item
         </button>
       ) : null}
-      {state.itemAmountError ? <p id="composer-item-amount-error" className="gz-field-error">{state.itemAmountError}</p> : null}
-      {state.itemNameError ? <p id="composer-item-name-error" className="gz-field-error">{state.itemNameError}</p> : null}
     </div>
   );
 }
@@ -143,7 +142,6 @@ export function ItemBreakdownEditorView({ required, provided }: ItemBreakdownEdi
     ? Math.max(movementAmountCents, itemsAmountCents)
     : movementAmountCents;
   const movementAmount = formatAmountCents(movementAmountCents);
-  const itemsAmount = formatAmountCents(itemsAmountCents);
   const displayedTotal = formatAmountCents(effectiveTotalCents);
   const remainingAmount = Number(state.splitRemaining);
   const showRemainingItem = data.items.length > 0 && remainingAmount > 0;
@@ -174,21 +172,21 @@ export function ItemBreakdownEditorView({ required, provided }: ItemBreakdownEdi
       {managerVisible ? (
         <div className={`d-flex flex-column flex-grow-1 min-vh-0 ${styles.manager}`}>
           <div className={`d-flex flex-column flex-grow-1 min-vh-0 ${styles.itemsBlock}`}>
-            <div className={styles.totalLine}>
-              <span>Items total</span>
-              <strong>{displayedTotal}</strong>
-              {state.currencyCode ? <span>{state.currencyCode}</span> : null}
-              <small>{itemCountLabel}</small>
-            </div>
-            {hasItemsOverage ? (
-              <div className={styles.warningBanner} role="alert">
-                <i className="bi bi-info-circle" aria-hidden />
-                <span>
-                  Movement amount: {movementAmount} {state.currencyCode ?? ''}. Items total: {itemsAmount} {state.currencyCode ?? ''}.
-                </span>
+            <div className="d-flex flex-column gap-2">
+              <div className={`${styles.totalLine} d-flex align-items-baseline gap-2 flex-wrap`}>
+                <span className="text-secondary">Items total</span>
+                <strong>{displayedTotal}</strong>
+                {state.currencyCode ? <span className="text-secondary">{state.currencyCode}</span> : null}
+                <span className="text-secondary">· {itemCountLabel}</span>
               </div>
-            ) : null}
-            <ul className="list-unstyled m-0 d-flex flex-column gap-3 flex-grow-1 min-vh-0 overflow-auto" aria-label="Expense items">
+              {hasItemsOverage ? (
+                <div className={`${styles.warningBanner} d-flex align-items-start gap-2`} role="alert">
+                <i className="bi bi-info-circle" aria-hidden />
+                  <span>Items exceed the movement amount ({movementAmount} {state.currencyCode ?? ''}).</span>
+                </div>
+              ) : null}
+            </div>
+            <ul className={`${styles.itemsList} list-unstyled m-0 mt-3 d-flex flex-column gap-2 min-vh-0 overflow-auto`} aria-label="Expense items">
               {showRemainingItem ? (
                 <li className={`${styles.item} ${styles.remainingItem}`} aria-label={`Remaining auto ${state.splitRemaining} ${state.currencyCode ?? ''}`.trim()}>
                   <strong className={styles.itemName}>Remaining (auto)</strong>
@@ -208,7 +206,7 @@ export function ItemBreakdownEditorView({ required, provided }: ItemBreakdownEdi
                   >
                     <span className="vstack gap-1">
                       <strong className={styles.itemName}>{item.name}</strong>
-                      <TagOverflowPreview tags={item.tagNames ?? []} />
+                      {item.tagNames && item.tagNames.length > 0 ? <TagOverflowPreview tags={item.tagNames} /> : null}
                     </span>
                     <span className={styles.itemAmount}>
                       {item.amount} {state.currencyCode ?? ''}
@@ -218,13 +216,12 @@ export function ItemBreakdownEditorView({ required, provided }: ItemBreakdownEdi
               ))}
               {data.items.length === 0 ? (
                 <li className={`${styles.emptyState} d-flex flex-column align-items-center text-center gap-2`}>
-                  <i className="bi bi-receipt" aria-hidden />
                   <strong>No items yet</strong>
                   <span>Add the first item when you want to break down this amount.</span>
                 </li>
               ) : null}
             </ul>
-            <div className={styles.addPanel}>
+            <div className={`${styles.addPanel} mt-4 pt-2`}>
               <ItemForm
                 state={state}
                 status={status}

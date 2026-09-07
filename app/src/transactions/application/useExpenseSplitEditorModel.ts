@@ -53,7 +53,10 @@ function splitAmountIntoParts(amountInput: string, partsInput: string): string[]
 }
 
 function preserveTagNames<T extends { id: string; name: string; amount: string }>(item: T, tagNames: string[] = []): T & { tagNames?: string[] } {
-  return tagNames.length > 0 ? { ...item, tagNames } : item;
+  if (tagNames.length > 0) return { ...item, tagNames };
+  const itemWithoutTags = { ...item } as T & { tagNames?: string[] };
+  delete itemWithoutTags.tagNames;
+  return itemWithoutTags;
 }
 
 export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInput) {
@@ -73,7 +76,6 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
   const [partsExpenseItems, setPartsExpenseItems] = useState<ExpenseItemDraft[]>([]);
   const [partsBaseAmount, setPartsBaseAmount] = useState('');
   const [editingExpenseItemId, setEditingExpenseItemId] = useState('');
-  const [expenseItemTagNames, setExpenseItemTagNames] = useState<string[]>([]);
   const itemTagSelection = useTagSelectionModel(input.tags ?? []);
   const expenseItems = splitDraftMode === 'parts' ? partsExpenseItems : manualExpenseItems;
 
@@ -95,8 +97,6 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setPartsExpenseItems([]);
     setPartsBaseAmount('');
     setEditingExpenseItemId('');
-    setExpenseItemTagNames([]);
-    itemTagSelection.actions.reset();
     itemTagSelection.actions.reset();
   }
 
@@ -110,7 +110,6 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setPartsExpenseItems([]);
     setPartsBaseAmount('');
     setEditingExpenseItemId('');
-    setExpenseItemTagNames([]);
     itemTagSelection.actions.reset();
   }
 
@@ -178,13 +177,14 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       expenseItemAmount: undefined,
       expenseSplit: undefined,
     }));
-    setActiveExpenseItems(nextItems.items.map((item) => item.id === editingExpenseItemId
-      ? preserveTagNames(item, expenseItemTagNames)
+    const upsertedItemId = result.upsertedItemId;
+    setActiveExpenseItems(nextItems.items.map((item) => item.id === upsertedItemId
+      ? preserveTagNames(item, itemTagSelection.state.selectedNames)
       : preserveTagNames(item, expenseItems.find((existing) => existing.id === item.id)?.tagNames ?? [])));
     setExpenseItemName('');
     setExpenseItemAmount('');
     setEditingExpenseItemId('');
-    setExpenseItemTagNames([]);
+    itemTagSelection.actions.reset();
     return true;
   }
 
@@ -197,7 +197,6 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setEditingExpenseItemId(item.id);
     setExpenseItemName(item.name);
     setExpenseItemAmount(item.amount);
-    setExpenseItemTagNames(item.tagNames ?? []);
     itemTagSelection.actions.prefill(item.tagNames ?? []);
     setFieldErrors((previous) => ({
       ...previous,
@@ -211,7 +210,6 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setEditingExpenseItemId('');
     setExpenseItemName('');
     setExpenseItemAmount('');
-    setExpenseItemTagNames([]);
     itemTagSelection.actions.reset();
     setFieldErrors((previous) => ({
       ...previous,
@@ -224,7 +222,6 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setEditingExpenseItemId('');
     setExpenseItemName('');
     setExpenseItemAmount('');
-    setExpenseItemTagNames([]);
     itemTagSelection.actions.reset();
     setFieldErrors((previous) => ({
       ...previous,
@@ -249,6 +246,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
         setEditingExpenseItemId('');
         setExpenseItemName('');
         setExpenseItemAmount('');
+        itemTagSelection.actions.reset();
       }
       return;
     }
@@ -258,7 +256,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       setEditingExpenseItemId('');
       setExpenseItemName('');
       setExpenseItemAmount('');
-      setExpenseItemTagNames([]);
+      itemTagSelection.actions.reset();
     }
   }
 
@@ -270,7 +268,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       setPartsBaseAmount(amountInput.trim());
       setExpenseItemName('');
       setExpenseItemAmount('');
-      setExpenseItemTagNames([]);
+      itemTagSelection.actions.reset();
       setEditingExpenseItemId('');
       setFieldErrors((previous) => ({ ...previous, expenseSplit: undefined }));
       return;
@@ -307,7 +305,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setPartsBaseAmount(amountInput.trim());
     setExpenseItemName('');
     setExpenseItemAmount('');
-    setExpenseItemTagNames([]);
+    itemTagSelection.actions.reset();
     setEditingExpenseItemId('');
     setFieldErrors((previous) => ({ ...previous, expenseSplit: undefined }));
   }
@@ -337,7 +335,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setPartsBaseAmount(amountInput.trim());
     setExpenseItemName('');
     setExpenseItemAmount('');
-    setExpenseItemTagNames([]);
+    itemTagSelection.actions.reset();
     setEditingExpenseItemId('');
     setFieldErrors((previous) => ({
       ...previous,
@@ -358,7 +356,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       partsExpenseItems,
       partsBaseAmount,
       editingExpenseItemId,
-      expenseItemTagNames,
+      expenseItemTagNames: itemTagSelection.state.selectedNames,
     });
     setExpenseDetailed(true);
     setSplitEditorOpen(true);
@@ -375,7 +373,6 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       setPartsExpenseItems(splitEditorSnapshot.partsExpenseItems);
       setPartsBaseAmount(splitEditorSnapshot.partsBaseAmount);
       setEditingExpenseItemId(splitEditorSnapshot.editingExpenseItemId);
-      setExpenseItemTagNames(splitEditorSnapshot.expenseItemTagNames);
       itemTagSelection.actions.prefill(splitEditorSnapshot.expenseItemTagNames);
     }
     setSplitEditorOpen(false);
@@ -402,7 +399,6 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setPartsExpenseItems([]);
     setPartsBaseAmount('');
     setEditingExpenseItemId('');
-    setExpenseItemTagNames([]);
     itemTagSelection.actions.reset();
     setFieldErrors((previous) => ({
       ...previous,
@@ -425,7 +421,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       expenseItemOptions: manualExpenseItems,
       expenseRemaining,
       expenseSplitTotal,
-      expenseItemTagNames,
+      expenseItemTagNames: itemTagSelection.state.selectedNames,
       itemTagSelection: itemTagSelection.state,
     },
     actions: {
@@ -439,7 +435,6 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
       setExpenseDetailedValue,
       setExpenseItemNameValue,
       setExpenseItemAmountValue,
-      setExpenseItemTagNames,
       setExpenseItemTagQuery: itemTagSelection.actions.setQuery,
       selectExpenseItemTag: itemTagSelection.actions.select,
       createExpenseItemTag: itemTagSelection.actions.add,

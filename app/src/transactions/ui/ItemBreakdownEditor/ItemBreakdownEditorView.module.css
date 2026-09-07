@@ -3,8 +3,9 @@
 .totalLine { flex-shrink: 0; color: var(--color-text-primary); }
 .totalLine strong { font-variant-numeric: tabular-nums; font-weight: var(--font-weight-semibold); }
 .warningBanner { flex-shrink: 0; color: var(--color-warning); }
+.itemsList { max-height: 12rem; overscroll-behavior: contain; }
 .addPanel { flex-shrink: 0; }
-.itemFormTitle { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+.sectionLabel { color: var(--color-text-muted); font-size: 0.75rem; font-weight: var(--font-weight-medium); letter-spacing: 0.06em; line-height: 1.33; text-transform: uppercase; }
 .itemField { min-width: 0; color: var(--color-text-secondary); }
 .saveButton, .itemButton { min-height: 44px; }
 .item { min-width: 0; color: var(--color-text-primary); }
