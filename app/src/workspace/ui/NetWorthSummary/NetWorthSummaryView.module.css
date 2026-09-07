@@ -1,21 +1,23 @@
-.card { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.header h2 { margin: 0; color: var(--color-text-primary); font-size: 1.08rem; font-weight: 780; }
+.section { display: flex; flex-direction: column; gap: var(--space-sm); min-width: 0; }
+.sectionLabel { color: var(--color-text-muted); font-size: var(--type-section-label-font-size); line-height: var(--type-section-label-line-height); font-weight: var(--type-section-label-font-weight); letter-spacing: var(--type-section-label-letter-spacing); }
 .netWorthHint { margin: 0; color: var(--color-text-muted); font-size: .9rem; }
-.viewport { display: flex; gap: 12px; min-width: 0; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; }
-.viewport::-webkit-scrollbar { display: none; }
-.slide { --net-worth-accent: color-mix(in srgb, var(--color-income) 78%, transparent); display: grid; grid-template-rows: auto auto minmax(96px, 1fr) auto; flex: 0 0 100%; min-width: 0; min-height: 240px; gap: 8px; padding: 20px; overflow: hidden; border: 1px solid var(--color-border-subtle); border-radius: 18px; background: var(--color-surface-primary); box-shadow: var(--shadow-card); scroll-snap-align: start; }
-.currencyHeading { display: flex; align-items: center; gap: 8px; color: var(--color-text-primary); font-weight: 700; }
-.currencySymbol { display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; border-radius: 50%; background: var(--color-brand); color: var(--color-on-brand); }
-.balance { z-index: var(--z-content); color: var(--color-text-primary); font-size: clamp(1.8rem, 8vw, 2.5rem); }
-.trend { --net-worth-line: color-mix(in srgb, var(--color-income) 72%, transparent); --net-worth-area-start: color-mix(in srgb, var(--color-income) 20%, transparent); --net-worth-area-middle: color-mix(in srgb, var(--color-income) 9%, transparent); --net-worth-area-end: transparent; position: relative; width: calc(100% + 32px); height: 108px; margin-inline: -16px; pointer-events: none; }
+.header { min-width: 0; }
+.content { min-width: 0; }
+.slide { display: grid; grid-template-rows: auto auto minmax(96px, 1fr) auto; min-width: 0; min-height: 240px; gap: var(--space-sm); overflow: hidden; }
+.currencyHeading { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+.currencySymbol { display: inline-flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: 50%; background: var(--color-brand); color: var(--color-on-brand); }
+.currencySelect { min-height: var(--touch-target-min); padding: 8px 2rem 8px 0; color: var(--color-text-primary); font: inherit; font-weight: var(--font-weight-semibold); }
+.balance { z-index: var(--z-content); color: var(--color-text-primary); font-size: var(--type-amount-hero-font-size); line-height: var(--type-amount-hero-line-height); font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.trend { --net-worth-line: var(--color-income); position: relative; width: 100%; height: 96px; pointer-events: none; }
 .trend svg { width: 100%; height: 100%; }
-.trendArea { fill: var(--net-worth-area-end); }
 .trendLine { fill: none; stroke: var(--net-worth-line); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
-.footer { z-index: var(--z-content); display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; color: var(--color-text-muted); font-size: .85rem; }
-.accountCountIcon { color: var(--net-worth-accent); font-size: 1.2rem; vertical-align: -0.12em; }
-.footer button { min-height: 44px; padding: 8px 0 8px 8px; border: 0; background: transparent; color: var(--color-brand); font: inherit; font-weight: 700; cursor: pointer; }
-.footer button:focus-visible, .indicatorButton:focus-visible { outline: 3px solid var(--color-brand); outline-offset: 2px; }
-.indicators { display: flex; width: 100%; justify-content: center; gap: 0; }
-.indicatorButton { display: grid; width: 24px; height: 24px; min-width: 24px; min-height: 24px; padding: 0; place-items: center; border: 0; background: transparent; cursor: pointer; }
-.indicatorDot { display: block; width: 8px; height: 8px; border-radius: 999px; background: var(--color-text-muted); }
-.indicatorButton[aria-current="true"] .indicatorDot { background: var(--color-brand); }
+.footer { z-index: var(--z-content); margin-top: auto; color: var(--color-text-secondary); }
+.metadata { font-size: var(--type-metadata-font-size); line-height: var(--type-metadata-line-height); }
+.accountCountIcon { color: var(--color-text-muted); font-size: 1.25rem; }
+.footer button { min-height: var(--touch-target-min); padding: 8px 0 8px 8px; border: 0; background: transparent; color: var(--color-link); font: inherit; font-size: var(--type-action-secondary-font-size); line-height: var(--type-action-secondary-line-height); font-weight: var(--type-action-secondary-font-weight); cursor: pointer; }
+.footer button:hover { color: var(--color-link-pressed); }
+.footer button:focus-visible { outline: 3px solid var(--color-brand); outline-offset: 2px; }
+
+@media (max-width: 359px) {
+  .balance { font-size: var(--type-amount-primary-font-size); line-height: var(--type-amount-primary-line-height); }
+}

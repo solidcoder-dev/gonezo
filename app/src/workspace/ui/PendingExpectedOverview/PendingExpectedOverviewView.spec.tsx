@@ -36,6 +36,18 @@ describe('PendingExpectedOverviewView', () => {
     expect(screen.getByRole('button', { name: /Pending incomes/ }).querySelector('.bi-arrow-up-right')).toBeInTheDocument();
   });
 
+  it('keeps each pending summary header together with its icon, title, and count', () => {
+    renderView([card(), card({ title: 'Pending incomes', count: 7, tone: 'income', accessibleLabel: 'Pending incomes, 7 pending movements' })]);
+
+    for (const title of ['Pending expenses', 'Pending incomes']) {
+      const titleElement = screen.getByText(title);
+      const header = titleElement.closest('[class*="cardHeader"]');
+      expect(header).toContainElement(titleElement);
+      expect(header?.querySelector('[class*="icon"]')).toBeInTheDocument();
+      expect(header?.querySelector('[class*="count"]')).toBeInTheDocument();
+    }
+  });
+
   it('renders only the primary amount for one currency', () => {
     renderView([card(), card({ title: 'Pending incomes', tone: 'income' })]);
 

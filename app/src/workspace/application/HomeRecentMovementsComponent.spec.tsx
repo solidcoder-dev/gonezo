@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { HomeRecentMovementsComponent, type HomeRecentMovementsPort } from './HomeRecentMovementsComponent';
+import { formatHomeMovementDate } from '../ui/HomeRecentMovements/formatHomeMovementDate';
 
 function emptyOverview(overrides = {}) {
   return {
@@ -113,6 +114,7 @@ function createPort(): HomeRecentMovementsPort {
       items: [{ id: 'acc-1', name: 'BBVA' }],
     })),
     sharingGetMovementDetails: vi.fn(async () => null),
+    sharingListMovementDetails: vi.fn(async () => ({ items: [] })),
     orchestrationCategorizeTransaction: vi.fn(async () => ({ status: 'assigned', categoryId: 'cat-1' })),
     orchestrationApplyTransactionTags: vi.fn(async () => ({ status: 'assigned', tagIds: ['tag-1'] })),
     orchestrationListTransactionTaxonomy: vi.fn(async () => ({
@@ -128,6 +130,62 @@ function createPort(): HomeRecentMovementsPort {
 }
 
 describe('HomeRecentMovementsComponent', () => {
+  it('loads sharing metadata once for all recent movements and renders item and share counts', async () => {
+    const core = createPort();
+    const recentTransactions = ['tx-1', 'tx-2', 'tx-3'].map((id, index) => ({
+      id,
+      accountId: 'acc-1',
+      occurredAt: `2026-06-24T${10 + index}:00:00.000Z`,
+      merchant: `Cafe ${index + 1}`,
+      amount: '10.00',
+      currency: 'EUR',
+      type: 'expense',
+      status: 'posted',
+      items: index === 0 ? [{ id: 'item-1', name: 'Coffee', amount: '10.00' }] : [],
+    }));
+    vi.mocked(core.movementsGetOverview).mockResolvedValue(emptyOverview({
+      postedPage: { content: recentTransactions, page: 0, size: 3, totalElements: 3, totalPages: 1, hasNext: false, hasPrevious: false },
+    }) as never);
+    vi.mocked(core.sharingListMovementDetails).mockResolvedValue({
+      items: [{
+        transactionId: 'tx-1',
+        shareId: 'share-1',
+        participants: [{ participantId: 'participant-1' }, { participantId: 'participant-2' }],
+      }],
+    } as never);
+
+    render(<HomeRecentMovementsComponent required={{ context: { core }, config: { enabled: true, refreshSignal: false } }} />);
+
+    expect(await screen.findByText('Cafe 1')).toBeInTheDocument();
+    expect(core.sharingListMovementDetails).toHaveBeenCalledTimes(1);
+    expect(core.sharingListMovementDetails).toHaveBeenCalledWith({ transactionIds: ['tx-1', 'tx-2', 'tx-3'] });
+    expect(screen.getByLabelText('1 item')).toBeInTheDocument();
+    expect(screen.getByLabelText('2 shares')).toBeInTheDocument();
+    expect(screen.queryByLabelText('0 items')).not.toBeInTheDocument();
+  });
+
+  it('keeps recent movements available when sharing metadata fails', async () => {
+    const core = createPort();
+    vi.mocked(core.sharingListMovementDetails).mockRejectedValue(new Error('Sharing unavailable'));
+
+    render(<HomeRecentMovementsComponent required={{ context: { core }, config: { enabled: true, refreshSignal: false } }} />);
+
+    expect(await screen.findByText('Cafe')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/share/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['2026-06-24T23:00:00', 'Today'],
+    ['2026-06-23T10:00:00', 'Yesterday'],
+    ['2026-06-20T10:00:00', '20 Jun'],
+  ])('formats Home movement dates as %s', (occurredOn, expected) => {
+    expect(formatHomeMovementDate(occurredOn, new Date('2026-06-24T12:00:00'))).toBe(expected);
+  });
+
+  it('does not format an invalid Home movement date', () => {
+    expect(formatHomeMovementDate('invalid', new Date('2026-06-24T12:00:00'))).toBeUndefined();
+  });
+
   it('loads recent movements independently from the overview port', async () => {
     const core = createPort();
 

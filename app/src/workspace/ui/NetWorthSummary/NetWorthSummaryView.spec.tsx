@@ -1,22 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { NetWorthSummaryView } from './NetWorthSummaryView';
 import { buildSmoothedTrendPath } from './netWorthTrendPath';
 
 describe('NetWorthSummaryView', () => {
-  it('keeps pagination controls compact and centred in the local stylesheet', () => {
-    const stylesheet = readFileSync(resolve(process.cwd(), 'src/workspace/ui/NetWorthSummary/NetWorthSummaryView.module.css'), 'utf8');
-    const indicatorGroup = stylesheet.match(/\.indicators\s*\{([^}]*)\}/)?.[1] ?? '';
-    const indicatorButton = stylesheet.match(/\.indicatorButton\s*\{([^}]*)\}/)?.[1] ?? '';
-
-    expect(indicatorGroup).toMatch(/justify-content:\s*center/);
-    expect(indicatorGroup).toMatch(/gap:\s*0(?:;|\s|$)/);
-    expect(indicatorButton).toMatch(/width:\s*(2[4-8])px/);
-    expect(indicatorButton).not.toMatch(/(?:width|min-width):\s*44px/);
-  });
-  it('selects the preferred currency initially and follows slides by offset with gaps', () => {
+  it('selects the preferred currency initially and changes balances from the dropdown', () => {
     render(
       <NetWorthSummaryView
         required={{
@@ -33,19 +21,14 @@ describe('NetWorthSummaryView', () => {
       />,
     );
 
-    const viewport = screen.getByLabelText('Balances by currency');
-    const slides = Array.from(viewport.children) as HTMLElement[];
-    Object.defineProperties(viewport, { scrollLeft: { value: 380, configurable: true } });
-    Object.defineProperties(slides[0], { offsetLeft: { value: 0, configurable: true } });
-    Object.defineProperties(slides[1], { offsetLeft: { value: 248, configurable: true } });
-    Object.defineProperties(slides[2], { offsetLeft: { value: 496, configurable: true } });
-
-    expect(screen.getByRole('button', { name: 'Show USD' })).toHaveAttribute('aria-current', 'true');
-    fireEvent.scroll(viewport);
-    expect(screen.getByRole('button', { name: 'Show GBP' })).toHaveAttribute('aria-current', 'true');
+    const currencySelect = screen.getByRole('combobox', { name: 'Choose balance currency' });
+    expect(currencySelect).toHaveValue('USD');
+    fireEvent.change(currencySelect, { target: { value: 'GBP' } });
+    expect(currencySelect).toHaveValue('GBP');
+    expect(screen.getByText('£30.00')).toBeInTheDocument();
   });
 
-  it('renders a full-width trend area and line without visual indicator capsules', () => {
+  it('renders a full-width trend line without a visual area or indicator capsules', () => {
     render(
       <NetWorthSummaryView
         required={{
@@ -72,16 +55,15 @@ describe('NetWorthSummaryView', () => {
     );
 
     const trend = screen.getByLabelText('EUR net worth trend');
-    expect(trend.querySelector('[class*="trendArea"]')).toBeInTheDocument();
+    expect(trend.querySelector('[class*="trendArea"]')).not.toBeInTheDocument();
     expect(trend.querySelector('[class*="trendLine"]')).toBeInTheDocument();
     expect(trend.querySelector('path')?.getAttribute('d')).not.toMatch(/NaN|Infinity/);
 
-    const indicators = screen.getAllByRole('button', { name: /show (eur|usd)/i });
-    expect(indicators).toHaveLength(2);
-    expect(indicators[0].querySelector('span')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Choose balance currency' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /show (eur|usd)/i })).not.toBeInTheDocument();
   });
 
-  it('keeps multiple indicators compact, centered, and accessible', () => {
+  it('renders the available currencies in the dropdown', () => {
     render(
       <NetWorthSummaryView
         required={{
@@ -97,19 +79,10 @@ describe('NetWorthSummaryView', () => {
       />,
     );
 
-    const indicators = screen.getByLabelText('Choose currency');
-    expect(indicators.className).toContain('indicators');
-
-    const buttons = screen.getAllByRole('button', { name: /show (eur|usd)/i });
-    expect(buttons).toHaveLength(2);
-    expect(buttons.every((button) => button.querySelector('span'))).toBe(true);
-    expect(buttons[0].className).toContain('indicatorButton');
-    expect(buttons[0].querySelector('span')?.className).toContain('indicatorDot');
-    expect(buttons.every((button) => button.getAttribute('style')?.includes('44px') !== true)).toBe(true);
-    expect(indicators.className).toContain('indicators');
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['EUR', 'USD']);
   });
 
-  it('does not render indicators for a single currency', () => {
+  it('renders a disabled dropdown for a single currency', () => {
     render(
       <NetWorthSummaryView
         required={{
@@ -122,10 +95,10 @@ describe('NetWorthSummaryView', () => {
       />,
     );
 
-    expect(screen.queryByLabelText('Choose currency')).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Choose balance currency' })).toBeDisabled();
   });
 
-  it('renders a visibly stronger gradient for the separate trend area', () => {
+  it('does not render a decorative trend area or gradient', () => {
     render(
       <NetWorthSummaryView
         required={{
@@ -144,14 +117,11 @@ describe('NetWorthSummaryView', () => {
     );
 
     const trend = screen.getByLabelText('EUR net worth trend');
-    const area = trend.querySelector('[class*="trendArea"]');
     const line = trend.querySelector('[class*="trendLine"]');
     const gradient = trend.querySelector('linearGradient');
 
-    expect(area).toBeInTheDocument();
     expect(line).toBeInTheDocument();
-    expect(area).not.toBe(line);
-    expect(gradient?.querySelector('stop')?.getAttribute('stop-color')).toBe('var(--net-worth-area-start)');
+    expect(gradient).not.toBeInTheDocument();
   });
 
   it('builds a finite smoothed Bézier path for three or more points', () => {
@@ -215,11 +185,36 @@ describe('NetWorthSummaryView', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Show USD' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Choose balance currency' }), { target: { value: 'USD' } });
     fireEvent.click(screen.getByRole('button', { name: 'See all USD accounts' }));
     expect(onViewAccountsRequested).toHaveBeenCalledWith('USD');
   });
-  it('shows secondary currencies horizontally without a full list action', () => {
+
+  it('keeps the currency selector in the active currency context without duplicating the currency label', () => {
+    render(
+      <NetWorthSummaryView
+        required={{
+          config: {},
+          data: { items: [
+            { currency: 'EUR', balanceAmount: '10.00', formattedBalance: '€10.00' },
+            { currency: 'USD', balanceAmount: '20.00', formattedBalance: '$20.00' },
+          ] },
+          state: {},
+          status: { loadPhase: 'succeeded' },
+        }}
+        provided={{ commands: {} }}
+      />,
+    );
+
+    const heading = screen.getByRole('heading', { name: 'Balances by currency' });
+    const select = screen.getByRole('combobox', { name: 'Choose balance currency' });
+    expect(heading).toBeInTheDocument();
+    expect(select.closest('[class*="currencyHeading"]')).toContainElement(select);
+    expect(screen.getAllByRole('option', { name: 'EUR' })).toHaveLength(1);
+    fireEvent.change(select, { target: { value: 'USD' } });
+    expect(screen.getByText('$20.00')).toBeInTheDocument();
+  });
+  it('shows all currencies in the dropdown without a fake full list action', () => {
     render(
       <NetWorthSummaryView
         required={{
@@ -240,11 +235,7 @@ describe('NetWorthSummaryView', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Balances by currency' })).toBeInTheDocument();
-    expect(screen.getByText('EUR')).toBeInTheDocument();
-    expect(screen.getByText('USD')).toBeInTheDocument();
-    expect(screen.getByText('GBP')).toBeInTheDocument();
-    expect(screen.getByText('BRL')).toBeInTheDocument();
-    expect(screen.queryByText('+1 currency')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['EUR', 'USD', 'GBP', 'BRL']);
     expect(screen.queryByRole('button', { name: /net worth currencies/i })).not.toBeInTheDocument();
   });
 
@@ -298,6 +289,7 @@ describe('NetWorthSummaryView', () => {
     );
 
     expect(screen.getByLabelText('EUR net worth trend')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Choose balance currency' }), { target: { value: 'USD' } });
     expect(screen.getByLabelText('USD net worth trend')).toBeInTheDocument();
     expect(screen.queryByLabelText('GBP net worth trend')).not.toBeInTheDocument();
   });

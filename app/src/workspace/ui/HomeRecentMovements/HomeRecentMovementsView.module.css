@@ -1,36 +1,29 @@
 .section {
   display: grid;
-  gap: 10px;
-  margin-top: 14px;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.header h2 {
-  margin: 0;
-  color: var(--color-text-primary);
-  font-size: 1.08rem;
-  font-weight: 780;
+.sectionLabel {
+  color: var(--color-text-muted);
+  font-size: var(--type-section-label-font-size);
+  line-height: var(--type-section-label-line-height);
+  font-weight: var(--type-section-label-font-weight);
+  letter-spacing: var(--type-section-label-letter-spacing);
 }
 
 .seeAllButton {
-  min-width: var(--touch-target-min);
-  width: var(--touch-target-min);
   min-height: var(--touch-target-min);
-  height: var(--touch-target-min);
-  padding: 0;
+  padding: 8px 0 8px 8px;
   border: 0;
   background: transparent;
-  color: var(--color-action-primary);
+  color: var(--color-link);
   font: inherit;
-  font-size: 0.86rem;
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--type-action-secondary-font-size);
+  line-height: var(--type-action-secondary-line-height);
+  font-weight: var(--type-action-secondary-font-weight);
 }
+.seeAllButton:hover { color: var(--color-link-pressed); }
 
 .empty {
   margin: 0;

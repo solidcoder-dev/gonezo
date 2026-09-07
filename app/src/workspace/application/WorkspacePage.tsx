@@ -410,6 +410,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         <WorkspacePageHeader
           required={{
             title: 'Gonezo',
+            variant: 'product',
           }}
           provided={{
             commands: {

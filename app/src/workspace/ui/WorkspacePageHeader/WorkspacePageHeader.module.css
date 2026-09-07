@@ -1,8 +1,4 @@
 .header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
   padding: 14px 0 12px;
   margin-bottom: 8px;
   background: var(--color-surface-primary);
@@ -16,18 +12,19 @@
 }
 
 .title {
-  margin: 0;
   color: var(--color-text-primary);
   font-size: 1.65rem;
   font-weight: 820;
   letter-spacing: 0;
 }
 
+.productTitle {
+  font-size: var(--type-app-title-font-size);
+  line-height: var(--type-app-title-line-height);
+  font-weight: var(--type-app-title-font-weight);
+}
+
 .actions {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
   min-width: 0;
 }
 

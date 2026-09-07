@@ -5,6 +5,7 @@ export type WorkspacePageHeaderProps = {
   required: {
     title: string;
     searchAction?: ReactNode;
+    variant?: 'screen' | 'product';
   };
   provided: {
     commands: {
@@ -15,9 +16,9 @@ export type WorkspacePageHeaderProps = {
 
 export function WorkspacePageHeader({ required, provided }: WorkspacePageHeaderProps) {
   return (
-    <header className={`${styles.header} ${styles.sticky}`}>
-      <h1 className={styles.title}>{required.title}</h1>
-      <div className={styles.actions}>
+    <header className={`${styles.header} ${styles.sticky} d-flex align-items-center justify-content-between gap-2`}>
+      <h1 className={`${styles.title} ${required.variant === 'product' ? styles.productTitle : ''} m-0`}>{required.title}</h1>
+      <div className={`${styles.actions} d-inline-flex align-items-center justify-content-end gap-2`}>
         {required.searchAction}
         <button
           type="button"

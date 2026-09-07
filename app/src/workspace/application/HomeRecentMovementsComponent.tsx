@@ -8,6 +8,7 @@ import { MovementDetailOverlayComponent } from '../../movements/application/Move
 import { mapTransactionHistoryList } from '../../transactions/application/transactionViewMappers';
 import {
   HomeRecentMovementsView,
+  type HomeMovementMetadata,
 } from '../ui/HomeRecentMovements/HomeRecentMovementsView';
 
 export type HomeRecentMovementsPort = TransactionsPort & Pick<MovementsQueryPort, 'movementsGetOverview' | 'movementsGetDetail'>;
@@ -99,6 +100,7 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
   const onSelectMovement = provided?.events?.onSelectMovement;
   const onSeeAll = provided?.events?.onSeeAll;
   const [movements, setMovements] = useState<TransactionHistoryItemView[]>([]);
+  const [movementMetadataById, setMovementMetadataById] = useState<Record<string, HomeMovementMetadata>>({});
   const [selectedMovementId, setSelectedMovementId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const requestIdRef = useRef(0);
@@ -122,12 +124,30 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
       if (requestId !== requestIdRef.current) {
         return;
       }
+      const transactionIds = resolvedMovements.map((movement) => movement.id);
+      const sharingCountByTransactionId = new Map<string, number>();
+      if (transactionIds.length > 0) {
+        try {
+          const result = await core.sharingListMovementDetails({ transactionIds });
+          result.items.forEach((detail) => sharingCountByTransactionId.set(detail.transactionId, detail.participants.length));
+        } catch {
+          sharingCountByTransactionId.clear();
+        }
+      }
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
       setMovements(resolvedMovements);
+      setMovementMetadataById(Object.fromEntries(resolvedMovements.map((movement) => [movement.id, {
+        itemCount: movement.items.length,
+        shareCount: sharingCountByTransactionId.get(movement.id) ?? 0,
+      }])));
     } catch (err) {
       if (requestId !== requestIdRef.current) {
         return;
       }
       setMovements([]);
+      setMovementMetadataById({});
       onError?.({ message: toErrorMessage(err) });
     } finally {
       if (requestId === requestIdRef.current) {
@@ -140,6 +160,7 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
     if (!required.config.enabled) {
       requestIdRef.current += 1;
       setMovements([]);
+      setMovementMetadataById({});
       setSelectedMovementId(null);
       setLoading(false);
       return;
@@ -161,7 +182,7 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
     <>
       <HomeRecentMovementsView
         required={{
-          data: { groups: postedGroups },
+          data: { groups: postedGroups, movementMetadataById },
           status: { loading },
         }}
         provided={{

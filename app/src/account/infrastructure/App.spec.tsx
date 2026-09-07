@@ -1091,8 +1091,7 @@ describe('App Accounts UX', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Balances by currency' })).toBeInTheDocument();
-    expect(screen.getByText('EUR')).toBeInTheDocument();
-    expect(screen.getByText('USD')).toBeInTheDocument();
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['EUR', 'USD']);
     expect(core.ledgerGetNetWorthByCurrency).toHaveBeenCalled();
   });
 
@@ -1132,7 +1131,8 @@ describe('App Accounts UX', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Balances by currency' })).toBeInTheDocument();
-    expect(screen.getByRole('article', { name: 'USD, currency 1 of 1' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Choose balance currency' })).toHaveValue('USD');
+    expect(screen.getByRole('article', { name: 'USD, selected currency' })).toBeInTheDocument();
   });
 
   it('routes home, analytics, movements and profile from the bottom dock', async () => {

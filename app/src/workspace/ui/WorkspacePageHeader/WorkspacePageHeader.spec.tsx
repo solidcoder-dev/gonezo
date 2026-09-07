@@ -33,4 +33,25 @@ describe('WorkspacePageHeader', () => {
     const notificationsButton = screen.getByRole('button', { name: 'Open notifications' });
     expect(searchLink.compareDocumentPosition(notificationsButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+
+  it('applies the product presentation only when requested', () => {
+    const { rerender, container } = render(
+      <WorkspacePageHeader
+        required={{ title: 'Gonezo', variant: 'product' }}
+        provided={{ commands: { openNotifications: vi.fn() } }}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Gonezo' })).toHaveClass(styles.productTitle);
+
+    rerender(
+      <WorkspacePageHeader
+        required={{ title: 'Movements' }}
+        provided={{ commands: { openNotifications: vi.fn() } }}
+      />,
+    );
+
+    expect(container.querySelector('h1')).not.toHaveClass(styles.productTitle);
+    expect(screen.getByRole('button', { name: 'Open notifications' })).toBeInTheDocument();
+  });
 });

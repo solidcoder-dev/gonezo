@@ -50,6 +50,8 @@
   --color-on-danger: #ffffff;
   --color-info: var(--bs-info);
   --color-info-soft: var(--bs-info-bg-subtle);
+  --color-link: var(--bs-info);
+  --color-link-pressed: var(--bs-info-text-emphasis);
 
   --color-navigation-active: var(--color-income);
   --color-selected: var(--brand-color);
@@ -101,6 +103,24 @@
   --type-body-line-height: var(--line-height-normal);
   --type-caption-size: var(--font-size-xs);
   --type-caption-line-height: var(--line-height-normal);
+  --type-app-title-font-size: var(--font-size-3xl);
+  --type-app-title-line-height: 2.5rem;
+  --type-app-title-font-weight: var(--font-weight-bold);
+  --type-section-label-font-size: var(--font-size-xs);
+  --type-section-label-line-height: 1rem;
+  --type-section-label-font-weight: var(--font-weight-medium);
+  --type-section-label-letter-spacing: 0.06em;
+  --type-metadata-font-size: var(--font-size-sm);
+  --type-metadata-line-height: 1.25rem;
+  --type-action-secondary-font-size: var(--font-size-sm);
+  --type-action-secondary-line-height: 1.25rem;
+  --type-action-secondary-font-weight: var(--font-weight-medium);
+  --type-amount-secondary-font-size: var(--font-size-2xl);
+  --type-amount-secondary-line-height: 2rem;
+  --type-amount-primary-font-size: var(--font-size-3xl);
+  --type-amount-primary-line-height: 2.5rem;
+  --type-amount-hero-font-size: 2.5rem;
+  --type-amount-hero-line-height: 3rem;
   --font-family-body: var(--bs-body-font-family);
 
   --color-surface-shadow-subtle: rgb(var(--bs-dark-rgb) / 4%);
