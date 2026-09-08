@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { createLedgerGateway } from '../../ledger/application/ledgerGateway';
 import { SheetView } from '../../shared/ui/SheetView';
 import { useAccountHubModel } from '../../account/application/accountHub';
-import type { AccountWorkspacePort } from '../../account/application/accounts.port';
+import type { AccountsPort } from '../../account/application/accounts.port';
 import { ProfilePageView } from '../ui/ProfilePageView';
 import type { LoadPhase } from '../../account/application/accountPage.types';
 import type { VoiceMovementExperimentViewModel } from '../ui/ProfilePageView.contract';
 
 export type ProfilePageRequired = {
   context: {
-    core: AccountWorkspacePort;
+    core: AccountsPort;
   };
   config: {
     refreshSignal: boolean;
