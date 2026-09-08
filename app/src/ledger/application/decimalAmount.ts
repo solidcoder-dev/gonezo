@@ -21,6 +21,11 @@ export function addDecimalAmounts(left: string, right: string): string {
   return `${negative ? '-' : ''}${digits.slice(0, -scale)}.${digits.slice(-scale)}`;
 }
 
+export function subtractDecimalAmounts(left: string, right: string): string {
+  const normalizedRight = right.trim();
+  return addDecimalAmounts(left, normalizedRight.startsWith('-') ? normalizedRight.slice(1) : `-${normalizedRight}`);
+}
+
 export function isZeroDecimalAmount(value: string): boolean {
   return parseDecimal(value).units === 0n;
 }

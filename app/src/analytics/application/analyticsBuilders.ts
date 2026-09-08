@@ -31,16 +31,17 @@ import {
 } from './analyticsFilters';
 import { resolveAnalyticsPeriodWindow } from './analyticsPeriodResolver';
 import { buildOverviewInsightsResult } from './overviewInsights';
+import { addDecimalAmounts, subtractDecimalAmounts } from '../../ledger/application/decimalAmount';
 
 const UNCATEGORIZED = 'Uncategorized';
 const OPENING_BALANCE_DESCRIPTION = 'opening balance';
 
 function addAmount(left: string, right: string): string {
-  return (Number(left) + Number(right)).toFixed(2);
+  return addDecimalAmounts(left, right);
 }
 
 function subtractAmount(left: string, right: string): string {
-  return (Number(left) - Number(right)).toFixed(2);
+  return subtractDecimalAmounts(left, right);
 }
 
 function analyticsTransactionAmount(transaction: LedgerTransactionListItem): string {
