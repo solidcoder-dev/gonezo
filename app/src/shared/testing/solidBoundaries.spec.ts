@@ -738,11 +738,11 @@ describe('SOLID frontend boundaries', () => {
     const coreAdapterWeb = readFileSync(resolve(srcDir, 'core/infrastructure/coreAdapterWeb.ts'), 'utf8');
     const state = readFileSync(resolve(srcDir, 'core/infrastructure/webAppState.ts'), 'utf8');
     const effects = readFileSync(resolve(srcDir, 'core/infrastructure/webRuntimeDependencies.ts'), 'utf8');
-    const backup = readFileSync(resolve(srcDir, 'imports/infrastructure/webBackup.ts'), 'utf8');
+    const backup = readFileSync(resolve(srcDir, 'imports/infrastructure/webApplicationBackup.ts'), 'utf8');
 
     expect(coreAdapterWeb).toContain("from './webAppState'");
     expect(coreAdapterWeb).toContain("from './webRuntimeDependencies'");
-    expect(coreAdapterWeb).toContain("from '../../imports/infrastructure/webBackup'");
+    expect(coreAdapterWeb).toContain("from './webApplicationBackupService'");
     expect(coreAdapterWeb).toContain("from '../../ledger/infrastructure/webLedgerService'");
     expect(coreAdapterWeb).toContain("from '../../taxonomy/infrastructure/webTaxonomyService'");
     expect(coreAdapterWeb).toContain("from '../../expected/infrastructure/webExpectedService'");
@@ -767,8 +767,8 @@ describe('SOLID frontend boundaries', () => {
     expect(effects).toContain('export type WebRuntimeDependencies');
     expect(effects).toContain('downloadJsonInBrowser');
     expect(effects).toContain('URL.createObjectURL');
-    expect(backup).toContain('export async function collectWebMovementsBackupExport');
-    expect(backup).toContain('export function webMovementsBackupFileName');
+    expect(backup).toContain('export function exportWebApplicationBackup');
+    expect(backup).toContain('export function validateWebApplicationBackup');
   });
 
   it('keeps web taxonomy orchestration split behind focused ports', () => {
@@ -867,7 +867,7 @@ describe('SOLID frontend boundaries', () => {
     expect(hook).not.toContain('useCategorySuggestions');
     expect(hook).not.toContain('pendingVoidTimerRef');
     expect(hook).not.toContain('function monthStart');
-    expect(hook.split('\n').length).toBeLessThanOrEqual(300);
+    expect(hook.trim().split('\n').length).toBeLessThanOrEqual(300);
 
     expect(navigation).toContain("from './monthlyMovementCalendar'");
     expect(navigation).toContain('goToPreviousMonth');

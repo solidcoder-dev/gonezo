@@ -2,7 +2,7 @@ import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
 import type { LedgerPort } from '../../ledger/application/ledger.port';
-import type { LedgerTransactionOperationsPort } from '../../ledger/application/useLedgerTransactions';
+import type { LedgerTransactionOperationsPort } from '../../ledger/application/ledgerTransactionOperations.port';
 import type { LedgerTransactionListItem } from '../../ledger/application/ledger.port';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';

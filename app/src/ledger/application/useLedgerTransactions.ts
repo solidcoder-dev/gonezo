@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import type { LedgerListTransactionsInput } from './ledger.port';
-import type { LedgerPort } from './ledger.port';
+import type { LedgerTransactionOperationsPort } from './ledgerTransactionOperations.port';
 
-export type LedgerTransactionOperationsPort = Pick<LedgerPort, 'ledgerListTransactions' | 'ledgerVoidTransaction'>;
+export type { LedgerTransactionOperationsPort } from './ledgerTransactionOperations.port';
 
 export function useLedgerTransactions(gateway: LedgerTransactionOperationsPort) {
   const listTransactions = useCallback(

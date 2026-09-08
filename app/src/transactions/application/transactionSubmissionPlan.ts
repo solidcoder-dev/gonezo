@@ -9,7 +9,7 @@ import type { ExpectedGatewayPort } from '../../expected/application/expectedGat
 import type { ExpectedPostingMovementSnapshot } from '../../expected/application/expected.port';
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
 import type { ShareDraft } from '../../sharing/domain/shareDraft';
-import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
+import type { SchedulingPort } from '../../scheduling/application/scheduling.port';
 import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.types';
 import type { ComposerMode, ExpenseItemDraft } from './transactions.types';
@@ -28,7 +28,7 @@ export type TransactionSubmissionClock = {
 
 export type TransactionSubmissionPlanInput = {
   ports: {
-    scheduling: SchedulingGatewayPort;
+    scheduling: SchedulingPort;
     expected: ExpectedGatewayPort;
     sharing: SharingGatewayPort;
     analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;

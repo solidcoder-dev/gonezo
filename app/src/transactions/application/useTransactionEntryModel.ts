@@ -3,7 +3,7 @@ import type { LedgerAccountItem } from '../../ledger/application/ledger.port';
 import { useLedgerAccountReader } from '../../ledger/application/useLedgerAccounts';
 import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
 import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
-import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
+import type { SchedulingPort } from '../../scheduling/application/scheduling.port';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
 import { useShareDraftModel } from '../../sharing/application/useShareDraftModel';
@@ -27,7 +27,7 @@ import { useTransactionMovementReuseModel } from './useTransactionMovementReuseM
 import { applyMovementReuseSetup, applyMovementReuseWithDetails } from './applyMovementReuseTemplate';
 import { refreshTransactionAccountSnapshot } from './refreshTransactionAccountSnapshot';
 export type TransactionEntryModelPorts = {
-  ledger: LedgerGatewayPort; scheduling: SchedulingGatewayPort; expected: ExpectedGatewayPort; sharing: SharingGatewayPort; taxonomy: TaxonomyGatewayPort; analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
+  ledger: LedgerGatewayPort; scheduling: SchedulingPort; expected: ExpectedGatewayPort; sharing: SharingGatewayPort; taxonomy: TaxonomyGatewayPort; analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
   reuse: MovementReuseSuggestionsPort & MovementReuseTemplatePort;
 };
 export type TransactionEntryModelClock = { now(): Date; todayIso(): string; resolveOccurredAt(dateInput: string): string; dayOfMonthFromDateInput(dateInput: string): string; weekDayIsoFromDateInput(dateInput: string): string; resolveTimeZoneId(): string };
