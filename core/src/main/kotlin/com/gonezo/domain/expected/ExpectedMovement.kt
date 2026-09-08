@@ -14,13 +14,7 @@ data class ExpectedMovement(val id: ExpectedMovementId, val accountId: String, v
         require(originRecurringMovementId == null || originRecurringMovementId.isNotBlank()) {
             "originRecurringMovementId cannot be blank"
         }
-        require(splitItems.all { it.id.isNotBlank() }) { "split item id is required" }
-        require(splitItems.all { it.name.isNotBlank() }) { "split item name is required" }
-        require(splitItems.all { it.amount > BigDecimal.ZERO }) { "split item amount must be greater than 0" }
-        if (splitItems.isNotEmpty()) {
-            val splitTotal = splitItems.fold(BigDecimal.ZERO) { acc, item -> acc + item.amount }
-            require(splitTotal.compareTo(amount) == 0) { "split items must add up to amount" }
-        }
+        validateSplitItems(amount, splitItems)
         require(!(status == ExpectedMovementStatus.PENDING && resolvedTransactionId != null)) {
             "pending expected movement cannot have resolved transaction"
         }
@@ -57,13 +51,7 @@ data class ExpectedMovement(val id: ExpectedMovementId, val accountId: String, v
         require(accountId.isNotBlank()) { "accountId is required" }
         require(amount > BigDecimal.ZERO) { "amount must be greater than 0" }
         require(currency.matches(Regex("^[A-Z]{3}$"))) { "currency must be 3 uppercase letters" }
-        require(splitItems.all { it.id.isNotBlank() }) { "split item id is required" }
-        require(splitItems.all { it.name.isNotBlank() }) { "split item name is required" }
-        require(splitItems.all { it.amount > BigDecimal.ZERO }) { "split item amount must be greater than 0" }
-        if (splitItems.isNotEmpty()) {
-            val splitTotal = splitItems.fold(BigDecimal.ZERO) { acc, item -> acc + item.amount }
-            require(splitTotal.compareTo(amount) == 0) { "split items must add up to amount" }
-        }
+        validateSplitItems(amount, splitItems)
 
         return copy(
             accountId = accountId.trim(),
@@ -102,6 +90,16 @@ data class ExpectedMovement(val id: ExpectedMovementId, val accountId: String, v
     }
 
     companion object {
+        private fun validateSplitItems(amount: BigDecimal, splitItems: List<SplitItem>) {
+            require(splitItems.all { it.id.isNotBlank() }) { "split item id is required" }
+            require(splitItems.all { it.name.isNotBlank() }) { "split item name is required" }
+            require(splitItems.all { it.amount > BigDecimal.ZERO }) { "split item amount must be greater than 0" }
+            if (splitItems.isNotEmpty()) {
+                val splitTotal = splitItems.fold(BigDecimal.ZERO) { acc, item -> acc + item.amount }
+                require(splitTotal.compareTo(amount) == 0) { "split items must add up to amount" }
+            }
+        }
+
         fun create(id: ExpectedMovementId, accountId: String, type: ExpectedMovementType, amount: BigDecimal, currency: String, expectedAt: Instant, description: String?, merchant: String?, categoryId: String?, originOccurrenceId: String? = null, originRecurringMovementId: String? = null, splitItems: List<SplitItem> = emptyList(), tagNames: List<String> = emptyList(), createdAt: Instant): ExpectedMovement = ExpectedMovement(
             id = id,
             accountId = accountId.trim(),

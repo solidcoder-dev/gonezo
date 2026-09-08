@@ -53,13 +53,7 @@ data class RecurringMovement(
         if (exchangeRate != null) {
             require(exchangeRate > BigDecimal.ZERO) { "exchangeRate must be greater than 0" }
         }
-        require(splitItems.all { it.id.isNotBlank() }) { "split item id is required" }
-        require(splitItems.all { it.name.isNotBlank() }) { "split item name is required" }
-        require(splitItems.all { it.amount > BigDecimal.ZERO }) { "split item amount must be greater than 0" }
-        if (splitItems.isNotEmpty()) {
-            val splitTotal = splitItems.fold(BigDecimal.ZERO) { acc, item -> acc + item.amount }
-            require(splitTotal.compareTo(amount) == 0) { "split items must add up to amount" }
-        }
+        validateSplitItems(amount, splitItems)
         require(generatedOccurrences >= 0) { "generatedOccurrences must be greater or equal to 0" }
         require(!(status == RecurringMovementStatus.ACTIVE && nextDueAt == null)) {
             "active recurring movement must have nextDueAt"
@@ -164,6 +158,16 @@ data class RecurringMovement(
     }
 
     companion object {
+        private fun validateSplitItems(amount: BigDecimal, splitItems: List<SplitItem>) {
+            require(splitItems.all { it.id.isNotBlank() }) { "split item id is required" }
+            require(splitItems.all { it.name.isNotBlank() }) { "split item name is required" }
+            require(splitItems.all { it.amount > BigDecimal.ZERO }) { "split item amount must be greater than 0" }
+            if (splitItems.isNotEmpty()) {
+                val splitTotal = splitItems.fold(BigDecimal.ZERO) { acc, item -> acc + item.amount }
+                require(splitTotal.compareTo(amount) == 0) { "split items must add up to amount" }
+            }
+        }
+
         fun create(id: RecurringMovementId, type: RecurringMovementType, sourceAccountId: String, targetAccountId: String?, amount: BigDecimal, currency: String, destinationAmount: BigDecimal?, destinationCurrency: String?, exchangeRate: BigDecimal?, description: String?, merchant: String?, categoryId: String? = null, tagNames: List<String> = emptyList(), reviewPolicy: RecurringMovementReviewPolicy = RecurringMovementReviewPolicy.AUTOMATIC, splitItems: List<SplitItem> = emptyList(), rule: RecurrenceRule, recurrenceEnd: RecurrenceEnd, startAt: Instant, zoneId: String, createdAt: Instant, scheduleCalculator: RecurrenceScheduleCalculator): RecurringMovement {
             val firstDueAt = scheduleCalculator.firstDueAt(startAt, zoneId, rule)
             val firstDueDate = firstDueAt.atZone(ZoneId.of(zoneId)).toLocalDate()
