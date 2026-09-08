@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import type { SubmitPhase } from '../../account/application/accountPage.types';
-import type { AccountWorkspacePort } from '../../account/application/accounts.port';
+import type { TransactionsImportPort } from '../../account/application/accounts.port';
 import type { ApplicationBackupPort, MovementsBackupPort } from '../../imports/application/imports.port';
 import type { TransactionsImportFileReaderPort } from '../../imports/application/transactionsImportFileReader.port';
 import type { TransactionsImportRequest, TransactionsImportResult } from '../../imports/application/transactionsImport.types';
 import type { WorkspaceRefreshTarget } from './useWorkspaceRefreshSignals';
 
 type WorkspaceImportCoordinatorInput = {
-  core: AccountWorkspacePort;
+  core: TransactionsImportPort;
   movementsImport: MovementsBackupPort;
   applicationBackup: ApplicationBackupPort;
   fileReader: TransactionsImportFileReaderPort;
