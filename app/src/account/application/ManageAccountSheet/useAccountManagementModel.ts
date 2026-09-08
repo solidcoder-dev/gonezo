@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { LedgerGatewayPort } from '../../../ledger/application/ledgerGateway.port';
+import type { LedgerAccountOperationsPort } from '../../../ledger/application/useLedgerAccounts';
 import { useLedgerAccounts } from '../../../ledger/application/useLedgerAccounts';
 
 type FormEventLike = {
@@ -13,7 +13,7 @@ export type AccountManagementEvents = {
 };
 
 export type AccountManagementModelInput = {
-  ports: { ledger: LedgerGatewayPort };
+  ports: { ledger: LedgerAccountOperationsPort };
   accountId: string | null;
   enabled: boolean;
   refreshSignal?: unknown;

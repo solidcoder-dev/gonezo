@@ -1,5 +1,3 @@
-import { useMemo } from 'react';
-import { createLedgerGateway } from '../../../ledger/application/ledgerGateway';
 import { formatCurrencyAmount } from '../../../shared/utils/formatting';
 import { ManageAccountSheetView } from '../../ui/ManageAccountSheet/ManageAccountSheetView';
 import type { AccountSummaryComponentProps } from './AccountSummaryComponent.contract';
@@ -14,11 +12,8 @@ export type {
 
 export function AccountSummaryComponent({ required, provided = {} }: AccountSummaryComponentProps) {
   const { accountId, core } = required.context;
-  const ports = useMemo(() => ({
-    ledger: createLedgerGateway(core),
-  }), [core]);
   const model = useAccountSummaryModel({
-    ports,
+    ports: { ledger: core },
     accountId,
     enabled: required.config.enabled,
     refreshSignal: required.config.refreshSignal,

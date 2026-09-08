@@ -5,7 +5,11 @@ import type {
 import type { WebAppState } from './webAppState';
 
 export class WebPreferencesService {
-  constructor(private readonly state: WebAppState) {}
+  private readonly state: WebAppState;
+
+  constructor(state: WebAppState) {
+    this.state = state;
+  }
 
   get(): UserPreferencesResult {
     return { defaultAccountId: this.state.defaultAccountId };

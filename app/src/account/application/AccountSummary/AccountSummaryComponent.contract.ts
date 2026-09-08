@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
-import type { AccountsPort } from '../accounts.port';
+import type { LedgerAccountOperationsPort } from '../../../ledger/application/useLedgerAccounts';
 
 export type AccountSummaryComponentRequired = {
   context: {
-    core: AccountsPort;
+    core: LedgerAccountOperationsPort;
     accountId: string | null;
   };
   config: {

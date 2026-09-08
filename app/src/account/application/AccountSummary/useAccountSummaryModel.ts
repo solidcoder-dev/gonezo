@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import type { LedgerGatewayPort } from '../../../ledger/application/ledgerGateway.port';
+import type { LedgerAccountOperationsPort } from '../../../ledger/application/useLedgerAccounts';
 import type { AccountSummaryComponentProvided } from './AccountSummaryComponent.contract';
 import { useAccountManagementModel } from '../ManageAccountSheet/useAccountManagementModel';
 
@@ -10,7 +10,7 @@ export type AccountSummaryState = {
 };
 
 export type AccountSummaryModelInput = {
-  ports: { ledger: LedgerGatewayPort };
+  ports: { ledger: LedgerAccountOperationsPort };
   accountId: string | null;
   enabled: boolean;
   refreshSignal: boolean;
@@ -19,7 +19,7 @@ export type AccountSummaryModelInput = {
 };
 
 export type AccountSummaryModelPorts = {
-  ledger: LedgerGatewayPort;
+  ledger: LedgerAccountOperationsPort;
 };
 
 export type AccountSummaryModel = {

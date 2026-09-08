@@ -1,7 +1,18 @@
 import { useCallback } from 'react';
-import type { LedgerGatewayPort } from './ledgerGateway.port';
+import type { LedgerPort } from './ledger.port';
 
-export function useLedgerAccounts(gateway: LedgerGatewayPort) {
+export type LedgerAccountOperationsPort = Pick<LedgerPort,
+  | 'ledgerListSupportedCurrencies'
+  | 'ledgerListAccounts'
+  | 'ledgerGetAccountSummary'
+  | 'ledgerOpenAccount'
+  | 'ledgerRenameAccount'
+  | 'ledgerArchiveAccount'
+  | 'ledgerRestoreAccount'
+  | 'ledgerDeleteAccount'
+>;
+
+export function useLedgerAccounts(gateway: LedgerAccountOperationsPort) {
   const listSupportedCurrencies = useCallback(() => gateway.ledgerListSupportedCurrencies(), [gateway]);
   const listAccounts = useCallback(() => gateway.ledgerListAccounts(), [gateway]);
   const getAccountSummary = useCallback(

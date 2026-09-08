@@ -4,8 +4,7 @@ import type { AccountSummaryModelPorts } from './useAccountSummaryModel';
 import { useAccountSummaryModel } from './useAccountSummaryModel';
 
 function makePorts(overrides: Partial<AccountSummaryModelPorts> = {}): AccountSummaryModelPorts {
-  return {
-    ledger: {
+  const ledger = {
       ledgerListSupportedCurrencies: vi.fn(),
       ledgerListAccounts: vi.fn(),
       ledgerGetAccountSummary: vi.fn().mockResolvedValue({
@@ -30,8 +29,10 @@ function makePorts(overrides: Partial<AccountSummaryModelPorts> = {}): AccountSu
       ledgerCreateExpenseDraft: vi.fn(),
       ledgerAddTransactionItem: vi.fn(),
       ledgerPostDraftTransaction: vi.fn(),
-      ledgerVoidTransaction: vi.fn(),
-    },
+    ledgerVoidTransaction: vi.fn(),
+  };
+  return {
+    ledger,
     ...overrides,
   };
 }

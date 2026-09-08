@@ -2,10 +2,16 @@ import type { WebExpectedMovementsService } from '../../expected/infrastructure/
 import type { WebSchedulingService } from '../../scheduling/infrastructure/webSchedulingService';
 
 export class WebConfirmationProjectionService {
+  private readonly scheduling: WebSchedulingService;
+  private readonly expected: WebExpectedMovementsService;
+
   constructor(
-    private readonly scheduling: WebSchedulingService,
-    private readonly expected: WebExpectedMovementsService,
-  ) {}
+    scheduling: WebSchedulingService,
+    expected: WebExpectedMovementsService,
+  ) {
+    this.scheduling = scheduling;
+    this.expected = expected;
+  }
 
   async projectNextOccurrence(recurringMovementId: string): Promise<void> {
     const occurrence = this.scheduling.projectNextConfirmationRequiredOccurrence(recurringMovementId);

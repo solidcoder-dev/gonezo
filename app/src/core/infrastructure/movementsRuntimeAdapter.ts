@@ -23,12 +23,13 @@ import { CorePlugin } from './corePlugin';
 import { isNativeRuntime } from './runtimeAdapterSupport';
 import type { MovementReuseSuggestionsPort, MovementReuseTemplatePort } from '../../movements/application/movementReuseSuggestions.port';
 import type { NativeMovementsPort } from '../../movements/infrastructure/nativeMovements';
+import type { TaxonomyPort } from '../../taxonomy/application/taxonomy.port';
 
 export class MovementsRuntimeAdapter implements MovementReuseSuggestionsPort, MovementReuseTemplatePort {
   private readonly web: CoreAdapterWeb;
-  private readonly queries: NativeMovementsPort;
+  private readonly queries: NativeMovementsPort & Pick<TaxonomyPort, 'orchestrationListTransactionTaxonomy' | 'taxonomyListTags'>;
 
-  constructor(web: CoreAdapterWeb, queries: NativeMovementsPort) {
+  constructor(web: CoreAdapterWeb, queries: NativeMovementsPort & Pick<TaxonomyPort, 'orchestrationListTransactionTaxonomy' | 'taxonomyListTags'>) {
     this.web = web;
     this.queries = queries;
   }
