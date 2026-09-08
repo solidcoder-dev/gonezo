@@ -143,7 +143,8 @@ public final class AndroidLedgerCore {
     this.itemCategoryAssignmentRepository = new AndroidTaxonomyTransactionItemCategoryAssignmentRepository(database);
     this.addTransactionItemWithCategoryUC = new AddLedgerTransactionItemWithCategoryService(
       addTransactionItemUC,
-      itemCategoryAssignmentRepository
+      itemCategoryAssignmentRepository,
+      consistencyBoundary
     );
     this.postDraftTransactionUC = new PostLedgerDraftTransactionService(transactionRepository, eventPublisher);
     this.voidTransactionUC = new VoidLedgerTransactionService(

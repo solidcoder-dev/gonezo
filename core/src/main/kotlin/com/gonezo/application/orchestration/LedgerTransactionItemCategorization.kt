@@ -1,5 +1,7 @@
 package com.gonezo.application.orchestration
 
+import com.gonezo.application.ConsistencyBoundary
+import com.gonezo.application.ImmediateConsistencyBoundary
 import com.gonezo.domain.shared.Money
 import com.gonezo.ledger.application.AddLedgerTransactionItemCommand
 import com.gonezo.ledger.application.AddLedgerTransactionItemUC
@@ -26,21 +28,20 @@ interface AddLedgerTransactionItemWithCategoryUC {
 class AddLedgerTransactionItemWithCategoryService(
     private val addLedgerTransactionItemUC: AddLedgerTransactionItemUC,
     private val itemCategoryAssignmentRepository: TransactionItemCategoryAssignmentRepository,
+    private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary,
 ) : AddLedgerTransactionItemWithCategoryUC {
-    override fun execute(command: AddLedgerTransactionItemWithCategoryCommand): TransactionItemId {
+    override fun execute(command: AddLedgerTransactionItemWithCategoryCommand): TransactionItemId = consistencyBoundary.withinConsistencyBoundary {
         val itemId = addLedgerTransactionItemUC.execute(
             AddLedgerTransactionItemCommand(
                 transactionId = command.transactionId,
                 name = command.name,
                 amount = command.amount,
                 note = command.note,
-            ),
-        )
-        command.categoryId?.let {
-            itemCategoryAssignmentRepository.upsert(
-                TransactionItemCategoryAssignment.assign(itemId.value, it, command.requestedAt),
             )
+        )
+        command.categoryId?.let { categoryId ->
+            itemCategoryAssignmentRepository.upsert(TransactionItemCategoryAssignment.assign(itemId.value, categoryId, command.requestedAt))
         }
-        return itemId
+        itemId
     }
 }
