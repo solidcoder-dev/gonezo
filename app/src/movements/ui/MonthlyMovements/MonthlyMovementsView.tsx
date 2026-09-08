@@ -1,8 +1,8 @@
 import { MonthNavigatorView } from '../MonthNavigator/MonthNavigatorView';
-import { MonthPickerModalView } from '../MonthPickerModal/MonthPickerModalView';
 import { MovementDetailView } from '../MovementDetail/MovementDetailView';
 import { YearMonthSelectorView } from '../YearMonthSelector/YearMonthSelectorView';
 import { MovementSummaryTileView } from '../../../shared/ui/MovementSummaryTileView';
+import { SheetView } from '../../../shared/ui/SheetView';
 import '../movements.css';
 import './MonthlyMovementsView.css';
 import type { MonthlyMovementsMode, MonthlyMovementsViewProps } from './MonthlyMovementsView.contract';
@@ -101,16 +101,31 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
         }}
       />
 
-      <MonthPickerModalView required={{ open: monthPickerOpen }} provided={{ onDismiss: provided.commands.closeMonthPicker }}>
-        <YearMonthSelectorView
-          required={{ year: monthPickerYear, viewedYear, viewedMonthIndex, currentYear, currentMonthIndex, disabled }}
-          provided={{
-            onPreviousYear: provided.commands.goToPreviousPickerYear,
-            onNextYear: provided.commands.goToNextPickerYear,
-            onSelectMonth: provided.commands.selectPickerMonth,
-          }}
-        />
-      </MonthPickerModalView>
+      <SheetView
+        required={{
+          config: {
+            ariaLabel: 'Choose month',
+            closeLabel: 'Close month picker',
+            showHandle: true,
+            dragToClose: true,
+          },
+          data: {
+            body: (
+              <YearMonthSelectorView
+                required={{ year: monthPickerYear, viewedYear, viewedMonthIndex, currentYear, currentMonthIndex, disabled }}
+                provided={{
+                  onPreviousYear: provided.commands.goToPreviousPickerYear,
+                  onNextYear: provided.commands.goToNextPickerYear,
+                  onSelectMonth: provided.commands.selectPickerMonth,
+                }}
+              />
+            ),
+          },
+          state: { open: monthPickerOpen },
+          status: { disabled },
+        }}
+        provided={{ commands: { close: provided.commands.closeMonthPicker } }}
+      />
 
       <div className="monthly-movements-tabs" role="tablist" aria-label="Movement timeline">
         {(['posted', 'planned'] as const).map((mode) => (

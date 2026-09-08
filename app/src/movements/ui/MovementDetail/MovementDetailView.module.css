@@ -1,7 +1,4 @@
 .screen { box-shadow: none; }
-.overflowAction { width: 100%; min-height: 44px; padding: 0 var(--space-sm); border: 0; border-radius: var(--radius-md); background: transparent; color: var(--color-text-primary); font: inherit; font-weight: var(--font-weight-medium); text-align: left; }
-.overflowActionDestructive { color: var(--color-danger); }
-.overflowAction:hover { background: var(--color-surface-secondary); }
 .footer { background: var(--color-surface-primary); border: 0; }
 
 .headerGutter, .contentGutter { padding-inline: 24px; }

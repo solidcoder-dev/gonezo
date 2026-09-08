@@ -7,10 +7,9 @@ const allowedThemeFiles = new Set(['styles/bootstrap.scss', 'styles/_gonezo-toke
 const allowedGlobalStyles = new Set(['index.css', 'App.css', 'shared/ui/primitives.css']);
 const legacyGlobalStyles = new Set([
   'account/application/AccountSummary/AccountSummaryComponent.css', 'account/ui/AccountSwitcher/AccountSwitcherView.css',
-  'imports/ui/TransactionsImportView.css', 'movements/ui/MonthNavigator/MonthNavigatorView.css',
-  'movements/ui/MonthPickerModal/MonthPickerModalView.css', 'movements/ui/MonthlyMovements/MonthlyMovementsView.css',
+  'imports/ui/TransactionsImportView.css', 'movements/ui/MonthlyMovements/MonthlyMovementsView.css',
   'movements/ui/MovementDetail/MovementDetailView.css', 'movements/ui/MovementSection/MovementSectionView.css',
-  'movements/ui/MovementsSearch/MovementsSearch.css', 'movements/ui/YearMonthSelector/YearMonthSelectorView.css',
+  'movements/ui/MovementsSearch/MovementsSearch.css',
   'movements/ui/movements.css',
   'shared/ui/BottomNavigation/BottomNavigationView.css', 'shared/ui/FloatingActionButton/FloatingActionButtonView.css',
   'shared/ui/SelectChip/SelectChipView.css',

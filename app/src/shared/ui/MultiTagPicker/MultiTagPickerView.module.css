@@ -4,7 +4,7 @@
 .selected { display: flex; gap: var(--space-xs); min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .selected::-webkit-scrollbar { display: none; }
 .chipHitArea { display: inline-flex; flex: 0 0 auto; align-items: center; min-height: 44px; }
-.chip { display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--space-sm); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-pill); background: transparent; color: var(--color-text-secondary); font: inherit; }
+.chip { display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--space-sm); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-full); background: transparent; color: var(--color-text-secondary); font: inherit; }
 .input { flex: 1; min-width: 72px; min-height: 44px; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; }
-.suggestions { position: absolute; bottom: calc(100% + var(--space-xs)); left: 0; z-index: var(--z-picker); display: flex; gap: var(--space-xs); max-width: 100%; margin: 0; padding: var(--space-xs); overflow-x: auto; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-surface-elevated); box-shadow: var(--shadow-md); list-style: none; }
-.suggestion { min-height: 44px; padding: 0 var(--space-sm); border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--color-text-primary); font: inherit; white-space: nowrap; }
+.suggestions { position: absolute; bottom: calc(100% + var(--space-xs)); left: 0; z-index: var(--z-picker); display: flex; gap: var(--space-xs); max-width: 100%; margin: 0; padding: var(--space-xs); overflow-x: auto; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-sm); background: var(--color-surface-elevated); box-shadow: var(--shadow-md); list-style: none; }
+.suggestion { min-height: 44px; padding: 0 var(--space-sm); border: 0; border-radius: var(--radius-full); background: transparent; color: var(--color-text-primary); font: inherit; white-space: nowrap; }

@@ -98,7 +98,7 @@ export function MovementDetailSheetView({ required, provided }: MovementDetailSh
               </div>
               <button
                 type="button"
-                className="gz-text-button gz-icon-button"
+                className="gz-icon-button"
                 aria-label={closeLabel}
                 onClick={provided.commands.close}
               >

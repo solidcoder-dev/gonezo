@@ -230,7 +230,7 @@ describe('MovementDetailView', () => {
       <MovementDetailView
         required={{
           state: { open: true, activeSheet: null, overflowOpen: true, categoryQuery: '', tagsQuery: '' },
-          data: { movement: postedMovement(), categories: [], draftTags: [], suggestedTags: [], overflowActions: [{ id: 'void-posted', transactionId: 'tx-1', label: 'Void movement', destructive: true }] },
+          data: { movement: postedMovement(), categories: [], draftTags: [], suggestedTags: [], overflowActions: [{ id: 'duplicate-movement', source: 'posted', movementId: 'tx-1', label: 'Duplicate', destructive: false }, { id: 'void-posted', transactionId: 'tx-1', label: 'Void movement', destructive: true }] },
           status: { savingCategory: false, savingTags: false, tagsDirty: false, togglingIgnored: false, deactivating: false, pendingVoid: false },
         }}
         provided={{ commands: makeCommands() }}
@@ -239,6 +239,9 @@ describe('MovementDetailView', () => {
 
     expect(screen.getByText('-€15.00')).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Void movement' })).toBeInTheDocument();
+    expect(screen.getByRole('menu')).toHaveClass('dropdown-menu', 'dropdown-menu-end', 'show', 'shadow-sm');
+    expect(screen.getByRole('menuitem', { name: 'Duplicate' })).not.toHaveClass('text-danger');
+    expect(screen.getByRole('menuitem', { name: 'Void movement' })).toHaveClass('text-danger');
 
     rerender(
       <MovementDetailView

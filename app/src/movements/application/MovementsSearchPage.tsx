@@ -106,7 +106,7 @@ export function MovementsSearchPage({ required, provided }: MovementsSearchPageP
     <section className="gz-app-screen">
       <div className="gz-inline-header">
         <h2>Search</h2>
-        <Link to="/" className="gz-text-button gz-icon-button" aria-label="Close search">
+        <Link to="/" className="gz-icon-button" aria-label="Close search">
           <i className="bi bi-x-lg" aria-hidden />
         </Link>
       </div>

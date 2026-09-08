@@ -8,7 +8,7 @@
 .primary {
   min-height: 52px;
   border: 0;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--color-action-primary);
   color: var(--color-on-brand);
   font-size: 1rem;

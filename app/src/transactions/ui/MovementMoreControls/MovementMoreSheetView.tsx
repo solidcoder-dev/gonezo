@@ -40,7 +40,7 @@ export function MovementMoreSheetView({ required, provided }: MovementMoreSheetV
 
       <button
         type="button"
-        className={`${styles.done} primary-button`}
+        className={`${styles.done} btn btn-primary w-100 fw-semibold`}
         disabled={required.status.disabled}
         onClick={provided.commands.done}
       >

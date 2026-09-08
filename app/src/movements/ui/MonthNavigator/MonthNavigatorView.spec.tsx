@@ -33,6 +33,9 @@ describe('MonthNavigatorView', () => {
     expect(onPreviousMonth).toHaveBeenCalledTimes(1);
     expect(onNextMonth).toHaveBeenCalledTimes(1);
     expect(onToggleMenu).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText('Monthly navigation')).toHaveClass('position-sticky');
+    expect(screen.getByRole('button', { name: 'Previous month' })).toHaveClass('gz-icon-button');
+    expect(screen.getByRole('button', { name: 'Choose month' })).toHaveClass('btn');
   });
 
   it('shows menu options when open and triggers today/select actions', () => {
@@ -62,6 +65,7 @@ describe('MonthNavigatorView', () => {
 
     expect(onGoToCurrentMonth).toHaveBeenCalledTimes(1);
     expect(onOpenMonthPicker).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('menu')).toHaveClass('dropdown-menu', 'show');
   });
 
   it('hides the today action when already in current month', () => {

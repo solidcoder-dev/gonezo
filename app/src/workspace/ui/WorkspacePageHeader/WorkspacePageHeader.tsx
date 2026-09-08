@@ -16,13 +16,13 @@ export type WorkspacePageHeaderProps = {
 
 export function WorkspacePageHeader({ required, provided }: WorkspacePageHeaderProps) {
   return (
-    <header className={`${styles.header} ${styles.sticky} d-flex align-items-center justify-content-between gap-2`}>
+    <header className={`${styles.header} position-sticky bg-body d-flex align-items-center justify-content-between gap-2 py-2`}>
       <h1 className={`${styles.title} ${required.variant === 'product' ? styles.productTitle : ''} m-0`}>{required.title}</h1>
       <div className={`${styles.actions} d-inline-flex align-items-center justify-content-end gap-2`}>
         {required.searchAction}
         <button
           type="button"
-          className={styles.notificationButton}
+          className="gz-icon-button"
           aria-label="Open notifications"
           onClick={provided.commands.openNotifications}
         >

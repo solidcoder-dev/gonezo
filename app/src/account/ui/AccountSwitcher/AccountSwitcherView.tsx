@@ -84,7 +84,7 @@ export function AccountSwitcherView({ required, provided }: Props) {
                           </button>
                           <button
                             type="button"
-                            className={isDefault ? 'gz-text-button gz-icon-button account-default-button is-default' : 'gz-text-button gz-icon-button account-default-button'}
+                            className={isDefault ? 'gz-icon-button account-default-button is-default' : 'gz-icon-button account-default-button'}
                             aria-label={isDefault ? `Clear default account ${account.name}` : `Set ${account.name} as default account`}
                             title={isDefault ? 'Clear default account' : 'Set as default account'}
                             disabled={required.disabled || defaultUpdatingAccountId === account.id}
@@ -126,7 +126,7 @@ export function AccountSwitcherView({ required, provided }: Props) {
                                 <span className="account-choice-status">ARCH</span>
                                 <button
                                   type="button"
-                                  className="gz-text-button gz-icon-button account-restore-button"
+                                  className="gz-icon-button account-restore-button"
                                   aria-label={`Restore account ${account.name}`}
                                   title="Restore account"
                                   disabled={required.disabled || restoringAccountId === account.id}

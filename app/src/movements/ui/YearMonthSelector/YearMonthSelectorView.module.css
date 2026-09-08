@@ -1,0 +1,22 @@
+.selector {
+  padding-top: var(--space-xs);
+}
+
+.monthButton {
+  min-height: var(--touch-target-min);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-secondary);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: var(--font-weight-medium);
+}
+
+.monthButton.viewed {
+  background: var(--color-income-soft);
+  color: var(--color-income-text);
+}
+
+.monthButton[aria-current='date']:not(.viewed) {
+  color: var(--color-income-text);
+}

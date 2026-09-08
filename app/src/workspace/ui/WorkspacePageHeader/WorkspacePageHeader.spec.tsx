@@ -12,7 +12,7 @@ describe('WorkspacePageHeader', () => {
           required={{
             title: 'Movements',
             searchAction: (
-              <a className="gz-text-button gz-icon-button" href="/movements/search" aria-label="Search movements">
+              <a className="gz-icon-button" href="/movements/search" aria-label="Search movements">
                 <i className="bi bi-search" aria-hidden />
               </a>
             ),
@@ -27,7 +27,8 @@ describe('WorkspacePageHeader', () => {
     );
 
     const header = container.querySelector('header');
-    expect(header).toHaveClass(styles.sticky);
+    expect(header).toHaveClass('position-sticky', 'bg-body', 'py-2');
+    expect(header).not.toHaveClass('decorative-surface');
     expect(screen.getByRole('heading', { name: 'Movements' })).toBeInTheDocument();
     const searchLink = screen.getByRole('link', { name: 'Search movements' });
     const notificationsButton = screen.getByRole('button', { name: 'Open notifications' });

@@ -9,7 +9,7 @@
   width: min(calc(100vw - 32px), 470px);
   min-height: var(--app-bottom-navigation-height);
   padding: 0 40px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-full);
   background: var(--color-surface-elevated);
   box-shadow: var(--shadow-navigation);
   transform: translateX(-50%);
@@ -27,7 +27,7 @@
   min-height: var(--touch-target-min);
   aspect-ratio: 1;
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-full);
   background: transparent;
   color: var(--color-text-secondary);
   font: inherit;
@@ -64,7 +64,7 @@
   left: 50%;
   width: 22px;
   height: 4px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-full);
   background: var(--color-navigation-active);
   content: '';
   transform: translateX(-50%);

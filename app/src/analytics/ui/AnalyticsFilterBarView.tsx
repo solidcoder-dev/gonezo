@@ -28,10 +28,10 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
   const { state, status } = required;
 
   return (
-    <div className={styles.filterBar} role="group" aria-label="Analytics filters">
+    <div className={`${styles.filterBar} d-flex flex-nowrap align-items-center gap-2 overflow-x-auto`} role="group" aria-label="Analytics filters">
       <button
         type="button"
-        className={`btn ${state.currency ? styles.filterChip : styles.filterChipMuted}`}
+        className="btn btn-sm rounded-pill d-inline-flex flex-shrink-0 align-items-center gap-2 text-nowrap"
         onClick={provided.commands.openCurrencySheet}
         disabled={status.disabled}
         aria-label="Open currency filter"
@@ -43,7 +43,7 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
 
       <button
         type="button"
-        className={`btn ${styles.filterChip}`}
+        className="btn btn-sm rounded-pill d-inline-flex flex-shrink-0 align-items-center gap-2 text-nowrap"
         onClick={provided.commands.openPeriodSheet}
         disabled={status.disabled}
         aria-label="Open period filter"
@@ -55,7 +55,7 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
 
       <button
         type="button"
-        className={`btn ${state.tagsSelected ? styles.filterChipSelected : styles.filterChip}`}
+        className={`btn btn-sm rounded-pill d-inline-flex flex-shrink-0 align-items-center gap-2 text-nowrap${state.tagsSelected ? ' bg-success-subtle text-success-emphasis' : ''}`}
         onClick={provided.commands.openTagSheet}
         disabled={status.disabled}
         aria-label="Open tags filter"
@@ -67,13 +67,13 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
 
       <button
         type="button"
-        className={`btn ${state.moreFiltersCount > 0 ? styles.moreFiltersButtonSelected : styles.moreFiltersButton}`}
+        className={`btn btn-sm rounded-pill position-relative d-inline-flex flex-shrink-0 align-items-center gap-2${state.moreFiltersCount > 0 ? ' bg-success-subtle text-success-emphasis' : ''}`}
         onClick={provided.commands.openMoreFiltersSheet}
         disabled={status.disabled}
         aria-label="Open more filters"
       >
         <i className="bi bi-sliders2" aria-hidden />
-        {state.moreFiltersCount > 0 ? <span className={styles.filterBadge}>{state.moreFiltersCount}</span> : null}
+        {state.moreFiltersCount > 0 ? <span className="badge text-bg-primary">{state.moreFiltersCount}</span> : null}
       </button>
     </div>
   );
@@ -100,12 +100,12 @@ const VIEW_TABS: Array<{ value: AnalyticsViewMode; label: string }> = [
 
 export function AnalyticsViewTabsView({ required, provided }: AnalyticsViewTabsViewProps) {
   return (
-    <div className={styles.viewTabs} role="tablist" aria-label="Analytics views">
+    <div className="nav nav-underline nav-fill" role="tablist" aria-label="Analytics views">
       {VIEW_TABS.map((tab) => (
         <button
           key={tab.value}
           type="button"
-          className={required.state.viewMode === tab.value ? styles.viewTabActive : styles.viewTab}
+          className={`nav-link fw-semibold${required.state.viewMode === tab.value ? ' active' : ''}`}
           role="tab"
           aria-selected={required.state.viewMode === tab.value}
           onClick={() => provided.commands.selectViewMode(tab.value)}

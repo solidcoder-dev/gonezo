@@ -1,10 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AnalyticsFilterBarView, AnalyticsViewTabsView } from './AnalyticsFilterBarView';
-import styles from './AnalyticsPageView.module.css';
 
 describe('Analytics navigation and filters', () => {
-  it('uses the full-width sticky tab layout for all analytics views', () => {
+  it('exposes three accessible tabs with the selected state', () => {
     render(
       <AnalyticsViewTabsView
         required={{ state: { viewMode: 'overview' } }}
@@ -13,12 +12,12 @@ describe('Analytics navigation and filters', () => {
     );
 
     const tablist = screen.getByRole('tablist');
-    expect(tablist).toHaveClass(styles.viewTabs);
+    expect(tablist).toHaveClass('nav', 'nav-underline', 'nav-fill');
     expect(screen.getAllByRole('tab')).toHaveLength(3);
-    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveClass(styles.viewTabActive);
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveClass('nav-link', 'active');
   });
 
-  it('keeps every filter control in the non-scrolling full-width row', () => {
+  it('keeps every filter control readable in a horizontally scrollable row', () => {
     render(
       <AnalyticsFilterBarView
         required={{
@@ -37,8 +36,12 @@ describe('Analytics navigation and filters', () => {
     );
 
     const filters = screen.getByLabelText('Analytics filters');
-    expect(filters).toHaveClass(styles.filterBar);
+    expect(filters).toHaveClass('d-flex', 'flex-nowrap', 'overflow-x-auto');
     expect(filters.querySelectorAll('button')).toHaveLength(4);
-    expect(screen.getByLabelText('Open more filters')).toHaveClass(styles.moreFiltersButtonSelected);
+    expect(screen.getByLabelText('Open more filters')).toHaveClass('btn', 'rounded-pill');
+    expect(screen.getByText('EUR')).toBeInTheDocument();
+    expect(screen.getByText('This month')).toBeInTheDocument();
+    expect(screen.getByText('Tags')).toBeInTheDocument();
+    expect(screen.getByText('2')).toHaveClass('badge');
   });
 });

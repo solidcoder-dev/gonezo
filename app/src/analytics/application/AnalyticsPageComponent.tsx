@@ -45,31 +45,33 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
 
   return (
     <section className={styles.page}>
-      <AnalyticsViewTabsView
-        required={{ state: { viewMode: filterModel.viewMode } }}
-        provided={{ commands: { selectViewMode: filterModel.commands.selectViewMode } }}
-      />
-      <AnalyticsFilterBarView
-        required={{
-          state: {
-            currency: filterModel.filters.currency,
-            period: filterModel.filters.period,
-            tagsSelected: filterModel.filters.tagIds.length > 0,
-            moreFiltersCount,
-          },
-          status: {
-            disabled: filterModel.disabled || filterModel.loading,
-          },
-        }}
-        provided={{
-          commands: {
-            openCurrencySheet: filterModel.commands.openCurrencySheet,
-            openPeriodSheet: filterModel.commands.openPeriodSheet,
-            openTagSheet: filterModel.commands.openTagSheet,
-            openMoreFiltersSheet: filterModel.commands.openMoreFiltersSheet,
-          },
-        }}
-      />
+      <div className={styles.navigation}>
+        <AnalyticsViewTabsView
+          required={{ state: { viewMode: filterModel.viewMode } }}
+          provided={{ commands: { selectViewMode: filterModel.commands.selectViewMode } }}
+        />
+        <AnalyticsFilterBarView
+          required={{
+            state: {
+              currency: filterModel.filters.currency,
+              period: filterModel.filters.period,
+              tagsSelected: filterModel.filters.tagIds.length > 0,
+              moreFiltersCount,
+            },
+            status: {
+              disabled: filterModel.disabled || filterModel.loading,
+            },
+          }}
+          provided={{
+            commands: {
+              openCurrencySheet: filterModel.commands.openCurrencySheet,
+              openPeriodSheet: filterModel.commands.openPeriodSheet,
+              openTagSheet: filterModel.commands.openTagSheet,
+              openMoreFiltersSheet: filterModel.commands.openMoreFiltersSheet,
+            },
+          }}
+        />
+      </div>
       <AnalyticsCurrencySheetView
         required={{
           data: { currencies: filterModel.currencies },

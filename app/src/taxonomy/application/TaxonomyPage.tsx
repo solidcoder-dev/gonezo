@@ -83,7 +83,7 @@ export function TaxonomyPage({ required }: TaxonomyPageProps) {
     <section className="gz-app-screen">
       <div className="gz-inline-header">
         <h2>Taxonomy</h2>
-        <Link to="/" className="gz-text-button gz-icon-button" aria-label="Close taxonomy">
+        <Link to="/" className="gz-icon-button" aria-label="Close taxonomy">
           <i className="bi bi-x-lg" aria-hidden />
         </Link>
       </div>
@@ -114,7 +114,7 @@ export function TaxonomyPage({ required }: TaxonomyPageProps) {
               </div>
               <button
                 type="button"
-                className={`gz-text-button gz-icon-button ${styles.editButton}`}
+                className={`gz-icon-button ${styles.editButton}`}
                 aria-label={`Rename tag ${tag.name}`}
                 onClick={() => openRename({ kind: 'tag', item: tag })}
               >

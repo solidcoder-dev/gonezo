@@ -4,140 +4,26 @@
   gap: 0;
 }
 
-.filterBar {
+.navigation {
   position: sticky;
-  top: calc(
-    var(--app-safe-area-top) +
-    var(--app-header-height) +
-    var(--analytics-tabs-height)
-  );
+  top: calc(var(--app-safe-area-top) + var(--app-header-height));
   z-index: var(--z-sticky);
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) minmax(0, .8fr) var(--touch-target-min);
-  align-items: center;
-  gap: 8px;
+  background: var(--color-surface);
+}
+
+.filterBar {
   min-width: 0;
   width: 100%;
   min-height: var(--analytics-filter-bar-height);
-  margin-top: 1.25rem;
-  padding: 6px 0;
-  background: var(--color-surface-primary);
+  padding-block: var(--space-xs);
 }
 
-.filterChip,
-.filterChipMuted,
-.filterChipSelected,
-.moreFiltersButton,
-.moreFiltersButtonSelected {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: var(--touch-target-min);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-primary);
-  color: var(--color-text-primary);
-  font-size: 0.86rem;
-  font-weight: 800;
-  min-width: 0;
-  overflow: hidden;
-  box-shadow: none;
-}
-
-.filterChip,
-.filterChipMuted,
-.filterChipSelected {
-  width: 100%;
-  padding: 0 8px;
-}
-
-.filterChip span,
-.filterChipMuted span,
-.filterChipSelected span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.filterChipMuted {
-  color: var(--color-text-muted);
-}
-
-.filterChipSelected,
-.moreFiltersButtonSelected {
-  border-color: var(--color-border-strong);
-  background: var(--color-surface-muted);
-}
-
-.moreFiltersButton,
-.moreFiltersButtonSelected {
-  position: relative;
-  width: var(--touch-target-min);
-  flex: 0 0 var(--touch-target-min);
-  padding: 0;
-  font-size: 1.05rem;
-}
-
-.filterBadge {
-  position: absolute;
-  top: -4px;
-  right: -2px;
-  min-width: 18px;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: var(--color-action-primary);
-  color: var(--color-on-brand);
-  font-size: 0.7rem;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.viewTabs {
-  position: sticky;
-  top: calc(var(--app-safe-area-top) + var(--app-header-height));
-  z-index: calc(var(--z-sticky) + 1);
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: center;
-  width: 100%;
-  min-width: 0;
-  border-bottom: 1px solid var(--color-border-subtle);
-  background: var(--color-surface-primary);
-  padding: 0;
-}
-
-.viewTab,
-.viewTabActive {
-  position: relative;
-  min-height: var(--analytics-tabs-height);
-  border: 0;
-  border-radius: 0;
-  padding: 0 8px;
-  font-size: 0.88rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-  text-align: center;
-}
-
-.viewTab {
-  background: transparent;
-  color: var(--color-text-muted);
-}
-
-.viewTabActive {
-  background: transparent;
-  color: var(--color-text-primary);
-}
-
-.viewTabActive::after { position: absolute; right: 18%; bottom: -1px; left: 18%; height: 3px; border-radius: 3px 3px 0 0; background: var(--color-brand); content: ''; }
-
-.analyticsOverviewContent { display: grid; gap: 36px; margin-top: 28px; }
+.analyticsOverviewContent { display: grid; gap: var(--space-xl); margin-top: var(--space-xl); }
 
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-md);
 }
 
 .emptyView {
@@ -145,26 +31,26 @@
   place-items: center;
   min-height: 180px;
   border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--color-surface-muted);
   color: var(--color-text-secondary);
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
 }
 
 .analyticsSheet {
-  border-radius: 28px 28px 0 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background: var(--color-surface-primary);
 }
 
 .analyticsSheetContent {
   display: grid;
-  gap: 22px;
-  padding: 12px 20px 0;
+  gap: var(--space-lg);
+  padding: var(--space-sm) var(--space-lg) 0;
 }
 
 .sheetIntro {
   display: grid;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .sheetIntro h3 {
@@ -176,7 +62,7 @@
 .sheetIntro p {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 0.95rem;
+  font-size: var(--font-size-md);
   line-height: 1.45;
 }
 
@@ -191,8 +77,8 @@
   border: 0;
   background: transparent;
   color: var(--color-text-primary);
-  font-size: 0.88rem;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
 .sheetOptionList {
@@ -220,12 +106,12 @@
 .sheetOptionTitle {
   color: var(--color-text-primary);
   font-size: 1rem;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
 }
 
 .sheetOptionDescription {
   color: var(--color-text-secondary);
-  font-size: 0.94rem;
+  font-size: var(--font-size-sm);
 }
 
 .radio,
@@ -276,7 +162,7 @@
   background: var(--color-action-primary);
   color: var(--color-on-brand);
   font-size: 1rem;
-  font-weight: 900;
+  font-weight: var(--font-weight-bold);
 }
 
 .moreFiltersSection {
@@ -287,16 +173,16 @@
 .moreFiltersLabel {
   color: var(--color-text-primary);
   font-size: 1rem;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
 }
 
 .accountSelectField {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm);
   min-height: 50px;
   border: 1px solid var(--color-border-subtle);
-  border-radius: 14px;
+  border-radius: var(--radius-sm);
   background: var(--color-surface-primary);
   padding: 0 14px;
   color: var(--color-text-secondary);
@@ -318,16 +204,16 @@
 
 .periodDateField {
   display: grid;
-  gap: 6px;
+  gap: var(--space-xs);
   color: var(--color-text-primary);
-  font-size: 0.92rem;
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
 }
 
 .periodDateField input {
   min-height: 46px;
   border: 1px solid var(--color-border-subtle);
-  border-radius: 14px;
+  border-radius: var(--radius-sm);
   padding: 0 14px;
   font: inherit;
 }
@@ -335,14 +221,14 @@
 .periodError {
   margin: 0;
   color: var(--color-expense);
-  font-size: 0.86rem;
+  font-size: var(--font-size-sm);
   font-weight: 700;
 }
 
 /* Narrow-device correction keeps labels readable without changing the sticky contract. */
 @media (max-width: 360px) {
   .filterBar {
-    gap: 6px;
+    gap: var(--space-xs);
   }
 
   .filterChip,
@@ -350,7 +236,7 @@
   .filterChipSelected {
     min-height: 44px;
     padding: 0 8px;
-    font-size: 0.8rem;
+    font-size: var(--font-size-xs);
   }
 
   .sheetIntro h3 {

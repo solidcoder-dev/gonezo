@@ -17,7 +17,7 @@ export function MovementMoreTriggerView({ required, provided }: MovementMoreTrig
   return (
     <button
       type="button"
-      className={`${styles.trigger} w-100 d-flex align-items-center justify-content-between p-0`}
+      className={`${styles.trigger} w-100 d-flex align-items-center justify-content-between gap-2 p-0`}
       onClick={provided.commands.open}
       disabled={required.status.disabled}
     >

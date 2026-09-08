@@ -53,6 +53,6 @@
 .composer-items-apply {
   width: 100%;
   min-height: 52px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   font-weight: var(--font-weight-semibold);
 }

@@ -1,4 +1,4 @@
-import './MonthNavigatorView.css';
+import styles from './MonthNavigatorView.module.css';
 
 export type MonthNavigatorViewRequired = {
   monthLabel: string;
@@ -24,11 +24,11 @@ export function MonthNavigatorView({ required, provided }: MonthNavigatorViewPro
   const { monthLabel, disabled, monthMenuOpen, isCurrentMonth } = required;
 
   return (
-    <div className="month-nav month-nav--minimal" aria-label="Monthly navigation">
-      <div className="month-nav-main month-nav-main--minimal" role="group" aria-label="Switch month">
+    <div className={`${styles.navigator} position-sticky bg-body`} aria-label="Monthly navigation">
+      <div className="d-flex align-items-center justify-content-between gap-2" role="group" aria-label="Switch month">
         <button
           type="button"
-          className="gz-text-button month-nav-arrow"
+          className="gz-icon-button flex-shrink-0"
           onClick={provided.onPreviousMonth}
           disabled={disabled}
           aria-label="Previous month"
@@ -36,28 +36,28 @@ export function MonthNavigatorView({ required, provided }: MonthNavigatorViewPro
           <i className="bi bi-chevron-left" aria-hidden />
         </button>
 
-        <div className="month-nav-center">
+        <div className={`${styles.center} position-relative flex-grow-1`}>
           <button
             type="button"
-            className="gz-text-button month-nav-trigger"
+            className={`${styles.trigger} btn w-100 d-flex align-items-center justify-content-center gap-2`}
             onClick={provided.onToggleMenu}
             disabled={disabled}
             aria-haspopup="menu"
             aria-expanded={monthMenuOpen}
             aria-label="Choose month"
           >
-            <span className="month-nav-trigger-label">{monthLabel}</span>
-            <span className="month-nav-trigger-caret" aria-hidden>
+            <span className="text-body fw-semibold text-nowrap">{monthLabel}</span>
+            <span aria-hidden>
               <i className="bi bi-chevron-down" aria-hidden />
             </span>
           </button>
 
           {monthMenuOpen ? (
-            <div className="month-nav-menu" role="menu" aria-label="Month actions">
+            <div className="dropdown-menu dropdown-menu-end show" role="menu" aria-label="Month actions">
               {!isCurrentMonth ? (
                 <button
                   type="button"
-                  className="gz-text-button month-nav-menu-item"
+                  className="dropdown-item"
                   role="menuitem"
                   onClick={provided.onGoToCurrentMonth}
                   disabled={disabled}
@@ -68,7 +68,7 @@ export function MonthNavigatorView({ required, provided }: MonthNavigatorViewPro
               ) : null}
               <button
                 type="button"
-                className="gz-text-button month-nav-menu-item"
+                className="dropdown-item"
                 role="menuitem"
                 onClick={provided.onOpenMonthPicker}
                 disabled={disabled}
@@ -82,7 +82,7 @@ export function MonthNavigatorView({ required, provided }: MonthNavigatorViewPro
 
         <button
           type="button"
-          className="gz-text-button month-nav-arrow"
+          className="gz-icon-button flex-shrink-0"
           onClick={provided.onNextMonth}
           disabled={disabled}
           aria-label="Next month"

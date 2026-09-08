@@ -12,8 +12,6 @@ type TrendPeriod = {
   end: Date;
 };
 
-const TREND_PERIODS = 6;
-
 function startOfUtcMonth(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
 }
@@ -31,10 +29,14 @@ function periodKey(date: Date): string {
   return `${date.getUTCFullYear()}-${month}`;
 }
 
-function buildTrendPeriods(now: Date): TrendPeriod[] {
+function buildTrendPeriods(firstMonth: Date, now: Date): TrendPeriod[] {
   const currentMonth = startOfUtcMonth(now);
-  const firstMonth = addUtcMonths(currentMonth, 1 - TREND_PERIODS);
-  return Array.from({ length: TREND_PERIODS }, (_, index) => {
+  const monthCount = (currentMonth.getUTCFullYear() - firstMonth.getUTCFullYear()) * 12
+    + currentMonth.getUTCMonth() - firstMonth.getUTCMonth() + 1;
+  if (monthCount < 1) {
+    return [];
+  }
+  return Array.from({ length: monthCount }, (_, index) => {
     const start = addUtcMonths(firstMonth, index);
     return {
       periodKey: periodKey(start),
@@ -58,7 +60,17 @@ export function ledgerTransactionBalanceDelta(transaction: LedgerTransactionList
 }
 
 export function buildAccountBalanceTrend(input: BuildAccountBalanceTrendInput): LedgerNetWorthTrendPoint[] | undefined {
-  const periods = buildTrendPeriods(input.now);
+  const firstPostedTransactionMonth = input.transactions
+    .filter((transaction) => transaction.status === 'posted')
+    .map((transaction) => new Date(transaction.occurredAt))
+    .filter((occurredAt) => !Number.isNaN(occurredAt.getTime()))
+    .sort((left, right) => left.getTime() - right.getTime())
+    .at(0);
+  if (!firstPostedTransactionMonth) {
+    return undefined;
+  }
+
+  const periods = buildTrendPeriods(startOfUtcMonth(firstPostedTransactionMonth), input.now);
   const trend = periods.map((period) => {
     const balanceAmount = input.transactions
       .filter((transaction) => {

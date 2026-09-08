@@ -9,7 +9,7 @@
   min-height: var(--touch-target-min);
   padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-full);
   background: var(--color-surface-primary);
   color: var(--color-text-secondary);
   white-space: nowrap;
@@ -46,19 +46,22 @@
 .gz-text-button {
   min-height: var(--touch-target-min);
   padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border-default);
+  border: 0;
+  border-radius: var(--radius-none);
   background: transparent;
   color: var(--color-action-primary);
+  font-size: var(--type-action-secondary-font-size);
+  font-weight: var(--type-action-secondary-font-weight);
+  line-height: var(--type-action-secondary-line-height);
   transition: background-color var(--motion-duration-fast) var(--motion-easing-standard), color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .gz-text-button:hover { background: var(--color-brand-soft); color: var(--color-action-primary-hover); }
 
-.gz-text-button:active { background: var(--color-action-primary); color: var(--color-on-brand); }
+.gz-text-button:active { background: var(--color-brand-soft); color: var(--color-action-primary); }
 
 .gz-text-button:focus-visible,
-.gz-icon-button:focus-visible { outline: 3px solid var(--color-action-primary-focus); outline-offset: 2px; }
+.gz-icon-button:focus-visible { outline: 2px solid var(--color-action-primary-focus); outline-offset: 2px; }
 
 .gz-text-button:disabled,
 .gz-icon-button:disabled { cursor: not-allowed; opacity: 0.6; }
@@ -83,11 +86,11 @@
 
 .gz-icon-button:hover { background: var(--color-surface-muted); }
 
-.gz-icon-button:active { background: var(--color-brand-soft); }
+.gz-icon-button:active { background: var(--color-brand-soft); color: var(--color-action-primary); }
 
 .gz-icon-button .bi {
   line-height: 1;
-  font-size: 1rem;
+  font-size: 20px;
 }
 
 .gz-inline-checkbox {
@@ -99,7 +102,7 @@
 .gz-item-editor {
   padding: var(--space-md);
   border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--color-surface-muted);
 }
 
@@ -125,7 +128,7 @@
 }
 
 .gz-detail-meta-label {
-  font-size: 0.72rem;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -133,7 +136,7 @@
 .gz-composer-more-options {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
   align-self: flex-start;
   min-height: 0;
   margin: 2px 0 14px;

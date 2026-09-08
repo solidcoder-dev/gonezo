@@ -139,7 +139,7 @@ export function MovementSplitManagerView({ required, provided }: MovementSplitMa
               {showRowActions ? (
                 <details className={styles.rowActions}>
                   <summary
-                    className={`gz-text-button gz-icon-button ${styles.menuButton}`}
+                    className={`gz-icon-button ${styles.menuButton}`}
                     role="button"
                     aria-label={`Item actions for ${item.name}`}
                     aria-disabled={status.disabled}

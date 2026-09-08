@@ -217,7 +217,7 @@ function ScheduleDateInput({
         />
         <button
           type="button"
-          className="gz-text-button gz-icon-button composer-recurring-date-button"
+          className="gz-icon-button composer-recurring-date-button"
           aria-label="Open calendar"
           onClick={() => pickerRef.current?.showPicker?.()}
         >
@@ -276,12 +276,12 @@ function EditorHeader({
       {step === 'summary' ? (
         null
       ) : (
-        <button type="button" className="gz-text-button gz-icon-button" aria-label="Back to schedule summary" onClick={onBack}>
+        <button type="button" className="gz-icon-button" aria-label="Back to schedule summary" onClick={onBack}>
           <i className="bi bi-arrow-left" aria-hidden />
         </button>
       )}
       <h3>{title}</h3>
-      <button type="button" className="gz-text-button gz-icon-button" aria-label="Close schedule editor" onClick={onClose}>
+      <button type="button" className="gz-icon-button" aria-label="Close schedule editor" onClick={onClose}>
         <i className="bi bi-x-lg" aria-hidden />
       </button>
     </div>

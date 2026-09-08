@@ -60,7 +60,7 @@ describe('YearMonthSelectorView', () => {
     expect(onSelectMonth).toHaveBeenCalledWith(3);
   });
 
-  it('marks viewed and current months with specific classes', () => {
+  it('exposes viewed and current month states semantically', () => {
     render(
       <YearMonthSelectorView
         required={{
@@ -79,7 +79,7 @@ describe('YearMonthSelectorView', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Select APR 2026' })).toHaveClass('month-selector-month-button--viewed');
-    expect(screen.getByRole('button', { name: 'Select JUN 2026' })).toHaveClass('month-selector-month-button--current');
+    expect(screen.getByRole('button', { name: 'Select APR 2026' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Select JUN 2026' })).toHaveAttribute('aria-current', 'date');
   });
 });

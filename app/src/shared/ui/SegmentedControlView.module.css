@@ -40,7 +40,7 @@
 .quiet .selected,
 .quiet .selected:hover:not(:disabled) {
   background: var(--color-brand-soft);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-full);
   box-shadow: none;
   color: var(--color-action-primary-selected);
 }

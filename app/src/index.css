@@ -16,7 +16,6 @@ body {
   overflow-x: hidden;
   color: var(--color-text-primary);
   font-family: var(--font-family-body);
-  background: radial-gradient(circle at 50% -10%, var(--color-surface-primary) 0, var(--color-surface-secondary) 58%, var(--color-surface-primary) 100%);
 }
 
 /* Bootstrap owns control styling; this shared floor applies only to native

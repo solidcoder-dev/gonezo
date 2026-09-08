@@ -68,13 +68,10 @@ El checker bloquea colores directos fuera del tema, `!important`, z-index numér
 | `src/account/application/AccountSummary/AccountSummaryComponent.css` | account | Composición de app shell todavía compartida con vistas antiguas | Migrar cuando la pantalla de account se pase a CSS Modules completos |
 | `src/account/ui/AccountSwitcher/AccountSwitcherView.css` | account | Reutilizado por el flujo de cambio de cuenta | Convertir a Module cuando el switcher tenga owner claro |
 | `src/imports/ui/TransactionsImportView.css` | imports | Pantalla legacy de importación con dependencias compartidas | Encapsular al tocar el flujo de importación |
-| `src/movements/ui/MonthNavigator/MonthNavigatorView.css` | movements | Navegación sticky reutilizada por varias vistas | Migrar con el shell de movements |
-| `src/movements/ui/MonthPickerModal/MonthPickerModalView.css` | movements | Modal con selectores compartidos y portal | Convertir cuando el modal quede local al componente |
 | `src/movements/ui/MonthlyMovements/MonthlyMovementsView.css` | movements | Vista legacy aún con layout global parcial | Migrar cuando se normalice el timeline |
 | `src/movements/ui/MovementDetail/MovementDetailView.css` | movements | Detalle con dependencias históricas y sticky structure | Separar en Module por subcomponentes |
 | `src/movements/ui/MovementSection/MovementSectionView.css` | movements | Sección compartida dentro de la pantalla legacy | Migrar junto con el detalle |
 | `src/movements/ui/MovementsSearch/MovementsSearch.css` | movements | Búsqueda de movimientos con selectores globales existentes | Encapsular cuando el buscador pase a Module |
-| `src/movements/ui/YearMonthSelector/YearMonthSelectorView.css` | movements | Selector de periodo todavía consumido por varias pantallas | Migrar sin cambiar el contrato de teclado |
 | `src/movements/ui/movements.css` | movements | Estilos agregados del shell de movements | Reducir a primitives o Modules por vista |
 | `src/shared/ui/BottomNavigation/BottomNavigationView.css` | shared/ui | Navegación fija del app shell | Migrar solo si el shell deja de compartir el mismo contenedor |
 | `src/shared/ui/FloatingActionButton/FloatingActionButtonView.css` | shared/ui | Botón flotante controlado por safe area del shell | Pasar a Module cuando el shell exponga el slot local |

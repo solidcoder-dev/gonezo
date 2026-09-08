@@ -1,0 +1,16 @@
+.navigator {
+  top: calc(var(--app-safe-area-top) + var(--app-header-height));
+  z-index: var(--z-sticky);
+  min-height: var(--touch-target-min);
+  padding-block: var(--space-xs);
+}
+
+.trigger {
+  min-height: var(--touch-target-min);
+  border: 0;
+  color: var(--color-text-primary);
+}
+
+.center {
+  min-width: 0;
+}

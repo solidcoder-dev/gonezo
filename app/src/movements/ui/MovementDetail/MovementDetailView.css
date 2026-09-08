@@ -15,7 +15,7 @@
   margin: 0;
   min-width: 0;
   font-size: 1.15rem;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
 }
 
 .movement-detail-header h2 {
@@ -35,41 +35,16 @@
   justify-content: flex-end;
 }
 
-.movement-detail-overflow {
-  position: absolute;
-  top: calc(100% + 0.25rem);
-  right: 0;
-  z-index: var(--z-detail);
-  min-width: 180px;
-  padding: 0.5rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 16px;
-  background: var(--color-surface-primary);
-  box-shadow: var(--shadow-md);
-}
-
-.movement-detail-overflow-action {
-  width: 100%;
-  padding: 12px 14px;
-  border: 0;
-  border-radius: 12px;
-  background: var(--color-expense-soft);
-  color: var(--color-expense);
-  font: inherit;
-  font-weight: 700;
-  text-align: left;
-}
-
 .movement-detail-section,
 .movement-detail-tags-block {
   display: grid;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .movement-detail-section-title {
   color: var(--color-text-muted);
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -78,7 +53,7 @@
   display: grid;
   gap: 14px;
   padding: 16px;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
 }
 
 .movement-detail-hero--expense {
@@ -129,12 +104,12 @@
 
 .movement-detail-hero-copy strong {
   font-size: 1.3rem;
-  font-weight: 800;
+  font-weight: var(--font-weight-semibold);
 }
 
 .movement-detail-hero-copy span {
   color: var(--color-text-secondary);
-  font-size: 0.92rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
 }
 
@@ -215,7 +190,7 @@
 .movement-detail-row-value {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm);
   min-width: 0;
   margin-left: 12px;
 }
@@ -236,7 +211,7 @@
 .movement-detail-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
   min-height: 28px;
   padding: 0 10px;
   border-radius: 999px;
@@ -279,10 +254,10 @@
 .movement-detail-search {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm);
   padding: 12px 14px;
   border: 1px solid var(--color-border-subtle);
-  border-radius: 14px;
+  border-radius: var(--radius-sm);
   background: var(--color-surface-muted);
 }
 

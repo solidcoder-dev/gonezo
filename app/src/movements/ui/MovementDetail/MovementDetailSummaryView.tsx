@@ -37,7 +37,7 @@ export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryView
     <div className={styles.header}>
       <button
         type="button"
-        className="gz-text-button gz-icon-button"
+        className="gz-icon-button"
         aria-label="Back to movements"
         onClick={onGoBack}
       >
@@ -48,7 +48,7 @@ export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryView
         {overflowActions.length > 0 ? (
           <button
             type="button"
-            className="gz-text-button gz-icon-button"
+            className="gz-icon-button"
             aria-label="Movement actions"
             aria-haspopup="menu"
             aria-expanded={overflowOpen}
@@ -59,12 +59,12 @@ export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryView
         ) : null}
       </div>
       {overflowOpen && overflowActions.length > 0 ? (
-        <div className={styles.overflow} role="menu" aria-label="Movement actions">
+        <div className="dropdown-menu dropdown-menu-end show shadow-sm" role="menu" aria-label="Movement actions">
           {overflowActions.map((action) => (
             <button
               key={action.id}
               type="button"
-              className={`${styles.overflowAction} ${action.destructive ? styles.overflowActionDestructive : ''}`}
+              className={`dropdown-item${action.destructive ? ' text-danger' : ''}`}
               role="menuitem"
               onClick={() => onRunOverflowAction(action)}
               disabled={(action.id === 'void-posted' && pendingVoid) || (action.id === 'stop-recurring-series' && deactivating) || (action.id === 'dismiss-expected' && dismissingExpected)}

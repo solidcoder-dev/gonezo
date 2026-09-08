@@ -35,5 +35,5 @@
 
 .list { margin: 0; padding: 0; list-style: none; }
 .skeleton { display: grid; gap: var(--space-sm); padding-top: var(--space-xs); }
-.skeletonRow { display: block; height: 68px; border-radius: var(--radius-sm); background: var(--color-surface-secondary); animation: home-recent-pulse 1.3s ease-in-out infinite alternate; }
+.skeletonRow { display: block; height: 68px; border-radius: var(--radius-none); background: var(--color-surface-secondary); animation: home-recent-pulse 1.3s ease-in-out infinite alternate; }
 @keyframes home-recent-pulse { from { opacity: 0.55; } to { opacity: 1; } }

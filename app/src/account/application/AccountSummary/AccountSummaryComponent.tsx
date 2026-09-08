@@ -59,7 +59,7 @@ export function AccountSummaryComponent({ required, provided = {} }: AccountSumm
           {required.config.headerSlot ?? <h2>{summary.name}</h2>}
           <button
             type="button"
-            className="gz-text-button gz-icon-button summary-menu-button"
+            className="gz-icon-button summary-menu-button"
             aria-label="Account settings"
             onClick={openManage}
             disabled={managing}

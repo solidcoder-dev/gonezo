@@ -69,12 +69,14 @@ describe('buildNetWorthByCurrency', () => {
     const items = buildNetWorthByCurrency({
       accounts: [account({ id: 'eur-1', currency: 'EUR' }), account({ id: 'usd-1', currency: 'USD' })],
       transactions: [
+        transaction({ id: 'eur-history', accountId: 'eur-1', amount: '25.00', occurredAt: '2025-10-03T00:00:00.000Z' }),
         transaction({ id: 'eur-opening', accountId: 'eur-1', amount: '100.00', occurredAt: '2026-01-03T00:00:00.000Z' }),
         transaction({ id: 'eur-expense', accountId: 'eur-1', type: 'expense', amount: '15.00', occurredAt: '2026-03-10T00:00:00.000Z' }),
         transaction({ id: 'eur-transfer-out', accountId: 'eur-1', type: 'transfer_out', amount: '10.00', occurredAt: '2026-04-01T00:00:00.000Z' }),
         transaction({ id: 'eur-transfer-in', accountId: 'eur-1', type: 'transfer_in', amount: '10.00', occurredAt: '2026-04-01T00:00:00.000Z' }),
         transaction({ id: 'usd-opening', accountId: 'usd-1', amount: '50.00', currency: 'USD', occurredAt: '2026-02-01T00:00:00.000Z' }),
         transaction({ id: 'eur-voided', accountId: 'eur-1', status: 'voided', amount: '999.00', occurredAt: '2026-05-01T00:00:00.000Z' }),
+        transaction({ id: 'eur-invalid', accountId: 'eur-1', amount: '0.00', occurredAt: 'invalid-date' }),
       ],
       now: new Date('2026-06-22T00:00:00.000Z'),
     });
@@ -82,14 +84,17 @@ describe('buildNetWorthByCurrency', () => {
     expect(items).toEqual([
       expect.objectContaining({
         currency: 'EUR',
-        balanceAmount: '85.00',
-        trend: [
-          { period: '2026-01', periodKey: '2026-01', label: 'Jan', balanceAmount: '100.00' },
-          { period: '2026-02', periodKey: '2026-02', label: 'Feb', balanceAmount: '100.00' },
-          { period: '2026-03', periodKey: '2026-03', label: 'Mar', balanceAmount: '85.00' },
-          { period: '2026-04', periodKey: '2026-04', label: 'Apr', balanceAmount: '85.00' },
-          { period: '2026-05', periodKey: '2026-05', label: 'May', balanceAmount: '85.00' },
-          { period: '2026-06', periodKey: '2026-06', label: 'Jun', balanceAmount: '85.00' },
+          balanceAmount: '110.00',
+          trend: [
+          { period: '2025-10', periodKey: '2025-10', label: 'Oct', balanceAmount: '25.00' },
+          { period: '2025-11', periodKey: '2025-11', label: 'Nov', balanceAmount: '25.00' },
+          { period: '2025-12', periodKey: '2025-12', label: 'Dec', balanceAmount: '25.00' },
+          { period: '2026-01', periodKey: '2026-01', label: 'Jan', balanceAmount: '125.00' },
+          { period: '2026-02', periodKey: '2026-02', label: 'Feb', balanceAmount: '125.00' },
+          { period: '2026-03', periodKey: '2026-03', label: 'Mar', balanceAmount: '110.00' },
+          { period: '2026-04', periodKey: '2026-04', label: 'Apr', balanceAmount: '110.00' },
+          { period: '2026-05', periodKey: '2026-05', label: 'May', balanceAmount: '110.00' },
+          { period: '2026-06', periodKey: '2026-06', label: 'Jun', balanceAmount: '110.00' },
         ],
       }),
       expect.objectContaining({
@@ -107,7 +112,7 @@ describe('buildNetWorthByCurrency', () => {
     });
 
     expect(items).toEqual([expect.objectContaining({ currency: 'GBP', balanceAmount: '0.00', accountCount: 1 })]);
-    expect(items[0]?.trend).toHaveLength(6);
+    expect(items[0]?.trend).toBeUndefined();
   });
 
   it('counts archived accounts in the same currency balance read model', () => {
