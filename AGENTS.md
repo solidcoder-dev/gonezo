@@ -35,12 +35,13 @@ Before editing, load the relevant skills from `.agents/skills`.
 
 ## Pre-edit checklist
 
-1. Identify the affected runtime: Android, frontend, core, imports, backup, tests, or docs.
-2. Identify the affected bounded context: ledger, taxonomy, recurrence/scheduling, expected, imports/backup, analytics, account, preferences, or shared.
-3. Load the required skills from the routing rules above.
-4. Inspect nearby files and follow the closest existing pattern.
-5. Decide whether the change is domain, application, infrastructure, UI, persistence, native bridge, or test code.
-6. Preserve existing public contracts unless the user explicitly asks for a breaking change.
+1. Identify the task's runtime and likely bounded context from the request: Android, frontend, core, imports, backup, tests, or docs; and ledger, taxonomy, recurrence/scheduling, expected, imports/backup, analytics, account, preferences, or shared.
+2. If CodeGraph MCP is available and broader exploration is needed, query its code intelligence first, using symbol/context search or `get_ai_context` to narrow the relevant files and symbols. Do not require CodeGraph when the exact target files are already known and no broader impact analysis is necessary.
+3. Use CodeGraph only for discovery and context reduction; source code, Gonezo architecture/domain documentation, `AGENTS.md`, and `.agents/skills` remain authoritative. Do not trust cached results over actual source.
+4. Load the required skills from the routing rules above.
+5. Read the identified source files and inspect nearby files, following the closest existing pattern. Fall back to direct repository search and inspection whenever CodeGraph is unavailable or insufficient.
+6. Determine the relevant contracts and tests before editing.
+7. Preserve existing public contracts unless the user explicitly asks for a breaking change.
 
 ## Verification commands
 

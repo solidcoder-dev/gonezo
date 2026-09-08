@@ -11,6 +11,10 @@ Gonezo is an Android-first React + TypeScript + Kotlin app.
 - Core: `./scripts/verify.sh core`
 - E2E: `./scripts/verify.sh frontend-e2e` (Docker)
 
+## AI-assisted development
+
+Gonezo optionally uses CodeGraph MCP to reduce repository exploration by coding agents. It is development-only and is not required to build Gonezo. Setup is documented in [`docs/codegraph.md`](docs/codegraph.md).
+
 Local setup uses Node `22.14.0`, Java `21`, the committed npm lockfile, and the Gradle wrapper. Run `cd app && npm ci` after dependency changes.
 
 ## Static Analysis

@@ -10,3 +10,4 @@ Current implementation priority is Android. The React UI is still shared, but pr
 - `mobills-import.md`: importacion Mobills legado como orquestacion multi-dominio.
 - `frontend-architecture.md`: estructura frontend por dominios/capas (`ledger`, `taxonomy`, `imports`, `account`, `shared`).
 - `speech-transcription.md`: contrato y límites de la transcripción local Android.
+- `codegraph.md`: configuración de CodeGraph MCP para inteligencia de código durante el desarrollo asistido por IA.
