@@ -2,7 +2,6 @@ package com.gonezo.application.orchestration.backup
 
 import com.gonezo.application.ConsistencyBoundary
 import com.gonezo.application.ImmediateConsistencyBoundary
-import com.gonezo.domain.shared.Money
 import com.gonezo.ledger.domain.Account
 import com.gonezo.ledger.domain.AccountId
 import com.gonezo.ledger.domain.AccountStatus
@@ -10,9 +9,6 @@ import com.gonezo.ledger.domain.AccountType
 import com.gonezo.ledger.domain.CurrencyCode
 import com.gonezo.ledger.domain.Transaction
 import com.gonezo.ledger.domain.TransactionId
-import com.gonezo.ledger.domain.TransactionItem
-import com.gonezo.ledger.domain.TransactionItemId
-import com.gonezo.ledger.domain.TransactionStatus
 import com.gonezo.ledger.domain.TransactionType
 import com.gonezo.ledger.domain.ports.LedgerAccountRepository
 import com.gonezo.ledger.domain.ports.LedgerTransactionRepository
@@ -29,10 +25,9 @@ import com.gonezo.taxonomy.domain.ports.CategoryRepository
 import com.gonezo.taxonomy.domain.ports.TagRepository
 import com.gonezo.taxonomy.domain.ports.TransactionCategoryAssignmentRepository
 import com.gonezo.taxonomy.domain.ports.TransactionTagAssignmentRepository
-import java.math.BigDecimal
 import java.time.Instant
 
-class ImportMovementsBackupService(private val accountRepository: LedgerAccountRepository, private val transactionRepository: LedgerTransactionRepository, private val categoryRepository: CategoryRepository, private val tagRepository: TagRepository, private val categoryAssignmentRepository: TransactionCategoryAssignmentRepository, private val tagAssignmentRepository: TransactionTagAssignmentRepository, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary) : ImportMovementsBackupUC {
+class ImportMovementsBackupService(private val accountRepository: LedgerAccountRepository, private val transactionRepository: LedgerTransactionRepository, private val categoryRepository: CategoryRepository, private val tagRepository: TagRepository, private val categoryAssignmentRepository: TransactionCategoryAssignmentRepository, private val tagAssignmentRepository: TransactionTagAssignmentRepository, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary, private val transactionFactory: BackupTransactionFactory = BackupTransactionFactory(accountRepository, categoryRepository)) : ImportMovementsBackupUC {
     override fun execute(command: ImportMovementsBackupCommand): ImportMovementsBackupResult = consistencyBoundary.withinConsistencyBoundary {
         require(command.snapshot.schemaVersion in SUPPORTED_SCHEMA_VERSIONS) {
             "Unsupported backup schema version: ${command.snapshot.schemaVersion}"
@@ -117,7 +112,7 @@ class ImportMovementsBackupService(private val accountRepository: LedgerAccountR
         }
 
         return try {
-            val transaction = toTransaction(schemaVersion, movement)
+            val transaction = transactionFactory.create(schemaVersion, movement)
             transactionRepository.save(transaction)
             importTaxonomyAssignments(transaction, movement, importedAt)
             ImportMovementsBackupRowResult(
@@ -140,59 +135,6 @@ class ImportMovementsBackupService(private val accountRepository: LedgerAccountR
                 errorMessage = error.message ?: "Import failed",
             )
         }
-    }
-
-    private fun toTransaction(schemaVersion: Int, movement: BackupPostedMovement): Transaction {
-        val type = TransactionType.from(movement.type)
-        val linkedTransactionId =
-            movement.linkedTransactionId
-                ?.trim()
-                ?.ifBlank { null }
-                ?.let(TransactionId::from)
-        if (type.requiresLinkedTransaction() && (schemaVersion < 2 || linkedTransactionId == null)) {
-            throw BackupImportRowException(
-                code = "UNSUPPORTED_BACKUP_ROW",
-                message = "Backup schema version $schemaVersion cannot import transfer row ${movement.id}",
-            )
-        }
-
-        val accountId = AccountId.from(movement.accountId)
-        if (!accountRepository.exists(accountId)) {
-            throw BackupImportRowException(
-                code = "ACCOUNT_NOT_FOUND",
-                message = "Account not found: ${movement.accountId}",
-            )
-        }
-
-        return Transaction(
-            id = TransactionId.from(movement.id),
-            accountId = accountId,
-            type = type,
-            amount = Money(BigDecimal(movement.amount), CurrencyCode.from(movement.currency).value),
-            occurredAt = movement.occurredAt,
-            description = movement.description,
-            merchant = movement.merchant,
-            status = TransactionStatus.from(movement.status),
-            items =
-            movement.splitItems.map { item ->
-                val itemCategoryId =
-                    item.categoryId
-                        ?.trim()
-                        ?.ifBlank { null }
-                        ?.let(CategoryId::from)
-                if (itemCategoryId != null && categoryRepository.findById(itemCategoryId) == null) {
-                    throw BackupImportRowException("CATEGORY_NOT_FOUND", "Category not found: $itemCategoryId")
-                }
-                TransactionItem(
-                    id = TransactionItemId.from(item.id),
-                    name = item.name,
-                    amount = Money(BigDecimal(item.amount), CurrencyCode.from(item.currency).value),
-                    note = item.note,
-                    categoryId = item.categoryId,
-                )
-            },
-            linkedTransactionId = linkedTransactionId,
-        )
     }
 
     private fun importTaxonomyAssignments(transaction: Transaction, movement: BackupPostedMovement, importedAt: Instant) {
@@ -243,8 +185,6 @@ class ImportMovementsBackupService(private val accountRepository: LedgerAccountR
         }
     }
 
-    private fun TransactionType.requiresLinkedTransaction(): Boolean = this == TransactionType.TRANSFER_IN || this == TransactionType.TRANSFER_OUT
-
     private fun TransactionType.categoryAppliesTo(): CategoryAppliesTo? = when (this) {
         TransactionType.EXPENSE -> CategoryAppliesTo.EXPENSE
 
@@ -255,8 +195,6 @@ class ImportMovementsBackupService(private val accountRepository: LedgerAccountR
         TransactionType.TRANSFER_OUT,
         -> null
     }
-
-    private class BackupImportRowException(val code: String, override val message: String) : RuntimeException(message)
 
     private companion object {
         val SUPPORTED_SCHEMA_VERSIONS = 1..2
