@@ -115,11 +115,6 @@ import type {
   SharingPlannedShareResult,
 } from '../../sharing/application/sharing.port';
 import {
-  collectWebMovementsBackupExport,
-  summarizeWebMovementsBackupExport,
-  webMovementsBackupFileName,
-} from '../../imports/infrastructure/webBackup';
-import {
   defaultWebRuntimeDependencies,
   type WebRuntimeDependencies,
 } from './webRuntimeDependencies';
@@ -143,6 +138,7 @@ import { WebPreferencesService } from './webPreferencesService';
 import { WebConfirmationProjectionService } from './webConfirmationProjectionService';
 import { WebApplicationBackupService } from './webApplicationBackupService';
 import { WebMovementsBackupImportService } from './webMovementsBackupImportService';
+import { WebMovementsBackupService } from './webMovementsBackupService';
 
 export type CoreAdapterWebOptions = {
   state?: WebAppState;
@@ -163,6 +159,7 @@ export class CoreAdapterWeb implements CorePort {
   private readonly confirmationProjectionService: WebConfirmationProjectionService;
   private readonly applicationBackupService: WebApplicationBackupService;
   private readonly movementsBackupImportService: WebMovementsBackupImportService;
+  private readonly movementsBackupService: WebMovementsBackupService;
 
   constructor(options: CoreAdapterWebOptions = {}) {
     this.state = options.state ?? defaultWebAppState;
@@ -213,6 +210,7 @@ export class CoreAdapterWeb implements CorePort {
     this.confirmationProjectionService = new WebConfirmationProjectionService(this.schedulingService, this.expectedMovementsService);
     this.applicationBackupService = new WebApplicationBackupService(this.state, this.dependencies.clock, this.dependencies.backupDownloader);
     this.movementsBackupImportService = new WebMovementsBackupImportService(this.state);
+    this.movementsBackupService = new WebMovementsBackupService(this.dependencies.clock, this.dependencies.backupDownloader);
   }
 
   async preferencesGet(): Promise<UserPreferencesResult> { return this.preferencesService.get(); }
@@ -374,12 +372,7 @@ export class CoreAdapterWeb implements CorePort {
   }
 
   async movementsExportBackup(): Promise<MovementsBackupExportResult> {
-    const exportData = await collectWebMovementsBackupExport(this, this.dependencies.clock.nowIso());
-    const fileName = webMovementsBackupFileName(exportData.exportedAt);
-    const json = JSON.stringify(exportData, null, 2);
-    this.dependencies.backupDownloader.downloadJson(fileName, json);
-
-    return summarizeWebMovementsBackupExport(exportData, fileName);
+    return this.movementsBackupService.export(this);
   }
 
   async movementsImportBackup(input: MovementsBackupImportInput): Promise<MovementsBackupImportResult> {
