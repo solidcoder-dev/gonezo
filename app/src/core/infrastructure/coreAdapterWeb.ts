@@ -164,6 +164,7 @@ export class CoreAdapterWeb implements CorePort {
   private readonly movementsService: WebMovementsService;
   private readonly sharingService: WebSharingService;
   private readonly analyticsExclusionService: WebAnalyticsExclusionService;
+  private readonly movementReuseSuggestionsService: WebMovementReuseSuggestionsService;
 
   constructor(options: CoreAdapterWebOptions = {}) {
     this.state = options.state ?? defaultWebAppState;
@@ -202,6 +203,7 @@ export class CoreAdapterWeb implements CorePort {
       expected: this.expectedMovementsService,
     });
     this.analyticsExclusionService = new WebAnalyticsExclusionService(this.state, this.dependencies);
+    this.movementReuseSuggestionsService = new WebMovementReuseSuggestionsService(this.state);
     this.movementsService = new WebMovementsService({
       state: this.state,
       ledger: this.ledgerService,
@@ -474,7 +476,7 @@ export class CoreAdapterWeb implements CorePort {
   async movementsGetSearchFacets(input: MovementsSearchFacetsInput): Promise<MovementsSearchFacetsResult> { return this.movementsService.getSearchFacets(input); }
   async movementsListScheduled(input: MovementsListScheduledInput): Promise<MovementsListScheduledResult> { return this.movementsService.listScheduled(input); }
   async movementsGetDetail(input: MovementsGetDetailInput): Promise<MovementsGetDetailResult> { return this.movementsService.getDetail(input); }
-  async movementReuseSearchGroups(input: MovementReuseSuggestionsSearchInput) { return new WebMovementReuseSuggestionsService(this.state).movementReuseSearchGroups(input); } async movementReuseListVariants(input: MovementReuseSuggestionsVariantsInput) { return new WebMovementReuseSuggestionsService(this.state).movementReuseListVariants(input); } async movementReuseGetTemplate(input: { representativeMovementId: string }) { return new WebMovementReuseSuggestionsService(this.state).movementReuseGetTemplate(input); }
+  async movementReuseSearchGroups(input: MovementReuseSuggestionsSearchInput) { return this.movementReuseSuggestionsService.movementReuseSearchGroups(input); } async movementReuseListVariants(input: MovementReuseSuggestionsVariantsInput) { return this.movementReuseSuggestionsService.movementReuseListVariants(input); } async movementReuseGetTemplate(input: { representativeMovementId: string }) { return this.movementReuseSuggestionsService.movementReuseGetTemplate(input); }
   async analyticsSetMovementIgnored(input: AnalyticsSetMovementIgnoredInput): Promise<void> { this.analyticsExclusionService.setMovementIgnored(input); }
   async analyticsListIgnoredMovements() { return this.analyticsExclusionService.listIgnoredMovements(); }
   private async projectNextConfirmationRequiredOccurrence(recurringMovementId: string): Promise<void> {
