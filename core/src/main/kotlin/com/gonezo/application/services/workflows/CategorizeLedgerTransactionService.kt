@@ -3,6 +3,7 @@ package com.gonezo.application.orchestration
 import com.gonezo.application.orchestration.CategorizationStatus
 import com.gonezo.application.orchestration.CategorizeLedgerTransactionCommand
 import com.gonezo.application.orchestration.CategorizeLedgerTransactionUC
+import com.gonezo.application.orchestration.CategorizationFailed
 import com.gonezo.application.orchestration.ProcessTransactionCategorizationCommand
 import com.gonezo.application.orchestration.ProcessTransactionCategorizationUC
 import com.gonezo.application.orchestration.TxCategorizationState
@@ -11,6 +12,7 @@ import com.gonezo.taxonomy.application.CreateCategoryUC
 import com.gonezo.taxonomy.domain.CategoryAppliesTo
 import com.gonezo.taxonomy.domain.CategoryId
 import com.gonezo.taxonomy.domain.ports.CategoryRepository
+import com.gonezo.taxonomy.application.TaxonomyCategoryNotFound
 
 class CategorizeLedgerTransactionService(private val categoryRepository: CategoryRepository, private val createCategoryUC: CreateCategoryUC, private val processCategorizationUC: ProcessTransactionCategorizationUC) : CategorizeLedgerTransactionUC {
     override fun execute(command: CategorizeLedgerTransactionCommand): TxCategorizationState {
@@ -60,20 +62,7 @@ class CategorizeLedgerTransactionService(private val categoryRepository: Categor
                 ),
             )
 
-        if (state.status == CategorizationStatus.FAILED) {
-            val message =
-                buildString {
-                    append("Categorization failed")
-                    if (!state.errorCode.isNullOrBlank()) {
-                        append(": ")
-                        append(state.errorCode)
-                    } else if (!state.errorMessage.isNullOrBlank()) {
-                        append(": ")
-                        append(state.errorMessage)
-                    }
-                }
-            throw IllegalStateException(message)
-        }
+        if (state.status == CategorizationStatus.FAILED) throw CategorizationFailed(state.errorCode, state.errorMessage)
 
         return state
     }
@@ -81,7 +70,7 @@ class CategorizeLedgerTransactionService(private val categoryRepository: Categor
     private fun requireExistingCategory(categoryId: CategoryId, expectedAppliesTo: CategoryAppliesTo, transactionType: String): CategoryId {
         val category =
             categoryRepository.findById(categoryId)
-                ?: throw IllegalStateException("Category not found: $categoryId")
+                ?: throw TaxonomyCategoryNotFound(categoryId)
         category.ensureCanAssign()
         require(category.appliesTo == expectedAppliesTo) {
             "Category $categoryId applies to ${category.appliesTo.value}, received $transactionType"

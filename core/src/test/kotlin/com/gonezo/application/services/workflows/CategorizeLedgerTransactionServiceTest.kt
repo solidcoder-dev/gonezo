@@ -1,6 +1,7 @@
 package com.gonezo.application.orchestration
 
 import com.gonezo.application.orchestration.CategorizationStatus
+import com.gonezo.application.orchestration.CategorizationFailed
 import com.gonezo.application.orchestration.ProcessTransactionCategorizationCommand
 import com.gonezo.application.orchestration.ProcessTransactionCategorizationUC
 import com.gonezo.application.orchestration.TxCategorizationState
@@ -155,7 +156,7 @@ class CategorizeLedgerTransactionServiceTest {
                     requestedAt = Instant.parse("2026-03-22T12:10:00Z"),
                 ),
             )
-        }.isInstanceOf(IllegalStateException::class.java)
+        }.isInstanceOf(CategorizationFailed::class.java)
             .hasMessageContaining("CATEGORY_NOT_FOUND")
     }
 }

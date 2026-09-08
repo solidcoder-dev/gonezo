@@ -4,6 +4,21 @@ import com.gonezo.taxonomy.domain.CategoryId
 import java.time.Instant
 import java.util.UUID
 
+sealed class CategorizationApplicationException(message: String) : IllegalStateException(message)
+
+class CategorizationFailed(errorCode: String?, errorMessage: String?) : CategorizationApplicationException(
+    buildString {
+        append("Categorization failed")
+        if (!errorCode.isNullOrBlank()) {
+            append(": ")
+            append(errorCode)
+        } else if (!errorMessage.isNullOrBlank()) {
+            append(": ")
+            append(errorMessage)
+        }
+    },
+)
+
 enum class CategorizationStatus(val value: String) {
     PENDING("pending"),
     PROCESSING("processing"),
