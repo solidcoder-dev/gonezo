@@ -121,11 +121,6 @@ import {
   webMovementsBackupFileName,
 } from '../../imports/infrastructure/webBackup';
 import {
-  applyWebApplicationBackup,
-  exportWebApplicationBackup,
-  validateWebApplicationBackup,
-} from '../../imports/infrastructure/webApplicationBackup';
-import {
   defaultWebRuntimeDependencies,
   type WebRuntimeDependencies,
 } from './webRuntimeDependencies';
@@ -151,6 +146,7 @@ import { WebAnalyticsExclusionService } from '../../analytics/infrastructure/web
 import { WebMovementReuseSuggestionsService } from '../../movements/infrastructure/webMovementReuseSuggestionsService'; import type { MovementReuseSuggestionsSearchInput, MovementReuseSuggestionsVariantsInput } from '../../movements/application/movementReuseSuggestions.port';
 import { WebPreferencesService } from './webPreferencesService';
 import { WebConfirmationProjectionService } from './webConfirmationProjectionService';
+import { decodeBase64Utf8, WebApplicationBackupService } from './webApplicationBackupService';
 
 export type CoreAdapterWebOptions = {
   state?: WebAppState;
@@ -169,6 +165,7 @@ export class CoreAdapterWeb implements CorePort {
   private readonly movementReuseSuggestionsService: WebMovementReuseSuggestionsService;
   private readonly preferencesService: WebPreferencesService;
   private readonly confirmationProjectionService: WebConfirmationProjectionService;
+  private readonly applicationBackupService: WebApplicationBackupService;
 
   constructor(options: CoreAdapterWebOptions = {}) {
     this.state = options.state ?? defaultWebAppState;
@@ -217,6 +214,7 @@ export class CoreAdapterWeb implements CorePort {
       expected: this.expectedMovementsService,
     });
     this.confirmationProjectionService = new WebConfirmationProjectionService(this.schedulingService, this.expectedMovementsService);
+    this.applicationBackupService = new WebApplicationBackupService(this.state, this.dependencies.clock, this.dependencies.backupDownloader);
   }
 
   async preferencesGet(): Promise<UserPreferencesResult> { return this.preferencesService.get(); }
@@ -452,24 +450,10 @@ export class CoreAdapterWeb implements CorePort {
     };
   }
   async applicationExportBackup() {
-    const createdAt = this.dependencies.clock.nowIso();
-    const document = exportWebApplicationBackup(this.state, createdAt);
-    const json = JSON.stringify(document, null, 2);
-    const fileName = `gonezo-application-backup-${createdAt.replace(/[:]/g, '-').replace(/\.\d{3}Z$/, 'Z')}.json`;
-    this.dependencies.backupDownloader.downloadJson(fileName, json);
-    return { fileName, createdAt, json };
+    return this.applicationBackupService.exportBackup();
   }
   async applicationImportBackup(input: { fileBase64: string }): Promise<void> {
-    if (!input.fileBase64.trim()) throw new Error('fileBase64 is required');
-    try {
-      const document = validateWebApplicationBackup(JSON.parse(decodeBase64Utf8(input.fileBase64)));
-      applyWebApplicationBackup(this.state, document);
-    } catch (error) {
-      if (error instanceof SyntaxError) {
-        throw new Error('Invalid application backup JSON', { cause: error });
-      }
-      throw error;
-    }
+    this.applicationBackupService.importBackup(input.fileBase64);
   }
   async movementsSearch(input: MovementsSearchInput): Promise<MovementsSearchResult> { return this.movementsService.search(input); }
   async movementsGetSearchFacets(input: MovementsSearchFacetsInput): Promise<MovementsSearchFacetsResult> { return this.movementsService.getSearchFacets(input); }
@@ -479,7 +463,6 @@ export class CoreAdapterWeb implements CorePort {
   async analyticsSetMovementIgnored(input: AnalyticsSetMovementIgnoredInput): Promise<void> { this.analyticsExclusionService.setMovementIgnored(input); }
   async analyticsListIgnoredMovements() { return this.analyticsExclusionService.listIgnoredMovements(); }
 }
-
 function parseWebMovementsBackupImport(fileBase64: string): MovementsBackupExport {
   const json = decodeBase64Utf8(fileBase64);
   const exportData = JSON.parse(json) as MovementsBackupExport;
@@ -487,10 +470,4 @@ function parseWebMovementsBackupImport(fileBase64: string): MovementsBackupExpor
     throw new Error(`Unsupported backup schema version: ${exportData.schemaVersion}`);
   }
   return exportData;
-}
-
-export function decodeBase64Utf8(fileBase64: string): string {
-  const binary = atob(fileBase64);
-  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
 }
