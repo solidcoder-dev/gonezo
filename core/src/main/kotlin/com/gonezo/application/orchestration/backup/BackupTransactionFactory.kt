@@ -10,13 +10,10 @@ import com.gonezo.ledger.domain.TransactionItemId
 import com.gonezo.ledger.domain.TransactionStatus
 import com.gonezo.ledger.domain.TransactionType
 import com.gonezo.ledger.domain.ports.LedgerAccountRepository
-import com.gonezo.taxonomy.domain.CategoryId
-import com.gonezo.taxonomy.domain.ports.CategoryRepository
 import java.math.BigDecimal
 
 class BackupTransactionFactory(
     private val accountRepository: LedgerAccountRepository,
-    private val categoryRepository: CategoryRepository,
 ) {
     fun create(schemaVersion: Int, movement: BackupPostedMovement): Transaction {
         val type = TransactionType.from(movement.type)
@@ -43,10 +40,6 @@ class BackupTransactionFactory(
             merchant = movement.merchant,
             status = TransactionStatus.from(movement.status),
             items = movement.splitItems.map { item ->
-                val itemCategoryId = item.categoryId?.trim()?.ifBlank { null }?.let(CategoryId::from)
-                if (itemCategoryId != null && categoryRepository.findById(itemCategoryId) == null) {
-                    throw BackupImportRowException("CATEGORY_NOT_FOUND", "Category not found: $itemCategoryId")
-                }
                 TransactionItem(
                     id = TransactionItemId.from(item.id),
                     name = item.name,
