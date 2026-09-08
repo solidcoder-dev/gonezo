@@ -149,6 +149,7 @@ import { listAccountBalances } from './accountBalancesQuery';
 import { analyticsGetAnalyticsTopExpenses, analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetFlowReport, analyticsGetOverviewInsights, analyticsGetOverviewSnapshot, analyticsGetPeriodCashFlowSummary, analyticsGetSpendingDashboard, analyticsGetSpendingOverview, analyticsGetSpendingReport, analyticsGetSpendingTimeline, analyticsGetSpendingTopExpenses, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
 import { WebAnalyticsExclusionService } from '../../analytics/infrastructure/webAnalyticsExclusionService';
 import { WebMovementReuseSuggestionsService } from '../../movements/infrastructure/webMovementReuseSuggestionsService'; import type { MovementReuseSuggestionsSearchInput, MovementReuseSuggestionsVariantsInput } from '../../movements/application/movementReuseSuggestions.port';
+import { WebPreferencesService } from './webPreferencesService';
 
 export type CoreAdapterWebOptions = {
   state?: WebAppState;
@@ -165,6 +166,7 @@ export class CoreAdapterWeb implements CorePort {
   private readonly sharingService: WebSharingService;
   private readonly analyticsExclusionService: WebAnalyticsExclusionService;
   private readonly movementReuseSuggestionsService: WebMovementReuseSuggestionsService;
+  private readonly preferencesService: WebPreferencesService;
 
   constructor(options: CoreAdapterWebOptions = {}) {
     this.state = options.state ?? defaultWebAppState;
@@ -204,6 +206,7 @@ export class CoreAdapterWeb implements CorePort {
     });
     this.analyticsExclusionService = new WebAnalyticsExclusionService(this.state, this.dependencies);
     this.movementReuseSuggestionsService = new WebMovementReuseSuggestionsService(this.state);
+    this.preferencesService = new WebPreferencesService(this.state);
     this.movementsService = new WebMovementsService({
       state: this.state,
       ledger: this.ledgerService,
@@ -213,16 +216,9 @@ export class CoreAdapterWeb implements CorePort {
     });
   }
 
-  async preferencesGet(): Promise<UserPreferencesResult> { return { defaultAccountId: this.state.defaultAccountId }; }
-
-  async preferencesSetDefaultAccount(input: PreferencesSetDefaultAccountInput): Promise<void> {
-    const accountId = input.accountId.trim();
-    if (!accountId) {
-      throw new Error('accountId is required');
-    }
-    this.state.defaultAccountId = accountId;
-  }
-  async preferencesClearDefaultAccount(): Promise<void> { this.state.defaultAccountId = null; }
+  async preferencesGet(): Promise<UserPreferencesResult> { return this.preferencesService.get(); }
+  async preferencesSetDefaultAccount(input: PreferencesSetDefaultAccountInput): Promise<void> { this.preferencesService.setDefaultAccount(input); }
+  async preferencesClearDefaultAccount(): Promise<void> { this.preferencesService.clearDefaultAccount(); }
   async accountsListBalances(): Promise<AccountsListBalancesResult> { return listAccountBalances(this); }
   async ledgerOpenAccount(input: LedgerOpenAccountInput): Promise<LedgerOpenAccountResult> { return this.ledgerService.openAccount(input); }
   async ledgerListSupportedCurrencies(): Promise<LedgerListSupportedCurrenciesResult> { return this.ledgerService.listSupportedCurrencies(); }
