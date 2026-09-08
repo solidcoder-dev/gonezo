@@ -75,6 +75,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -100,6 +101,7 @@ public final class AndroidLedgerCore {
   private final GetLedgerAccountBalanceUC getAccountBalanceUC;
   private final AndroidLedgerAccountRepository accountRepository;
   private final AndroidLedgerTransactionRepository transactionRepository;
+  private final AndroidTaxonomyTransactionItemCategoryAssignmentRepository itemCategoryAssignmentRepository;
   private final AndroidMobillsImportFingerprintRepository mobillsImportFingerprintRepository;
   private final GetNetWorthByCurrencyQuery getNetWorthByCurrencyQuery;
   private final AndroidPreferencesCore preferencesCore;
@@ -138,9 +140,10 @@ public final class AndroidLedgerCore {
     );
     this.createExpenseDraftUC = new CreateLedgerExpenseDraftService(accountRepository, transactionRepository);
     this.addTransactionItemUC = new AddLedgerTransactionItemService(transactionRepository, eventPublisher);
+    this.itemCategoryAssignmentRepository = new AndroidTaxonomyTransactionItemCategoryAssignmentRepository(database);
     this.addTransactionItemWithCategoryUC = new AddLedgerTransactionItemWithCategoryService(
       addTransactionItemUC,
-      new AndroidTaxonomyTransactionItemCategoryAssignmentRepository(database)
+      itemCategoryAssignmentRepository
     );
     this.postDraftTransactionUC = new PostLedgerDraftTransactionService(transactionRepository, eventPublisher);
     this.voidTransactionUC = new VoidLedgerTransactionService(
@@ -415,7 +418,7 @@ public final class AndroidLedgerCore {
     Transaction transaction = transactionRepository.findById(
       new TransactionId(UUID.fromString(requireText(transactionId, "movementId is required")))
     );
-    return transaction == null ? null : AndroidLedgerViewMapper.toTransactionView(transaction);
+    return transaction == null ? null : toTransactionView(transaction);
   }
 
   public LedgerTransactionPageView listTransactions(
@@ -425,6 +428,14 @@ public final class AndroidLedgerCore {
     List<LedgerTransactionSortInput> sort
   ) {
     return listTransactions(accountId, filters, pagination, sort, false);
+  }
+
+  private AndroidLedgerCore.LedgerTransactionView toTransactionView(Transaction transaction) {
+    Map<UUID, com.gonezo.taxonomy.domain.TransactionItemCategoryAssignment> itemCategories =
+      itemCategoryAssignmentRepository.findByTransactionItemIds(
+        transaction.getItems().stream().map(item -> item.getId().getValue()).toList()
+      );
+    return AndroidLedgerViewMapper.toTransactionView(transaction, itemCategories);
   }
 
   private LedgerTransactionPageView listTransactions(
@@ -510,7 +521,7 @@ public final class AndroidLedgerCore {
       int totalPages = page.totalElements() == 0 ? 0 : (int) Math.ceil((double) page.totalElements() / pageSize);
       int resolvedPage = totalPages == 0 ? 0 : Math.min(requestedPage, totalPages - 1);
       return new LedgerTransactionPageView(
-        page.content().stream().map(AndroidLedgerViewMapper::toTransactionView).toList(),
+        page.content().stream().map(this::toTransactionView).toList(),
         resolvedPage,
         pageSize,
         page.totalElements(),
@@ -577,7 +588,7 @@ public final class AndroidLedgerCore {
     int end = Math.min(start + pageSize, totalElements);
 
     List<LedgerTransactionView> content = sorted.subList(start, end).stream()
-      .map(AndroidLedgerViewMapper::toTransactionView)
+      .map(this::toTransactionView)
       .toList();
 
     return new LedgerTransactionPageView(

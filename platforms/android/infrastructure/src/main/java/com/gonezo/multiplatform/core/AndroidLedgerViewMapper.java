@@ -2,6 +2,9 @@ package com.gonezo.multiplatform.core;
 
 import com.gonezo.ledger.domain.Account;
 import com.gonezo.ledger.domain.Transaction;
+import com.gonezo.taxonomy.domain.TransactionItemCategoryAssignment;
+import java.util.Map;
+import java.util.UUID;
 import java.util.List;
 
 final class AndroidLedgerViewMapper {
@@ -17,14 +20,19 @@ final class AndroidLedgerViewMapper {
     );
   }
 
-  static AndroidLedgerCore.LedgerTransactionView toTransactionView(Transaction tx) {
+  static AndroidLedgerCore.LedgerTransactionView toTransactionView(
+    Transaction tx,
+    Map<UUID, TransactionItemCategoryAssignment> itemCategories
+  ) {
     List<AndroidLedgerCore.LedgerTransactionItemView> items = tx.getItems().stream()
       .map((item) -> new AndroidLedgerCore.LedgerTransactionItemView(
         item.getId().toString(),
         item.getName(),
         item.getAmount().getAmount().toPlainString(),
         item.getAmount().getCurrency(),
-        null,
+        itemCategories.get(item.getId().getValue()) == null
+          ? null
+          : itemCategories.get(item.getId().getValue()).getCategoryId().getValue().toString(),
         item.getNote()
       ))
       .toList();
