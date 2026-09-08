@@ -150,6 +150,7 @@ import { analyticsGetAnalyticsTopExpenses, analyticsGetCashFlowSeries, analytics
 import { WebAnalyticsExclusionService } from '../../analytics/infrastructure/webAnalyticsExclusionService';
 import { WebMovementReuseSuggestionsService } from '../../movements/infrastructure/webMovementReuseSuggestionsService'; import type { MovementReuseSuggestionsSearchInput, MovementReuseSuggestionsVariantsInput } from '../../movements/application/movementReuseSuggestions.port';
 import { WebPreferencesService } from './webPreferencesService';
+import { WebConfirmationProjectionService } from './webConfirmationProjectionService';
 
 export type CoreAdapterWebOptions = {
   state?: WebAppState;
@@ -167,6 +168,7 @@ export class CoreAdapterWeb implements CorePort {
   private readonly analyticsExclusionService: WebAnalyticsExclusionService;
   private readonly movementReuseSuggestionsService: WebMovementReuseSuggestionsService;
   private readonly preferencesService: WebPreferencesService;
+  private readonly confirmationProjectionService: WebConfirmationProjectionService;
 
   constructor(options: CoreAdapterWebOptions = {}) {
     this.state = options.state ?? defaultWebAppState;
@@ -214,6 +216,7 @@ export class CoreAdapterWeb implements CorePort {
       scheduling: this.schedulingService,
       expected: this.expectedMovementsService,
     });
+    this.confirmationProjectionService = new WebConfirmationProjectionService(this.schedulingService, this.expectedMovementsService);
   }
 
   async preferencesGet(): Promise<UserPreferencesResult> { return this.preferencesService.get(); }
@@ -314,7 +317,7 @@ export class CoreAdapterWeb implements CorePort {
     input: SchedulingCreateMovementInput,
   ): Promise<SchedulingCreateMovementResult> {
     const result = await this.schedulingService.createMovement(input);
-    await this.projectNextConfirmationRequiredOccurrence(result.id);
+    await this.confirmationProjectionService.projectNextOccurrence(result.id);
     return result;
   }
 
@@ -322,7 +325,7 @@ export class CoreAdapterWeb implements CorePort {
     input: SchedulingUpdateMovementInput,
   ): Promise<SchedulingUpdateMovementResult> {
     const result = await this.schedulingService.updateMovement(input);
-    await this.projectNextConfirmationRequiredOccurrence(result.id);
+    await this.confirmationProjectionService.projectNextOccurrence(result.id);
     return result;
   }
 
@@ -357,7 +360,7 @@ export class CoreAdapterWeb implements CorePort {
     const movement = this.state.expectedMovements.find((item) => item.id === input.expectedMovementId);
     await this.expectedMovementsService.resolveMovement(input);
     if (movement?.originRecurringMovementId) {
-      await this.projectNextConfirmationRequiredOccurrence(movement.originRecurringMovementId);
+      await this.confirmationProjectionService.projectNextOccurrence(movement.originRecurringMovementId);
     }
   }
 
@@ -365,7 +368,7 @@ export class CoreAdapterWeb implements CorePort {
     const movement = this.state.expectedMovements.find((item) => item.id === input.expectedMovementId);
     await this.expectedMovementsService.dismissMovement(input);
     if (movement?.originRecurringMovementId) {
-      await this.projectNextConfirmationRequiredOccurrence(movement.originRecurringMovementId);
+      await this.confirmationProjectionService.projectNextOccurrence(movement.originRecurringMovementId);
     }
   }
 
@@ -475,25 +478,6 @@ export class CoreAdapterWeb implements CorePort {
   async movementReuseSearchGroups(input: MovementReuseSuggestionsSearchInput) { return this.movementReuseSuggestionsService.movementReuseSearchGroups(input); } async movementReuseListVariants(input: MovementReuseSuggestionsVariantsInput) { return this.movementReuseSuggestionsService.movementReuseListVariants(input); } async movementReuseGetTemplate(input: { representativeMovementId: string }) { return this.movementReuseSuggestionsService.movementReuseGetTemplate(input); }
   async analyticsSetMovementIgnored(input: AnalyticsSetMovementIgnoredInput): Promise<void> { this.analyticsExclusionService.setMovementIgnored(input); }
   async analyticsListIgnoredMovements() { return this.analyticsExclusionService.listIgnoredMovements(); }
-  private async projectNextConfirmationRequiredOccurrence(recurringMovementId: string): Promise<void> {
-    const occurrence = this.schedulingService.projectNextConfirmationRequiredOccurrence(recurringMovementId);
-    if (!occurrence || occurrence.movement.type === 'transfer') {
-      return;
-    }
-    await this.expectedMovementsService.createMovement({
-      accountId: occurrence.movement.sourceAccountId,
-      type: occurrence.movement.type,
-      amount: occurrence.movement.amount,
-      currency: occurrence.movement.currency,
-      expectedAt: occurrence.dueAt,
-      description: occurrence.movement.description,
-      merchant: occurrence.movement.merchant,
-      categoryId: occurrence.movement.categoryId,
-      splitItems: occurrence.movement.splitItems,
-      originOccurrenceId: occurrence.id,
-      originRecurringMovementId: occurrence.recurringMovementId,
-    });
-  }
 }
 
 function parseWebMovementsBackupImport(fileBase64: string): MovementsBackupExport {
