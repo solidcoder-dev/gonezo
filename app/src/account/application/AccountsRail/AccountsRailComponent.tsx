@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { AccountWorkspacePort } from '../accounts.port';
 import type { AccountBalanceItem } from '../accountBalances.port';
+import type { AccountBalancesPort } from '../accountBalances.port';
+import type { LedgerPort } from '../../../ledger/application/ledger.port';
 import { formatCurrencyAmount } from '../../../shared/utils/formatting';
 import { SheetView } from '../../../shared/ui/SheetView';
 import { AccountsRailView } from '../../ui/AccountsRail/AccountsRailView';
@@ -9,7 +10,7 @@ import type { AccountsRailAccountView } from '../../ui/AccountsRail/AccountsRail
 export type AccountsRailComponentProps = {
   required: {
     context: {
-      core: AccountWorkspacePort;
+      core: AccountsRailPort;
     };
     config: {
       enabled: boolean;
@@ -26,6 +27,9 @@ export type AccountsRailComponentProps = {
     };
   };
 };
+
+type AccountsRailPort = Pick<AccountBalancesPort, 'accountsListBalances'>
+  & Pick<LedgerPort, 'ledgerListSupportedCurrencies' | 'ledgerOpenAccount' | 'ledgerRenameAccount' | 'ledgerArchiveAccount' | 'ledgerDeleteAccount'>;
 
 type AccountRailItem = AccountBalanceItem;
 
