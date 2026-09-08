@@ -13,6 +13,30 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class CoreDatabaseMigrationInstrumentedTest {
   @Test
+  fun v35UpgradeCreatesItemCategoryAssignmentsAndPreservesLegacyCategories() {
+    val name = uniqueDatabaseName()
+    val initial = CoreDatabase(context(), name)
+    val sqlite = initial.writableDatabase
+    sqlite.execSQL("insert into taxonomy_categories(id, name, name_normalized, applies_to, status, created_at, archived_at) values ('category-1', 'Household', 'household', 'expense', 'active', '2026-07-01T00:00:00Z', null)")
+    sqlite.execSQL("insert into ledger_accounts(id, name, type, currency, status, created_at) values ('account-1', 'Checking', 'asset', 'USD', 'active', '2026-07-01T00:00:00Z')")
+    sqlite.execSQL("insert into ledger_transactions(id, account_id, type, amount, currency, occurred_at, status) values ('transaction-1', 'account-1', 'expense', '12.34', 'USD', '2026-07-02T00:00:00Z', 'posted')")
+    sqlite.execSQL("insert into ledger_transaction_items(id, transaction_id, name, amount, currency, category_id, note) values ('item-1', 'transaction-1', 'Supplies', '12.34', 'USD', 'category-1', 'Receipt')")
+    sqlite.execSQL("drop table taxonomy_transaction_item_category_assignments")
+    sqlite.setVersion(35)
+    initial.close()
+
+    val upgraded = CoreDatabase(context(), name)
+    val migrated = upgraded.readableDatabase
+
+    assertEquals(36, migrated.version)
+    assertEquals(1, migrated.scalar("select count(*) from taxonomy_transaction_item_category_assignments")!!.toInt())
+    assertEquals("category-1", migrated.scalar("select category_id from taxonomy_transaction_item_category_assignments where transaction_item_id = 'item-1'"))
+    assertEquals("Receipt", migrated.scalar("select note from ledger_transaction_items where id = 'item-1'"))
+    assertEquals("ok", migrated.scalar("pragma integrity_check"))
+    upgraded.close()
+  }
+
+  @Test
   fun v32UpgradeAddsServicesWithoutChangingExistingLedgerOrTaxonomyRows() {
     val name = uniqueDatabaseName()
     val initial = CoreDatabase(context(), name)

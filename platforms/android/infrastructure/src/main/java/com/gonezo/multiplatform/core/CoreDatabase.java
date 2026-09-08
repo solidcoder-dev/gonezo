@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteException;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 35;
+  private static final int DB_VERSION = 36;
   private static final String SERVICES_CATEGORY_ID = "00000000-0000-4000-8000-000000000111";
 
   CoreDatabase(Context context) {
@@ -43,6 +43,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     db.delete("recurring_movements", null, null);
     db.delete("taxonomy_transaction_tag_assignments", null, null);
     db.delete("taxonomy_transaction_assignments", null, null);
+    db.delete("taxonomy_transaction_item_category_assignments", null, null);
     db.delete("taxonomy_tags", null, null);
     db.delete("taxonomy_categories", null, null);
     db.delete("ledger_transaction_items", null, null);
@@ -174,6 +175,11 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion < 35) {
       addPlannedItemTagNames(db);
     }
+
+    if (oldVersion < 36) {
+      createTransactionItemCategoryAssignmentTable(db);
+      backfillTransactionItemCategoryAssignments(db);
+    }
   }
 
   @Override
@@ -207,6 +213,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     createAnalyticsExclusionLegacyArchiveTable(db);
     createTransactionItemTagAssignmentTable(db);
     createTransactionItemCategoryAssignmentTable(db);
+    backfillTransactionItemCategoryAssignments(db);
     addPlannedItemTagNames(db);
   }
 
@@ -219,6 +226,19 @@ public final class CoreDatabase extends SQLiteOpenHelper {
   private static void createTransactionItemCategoryAssignmentTable(SQLiteDatabase db) {
     db.execSQL("create table if not exists taxonomy_transaction_item_category_assignments (transaction_item_id text primary key, category_id text not null references taxonomy_categories(id), assigned_at text not null);");
     db.execSQL("create index if not exists idx_taxonomy_transaction_item_categories_category on taxonomy_transaction_item_category_assignments(category_id);");
+  }
+
+  private static void backfillTransactionItemCategoryAssignments(SQLiteDatabase db) {
+    db.execSQL(
+      "insert into taxonomy_transaction_item_category_assignments " +
+        "(transaction_item_id, category_id, assigned_at) " +
+        "select items.id, items.category_id, '1970-01-01T00:00:00Z' " +
+        "from ledger_transaction_items items " +
+        "where items.category_id is not null " +
+        "and exists (select 1 from taxonomy_categories categories where categories.id = items.category_id) " +
+        "and not exists (select 1 from taxonomy_transaction_item_category_assignments assignments " +
+          "where assignments.transaction_item_id = items.id)"
+    );
   }
 
   private static void addPlannedItemTagNames(SQLiteDatabase db) {
