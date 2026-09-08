@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLedgerTransactions } from '../../ledger/application/useLedgerTransactions';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
-import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
+import type { LedgerTransactionOperationsPort } from '../../ledger/application/useLedgerTransactions';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
 import type { ExpectedMovementView } from './movementsView.types';
 
@@ -18,7 +18,7 @@ type MonthlyMovementMutationTimers = {
 
 type UseMonthlyMovementMutationsModelInput = {
   ports: {
-    ledger: LedgerGatewayPort;
+    ledger: LedgerTransactionOperationsPort;
     scheduling: SchedulingGatewayPort;
     expected: ExpectedGatewayPort;
   };

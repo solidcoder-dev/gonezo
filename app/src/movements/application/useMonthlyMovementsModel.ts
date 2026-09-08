@@ -1,7 +1,8 @@
 import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
-import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
+import type { LedgerPort } from '../../ledger/application/ledger.port';
+import type { LedgerTransactionOperationsPort } from '../../ledger/application/useLedgerTransactions';
 import type { LedgerTransactionListItem } from '../../ledger/application/ledger.port';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
@@ -20,7 +21,7 @@ import type { MonthlyMovementsMode, MonthlyMovementsViewProvided, MonthlyMovemen
 export type MonthlyMovementsModelPorts = {
   movements: MovementDetailQueryPort;
   analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
-  ledger: LedgerGatewayPort;
+  ledger: Pick<LedgerPort, 'ledgerListAccounts'> & LedgerTransactionOperationsPort;
   scheduling: SchedulingGatewayPort;
   expected: ExpectedGatewayPort;
   sharing: SharingGatewayPort;

@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 import { createExpectedGateway } from '../../expected/application/expectedGateway';
-import { createLedgerGateway } from '../../ledger/application/ledgerGateway';
 import { createSchedulingGateway } from '../../scheduling/application/schedulingGateway';
 import { createSharingGateway } from '../../sharing/application/sharingGateway';
 import { createTaxonomyGateway } from '../../taxonomy/application/taxonomyGateway';
 import { MonthlyMovementsView } from '../ui/MonthlyMovements/MonthlyMovementsView';
 import { useMonthlyMovementsModel } from './useMonthlyMovementsModel';
 import type { TransactionsPort } from '../../transactions/application/transactions.port';
+import type { LedgerPort } from '../../ledger/application/ledger.port';
+import type { LedgerTransactionOperationsPort } from '../../ledger/application/useLedgerTransactions';
 import type { MovementDetailQueryPort } from './movements.port';
 import type { ExpectedMovementView } from './movementsView.types';
 import type { MovementDetailViewModel } from './movementDetailView.types';
@@ -25,7 +26,7 @@ export type MonthlyMovementsComponentProps = {
     context: {
       accountId: string | null;
       scope?: 'account' | 'all';
-      core: TransactionsPort & MovementDetailQueryPort;
+      core: Omit<TransactionsPort, keyof LedgerPort> & Pick<LedgerPort, 'ledgerListAccounts'> & LedgerTransactionOperationsPort & MovementDetailQueryPort;
     };
     config: {
       enabled: boolean;
@@ -48,7 +49,7 @@ export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMo
   const ports = useMemo(() => ({
     analytics: required.context.core,
     movements: required.context.core,
-    ledger: createLedgerGateway(required.context.core),
+    ledger: required.context.core,
     scheduling: createSchedulingGateway(required.context.core),
     expected: createExpectedGateway(required.context.core),
     sharing: createSharingGateway(required.context.core),
