@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type { LedgerAccountItem } from '../../ledger/application/ledger.port';
-import { useLedgerAccounts } from '../../ledger/application/useLedgerAccounts';
+import { useLedgerAccountReader } from '../../ledger/application/useLedgerAccounts';
 import { useLedgerTransactionCommands } from '../../ledger/application/useLedgerTransactionCommands';
 import type { LedgerGatewayPort } from '../../ledger/application/ledgerGateway.port';
 import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
@@ -51,7 +51,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [movementIgnored, setMovementIgnored] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<TransactionFieldErrors>({});
   const shareDraftModel = useShareDraftModel(ports.sharing);
-  const ledgerAccounts = useLedgerAccounts(ports.ledger);
+  const ledgerAccounts = useLedgerAccountReader(ports.ledger);
   const ledgerTransactionCommands = useLedgerTransactionCommands(ports.ledger);
   const transferFxModel = useTransactionTransferFxModel({
     accounts,

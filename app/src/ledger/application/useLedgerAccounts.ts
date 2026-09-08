@@ -19,6 +19,21 @@ export type LedgerAccountHubPort = Pick<LedgerPort,
   | 'ledgerRestoreAccount'
 >;
 
+export type LedgerAccountReaderPort = Pick<LedgerPort,
+  | 'ledgerListAccounts'
+  | 'ledgerGetAccountSummary'
+>;
+
+export function useLedgerAccountReader(gateway: LedgerAccountReaderPort) {
+  const listAccounts = useCallback(() => gateway.ledgerListAccounts(), [gateway]);
+  const getAccountSummary = useCallback(
+    (input: { accountId: string }) => gateway.ledgerGetAccountSummary(input),
+    [gateway],
+  );
+
+  return { listAccounts, getAccountSummary };
+}
+
 export function useLedgerAccounts(gateway: LedgerAccountOperationsPort) {
   const listSupportedCurrencies = useCallback(() => gateway.ledgerListSupportedCurrencies(), [gateway]);
   const listAccounts = useCallback(() => gateway.ledgerListAccounts(), [gateway]);
