@@ -12,6 +12,13 @@ export type LedgerAccountOperationsPort = Pick<LedgerPort,
   | 'ledgerDeleteAccount'
 >;
 
+export type LedgerAccountHubPort = Pick<LedgerPort,
+  | 'ledgerListSupportedCurrencies'
+  | 'ledgerListAccounts'
+  | 'ledgerOpenAccount'
+  | 'ledgerRestoreAccount'
+>;
+
 export function useLedgerAccounts(gateway: LedgerAccountOperationsPort) {
   const listSupportedCurrencies = useCallback(() => gateway.ledgerListSupportedCurrencies(), [gateway]);
   const listAccounts = useCallback(() => gateway.ledgerListAccounts(), [gateway]);

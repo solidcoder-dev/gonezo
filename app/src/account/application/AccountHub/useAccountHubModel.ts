@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useLedgerAccounts } from '../../../ledger/application/useLedgerAccounts';
-import type { LedgerGatewayPort } from '../../../ledger/application/ledgerGateway.port';
+import type { LedgerAccountHubPort } from '../../../ledger/application/useLedgerAccounts';
 import type { LoadPhase } from '../accountPage.types';
 import type { AccountSummaryView } from '../accountView.types';
 import { mapAccountSummaryList } from '../accountViewMappers';
@@ -18,7 +17,7 @@ export type AccountHubModelInput = {
 };
 
 export type AccountHubModelPorts = {
-  ledger: LedgerGatewayPort;
+  ledger: LedgerAccountHubPort;
   preferences: UserPreferencesPort;
 };
 
@@ -89,12 +88,10 @@ export function useAccountHubModel({ ports, refreshSignal, events }: AccountHubM
     createCurrencyRef.current = createCurrency;
   }, [createCurrency]);
 
-  const {
-    listSupportedCurrencies,
-    listAccounts,
-    openAccount,
-    restoreAccount: restoreLedgerAccount,
-  } = useLedgerAccounts(ports.ledger);
+  const listSupportedCurrencies = useCallback(() => ports.ledger.ledgerListSupportedCurrencies(), [ports.ledger]);
+  const listAccounts = useCallback(() => ports.ledger.ledgerListAccounts(), [ports.ledger]);
+  const openAccount = useCallback((input: Parameters<LedgerAccountHubPort['ledgerOpenAccount']>[0]) => ports.ledger.ledgerOpenAccount(input), [ports.ledger]);
+  const restoreLedgerAccount = useCallback((input: Parameters<LedgerAccountHubPort['ledgerRestoreAccount']>[0]) => ports.ledger.ledgerRestoreAccount(input), [ports.ledger]);
 
   const reportLoadPhase = useCallback((phase: LoadPhase) => {
     eventsRef.current?.onLoadPhaseChanged?.(phase);

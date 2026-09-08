@@ -1,6 +1,4 @@
-import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createLedgerGateway } from '../../../ledger/application/ledgerGateway';
 import { SheetView } from '../../../shared/ui/SheetView';
 import { AccountSwitcherView } from '../../ui/AccountSwitcher/AccountSwitcherView';
 import type { AccountHubComponentProps } from './AccountHubComponent.contract';
@@ -14,12 +12,8 @@ export type {
 
 export function AccountHubComponent({ required, provided = {} }: AccountHubComponentProps) {
   const navigate = useNavigate();
-  const ports = useMemo(() => ({
-    ledger: createLedgerGateway(required.context.core),
-    preferences: required.context.core,
-  }), [required.context.core]);
   const model = useAccountHubModel({
-    ports,
+    ports: { ledger: required.context.core, preferences: required.context.core },
     refreshSignal: required.config.refreshSignal,
     events: provided.events,
   });

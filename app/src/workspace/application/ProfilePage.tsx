@@ -1,16 +1,15 @@
-import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createLedgerGateway } from '../../ledger/application/ledgerGateway';
 import { SheetView } from '../../shared/ui/SheetView';
 import { useAccountHubModel } from '../../account/application/accountHub';
-import type { AccountsPort } from '../../account/application/accounts.port';
+import type { UserPreferencesPort } from '../../account/application/accounts.port';
+import type { LedgerAccountHubPort } from '../../ledger/application/useLedgerAccounts';
 import { ProfilePageView } from '../ui/ProfilePageView';
 import type { LoadPhase } from '../../account/application/accountPage.types';
 import type { VoiceMovementExperimentViewModel } from '../ui/ProfilePageView.contract';
 
 export type ProfilePageRequired = {
   context: {
-    core: AccountsPort;
+    core: LedgerAccountHubPort & UserPreferencesPort;
   };
   config: {
     refreshSignal: boolean;
@@ -43,12 +42,8 @@ export type ProfilePageProps = {
 
 export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
   const navigate = useNavigate();
-  const ports = useMemo(() => ({
-    ledger: createLedgerGateway(required.context.core),
-    preferences: required.context.core,
-  }), [required.context.core]);
   const model = useAccountHubModel({
-    ports,
+    ports: { ledger: required.context.core, preferences: required.context.core },
     refreshSignal: required.config.refreshSignal,
     events: provided.events,
   });

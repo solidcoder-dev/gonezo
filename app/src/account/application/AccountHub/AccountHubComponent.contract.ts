@@ -1,9 +1,10 @@
 import type { LoadPhase } from '../accountPage.types';
-import type { AccountsPort } from '../accounts.port';
+import type { LedgerAccountHubPort } from '../../../ledger/application/useLedgerAccounts';
+import type { UserPreferencesPort } from '../accounts.port';
 
 export type AccountHubComponentRequired = {
   context: {
-    core: AccountsPort;
+    core: LedgerAccountHubPort & UserPreferencesPort;
   };
   config: {
     refreshSignal: boolean;
