@@ -6,10 +6,12 @@ import com.gonezo.taxonomy.domain.CategoryAppliesTo
 import com.gonezo.taxonomy.domain.CategoryId
 import com.gonezo.taxonomy.domain.TagId
 import com.gonezo.taxonomy.domain.TransactionCategoryAssignment
+import com.gonezo.taxonomy.domain.TransactionItemCategoryAssignment
 import com.gonezo.taxonomy.domain.TransactionTagAssignment
 import com.gonezo.taxonomy.domain.ports.CategoryRepository
 import com.gonezo.taxonomy.domain.ports.TagRepository
 import com.gonezo.taxonomy.domain.ports.TransactionCategoryAssignmentRepository
+import com.gonezo.taxonomy.domain.ports.TransactionItemCategoryAssignmentRepository
 import com.gonezo.taxonomy.domain.ports.TransactionTagAssignmentRepository
 import java.time.Instant
 
@@ -18,6 +20,7 @@ class BackupTaxonomyAssignmentImporter(
     private val tagRepository: TagRepository,
     private val categoryAssignmentRepository: TransactionCategoryAssignmentRepository,
     private val tagAssignmentRepository: TransactionTagAssignmentRepository,
+    private val itemCategoryAssignmentRepository: TransactionItemCategoryAssignmentRepository,
 ) {
     fun importFor(transaction: Transaction, movement: BackupPostedMovement, importedAt: Instant) {
         val categoryId = movement.categoryId?.trim()?.ifBlank { null }?.let(CategoryId::from)
@@ -46,6 +49,14 @@ class BackupTaxonomyAssignmentImporter(
                 transaction.id.value,
                 tagIds.distinct().map { tagId -> TransactionTagAssignment.assign(transaction.id.value, tagId, importedAt) },
             )
+        }
+
+        movement.splitItems.forEach { item ->
+            val itemCategoryId = item.categoryId?.trim()?.ifBlank { null }?.let(CategoryId::from) ?: return@forEach
+            if (categoryRepository.findById(itemCategoryId) == null) {
+                throw BackupImportRowException("CATEGORY_NOT_FOUND", "Category not found: $itemCategoryId")
+            }
+            itemCategoryAssignmentRepository.upsert(TransactionItemCategoryAssignment.assign(java.util.UUID.fromString(item.id), itemCategoryId, importedAt))
         }
     }
 

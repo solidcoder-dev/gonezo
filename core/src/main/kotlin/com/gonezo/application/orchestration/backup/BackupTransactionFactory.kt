@@ -52,7 +52,6 @@ class BackupTransactionFactory(
                     name = item.name,
                     amount = Money(BigDecimal(item.amount), CurrencyCode.from(item.currency).value),
                     note = item.note,
-                    categoryId = item.categoryId,
                 )
             },
             linkedTransactionId = linkedTransactionId,

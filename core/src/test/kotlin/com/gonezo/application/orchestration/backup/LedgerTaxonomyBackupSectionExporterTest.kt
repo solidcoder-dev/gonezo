@@ -17,10 +17,12 @@ import com.gonezo.ledger.domain.ports.LedgerTransactionRepository
 import com.gonezo.taxonomy.domain.CategoryId
 import com.gonezo.taxonomy.domain.TagId
 import com.gonezo.taxonomy.domain.TransactionCategoryAssignment
+import com.gonezo.taxonomy.domain.TransactionItemCategoryAssignment
 import com.gonezo.taxonomy.domain.TransactionTagAssignment
 import com.gonezo.taxonomy.domain.ports.CategoryRepository
 import com.gonezo.taxonomy.domain.ports.TagRepository
 import com.gonezo.taxonomy.domain.ports.TransactionCategoryAssignmentRepository
+import com.gonezo.taxonomy.domain.ports.TransactionItemCategoryAssignmentRepository
 import com.gonezo.taxonomy.domain.ports.TransactionTagAssignmentRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -36,12 +38,13 @@ class LedgerTaxonomyBackupSectionExporterTest {
         val tagId = TagId.random()
         val transactionId = TransactionId.random()
         val itemId = TransactionItemId.random()
-        val transaction = Transaction(transactionId, accountId, TransactionType.EXPENSE, Money(BigDecimal("12.30"), "EUR"), Instant.EPOCH, "Lunch", null, TransactionStatus.POSTED, listOf(TransactionItem(itemId, "Meal", Money(BigDecimal("12.30"), "EUR"), null, categoryId.value.toString())), null)
+        val transaction = Transaction(transactionId, accountId, TransactionType.EXPENSE, Money(BigDecimal("12.30"), "EUR"), Instant.EPOCH, "Lunch", null, TransactionStatus.POSTED, listOf(TransactionItem(itemId, "Meal", Money(BigDecimal("12.30"), "EUR"), null)), null)
         val exporter = com.gonezo.application.orchestration.backup.LedgerBackupSectionExporter(
             accountRepository = FakeAccounts(listOf(Account(accountId, "Main", AccountType.CASH, CurrencyCode("EUR"), AccountStatus.ACTIVE, Instant.EPOCH, null))),
             transactionRepository = FakeTransactions(listOf(transaction)),
             categoryAssignmentRepository = FakeCategories(mapOf(transactionId.value to TransactionCategoryAssignment(transactionId.value, categoryId, Instant.EPOCH))),
             tagAssignmentRepository = FakeTags(mapOf(transactionId.value to listOf(TransactionTagAssignment(transactionId.value, tagId, Instant.EPOCH)))),
+            itemCategoryAssignmentRepository = FakeItemCategories(mapOf(itemId.value to TransactionItemCategoryAssignment(itemId.value, categoryId, Instant.EPOCH))),
         )
 
         val result = exporter.export()
@@ -81,4 +84,10 @@ private class FakeTags(private val values: Map<UUID, List<TransactionTagAssignme
     override fun replaceByTransactionId(transactionId: UUID, assignments: List<TransactionTagAssignment>) = Unit
     override fun findByTransactionId(transactionId: UUID) = values[transactionId].orEmpty()
     override fun findByTransactionIds(transactionIds: Collection<UUID>) = values.filterKeys(transactionIds::contains)
+}
+
+private class FakeItemCategories(private val values: Map<UUID, TransactionItemCategoryAssignment>) : TransactionItemCategoryAssignmentRepository {
+    override fun upsert(assignment: TransactionItemCategoryAssignment) = Unit
+    override fun deleteByTransactionItemIds(transactionItemIds: Collection<UUID>) = Unit
+    override fun findByTransactionItemIds(transactionItemIds: Collection<UUID>) = values.filterKeys(transactionItemIds::contains)
 }

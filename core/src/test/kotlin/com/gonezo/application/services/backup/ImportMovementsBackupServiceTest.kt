@@ -16,10 +16,12 @@ import com.gonezo.taxonomy.domain.CategoryWithUsage
 import com.gonezo.taxonomy.domain.Tag
 import com.gonezo.taxonomy.domain.TagId
 import com.gonezo.taxonomy.domain.TransactionCategoryAssignment
+import com.gonezo.taxonomy.domain.TransactionItemCategoryAssignment
 import com.gonezo.taxonomy.domain.TransactionTagAssignment
 import com.gonezo.taxonomy.domain.ports.CategoryRepository
 import com.gonezo.taxonomy.domain.ports.TagRepository
 import com.gonezo.taxonomy.domain.ports.TransactionCategoryAssignmentRepository
+import com.gonezo.taxonomy.domain.ports.TransactionItemCategoryAssignmentRepository
 import com.gonezo.taxonomy.domain.ports.TransactionTagAssignmentRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -121,8 +123,8 @@ class ImportMovementsBackupServiceTest {
             ),
         )
 
-        assertThat(repositories.transactions.findById(TransactionId.from(transactionId))!!.items.single().categoryId)
-            .isEqualTo(categoryId)
+        assertThat(repositories.itemCategoryAssignments.findByTransactionItemIds(listOf(UUID.fromString(itemId)))[UUID.fromString(itemId)]?.categoryId)
+            .isEqualTo(CategoryId.from(categoryId))
     }
 
     @Test
@@ -237,6 +239,7 @@ private class BackupRepositories {
     val tags = MutableTagRepository()
     val categoryAssignments = MutableTransactionCategoryAssignmentRepository()
     val tagAssignments = MutableTransactionTagAssignmentRepository()
+    val itemCategoryAssignments = MutableTransactionItemCategoryAssignmentRepository()
 
     fun service(): ImportMovementsBackupService = ImportMovementsBackupService(
         accountRepository = accounts,
@@ -245,6 +248,7 @@ private class BackupRepositories {
         tagRepository = tags,
         categoryAssignmentRepository = categoryAssignments,
         tagAssignmentRepository = tagAssignments,
+        itemCategoryAssignmentRepository = itemCategoryAssignments,
     )
 }
 
@@ -342,4 +346,18 @@ private class MutableTransactionTagAssignmentRepository : TransactionTagAssignme
     override fun findByTransactionId(transactionId: UUID): List<TransactionTagAssignment> = values[transactionId].orEmpty()
 
     override fun findByTransactionIds(transactionIds: Collection<UUID>): Map<UUID, List<TransactionTagAssignment>> = values.filterKeys(transactionIds::contains)
+}
+
+private class MutableTransactionItemCategoryAssignmentRepository : TransactionItemCategoryAssignmentRepository {
+    private val values = linkedMapOf<UUID, TransactionItemCategoryAssignment>()
+
+    override fun upsert(assignment: TransactionItemCategoryAssignment) {
+        values[assignment.transactionItemId] = assignment
+    }
+
+    override fun deleteByTransactionItemIds(transactionItemIds: Collection<UUID>) {
+        transactionItemIds.forEach(values::remove)
+    }
+
+    override fun findByTransactionItemIds(transactionItemIds: Collection<UUID>): Map<UUID, TransactionItemCategoryAssignment> = values.filterKeys(transactionItemIds::contains)
 }

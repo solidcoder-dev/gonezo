@@ -30,10 +30,12 @@ import com.gonezo.taxonomy.domain.CategoryStatus
 import com.gonezo.taxonomy.domain.TagId
 import com.gonezo.taxonomy.domain.TagStatus
 import com.gonezo.taxonomy.domain.TransactionItemTagAssignment
+import com.gonezo.taxonomy.domain.TransactionItemCategoryAssignment
 import com.gonezo.taxonomy.domain.ports.CategoryRepository
 import com.gonezo.taxonomy.domain.ports.TagRepository
 import com.gonezo.taxonomy.domain.ports.TransactionCategoryAssignmentRepository
 import com.gonezo.taxonomy.domain.ports.TransactionItemTagAssignmentRepository
+import com.gonezo.taxonomy.domain.ports.TransactionItemCategoryAssignmentRepository
 import com.gonezo.taxonomy.domain.ports.TransactionTagAssignmentRepository
 import java.math.BigDecimal
 import java.util.UUID
@@ -118,7 +120,7 @@ class TaxonomyBackupSectionImporter(private val categoryRepository: CategoryRepo
     }
 }
 
-class LedgerBackupSectionExporter(private val accountRepository: LedgerAccountRepository, private val transactionRepository: LedgerTransactionRepository, private val categoryAssignmentRepository: TransactionCategoryAssignmentRepository, private val tagAssignmentRepository: TransactionTagAssignmentRepository, private val itemTagAssignmentRepository: TransactionItemTagAssignmentRepository? = null) : BackupSectionExporter {
+class LedgerBackupSectionExporter(private val accountRepository: LedgerAccountRepository, private val transactionRepository: LedgerTransactionRepository, private val categoryAssignmentRepository: TransactionCategoryAssignmentRepository, private val tagAssignmentRepository: TransactionTagAssignmentRepository, private val itemTagAssignmentRepository: TransactionItemTagAssignmentRepository? = null, private val itemCategoryAssignmentRepository: TransactionItemCategoryAssignmentRepository? = null) : BackupSectionExporter {
     override val sectionId = BackupSectionId.LEDGER
     override val version = 1
 
@@ -128,6 +130,7 @@ class LedgerBackupSectionExporter(private val accountRepository: LedgerAccountRe
         val categories = categoryAssignmentRepository.findByTransactionIds(transactionIds)
         val tags = tagAssignmentRepository.findByTransactionIds(transactionIds)
         val itemTags = itemTagAssignmentRepository?.findByTransactionItemIds(transactions.flatMap { it.items }.map { it.id.value }) ?: emptyMap()
+        val itemCategories = itemCategoryAssignmentRepository?.findByTransactionItemIds(transactions.flatMap { it.items }.map { it.id.value }) ?: emptyMap()
         return LedgerBackupSection(
             accounts = accountRepository.listAll().map(BackupMappers::account).sortedBy { it.id },
             movements = transactions.map { transaction ->
@@ -136,13 +139,14 @@ class LedgerBackupSectionExporter(private val accountRepository: LedgerAccountRe
                     categories[transaction.id.value]?.categoryId?.value?.toString(),
                     tags[transaction.id.value].orEmpty().map { it.tagId.value.toString() },
                     itemTags,
+                    itemCategories,
                 )
             }.sortedBy { it.id },
         )
     }
 }
 
-class LedgerBackupSectionImporter(private val accountRepository: LedgerAccountRepository, private val transactionRepository: LedgerTransactionRepository, private val categoryAssignmentRepository: TransactionCategoryAssignmentRepository, private val tagAssignmentRepository: TransactionTagAssignmentRepository, private val itemTagAssignmentRepository: TransactionItemTagAssignmentRepository? = null) : BackupSectionImporter {
+class LedgerBackupSectionImporter(private val accountRepository: LedgerAccountRepository, private val transactionRepository: LedgerTransactionRepository, private val categoryAssignmentRepository: TransactionCategoryAssignmentRepository, private val tagAssignmentRepository: TransactionTagAssignmentRepository, private val itemTagAssignmentRepository: TransactionItemTagAssignmentRepository? = null, private val itemCategoryAssignmentRepository: TransactionItemCategoryAssignmentRepository? = null) : BackupSectionImporter {
     override val sectionId = BackupSectionId.LEDGER
     override val supportedVersions = setOf(1)
     override val dependencies = setOf(BackupSectionId.TAXONOMY)
@@ -190,6 +194,7 @@ class LedgerBackupSectionImporter(private val accountRepository: LedgerAccountRe
             tagAssignmentRepository.replaceByTransactionId(transaction.id.value, tagIds.map { tagId -> com.gonezo.taxonomy.domain.TransactionTagAssignment.assign(transaction.id.value, tagId, importedAt) })
             movement.splitItems.forEach { item ->
                 val itemId = UUID.fromString(item.id)
+                item.categoryId?.let { categoryId -> itemCategoryAssignmentRepository?.upsert(TransactionItemCategoryAssignment.assign(itemId, CategoryId.from(categoryId), importedAt)) }
                 val itemTagIds = item.tagIds.distinct().map(TagId::from)
                 itemTagAssignmentRepository?.replaceByTransactionItemId(itemId, itemTagIds.map { tagId -> TransactionItemTagAssignment.assign(itemId, tagId, importedAt) })
             }
@@ -205,7 +210,7 @@ class LedgerBackupSectionImporter(private val accountRepository: LedgerAccountRe
         description = description,
         merchant = merchant,
         status = TransactionStatus.from(status),
-        items = splitItems.map { item -> TransactionItem(TransactionItemId.from(item.id), item.name, Money(BigDecimal(item.amount), CurrencyCode.from(item.currency).value), item.note, item.categoryId) },
+        items = splitItems.map { item -> TransactionItem(TransactionItemId.from(item.id), item.name, Money(BigDecimal(item.amount), CurrencyCode.from(item.currency).value), item.note) },
         linkedTransactionId = linkedTransactionId?.let(TransactionId::from),
     )
 }
@@ -234,7 +239,7 @@ private object BackupMappers {
         archivedAt = account.archivedAt,
     )
 
-    fun transaction(transaction: com.gonezo.ledger.domain.Transaction, categoryId: String?, tagIds: List<String>, itemTags: Map<UUID, List<com.gonezo.taxonomy.domain.TransactionItemTagAssignment>> = emptyMap()): BackupPostedMovement = BackupPostedMovement(
+    fun transaction(transaction: com.gonezo.ledger.domain.Transaction, categoryId: String?, tagIds: List<String>, itemTags: Map<UUID, List<com.gonezo.taxonomy.domain.TransactionItemTagAssignment>> = emptyMap(), itemCategories: Map<UUID, com.gonezo.taxonomy.domain.TransactionItemCategoryAssignment> = emptyMap()): BackupPostedMovement = BackupPostedMovement(
         id = transaction.id.value.toString(),
         accountId = transaction.accountId.value.toString(),
         type = transaction.type.value,
@@ -253,7 +258,7 @@ private object BackupMappers {
                 amount = item.amount.amount.toPlainString(),
                 currency = item.amount.currency,
                 note = item.note,
-                categoryId = item.categoryId,
+                categoryId = itemCategories[item.id.value]?.categoryId?.value?.toString(),
                 tagIds = itemTags[item.id.value].orEmpty().map { it.tagId.value.toString() }.sorted(),
             )
         },

@@ -61,9 +61,9 @@ class JdbcLedgerTransactionRepository(private val jdbcTemplate: NamedParameterJd
         val insertItem =
             """
             insert into ledger_transaction_items (
-              id, transaction_id, name, amount, currency, category_id, note
+              id, transaction_id, name, amount, currency, note
             ) values (
-              :id, :transaction_id, :name, :amount, :currency, :category_id, :note
+              :id, :transaction_id, :name, :amount, :currency, :note
             )
             """.trimIndent()
         transaction.items.forEach { item ->
@@ -74,7 +74,6 @@ class JdbcLedgerTransactionRepository(private val jdbcTemplate: NamedParameterJd
                     .addValue("name", item.name)
                     .addValue("amount", item.amount.amount)
                     .addValue("currency", item.amount.currency)
-                    .addValue("category_id", item.categoryId)
                     .addValue("note", item.note)
             jdbcTemplate.update(insertItem, itemParams)
         }
@@ -163,7 +162,7 @@ class JdbcLedgerTransactionRepository(private val jdbcTemplate: NamedParameterJd
 
         val sql =
             """
-            select id, transaction_id, name, amount, currency, category_id, note
+            select id, transaction_id, name, amount, currency, note
             from ledger_transaction_items
             where transaction_id in (:transaction_ids)
             order by transaction_id asc, id asc
@@ -212,7 +211,6 @@ class JdbcLedgerTransactionRepository(private val jdbcTemplate: NamedParameterJd
                     currency = rs.getString("currency"),
                 ),
                 note = rs.getString("note"),
-                categoryId = rs.getString("category_id"),
             ),
         )
     }

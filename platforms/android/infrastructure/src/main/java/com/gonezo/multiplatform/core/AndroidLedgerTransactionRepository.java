@@ -60,7 +60,6 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
       row.put("name", item.getName());
       row.put("amount", item.getAmount().getAmount().toPlainString());
       row.put("currency", item.getAmount().getCurrency());
-      row.put("category_id", item.getCategoryId());
       row.put("note", item.getNote());
       long itemResult = database.insertWithOnConflict("ledger_transaction_items", null, row, SQLiteDatabase.CONFLICT_REPLACE);
       if (itemResult == -1) {
@@ -306,7 +305,7 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
   private static List<TransactionItem> loadItems(SQLiteDatabase database, TransactionId transactionId) {
     Cursor cursor = database.query(
       "ledger_transaction_items",
-      new String[] {"id", "name", "amount", "currency", "category_id", "note"},
+      new String[] {"id", "name", "amount", "currency", "note"},
       "transaction_id = ?",
       new String[] {transactionId.toString()},
       null,
@@ -319,9 +318,8 @@ final class AndroidLedgerTransactionRepository implements LedgerTransactionRepos
         TransactionItemId id = new TransactionItemId(UUID.fromString(cursor.getString(0)));
         String name = cursor.getString(1);
         Money amount = new Money(new BigDecimal(cursor.getString(2)), cursor.getString(3));
-        String categoryId = cursor.getString(4);
-        String note = cursor.getString(5);
-        items.add(new TransactionItem(id, name, amount, note, categoryId));
+    String note = cursor.getString(4);
+    items.add(new TransactionItem(id, name, amount, note));
       }
       return items;
     } finally {

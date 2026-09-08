@@ -305,7 +305,6 @@ class AddLedgerTransactionItemService(private val transactionRepository: LedgerT
                 name = command.name,
                 amount = Money(command.amount.amount, command.amount.currency.uppercase()),
                 note = command.note,
-                categoryId = command.categoryId,
             )
         val updated = transaction.addItem(item)
         transactionRepository.save(updated)

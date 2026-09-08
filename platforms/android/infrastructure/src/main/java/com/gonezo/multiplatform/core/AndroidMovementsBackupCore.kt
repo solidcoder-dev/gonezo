@@ -20,6 +20,7 @@ class AndroidMovementsBackupCore private constructor(context: Context) {
       tagRepository = AndroidTaxonomyTagRepository(database),
       categoryAssignmentRepository = AndroidTaxonomyTransactionCategoryAssignmentRepository(database),
       tagAssignmentRepository = AndroidTaxonomyTransactionTagAssignmentRepository(database),
+      itemCategoryAssignmentRepository = AndroidTaxonomyTransactionItemCategoryAssignmentRepository(database),
       consistencyBoundary = AndroidConsistencyBoundary(database),
     )
   }

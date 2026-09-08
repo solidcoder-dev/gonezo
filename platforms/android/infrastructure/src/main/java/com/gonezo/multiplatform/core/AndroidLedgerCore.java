@@ -3,6 +3,9 @@ package com.gonezo.multiplatform.core;
 import android.content.Context;
 import com.gonezo.application.ConsistencyBoundary;
 import com.gonezo.application.events.DomainEventPublisher;
+import com.gonezo.application.orchestration.AddLedgerTransactionItemWithCategoryCommand;
+import com.gonezo.application.orchestration.AddLedgerTransactionItemWithCategoryService;
+import com.gonezo.application.orchestration.AddLedgerTransactionItemWithCategoryUC;
 import com.gonezo.application.query.GetNetWorthByCurrencyQuery;
 import com.gonezo.application.query.GetNetWorthByCurrencyService;
 import com.gonezo.application.query.NetWorthByCurrencyQuery;
@@ -62,6 +65,7 @@ import com.gonezo.ledger.domain.Transaction;
 import com.gonezo.ledger.domain.TransactionId;
 import com.gonezo.ledger.domain.services.BalanceCalculator;
 import com.gonezo.domain.shared.Money;
+import com.gonezo.taxonomy.domain.CategoryId;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -89,6 +93,7 @@ public final class AndroidLedgerCore {
   private final RecordLedgerTransferFxUC recordTransferFxUC;
   private final CreateLedgerExpenseDraftUC createExpenseDraftUC;
   private final AddLedgerTransactionItemUC addTransactionItemUC;
+  private final AddLedgerTransactionItemWithCategoryUC addTransactionItemWithCategoryUC;
   private final PostLedgerDraftTransactionUC postDraftTransactionUC;
   private final VoidLedgerTransactionUC voidTransactionUC;
   private final ListLedgerTransactionsUC listTransactionsUC;
@@ -133,6 +138,10 @@ public final class AndroidLedgerCore {
     );
     this.createExpenseDraftUC = new CreateLedgerExpenseDraftService(accountRepository, transactionRepository);
     this.addTransactionItemUC = new AddLedgerTransactionItemService(transactionRepository, eventPublisher);
+    this.addTransactionItemWithCategoryUC = new AddLedgerTransactionItemWithCategoryService(
+      addTransactionItemUC,
+      new AndroidTaxonomyTransactionItemCategoryAssignmentRepository(database)
+    );
     this.postDraftTransactionUC = new PostLedgerDraftTransactionService(transactionRepository, eventPublisher);
     this.voidTransactionUC = new VoidLedgerTransactionService(
       transactionRepository,
@@ -326,15 +335,16 @@ public final class AndroidLedgerCore {
   }
 
   public UUID addTransactionItem(String transactionId, String name, String amount, String currency, String categoryId, String note) {
-    return addTransactionItemUC.execute(
-      new AddLedgerTransactionItemCommand(
+    return addTransactionItemWithCategoryUC.execute(
+      new AddLedgerTransactionItemWithCategoryCommand(
         new TransactionId(UUID.fromString(requireText(transactionId, "transactionId is required"))),
         requireText(name, "name is required"),
         new Money(new BigDecimal(requireText(amount, "amount is required")), requireText(currency, "currency is required").toUpperCase()),
+        blankToNull(categoryId) == null ? null : CategoryId.Companion.from(categoryId),
         blankToNull(note),
-        blankToNull(categoryId)
+        Instant.now()
       )
-    ).getValue();
+    );
   }
 
   public void postDraftTransaction(String transactionId) {

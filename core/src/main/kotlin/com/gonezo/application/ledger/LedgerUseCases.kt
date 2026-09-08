@@ -78,7 +78,7 @@ interface CreateLedgerExpenseDraftUC {
     fun execute(command: CreateLedgerExpenseDraftCommand): TransactionId
 }
 
-data class AddLedgerTransactionItemCommand(val transactionId: TransactionId, val name: String, val amount: Money, val note: String?, val categoryId: String? = null)
+data class AddLedgerTransactionItemCommand(val transactionId: TransactionId, val name: String, val amount: Money, val note: String?)
 
 interface AddLedgerTransactionItemUC {
     fun execute(command: AddLedgerTransactionItemCommand): TransactionItemId

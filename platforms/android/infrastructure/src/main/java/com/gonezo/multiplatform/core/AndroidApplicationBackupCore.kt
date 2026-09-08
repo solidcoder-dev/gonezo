@@ -18,6 +18,7 @@ class AndroidApplicationBackupCore private constructor(context: Context) {
     transactionRepository = AndroidLedgerTransactionRepository(database),
     categoryAssignmentRepository = AndroidTaxonomyTransactionCategoryAssignmentRepository(database),
     tagAssignmentRepository = AndroidTaxonomyTransactionTagAssignmentRepository(database),
+    itemCategoryAssignmentRepository = AndroidTaxonomyTransactionItemCategoryAssignmentRepository(database),
     recurringMovementRepository = AndroidRecurringMovementRepository(database),
     recurringOccurrenceRepository = AndroidRecurringMovementOccurrenceRepository(database),
     expectedMovementRepository = AndroidExpectedMovementRepository(database),

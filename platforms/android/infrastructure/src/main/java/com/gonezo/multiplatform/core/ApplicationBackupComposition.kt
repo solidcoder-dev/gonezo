@@ -32,6 +32,7 @@ import com.gonezo.taxonomy.domain.ports.CategoryRepository
 import com.gonezo.taxonomy.domain.ports.TagRepository
 import com.gonezo.taxonomy.domain.ports.TransactionCategoryAssignmentRepository
 import com.gonezo.taxonomy.domain.ports.TransactionTagAssignmentRepository
+import com.gonezo.taxonomy.domain.ports.TransactionItemCategoryAssignmentRepository
 import com.gonezo.expected.application.backup.ExpectedBackupSectionExporter
 import com.gonezo.expected.application.backup.ExpectedBackupSectionImporter
 import com.gonezo.recurrence.application.backup.RecurrenceBackupSectionExporter
@@ -45,6 +46,7 @@ class ApplicationBackupComposition(
     transactionRepository: LedgerTransactionRepository,
     categoryAssignmentRepository: TransactionCategoryAssignmentRepository,
     tagAssignmentRepository: TransactionTagAssignmentRepository,
+    itemCategoryAssignmentRepository: TransactionItemCategoryAssignmentRepository,
     recurringMovementRepository: RecurringMovementRepository,
     recurringOccurrenceRepository: RecurringMovementOccurrenceRepository,
     expectedMovementRepository: ExpectedMovementRepository,
@@ -60,7 +62,7 @@ class ApplicationBackupComposition(
 ) {
     private val exporters: Set<BackupSectionExporter> = setOf(
         TaxonomyBackupSectionExporter(categoryRepository, tagRepository),
-        LedgerBackupSectionExporter(accountRepository, transactionRepository, categoryAssignmentRepository, tagAssignmentRepository),
+        LedgerBackupSectionExporter(accountRepository, transactionRepository, categoryAssignmentRepository, tagAssignmentRepository, itemCategoryAssignmentRepository = itemCategoryAssignmentRepository),
         RecurrenceBackupSectionExporter(accountRepository, recurringMovementRepository, recurringOccurrenceRepository),
         ExpectedBackupSectionExporter(accountRepository, expectedMovementRepository),
         SharingBackupSectionExporter(sharingPersonRepository, expenseShareRepository, recurringPlanRepository, plannedShareRepository),
@@ -70,7 +72,7 @@ class ApplicationBackupComposition(
 
     private val importers: Set<BackupSectionImporter> = setOf(
         TaxonomyBackupSectionImporter(categoryRepository, tagRepository),
-        LedgerBackupSectionImporter(accountRepository, transactionRepository, categoryAssignmentRepository, tagAssignmentRepository),
+        LedgerBackupSectionImporter(accountRepository, transactionRepository, categoryAssignmentRepository, tagAssignmentRepository, itemCategoryAssignmentRepository = itemCategoryAssignmentRepository),
         RecurrenceBackupSectionImporter(recurringMovementRepository, recurringOccurrenceRepository),
         ExpectedBackupSectionImporter(expectedMovementRepository),
         SharingBackupSectionImporter(sharingPersonRepository, expenseShareRepository, recurringPlanRepository, plannedShareRepository),
