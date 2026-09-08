@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LedgerAccountOperationsPort } from '../../../ledger/application/useLedgerAccounts';
-import { useLedgerAccounts } from '../../../ledger/application/useLedgerAccounts';
 
 type FormEventLike = {
   preventDefault: () => void;
@@ -59,7 +58,10 @@ export function useAccountManagementModel({
   const [summary, setSummary] = useState<AccountManagementModel['state']['summary']>(null);
   const [manageName, setManageName] = useState('');
   const eventsRef = useRef(events);
-  const { getAccountSummary, renameAccount, archiveAccount, deleteAccount } = useLedgerAccounts(ports.ledger);
+  const getAccountSummary = useCallback((input: { accountId: string }) => ports.ledger.ledgerGetAccountSummary(input), [ports.ledger]);
+  const renameAccount = useCallback((input: { accountId: string; name: string }) => ports.ledger.ledgerRenameAccount(input), [ports.ledger]);
+  const archiveAccount = useCallback((input: { accountId: string }) => ports.ledger.ledgerArchiveAccount(input), [ports.ledger]);
+  const deleteAccount = useCallback((input: { accountId: string }) => ports.ledger.ledgerDeleteAccount(input), [ports.ledger]);
 
   useEffect(() => {
     eventsRef.current = events;

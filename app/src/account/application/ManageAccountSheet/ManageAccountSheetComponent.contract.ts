@@ -1,9 +1,9 @@
-import type { AccountWorkspacePort } from '../accounts.port';
+import type { LedgerAccountOperationsPort } from '../../../ledger/application/useLedgerAccounts';
 
 export type ManageAccountSheetComponentProps = {
   required: {
     context: {
-      core: AccountWorkspacePort;
+      core: LedgerAccountOperationsPort;
       accountId: string | null;
     };
     config: {
