@@ -37,7 +37,7 @@ class LedgerTransactionItemCategorizationTest {
             ),
         )
 
-        assertThat(result).isEqualTo(itemId.value)
+        assertThat(result).isEqualTo(itemId)
         assertThat(repository.value).isEqualTo(
             TransactionItemCategoryAssignment.assign(itemId.value, categoryId, requestedAt),
         )

@@ -347,7 +347,7 @@ public final class AndroidLedgerCore {
         blankToNull(note),
         Instant.now()
       )
-    );
+    ).getValue();
   }
 
   public void postDraftTransaction(String transactionId) {
