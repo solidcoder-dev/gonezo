@@ -85,7 +85,6 @@ function makePorts(overrides: Partial<MonthlyMovementsModelPorts> = {}): Monthly
       schedulingListMovements: vi.fn(),
       schedulingGetMovement: vi.fn(),
       movementsGetOverview: vi.fn().mockResolvedValue(emptyOverview()),
-      movementsListScheduled: vi.fn(),
     },
     expected: {
       expectedCreateMovement: vi.fn(),

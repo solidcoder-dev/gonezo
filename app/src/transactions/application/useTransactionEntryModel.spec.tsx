@@ -48,8 +48,6 @@ function makePorts(): TransactionEntryModelPorts {
       schedulingDeactivateMovement: vi.fn(),
       schedulingListMovements: vi.fn(),
       schedulingGetMovement: vi.fn(),
-      movementsGetOverview: vi.fn(),
-      movementsListScheduled: vi.fn(),
     },
     expected: {
       expectedCreateMovement: vi.fn(),
