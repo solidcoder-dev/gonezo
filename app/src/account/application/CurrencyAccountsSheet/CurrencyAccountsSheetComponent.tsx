@@ -8,7 +8,7 @@ import type { CurrencyAccountView } from '../../ui/CurrencyAccountsSheet/Currenc
 
 export type CurrencyAccountsSheetComponentProps = {
   required: {
-    context: { core: AccountWorkspacePort };
+    context: { core: Pick<AccountWorkspacePort, 'accountsListBalances'> };
     config: { open: boolean; currency: string | null; refreshSignal?: unknown };
   };
   provided?: {
