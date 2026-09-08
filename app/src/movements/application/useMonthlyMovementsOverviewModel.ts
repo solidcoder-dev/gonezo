@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { LedgerTransactionListItem } from '../../ledger/application/ledger.port';
-import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
+import type { SchedulingPort } from '../../scheduling/application/scheduling.port';
+import type { MovementsQueryPort } from './movements.port';
 import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
 import type { MonthlyMovementsViewRequired } from '../ui/MonthlyMovements/MonthlyMovementsView.contract';
 import { filterProjectedScheduledMovements } from './monthlyMovementProjection';
@@ -20,7 +21,7 @@ export const EMPTY_MONTHLY_MOVEMENTS_PAGINATION: MonthlyMovementsPaginationState
 };
 
 type UseMonthlyMovementsOverviewModelInput = {
-  scheduling: SchedulingGatewayPort;
+  scheduling: SchedulingPort & Pick<MovementsQueryPort, 'movementsGetOverview'>;
   accountId: string | null;
   scope?: 'account' | 'all';
   page: number;

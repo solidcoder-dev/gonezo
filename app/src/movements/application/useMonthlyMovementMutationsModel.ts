@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLedgerTransactions } from '../../ledger/application/useLedgerTransactions';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
 import type { LedgerTransactionOperationsPort } from '../../ledger/application/useLedgerTransactions';
-import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
+import type { SchedulingPort } from '../../scheduling/application/scheduling.port';
 import type { ExpectedMovementView } from './movementsView.types';
 
 const VOID_COMMIT_DELAY_MS = 5000;
@@ -19,7 +19,7 @@ type MonthlyMovementMutationTimers = {
 type UseMonthlyMovementMutationsModelInput = {
   ports: {
     ledger: LedgerTransactionOperationsPort;
-    scheduling: SchedulingGatewayPort;
+    scheduling: SchedulingPort;
     expected: ExpectedGatewayPort;
   };
   clock: MonthlyMovementMutationClock;

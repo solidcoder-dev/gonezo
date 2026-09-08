@@ -4,10 +4,10 @@ import type { ExpectedGatewayPort } from '../../expected/application/expectedGat
 import type { LedgerPort } from '../../ledger/application/ledger.port';
 import type { LedgerTransactionOperationsPort } from '../../ledger/application/ledgerTransactionOperations.port';
 import type { LedgerTransactionListItem } from '../../ledger/application/ledger.port';
-import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
+import type { SchedulingPort } from '../../scheduling/application/scheduling.port';
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
-import type { MovementDetailQueryPort } from './movements.port';
+import type { MovementDetailQueryPort, MovementsQueryPort } from './movements.port';
 import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types'; import type { MovementDetailViewModel } from './movementDetailView.types';
 import { useMovementDetailModel } from './useMovementDetailModel';
 import { useMonthlyMovementMutationsModel } from './useMonthlyMovementMutationsModel';
@@ -22,7 +22,7 @@ export type MonthlyMovementsModelPorts = {
   movements: MovementDetailQueryPort;
   analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
   ledger: Pick<LedgerPort, 'ledgerListAccounts'> & LedgerTransactionOperationsPort;
-  scheduling: SchedulingGatewayPort;
+  scheduling: SchedulingPort & Pick<MovementsQueryPort, 'movementsGetOverview'>;
   expected: ExpectedGatewayPort;
   sharing: SharingGatewayPort;
   taxonomy: TaxonomyGatewayPort;

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
 import type { LedgerTransactionListItem } from '../../ledger/application/ledger.port';
-import type { SchedulingGatewayPort } from '../../scheduling/application/schedulingGateway.port';
+import type { SchedulingPort } from '../../scheduling/application/scheduling.port';
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
 import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
 import { compareTaxonomyCategoriesByUsage } from '../../taxonomy/application/categoryOrdering';
@@ -37,7 +37,7 @@ type MovementDetailModelInput = {
     movements: MovementDetailQueryPort;
     analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
     expected: ExpectedGatewayPort;
-    scheduling: SchedulingGatewayPort;
+    scheduling: SchedulingPort;
     sharing: SharingGatewayPort;
     taxonomy: TaxonomyGatewayPort;
   };
