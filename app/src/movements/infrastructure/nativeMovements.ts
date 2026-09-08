@@ -16,7 +16,7 @@ import type {
 
 type ScheduledMovementFilters = MovementsSearchInput['filters'] | MovementsListScheduledInput['filters'];
 
-type NativeMovementsPort = Pick<
+export type NativeMovementsPort = Pick<
   LedgerPort & ExpectedPort & TaxonomyPort & MovementsQueryPort & SchedulingPort,
   | 'ledgerListTransactions'
   | 'ledgerListAccounts'

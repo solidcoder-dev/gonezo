@@ -1,4 +1,3 @@
-import type { CorePort } from '../application/corePort';
 import type {
   AnalyticsCashFlowSeriesInput,
   AnalyticsCurrencyScopeInput,
@@ -48,12 +47,13 @@ import {
 import type { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
 import { isNativeRuntime } from './runtimeAdapterSupport';
+import type { AnalyticsQueryPort } from '../../analytics/infrastructure/analyticsQueries';
 
 export class AnalyticsRuntimeAdapter {
   private readonly web: CoreAdapterWeb;
-  private readonly queries: CorePort;
+  private readonly queries: AnalyticsQueryPort;
 
-  constructor(web: CoreAdapterWeb, queries: CorePort) {
+  constructor(web: CoreAdapterWeb, queries: AnalyticsQueryPort) {
     this.web = web;
     this.queries = queries;
   }

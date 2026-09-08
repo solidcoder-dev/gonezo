@@ -77,7 +77,7 @@ import { listAnalyticsMovements, type AnalyticsMovementReaderPort } from './anal
 import { analyticsGetOverviewRecurringInsight } from './overviewRecurringInsightQuery';
 import { analyticsGetOverviewSharingInsights } from './overviewSharingInsightsQuery';
 
-type AnalyticsQueryPort = AnalyticsMovementReaderPort & {
+export type AnalyticsQueryPort = AnalyticsMovementReaderPort & {
   ledgerGetAccountSummary(input: { accountId: string }): Promise<LedgerGetAccountSummaryResult>;
   preferencesGet(): Promise<UserPreferencesResult>;
   taxonomyListCategories(input?: { appliesTo?: 'income' | 'expense'; includeArchived?: boolean }): Promise<TaxonomyListCategoriesResult>;

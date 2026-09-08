@@ -1,4 +1,3 @@
-import type { CorePort } from '../application/corePort';
 import type {
   MovementsGetOverviewInput,
   MovementsGetOverviewResult,
@@ -23,12 +22,13 @@ import type { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
 import { isNativeRuntime } from './runtimeAdapterSupport';
 import type { MovementReuseSuggestionsPort, MovementReuseTemplatePort } from '../../movements/application/movementReuseSuggestions.port';
+import type { NativeMovementsPort } from '../../movements/infrastructure/nativeMovements';
 
 export class MovementsRuntimeAdapter implements MovementReuseSuggestionsPort, MovementReuseTemplatePort {
   private readonly web: CoreAdapterWeb;
-  private readonly queries: CorePort;
+  private readonly queries: NativeMovementsPort;
 
-  constructor(web: CoreAdapterWeb, queries: CorePort) {
+  constructor(web: CoreAdapterWeb, queries: NativeMovementsPort) {
     this.web = web;
     this.queries = queries;
   }
