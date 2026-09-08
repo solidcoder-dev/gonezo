@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LedgerTransactionListItem } from '../../ledger/application/ledger.port';
 import type { MovementsQueryPort } from '../../movements/application/movements.port';
 import type { TransactionHistoryItemView } from '../../transactions/application/transactionView.types';
-import type { TransactionsPort } from '../../transactions/application/transactions.port';
+import type { LedgerPort } from '../../ledger/application/ledger.port';
+import type { SharingPort } from '../../sharing/application/sharing.port';
+import type { TaxonomyPort } from '../../taxonomy/application/taxonomy.port';
 import { buildPostedTimelineGroups } from '../../movements/application/monthlyMovementsTimeline';
 import { MovementDetailOverlayComponent } from '../../movements/application/MovementDetailOverlayComponent';
 import { mapTransactionHistoryList } from '../../transactions/application/transactionViewMappers';
@@ -11,7 +13,11 @@ import {
   type HomeMovementMetadata,
 } from '../ui/HomeRecentMovements/HomeRecentMovementsView';
 
-export type HomeRecentMovementsPort = TransactionsPort & Pick<MovementsQueryPort, 'movementsGetOverview' | 'movementsGetDetail'>;
+export type HomeRecentMovementsPort =
+  Pick<LedgerPort, 'ledgerListAccounts'>
+  & Pick<TaxonomyPort, 'taxonomyListCategories' | 'taxonomyListTags' | 'orchestrationListTransactionTaxonomy'>
+  & Pick<SharingPort, 'sharingListMovementDetails'>
+  & Pick<MovementsQueryPort, 'movementsGetOverview' | 'movementsGetDetail'>;
 
 export type HomeRecentMovementsComponentProps = {
   required: {
