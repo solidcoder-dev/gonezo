@@ -55,4 +55,16 @@ describe('WorkspacePageHeader', () => {
     expect(container.querySelector('h1')).not.toHaveClass(styles.productTitle);
     expect(screen.getByRole('button', { name: 'Open notifications' })).toBeInTheDocument();
   });
+
+  it('shows the unread badge without changing the bell action', () => {
+    render(
+      <WorkspacePageHeader
+        required={{ title: 'Gonezo', unreadCount: 123 }}
+        provided={{ commands: { openNotifications: vi.fn() } }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Open notifications, 123 unread' })).toBeInTheDocument();
+    expect(screen.getByText('99+')).toBeInTheDocument();
+  });
 });

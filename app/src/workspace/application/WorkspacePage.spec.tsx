@@ -14,6 +14,13 @@ let experimentalMovementDockNavigationProps: ExperimentalMovementDockNavigationC
 let profilePageProps: ProfilePageProps | null = null;
 let movementsSearchPageProps: { required: { refreshSignal: boolean }; provided: unknown } | null = null;
 
+function createNotificationsPort() {
+  return {
+    notificationsCountUnread: vi.fn(async () => 0),
+    addChangeListener: vi.fn(async () => () => undefined),
+  } as unknown as WorkspacePageRequired['notifications'];
+}
+
 function makeExperimentalFeaturesPort(initialEnabled = false) {
   let enabled = initialEnabled;
 
@@ -262,6 +269,7 @@ function renderSubject(route: string, experimentalFeatures = makeExperimentalFea
           importFileReader: {} as WorkspacePageRequired['importFileReader'],
           voiceEntry,
           experimentalFeatures,
+          notifications: createNotificationsPort(),
         }}
       />
     </MemoryRouter>,

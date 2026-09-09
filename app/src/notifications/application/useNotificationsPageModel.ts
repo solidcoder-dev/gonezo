@@ -1,0 +1,81 @@
+import { useCallback, useEffect, useState } from 'react';
+import type { NotificationItem, NotificationsFilter, NotificationsPort } from './notifications.port';
+
+export type NotificationsPageState = {
+  filter: NotificationsFilter;
+  items: NotificationItem[];
+  unreadCount: number | null;
+  nextCursor: string | null;
+  snapshotCursor: string | null;
+  loading: boolean;
+  loadingMore: boolean;
+  error: string | null;
+  permission: Awaited<ReturnType<NotificationsPort['getPermissionState']>>;
+};
+
+export function useNotificationsPageModel(port: NotificationsPort): {
+  state: NotificationsPageState;
+  actions: {
+    setFilter: (filter: NotificationsFilter) => void;
+    loadMore: () => void;
+    markRead: (id: string) => void;
+    markAllRead: () => void;
+    requestPermission: () => void;
+    openSettings: () => void;
+    retry: () => void;
+  };
+} {
+  const [filter, setFilter] = useState<NotificationsFilter>('all');
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [snapshotCursor, setSnapshotCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [permission, setPermission] = useState<NotificationsPageState['permission']>('unsupported');
+  const [refreshToken, setRefreshToken] = useState(0);
+
+  const load = useCallback(async (append: boolean) => {
+    append ? setLoadingMore(true) : setLoading(true);
+    setError(null);
+    try {
+      const [list, count, permissionState] = await Promise.all([
+        port.notificationsList({ filter, beforeCursor: append ? nextCursor ?? undefined : undefined, limit: 30 }),
+        port.notificationsCountUnread(),
+        port.getPermissionState(),
+      ]);
+      setItems((previous) => append ? [...previous, ...list.items] : list.items);
+      setNextCursor(list.nextCursor);
+      setSnapshotCursor((previous) => append ? previous : list.snapshotCursor);
+      setUnreadCount(count);
+      setPermission(permissionState);
+    } catch {
+      setError('Unable to load notifications');
+    } finally {
+      append ? setLoadingMore(false) : setLoading(false);
+    }
+  }, [filter, nextCursor, port]);
+
+  useEffect(() => { void load(false); }, [filter, refreshToken]);
+  useEffect(() => {
+    let active = true;
+    let remove: (() => void) | undefined;
+    void port.addChangeListener(() => { if (active) setRefreshToken((value) => value + 1); }).then((cleanup) => { remove = cleanup; });
+    return () => { active = false; remove?.(); };
+  }, [port]);
+
+  const run = (action: () => Promise<unknown>) => { void action().then(() => setRefreshToken((value) => value + 1)).catch(() => setError('Unable to update notifications')); };
+  return {
+    state: { filter, items, unreadCount, nextCursor, snapshotCursor, loading, loadingMore, error, permission },
+    actions: {
+      setFilter,
+      loadMore: () => { if (nextCursor && !loadingMore) void load(true); },
+      markRead: (id) => run(() => port.notificationsMarkRead(id)),
+      markAllRead: () => { if (snapshotCursor) run(() => port.notificationsMarkAllRead(snapshotCursor)); },
+      requestPermission: () => run(port.requestPermission),
+      openSettings: () => run(port.openSettings),
+      retry: () => setRefreshToken((value) => value + 1),
+    },
+  };
+}

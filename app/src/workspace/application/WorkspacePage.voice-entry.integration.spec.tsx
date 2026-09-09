@@ -10,6 +10,13 @@ const experimentalNavigationProps: { current: ExperimentalMovementDockNavigation
   current: null,
 };
 
+function createNotificationsPort() {
+  return {
+    notificationsCountUnread: vi.fn(async () => 0),
+    addChangeListener: vi.fn(async () => () => undefined),
+  } as unknown as WorkspacePageRequired['notifications'];
+}
+
 vi.mock('../../account/ui/AccountPageView/AccountPageView', () => ({
   AccountPageView: ({ required }: AccountPageViewProps) => (
     <div>
@@ -196,6 +203,7 @@ describe('WorkspacePage voice entry integration', () => {
             importFileReader: {} as WorkspacePageRequired['importFileReader'],
             voiceEntry: createRequiredVoiceEntry(),
             experimentalFeatures,
+            notifications: createNotificationsPort(),
           }}
         />
       </MemoryRouter>,
