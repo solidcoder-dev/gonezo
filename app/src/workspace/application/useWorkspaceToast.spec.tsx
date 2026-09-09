@@ -153,17 +153,17 @@ describe('useWorkspaceToast', () => {
       act(() => {
         result.current.actions.showToast('Saved');
       });
-      act(() => vi.advanceTimersByTime(4999));
+      act(() => { void vi.advanceTimersByTime(4999); });
       expect(result.current.notices).toHaveLength(1);
-      act(() => vi.advanceTimersByTime(1));
+      act(() => { void vi.advanceTimersByTime(1); });
       expect(result.current.notices).toHaveLength(0);
 
       act(() => {
         result.current.actions.showWarning('Check this');
       });
-      act(() => vi.advanceTimersByTime(7999));
+      act(() => { void vi.advanceTimersByTime(7999); });
       expect(result.current.notices).toHaveLength(1);
-      act(() => vi.advanceTimersByTime(1));
+      act(() => { void vi.advanceTimersByTime(1); });
       expect(result.current.notices).toHaveLength(0);
     } finally {
       vi.useRealTimers();
@@ -178,21 +178,21 @@ describe('useWorkspaceToast', () => {
       act(() => {
         id = result.current.actions.showToast('Saved');
       });
-      act(() => vi.advanceTimersByTime(2000));
+      act(() => { void vi.advanceTimersByTime(2000); });
       act(() => {
         result.current.actions.pauseNotice(id, 'focus');
         result.current.actions.pauseNotice(id, 'touch');
       });
-      act(() => vi.advanceTimersByTime(10000));
+      act(() => { void vi.advanceTimersByTime(10000); });
       expect(result.current.notices).toHaveLength(1);
 
       act(() => result.current.actions.resumeNotice(id, 'focus'));
-      act(() => vi.advanceTimersByTime(1000));
+      act(() => { void vi.advanceTimersByTime(1000); });
       expect(result.current.notices).toHaveLength(1);
       act(() => result.current.actions.resumeNotice(id, 'touch'));
-      act(() => vi.advanceTimersByTime(2999));
+      act(() => { void vi.advanceTimersByTime(2999); });
       expect(result.current.notices).toHaveLength(1);
-      act(() => vi.advanceTimersByTime(1));
+      act(() => { void vi.advanceTimersByTime(1); });
       expect(result.current.notices).toHaveLength(0);
     } finally {
       vi.useRealTimers();
@@ -203,14 +203,14 @@ describe('useWorkspaceToast', () => {
     vi.useFakeTimers();
     try {
       const { result } = renderHook(() => useWorkspaceToast());
-      act(() => result.current.actions.showToast('First'));
-      act(() => vi.advanceTimersByTime(3000));
-      act(() => result.current.actions.showToast('Second'));
-      act(() => vi.advanceTimersByTime(2000));
+      act(() => { void result.current.actions.showToast('First'); });
+      act(() => { void vi.advanceTimersByTime(3000); });
+      act(() => { void result.current.actions.showToast('Second'); });
+      act(() => { void vi.advanceTimersByTime(2000); });
       expect(result.current.toast.message).toBe('Second');
-      act(() => vi.advanceTimersByTime(2999));
+      act(() => { void vi.advanceTimersByTime(2999); });
       expect(result.current.toast.message).toBe('Second');
-      act(() => vi.advanceTimersByTime(1));
+      act(() => { void vi.advanceTimersByTime(1); });
       expect(result.current.toast.message).toBe('Second');
       expect(result.current.notices).toHaveLength(1);
     } finally {
@@ -222,9 +222,9 @@ describe('useWorkspaceToast', () => {
     vi.useFakeTimers();
     try {
       const { result, unmount } = renderHook(() => useWorkspaceToast());
-      act(() => result.current.actions.showToast('Saved'));
+      act(() => { void result.current.actions.showToast('Saved'); });
       unmount();
-      act(() => vi.advanceTimersByTime(5000));
+      act(() => { void vi.advanceTimersByTime(5000); });
       expect(result.current.notices).toHaveLength(1);
     } finally {
       vi.useRealTimers();
@@ -237,15 +237,15 @@ describe('useWorkspaceToast', () => {
     try {
       Object.defineProperty(document, 'hidden', { configurable: true, value: true });
       const { result } = renderHook(() => useWorkspaceToast());
-      act(() => result.current.actions.showToast('Saved'));
-      act(() => vi.advanceTimersByTime(10000));
+      act(() => { void result.current.actions.showToast('Saved'); });
+      act(() => { void vi.advanceTimersByTime(10000); });
       expect(result.current.notices).toHaveLength(1);
 
       Object.defineProperty(document, 'hidden', { configurable: true, value: false });
-      act(() => document.dispatchEvent(new Event('visibilitychange')));
-      act(() => vi.advanceTimersByTime(4999));
+      act(() => { void document.dispatchEvent(new Event('visibilitychange')); });
+      act(() => { void vi.advanceTimersByTime(4999); });
       expect(result.current.notices).toHaveLength(1);
-      act(() => vi.advanceTimersByTime(1));
+      act(() => { void vi.advanceTimersByTime(1); });
       expect(result.current.notices).toHaveLength(0);
     } finally {
       Object.defineProperty(document, 'hidden', { configurable: true, value: originalHidden });

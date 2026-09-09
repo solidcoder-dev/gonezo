@@ -69,3 +69,19 @@ is represented by a saturation notice with a counter and the message
 `Some feedback was not shown.`. The queue is presentation state, not a
 history, and the saturation notice does not claim that discarded diagnostics
 were preserved.
+
+## Final verification
+
+- Passed: `npm run check:structure`, `npm run check:architecture` command-level
+  dependency cruise, `npm run check:styles`, `npm run check:contrast`,
+  `npm run lint`, `npm run build`, focused notice/movement/import tests, and
+  the full `App.spec.tsx` suite (93 tests).
+- Passed: the Node test project (87 files, 396 tests).
+- The architecture Vitest project still reports existing file-size budgets in
+  `useMonthlyMovementsModel.ts`, `useMovementsSearchModel.ts`, and
+  `useTransactionEntryModel.ts`; no architecture rule was weakened.
+- Browser E2E at 384x832 was added for layout stability but could not be run in
+  this environment because Playwright Chromium is not installed and the local
+  server sandbox cannot open its listener.
+- Android WebView clipboard, background lifecycle, and TalkBack checks remain
+  pending because no Android device/emulator session is available here.

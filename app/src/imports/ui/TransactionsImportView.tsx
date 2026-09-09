@@ -92,7 +92,7 @@ export function TransactionsImportView({ required, provided }: TransactionsImpor
         </button>
       </form>
 
-      {required.status.error ? (
+      {required.status.error && required.status.submitPhase !== 'failed' ? (
         <div className="alert alert-danger mt-3" role="alert">
           {required.status.error}
         </div>

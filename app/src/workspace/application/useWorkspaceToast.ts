@@ -137,7 +137,7 @@ export function useWorkspaceToast() {
   const clearExpirationTimer = useCallback(() => {
     const expiration = expirationRef.current;
     if (!expiration || expiration.timerId === null) return;
-    window.clearTimeout(expiration.timerId);
+    globalThis.clearTimeout(expiration.timerId);
     expiration.timerId = null;
   }, []);
 

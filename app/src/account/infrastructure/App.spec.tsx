@@ -1871,7 +1871,7 @@ describe('App Accounts UX', () => {
       expect(core.applicationImportBackup).toHaveBeenCalledTimes(1);
       expect(core.movementsImportBackup).not.toHaveBeenCalled();
     });
-    expect(await within(dialog).findByRole('status')).toHaveTextContent('Restore completed.');
+    expect(await screen.findByRole('status')).toHaveTextContent('Restore completed.');
   });
 
   it('shows application restore failures and preserves movement importer isolation', async () => {
@@ -1893,7 +1893,7 @@ describe('App Accounts UX', () => {
     });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Restore backup' }));
 
-    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Invalid application backup');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid application backup');
     expect(core.applicationImportBackup).toHaveBeenCalledTimes(1);
     expect(core.movementsImportBackup).not.toHaveBeenCalled();
   });

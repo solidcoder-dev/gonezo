@@ -10,26 +10,23 @@ type ApplicationBackupRestoreComponentProps = {
 export function ApplicationBackupRestoreComponent({ required, provided }: ApplicationBackupRestoreComponentProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
-  const [error, setError] = useState('');
-  const [completed, setCompleted] = useState(false);
+  const [error, setError] = useState<{ message: string; kind: 'validation' | 'operation' } | null>(null);
 
   if (!required.isOpen) return null;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!file) {
-      setError('Select a Gonezo application backup JSON file first.');
+      setError({ message: 'Select a Gonezo application backup JSON file first.', kind: 'validation' });
       return;
     }
-    setError('');
-    setCompleted(false);
+    setError(null);
     setIsRestoring(true);
     try {
       await provided.restore(file);
-      setCompleted(true);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Restore failed.';
-      setError(message);
+      setError({ message, kind: 'operation' });
       provided.onError?.({ message });
     } finally {
       setIsRestoring(false);
@@ -56,7 +53,7 @@ export function ApplicationBackupRestoreComponent({ required, provided }: Applic
                     aria-label="Application backup file (JSON)"
                     type="file"
                     accept=".json,application/json"
-                    onChange={(event) => { setFile(event.target.files?.[0] ?? null); setError(''); setCompleted(false); }}
+                    onChange={(event) => { setFile(event.target.files?.[0] ?? null); setError(null); }}
                   />
                 </label>
                 {file ? <p className="gz-hint">Selected: {file.name}</p> : null}
@@ -64,8 +61,7 @@ export function ApplicationBackupRestoreComponent({ required, provided }: Applic
                   {isRestoring ? 'Restoring...' : 'Restore backup'}
                 </button>
               </form>
-              {error ? <div className="alert alert-danger mt-3" role="alert">{error}</div> : null}
-              {completed ? <div className="alert alert-success mt-3" role="status">Restore completed.</div> : null}
+              {error?.kind === 'validation' ? <div className="alert alert-danger mt-3" role="alert">{error.message}</div> : null}
             </div>
           ),
         },

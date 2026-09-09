@@ -370,7 +370,6 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           onPostExpectedMovement: handlePostExpectedMovement,
           onEditExpectedMovement: handleEditExpectedMovement,
           onDuplicateMovement: handleDuplicateMovement,
-          onOperationError: showError,
           onNotice: showNotice,
           onNoticeUpdated: updateNotice,
           onNoticeClosed: closeNotice,
@@ -390,6 +389,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           onPostExpectedMovement: handlePostExpectedMovement,
           onEditExpectedMovement: handleEditExpectedMovement,
           onDuplicateMovement: handleDuplicateMovement,
+          onOperationError: showError,
         },
       }}
     />
