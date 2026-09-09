@@ -12,6 +12,7 @@ import type { MovementDetailQueryPort } from './movements.port';
 import type { ExpectedMovementView } from './movementsView.types';
 import type { MovementDetailViewModel } from './movementDetailView.types';
 import type { FeedbackNoticeInput, FeedbackNoticeUpdate } from '../../shared/ui/FeedbackNotice/feedbackNotice.types';
+import type { AmountVisibility } from '../../shared/domain/amountVisibility';
 
 const BROWSER_CLOCK = {
   now: () => new Date(),
@@ -32,6 +33,7 @@ export type MonthlyMovementsComponentProps = {
     config: {
       enabled: boolean;
       refreshSignal: boolean;
+      amountVisibility?: AmountVisibility;
     };
   };
   provided?: {
@@ -89,7 +91,7 @@ export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMo
         </div>
       ) : null}
 
-      <MonthlyMovementsView required={model.required} provided={model.provided} />
+      <MonthlyMovementsView required={{ ...model.required, amountVisibility: required.config.amountVisibility }} provided={model.provided} />
     </>
   );
 }

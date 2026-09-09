@@ -24,10 +24,12 @@ function TimelineGroups({
   groups,
   disabled,
   onSelect,
+  amountVisibility,
 }: {
   groups: MonthlyTimelineGroupViewModel[];
   disabled: boolean;
   onSelect: (source: MonthlyTimelineGroupViewModel['items'][number]['source'], id: string) => void;
+  amountVisibility?: MonthlyMovementsViewProps['required']['amountVisibility'];
 }) {
   return (
     <div className="monthly-timeline-groups">
@@ -41,6 +43,7 @@ function TimelineGroups({
                 item={item}
                 disabled={disabled}
                 onSelect={() => onSelect(item.source, item.id)}
+                amountVisibility={amountVisibility}
               />
             ))}
           </ul>
@@ -167,7 +170,7 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
               ) : null}
             </div>
           ) : (
-            <TimelineGroups groups={activeGroups} disabled={disabled} onSelect={selectTimelineItem} />
+            <TimelineGroups groups={activeGroups} disabled={disabled} onSelect={selectTimelineItem} amountVisibility={required.amountVisibility} />
           )}
 
           {selectedMode === 'posted' && pagination.hasNext ? (

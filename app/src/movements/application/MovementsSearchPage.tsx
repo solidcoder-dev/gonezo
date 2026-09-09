@@ -8,11 +8,13 @@ import { useMovementsSearchModel } from './useMovementsSearchModel';
 import { MovementsSearchFilters } from '../ui/MovementsSearch/MovementsSearchFilters';
 import { MovementsSearchResults } from '../ui/MovementsSearch/MovementsSearchResults';
 import { parseMovementsSearchRoutePreset } from './movementsSearchRoutePreset';
+import type { AmountVisibility } from '../../shared/domain/amountVisibility';
 
 type MovementsSearchPageProps = {
   required: {
     core: MovementsSearchPagePort;
     refreshSignal: boolean;
+    amountVisibility?: AmountVisibility;
   };
   provided: {
     events: {
@@ -152,6 +154,7 @@ export function MovementsSearchPage({ required, provided }: MovementsSearchPageP
             required={{
               state: searchModel.required.state,
               status: searchModel.required.status,
+              amountVisibility: required.amountVisibility,
             }}
             provided={{
               commands: searchModel.provided.commands,

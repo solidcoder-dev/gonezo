@@ -17,8 +17,10 @@ import {
 import '../movements.css';
 import '../MonthlyMovements/MonthlyMovementsView.css';
 import './MovementsSearch.css';
+import type { AmountVisibility } from '../../../shared/domain/amountVisibility';
 
 export type MovementsSearchResultsRequired = {
+  amountVisibility?: AmountVisibility;
   state: {
     appliedFilters: MovementsSearchFiltersState;
     items: MovementsSearchItemView[];
@@ -92,6 +94,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
                         item={item}
                         disabled={disabled}
                         onSelect={() => setSelectedEntryKey(`${item.source}:${item.id}`)}
+                        amountVisibility={required.amountVisibility}
                       />
                     ))}
                   </ul>
@@ -106,6 +109,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
                   item={buildMovementSearchTimelineItem(entry, { includeDate: true })}
                   disabled={disabled}
                   onSelect={() => setSelectedEntryKey(`${entry.source}:${entry.id}`)}
+                  amountVisibility={required.amountVisibility}
                 />
               ))}
             </ul>

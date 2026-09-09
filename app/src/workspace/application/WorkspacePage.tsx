@@ -383,6 +383,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         config: {
           enabled: true,
           refreshSignal: recentTransactionsRefreshSignal,
+          amountVisibility: amountVisibility?.state.visibility,
         },
       }}
       provided={{
@@ -406,6 +407,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       required={{
         core: pageRequired.core,
         refreshSignal: recentTransactionsRefreshSignal,
+        amountVisibility: amountVisibility?.state.visibility,
       }}
       provided={{
         events: {

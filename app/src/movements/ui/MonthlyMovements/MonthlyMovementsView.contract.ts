@@ -2,10 +2,12 @@ import type { ExpectedMovementView, ScheduledMovementView } from '../../applicat
 import type { TransactionHistoryItemView } from '../../../transactions/application/transactionView.types';
 import type { MovementDetailViewProps } from '../MovementDetail/MovementDetailView';
 import type { MonthlyTimelineGroupViewModel } from '../../application/monthlyMovementsTimeline';
+import type { AmountVisibility } from '../../../shared/domain/amountVisibility';
 
 export type MonthlyMovementsMode = 'posted' | 'planned';
 
 export type MonthlyMovementsViewRequired = {
+  amountVisibility?: AmountVisibility;
   state: {
     selectedMode: MonthlyMovementsMode;
     accountId: string;
