@@ -21,7 +21,7 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
   const [variants, setVariants] = useState<MovementReuseSuggestionVariant[]>([]);
   const [error, setError] = useState('');
   const [loadedTitle, setLoadedTitle] = useState<string | null>(null);
-  const [sessionActive, setSessionActive] = useState(false);
+  const [sessionActive, setSessionActive] = useState(input.enabled);
   const requestVersion = useRef(0);
   const sessionVersion = useRef(0);
   const inputRef = useRef(input);
@@ -130,7 +130,7 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
   }
 
   return {
-    state: { query: input.query, open, loading, groups, expandedTitle, variants, error },
+    state: { query: input.query, open: open && sessionActive, loading, groups, expandedTitle, variants, error },
     actions: { activate, deactivate, close, toggleGroup, selectVariant },
   };
 }
