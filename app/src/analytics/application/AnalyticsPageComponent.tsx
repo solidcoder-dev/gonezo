@@ -12,6 +12,7 @@ import { FlowTabComponent } from './FlowTabComponent';
 import { SpendingTabComponent } from './SpendingTabComponent';
 import { useAnalyticsFiltersModel } from './useAnalyticsFiltersModel';
 import styles from '../ui/AnalyticsPageView.module.css';
+import type { AmountVisibility } from '../../shared/domain/amountVisibility';
 
 export type AnalyticsPageComponentProps = {
   required: {
@@ -21,6 +22,7 @@ export type AnalyticsPageComponentProps = {
     config: {
       enabled: boolean;
       refreshSignal: boolean;
+      amountVisibility?: AmountVisibility;
     };
   };
   provided?: {
@@ -161,7 +163,9 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
         }}
       />
 
-      {filterModel.viewMode === 'overview' ? (
+      {required.config.amountVisibility === 'hidden' ? (
+        <div className={styles.emptyView} role="status" aria-label="Amounts hidden">Amounts hidden</div>
+      ) : filterModel.viewMode === 'overview' ? (
         <OverviewTabComponent
           required={{
             context: { core: required.context.core },

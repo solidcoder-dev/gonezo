@@ -429,6 +429,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         config: {
           enabled: true,
           refreshSignal: analyticsRefreshSignal,
+          amountVisibility: amountVisibility?.state.visibility,
         },
       }}
       provided={{

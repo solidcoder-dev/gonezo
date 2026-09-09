@@ -161,6 +161,24 @@ function createCore(): AnalyticsPort {
 }
 
 describe('AnalyticsPageComponent', () => {
+  it('keeps filters available and replaces financial reports with a neutral hidden state', async () => {
+    const core = createCore();
+    render(
+      <AnalyticsPageComponent
+        required={{
+          context: { core },
+          config: { enabled: true, refreshSignal: false, amountVisibility: 'hidden' },
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('status', { name: 'Amounts hidden' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Open currency filter')).toBeInTheDocument();
+    expect(screen.queryByText('€250.00')).not.toBeInTheDocument();
+    expect(core.analyticsGetOverviewSnapshot).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByRole('status', { name: 'Amounts hidden' })).toBeInTheDocument());
+  });
+
   it('does not render a local page title', () => {
     render(
       <AnalyticsPageComponent

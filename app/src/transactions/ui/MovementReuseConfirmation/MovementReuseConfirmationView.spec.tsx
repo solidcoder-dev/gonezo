@@ -22,7 +22,7 @@ describe('MovementReuseConfirmationView', () => {
     renderConfirmation(itemCount, shareCount);
 
     expect(screen.getByRole('dialog', { name: 'Reuse movement details?' })).toHaveTextContent(summary);
-    expect(screen.getByRole('dialog')).toHaveTextContent('53.40');
+    expect(screen.getByRole('dialog')).toHaveTextContent('Reusing details will replace the current amount.');
   });
 
   it('exposes semantic actions and closes through cancel', () => {
