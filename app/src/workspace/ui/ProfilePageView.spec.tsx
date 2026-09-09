@@ -1,8 +1,19 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ProfilePageView } from './ProfilePageView';
 
-function renderSubject(overrides: Partial<Parameters<typeof ProfilePageView>[0]> = {}) {
+function renderSubject(overrides: Partial<Parameters<typeof ProfilePageView>[0]> = {}, notificationCommand = vi.fn()) {
+  const commands = {
+    selectFavoriteAccount: () => undefined,
+    addAccount: () => undefined,
+    importBackup: () => undefined,
+    importMovements: () => undefined,
+    exportBackup: () => undefined,
+    manageTaxonomy: () => undefined,
+    openNotificationSettings: notificationCommand,
+    setVoiceMovementExperimentEnabled: vi.fn(),
+    ...overrides.provided?.commands,
+  };
   render(
     <ProfilePageView
       required={{
@@ -28,16 +39,8 @@ function renderSubject(overrides: Partial<Parameters<typeof ProfilePageView>[0]>
         ...overrides.required,
       }}
       provided={{
-        commands: {
-          selectFavoriteAccount: () => undefined,
-          addAccount: () => undefined,
-          importBackup: () => undefined,
-          importMovements: () => undefined,
-          exportBackup: () => undefined,
-          manageTaxonomy: () => undefined,
-          setVoiceMovementExperimentEnabled: vi.fn(),
-        },
-        ...overrides.provided,
+        commands,
+        events: overrides.provided?.events,
       }}
     />,
   );
@@ -56,6 +59,15 @@ describe('ProfilePageView', () => {
     expect(screen.getByRole('heading', { name: 'Experimental' })).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'Enable voice movement entry experiment' })).toBeInTheDocument();
     expect(screen.getByText('Replaces the standard Add navigation with the experimental manual and voice movement controls.')).toBeInTheDocument();
+  });
+
+  it('renders notification settings as a navigable profile row', () => {
+    const openNotificationSettings = vi.fn();
+    renderSubject({}, openNotificationSettings);
+
+    expect(screen.getByRole('heading', { name: 'Notifications' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Notification settings/ }));
+    expect(openNotificationSettings).toHaveBeenCalledOnce();
   });
 
   it('keeps favorite account and global actions without rendering an account list', () => {

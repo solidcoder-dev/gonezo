@@ -1,4 +1,4 @@
-import type { NotificationItem, NotificationPermissionState, NotificationsFilter } from './notifications.port';
+import type { NotificationItem, NotificationsFilter } from './notifications.port';
 
 export type NotificationsPageState = {
   filter: NotificationsFilter;
@@ -9,5 +9,4 @@ export type NotificationsPageState = {
   loading: boolean;
   loadingMore: boolean;
   error: string | null;
-  permission: NotificationPermissionState;
 };

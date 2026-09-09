@@ -27,8 +27,7 @@ export function NotificationsPageComponent({ required }: { required: { notificat
     onMarkRead: model.actions.markRead,
     onOpen: openItem,
     onMarkAllRead: model.actions.markAllRead,
-    onRequestPermission: model.actions.requestPermission,
-    onOpenSettings: model.actions.openSettings,
+    onOpenNotificationSettings: () => void navigate('/profile/notifications'),
     onRetry: model.actions.retry,
     }} />
     {selection ? <MovementDetailOverlayComponent required={{ context: { core: required.core }, data: { selection } }} provided={{ commands: { refreshMovements: async () => undefined }, events: { onClose: () => setSelection(null) } }} /> : null}

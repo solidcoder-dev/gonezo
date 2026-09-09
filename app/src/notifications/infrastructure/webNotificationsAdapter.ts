@@ -4,8 +4,9 @@ import type {
   NotificationsListResult,
   NotificationsPort,
 } from '../application/notifications.port';
+import type { NotificationSettingsLifecyclePort } from '../application/notificationSettingsLifecycle.port';
 
-export class WebNotificationsAdapter implements NotificationsPort {
+export class WebNotificationsAdapter implements NotificationsPort, NotificationSettingsLifecyclePort {
   private readonly clock: () => string;
   private items = new Map<string, Notification>();
   private sequence = 0;
@@ -63,6 +64,10 @@ export class WebNotificationsAdapter implements NotificationsPort {
   async addChangeListener(listener: () => void): Promise<() => void> {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+
+  addResumeListener(): Promise<() => void> {
+    return Promise.resolve(() => undefined);
   }
 
   reset() {

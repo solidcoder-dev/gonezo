@@ -15,6 +15,7 @@ import { createKeyboardVisibilityCapability } from './core/infrastructure/keyboa
 import { KeyboardVisibilityProvider } from './shared/ui/KeyboardVisibilityProvider';
 import { createNotificationsAdapter } from './notifications/infrastructure/notificationsAdapter';
 import { NotificationsPageComponent } from './notifications/application/NotificationsPageComponent';
+import { NotificationSettingsPageComponent } from './notifications/application/NotificationSettingsPageComponent';
 
 const defaultCore = new CoreAdapter();
 const defaultImportFileReader = { readAsBase64: readImportFileAsBase64 };
@@ -62,6 +63,7 @@ export function App({ required }: AppProps) {
       ))}
       <Route path="/taxonomy" element={<TaxonomyPage required={{ core: resolvedCore }} />} />
       <Route path="/notifications" element={<NotificationsPageComponent required={{ notifications: resolvedNotifications, core: resolvedCore }} />} />
+      <Route path="/profile/notifications" element={<NotificationSettingsPageComponent required={{ notifications: resolvedNotifications, lifecycle: resolvedNotifications }} />} />
       {import.meta.env.DEV ? <Route path="/__gallery" element={<ComponentGalleryView />} /> : null}
       </Routes>
     </KeyboardVisibilityProvider>

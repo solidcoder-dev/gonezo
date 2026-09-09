@@ -10,8 +10,6 @@ export function useNotificationsPageModel(port: NotificationsPort): {
     loadMore: () => void;
     markRead: (id: string) => void;
     markAllRead: () => void;
-    requestPermission: () => void;
-    openSettings: () => void;
     retry: () => void;
   };
 } {
@@ -23,7 +21,6 @@ export function useNotificationsPageModel(port: NotificationsPort): {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [permission, setPermission] = useState<NotificationsPageState['permission']>('unsupported');
   const [refreshToken, setRefreshToken] = useState(0);
 
   const load = useCallback(async (append: boolean, beforeCursor?: string) => {
@@ -31,16 +28,14 @@ export function useNotificationsPageModel(port: NotificationsPort): {
     else setLoading(true);
     setError(null);
     try {
-      const [list, count, permissionState] = await Promise.all([
+      const [list, count] = await Promise.all([
         port.notificationsList({ filter, beforeCursor: append ? beforeCursor : undefined, limit: 30 }),
         port.notificationsCountUnread(),
-        port.getPermissionState(),
       ]);
       setItems((previous) => append ? [...previous, ...list.items] : list.items);
       setNextCursor(list.nextCursor);
       setSnapshotCursor((previous) => append ? previous : list.snapshotCursor);
       setUnreadCount(count);
-      setPermission(permissionState);
     } catch {
       setError('Unable to load notifications');
     } finally {
@@ -59,14 +54,12 @@ export function useNotificationsPageModel(port: NotificationsPort): {
 
   const run = (action: () => Promise<unknown>) => { void action().then(() => setRefreshToken((value) => value + 1)).catch(() => setError('Unable to update notifications')); };
   return {
-    state: { filter, items, unreadCount, nextCursor, snapshotCursor, loading, loadingMore, error, permission },
+    state: { filter, items, unreadCount, nextCursor, snapshotCursor, loading, loadingMore, error },
     actions: {
       setFilter,
       loadMore: () => { if (nextCursor && !loadingMore) void load(true, nextCursor); },
       markRead: (id) => run(() => port.notificationsMarkRead(id)),
       markAllRead: () => { if (snapshotCursor) run(() => port.notificationsMarkAllRead(snapshotCursor)); },
-      requestPermission: () => run(port.requestPermission),
-      openSettings: () => run(port.openSettings),
       retry: () => setRefreshToken((value) => value + 1),
     },
   };

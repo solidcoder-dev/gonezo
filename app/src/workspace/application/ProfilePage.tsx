@@ -181,6 +181,7 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
             importMovements: () => { void provided.events?.onMovementsImportRequested?.(); },
             exportBackup: () => { void provided.events?.onBackupRequested?.(); },
             manageTaxonomy: () => { void navigate('/taxonomy'); },
+            openNotificationSettings: () => { void navigate('/profile/notifications'); },
             setVoiceMovementExperimentEnabled: (enabled) => {
               provided.events?.onSetVoiceMovementExperimentEnabled?.(enabled);
             },

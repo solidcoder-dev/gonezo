@@ -4,4 +4,6 @@
 .select { width: 100%; min-height: var(--touch-target-min); }
 .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm); }
 .actions button { min-height: var(--touch-target-min); }
+.notificationRow { min-height: 48px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; }
+.notificationRow:focus-visible { outline: 2px solid var(--color-action-primary-focus); outline-offset: 2px; }
 @media (max-width: 360px) { .actions { grid-template-columns: 1fr; } }

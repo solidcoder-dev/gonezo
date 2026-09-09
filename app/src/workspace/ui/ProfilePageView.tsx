@@ -50,6 +50,18 @@ export function ProfilePageView({ required, provided }: ProfilePageViewProps) {
         </div>
       </section>
 
+      <section className={styles.section} aria-labelledby="profile-notifications-heading">
+        <h2 id="profile-notifications-heading">Notifications</h2>
+        <button type="button" className={`${styles.notificationRow} d-flex align-items-center gap-3 w-100 text-start`} onClick={provided.commands.openNotificationSettings}>
+          <i className="bi bi-bell" aria-hidden />
+          <span className="flex-grow-1">
+            <span className="d-block fw-semibold">Notification settings</span>
+            <span className="d-block small text-body-secondary">Manage notification permissions</span>
+          </span>
+          <i className="bi bi-chevron-right text-body-secondary" aria-hidden />
+        </button>
+      </section>
+
       <section className={styles.section} aria-labelledby="profile-experimental-heading">
         <h2 id="profile-experimental-heading">Experimental</h2>
         <BinarySwitchCardView

@@ -3,6 +3,12 @@ import type { PluginListenerHandle } from '@capacitor/core';
 export type NotificationsFilter = 'all' | 'unread';
 export type NotificationPermissionState = 'granted' | 'denied' | 'channel_blocked' | 'unsupported';
 
+export type NotificationSettingsPort = {
+  getPermissionState: () => Promise<NotificationPermissionState>;
+  requestPermission: () => Promise<void>;
+  openSettings: () => Promise<void>;
+};
+
 export type NotificationItem = {
   id: string;
   type: string;

@@ -28,6 +28,7 @@ export type ProfilePageViewProps = ViewProps<
     importMovements: () => void;
     exportBackup: () => void;
     manageTaxonomy: () => void;
+    openNotificationSettings: () => void;
     setVoiceMovementExperimentEnabled: (enabled: boolean) => void;
   }
 >;
