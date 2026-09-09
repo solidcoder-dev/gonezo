@@ -17,13 +17,13 @@ against the source with repository search and nearby component inspection.
 - Read failures stay in the affected section or sheet, including account
   loading, net worth, expected movements, recent movements, analytics,
   taxonomy, imports, and movement reuse.
-- Workspace-level operation feedback is currently represented by one
-  `useWorkspaceToast` value and rendered by `StatusSection` in the account
-  page. It replaces the previous value and exposes dismiss and one action.
-- Monthly movements has a second local feedback value rendered by
-  `MonthlyMovementsComponent`. Its action is the existing delayed void
-  cancellation (`Undo`). The five-second timer belongs to
-  `useMonthlyMovementMutationsModel`, not to toast presentation.
+- Workspace-level operation feedback is represented by one `useWorkspaceToast`
+  coordinator and one `FeedbackNoticePresenter`; `StatusSection` retains only
+  independent screen-load failures.
+- Monthly movements publishes operation notices through its provided events.
+  Its action is the existing delayed void cancellation (`Undo`). The
+  five-second timer belongs to `useMonthlyMovementMutationsModel`, not to
+  notice presentation.
 - No operation feedback is persisted. No Android notification is part of this
   feature.
 
@@ -31,10 +31,10 @@ against the source with repository search and nearby component inspection.
 
 | Producer and operation | Kind | Current presentation | Existing action and lifecycle owner |
 | --- | --- | --- | --- |
-| `workspace/application/useWorkspaceToast.ts`: workspace operation results and errors | success, info, warning, error | `account/ui/AccountPageView/StatusSection.tsx` inline Bootstrap alert | `Download ZIP` and other provided actions are owned by the emitting capability; dismiss/action commands are owned by the workspace toast hook |
+| `workspace/application/useWorkspaceToast.ts`: workspace operation results and errors | success, info, warning, error | `shared/ui/FeedbackNotice/FeedbackNoticePresenter.tsx`, rooted at the workspace or active sheet/dialog destination | `Download ZIP` and other provided actions are owned by the emitting capability; dismiss/action commands are owned by the workspace notice hook |
 | `transactions/application/useTransactionEntryModel.ts`: account/taxonomy load and transaction submission | load failure, field validation, operation error | load/operation error in `TransactionEntryComponent`; field validation in composer fields | retry/correction remains with the composer; `onRecorded` and `onError` are provided by `TransactionEntryComponent`/`WorkspacePage` |
 | `transactions/application/useTransactionMovementReuseModel.ts`: reuse lookup | read failure | movement reuse status inside the composer | correction/retry is local to reuse controls; no global action today |
-| `movements/application/useMonthlyMovementMutationsModel.ts`: void, scheduled deactivation, expected dismissal, expected posting | operation result, error, delayed undo | local error and local success/action alert in `MonthlyMovementsComponent` | `Undo` and its five-second timer are owned by the mutation model; the producer clears the action when committing or unmounting |
+| `movements/application/useMonthlyMovementMutationsModel.ts`: void, scheduled deactivation, expected dismissal, expected posting | operation result, error, delayed undo | workspace notice through `useMonthlyMovementsFeedbackModel`; read failures remain in the movements section | `Undo` and its five-second timer are owned by the mutation model; the producer clears the action when committing or unmounting |
 | `movements/application/useMovementsSearchModel.ts` and search query runners | read failure and movement actions | search results/filter section status | retry/query controls remain with the search capability; navigation/post/edit/duplicate commands are provided by `WorkspacePage` |
 | `account/application/AccountHub/*`, `AccountSummary/*`, `AccountsRail/*`, `CurrencyAccountsSheet/*`, `ManageAccountSheet/*` | account loading and account mutations | local section/sheet errors; some mutations also emit `onError` | account selection, retry, close, and mutation completion remain with each capability and are composed by `WorkspacePage` |
 | `analytics/application/AnalyticsPageComponent.tsx` and analytics models | analytics read failure | analytics section status | filter/navigation controls remain with analytics; `onError` is emitted through the capability boundary |

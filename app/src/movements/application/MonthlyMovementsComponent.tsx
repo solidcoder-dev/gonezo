@@ -41,7 +41,6 @@ export type MonthlyMovementsComponentProps = {
       onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
       onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
       onDuplicateMovement?: (movement: MovementDetailViewModel) => void;
-      onError?: (error: { message: string }) => void;
       onNotice?: (notice: FeedbackNoticeInput) => string;
       onNoticeUpdated?: (id: string, update: FeedbackNoticeUpdate) => void;
       onNoticeClosed?: (id: string) => void;
@@ -72,7 +71,6 @@ export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMo
     onPostExpectedMovement: provided.events?.onPostExpectedMovement,
     onEditExpectedMovement: provided.events?.onEditExpectedMovement,
     onDuplicateMovement: provided.events?.onDuplicateMovement,
-    onError: provided.events?.onError,
     onNotice: provided.events?.onNotice,
     onNoticeUpdated: provided.events?.onNoticeUpdated,
     onNoticeClosed: provided.events?.onNoticeClosed,

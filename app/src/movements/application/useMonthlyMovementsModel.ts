@@ -44,7 +44,7 @@ type UseMonthlyMovementsModelInput = {
   onVoided?: (transactionId: string) => void;
   onExpectedDismissed?: () => void;
   onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void; onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
-  onDuplicateMovement?: (movement: MovementDetailViewModel) => void; onError?: (error: { message: string }) => void;
+  onDuplicateMovement?: (movement: MovementDetailViewModel) => void;
   onNotice?: (notice: FeedbackNoticeInput) => string;
   onNoticeUpdated?: (id: string, update: FeedbackNoticeUpdate) => void;
   onNoticeClosed?: (id: string) => void;
@@ -66,7 +66,6 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     onExpectedDismissed,
     onPostExpectedMovement, onEditExpectedMovement,
     onDuplicateMovement,
-    onError,
     onNotice,
     onNoticeUpdated,
     onNoticeClosed,
@@ -116,9 +115,8 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     (raw: unknown) => {
       const message = toErrorMessage(raw);
       setError(message);
-      onError?.({ message });
     },
-    [onError],
+    [],
   );
   async function loadAccountNameById(): Promise<Map<string, string>> {
     if (scope !== 'all') return new Map();
