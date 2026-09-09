@@ -94,6 +94,12 @@ internal class AndroidNotificationRepository(private val database: CoreDatabase)
     )
   }
 
+  override fun withdraw(ownerId: String, notificationId: String, at: Instant): NotificationLookupResult {
+    val values = ContentValues().apply { put("withdrawn_at", at.toString()) }
+    database.writableDatabase.update("notifications", values, "owner_id = ? and id = ?", arrayOf(ownerId, notificationId))
+    return findById(ownerId, notificationId)
+  }
+
   private fun findByDeduplicationKey(ownerId: String, deduplicationKey: String): NotificationRow? = find(
     "owner_id = ? and deduplication_key = ?",
     arrayOf(ownerId, deduplicationKey),

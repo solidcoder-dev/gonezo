@@ -76,6 +76,26 @@ class JdbcNotificationPersistenceContractTest : SqliteE2ETest() {
         assertThat(queue.findEligible(createdAt, 10)).isEmpty()
     }
 
+    @Test
+    fun `withdrawal preserves read history and cancels pending delivery`() {
+        val repository = JdbcNotificationRepository(db.namedJdbcTemplate)
+        val queue = JdbcNotificationDeliveryQueue(db.namedJdbcTemplate)
+        val notification = notification("withdraw-key")
+        repository.createIfAbsent(notification)
+        queue.enqueueIfAbsent(notification.id.toString())
+        val readAt = Instant.parse("2026-06-10T11:00:00Z")
+        repository.markRead("local-user", notification.id.toString(), readAt)
+
+        val withdrawn = repository.withdraw("local-user", notification.id.toString(), Instant.parse("2026-06-10T12:00:00Z"))
+
+        assertThat(withdrawn).isInstanceOf(NotificationLookupResult.Found::class.java)
+        val stored = (withdrawn as NotificationLookupResult.Found).row.notification
+        assertThat(stored.readAt).isEqualTo(readAt)
+        assertThat(stored.withdrawnAt).isEqualTo(Instant.parse("2026-06-10T12:00:00Z"))
+        queue.cancel(notification.id.toString())
+        assertThat(queue.findEligible(createdAt, 10)).isEmpty()
+    }
+
     private fun notification(
         deduplicationKey: String,
         subject: String = "Scheduled movement",

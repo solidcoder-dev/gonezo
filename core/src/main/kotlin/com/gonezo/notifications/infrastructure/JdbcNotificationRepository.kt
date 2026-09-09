@@ -95,6 +95,14 @@ class JdbcNotificationRepository(private val jdbc: NamedParameterJdbcTemplate) :
             .addValue("at", at.toString()),
     )
 
+    override fun withdraw(ownerId: String, notificationId: String, at: Instant): NotificationLookupResult {
+        jdbc.update(
+            "update notifications set withdrawn_at = coalesce(withdrawn_at, :at) where owner_id = :owner_id and id = :id",
+            MapSqlParameterSource().addValue("owner_id", ownerId).addValue("id", notificationId).addValue("at", at.toString()),
+        )
+        return findById(ownerId, notificationId)
+    }
+
     private fun findByDeduplicationKey(ownerId: String, deduplicationKey: String): NotificationRow? = jdbc.query(
         "select * from notifications where owner_id = :owner_id and deduplication_key = :deduplication_key",
         MapSqlParameterSource().addValue("owner_id", ownerId).addValue("deduplication_key", deduplicationKey),

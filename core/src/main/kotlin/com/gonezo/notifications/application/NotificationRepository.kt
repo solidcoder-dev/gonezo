@@ -40,4 +40,6 @@ interface NotificationRepository {
     fun markAllRead(ownerId: String, throughSequence: Long, at: Instant): Int
 
     fun withdrawBySource(ownerId: String, sourceType: NotificationSourceType, sourceId: String, at: Instant): Int
+
+    fun withdraw(ownerId: String, notificationId: String, at: Instant): NotificationLookupResult
 }
