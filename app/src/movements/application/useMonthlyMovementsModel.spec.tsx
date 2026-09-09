@@ -469,6 +469,9 @@ describe('useMonthlyMovementsModel', () => {
     const { timers, handlers } = makeControllableTimers();
     const ledgerVoidTransaction = vi.fn().mockResolvedValue(undefined);
     const onVoided = vi.fn();
+    const onNotice = vi.fn(() => 'notice-1');
+    const onNoticeUpdated = vi.fn();
+    const onNoticeClosed = vi.fn();
     const transaction = postedTransaction();
     const ports = makePorts({
       ledger: {
@@ -492,6 +495,9 @@ describe('useMonthlyMovementsModel', () => {
       clock: { now: () => new Date('2026-05-15T10:20:30.000Z') },
       timers,
       onVoided,
+      onNotice,
+      onNoticeUpdated,
+      onNoticeClosed,
     }));
 
     await waitFor(() => expect(result.current.required.status.loading).toBe(false));
@@ -507,6 +513,10 @@ describe('useMonthlyMovementsModel', () => {
     await waitFor(() => expect(result.current.required.state.pendingVoidTransactionId).toBe('tx-1'));
     expect(result.current.toast.message).toBe('Transaction will be voided in 5 seconds.');
     expect(result.current.toast.actionLabel).toBe('Undo');
+    expect(onNotice).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'Transaction will be voided in 5 seconds.',
+      action: expect.objectContaining({ label: 'Undo' }),
+    }));
 
     act(() => {
       result.current.toast.runAction();
@@ -530,6 +540,7 @@ describe('useMonthlyMovementsModel', () => {
 
     await waitFor(() => expect(ledgerVoidTransaction).toHaveBeenCalledWith({ transactionId: 'tx-1' }));
     expect(onVoided).toHaveBeenCalledWith('tx-1');
+    expect(onNoticeUpdated).toHaveBeenCalledWith('notice-1', expect.objectContaining({ action: undefined }));
     await waitFor(() => expect(result.current.toast.message).toBe('Transaction voided.'));
   });
 

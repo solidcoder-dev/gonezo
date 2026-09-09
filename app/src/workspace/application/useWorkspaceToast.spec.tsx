@@ -315,4 +315,23 @@ describe('useWorkspaceToast', () => {
       count: 1,
     });
   });
+
+  it('places an immediate action notice in front of an existing notice', () => {
+    const { result } = renderHook(() => useWorkspaceToast());
+
+    act(() => {
+      result.current.actions.showError({ message: 'Previous failure' });
+      result.current.actions.showNotice({
+        message: 'Undo is available.',
+        tone: 'success',
+        source: 'movements.undo',
+        priority: 'immediate',
+        action: { label: 'Undo', run: vi.fn() },
+        durationPolicy: 'until-updated',
+      });
+    });
+
+    expect(result.current.toast.message).toBe('Undo is available.');
+    expect(result.current.notices.map((notice) => notice.message)).toEqual(['Undo is available.', 'Previous failure']);
+  });
 });

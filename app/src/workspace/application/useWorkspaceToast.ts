@@ -34,6 +34,11 @@ function isPendingTransient(notice: FeedbackNotice) {
 }
 
 function enqueueNotice(current: FeedbackNotice[], notice: FeedbackNotice): FeedbackNotice[] {
+  if (notice.priority === 'immediate') {
+    const next = [notice, ...current];
+    return next.length <= 5 ? next : next.slice(0, 5);
+  }
+
   if (notice.deduplicationKey) {
     const duplicateIndex = current.findIndex((item) => item.deduplicationKey === notice.deduplicationKey);
     if (duplicateIndex >= 0) {

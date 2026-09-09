@@ -11,6 +11,7 @@ import type { LedgerTransactionOperationsPort } from '../../ledger/application/u
 import type { MovementDetailQueryPort } from './movements.port';
 import type { ExpectedMovementView } from './movementsView.types';
 import type { MovementDetailViewModel } from './movementDetailView.types';
+import type { FeedbackNoticeInput, FeedbackNoticeUpdate } from '../../shared/ui/FeedbackNotice/feedbackNotice.types';
 
 const BROWSER_CLOCK = {
   now: () => new Date(),
@@ -41,6 +42,9 @@ export type MonthlyMovementsComponentProps = {
       onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
       onDuplicateMovement?: (movement: MovementDetailViewModel) => void;
       onError?: (error: { message: string }) => void;
+      onNotice?: (notice: FeedbackNoticeInput) => string;
+      onNoticeUpdated?: (id: string, update: FeedbackNoticeUpdate) => void;
+      onNoticeClosed?: (id: string) => void;
     };
   };
 };
@@ -69,6 +73,9 @@ export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMo
     onEditExpectedMovement: provided.events?.onEditExpectedMovement,
     onDuplicateMovement: provided.events?.onDuplicateMovement,
     onError: provided.events?.onError,
+    onNotice: provided.events?.onNotice,
+    onNoticeUpdated: provided.events?.onNoticeUpdated,
+    onNoticeClosed: provided.events?.onNoticeClosed,
     confirm: (message) => window.confirm(message),
   });
 
@@ -81,20 +88,6 @@ export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMo
       {model.error ? (
         <div className="alert alert-danger mt-3" role="alert">
           {model.error}
-        </div>
-      ) : null}
-
-      {model.toast.message ? (
-        <div className="alert alert-success d-flex align-items-center gap-2 mb-0" role="status" aria-live="polite">
-          <span>{model.toast.message}</span>
-          {model.toast.actionLabel ? (
-            <button type="button" className="gz-text-button" onClick={model.toast.runAction}>
-              {model.toast.actionLabel}
-            </button>
-          ) : null}
-          <button type="button" className="gz-text-button" onClick={model.toast.dismiss}>
-            Dismiss
-          </button>
         </div>
       ) : null}
 

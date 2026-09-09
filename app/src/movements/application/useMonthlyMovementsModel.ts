@@ -18,6 +18,7 @@ import { useMonthlyMovementsTaxonomyModel } from './useMonthlyMovementsTaxonomyM
 import { useMonthlyMovementsTimelineModel } from './useMonthlyMovementsTimelineModel';
 import { rejectConfirmation, toErrorMessage } from './useMonthlyMovementsModel.helpers';
 import type { MonthlyMovementsMode, MonthlyMovementsViewProvided, MonthlyMovementsViewRequired } from '../ui/MonthlyMovements/MonthlyMovementsView.contract';
+import type { FeedbackNoticeInput, FeedbackNoticeUpdate } from '../../shared/ui/FeedbackNotice/feedbackNotice.types';
 export type MonthlyMovementsModelPorts = {
   movements: MovementDetailQueryPort;
   analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
@@ -44,6 +45,9 @@ type UseMonthlyMovementsModelInput = {
   onExpectedDismissed?: () => void;
   onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void; onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
   onDuplicateMovement?: (movement: MovementDetailViewModel) => void; onError?: (error: { message: string }) => void;
+  onNotice?: (notice: FeedbackNoticeInput) => string;
+  onNoticeUpdated?: (id: string, update: FeedbackNoticeUpdate) => void;
+  onNoticeClosed?: (id: string) => void;
   confirm?: (message: string) => boolean;
   postedItems?: LedgerTransactionListItem[];
   scheduledItems?: ScheduledMovementView[];
@@ -63,6 +67,9 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     onPostExpectedMovement, onEditExpectedMovement,
     onDuplicateMovement,
     onError,
+    onNotice,
+    onNoticeUpdated,
+    onNoticeClosed,
     confirm,
   } = input;
   const confirmMovementAction = confirm ?? rejectConfirmation;
@@ -71,7 +78,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const [page, setPage] = useState(0);
   const [selectedMode, setSelectedMode] = useState<MonthlyMovementsMode>('posted');
   const previousAccountIdRef = useRef<string | null>(null);
-  const feedbackModel = useMonthlyMovementsFeedbackModel();
+  const feedbackModel = useMonthlyMovementsFeedbackModel({ onNotice, onNoticeUpdated, onNoticeClosed });
   const navigationModel = useMonthlyMovementNavigationModel({
     clock,
     resetPage: () => setPage(0),
