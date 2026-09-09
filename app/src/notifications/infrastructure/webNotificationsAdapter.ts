@@ -24,7 +24,9 @@ export class WebNotificationsAdapter implements NotificationsPort {
     const page = items.filter((item) => item.sequence < before).slice(0, limit);
     const next = page.length === limit ? String(page.at(-1)?.sequence) : null;
     return Promise.resolve({
-      items: page.map(({ sequence: _sequence, ...item }) => item),
+      items: page.map((value) => {
+        return Object.fromEntries(Object.entries(value).filter(([key]) => key !== 'sequence')) as Omit<Notification, 'sequence'>;
+      }),
       nextCursor: next,
       snapshotCursor: this.sequence ? String(this.sequence) : null,
     });

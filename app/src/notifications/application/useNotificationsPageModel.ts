@@ -1,17 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { NotificationItem, NotificationsFilter, NotificationsPort } from './notifications.port';
-
-export type NotificationsPageState = {
-  filter: NotificationsFilter;
-  items: NotificationItem[];
-  unreadCount: number | null;
-  nextCursor: string | null;
-  snapshotCursor: string | null;
-  loading: boolean;
-  loadingMore: boolean;
-  error: string | null;
-  permission: Awaited<ReturnType<NotificationsPort['getPermissionState']>>;
-};
+import type { NotificationsPageState } from './notificationsPage.types';
+export type { NotificationsPageState } from './notificationsPage.types';
 
 export function useNotificationsPageModel(port: NotificationsPort): {
   state: NotificationsPageState;
@@ -36,12 +26,13 @@ export function useNotificationsPageModel(port: NotificationsPort): {
   const [permission, setPermission] = useState<NotificationsPageState['permission']>('unsupported');
   const [refreshToken, setRefreshToken] = useState(0);
 
-  const load = useCallback(async (append: boolean) => {
-    append ? setLoadingMore(true) : setLoading(true);
+  const load = useCallback(async (append: boolean, beforeCursor?: string) => {
+    if (append) setLoadingMore(true);
+    else setLoading(true);
     setError(null);
     try {
       const [list, count, permissionState] = await Promise.all([
-        port.notificationsList({ filter, beforeCursor: append ? nextCursor ?? undefined : undefined, limit: 30 }),
+        port.notificationsList({ filter, beforeCursor: append ? beforeCursor : undefined, limit: 30 }),
         port.notificationsCountUnread(),
         port.getPermissionState(),
       ]);
@@ -53,11 +44,12 @@ export function useNotificationsPageModel(port: NotificationsPort): {
     } catch {
       setError('Unable to load notifications');
     } finally {
-      append ? setLoadingMore(false) : setLoading(false);
+      if (append) setLoadingMore(false);
+      else setLoading(false);
     }
-  }, [filter, nextCursor, port]);
+  }, [filter, port]);
 
-  useEffect(() => { void load(false); }, [filter, refreshToken]);
+  useEffect(() => { void load(false); }, [filter, refreshToken, load]);
   useEffect(() => {
     let active = true;
     let remove: (() => void) | undefined;
@@ -70,7 +62,7 @@ export function useNotificationsPageModel(port: NotificationsPort): {
     state: { filter, items, unreadCount, nextCursor, snapshotCursor, loading, loadingMore, error, permission },
     actions: {
       setFilter,
-      loadMore: () => { if (nextCursor && !loadingMore) void load(true); },
+      loadMore: () => { if (nextCursor && !loadingMore) void load(true, nextCursor); },
       markRead: (id) => run(() => port.notificationsMarkRead(id)),
       markAllRead: () => { if (snapshotCursor) run(() => port.notificationsMarkAllRead(snapshotCursor)); },
       requestPermission: () => run(port.requestPermission),

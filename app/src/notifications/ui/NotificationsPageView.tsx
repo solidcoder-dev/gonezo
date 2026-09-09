@@ -1,5 +1,5 @@
 import type { NotificationItem, NotificationPermissionState, NotificationsFilter } from '../application/notifications.port';
-import type { NotificationsPageState } from '../application/useNotificationsPageModel';
+import type { NotificationsPageState } from '../application/notificationsPage.types';
 
 export type NotificationsPageViewProps = {
   state: NotificationsPageState;

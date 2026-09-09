@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { NotificationsPageState } from '../application/useNotificationsPageModel';
+import type { NotificationsPageState } from '../application/notificationsPage.types';
 import { NotificationsPageView } from './NotificationsPageView';
 
 const state: NotificationsPageState = {
