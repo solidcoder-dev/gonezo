@@ -48,6 +48,16 @@ class JdbcNotificationDeliveryQueue(private val jdbc: NamedParameterJdbcTemplate
         }
     }
 
+    override fun markRetry(notificationId: String, nextAttemptAt: Instant, errorCode: String?) {
+        jdbc.update(
+            "update notification_deliveries set attempts = attempts + 1, next_attempt_at = :next_attempt_at, last_error_code = :last_error_code where notification_id = :notification_id and status = 'pending'",
+            MapSqlParameterSource()
+                .addValue("notification_id", notificationId)
+                .addValue("next_attempt_at", nextAttemptAt.toString())
+                .addValue("last_error_code", errorCode),
+        )
+    }
+
     override fun cancel(notificationId: String) {
         jdbc.update(
             "update notification_deliveries set status = 'cancelled' where notification_id = :notification_id and status = 'pending'",

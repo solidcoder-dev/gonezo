@@ -13,5 +13,7 @@ interface NotificationDeliveryQueue {
 
     fun markSuppressed(notificationIds: List<String>, errorCode: String?)
 
+    fun markRetry(notificationId: String, nextAttemptAt: Instant, errorCode: String?)
+
     fun cancel(notificationId: String)
 }

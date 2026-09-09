@@ -46,6 +46,13 @@ internal class AndroidNotificationDeliveryQueue(private val database: CoreDataba
     }
   }
 
+  override fun markRetry(notificationId: String, nextAttemptAt: Instant, errorCode: String?) {
+    database.writableDatabase.execSQL(
+      "update notification_deliveries set attempts = attempts + 1, next_attempt_at = ?, last_error_code = ? where notification_id = ? and status = 'pending'",
+      arrayOf(nextAttemptAt.toString(), errorCode, notificationId),
+    )
+  }
+
   override fun cancel(notificationId: String) {
     database.writableDatabase.update("notification_deliveries", ContentValues().apply { put("status", "cancelled") }, "notification_id = ? and status = ?", arrayOf(notificationId, "pending"))
   }
