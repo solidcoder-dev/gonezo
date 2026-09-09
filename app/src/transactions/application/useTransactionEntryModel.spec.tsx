@@ -199,6 +199,69 @@ describe('useTransactionEntryModel', () => {
     expect(onRecorded).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps form values and local field validation after an invalid submit', async () => {
+    const ports = makePorts();
+    const onError = vi.fn();
+    const { result } = renderHook(() => useTransactionEntryModel({
+      ports,
+      clock: makeClock(),
+      idGenerator: makeIdGenerator([]),
+      accountId: 'account-1',
+      enabled: true,
+      onError,
+    }));
+
+    await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
+    act(() => {
+      result.current.provided.commands.open();
+      result.current.provided.commands.selectMode('expense');
+      result.current.provided.commands.setAmount('12.00');
+      result.current.provided.commands.setNote('Keep this note');
+      result.current.provided.commands.setAmount('');
+    });
+
+    await act(async () => {
+      await result.current.provided.commands.submit(formEvent());
+    });
+
+    expect(result.current.required.state.note).toBe('Keep this note');
+    expect(result.current.required.status.errors.amount).toBe('Enter a valid amount greater than 0.');
+    expect(onError).not.toHaveBeenCalled();
+    expect(ports.ledger.ledgerRecordExpense).not.toHaveBeenCalled();
+  });
+
+  it('keeps form values after an operation failure and reports the failure once', async () => {
+    const ports = makePorts();
+    vi.mocked(ports.ledger.ledgerRecordExpense).mockRejectedValueOnce(new Error('Unable to save movement.'));
+    const onError = vi.fn();
+    const { result } = renderHook(() => useTransactionEntryModel({
+      ports,
+      clock: makeClock(),
+      idGenerator: makeIdGenerator([]),
+      accountId: 'account-1',
+      enabled: true,
+      onError,
+    }));
+
+    await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
+    act(() => {
+      result.current.provided.commands.open();
+      result.current.provided.commands.selectMode('expense');
+      result.current.provided.commands.setAmount('12.00');
+      result.current.provided.commands.setNote('Retry this movement');
+    });
+
+    await act(async () => {
+      await result.current.provided.commands.submit(formEvent());
+    });
+
+    expect(result.current.error).toBe('Unable to save movement.');
+    expect(result.current.required.state.amount).toBe('12.00');
+    expect(result.current.required.state.note).toBe('Retry this movement');
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith({ message: 'Unable to save movement.' });
+  });
+
   it('applies setup only without replacing amount, date or details', async () => {
     const ports = makePorts();
     const onAccountChanged = vi.fn();

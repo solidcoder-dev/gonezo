@@ -533,6 +533,42 @@ describe('useMonthlyMovementsModel', () => {
     await waitFor(() => expect(result.current.toast.message).toBe('Transaction voided.'));
   });
 
+  it('cancels the delayed void timer when the producer unmounts', async () => {
+    const { timers } = makeControllableTimers();
+    const ports = makePorts({
+      scheduling: {
+        ...makePorts().scheduling,
+        movementsGetOverview: vi.fn().mockResolvedValue(emptyOverview({
+          postedPage: pageWith([postedTransaction()]),
+          executedPage: pageWith([postedTransaction()]),
+        })),
+      },
+    });
+
+    const { result, unmount } = renderHook(() => useMonthlyMovementsModel({
+      ports,
+      accountId: 'account-1',
+      enabled: true,
+      refreshSignal: false,
+      clock: { now: () => new Date('2026-05-15T10:20:30.000Z') },
+      timers,
+    }));
+
+    await waitFor(() => expect(result.current.required.status.loading).toBe(false));
+    act(() => {
+      result.current.provided.commands.openPostedMovementDetail('tx-1');
+    });
+    await waitFor(() => expect(result.current.required.detail.data.movement?.id).toBe('tx-1'));
+    act(() => {
+      result.current.provided.detail.commands.runOverflowAction({ id: 'void-posted', transactionId: 'tx-1', label: 'Void movement', destructive: true });
+    });
+
+    unmount();
+
+    expect(timers.clearTimeout).toHaveBeenCalledWith(1);
+    expect(ports.ledger.ledgerVoidTransaction).not.toHaveBeenCalled();
+  });
+
   it('hydrates posted transaction taxonomy for the monthly list', async () => {
     const transaction = postedTransaction({ categoryId: 'cat-food' });
     const ports = makePorts({

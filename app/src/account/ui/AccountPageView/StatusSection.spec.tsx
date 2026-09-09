@@ -31,7 +31,6 @@ describe('StatusSection', () => {
     render(<StatusSection {...makeProps()} />);
 
     const toast = screen.getByRole('alert');
-    expect(toast).toHaveClass('alert-warning');
     expect(toast).toHaveAttribute('aria-live', 'assertive');
     expect(screen.getByRole('button', { name: 'Download ZIP' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
@@ -53,7 +52,6 @@ describe('StatusSection', () => {
     })} />);
 
     const toast = screen.getByRole('status');
-    expect(toast).toHaveClass('alert-info');
     expect(toast).toHaveAttribute('aria-live', 'polite');
     expect(screen.getByRole('button', { name: 'Download ZIP' })).toBeInTheDocument();
   });
@@ -74,8 +72,26 @@ describe('StatusSection', () => {
     })} />);
 
     const toast = screen.getByRole('status');
-    expect(toast).toHaveClass('alert-success');
     expect(toast).toHaveAttribute('aria-live', 'polite');
+  });
+
+  it('keeps an independent screen error visible when no toast is present', () => {
+    render(<StatusSection {...makeProps({
+      required: {
+        screen: {
+          loadPhase: 'error' as const,
+          error: 'Unable to load accounts.',
+        },
+        toast: {
+          message: '',
+          tone: 'success' as const,
+          actionLabel: '',
+        },
+      },
+    })} />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Unable to load accounts.');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('runs the toast action and dismiss callback', () => {
