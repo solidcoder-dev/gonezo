@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { FeedbackNotice, FeedbackNoticeWriter } from './feedbackNotice.types';
 import { FeedbackNoticeView } from './FeedbackNoticeView';
 import styles from './FeedbackNoticePresenter.module.css';
+import { useFeedbackNoticeDestination } from './useFeedbackNoticeDestination';
 
 type FeedbackNoticePresenterProps = {
   notices: readonly FeedbackNotice[];
@@ -29,6 +31,7 @@ function safeDetailsText(notice: FeedbackNotice) {
 
 export function FeedbackNoticePresenter({ notices, closeNotice, pauseNotice, resumeNotice, writeText }: FeedbackNoticePresenterProps) {
   const [copyState, setCopyState] = useState<{ id: string; state: 'copied' | 'failed' } | null>(null);
+  const destination = useFeedbackNoticeDestination();
   const notice = notices[0];
   if (!notice) return null;
   const details = notice.details ? safeDetailsText(notice) : undefined;
@@ -48,8 +51,8 @@ export function FeedbackNoticePresenter({ notices, closeNotice, pauseNotice, res
     }
   }
 
-  return (
-    <div className={styles.container} aria-label="Workspace feedback">
+  const content = (
+    <div className={destination ? styles.dialogContainer : styles.container} aria-label="Workspace feedback">
       <div
         className={styles.notice}
         onMouseEnter={() => pauseNotice(notice.id, 'hover')}
@@ -92,4 +95,6 @@ export function FeedbackNoticePresenter({ notices, closeNotice, pauseNotice, res
       </div>
     </div>
   );
+
+  return destination ? createPortal(content, destination) : content;
 }

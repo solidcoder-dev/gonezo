@@ -34,6 +34,7 @@ import { useExperimentalFeaturesModel } from '../../experiments/application/useE
 import type { ExperimentalFeaturesPort } from '../../experiments/application/experimentalFeatures.port';
 import { FeedbackNoticePresenter } from '../../shared/ui/FeedbackNotice/FeedbackNoticePresenter';
 import type { FeedbackNoticeWriter } from '../../shared/ui/FeedbackNotice/feedbackNotice.types';
+import { FeedbackNoticeDestinationProvider } from '../../shared/ui/FeedbackNotice/FeedbackNoticeDestination';
 
 export type WorkspacePageRequired = {
   core: WorkspacePagePort;
@@ -637,7 +638,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   };
 
   return (
-    <>
+    <FeedbackNoticeDestinationProvider>
       <AccountPageView required={required} provided={{}} />
       <FeedbackNoticePresenter
         notices={workspaceToast.notices}
@@ -646,6 +647,6 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         resumeNotice={resumeNotice}
         writeText={pageRequired.writeText}
       />
-    </>
+    </FeedbackNoticeDestinationProvider>
   );
 }

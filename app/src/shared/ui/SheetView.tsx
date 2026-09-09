@@ -4,6 +4,7 @@ import styles from './SheetView.module.css';
 import { useSheetDragToClose } from './useSheetDragToClose';
 import { useEffect } from 'react';
 import { useBackDismissable } from './useBackDismissable';
+import { FeedbackNoticeDestination } from './FeedbackNotice/FeedbackNoticeDestination';
 
 export type SheetViewProps = ViewProps<
   {
@@ -145,6 +146,7 @@ export function SheetView({ required, provided }: SheetViewProps) {
           </div>
         ) : data.body}
         {data.footer}
+        <FeedbackNoticeDestination />
       </section>
     </div>
   );

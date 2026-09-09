@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type RefObject } from 'react';
 import './MovementVoicePermissionDialog.css';
+import { FeedbackNoticeDestination } from '../../../shared/ui/FeedbackNotice/FeedbackNoticeDestination';
 
 type MovementVoicePermissionDialogProps = {
   open: boolean;
@@ -135,6 +136,7 @@ export function MovementVoicePermissionDialog({
             {safeActionLabel}
           </button>
         </div>
+        <FeedbackNoticeDestination />
       </div>
     </div>
   );
