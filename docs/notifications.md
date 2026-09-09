@@ -37,6 +37,8 @@ Guardar el historial no depende del permiso de notificaciones ni del estado del 
 
 La coordinación entre recurrence/expected y notifications vive en la orquestación exterior y conserva `ConsistencyBoundary`; notifications no importa otros dominios ni accede a sus tablas. Android/JDBC implementan los puertos interiores.
 
+La inspección del procesamiento actual confirma que `AndroidConsistencyBoundary` envuelve el bloque con la misma conexión `SQLiteDatabase` obtenida desde `CoreDatabase.getWritableDatabase()`. Los repositorios Android de recurring movement, occurrence, expected y ledger reciben esa misma instancia de `CoreDatabase`, por lo que sus lecturas y escrituras participan en la transacción SQLite abierta por la boundary; las lecturas usan la conexión legible del mismo helper. El cierre ocurre en `endTransaction()` y el commit solo se marca si el bloque retorna normalmente.
+
 No hay Firebase, servidor, sincronización multidispositivo, horarios configurables, preferencias por categoría, event bus genérico, implementaciones nativas iOS/web ni notificaciones para otros contextos. El doble web es únicamente determinista para pruebas y desarrollo; no simula entrega Android ni persistencia nativa. iOS declara la capacidad no soportada.
 
 La restauración de backup financiero no incluye este estado local de ejecución. Una restauración confirmada limpia la bandeja y las entregas; una importación ordinaria conserva la bandeja y solo reconcilia avisos afectados. No se hace backfill histórico.
