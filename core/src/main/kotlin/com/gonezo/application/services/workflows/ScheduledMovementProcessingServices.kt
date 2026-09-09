@@ -3,6 +3,10 @@ package com.gonezo.application.orchestration
 import com.gonezo.application.ConsistencyBoundary
 import com.gonezo.application.ImmediateConsistencyBoundary
 import com.gonezo.domain.shared.Money
+import com.gonezo.notifications.application.NoOpScheduledMovementNotificationRecorder
+import com.gonezo.notifications.application.ScheduledExpectedNotification
+import com.gonezo.notifications.application.ScheduledFailureNotification
+import com.gonezo.notifications.application.ScheduledMovementNotificationRecorder
 import com.gonezo.expected.application.CreateExpectedMovementCommand
 import com.gonezo.expected.application.CreateExpectedMovementUC
 import com.gonezo.expected.domain.ExpectedMovement
@@ -42,7 +46,7 @@ interface DueScheduledMovementHandler {
     fun handle(context: DueScheduledMovementContext): DueScheduledMovementHandlerResult
 }
 
-class ProcessDueScheduledMovementsService(private val recurringMovementRepository: RecurringMovementRepository, private val occurrenceRepository: RecurringMovementOccurrenceRepository, private val handlers: List<DueScheduledMovementHandler>, private val scheduleCalculator: RecurrenceScheduleCalculator, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary) : ProcessDueScheduledMovementsUC {
+class ProcessDueScheduledMovementsService(private val recurringMovementRepository: RecurringMovementRepository, private val occurrenceRepository: RecurringMovementOccurrenceRepository, private val handlers: List<DueScheduledMovementHandler>, private val scheduleCalculator: RecurrenceScheduleCalculator, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary, private val notificationRecorder: ScheduledMovementNotificationRecorder = NoOpScheduledMovementNotificationRecorder) : ProcessDueScheduledMovementsUC {
     override fun execute(command: ProcessDueScheduledMovementsCommand): ProcessDueScheduledMovementsResult {
         require(command.limit > 0) { "limit must be greater than 0" }
 
@@ -111,10 +115,20 @@ class ProcessDueScheduledMovementsService(private val recurringMovementRepositor
                 ProcessedDueMovementOutcome.POSTED
             }
 
-            is DueScheduledMovementHandlerResult.ExpectedCreated -> {
-                occurrenceRepository.save(occurrence)
-                advanceMovement(movement, dueAt, handledAt)
-                ProcessedDueMovementOutcome.EXPECTED_CREATED
+                is DueScheduledMovementHandlerResult.ExpectedCreated -> {
+                    notificationRecorder.recordExpected(
+                        ScheduledExpectedNotification(
+                            recurringMovementId = movement.id.toString(),
+                            expectedMovementId = result.expectedMovementId,
+                            originOccurrenceId = occurrence.id.toString(),
+                            dueAt = dueAt,
+                            subject = movement.description,
+                            occurredAt = handledAt,
+                        ),
+                    )
+                    occurrenceRepository.save(occurrence)
+                    advanceMovement(movement, dueAt, handledAt)
+                    ProcessedDueMovementOutcome.EXPECTED_CREATED
             }
         }
     }
@@ -141,6 +155,16 @@ class ProcessDueScheduledMovementsService(private val recurringMovementRepositor
                 errorCodeValue = "DUE_SCHEDULED_PROCESSING_FAILED",
                 errorMessageValue = failure.message,
                 at = handledAt,
+            ),
+        )
+        notificationRecorder.recordFailure(
+            ScheduledFailureNotification(
+                recurringMovementId = movement.id.toString(),
+                originOccurrenceId = occurrence.id.toString(),
+                dueAt = dueAt,
+                subject = movement.description,
+                errorCode = "DUE_SCHEDULED_PROCESSING_FAILED",
+                occurredAt = handledAt,
             ),
         )
         return ProcessedDueMovementOutcome.FAILED

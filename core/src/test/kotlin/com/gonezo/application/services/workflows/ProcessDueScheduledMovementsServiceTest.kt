@@ -24,6 +24,9 @@ import com.gonezo.ledger.application.RecordLedgerTransferFxUC
 import com.gonezo.ledger.application.RecordLedgerTransferResult
 import com.gonezo.ledger.application.RecordLedgerTransferUC
 import com.gonezo.ledger.domain.TransactionId
+import com.gonezo.notifications.application.ScheduledExpectedNotification
+import com.gonezo.notifications.application.ScheduledFailureNotification
+import com.gonezo.notifications.application.ScheduledMovementNotificationRecorder
 import com.gonezo.recurrence.domain.RecurrenceEnd
 import com.gonezo.recurrence.domain.RecurrenceFrequency
 import com.gonezo.recurrence.domain.RecurrenceRule
@@ -52,11 +55,13 @@ class ProcessDueScheduledMovementsServiceTest {
         val movementRepository = InMemoryRecurringMovementRepository()
         val occurrenceRepository = InMemoryOccurrenceRepository()
         val ledgerExpense = CapturingRecordLedgerExpenseUC("7a00d881-c1fd-4a69-ad8f-2ace38d84c0a")
+        val recorder = RecordingNotificationRecorder()
         val service =
             service(
                 movementRepository = movementRepository,
                 occurrenceRepository = occurrenceRepository,
                 recordLedgerExpenseUC = ledgerExpense,
+                notificationRecorder = recorder,
             )
         val movement =
             sampleMovement(
@@ -85,6 +90,8 @@ class ProcessDueScheduledMovementsServiceTest {
         assertThat(occurrence.ledgerTransactionId).isEqualTo("7a00d881-c1fd-4a69-ad8f-2ace38d84c0a")
         assertThat(updated!!.status).isEqualTo(RecurringMovementStatus.ACTIVE)
         assertThat(updated.nextDueAt).isEqualTo(Instant.parse("2026-06-11T09:00:00Z"))
+        assertThat(recorder.expected).isEmpty()
+        assertThat(recorder.failures).isEmpty()
     }
 
     @Test
@@ -119,12 +126,14 @@ class ProcessDueScheduledMovementsServiceTest {
         val occurrenceRepository = InMemoryOccurrenceRepository()
         val expectedRepository = InMemoryExpectedMovementRepository()
         val ledgerExpense = CapturingRecordLedgerExpenseUC("7a00d881-c1fd-4a69-ad8f-2ace38d84c0a")
+        val recorder = RecordingNotificationRecorder()
         val service =
             service(
                 movementRepository = movementRepository,
                 occurrenceRepository = occurrenceRepository,
                 expectedRepository = expectedRepository,
                 recordLedgerExpenseUC = ledgerExpense,
+                notificationRecorder = recorder,
             )
         val movement =
             sampleMovement(
@@ -146,6 +155,8 @@ class ProcessDueScheduledMovementsServiceTest {
         assertThat(expected.expectedAt).isEqualTo(Instant.parse("2026-06-10T09:00:00Z"))
         assertThat(expected.originOccurrenceId).isEqualTo(occurrence.id.toString())
         assertThat(expected.originRecurringMovementId).isEqualTo(movement.id.toString())
+        assertThat(recorder.expected).hasSize(1)
+        assertThat(recorder.expected.single().expectedMovementId).isEqualTo(expected.id.toString())
     }
 
     @Test
@@ -158,11 +169,13 @@ class ProcessDueScheduledMovementsServiceTest {
             recurrenceEnd = RecurrenceEnd.Never,
         )
         movementRepository.save(movement)
+        val recorder = RecordingNotificationRecorder()
         val service = ProcessDueScheduledMovementsService(
             recurringMovementRepository = movementRepository,
             occurrenceRepository = occurrenceRepository,
             handlers = listOf(FailingDueScheduledMovementHandler()),
             scheduleCalculator = scheduleCalculator,
+            notificationRecorder = recorder,
         )
 
         val result = service.execute(ProcessDueScheduledMovementsCommand(now = Instant.parse("2026-06-10T10:00:00Z")))
@@ -173,6 +186,7 @@ class ProcessDueScheduledMovementsServiceTest {
         assertThat(occurrence.status).isEqualTo(RecurringMovementOccurrenceStatus.FAILED)
         assertThat(occurrence.errorCode).isEqualTo("DUE_SCHEDULED_PROCESSING_FAILED")
         assertThat(movementRepository.findById(movement.id)!!.nextDueAt).isEqualTo(Instant.parse("2026-06-10T09:00:00Z"))
+        assertThat(recorder.failures).hasSize(1)
     }
 
     @Test
@@ -306,7 +320,7 @@ class ProcessDueScheduledMovementsServiceTest {
         assertThat(occurrenceRepository.listByRecurringMovement(movement.id).single().status).isEqualTo(RecurringMovementOccurrenceStatus.PENDING)
     }
 
-    private fun service(movementRepository: InMemoryRecurringMovementRepository, occurrenceRepository: InMemoryOccurrenceRepository, expectedRepository: InMemoryExpectedMovementRepository = InMemoryExpectedMovementRepository(), recordLedgerExpenseUC: RecordLedgerExpenseUC = CapturingRecordLedgerExpenseUC("7a00d881-c1fd-4a69-ad8f-2ace38d84c0a"), consistencyBoundary: ConsistencyBoundary = com.gonezo.application.ImmediateConsistencyBoundary): ProcessDueScheduledMovementsService = ProcessDueScheduledMovementsService(
+    private fun service(movementRepository: InMemoryRecurringMovementRepository, occurrenceRepository: InMemoryOccurrenceRepository, expectedRepository: InMemoryExpectedMovementRepository = InMemoryExpectedMovementRepository(), recordLedgerExpenseUC: RecordLedgerExpenseUC = CapturingRecordLedgerExpenseUC("7a00d881-c1fd-4a69-ad8f-2ace38d84c0a"), consistencyBoundary: ConsistencyBoundary = com.gonezo.application.ImmediateConsistencyBoundary, notificationRecorder: ScheduledMovementNotificationRecorder = com.gonezo.notifications.application.NoOpScheduledMovementNotificationRecorder): ProcessDueScheduledMovementsService = ProcessDueScheduledMovementsService(
         recurringMovementRepository = movementRepository,
         occurrenceRepository = occurrenceRepository,
         handlers =
@@ -324,6 +338,7 @@ class ProcessDueScheduledMovementsServiceTest {
         ),
         scheduleCalculator = scheduleCalculator,
         consistencyBoundary = consistencyBoundary,
+        notificationRecorder = notificationRecorder,
     )
 
     private fun sampleMovement(type: RecurringMovementType, reviewPolicy: RecurringMovementReviewPolicy, recurrenceEnd: RecurrenceEnd): RecurringMovement = RecurringMovement.create(
@@ -425,6 +440,19 @@ class ProcessDueScheduledMovementsServiceTest {
         override fun <T> withinConsistencyBoundary(block: () -> T): T {
             calls += 1
             return block()
+        }
+    }
+
+    private class RecordingNotificationRecorder : ScheduledMovementNotificationRecorder {
+        val expected = mutableListOf<ScheduledExpectedNotification>()
+        val failures = mutableListOf<ScheduledFailureNotification>()
+
+        override fun recordExpected(event: ScheduledExpectedNotification) {
+            expected += event
+        }
+
+        override fun recordFailure(event: ScheduledFailureNotification) {
+            failures += event
         }
     }
 
