@@ -2,6 +2,7 @@ package com.gonezo.application.services.workflows
 
 import com.gonezo.application.orchestration.AutomaticDueScheduledMovementHandler
 import com.gonezo.application.orchestration.ConfirmationRequiredDueScheduledMovementHandler
+import com.gonezo.application.ConsistencyBoundary
 import com.gonezo.application.orchestration.DueScheduledMovementContext
 import com.gonezo.application.orchestration.DueScheduledMovementHandler
 import com.gonezo.application.orchestration.DueScheduledMovementHandlerResult
@@ -175,6 +176,31 @@ class ProcessDueScheduledMovementsServiceTest {
     }
 
     @Test
+    fun `failed due processing leaves the transaction before persisting the failure`() {
+        val movementRepository = InMemoryRecurringMovementRepository()
+        val occurrenceRepository = InMemoryOccurrenceRepository()
+        val movement = sampleMovement(
+            type = RecurringMovementType.EXPENSE,
+            reviewPolicy = RecurringMovementReviewPolicy.AUTOMATIC,
+            recurrenceEnd = RecurrenceEnd.Never,
+        )
+        movementRepository.save(movement)
+        val boundary = CountingConsistencyBoundary()
+        val service = ProcessDueScheduledMovementsService(
+            recurringMovementRepository = movementRepository,
+            occurrenceRepository = occurrenceRepository,
+            handlers = listOf(FailingDueScheduledMovementHandler()),
+            scheduleCalculator = scheduleCalculator,
+            consistencyBoundary = boundary,
+        )
+
+        service.execute(ProcessDueScheduledMovementsCommand(now = Instant.parse("2026-06-10T10:00:00Z")))
+
+        assertThat(boundary.calls).isEqualTo(2)
+        assertThat(occurrenceRepository.listByRecurringMovement(movement.id).single().status).isEqualTo(RecurringMovementOccurrenceStatus.FAILED)
+    }
+
+    @Test
     fun `reprocessing a previously registered pending occurrence advances it once`() {
         val movementRepository = InMemoryRecurringMovementRepository()
         val occurrenceRepository = InMemoryOccurrenceRepository()
@@ -205,6 +231,33 @@ class ProcessDueScheduledMovementsServiceTest {
         assertThat(occurrenceRepository.listByRecurringMovement(movement.id)).hasSize(1)
         assertThat(occurrenceRepository.listByRecurringMovement(movement.id).single().status).isEqualTo(RecurringMovementOccurrenceStatus.POSTED)
         assertThat(movementRepository.findById(movement.id)!!.nextDueAt).isEqualTo(Instant.parse("2026-06-11T09:00:00Z"))
+    }
+
+    @Test
+    fun `two invocations with the same previously read candidate advance only once`() {
+        val movementRepository = InMemoryRecurringMovementRepository()
+        val occurrenceRepository = InMemoryOccurrenceRepository()
+        val ledgerExpense = CapturingRecordLedgerExpenseUC("7a00d881-c1fd-4a69-ad8f-2ace38d84c0a")
+        val movement = sampleMovement(
+            type = RecurringMovementType.EXPENSE,
+            reviewPolicy = RecurringMovementReviewPolicy.AUTOMATIC,
+            recurrenceEnd = RecurrenceEnd.Never,
+        )
+        movementRepository.save(movement)
+        movementRepository.fixedDueCandidates = listOf(movement)
+        val service = service(
+            movementRepository = movementRepository,
+            occurrenceRepository = occurrenceRepository,
+            recordLedgerExpenseUC = ledgerExpense,
+        )
+
+        val first = service.execute(ProcessDueScheduledMovementsCommand(now = Instant.parse("2026-06-10T10:00:00Z")))
+        val second = service.execute(ProcessDueScheduledMovementsCommand(now = Instant.parse("2026-06-10T10:00:00Z")))
+
+        assertThat(first.advancedSchedules).isEqualTo(1)
+        assertThat(second.advancedSchedules).isEqualTo(0)
+        assertThat(ledgerExpense.commands).hasSize(1)
+        assertThat(occurrenceRepository.listByRecurringMovement(movement.id)).hasSize(1)
     }
 
     @Test
@@ -253,7 +306,7 @@ class ProcessDueScheduledMovementsServiceTest {
         assertThat(occurrenceRepository.listByRecurringMovement(movement.id).single().status).isEqualTo(RecurringMovementOccurrenceStatus.PENDING)
     }
 
-    private fun service(movementRepository: InMemoryRecurringMovementRepository, occurrenceRepository: InMemoryOccurrenceRepository, expectedRepository: InMemoryExpectedMovementRepository = InMemoryExpectedMovementRepository(), recordLedgerExpenseUC: RecordLedgerExpenseUC = CapturingRecordLedgerExpenseUC("7a00d881-c1fd-4a69-ad8f-2ace38d84c0a")): ProcessDueScheduledMovementsService = ProcessDueScheduledMovementsService(
+    private fun service(movementRepository: InMemoryRecurringMovementRepository, occurrenceRepository: InMemoryOccurrenceRepository, expectedRepository: InMemoryExpectedMovementRepository = InMemoryExpectedMovementRepository(), recordLedgerExpenseUC: RecordLedgerExpenseUC = CapturingRecordLedgerExpenseUC("7a00d881-c1fd-4a69-ad8f-2ace38d84c0a"), consistencyBoundary: ConsistencyBoundary = com.gonezo.application.ImmediateConsistencyBoundary): ProcessDueScheduledMovementsService = ProcessDueScheduledMovementsService(
         recurringMovementRepository = movementRepository,
         occurrenceRepository = occurrenceRepository,
         handlers =
@@ -270,6 +323,7 @@ class ProcessDueScheduledMovementsServiceTest {
             ),
         ),
         scheduleCalculator = scheduleCalculator,
+        consistencyBoundary = consistencyBoundary,
     )
 
     private fun sampleMovement(type: RecurringMovementType, reviewPolicy: RecurringMovementReviewPolicy, recurrenceEnd: RecurrenceEnd): RecurringMovement = RecurringMovement.create(
@@ -296,6 +350,7 @@ class ProcessDueScheduledMovementsServiceTest {
 
     private class InMemoryRecurringMovementRepository : RecurringMovementRepository {
         private val storage = ConcurrentHashMap<RecurringMovementId, RecurringMovement>()
+        var fixedDueCandidates: List<RecurringMovement>? = null
 
         override fun save(movement: RecurringMovement) {
             storage[movement.id] = movement
@@ -303,7 +358,7 @@ class ProcessDueScheduledMovementsServiceTest {
 
         override fun findById(id: RecurringMovementId): RecurringMovement? = storage[id]
 
-        override fun findDue(now: Instant, limit: Int): List<RecurringMovement> = storage.values
+        override fun findDue(now: Instant, limit: Int): List<RecurringMovement> = fixedDueCandidates?.take(limit) ?: storage.values
             .filter { it.status == RecurringMovementStatus.ACTIVE && it.nextDueAt != null && !it.nextDueAt.isAfter(now) }
             .sortedBy { it.nextDueAt }
             .take(limit)
@@ -362,6 +417,15 @@ class ProcessDueScheduledMovementsServiceTest {
         override fun supports(movement: RecurringMovement): Boolean = true
 
         override fun handle(context: DueScheduledMovementContext): DueScheduledMovementHandlerResult = throw IllegalStateException("storage failure")
+    }
+
+    private class CountingConsistencyBoundary : ConsistencyBoundary {
+        var calls = 0
+
+        override fun <T> withinConsistencyBoundary(block: () -> T): T {
+            calls += 1
+            return block()
+        }
     }
 
     private class NoopRecordLedgerTransferUC : RecordLedgerTransferUC {

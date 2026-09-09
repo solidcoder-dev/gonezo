@@ -52,16 +52,23 @@ class ProcessDueScheduledMovementsService(private val recurringMovementRepositor
         var advancedSchedules = 0
         val dueMovements = recurringMovementRepository.findDue(command.now, command.limit)
 
-        dueMovements.forEach { movement ->
-            val outcome = consistencyBoundary.withinConsistencyBoundary {
-                processMovement(movement, command.now)
+        dueMovements.forEach { candidate ->
+            val outcome = try {
+                consistencyBoundary.withinConsistencyBoundary {
+                    processMovement(candidate, command.now)
+                }
+            } catch (ex: RuntimeException) {
+                consistencyBoundary.withinConsistencyBoundary {
+                    persistFailureIfStillDue(candidate, command.now, ex)
+                }
             }
             when (outcome) {
                 ProcessedDueMovementOutcome.POSTED -> posted += 1
                 ProcessedDueMovementOutcome.EXPECTED_CREATED -> expectedCreated += 1
                 ProcessedDueMovementOutcome.FAILED -> failed += 1
+                ProcessedDueMovementOutcome.SKIPPED -> Unit
             }
-            if (outcome != ProcessedDueMovementOutcome.FAILED) {
+            if (outcome == ProcessedDueMovementOutcome.POSTED || outcome == ProcessedDueMovementOutcome.EXPECTED_CREATED) {
                 advancedSchedules += 1
             }
         }
@@ -75,8 +82,12 @@ class ProcessDueScheduledMovementsService(private val recurringMovementRepositor
         )
     }
 
-    private fun processMovement(movement: RecurringMovement, handledAt: Instant): ProcessedDueMovementOutcome {
-        val dueAt = checkNotNull(movement.nextDueAt) { "Active recurring movement must have nextDueAt" }
+    private fun processMovement(candidate: RecurringMovement, handledAt: Instant): ProcessedDueMovementOutcome {
+        val dueAt = checkNotNull(candidate.nextDueAt) { "Active recurring movement must have nextDueAt" }
+        val movement = recurringMovementRepository.findById(candidate.id) ?: return ProcessedDueMovementOutcome.SKIPPED
+        if (movement.nextDueAt != dueAt) {
+            return ProcessedDueMovementOutcome.SKIPPED
+        }
         val existingOccurrence = occurrenceRepository.findByRecurringMovementAndDueAt(movement.id, dueAt)
         if (existingOccurrence?.status == RecurringMovementOccurrenceStatus.POSTED) {
             advanceMovement(movement, dueAt, handledAt)
@@ -93,30 +104,46 @@ class ProcessDueScheduledMovementsService(private val recurringMovementRepositor
         val handler = handlers.firstOrNull { it.supports(movement) }
             ?: throw IllegalStateException("No due scheduled movement handler for ${movement.type.value}/${movement.reviewPolicy.value}")
 
-        return try {
-            when (val result = handler.handle(DueScheduledMovementContext(movement, occurrence, handledAt))) {
-                is DueScheduledMovementHandlerResult.Posted -> {
-                    occurrenceRepository.save(occurrence.acknowledgePosted(result.ledgerTransactionId, handledAt))
-                    advanceMovement(movement, dueAt, handledAt)
-                    ProcessedDueMovementOutcome.POSTED
-                }
-
-                is DueScheduledMovementHandlerResult.ExpectedCreated -> {
-                    occurrenceRepository.save(occurrence)
-                    advanceMovement(movement, dueAt, handledAt)
-                    ProcessedDueMovementOutcome.EXPECTED_CREATED
-                }
+        return when (val result = handler.handle(DueScheduledMovementContext(movement, occurrence, handledAt))) {
+            is DueScheduledMovementHandlerResult.Posted -> {
+                occurrenceRepository.save(occurrence.acknowledgePosted(result.ledgerTransactionId, handledAt))
+                advanceMovement(movement, dueAt, handledAt)
+                ProcessedDueMovementOutcome.POSTED
             }
-        } catch (ex: RuntimeException) {
-            occurrenceRepository.save(
-                occurrence.acknowledgeFailed(
-                    errorCodeValue = "DUE_SCHEDULED_PROCESSING_FAILED",
-                    errorMessageValue = ex.message,
-                    at = handledAt,
-                ),
-            )
-            ProcessedDueMovementOutcome.FAILED
+
+            is DueScheduledMovementHandlerResult.ExpectedCreated -> {
+                occurrenceRepository.save(occurrence)
+                advanceMovement(movement, dueAt, handledAt)
+                ProcessedDueMovementOutcome.EXPECTED_CREATED
+            }
         }
+    }
+
+    private fun persistFailureIfStillDue(candidate: RecurringMovement, handledAt: Instant, failure: RuntimeException): ProcessedDueMovementOutcome {
+        val dueAt = checkNotNull(candidate.nextDueAt) { "Active recurring movement must have nextDueAt" }
+        val movement = recurringMovementRepository.findById(candidate.id) ?: return ProcessedDueMovementOutcome.SKIPPED
+        if (movement.nextDueAt != dueAt) {
+            return ProcessedDueMovementOutcome.SKIPPED
+        }
+        val existingOccurrence = occurrenceRepository.findByRecurringMovementAndDueAt(movement.id, dueAt)
+        if (existingOccurrence?.status == RecurringMovementOccurrenceStatus.POSTED) {
+            advanceMovement(movement, dueAt, handledAt)
+            return ProcessedDueMovementOutcome.POSTED
+        }
+        val occurrence = existingOccurrence ?: RecurringMovementOccurrence.pending(
+            id = UUID.randomUUID(),
+            recurringMovementId = movement.id,
+            dueAt = dueAt,
+            createdAt = handledAt,
+        )
+        occurrenceRepository.save(
+            occurrence.acknowledgeFailed(
+                errorCodeValue = "DUE_SCHEDULED_PROCESSING_FAILED",
+                errorMessageValue = failure.message,
+                at = handledAt,
+            ),
+        )
+        return ProcessedDueMovementOutcome.FAILED
     }
 
     private fun advanceMovement(movement: RecurringMovement, dueAt: Instant, handledAt: Instant) {
@@ -133,6 +160,7 @@ class ProcessDueScheduledMovementsService(private val recurringMovementRepositor
         POSTED,
         EXPECTED_CREATED,
         FAILED,
+        SKIPPED,
     }
 }
 
