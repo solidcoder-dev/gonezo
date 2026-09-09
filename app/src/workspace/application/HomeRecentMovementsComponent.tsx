@@ -204,6 +204,7 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
             },
             data: {
               selection: { source: 'posted', id: selectedMovementId },
+              amountVisibility: required.config.amountVisibility,
             },
           }}
           provided={{

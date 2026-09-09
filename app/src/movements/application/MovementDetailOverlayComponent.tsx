@@ -10,6 +10,7 @@ import type {
 } from './movementDetailView.types';
 import type { ExpectedMovementView } from './movementsView.types';
 import type { MovementDetailViewModel } from './movementDetailView.types';
+import type { AmountVisibility } from '../../shared/domain/amountVisibility';
 
 type MovementDetailOverlayComponentProps = {
   required: {
@@ -18,6 +19,7 @@ type MovementDetailOverlayComponentProps = {
     };
     data: {
       selection: MovementDetailSelection | null;
+      amountVisibility?: AmountVisibility;
     };
   };
   provided: {
@@ -208,7 +210,7 @@ export function MovementDetailOverlayComponent({ required, provided }: MovementD
         </div>
       ) : null}
       <MovementDetailView
-        required={detailModel.required}
+        required={{ ...detailModel.required, data: { ...detailModel.required.data, amountVisibility: required.data.amountVisibility } }}
         provided={detailModel.provided}
       />
     </>

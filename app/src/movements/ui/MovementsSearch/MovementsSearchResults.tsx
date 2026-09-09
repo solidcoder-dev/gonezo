@@ -138,6 +138,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
             },
             data: {
               selection: { source: selectedEntry.source, id: selectedEntry.id },
+              amountVisibility: required.amountVisibility,
             },
           }}
           provided={{

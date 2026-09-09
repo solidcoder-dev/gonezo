@@ -11,6 +11,8 @@ import type {
   MovementDetailViewModel,
 } from '../../application/movementDetailView.types';
 import styles from './MovementDetailSheetContentView.module.css';
+import { FinancialAmountView } from '../../../shared/ui/FinancialAmount/FinancialAmountView';
+import type { AmountVisibility } from '../../../shared/domain/amountVisibility';
 
 type MovementDetailSheetContentViewProps = {
   movement: MovementDetailViewModel;
@@ -30,6 +32,7 @@ type MovementDetailSheetContentViewProps = {
   onToggleDraftTag: (tag: MovementDetailTagView) => void;
   onSaveTags: () => void;
   onSetIgnored: (value: boolean) => void;
+  amountVisibility?: AmountVisibility;
 };
 
 export type MovementDetailSheetContent = {
@@ -181,7 +184,7 @@ function tagsContent(props: MovementDetailSheetContentViewProps): MovementDetail
   };
 }
 
-function sharingContent(movement: Extract<MovementDetailViewModel, { source: 'posted' }>): MovementDetailSheetContent {
+function sharingContent(movement: Extract<MovementDetailViewModel, { source: 'posted' }>, amountVisibility: AmountVisibility): MovementDetailSheetContent {
   return {
     title: 'Sharing',
     body: (
@@ -193,11 +196,11 @@ function sharingContent(movement: Extract<MovementDetailViewModel, { source: 'po
             <div className="movement-detail-summary-grid">
               <div>
                 <small>Total amount</small>
-                <strong>{formatCurrencyAmount(movement.sharing.value.totalAmount, movement.amount.currency)}</strong>
+                <strong><FinancialAmountView formattedAmount={formatCurrencyAmount(movement.sharing.value.totalAmount, movement.amount.currency)} visibility={amountVisibility} /></strong>
               </div>
               <div>
                 <small>Your share</small>
-                <strong>{formatCurrencyAmount(movement.sharing.value.personalExpenseAmount, movement.amount.currency)}</strong>
+                <strong><FinancialAmountView formattedAmount={formatCurrencyAmount(movement.sharing.value.personalExpenseAmount, movement.amount.currency)} visibility={amountVisibility} /></strong>
               </div>
             </div>
             <div className="movement-detail-list">
@@ -216,7 +219,7 @@ function sharingContent(movement: Extract<MovementDetailViewModel, { source: 'po
                       </small>
                     ) : null}
                   </span>
-                  <strong>{formatCurrencyAmount(participant.amount, movement.amount.currency)}</strong>
+                  <strong><FinancialAmountView formattedAmount={formatCurrencyAmount(participant.amount, movement.amount.currency)} visibility={amountVisibility} /></strong>
                 </div>
               ))}
             </div>
@@ -227,7 +230,7 @@ function sharingContent(movement: Extract<MovementDetailViewModel, { source: 'po
   };
 }
 
-function itemsContent(movement: MovementDetailViewModel): MovementDetailSheetContent {
+function itemsContent(movement: MovementDetailViewModel, amountVisibility: AmountVisibility): MovementDetailSheetContent {
   return {
     title: 'Items',
     body: (
@@ -239,7 +242,7 @@ function itemsContent(movement: MovementDetailViewModel): MovementDetailSheetCon
               {item.tags && item.tags.length > 0 ? <TagOverflowPreview tags={item.tags.map((tag) => tag.name)} /> : null}
             </span>
             <strong className={`${styles.itemAmount} text-nowrap fw-semibold`}>
-              {movementDetailRowAmount(item.amount, item.currency)}
+              <FinancialAmountView formattedAmount={movementDetailRowAmount(item.amount, item.currency)} visibility={amountVisibility} />
             </strong>
           </div>
         ))}
@@ -339,10 +342,10 @@ export function buildMovementDetailSheetContent(props: MovementDetailSheetConten
       content = tagsContent(props);
       break;
     case 'sharing':
-      content = sharingContent(props.movement as Extract<MovementDetailViewModel, { source: 'posted' }>);
+      content = sharingContent(props.movement as Extract<MovementDetailViewModel, { source: 'posted' }>, props.amountVisibility ?? 'visible');
       break;
     case 'items':
-      content = itemsContent(props.movement);
+      content = itemsContent(props.movement, props.amountVisibility ?? 'visible');
       break;
     case 'more':
       content = moreDetailsContent(props);

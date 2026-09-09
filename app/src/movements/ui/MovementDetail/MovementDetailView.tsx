@@ -5,6 +5,7 @@ import { buildMovementDetailSheetContent } from './MovementDetailSheetContentVie
 import { MovementDetailSummaryBodyView, MovementDetailSummaryHeaderView } from './MovementDetailSummaryView';
 import './MovementDetailView.css';
 import styles from './MovementDetailView.module.css';
+import type { AmountVisibility } from '../../../shared/domain/amountVisibility';
 
 export type MovementDetailViewProps = {
   required: {
@@ -21,6 +22,7 @@ export type MovementDetailViewProps = {
       draftTags: MovementDetailTagView[];
       suggestedTags: Array<{ id: string; name: string }>;
       overflowActions?: MovementDetailOverflowAction[];
+      amountVisibility?: AmountVisibility;
     };
     status: {
       savingCategory: boolean;
@@ -125,6 +127,7 @@ export function MovementDetailView(props: MovementDetailViewProps) {
     onToggleDraftTag: props.provided.commands.toggleDraftTag,
     onSaveTags: props.provided.commands.saveTags,
     onSetIgnored: props.provided.commands.setIgnored,
+    amountVisibility: props.required.data.amountVisibility,
   }) : null;
   const summaryProps = {
     movement,
@@ -141,6 +144,7 @@ export function MovementDetailView(props: MovementDetailViewProps) {
     onOpenSharingSheet: props.provided.commands.openSharingSheet,
     onOpenItemsSheet: props.provided.commands.openItemsSheet,
     onOpenMoreDetailsSheet: props.provided.commands.openMoreDetailsSheet,
+    amountVisibility: props.required.data.amountVisibility,
   };
 
   return (

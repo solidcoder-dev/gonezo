@@ -3,6 +3,8 @@ import { TagOverflowPreview } from '../../../shared/ui/TagOverflowPreview/TagOve
 import { movementDetailAmountLabel, movementDetailTypeLabel } from '../../application/movementDetailMappers';
 import type { MovementDetailOverflowAction, MovementDetailViewModel } from '../../application/movementDetailView.types';
 import styles from './MovementDetailSummaryView.module.css';
+import { FinancialAmountView } from '../../../shared/ui/FinancialAmount/FinancialAmountView';
+import type { AmountVisibility } from '../../../shared/domain/amountVisibility';
 
 type MovementDetailSummaryViewProps = {
   movement: MovementDetailViewModel;
@@ -19,6 +21,7 @@ type MovementDetailSummaryViewProps = {
   onOpenSharingSheet: () => void;
   onOpenItemsSheet: () => void;
   onOpenMoreDetailsSheet: () => void;
+  amountVisibility?: AmountVisibility;
 };
 
 export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryViewProps) {
@@ -109,7 +112,7 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
         <span className={`${styles.type} ${styles[movement.financialType]}`}>{movementDetailTypeLabel(movement.financialType)}</span>
         <span className={styles.account}>{movement.accountLabel}</span>
       </div>
-      <strong className={styles.amount}>{`${movement.amount.sign}${movementDetailAmountLabel(movement.amount.value, movement.amount.currency)}`}</strong>
+      <strong className={styles.amount}><FinancialAmountView formattedAmount={movementDetailAmountLabel(movement.amount.value, movement.amount.currency)} sign={movement.amount.sign || undefined} tone={movement.financialType === 'income' ? 'income' : movement.financialType === 'expense' ? 'expense' : undefined} visibility={props.amountVisibility ?? 'visible'} /></strong>
       <div className={styles.identity}>
         <h3 className={styles.title}>{movement.title}</h3>
         <span className={styles.meta}>{movement.dateLabel}</span>
@@ -174,7 +177,7 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
                       : `Shared with ${sharingValue?.participantCount ?? 0} people`}
                 </span>
                 {sharingValue ? (
-                  <small className={styles.supporting}>Your share · {formatCurrencyAmount(sharingValue.personalExpenseAmount, movement.amount.currency)}</small>
+                    <small className={styles.supporting}>Your share · <FinancialAmountView formattedAmount={formatCurrencyAmount(sharingValue.personalExpenseAmount, movement.amount.currency)} visibility={props.amountVisibility ?? 'visible'} /></small>
                 ) : null}
               </span>
               <span className={styles.rowValue}>
@@ -186,7 +189,7 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
             <button type="button" className={styles.row} onClick={onOpenItemsSheet}>
               <span className={styles.rowMain}>
                 <span>Items</span>
-                <small className={styles.supporting}>{movement.items.length} items · {movementDetailAmountLabel(movement.amount.value, movement.amount.currency)}</small>
+                <small className={styles.supporting}>{movement.items.length} items · <FinancialAmountView formattedAmount={movementDetailAmountLabel(movement.amount.value, movement.amount.currency)} visibility={props.amountVisibility ?? 'visible'} /></small>
               </span>
               <span className={styles.rowValue}>
                 <i className="bi bi-chevron-right" aria-hidden />

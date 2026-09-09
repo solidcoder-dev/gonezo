@@ -183,7 +183,13 @@ export function MonthlyMovementsView({ required, provided }: MonthlyMovementsVie
         </div>
       )}
 
-      <MovementDetailView required={required.detail} provided={provided.detail} />
+      <MovementDetailView
+        required={{
+          ...required.detail,
+          data: { ...required.detail.data, amountVisibility: required.amountVisibility },
+        }}
+        provided={provided.detail}
+      />
     </section>
   );
 }
