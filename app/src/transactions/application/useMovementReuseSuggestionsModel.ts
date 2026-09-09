@@ -113,7 +113,7 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
         normalizedTitle,
         accountIds,
       });
-      if (version !== requestVersion.current || activeSession !== sessionVersion.current || expandedTitle !== normalizedTitle) return;
+      if (version !== requestVersion.current || activeSession !== sessionVersion.current) return;
       setVariants(result.variants.filter((variant) => variant.representativeMovementId !== group.primaryVariant.representativeMovementId));
       setLoadedTitle(normalizedTitle);
     } catch {

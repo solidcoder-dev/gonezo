@@ -47,4 +47,16 @@ describe('useMovementReuseSuggestionsModel request lifecycle', () => {
     expect(result.current.state.expandedTitle).toBeNull();
     expect(result.current.state.variants).toEqual([]);
   });
+
+  it('applies variants returned for the expanded group', async () => {
+    const port = createPort();
+    const variant = { ...group('Mercadona').primaryVariant, representativeMovementId: 'variant-2', deterministicKey: 'variant-2' };
+    port.movementReuseListVariants.mockResolvedValue({ variants: [variant] });
+    const { result } = renderHook(() => useMovementReuseSuggestionsModel({ port, accountIds: ['account-1'], query: 'merc', enabled: true }));
+
+    await act(async () => { await result.current.actions.toggleGroup({ ...group('Mercadona'), variantCount: 2 }); });
+
+    expect(result.current.state.expandedTitle).toBe('mercadona');
+    expect(result.current.state.variants).toEqual([variant]);
+  });
 });

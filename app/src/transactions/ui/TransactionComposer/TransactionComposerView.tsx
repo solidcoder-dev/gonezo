@@ -835,6 +835,7 @@ export function TransactionComposerView({ required, provided }: Props) {
           shareEnabled,
           splitDraftMode,
           splitEditorOpen,
+          keyboardVisible,
         }}
         provided={{
           addExpenseItem: onAddExpenseItem,

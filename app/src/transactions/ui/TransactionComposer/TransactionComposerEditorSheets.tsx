@@ -54,6 +54,7 @@ type TransactionComposerEditorSheetsProps = {
     shareEnabled: boolean;
     splitDraftMode: 'items' | 'parts';
     splitEditorOpen: boolean;
+    keyboardVisible: boolean;
   };
   provided: {
     applyRecurringSchedule: () => void;
@@ -210,7 +211,7 @@ export function TransactionComposerEditorSheets({ required, provided }: Transact
                 />
               </div>
             ),
-            footer: (
+            footer: required.keyboardVisible ? undefined : (
               <div className="composer-items-footer">
                 <button
                   type="button"
