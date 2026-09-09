@@ -19,6 +19,12 @@ import java.time.Instant
 
 @Repository
 class JdbcNotificationRepository(private val jdbc: NamedParameterJdbcTemplate) : NotificationRepository {
+    override fun snapshotSequence(ownerId: String): Long? = jdbc.queryForObject(
+        "select max(sequence) from notifications where owner_id = :owner_id",
+        MapSqlParameterSource("owner_id", ownerId),
+        Long::class.java,
+    )
+
     override fun createIfAbsent(notification: Notification): NotificationWriteResult {
         val inserted = jdbc.update(
             """

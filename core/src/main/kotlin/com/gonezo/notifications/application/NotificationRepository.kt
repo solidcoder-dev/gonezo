@@ -27,6 +27,8 @@ sealed interface NotificationLookupResult {
 }
 
 interface NotificationRepository {
+    fun snapshotSequence(ownerId: String): Long?
+
     fun createIfAbsent(notification: Notification): NotificationWriteResult
 
     fun findById(ownerId: String, notificationId: String): NotificationLookupResult

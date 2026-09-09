@@ -14,6 +14,16 @@ import com.gonezo.notifications.domain.NotificationType
 import java.time.Instant
 
 internal class AndroidNotificationRepository(private val database: CoreDatabase) : NotificationRepository {
+  override fun snapshotSequence(ownerId: String): Long? = database.readableDatabase.query(
+    "notifications",
+    arrayOf("max(sequence)"),
+    "owner_id = ?",
+    arrayOf(ownerId),
+    null,
+    null,
+    null,
+  ).use { cursor -> if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else null }
+
   override fun createIfAbsent(notification: Notification): NotificationWriteResult {
     val inserted = database.writableDatabase.insertWithOnConflict(
       "notifications",
