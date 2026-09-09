@@ -10,6 +10,7 @@ export type TransactionComposerActionsViewProps = ViewProps<
     expected: boolean;
     editingScheduledMovement: boolean;
     postExpectedMovement: boolean;
+    inputMode?: 'none' | 'nativeKeyboard' | 'calculator';
   },
   {
     disabled?: boolean;
@@ -34,6 +35,7 @@ function submitLabel(state: TransactionComposerActionsViewProps['required']['sta
 }
 
 export function TransactionComposerActionsView({ required }: TransactionComposerActionsViewProps) {
+  if (required.state.inputMode && required.state.inputMode !== 'none') return null;
   const disabled = required.status.disabled || !required.state.splitReady;
   const showExpectedAction = required.state.expectedAvailable
     && !required.state.editingScheduledMovement

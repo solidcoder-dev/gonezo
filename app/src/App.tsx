@@ -11,11 +11,14 @@ import { LocalExperimentalFeaturesAdapter } from './experiments/infrastructure/L
 import type { ExperimentalFeaturesPort } from './experiments/application/experimentalFeatures.port';
 import { ComponentGalleryView } from './shared/ui/ComponentGallery/ComponentGalleryView';
 import { writeText } from './sharing/infrastructure/webClipboard';
+import { createKeyboardVisibilityCapability } from './core/infrastructure/keyboardVisibility';
+import { KeyboardVisibilityProvider } from './shared/ui/KeyboardVisibilityProvider';
 
 const defaultCore = new CoreAdapter();
 const defaultImportFileReader = { readAsBase64: readImportFileAsBase64 };
 const defaultMovementVoiceEntryContext = createDefaultMovementVoiceEntryContext();
 const defaultExperimentalFeatures = new LocalExperimentalFeaturesAdapter();
+const defaultKeyboardVisibility = createKeyboardVisibilityCapability();
 const workspaceRoutes = ['/', '/home', '/accounts', '/analytics', '/movements', '/movements/new', '/movements/search', '/profile'];
 
 export type AppPort = WorkspacePagePort & TaxonomyPagePort;
@@ -45,12 +48,14 @@ export function App({ required }: AppProps) {
   ), [resolvedCore, resolvedExperimentalFeatures, resolvedMovementVoiceEntry]);
 
   return (
-    <Routes>
+    <KeyboardVisibilityProvider capability={defaultKeyboardVisibility}>
+      <Routes>
       {workspaceRoutes.map((path) => (
         <Route key={path} path={path} element={workspacePage} />
       ))}
       <Route path="/taxonomy" element={<TaxonomyPage required={{ core: resolvedCore }} />} />
       {import.meta.env.DEV ? <Route path="/__gallery" element={<ComponentGalleryView />} /> : null}
-    </Routes>
+      </Routes>
+    </KeyboardVisibilityProvider>
   );
 }

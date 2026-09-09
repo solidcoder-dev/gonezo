@@ -23,6 +23,7 @@ import type {
 import './TransactionComposerView.css';
 import styles from './TransactionComposerView.module.css';
 import type { MovementReuseSuggestionGroup, MovementReuseSuggestionVariant } from '../../../movements/application/movementReuseSuggestions.port';
+import { useKeyboardVisible } from '../../../shared/ui/KeyboardVisibilityProvider';
 
 export type ComposerMode = 'picker' | 'expense' | 'income' | 'transfer';
 
@@ -404,6 +405,7 @@ export function TransactionComposerView({ required, provided }: Props) {
   const [movementTypeSheetOpen, setMovementTypeSheetOpen] = useState(false);
   const [sourceAccountSheetOpen, setSourceAccountSheetOpen] = useState(false);
   const [movementMoreOpen, setMovementMoreOpen] = useState(false);
+  const keyboardVisible = useKeyboardVisible();
 
   const amountInputRef = useRef<HTMLInputElement | null>(null);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
@@ -764,6 +766,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                   expected,
                   editingScheduledMovement,
                   postExpectedMovement,
+                  inputMode: keyboardVisible ? 'nativeKeyboard' : 'none',
                 },
                 status: { disabled },
               }}
