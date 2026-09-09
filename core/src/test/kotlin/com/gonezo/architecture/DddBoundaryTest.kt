@@ -87,6 +87,7 @@ class DddBoundaryTest {
                     "com.gonezo.preferences.application..",
                     "com.gonezo.sharing.application..",
                     "com.gonezo.taxonomy.application..",
+                    "com.gonezo.notifications.application..",
                 )
                 .should()
                 .onlyDependOnClassesThat()
