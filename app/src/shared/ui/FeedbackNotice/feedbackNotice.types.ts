@@ -7,6 +7,8 @@ export type FeedbackNoticeAction = Readonly<{
   run: () => void;
 }>;
 
+export type FeedbackNoticeWriter = (text: string) => Promise<void>;
+
 export type FeedbackNoticeDetails = Readonly<{
   code?: string;
   operation?: string;

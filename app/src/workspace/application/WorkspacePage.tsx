@@ -33,12 +33,14 @@ import type { MovementVoiceEntryContext } from '../../transactions/application/M
 import { useExperimentalFeaturesModel } from '../../experiments/application/useExperimentalFeaturesModel';
 import type { ExperimentalFeaturesPort } from '../../experiments/application/experimentalFeatures.port';
 import { FeedbackNoticePresenter } from '../../shared/ui/FeedbackNotice/FeedbackNoticePresenter';
+import type { FeedbackNoticeWriter } from '../../shared/ui/FeedbackNotice/feedbackNotice.types';
 
 export type WorkspacePageRequired = {
   core: WorkspacePagePort;
   importFileReader: TransactionsImportFileReaderPort;
   voiceEntry: MovementVoiceEntryContext;
   experimentalFeatures: ExperimentalFeaturesPort;
+  writeText?: FeedbackNoticeWriter;
 };
 
 export type WorkspacePagePort = AccountWorkspacePort & MovementsBackupPort & ApplicationBackupPort & AnalyticsPort & HomeRecentMovementsPort & PendingExpectedOverviewPort & MovementsSearchPagePort & MovementReuseSuggestionsPort & MovementReuseTemplatePort;
@@ -642,6 +644,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         closeNotice={closeNotice}
         pauseNotice={pauseNotice}
         resumeNotice={resumeNotice}
+        writeText={pageRequired.writeText}
       />
     </>
   );

@@ -10,6 +10,7 @@ import type { MovementVoiceEntryContext } from './transactions/application/Movem
 import { LocalExperimentalFeaturesAdapter } from './experiments/infrastructure/LocalExperimentalFeaturesAdapter';
 import type { ExperimentalFeaturesPort } from './experiments/application/experimentalFeatures.port';
 import { ComponentGalleryView } from './shared/ui/ComponentGallery/ComponentGalleryView';
+import { writeText } from './sharing/infrastructure/webClipboard';
 
 const defaultCore = new CoreAdapter();
 const defaultImportFileReader = { readAsBase64: readImportFileAsBase64 };
@@ -40,7 +41,7 @@ export function App({ required }: AppProps) {
     categorySource: voiceCategorySource,
   }), [required?.movementVoiceEntry, voiceCategorySource]);
   const workspacePage = useMemo(() => (
-    <WorkspacePage required={{ core: resolvedCore, importFileReader: defaultImportFileReader, voiceEntry: resolvedMovementVoiceEntry, experimentalFeatures: resolvedExperimentalFeatures }} />
+    <WorkspacePage required={{ core: resolvedCore, importFileReader: defaultImportFileReader, voiceEntry: resolvedMovementVoiceEntry, experimentalFeatures: resolvedExperimentalFeatures, writeText }} />
   ), [resolvedCore, resolvedExperimentalFeatures, resolvedMovementVoiceEntry]);
 
   return (

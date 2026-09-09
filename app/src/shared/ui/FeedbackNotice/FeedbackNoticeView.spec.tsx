@@ -40,4 +40,25 @@ describe('FeedbackNoticeView', () => {
     expect(dismiss).toHaveBeenCalledTimes(1);
     expect(runAction).not.toHaveBeenCalled();
   });
+
+  it('exposes safe details and copy as independent notice controls', () => {
+    const copy = vi.fn();
+    render(
+      <FeedbackNoticeView
+        required={{
+          config: { tone: 'error' },
+          data: { message: 'Save failed', details: 'Code: save-failed\nOperation: transaction.create', copyState: 'idle' },
+          state: {},
+          status: {},
+        }}
+        provided={{ commands: { runAction: vi.fn(), dismiss: vi.fn(), copy } }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Code: save-failed');
+    expect(copy).toHaveBeenCalledTimes(1);
+  });
 });
