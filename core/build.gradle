@@ -169,6 +169,25 @@ tasks.register('checkLayerBoundaries') {
       ]
     )
 
+    checkForbidden(
+      'core/notifications/domain',
+      fileTree('src/main') {
+        include '**/com/gonezo/notifications/domain/**/*.kt'
+        include '**/com/gonezo/notifications/domain/**/*.java'
+      },
+      [
+        ~/org\.springframework\./,
+        ~/com\.getcapacitor\./,
+        ~/android\./,
+        ~/org\.json\./,
+        ~/java\.sql\./,
+        ~/org\.xerial\.sqlite\./,
+        ~/import\s+com\.gonezo\.infrastructure\./,
+        ~/import\s+com\.gonezo\.(?:ledger|taxonomy|expected|recurrence)\./,
+        ~/import\s+com\.gonezo\.application\./,
+      ]
+    )
+
     def boundedContexts = ['ledger', 'taxonomy', 'expected', 'recurrence']
     boundedContexts.each { context ->
       def forbiddenContextImports = boundedContexts

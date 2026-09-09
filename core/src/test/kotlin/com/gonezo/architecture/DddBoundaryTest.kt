@@ -48,6 +48,20 @@ class DddBoundaryTest {
                     "org.jetbrains.annotations..",
                 ),
         )
+
+        assertNoViolations(
+            classes()
+                .that()
+                .resideInAnyPackage("com.gonezo.notifications.domain..")
+                .should()
+                .onlyDependOnClassesThat()
+                .resideInAnyPackage(
+                    "com.gonezo.notifications.domain..",
+                    "java..",
+                    "kotlin..",
+                    "org.jetbrains.annotations..",
+                ),
+        )
     }
 
     @Test
@@ -139,6 +153,28 @@ class DddBoundaryTest {
                 .matching("com.gonezo.domain.(*)..")
                 .should()
                 .notDependOnEachOther(),
+        )
+    }
+
+    @Test
+    fun `notifications domain does not depend on financial bounded contexts`() {
+        assertNoViolations(
+            noClasses()
+                .that()
+                .resideInAnyPackage("com.gonezo.notifications.domain..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                    "com.gonezo.domain.ledger..",
+                    "com.gonezo.domain.taxonomy..",
+                    "com.gonezo.domain.expected..",
+                    "com.gonezo.domain.recurrence..",
+                    "com.gonezo.infrastructure..",
+                    "android..",
+                    "com.getcapacitor..",
+                    "org.json..",
+                    "java.sql..",
+                ),
         )
     }
 
