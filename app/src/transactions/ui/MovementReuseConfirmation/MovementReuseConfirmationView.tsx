@@ -1,7 +1,6 @@
 export function MovementReuseConfirmationView(props: {
   itemCount: number;
   shareCount: number;
-  historicalAmount: string;
   onSetupOnly: () => void;
   onReuseDetails: () => void;
   onCancel: () => void;

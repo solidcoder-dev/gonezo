@@ -164,7 +164,6 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
       {model.required.state.movementReuse?.pendingTemplate ? <MovementReuseConfirmationView
         itemCount={model.required.state.movementReuse.pendingTemplate.details?.items.length ?? 0}
         shareCount={model.required.state.movementReuse.pendingTemplate.details?.sharing.length ?? 0}
-        historicalAmount={model.required.state.movementReuse.pendingTemplate.details?.amount ?? ''}
         onSetupOnly={model.provided.commands.reuseSetupOnly ?? (() => undefined)}
         onReuseDetails={model.provided.commands.reuseWithDetails ?? (() => undefined)}
         onCancel={model.provided.commands.cancelReuse ?? (() => undefined)}

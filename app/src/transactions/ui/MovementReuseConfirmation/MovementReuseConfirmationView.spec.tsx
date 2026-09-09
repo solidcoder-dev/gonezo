@@ -6,7 +6,6 @@ function renderConfirmation(itemCount: number, shareCount: number) {
   return render(<MovementReuseConfirmationView
     itemCount={itemCount}
     shareCount={shareCount}
-    historicalAmount="53.40"
     onSetupOnly={vi.fn()}
     onReuseDetails={vi.fn()}
     onCancel={vi.fn()}
@@ -29,7 +28,7 @@ describe('MovementReuseConfirmationView', () => {
     const onSetupOnly = vi.fn();
     const onReuseDetails = vi.fn();
     const onCancel = vi.fn();
-    render(<MovementReuseConfirmationView itemCount={1} shareCount={0} historicalAmount="20.00" onSetupOnly={onSetupOnly} onReuseDetails={onReuseDetails} onCancel={onCancel} />);
+    render(<MovementReuseConfirmationView itemCount={1} shareCount={0} onSetupOnly={onSetupOnly} onReuseDetails={onReuseDetails} onCancel={onCancel} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Setup only' }));
     fireEvent.click(screen.getByRole('button', { name: 'Reuse details' }));
