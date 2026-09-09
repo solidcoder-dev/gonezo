@@ -36,6 +36,7 @@ import { FeedbackNoticePresenter } from '../../shared/ui/FeedbackNotice/Feedback
 import type { FeedbackNoticeWriter } from '../../shared/ui/FeedbackNotice/feedbackNotice.types';
 import { FeedbackNoticeDestinationProvider } from '../../shared/ui/FeedbackNotice/FeedbackNoticeDestination';
 import type { NotificationsPort } from '../../notifications/application/notifications.port';
+import type { AmountVisibilityModel } from './useAmountVisibilityModel';
 
 export type WorkspacePageRequired = {
   core: WorkspacePagePort;
@@ -43,6 +44,7 @@ export type WorkspacePageRequired = {
   voiceEntry: MovementVoiceEntryContext;
   experimentalFeatures: ExperimentalFeaturesPort;
   notifications: NotificationsPort;
+  amountVisibility?: AmountVisibilityModel;
   writeText?: FeedbackNoticeWriter;
 };
 
@@ -79,6 +81,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
 
   const workspaceToast = useWorkspaceToast();
   const { closeNotice, pauseNotice, resumeNotice, showError, showInfo, showNotice, showToast, showWarning, updateNotice } = workspaceToast.actions;
+  const amountVisibility = pageRequired.amountVisibility;
   const experimentalFeatures = useExperimentalFeaturesModel({
     port: pageRequired.experimentalFeatures,
     events: {
@@ -95,6 +98,12 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     netWorthRefreshSignal,
     recentTransactionsRefreshSignal,
   } = workspaceRefresh.signals;
+
+  useEffect(() => {
+    if (amountVisibility?.state.error) {
+      showError({ message: amountVisibility.state.error });
+    }
+  }, [amountVisibility?.state.error, showError]);
   const importCoordinator = useWorkspaceImportCoordinator({
     core: pageRequired.core,
     movementsImport: pageRequired.core,
@@ -435,9 +444,15 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             title: 'Gonezo',
             variant: 'product',
             unreadCount,
+            amountVisibility: amountVisibility && {
+              visibility: amountVisibility.state.visibility,
+              loading: amountVisibility.state.loading,
+              saving: amountVisibility.state.saving,
+            },
           }}
           provided={{
             commands: {
+              toggleAmountVisibility: () => { void amountVisibility?.commands.toggleAmountVisibility(); },
               openNotifications,
             },
           }}
@@ -449,9 +464,15 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             required={{
             title: 'Analytics',
             unreadCount,
+            amountVisibility: amountVisibility && {
+              visibility: amountVisibility.state.visibility,
+              loading: amountVisibility.state.loading,
+              saving: amountVisibility.state.saving,
+            },
             }}
             provided={{
               commands: {
+                toggleAmountVisibility: () => { void amountVisibility?.commands.toggleAmountVisibility(); },
                 openNotifications,
               },
             }}
@@ -463,6 +484,11 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
               required={{
                 title: 'Movements',
                 unreadCount,
+                amountVisibility: amountVisibility && {
+                  visibility: amountVisibility.state.visibility,
+                  loading: amountVisibility.state.loading,
+                  saving: amountVisibility.state.saving,
+                },
                 searchAction: (
                   <Link className="gz-icon-button" to="/movements/search" aria-label="Search movements">
                     <i className="bi bi-search" aria-hidden />
@@ -471,6 +497,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
               }}
               provided={{
                 commands: {
+                  toggleAmountVisibility: () => { void amountVisibility?.commands.toggleAmountVisibility(); },
                   openNotifications,
                 },
               }}
@@ -482,9 +509,15 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
                 required={{
                 title: 'Profile',
                 unreadCount,
+                amountVisibility: amountVisibility && {
+                  visibility: amountVisibility.state.visibility,
+                  loading: amountVisibility.state.loading,
+                  saving: amountVisibility.state.saving,
+                },
                 }}
                 provided={{
                   commands: {
+                    toggleAmountVisibility: () => { void amountVisibility?.commands.toggleAmountVisibility(); },
                     openNotifications,
                   },
                 }}

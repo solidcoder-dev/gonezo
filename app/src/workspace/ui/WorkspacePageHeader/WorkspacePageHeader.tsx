@@ -7,10 +7,16 @@ export type WorkspacePageHeaderProps = {
     searchAction?: ReactNode;
     variant?: 'screen' | 'product';
     unreadCount?: number | null;
+    amountVisibility?: {
+      visibility: 'visible' | 'hidden';
+      loading: boolean;
+      saving: boolean;
+    };
   };
   provided: {
     commands: {
       openNotifications: () => void;
+      toggleAmountVisibility?: () => void;
     };
   };
 };
@@ -21,6 +27,17 @@ export function WorkspacePageHeader({ required, provided }: WorkspacePageHeaderP
       <h1 className={`${styles.title} ${required.variant === 'product' ? styles.productTitle : ''} m-0`}>{required.title}</h1>
       <div className={`${styles.actions} d-inline-flex align-items-center justify-content-end gap-2`}>
         {required.searchAction}
+        {required.amountVisibility ? (
+          <button
+            type="button"
+            className="gz-icon-button"
+            aria-label={required.amountVisibility.visibility === 'visible' ? 'Hide amounts' : 'Show amounts'}
+            disabled={required.amountVisibility.loading || required.amountVisibility.saving}
+            onClick={() => provided.commands.toggleAmountVisibility?.()}
+          >
+            <i className={required.amountVisibility.visibility === 'visible' ? 'bi bi-eye' : 'bi bi-eye-slash'} aria-hidden />
+          </button>
+        ) : null}
         <button
           type="button"
           className="gz-icon-button"

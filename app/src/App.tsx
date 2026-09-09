@@ -16,6 +16,9 @@ import { KeyboardVisibilityProvider } from './shared/ui/KeyboardVisibilityProvid
 import { createNotificationsAdapter } from './notifications/infrastructure/notificationsAdapter';
 import { NotificationsPageComponent } from './notifications/application/NotificationsPageComponent';
 import { NotificationSettingsPageComponent } from './notifications/application/NotificationSettingsPageComponent';
+import { LocalAmountVisibilityAdapter } from './core/infrastructure/LocalAmountVisibilityAdapter';
+import { useAmountVisibilityModel } from './workspace/application/useAmountVisibilityModel';
+import type { AmountVisibilityPort } from './workspace/application/amountVisibility.port';
 
 const defaultCore = new CoreAdapter();
 const defaultImportFileReader = { readAsBase64: readImportFileAsBase64 };
@@ -23,6 +26,7 @@ const defaultMovementVoiceEntryContext = createDefaultMovementVoiceEntryContext(
 const defaultExperimentalFeatures = new LocalExperimentalFeaturesAdapter();
 const defaultKeyboardVisibility = createKeyboardVisibilityCapability();
 const defaultNotifications = createNotificationsAdapter();
+const defaultAmountVisibility = new LocalAmountVisibilityAdapter();
 const workspaceRoutes = ['/', '/home', '/accounts', '/analytics', '/movements', '/movements/new', '/movements/search', '/profile'];
 
 export type AppPort = WorkspacePagePort & TaxonomyPagePort;
@@ -32,6 +36,7 @@ export type AppRequired = {
   movementVoiceEntry?: Omit<MovementVoiceEntryContext, 'categorySource'>;
   experimentalFeatures?: ExperimentalFeaturesPort;
   notifications?: ReturnType<typeof createNotificationsAdapter>;
+  amountVisibility?: AmountVisibilityPort;
 };
 
 type AppProps = {
@@ -42,6 +47,8 @@ export function App({ required }: AppProps) {
   const resolvedCore = required?.core ?? defaultCore;
   const resolvedExperimentalFeatures = required?.experimentalFeatures ?? defaultExperimentalFeatures;
   const resolvedNotifications = required?.notifications ?? defaultNotifications;
+  const resolvedAmountVisibility = required?.amountVisibility ?? defaultAmountVisibility;
+  const amountVisibility = useAmountVisibilityModel({ port: resolvedAmountVisibility });
   const notificationIntentRouter = <NotificationIntentRouter />;
   const voiceCategorySource = useMemo(() => ({
     taxonomyListCategories: (input?: { includeArchived?: boolean }) => resolvedCore.taxonomyListCategories(input),
@@ -51,8 +58,8 @@ export function App({ required }: AppProps) {
     categorySource: voiceCategorySource,
   }), [required?.movementVoiceEntry, voiceCategorySource]);
   const workspacePage = useMemo(() => (
-    <WorkspacePage required={{ core: resolvedCore, notifications: resolvedNotifications, importFileReader: defaultImportFileReader, voiceEntry: resolvedMovementVoiceEntry, experimentalFeatures: resolvedExperimentalFeatures, writeText }} />
-  ), [resolvedCore, resolvedExperimentalFeatures, resolvedMovementVoiceEntry, resolvedNotifications]);
+    <WorkspacePage required={{ core: resolvedCore, notifications: resolvedNotifications, importFileReader: defaultImportFileReader, voiceEntry: resolvedMovementVoiceEntry, experimentalFeatures: resolvedExperimentalFeatures, amountVisibility, writeText }} />
+  ), [amountVisibility, resolvedCore, resolvedExperimentalFeatures, resolvedMovementVoiceEntry, resolvedNotifications]);
 
   return (
     <KeyboardVisibilityProvider capability={defaultKeyboardVisibility}>
