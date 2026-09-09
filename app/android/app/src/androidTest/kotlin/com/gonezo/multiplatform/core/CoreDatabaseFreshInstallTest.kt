@@ -14,11 +14,17 @@ class CoreDatabaseFreshInstallTest {
     val database = CoreDatabase(ApplicationProvider.getApplicationContext(), "gonezo-fresh-${System.nanoTime()}.db")
     val sqlite = database.writableDatabase
 
-    assertEquals(36, sqlite.version)
+    assertEquals(37, sqlite.version)
     assertEquals(1, sqlite.scalar("select count(*) from taxonomy_categories where name = 'Services' and name_normalized = 'services' and applies_to = 'expense' and status = 'active'")!!.toInt())
     assertEquals("table", sqlite.scalar("select type from sqlite_master where name = 'workflow_tx_categorization'"))
     assertEquals("index", sqlite.scalar("select type from sqlite_master where name = 'idx_workflow_tx_categorization_status_next_attempt'"))
     assertEquals("table", sqlite.scalar("select type from sqlite_master where name = 'taxonomy_transaction_item_category_assignments'"))
+    assertEquals("table", sqlite.scalar("select type from sqlite_master where name = 'notifications'"))
+    assertEquals("table", sqlite.scalar("select type from sqlite_master where name = 'notification_deliveries'"))
+    assertEquals("index", sqlite.scalar("select type from sqlite_master where name = 'idx_notifications_owner_sequence'"))
+    assertEquals("index", sqlite.scalar("select type from sqlite_master where name = 'idx_notification_deliveries_status_next_attempt'"))
+    assertEquals(0, sqlite.scalar("select count(*) from notifications")!!.toInt())
+    assertEquals(0, sqlite.scalar("select count(*) from notification_deliveries")!!.toInt())
     assertEquals(
       listOf(
         listOf("transaction_id", "1", "", "1"),

@@ -19,6 +19,7 @@ const EXPECTED_TOP_LEVEL = new Set([
   'ledger',
   'main.tsx',
   'movements',
+  'notifications',
   'scheduling',
   'sharing',
   'shared',
@@ -42,6 +43,9 @@ const EXPECTED_CONTEXT_DIRS = {
   taxonomy: ['application', 'domain', 'infrastructure'],
   transactions: ['application', 'domain', 'ui'],
   workspace: ['application', 'ui'],
+};
+const OPTIONAL_CONTEXT_DIRS = {
+  notifications: ['application', 'infrastructure', 'ui'],
 };
 const EXPECTED_SHARED_DIRS = ['domain', 'testing', 'ui', 'utils'];
 const EXPECTED_IMPORTS_INFRASTRUCTURE_DIRS = ['fixtures', 'providers'];
@@ -105,6 +109,11 @@ async function checkDomainLayers(srcDir, domainName) {
   ];
 }
 
+async function checkOptionalContextLayers(srcDir, domainName) {
+  const { dirs } = await listNames(resolve(srcDir, domainName));
+  return collectUnexpectedEntries(dirs, OPTIONAL_CONTEXT_DIRS[domainName], `src/${domainName}`);
+}
+
 async function checkShared(srcDir) {
   const { dirs } = await listNames(resolve(srcDir, 'shared'));
   return [
@@ -137,6 +146,7 @@ export async function findStructureViolations(srcDir = SRC_DIR) {
   const violations = [
     ...(await checkTopLevel(srcDir)),
     ...(await Promise.all(Object.keys(EXPECTED_CONTEXT_DIRS).map((domainName) => checkDomainLayers(srcDir, domainName)))).flat(),
+    ...(await Promise.all(Object.keys(OPTIONAL_CONTEXT_DIRS).map((domainName) => checkOptionalContextLayers(srcDir, domainName)))).flat(),
     ...(await checkImports(srcDir)),
     ...(await checkShared(srcDir)),
   ];

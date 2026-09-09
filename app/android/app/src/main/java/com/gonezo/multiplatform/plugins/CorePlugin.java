@@ -1,12 +1,11 @@
 package com.gonezo.multiplatform.plugins;
-
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
-@CapacitorPlugin(name = "CorePlugin")
-public class CorePlugin extends Plugin {
+@CapacitorPlugin(name = "CorePlugin") public class CorePlugin extends Plugin {
+  void notifyNotificationsChanged() { notifyListeners("notificationsChanged", new com.getcapacitor.JSObject()); }
   @PluginMethod
   public void preferencesGet(PluginCall call) {
     new PreferencesPluginHandler(getContext()).preferencesGet(call);
@@ -256,4 +255,5 @@ public class CorePlugin extends Plugin {
   @PluginMethod public void movementsGetDetail(PluginCall call) { new MovementDetailPluginHandler(getContext()).getDetail(call); } @PluginMethod public void movementReuseSearchGroups(PluginCall call) { new MovementReusePluginHandler(getContext()).searchGroups(call); }
   @PluginMethod public void movementReuseListVariants(PluginCall call) { new MovementReusePluginHandler(getContext()).listVariants(call); }
   @PluginMethod public void movementReuseGetTemplate(PluginCall call) { new MovementReusePluginHandler(getContext()).getTemplate(call); }
+  @PluginMethod public void notificationsList(PluginCall call) { new NotificationsPluginHandler(this).list(call); } @PluginMethod public void notificationsCountUnread(PluginCall call) { new NotificationsPluginHandler(this).countUnread(call); } @PluginMethod public void notificationsMarkRead(PluginCall call) { new NotificationsPluginHandler(this).markRead(call); } @PluginMethod public void notificationsMarkAllRead(PluginCall call) { new NotificationsPluginHandler(this).markAllRead(call); } @PluginMethod public void notificationsGetPermissionState(PluginCall call) { new NotificationsPluginHandler(this).permissionState(call); } @PluginMethod public void notificationsRequestPermission(PluginCall call) { new NotificationsPluginHandler(this).requestPermission(call); } @PluginMethod public void notificationsOpenSettings(PluginCall call) { new NotificationsPluginHandler(this).openSettings(call); }
 }

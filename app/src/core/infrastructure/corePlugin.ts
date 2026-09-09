@@ -1,4 +1,6 @@
 import { registerPlugin } from '@capacitor/core';
+import type { PluginListenerHandle } from '@capacitor/core';
+import type { NotificationsListInput, NotificationsListResult, NotificationCommandResult, NotificationPermissionState } from '../../notifications/application/notifications.port';
 import type {
   AccountsListBalancesResult,
 } from '../../account/application/accountBalances.port';
@@ -121,6 +123,14 @@ import type {
   SharingMovementDetailsResult,
 } from '../../sharing/application/sharing.port';
 export interface CorePlugin {
+  notificationsList(options: NotificationsListInput): Promise<NotificationsListResult>;
+  notificationsCountUnread(): Promise<{ count: number }>;
+  notificationsMarkRead(options: { id: string }): Promise<NotificationCommandResult>;
+  notificationsMarkAllRead(options: { throughCursor: string }): Promise<{ updated: number }>;
+  notificationsGetPermissionState(): Promise<{ state: NotificationPermissionState }>;
+  notificationsRequestPermission(): Promise<void>;
+  notificationsOpenSettings(): Promise<void>;
+  addListener(eventName: 'notificationsChanged', listener: (event?: unknown) => void): Promise<PluginListenerHandle>;
   preferencesGet(): Promise<UserPreferencesResult>;
   preferencesSetDefaultAccount(options: PreferencesSetDefaultAccountInput): Promise<void>;
   preferencesClearDefaultAccount(): Promise<void>;

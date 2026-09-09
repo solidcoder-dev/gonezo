@@ -35,12 +35,14 @@ import type { ExperimentalFeaturesPort } from '../../experiments/application/exp
 import { FeedbackNoticePresenter } from '../../shared/ui/FeedbackNotice/FeedbackNoticePresenter';
 import type { FeedbackNoticeWriter } from '../../shared/ui/FeedbackNotice/feedbackNotice.types';
 import { FeedbackNoticeDestinationProvider } from '../../shared/ui/FeedbackNotice/FeedbackNoticeDestination';
+import type { NotificationsPort } from '../../notifications/application/notifications.port';
 
 export type WorkspacePageRequired = {
   core: WorkspacePagePort;
   importFileReader: TransactionsImportFileReaderPort;
   voiceEntry: MovementVoiceEntryContext;
   experimentalFeatures: ExperimentalFeaturesPort;
+  notifications: NotificationsPort;
   writeText?: FeedbackNoticeWriter;
 };
 
@@ -73,6 +75,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const [accountsSheetCurrency, setAccountsSheetCurrency] = useState<string | null>(null);
   const [managedAccountId, setManagedAccountId] = useState<string | null>(null);
   const [accountsCount, setAccountsCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState<number | null>(null);
 
   const workspaceToast = useWorkspaceToast();
   const { closeNotice, pauseNotice, resumeNotice, showError, showInfo, showNotice, showToast, showWarning, updateNotice } = workspaceToast.actions;
@@ -141,7 +144,18 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     setSelectedAccountId,
     refresh,
   });
-  const openNotifications = () => undefined;
+  const openNotifications = () => { void navigate('/notifications'); };
+
+  useEffect(() => {
+    let active = true;
+    const refreshUnreadCount = () => {
+      void pageRequired.notifications.notificationsCountUnread().then((count) => { if (active) setUnreadCount(count); }).catch(() => { if (active) setUnreadCount(null); });
+    };
+    refreshUnreadCount();
+    let remove: (() => void) | undefined;
+    void pageRequired.notifications.addChangeListener(refreshUnreadCount).then((cleanup) => { remove = cleanup; });
+    return () => { active = false; remove?.(); };
+  }, [pageRequired.notifications]);
 
   useEffect(() => {
     const preferencesGet = pageRequired.core.preferencesGet;
@@ -420,6 +434,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           required={{
             title: 'Gonezo',
             variant: 'product',
+            unreadCount,
           }}
           provided={{
             commands: {
@@ -432,7 +447,8 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       ? (
           <WorkspacePageHeader
             required={{
-              title: 'Analytics',
+            title: 'Analytics',
+            unreadCount,
             }}
             provided={{
               commands: {
@@ -446,6 +462,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             <WorkspacePageHeader
               required={{
                 title: 'Movements',
+                unreadCount,
                 searchAction: (
                   <Link className="gz-icon-button" to="/movements/search" aria-label="Search movements">
                     <i className="bi bi-search" aria-hidden />
@@ -463,7 +480,8 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           ? (
               <WorkspacePageHeader
                 required={{
-                  title: 'Profile',
+                title: 'Profile',
+                unreadCount,
                 }}
                 provided={{
                   commands: {

@@ -13,6 +13,29 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class CoreDatabaseMigrationInstrumentedTest {
   @Test
+  fun v36UpgradeCreatesNotificationTablesAndPreservesFinancialRows() {
+    val name = uniqueDatabaseName()
+    val sqlite = context().openOrCreateDatabase(name, android.content.Context.MODE_PRIVATE, null)
+    sqlite.execSQL("create table ledger_accounts (id text primary key, name text not null, type text not null, currency text not null, status text not null, created_at text not null, archived_at text)")
+    sqlite.execSQL("create table ledger_transactions (id text primary key, account_id text not null, type text not null, amount text not null, currency text not null, occurred_at text not null, description text, merchant text, category_id text, status text not null, linked_transaction_id text)")
+    sqlite.execSQL("insert into ledger_accounts(id, name, type, currency, status, created_at) values ('account-notifications', 'Checking', 'asset', 'USD', 'active', '2026-07-01T00:00:00Z')")
+    sqlite.execSQL("insert into ledger_transactions(id, account_id, type, amount, currency, occurred_at, status) values ('transaction-notifications', 'account-notifications', 'expense', '12.34', 'USD', '2026-07-02T00:00:00Z', 'posted')")
+    sqlite.setVersion(36)
+    sqlite.close()
+
+    val upgraded = CoreDatabase(context(), name)
+    val migrated = upgraded.readableDatabase
+
+    assertEquals(37, migrated.version)
+    assertEquals("table", migrated.scalar("select type from sqlite_master where name = 'notifications'"))
+    assertEquals("table", migrated.scalar("select type from sqlite_master where name = 'notification_deliveries'"))
+    assertEquals("12.34", migrated.scalar("select amount from ledger_transactions where id = 'transaction-notifications'"))
+    assertEquals("ok", migrated.scalar("pragma integrity_check"))
+    assertTrue(migrated.rawQuery("pragma foreign_key_check", null).use { !it.moveToNext() })
+    upgraded.close()
+  }
+
+  @Test
   fun v35UpgradeCreatesItemCategoryAssignmentsAndPreservesLegacyCategories() {
     val name = uniqueDatabaseName()
     val initial = CoreDatabase(context(), name)

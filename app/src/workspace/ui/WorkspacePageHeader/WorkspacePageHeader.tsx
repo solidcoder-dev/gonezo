@@ -6,6 +6,7 @@ export type WorkspacePageHeaderProps = {
     title: string;
     searchAction?: ReactNode;
     variant?: 'screen' | 'product';
+    unreadCount?: number | null;
   };
   provided: {
     commands: {
@@ -23,10 +24,11 @@ export function WorkspacePageHeader({ required, provided }: WorkspacePageHeaderP
         <button
           type="button"
           className="gz-icon-button"
-          aria-label="Open notifications"
+          aria-label={required.unreadCount === null || required.unreadCount === undefined ? 'Open notifications' : `Open notifications, ${required.unreadCount} unread`}
           onClick={provided.commands.openNotifications}
         >
           <i className="bi bi-bell" aria-hidden />
+          {required.unreadCount !== null && required.unreadCount !== undefined && required.unreadCount > 0 ? <span className="badge text-bg-primary">{required.unreadCount > 99 ? '99+' : required.unreadCount}</span> : null}
         </button>
       </div>
     </header>

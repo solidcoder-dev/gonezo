@@ -1,14 +1,17 @@
 package com.gonezo.multiplatform.core
 
 import android.content.Context
+import androidx.core.app.NotificationManagerCompat
 import com.gonezo.application.backup.contract.PortableStateReset
 import com.gonezo.infrastructure.backup.ApplicationBackupJsonCodec
 import com.gonezo.infrastructure.backup.defaultBackupSectionCodecRegistry
 import com.gonezo.preferences.domain.PreferencesOwnerId
+import com.gonezo.multiplatform.infrastructure.notifications.AndroidNotificationSystemSender
 import java.time.Instant
 
 class AndroidApplicationBackupCore private constructor(context: Context) {
-  private val database = CoreDatabase(context.applicationContext)
+  private val applicationContext = context.applicationContext
+  private val database = CoreDatabase(applicationContext)
   private val codec = ApplicationBackupJsonCodec(defaultBackupSectionCodecRegistry())
   private val boundary = AndroidConsistencyBoundary(database)
   private val composition = ApplicationBackupComposition(
@@ -38,6 +41,7 @@ class AndroidApplicationBackupCore private constructor(context: Context) {
   fun importJson(json: String) {
     val document = codec.decode(json)
     composition.import(document, Instant.now())
+    NotificationManagerCompat.from(applicationContext).cancel(AndroidNotificationSystemSender.TAG, AndroidNotificationSystemSender.SUMMARY_ID)
   }
 
   companion object {

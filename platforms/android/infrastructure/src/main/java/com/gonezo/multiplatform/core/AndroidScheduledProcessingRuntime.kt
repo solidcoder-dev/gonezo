@@ -7,6 +7,7 @@ import com.gonezo.application.orchestration.ProcessDueScheduledMovementsCommand
 import com.gonezo.application.orchestration.ProcessDueScheduledMovementsResult
 import com.gonezo.application.orchestration.ProcessDueScheduledMovementsService
 import com.gonezo.expected.application.CreateExpectedMovementService
+import com.gonezo.notifications.application.RecordScheduledMovementNotificationService
 import com.gonezo.sharing.application.DefaultPlannedShareInstantiator
 import com.gonezo.ledger.application.RecordLedgerExpenseService
 import com.gonezo.ledger.application.RecordLedgerIncomeService
@@ -62,6 +63,13 @@ class AndroidScheduledProcessingRuntime private constructor(
       val plannedShares = AndroidPlannedExpenseShareRepository(database)
       val recurringPlans = AndroidRecurringSharePlanRepository(database)
       val people = AndroidSharingPersonRepository(database)
+      val notificationRepository = AndroidNotificationRepository(database)
+      val notificationDeliveryQueue = AndroidNotificationDeliveryQueue(database)
+      val notificationRecorder = RecordScheduledMovementNotificationService(
+        ownerId = "local-user",
+        notifications = notificationRepository,
+        deliveries = notificationDeliveryQueue,
+      )
 
       return AndroidScheduledProcessingRuntime(
         processDueScheduledMovementsService = ProcessDueScheduledMovementsService(
@@ -92,6 +100,7 @@ class AndroidScheduledProcessingRuntime private constructor(
           ),
           scheduleCalculator = RecurrenceScheduleCalculator(),
           consistencyBoundary = consistencyBoundary,
+          notificationRecorder = notificationRecorder,
         ),
       )
     }

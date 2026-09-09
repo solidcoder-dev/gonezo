@@ -2,6 +2,10 @@ package com.gonezo.application.services.workflows
 
 import com.gonezo.application.orchestration.AutomaticDueScheduledMovementHandler
 import com.gonezo.application.orchestration.ConfirmationRequiredDueScheduledMovementHandler
+import com.gonezo.application.ConsistencyBoundary
+import com.gonezo.application.orchestration.DueScheduledMovementContext
+import com.gonezo.application.orchestration.DueScheduledMovementHandler
+import com.gonezo.application.orchestration.DueScheduledMovementHandlerResult
 import com.gonezo.application.orchestration.ProcessDueScheduledMovementsCommand
 import com.gonezo.application.orchestration.ProcessDueScheduledMovementsService
 import com.gonezo.domain.shared.Money
@@ -20,6 +24,9 @@ import com.gonezo.ledger.application.RecordLedgerTransferFxUC
 import com.gonezo.ledger.application.RecordLedgerTransferResult
 import com.gonezo.ledger.application.RecordLedgerTransferUC
 import com.gonezo.ledger.domain.TransactionId
+import com.gonezo.notifications.application.ScheduledExpectedNotification
+import com.gonezo.notifications.application.ScheduledFailureNotification
+import com.gonezo.notifications.application.ScheduledMovementNotificationRecorder
 import com.gonezo.recurrence.domain.RecurrenceEnd
 import com.gonezo.recurrence.domain.RecurrenceFrequency
 import com.gonezo.recurrence.domain.RecurrenceRule
@@ -48,11 +55,13 @@ class ProcessDueScheduledMovementsServiceTest {
         val movementRepository = InMemoryRecurringMovementRepository()
         val occurrenceRepository = InMemoryOccurrenceRepository()
         val ledgerExpense = CapturingRecordLedgerExpenseUC("7a00d881-c1fd-4a69-ad8f-2ace38d84c0a")
+        val recorder = RecordingNotificationRecorder()
         val service =
             service(
                 movementRepository = movementRepository,
                 occurrenceRepository = occurrenceRepository,
                 recordLedgerExpenseUC = ledgerExpense,
+                notificationRecorder = recorder,
             )
         val movement =
             sampleMovement(
@@ -81,6 +90,8 @@ class ProcessDueScheduledMovementsServiceTest {
         assertThat(occurrence.ledgerTransactionId).isEqualTo("7a00d881-c1fd-4a69-ad8f-2ace38d84c0a")
         assertThat(updated!!.status).isEqualTo(RecurringMovementStatus.ACTIVE)
         assertThat(updated.nextDueAt).isEqualTo(Instant.parse("2026-06-11T09:00:00Z"))
+        assertThat(recorder.expected).isEmpty()
+        assertThat(recorder.failures).isEmpty()
     }
 
     @Test
@@ -115,12 +126,14 @@ class ProcessDueScheduledMovementsServiceTest {
         val occurrenceRepository = InMemoryOccurrenceRepository()
         val expectedRepository = InMemoryExpectedMovementRepository()
         val ledgerExpense = CapturingRecordLedgerExpenseUC("7a00d881-c1fd-4a69-ad8f-2ace38d84c0a")
+        val recorder = RecordingNotificationRecorder()
         val service =
             service(
                 movementRepository = movementRepository,
                 occurrenceRepository = occurrenceRepository,
                 expectedRepository = expectedRepository,
                 recordLedgerExpenseUC = ledgerExpense,
+                notificationRecorder = recorder,
             )
         val movement =
             sampleMovement(
@@ -142,9 +155,172 @@ class ProcessDueScheduledMovementsServiceTest {
         assertThat(expected.expectedAt).isEqualTo(Instant.parse("2026-06-10T09:00:00Z"))
         assertThat(expected.originOccurrenceId).isEqualTo(occurrence.id.toString())
         assertThat(expected.originRecurringMovementId).isEqualTo(movement.id.toString())
+        assertThat(recorder.expected).hasSize(1)
+        assertThat(recorder.expected.single().expectedMovementId).isEqualTo(expected.id.toString())
     }
 
-    private fun service(movementRepository: InMemoryRecurringMovementRepository, occurrenceRepository: InMemoryOccurrenceRepository, expectedRepository: InMemoryExpectedMovementRepository = InMemoryExpectedMovementRepository(), recordLedgerExpenseUC: RecordLedgerExpenseUC = CapturingRecordLedgerExpenseUC("7a00d881-c1fd-4a69-ad8f-2ace38d84c0a")): ProcessDueScheduledMovementsService = ProcessDueScheduledMovementsService(
+    @Test
+    fun `failed due processing records the failure without advancing the schedule`() {
+        val movementRepository = InMemoryRecurringMovementRepository()
+        val occurrenceRepository = InMemoryOccurrenceRepository()
+        val movement = sampleMovement(
+            type = RecurringMovementType.EXPENSE,
+            reviewPolicy = RecurringMovementReviewPolicy.AUTOMATIC,
+            recurrenceEnd = RecurrenceEnd.Never,
+        )
+        movementRepository.save(movement)
+        val recorder = RecordingNotificationRecorder()
+        val service = ProcessDueScheduledMovementsService(
+            recurringMovementRepository = movementRepository,
+            occurrenceRepository = occurrenceRepository,
+            handlers = listOf(FailingDueScheduledMovementHandler()),
+            scheduleCalculator = scheduleCalculator,
+            notificationRecorder = recorder,
+        )
+
+        val result = service.execute(ProcessDueScheduledMovementsCommand(now = Instant.parse("2026-06-10T10:00:00Z")))
+
+        val occurrence = occurrenceRepository.listByRecurringMovement(movement.id).single()
+        assertThat(result.failed).isEqualTo(1)
+        assertThat(result.advancedSchedules).isEqualTo(0)
+        assertThat(occurrence.status).isEqualTo(RecurringMovementOccurrenceStatus.FAILED)
+        assertThat(occurrence.errorCode).isEqualTo("DUE_SCHEDULED_PROCESSING_FAILED")
+        assertThat(movementRepository.findById(movement.id)!!.nextDueAt).isEqualTo(Instant.parse("2026-06-10T09:00:00Z"))
+        assertThat(recorder.failures).hasSize(1)
+    }
+
+    @Test
+    fun `failed due processing leaves the transaction before persisting the failure`() {
+        val movementRepository = InMemoryRecurringMovementRepository()
+        val occurrenceRepository = InMemoryOccurrenceRepository()
+        val movement = sampleMovement(
+            type = RecurringMovementType.EXPENSE,
+            reviewPolicy = RecurringMovementReviewPolicy.AUTOMATIC,
+            recurrenceEnd = RecurrenceEnd.Never,
+        )
+        movementRepository.save(movement)
+        val boundary = CountingConsistencyBoundary()
+        val service = ProcessDueScheduledMovementsService(
+            recurringMovementRepository = movementRepository,
+            occurrenceRepository = occurrenceRepository,
+            handlers = listOf(FailingDueScheduledMovementHandler()),
+            scheduleCalculator = scheduleCalculator,
+            consistencyBoundary = boundary,
+        )
+
+        service.execute(ProcessDueScheduledMovementsCommand(now = Instant.parse("2026-06-10T10:00:00Z")))
+
+        assertThat(boundary.calls).isEqualTo(2)
+        assertThat(occurrenceRepository.listByRecurringMovement(movement.id).single().status).isEqualTo(RecurringMovementOccurrenceStatus.FAILED)
+    }
+
+    @Test
+    fun `reprocessing a previously registered pending occurrence advances it once`() {
+        val movementRepository = InMemoryRecurringMovementRepository()
+        val occurrenceRepository = InMemoryOccurrenceRepository()
+        val ledgerExpense = CapturingRecordLedgerExpenseUC("7a00d881-c1fd-4a69-ad8f-2ace38d84c0a")
+        val movement = sampleMovement(
+            type = RecurringMovementType.EXPENSE,
+            reviewPolicy = RecurringMovementReviewPolicy.AUTOMATIC,
+            recurrenceEnd = RecurrenceEnd.Never,
+        )
+        movementRepository.save(movement)
+        val occurrence = RecurringMovementOccurrence.pending(
+            id = UUID.randomUUID(),
+            recurringMovementId = movement.id,
+            dueAt = checkNotNull(movement.nextDueAt),
+            createdAt = Instant.parse("2026-06-10T09:30:00Z"),
+        )
+        occurrenceRepository.save(occurrence)
+        val service = service(
+            movementRepository = movementRepository,
+            occurrenceRepository = occurrenceRepository,
+            recordLedgerExpenseUC = ledgerExpense,
+        )
+
+        val result = service.execute(ProcessDueScheduledMovementsCommand(now = Instant.parse("2026-06-10T10:00:00Z")))
+
+        assertThat(result.posted).isEqualTo(1)
+        assertThat(ledgerExpense.commands).hasSize(1)
+        assertThat(occurrenceRepository.listByRecurringMovement(movement.id)).hasSize(1)
+        assertThat(occurrenceRepository.listByRecurringMovement(movement.id).single().status).isEqualTo(RecurringMovementOccurrenceStatus.POSTED)
+        assertThat(movementRepository.findById(movement.id)!!.nextDueAt).isEqualTo(Instant.parse("2026-06-11T09:00:00Z"))
+    }
+
+    @Test
+    fun `two invocations with the same previously read candidate advance only once`() {
+        val movementRepository = InMemoryRecurringMovementRepository()
+        val occurrenceRepository = InMemoryOccurrenceRepository()
+        val ledgerExpense = CapturingRecordLedgerExpenseUC("7a00d881-c1fd-4a69-ad8f-2ace38d84c0a")
+        val movement = sampleMovement(
+            type = RecurringMovementType.EXPENSE,
+            reviewPolicy = RecurringMovementReviewPolicy.AUTOMATIC,
+            recurrenceEnd = RecurrenceEnd.Never,
+        )
+        movementRepository.save(movement)
+        movementRepository.fixedDueCandidates = listOf(movement)
+        val service = service(
+            movementRepository = movementRepository,
+            occurrenceRepository = occurrenceRepository,
+            recordLedgerExpenseUC = ledgerExpense,
+        )
+
+        val first = service.execute(ProcessDueScheduledMovementsCommand(now = Instant.parse("2026-06-10T10:00:00Z")))
+        val second = service.execute(ProcessDueScheduledMovementsCommand(now = Instant.parse("2026-06-10T10:00:00Z")))
+
+        assertThat(first.advancedSchedules).isEqualTo(1)
+        assertThat(second.advancedSchedules).isEqualTo(0)
+        assertThat(ledgerExpense.commands).hasSize(1)
+        assertThat(occurrenceRepository.listByRecurringMovement(movement.id)).hasSize(1)
+    }
+
+    @Test
+    fun `confirmation processing reuses expected movement for the occurrence origin`() {
+        val movementRepository = InMemoryRecurringMovementRepository()
+        val occurrenceRepository = InMemoryOccurrenceRepository()
+        val expectedRepository = InMemoryExpectedMovementRepository()
+        val movement = sampleMovement(
+            type = RecurringMovementType.EXPENSE,
+            reviewPolicy = RecurringMovementReviewPolicy.REQUIRE_USER_CONFIRMATION,
+            recurrenceEnd = RecurrenceEnd.Never,
+        )
+        movementRepository.save(movement)
+        val occurrence = RecurringMovementOccurrence.pending(
+            id = UUID.randomUUID(),
+            recurringMovementId = movement.id,
+            dueAt = checkNotNull(movement.nextDueAt),
+            createdAt = Instant.parse("2026-06-10T09:30:00Z"),
+        )
+        occurrenceRepository.save(occurrence)
+        val existingExpected = ExpectedMovement.create(
+            id = ExpectedMovementId.random(),
+            accountId = movement.sourceAccountId,
+            type = com.gonezo.expected.domain.ExpectedMovementType.EXPENSE,
+            amount = movement.amount,
+            currency = movement.currency,
+            expectedAt = occurrence.dueAt,
+            description = movement.description,
+            merchant = movement.merchant,
+            categoryId = movement.categoryId,
+            createdAt = occurrence.createdAt,
+            originOccurrenceId = occurrence.id.toString(),
+            originRecurringMovementId = movement.id.toString(),
+        )
+        expectedRepository.save(existingExpected)
+        val service = service(
+            movementRepository = movementRepository,
+            occurrenceRepository = occurrenceRepository,
+            expectedRepository = expectedRepository,
+        )
+
+        val result = service.execute(ProcessDueScheduledMovementsCommand(now = Instant.parse("2026-06-10T10:00:00Z")))
+
+        assertThat(result.expectedCreated).isEqualTo(1)
+        assertThat(expectedRepository.storage.keys).containsExactly(existingExpected.id)
+        assertThat(occurrenceRepository.listByRecurringMovement(movement.id).single().status).isEqualTo(RecurringMovementOccurrenceStatus.PENDING)
+    }
+
+    private fun service(movementRepository: InMemoryRecurringMovementRepository, occurrenceRepository: InMemoryOccurrenceRepository, expectedRepository: InMemoryExpectedMovementRepository = InMemoryExpectedMovementRepository(), recordLedgerExpenseUC: RecordLedgerExpenseUC = CapturingRecordLedgerExpenseUC("7a00d881-c1fd-4a69-ad8f-2ace38d84c0a"), consistencyBoundary: ConsistencyBoundary = com.gonezo.application.ImmediateConsistencyBoundary, notificationRecorder: ScheduledMovementNotificationRecorder = com.gonezo.notifications.application.NoOpScheduledMovementNotificationRecorder): ProcessDueScheduledMovementsService = ProcessDueScheduledMovementsService(
         recurringMovementRepository = movementRepository,
         occurrenceRepository = occurrenceRepository,
         handlers =
@@ -157,9 +333,12 @@ class ProcessDueScheduledMovementsServiceTest {
             ),
             ConfirmationRequiredDueScheduledMovementHandler(
                 createExpectedMovementUC = CreateExpectedMovementService(expectedRepository),
+                expectedMovementRepository = expectedRepository,
             ),
         ),
         scheduleCalculator = scheduleCalculator,
+        consistencyBoundary = consistencyBoundary,
+        notificationRecorder = notificationRecorder,
     )
 
     private fun sampleMovement(type: RecurringMovementType, reviewPolicy: RecurringMovementReviewPolicy, recurrenceEnd: RecurrenceEnd): RecurringMovement = RecurringMovement.create(
@@ -186,6 +365,7 @@ class ProcessDueScheduledMovementsServiceTest {
 
     private class InMemoryRecurringMovementRepository : RecurringMovementRepository {
         private val storage = ConcurrentHashMap<RecurringMovementId, RecurringMovement>()
+        var fixedDueCandidates: List<RecurringMovement>? = null
 
         override fun save(movement: RecurringMovement) {
             storage[movement.id] = movement
@@ -193,7 +373,7 @@ class ProcessDueScheduledMovementsServiceTest {
 
         override fun findById(id: RecurringMovementId): RecurringMovement? = storage[id]
 
-        override fun findDue(now: Instant, limit: Int): List<RecurringMovement> = storage.values
+        override fun findDue(now: Instant, limit: Int): List<RecurringMovement> = fixedDueCandidates?.take(limit) ?: storage.values
             .filter { it.status == RecurringMovementStatus.ACTIVE && it.nextDueAt != null && !it.nextDueAt.isAfter(now) }
             .sortedBy { it.nextDueAt }
             .take(limit)
@@ -246,6 +426,34 @@ class ProcessDueScheduledMovementsServiceTest {
 
     private class CapturingRecordLedgerIncomeUC(private val transactionId: String) : RecordLedgerIncomeUC {
         override fun execute(command: RecordLedgerIncomeCommand): TransactionId = TransactionId.from(transactionId)
+    }
+
+    private class FailingDueScheduledMovementHandler : DueScheduledMovementHandler {
+        override fun supports(movement: RecurringMovement): Boolean = true
+
+        override fun handle(context: DueScheduledMovementContext): DueScheduledMovementHandlerResult = throw IllegalStateException("storage failure")
+    }
+
+    private class CountingConsistencyBoundary : ConsistencyBoundary {
+        var calls = 0
+
+        override fun <T> withinConsistencyBoundary(block: () -> T): T {
+            calls += 1
+            return block()
+        }
+    }
+
+    private class RecordingNotificationRecorder : ScheduledMovementNotificationRecorder {
+        val expected = mutableListOf<ScheduledExpectedNotification>()
+        val failures = mutableListOf<ScheduledFailureNotification>()
+
+        override fun recordExpected(event: ScheduledExpectedNotification) {
+            expected += event
+        }
+
+        override fun recordFailure(event: ScheduledFailureNotification) {
+            failures += event
+        }
     }
 
     private class NoopRecordLedgerTransferUC : RecordLedgerTransferUC {
