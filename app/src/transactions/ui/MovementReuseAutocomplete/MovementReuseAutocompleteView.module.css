@@ -1,13 +1,9 @@
 .autocomplete {
-  position: relative;
+  min-width: 0;
 }
 
 .listbox {
-  position: absolute;
-  z-index: var(--z-menu);
   width: 100%;
-  max-height: min(18rem, 45vh);
-  overflow-y: auto;
   background: var(--color-surface);
   border: 1px solid var(--color-border-default);
   border-radius: 0.5rem;

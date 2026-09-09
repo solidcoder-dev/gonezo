@@ -103,6 +103,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
   const dateVisible = status.dateVisible ?? true;
   const amountCurrency = currencyFromAmountLabel(amountLabel);
   const dateFieldId = useId();
+  const noteFieldId = useId();
   const [dateEditing, setDateEditing] = useState(false);
 
   return (
@@ -160,12 +161,13 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
       ) : null}
 
       {!showTransferFields ? (
-        <label className={styles.field}>
-          <span className={styles.identityLabel}>{noteLabel}</span>
+        <div className={styles.field}>
+          <label className={styles.identityLabel} htmlFor={noteFieldId}>{noteLabel}</label>
           {movementReuse && provided.commands.closeMovementReuse && provided.commands.toggleMovementReuseGroup && provided.commands.selectMovementReuseVariant ? (
             <MovementReuseAutocompleteView
               {...movementReuse}
               inputRef={noteInputRef}
+              inputId={noteFieldId}
               placeholder={notePlaceholder}
               onChange={provided.commands.changeNote}
               onClose={provided.commands.closeMovementReuse}
@@ -175,6 +177,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
               onSelectVariant={provided.commands.selectMovementReuseVariant}
             />
           ) : <input
+            id={noteFieldId}
             ref={noteInputRef}
             className={`${styles.identityInput} form-control`}
             aria-label={noteLabel}
@@ -182,7 +185,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
             onChange={(event) => provided.commands.changeNote(event.target.value)}
             placeholder={notePlaceholder}
           />}
-        </label>
+        </div>
       ) : null}
 
       {dateVisible ? (

@@ -122,6 +122,7 @@ describe('TransactionComposerActionsView', () => {
     render(
       <TransactionComposerActionsView
         required={{ config: {}, data: {}, state: { splitReady: true, expectedAvailable: true, expected: false, editingScheduledMovement: false, postExpectedMovement: false, inputMode: 'nativeKeyboard' }, status: {} }}
+        provided={{ commands: {} }}
       />,
     );
 

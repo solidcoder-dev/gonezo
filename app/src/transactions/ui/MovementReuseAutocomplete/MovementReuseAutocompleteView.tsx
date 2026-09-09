@@ -11,6 +11,7 @@ export type MovementReuseAutocompleteViewProps = {
   expandedTitle: string | null;
   variants: MovementReuseSuggestionVariant[];
   inputRef?: RefObject<HTMLInputElement | null>;
+  inputId?: string;
   placeholder?: string;
   error?: string;
   onChange: (value: string) => void;
@@ -29,6 +30,7 @@ export function MovementReuseAutocompleteView({
   expandedTitle,
   variants,
   inputRef,
+  inputId,
   placeholder,
   error,
   onChange,
@@ -45,6 +47,7 @@ export function MovementReuseAutocompleteView({
     }}>
       <input
         ref={inputRef}
+        id={inputId}
         className="form-control"
         role="combobox"
         aria-label="Merchant or source"
