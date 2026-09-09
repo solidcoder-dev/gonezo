@@ -117,4 +117,15 @@ describe('TransactionComposerActionsView', () => {
     expect(screen.getByRole('button', { name: 'Post now' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Save expected' })).toBeDisabled();
   });
+
+  it('removes submit actions while an input panel is active', () => {
+    render(
+      <TransactionComposerActionsView
+        required={{ config: {}, data: {}, state: { splitReady: true, expectedAvailable: true, expected: false, editingScheduledMovement: false, postExpectedMovement: false, inputMode: 'nativeKeyboard' }, status: {} }}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Post now' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save expected' })).not.toBeInTheDocument();
+  });
 });
