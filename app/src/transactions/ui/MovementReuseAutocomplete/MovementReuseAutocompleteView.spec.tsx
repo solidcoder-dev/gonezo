@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { ComponentProps } from 'react';
 import type { MovementReuseSuggestionGroup, MovementReuseSuggestionVariant } from '../../../movements/application/movementReuseSuggestions.port';
@@ -34,5 +34,42 @@ describe('MovementReuseAutocompleteView metadata', () => {
     renderView({ expandedTitle: 'mercadona', variants: [{ ...variant, itemCount: 3, shareCount: 1, deterministicKey: 'alternative' }] });
     expect(screen.getByLabelText('3 items')).toBeVisible();
     expect(screen.getByLabelText('1 shares')).toBeVisible();
+  });
+});
+
+describe('MovementReuseAutocompleteView focus lifecycle', () => {
+  it('activates on focus, keeps focus transitions inside the popup open, and deactivates outside', () => {
+    const activate = vi.fn();
+    const deactivate = vi.fn();
+    renderView({ onActivate: activate, onDeactivate: deactivate });
+    const input = screen.getByRole('combobox');
+    const option = screen.getByRole('option', { name: /Mercadona/ });
+
+    fireEvent.focus(input);
+    fireEvent.blur(input, { relatedTarget: option });
+    expect(activate).toHaveBeenCalledTimes(1);
+    expect(deactivate).not.toHaveBeenCalled();
+
+    fireEvent.blur(input, { relatedTarget: document.body });
+    expect(deactivate).toHaveBeenCalledTimes(1);
+  });
+
+  it('selects once by click and prevents Enter from submitting the parent form', () => {
+    const select = vi.fn();
+    renderView({ onSelectVariant: select });
+    const input = screen.getByRole('combobox');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(select).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('option', { name: /Mercadona/ }));
+    expect(select).toHaveBeenCalledTimes(2);
+  });
+
+  it('closes on Escape without selecting a suggestion', () => {
+    const close = vi.fn();
+    const select = vi.fn();
+    renderView({ onClose: close, onSelectVariant: select });
+    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Escape' });
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(select).not.toHaveBeenCalled();
   });
 });

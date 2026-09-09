@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   MovementReuseSuggestionGroup,
   MovementReuseSuggestionsPort,
@@ -21,25 +21,20 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
   const [variants, setVariants] = useState<MovementReuseSuggestionVariant[]>([]);
   const [error, setError] = useState('');
   const [loadedTitle, setLoadedTitle] = useState<string | null>(null);
-  const dismissedSelection = useRef(false);
+  const [sessionActive, setSessionActive] = useState(false);
   const requestVersion = useRef(0);
+  const sessionVersion = useRef(0);
   const inputRef = useRef(input);
   const accountScopeKey = input.accountIds.join('\u0000');
   inputRef.current = input;
 
   useEffect(() => {
     const normalizedQuery = input.query.trim();
-    if (dismissedSelection.current) {
-      dismissedSelection.current = false;
-      setOpen(false);
-      setGroups([]);
-      setLoading(false);
-      return;
-    }
+    const version = ++requestVersion.current;
     setExpandedTitle(null);
     setVariants([]);
     setLoadedTitle(null);
-    if (!input.enabled || normalizedQuery.length < 2) {
+    if (!input.enabled || !sessionActive || normalizedQuery.length < 2) {
       setOpen(false);
       setGroups([]);
       setLoading(false);
@@ -48,42 +43,56 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
     setOpen(true);
     setLoading(true);
     setError('');
-    const version = ++requestVersion.current;
+    const activeSession = sessionVersion.current;
+    const query = normalizedQuery;
+    const accountIds = [...input.accountIds];
     const timer = setTimeout(() => {
       void inputRef.current.port.movementReuseSearchGroups({
-        query: normalizedQuery,
-        accountIds: inputRef.current.accountIds,
+        query,
+        accountIds,
         limit: 5,
       }).then((result) => {
-        if (version !== requestVersion.current) return;
+        if (version !== requestVersion.current || activeSession !== sessionVersion.current) return;
         setGroups(result.groups);
       }).catch(() => {
-        if (version !== requestVersion.current) return;
+        if (version !== requestVersion.current || activeSession !== sessionVersion.current) return;
         setError('Suggestions unavailable');
         setGroups([]);
       }).finally(() => {
-        if (version === requestVersion.current) setLoading(false);
+        if (version === requestVersion.current && activeSession === sessionVersion.current) setLoading(false);
       });
     }, 250);
-    return () => clearTimeout(timer);
-  }, [accountScopeKey, input.enabled, input.port, input.query]);
+    return () => {
+      clearTimeout(timer);
+      requestVersion.current += 1;
+    };
+  }, [accountScopeKey, input.enabled, input.port, input.query, sessionActive]);
 
-  function close() {
+  const close = useCallback(() => {
     requestVersion.current += 1;
+    sessionVersion.current += 1;
+    setSessionActive(false);
     setOpen(false);
     setExpandedTitle(null);
     setVariants([]);
-  }
+    setLoadedTitle(null);
+    setGroups([]);
+    setLoading(false);
+  }, []);
 
-  function dismissCurrentQuery() {
-    dismissedSelection.current = true;
+  const activate = useCallback(() => {
+    sessionVersion.current += 1;
+    setSessionActive(true);
+  }, []);
+
+  const deactivate = useCallback(() => {
     close();
-  }
+  }, [close]);
 
   async function toggleGroup(group: MovementReuseSuggestionGroup) {
     if (group.variantCount <= 1) {
       inputRef.current.onSelected?.({ title: group.title, variant: group.primaryVariant });
-      dismissCurrentQuery();
+      close();
       return;
     }
     if (expandedTitle === group.normalizedTitle) {
@@ -92,30 +101,36 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
       return;
     }
     setExpandedTitle(group.normalizedTitle);
-    if (loadedTitle === group.normalizedTitle) return;
+    if (loadedTitle === group.normalizedTitle && variants.length > 0) return;
     setLoading(true);
     setError('');
+    const version = ++requestVersion.current;
+    const activeSession = sessionVersion.current;
+    const normalizedTitle = group.normalizedTitle;
+    const accountIds = [...inputRef.current.accountIds];
     try {
       const result = await inputRef.current.port.movementReuseListVariants({
-        normalizedTitle: group.normalizedTitle,
-        accountIds: inputRef.current.accountIds,
+        normalizedTitle,
+        accountIds,
       });
+      if (version !== requestVersion.current || activeSession !== sessionVersion.current || expandedTitle !== normalizedTitle) return;
       setVariants(result.variants.filter((variant) => variant.representativeMovementId !== group.primaryVariant.representativeMovementId));
-      setLoadedTitle(group.normalizedTitle);
+      setLoadedTitle(normalizedTitle);
     } catch {
+      if (version !== requestVersion.current || activeSession !== sessionVersion.current) return;
       setError('Unable to load variants');
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current && activeSession === sessionVersion.current) setLoading(false);
     }
   }
 
   function selectVariant(selection: { title: string; variant: MovementReuseSuggestionVariant }) {
     inputRef.current.onSelected?.(selection);
-    dismissCurrentQuery();
+    close();
   }
 
   return {
     state: { query: input.query, open, loading, groups, expandedTitle, variants, error },
-    actions: { close, toggleGroup, selectVariant },
+    actions: { activate, deactivate, close, toggleGroup, selectVariant },
   };
 }

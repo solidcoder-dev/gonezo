@@ -1,3 +1,4 @@
+import { useId, type RefObject } from 'react';
 import type { MovementReuseSuggestionGroup, MovementReuseSuggestionVariant } from '../../../movements/application/movementReuseSuggestions.port';
 import styles from './MovementReuseAutocompleteView.module.css';
 import { MovementReuseVariantMetadata } from './MovementReuseVariantMetadata';
@@ -9,10 +10,13 @@ export type MovementReuseAutocompleteViewProps = {
   groups: MovementReuseSuggestionGroup[];
   expandedTitle: string | null;
   variants: MovementReuseSuggestionVariant[];
+  inputRef?: RefObject<HTMLInputElement | null>;
   placeholder?: string;
   error?: string;
   onChange: (value: string) => void;
   onClose: () => void;
+  onActivate?: () => void;
+  onDeactivate?: () => void;
   onToggleGroup: (group: MovementReuseSuggestionGroup) => void;
   onSelectVariant: (selection: { title: string; variant: MovementReuseSuggestionVariant }) => void;
 };
@@ -24,17 +28,23 @@ export function MovementReuseAutocompleteView({
   groups,
   expandedTitle,
   variants,
+  inputRef,
   placeholder,
   error,
   onChange,
   onClose,
+  onActivate,
+  onDeactivate,
   onToggleGroup,
   onSelectVariant,
 }: MovementReuseAutocompleteViewProps) {
-  const listboxId = 'movement-reuse-suggestions';
+  const listboxId = `movement-reuse-suggestions-${useId().replace(/:/g, '')}`;
   return (
-    <div className={styles.autocomplete}>
+    <div className={styles.autocomplete} onBlur={(event) => {
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) onDeactivate?.();
+    }}>
       <input
+        ref={inputRef}
         className="form-control"
         role="combobox"
         aria-label="Merchant or source"
@@ -44,13 +54,20 @@ export function MovementReuseAutocompleteView({
         placeholder={placeholder}
         value={query}
         onChange={(event) => onChange(event.target.value)}
+        onFocus={onActivate}
         onKeyDown={(event) => {
-          if (event.key === 'Escape') onClose();
-          if (event.key === 'Enter' && groups[0]) onSelectVariant({ title: groups[0].title, variant: groups[0].primaryVariant });
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            onClose();
+          }
+          if (event.key === 'Enter' && open && groups[0]) {
+            event.preventDefault();
+            onSelectVariant({ title: groups[0].title, variant: groups[0].primaryVariant });
+          }
         }}
       />
       {open ? (
-          <div id={listboxId} role="listbox" aria-label="Movement reuse suggestions" className={styles.listbox}>
+        <div id={listboxId} role="listbox" aria-label="Movement reuse suggestions" className={styles.listbox}>
           {loading ? <div role="status" className={styles.status}>Loading suggestions</div> : null}
           {!loading && !error && groups.map((group) => (
             <div key={group.normalizedTitle} className={styles.group}>

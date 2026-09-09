@@ -667,6 +667,8 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       applyShareDraft: shareDraftModel.actions.applyShareDraft, removeShareDraft: shareDraftModel.actions.removeShareDraft,
       submit: submitTransaction,
       closeMovementReuse: () => { movementReuseModel.actions.close(); movementReuseModel.actions.cancelReuse(); },
+      activateMovementReuse: movementReuseModel.actions.activate,
+      deactivateMovementReuse: movementReuseModel.actions.deactivate,
       toggleMovementReuseGroup: (group) => { void movementReuseModel.actions.toggleGroup(group); }, selectMovementReuseVariant: movementReuseModel.actions.selectVariant,
       reuseSetupOnly: movementReuseModel.actions.reuseSetupOnly,
       reuseWithDetails: movementReuseModel.actions.reuseWithDetails,

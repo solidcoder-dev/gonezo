@@ -149,6 +149,8 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
         onCloseShareEditor: provided.commands.closeShareEditor,
         onSubmit: provided.commands.submit,
         onCloseMovementReuse: provided.commands.closeMovementReuse,
+        onActivateMovementReuse: provided.commands.activateMovementReuse,
+        onDeactivateMovementReuse: provided.commands.deactivateMovementReuse,
         onToggleMovementReuseGroup: provided.commands.toggleMovementReuseGroup,
         onSelectMovementReuseVariant: provided.commands.selectMovementReuseVariant,
       }}
