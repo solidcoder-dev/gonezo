@@ -9,6 +9,7 @@ import com.gonezo.multiplatform.plugins.audio.AudioCapturePlugin;
 import com.gonezo.multiplatform.plugins.interpretation.SchemaGuidedInterpretationPlugin;
 import com.gonezo.multiplatform.plugins.interpretation.export.InterpretationRunExportPlugin;
 import com.gonezo.multiplatform.plugins.speech.SpeechTranscriptionPlugin;
+import com.gonezo.multiplatform.notifications.NotificationMaintenanceScheduler;
 
 public class MainActivity extends BridgeActivity {
   @Override
@@ -23,6 +24,13 @@ public class MainActivity extends BridgeActivity {
     if (appShell != null) {
       new AndroidSystemBarsController(this).configure(appShell);
     }
+  }
+
+  @Override
+  public void onResume() {
+    super.onResume();
+    NotificationMaintenanceScheduler.schedulePeriodic(this);
+    NotificationMaintenanceScheduler.scheduleImmediate(this);
   }
 
   private View resolveAppShell() {
