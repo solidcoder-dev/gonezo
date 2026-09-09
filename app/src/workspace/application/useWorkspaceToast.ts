@@ -1,87 +1,113 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type {
+  FeedbackNotice,
+  FeedbackNoticeInput,
+  FeedbackNoticeTone,
+  FeedbackNoticeUpdate,
+} from '../../shared/ui/FeedbackNotice/feedbackNotice.types';
 
-export type WorkspaceToastTone =
-  | 'success'
-  | 'info'
-  | 'warning'
-  | 'error';
+export type WorkspaceToastTone = FeedbackNoticeTone;
+export type WorkspaceToastAction = FeedbackNotice['action'];
 
-export type WorkspaceToastAction = Readonly<{
-  label: string;
-  run: () => void;
-}>;
+let nextNoticeSequence = 0;
+
+function nextNoticeId() {
+  nextNoticeSequence += 1;
+  return `workspace-notice-${nextNoticeSequence}`;
+}
+
+function defaultDurationPolicy(input: FeedbackNoticeInput): FeedbackNotice['durationPolicy'] {
+  if (input.action || input.tone === 'error') return 'until-closed';
+  if (input.tone === 'warning') return 'warning';
+  return 'standard';
+}
 
 export function useWorkspaceToast() {
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastTone, setToastTone] = useState<WorkspaceToastTone>('success');
-  const [toastActionLabel, setToastActionLabel] = useState('');
-  const [toastAction, setToastAction] = useState<(() => void) | null>(null);
+  const [notices, setNotices] = useState<FeedbackNotice[]>([]);
+  const latestNoticeIdRef = useRef<string | null>(null);
+  const currentNoticeRef = useRef<FeedbackNotice | null>(null);
 
-  const showNotice = useCallback((input: {
-    message: string;
-    tone: WorkspaceToastTone;
-    action?: WorkspaceToastAction;
-  }) => {
-    setToastMessage(input.message);
-    setToastTone(input.tone);
-    setToastActionLabel(input.action?.label ?? '');
-    setToastAction(() => input.action?.run ?? null);
+  const showNotice = useCallback((input: FeedbackNoticeInput) => {
+    const notice: FeedbackNotice = {
+      ...input,
+      id: nextNoticeId(),
+      source: input.source || 'workspace',
+      durationPolicy: input.durationPolicy ?? defaultDurationPolicy(input),
+    };
+    latestNoticeIdRef.current = notice.id;
+    setNotices((current) => [...current, notice]);
+    return notice.id;
   }, []);
 
-  const showToast = useCallback((message: string) => {
-    showNotice({
-      message,
-      tone: 'success',
-    });
-  }, [showNotice]);
+  const showToast = useCallback((message: string) => showNotice({
+    message,
+    tone: 'success',
+    source: 'workspace.toast',
+  }), [showNotice]);
 
-  const showInfo = useCallback((message: string, action?: WorkspaceToastAction) => {
-    showNotice({
-      message,
-      tone: 'info',
-      action,
-    });
-  }, [showNotice]);
+  const showInfo = useCallback((message: string, action?: WorkspaceToastAction) => showNotice({
+    message,
+    tone: 'info',
+    source: 'workspace.info',
+    action,
+  }), [showNotice]);
 
-  const showWarning = useCallback((message: string, action?: WorkspaceToastAction) => {
-    showNotice({
-      message,
-      tone: 'warning',
-      action,
-    });
-  }, [showNotice]);
+  const showWarning = useCallback((message: string, action?: WorkspaceToastAction) => showNotice({
+    message,
+    tone: 'warning',
+    source: 'workspace.warning',
+    action,
+  }), [showNotice]);
 
-  const showError = useCallback((error: { message: string }) => {
-    showNotice({
-      message: error.message,
-      tone: 'error',
-    });
-  }, [showNotice]);
+  const showError = useCallback((error: { message: string }) => showNotice({
+    message: error.message,
+    tone: 'error',
+    source: 'workspace.error',
+  }), [showNotice]);
+
+  const closeNotice = useCallback((id: string) => {
+    setNotices((current) => current.filter((notice) => notice.id !== id));
+    if (latestNoticeIdRef.current === id) {
+      latestNoticeIdRef.current = null;
+    }
+  }, []);
+
+  const updateNotice = useCallback((id: string, update: FeedbackNoticeUpdate) => {
+    setNotices((current) => current.map((notice) => (
+      notice.id === id ? { ...notice, ...update, id: notice.id } : notice
+    )));
+  }, []);
 
   const clearToast = useCallback(() => {
-    setToastMessage('');
-    setToastTone('success');
-    setToastActionLabel('');
-    setToastAction(null);
-  }, []);
+    const id = latestNoticeIdRef.current;
+    if (id) closeNotice(id);
+  }, [closeNotice]);
 
   const runToastAction = useCallback(() => {
-    toastAction?.();
-  }, [toastAction]);
+    currentNoticeRef.current?.action?.run();
+  }, []);
+
+  const currentNotice = notices[notices.length - 1] ?? null;
+  useEffect(() => {
+    currentNoticeRef.current = currentNotice;
+  }, [currentNotice]);
 
   return {
+    notices,
     toast: {
-      message: toastMessage,
-      tone: toastTone,
-      actionLabel: toastActionLabel,
+      message: currentNotice?.message ?? '',
+      tone: currentNotice?.tone ?? 'success',
+      actionLabel: currentNotice?.action?.label ?? '',
     },
     actions: {
       clearToast,
+      closeNotice,
       showError,
       showInfo,
       showNotice,
       showToast,
       showWarning,
+      updateNotice,
       runToastAction,
     },
   };

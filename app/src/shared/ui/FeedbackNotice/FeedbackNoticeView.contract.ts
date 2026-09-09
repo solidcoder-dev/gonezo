@@ -1,6 +1,7 @@
 import type { ViewProps } from '../ViewProps';
+import type { FeedbackNoticeTone } from './feedbackNotice.types';
 
-export type FeedbackNoticeTone = 'success' | 'info' | 'warning' | 'error';
+export type { FeedbackNoticeTone } from './feedbackNotice.types';
 
 export type FeedbackNoticeViewProps = ViewProps<
   {

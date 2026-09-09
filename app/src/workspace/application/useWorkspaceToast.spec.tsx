@@ -102,4 +102,46 @@ describe('useWorkspaceToast', () => {
 
     expect(run).toHaveBeenCalledTimes(1);
   });
+
+  it('assigns different identities to equal messages from different operations', () => {
+    const { result } = renderHook(() => useWorkspaceToast());
+
+    let firstId = '';
+    let secondId = '';
+    act(() => {
+      firstId = result.current.actions.showNotice({
+        message: 'Saved',
+        tone: 'success',
+        source: 'transaction.create',
+      });
+      secondId = result.current.actions.showNotice({
+        message: 'Saved',
+        tone: 'success',
+        source: 'account.rename',
+      });
+    });
+
+    expect(firstId).not.toBe(secondId);
+    expect(result.current.notices).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: firstId, message: 'Saved', source: 'transaction.create' }),
+      expect.objectContaining({ id: secondId, message: 'Saved', source: 'account.rename' }),
+    ]));
+  });
+
+  it('updates only the notice selected by identity', () => {
+    const { result } = renderHook(() => useWorkspaceToast());
+
+    let firstId = '';
+    let secondId = '';
+    act(() => {
+      firstId = result.current.actions.showNotice({ message: 'Working', tone: 'info', source: 'first' });
+      secondId = result.current.actions.showNotice({ message: 'Working', tone: 'info', source: 'second' });
+      result.current.actions.updateNotice(firstId, { message: 'First completed', tone: 'success' });
+    });
+
+    expect(result.current.notices).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: firstId, message: 'First completed', source: 'first' }),
+      expect.objectContaining({ id: secondId, message: 'Working', source: 'second' }),
+    ]));
+  });
 });
