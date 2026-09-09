@@ -118,4 +118,21 @@ describe('useMovementsSearchModel', () => {
     expect(movementsSearch).toHaveBeenCalledTimes(2);
     await waitFor(() => expect(result.current.required.state.items).toEqual([]));
   });
+
+  it('reports a failed operation through the provided event', async () => {
+    const onOperationError = vi.fn();
+    const core = makeCore({ ledgerVoidTransaction: vi.fn().mockRejectedValue(new Error('Void failed')) });
+    const { result } = renderHook(() => useMovementsSearchModel({
+      core,
+      accounts: [{ id: 'account-1', name: 'Checking' }],
+      accountId: 'account-1',
+      enabled: true,
+      onOperationError,
+    }));
+
+    await waitFor(() => expect(result.current.required.status.loading).toBe(false));
+    await act(async () => { await result.current.provided.commands.voidPostedMovement('posted-1'); });
+
+    expect(onOperationError).toHaveBeenCalledWith({ message: 'Void failed' });
+  });
 });

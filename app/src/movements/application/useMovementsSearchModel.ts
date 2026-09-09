@@ -22,6 +22,7 @@ type UseMovementsSearchModelInput = {
   accountId: string | null;
   enabled: boolean;
   initialFilters?: Partial<MovementsSearchFiltersState>;
+  onOperationError?: (error: { message: string }) => void;
 };
 
 function toErrorMessage(error: unknown): string {
@@ -31,7 +32,7 @@ function toErrorMessage(error: unknown): string {
   return 'Unknown error';
 }
 export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
-  const { core, accounts, accountId, enabled, initialFilters } = input;
+  const { core, accounts, accountId, enabled, initialFilters, onOperationError } = input;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(0);
@@ -54,7 +55,13 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
   });
 
   function reportError(raw: unknown) {
-    setError(toErrorMessage(raw));
+    const message = toErrorMessage(raw);
+    setError(message);
+  }
+  function reportOperationError(raw: unknown) {
+    const message = toErrorMessage(raw);
+    setError(message);
+    onOperationError?.({ message });
   }
   function clearSearchState() {
     setError('');
@@ -106,7 +113,7 @@ export function useMovementsSearchModel(input: UseMovementsSearchModelInput) {
       setItems(result.items);
       setPagination(result.pagination);
     } catch (err) {
-      reportError(err);
+      reportOperationError(err);
     } finally {
       setLoading(false);
     }

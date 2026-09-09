@@ -19,6 +19,7 @@ type MovementsSearchPageProps = {
       onPostExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => void;
       onEditExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => void;
       onDuplicateMovement?: (movement: MovementDetailViewModel) => void;
+      onOperationError?: (error: { message: string }) => void;
     };
   };
 };
@@ -90,6 +91,7 @@ export function MovementsSearchPage({ required, provided }: MovementsSearchPageP
     accountId: selectedAccountId,
     enabled: accounts.length > 0,
     initialFilters: routePreset,
+    onOperationError: provided.events.onOperationError,
   });
   const refreshResultsRef = useRef(searchModel.provided.commands.refreshResults);
   const accountsAvailableRef = useRef(false);
