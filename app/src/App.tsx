@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { useEffect, useMemo } from 'react';
+import { Route, Routes, useNavigate } from 'react-router-dom';
 import './App.css';
 import { WorkspacePage, type WorkspacePagePort } from './workspace/application/WorkspacePage';
 import { CoreAdapter } from './core/infrastructure/coreAdapter';
@@ -41,6 +41,7 @@ export function App({ required }: AppProps) {
   const resolvedCore = required?.core ?? defaultCore;
   const resolvedExperimentalFeatures = required?.experimentalFeatures ?? defaultExperimentalFeatures;
   const resolvedNotifications = required?.notifications ?? defaultNotifications;
+  const notificationIntentRouter = <NotificationIntentRouter />;
   const voiceCategorySource = useMemo(() => ({
     taxonomyListCategories: (input?: { includeArchived?: boolean }) => resolvedCore.taxonomyListCategories(input),
   }), [resolvedCore]);
@@ -54,14 +55,25 @@ export function App({ required }: AppProps) {
 
   return (
     <KeyboardVisibilityProvider capability={defaultKeyboardVisibility}>
+      {notificationIntentRouter}
       <Routes>
       {workspaceRoutes.map((path) => (
         <Route key={path} path={path} element={workspacePage} />
       ))}
       <Route path="/taxonomy" element={<TaxonomyPage required={{ core: resolvedCore }} />} />
-      <Route path="/notifications" element={<NotificationsPageComponent required={{ notifications: resolvedNotifications }} />} />
+      <Route path="/notifications" element={<NotificationsPageComponent required={{ notifications: resolvedNotifications, core: resolvedCore }} />} />
       {import.meta.env.DEV ? <Route path="/__gallery" element={<ComponentGalleryView />} /> : null}
       </Routes>
     </KeyboardVisibilityProvider>
   );
+}
+
+function NotificationIntentRouter() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const openNotifications = () => { void navigate('/notifications'); };
+    window.addEventListener('gonezoNotificationIntent', openNotifications);
+    return () => window.removeEventListener('gonezoNotificationIntent', openNotifications);
+  }, [navigate]);
+  return null;
 }

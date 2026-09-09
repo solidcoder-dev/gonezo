@@ -20,7 +20,7 @@ class NotificationMaintenanceWorker(
     }.isFailure
 
     val deliveryFailed = runCatching {
-      val intent = Intent(applicationContext, MainActivity::class.java)
+      val intent = NotificationIntentContract.openNotificationsIntent(Intent(applicationContext, MainActivity::class.java))
       val openNotifications = PendingIntent.getActivity(
         applicationContext,
         REQUEST_CODE,
