@@ -31,4 +31,14 @@ Import/export and backup retain their existing behavior and real financial data.
 
 ## Implementation status
 
-This document is the contract and inventory baseline for the incremental implementation. Each completed implementation step updates this section with the covered surfaces and its verification result.
+The implemented coverage is:
+
+- Local preference contract, safe startup state, invalid/failing storage handling, and persistence independent of backup data.
+- Shared workspace state above the routes and the header eye action, including loading/saving locking and one-shot feedback notices.
+- Home net worth, pending expected totals, recent movements, account balances, account rails, and currency account sheets.
+- Posted, expected, and scheduled movement lists; grouped and paginated search results; movement row signs and accessible labels.
+- Movement detail amount, sharing totals/participants, item prices/subtotals, and the detail sheet presentation.
+- Editing forms remain editable and visible. Historical reuse confirmation does not reveal the previous amount and uses the required neutral wording.
+- Analytics filters remain usable while financial reports and charts are replaced by `Amounts hidden`; reports are not mounted while hidden.
+
+The remaining `formatCurrencyAmount` calls are in domain/application presenters, calculations, export/import paths, or active editing forms. They retain real values and are not themselves rendering surfaces; no global formatter change is used.

@@ -1,10 +1,11 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { AmountVisibility } from '../../shared/domain/amountVisibility';
-import type { AmountVisibilityPort } from './amountVisibility.port';
 import { useAmountVisibilityModel } from './useAmountVisibilityModel';
 
-function createPort(loaded: AmountVisibility = 'visible'): AmountVisibilityPort & { saves: AmountVisibility[] } {
+type TestAmountVisibilityPort = { load: () => Promise<AmountVisibility>; save: (value: AmountVisibility) => Promise<void>; saves: AmountVisibility[] };
+
+function createPort(loaded: AmountVisibility = 'visible'): TestAmountVisibilityPort {
   const saves: AmountVisibility[] = [];
   return {
     saves,

@@ -154,7 +154,6 @@ export function MovementsSearchPage({ required, provided }: MovementsSearchPageP
             required={{
               state: searchModel.required.state,
               status: searchModel.required.status,
-              amountVisibility: required.amountVisibility,
             }}
             provided={{
               commands: searchModel.provided.commands,
@@ -165,6 +164,7 @@ export function MovementsSearchPage({ required, provided }: MovementsSearchPageP
             required={{
               state: searchModel.required.state,
               status: searchModel.required.status,
+              amountVisibility: required.amountVisibility,
             }}
             provided={{
               context: {

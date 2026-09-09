@@ -4,8 +4,8 @@ import { FinancialAmountView } from './FinancialAmountView';
 
 describe('FinancialAmountView', () => {
   it.each([
-    { formattedAmount: '€12.30', sign: '+', tone: 'income' as const },
-    { formattedAmount: '$12.30', sign: '-', tone: 'expense' as const },
+    { formattedAmount: '€12.30', sign: '+' as const, tone: 'income' as const },
+    { formattedAmount: '$12.30', sign: '-' as const, tone: 'expense' as const },
     { formattedAmount: '¥0.00', sign: undefined, tone: undefined },
   ])('preserves the visible amount presentation', (input) => {
     render(<FinancialAmountView {...input} visibility="visible" />);
