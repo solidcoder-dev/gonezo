@@ -23,7 +23,7 @@ import type {
 import './TransactionComposerView.css';
 import styles from './TransactionComposerView.module.css';
 import type { MovementReuseSuggestionGroup, MovementReuseSuggestionVariant } from '../../../movements/application/movementReuseSuggestions.port';
-import { useKeyboardVisible } from '../../../shared/ui/KeyboardVisibilityProvider';
+import { useKeyboardVisible } from '../../../shared/ui/useKeyboardVisible';
 
 export type ComposerMode = 'picker' | 'expense' | 'income' | 'transfer';
 

@@ -1,7 +1,11 @@
-import { useEffect, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import type { ViewProps } from '../ViewProps';
 import { currencySymbol } from '../../utils/formatting';
-import { AmountCalculatorSheetView } from './AmountCalculatorSheetView';
+import { AmountCalculatorKeypadView } from './AmountCalculatorKeypadView';
+import { useBackDismissable } from '../useBackDismissable';
+import { createCalculatorState, resolveCalculatorValue, transitionCalculator, type CalculatorAction, type CalculatorState } from './calculatorEngine';
+
+let activeCalculatorDismiss: (() => void) | undefined;
 import styles from './AmountInputView.module.css';
 
 export type AmountInputViewProps = ViewProps<
@@ -26,6 +30,11 @@ export function AmountInputView({ required, provided }: AmountInputViewProps) {
   const { state, status } = required;
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [continueAfterCalculator, setContinueAfterCalculator] = useState(false);
+  const [calculatorState, setCalculatorState] = useState<CalculatorState>(() => createCalculatorState(state.value));
+  const openerRef = useRef<HTMLInputElement | null>(null);
+  const internalInputRef = useRef<HTMLInputElement | null>(null);
+  const continuationSentRef = useRef(false);
+  const continueEditingRef = useRef(provided.commands.continueEditing);
   const calculatorEnabled = configuredCalculatorEnabled ?? true;
   const emptyValuePresentation = variant === 'primary' && currency
     ? `${currencySymbol(currency)}0.00`
@@ -33,31 +42,54 @@ export function AmountInputView({ required, provided }: AmountInputViewProps) {
   const errorId = `${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-error`;
 
   function openCalculator() {
+    activeCalculatorDismiss?.();
+    activeCalculatorDismiss = () => setCalculatorOpen(false);
+    openerRef.current = internalInputRef.current;
+    internalInputRef.current?.blur();
+    setCalculatorState(createCalculatorState(state.value));
     setContinueAfterCalculator(false);
+    continuationSentRef.current = false;
     setCalculatorOpen(true);
   }
 
   function closeCalculator() {
     setCalculatorOpen(false);
+    activeCalculatorDismiss = undefined;
+    openerRef.current?.focus();
   }
 
-  function useCalculatorResult(value: string) {
+  function commitCalculatorResult(value: string) {
     provided.commands.change(value);
     setContinueAfterCalculator(true);
-    closeCalculator();
+    setCalculatorOpen(false);
   }
+
+  function dispatchCalculator(action: CalculatorAction) {
+    setCalculatorState((current) => transitionCalculator(current, action).state);
+  }
+
+  useBackDismissable({ canDismiss: () => calculatorOpen, dismiss: closeCalculator }, calculatorOpen);
+
+  useEffect(() => {
+    continueEditingRef.current = provided.commands.continueEditing;
+  }, [provided.commands.continueEditing]);
 
   useEffect(() => {
     if (calculatorOpen || !continueAfterCalculator) return;
-    provided.commands.continueEditing?.();
-  }, [calculatorOpen, continueAfterCalculator, provided.commands]);
+    if (continuationSentRef.current) return;
+    continuationSentRef.current = true;
+    continueEditingRef.current?.();
+  }, [calculatorOpen, continueAfterCalculator]);
 
   return (
     <>
       <label className={`${styles.field} vstack gap-2`}>
         <span className={showLabel ? '' : 'visually-hidden'}>{label}</span>
         <input
-          ref={inputRef}
+          ref={(element) => {
+            internalInputRef.current = element;
+            if (inputRef) inputRef.current = element;
+          }}
           className={`${styles.input} ${variant === 'primary' ? styles.primary : ''} form-control border-0 bg-transparent shadow-none px-0 pe-5`}
           aria-label={label}
           type="number"
@@ -88,14 +120,19 @@ export function AmountInputView({ required, provided }: AmountInputViewProps) {
       </label>
       {status.error ? <p id={errorId} className="gz-field-error">{status.error}</p> : null}
 
-      <AmountCalculatorSheetView
-        key={calculatorOpen ? 'open' : 'closed'}
-        open={calculatorOpen}
-        initialValue={state.value}
-        currency={currency}
-        onUseResult={useCalculatorResult}
-        onDismiss={closeCalculator}
-      />
+      {calculatorOpen ? (
+        <div className={styles.dock} role="dialog" aria-label="Amount calculator">
+          <AmountCalculatorKeypadView
+            state={calculatorState}
+            currency={currency}
+            dispatch={dispatchCalculator}
+            onUseResult={() => {
+              const result = resolveCalculatorValue(calculatorState);
+              if (result !== null) commitCalculatorResult(result);
+            }}
+          />
+        </div>
+      ) : null}
     </>
   );
 }

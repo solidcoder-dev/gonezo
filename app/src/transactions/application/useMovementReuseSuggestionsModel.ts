@@ -45,7 +45,7 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
     setError('');
     const activeSession = sessionVersion.current;
     const query = normalizedQuery;
-    const accountIds = [...input.accountIds];
+    const accountIds = [...inputRef.current.accountIds];
     const timer = setTimeout(() => {
       void inputRef.current.port.movementReuseSearchGroups({
         query,

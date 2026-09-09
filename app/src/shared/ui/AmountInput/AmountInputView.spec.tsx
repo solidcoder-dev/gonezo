@@ -51,7 +51,6 @@ describe('AmountInputView calculator', () => {
     expect(screen.queryByRole('button', { name: 'Close amount calculator' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Apply' })).not.toBeInTheDocument();
-    expect(screen.getByTestId('sheet-drag-handle')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Backspace' })).toBeInTheDocument();
 
@@ -80,11 +79,15 @@ describe('AmountInputView calculator', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open amount calculator' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     fireEvent.click(screen.getByRole('button', { name: 'Digit 2' }));
-    fireEvent.click(screen.getByTestId('sheet-backdrop'));
+    act(() => {
+      expect(registry.dismissTopmost()).toBe(true);
+    });
     expect(change).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Open amount calculator' }));
-    fireEvent.click(screen.getByTestId('sheet-backdrop'));
+    act(() => {
+      expect(registry.dismissTopmost()).toBe(true);
+    });
     expect(change).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Open amount calculator' }));
@@ -206,5 +209,24 @@ describe('AmountInputView calculator', () => {
 
     expect(screen.getByRole('spinbutton', { name: 'Amount' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Open amount calculator' })).toBeDisabled();
+  });
+
+  it('docks only one calculator and returns focus to the edited amount when dismissed', () => {
+    const registry = createBackDismissableRegistry();
+    render(
+      <BackNavigationProvider registry={registry}>
+        <>
+        <AmountInputView required={{ config: { label: 'Amount one' }, data: {}, state: { value: '10' }, status: {} }} provided={{ commands: { change: vi.fn() } }} />
+        <AmountInputView required={{ config: { label: 'Amount two' }, data: {}, state: { value: '20' }, status: {} }} provided={{ commands: { change: vi.fn() } }} />
+        </>
+      </BackNavigationProvider>,
+    );
+    const amountInputs = screen.getAllByRole('spinbutton');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Open amount calculator' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Open amount calculator' })[1]);
+    expect(screen.getAllByRole('dialog', { name: 'Amount calculator' })).toHaveLength(1);
+
+    act(() => expect(registry.dismissTopmost()).toBe(true));
+    expect(document.activeElement).toBe(amountInputs[1]);
   });
 });
