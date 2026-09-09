@@ -121,9 +121,23 @@ import type {
 } from '../../sharing/application/sharing.port';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import type { CorePlugin } from './corePlugin';
+import { WebNotificationsAdapter } from '../../notifications/infrastructure/webNotificationsAdapter';
 
 export class CorePluginWeb extends WebPlugin implements CorePlugin {
   private readonly core = new CoreAdapterWeb();
+  private readonly notifications = new WebNotificationsAdapter();
+
+  async notificationsList(options: Parameters<CorePlugin['notificationsList']>[0]) { return this.notifications.notificationsList(options); }
+  async notificationsCountUnread() { return { count: await this.notifications.notificationsCountUnread() }; }
+  async notificationsMarkRead(options: Parameters<CorePlugin['notificationsMarkRead']>[0]) { return this.notifications.notificationsMarkRead(options.id); }
+  async notificationsMarkAllRead(options: Parameters<CorePlugin['notificationsMarkAllRead']>[0]) { return this.notifications.notificationsMarkAllRead(options.throughCursor); }
+  async notificationsGetPermissionState() { return { state: await this.notifications.getPermissionState() }; }
+  async notificationsRequestPermission() { return this.notifications.requestPermission(); }
+  async notificationsOpenSettings() { return this.notifications.openSettings(); }
+  async addListener(_eventName: 'notificationsChanged', listener: (event?: unknown) => void) {
+    const remove = await this.notifications.addChangeListener(() => listener());
+    return { remove: async () => { remove(); } };
+  }
 
   async preferencesGet(): Promise<UserPreferencesResult> {
     return this.core.preferencesGet();
