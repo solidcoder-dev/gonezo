@@ -211,7 +211,7 @@ describe('useWorkspaceToast', () => {
       act(() => vi.advanceTimersByTime(2999));
       expect(result.current.toast.message).toBe('Second');
       act(() => vi.advanceTimersByTime(1));
-      expect(result.current.toast.message).toBe('First');
+      expect(result.current.toast.message).toBe('Second');
       expect(result.current.notices).toHaveLength(1);
     } finally {
       vi.useRealTimers();
@@ -251,5 +251,68 @@ describe('useWorkspaceToast', () => {
       Object.defineProperty(document, 'hidden', { configurable: true, value: originalHidden });
       vi.useRealTimers();
     }
+  });
+
+  it('keeps one visible notice and four pending notices in FIFO order', () => {
+    const { result } = renderHook(() => useWorkspaceToast());
+
+    act(() => {
+      ['one', 'two', 'three', 'four', 'five'].forEach((message) => {
+        result.current.actions.showNotice({ message, tone: 'error', source: message });
+      });
+    });
+
+    expect(result.current.notices.map((notice) => notice.message)).toEqual(['one', 'two', 'three', 'four', 'five']);
+  });
+
+  it('groups only explicit duplicate keys without replacing the existing action', () => {
+    const run = vi.fn();
+    const { result } = renderHook(() => useWorkspaceToast());
+
+    act(() => {
+      result.current.actions.showNotice({ message: 'Retry failed', tone: 'error', source: 'sync', deduplicationKey: 'sync', action: { label: 'Retry', run } });
+      result.current.actions.showNotice({ message: 'Retry failed again', tone: 'error', source: 'sync', deduplicationKey: 'sync', action: { label: 'Other', run: vi.fn() } });
+    });
+
+    expect(result.current.notices).toHaveLength(1);
+    expect(result.current.notices[0]).toMatchObject({ message: 'Retry failed', count: 2, action: { label: 'Retry' } });
+  });
+
+  it('discards pending transient notices before persistent notices when saturated', () => {
+    const { result } = renderHook(() => useWorkspaceToast());
+
+    act(() => {
+      result.current.actions.showNotice({ message: 'Visible', tone: 'error', source: 'visible' });
+      result.current.actions.showNotice({ message: 'Transient one', tone: 'success', source: 'one' });
+      result.current.actions.showNotice({ message: 'Persistent one', tone: 'error', source: 'two' });
+      result.current.actions.showNotice({ message: 'Persistent two', tone: 'error', source: 'three' });
+      result.current.actions.showNotice({ message: 'Persistent three', tone: 'error', source: 'four' });
+      result.current.actions.showNotice({ message: 'Newest', tone: 'error', source: 'five' });
+    });
+
+    expect(result.current.notices.map((notice) => notice.message)).toEqual([
+      'Visible',
+      'Persistent one',
+      'Persistent two',
+      'Persistent three',
+      'Newest',
+    ]);
+  });
+
+  it('uses a saturation notice when all pending notices are persistent', () => {
+    const { result } = renderHook(() => useWorkspaceToast());
+
+    act(() => {
+      ['Visible', 'one', 'two', 'three', 'four', 'five'].forEach((message) => {
+        result.current.actions.showNotice({ message, tone: 'error', source: message });
+      });
+    });
+
+    expect(result.current.notices).toHaveLength(5);
+    expect(result.current.notices.at(-1)).toMatchObject({
+      source: 'workspace.saturation',
+      message: 'Some feedback was not shown.',
+      count: 1,
+    });
   });
 });

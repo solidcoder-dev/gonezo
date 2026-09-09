@@ -18,7 +18,10 @@ export function FeedbackNoticeView({ required, provided }: FeedbackNoticeViewPro
       role={isAssertive ? 'alert' : 'status'}
       aria-live={isAssertive ? 'assertive' : 'polite'}
     >
-      <span>{required.data.message}</span>
+      <span>
+        {required.data.message}
+        {required.data.count && required.data.count > 1 ? ` (${required.data.count})` : null}
+      </span>
       {required.data.actionLabel ? (
         <button type="button" className="btn btn-sm btn-outline-secondary" onClick={provided.commands.runAction}>
           {required.data.actionLabel}

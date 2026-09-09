@@ -29,6 +29,48 @@ function durationFor(policy: FeedbackNoticeDurationPolicy): number | null {
   return null;
 }
 
+function isPendingTransient(notice: FeedbackNotice) {
+  return !notice.action && (notice.durationPolicy === 'standard' || notice.durationPolicy === 'warning');
+}
+
+function enqueueNotice(current: FeedbackNotice[], notice: FeedbackNotice): FeedbackNotice[] {
+  if (notice.deduplicationKey) {
+    const duplicateIndex = current.findIndex((item) => item.deduplicationKey === notice.deduplicationKey);
+    if (duplicateIndex >= 0) {
+      return current.map((item, index) => index === duplicateIndex
+        ? { ...item, count: (item.count ?? 1) + 1 }
+        : item);
+    }
+  }
+
+  if (current.length < 5) return [...current, notice];
+
+  const transientIndex = current.slice(1).findIndex(isPendingTransient);
+  if (transientIndex >= 0) {
+    const next = [...current];
+    next.splice(transientIndex + 1, 1);
+    next.push(notice);
+    return next;
+  }
+
+  const saturationIndex = current.findIndex((item) => item.source === 'workspace.saturation');
+  if (saturationIndex >= 0) {
+    return current.map((item, index) => index === saturationIndex
+      ? { ...item, count: (item.count ?? 1) + 1 }
+      : item);
+  }
+
+  const saturationNotice: FeedbackNotice = {
+    id: nextNoticeId(),
+    tone: 'warning',
+    message: 'Some feedback was not shown.',
+    source: 'workspace.saturation',
+    durationPolicy: 'until-closed',
+    count: 1,
+  };
+  return [...current.slice(0, 4), saturationNotice];
+}
+
 export function useWorkspaceToast() {
   const [notices, setNotices] = useState<FeedbackNotice[]>([]);
   const latestNoticeIdRef = useRef<string | null>(null);
@@ -42,7 +84,7 @@ export function useWorkspaceToast() {
       durationPolicy: input.durationPolicy ?? defaultDurationPolicy(input),
     };
     latestNoticeIdRef.current = notice.id;
-    setNotices((current) => [...current, notice]);
+    setNotices((current) => enqueueNotice(current, notice));
     return notice.id;
   }, []);
 
@@ -147,7 +189,7 @@ export function useWorkspaceToast() {
     currentNoticeRef.current?.action?.run();
   }, []);
 
-  const currentNotice = notices[notices.length - 1] ?? null;
+  const currentNotice = notices[0] ?? null;
   const currentNoticeId = currentNotice?.id;
   const currentNoticeDurationPolicy = currentNotice?.durationPolicy;
 

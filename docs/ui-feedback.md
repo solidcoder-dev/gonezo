@@ -51,5 +51,21 @@ ownership, and delayed mutation lifecycle are separate concerns. A notice
 timer must never schedule, pause, extend, or otherwise own the five-second
 void-commit timer.
 
-This document is an inventory and migration scope. It does not yet change
-presentation behavior or producer contracts.
+The baseline portion of this document is an inventory and migration scope;
+the policy below records the presentation behavior introduced during the
+migration.
+
+## Notice queue policy
+
+The workspace presenter has one visible notice and up to four pending notices.
+Pending notices are FIFO. Repetition is grouped only when the producer gives
+the same explicit deduplication key; the existing notice and its first action
+are retained while its counter increases. Equal text from different producers
+without that key remains separate.
+
+When pending capacity is full, the oldest pending transient notice without an
+action is discarded first. If every pending notice is persistent, the excess
+is represented by a saturation notice with a counter and the message
+`Some feedback was not shown.`. The queue is presentation state, not a
+history, and the saturation notice does not claim that discarded diagnostics
+were preserved.

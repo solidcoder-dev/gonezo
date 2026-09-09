@@ -25,9 +25,10 @@ export type FeedbackNotice = Readonly<{
   details?: FeedbackNoticeDetails;
   action?: FeedbackNoticeAction;
   durationPolicy: FeedbackNoticeDurationPolicy;
+  count?: number;
 }>;
 
-export type FeedbackNoticeInput = Omit<FeedbackNotice, 'id' | 'durationPolicy'> & {
+export type FeedbackNoticeInput = Omit<FeedbackNotice, 'id' | 'durationPolicy' | 'count'> & {
   durationPolicy?: FeedbackNoticeDurationPolicy;
 };
 

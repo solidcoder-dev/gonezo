@@ -10,6 +10,7 @@ export type FeedbackNoticeViewProps = ViewProps<
   {
     message: string;
     actionLabel?: string;
+    count?: number;
   },
   Record<string, never>,
   Record<string, never>,

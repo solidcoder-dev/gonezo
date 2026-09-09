@@ -35,6 +35,7 @@ export function FeedbackNoticePresenter({ notices, closeNotice, pauseNotice, res
             data: {
               message: notice.message,
               actionLabel: notice.action?.label,
+              count: notice.count,
             },
             state: {},
             status: {},
