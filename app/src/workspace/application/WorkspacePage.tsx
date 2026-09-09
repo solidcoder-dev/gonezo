@@ -229,6 +229,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
               },
               onClosed: closeMovementEntry,
               onAccountChanged: changeMovementComposerAccount,
+              onOperationError: showError,
             },
           }}
         />

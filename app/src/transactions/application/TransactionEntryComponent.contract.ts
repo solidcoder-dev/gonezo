@@ -66,6 +66,7 @@ export type TransactionEntryComponentProvided = {
     onClosed?: () => void;
     onAccountChanged?: (account: { id: string; name: string }) => void;
     onError?: (error: { message: string }) => void;
+    onOperationError?: (error: { message: string }) => void;
   };
 };
 

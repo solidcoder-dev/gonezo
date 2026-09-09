@@ -32,14 +32,15 @@ export type TransactionEntryModelPorts = {
 };
 export type TransactionEntryModelClock = { now(): Date; todayIso(): string; resolveOccurredAt(dateInput: string): string; dayOfMonthFromDateInput(dateInput: string): string; weekDayIsoFromDateInput(dateInput: string): string; resolveTimeZoneId(): string };
 export type TransactionEntryModelIdGenerator = { nextId(): string };
-type UseTransactionEntryModelInput = { ports: TransactionEntryModelPorts; clock: TransactionEntryModelClock; idGenerator: TransactionEntryModelIdGenerator; accountId: string | null; enabled: boolean; prefillRequest?: TransactionEntryPrefillRequest; openSignal?: number; initialMode?: TransactionEntryInitialMode; movementAccountContext?: { name: string; type?: TransactionEntryInitialMode }; onRecorded?: () => void; onClosed?: () => void; onAccountChanged?: (account: { id: string; name: string }) => void; onError?: (error: { message: string }) => void };
+type UseTransactionEntryModelInput = { ports: TransactionEntryModelPorts; clock: TransactionEntryModelClock; idGenerator: TransactionEntryModelIdGenerator; accountId: string | null; enabled: boolean; prefillRequest?: TransactionEntryPrefillRequest; openSignal?: number; initialMode?: TransactionEntryInitialMode; movementAccountContext?: { name: string; type?: TransactionEntryInitialMode }; onRecorded?: () => void; onClosed?: () => void; onAccountChanged?: (account: { id: string; name: string }) => void; onError?: (error: { message: string }) => void; onOperationError?: (error: { message: string }) => void };
 export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
-  const { ports, clock, idGenerator, accountId, enabled, prefillRequest, openSignal, initialMode, movementAccountContext, onRecorded, onClosed, onAccountChanged, onError } = input;
+  const { ports, clock, idGenerator, accountId, enabled, prefillRequest, openSignal, initialMode, movementAccountContext, onRecorded, onClosed, onAccountChanged, onError, onOperationError } = input;
   const initialToday = clock.todayIso();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [postingTransaction, setPostingTransaction] = useState(false);
   const [error, setError] = useState('');
+  const [errorKind, setErrorKind] = useState<'load' | 'operation' | 'validation' | ''>('');
   const [accounts, setAccounts] = useState<LedgerAccountItem[]>([]);
   const [accountCurrency, setAccountCurrency] = useState('USD');
   const [composerOpen, setComposerOpen] = useState(false);
@@ -182,10 +183,19 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     applySetup: (template) => applyMovementReuseSetup(template, accountId, reuseActions, onAccountChanged),
     applyWithDetails: (template) => applyMovementReuseWithDetails(template, accountId, reuseActions, onAccountChanged),
   });
-  function reportError(raw: unknown) {
+  function clearError() {
+    setError('');
+    setErrorKind('');
+  }
+  function reportError(raw: unknown, kind: 'load' | 'operation' = 'load') {
     const message = toErrorMessage(raw);
     setError(message);
-    onError?.({ message });
+    setErrorKind(kind);
+    if (kind === 'operation') {
+      onOperationError?.({ message });
+    } else {
+      onError?.({ message });
+    }
   }
   function resetComposerState() {
     const today = clock.todayIso();
@@ -242,13 +252,13 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     if (!enabled || !accountId) {
       setLoading(false);
       setComposerOpen(false);
-      setError('');
+      clearError();
       return;
     }
     let cancelled = false;
     async function run() {
       setLoading(true);
-      setError('');
+      clearError();
       try {
         await modelEffectsRef.current.refreshAccountSnapshot();
         await modelEffectsRef.current.refreshTaxonomyLookups();
@@ -272,7 +282,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     if (!enabled || !accountId || !currentPrefillRequest) {
       return;
     }
-    setError('');
+    clearError();
     modelEffectsRef.current.resetComposerState();
     setComposerOpen(true);
     setComposerMode(currentPrefillRequest.mode);
@@ -302,9 +312,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   function openTransactionComposer() {
     if (!accountId) {
       setError('Select an account first.');
+      setErrorKind('validation');
       return;
     }
-    setError('');
+    clearError();
     setComposerOpen(true);
     resetComposerState();
     applyTransactionEntryInitialMode(initialMode ?? 'expense', setComposerMode, () => {
@@ -398,10 +409,11 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   }
   async function submitTransaction(event: FormEvent) {
     event.preventDefault();
-    setError('');
+    clearError();
     setFieldErrors({});
     if (!accountId) {
       setError('Select an account first.');
+      setErrorKind('validation');
       return;
     }
     const transferTarget = composerMode === 'transfer'
@@ -436,6 +448,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
 
     if (validation.blockingError) {
       setError(validation.blockingError);
+      setErrorKind('validation');
       return;
     }
 
@@ -519,7 +532,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
         }
       }
     } catch (err) {
-      reportError(err);
+      reportError(err, 'operation');
     } finally {
       setPostingTransaction(false);
     }
@@ -660,5 +673,5 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       cancelReuse: movementReuseModel.actions.cancelReuse,
     },
   };
-  return { error, required, provided };
+  return { error, errorKind, required, provided };
 }

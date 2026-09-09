@@ -234,6 +234,7 @@ describe('useTransactionEntryModel', () => {
     const ports = makePorts();
     vi.mocked(ports.ledger.ledgerRecordExpense).mockRejectedValueOnce(new Error('Unable to save movement.'));
     const onError = vi.fn();
+    const onOperationError = vi.fn();
     const { result } = renderHook(() => useTransactionEntryModel({
       ports,
       clock: makeClock(),
@@ -241,6 +242,7 @@ describe('useTransactionEntryModel', () => {
       accountId: 'account-1',
       enabled: true,
       onError,
+      onOperationError,
     }));
 
     await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
@@ -258,8 +260,10 @@ describe('useTransactionEntryModel', () => {
     expect(result.current.error).toBe('Unable to save movement.');
     expect(result.current.required.state.amount).toBe('12.00');
     expect(result.current.required.state.note).toBe('Retry this movement');
-    expect(onError).toHaveBeenCalledTimes(1);
-    expect(onError).toHaveBeenCalledWith({ message: 'Unable to save movement.' });
+    expect(result.current.errorKind).toBe('operation');
+    expect(onError).not.toHaveBeenCalled();
+    expect(onOperationError).toHaveBeenCalledTimes(1);
+    expect(onOperationError).toHaveBeenCalledWith({ message: 'Unable to save movement.' });
   });
 
   it('applies setup only without replacing amount, date or details', async () => {

@@ -110,6 +110,7 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
     onClosed: provided.events?.onClosed,
     onAccountChanged: provided.events?.onAccountChanged,
     onError: provided.events?.onError,
+    onOperationError: provided.events?.onOperationError,
   });
 
   if (!required.config.enabled || !required.context.accountId) {
@@ -168,7 +169,7 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
         onReuseDetails={model.provided.commands.reuseWithDetails ?? (() => undefined)}
         onCancel={model.provided.commands.cancelReuse ?? (() => undefined)}
       /> : null}
-      {model.error ? (
+      {model.errorKind === 'load' && model.error ? (
         <div className="alert alert-danger mt-3" role="alert">
           {model.error}
         </div>
