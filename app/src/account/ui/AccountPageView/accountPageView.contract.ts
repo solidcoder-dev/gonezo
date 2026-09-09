@@ -6,11 +6,6 @@ export type AccountPageViewRequired = {
     loadPhase: LoadPhase;
     error: string;
   };
-  toast: {
-    message: string;
-    tone: 'success' | 'info' | 'warning' | 'error';
-    actionLabel: string;
-  };
   sections: {
     pageHeader: ReactNode;
     netWorthSummary: ReactNode;
@@ -22,14 +17,7 @@ export type AccountPageViewRequired = {
   };
 };
 
-export type AccountPageViewProvided = {
-  toast: {
-    commands: {
-      dismiss: () => void;
-      runAction: () => void;
-    };
-  };
-};
+export type AccountPageViewProvided = Record<string, never>;
 
 export type AccountPageViewProps = {
   required: AccountPageViewRequired;

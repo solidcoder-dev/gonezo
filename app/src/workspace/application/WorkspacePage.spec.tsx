@@ -36,16 +36,8 @@ function LocationProbe() {
 }
 
 vi.mock('../../account/ui/AccountPageView/AccountPageView', () => ({
-  AccountPageView: ({ required, provided }: AccountPageViewProps) => (
+  AccountPageView: ({ required }: AccountPageViewProps) => (
     <div>
-      <div data-testid="workspace-toast" data-tone={required.toast.tone}>
-        {required.toast.message}
-      </div>
-      {required.toast.actionLabel ? (
-        <button type="button" onClick={provided.toast.commands.runAction}>
-          {required.toast.actionLabel}
-        </button>
-      ) : null}
       <LocationProbe />
       {required.sections.pageHeader}
       {required.sections.transactionEntry}

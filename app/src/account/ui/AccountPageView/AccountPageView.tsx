@@ -11,9 +11,8 @@ export function AccountPageView({ required, provided }: AccountPageViewProps) {
       <StatusSection
         required={{
           screen: required.screen,
-          toast: required.toast,
         }}
-        provided={provided.toast}
+        provided={provided}
       />
 
       {required.sections.netWorthSummary}

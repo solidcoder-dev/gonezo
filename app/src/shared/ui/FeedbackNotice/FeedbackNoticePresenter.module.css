@@ -1,0 +1,31 @@
+.container {
+  position: fixed;
+  z-index: var(--z-toast);
+  top: calc(var(--app-safe-area-top) + var(--app-header-height) + var(--space-sm));
+  right: 24px;
+  left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  pointer-events: none;
+}
+
+.notice {
+  min-width: 0;
+  margin-top: 0;
+  overflow-wrap: anywhere;
+  pointer-events: auto;
+}
+
+.notice > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 672px;
+    margin-right: auto;
+    margin-left: auto;
+  }
+}

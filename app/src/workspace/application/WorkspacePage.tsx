@@ -10,7 +10,7 @@ import { AccountPageView } from '../../account/ui/AccountPageView/AccountPageVie
 import { TransactionsImportComponent } from '../../account/ui/capabilities/TransactionsImport/TransactionsImportComponent';
 import { ApplicationBackupRestoreComponent } from '../../imports/application/ApplicationBackupRestoreComponent';
 import type { ApplicationBackupPort, MovementsBackupPort } from '../../imports/application/imports.port';
-import type { AccountPageViewProvided, AccountPageViewRequired } from '../../account/ui/AccountPageView/accountPageView.contract';
+import type { AccountPageViewRequired } from '../../account/ui/AccountPageView/accountPageView.contract';
 import type { LoadPhase } from '../../account/application/accountPage.types';
 import type { AccountWorkspacePort } from '../../account/application/accounts.port';
 import type { AnalyticsPort } from '../../analytics/application/analytics.port';
@@ -32,6 +32,7 @@ import { useWorkspaceAccountEvents } from './useWorkspaceAccountEvents';
 import type { MovementVoiceEntryContext } from '../../transactions/application/MovementVoiceEntry/movementVoiceEntryContext';
 import { useExperimentalFeaturesModel } from '../../experiments/application/useExperimentalFeaturesModel';
 import type { ExperimentalFeaturesPort } from '../../experiments/application/experimentalFeatures.port';
+import { FeedbackNoticePresenter } from '../../shared/ui/FeedbackNotice/FeedbackNoticePresenter';
 
 export type WorkspacePageRequired = {
   core: WorkspacePagePort;
@@ -71,7 +72,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const [accountsCount, setAccountsCount] = useState(0);
 
   const workspaceToast = useWorkspaceToast();
-  const { clearToast, runToastAction, showError, showInfo, showToast, showWarning } = workspaceToast.actions;
+  const { closeNotice, showError, showInfo, showToast, showWarning } = workspaceToast.actions;
   const experimentalFeatures = useExperimentalFeaturesModel({
     port: pageRequired.experimentalFeatures,
     events: {
@@ -585,11 +586,6 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       loadPhase: screenLoadPhase,
       error: '',
     },
-    toast: {
-      message: workspaceToast.toast.message,
-      tone: workspaceToast.toast.tone,
-      actionLabel: workspaceToast.toast.actionLabel,
-    },
     sections: {
       pageHeader,
       netWorthSummary,
@@ -638,14 +634,10 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     },
   };
 
-  const provided: AccountPageViewProvided = {
-    toast: {
-      commands: {
-        dismiss: clearToast,
-        runAction: runToastAction,
-      },
-    },
-  };
-
-  return <AccountPageView required={required} provided={provided} />;
+  return (
+    <>
+      <AccountPageView required={required} provided={{}} />
+      <FeedbackNoticePresenter notices={workspaceToast.notices} closeNotice={closeNotice} />
+    </>
+  );
 }

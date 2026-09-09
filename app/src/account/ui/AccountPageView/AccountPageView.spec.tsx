@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { AccountPageView } from './AccountPageView';
 
 describe('AccountPageView', () => {
@@ -7,15 +7,7 @@ describe('AccountPageView', () => {
     render(
       <AccountPageView
         required={{
-          screen: {
-            loadPhase: 'ready',
-            error: '',
-          },
-          toast: {
-            message: '',
-            tone: 'info',
-            actionLabel: '',
-          },
+          screen: { loadPhase: 'ready', error: '' },
           sections: {
             pageHeader: <div data-testid="page-header">Page header</div>,
             netWorthSummary: null,
@@ -26,14 +18,7 @@ describe('AccountPageView', () => {
             transactionsImport: null,
           },
         }}
-        provided={{
-          toast: {
-            commands: {
-              dismiss: vi.fn(),
-              runAction: vi.fn(),
-            },
-          },
-        }}
+        provided={{}}
       />,
     );
 

@@ -96,6 +96,23 @@ const seededBackup = {
   }],
 } as const;
 
+test('workspace notices do not shift content at the reference viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 832 });
+  await page.goto('/#/');
+  const screen = page.locator('.gz-app-screen');
+  const before = await screen.boundingBox();
+  await page.getByRole('button', { name: 'Profile' }).click();
+  await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible();
+  await page.getByRole('button', { name: 'Backup' }).click();
+  await expect(page.getByRole('status')).toContainText('Backup saved:');
+
+  const during = await screen.boundingBox();
+  expect(during?.y).toBe(before?.y);
+  await page.getByRole('button', { name: 'Dismiss' }).click();
+  const after = await screen.boundingBox();
+  expect(after?.y).toBe(before?.y);
+});
+
 for (const theme of themes) {
   for (const viewport of viewports) {
     test.describe(`${theme} ${viewport.width}px shell`, () => {
