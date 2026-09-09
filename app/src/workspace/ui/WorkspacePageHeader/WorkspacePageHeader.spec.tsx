@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import styles from './WorkspacePageHeader.module.css';
@@ -66,5 +66,31 @@ describe('WorkspacePageHeader', () => {
 
     expect(screen.getByRole('button', { name: 'Open notifications, 123 unread' })).toBeInTheDocument();
     expect(screen.getByText('99+')).toBeInTheDocument();
+  });
+
+  it('places the visibility toggle before notifications and changes its accessible action', () => {
+    const toggle = vi.fn();
+    const { rerender } = render(
+      <WorkspacePageHeader
+        required={{ title: 'Movements', amountVisibility: { visibility: 'visible', loading: false, saving: false } }}
+        provided={{ commands: { openNotifications: vi.fn(), toggleAmountVisibility: toggle } }}
+      />,
+    );
+
+    const hideButton = screen.getByRole('button', { name: 'Hide amounts' });
+    const notificationsButton = screen.getByRole('button', { name: 'Open notifications' });
+    expect(hideButton.compareDocumentPosition(notificationsButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(hideButton);
+    expect(toggle).toHaveBeenCalledOnce();
+    expect(hideButton.querySelector('i')).toHaveClass('bi-eye');
+
+    rerender(
+      <WorkspacePageHeader
+        required={{ title: 'Movements', amountVisibility: { visibility: 'hidden', loading: false, saving: true } }}
+        provided={{ commands: { openNotifications: vi.fn(), toggleAmountVisibility: toggle } }}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Show amounts' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Show amounts' }).querySelector('i')).toHaveClass('bi-eye-slash');
   });
 });
