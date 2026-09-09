@@ -631,11 +631,12 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             }}
             provided={{
               commands: { open: openImportSheet, close: closeImportSheet, submit: submitTransactionsImport },
+              events: { onImportFailed: (message) => showError({ message }) },
             }}
           />
           <ApplicationBackupRestoreComponent
             required={{ isOpen: restoreSheetOpen }}
-            provided={{ close: closeRestoreSheet, restore: requestApplicationBackupRestore }}
+            provided={{ close: closeRestoreSheet, restore: requestApplicationBackupRestore, onError: showError }}
           />
         </>
       ),

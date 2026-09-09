@@ -4,7 +4,7 @@ import { SheetView } from '../../shared/ui/SheetView';
 
 type ApplicationBackupRestoreComponentProps = {
   required: { isOpen: boolean };
-  provided: { close: () => void; restore: (file: File) => Promise<void> };
+  provided: { close: () => void; restore: (file: File) => Promise<void>; onError?: (error: { message: string }) => void };
 };
 
 export function ApplicationBackupRestoreComponent({ required, provided }: ApplicationBackupRestoreComponentProps) {
@@ -28,7 +28,9 @@ export function ApplicationBackupRestoreComponent({ required, provided }: Applic
       await provided.restore(file);
       setCompleted(true);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Restore failed.');
+      const message = cause instanceof Error ? cause.message : 'Restore failed.';
+      setError(message);
+      provided.onError?.({ message });
     } finally {
       setIsRestoring(false);
     }
