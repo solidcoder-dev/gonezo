@@ -1,4 +1,5 @@
 import type { ViewProps } from '../../../shared/ui/ViewProps';
+import type { AmountVisibility } from '../../../shared/domain/amountVisibility';
 
 export type AccountsRailAccountView = {
   accountId: string;
@@ -15,6 +16,7 @@ export type AccountsRailAccountView = {
 export type AccountsRailViewProps = ViewProps<
   {
     previewLimit: number;
+    amountVisibility?: AmountVisibility;
   },
   {
     accounts: AccountsRailAccountView[];

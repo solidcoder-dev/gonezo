@@ -1,4 +1,5 @@
 import type { ViewProps } from '../../../shared/ui/ViewProps';
+import type { AmountVisibility } from '../../../shared/domain/amountVisibility';
 
 export type CurrencyAccountView = {
   accountId: string;
@@ -11,7 +12,7 @@ export type CurrencyAccountView = {
 };
 
 export type CurrencyAccountsSheetViewProps = ViewProps<
-  Record<string, never>,
+  { amountVisibility?: AmountVisibility },
   { accounts: CurrencyAccountView[]; currency: string },
   Record<string, never>,
   { loadPhase: 'loading' | 'empty' | 'success' | 'error'; error?: string },

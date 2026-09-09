@@ -3,6 +3,7 @@ import { ManageAccountSheetView } from '../../ui/ManageAccountSheet/ManageAccoun
 import type { AccountSummaryComponentProps } from './AccountSummaryComponent.contract';
 import { useAccountSummaryModel } from './useAccountSummaryModel';
 import './AccountSummaryComponent.css';
+import { FinancialAmountView } from '../../../shared/ui/FinancialAmount/FinancialAmountView';
 
 export type {
   AccountSummaryComponentProps,
@@ -64,7 +65,7 @@ export function AccountSummaryComponent({ required, provided = {} }: AccountSumm
         </div>
         <p className="summary-label">Net balance</p>
         <div className="summary-amount">
-          {formatCurrencyAmount(summary.balanceAmount, summary.currency)}
+          <FinancialAmountView formattedAmount={formatCurrencyAmount(summary.balanceAmount, summary.currency)} visibility={required.config.amountVisibility ?? 'visible'} />
         </div>
       </section>
 

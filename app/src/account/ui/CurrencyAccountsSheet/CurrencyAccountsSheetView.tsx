@@ -1,5 +1,6 @@
 import type { CurrencyAccountsSheetViewProps } from './CurrencyAccountsSheetView.contract';
 import styles from './CurrencyAccountsSheetView.module.css';
+import { FinancialAmountView } from '../../../shared/ui/FinancialAmount/FinancialAmountView';
 
 export function CurrencyAccountsSheetView({ required, provided }: CurrencyAccountsSheetViewProps) {
   const { data, status } = required;
@@ -37,7 +38,7 @@ export function CurrencyAccountsSheetView({ required, provided }: CurrencyAccoun
                 {account.status === 'archived' ? <span className={styles.archived}>Archived</span> : null}
               </span>
             </span>
-            <span className={styles.balance}>{account.formattedBalance}</span>
+            <span className={styles.balance}><FinancialAmountView formattedAmount={account.formattedBalance} visibility={required.config.amountVisibility ?? 'visible'} /></span>
           </button>
           <button
             className={styles.settingsButton}

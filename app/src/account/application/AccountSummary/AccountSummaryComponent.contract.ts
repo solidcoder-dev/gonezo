@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { LedgerAccountOperationsPort } from '../../../ledger/application/useLedgerAccounts';
+import type { AmountVisibility } from '../../../shared/domain/amountVisibility';
 
 export type AccountSummaryComponentRequired = {
   context: {
@@ -10,6 +11,7 @@ export type AccountSummaryComponentRequired = {
     enabled: boolean;
     refreshSignal: boolean;
     headerSlot?: ReactNode;
+    amountVisibility?: AmountVisibility;
   };
 };
 

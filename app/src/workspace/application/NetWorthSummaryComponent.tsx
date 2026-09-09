@@ -4,6 +4,7 @@ import type { AccountWorkspacePort } from '../../account/application/accounts.po
 import type { LedgerNetWorthCurrencyItem } from '../../ledger/application/ledger.port';
 import { NetWorthSummaryView } from '../ui/NetWorthSummary/NetWorthSummaryView';
 import type { NetWorthCurrencyView } from '../ui/NetWorthSummary/NetWorthSummaryView';
+import type { AmountVisibility } from '../../shared/domain/amountVisibility';
 
 export type NetWorthSummaryComponentProps = {
   required: {
@@ -13,6 +14,7 @@ export type NetWorthSummaryComponentProps = {
     config: {
       enabled: boolean;
       refreshSignal: boolean;
+      amountVisibility?: AmountVisibility;
     };
   };
   provided?: {
@@ -98,7 +100,7 @@ export function NetWorthSummaryComponent({ required, provided }: NetWorthSummary
   return (
     <NetWorthSummaryView
       required={{
-        config: {},
+        config: { amountVisibility: required.config.amountVisibility },
         data: { items: viewItems },
         state: {},
         status: { loadPhase: visibleLoadPhase, error: visibleError },

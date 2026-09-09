@@ -5,11 +5,12 @@ import type { AccountWorkspacePort } from '../accounts.port';
 import type { AccountBalanceItem } from '../accountBalances.port';
 import { CurrencyAccountsSheetView } from '../../ui/CurrencyAccountsSheet/CurrencyAccountsSheetView';
 import type { CurrencyAccountView } from '../../ui/CurrencyAccountsSheet/CurrencyAccountsSheetView.contract';
+import type { AmountVisibility } from '../../../shared/domain/amountVisibility';
 
 export type CurrencyAccountsSheetComponentProps = {
   required: {
     context: { core: Pick<AccountWorkspacePort, 'accountsListBalances'> };
-    config: { open: boolean; currency: string | null; refreshSignal?: unknown };
+    config: { open: boolean; currency: string | null; refreshSignal?: unknown; amountVisibility?: AmountVisibility };
   };
   provided?: {
     events?: {
@@ -99,7 +100,7 @@ export function CurrencyAccountsSheetComponent({ required, provided = {} }: Curr
           body: (
             <CurrencyAccountsSheetView
               required={{
-                config: {},
+                config: { amountVisibility: required.config.amountVisibility },
                 data: { accounts, currency },
                 state: {},
                 status: { loadPhase: loadPhase === 'idle' ? 'loading' : loadPhase, error },

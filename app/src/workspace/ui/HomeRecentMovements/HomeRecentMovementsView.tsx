@@ -2,6 +2,7 @@ import { MovementSummaryTileView } from '../../../shared/ui/MovementSummaryTileV
 import type { MonthlyTimelineGroupViewModel } from '../../../movements/application/monthlyMovementsTimeline';
 import styles from './HomeRecentMovementsView.module.css';
 import { formatHomeMovementDate } from './formatHomeMovementDate';
+import type { AmountVisibility } from '../../../shared/domain/amountVisibility';
 
 export type HomeMovementMetadata = {
   itemCount: number;
@@ -18,6 +19,7 @@ export type HomeRecentMovementsViewProps = {
       loading: boolean;
       disabled?: boolean;
     };
+    config?: { amountVisibility?: AmountVisibility };
   };
   provided: {
     commands: {
@@ -65,6 +67,7 @@ export function HomeRecentMovementsView({ required, provided }: HomeRecentMoveme
                   itemCount: metadata?.itemCount ?? 0,
                   shareCount: metadata?.shareCount ?? 0,
                 }}
+                amountVisibility={required.config?.amountVisibility}
               />
             );
           })}

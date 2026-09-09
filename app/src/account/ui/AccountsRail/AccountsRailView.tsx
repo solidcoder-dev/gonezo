@@ -1,6 +1,7 @@
 import type { AccountsRailViewProps } from './AccountsRailView.contract';
 import { SheetView } from '../../../shared/ui/SheetView';
 import styles from './AccountsRailView.module.css';
+import { FinancialAmountView } from '../../../shared/ui/FinancialAmount/FinancialAmountView';
 
 function accountIconClass(type?: string): string {
   if (type === 'bank' || type === 'checking' || type === 'savings') {
@@ -47,6 +48,7 @@ export function AccountsRailView({ required, provided }: AccountsRailViewProps) 
           {previewAccounts.map((account) => (
             <AccountRow
               account={account}
+              amountVisibility={required.config.amountVisibility}
               disabled={required.status.disabled}
               key={account.accountId}
               selectAndManage={selectAndManage}
@@ -70,6 +72,7 @@ export function AccountsRailView({ required, provided }: AccountsRailViewProps) 
                 {required.data.accounts.map((account) => (
                   <AccountRow
                     account={account}
+                    amountVisibility={required.config.amountVisibility}
                     disabled={required.status.disabled}
                     key={account.accountId}
                     selectAndManage={(accountId) => {
@@ -92,10 +95,12 @@ export function AccountsRailView({ required, provided }: AccountsRailViewProps) 
 
 function AccountRow({
   account,
+  amountVisibility,
   disabled,
   selectAndManage,
 }: {
   account: AccountsRailViewProps['required']['data']['accounts'][number];
+  amountVisibility?: AccountsRailViewProps['required']['config']['amountVisibility'];
   disabled?: boolean;
   selectAndManage: (accountId: string) => void;
 }) {
@@ -114,7 +119,7 @@ function AccountRow({
         <span className={styles.accountName}>{account.name}</span>
       </div>
       <span className={styles.balance}>
-        {account.formattedBalance}
+        <FinancialAmountView formattedAmount={account.formattedBalance} visibility={amountVisibility ?? 'visible'} />
       </span>
       {account.trend ? (
         <span className={styles.trend} aria-label={account.trend.ariaLabel}>

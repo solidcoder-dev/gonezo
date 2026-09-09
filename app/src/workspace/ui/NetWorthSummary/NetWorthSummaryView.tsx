@@ -3,6 +3,8 @@ import type { ViewProps } from '../../../shared/ui/ViewProps';
 import { currencySymbol } from '../../../shared/utils/formatting';
 import styles from './NetWorthSummaryView.module.css';
 import { buildSmoothedTrendPath } from './netWorthTrendPath';
+import { FinancialAmountView } from '../../../shared/ui/FinancialAmount/FinancialAmountView';
+import type { AmountVisibility } from '../../../shared/domain/amountVisibility';
 
 export type NetWorthCurrencyView = {
   currency: string;
@@ -17,7 +19,7 @@ export type NetWorthCurrencyView = {
 };
 
 export type NetWorthSummaryViewProps = ViewProps<
-  Record<string, never>,
+  { amountVisibility?: AmountVisibility },
   { items: NetWorthCurrencyView[] },
   { activeIndex?: number },
   { loadPhase: 'idle' | 'loading' | 'succeeded' | 'failed'; error?: string },
@@ -63,7 +65,7 @@ export function NetWorthSummaryView({ required, provided }: NetWorthSummaryViewP
                     {data.items.map((item) => <option key={item.currency} value={item.currency}>{item.currency}</option>)}
                   </select>
                 </div>
-                <strong className={styles.balance}>{activeItem.formattedBalance}</strong>
+                <strong className={styles.balance}><FinancialAmountView formattedAmount={activeItem.formattedBalance} visibility={required.config.amountVisibility ?? 'visible'} /></strong>
                 {activeItem.trend ? <div className={styles.trend} aria-label={activeItem.trend.ariaLabel}><NetWorthTrendLine points={activeItem.trend.points} /></div> : null}
                 <div className={`${styles.footer} d-flex align-items-center justify-content-between gap-2`}>
                   <span className={`${styles.metadata} d-inline-flex align-items-center gap-2`}>

@@ -534,6 +534,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         config: {
           enabled: true,
           refreshSignal: netWorthRefreshSignal,
+          amountVisibility: amountVisibility?.state.visibility,
         },
       }}
       provided={{
@@ -555,6 +556,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           open: accountsSheetCurrency !== null,
           currency: accountsSheetCurrency,
           refreshSignal: netWorthRefreshSignal,
+          amountVisibility: amountVisibility?.state.visibility,
         },
       }}
       provided={{
@@ -606,6 +608,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         config: {
           enabled: true,
           refreshSignal: expectedMovementsRefreshSignal,
+          amountVisibility: amountVisibility?.state.visibility,
         },
       }}
       provided={{
@@ -627,6 +630,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         config: {
           enabled: true,
           refreshSignal: recentTransactionsRefreshSignal,
+          amountVisibility: amountVisibility?.state.visibility,
         },
       }}
       provided={{

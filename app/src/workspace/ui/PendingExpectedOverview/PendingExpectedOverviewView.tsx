@@ -1,5 +1,7 @@
 import type { ViewProps } from '../../../shared/ui/ViewProps';
 import styles from './PendingExpectedOverviewView.module.css';
+import { FinancialAmountView } from '../../../shared/ui/FinancialAmount/FinancialAmountView';
+import type { AmountVisibility } from '../../../shared/domain/amountVisibility';
 
 export type PendingExpectedCardView = {
   title: string;
@@ -13,7 +15,7 @@ export type PendingExpectedCardView = {
 };
 
 export type PendingExpectedOverviewViewProps = ViewProps<
-  Record<string, never>,
+  { amountVisibility?: AmountVisibility },
   { cards: [PendingExpectedCardView, PendingExpectedCardView] },
   Record<string, never>,
   { loading: boolean; error?: string },
@@ -46,7 +48,7 @@ export function PendingExpectedOverviewView({ required, provided }: PendingExpec
               <span className={styles.title}>{card.title}</span>
               <span className={`${styles.count} ms-auto`} aria-hidden="true">{card.count}</span>
             </span>
-            <span className={`${styles.amounts} d-flex flex-column align-items-center gap-1 w-100`}><strong className={`${styles.primary} text-nowrap`}>{card.primaryAmount}</strong>{card.secondaryAmount ? <span className={styles.secondary}>{card.secondaryAmount}{card.moreCurrenciesLabel ? ` · ${card.moreCurrenciesLabel}` : ''}</span> : null}</span>
+            <span className={`${styles.amounts} d-flex flex-column align-items-center gap-1 w-100`}><strong className={`${styles.primary} text-nowrap`}>{required.config.amountVisibility === 'hidden' ? <FinancialAmountView formattedAmount={card.primaryAmount.replace(/^[+-]/, '')} sign={card.primaryAmount.startsWith('-') ? '-' : card.primaryAmount.startsWith('+') ? '+' : undefined} tone={card.tone} visibility="hidden" /> : card.primaryAmount}</strong>{card.secondaryAmount ? <span className={styles.secondary}>{required.config.amountVisibility === 'hidden' ? <FinancialAmountView formattedAmount={card.secondaryAmount.replace(/^[+-]/, '')} sign={card.secondaryAmount.startsWith('-') ? '-' : card.secondaryAmount.startsWith('+') ? '+' : undefined} tone={card.tone} visibility="hidden" /> : card.secondaryAmount}{card.moreCurrenciesLabel ? ` · ${card.moreCurrenciesLabel}` : ''}</span> : null}</span>
           </button>
         ))}
       </div>

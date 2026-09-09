@@ -10,6 +10,7 @@ import {
   HomeRecentMovementsView,
   type HomeMovementMetadata,
 } from '../ui/HomeRecentMovements/HomeRecentMovementsView';
+import type { AmountVisibility } from '../../shared/domain/amountVisibility';
 
 export type HomeRecentMovementsPort = TransactionsPort & Pick<MovementsQueryPort, 'movementsGetOverview' | 'movementsGetDetail'>;
 
@@ -21,6 +22,7 @@ export type HomeRecentMovementsComponentProps = {
     config: {
       enabled: boolean;
       refreshSignal: boolean;
+      amountVisibility?: AmountVisibility;
     };
   };
   provided?: {
@@ -184,6 +186,7 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
         required={{
           data: { groups: postedGroups, movementMetadataById },
           status: { loading },
+          config: { amountVisibility: required.config.amountVisibility },
         }}
         provided={{
           commands: {

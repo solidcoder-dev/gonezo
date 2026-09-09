@@ -1,5 +1,7 @@
 import type { MonthlyTimelineItemViewModel } from '../../movements/application/monthlyMovementsTimeline';
 import styles from './MovementSummaryTileView.module.css';
+import { FinancialAmountView } from './FinancialAmount/FinancialAmountView';
+import type { AmountVisibility } from '../domain/amountVisibility';
 
 export type MovementSummaryTileViewProps = {
   item: MonthlyTimelineItemViewModel;
@@ -10,9 +12,10 @@ export type MovementSummaryTileViewProps = {
     itemCount?: number;
     shareCount?: number;
   };
+  amountVisibility?: AmountVisibility;
 };
 
-export function MovementSummaryTileView({ item, disabled, onSelect, trailingMetadata, metadataCounters }: MovementSummaryTileViewProps) {
+export function MovementSummaryTileView({ item, disabled, onSelect, trailingMetadata, metadataCounters, amountVisibility }: MovementSummaryTileViewProps) {
   return (
     <li className={`${styles.row} ${item.ignored ? `${styles.ignored} monthly-timeline-row--ignored` : ''}`}>
       <button
@@ -20,7 +23,7 @@ export function MovementSummaryTileView({ item, disabled, onSelect, trailingMeta
         className={`${styles.button} d-flex align-items-center gap-2`}
         onClick={onSelect}
         disabled={disabled}
-        aria-label={`${item.title}, ${item.amountSign}${item.amountLabel}, ${item.metadata.join(' · ')}${trailingMetadata ? `, ${trailingMetadata}` : ''}`}
+        aria-label={`${item.title}, ${amountVisibility === 'hidden' ? 'Amount hidden' : `${item.amountSign}${item.amountLabel}`}, ${item.metadata.join(' · ')}${trailingMetadata ? `, ${trailingMetadata}` : ''}`}
       >
         <span
           className={`${styles.icon} ${styles[`icon--${item.icon.tone}`] ?? ''}`}
@@ -42,7 +45,7 @@ export function MovementSummaryTileView({ item, disabled, onSelect, trailingMeta
           </span>
           <span className={`${styles.trailing} d-flex flex-column align-items-end gap-1`}>
             <strong className={`${styles.amount} ${styles[`amount--${item.direction}`] ?? ''}`}>
-              {item.amountSign}{item.amountLabel}
+              <FinancialAmountView formattedAmount={item.amountLabel} sign={item.amountSign || undefined} tone={item.direction === 'income' ? 'income' : item.direction === 'expense' ? 'expense' : undefined} visibility={amountVisibility ?? 'visible'} />
             </strong>
             {trailingMetadata ? <span className={styles.trailingMetadata}>{trailingMetadata}</span> : null}
           </span>

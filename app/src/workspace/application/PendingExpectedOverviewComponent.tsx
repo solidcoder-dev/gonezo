@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import type { ExpectedPendingOverviewResult, ExpectedPort } from '../../expected/application/expected.port';
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
 import { PendingExpectedOverviewView, type PendingExpectedCardView } from '../ui/PendingExpectedOverview/PendingExpectedOverviewView';
+import type { AmountVisibility } from '../../shared/domain/amountVisibility';
 
 export type PendingExpectedOverviewPort = Pick<ExpectedPort, 'expectedGetPendingOverview'>;
-export type PendingExpectedOverviewComponentProps = { required: { context: { core: PendingExpectedOverviewPort }; config: { enabled: boolean; refreshSignal: boolean } }; provided?: { events?: { onError?: (error: { message: string }) => void; onExpenseSelected?: () => void; onIncomeSelected?: () => void } } };
+export type PendingExpectedOverviewComponentProps = { required: { context: { core: PendingExpectedOverviewPort }; config: { enabled: boolean; refreshSignal: boolean; amountVisibility?: AmountVisibility } }; provided?: { events?: { onError?: (error: { message: string }) => void; onExpenseSelected?: () => void; onIncomeSelected?: () => void } } };
 
 function errorMessage(error: unknown): string { return error instanceof Error ? error.message : 'Unable to load expected movements.'; }
 
@@ -34,5 +35,5 @@ export function PendingExpectedOverviewComponent({ required, provided }: Pending
     }).then((next) => { if (!cancelled && next) setResult(next); }).catch((err) => { if (!cancelled) { setError(errorMessage(err)); provided?.events?.onError?.({ message: errorMessage(err) }); } }).finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [provided, required.config.enabled, required.config.refreshSignal, required.context.core]);
-  return <PendingExpectedOverviewView required={{ config: {}, data: { cards: [card('Pending expenses', result.expenses, 'expense'), card('Pending incomes', result.incomes, 'income')] }, state: {}, status: { loading, error } }} provided={{ commands: { selectExpense: () => provided?.events?.onExpenseSelected?.(), selectIncome: () => provided?.events?.onIncomeSelected?.() } }} />;
+  return <PendingExpectedOverviewView required={{ config: { amountVisibility: required.config.amountVisibility }, data: { cards: [card('Pending expenses', result.expenses, 'expense'), card('Pending incomes', result.incomes, 'income')] }, state: {}, status: { loading, error } }} provided={{ commands: { selectExpense: () => provided?.events?.onExpenseSelected?.(), selectIncome: () => provided?.events?.onIncomeSelected?.() } }} />;
 }

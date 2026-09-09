@@ -6,6 +6,7 @@ import { formatCurrencyAmount } from '../../../shared/utils/formatting';
 import { SheetView } from '../../../shared/ui/SheetView';
 import { AccountsRailView } from '../../ui/AccountsRail/AccountsRailView';
 import type { AccountsRailAccountView } from '../../ui/AccountsRail/AccountsRailView.contract';
+import type { AmountVisibility } from '../../../shared/domain/amountVisibility';
 
 export type AccountsRailComponentProps = {
   required: {
@@ -15,6 +16,7 @@ export type AccountsRailComponentProps = {
     config: {
       enabled: boolean;
       refreshSignal: boolean;
+      amountVisibility?: AmountVisibility;
     };
   };
   provided?: {
@@ -218,7 +220,7 @@ export function AccountsRailComponent({ required, provided }: AccountsRailCompon
     <>
       <AccountsRailView
         required={{
-          config: { previewLimit: 3 },
+          config: { previewLimit: 3, amountVisibility: required.config.amountVisibility },
           data: { accounts: activeAccounts.map(toAccountView) },
           state: { allAccountsOpen },
           status: { loading, disabled: submitting },
