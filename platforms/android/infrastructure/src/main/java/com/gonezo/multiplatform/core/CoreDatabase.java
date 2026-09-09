@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteException;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 36;
+  private static final int DB_VERSION = 37;
   private static final String SERVICES_CATEGORY_ID = "00000000-0000-4000-8000-000000000111";
 
   CoreDatabase(Context context) {
@@ -24,6 +24,8 @@ public final class CoreDatabase extends SQLiteOpenHelper {
   }
 
   private void dbCleanupRuntimeState(SQLiteDatabase db) {
+    db.delete("notification_deliveries", null, null);
+    db.delete("notifications", null, null);
     db.delete("workflow_tx_categorization", null, null);
     db.delete("recurrence_outbox", null, null);
     db.delete("expected_posting_attempts", null, null);
@@ -180,6 +182,10 @@ public final class CoreDatabase extends SQLiteOpenHelper {
       createTransactionItemCategoryAssignmentTable(db);
       backfillTransactionItemCategoryAssignments(db);
     }
+
+    if (oldVersion < 37) {
+      createNotificationsTables(db);
+    }
   }
 
   @Override
@@ -215,6 +221,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     createTransactionItemCategoryAssignmentTable(db);
     backfillTransactionItemCategoryAssignments(db);
     addPlannedItemTagNames(db);
+    createNotificationsTables(db);
   }
 
   private static void createTransactionItemTagAssignmentTable(SQLiteDatabase db) {
@@ -226,6 +233,42 @@ public final class CoreDatabase extends SQLiteOpenHelper {
   private static void createTransactionItemCategoryAssignmentTable(SQLiteDatabase db) {
     db.execSQL("create table if not exists taxonomy_transaction_item_category_assignments (transaction_item_id text primary key, category_id text not null references taxonomy_categories(id), assigned_at text not null);");
     db.execSQL("create index if not exists idx_taxonomy_transaction_item_categories_category on taxonomy_transaction_item_category_assignments(category_id);");
+  }
+
+  private static void createNotificationsTables(SQLiteDatabase db) {
+    db.execSQL(
+      "create table if not exists notifications (" +
+        "sequence integer primary key autoincrement," +
+        "id text not null unique," +
+        "owner_id text not null," +
+        "type text not null check (type in ('scheduled_confirmation_required', 'scheduled_processing_failed'))," +
+        "deduplication_key text not null," +
+        "source_type text not null check (source_type in ('expected', 'scheduled'))," +
+        "source_id text not null," +
+        "origin_occurrence_id text not null," +
+        "subject text not null," +
+        "error_code text null," +
+        "occurred_at text not null," +
+        "created_at text not null," +
+        "read_at text null," +
+        "withdrawn_at text null," +
+        "unique(owner_id, deduplication_key)" +
+      ");"
+    );
+    db.execSQL("create index if not exists idx_notifications_owner_sequence on notifications(owner_id, sequence);");
+    db.execSQL("create index if not exists idx_notifications_owner_unread_sequence on notifications(owner_id, read_at, withdrawn_at, sequence);");
+    db.execSQL("create index if not exists idx_notifications_source on notifications(source_type, source_id);");
+    db.execSQL(
+      "create table if not exists notification_deliveries (" +
+        "notification_id text primary key references notifications(id) on delete cascade," +
+        "status text not null check (status in ('pending', 'submitted', 'suppressed', 'cancelled'))," +
+        "attempts integer not null default 0 check (attempts >= 0)," +
+        "next_attempt_at text null," +
+        "submitted_at text null," +
+        "last_error_code text null" +
+      ");"
+    );
+    db.execSQL("create index if not exists idx_notification_deliveries_status_next_attempt on notification_deliveries(status, next_attempt_at);");
   }
 
   private static void backfillTransactionItemCategoryAssignments(SQLiteDatabase db) {
@@ -925,6 +968,8 @@ public final class CoreDatabase extends SQLiteOpenHelper {
   }
 
   private static void dropTables(SQLiteDatabase db) {
+    db.execSQL("drop table if exists notification_deliveries");
+    db.execSQL("drop table if exists notifications");
     db.execSQL("drop table if exists workflow_tx_categorization");
     db.execSQL("drop table if exists expected_movements");
     db.execSQL("drop table if exists expected_movement_items");
