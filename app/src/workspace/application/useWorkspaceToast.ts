@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   FeedbackNotice,
+  FeedbackNoticeDurationPolicy,
   FeedbackNoticeInput,
   FeedbackNoticeTone,
   FeedbackNoticeUpdate,
@@ -20,6 +21,12 @@ function defaultDurationPolicy(input: FeedbackNoticeInput): FeedbackNotice['dura
   if (input.action || input.tone === 'error') return 'until-closed';
   if (input.tone === 'warning') return 'warning';
   return 'standard';
+}
+
+function durationFor(policy: FeedbackNoticeDurationPolicy): number | null {
+  if (policy === 'standard') return 5000;
+  if (policy === 'warning') return 8000;
+  return null;
 }
 
 export function useWorkspaceToast() {
@@ -72,6 +79,59 @@ export function useWorkspaceToast() {
     }
   }, []);
 
+  const expirationRef = useRef<{
+    id: string;
+    remainingMs: number;
+    startedAtMs: number;
+    timerId: number | null;
+    pauseReasons: Set<string>;
+  } | null>(null);
+
+  const clearExpirationTimer = useCallback(() => {
+    const expiration = expirationRef.current;
+    if (!expiration || expiration.timerId === null) return;
+    window.clearTimeout(expiration.timerId);
+    expiration.timerId = null;
+  }, []);
+
+  const scheduleExpiration = useCallback((id: string, remainingMs: number) => {
+    if (remainingMs <= 0) return;
+    const expiration = expirationRef.current;
+    if (!expiration || expiration.id !== id) return;
+    expiration.remainingMs = remainingMs;
+    expiration.startedAtMs = Date.now();
+    expiration.timerId = window.setTimeout(() => {
+      expirationRef.current = null;
+      setNotices((current) => current.filter((notice) => notice.id !== id));
+      if (latestNoticeIdRef.current === id) {
+        latestNoticeIdRef.current = null;
+      }
+    }, remainingMs);
+  }, []);
+
+  const pauseNotice = useCallback((id: string, reason: string) => {
+    const expiration = expirationRef.current;
+    if (!expiration || expiration.id !== id || expiration.pauseReasons.has(reason)) return;
+    expiration.pauseReasons.add(reason);
+    if (expiration.timerId !== null) {
+      expiration.remainingMs = Math.max(0, expiration.remainingMs - (Date.now() - expiration.startedAtMs));
+      clearExpirationTimer();
+    }
+  }, [clearExpirationTimer]);
+
+  const resumeNotice = useCallback((id: string, reason: string) => {
+    const expiration = expirationRef.current;
+    if (!expiration || expiration.id !== id || !expiration.pauseReasons.has(reason)) return;
+    expiration.pauseReasons.delete(reason);
+    if (expiration.pauseReasons.size === 0 && expiration.timerId === null) {
+      if (expiration.remainingMs <= 0) {
+        closeNotice(id);
+        return;
+      }
+      scheduleExpiration(id, expiration.remainingMs);
+    }
+  }, [closeNotice, scheduleExpiration]);
+
   const updateNotice = useCallback((id: string, update: FeedbackNoticeUpdate) => {
     setNotices((current) => current.map((notice) => (
       notice.id === id ? { ...notice, ...update, id: notice.id } : notice
@@ -88,6 +148,40 @@ export function useWorkspaceToast() {
   }, []);
 
   const currentNotice = notices[notices.length - 1] ?? null;
+  const currentNoticeId = currentNotice?.id;
+  const currentNoticeDurationPolicy = currentNotice?.durationPolicy;
+
+  useEffect(() => {
+    clearExpirationTimer();
+    expirationRef.current = null;
+    const durationMs = currentNoticeDurationPolicy ? durationFor(currentNoticeDurationPolicy) : null;
+    if (!currentNoticeId || durationMs === null) return undefined;
+
+    expirationRef.current = {
+      id: currentNoticeId,
+      remainingMs: durationMs,
+      startedAtMs: Date.now(),
+      timerId: null,
+      pauseReasons: new Set(),
+    };
+    scheduleExpiration(currentNoticeId, durationMs);
+    return clearExpirationTimer;
+  }, [clearExpirationTimer, currentNoticeDurationPolicy, currentNoticeId, scheduleExpiration]);
+
+  useEffect(() => {
+    if (!currentNoticeId || typeof document === 'undefined') return undefined;
+    const updateBackgroundPause = () => {
+      if (document.hidden) {
+        pauseNotice(currentNoticeId, 'background');
+      } else {
+        resumeNotice(currentNoticeId, 'background');
+      }
+    };
+    document.addEventListener('visibilitychange', updateBackgroundPause);
+    updateBackgroundPause();
+    return () => document.removeEventListener('visibilitychange', updateBackgroundPause);
+  }, [currentNoticeId, pauseNotice, resumeNotice]);
+
   useEffect(() => {
     currentNoticeRef.current = currentNotice;
   }, [currentNotice]);
@@ -102,6 +196,8 @@ export function useWorkspaceToast() {
     actions: {
       clearToast,
       closeNotice,
+      pauseNotice,
+      resumeNotice,
       showError,
       showInfo,
       showNotice,

@@ -72,7 +72,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const [accountsCount, setAccountsCount] = useState(0);
 
   const workspaceToast = useWorkspaceToast();
-  const { closeNotice, showError, showInfo, showToast, showWarning } = workspaceToast.actions;
+  const { closeNotice, pauseNotice, resumeNotice, showError, showInfo, showToast, showWarning } = workspaceToast.actions;
   const experimentalFeatures = useExperimentalFeaturesModel({
     port: pageRequired.experimentalFeatures,
     events: {
@@ -637,7 +637,12 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   return (
     <>
       <AccountPageView required={required} provided={{}} />
-      <FeedbackNoticePresenter notices={workspaceToast.notices} closeNotice={closeNotice} />
+      <FeedbackNoticePresenter
+        notices={workspaceToast.notices}
+        closeNotice={closeNotice}
+        pauseNotice={pauseNotice}
+        resumeNotice={resumeNotice}
+      />
     </>
   );
 }

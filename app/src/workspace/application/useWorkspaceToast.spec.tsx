@@ -144,4 +144,112 @@ describe('useWorkspaceToast', () => {
       expect.objectContaining({ id: secondId, message: 'Working', source: 'second' }),
     ]));
   });
+
+  it('expires success and warning notices according to their central policies', () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useWorkspaceToast());
+
+      act(() => {
+        result.current.actions.showToast('Saved');
+      });
+      act(() => vi.advanceTimersByTime(4999));
+      expect(result.current.notices).toHaveLength(1);
+      act(() => vi.advanceTimersByTime(1));
+      expect(result.current.notices).toHaveLength(0);
+
+      act(() => {
+        result.current.actions.showWarning('Check this');
+      });
+      act(() => vi.advanceTimersByTime(7999));
+      expect(result.current.notices).toHaveLength(1);
+      act(() => vi.advanceTimersByTime(1));
+      expect(result.current.notices).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('pauses one notice for overlapping interaction reasons and resumes remaining time', () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useWorkspaceToast());
+      let id = '';
+      act(() => {
+        id = result.current.actions.showToast('Saved');
+      });
+      act(() => vi.advanceTimersByTime(2000));
+      act(() => {
+        result.current.actions.pauseNotice(id, 'focus');
+        result.current.actions.pauseNotice(id, 'touch');
+      });
+      act(() => vi.advanceTimersByTime(10000));
+      expect(result.current.notices).toHaveLength(1);
+
+      act(() => result.current.actions.resumeNotice(id, 'focus'));
+      act(() => vi.advanceTimersByTime(1000));
+      expect(result.current.notices).toHaveLength(1);
+      act(() => result.current.actions.resumeNotice(id, 'touch'));
+      act(() => vi.advanceTimersByTime(2999));
+      expect(result.current.notices).toHaveLength(1);
+      act(() => vi.advanceTimersByTime(1));
+      expect(result.current.notices).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('cancels an old timer when a newer notice replaces it', () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useWorkspaceToast());
+      act(() => result.current.actions.showToast('First'));
+      act(() => vi.advanceTimersByTime(3000));
+      act(() => result.current.actions.showToast('Second'));
+      act(() => vi.advanceTimersByTime(2000));
+      expect(result.current.toast.message).toBe('Second');
+      act(() => vi.advanceTimersByTime(2999));
+      expect(result.current.toast.message).toBe('Second');
+      act(() => vi.advanceTimersByTime(1));
+      expect(result.current.toast.message).toBe('First');
+      expect(result.current.notices).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('cleans up the expiration timer when the hook unmounts', () => {
+    vi.useFakeTimers();
+    try {
+      const { result, unmount } = renderHook(() => useWorkspaceToast());
+      act(() => result.current.actions.showToast('Saved'));
+      unmount();
+      act(() => vi.advanceTimersByTime(5000));
+      expect(result.current.notices).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('pauses while the document is hidden and resumes on visibility', () => {
+    vi.useFakeTimers();
+    const originalHidden = document.hidden;
+    try {
+      Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+      const { result } = renderHook(() => useWorkspaceToast());
+      act(() => result.current.actions.showToast('Saved'));
+      act(() => vi.advanceTimersByTime(10000));
+      expect(result.current.notices).toHaveLength(1);
+
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+      act(() => document.dispatchEvent(new Event('visibilitychange')));
+      act(() => vi.advanceTimersByTime(4999));
+      expect(result.current.notices).toHaveLength(1);
+      act(() => vi.advanceTimersByTime(1));
+      expect(result.current.notices).toHaveLength(0);
+    } finally {
+      Object.defineProperty(document, 'hidden', { configurable: true, value: originalHidden });
+      vi.useRealTimers();
+    }
+  });
 });
