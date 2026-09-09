@@ -39,6 +39,8 @@ public class AndroidSystemBarsControllerTest {
         WindowInsetsCompat insets = new WindowInsetsCompat.Builder()
           .setInsets(WindowInsetsCompat.Type.statusBars(), Insets.of(0, 6, 0, 0))
           .setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.of(0, 0, 0, 10))
+          .setInsets(WindowInsetsCompat.Type.ime(), Insets.of(0, 0, 0, 300))
+          .setVisible(WindowInsetsCompat.Type.ime(), true)
           .build();
 
         ViewCompat.dispatchApplyWindowInsets(root, insets);
@@ -47,7 +49,7 @@ public class AndroidSystemBarsControllerTest {
         assertEquals(12, root.getPaddingLeft());
         assertEquals(20, root.getPaddingTop());
         assertEquals(16, root.getPaddingRight());
-        assertEquals(28, root.getPaddingBottom());
+        assertEquals(318, root.getPaddingBottom());
         assertEquals(0, childInsetsCalls.get());
       });
     }

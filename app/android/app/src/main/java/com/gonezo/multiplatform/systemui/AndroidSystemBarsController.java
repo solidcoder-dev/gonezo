@@ -37,11 +37,13 @@ public final class AndroidSystemBarsController {
       Insets systemBarsAndCutout = insets.getInsets(
         WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout()
       );
+      Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+      int bottomInset = Math.max(systemBarsAndCutout.bottom, ime.bottom);
       view.setPadding(
         initialPaddingLeft + systemBarsAndCutout.left,
         initialPaddingTop + systemBarsAndCutout.top,
         initialPaddingRight + systemBarsAndCutout.right,
-        initialPaddingBottom + systemBarsAndCutout.bottom
+        initialPaddingBottom + bottomInset
       );
       return WindowInsetsCompat.CONSUMED;
     });
