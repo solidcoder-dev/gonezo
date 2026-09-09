@@ -43,6 +43,23 @@ No hay Firebase, servidor, sincronización multidispositivo, horarios configurab
 
 La restauración de backup financiero no incluye este estado local de ejecución. Una restauración confirmada limpia la bandeja y las entregas; una importación ordinaria conserva la bandeja y solo reconcilia avisos afectados. No se hace backfill histórico.
 
-## Estado inicial de implementación
+## Evidencia de implementación y límites de validación
 
-La implementación parte del HEAD `692f58ccfb3bc14e53f71c82f08b3550a3b50806` en la rama dedicada `feat/notifications-v1`. El baseline `./scripts/verify.sh fast` produjo frontend OK. El check core no pudo iniciar Gradle por el entorno (`Could not determine a usable wildcard IP for this machine`); debe repetirse cuando el runtime de Gradle sea utilizable.
+La implementación partió del HEAD `692f58ccfb3bc14e53f71c82f08b3550a3b50806` en la rama dedicada `feat/notifications-v1`. Cada paso de código quedó en su commit Angular independiente; también existe un commit preparatorio de refactor para conservar el límite arquitectónico del bridge.
+
+Checks verdes ejecutados durante los pasos:
+
+| Capa | Evidencia |
+| --- | --- |
+| Core | Tests focalizados de scheduling, dominio, persistencia, consultas y entrega; `checkLayerBoundaries` |
+| Android build | `:app:compileDebugKotlin`, `:app:compileDebugJavaWithJavac`, `:app:compileDebugAndroidTestKotlin`, migración y manifest procesados |
+| Frontend | `check:structure`, `typecheck`, build Vite, pruebas focalizadas de adapter web, página, cabecera y workspace |
+| Backup | Test instrumentado de limpieza de tablas runtime compilado junto al source set Android |
+
+El primer baseline `./scripts/verify.sh fast` produjo frontend OK. El check core del baseline no pudo iniciar Gradle por el entorno (`Could not determine a usable wildcard IP for this machine`); los comandos Gradle focalizados posteriores sí terminaron correctamente.
+
+No se ejecutaron pruebas instrumentadas en un emulador/dispositivo Android 13+ porque no se confirmó un dispositivo disponible. Quedan pendientes, por tanto, la validación manual de permiso aceptado/denegado, canal bloqueado, descarte del resumen, arranque en frío, reinicio y agrupación visible.
+
+El check arquitectónico frontend conserva cuatro fallos preexistentes en `useWorkspaceToast.ts`, `monthlyMovements` y `movementsSearch`/taxonomía; el tamaño adicional introducido en `CorePlugin.java` se separó y corrigió en `refactor(notifications): keep the bridge plugin within architecture limits`.
+
+La conexión automática de reconciliación con todas las operaciones públicas de expected/recurrence y la suite completa de ciclo Android todavía requieren validación de integración antes de declarar la feature totalmente validada. No se atribuyen esos resultados a estos checks de compilación.
