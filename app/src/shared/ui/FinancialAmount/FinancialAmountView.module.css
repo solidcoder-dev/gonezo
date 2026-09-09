@@ -1,0 +1,5 @@
+.amount {
+  display: inline-block;
+  line-height: inherit;
+  white-space: nowrap;
+}
