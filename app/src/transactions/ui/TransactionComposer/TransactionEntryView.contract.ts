@@ -68,6 +68,7 @@ export type TransactionEntryViewRequired = {
     shareDraft?: ShareDraft;
     shareSummary?: { peopleCount: number; total: string };
     sharePeopleSuggestions: SharingPersonSuggestion[];
+    shareEditorOpen: boolean;
     movementIgnored: boolean;
     shareControl?: ReactNode;
     editedScheduledMovementId?: string;
