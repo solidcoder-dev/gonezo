@@ -20,6 +20,7 @@ import com.gonezo.sharing.domain.ShareParticipant
 import com.gonezo.sharing.domain.ShareParticipantId
 import com.gonezo.sharing.domain.SharingPerson
 import com.gonezo.sharing.domain.SharingPersonId
+import com.gonezo.sharing.domain.SharedMovementType
 import com.gonezo.sharing.domain.ports.MovementShareRepository
 import com.gonezo.sharing.domain.ports.SharingPersonRepository
 import java.math.BigDecimal
@@ -34,7 +35,9 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
             )
                 ?: throw SharingTransactionNotFound(command.transactionId)
         require(transaction.status == TransactionStatus.POSTED) { "Only posted transactions can be shared" }
-        require(transaction.type == TransactionType.EXPENSE) { "Only expense transactions can be shared" }
+        require(transaction.type == TransactionType.EXPENSE || transaction.type == TransactionType.INCOME) {
+            "Only expense and income transactions can be shared"
+        }
         require(command.participants.isNotEmpty()) { "Share requires participants" }
 
         val payer = resolvePerson(command.payer, command.appliedAt)
@@ -46,7 +49,7 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
                         createExpectedMovementUC.execute(
                             CreateExpectedMovementCommand(
                                 accountId = transaction.accountId.toString(),
-                                type = "income",
+                                type = if (transaction.type == TransactionType.EXPENSE) "income" else "expense",
                                 amount = participantCommand.amount,
                                 currency = transaction.amount.currency,
                                 expectedAt = transaction.occurredAt,
@@ -78,6 +81,7 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
                 participants = participantRows.map { it.first },
                 createdAt = command.appliedAt,
                 updatedAt = command.appliedAt,
+                movementType = if (transaction.type == TransactionType.EXPENSE) SharedMovementType.EXPENSE else SharedMovementType.INCOME,
             )
         movementShareRepository.save(share)
         createAnalyticsExclusions(share, command.appliedAt)
@@ -167,7 +171,7 @@ class GetMovementSharingDetailsService(private val ledgerTransactionRepository: 
             share.participants
                 .filter { it.reimbursable }
                 .fold(BigDecimal.ZERO) { total, participant -> total + participant.amount }
-        val excludedReimbursementIncomeAmount =
+        val resolvedThirdPartyAmount =
             share.participants
                 .filter { participant ->
                     participant.reimbursable &&
@@ -175,15 +179,24 @@ class GetMovementSharingDetailsService(private val ledgerTransactionRepository: 
                         ExpectedMovementStatus.RESOLVED
                 }.fold(BigDecimal.ZERO) { total, participant -> total + participant.amount }
 
+        val pendingThirdPartyAmount = share.participants
+            .filter { it.reimbursable && it.expectedMovementId?.let { id -> expectedMovementRepository.findById(ExpectedMovementId.from(id))?.status } == ExpectedMovementStatus.PENDING }
+            .fold(BigDecimal.ZERO) { total, participant -> total + participant.amount }
         return MovementSharingDetailsView(
             shareId = share.id.toString(),
             transactionId = query.transactionId,
+            movementType = share.movementType,
             participants = participants,
             analytics =
             MovementSharingAnalyticsView(
-                personalExpenseAmount = transaction.amount.amount - excludedLentAmount,
+                personalExpenseAmount = if (share.movementType == SharedMovementType.EXPENSE) transaction.amount.amount - excludedLentAmount else BigDecimal.ZERO,
                 excludedLentAmount = excludedLentAmount,
-                excludedReimbursementIncomeAmount = excludedReimbursementIncomeAmount,
+                excludedReimbursementIncomeAmount = if (share.movementType == SharedMovementType.EXPENSE) resolvedThirdPartyAmount else BigDecimal.ZERO,
+                personalIncomeAmount = if (share.movementType == SharedMovementType.INCOME) transaction.amount.amount - excludedLentAmount else BigDecimal.ZERO,
+                pendingToCollect = if (share.movementType == SharedMovementType.EXPENSE) pendingThirdPartyAmount else BigDecimal.ZERO,
+                pendingToPayOut = if (share.movementType == SharedMovementType.INCOME) pendingThirdPartyAmount else BigDecimal.ZERO,
+                collected = if (share.movementType == SharedMovementType.EXPENSE) resolvedThirdPartyAmount else BigDecimal.ZERO,
+                paidOut = if (share.movementType == SharedMovementType.INCOME) resolvedThirdPartyAmount else BigDecimal.ZERO,
             ),
         )
     }

@@ -1,6 +1,7 @@
 package com.gonezo.sharing.application
 
 import com.gonezo.expected.domain.ExpectedMovementId
+import com.gonezo.sharing.domain.SharedMovementType
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -18,11 +19,20 @@ interface ApplyShareToPostedMovementUC {
 
 data class GetMovementSharingDetailsQuery(val transactionId: String)
 
-data class MovementSharingDetailsView(val shareId: String, val transactionId: String, val participants: List<MovementShareParticipantView>, val analytics: MovementSharingAnalyticsView)
+data class MovementSharingDetailsView(val shareId: String, val transactionId: String, val movementType: SharedMovementType, val participants: List<MovementShareParticipantView>, val analytics: MovementSharingAnalyticsView)
 
 data class MovementShareParticipantView(val participantId: String, val personId: String, val displayName: String, val amount: BigDecimal, val reimbursable: Boolean, val expectedMovementId: String?, val repaymentStatus: String)
 
-data class MovementSharingAnalyticsView(val personalExpenseAmount: BigDecimal, val excludedLentAmount: BigDecimal, val excludedReimbursementIncomeAmount: BigDecimal)
+data class MovementSharingAnalyticsView(
+    val personalExpenseAmount: BigDecimal,
+    val excludedLentAmount: BigDecimal,
+    val excludedReimbursementIncomeAmount: BigDecimal,
+    val personalIncomeAmount: BigDecimal = BigDecimal.ZERO,
+    val pendingToCollect: BigDecimal = BigDecimal.ZERO,
+    val pendingToPayOut: BigDecimal = BigDecimal.ZERO,
+    val collected: BigDecimal = BigDecimal.ZERO,
+    val paidOut: BigDecimal = BigDecimal.ZERO,
+)
 
 interface GetMovementSharingDetailsUC {
     fun execute(query: GetMovementSharingDetailsQuery): MovementSharingDetailsView?

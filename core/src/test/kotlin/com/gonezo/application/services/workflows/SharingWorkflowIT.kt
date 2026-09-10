@@ -5,6 +5,7 @@ import com.gonezo.analytics.application.AnalyticsExclusionScopeType
 import com.gonezo.domain.shared.Money
 import com.gonezo.expected.application.ResolveExpectedMovementCommand
 import com.gonezo.expected.domain.ExpectedMovementStatus
+import com.gonezo.expected.domain.ExpectedMovementId
 import com.gonezo.ledger.application.OpenLedgerAccountCommand
 import com.gonezo.ledger.application.RecordLedgerExpenseCommand
 import com.gonezo.ledger.domain.AccountType
@@ -12,6 +13,7 @@ import com.gonezo.ledger.domain.CurrencyCode
 import com.gonezo.sharing.application.ApplyShareParticipantCommand
 import com.gonezo.sharing.application.ApplyShareToPostedMovementCommand
 import com.gonezo.sharing.application.SharingPersonReference
+import com.gonezo.sharing.domain.SharedMovementType
 import com.gonezo.sharing.application.GetMovementSharingDetailsQuery
 import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat
@@ -157,6 +159,29 @@ class SharingWorkflowIT : SqliteE2ETest() {
         assertThat(adjustment.personalExpenseAmount).isEqualByComparingTo("10.00")
         assertThat(adjustment.excludedLentAmount).isEqualByComparingTo("10.00")
         assertThat(adjustment.excludedReimbursementIncomeAmount).isEqualByComparingTo("10.00")
+    }
+
+    @Test
+    fun `sharing an income creates an expected payout and exposes income analytics`() {
+        val accountId = openCashAccount()
+        val transactionId = recordIncome(accountId.toString(), "120.00")
+
+        app.sharingApplyShareToPostedMovementUC.execute(
+            ApplyShareToPostedMovementCommand(
+                transactionId = transactionId,
+                payer = SharingPersonReference.New("You"),
+                participants = listOf(ApplyShareParticipantCommand(SharingPersonReference.New("Tyler"), BigDecimal("60.00"), true)),
+                appliedAt = Instant.parse("2026-06-29T10:15:00Z"),
+            ),
+        )
+
+        val details = app.sharingGetMovementSharingDetailsUC.execute(GetMovementSharingDetailsQuery(transactionId))!!
+        assertThat(details.movementType).isEqualTo(SharedMovementType.INCOME)
+        assertThat(details.analytics.personalIncomeAmount).isEqualByComparingTo("60.00")
+        assertThat(details.analytics.pendingToPayOut).isEqualByComparingTo("60.00")
+        assertThat(details.analytics.paidOut).isEqualByComparingTo("0.00")
+        val expectedMovement = app.expectedMovementRepository.findById(ExpectedMovementId.from(details.participants.single().expectedMovementId!!))
+        assertThat(expectedMovement!!.type.value).isEqualTo("expense")
     }
 
     private fun openCashAccount() = app.ledgerOpenAccountUC.execute(
