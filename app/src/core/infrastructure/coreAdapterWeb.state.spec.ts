@@ -250,8 +250,8 @@ describe('CoreAdapterWeb state and effects boundaries', () => {
 
     const share = await core.sharingApplyShareToPostedMovement({
       transactionId: expense.id,
-      payerName: 'You',
-      participants: [{ personName: 'Alex', amount: '15.00', reimbursable: true }],
+      payer: { displayName: 'You' },
+      participants: [{ person: { displayName: 'Alex' }, amount: '15.00', reimbursable: true }],
     });
 
     const expectedMovementId = share.participants[0].expectedMovementId;

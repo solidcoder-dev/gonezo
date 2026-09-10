@@ -646,7 +646,7 @@ async function handlePostedShare(
   const participants = context.shareDraft.people
     .filter((person) => person.id !== 'you')
     .map((person) => ({
-      personName: person.name,
+      person: person.personId ? { personId: person.personId } : { displayName: person.name },
       amount: formatAmount(parseAmount(person.amount)),
       reimbursable: person.reimbursable,
     }))
@@ -658,7 +658,7 @@ async function handlePostedShare(
 
   await context.ports.sharing.sharingApplyShareToPostedMovement({
     transactionId: state.postedTransactionId,
-    payerName: 'You',
+    payer: { displayName: 'You' },
     participants,
     appliedAt: context.clock.now().toISOString(),
   });

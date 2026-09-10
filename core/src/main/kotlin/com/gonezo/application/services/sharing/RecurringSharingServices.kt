@@ -150,8 +150,8 @@ class DefaultMaterializePlannedShareForPostedMovementService(private val planned
         val result = applyShare.execute(
             ApplyShareToPostedMovementCommand(
                 command.transactionId,
-                command.finalDraft?.payerName ?: payer.displayName,
-                participants.map { ApplyShareParticipantCommand(it.personName, it.amount, it.reimbursable) },
+                SharingPersonReference.New(command.finalDraft?.payerName ?: payer.displayName),
+                participants.map { ApplyShareParticipantCommand(SharingPersonReference.New(it.personName), it.amount, it.reimbursable) },
                 command.materializedAt,
             ),
         )

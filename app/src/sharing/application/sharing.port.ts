@@ -9,14 +9,18 @@ export type SharingListPeopleResult = {
 };
 
 export type SharingApplyShareParticipantInput = {
-  personName: string;
+  person: SharingPersonReference;
   amount: string;
   reimbursable: boolean;
 };
 
+export type SharingPersonReference =
+  | { personId: string; displayName?: never }
+  | { displayName: string; personId?: never };
+
 export type SharingApplyShareToPostedMovementInput = {
   transactionId: string;
-  payerName: string;
+  payer: SharingPersonReference;
   participants: SharingApplyShareParticipantInput[];
   appliedAt?: string;
 };

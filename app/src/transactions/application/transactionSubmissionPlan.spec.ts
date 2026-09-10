@@ -141,8 +141,8 @@ describe('transaction submission plan', () => {
 
     expect(input.ports.sharing.sharingApplyShareToPostedMovement).toHaveBeenCalledWith({
       transactionId: 'tx-1',
-      payerName: 'You',
-      participants: [{ personName: 'Alex', amount: '4.00', reimbursable: true }],
+      payer: { displayName: 'You' },
+      participants: [{ person: { displayName: 'Alex' }, amount: '4.00', reimbursable: true }],
       appliedAt: '2026-05-18T10:20:30.000Z',
     });
   });

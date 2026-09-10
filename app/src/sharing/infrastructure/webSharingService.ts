@@ -5,6 +5,7 @@ import type {
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
   SharingListPeopleResult,
+  SharingPersonReference,
   SharingMovementDetailsResult,
   SharingGetPlannedShareInput,
   SharingPlannedShareResult,
@@ -64,10 +65,10 @@ export class WebSharingService {
       throw new Error('Only posted expenses can be shared');
     }
     const appliedAt = input.appliedAt ?? this.dependencies.clock.nowIso();
-    const payer = this.findOrCreatePerson(input.payerName, appliedAt);
+    const payer = this.resolvePerson(input.payer, appliedAt);
     const participants = [];
     for (const participantInput of input.participants) {
-      const person = this.findOrCreatePerson(participantInput.personName, appliedAt);
+      const person = this.resolvePerson(participantInput.person, appliedAt);
       const expectedMovementId = participantInput.reimbursable
         ? (await this.expected.createMovement({
             accountId: transaction.accountId,
@@ -141,11 +142,19 @@ export class WebSharingService {
     return null;
   }
 
-  private findOrCreatePerson(name: string, createdAt: string): WebSharingPerson {
+  private resolvePerson(reference: SharingPersonReference, createdAt: string): WebSharingPerson {
+    if ('personId' in reference) {
+      const existing = this.state.sharingPersons.find((person) => person.id === reference.personId && !person.archivedAt);
+      if (!existing) {
+        throw new Error(`Sharing person not found: ${reference.personId}`);
+      }
+      return existing;
+    }
+    const name = reference.displayName;
     const normalizedName = normalizeName(name);
     const existing = this.state.sharingPersons.find((person) => person.normalizedName === normalizedName && !person.archivedAt);
     if (existing) {
-      return existing;
+      throw new Error(`Sharing person already exists: ${name}`);
     }
     const person = {
       id: this.dependencies.idGenerator.nextId(),

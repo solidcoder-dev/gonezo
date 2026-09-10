@@ -4,9 +4,9 @@ import com.gonezo.expected.domain.ExpectedMovementId
 import java.math.BigDecimal
 import java.time.Instant
 
-data class ApplyShareParticipantCommand(val personName: String, val amount: BigDecimal, val reimbursable: Boolean)
+data class ApplyShareParticipantCommand(val person: SharingPersonReference, val amount: BigDecimal, val reimbursable: Boolean)
 
-data class ApplyShareToPostedMovementCommand(val transactionId: String, val payerName: String, val participants: List<ApplyShareParticipantCommand>, val appliedAt: Instant)
+data class ApplyShareToPostedMovementCommand(val transactionId: String, val payer: SharingPersonReference, val participants: List<ApplyShareParticipantCommand>, val appliedAt: Instant)
 
 data class AppliedShareParticipantResult(val participantId: String, val personId: String, val displayName: String, val amount: BigDecimal, val reimbursable: Boolean, val expectedMovementId: ExpectedMovementId?)
 

@@ -37,10 +37,10 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
         require(transaction.type == TransactionType.EXPENSE) { "Only expense transactions can be shared" }
         require(command.participants.isNotEmpty()) { "Share requires participants" }
 
-        val payer = findOrCreatePerson(command.payerName, command.appliedAt)
+        val payer = resolvePerson(command.payer, command.appliedAt)
         val participantRows =
             command.participants.map { participantCommand ->
-                val person = findOrCreatePerson(participantCommand.personName, command.appliedAt)
+                val person = resolvePerson(participantCommand.person, command.appliedAt)
                 val expectedMovementId =
                     if (participantCommand.reimbursable) {
                         createExpectedMovementUC.execute(
@@ -99,15 +99,16 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
         )
     }
 
-    private fun findOrCreatePerson(name: String, createdAt: java.time.Instant): SharingPerson {
-        val normalizedName = SharingPerson.normalizeName(name)
-        return sharingPersonRepository.findByNormalizedName(normalizedName)
-            ?: SharingPerson
-                .create(
-                    id = SharingPersonId.random(),
-                    displayName = name,
-                    createdAt = createdAt,
-                ).also(sharingPersonRepository::save)
+    private fun resolvePerson(reference: SharingPersonReference, createdAt: java.time.Instant): SharingPerson = when (reference) {
+        is SharingPersonReference.Existing -> sharingPersonRepository.findById(SharingPersonId.from(reference.personId))
+            ?: throw IllegalArgumentException("Sharing person not found: ${reference.personId}")
+        is SharingPersonReference.New -> {
+            val normalizedName = SharingPerson.normalizeName(reference.displayName)
+            require(sharingPersonRepository.findByNormalizedName(normalizedName) == null) {
+                "Sharing person already exists: ${reference.displayName}"
+            }
+            SharingPerson.create(SharingPersonId.random(), reference.displayName, createdAt).also(sharingPersonRepository::save)
+        }
     }
 
     private fun createAnalyticsExclusions(share: MovementShare, createdAt: java.time.Instant) {

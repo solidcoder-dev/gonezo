@@ -8,6 +8,7 @@ import com.gonezo.multiplatform.core.AndroidExpectedPostingApplication;
 import com.gonezo.sharing.application.ApplyShareParticipantCommand;
 import com.gonezo.sharing.application.ApplyShareToPostedMovementCommand;
 import com.gonezo.sharing.application.ApplyShareToPostedMovementResult;
+import com.gonezo.sharing.application.SharingPersonReference;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -43,7 +44,7 @@ final class SharingPluginHandler {
     try {
       ApplyShareToPostedMovementResult share = AndroidExpectedPostingApplication.getInstance(context).applyShare(
         new ApplyShareToPostedMovementCommand(
-          call.getString("transactionId"), call.getString("payerName"), toCoreParticipants(call.getArray("participants")),
+          call.getString("transactionId"), toCorePersonReference(call.getObject("payer")), toCoreParticipants(call.getArray("participants")),
           Instant.parse(call.getString("appliedAt", Instant.now().toString()))
         )
       );
@@ -139,11 +140,25 @@ final class SharingPluginHandler {
       JSONObject item = values.optJSONObject(index);
       if (item != null) {
         participants.add(new ApplyShareParticipantCommand(
-          item.optString("personName", null), new BigDecimal(item.optString("amount", null)), item.optBoolean("reimbursable", false)
+          toCorePersonReference(item.getJSONObject("person")), new BigDecimal(item.optString("amount", null)), item.optBoolean("reimbursable", false)
         ));
       }
     }
     return participants;
+  }
+
+  private SharingPersonReference toCorePersonReference(JSONObject value) {
+    if (value == null) {
+      throw new IllegalArgumentException("Sharing person reference is required");
+    }
+    boolean hasId = value.has("personId") && !value.isNull("personId") && !value.optString("personId").isBlank();
+    boolean hasName = value.has("displayName") && !value.isNull("displayName") && !value.optString("displayName").isBlank();
+    if (hasId == hasName) {
+      throw new IllegalArgumentException("Sharing person reference must contain exactly one id or display name");
+    }
+    return hasId
+      ? new SharingPersonReference.Existing(value.getString("personId"))
+      : new SharingPersonReference.New(value.getString("displayName"));
   }
 
   private JSObject toMovementDetailsJson(AndroidSharingCore.MovementDetailsView details) {

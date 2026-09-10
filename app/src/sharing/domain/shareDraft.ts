@@ -2,6 +2,7 @@ export type ShareMode = 'parts' | 'amounts';
 
 export type SharePersonDraft = {
   id: string;
+  personId?: string;
   name: string;
   email?: string;
   reimbursable: boolean;

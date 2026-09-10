@@ -24,7 +24,8 @@ export function makeSharePerson(name: string, options: SharingPersonSuggestion[]
   const existing = options.find((person) => person.name.toLowerCase() === normalizedName.toLowerCase());
   if (existing) {
     return {
-      id: `${existing.id}-${Date.now()}`,
+      id: crypto.randomUUID(),
+      personId: existing.id,
       name: existing.name,
       email: existing.email,
       reimbursable: true,
@@ -34,7 +35,7 @@ export function makeSharePerson(name: string, options: SharingPersonSuggestion[]
     };
   }
   return {
-    id: `person-${Date.now()}`,
+    id: crypto.randomUUID(),
     name: normalizedName,
     reimbursable: true,
     parts: 1,

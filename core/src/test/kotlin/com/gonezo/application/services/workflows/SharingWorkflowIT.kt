@@ -11,6 +11,7 @@ import com.gonezo.ledger.domain.AccountType
 import com.gonezo.ledger.domain.CurrencyCode
 import com.gonezo.sharing.application.ApplyShareParticipantCommand
 import com.gonezo.sharing.application.ApplyShareToPostedMovementCommand
+import com.gonezo.sharing.application.SharingPersonReference
 import com.gonezo.sharing.application.GetMovementSharingDetailsQuery
 import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat
@@ -43,11 +44,11 @@ class SharingWorkflowIT : SqliteE2ETest() {
             app.sharingApplyShareToPostedMovementUC.execute(
                 ApplyShareToPostedMovementCommand(
                     transactionId = transactionId,
-                    payerName = "You",
+                    payer = SharingPersonReference.New("You"),
                     participants =
                     listOf(
                         ApplyShareParticipantCommand(
-                            personName = "Tyler",
+                            person = SharingPersonReference.New("Tyler"),
                             amount = BigDecimal("10.00"),
                             reimbursable = true,
                         ),
@@ -84,16 +85,16 @@ class SharingWorkflowIT : SqliteE2ETest() {
         app.sharingApplyShareToPostedMovementUC.execute(
             ApplyShareToPostedMovementCommand(
                 transactionId = firstTransactionId,
-                payerName = "You",
-                participants = listOf(ApplyShareParticipantCommand("Tyler", BigDecimal("10.00"), true)),
+                payer = SharingPersonReference.New("You"),
+                participants = listOf(ApplyShareParticipantCommand(SharingPersonReference.New("Tyler"), BigDecimal("10.00"), true)),
                 appliedAt = Instant.parse("2026-06-29T10:15:00Z"),
             ),
         )
         app.sharingApplyShareToPostedMovementUC.execute(
             ApplyShareToPostedMovementCommand(
                 transactionId = secondTransactionId,
-                payerName = "You",
-                participants = listOf(ApplyShareParticipantCommand(" tyler ", BigDecimal("6.00"), true)),
+                payer = SharingPersonReference.Existing(app.sharingPersonRepository.listActive().single { it.normalizedName == "you" }.id.toString()),
+                participants = listOf(ApplyShareParticipantCommand(SharingPersonReference.Existing(app.sharingPersonRepository.listActive().single { it.normalizedName == "tyler" }.id.toString()), BigDecimal("6.00"), true)),
                 appliedAt = Instant.parse("2026-06-29T11:15:00Z"),
             ),
         )
@@ -110,8 +111,8 @@ class SharingWorkflowIT : SqliteE2ETest() {
             app.sharingApplyShareToPostedMovementUC.execute(
                 ApplyShareToPostedMovementCommand(
                     transactionId = transactionId,
-                    payerName = "You",
-                    participants = listOf(ApplyShareParticipantCommand("Tyler", BigDecimal("10.00"), true)),
+                    payer = SharingPersonReference.New("You"),
+                    participants = listOf(ApplyShareParticipantCommand(SharingPersonReference.New("Tyler"), BigDecimal("10.00"), true)),
                     appliedAt = Instant.parse("2026-06-29T10:15:00Z"),
                 ),
             )
@@ -138,8 +139,8 @@ class SharingWorkflowIT : SqliteE2ETest() {
             app.sharingApplyShareToPostedMovementUC.execute(
                 ApplyShareToPostedMovementCommand(
                     transactionId = transactionId,
-                    payerName = "You",
-                    participants = listOf(ApplyShareParticipantCommand("Tyler", BigDecimal("10.00"), true)),
+                    payer = SharingPersonReference.New("You"),
+                    participants = listOf(ApplyShareParticipantCommand(SharingPersonReference.New("Tyler"), BigDecimal("10.00"), true)),
                     appliedAt = Instant.parse("2026-06-29T10:15:00Z"),
                 ),
             )
