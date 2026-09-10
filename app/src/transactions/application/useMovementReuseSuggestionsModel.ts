@@ -29,6 +29,10 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
   inputRef.current = input;
 
   useEffect(() => {
+    if (input.enabled) setSessionActive(true);
+  }, [input.enabled]);
+
+  useEffect(() => {
     const normalizedQuery = input.query.trim();
     const version = ++requestVersion.current;
     setExpandedTitle(null);
