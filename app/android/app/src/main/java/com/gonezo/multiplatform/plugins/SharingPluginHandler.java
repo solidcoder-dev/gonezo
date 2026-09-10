@@ -140,7 +140,7 @@ final class SharingPluginHandler {
       JSONObject item = values.optJSONObject(index);
       if (item != null) {
         participants.add(new ApplyShareParticipantCommand(
-          toCorePersonReference(item.getJSONObject("person")), new BigDecimal(item.optString("amount", null)), item.optBoolean("reimbursable", false)
+          toCorePersonReference(item.optJSONObject("person")), new BigDecimal(item.optString("amount", null)), item.optBoolean("reimbursable", false)
         ));
       }
     }
@@ -157,8 +157,8 @@ final class SharingPluginHandler {
       throw new IllegalArgumentException("Sharing person reference must contain exactly one id or display name");
     }
     return hasId
-      ? new SharingPersonReference.Existing(value.getString("personId"))
-      : new SharingPersonReference.New(value.getString("displayName"));
+      ? new SharingPersonReference.Existing(value.optString("personId"))
+      : new SharingPersonReference.New(value.optString("displayName"));
   }
 
   private JSObject toMovementDetailsJson(AndroidSharingCore.MovementDetailsView details) {
