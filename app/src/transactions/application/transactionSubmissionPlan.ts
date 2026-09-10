@@ -193,7 +193,7 @@ function buildSharingPlan(context: TransactionSubmissionContext) {
     personName: person.name,
     reimbursable: person.reimbursable,
     ...(context.shareDraft?.mode === 'parts' ? { parts: person.parts } : { amount: formatAmount(parseAmount(person.amount)) }),
-  })).filter((person) => 'parts' in person ? person.parts > 0 : parseAmount(person.amount) > 0);
+  }));
   if (participants.length === 0) return undefined;
   return {
     mode: context.shareDraft.mode === 'equal' ? 'parts' : context.shareDraft.mode,
@@ -622,7 +622,7 @@ async function handlePostExpectedMovement(
         personName: person.name,
         amount: formatAmount(parseAmount(person.amount)),
         reimbursable: person.reimbursable,
-      })).filter((person) => parseAmount(person.amount) > 0),
+      })),
     } : undefined,
     idempotencyKey: context.postExpectedMovementId,
   });
@@ -649,8 +649,7 @@ async function handlePostedShare(
       person: person.personId ? { personId: person.personId } : { displayName: person.name },
       amount: formatAmount(parseAmount(person.amount)),
       reimbursable: person.reimbursable,
-    }))
-    .filter((person) => parseAmount(person.amount) > 0);
+    }));
 
   if (participants.length === 0) {
     return;

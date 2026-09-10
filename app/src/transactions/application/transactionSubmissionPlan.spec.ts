@@ -147,6 +147,25 @@ describe('transaction submission plan', () => {
     });
   });
 
+  it('keeps a zero amount guest in the published share', async () => {
+    const input = {
+      ...baseInput(),
+      shareDraft: {
+        mode: 'amounts' as const,
+        people: [
+          { id: 'you', name: 'You', reimbursable: false, parts: 1, amount: '20', avatarTone: 'you' as const },
+          { id: 'person-1', name: 'Alex', reimbursable: false, parts: 1, amount: '0', avatarTone: 'custom' as const },
+        ],
+      },
+    };
+
+    await runTransactionSubmissionPlan(input);
+
+    expect(input.ports.sharing.sharingApplyShareToPostedMovement).toHaveBeenCalledWith(expect.objectContaining({
+      participants: [{ person: { displayName: 'Alex' }, amount: '0.00', reimbursable: false }],
+    }));
+  });
+
   it('carries ignored state into expected expenses', async () => {
     const input = {
       ...baseInput(),
