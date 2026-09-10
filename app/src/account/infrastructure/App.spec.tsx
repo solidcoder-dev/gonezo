@@ -1349,7 +1349,8 @@ describe('App Accounts UX', () => {
     expect(within(composer).getByRole('button', { name: 'Source account Savings' })).toBeInTheDocument();
     await selectComposerSourceAccount(composer, 'Main');
     await waitFor(() => expect(within(composer).getByRole('button', { name: 'Source account Main' })).toBeInTheDocument());
-    fireEvent.click(within(composer).getByRole('button', { name: 'Back' }));
+    const restoredComposer = await screen.findByRole('main', { name: 'Transaction composer' });
+    fireEvent.click(within(restoredComposer).getByRole('button', { name: 'Back' }));
 
     await waitFor(() => {
       expect(screen.queryByRole('main', { name: 'Transaction composer' })).not.toBeInTheDocument();
@@ -1373,17 +1374,18 @@ describe('App Accounts UX', () => {
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '20' } });
     fireEvent.click(within(composer).getByRole('button', { name: 'Sharing' }));
 
-    const shareDialog = await screen.findByRole('dialog', { name: 'Share expense' });
-    fireEvent.change(within(shareDialog).getByLabelText('Search people to add'), { target: { value: 'Emma' } });
-    fireEvent.click(within(shareDialog).getByRole('button', { name: /Emma/i }));
-    fireEvent.click(within(shareDialog).getByRole('button', { name: 'Apply share' }));
+    const shareEditor = await screen.findByRole('main', { name: 'Share expense' });
+    fireEvent.change(within(shareEditor).getByLabelText('Search people to add'), { target: { value: 'Emma' } });
+    fireEvent.click(within(shareEditor).getByRole('button', { name: /Emma/i }));
+    fireEvent.click(within(shareEditor).getByRole('button', { name: 'Apply share' }));
 
     fireEvent.click(await screen.findByRole('button', { name: 'Edit share, 1 owes you, 20.00 USD' }));
-    const reopenedShareDialog = await screen.findByRole('dialog', { name: 'Share expense' });
-    expect(within(reopenedShareDialog).getByText('Emma')).toBeInTheDocument();
-    fireEvent.click(within(reopenedShareDialog).getByRole('button', { name: 'Close share expense' }));
+    const reopenedShareEditor = await screen.findByRole('main', { name: 'Share expense' });
+    expect(within(reopenedShareEditor).getByText('Emma')).toBeInTheDocument();
+    fireEvent.click(within(reopenedShareEditor).getByRole('button', { name: 'Back' }));
 
-    fireEvent.click(within(composer).getByRole('button', { name: 'Back' }));
+    const restoredComposer = await screen.findByRole('main', { name: 'Transaction composer' });
+    fireEvent.click(within(restoredComposer).getByRole('button', { name: 'Back' }));
     await waitFor(() => {
       expect(screen.queryByRole('main', { name: 'Transaction composer' })).not.toBeInTheDocument();
     });
@@ -1412,10 +1414,10 @@ describe('App Accounts UX', () => {
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '20' } });
     fireEvent.click(within(composer).getByRole('button', { name: 'Sharing' }));
 
-    const shareDialog = await screen.findByRole('dialog', { name: 'Share expense' });
-    fireEvent.change(within(shareDialog).getByLabelText('Search people to add'), { target: { value: 'Emma' } });
-    fireEvent.click(within(shareDialog).getByRole('button', { name: /Emma/i }));
-    fireEvent.click(within(shareDialog).getByRole('button', { name: 'Apply share' }));
+    const shareEditor = await screen.findByRole('main', { name: 'Share expense' });
+    fireEvent.change(within(shareEditor).getByLabelText('Search people to add'), { target: { value: 'Emma' } });
+    fireEvent.click(within(shareEditor).getByRole('button', { name: /Emma/i }));
+    fireEvent.click(within(shareEditor).getByRole('button', { name: 'Apply share' }));
     fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
