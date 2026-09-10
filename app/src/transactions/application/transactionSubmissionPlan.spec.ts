@@ -125,6 +125,28 @@ describe('transaction submission plan', () => {
     });
   });
 
+  it('applies the current expense share draft after posting the movement', async () => {
+    const input = {
+      ...baseInput(),
+      shareDraft: {
+        mode: 'amounts' as const,
+        people: [
+          { id: 'you', name: 'You', reimbursable: false, parts: 1, amount: '8', avatarTone: 'you' as const },
+          { id: 'person-1', name: 'Alex', reimbursable: true, parts: 1, amount: '4', avatarTone: 'custom' as const },
+        ],
+      },
+    };
+
+    await runTransactionSubmissionPlan(input);
+
+    expect(input.ports.sharing.sharingApplyShareToPostedMovement).toHaveBeenCalledWith({
+      transactionId: 'tx-1',
+      payerName: 'You',
+      participants: [{ personName: 'Alex', amount: '4.00', reimbursable: true }],
+      appliedAt: '2026-05-18T10:20:30.000Z',
+    });
+  });
+
   it('carries ignored state into expected expenses', async () => {
     const input = {
       ...baseInput(),
