@@ -14,6 +14,7 @@ import com.gonezo.sharing.application.ApplyShareParticipantCommand
 import com.gonezo.sharing.application.ApplyShareToPostedMovementCommand
 import com.gonezo.sharing.application.SharingPersonReference
 import com.gonezo.sharing.domain.SharedMovementType
+import com.gonezo.sharing.domain.ShareSettlementStatus
 import com.gonezo.sharing.application.GetMovementSharingDetailsQuery
 import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat
@@ -182,6 +183,26 @@ class SharingWorkflowIT : SqliteE2ETest() {
         assertThat(details.analytics.paidOut).isEqualByComparingTo("0.00")
         val expectedMovement = app.expectedMovementRepository.findById(ExpectedMovementId.from(details.participants.single().expectedMovementId!!))
         assertThat(expectedMovement!!.type.value).isEqualTo("expense")
+    }
+
+    @Test
+    fun `zero amount participant remains a guest without an expected movement`() {
+        val accountId = openCashAccount()
+        val transactionId = recordExpense(accountId.toString(), "20.00")
+
+        val result = app.sharingApplyShareToPostedMovementUC.execute(
+            ApplyShareToPostedMovementCommand(
+                transactionId = transactionId,
+                payer = SharingPersonReference.New("You"),
+                participants = listOf(ApplyShareParticipantCommand(SharingPersonReference.New("Tyler"), BigDecimal("0.00"), true)),
+                appliedAt = Instant.parse("2026-06-29T10:15:00Z"),
+            ),
+        )
+
+        assertThat(result.participants.single().expectedMovementId).isNull()
+        val details = app.sharingGetMovementSharingDetailsUC.execute(GetMovementSharingDetailsQuery(transactionId))!!
+        assertThat(details.participants.single().repaymentStatus).isEqualTo("not_expected")
+        assertThat(app.sharingPersonRepository.listActive().map { it.displayName }).contains("Tyler")
     }
 
     private fun openCashAccount() = app.ledgerOpenAccountUC.execute(
