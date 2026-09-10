@@ -5,7 +5,7 @@ import { createSchedulingGateway } from '../../scheduling/application/scheduling
 import { createSharingGateway } from '../../sharing/application/sharingGateway';
 import { createTaxonomyGateway } from '../../taxonomy/application/taxonomyGateway';
 import { ShareControlsView } from '../../sharing/ui/ShareControls/ShareControlsView';
-import { ShareExpenseEditorView } from '../../sharing/ui/ShareExpenseEditor/ShareExpenseEditorView';
+import { ShareMovementEditorPageView } from '../../sharing/ui/ShareMovementEditor/ShareMovementEditorPageView';
 import { TransactionEntryView } from '../ui/TransactionComposer/TransactionEntryView';
 import type { TransactionEntryComponentProps } from './TransactionEntryComponent.contract';
 import type { TransactionEntryModelClock, TransactionEntryModelIdGenerator } from './useTransactionEntryModel';
@@ -139,25 +139,25 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
       }}
     />
   ) : null;
-  const shareEditorBody = (
-    <ShareExpenseEditorView
-      required={{
-        config: {},
-        data: { peopleSuggestions: model.required.state.sharePeopleSuggestions },
-        state: {
-          amount: model.required.state.amount,
-          currencyCode: model.required.state.currencyCode,
-          draft: model.required.state.shareDraft,
-        },
-        status: { disabled: model.required.status.disabled },
-      }}
-      provided={{
-        commands: {
-          applyShare: model.provided.commands.applyShareDraft,
-        },
-      }}
-    />
-  );
+  if (model.required.state.shareEditorOpen) {
+    return (
+      <ShareMovementEditorPageView
+        title={model.required.state.mode === 'income' ? 'Share income' : 'Share expense'}
+        onClose={model.provided.commands.closeShareEditor}
+        required={{
+          config: {},
+          data: { peopleSuggestions: model.required.state.sharePeopleSuggestions },
+          state: {
+            amount: model.required.state.amount,
+            currencyCode: model.required.state.currencyCode,
+            draft: model.required.state.shareDraft,
+          },
+          status: { disabled: model.required.status.disabled },
+        }}
+        provided={{ commands: { applyShare: model.provided.commands.applyShareDraft } }}
+      />
+    );
+  }
 
   return (
     <>
@@ -185,7 +185,6 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
             ...model.required.state,
             favoriteAccountId: required.config.favoriteAccountId,
             shareControl,
-            shareEditorBody,
           },
         }}
         provided={model.provided}

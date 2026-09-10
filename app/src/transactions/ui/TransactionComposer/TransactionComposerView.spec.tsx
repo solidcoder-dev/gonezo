@@ -49,7 +49,6 @@ function makeRequired(overrides: Partial<TransactionComposerViewRequired> = {}):
     recurrenceEndCount: '',
     scheduleEditorOpen: false,
     expected: false,
-    shareEditorOpen: false,
     shareApplied: false,
     movementIgnored: false,
     currencyCode: 'EUR',

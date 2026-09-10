@@ -15,11 +15,6 @@
   width: min(100%, 760px);
 }
 
-.composer-share-sheet {
-  width: min(100%, 760px);
-  height: min(74dvh, 620px);
-}
-
 .composer-more-sheet {
   width: min(100%, 520px);
   height: auto;
@@ -29,13 +24,6 @@
 .composer-items-content {
   min-height: 0;
   display: grid;
-  overflow: hidden;
-}
-
-.composer-share-content {
-  min-height: 0;
-  display: grid;
-  padding: 0 2px 2px;
   overflow: hidden;
 }
 

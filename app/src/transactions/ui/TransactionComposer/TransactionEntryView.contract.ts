@@ -65,13 +65,11 @@ export type TransactionEntryViewRequired = {
     recurrenceEndCount: string;
     scheduleEditorOpen: boolean;
     expected: boolean;
-    shareEditorOpen: boolean;
     shareDraft?: ShareDraft;
     shareSummary?: { peopleCount: number; total: string };
     sharePeopleSuggestions: SharingPersonSuggestion[];
     movementIgnored: boolean;
     shareControl?: ReactNode;
-    shareEditorBody?: ReactNode;
     editedScheduledMovementId?: string;
     postExpectedMovementId?: string;
     currencyCode?: string;

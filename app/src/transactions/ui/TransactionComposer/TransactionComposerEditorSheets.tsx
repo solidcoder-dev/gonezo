@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { SheetView } from '../../../shared/ui/SheetView';
 import type {
   RecurrenceEndView as RecurrenceEndInput,
@@ -49,9 +48,6 @@ type TransactionComposerEditorSheetsProps = {
     recurrenceWeeklyDay: string;
     scheduleEditorOpen: boolean;
     scheduleEditorTitle: string;
-    shareEditorBody?: ReactNode;
-    shareEditorOpen: boolean;
-    shareEnabled: boolean;
     splitDraftMode: 'items' | 'parts';
     splitEditorOpen: boolean;
     keyboardVisible: boolean;
@@ -60,7 +56,6 @@ type TransactionComposerEditorSheetsProps = {
     applyRecurringSchedule: () => void;
     applySplit: () => void;
     closeRecurringScheduleEditor: () => void;
-    closeShareEditor: () => void;
     closeSplitEditor: () => void;
     closeMovementMore: () => void;
     setExpenseItemAmount: (value: string) => void;
@@ -228,23 +223,6 @@ export function TransactionComposerEditorSheets({ required, provided }: Transact
           status: { disabled: required.disabled },
         }}
         provided={{ commands: { close: provided.closeSplitEditor } }}
-      />
-      <SheetView
-        required={{
-          config: {
-            ariaLabel: 'Share expense',
-            title: 'Share expense',
-            closeLabel: 'Close share expense',
-            panelClassName: 'composer-auxiliary-sheet composer-share-sheet',
-            contentClassName: 'composer-share-content',
-          },
-          data: {
-            body: required.shareEditorBody,
-          },
-          state: { open: required.shareEnabled && required.shareEditorOpen },
-          status: { disabled: required.disabled },
-        }}
-        provided={{ commands: { close: provided.closeShareEditor } }}
       />
       <SheetView
         required={{

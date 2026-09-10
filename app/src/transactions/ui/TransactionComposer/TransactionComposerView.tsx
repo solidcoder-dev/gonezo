@@ -131,10 +131,8 @@ export type TransactionComposerSchedulingRequired = {
 };
 
 export type TransactionComposerSharingRequired = {
-  shareEditorOpen: boolean;
   shareApplied: boolean;
   shareControl?: ReactNode;
-  shareEditorBody?: ReactNode;
 };
 
 export type TransactionComposerViewRequired =
@@ -321,11 +319,9 @@ export function TransactionComposerView({ required, provided }: Props) {
     recurrenceEndCount,
     scheduleEditorOpen,
     expected,
-    shareEditorOpen,
     shareApplied,
     movementIgnored,
     shareControl,
-    shareEditorBody,
     editedScheduledMovementId,
     postExpectedMovementId,
     currencyCode,
@@ -830,9 +826,6 @@ export function TransactionComposerView({ required, provided }: Props) {
           recurrenceWeeklyDay,
           scheduleEditorOpen,
           scheduleEditorTitle,
-          shareEditorBody,
-          shareEditorOpen,
-          shareEnabled,
           splitDraftMode,
           splitEditorOpen,
           keyboardVisible,
@@ -844,7 +837,6 @@ export function TransactionComposerView({ required, provided }: Props) {
           cancelExpenseItem: onCancelExpenseItem,
           closeMovementMore: () => setMovementMoreOpen(false),
           closeRecurringScheduleEditor: onCloseRecurringScheduleEditor,
-          closeShareEditor: onCloseShareEditor,
           closeSplitEditor: onCloseSplitEditor,
           editExpenseItem: onEditExpenseItem,
           removeExpenseItem: onRemoveExpenseItem,
