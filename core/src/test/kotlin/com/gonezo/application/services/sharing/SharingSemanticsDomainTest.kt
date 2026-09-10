@@ -70,6 +70,19 @@ class SharingSemanticsDomainTest {
     }
 
     @Test
+    fun `scaled zero amount cannot be pending`() {
+        assertThatThrownBy {
+            ShareParticipant(
+                ShareParticipantId.random(),
+                SharingPersonId.random(),
+                BigDecimal("0.00"),
+                ShareSettlementStatus.PENDING,
+                "expected-1",
+            )
+        }.isInstanceOf(IllegalArgumentException::class.java)
+    }
+
+    @Test
     fun `settlement references match their status`() {
         val participantId = ShareParticipantId.random()
         val personId = SharingPersonId.random()

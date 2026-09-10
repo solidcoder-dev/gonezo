@@ -15,7 +15,7 @@ data class ShareParticipant(
 
     init {
         require(amount >= BigDecimal.ZERO) { "share participant amount must not be negative" }
-        if (amount == BigDecimal.ZERO) {
+        if (amount.compareTo(BigDecimal.ZERO) == 0) {
             require(settlementStatus == ShareSettlementStatus.NOT_REQUIRED) { "zero amount participant cannot require settlement" }
         }
         when (settlementStatus) {
