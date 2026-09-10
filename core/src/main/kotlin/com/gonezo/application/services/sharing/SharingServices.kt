@@ -14,19 +14,19 @@ import com.gonezo.expected.domain.ports.ExpectedMovementRepository
 import com.gonezo.ledger.domain.TransactionStatus
 import com.gonezo.ledger.domain.TransactionType
 import com.gonezo.ledger.domain.ports.LedgerTransactionRepository
-import com.gonezo.sharing.domain.ExpenseShare
-import com.gonezo.sharing.domain.ExpenseShareId
+import com.gonezo.sharing.domain.MovementShare
+import com.gonezo.sharing.domain.MovementShareId
 import com.gonezo.sharing.domain.ShareParticipant
 import com.gonezo.sharing.domain.ShareParticipantId
 import com.gonezo.sharing.domain.SharingPerson
 import com.gonezo.sharing.domain.SharingPersonId
-import com.gonezo.sharing.domain.ports.ExpenseShareRepository
+import com.gonezo.sharing.domain.ports.MovementShareRepository
 import com.gonezo.sharing.domain.ports.SharingPersonRepository
 import java.math.BigDecimal
 import java.util.UUID
 
-class ApplyShareToPostedTransactionService(private val ledgerTransactionRepository: LedgerTransactionRepository, private val sharingPersonRepository: SharingPersonRepository, private val expenseShareRepository: ExpenseShareRepository, private val createExpectedMovementUC: CreateExpectedMovementUC, private val analyticsExclusionRepository: AnalyticsExclusionRepository, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary) : ApplyShareToPostedTransactionUC {
-    override fun execute(command: ApplyShareToPostedTransactionCommand): ApplyShareToPostedTransactionResult = consistencyBoundary.withinConsistencyBoundary {
+class ApplyShareToPostedMovementService(private val ledgerTransactionRepository: LedgerTransactionRepository, private val sharingPersonRepository: SharingPersonRepository, private val movementShareRepository: MovementShareRepository, private val createExpectedMovementUC: CreateExpectedMovementUC, private val analyticsExclusionRepository: AnalyticsExclusionRepository, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary) : ApplyShareToPostedMovementUC {
+    override fun execute(command: ApplyShareToPostedMovementCommand): ApplyShareToPostedMovementResult = consistencyBoundary.withinConsistencyBoundary {
         val transaction =
             ledgerTransactionRepository.findById(
                 com.gonezo.ledger.domain.TransactionId
@@ -69,8 +69,8 @@ class ApplyShareToPostedTransactionService(private val ledgerTransactionReposito
             }
 
         val share =
-            ExpenseShare(
-                id = expenseShareRepository.findBySourceTransactionId(command.transactionId)?.id ?: ExpenseShareId.random(),
+            MovementShare(
+                id = movementShareRepository.findBySourceTransactionId(command.transactionId)?.id ?: MovementShareId.random(),
                 sourceTransactionId = command.transactionId,
                 payerPersonId = payer.id,
                 totalAmount = transaction.amount.amount,
@@ -79,10 +79,10 @@ class ApplyShareToPostedTransactionService(private val ledgerTransactionReposito
                 createdAt = command.appliedAt,
                 updatedAt = command.appliedAt,
             )
-        expenseShareRepository.save(share)
+        movementShareRepository.save(share)
         createAnalyticsExclusions(share, command.appliedAt)
 
-        ApplyShareToPostedTransactionResult(
+        ApplyShareToPostedMovementResult(
             shareId = share.id.toString(),
             transactionId = command.transactionId,
             participants =
@@ -110,7 +110,7 @@ class ApplyShareToPostedTransactionService(private val ledgerTransactionReposito
                 ).also(sharingPersonRepository::save)
     }
 
-    private fun createAnalyticsExclusions(share: ExpenseShare, createdAt: java.time.Instant) {
+    private fun createAnalyticsExclusions(share: MovementShare, createdAt: java.time.Instant) {
         share.participants
             .filter { it.reimbursable }
             .forEach { participant ->
@@ -139,9 +139,9 @@ class ApplyShareToPostedTransactionService(private val ledgerTransactionReposito
     }
 }
 
-class GetMovementSharingDetailsService(private val ledgerTransactionRepository: LedgerTransactionRepository, private val sharingPersonRepository: SharingPersonRepository, private val expenseShareRepository: ExpenseShareRepository, private val expectedMovementRepository: ExpectedMovementRepository) : GetMovementSharingDetailsUC {
+class GetMovementSharingDetailsService(private val ledgerTransactionRepository: LedgerTransactionRepository, private val sharingPersonRepository: SharingPersonRepository, private val movementShareRepository: MovementShareRepository, private val expectedMovementRepository: ExpectedMovementRepository) : GetMovementSharingDetailsUC {
     override fun execute(query: GetMovementSharingDetailsQuery): MovementSharingDetailsView? {
-        val share = expenseShareRepository.findBySourceTransactionId(query.transactionId) ?: return null
+        val share = movementShareRepository.findBySourceTransactionId(query.transactionId) ?: return null
         val transaction =
             ledgerTransactionRepository.findById(
                 com.gonezo.ledger.domain.TransactionId

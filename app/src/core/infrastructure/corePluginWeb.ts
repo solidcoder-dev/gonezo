@@ -109,8 +109,8 @@ import type {
   AnalyticsListMovementFactsResult,
 } from '../../analytics/application/analytics.port';
 import type {
-  SharingApplyShareToPostedTransactionInput,
-  SharingApplyShareToPostedTransactionResult,
+  SharingApplyShareToPostedMovementInput,
+  SharingApplyShareToPostedMovementResult,
   SharingGetMovementDetailsInput,
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
@@ -379,10 +379,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
     return this.core.sharingListPeople();
   }
 
-  async sharingApplyShareToPostedTransaction(
-    options: SharingApplyShareToPostedTransactionInput,
-  ): Promise<SharingApplyShareToPostedTransactionResult> {
-    return this.core.sharingApplyShareToPostedTransaction(options);
+  async sharingApplyShareToPostedMovement(
+    options: SharingApplyShareToPostedMovementInput,
+  ): Promise<SharingApplyShareToPostedMovementResult> {
+    return this.core.sharingApplyShareToPostedMovement(options);
   }
 
   async sharingGetMovementDetails(options: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult> {

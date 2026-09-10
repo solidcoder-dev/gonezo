@@ -23,9 +23,9 @@ import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceS
 import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceUC
 import com.gonezo.sharing.application.FinalPlannedShareDraft
 import com.gonezo.sharing.application.MaterializePlannedShareCommand
-import com.gonezo.sharing.application.MaterializePlannedShareForPostedTransactionUC
+import com.gonezo.sharing.application.MaterializePlannedShareForPostedMovementUC
 import com.gonezo.sharing.domain.ExpectedMovementRef
-import com.gonezo.sharing.domain.ports.PlannedExpenseShareRepository
+import com.gonezo.sharing.domain.ports.PlannedMovementShareRepository
 import com.gonezo.taxonomy.domain.CategoryId
 import java.time.Instant
 import java.util.UUID
@@ -61,8 +61,8 @@ class PostExpectedMovementWorkflow(
     private val applyTags: ApplyTransactionTagsUC,
     private val ignoredWriter: MovementIgnoredWriter,
     private val resolveExpected: ResolveExpectedMovementUC,
-    private val materializeShare: MaterializePlannedShareForPostedTransactionUC,
-    private val plannedShares: PlannedExpenseShareRepository,
+    private val materializeShare: MaterializePlannedShareForPostedMovementUC,
+    private val plannedShares: PlannedMovementShareRepository,
     private val acknowledgeOccurrence: AcknowledgeRecurringMovementOccurrenceUC,
     private val projectNext: ExpectedOccurrenceProjectionService,
     private val consistencyBoundary: ConsistencyBoundary,

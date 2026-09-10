@@ -656,7 +656,7 @@ async function handlePostedShare(
     return;
   }
 
-  await context.ports.sharing.sharingApplyShareToPostedTransaction({
+  await context.ports.sharing.sharingApplyShareToPostedMovement({
     transactionId: state.postedTransactionId,
     payerName: 'You',
     participants,

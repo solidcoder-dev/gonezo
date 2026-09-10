@@ -44,12 +44,12 @@ import com.gonezo.ledger.application.VoidLedgerTransactionService
 import com.gonezo.ledger.application.VoidLedgerTransactionUC
 import com.gonezo.ledger.infrastructure.persistence.JdbcLedgerAccountRepository
 import com.gonezo.ledger.infrastructure.persistence.JdbcLedgerTransactionRepository
-import com.gonezo.sharing.application.ApplyShareToPostedTransactionService
-import com.gonezo.sharing.application.ApplyShareToPostedTransactionUC
+import com.gonezo.sharing.application.ApplyShareToPostedMovementService
+import com.gonezo.sharing.application.ApplyShareToPostedMovementUC
 import com.gonezo.sharing.application.GetMovementSharingDetailsService
 import com.gonezo.sharing.application.GetMovementSharingDetailsUC
-import com.gonezo.sharing.infrastructure.persistence.JdbcExpenseShareRepository
-import com.gonezo.sharing.infrastructure.persistence.JdbcPlannedExpenseShareRepository
+import com.gonezo.sharing.infrastructure.persistence.JdbcMovementShareRepository
+import com.gonezo.sharing.infrastructure.persistence.JdbcPlannedMovementShareRepository
 import com.gonezo.sharing.infrastructure.persistence.JdbcRecurringSharePlanRepository
 import com.gonezo.sharing.infrastructure.persistence.JdbcSharingPersonRepository
 import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTransactionCategoryAssignmentRepository
@@ -69,8 +69,8 @@ class TestApp(private val db: TestDatabase) {
     val expectedMovementRepository = JdbcExpectedMovementRepository(namedJdbc)
     val sharingPersonRepository = JdbcSharingPersonRepository(namedJdbc)
     val recurringSharePlanRepository = JdbcRecurringSharePlanRepository(namedJdbc)
-    val plannedExpenseShareRepository = JdbcPlannedExpenseShareRepository(namedJdbc)
-    val expenseShareRepository = JdbcExpenseShareRepository(namedJdbc)
+    val plannedMovementShareRepository = JdbcPlannedMovementShareRepository(namedJdbc)
+    val movementShareRepository = JdbcMovementShareRepository(namedJdbc)
     val analyticsExclusionRepository = JdbcAnalyticsExclusionRepository(namedJdbc)
     val taxonomyTransactionCategoryAssignmentRepository = JdbcTaxonomyTransactionCategoryAssignmentRepository(namedJdbc)
     val taxonomyTransactionTagAssignmentRepository = JdbcTaxonomyTransactionTagAssignmentRepository(namedJdbc)
@@ -150,11 +150,11 @@ class TestApp(private val db: TestDatabase) {
     val expectedResolveMovementUC: ResolveExpectedMovementUC = ResolveExpectedMovementService(expectedMovementRepository)
     val expectedDismissMovementUC: DismissExpectedMovementUC = DismissExpectedMovementService(expectedMovementRepository)
     val expectedListMovementsUC: ListExpectedMovementsUC = ListExpectedMovementsService(expectedMovementRepository)
-    val sharingApplyShareToPostedTransactionUC: ApplyShareToPostedTransactionUC =
-        ApplyShareToPostedTransactionService(
+    val sharingApplyShareToPostedMovementUC: ApplyShareToPostedMovementUC =
+        ApplyShareToPostedMovementService(
             ledgerTransactionRepository,
             sharingPersonRepository,
-            expenseShareRepository,
+            movementShareRepository,
             expectedCreateMovementUC,
             analyticsExclusionRepository,
             consistencyBoundary,
@@ -163,7 +163,7 @@ class TestApp(private val db: TestDatabase) {
         GetMovementSharingDetailsService(
             ledgerTransactionRepository,
             sharingPersonRepository,
-            expenseShareRepository,
+            movementShareRepository,
             expectedMovementRepository,
         )
 }

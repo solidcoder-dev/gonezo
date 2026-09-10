@@ -248,7 +248,7 @@ describe('CoreAdapterWeb state and effects boundaries', () => {
       merchant: 'Dinner',
     });
 
-    const share = await core.sharingApplyShareToPostedTransaction({
+    const share = await core.sharingApplyShareToPostedMovement({
       transactionId: expense.id,
       payerName: 'You',
       participants: [{ personName: 'Alex', amount: '15.00', reimbursable: true }],

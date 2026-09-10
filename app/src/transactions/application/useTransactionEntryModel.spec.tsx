@@ -59,7 +59,7 @@ function makePorts(): TransactionEntryModelPorts {
     },
     sharing: {
       sharingListPeople: vi.fn().mockResolvedValue({ items: [] }),
-      sharingApplyShareToPostedTransaction: vi.fn(),
+      sharingApplyShareToPostedMovement: vi.fn(),
       sharingGetMovementDetails: vi.fn(),
       sharingListMovementDetails: vi.fn(),
     },

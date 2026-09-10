@@ -22,7 +22,7 @@ function baseInput() {
       },
       sharing: {
         sharingListPeople: vi.fn(),
-        sharingApplyShareToPostedTransaction: vi.fn(),
+        sharingApplyShareToPostedMovement: vi.fn(),
         sharingGetMovementDetails: vi.fn(),
         sharingListMovementDetails: vi.fn(),
       },
@@ -280,7 +280,7 @@ describe('transaction submission plan', () => {
     expect(input.ports.expected.expectedResolveMovement).not.toHaveBeenCalled();
     expect(input.categorizeTransaction).not.toHaveBeenCalled();
     expect(input.applyTransactionTags).not.toHaveBeenCalled();
-    expect(input.ports.sharing.sharingApplyShareToPostedTransaction).not.toHaveBeenCalled();
+    expect(input.ports.sharing.sharingApplyShareToPostedMovement).not.toHaveBeenCalled();
     expect(input.ports.analytics.analyticsSetMovementIgnored).not.toHaveBeenCalled();
   });
 

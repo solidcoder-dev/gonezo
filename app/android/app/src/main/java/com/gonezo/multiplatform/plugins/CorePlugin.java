@@ -243,7 +243,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 
   @PluginMethod public void sharingListPeople(PluginCall call) { new SharingPluginHandler(getContext()).sharingListPeople(call); }
   @PluginMethod
-  public void sharingApplyShareToPostedTransaction(PluginCall call) { new SharingPluginHandler(getContext()).sharingApplyShareToPostedTransaction(call); }
+  public void sharingApplyShareToPostedMovement(PluginCall call) { new SharingPluginHandler(getContext()).sharingApplyShareToPostedMovement(call); }
   @PluginMethod
   public void sharingGetMovementDetails(PluginCall call) { new SharingPluginHandler(getContext()).sharingGetMovementDetails(call); }
   @PluginMethod

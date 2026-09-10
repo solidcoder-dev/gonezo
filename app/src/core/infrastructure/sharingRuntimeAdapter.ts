@@ -1,6 +1,6 @@
 import type {
-  SharingApplyShareToPostedTransactionInput,
-  SharingApplyShareToPostedTransactionResult,
+  SharingApplyShareToPostedMovementInput,
+  SharingApplyShareToPostedMovementResult,
   SharingGetMovementDetailsInput,
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
@@ -24,12 +24,12 @@ export class SharingRuntimeAdapter {
     return isNativeRuntime() ? CorePlugin.sharingListPeople() : this.web.sharingListPeople();
   }
 
-  sharingApplyShareToPostedTransaction(
-    input: SharingApplyShareToPostedTransactionInput,
-  ): Promise<SharingApplyShareToPostedTransactionResult> {
+  sharingApplyShareToPostedMovement(
+    input: SharingApplyShareToPostedMovementInput,
+  ): Promise<SharingApplyShareToPostedMovementResult> {
     return isNativeRuntime()
-      ? CorePlugin.sharingApplyShareToPostedTransaction(input)
-      : this.web.sharingApplyShareToPostedTransaction(input);
+      ? CorePlugin.sharingApplyShareToPostedMovement(input)
+      : this.web.sharingApplyShareToPostedMovement(input);
   }
 
   sharingGetMovementDetails(input: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult> {

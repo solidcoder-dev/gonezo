@@ -139,7 +139,7 @@ class ApplicationBackupJsonCodecTest {
         movement.splitItems.forEach { assertThat(it.categoryId).isEqualTo(taxonomy.categories.single().id) }
         assertThat(expected.movements.single().originRecurringMovementId).isEqualTo(recurrence.movements.single().id)
         assertThat(expected.movements.single().splitItems.single().sourceTemplateItemId).isEqualTo(recurrence.movements.single().splitItems.single().id)
-        assertThat(sharing.expenseShares.single().sourceTransactionId).isEqualTo(ledger.movements.single().id)
+        assertThat(sharing.movementShares.single().sourceTransactionId).isEqualTo(ledger.movements.single().id)
         assertThat(sharing.plannedShares.single().expectedMovementId).isEqualTo(expected.movements.single().id)
         assertThat(sharing.recurringPlans.single().recurringMovementId).isEqualTo(recurrence.movements.single().id)
         assertThat(preferences.defaultAccountId).isEqualTo(ledger.accounts.single().id)

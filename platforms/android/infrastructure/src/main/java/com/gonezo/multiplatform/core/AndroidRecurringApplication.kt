@@ -31,7 +31,7 @@ internal class AndroidRecurringApplication private constructor(context: Context)
   private val expected = AndroidExpectedMovementRepository(database)
   private val expectedCreate = com.gonezo.expected.application.CreateExpectedMovementService(expected)
   private val plans = AndroidRecurringSharePlanRepository(database)
-  private val plannedShares = AndroidPlannedExpenseShareRepository(database)
+  private val plannedShares = AndroidPlannedMovementShareRepository(database)
   private val people = AndroidSharingPersonRepository(database)
   private val instantiator = DefaultPlannedShareInstantiator(plans, plannedShares, consistencyBoundary = boundary)
   private val projection: ExpectedOccurrenceProjectionService = DefaultExpectedOccurrenceProjectionService(

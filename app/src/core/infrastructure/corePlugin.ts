@@ -112,8 +112,8 @@ import type {
   AnalyticsListMovementFactsResult,
 } from '../../analytics/application/analytics.port';
 import type {
-  SharingApplyShareToPostedTransactionInput,
-  SharingApplyShareToPostedTransactionResult,
+  SharingApplyShareToPostedMovementInput,
+  SharingApplyShareToPostedMovementResult,
   SharingGetMovementDetailsInput,
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
@@ -212,9 +212,9 @@ export interface CorePlugin {
     nextExpectedMovementId?: string;
   }>;
   sharingListPeople(): Promise<SharingListPeopleResult>;
-  sharingApplyShareToPostedTransaction(
-    options: SharingApplyShareToPostedTransactionInput,
-  ): Promise<SharingApplyShareToPostedTransactionResult>;
+  sharingApplyShareToPostedMovement(
+    options: SharingApplyShareToPostedMovementInput,
+  ): Promise<SharingApplyShareToPostedMovementResult>;
   sharingGetMovementDetails(options: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult>;
   sharingListMovementDetails(options: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult>;
   sharingGetPlannedShare(options: SharingGetPlannedShareInput): Promise<SharingPlannedShareResult>;

@@ -88,9 +88,9 @@ sealed interface BackupReference {
     data class RecurringOccurrence(override val id: String) : BackupReference
     data class ExpectedMovement(override val id: String) : BackupReference
     data class SharingPerson(override val id: String) : BackupReference
-    data class ExpenseShare(override val id: String) : BackupReference
+    data class MovementShare(override val id: String) : BackupReference
     data class RecurringSharePlan(override val id: String) : BackupReference
-    data class PlannedExpenseShare(override val id: String) : BackupReference
+    data class PlannedMovementShare(override val id: String) : BackupReference
     data class AnalyticsExclusion(override val id: String) : BackupReference
 }
 
@@ -109,9 +109,9 @@ class BackupValidationContext private constructor(private val references: Set<Ba
     fun containsRecurringOccurrence(id: String): Boolean = contains(BackupReference.RecurringOccurrence(id))
     fun containsExpectedMovement(id: String): Boolean = contains(BackupReference.ExpectedMovement(id))
     fun containsSharingPerson(id: String): Boolean = contains(BackupReference.SharingPerson(id))
-    fun containsExpenseShare(id: String): Boolean = contains(BackupReference.ExpenseShare(id))
+    fun containsMovementShare(id: String): Boolean = contains(BackupReference.MovementShare(id))
     fun containsRecurringSharePlan(id: String): Boolean = contains(BackupReference.RecurringSharePlan(id))
-    fun containsPlannedExpenseShare(id: String): Boolean = contains(BackupReference.PlannedExpenseShare(id))
+    fun containsPlannedMovementShare(id: String): Boolean = contains(BackupReference.PlannedMovementShare(id))
 
     companion object {
         fun from(sections: Map<BackupSectionId, BackupSection>): BackupValidationContext = BackupValidationContext(sections.values.flatMap { it.references() }.toSet())

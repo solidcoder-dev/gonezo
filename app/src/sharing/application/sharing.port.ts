@@ -14,14 +14,14 @@ export type SharingApplyShareParticipantInput = {
   reimbursable: boolean;
 };
 
-export type SharingApplyShareToPostedTransactionInput = {
+export type SharingApplyShareToPostedMovementInput = {
   transactionId: string;
   payerName: string;
   participants: SharingApplyShareParticipantInput[];
   appliedAt?: string;
 };
 
-export type SharingApplyShareToPostedTransactionResult = {
+export type SharingApplyShareToPostedMovementResult = {
   shareId: string;
   transactionId: string;
   participants: Array<{
@@ -87,9 +87,9 @@ export type SharingPlannedShareResult = {
 
 export interface SharingPort {
   sharingListPeople(): Promise<SharingListPeopleResult>;
-  sharingApplyShareToPostedTransaction(
-    input: SharingApplyShareToPostedTransactionInput,
-  ): Promise<SharingApplyShareToPostedTransactionResult>;
+  sharingApplyShareToPostedMovement(
+    input: SharingApplyShareToPostedMovementInput,
+  ): Promise<SharingApplyShareToPostedMovementResult>;
   sharingGetMovementDetails(input: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult>;
   sharingListMovementDetails(input: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult>;
   sharingGetPlannedShare?(input: SharingGetPlannedShareInput): Promise<SharingPlannedShareResult>;

@@ -26,11 +26,11 @@ import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceU
 import com.gonezo.recurrence.domain.RecurringMovementId
 import com.gonezo.recurrence.domain.RecurringMovementOccurrence
 import com.gonezo.sharing.application.MaterializePlannedShareCommand
-import com.gonezo.sharing.application.MaterializePlannedShareForPostedTransactionUC
+import com.gonezo.sharing.application.MaterializePlannedShareForPostedMovementUC
 import com.gonezo.sharing.domain.ExpectedMovementRef
-import com.gonezo.sharing.domain.PlannedExpenseShare
-import com.gonezo.sharing.domain.PlannedExpenseShareId
-import com.gonezo.sharing.domain.ports.PlannedExpenseShareRepository
+import com.gonezo.sharing.domain.PlannedMovementShare
+import com.gonezo.sharing.domain.PlannedMovementShareId
+import com.gonezo.sharing.domain.ports.PlannedMovementShareRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
@@ -227,7 +227,7 @@ class PostExpectedMovementWorkflowTest {
             },
             ignoredWriter = MovementIgnoredWriter { _, _, _ -> },
             resolveExpected = resolveExpected,
-            materializeShare = object : MaterializePlannedShareForPostedTransactionUC {
+            materializeShare = object : MaterializePlannedShareForPostedMovementUC {
                 override fun execute(command: MaterializePlannedShareCommand) = "share-1".also { fixture.materializedShares.add(command) }
             },
             plannedShares = EmptyPlannedShares,
@@ -265,10 +265,10 @@ class PostExpectedMovementWorkflowTest {
         }
     }
 
-    private object EmptyPlannedShares : PlannedExpenseShareRepository {
-        override fun save(share: PlannedExpenseShare) = Unit
-        override fun findById(id: PlannedExpenseShareId): PlannedExpenseShare? = null
-        override fun findByExpectedMovementRef(ref: ExpectedMovementRef): PlannedExpenseShare? = null
+    private object EmptyPlannedShares : PlannedMovementShareRepository {
+        override fun save(share: PlannedMovementShare) = Unit
+        override fun findById(id: PlannedMovementShareId): PlannedMovementShare? = null
+        override fun findByExpectedMovementRef(ref: ExpectedMovementRef): PlannedMovementShare? = null
     }
 }
 

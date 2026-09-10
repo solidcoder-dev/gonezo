@@ -60,7 +60,7 @@ class AndroidScheduledProcessingRuntime private constructor(
       val consistencyBoundary = AndroidConsistencyBoundary(database)
       val clock = Clock.systemUTC()
       val expectedRepository = AndroidExpectedMovementRepository(database)
-      val plannedShares = AndroidPlannedExpenseShareRepository(database)
+      val plannedShares = AndroidPlannedMovementShareRepository(database)
       val recurringPlans = AndroidRecurringSharePlanRepository(database)
       val people = AndroidSharingPersonRepository(database)
       val notificationRepository = AndroidNotificationRepository(database)

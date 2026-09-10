@@ -32,9 +32,9 @@ object BackupIdentifierValidator {
             is BackupReference.RecurringOccurrence -> "recurrence occurrence"
             is BackupReference.ExpectedMovement -> "expected movement"
             is BackupReference.SharingPerson -> "sharing person"
-            is BackupReference.ExpenseShare -> "expense share"
+            is BackupReference.MovementShare -> "expense share"
             is BackupReference.RecurringSharePlan -> "recurring share plan"
-            is BackupReference.PlannedExpenseShare -> "planned expense share"
+            is BackupReference.PlannedMovementShare -> "planned expense share"
             is BackupReference.AnalyticsExclusion -> "analytics exclusion"
         }
 }

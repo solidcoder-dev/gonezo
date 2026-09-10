@@ -95,7 +95,7 @@ function makePorts(overrides: Partial<MonthlyMovementsModelPorts> = {}): Monthly
     },
     sharing: {
       sharingListPeople: vi.fn(),
-      sharingApplyShareToPostedTransaction: vi.fn(),
+      sharingApplyShareToPostedMovement: vi.fn(),
       sharingGetMovementDetails: vi.fn().mockResolvedValue(null),
       sharingListMovementDetails: vi.fn(),
     },

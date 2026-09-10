@@ -5,7 +5,7 @@ export type { SharingGatewayPort } from './sharingGateway.port';
 export function createSharingGateway(core: SharingGatewayPort): SharingGatewayPort {
   return {
     sharingListPeople: () => core.sharingListPeople(),
-    sharingApplyShareToPostedTransaction: (input) => core.sharingApplyShareToPostedTransaction(input),
+    sharingApplyShareToPostedMovement: (input) => core.sharingApplyShareToPostedMovement(input),
     sharingGetMovementDetails: (input) => core.sharingGetMovementDetails(input),
     sharingListMovementDetails: (input) => core.sharingListMovementDetails(input),
   };

@@ -6,8 +6,8 @@ import com.getcapacitor.PluginCall;
 import com.gonezo.multiplatform.core.AndroidSharingCore;
 import com.gonezo.multiplatform.core.AndroidExpectedPostingApplication;
 import com.gonezo.sharing.application.ApplyShareParticipantCommand;
-import com.gonezo.sharing.application.ApplyShareToPostedTransactionCommand;
-import com.gonezo.sharing.application.ApplyShareToPostedTransactionResult;
+import com.gonezo.sharing.application.ApplyShareToPostedMovementCommand;
+import com.gonezo.sharing.application.ApplyShareToPostedMovementResult;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -39,10 +39,10 @@ final class SharingPluginHandler {
     }
   }
 
-  void sharingApplyShareToPostedTransaction(PluginCall call) {
+  void sharingApplyShareToPostedMovement(PluginCall call) {
     try {
-      ApplyShareToPostedTransactionResult share = AndroidExpectedPostingApplication.getInstance(context).applyShare(
-        new ApplyShareToPostedTransactionCommand(
+      ApplyShareToPostedMovementResult share = AndroidExpectedPostingApplication.getInstance(context).applyShare(
+        new ApplyShareToPostedMovementCommand(
           call.getString("transactionId"), call.getString("payerName"), toCoreParticipants(call.getArray("participants")),
           Instant.parse(call.getString("appliedAt", Instant.now().toString()))
         )

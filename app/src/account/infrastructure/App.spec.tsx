@@ -628,7 +628,7 @@ function makeCore(transactionCount = 0): AppTestPort {
       movement.updatedAt = dismissedAt;
     }),
     sharingListPeople: vi.fn(async () => ({ items: [] })),
-    sharingApplyShareToPostedTransaction: vi.fn(async (input) => ({
+    sharingApplyShareToPostedMovement: vi.fn(async (input) => ({
       shareId: `share-${input.transactionId}`,
       transactionId: input.transactionId,
       participants: input.participants.map((participant: { personName: string; amount: string; reimbursable: boolean }, index: number) => ({

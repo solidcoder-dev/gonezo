@@ -24,8 +24,8 @@ internal class AndroidExpectedPostingApplication private constructor(context: Co
   private val expected = AndroidExpectedMovementRepository(database)
   private val people = AndroidSharingPersonRepository(database)
   private val plans = AndroidRecurringSharePlanRepository(database)
-  private val plannedShares = AndroidPlannedExpenseShareRepository(database)
-  private val expenseShares = AndroidExpenseShareRepository(database)
+  private val plannedShares = AndroidPlannedMovementShareRepository(database)
+  private val movementShares = AndroidMovementShareRepository(database)
   private val exclusions = AndroidAnalyticsExclusionRepository(database)
   private val categories = AndroidTaxonomyCategoryRepository(database)
   private val categoryAssignments = AndroidTaxonomyTransactionCategoryAssignmentRepository(database)
@@ -49,8 +49,8 @@ internal class AndroidExpectedPostingApplication private constructor(context: Co
   private val recurringRepository = AndroidRecurringMovementRepository(database)
   private val acknowledgeOccurrence: AcknowledgeRecurringMovementOccurrenceUC = AcknowledgeRecurringMovementOccurrenceService(occurrenceRepository)
   private val plannedInstantiator: PlannedShareInstantiator = DefaultPlannedShareInstantiator(plans, plannedShares, consistencyBoundary = consistencyBoundary)
-  private val applyShare: ApplyShareToPostedTransactionUC = ApplyShareToPostedTransactionService(transactions, people, expenseShares, expectedCreate, exclusions, consistencyBoundary)
-  private val materializeShare: MaterializePlannedShareForPostedTransactionUC = DefaultMaterializePlannedShareForPostedTransactionService(plannedShares, people, applyShare, consistencyBoundary)
+  private val applyShare: ApplyShareToPostedMovementUC = ApplyShareToPostedMovementService(transactions, people, movementShares, expectedCreate, exclusions, consistencyBoundary)
+  private val materializeShare: MaterializePlannedShareForPostedMovementUC = DefaultMaterializePlannedShareForPostedMovementService(plannedShares, people, applyShare, consistencyBoundary)
   private val projection = DefaultExpectedOccurrenceProjectionService(
     recurringRepository, occurrenceRepository, expected, expectedCreate,
     plannedShareInstantiator = plannedInstantiator,
@@ -90,7 +90,7 @@ internal class AndroidExpectedPostingApplication private constructor(context: Co
   )
 
   fun execute(command: PostExpectedMovementCommand): PostExpectedMovementResult = workflow.execute(command)
-  fun applyShare(command: com.gonezo.sharing.application.ApplyShareToPostedTransactionCommand): com.gonezo.sharing.application.ApplyShareToPostedTransactionResult = applyShare.execute(command)
+  fun applyShare(command: com.gonezo.sharing.application.ApplyShareToPostedMovementCommand): com.gonezo.sharing.application.ApplyShareToPostedMovementResult = applyShare.execute(command)
   fun projectNext(recurringMovementId: String): String? = projection.projectNext(recurringMovementId, Instant.now(clock))?.toString()
   fun resolve(expectedMovementId: String, transactionId: String, resolvedAt: Instant) {
     closeExpected.execute(CloseExpectedAndContinueRecurrenceCommand(

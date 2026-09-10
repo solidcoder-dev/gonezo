@@ -104,8 +104,8 @@ import type {
   MovementsGetDetailResult,
 } from '../../movements/application/movements.port';
 import type {
-  SharingApplyShareToPostedTransactionInput,
-  SharingApplyShareToPostedTransactionResult,
+  SharingApplyShareToPostedMovementInput,
+  SharingApplyShareToPostedMovementResult,
   SharingGetMovementDetailsInput,
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
@@ -255,10 +255,10 @@ export class CoreAdapterWeb implements CorePort {
   async analyticsGetFlowReport(input: AnalyticsFlowReportInput): Promise<AnalyticsFlowReport> { return analyticsGetFlowReport(this, input); }
   async sharingListPeople(): Promise<SharingListPeopleResult> { return this.sharingService.listPeople(); }
 
-  async sharingApplyShareToPostedTransaction(
-    input: SharingApplyShareToPostedTransactionInput,
-  ): Promise<SharingApplyShareToPostedTransactionResult> {
-    return this.sharingService.applyShareToPostedTransaction(input);
+  async sharingApplyShareToPostedMovement(
+    input: SharingApplyShareToPostedMovementInput,
+  ): Promise<SharingApplyShareToPostedMovementResult> {
+    return this.sharingService.applyShareToPostedMovement(input);
   }
 
   async sharingGetMovementDetails(input: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult> { return this.sharingService.getMovementDetails(input); }

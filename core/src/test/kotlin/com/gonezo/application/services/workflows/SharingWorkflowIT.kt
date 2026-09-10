@@ -10,7 +10,7 @@ import com.gonezo.ledger.application.RecordLedgerExpenseCommand
 import com.gonezo.ledger.domain.AccountType
 import com.gonezo.ledger.domain.CurrencyCode
 import com.gonezo.sharing.application.ApplyShareParticipantCommand
-import com.gonezo.sharing.application.ApplyShareToPostedTransactionCommand
+import com.gonezo.sharing.application.ApplyShareToPostedMovementCommand
 import com.gonezo.sharing.application.GetMovementSharingDetailsQuery
 import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat
@@ -40,8 +40,8 @@ class SharingWorkflowIT : SqliteE2ETest() {
         val transactionId = recordExpense(accountId.toString(), "20.00")
 
         val result =
-            app.sharingApplyShareToPostedTransactionUC.execute(
-                ApplyShareToPostedTransactionCommand(
+            app.sharingApplyShareToPostedMovementUC.execute(
+                ApplyShareToPostedMovementCommand(
                     transactionId = transactionId,
                     payerName = "You",
                     participants =
@@ -81,16 +81,16 @@ class SharingWorkflowIT : SqliteE2ETest() {
         val firstTransactionId = recordExpense(accountId.toString(), "20.00")
         val secondTransactionId = recordExpense(accountId.toString(), "12.00")
 
-        app.sharingApplyShareToPostedTransactionUC.execute(
-            ApplyShareToPostedTransactionCommand(
+        app.sharingApplyShareToPostedMovementUC.execute(
+            ApplyShareToPostedMovementCommand(
                 transactionId = firstTransactionId,
                 payerName = "You",
                 participants = listOf(ApplyShareParticipantCommand("Tyler", BigDecimal("10.00"), true)),
                 appliedAt = Instant.parse("2026-06-29T10:15:00Z"),
             ),
         )
-        app.sharingApplyShareToPostedTransactionUC.execute(
-            ApplyShareToPostedTransactionCommand(
+        app.sharingApplyShareToPostedMovementUC.execute(
+            ApplyShareToPostedMovementCommand(
                 transactionId = secondTransactionId,
                 payerName = "You",
                 participants = listOf(ApplyShareParticipantCommand(" tyler ", BigDecimal("6.00"), true)),
@@ -107,8 +107,8 @@ class SharingWorkflowIT : SqliteE2ETest() {
         val accountId = openCashAccount()
         val transactionId = recordExpense(accountId.toString(), "20.00")
         val share =
-            app.sharingApplyShareToPostedTransactionUC.execute(
-                ApplyShareToPostedTransactionCommand(
+            app.sharingApplyShareToPostedMovementUC.execute(
+                ApplyShareToPostedMovementCommand(
                     transactionId = transactionId,
                     payerName = "You",
                     participants = listOf(ApplyShareParticipantCommand("Tyler", BigDecimal("10.00"), true)),
@@ -135,8 +135,8 @@ class SharingWorkflowIT : SqliteE2ETest() {
         val accountId = openCashAccount()
         val transactionId = recordExpense(accountId.toString(), "20.00")
         val share =
-            app.sharingApplyShareToPostedTransactionUC.execute(
-                ApplyShareToPostedTransactionCommand(
+            app.sharingApplyShareToPostedMovementUC.execute(
+                ApplyShareToPostedMovementCommand(
                     transactionId = transactionId,
                     payerName = "You",
                     participants = listOf(ApplyShareParticipantCommand("Tyler", BigDecimal("10.00"), true)),

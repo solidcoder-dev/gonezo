@@ -37,19 +37,19 @@ import java.util.UUID
     }
 }
 
-@JvmInline value class PlannedExpenseShareId(val value: UUID) {
+@JvmInline value class PlannedMovementShareId(val value: UUID) {
     override fun toString(): String = value.toString()
 
     companion object {
-        fun random() = PlannedExpenseShareId(UUID.randomUUID())
+        fun random() = PlannedMovementShareId(UUID.randomUUID())
     }
 }
 
-@JvmInline value class PlannedExpenseShareParticipantId(val value: UUID) {
+@JvmInline value class PlannedMovementShareParticipantId(val value: UUID) {
     override fun toString(): String = value.toString()
 
     companion object {
-        fun random() = PlannedExpenseShareParticipantId(UUID.randomUUID())
+        fun random() = PlannedMovementShareParticipantId(UUID.randomUUID())
     }
 }
 
@@ -89,16 +89,16 @@ data class RecurringSharePlan(val id: RecurringSharePlanId, val recurringMovemen
     }
 }
 
-enum class PlannedExpenseShareStatus { PENDING, MATERIALIZED, CANCELLED }
+enum class PlannedMovementShareStatus { PENDING, MATERIALIZED, CANCELLED }
 
-data class PlannedExpenseShareParticipant(val id: PlannedExpenseShareParticipantId, val personId: SharingPersonId, val parts: Int?, val amount: BigDecimal, val reimbursable: Boolean, val order: Int) {
+data class PlannedMovementShareParticipant(val id: PlannedMovementShareParticipantId, val personId: SharingPersonId, val parts: Int?, val amount: BigDecimal, val reimbursable: Boolean, val order: Int) {
     init {
         require(amount > BigDecimal.ZERO) { "planned participant amount must be positive" }
         require(parts == null || parts > 0) { "planned participant parts must be positive" }
     }
 }
 
-data class PlannedExpenseShare(val id: PlannedExpenseShareId, val expectedMovementRef: ExpectedMovementRef, val sourcePlanId: RecurringSharePlanId?, val payerPersonId: SharingPersonId, val mode: RecurringShareAllocationMode, val payerParts: Int?, val totalAmount: BigDecimal, val currency: String, val participants: List<PlannedExpenseShareParticipant>, val status: PlannedExpenseShareStatus, val materializedTransactionId: String?, val materializedShareId: ExpenseShareId?, val createdAt: Instant, val updatedAt: Instant) {
+data class PlannedMovementShare(val id: PlannedMovementShareId, val expectedMovementRef: ExpectedMovementRef, val sourcePlanId: RecurringSharePlanId?, val payerPersonId: SharingPersonId, val mode: RecurringShareAllocationMode, val payerParts: Int?, val totalAmount: BigDecimal, val currency: String, val participants: List<PlannedMovementShareParticipant>, val status: PlannedMovementShareStatus, val materializedTransactionId: String?, val materializedShareId: MovementShareId?, val createdAt: Instant, val updatedAt: Instant) {
     init {
         require(totalAmount > BigDecimal.ZERO) { "planned share total must be positive" }
         require(participants.isNotEmpty()) { "planned share requires participants" }
@@ -108,19 +108,19 @@ data class PlannedExpenseShare(val id: PlannedExpenseShareId, val expectedMoveme
             RecurringShareAllocationMode.PARTS -> require(payerParts != null && payerParts > 0) { "planned payer parts must be positive" }
             RecurringShareAllocationMode.AMOUNTS -> require(payerParts == null) { "planned payer parts are not used for amount plans" }
         }
-        require(status == PlannedExpenseShareStatus.MATERIALIZED == (materializedTransactionId != null && materializedShareId != null)) {
+        require(status == PlannedMovementShareStatus.MATERIALIZED == (materializedTransactionId != null && materializedShareId != null)) {
             "materialized planned share references must match status"
         }
     }
 
-    fun materialize(transactionId: String, shareId: ExpenseShareId, at: Instant): PlannedExpenseShare {
-        if (status == PlannedExpenseShareStatus.MATERIALIZED) {
+    fun materialize(transactionId: String, shareId: MovementShareId, at: Instant): PlannedMovementShare {
+        if (status == PlannedMovementShareStatus.MATERIALIZED) {
             require(materializedTransactionId == transactionId) { "planned share belongs to another transaction" }
             return this
         }
-        check(status == PlannedExpenseShareStatus.PENDING) { "Only pending planned shares can be materialized" }
+        check(status == PlannedMovementShareStatus.PENDING) { "Only pending planned shares can be materialized" }
         return copy(
-            status = PlannedExpenseShareStatus.MATERIALIZED,
+            status = PlannedMovementShareStatus.MATERIALIZED,
             materializedTransactionId = transactionId,
             materializedShareId = shareId,
             updatedAt = at,
@@ -136,11 +136,11 @@ object DefaultCurrencyScaleResolver : CurrencyScaleResolver {
     override fun scale(currency: String): Int = if (currency.trim().uppercase() == "JPY") 0 else 2
 }
 
-interface ExpenseShareAllocationStrategy {
+interface MovementShareAllocationStrategy {
     fun allocate(total: BigDecimal, plan: RecurringSharePlan, scale: Int): List<BigDecimal>
 }
 
-class AmountExpenseShareAllocationStrategy : ExpenseShareAllocationStrategy {
+class AmountMovementShareAllocationStrategy : MovementShareAllocationStrategy {
     override fun allocate(total: BigDecimal, plan: RecurringSharePlan, scale: Int): List<BigDecimal> {
         val amounts = plan.participants.sortedBy { it.order }.map { it.fixedAmount!! }
         require(amounts.sumOf { it } <= total) { "participant amounts cannot exceed movement total" }
@@ -148,7 +148,7 @@ class AmountExpenseShareAllocationStrategy : ExpenseShareAllocationStrategy {
     }
 }
 
-class PartsExpenseShareAllocationStrategy : ExpenseShareAllocationStrategy {
+class PartsMovementShareAllocationStrategy : MovementShareAllocationStrategy {
     override fun allocate(total: BigDecimal, plan: RecurringSharePlan, scale: Int): List<BigDecimal> {
         val denominator = plan.payerParts!! + plan.participants.sumOf { it.parts!! }
         val unit = total.divide(BigDecimal(denominator), scale + 8, RoundingMode.DOWN)

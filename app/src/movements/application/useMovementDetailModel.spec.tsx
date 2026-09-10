@@ -102,7 +102,7 @@ function makeInput(overrides: Record<string, unknown> = {}) {
     },
     sharing: {
       sharingListPeople: vi.fn(),
-      sharingApplyShareToPostedTransaction: vi.fn(),
+      sharingApplyShareToPostedMovement: vi.fn(),
       sharingGetMovementDetails: vi.fn().mockResolvedValue(null),
       sharingListMovementDetails: vi.fn(),
     },

@@ -5,8 +5,8 @@ import com.gonezo.application.orchestration.backup.AnalyticsBackupSection
 import com.gonezo.application.orchestration.backup.BackupAccount
 import com.gonezo.application.orchestration.backup.BackupAnalyticsExclusion
 import com.gonezo.application.orchestration.backup.BackupCategory
-import com.gonezo.application.orchestration.backup.BackupExpenseShare
-import com.gonezo.application.orchestration.backup.BackupPlannedExpenseShare
+import com.gonezo.application.orchestration.backup.BackupMovementShare
+import com.gonezo.application.orchestration.backup.BackupPlannedMovementShare
 import com.gonezo.application.orchestration.backup.BackupPlannedShareParticipant
 import com.gonezo.application.orchestration.backup.BackupPostedMovement
 import com.gonezo.application.orchestration.backup.BackupRecurringShareParticipant
@@ -57,9 +57,9 @@ private fun expected(v: BackupExpectedMovement) = JSONObject().put("id", v.id).p
     ),
 ).put("status", v.status).putNullable("resolvedTransactionId", v.resolvedTransactionId).put("createdAt", v.createdAt).put("updatedAt", v.updatedAt).putNullable("resolvedAt", v.resolvedAt).putNullable("dismissedAt", v.dismissedAt).put("tagNames", JSONArray(v.tagNames.sorted()))
 private fun person(v: BackupSharingPerson) = JSONObject().put("id", v.id).put("name", v.displayName).put("normalizedName", v.normalizedName).put("createdAt", v.createdAt).putNullable("archivedAt", v.archivedAt)
-private fun expenseShare(v: BackupExpenseShare) = JSONObject().put("id", v.id).put("transactionId", v.sourceTransactionId).put("payerPersonId", v.payerPersonId).put("totalAmount", v.totalAmount).put("currency", v.currency).put("participants", JSONArray(v.participants.map { JSONObject().put("id", it.id).put("personId", it.personId).put("amount", it.amount).put("reimbursable", it.reimbursable).putNullable("expectedMovementId", it.expectedMovementId) })).put("createdAt", v.createdAt).put("updatedAt", v.updatedAt)
+private fun movementShare(v: BackupMovementShare) = JSONObject().put("id", v.id).put("transactionId", v.sourceTransactionId).put("payerPersonId", v.payerPersonId).put("totalAmount", v.totalAmount).put("currency", v.currency).put("participants", JSONArray(v.participants.map { JSONObject().put("id", it.id).put("personId", it.personId).put("amount", it.amount).put("reimbursable", it.reimbursable).putNullable("expectedMovementId", it.expectedMovementId) })).put("createdAt", v.createdAt).put("updatedAt", v.updatedAt)
 private fun recurringPlan(v: BackupRecurringSharePlan) = JSONObject().put("id", v.id).put("recurringMovementId", v.recurringMovementId).put("payerPersonId", v.payerPersonId).put("mode", v.mode).put("currency", v.currency).putNullable("payerParts", v.payerParts).put("participants", JSONArray(v.participants.map { JSONObject().put("id", it.id).put("personId", it.personId).putNullable("parts", it.parts).putNullable("fixedAmount", it.fixedAmount).put("reimbursable", it.reimbursable).put("order", it.order) })).put("createdAt", v.createdAt).put("updatedAt", v.updatedAt)
-private fun plannedShare(v: BackupPlannedExpenseShare) = JSONObject().put("id", v.id).put("expectedMovementId", v.expectedMovementId).putNullable("sourcePlanId", v.sourcePlanId).put("payerPersonId", v.payerPersonId).put("mode", v.mode).putNullable("payerParts", v.payerParts).put("totalAmount", v.totalAmount).put("currency", v.currency).put(
+private fun plannedShare(v: BackupPlannedMovementShare) = JSONObject().put("id", v.id).put("expectedMovementId", v.expectedMovementId).putNullable("sourcePlanId", v.sourcePlanId).put("payerPersonId", v.payerPersonId).put("mode", v.mode).putNullable("payerParts", v.payerParts).put("totalAmount", v.totalAmount).put("currency", v.currency).put(
     "participants",
     JSONArray(
         v.participants.map {
@@ -94,13 +94,17 @@ private fun decodeExpectedMovement(o: JSONObject) = BackupExpectedMovement(
     o.getString("status"), o.stringOrNull("resolvedTransactionId"), o.getString("createdAt"), o.getString("updatedAt"), o.stringOrNull("resolvedAt"), o.stringOrNull("dismissedAt"), o.array("tagNames").values(),
 )
 private fun decodePerson(o: JSONObject) = BackupSharingPerson(o.getString("id"), o.stringOrLegacy("name", "displayName")!!, o.getString("normalizedName"), o.getString("createdAt"), o.stringOrNull("archivedAt"))
-private fun decodeExpenseShare(o: JSONObject) = BackupExpenseShare(o.getString("id"), o.stringOrLegacy("transactionId", "sourceTransactionId")!!, o.getString("payerPersonId"), o.getString("totalAmount"), o.getString("currency"), o.array("participants").objects { item -> BackupShareParticipant(item.getString("id"), item.getString("personId"), item.getString("amount"), item.getBoolean("reimbursable"), item.stringOrNull("expectedMovementId")) }, o.getString("createdAt"), o.getString("updatedAt"))
+private fun decodeMovementShare(o: JSONObject) = BackupMovementShare(o.getString("id"), o.stringOrLegacy("transactionId", "sourceTransactionId")!!, o.getString("payerPersonId"), o.getString("totalAmount"), o.getString("currency"), o.array("participants").objects { item -> BackupShareParticipant(item.getString("id"), item.getString("personId"), item.getString("amount"), item.getBoolean("reimbursable"), item.stringOrNull("expectedMovementId")) }, o.getString("createdAt"), o.getString("updatedAt"))
 private fun decodeRecurringPlan(o: JSONObject) = BackupRecurringSharePlan(o.getString("id"), o.getString("recurringMovementId"), o.getString("payerPersonId"), o.getString("mode"), o.getString("currency"), o.intOrNull("payerParts"), o.array("participants").objects { item -> BackupRecurringShareParticipant(item.getString("id"), item.getString("personId"), item.intOrNull("parts"), item.stringOrNull("fixedAmount"), item.getBoolean("reimbursable"), item.getInt("order")) }, o.getString("createdAt"), o.getString("updatedAt"))
-private fun decodePlannedShare(o: JSONObject) = BackupPlannedExpenseShare(o.getString("id"), o.getString("expectedMovementId"), o.stringOrNull("sourcePlanId"), o.getString("payerPersonId"), o.getString("mode"), o.intOrNull("payerParts"), o.getString("totalAmount"), o.getString("currency"), o.array("participants").objects { item -> BackupPlannedShareParticipant(item.getString("id"), item.getString("personId"), item.intOrNull("parts"), item.getString("amount"), item.getBoolean("reimbursable"), item.getInt("order")) }, o.getString("status"), o.stringOrNull("materializedTransactionId"), o.stringOrNull("materializedShareId"), o.getString("createdAt"), o.getString("updatedAt"))
+private fun decodePlannedShare(o: JSONObject) = BackupPlannedMovementShare(o.getString("id"), o.getString("expectedMovementId"), o.stringOrNull("sourcePlanId"), o.getString("payerPersonId"), o.getString("mode"), o.intOrNull("payerParts"), o.getString("totalAmount"), o.getString("currency"), o.array("participants").objects { item -> BackupPlannedShareParticipant(item.getString("id"), item.getString("personId"), item.intOrNull("parts"), item.getString("amount"), item.getBoolean("reimbursable"), item.getInt("order")) }, o.getString("status"), o.stringOrNull("materializedTransactionId"), o.stringOrNull("materializedShareId"), o.getString("createdAt"), o.getString("updatedAt"))
 private fun decodeExclusion(o: JSONObject) = BackupAnalyticsExclusion(o.getString("id"), o.getString("scopeType"), o.getString("scopeId"), o.getString("reason"), o.getString("createdAt"))
 private fun JSONObject.array(name: String) = getJSONArray(name)
 private fun JSONObject.arrayOrEmpty(name: String) = optJSONArray(name) ?: JSONArray()
-private fun JSONObject.arrayOrLegacy(name: String, legacy: String) = if (has(name)) getJSONArray(name) else getJSONArray(legacy)
+private fun JSONObject.arrayOrLegacy(name: String, vararg legacyNames: String): JSONArray = when {
+    has(name) -> getJSONArray(name)
+    else -> legacyNames.firstNotNullOfOrNull { legacyName -> if (has(legacyName)) getJSONArray(legacyName) else null }
+        ?: throw org.json.JSONException("JSONObject[\"$name\"] not found")
+}
 private fun JSONObject.stringOrNull(name: String): String? = if (has(name) && !isNull(name)) getString(name) else null
 private fun JSONObject.stringOrLegacy(name: String, legacy: String) = stringOrNull(name) ?: stringOrNull(legacy)
 private fun JSONObject.instantOrNull(name: String) = stringOrNull(name)?.let(Instant::parse)
@@ -139,8 +143,8 @@ class ExpectedBackupSectionCodec : BackupSectionCodec<ExpectedBackupSection> {
 class SharingBackupSectionCodec : BackupSectionCodec<SharingBackupSection> {
     override val sectionId = BackupSectionId.SHARING
     override val supportedVersions = setOf(1)
-    override fun encode(section: SharingBackupSection) = JSONObject().put("version", section.version).put("data", JSONObject().put("persons", JSONArray(section.persons.sortedBy { it.id }.map(::person))).put("expenseShares", JSONArray(section.expenseShares.sortedBy { it.id }.map(::expenseShare))).put("recurringSharingPlans", JSONArray(section.recurringPlans.sortedBy { it.id }.map(::recurringPlan))).put("plannedExpenseShares", JSONArray(section.plannedShares.sortedBy { it.id }.map(::plannedShare))))
-    override fun decode(version: Int, data: JSONObject) = SharingBackupSection(data.array("persons").objects(::decodePerson), data.array("expenseShares").objects(::decodeExpenseShare), data.arrayOrLegacy("recurringSharingPlans", "recurringPlans").objects(::decodeRecurringPlan), data.arrayOrLegacy("plannedExpenseShares", "plannedShares").objects(::decodePlannedShare))
+    override fun encode(section: SharingBackupSection) = JSONObject().put("version", section.version).put("data", JSONObject().put("persons", JSONArray(section.persons.sortedBy { it.id }.map(::person))).put("movementShares", JSONArray(section.movementShares.sortedBy { it.id }.map(::movementShare))).put("recurringSharingPlans", JSONArray(section.recurringPlans.sortedBy { it.id }.map(::recurringPlan))).put("plannedMovementShares", JSONArray(section.plannedShares.sortedBy { it.id }.map(::plannedShare))))
+    override fun decode(version: Int, data: JSONObject) = SharingBackupSection(data.array("persons").objects(::decodePerson), data.arrayOrLegacy("movementShares", "expenseShares").objects(::decodeMovementShare), data.arrayOrLegacy("recurringSharingPlans", "recurringPlans").objects(::decodeRecurringPlan), data.arrayOrLegacy("plannedMovementShares", "plannedExpenseShares", "plannedShares").objects(::decodePlannedShare))
 }
 
 class AnalyticsBackupSectionCodec : BackupSectionCodec<AnalyticsBackupSection> {

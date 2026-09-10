@@ -3,7 +3,7 @@ package com.gonezo.sharing.domain
 import java.math.BigDecimal
 import java.time.Instant
 
-data class ExpenseShare(val id: ExpenseShareId, val sourceTransactionId: String, val payerPersonId: SharingPersonId, val totalAmount: BigDecimal, val currency: String, val participants: List<ShareParticipant>, val createdAt: Instant, val updatedAt: Instant) {
+data class MovementShare(val id: MovementShareId, val sourceTransactionId: String, val payerPersonId: SharingPersonId, val totalAmount: BigDecimal, val currency: String, val participants: List<ShareParticipant>, val createdAt: Instant, val updatedAt: Instant) {
     init {
         require(sourceTransactionId.isNotBlank()) { "source transaction id is required" }
         require(totalAmount > BigDecimal.ZERO) { "expense share total amount must be greater than 0" }

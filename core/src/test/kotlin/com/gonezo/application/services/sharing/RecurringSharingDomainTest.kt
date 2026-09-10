@@ -5,16 +5,16 @@ import com.gonezo.application.orchestration.RecurringOccurrenceSnapshot
 import com.gonezo.expected.domain.ExpectedMovementId
 import com.gonezo.sharing.domain.AllocationCalculator
 import com.gonezo.sharing.domain.AllocationRule
-import com.gonezo.sharing.domain.AmountExpenseShareAllocationStrategy
+import com.gonezo.sharing.domain.AmountMovementShareAllocationStrategy
 import com.gonezo.sharing.domain.DefaultCurrencyScaleResolver
 import com.gonezo.sharing.domain.ExpectedMovementRef
-import com.gonezo.sharing.domain.ExpenseShareId
-import com.gonezo.sharing.domain.PartsExpenseShareAllocationStrategy
-import com.gonezo.sharing.domain.PlannedExpenseShare
-import com.gonezo.sharing.domain.PlannedExpenseShareId
-import com.gonezo.sharing.domain.PlannedExpenseShareParticipant
-import com.gonezo.sharing.domain.PlannedExpenseShareParticipantId
-import com.gonezo.sharing.domain.PlannedExpenseShareStatus
+import com.gonezo.sharing.domain.MovementShareId
+import com.gonezo.sharing.domain.PartsMovementShareAllocationStrategy
+import com.gonezo.sharing.domain.PlannedMovementShare
+import com.gonezo.sharing.domain.PlannedMovementShareId
+import com.gonezo.sharing.domain.PlannedMovementShareParticipant
+import com.gonezo.sharing.domain.PlannedMovementShareParticipantId
+import com.gonezo.sharing.domain.PlannedMovementShareStatus
 import com.gonezo.sharing.domain.RecurringMovementRef
 import com.gonezo.sharing.domain.RecurringShareAllocationMode
 import com.gonezo.sharing.domain.RecurringShareParticipantTemplate
@@ -34,7 +34,7 @@ class RecurringSharingDomainTest {
     fun `parts allocation rounds participants down and leaves remainder with payer`() {
         val plan = plan(RecurringShareAllocationMode.PARTS, payerParts = 1, participantParts = listOf(1, 1))
 
-        val amounts = PartsExpenseShareAllocationStrategy().allocate(BigDecimal("10.00"), plan, 2)
+        val amounts = PartsMovementShareAllocationStrategy().allocate(BigDecimal("10.00"), plan, 2)
 
         assertThat(amounts).containsExactly(BigDecimal("3.33"), BigDecimal("3.33"))
         assertThat(amounts.reduce(BigDecimal::add)).isLessThanOrEqualTo(BigDecimal("10.00"))
@@ -44,7 +44,7 @@ class RecurringSharingDomainTest {
     fun `amount allocation preserves fixed participant values`() {
         val plan = plan(RecurringShareAllocationMode.AMOUNTS, participantAmounts = listOf("1.25", "2.50"))
 
-        assertThat(AmountExpenseShareAllocationStrategy().allocate(BigDecimal("10.00"), plan, 2))
+        assertThat(AmountMovementShareAllocationStrategy().allocate(BigDecimal("10.00"), plan, 2))
             .containsExactly(BigDecimal("1.25"), BigDecimal("2.50"))
     }
 
@@ -52,7 +52,7 @@ class RecurringSharingDomainTest {
     fun `amount allocation rejects participants above occurrence total`() {
         val plan = plan(RecurringShareAllocationMode.AMOUNTS, participantAmounts = listOf("8.00", "3.00"))
 
-        assertThatThrownBy { AmountExpenseShareAllocationStrategy().allocate(BigDecimal("10.00"), plan, 2) }
+        assertThatThrownBy { AmountMovementShareAllocationStrategy().allocate(BigDecimal("10.00"), plan, 2) }
             .isInstanceOf(IllegalArgumentException::class.java)
     }
 
@@ -60,7 +60,7 @@ class RecurringSharingDomainTest {
     fun `parts allocation uses currency precision for zero decimal currencies`() {
         val plan = plan(RecurringShareAllocationMode.PARTS, payerParts = 1, participantParts = listOf(1, 1))
 
-        val amounts = PartsExpenseShareAllocationStrategy().allocate(BigDecimal("1000"), plan, DefaultCurrencyScaleResolver.scale("JPY"))
+        val amounts = PartsMovementShareAllocationStrategy().allocate(BigDecimal("1000"), plan, DefaultCurrencyScaleResolver.scale("JPY"))
 
         assertThat(amounts).containsExactly(BigDecimal("333"), BigDecimal("333"))
     }
@@ -84,18 +84,18 @@ class RecurringSharingDomainTest {
 
     @Test
     fun `materializing a planned share preserves lifecycle and final identity`() {
-        val planned = PlannedExpenseShare(
-            id = PlannedExpenseShareId.random(), expectedMovementRef = ExpectedMovementRef("expected-1"),
+        val planned = PlannedMovementShare(
+            id = PlannedMovementShareId.random(), expectedMovementRef = ExpectedMovementRef("expected-1"),
             sourcePlanId = RecurringSharePlanId.random(), payerPersonId = SharingPersonId.random(),
             mode = RecurringShareAllocationMode.PARTS, payerParts = 1, totalAmount = BigDecimal("10.00"), currency = "EUR",
-            participants = listOf(PlannedExpenseShareParticipant(PlannedExpenseShareParticipantId.random(), SharingPersonId.random(), 1, BigDecimal("5.00"), true, 0)),
-            status = PlannedExpenseShareStatus.PENDING, materializedTransactionId = null, materializedShareId = null,
+            participants = listOf(PlannedMovementShareParticipant(PlannedMovementShareParticipantId.random(), SharingPersonId.random(), 1, BigDecimal("5.00"), true, 0)),
+            status = PlannedMovementShareStatus.PENDING, materializedTransactionId = null, materializedShareId = null,
             createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH,
         )
 
-        val materialized = planned.materialize("transaction-1", ExpenseShareId.random(), Instant.parse("2026-07-20T10:00:00Z"))
+        val materialized = planned.materialize("transaction-1", MovementShareId.random(), Instant.parse("2026-07-20T10:00:00Z"))
 
-        assertThat(materialized.status).isEqualTo(PlannedExpenseShareStatus.MATERIALIZED)
+        assertThat(materialized.status).isEqualTo(PlannedMovementShareStatus.MATERIALIZED)
         assertThat(materialized.materializedTransactionId).isEqualTo("transaction-1")
         assertThat(materialized.materializedShareId).isNotNull()
     }
@@ -104,8 +104,8 @@ class RecurringSharingDomainTest {
     fun `planned share keeps payer allocation as an occurrence snapshot`() {
         val payer = SharingPersonId.random()
         val participant = SharingPersonId.random()
-        val share = PlannedExpenseShare(
-            id = PlannedExpenseShareId.random(),
+        val share = PlannedMovementShare(
+            id = PlannedMovementShareId.random(),
             expectedMovementRef = ExpectedMovementRef("expected-1"),
             sourcePlanId = RecurringSharePlanId.random(),
             payerPersonId = payer,
@@ -114,8 +114,8 @@ class RecurringSharingDomainTest {
             totalAmount = BigDecimal("12.00"),
             currency = "EUR",
             participants = listOf(
-                PlannedExpenseShareParticipant(
-                    id = PlannedExpenseShareParticipantId.random(),
+                PlannedMovementShareParticipant(
+                    id = PlannedMovementShareParticipantId.random(),
                     personId = participant,
                     parts = 1,
                     amount = BigDecimal("4.00"),
@@ -123,7 +123,7 @@ class RecurringSharingDomainTest {
                     order = 0,
                 ),
             ),
-            status = PlannedExpenseShareStatus.PENDING,
+            status = PlannedMovementShareStatus.PENDING,
             materializedTransactionId = null,
             materializedShareId = null,
             createdAt = Instant.EPOCH,

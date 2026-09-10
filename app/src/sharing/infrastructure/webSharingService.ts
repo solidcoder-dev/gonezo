@@ -1,6 +1,6 @@
 import type {
-  SharingApplyShareToPostedTransactionInput,
-  SharingApplyShareToPostedTransactionResult,
+  SharingApplyShareToPostedMovementInput,
+  SharingApplyShareToPostedMovementResult,
   SharingGetMovementDetailsInput,
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
@@ -56,9 +56,9 @@ export class WebSharingService {
     };
   }
 
-  async applyShareToPostedTransaction(
-    input: SharingApplyShareToPostedTransactionInput,
-  ): Promise<SharingApplyShareToPostedTransactionResult> {
+  async applyShareToPostedMovement(
+    input: SharingApplyShareToPostedMovementInput,
+  ): Promise<SharingApplyShareToPostedMovementResult> {
     const transaction = this.ledger.getTransactionOrThrow(input.transactionId);
     if (transaction.status !== 'posted' || transaction.type !== 'expense') {
       throw new Error('Only posted expenses can be shared');
@@ -179,7 +179,7 @@ export class WebSharingService {
     });
   }
 
-  private toApplyResult(share: WebExpenseShare): SharingApplyShareToPostedTransactionResult {
+  private toApplyResult(share: WebExpenseShare): SharingApplyShareToPostedMovementResult {
     return {
       shareId: share.id,
       transactionId: share.transactionId,

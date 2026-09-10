@@ -2,17 +2,17 @@ package com.gonezo.sharing.application
 
 import com.gonezo.application.ConsistencyBoundary
 import com.gonezo.application.ImmediateConsistencyBoundary
-import com.gonezo.sharing.domain.AmountExpenseShareAllocationStrategy
+import com.gonezo.sharing.domain.AmountMovementShareAllocationStrategy
 import com.gonezo.sharing.domain.CurrencyScaleResolver
 import com.gonezo.sharing.domain.DefaultCurrencyScaleResolver
 import com.gonezo.sharing.domain.ExpectedMovementRef
-import com.gonezo.sharing.domain.ExpenseShareId
-import com.gonezo.sharing.domain.PartsExpenseShareAllocationStrategy
-import com.gonezo.sharing.domain.PlannedExpenseShare
-import com.gonezo.sharing.domain.PlannedExpenseShareId
-import com.gonezo.sharing.domain.PlannedExpenseShareParticipant
-import com.gonezo.sharing.domain.PlannedExpenseShareParticipantId
-import com.gonezo.sharing.domain.PlannedExpenseShareStatus
+import com.gonezo.sharing.domain.MovementShareId
+import com.gonezo.sharing.domain.PartsMovementShareAllocationStrategy
+import com.gonezo.sharing.domain.PlannedMovementShare
+import com.gonezo.sharing.domain.PlannedMovementShareId
+import com.gonezo.sharing.domain.PlannedMovementShareParticipant
+import com.gonezo.sharing.domain.PlannedMovementShareParticipantId
+import com.gonezo.sharing.domain.PlannedMovementShareStatus
 import com.gonezo.sharing.domain.RecurringMovementRef
 import com.gonezo.sharing.domain.RecurringShareAllocationMode
 import com.gonezo.sharing.domain.RecurringShareParticipantTemplate
@@ -21,7 +21,7 @@ import com.gonezo.sharing.domain.RecurringSharePlan
 import com.gonezo.sharing.domain.RecurringSharePlanId
 import com.gonezo.sharing.domain.SharingPerson
 import com.gonezo.sharing.domain.SharingPersonId
-import com.gonezo.sharing.domain.ports.PlannedExpenseShareRepository
+import com.gonezo.sharing.domain.ports.PlannedMovementShareRepository
 import com.gonezo.sharing.domain.ports.RecurringSharePlanRepository
 import com.gonezo.sharing.domain.ports.SharingPersonRepository
 import java.math.BigDecimal
@@ -92,34 +92,34 @@ class DefaultRecurringSharePlanService(private val plans: RecurringSharePlanRepo
 data class ExpectedOccurrenceShareSnapshot(val expectedMovementId: String, val recurringMovementId: String, val totalAmount: BigDecimal, val currency: String, val createdAt: Instant)
 
 interface PlannedShareInstantiator {
-    fun instantiate(snapshot: ExpectedOccurrenceShareSnapshot): PlannedExpenseShare?
+    fun instantiate(snapshot: ExpectedOccurrenceShareSnapshot): PlannedMovementShare?
 }
 
 object NoOpPlannedShareInstantiator : PlannedShareInstantiator {
-    override fun instantiate(snapshot: ExpectedOccurrenceShareSnapshot): PlannedExpenseShare? = null
+    override fun instantiate(snapshot: ExpectedOccurrenceShareSnapshot): PlannedMovementShare? = null
 }
 
-class DefaultPlannedShareInstantiator(private val plans: RecurringSharePlanRepository, private val plannedShares: PlannedExpenseShareRepository, private val scaleResolver: CurrencyScaleResolver = DefaultCurrencyScaleResolver, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary) : PlannedShareInstantiator {
+class DefaultPlannedShareInstantiator(private val plans: RecurringSharePlanRepository, private val plannedShares: PlannedMovementShareRepository, private val scaleResolver: CurrencyScaleResolver = DefaultCurrencyScaleResolver, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary) : PlannedShareInstantiator {
     private val strategies = mapOf(
-        RecurringShareAllocationMode.PARTS to PartsExpenseShareAllocationStrategy(),
-        RecurringShareAllocationMode.AMOUNTS to AmountExpenseShareAllocationStrategy(),
+        RecurringShareAllocationMode.PARTS to PartsMovementShareAllocationStrategy(),
+        RecurringShareAllocationMode.AMOUNTS to AmountMovementShareAllocationStrategy(),
     )
 
-    override fun instantiate(snapshot: ExpectedOccurrenceShareSnapshot): PlannedExpenseShare? = consistencyBoundary.withinConsistencyBoundary {
+    override fun instantiate(snapshot: ExpectedOccurrenceShareSnapshot): PlannedMovementShare? = consistencyBoundary.withinConsistencyBoundary {
         val expectedRef = ExpectedMovementRef(snapshot.expectedMovementId)
         plannedShares.findByExpectedMovementRef(expectedRef)?.let { return@withinConsistencyBoundary it }
         val plan = plans.findByRecurringMovementRef(RecurringMovementRef(snapshot.recurringMovementId))
             ?: return@withinConsistencyBoundary null
         val amounts = strategies.getValue(plan.mode).allocate(snapshot.totalAmount, plan, scaleResolver.scale(snapshot.currency))
         val ordered = plan.participants.sortedBy { it.order }
-        PlannedExpenseShare(
-            id = PlannedExpenseShareId.random(), expectedMovementRef = expectedRef, sourcePlanId = plan.id,
+        PlannedMovementShare(
+            id = PlannedMovementShareId.random(), expectedMovementRef = expectedRef, sourcePlanId = plan.id,
             payerPersonId = plan.payerPersonId, mode = plan.mode, payerParts = plan.payerParts, totalAmount = snapshot.totalAmount,
             currency = snapshot.currency.trim().uppercase(),
             participants = ordered.mapIndexed { index, template ->
-                PlannedExpenseShareParticipant(PlannedExpenseShareParticipantId.random(), template.personId, template.parts, amounts[index], template.reimbursable, template.order)
+                PlannedMovementShareParticipant(PlannedMovementShareParticipantId.random(), template.personId, template.parts, amounts[index], template.reimbursable, template.order)
             },
-            status = PlannedExpenseShareStatus.PENDING, materializedTransactionId = null, materializedShareId = null,
+            status = PlannedMovementShareStatus.PENDING, materializedTransactionId = null, materializedShareId = null,
             createdAt = snapshot.createdAt, updatedAt = snapshot.createdAt,
         ).also(plannedShares::save)
     }
@@ -129,37 +129,37 @@ data class FinalPlannedShareParticipant(val personName: String, val amount: BigD
 data class FinalPlannedShareDraft(val payerName: String, val participants: List<FinalPlannedShareParticipant>)
 data class MaterializePlannedShareCommand(val expectedMovementId: String, val transactionId: String, val materializedAt: Instant, val finalDraft: FinalPlannedShareDraft? = null)
 
-interface MaterializePlannedShareForPostedTransactionUC {
+interface MaterializePlannedShareForPostedMovementUC {
     fun execute(command: MaterializePlannedShareCommand): String
 }
 
-class DefaultMaterializePlannedShareForPostedTransactionService(private val plannedShares: PlannedExpenseShareRepository, private val people: SharingPersonRepository, private val applyShare: ApplyShareToPostedTransactionUC, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary) : MaterializePlannedShareForPostedTransactionUC {
+class DefaultMaterializePlannedShareForPostedMovementService(private val plannedShares: PlannedMovementShareRepository, private val people: SharingPersonRepository, private val applyShare: ApplyShareToPostedMovementUC, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary) : MaterializePlannedShareForPostedMovementUC {
     override fun execute(command: MaterializePlannedShareCommand): String = consistencyBoundary.withinConsistencyBoundary {
         val planned = plannedShares.findByExpectedMovementRef(ExpectedMovementRef(command.expectedMovementId))
             ?: throw IllegalStateException("Planned share not found for expected movement: ${command.expectedMovementId}")
-        if (planned.status == PlannedExpenseShareStatus.MATERIALIZED) {
+        if (planned.status == PlannedMovementShareStatus.MATERIALIZED) {
             require(planned.materializedTransactionId == command.transactionId) { "planned share belongs to another transaction" }
             return@withinConsistencyBoundary planned.materializedShareId!!.toString()
         }
-        check(planned.status == PlannedExpenseShareStatus.PENDING) { "Only pending planned shares can be materialized" }
+        check(planned.status == PlannedMovementShareStatus.PENDING) { "Only pending planned shares can be materialized" }
         val payer = people.findById(planned.payerPersonId) ?: error("Sharing payer not found")
         val participants = command.finalDraft?.participants?.also { validateOverride(it, planned) } ?: planned.participants.sortedBy { it.order }.map {
             val person = people.findById(it.personId) ?: error("Sharing participant not found")
             FinalPlannedShareParticipant(person.displayName, it.amount, it.reimbursable)
         }
         val result = applyShare.execute(
-            ApplyShareToPostedTransactionCommand(
+            ApplyShareToPostedMovementCommand(
                 command.transactionId,
                 command.finalDraft?.payerName ?: payer.displayName,
                 participants.map { ApplyShareParticipantCommand(it.personName, it.amount, it.reimbursable) },
                 command.materializedAt,
             ),
         )
-        plannedShares.save(planned.materialize(command.transactionId, ExpenseShareId.from(result.shareId), command.materializedAt))
+        plannedShares.save(planned.materialize(command.transactionId, MovementShareId.from(result.shareId), command.materializedAt))
         result.shareId
     }
 
-    private fun validateOverride(participants: List<FinalPlannedShareParticipant>, planned: PlannedExpenseShare) {
+    private fun validateOverride(participants: List<FinalPlannedShareParticipant>, planned: PlannedMovementShare) {
         require(participants.isNotEmpty()) { "sharing override requires participants" }
         val scale = DefaultCurrencyScaleResolver.scale(planned.currency)
         require(participants.all { it.personName.isNotBlank() && it.amount > BigDecimal.ZERO }) {

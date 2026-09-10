@@ -24,8 +24,8 @@ import com.gonezo.preferences.domain.PreferencesOwnerId
 import com.gonezo.preferences.domain.ports.UserPreferencesRepository
 import com.gonezo.recurrence.domain.ports.RecurringMovementOccurrenceRepository
 import com.gonezo.recurrence.domain.ports.RecurringMovementRepository
-import com.gonezo.sharing.domain.ports.ExpenseShareRepository
-import com.gonezo.sharing.domain.ports.PlannedExpenseShareRepository
+import com.gonezo.sharing.domain.ports.MovementShareRepository
+import com.gonezo.sharing.domain.ports.PlannedMovementShareRepository
 import com.gonezo.sharing.domain.ports.RecurringSharePlanRepository
 import com.gonezo.sharing.domain.ports.SharingPersonRepository
 import com.gonezo.taxonomy.domain.ports.CategoryRepository
@@ -51,9 +51,9 @@ class ApplicationBackupComposition(
     recurringOccurrenceRepository: RecurringMovementOccurrenceRepository,
     expectedMovementRepository: ExpectedMovementRepository,
     sharingPersonRepository: SharingPersonRepository,
-    expenseShareRepository: ExpenseShareRepository,
+    movementShareRepository: MovementShareRepository,
     recurringPlanRepository: RecurringSharePlanRepository,
-    plannedShareRepository: PlannedExpenseShareRepository,
+    plannedShareRepository: PlannedMovementShareRepository,
     analyticsExclusionRepository: AnalyticsExclusionRepository,
     preferencesRepository: UserPreferencesRepository,
     preferencesOwnerId: PreferencesOwnerId,
@@ -65,7 +65,7 @@ class ApplicationBackupComposition(
         LedgerBackupSectionExporter(accountRepository, transactionRepository, categoryAssignmentRepository, tagAssignmentRepository, itemCategoryAssignmentRepository = itemCategoryAssignmentRepository),
         RecurrenceBackupSectionExporter(accountRepository, recurringMovementRepository, recurringOccurrenceRepository),
         ExpectedBackupSectionExporter(accountRepository, expectedMovementRepository),
-        SharingBackupSectionExporter(sharingPersonRepository, expenseShareRepository, recurringPlanRepository, plannedShareRepository),
+        SharingBackupSectionExporter(sharingPersonRepository, movementShareRepository, recurringPlanRepository, plannedShareRepository),
         AnalyticsBackupSectionExporter(analyticsExclusionRepository),
         PreferencesBackupSectionExporter(preferencesRepository, preferencesOwnerId),
     )
@@ -75,7 +75,7 @@ class ApplicationBackupComposition(
         LedgerBackupSectionImporter(accountRepository, transactionRepository, categoryAssignmentRepository, tagAssignmentRepository, itemCategoryAssignmentRepository = itemCategoryAssignmentRepository),
         RecurrenceBackupSectionImporter(recurringMovementRepository, recurringOccurrenceRepository),
         ExpectedBackupSectionImporter(expectedMovementRepository),
-        SharingBackupSectionImporter(sharingPersonRepository, expenseShareRepository, recurringPlanRepository, plannedShareRepository),
+        SharingBackupSectionImporter(sharingPersonRepository, movementShareRepository, recurringPlanRepository, plannedShareRepository),
         AnalyticsBackupSectionImporter(analyticsExclusionRepository),
         PreferencesBackupSectionImporter(preferencesRepository, preferencesOwnerId),
     )
