@@ -10,6 +10,9 @@ data class ShareParticipant(
     val expectedMovementId: String?,
     val settlementTransactionId: String? = null,
 ) {
+    val requiresSettlement: Boolean
+        get() = settlementStatus != ShareSettlementStatus.NOT_REQUIRED
+
     init {
         require(amount >= BigDecimal.ZERO) { "share participant amount must not be negative" }
         if (amount == BigDecimal.ZERO) {

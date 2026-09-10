@@ -18,6 +18,7 @@ import com.gonezo.sharing.domain.MovementShare
 import com.gonezo.sharing.domain.MovementShareId
 import com.gonezo.sharing.domain.ShareParticipant
 import com.gonezo.sharing.domain.ShareParticipantId
+import com.gonezo.sharing.domain.ShareSettlementStatus
 import com.gonezo.sharing.domain.SharingPerson
 import com.gonezo.sharing.domain.SharingPersonId
 import com.gonezo.sharing.domain.SharedMovementType
@@ -66,7 +67,7 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
                     id = ShareParticipantId.random(),
                     personId = person.id,
                     amount = participantCommand.amount,
-                    reimbursable = participantCommand.reimbursable,
+                    settlementStatus = if (participantCommand.reimbursable) ShareSettlementStatus.PENDING else ShareSettlementStatus.NOT_REQUIRED,
                     expectedMovementId = expectedMovementId?.toString(),
                 ) to person
             }
@@ -96,7 +97,7 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
                     personId = person.id.toString(),
                     displayName = person.displayName,
                     amount = participant.amount,
-                    reimbursable = participant.reimbursable,
+                    reimbursable = participant.requiresSettlement,
                     expectedMovementId = participant.expectedMovementId?.let(ExpectedMovementId::from),
                 )
             },
@@ -117,7 +118,7 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
 
     private fun createAnalyticsExclusions(share: MovementShare, createdAt: java.time.Instant) {
         share.participants
-            .filter { it.reimbursable }
+            .filter { it.requiresSettlement }
             .forEach { participant ->
                 analyticsExclusionRepository.save(
                     AnalyticsExclusion(
@@ -162,25 +163,25 @@ class GetMovementSharingDetailsService(private val ledgerTransactionRepository: 
                     personId = participant.personId.toString(),
                     displayName = peopleById.getValue(participant.personId).displayName,
                     amount = participant.amount,
-                    reimbursable = participant.reimbursable,
+                    reimbursable = participant.requiresSettlement,
                     expectedMovementId = participant.expectedMovementId,
-                    repaymentStatus = repaymentStatus(participant.reimbursable, expected?.status),
+                    repaymentStatus = repaymentStatus(participant.requiresSettlement, expected?.status),
                 )
             }
         val excludedLentAmount =
             share.participants
-                .filter { it.reimbursable }
+                .filter { it.requiresSettlement }
                 .fold(BigDecimal.ZERO) { total, participant -> total + participant.amount }
         val resolvedThirdPartyAmount =
             share.participants
                 .filter { participant ->
-                    participant.reimbursable &&
+                    participant.requiresSettlement &&
                         participant.expectedMovementId?.let { expectedMovementRepository.findById(ExpectedMovementId.from(it))?.status } ==
                         ExpectedMovementStatus.RESOLVED
                 }.fold(BigDecimal.ZERO) { total, participant -> total + participant.amount }
 
         val pendingThirdPartyAmount = share.participants
-            .filter { it.reimbursable && it.expectedMovementId?.let { id -> expectedMovementRepository.findById(ExpectedMovementId.from(id))?.status } == ExpectedMovementStatus.PENDING }
+            .filter { it.requiresSettlement && it.expectedMovementId?.let { id -> expectedMovementRepository.findById(ExpectedMovementId.from(id))?.status } == ExpectedMovementStatus.PENDING }
             .fold(BigDecimal.ZERO) { total, participant -> total + participant.amount }
         return MovementSharingDetailsView(
             shareId = share.id.toString(),
