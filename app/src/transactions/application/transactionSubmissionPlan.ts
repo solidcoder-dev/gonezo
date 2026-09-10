@@ -196,7 +196,7 @@ function buildSharingPlan(context: TransactionSubmissionContext) {
   })).filter((person) => 'parts' in person ? person.parts > 0 : parseAmount(person.amount) > 0);
   if (participants.length === 0) return undefined;
   return {
-    mode: context.shareDraft.mode,
+    mode: context.shareDraft.mode === 'equal' ? 'parts' : context.shareDraft.mode,
     payerName: 'You',
     ...(context.shareDraft.mode === 'parts' ? { payerParts: context.shareDraft.people.find((person) => person.id === 'you')?.parts ?? 1 } : {}),
     participants,

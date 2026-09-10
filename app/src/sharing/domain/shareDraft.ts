@@ -1,4 +1,4 @@
-export type ShareMode = 'parts' | 'amounts';
+export type ShareMode = 'equal' | 'parts' | 'amounts';
 
 export type SharePersonDraft = {
   id: string;

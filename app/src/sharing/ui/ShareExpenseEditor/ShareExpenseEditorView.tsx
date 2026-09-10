@@ -126,6 +126,16 @@ export function ShareExpenseEditorView({ required, provided }: ShareExpenseEdito
         <button
           type="button"
           role="tab"
+          aria-selected={mode === 'equal'}
+          className={mode === 'equal' ? styles.activeModeTab : undefined}
+          onClick={() => changeMode('equal')}
+          disabled={required.status.disabled}
+        >
+          Equal
+        </button>
+        <button
+          type="button"
+          role="tab"
           aria-selected={mode === 'parts'}
           className={mode === 'parts' ? styles.activeModeTab : undefined}
           onClick={() => changeMode('parts')}
