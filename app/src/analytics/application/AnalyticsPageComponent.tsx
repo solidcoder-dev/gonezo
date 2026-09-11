@@ -32,6 +32,9 @@ export type AnalyticsPageComponentProps = {
       onMerchantSelected?: (merchant: string) => void;
       onHighlightSelected?: (item: AnalyticsHighlightViewModel) => void;
       onForecastSelected?: () => void;
+      onIncomeSelected?: (window: { start: string; end: string }) => void;
+      onExpensesSelected?: (window: { start: string; end: string }) => void;
+      onSpendingPeriodSelected?: (bucket: { start: string; endExclusive: string }) => void;
       onContextChanged?: (filters: AnalyticsFilters) => void;
     };
   };

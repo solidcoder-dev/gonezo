@@ -5,7 +5,7 @@ import type { AnalyticsSpendingMerchant, AnalyticsSpendingReport } from './spend
 export type SpendingChartScaleView = {
   axisMax: number;
   ticks: number[];
-  bars: Array<{ heightPercent: number; amount: number; label: string }>;
+  bars: Array<{ heightPercent: number; amount: number; label: string; start: string; endExclusive: string }>;
 };
 
 export type SpendingReportViewModel = {
@@ -79,9 +79,9 @@ function timelineLabels(report: AnalyticsSpendingReport): string[] {
   });
 }
 
-export function presentSpendingChartScale(amounts: number[], labels: string[]): SpendingChartScaleView {
+export function presentSpendingChartScale(amounts: number[], labels: string[], ranges = labels.map(() => ({ start: '', endExclusive: '' }))): SpendingChartScaleView {
   const max = Math.max(0, ...amounts);
-  if (max === 0) return { axisMax: 0, ticks: [0, 0, 0, 0], bars: amounts.map((amount, index) => ({ amount, label: labels[index] ?? '', heightPercent: 0 })) };
+  if (max === 0) return { axisMax: 0, ticks: [0, 0, 0, 0], bars: amounts.map((amount, index) => ({ amount, label: labels[index] ?? '', heightPercent: 0, ...ranges[index] })) };
   const roughStep = max / 3;
   const magnitude = 10 ** Math.floor(Math.log10(roughStep));
   const normalized = roughStep / magnitude;
@@ -91,7 +91,7 @@ export function presentSpendingChartScale(amounts: number[], labels: string[]): 
   return {
     axisMax,
     ticks: [0, step, step * 2, axisMax],
-    bars: amounts.map((amount, index) => ({ amount, label: labels[index] ?? '', heightPercent: Math.max(0, Math.min(100, (amount / axisMax) * 100)) })),
+    bars: amounts.map((amount, index) => ({ amount, label: labels[index] ?? '', heightPercent: Math.max(0, Math.min(100, (amount / axisMax) * 100)), ...ranges[index] })),
   };
 }
 
@@ -134,7 +134,7 @@ export function presentSpendingSummary(report: AnalyticsSpendingReport): Spendin
       : { direction: report.changePercent > 0 ? 'up' : report.changePercent < 0 ? 'down' : 'flat', percentage: `${Math.abs(report.changePercent).toFixed(1)}%` },
     categories: visibleCategories,
     allCategories,
-    chart: presentSpendingChartScale(amounts, labels),
+    chart: presentSpendingChartScale(amounts, labels, report.timeline.map((bucket) => ({ start: bucket.start, endExclusive: bucket.endExclusive }))),
     merchants: (report.merchants ?? []).map((merchant: AnalyticsSpendingMerchant) => ({ merchant: merchant.merchant, amount: formatCurrencyAmount(merchant.amount.value, report.currency), percentage: merchant.percentage })),
   };
 }

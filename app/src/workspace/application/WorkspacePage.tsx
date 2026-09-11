@@ -470,14 +470,25 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             });
             void navigate(href);
           },
+          onIncomeSelected: (window) => {
+            void navigate(buildMovementSearchHref({ source: 'posted', type: 'income', fromDate: window.start.slice(0, 10), toDate: window.end.slice(0, 10), currency: analyticsContext.currency, accountIds: analyticsContext.accountIds, tagIds: analyticsContext.tagIds, returnTo: analyticsReturnTo(analyticsContext) }));
+          },
+          onExpensesSelected: (window) => {
+            void navigate(buildMovementSearchHref({ source: 'posted', type: 'expense', fromDate: window.start.slice(0, 10), toDate: window.end.slice(0, 10), currency: analyticsContext.currency, accountIds: analyticsContext.accountIds, tagIds: analyticsContext.tagIds, returnTo: analyticsReturnTo(analyticsContext) }));
+          },
+          onSpendingPeriodSelected: (bucket) => {
+            const end = new Date(`${bucket.endExclusive}T00:00:00.000Z`);
+            end.setUTCDate(end.getUTCDate() - 1);
+            void navigate(buildMovementSearchHref({ source: 'posted', type: 'expense', fromDate: bucket.start, toDate: end.toISOString().slice(0, 10), currency: analyticsContext.currency, accountIds: analyticsContext.accountIds, tagIds: analyticsContext.tagIds, returnTo: analyticsReturnTo(analyticsContext) }));
+          },
           onMerchantSelected: (merchant) => {
-            const href = buildMovementSearchHref({ source: 'posted', type: 'expense', merchant, returnTo: analyticsReturnTo(analyticsContext) });
-            void navigate(withAnalyticsContext(href, analyticsContext));
+            const href = buildMovementSearchHref({ source: 'posted', type: 'expense', merchant, currency: analyticsContext.currency, accountIds: analyticsContext.accountIds, tagIds: analyticsContext.tagIds, returnTo: analyticsReturnTo(analyticsContext) });
+            void navigate(href);
           },
           onHighlightSelected: (item) => {
             const type = item.tone === 'income' ? 'income' : 'expense';
-            const href = buildMovementSearchHref({ source: 'posted', type, returnTo: analyticsReturnTo(analyticsContext) });
-            void navigate(withAnalyticsContext(href, analyticsContext));
+            const href = buildMovementSearchHref({ source: 'posted', type, currency: analyticsContext.currency, accountIds: analyticsContext.accountIds, tagIds: analyticsContext.tagIds, returnTo: analyticsReturnTo(analyticsContext) });
+            void navigate(href);
           },
           onForecastSelected: () => {
             const suffix = serializeAnalyticsContext(analyticsContext);
@@ -777,11 +788,6 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       />
     </FeedbackNoticeDestinationProvider>
   );
-}
-
-function withAnalyticsContext(href: string, context: ReturnType<typeof parseAnalyticsContext>): string {
-  const serialized = serializeAnalyticsContext(context);
-  return serialized ? `${href}&${serialized}` : href;
 }
 
 function analyticsReturnTo(context: ReturnType<typeof parseAnalyticsContext>): string {

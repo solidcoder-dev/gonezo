@@ -12,7 +12,7 @@ import styles from '../ui/AnalyticsPageView.module.css';
 
 export type AnalyticsDashboardComponentProps = {
   required: { context: { core: AnalyticsPort }; config: { enabled: boolean; currency: string; filters?: AnalyticsFiltersInput; refreshSignal: boolean; amountVisibility?: AmountVisibility } };
-  provided?: { events?: { onError?: (error: { message: string }) => void; onCategorySelected?: (categoryId: string) => void; onMerchantSelected?: (merchant: string) => void; onHighlightSelected?: (item: AnalyticsHighlightViewModel) => void; onForecastSelected?: () => void } };
+  provided?: { events?: { onError?: (error: { message: string }) => void; onCategorySelected?: (categoryId: string) => void; onMerchantSelected?: (merchant: string) => void; onHighlightSelected?: (item: AnalyticsHighlightViewModel) => void; onForecastSelected?: () => void; onIncomeSelected?: (window: { start: string; end: string }) => void; onExpensesSelected?: (window: { start: string; end: string }) => void; onSpendingPeriodSelected?: (bucket: { start: string; endExclusive: string }) => void } };
 };
 
 type DashboardState = {
@@ -76,8 +76,8 @@ export function AnalyticsDashboardComponent({ required, provided }: AnalyticsDas
   const summary = presentOverviewSnapshot(state.snapshot, config.currency || 'USD');
   const highlights = useMemo(() => presentAnalyticsHighlights(state.snapshot, state.insights, config.currency || 'USD'), [config.currency, state.insights, state.snapshot]);
   return <div className={`${styles.analyticsOverviewContent} ${styles.dashboard}`} data-testid="analytics-dashboard">
-    <AnalyticsSummaryView data={summary} loading={state.summaryLoading} visibility={config.amountVisibility} />
-    <SpendingTimelineView report={state.spending} loading={state.spendingLoading} />
+    <AnalyticsSummaryView data={summary} loading={state.summaryLoading} visibility={config.amountVisibility} onIncomeSelected={() => provided?.events?.onIncomeSelected?.({ start: state.snapshot?.currentWindow.startDate ?? '', end: state.snapshot?.currentWindow.endDate ?? '' })} onExpensesSelected={() => provided?.events?.onExpensesSelected?.({ start: state.snapshot?.currentWindow.startDate ?? '', end: state.snapshot?.currentWindow.endDate ?? '' })} />
+    <SpendingTimelineView report={state.spending} loading={state.spendingLoading} onSelect={(bucket) => provided?.events?.onSpendingPeriodSelected?.(bucket)} />
     <CategoryBreakdownView report={state.spending} loading={state.spendingLoading} visibility={config.amountVisibility} onSelect={(categoryId) => provided?.events?.onCategorySelected?.(categoryId)} />
     <HighlightsView items={highlights} loading={state.insightsLoading || state.summaryLoading} visibility={config.amountVisibility} onSelect={(item) => provided?.events?.onHighlightSelected?.(item)} />
     <TopMerchantsView report={state.spending} loading={state.spendingLoading} visibility={config.amountVisibility} onSelect={(merchant) => provided?.events?.onMerchantSelected?.(merchant)} />

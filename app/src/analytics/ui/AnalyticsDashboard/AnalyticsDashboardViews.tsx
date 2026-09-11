@@ -9,7 +9,7 @@ import styles from './AnalyticsDashboardViews.module.css';
 export type AnalyticsSummaryData = { currentWindowLabel: string; previousWindowLabel?: string; comparisonPercent?: string; incomeAmount: string; expenseAmount: string; netFlowAmount: string; incomeShare: number; expenseShare: number; netFlowTone: 'income' | 'expense' | 'neutral'; comparisonTone: 'income' | 'expense' | 'neutral'; comparisonDirection: 'up' | 'down' | 'flat' };
 type SummaryData = AnalyticsSummaryData;
 
-export function AnalyticsSummaryView({ data, loading, visibility }: { data: SummaryData; loading: boolean; visibility?: AmountVisibility }) {
+export function AnalyticsSummaryView({ data, loading, visibility, onIncomeSelected = () => undefined, onExpensesSelected = () => undefined }: { data: SummaryData; loading: boolean; visibility?: AmountVisibility; onIncomeSelected?: () => void; onExpensesSelected?: () => void }) {
   const amountVisibility = visibility ?? 'visible';
   return <section className={styles.section} aria-label="Saved summary" aria-busy={loading}>
     <div className={styles.summary}>
@@ -17,20 +17,20 @@ export function AnalyticsSummaryView({ data, loading, visibility }: { data: Summ
       {loading ? <SummarySkeleton /> : <>
         <FinancialAmountView formattedAmount={data.netFlowAmount} visibility={amountVisibility} className={styles.hero} />
         {data.comparisonPercent ? <div className={styles.comparison}><span className={data.comparisonTone === 'income' ? styles.comparisonPositive : data.comparisonTone === 'expense' ? styles.comparisonNegative : ''}><span aria-hidden>{data.comparisonDirection === 'up' ? '↑' : data.comparisonDirection === 'down' ? '↓' : '→'}</span> {data.comparisonPercent}</span><span>vs previous period</span></div> : null}
-        <div className={styles.totals}><SummaryTotal label="Income" amount={data.incomeAmount} width={data.incomeShare} tone="income" visibility={amountVisibility} /><SummaryTotal label="Expenses" amount={data.expenseAmount} width={data.expenseShare} tone="expense" visibility={amountVisibility} /></div>
+        <div className={styles.totals}><SummaryTotal label="Income" amount={data.incomeAmount} width={data.incomeShare} tone="income" visibility={amountVisibility} onSelect={onIncomeSelected} /><SummaryTotal label="Expenses" amount={data.expenseAmount} width={data.expenseShare} tone="expense" visibility={amountVisibility} onSelect={onExpensesSelected} /></div>
       </>}
     </div>
   </section>;
 }
 
-function SummaryTotal({ label, amount, width, tone, visibility }: { label: string; amount: string; width: number; tone: 'income' | 'expense'; visibility: AmountVisibility }) {
-  return <div className={styles.total}><span className={styles.label}>{label}</span><FinancialAmountView formattedAmount={amount} visibility={visibility} tone={tone} className={styles.amount} /><span className={styles.track} aria-hidden><span className={`${styles.fill} ${tone === 'income' ? styles.incomeFill : styles.expenseFill}`} style={{ width: `${width}%` }} /></span></div>;
+function SummaryTotal({ label, amount, width, tone, visibility, onSelect }: { label: string; amount: string; width: number; tone: 'income' | 'expense'; visibility: AmountVisibility; onSelect: () => void }) {
+  return <button type="button" className={styles.total} onClick={onSelect} aria-label={`${label}, ${amount}`}><span className={styles.label}>{label}</span><FinancialAmountView formattedAmount={amount} visibility={visibility} tone={tone} className={styles.amount} /><span className={styles.track} aria-hidden><span className={`${styles.fill} ${tone === 'income' ? styles.incomeFill : styles.expenseFill}`} style={{ width: `${width}%` }} /></span></button>;
 }
 
-export function SpendingTimelineView({ report, loading }: { report?: SpendingReportViewModel; loading: boolean }) {
+export function SpendingTimelineView({ report, loading, onSelect = () => undefined }: { report?: SpendingReportViewModel; loading: boolean; onSelect?: (bucket: { start: string; endExclusive: string }) => void }) {
   if (loading && !report) return <DashboardSection title="Spending over time"><ChartSkeleton /></DashboardSection>;
   if (!report || report.chart.bars.length === 0) return <DashboardSection title="Spending over time"><p className={styles.empty}>No timeline data.</p></DashboardSection>;
-  return <DashboardSection title="Spending over time"><div className={styles.chart} style={{ gridTemplateColumns: `repeat(${report.chart.bars.length}, minmax(0, 1fr))` }}>{report.chart.bars.map((bar) => <div className={styles.point} key={bar.label}><span className={styles.barTrack}><span className={styles.bar} style={{ height: `${Math.max(4, bar.heightPercent)}%` }} /></span><span className={styles.chartLabel}>{bar.label}</span></div>)}</div></DashboardSection>;
+  return <DashboardSection title="Spending over time"><div className={styles.chart} style={{ gridTemplateColumns: `repeat(${report.chart.bars.length}, minmax(0, 1fr))` }}>{report.chart.bars.map((bar) => <button type="button" className={styles.point} key={bar.start} onClick={() => onSelect({ start: bar.start, endExclusive: bar.endExclusive })} aria-label={`${bar.label}, expenses ${bar.amount}`}><span className={styles.barTrack}><span className={styles.bar} style={{ height: `${Math.max(4, bar.heightPercent)}%` }} /></span><span className={styles.chartLabel}>{bar.label}</span></button>)}</div></DashboardSection>;
 }
 
 export function CategoryBreakdownView({ report, loading, visibility, onSelect }: { report?: SpendingReportViewModel; loading: boolean; visibility?: AmountVisibility; onSelect: (categoryId: string) => void }) {
