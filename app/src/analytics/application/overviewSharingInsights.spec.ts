@@ -76,7 +76,7 @@ describe('overviewSharingInsights', () => {
     expect(buildOverviewSharingInsights([{
       shareId: 'share-1',
       transactionId: 'tx-1',
-      participants: [{ participantId: 'p-1', personId: 'person-1', displayName: 'Ana', amount: '40.00', reimbursable: false, repaymentStatus: 'not_applicable' }],
+      participants: [{ participantId: 'p-1', personId: 'person-1', displayName: 'Ana', amount: '40.00', reimbursable: false, repaymentStatus: 'not_expected' }],
       analytics: { personalExpenseAmount: '60.00', excludedLentAmount: '40.00', excludedReimbursementIncomeAmount: '0.00' },
     }], 'full')).toEqual([
       { key: 'sharedExpenses', title: 'Shared expenses', subtitle: '1 shared', amount: '100.00' },

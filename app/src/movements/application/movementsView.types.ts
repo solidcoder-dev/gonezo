@@ -99,7 +99,7 @@ export type MovementsSearchFiltersState = {
   text: string;
   merchant: string;
   categoryIds: string[];
-  uncategorized: boolean;
+  uncategorized?: boolean;
   tagIds: string[];
   amountMin: string;
   amountMax: string;

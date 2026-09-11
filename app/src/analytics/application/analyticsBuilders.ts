@@ -414,7 +414,7 @@ export function buildAnalyticsOverviewInsights(input: {
     tags?: TaxonomyTagItem[];
   };
   sharingInsights: AnalyticsOverviewInsightItem[];
-  recurringInsight: AnalyticsOverviewInsightItem;
+  recurringInsight?: AnalyticsOverviewInsightItem;
   transferTransactions: LedgerTransactionListItem[];
   currency: string;
 }): AnalyticsOverviewInsightsResult {

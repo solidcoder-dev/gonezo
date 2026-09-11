@@ -24,12 +24,7 @@ describe('overviewInsights', () => {
         { key: 'sharedExpenses', title: 'Shared expenses', subtitle: '0 shared', amount: '0.00' },
         { key: 'mostSharedWith', title: 'Most shared with', subtitle: 'No data', amount: '0.00' },
       ],
-      recurringInsight: {
-        key: 'recurringImpact',
-        title: 'Recurring impact',
-        subtitle: '0 recurring',
-        amount: '0.00',
-      },
+      recurringInsight: undefined,
       transferTransactions: [],
       currency: 'EUR',
     });

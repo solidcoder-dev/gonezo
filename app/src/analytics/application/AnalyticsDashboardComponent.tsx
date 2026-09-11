@@ -38,7 +38,9 @@ export function AnalyticsDashboardComponent({ required, provided }: AnalyticsDas
     if (!config.enabled || !config.currency) return undefined;
     let active = true;
     const input = { currency: config.currency, filters };
-    setState({ summaryLoading: true, insightsLoading: true, spendingLoading: true, forecastLoading: true });
+    void Promise.resolve().then(() => {
+      if (active) setState({ summaryLoading: true, insightsLoading: true, spendingLoading: true, forecastLoading: true });
+    });
     const load = <T,>(request: () => Promise<T>, onSuccess: (value: T) => void, onSettled: () => void) => {
       void Promise.resolve().then(request).then((value) => {
         if (active) onSuccess(value);
