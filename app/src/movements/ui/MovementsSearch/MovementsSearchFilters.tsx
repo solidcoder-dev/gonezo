@@ -75,6 +75,28 @@ function buildActiveFilterChips(
   const categoryNameById = new Map(filterOptions.categories.map((item) => [item.id, item.label]));
   const tagNameById = new Map(filterOptions.tags.map((item) => [item.id, item.label]));
 
+  if (filters.currency?.trim()) {
+    chips.push({
+      key: 'currency',
+      label: `Currency: ${filters.currency.trim().toUpperCase()}`,
+      clearPatch: { currency: '' },
+    });
+  }
+  if (filters.accountIds && filters.accountIds.length > 0) {
+    chips.push({
+      key: 'accountIds',
+      label: `Accounts: ${summarizeNames(filters.accountIds)}`,
+      clearPatch: { accountIds: [] },
+    });
+  }
+  if (filters.sharing === 'shared') {
+    chips.push({
+      key: 'sharing',
+      label: filters.sharingPersonId?.trim() ? `Shared with: ${filters.sharingPersonId.trim()}` : 'Shared',
+      clearPatch: { sharing: 'all', sharingPersonId: '' },
+    });
+  }
+
   if (filters.text.trim()) {
     chips.push({
       key: 'text',
