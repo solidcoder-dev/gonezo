@@ -21,6 +21,8 @@ import { CurrencyAccountsSheetComponent } from '../../account/application/Curren
 import { ManageAccountSheetComponent } from '../../account/application/ManageAccountSheet/ManageAccountSheetComponent';
 import { PendingExpectedOverviewComponent, type PendingExpectedOverviewPort } from './PendingExpectedOverviewComponent';
 import { AnalyticsPageComponent } from '../../analytics/application/AnalyticsPageComponent';
+import { AnalyticsForecastPageComponent } from '../../analytics/application/AnalyticsForecastPageComponent';
+import { AnalyticsCategoryDetailComponent } from '../../analytics/application/AnalyticsCategoryDetailComponent';
 import { HomeRecentMovementsComponent, type HomeRecentMovementsPort } from './HomeRecentMovementsComponent';
 import { WorkspacePageHeader } from '../ui/WorkspacePageHeader/WorkspacePageHeader';
 import { useWorkspaceRefreshSignals } from './useWorkspaceRefreshSignals';
@@ -440,6 +442,16 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     />
   );
 
+  const analyticsCurrency = new URLSearchParams(location.search).get('currency') ?? '';
+  const categoryId = location.pathname.startsWith('/analytics/category/')
+    ? decodeURIComponent(location.pathname.slice('/analytics/category/'.length))
+    : '';
+  const analyticsSecondaryPage = currentPage === 'analyticsForecast'
+    ? <AnalyticsForecastPageComponent core={pageRequired.core} currency={analyticsCurrency} refreshSignal={analyticsRefreshSignal} amountVisibility={amountVisibility?.state.visibility} onError={showError} />
+    : currentPage === 'analyticsCategory'
+      ? <AnalyticsCategoryDetailComponent core={pageRequired.core} categoryId={categoryId} currency={analyticsCurrency} refreshSignal={analyticsRefreshSignal} amountVisibility={amountVisibility?.state.visibility} onError={showError} />
+      : null;
+
   const pageHeader = currentPage === 'home'
     ? (
         <WorkspacePageHeader
@@ -461,17 +473,26 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           }}
         />
       )
-    : currentPage === 'analytics'
+    : currentPage === 'analytics' || currentPage === 'analyticsForecast' || currentPage === 'analyticsCategory'
       ? (
           <WorkspacePageHeader
             required={{
-            title: 'Analytics',
+            title: currentPage === 'analyticsForecast' ? 'Forecast' : currentPage === 'analyticsCategory' ? 'Category detail' : 'Analytics',
             unreadCount,
             amountVisibility: amountVisibility && {
               visibility: amountVisibility.state.visibility,
               loading: amountVisibility.state.loading,
               saving: amountVisibility.state.saving,
             },
+            searchAction: currentPage === 'analytics' ? (
+              <Link className="gz-icon-button" to="/movements/search" aria-label="Search movements">
+                <i className="bi bi-search" aria-hidden />
+              </Link>
+            ) : (
+              <Link className="gz-icon-button" to="/analytics" aria-label="Back to Analytics">
+                <i className="bi bi-arrow-left" aria-hidden />
+              </Link>
+            ),
             }}
             provided={{
               commands: {
@@ -667,6 +688,8 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           )
           : currentPage === 'analytics'
             ? analyticsPage
+            : currentPage === 'analyticsForecast' || currentPage === 'analyticsCategory'
+              ? analyticsSecondaryPage
             : currentPage === 'movementsSearch'
               ? movementsSearchPage
             : currentPage === 'profile'
