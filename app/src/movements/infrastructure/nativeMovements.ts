@@ -2,6 +2,7 @@ import type { ExpectedMovementItem, ExpectedPort } from '../../expected/applicat
 import type { LedgerPort, LedgerTransactionListItem } from '../../ledger/application/ledger.port';
 import type { SchedulingMovementItem, SchedulingPort } from '../../scheduling/application/scheduling.port';
 import type { TaxonomyListCategoriesResult, TaxonomyPort } from '../../taxonomy/application/taxonomy.port';
+import type { SharingPort } from '../../sharing/application/sharing.port';
 import { parseDateFilterEpoch } from '../../shared/domain/dateFilterRange';
 import type {
   MovementsListScheduledInput,
@@ -16,7 +17,7 @@ import type {
 
 type ScheduledMovementFilters = MovementsSearchInput['filters'] | MovementsListScheduledInput['filters'];
 
-export type NativeMovementsPort = Pick<
+type NativeMovementsPortBase = Pick<
   LedgerPort & ExpectedPort & TaxonomyPort & MovementsQueryPort & SchedulingPort,
   | 'ledgerListTransactions'
   | 'ledgerListAccounts'
@@ -25,6 +26,27 @@ export type NativeMovementsPort = Pick<
   | 'movementsListScheduled'
   | 'schedulingListMovements'
 >;
+export type NativeMovementsPort = NativeMovementsPortBase & {
+  sharingListMovementDetails?: SharingPort['sharingListMovementDetails'];
+};
+
+async function listAllNativePostedTransactions(
+  core: NativeMovementsPort,
+  accountId: string,
+  filters: MovementsSearchInput['filters'],
+  sort: Parameters<LedgerPort['ledgerListTransactions']>[0]['sort'],
+): Promise<LedgerTransactionListItem[]> {
+  const transactions: LedgerTransactionListItem[] = [];
+  let page = 0;
+  let hasNext = true;
+  while (hasNext) {
+    const result = await core.ledgerListTransactions({ accountId, filters: { ...filters, statuses: ['posted'] }, pagination: { page, size: 100 }, sort });
+    transactions.push(...result.content);
+    hasNext = result.hasNext && result.content.length > 0;
+    page += 1;
+  }
+  return transactions;
+}
 
 function scheduledMovementDateEpoch(movement: SchedulingMovementItem): number | undefined {
   const candidate = movement.nextDueAt ?? movement.startAt;
@@ -433,8 +455,33 @@ export async function searchNativeMovements(
   const requestedPage = input.pagination?.page ?? 0;
   const page = Number.isFinite(requestedPage) && requestedPage >= 0 ? Math.trunc(requestedPage) : 0;
   const filters = input.filters ?? {};
+  const sort = input.sort?.map((item) => ({
+    field: item.field === 'date' ? 'occurredAt' as const : item.field,
+    direction: item.direction,
+  })) ?? [{ field: 'occurredAt' as const, direction: 'desc' as const }];
 
   if (input.source === 'posted') {
+    if (filters.sharing === 'shared' || filters.sharingPersonId?.trim()) {
+      const transactions = await listAllNativePostedTransactions(core, input.accountId, filters, sort);
+      const details = transactions.length > 0 && core.sharingListMovementDetails
+        ? await core.sharingListMovementDetails({ transactionIds: transactions.map((transaction) => transaction.id) })
+        : { items: [] };
+      const sharedIds = new Set(details.items
+        .filter((item) => !filters.sharingPersonId?.trim() || item.participants.some((participant) => participant.personId === filters.sharingPersonId))
+        .map((item) => item.transactionId));
+      const filtered = transactions.filter((transaction) => sharedIds.has(transaction.id));
+      const totalPages = filtered.length === 0 ? 0 : Math.ceil(filtered.length / pageSize);
+      const resolvedPage = totalPages === 0 ? 0 : Math.min(page, totalPages - 1);
+      return {
+        content: filtered.slice(resolvedPage * pageSize, resolvedPage * pageSize + pageSize).map((transaction) => mapPostedTransactionToSearchItem(transaction)),
+        page: resolvedPage,
+        size: pageSize,
+        totalElements: filtered.length,
+        totalPages,
+        hasNext: totalPages > 0 && resolvedPage + 1 < totalPages,
+        hasPrevious: resolvedPage > 0,
+      };
+    }
     const result = await core.ledgerListTransactions({
       accountId: input.accountId,
       filters: {
@@ -454,10 +501,7 @@ export async function searchNativeMovements(
         page,
         size: pageSize,
       },
-      sort: input.sort?.map((item) => ({
-        field: item.field === 'date' ? 'occurredAt' : item.field,
-        direction: item.direction,
-      })) ?? [{ field: 'occurredAt', direction: 'desc' }],
+      sort,
     });
 
     return {

@@ -4,6 +4,7 @@ import type { LedgerPort } from '../../ledger/application/ledger.port';
 import type { MovementsQueryPort } from '../application/movements.port';
 import type { SchedulingMovementItem, SchedulingPort } from '../../scheduling/application/scheduling.port';
 import type { TaxonomyPort } from '../../taxonomy/application/taxonomy.port';
+import type { SharingPort } from '../../sharing/application/sharing.port';
 import { getNativeMovementsMonthOverview, listNativeScheduledMovements, searchNativeMovements } from './nativeMovements';
 
 type NativeMovementsPort = Pick<
@@ -15,6 +16,7 @@ type NativeMovementsPort = Pick<
   | 'movementsListScheduled'
   | 'schedulingListMovements'
 >;
+type NativeMovementsSharingPort = NativeMovementsPort & Pick<SharingPort, 'sharingListMovementDetails'>;
 
 function scheduledMovement(
   overrides: Partial<SchedulingMovementItem> & Pick<SchedulingMovementItem, 'id' | 'amount'>,
@@ -43,7 +45,7 @@ function scheduledMovement(
   };
 }
 
-function nativeMovementsPort(overrides: Partial<NativeMovementsPort> = {}): NativeMovementsPort {
+function nativeMovementsPort(overrides: Partial<NativeMovementsSharingPort> = {}): NativeMovementsSharingPort {
   return {
     ledgerListTransactions: vi.fn(),
     ledgerListAccounts: vi.fn(async () => ({ items: [] })),
@@ -52,7 +54,7 @@ function nativeMovementsPort(overrides: Partial<NativeMovementsPort> = {}): Nati
     movementsListScheduled: vi.fn(),
     schedulingListMovements: vi.fn(),
     ...overrides,
-  } as NativeMovementsPort;
+  } as NativeMovementsSharingPort;
 }
 
 describe('nativeMovements', () => {
@@ -171,6 +173,23 @@ describe('nativeMovements', () => {
     expect(result.content.map((item) => item.id)).toEqual(['keep']);
     expect(result.totalElements).toBe(1);
     expect(result.hasNext).toBe(false);
+  });
+
+  it('filters shared native search results before pagination', async () => {
+    const core = nativeMovementsPort({
+      ledgerListTransactions: vi.fn(async () => ({
+        content: [{ id: 'shared', accountId: 'account-1', type: 'expense' as const, status: 'posted' as const, amount: '12.00', currency: 'EUR', occurredAt: '2026-02-03T00:00:00.000Z', items: [] }],
+        page: 0, size: 100, totalElements: 1, totalPages: 1, hasNext: false, hasPrevious: false,
+      })),
+      sharingListMovementDetails: vi.fn(async () => ({ items: [{
+        shareId: 'share-1', transactionId: 'shared', participants: [{ participantId: 'participant-1', personId: 'person-1', displayName: 'Ana', amount: '0.00', reimbursable: false, repaymentStatus: 'not_expected' as const }], analytics: { personalExpenseAmount: '12.00', excludedLentAmount: '0.00', excludedReimbursementIncomeAmount: '0.00' },
+      }] })),
+    }) as NativeMovementsSharingPort;
+
+    await expect(searchNativeMovements(core, { accountId: 'account-1', source: 'posted', filters: { sharing: 'shared', sharingPersonId: 'person-1' }, pagination: { page: 0, size: 10 } })).resolves.toMatchObject({
+      totalElements: 1,
+      content: [{ id: 'shared' }],
+    });
   });
 
   it('maps scheduled search results without calling posted or expected ports', async () => {
