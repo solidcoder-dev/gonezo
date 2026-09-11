@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { presentOverviewSnapshot, presentOverviewStarters } from './OverviewTabPresentation';
+import { presentOverviewSnapshot, presentAnalyticsHighlights } from './OverviewTabPresentation';
 
 const snapshot = {
   currentWindow: { label: 'Jul 2026', startDate: '2026-07-01', endDate: '2026-07-31' },
@@ -10,7 +10,7 @@ const snapshot = {
   biggestIncome: { movementId: 'income-1', title: 'Car loan', amount: '139.48', occurredAt: '2026-07-07' },
 };
 
-describe('OverviewTabPresentation', () => {
+describe('Analytics presentation', () => {
   it('maps the snapshot with numeric tones, signs and a common safe scale', () => {
     const view = presentOverviewSnapshot(snapshot, 'EUR');
     expect(view.netFlowTone).toBe('expense');
@@ -22,7 +22,7 @@ describe('OverviewTabPresentation', () => {
   });
 
   it('keeps the required preview order and recurring data available to See all', () => {
-    const view = presentOverviewStarters(snapshot, {
+    const view = presentAnalyticsHighlights(snapshot, {
       items: [
         { key: 'mostSharedWith', title: 'Most shared with', subtitle: 'Ana', amount: '30.00' },
         { key: 'recurringImpact', title: 'Recurring impact', subtitle: '1 recurring', amount: '145.90' },

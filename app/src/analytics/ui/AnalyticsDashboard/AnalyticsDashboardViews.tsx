@@ -3,11 +3,11 @@ import { FinancialAmountView } from '../../../shared/ui/FinancialAmount/Financia
 import type { AmountVisibility } from '../../../shared/domain/amountVisibility';
 import type { SpendingReportViewModel } from '../../application/spendingPresenters';
 import type { FlowViewModel } from '../../application/flowPresenters';
-import type { OverviewSnapshotCardViewProps } from '../OverviewSnapshotCard/OverviewSnapshotCardView.contract';
-import type { OverviewStarterItemView } from '../OverviewStarters/OverviewStartersView.contract';
+import type { OverviewStarterItemView } from '../AnalyticsHighlights/AnalyticsHighlightsView.contract';
 import styles from './AnalyticsDashboardViews.module.css';
 
-type SummaryData = OverviewSnapshotCardViewProps['required']['data'];
+export type AnalyticsSummaryData = { currentWindowLabel: string; previousWindowLabel?: string; comparisonPercent?: string; incomeAmount: string; expenseAmount: string; netFlowAmount: string; incomeShare: number; expenseShare: number; netFlowTone: 'income' | 'expense' | 'neutral'; comparisonTone: 'income' | 'expense' | 'neutral'; comparisonDirection: 'up' | 'down' | 'flat' };
+type SummaryData = AnalyticsSummaryData;
 
 export function AnalyticsSummaryView({ data, loading, visibility }: { data: SummaryData; loading: boolean; visibility?: AmountVisibility }) {
   const amountVisibility = visibility ?? 'visible';

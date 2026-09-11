@@ -10,7 +10,7 @@ import { useAnalyticsFiltersModel } from './useAnalyticsFiltersModel';
 import styles from '../ui/AnalyticsPageView.module.css';
 import type { AmountVisibility } from '../../shared/domain/amountVisibility';
 import type { AnalyticsFiltersInput } from './analyticsFilters';
-import type { OverviewStarterItemView } from '../ui/OverviewStarters/OverviewStartersView.contract';
+import type { OverviewStarterItemView } from '../ui/AnalyticsHighlights/AnalyticsHighlightsView.contract';
 
 export type AnalyticsPageComponentProps = {
   required: {

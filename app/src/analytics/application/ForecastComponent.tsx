@@ -4,7 +4,7 @@ import type { AnalyticsFlowReport, AnalyticsPort } from './analytics.port';
 import type { AnalyticsFiltersInput } from './analyticsFilters';
 import { normalizeAnalyticsPeriodInput } from './analyticsFilters';
 import { presentFlowReport, type FlowViewModel } from './flowPresenters';
-import { FlowTabView } from '../ui/FlowTab/FlowTabView';
+import { ForecastView } from '../ui/Forecast/ForecastView';
 
 export type ForecastComponentProps = { core: AnalyticsPort; currency: string; filters?: AnalyticsFiltersInput; refreshSignal: boolean; amountVisibility?: AmountVisibility; onError?: (error: { message: string }) => void };
 
@@ -25,5 +25,5 @@ export function ForecastComponent({ core, currency, filters, refreshSignal, amou
     });
     return () => { active = false; };
   }, [core, currency, filters, onError, refreshSignal, requestKey, selection]);
-  return <FlowTabView required={{ report, status: { loading: Boolean(currency && core.analyticsGetFlowReport) && loadedKey !== requestKey, error: !core.analyticsGetFlowReport ? 'Forecast is unavailable' : undefined, amountVisibility } }} provided={{ state: { canPrevious: report?.canGoPrevious ?? true, canNext: report?.canGoNext ?? shift < 0 }, commands: { previous: () => setShift((current) => current - 1), next: () => setShift((current) => Math.min(0, current + 1)) } }} />;
+  return <ForecastView required={{ report, status: { loading: Boolean(currency && core.analyticsGetFlowReport) && loadedKey !== requestKey, error: !core.analyticsGetFlowReport ? 'Forecast is unavailable' : undefined, amountVisibility } }} provided={{ state: { canPrevious: report?.canGoPrevious ?? true, canNext: report?.canGoNext ?? shift < 0 }, commands: { previous: () => setShift((current) => current - 1), next: () => setShift((current) => Math.min(0, current + 1)) } }} />;
 }

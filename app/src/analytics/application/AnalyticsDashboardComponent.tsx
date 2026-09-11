@@ -3,11 +3,11 @@ import type { AmountVisibility } from '../../shared/domain/amountVisibility';
 import type { AnalyticsOverviewInsightsResult, AnalyticsPort } from './analytics.port';
 import type { AnalyticsFiltersInput } from './analyticsFilters';
 import { normalizeAnalyticsPeriodInput } from './analyticsFilters';
-import { presentOverviewSnapshot, presentOverviewStarters } from './OverviewTabPresentation';
+import { presentOverviewSnapshot, presentAnalyticsHighlights } from './OverviewTabPresentation';
 import { presentSpendingSummary, type SpendingReportViewModel } from './spendingPresenters';
 import { presentFlowReport, type FlowViewModel } from './flowPresenters';
 import { AnalyticsSummaryView, CategoryBreakdownView, ForecastSummaryView, HighlightsView, SpendingTimelineView, TopMerchantsView } from '../ui/AnalyticsDashboard/AnalyticsDashboardViews';
-import type { OverviewStarterItemView } from '../ui/OverviewStarters/OverviewStartersView.contract';
+import type { OverviewStarterItemView } from '../ui/AnalyticsHighlights/AnalyticsHighlightsView.contract';
 import styles from '../ui/AnalyticsPageView.module.css';
 
 export type AnalyticsDashboardComponentProps = {
@@ -52,7 +52,7 @@ export function AnalyticsDashboardComponent({ required, provided }: AnalyticsDas
   }, [core, config.currency, config.enabled, config.refreshSignal, filters, inputKey, periodSelection, provided?.events]);
 
   const summary = presentOverviewSnapshot(state.snapshot, config.currency || 'USD');
-  const highlights = useMemo(() => presentOverviewStarters(state.snapshot, state.insights, config.currency || 'USD'), [config.currency, state.insights, state.snapshot]);
+  const highlights = useMemo(() => presentAnalyticsHighlights(state.snapshot, state.insights, config.currency || 'USD'), [config.currency, state.insights, state.snapshot]);
   return <div className={`${styles.analyticsOverviewContent} ${styles.dashboard}`} data-testid="analytics-dashboard">
     <AnalyticsSummaryView data={summary} loading={state.loading} visibility={config.amountVisibility} />
     <SpendingTimelineView report={state.spending} loading={state.loading} />

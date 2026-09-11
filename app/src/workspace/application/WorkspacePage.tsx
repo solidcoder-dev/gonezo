@@ -510,7 +510,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
                 <i className="bi bi-search" aria-hidden />
               </Link>
             ) : (
-              <Link className="gz-icon-button" to="/analytics" aria-label="Back to Analytics">
+              <Link className="gz-icon-button" to={`/analytics${serializeAnalyticsContext(analyticsContext) ? `?${serializeAnalyticsContext(analyticsContext)}` : ''}`} aria-label="Back to Analytics">
                 <i className="bi bi-arrow-left" aria-hidden />
               </Link>
             ),
