@@ -2,17 +2,23 @@ import type { AnalyticsOverviewInsightItem } from './analytics.port';
 import type { SharingMovementDetailsResult } from '../../sharing/application/sharing.port';
 
 type SharingMovementDetails = Exclude<SharingMovementDetailsResult, null>;
+type SharedAmountMode = 'personal' | 'full';
 
 function addAmount(left: string, right: string): string {
   return (Number(left) + Number(right)).toFixed(2);
 }
 
 function sharedExpenseCount(details: SharingMovementDetails[]): number {
-  return details.filter((item) => item.participants.some((participant) => participant.reimbursable)).length;
+  return details.length;
 }
 
-function sharedExpensesAmount(details: SharingMovementDetails[]): string {
-  return details.reduce((total, item) => addAmount(total, item.analytics.excludedLentAmount), '0.00');
+function sharedExpensesAmount(details: SharingMovementDetails[], mode: SharedAmountMode): string {
+  return details.reduce((total, item) => addAmount(
+    total,
+    mode === 'full'
+      ? addAmount(item.analytics.personalExpenseAmount, item.analytics.excludedLentAmount)
+      : item.analytics.personalExpenseAmount,
+  ), '0.00');
 }
 
 function mostSharedWithSummary(details: SharingMovementDetails[]): { name: string; amount: string } | undefined {
@@ -40,22 +46,21 @@ function sharedExpensesSubtitle(count: number): string {
   return `${count} shared`;
 }
 
-export function buildOverviewSharingInsights(details: SharingMovementDetails[]): AnalyticsOverviewInsightItem[] {
+export function buildOverviewSharingInsights(details: SharingMovementDetails[], sharedAmountMode: SharedAmountMode = 'personal'): AnalyticsOverviewInsightItem[] {
   const count = sharedExpenseCount(details);
   const mostSharedWith = mostSharedWithSummary(details);
-
-  return [
-    {
+  const insights: AnalyticsOverviewInsightItem[] = [];
+  if (count > 0) insights.push({
       key: 'sharedExpenses',
       title: 'Shared expenses',
       subtitle: sharedExpensesSubtitle(count),
-      amount: sharedExpensesAmount(details),
-    },
-    {
+      amount: sharedExpensesAmount(details, sharedAmountMode),
+    });
+  if (mostSharedWith) insights.push({
       key: 'mostSharedWith',
       title: 'Most shared with',
-      subtitle: mostSharedWith?.name ?? 'No data',
-      amount: mostSharedWith?.amount ?? '0.00',
-    },
-  ];
+      subtitle: mostSharedWith.name,
+      amount: mostSharedWith.amount,
+    });
+  return insights;
 }

@@ -352,7 +352,7 @@ describe('AnalyticsPageComponent', () => {
     });
 
     expect(await screen.findByRole('heading', { name: 'Saved' })).toBeInTheDocument();
-    expect(screen.getByText('Loading highlights…')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Loading highlights' })).toBeInTheDocument();
 
     await act(async () => {
       insightsDeferred.resolve({

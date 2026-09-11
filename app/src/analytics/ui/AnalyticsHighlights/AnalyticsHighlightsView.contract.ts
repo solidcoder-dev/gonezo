@@ -1,9 +1,8 @@
-export type OverviewStarterItemView = {
+export type AnalyticsHighlightViewModel = {
   key: string;
   label: string;
-  primaryText: string;
-  amount: string;
+  title?: string;
+  formattedAmount?: string;
   supportingText?: string;
   tone: 'income' | 'expense' | 'sharing' | 'recurring' | 'transfer' | 'neutral';
-  icon: 'expense' | 'income' | 'tag' | 'sharing' | 'recurring' | 'transfer';
 };

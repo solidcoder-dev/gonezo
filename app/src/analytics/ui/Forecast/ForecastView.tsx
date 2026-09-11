@@ -4,7 +4,7 @@ import type { ForecastViewProps } from './ForecastView.contract';
 
 export function ForecastView({ required, provided }: ForecastViewProps) {
   const report = required.report;
-  if (required.status.loading && !report) return <p role="status">Loading forecast…</p>;
+  if (required.status.loading && !report) return <div role="status" aria-label="Loading forecast" className="d-grid gap-3"><span className="placeholder w-50 fs-4 rounded" aria-hidden="true">&nbsp;</span><span className="placeholder w-100 rounded" aria-hidden="true">&nbsp;</span><span className="placeholder w-100 rounded" aria-hidden="true">&nbsp;</span></div>;
   if (required.status.error) return <p role="alert">{required.status.error}</p>;
   if (!report) return <p>No accounts available for this currency.</p>;
   const visibility = required.status.amountVisibility ?? 'visible';

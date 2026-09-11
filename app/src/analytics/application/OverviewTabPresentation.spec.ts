@@ -36,8 +36,9 @@ describe('Analytics presentation', () => {
     ]);
     expect(view[0].tone).toBe('expense');
     expect(view[1].tone).toBe('income');
-    expect(view[0].amount).toContain('-');
-    expect(view[1].amount).toContain('+');
+    expect(view[0].formattedAmount).toContain('-');
+    expect(view[1].formattedAmount).toContain('+');
+    expect(view[0].title).toBe('Rent');
   });
 
   it('handles zero totals without a false bar or positive zero sign', () => {

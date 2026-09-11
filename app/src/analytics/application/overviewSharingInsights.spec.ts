@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildOverviewSharingInsights } from './overviewSharingInsights';
 
 describe('overviewSharingInsights', () => {
-  it('aggregates reimbursable sharing facts into the two overview cards', () => {
+  it('aggregates shared movement facts using personal amounts by default', () => {
     const result = buildOverviewSharingInsights([
       {
         shareId: 'share-1',
@@ -57,7 +57,7 @@ describe('overviewSharingInsights', () => {
         key: 'sharedExpenses',
         title: 'Shared expenses',
         subtitle: '2 shared',
-        amount: '190.00',
+        amount: '90.00',
       },
       {
         key: 'mostSharedWith',
@@ -68,20 +68,18 @@ describe('overviewSharingInsights', () => {
     ]);
   });
 
-  it('returns a stable zero state when there are no sharing details', () => {
-    expect(buildOverviewSharingInsights([])).toEqual([
-      {
-        key: 'sharedExpenses',
-        title: 'Shared expenses',
-        subtitle: '0 shared',
-        amount: '0.00',
-      },
-      {
-        key: 'mostSharedWith',
-        title: 'Most shared with',
-        subtitle: 'No data',
-        amount: '0.00',
-      },
+  it('omits sharing insights when there are no shared movements', () => {
+    expect(buildOverviewSharingInsights([])).toEqual([]);
+  });
+
+  it('counts shared movements without requiring reimbursable participants and supports full amounts', () => {
+    expect(buildOverviewSharingInsights([{
+      shareId: 'share-1',
+      transactionId: 'tx-1',
+      participants: [{ participantId: 'p-1', personId: 'person-1', displayName: 'Ana', amount: '40.00', reimbursable: false, repaymentStatus: 'not_applicable' }],
+      analytics: { personalExpenseAmount: '60.00', excludedLentAmount: '40.00', excludedReimbursementIncomeAmount: '0.00' },
+    }], 'full')).toEqual([
+      { key: 'sharedExpenses', title: 'Shared expenses', subtitle: '1 shared', amount: '100.00' },
     ]);
   });
 });

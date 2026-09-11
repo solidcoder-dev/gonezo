@@ -55,7 +55,7 @@ function tagAssignmentsByTransactionId(
   return new Map(assignments.map((assignment) => [assignment.transactionId, assignment.tagIds ?? []]));
 }
 
-function buildTopTagsInsight(facts: OverviewInsightsFacts): AnalyticsOverviewInsightItem {
+function buildTopTagsInsight(facts: OverviewInsightsFacts): AnalyticsOverviewInsightItem | undefined {
   const amountByTag = new Map<string, { name: string; amount: string }>();
   const assignmentsByTransactionId = tagAssignmentsByTransactionId(facts.taxonomyAssignments);
   const namesById = tagNamesById(facts.tags);
@@ -77,6 +77,7 @@ function buildTopTagsInsight(facts: OverviewInsightsFacts): AnalyticsOverviewIns
     .sort((left, right) => Number(right.amount) - Number(left.amount))
     .slice(0, 3);
 
+  if (topTags.length === 0) return undefined;
   return {
     key: 'topTags',
     title: 'Top tags',
@@ -95,7 +96,7 @@ function transferMovementId(transaction: LedgerTransactionListItem): string {
   return transaction.id;
 }
 
-function buildTransfersInsight(facts: OverviewInsightsFacts): AnalyticsOverviewInsightItem {
+function buildTransfersInsight(facts: OverviewInsightsFacts): AnalyticsOverviewInsightItem | undefined {
   const uniqueTransfers = new Map<string, LedgerTransactionListItem>();
 
   for (const transaction of facts.transactions) {
@@ -113,6 +114,7 @@ function buildTransfersInsight(facts: OverviewInsightsFacts): AnalyticsOverviewI
     }
   }
 
+  if (uniqueTransfers.size === 0) return undefined;
   return {
     key: 'transfers',
     title: 'Transfers',
@@ -128,7 +130,7 @@ export function buildOverviewInsightsResult(input: {
     tags?: TaxonomyTagItem[];
   };
   sharingInsights: AnalyticsOverviewInsightItem[];
-  recurringInsight: AnalyticsOverviewInsightItem;
+  recurringInsight?: AnalyticsOverviewInsightItem;
   transferTransactions: LedgerTransactionListItem[];
   currency: string;
 }): AnalyticsOverviewInsightsResult {
@@ -151,6 +153,6 @@ export function buildOverviewInsightsResult(input: {
       ...input.sharingInsights,
       input.recurringInsight,
       buildTransfersInsight(transferFacts),
-    ],
+    ].filter((item): item is AnalyticsOverviewInsightItem => item != null),
   };
 }

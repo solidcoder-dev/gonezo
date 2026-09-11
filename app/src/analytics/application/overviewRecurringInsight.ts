@@ -9,7 +9,8 @@ function recurringSubtitle(count: number): string {
   return `${count} recurring`;
 }
 
-export function buildOverviewRecurringInsight(movements: SchedulingMovementItem[]): AnalyticsOverviewInsightItem {
+export function buildOverviewRecurringInsight(movements: SchedulingMovementItem[]): AnalyticsOverviewInsightItem | undefined {
+  if (movements.length === 0) return undefined;
   return {
     key: 'recurringImpact',
     title: 'Recurring impact',

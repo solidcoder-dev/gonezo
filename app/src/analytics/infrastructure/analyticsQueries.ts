@@ -497,7 +497,7 @@ export async function analyticsGetOverviewInsights(
       ? port.orchestrationListTransactionTaxonomy({ transactionIds })
       : Promise.resolve({ items: [] }),
     port.taxonomyListTags({ includeArchived: false }),
-    analyticsGetOverviewSharingInsights(port, transactions),
+    analyticsGetOverviewSharingInsights(port, transactions, scope.filters.sharedAmountMode),
     analyticsGetOverviewRecurringInsight(port, {
       accountIds,
       filters: scope.filters,

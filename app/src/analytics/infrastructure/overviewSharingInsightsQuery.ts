@@ -9,6 +9,7 @@ type OverviewSharingInsightsQueryPort = {
 export async function analyticsGetOverviewSharingInsights(
   port: OverviewSharingInsightsQueryPort,
   transactions: AnalyticsTransactionReadModel[],
+  sharedAmountMode: 'personal' | 'full' = 'personal',
 ) {
   const transactionIds = transactions
     .filter((transaction) => transaction.type === 'expense' && transaction.reference?.source === 'posted')
@@ -16,5 +17,5 @@ export async function analyticsGetOverviewSharingInsights(
   const details = transactionIds.length > 0
     ? await port.sharingListMovementDetails({ transactionIds })
     : { items: [] };
-  return buildOverviewSharingInsights(details.items);
+  return buildOverviewSharingInsights(details.items, sharedAmountMode);
 }

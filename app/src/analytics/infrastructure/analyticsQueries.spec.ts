@@ -802,30 +802,6 @@ describe('analytics queries', () => {
           subtitle: '1 tag',
           amount: '120.00',
         },
-        {
-          key: 'sharedExpenses',
-          title: 'Shared expenses',
-          subtitle: '0 shared',
-          amount: '0.00',
-        },
-        {
-          key: 'mostSharedWith',
-          title: 'Most shared with',
-          subtitle: 'No data',
-          amount: '0.00',
-        },
-        {
-          key: 'recurringImpact',
-          title: 'Recurring impact',
-          subtitle: '0 recurring',
-          amount: '0.00',
-        },
-        {
-          key: 'transfers',
-          title: 'Transfers',
-          subtitle: '0 transfers',
-          amount: '0.00',
-        },
       ],
     });
   });
@@ -1030,30 +1006,6 @@ describe('analytics queries', () => {
           subtitle: '1 tag',
           amount: '120.00',
         },
-        {
-          key: 'sharedExpenses',
-          title: 'Shared expenses',
-          subtitle: '0 shared',
-          amount: '0.00',
-        },
-        {
-          key: 'mostSharedWith',
-          title: 'Most shared with',
-          subtitle: 'No data',
-          amount: '0.00',
-        },
-        {
-          key: 'recurringImpact',
-          title: 'Recurring impact',
-          subtitle: '0 recurring',
-          amount: '0.00',
-        },
-        {
-          key: 'transfers',
-          title: 'Transfers',
-          subtitle: '0 transfers',
-          amount: '0.00',
-        },
       ],
     });
   });
@@ -1105,7 +1057,7 @@ describe('analytics queries', () => {
             participantId: 'participant-1',
             personId: 'person-1',
             displayName: 'Ana',
-            amount: '120.00',
+            amount: '60.00',
             reimbursable: true,
             repaymentStatus: 'pending',
           },
@@ -1129,29 +1081,23 @@ describe('analytics queries', () => {
           subtitle: '1 tag',
           amount: '180.00',
         },
+      {
+        key: 'sharedExpenses',
+        title: 'Shared expenses',
+        subtitle: '1 shared',
+        amount: '60.00',
+      },
         {
-          key: 'sharedExpenses',
-          title: 'Shared expenses',
-          subtitle: '1 shared',
-          amount: '120.00',
-        },
-        {
-          key: 'mostSharedWith',
-          title: 'Most shared with',
-          subtitle: 'Ana',
-          amount: '120.00',
-        },
+        key: 'mostSharedWith',
+        title: 'Most shared with',
+        subtitle: 'Ana',
+        amount: '60.00',
+      },
         {
           key: 'recurringImpact',
           title: 'Recurring impact',
           subtitle: '1 recurring',
           amount: '145.90',
-        },
-        {
-          key: 'transfers',
-          title: 'Transfers',
-          subtitle: '0 transfers',
-          amount: '0.00',
         },
       ],
     });

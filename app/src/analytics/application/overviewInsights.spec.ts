@@ -15,7 +15,7 @@ function transaction(
 }
 
 describe('overviewInsights', () => {
-  it('builds the overview insights in the stable product order', () => {
+  it('omits empty overview insights while preserving the stable product order', () => {
     const result = buildOverviewInsightsResult({
       topTagsFact: {
         transactions: [],
@@ -34,13 +34,7 @@ describe('overviewInsights', () => {
       currency: 'EUR',
     });
 
-    expect(result.items.map((item) => item.key)).toEqual([
-      'topTags',
-      'sharedExpenses',
-      'mostSharedWith',
-      'recurringImpact',
-      'transfers',
-    ]);
+    expect(result.items.map((item) => item.key)).toEqual(['sharedExpenses', 'mostSharedWith', 'recurringImpact']);
   });
 
   it('uses taxonomy assignments as the source of truth for top tags', () => {

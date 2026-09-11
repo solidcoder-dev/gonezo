@@ -20,8 +20,7 @@
 .bar { width: min(100%, 12px); min-height: 4px; border-radius: var(--radius-full) var(--radius-full) var(--radius-none) var(--radius-none); background: var(--color-expense); }
 .chartLabel { overflow: hidden; max-width: 100%; color: var(--color-text-secondary); font-size: var(--font-size-xs); text-overflow: ellipsis; white-space: nowrap; }
 .list { display: grid; gap: var(--space-md); }
-.row { display: grid; gap: var(--space-xs); width: 100%; border: 0; background: transparent; padding: 0; color: inherit; text-align: left; }
-.rowHeader { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: var(--space-xs); }
+.row { width: 100%; min-height: 48px; border: 0; background: transparent; padding: 0; color: inherit; text-align: left; }
 .rowMain { display: flex; align-items: center; gap: var(--space-xs); min-width: 0; }
 .marker { width: 8px; height: 8px; flex: 0 0 8px; border-radius: var(--radius-full); }
 .rowName { overflow: hidden; color: var(--color-text-primary); text-overflow: ellipsis; white-space: nowrap; }

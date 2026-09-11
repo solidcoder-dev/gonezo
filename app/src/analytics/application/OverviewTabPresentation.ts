@@ -1,7 +1,7 @@
 import { formatCurrencyAmount, formatIsoDate } from '../../shared/utils/formatting';
 import type { AnalyticsOverviewInsightsResult, AnalyticsOverviewSnapshotResult } from './analytics.port';
 import type { AnalyticsSummaryData } from '../ui/AnalyticsDashboard/AnalyticsDashboardViews';
-import type { OverviewStarterItemView } from '../ui/AnalyticsHighlights/AnalyticsHighlightsView.contract';
+import type { AnalyticsHighlightViewModel } from '../ui/AnalyticsHighlights/AnalyticsHighlightsView.contract';
 
 export function presentOverviewSnapshot(snapshot: AnalyticsOverviewSnapshotResult | undefined, currency: string): AnalyticsSummaryData {
   const totals = snapshot?.currentTotals ?? { incomeAmount: '0.00', expenseAmount: '0.00', netFlowAmount: '0.00' };
@@ -23,21 +23,29 @@ export function presentOverviewSnapshot(snapshot: AnalyticsOverviewSnapshotResul
   };
 }
 
-export function presentAnalyticsHighlights(snapshot: AnalyticsOverviewSnapshotResult | undefined, insights: AnalyticsOverviewInsightsResult | undefined, currency: string): OverviewStarterItemView[] {
-  const items: OverviewStarterItemView[] = [];
-  if (snapshot?.biggestExpense) items.push({ key: 'biggestExpense', label: 'Biggest expense', primaryText: snapshot.biggestExpense.title, amount: signedCurrency(snapshot.biggestExpense.amount, currency, 'expense'), supportingText: formatIsoDate(snapshot.biggestExpense.occurredAt), tone: 'expense', icon: 'expense' });
-  if (snapshot?.biggestIncome) items.push({ key: 'biggestIncome', label: 'Biggest income', primaryText: snapshot.biggestIncome.title, amount: signedCurrency(snapshot.biggestIncome.amount, currency, 'income'), supportingText: formatIsoDate(snapshot.biggestIncome.occurredAt), tone: 'income', icon: 'income' });
-  const presentation: Record<string, Omit<OverviewStarterItemView, 'key' | 'amount'>> = {
-    topTags: { label: 'Top tags', primaryText: '', tone: 'expense', icon: 'tag' }, sharedExpenses: { label: 'Shared expenses', primaryText: '', tone: 'sharing', icon: 'sharing' }, transfers: { label: 'Transfers', primaryText: '', tone: 'transfer', icon: 'transfer' }, mostSharedWith: { label: 'Most shared with', primaryText: '', tone: 'sharing', icon: 'sharing' }, recurringImpact: { label: 'Recurring impact', primaryText: '', tone: 'recurring', icon: 'recurring' },
+export function presentAnalyticsHighlights(snapshot: AnalyticsOverviewSnapshotResult | undefined, insights: AnalyticsOverviewInsightsResult | undefined, currency: string): AnalyticsHighlightViewModel[] {
+  const items: AnalyticsHighlightViewModel[] = [];
+  if (snapshot?.biggestExpense) items.push({ key: 'biggestExpense', label: 'Biggest expense', title: informativeHighlightTitle(snapshot.biggestExpense), formattedAmount: signedCurrency(snapshot.biggestExpense.amount, currency, 'expense'), supportingText: formatIsoDate(snapshot.biggestExpense.occurredAt), tone: 'expense' });
+  if (snapshot?.biggestIncome) items.push({ key: 'biggestIncome', label: 'Biggest income', title: informativeHighlightTitle(snapshot.biggestIncome), formattedAmount: signedCurrency(snapshot.biggestIncome.amount, currency, 'income'), supportingText: formatIsoDate(snapshot.biggestIncome.occurredAt), tone: 'income' });
+  const presentation: Record<string, Pick<AnalyticsHighlightViewModel, 'label' | 'tone'>> = {
+    topTags: { label: 'Top tags', tone: 'expense' }, sharedExpenses: { label: 'Shared expenses', tone: 'sharing' }, transfers: { label: 'Transfers', tone: 'transfer' }, mostSharedWith: { label: 'Most shared with', tone: 'sharing' }, recurringImpact: { label: 'Recurring impact', tone: 'recurring' },
   };
   for (const key of ['topTags', 'sharedExpenses', 'transfers', 'mostSharedWith', 'recurringImpact']) {
     const insight = insights?.items.find((item) => item.key === key);
     if (insight) {
       const item = presentation[key];
-      items.push({ key: insight.key, label: item.label, primaryText: insight.subtitle, amount: formatCurrencyAmount(insight.amount, currency), tone: item.tone, icon: item.icon });
+      items.push({ key: insight.key, label: item.label, title: insight.subtitle, formattedAmount: formatCurrencyAmount(insight.amount, currency), tone: item.tone });
     }
   }
   return items;
+}
+
+function informativeHighlightTitle(highlight: { title?: string; subtitle?: string }): string | undefined {
+  const candidates = [highlight.title, highlight.subtitle];
+  return candidates.find((candidate) => {
+    const normalized = candidate?.trim().toLowerCase();
+    return Boolean(normalized && !['expense', 'income', 'movement'].includes(normalized));
+  })?.trim();
 }
 
 function numericAmount(amount: string): number { const value = Number(amount); return Number.isFinite(value) ? value : 0; }
