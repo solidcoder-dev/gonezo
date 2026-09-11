@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { AnalyticsFilterBarView } from './AnalyticsFilterBarView';
 
 describe('Analytics navigation and filters', () => {
-  it('keeps the primary context controls readable in a horizontally scrollable row', () => {
+  it('keeps the primary context controls aligned without horizontal scrolling', () => {
     render(
       <AnalyticsFilterBarView
         required={{
@@ -21,7 +21,8 @@ describe('Analytics navigation and filters', () => {
     );
 
     const filters = screen.getByLabelText('Analytics filters');
-    expect(filters).toHaveClass('d-flex', 'flex-nowrap', 'overflow-x-auto');
+    expect(filters).toHaveClass('d-flex', 'flex-nowrap', 'justify-content-between');
+    expect(filters).not.toHaveClass('overflow-x-auto');
     expect(filters.querySelectorAll('button')).toHaveLength(3);
     expect(screen.getByLabelText('Open more filters')).toHaveClass('btn');
     expect(screen.getByLabelText('Open more filters')).not.toHaveClass('rounded-pill');

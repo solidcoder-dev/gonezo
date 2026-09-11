@@ -26,7 +26,7 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
   const { state, status } = required;
 
   return (
-    <div className={`${styles.filterBar} d-flex flex-nowrap align-items-center gap-2 overflow-x-auto`} role="group" aria-label="Analytics filters">
+    <div className={`${styles.filterBar} d-flex flex-nowrap align-items-center justify-content-between gap-2`} role="group" aria-label="Analytics filters">
       <button
         type="button"
         className={`${styles.filterControl} btn btn-sm d-inline-flex flex-shrink-0 align-items-center gap-2 text-nowrap`}
@@ -53,7 +53,7 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
 
       <button
         type="button"
-        className={`${styles.filterControl} btn btn-sm position-relative d-inline-flex flex-shrink-0 align-items-center gap-2${state.moreFiltersCount > 0 ? ` ${styles.filterControlSelected}` : ''}`}
+        className={`${styles.filterControl} btn btn-sm position-relative d-inline-flex flex-shrink-0 align-items-center gap-2 ms-auto${state.moreFiltersCount > 0 ? ` ${styles.filterControlSelected}` : ''}`}
         onClick={provided.commands.openMoreFiltersSheet}
         disabled={status.disabled}
         aria-label="Open more filters"

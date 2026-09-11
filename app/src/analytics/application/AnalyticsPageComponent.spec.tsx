@@ -194,6 +194,18 @@ describe('AnalyticsPageComponent', () => {
     expect(screen.queryByRole('heading', { name: 'Analytics' })).not.toBeInTheDocument();
   });
 
+  it('emits the resolved applied currency for route synchronization', async () => {
+    const onContextChanged = vi.fn();
+    render(
+      <AnalyticsPageComponent
+        required={{ context: { core: createCore() }, config: { enabled: true, refreshSignal: false } }}
+        provided={{ events: { onContextChanged } }}
+      />,
+    );
+
+    await waitFor(() => expect(onContextChanged).toHaveBeenCalledWith(expect.objectContaining({ currency: 'EUR' })));
+  });
+
   it('applies each global filter from its own sheet', async () => {
     const core = createCore();
 

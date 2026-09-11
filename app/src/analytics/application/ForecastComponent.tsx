@@ -25,5 +25,5 @@ export function ForecastComponent({ core, currency, filters, refreshSignal, amou
     });
     return () => { active = false; };
   }, [core, currency, filters, onError, refreshSignal, requestKey, selection]);
-  return <ForecastView required={{ report, status: { loading: Boolean(currency && core.analyticsGetFlowReport) && loadedKey !== requestKey, error: !core.analyticsGetFlowReport ? 'Forecast is unavailable' : undefined, amountVisibility } }} provided={{ state: { canPrevious: report?.canGoPrevious ?? true, canNext: report?.canGoNext ?? shift < 0 }, commands: { previous: () => setShift((current) => current - 1), next: () => setShift((current) => Math.min(0, current + 1)) } }} />;
+  return <ForecastView required={{ report, status: { loading: Boolean(currency && core.analyticsGetFlowReport) && loadedKey !== requestKey, error: !currency ? 'Forecast needs an active analytics currency.' : !core.analyticsGetFlowReport ? 'Forecast is unavailable' : undefined, amountVisibility } }} provided={{ state: { canPrevious: report?.canGoPrevious ?? true, canNext: report?.canGoNext ?? shift < 0 }, commands: { previous: () => setShift((current) => current - 1), next: () => setShift((current) => Math.min(0, current + 1)) } }} />;
 }
