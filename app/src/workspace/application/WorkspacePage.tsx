@@ -28,6 +28,8 @@ import { analyticsReferenceDateFromNow } from '../../analytics/application/analy
 import type { AnalyticsPeriodSelection } from '../../analytics/application/analyticsPeriodSelection';
 import { resolveAnalyticsPeriodSelectionWindow } from '../../analytics/application/analyticsPeriodSelection';
 import { buildMovementSearchHref } from '../../movements/application/movementsSearchRoutePreset';
+import { decodeMonthlyMovementsRouteState } from '../../movements/application/monthlyMovementsRouteState';
+import { monthlyMovementEntryDate } from '../../movements/application/monthlyMovementEntryDate';
 import { HomeRecentMovementsComponent, type HomeRecentMovementsPort } from './HomeRecentMovementsComponent';
 import { WorkspacePageHeader } from '../ui/WorkspacePageHeader/WorkspacePageHeader';
 import { useWorkspaceRefreshSignals } from './useWorkspaceRefreshSignals';
@@ -204,7 +206,15 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   }
 
   function handleCreateMovement(movement: Parameters<typeof createMovementForAccount>[0]) {
-    createMovementForAccount(movement);
+    const prefillRequest = currentPage === 'movements' && !movement.prefillRequest
+      ? {
+          requestId: movementEntryOpenSignal + 1,
+          mode: movement.type,
+          amount: '',
+          date: monthlyMovementEntryDate(decodeMonthlyMovementsRouteState(location.search, { now: () => new Date() }).month, new Date()),
+        }
+      : movement.prefillRequest;
+    createMovementForAccount({ ...movement, prefillRequest });
     navigateToMovementEntry();
   }
 
