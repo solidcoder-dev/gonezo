@@ -23,6 +23,8 @@ import { PendingExpectedOverviewComponent, type PendingExpectedOverviewPort } fr
 import { AnalyticsPageComponent } from '../../analytics/application/AnalyticsPageComponent';
 import { AnalyticsForecastPageComponent } from '../../analytics/application/AnalyticsForecastPageComponent';
 import { AnalyticsCategoryDetailComponent } from '../../analytics/application/AnalyticsCategoryDetailComponent';
+import { parseAnalyticsContext, serializeAnalyticsContext } from '../../analytics/application/analyticsContext';
+import { buildMovementSearchHref } from '../../movements/application/movementsSearchRoutePreset';
 import { HomeRecentMovementsComponent, type HomeRecentMovementsPort } from './HomeRecentMovementsComponent';
 import { WorkspacePageHeader } from '../ui/WorkspacePageHeader/WorkspacePageHeader';
 import { useWorkspaceRefreshSignals } from './useWorkspaceRefreshSignals';
@@ -422,6 +424,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     />
   ) : null;
 
+  const analyticsContext = parseAnalyticsContext(location.search);
   const analyticsPage = (
     <AnalyticsPageComponent
       required={{
@@ -432,24 +435,42 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           enabled: true,
           refreshSignal: analyticsRefreshSignal,
           amountVisibility: amountVisibility?.state.visibility,
+          initialFilters: analyticsContext,
         },
       }}
       provided={{
         events: {
           onError: showError,
+          onCategorySelected: (selectedCategoryId) => {
+            const suffix = serializeAnalyticsContext(analyticsContext);
+            void navigate(`/analytics/category/${encodeURIComponent(selectedCategoryId)}${suffix ? `?${suffix}` : ''}`);
+          },
+          onMerchantSelected: (merchant) => {
+            const href = buildMovementSearchHref({ source: 'posted', type: 'expense', merchant });
+            void navigate(withAnalyticsContext(href, analyticsContext));
+          },
+          onHighlightSelected: (item) => {
+            const type = item.tone === 'income' ? 'income' : 'expense';
+            const href = buildMovementSearchHref({ source: 'posted', type });
+            void navigate(withAnalyticsContext(href, analyticsContext));
+          },
+          onForecastSelected: () => {
+            const suffix = serializeAnalyticsContext(analyticsContext);
+            void navigate(`/analytics/forecast${suffix ? `?${suffix}` : ''}`);
+          },
         },
       }}
     />
   );
 
-  const analyticsCurrency = new URLSearchParams(location.search).get('currency') ?? '';
+  const analyticsCurrency = analyticsContext.currency;
   const categoryId = location.pathname.startsWith('/analytics/category/')
     ? decodeURIComponent(location.pathname.slice('/analytics/category/'.length))
     : '';
   const analyticsSecondaryPage = currentPage === 'analyticsForecast'
-    ? <AnalyticsForecastPageComponent core={pageRequired.core} currency={analyticsCurrency} refreshSignal={analyticsRefreshSignal} amountVisibility={amountVisibility?.state.visibility} onError={showError} />
+    ? <AnalyticsForecastPageComponent core={pageRequired.core} currency={analyticsCurrency} filters={analyticsContext} refreshSignal={analyticsRefreshSignal} amountVisibility={amountVisibility?.state.visibility} onError={showError} />
     : currentPage === 'analyticsCategory'
-      ? <AnalyticsCategoryDetailComponent core={pageRequired.core} categoryId={categoryId} currency={analyticsCurrency} refreshSignal={analyticsRefreshSignal} amountVisibility={amountVisibility?.state.visibility} onError={showError} />
+      ? <AnalyticsCategoryDetailComponent core={pageRequired.core} categoryId={categoryId} currency={analyticsCurrency} filters={analyticsContext} refreshSignal={analyticsRefreshSignal} amountVisibility={amountVisibility?.state.visibility} onError={showError} />
       : null;
 
   const pageHeader = currentPage === 'home'
@@ -736,4 +757,9 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       />
     </FeedbackNoticeDestinationProvider>
   );
+}
+
+function withAnalyticsContext(href: string, context: ReturnType<typeof parseAnalyticsContext>): string {
+  const serialized = serializeAnalyticsContext(context);
+  return serialized ? `${href}&${serialized}` : href;
 }

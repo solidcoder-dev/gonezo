@@ -9,6 +9,8 @@ import { AnalyticsDashboardComponent } from './AnalyticsDashboardComponent';
 import { useAnalyticsFiltersModel } from './useAnalyticsFiltersModel';
 import styles from '../ui/AnalyticsPageView.module.css';
 import type { AmountVisibility } from '../../shared/domain/amountVisibility';
+import type { AnalyticsFiltersInput } from './analyticsFilters';
+import type { OverviewStarterItemView } from '../ui/OverviewStarters/OverviewStartersView.contract';
 
 export type AnalyticsPageComponentProps = {
   required: {
@@ -19,11 +21,16 @@ export type AnalyticsPageComponentProps = {
       enabled: boolean;
       refreshSignal: boolean;
       amountVisibility?: AmountVisibility;
+      initialFilters?: AnalyticsFiltersInput;
     };
   };
   provided?: {
     events?: {
       onError?: (error: { message: string }) => void;
+      onCategorySelected?: (categoryId: string) => void;
+      onMerchantSelected?: (merchant: string) => void;
+      onHighlightSelected?: (item: OverviewStarterItemView) => void;
+      onForecastSelected?: () => void;
     };
   };
 };
@@ -33,6 +40,7 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
     core: required.context.core,
     enabled: required.config.enabled,
     refreshSignal: required.config.refreshSignal,
+    initialFilters: required.config.initialFilters,
     onError: provided?.events?.onError,
   });
   const currency = filterModel.filters.currency;

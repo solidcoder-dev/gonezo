@@ -1,6 +1,6 @@
 import { formatCurrencyAmount, formatIsoDate } from '../../shared/utils/formatting';
 import type { AnalyticsTopExpensesResult } from './analytics.port';
-import type { AnalyticsSpendingReport } from './spendingReport';
+import type { AnalyticsSpendingMerchant, AnalyticsSpendingReport } from './spendingReport';
 
 export type SpendingChartScaleView = {
   axisMax: number;
@@ -18,6 +18,7 @@ export type SpendingReportViewModel = {
   categories: Array<{ key: string; name: string; icon: string; color: string; amount: string; percentage: string; widthPercent: number }>;
   allCategories: Array<{ key: string; name: string; icon: string; color: string; amount: string; percentage: string; widthPercent: number }>;
   chart: SpendingChartScaleView;
+  merchants: Array<{ merchant: string; amount: string; percentage: number }>;
 };
 
 export type TopExpensesViewModel = {
@@ -134,6 +135,7 @@ export function presentSpendingSummary(report: AnalyticsSpendingReport): Spendin
     categories: visibleCategories,
     allCategories,
     chart: presentSpendingChartScale(amounts, labels),
+    merchants: (report.merchants ?? []).map((merchant: AnalyticsSpendingMerchant) => ({ merchant: merchant.merchant, amount: formatCurrencyAmount(merchant.amount.value, report.currency), percentage: merchant.percentage })),
   };
 }
 

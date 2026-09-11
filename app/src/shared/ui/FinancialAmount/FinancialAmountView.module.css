@@ -3,3 +3,6 @@
   line-height: inherit;
   white-space: nowrap;
 }
+
+.income { color: var(--color-income); }
+.expense { color: var(--color-expense); }

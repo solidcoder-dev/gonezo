@@ -27,6 +27,7 @@ export type AnalyticsFiltersModelInput = {
   core: AnalyticsFiltersModelPort;
   enabled: boolean;
   refreshSignal: boolean;
+  initialFilters?: AnalyticsFiltersInput;
   onError?: (error: { message: string }) => void;
 };
 
@@ -141,9 +142,10 @@ function appliedPeriod(period: AnalyticsPeriod, draftCustomFrom: AnalyticsLocalD
 }
 
 export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput): AnalyticsFiltersModel {
-  const { core, enabled, onError, refreshSignal } = input;
+  const { core, enabled, initialFilters, onError, refreshSignal } = input;
+  const initial = useMemo(() => mergeAnalyticsFilters(DEFAULT_ANALYTICS_FILTERS, initialFilters ?? {}), [initialFilters]);
   const [viewMode, setViewMode] = useState<AnalyticsViewMode>('overview');
-  const [filters, setFilters] = useState<AnalyticsFilters>(DEFAULT_ANALYTICS_FILTERS);
+  const [filters, setFilters] = useState<AnalyticsFilters>(initial);
   const [currencies, setCurrencies] = useState<string[]>([]);
   const [facets, setFacets] = useState<{ accounts: AnalyticsFilterFacetAccount[]; tags: AnalyticsFilterFacetTag[] }>({
     accounts: [],
@@ -152,22 +154,22 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput): Ana
   const [loading, setLoading] = useState(true);
 
   const [currencySheetOpen, setCurrencySheetOpen] = useState(false);
-  const [draftCurrency, setDraftCurrency] = useState(DEFAULT_ANALYTICS_FILTERS.currency);
+  const [draftCurrency, setDraftCurrency] = useState(initial.currency);
 
   const [periodSheetOpen, setPeriodSheetOpen] = useState(false);
-  const [draftPeriod, setDraftPeriod] = useState<AnalyticsPeriod>(DEFAULT_ANALYTICS_FILTERS.period);
-  const initialCustomRange = currentCustomRange(DEFAULT_ANALYTICS_FILTERS.period);
+  const [draftPeriod, setDraftPeriod] = useState<AnalyticsPeriod>(initial.period);
+  const initialCustomRange = currentCustomRange(initial.period);
   const [draftCustomFrom, setDraftCustomFrom] = useState(initialCustomRange.from);
   const [draftCustomTo, setDraftCustomTo] = useState(initialCustomRange.to);
 
   const [tagSheetOpen, setTagSheetOpen] = useState(false);
-  const [draftTagIds, setDraftTagIds] = useState<string[]>([]);
+  const [draftTagIds, setDraftTagIds] = useState<string[]>(initial.tagIds);
 
   const [moreFiltersSheetOpen, setMoreFiltersSheetOpen] = useState(false);
-  const [draftAccountIds, setDraftAccountIds] = useState<string[]>([]);
-  const [draftIncludeIgnoredMovements, setDraftIncludeIgnoredMovements] = useState(false);
-  const [draftIncludePlannedMovements, setDraftIncludePlannedMovements] = useState(true);
-  const [draftSharedAmountMode, setDraftSharedAmountMode] = useState<AnalyticsSharedAmountMode>('personal');
+  const [draftAccountIds, setDraftAccountIds] = useState<string[]>(initial.accountIds);
+  const [draftIncludeIgnoredMovements, setDraftIncludeIgnoredMovements] = useState(initial.includeIgnoredMovements);
+  const [draftIncludePlannedMovements, setDraftIncludePlannedMovements] = useState(initial.includePlannedMovements);
+  const [draftSharedAmountMode, setDraftSharedAmountMode] = useState<AnalyticsSharedAmountMode>(initial.sharedAmountMode);
 
   useEffect(() => {
     if (!enabled) {

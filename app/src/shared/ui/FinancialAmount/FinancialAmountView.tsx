@@ -10,7 +10,7 @@ export type FinancialAmountViewProps = Readonly<{
 }>;
 
 export function FinancialAmountView({ formattedAmount, visibility, sign, tone, className }: FinancialAmountViewProps) {
-  const classes = [styles.amount, className, visibility === 'visible' && tone === 'income' ? 'text-success' : null, visibility === 'visible' && tone === 'expense' ? 'text-danger' : null]
+  const classes = [styles.amount, className, visibility === 'visible' && tone === 'income' ? styles.income : null, visibility === 'visible' && tone === 'expense' ? styles.expense : null]
     .filter(Boolean)
     .join(' ');
 

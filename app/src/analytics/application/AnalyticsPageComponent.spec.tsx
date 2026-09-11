@@ -175,7 +175,7 @@ describe('AnalyticsPageComponent', () => {
     await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalled());
     expect(screen.getAllByLabelText('Amount hidden').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Open currency filter')).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Overview snapshot' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Saved summary' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'By category' })).toBeInTheDocument();
     expect(screen.queryByText('€250.00')).not.toBeInTheDocument();
     expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalled();
@@ -352,7 +352,7 @@ describe('AnalyticsPageComponent', () => {
     });
 
     expect(await screen.findByRole('heading', { name: 'Saved' })).toBeInTheDocument();
-    expect(screen.getByRole('status', { name: 'Loading overview starters' })).toBeInTheDocument();
+    expect(screen.getByText('Loading highlights…')).toBeInTheDocument();
 
     await act(async () => {
       insightsDeferred.resolve({
@@ -364,7 +364,7 @@ describe('AnalyticsPageComponent', () => {
       await insightsDeferred.promise;
     });
 
-    expect(await screen.findByRole('heading', { name: 'Starters' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Highlights' })).toBeInTheDocument();
     expect(screen.getByText('Top tags')).toBeInTheDocument();
     expect(screen.getByText('Transfers')).toBeInTheDocument();
   }, 15000);

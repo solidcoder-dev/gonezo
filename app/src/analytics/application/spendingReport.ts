@@ -37,6 +37,7 @@ export type AnalyticsSpendingReport = {
   changePercent?: number;
   timeline: AnalyticsSpendingTimelineBucket[];
   categories: AnalyticsSpendingCategory[];
+  merchants?: AnalyticsSpendingMerchant[];
 };
 
 export type AnalyticsSpendingMovement = {
@@ -280,5 +281,6 @@ export function buildAnalyticsSpendingReport(input: {
     changePercent: calculateChangePercent(totalExpense, previousExpense),
     timeline: buildSpendingTimeline(current, input.window, input.currency.toUpperCase()),
     categories: buildSpendingCategories(current, input.window, input.currency.toUpperCase(), input.categories),
+    merchants: buildSpendingMerchants(current, input.window, input.currency.toUpperCase()),
   };
 }
