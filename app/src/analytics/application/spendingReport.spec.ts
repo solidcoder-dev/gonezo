@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildAnalyticsSpendingReport, buildSpendingCategories, buildSpendingTimeline, normalizeAnalyticsPeriodSelection, resolveAnalyticsSpendingWindow } from './spendingReport';
+import { buildAnalyticsSpendingReport, buildSpendingCategories, buildSpendingMerchants, buildSpendingTimeline, normalizeAnalyticsPeriodSelection, resolveAnalyticsSpendingWindow } from './spendingReport';
 
 const movement = (id: string, occurredAt: string, amount: string, categoryId?: string) => ({ id, occurredAt, amount, currency: 'EUR', type: 'expense' as const, categoryId });
 
@@ -59,5 +59,21 @@ describe('Analytics spending read model', () => {
 
     expect(report.totalExpense.value).toBe('3.00');
     expect(report.categories.map((category) => category.categoryName)).toEqual(['Food']);
+  });
+
+  it('aggregates normalized merchants deterministically and supports category scope', () => {
+    const window = { start: '2026-06-01', endExclusive: '2026-07-01', selection: { period: { kind: 'thisMonth' as const }, shift: 0 }, canGoPrevious: true, canGoNext: false };
+    const movements = [
+      { ...movement('a', '2026-06-01T00:00:00Z', '2.00', 'food'), merchant: ' Cafe ' },
+      { ...movement('b', '2026-06-02T00:00:00Z', '3.00', 'food'), merchant: 'Cafe' },
+      { ...movement('c', '2026-06-03T00:00:00Z', '5.00', 'travel'), merchant: 'Zed' },
+      { ...movement('d', '2026-06-04T00:00:00Z', '9.00', 'food'), merchant: '   ' },
+    ];
+
+    expect(buildSpendingMerchants(movements, window, 'EUR')).toEqual([
+      { merchant: 'Cafe', amount: { value: '5.00', currency: 'EUR' }, percentage: 50, movementCount: 2 },
+      { merchant: 'Zed', amount: { value: '5.00', currency: 'EUR' }, percentage: 50, movementCount: 1 },
+    ]);
+    expect(buildSpendingMerchants(movements, window, 'EUR', 'food').map((item) => item.merchant)).toEqual(['Cafe']);
   });
 });

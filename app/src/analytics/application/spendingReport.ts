@@ -54,6 +54,13 @@ export type AnalyticsSpendingMovement = {
 
 export type AnalyticsCategoryReference = { id: string; name: string };
 
+export type AnalyticsSpendingMerchant = {
+  merchant: string;
+  amount: AnalyticsMoneyDto;
+  percentage: number;
+  movementCount: number;
+};
+
 export type AnalyticsCategoryReadPort = {
   listCategories(): Promise<AnalyticsCategoryReference[]>;
 };
@@ -220,6 +227,32 @@ export function buildSpendingCategories(
     amount: money(value, currency),
     percentage: total === 0 ? 0 : (value / total) * 100,
   }));
+}
+
+export function buildSpendingMerchants(
+  movements: AnalyticsSpendingMovement[],
+  window: AnalyticsSpendingPeriodWindow,
+  currency: string,
+  categoryId?: string,
+): AnalyticsSpendingMerchant[] {
+  const totals = new Map<string, { cents: number; movementCount: number }>();
+  for (const movement of expenseMovements(movements, window, currency.toUpperCase())) {
+    if (categoryId && movement.categoryId !== categoryId) continue;
+    const merchant = movement.merchant?.trim();
+    if (!merchant) continue;
+    const current = totals.get(merchant) ?? { cents: 0, movementCount: 0 };
+    totals.set(merchant, { cents: current.cents + cents(movement.amount), movementCount: current.movementCount + 1 });
+  }
+  const total = [...totals.values()].reduce((sum, item) => sum + item.cents, 0);
+  return [...totals.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .sort(([, left], [, right]) => right.cents - left.cents)
+    .map(([merchant, item]) => ({
+      merchant,
+      amount: money(item.cents, currency.toUpperCase()),
+      percentage: total === 0 ? 0 : (item.cents / total) * 100,
+      movementCount: item.movementCount,
+    }));
 }
 
 export function calculateChangePercent(current: AnalyticsMoneyDto, previous?: AnalyticsMoneyDto): number | undefined {
