@@ -13,10 +13,11 @@ export function resolveAnalyticsPeriodSelectionWindow(
   referenceDate: string,
   includePlannedMovements = false,
 ): AnalyticsResolvedPeriodWindow {
-  let currentSelection = normalizeAnalyticsPeriodSelection(selection);
+  const normalizedSelection = normalizeAnalyticsPeriodSelection(selection);
+  let currentSelection = normalizedSelection;
   let resolved = resolveAnalyticsPeriodWindow(currentSelection.period, referenceDate, includePlannedMovements);
 
-  for (let index = 0; index > currentSelection.shift; index -= 1) {
+  for (let index = 0; index > normalizedSelection.shift; index -= 1) {
     if (!resolved.comparisonRange) {
       break;
     }
