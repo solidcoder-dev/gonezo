@@ -31,7 +31,7 @@ export function AnalyticsCategoryDetailComponent({ core, categoryId, currency, f
 
   const category = report?.allCategories[0];
   const visibility = amountVisibility ?? 'visible';
-  const movementSearchHref = buildMovementSearchHref({ source: 'posted', type: 'expense', categoryIds: categoryId === 'uncategorized' ? undefined : [categoryId], fromDate: report?.window.start, toDate: report?.window.endExclusive ? previousDate(report.window.endExclusive) : undefined });
+  const movementSearchHref = buildMovementSearchHref({ source: 'posted', type: 'expense', categoryIds: categoryId === 'uncategorized' ? undefined : [categoryId], fromDate: report?.window.start, toDate: report?.window.endExclusive ? previousDate(report.window.endExclusive) : undefined, returnTo: `/analytics/category/${encodeURIComponent(categoryId)}${serializeAnalyticsContext(filters ?? {}) ? `?${serializeAnalyticsContext(filters ?? {})}` : ''}` });
   const contextQuery = serializeAnalyticsContext(filters ?? {});
   const href = contextQuery ? `${movementSearchHref}&${contextQuery}` : movementSearchHref;
   return <main className="d-grid gap-4" aria-label="Category detail">

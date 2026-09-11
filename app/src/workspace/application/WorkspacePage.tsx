@@ -446,12 +446,12 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             void navigate(`/analytics/category/${encodeURIComponent(selectedCategoryId)}${suffix ? `?${suffix}` : ''}`);
           },
           onMerchantSelected: (merchant) => {
-            const href = buildMovementSearchHref({ source: 'posted', type: 'expense', merchant });
+            const href = buildMovementSearchHref({ source: 'posted', type: 'expense', merchant, returnTo: analyticsReturnTo(analyticsContext) });
             void navigate(withAnalyticsContext(href, analyticsContext));
           },
           onHighlightSelected: (item) => {
             const type = item.tone === 'income' ? 'income' : 'expense';
-            const href = buildMovementSearchHref({ source: 'posted', type });
+            const href = buildMovementSearchHref({ source: 'posted', type, returnTo: analyticsReturnTo(analyticsContext) });
             void navigate(withAnalyticsContext(href, analyticsContext));
           },
           onForecastSelected: () => {
@@ -762,4 +762,9 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
 function withAnalyticsContext(href: string, context: ReturnType<typeof parseAnalyticsContext>): string {
   const serialized = serializeAnalyticsContext(context);
   return serialized ? `${href}&${serialized}` : href;
+}
+
+function analyticsReturnTo(context: ReturnType<typeof parseAnalyticsContext>): string {
+  const serialized = serializeAnalyticsContext(context);
+  return `/analytics${serialized ? `?${serialized}` : ''}`;
 }

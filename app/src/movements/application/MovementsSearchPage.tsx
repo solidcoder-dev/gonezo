@@ -48,6 +48,8 @@ export type { MovementsSearchPageProps };
 export function MovementsSearchPage({ required, provided }: MovementsSearchPageProps) {
   const location = useLocation();
   const routePreset = parseMovementsSearchRoutePreset(location.search);
+  const returnTo = new URLSearchParams(location.search).get('returnTo');
+  const closeHref = returnTo?.startsWith('/') ? returnTo : '/';
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -110,7 +112,7 @@ export function MovementsSearchPage({ required, provided }: MovementsSearchPageP
     <section className="gz-app-screen">
       <div className="gz-inline-header">
         <h2>Search</h2>
-        <Link to="/" className="gz-icon-button" aria-label="Close search">
+        <Link to={closeHref} className="gz-icon-button" aria-label="Close search">
           <i className="bi bi-x-lg" aria-hidden />
         </Link>
       </div>

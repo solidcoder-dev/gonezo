@@ -10,6 +10,7 @@ export type MovementSearchPreset = {
   categoryIds?: string[];
   tagIds?: string[];
   merchant?: string;
+  returnTo?: string;
 };
 
 export function buildMovementSearchHref(preset: MovementSearchPreset): string {
@@ -20,6 +21,7 @@ export function buildMovementSearchHref(preset: MovementSearchPreset): string {
   if (preset.categoryIds?.length) params.set('categoryIds', preset.categoryIds.join(','));
   if (preset.tagIds?.length) params.set('tagIds', preset.tagIds.join(','));
   if (preset.merchant?.trim()) params.set('merchant', preset.merchant.trim());
+  if (preset.returnTo?.startsWith('/')) params.set('returnTo', preset.returnTo);
   return `/movements/search?${params.toString()}`;
 }
 
