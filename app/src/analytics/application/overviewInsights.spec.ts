@@ -20,16 +20,13 @@ describe('overviewInsights', () => {
       topTagsFact: {
         transactions: [],
       },
-      sharingInsights: [
-        { key: 'sharedExpenses', title: 'Shared expenses', subtitle: '0 shared', amount: '0.00' },
-        { key: 'mostSharedWith', title: 'Most shared with', subtitle: 'No data', amount: '0.00' },
-      ],
+      sharingInsights: [],
       recurringInsight: undefined,
       transferTransactions: [],
       currency: 'EUR',
     });
 
-    expect(result.items.map((item) => item.key)).toEqual(['sharedExpenses', 'mostSharedWith', 'recurringImpact']);
+    expect(result.items).toEqual([]);
   });
 
   it('uses taxonomy assignments as the source of truth for top tags', () => {
