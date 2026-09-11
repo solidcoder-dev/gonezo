@@ -70,7 +70,7 @@ export function MovementsSearchPage({ required, provided }: MovementsSearchPageP
         const query = new URLSearchParams(location.search);
         const requestedAccountId = query.get('accountId');
         const requestedCurrency = routePreset.currency || undefined;
-        const requestedAccountIds = new Set(routePreset.accountIds);
+        const requestedAccountIds = new Set(routePreset.accountIds ?? []);
         const scopedAccounts = result.items.filter((account) => (
           (!requestedCurrency || account.currency.toUpperCase() === requestedCurrency)
           && (requestedAccountIds.size === 0 || requestedAccountIds.has(account.id))

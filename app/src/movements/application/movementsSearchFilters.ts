@@ -82,12 +82,12 @@ export function buildMovementsSearchFilters(filters: MovementsSearchFiltersState
   const { amountMin, amountMax } = normalizedAmountRange(filters);
 
   return {
-    currency: filters.currency.trim().toUpperCase() || undefined,
-    accountIds: normalizeMovementSearchIdentifierList(filters.accountIds).length > 0
-      ? normalizeMovementSearchIdentifierList(filters.accountIds)
+    currency: filters.currency?.trim().toUpperCase() || undefined,
+    accountIds: normalizeMovementSearchIdentifierList(filters.accountIds ?? []).length > 0
+      ? normalizeMovementSearchIdentifierList(filters.accountIds ?? [])
       : undefined,
     sharing: filters.sharing === 'shared' ? 'shared' : undefined,
-    sharingPersonId: filters.sharingPersonId.trim() || undefined,
+    sharingPersonId: filters.sharingPersonId?.trim() || undefined,
     text: filters.text.trim() || undefined,
     merchant: filters.merchant.trim() || undefined,
     categoryIds: normalizedCategoryIds.length > 0 ? normalizedCategoryIds : undefined,
