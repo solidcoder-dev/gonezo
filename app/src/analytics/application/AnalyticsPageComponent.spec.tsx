@@ -260,7 +260,7 @@ describe('AnalyticsPageComponent', () => {
     expect(screen.getByText('Accounts')).toBeInTheDocument();
     expect(screen.getByText('Tags')).toBeInTheDocument();
     expect(screen.getByText('Include ignored movements')).toBeInTheDocument();
-    expect(screen.getByText('Include scheduled and expected movements')).toBeInTheDocument();
+    expect(screen.getByText('Include planned movements')).toBeInTheDocument();
     expect(screen.getByText('Count full shared amounts')).toBeInTheDocument();
     expect(screen.queryByText('Movement type')).not.toBeInTheDocument();
     expect(screen.getByText('Trip Tenerife')).toBeInTheDocument();

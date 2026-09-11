@@ -18,6 +18,28 @@
   padding-block: var(--space-xs);
 }
 
+.filterControl {
+  min-height: var(--touch-target-min);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+.filterControlSelected { color: var(--color-action-primary); }
+
+.filterCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  min-height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--color-selected);
+  color: var(--color-on-brand);
+  font-size: var(--font-size-xs);
+  line-height: 1;
+}
+
 .analyticsOverviewContent { display: grid; gap: var(--space-xl); margin-top: var(--space-xl); }
 
 .stack {
@@ -175,6 +197,20 @@
   font-size: 1rem;
   font-weight: var(--font-weight-semibold);
 }
+
+.filterSwitchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: var(--touch-target-min);
+  color: var(--color-text-primary);
+}
+
+.filterSwitchRow strong,
+.filterSwitchRow small { display: block; }
+.filterSwitchRow strong { font-size: var(--font-size-md); font-weight: var(--font-weight-medium); }
+.filterSwitchRow small { margin-top: var(--space-2xs); color: var(--color-text-secondary); font-size: var(--font-size-sm); }
 
 .accountSelectField {
   display: flex;

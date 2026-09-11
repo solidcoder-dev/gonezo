@@ -2,7 +2,6 @@ import type { AnalyticsFilterFacetAccount } from '../application/analytics.port'
 import type { AnalyticsFilterFacetTag } from '../application/analytics.port';
 import type { AnalyticsSharedAmountMode } from '../application/analyticsFilters';
 import { SheetView } from '../../shared/ui/SheetView';
-import { BinarySwitchCardView } from '../../shared/ui/BinarySwitchCard/BinarySwitchCardView';
 import styles from './AnalyticsPageView.module.css';
 
 type AnalyticsMoreFiltersSheetViewProps = {
@@ -110,57 +109,9 @@ export function AnalyticsMoreFiltersSheetView({ required, provided }: AnalyticsM
                 </label>
               </div>
 
-              <BinarySwitchCardView
-                required={{
-                  config: {
-                    switchId: 'analytics-include-ignored',
-                    title: 'Include ignored movements',
-                    description: 'Ignored movements are excluded by default.',
-                    iconClassName: 'bi bi-eye-slash',
-                    ariaLabel: 'Include ignored movements',
-                  },
-                  data: {},
-                  state: { value: required.state.draftIncludeIgnoredMovements },
-                  status: { disabled: required.status.disabled },
-                }}
-                provided={{ commands: { setValue: provided.commands.setDraftIncludeIgnoredMovements } }}
-              />
-
-              <BinarySwitchCardView
-                required={{
-                  config: {
-                    switchId: 'analytics-include-planned',
-                    title: 'Include scheduled and expected movements',
-                    description: 'Include pending expected movements and future scheduled occurrences.',
-                    iconClassName: 'bi bi-calendar2-event',
-                    ariaLabel: 'Include scheduled and expected movements',
-                  },
-                  data: {},
-                  state: { value: required.state.draftIncludePlannedMovements },
-                  status: { disabled: required.status.disabled },
-                }}
-                provided={{ commands: { setValue: provided.commands.setDraftIncludePlannedMovements } }}
-              />
-
-              <BinarySwitchCardView
-                required={{
-                  config: {
-                    switchId: 'analytics-full-shared-amounts',
-                    title: 'Count full shared amounts',
-                    description: 'Off counts only your part. On counts the full amount.',
-                    iconClassName: 'bi bi-people',
-                    ariaLabel: 'Count full shared amounts',
-                  },
-                  data: {},
-                  state: { value: required.state.draftSharedAmountMode === 'full' },
-                  status: { disabled: required.status.disabled },
-                }}
-                provided={{
-                  commands: {
-                    setValue: (value) => provided.commands.setDraftSharedAmountMode(value ? 'full' : 'personal'),
-                  },
-                }}
-              />
+              <FilterSwitchRow id="analytics-include-ignored" title="Include ignored movements" description="Ignored movements are excluded by default." value={required.state.draftIncludeIgnoredMovements} disabled={required.status.disabled} onChange={provided.commands.setDraftIncludeIgnoredMovements} />
+              <FilterSwitchRow id="analytics-include-planned" title="Include planned movements" ariaLabel="Include scheduled and expected movements" description="Include pending expected movements and future scheduled occurrences." value={required.state.draftIncludePlannedMovements} disabled={required.status.disabled} onChange={provided.commands.setDraftIncludePlannedMovements} />
+              <FilterSwitchRow id="analytics-full-shared-amounts" title="Count full shared amounts" description="Off counts only your part. On counts the full amount." value={required.state.draftSharedAmountMode === 'full'} disabled={required.status.disabled} onChange={(value) => provided.commands.setDraftSharedAmountMode(value ? 'full' : 'personal')} />
             </>
           ),
           footer: (
@@ -182,4 +133,8 @@ export function AnalyticsMoreFiltersSheetView({ required, provided }: AnalyticsM
       provided={{ commands: { close: provided.commands.close } }}
     />
   );
+}
+
+function FilterSwitchRow({ id, title, ariaLabel = title, description, value, disabled, onChange }: { id: string; title: string; ariaLabel?: string; description: string; value: boolean; disabled: boolean; onChange: (value: boolean) => void }) {
+  return <label className={styles.filterSwitchRow} htmlFor={id}><span><strong>{title}</strong><small>{description}</small></span><span className="form-check form-switch"><input id={id} aria-label={ariaLabel} role="switch" className="form-check-input" type="checkbox" checked={value} disabled={disabled} onChange={(event) => onChange(event.target.checked)} /></span></label>;
 }

@@ -23,9 +23,10 @@ describe('Analytics navigation and filters', () => {
     const filters = screen.getByLabelText('Analytics filters');
     expect(filters).toHaveClass('d-flex', 'flex-nowrap', 'overflow-x-auto');
     expect(filters.querySelectorAll('button')).toHaveLength(3);
-    expect(screen.getByLabelText('Open more filters')).toHaveClass('btn', 'rounded-pill');
+    expect(screen.getByLabelText('Open more filters')).toHaveClass('btn');
+    expect(screen.getByLabelText('Open more filters')).not.toHaveClass('rounded-pill');
     expect(screen.getByText('EUR')).toBeInTheDocument();
     expect(screen.getByText('This month')).toBeInTheDocument();
-    expect(screen.getByText('2')).toHaveClass('badge');
+    expect(screen.getByText('2')).not.toHaveClass('text-bg-primary');
   });
 });

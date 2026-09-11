@@ -29,7 +29,7 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
     <div className={`${styles.filterBar} d-flex flex-nowrap align-items-center gap-2 overflow-x-auto`} role="group" aria-label="Analytics filters">
       <button
         type="button"
-        className="btn btn-sm rounded-pill d-inline-flex flex-shrink-0 align-items-center gap-2 text-nowrap"
+        className={`${styles.filterControl} btn btn-sm d-inline-flex flex-shrink-0 align-items-center gap-2 text-nowrap`}
         onClick={provided.commands.openCurrencySheet}
         disabled={status.disabled}
         aria-label="Open currency filter"
@@ -41,7 +41,7 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
 
       <button
         type="button"
-        className="btn btn-sm rounded-pill d-inline-flex flex-shrink-0 align-items-center gap-2 text-nowrap"
+        className={`${styles.filterControl} btn btn-sm d-inline-flex flex-shrink-0 align-items-center gap-2 text-nowrap`}
         onClick={provided.commands.openPeriodSheet}
         disabled={status.disabled}
         aria-label="Open period filter"
@@ -53,13 +53,13 @@ export function AnalyticsFilterBarView({ required, provided }: AnalyticsFilterBa
 
       <button
         type="button"
-        className={`btn btn-sm rounded-pill position-relative d-inline-flex flex-shrink-0 align-items-center gap-2${state.moreFiltersCount > 0 ? ' bg-success-subtle text-success-emphasis' : ''}`}
+        className={`${styles.filterControl} btn btn-sm position-relative d-inline-flex flex-shrink-0 align-items-center gap-2${state.moreFiltersCount > 0 ? ` ${styles.filterControlSelected}` : ''}`}
         onClick={provided.commands.openMoreFiltersSheet}
         disabled={status.disabled}
         aria-label="Open more filters"
       >
         <i className="bi bi-sliders2" aria-hidden />
-        {state.moreFiltersCount > 0 ? <span className="badge text-bg-primary">{state.moreFiltersCount}</span> : null}
+        {state.moreFiltersCount > 0 ? <span className={styles.filterCount}>{state.moreFiltersCount}</span> : null}
       </button>
     </div>
   );
