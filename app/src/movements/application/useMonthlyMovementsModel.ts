@@ -1,34 +1,21 @@
-import type { AnalyticsPort } from '../../analytics/application/analytics.port';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port';
-import type { LedgerPort } from '../../ledger/application/ledger.port';
-import type { LedgerTransactionOperationsPort } from '../../ledger/application/ledgerTransactionOperations.port';
-import type { LedgerTransactionListItem } from '../../ledger/application/ledger.port';
-import type { SchedulingPort } from '../../scheduling/application/scheduling.port';
-import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
-import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
-import type { MovementDetailQueryPort, MovementsQueryPort } from './movements.port';
-import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types'; import type { MovementDetailViewModel } from './movementDetailView.types';
+import type { AnalyticsPort } from '../../analytics/application/analytics.port'; import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port'; import type { LedgerPort, LedgerTransactionListItem } from '../../ledger/application/ledger.port';
+import type { LedgerTransactionOperationsPort } from '../../ledger/application/ledgerTransactionOperations.port'; import type { SchedulingPort } from '../../scheduling/application/scheduling.port';
+import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port'; import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
+import type { MovementDetailQueryPort, MovementsQueryPort } from './movements.port'; import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types'; import type { MovementDetailViewModel } from './movementDetailView.types';
 import { useMovementDetailModel } from './useMovementDetailModel';
 import { useMonthlyMovementMutationsModel } from './useMonthlyMovementMutationsModel';
-import { useMonthlyMovementNavigationModel } from './useMonthlyMovementNavigationModel';
+import { useMonthlyMovementsRouteModel } from './useMonthlyMovementsRouteModel';
+export { useMonthlyMovementNavigationModel } from './useMonthlyMovementNavigationModel';
 import { useMonthlyMovementsFeedbackModel } from './useMonthlyMovementsFeedbackModel';
 import { useMonthlyMovementsOverviewModel } from './useMonthlyMovementsOverviewModel';
 import { useMonthlyMovementsTaxonomyModel } from './useMonthlyMovementsTaxonomyModel';
 import { useMonthlyMovementsTimelineModel } from './useMonthlyMovementsTimelineModel';
 import { rejectConfirmation, toErrorMessage } from './useMonthlyMovementsModel.helpers';
-import type { MonthlyMovementsMode, MonthlyMovementsViewProvided, MonthlyMovementsViewRequired } from '../ui/MonthlyMovements/MonthlyMovementsView.contract';
+import type { MonthlyMovementsViewProvided, MonthlyMovementsViewRequired } from '../ui/MonthlyMovements/MonthlyMovementsView.contract';
 import type { FeedbackNoticeInput, FeedbackNoticeUpdate } from '../../shared/ui/FeedbackNotice/feedbackNotice.types';
 import type { MonthlyMovementsRouteState } from './monthlyMovementsRouteState';
-export type MonthlyMovementsModelPorts = {
-  movements: MovementDetailQueryPort;
-  analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
-  ledger: Pick<LedgerPort, 'ledgerListAccounts'> & LedgerTransactionOperationsPort;
-  scheduling: SchedulingPort & Pick<MovementsQueryPort, 'movementsGetOverview'>;
-  expected: ExpectedGatewayPort;
-  sharing: SharingGatewayPort;
-  taxonomy: TaxonomyGatewayPort;
-};
+export type MonthlyMovementsModelPorts = { movements: MovementDetailQueryPort; analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>; ledger: Pick<LedgerPort, 'ledgerListAccounts'> & LedgerTransactionOperationsPort; scheduling: SchedulingPort & Pick<MovementsQueryPort, 'movementsGetOverview'>; expected: ExpectedGatewayPort; sharing: SharingGatewayPort; taxonomy: TaxonomyGatewayPort; };
 export type MonthlyMovementsModelClock = { now(): Date };
 export type MonthlyMovementsModelTimers = {
   setTimeout(handler: () => void, timeoutMs: number): number;
@@ -78,18 +65,15 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(0);
-  const [localSelectedMode, setLocalSelectedMode] = useState<MonthlyMovementsMode>('posted');
   const previousAccountIdRef = useRef<string | null>(null);
   const feedbackModel = useMonthlyMovementsFeedbackModel({ onNotice, onNoticeUpdated, onNoticeClosed });
-  const navigationModel = useMonthlyMovementNavigationModel({
+  const routeModel = useMonthlyMovementsRouteModel({
     clock,
     resetPage: () => setPage(0),
     routeState: input.routeState,
-    onRouteStateChange: input.routeState && input.onRouteStateChange
-      ? (state) => input.onRouteStateChange?.({ month: state.month, mode: input.routeState?.mode ?? 'posted' })
-      : undefined,
+    onRouteStateChange: input.onRouteStateChange,
   });
-  const selectedMode = input.routeState?.mode ?? localSelectedMode;
+  const { navigation: navigationModel, selectedMode } = routeModel;
   const overviewModel = useMonthlyMovementsOverviewModel({
     scheduling: ports.scheduling,
     accountId,
@@ -289,13 +273,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       openPostedMovementDetail: detailModel.actions.openPostedMovementDetail,
       openScheduledMovementDetail: detailModel.actions.openScheduledMovementDetail,
       openExpectedMovementDetail: detailModel.actions.openExpectedMovementDetail,
-      selectMode: (mode) => {
-        if (input.onRouteStateChange && input.routeState) {
-          input.onRouteStateChange({ month: input.routeState.month, mode });
-        } else {
-          setLocalSelectedMode(mode);
-        }
-      },
+      selectMode: routeModel.selectMode,
     },
     detail: detailModel.provided,
   };
