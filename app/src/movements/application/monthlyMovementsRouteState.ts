@@ -29,9 +29,11 @@ export function decodeMonthlyMovementsRouteState(
   clock: MonthlyMovementsRouteClock,
 ): MonthlyMovementsRouteState {
   const params = new URLSearchParams(search);
+  const month = params.get('month');
+  const mode = params.get('mode');
   return {
-    month: isValidMonth(params.get('month')) ? params.get('month')! : currentMonth(clock),
-    mode: isValidMode(params.get('mode')) ? params.get('mode')! : 'posted',
+    month: isValidMonth(month) ? month : currentMonth(clock),
+    mode: isValidMode(mode) ? mode : 'posted',
   };
 }
 
@@ -50,4 +52,15 @@ export function monthlyMovementsRouteStateNeedsNormalization(
   state: MonthlyMovementsRouteState,
 ): boolean {
   return serializeMonthlyMovementsRouteState(search, state) !== new URLSearchParams(search).toString();
+}
+
+export function monthlyMovementsMonthToDate(month: string): Date {
+  const match = month.match(MONTH_PATTERN);
+  if (!match) {
+    throw new Error(`Invalid monthly movements month: ${month}`);
+  }
+  const date = new Date(0);
+  date.setHours(0, 0, 0, 0);
+  date.setFullYear(Number(match[1]), Number(match[2]) - 1, 1);
+  return date;
 }

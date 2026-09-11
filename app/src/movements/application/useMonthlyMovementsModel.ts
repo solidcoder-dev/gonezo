@@ -19,6 +19,7 @@ import { useMonthlyMovementsTimelineModel } from './useMonthlyMovementsTimelineM
 import { rejectConfirmation, toErrorMessage } from './useMonthlyMovementsModel.helpers';
 import type { MonthlyMovementsMode, MonthlyMovementsViewProvided, MonthlyMovementsViewRequired } from '../ui/MonthlyMovements/MonthlyMovementsView.contract';
 import type { FeedbackNoticeInput, FeedbackNoticeUpdate } from '../../shared/ui/FeedbackNotice/feedbackNotice.types';
+import type { MonthlyMovementsRouteState } from './monthlyMovementsRouteState';
 export type MonthlyMovementsModelPorts = {
   movements: MovementDetailQueryPort;
   analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
@@ -52,6 +53,8 @@ type UseMonthlyMovementsModelInput = {
   postedItems?: LedgerTransactionListItem[];
   scheduledItems?: ScheduledMovementView[];
   expectedItems?: ExpectedMovementView[];
+  routeState?: MonthlyMovementsRouteState;
+  onRouteStateChange?: (state: MonthlyMovementsRouteState) => void;
 };
 export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const {
@@ -75,13 +78,18 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(0);
-  const [selectedMode, setSelectedMode] = useState<MonthlyMovementsMode>('posted');
+  const [localSelectedMode, setLocalSelectedMode] = useState<MonthlyMovementsMode>('posted');
   const previousAccountIdRef = useRef<string | null>(null);
   const feedbackModel = useMonthlyMovementsFeedbackModel({ onNotice, onNoticeUpdated, onNoticeClosed });
   const navigationModel = useMonthlyMovementNavigationModel({
     clock,
     resetPage: () => setPage(0),
+    routeState: input.routeState,
+    onRouteStateChange: input.routeState && input.onRouteStateChange
+      ? (state) => input.onRouteStateChange?.({ month: state.month, mode: input.routeState?.mode ?? 'posted' })
+      : undefined,
   });
+  const selectedMode = input.routeState?.mode ?? localSelectedMode;
   const overviewModel = useMonthlyMovementsOverviewModel({
     scheduling: ports.scheduling,
     accountId,
@@ -281,7 +289,13 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
       openPostedMovementDetail: detailModel.actions.openPostedMovementDetail,
       openScheduledMovementDetail: detailModel.actions.openScheduledMovementDetail,
       openExpectedMovementDetail: detailModel.actions.openExpectedMovementDetail,
-      selectMode: setSelectedMode,
+      selectMode: (mode) => {
+        if (input.onRouteStateChange && input.routeState) {
+          input.onRouteStateChange({ month: input.routeState.month, mode });
+        } else {
+          setLocalSelectedMode(mode);
+        }
+      },
     },
     detail: detailModel.provided,
   };

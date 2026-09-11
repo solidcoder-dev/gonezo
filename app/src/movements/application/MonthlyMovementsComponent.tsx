@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { createExpectedGateway } from '../../expected/application/expectedGateway';
 import { createSchedulingGateway } from '../../scheduling/application/schedulingGateway';
 import { createSharingGateway } from '../../sharing/application/sharingGateway';
@@ -13,6 +14,7 @@ import type { ExpectedMovementView } from './movementsView.types';
 import type { MovementDetailViewModel } from './movementDetailView.types';
 import type { FeedbackNoticeInput, FeedbackNoticeUpdate } from '../../shared/ui/FeedbackNotice/feedbackNotice.types';
 import type { AmountVisibility } from '../../shared/domain/amountVisibility';
+import { decodeMonthlyMovementsRouteState, monthlyMovementsRouteStateNeedsNormalization, serializeMonthlyMovementsRouteState } from './monthlyMovementsRouteState';
 
 const BROWSER_CLOCK = {
   now: () => new Date(),
@@ -51,6 +53,14 @@ export type MonthlyMovementsComponentProps = {
 };
 
 export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMovementsComponentProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const routeState = useMemo(() => decodeMonthlyMovementsRouteState(location.search, BROWSER_CLOCK), [location.search]);
+  useEffect(() => {
+    if (!monthlyMovementsRouteStateNeedsNormalization(location.search, routeState)) return;
+    const search = serializeMonthlyMovementsRouteState(location.search, routeState);
+    void navigate(`${location.pathname}?${search}`, { replace: true });
+  }, [location.pathname, location.search, navigate, routeState]);
   const ports = useMemo(() => ({
     analytics: required.context.core,
     movements: required.context.core,
@@ -68,6 +78,11 @@ export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMo
     refreshSignal: required.config.refreshSignal,
     clock: BROWSER_CLOCK,
     timers: BROWSER_TIMERS,
+    routeState,
+    onRouteStateChange: (nextState) => {
+      const search = serializeMonthlyMovementsRouteState(location.search, nextState);
+      void navigate(`${location.pathname}?${search}`);
+    },
     onVoided: provided.events?.onVoided,
     onExpectedDismissed: provided.events?.onExpectedDismissed,
     onPostExpectedMovement: provided.events?.onPostExpectedMovement,
