@@ -548,4 +548,33 @@ describe('WebMovementsService', () => {
       hasNext: false,
     });
   });
+
+  it('filters shared posted movements before pagination and supports a participant', async () => {
+    const subject = createSubject(createWebAppState({
+      ledgerTransactions: [
+        {
+          id: 'shared', accountId: 'acc-1', type: 'expense', status: 'posted', amount: '40.00', currency: 'EUR',
+          occurredAt: '2026-06-10T00:00:00.000Z', merchant: 'Shared', items: [],
+        },
+        {
+          id: 'plain', accountId: 'acc-1', type: 'expense', status: 'posted', amount: '20.00', currency: 'EUR',
+          occurredAt: '2026-06-11T00:00:00.000Z', merchant: 'Plain', items: [],
+        },
+      ],
+      expenseShares: [{
+        id: 'share-1', transactionId: 'shared', payerPersonId: 'payer', totalAmount: '40.00', currency: 'EUR',
+        participants: [{ participantId: 'participant-1', personId: 'person-1', amount: '0.00', reimbursable: false }],
+        createdAt: '2026-06-01T00:00:00.000Z', updatedAt: '2026-06-01T00:00:00.000Z',
+      }],
+    }));
+
+    await expect(subject.movements.search({ accountId: 'acc-1', source: 'posted', filters: { sharing: 'shared' }, pagination: { page: 0, size: 1 } })).resolves.toMatchObject({
+      totalElements: 1,
+      content: [{ id: 'shared' }],
+    });
+    await expect(subject.movements.search({ accountId: 'acc-1', source: 'posted', filters: { sharing: 'shared', sharingPersonId: 'person-1' }, pagination: { page: 0, size: 10 } })).resolves.toMatchObject({
+      totalElements: 1,
+      content: [{ id: 'shared' }],
+    });
+  });
 });

@@ -50,31 +50,51 @@ export class WebMovementsSearchService {
   }
 
   private async searchPosted(input: MovementsSearchInput): Promise<MovementsSearchResult> {
-    const { page, size } = normalizeWebPagination(input.pagination);
     const filters = input.filters ?? {};
+    const ledgerFilters = {
+      text: filters.text,
+      merchant: filters.merchant,
+      categoryId: filters.categoryId,
+      categoryIds: filters.categoryIds,
+      tagIds: filters.tagIds,
+      amountMin: filters.amountMin,
+      amountMax: filters.amountMax,
+      fromDate: filters.fromDate,
+      toDate: filters.toDate,
+      types: filters.types,
+      statuses: ['posted' as const],
+    };
+    const sort = input.sort?.map((item) => ({
+      field: item.field === 'date' ? 'occurredAt' as const : item.field,
+      direction: item.direction,
+    })) ?? [{ field: 'occurredAt' as const, direction: 'desc' as const }];
+    if (filters.sharing === 'shared' || filters.sharingPersonId?.trim()) {
+      const transactions = await this.listAllPostedTransactions(input.accountId, ledgerFilters, sort);
+      const sharedTransactionIds = new Set(
+        this.state.expenseShares
+          .filter((share) => filters.sharing !== 'shared' || share.participants.length > 0)
+          .filter((share) => !filters.sharingPersonId?.trim()
+            || share.participants.some((participant) => participant.personId === filters.sharingPersonId))
+          .map((share) => share.transactionId),
+      );
+      const page = paginateWebItems(
+        transactions.filter((transaction) => sharedTransactionIds.has(transaction.id)),
+        input.pagination,
+      );
+      return {
+        ...page,
+        content: page.content.map((transaction) => mapPostedTransactionToSearchItem(transaction)),
+      };
+    }
+    const { page, size } = normalizeWebPagination(input.pagination);
     const result = await this.ledger.listTransactions({
       accountId: input.accountId,
-      filters: {
-        text: filters.text,
-        merchant: filters.merchant,
-        categoryId: filters.categoryId,
-        categoryIds: filters.categoryIds,
-        tagIds: filters.tagIds,
-        amountMin: filters.amountMin,
-        amountMax: filters.amountMax,
-        fromDate: filters.fromDate,
-        toDate: filters.toDate,
-        types: filters.types,
-        statuses: ['posted'],
-      },
+      filters: ledgerFilters,
       pagination: {
         page,
         size,
       },
-      sort: input.sort?.map((item) => ({
-        field: item.field === 'date' ? 'occurredAt' : item.field,
-        direction: item.direction,
-      })) ?? [{ field: 'occurredAt', direction: 'desc' }],
+      sort,
     });
     return {
       content: result.content.map((transaction) => mapPostedTransactionToSearchItem(transaction)),
@@ -85,6 +105,23 @@ export class WebMovementsSearchService {
       hasNext: result.hasNext,
       hasPrevious: result.hasPrevious,
     };
+  }
+
+  private async listAllPostedTransactions(
+    accountId: string,
+    filters: Parameters<MovementsLedgerReader['listTransactions']>[0]['filters'],
+    sort: Parameters<MovementsLedgerReader['listTransactions']>[0]['sort'],
+  ) {
+    const transactions = [] as Awaited<ReturnType<MovementsLedgerReader['listTransactions']>>['content'];
+    let page = 0;
+    let hasNext = true;
+    while (hasNext) {
+      const result = await this.ledger.listTransactions({ accountId, filters, pagination: { page, size: 100 }, sort });
+      transactions.push(...result.content);
+      hasNext = result.hasNext && result.content.length > 0;
+      page += 1;
+    }
+    return transactions;
   }
 
   private async searchExpected(input: MovementsSearchInput): Promise<MovementsSearchResult> {
