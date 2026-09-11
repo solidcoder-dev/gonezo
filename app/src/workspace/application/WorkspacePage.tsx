@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { TransactionsImportFileReaderPort } from '../../imports/application/transactionsImportFileReader.port';
 import { MovementDockNavigationComponent, TransactionEntryComponent } from '../../transactions/index';
@@ -22,8 +22,10 @@ import { ManageAccountSheetComponent } from '../../account/application/ManageAcc
 import { PendingExpectedOverviewComponent, type PendingExpectedOverviewPort } from './PendingExpectedOverviewComponent';
 import { AnalyticsPageComponent } from '../../analytics/application/AnalyticsPageComponent';
 import { AnalyticsForecastPageComponent } from '../../analytics/application/AnalyticsForecastPageComponent';
-import { AnalyticsCategoryDetailComponent } from '../../analytics/application/AnalyticsCategoryDetailComponent';
 import { parseAnalyticsContext, serializeAnalyticsContext } from '../../analytics/application/analyticsContext';
+import type { AnalyticsFilters } from '../../analytics/application/analyticsFilters';
+import { analyticsReferenceDateFromNow } from '../../analytics/application/analyticsFilters';
+import { resolveAnalyticsPeriodWindow } from '../../analytics/application/analyticsPeriodResolver';
 import { buildMovementSearchHref } from '../../movements/application/movementsSearchRoutePreset';
 import { HomeRecentMovementsComponent, type HomeRecentMovementsPort } from './HomeRecentMovementsComponent';
 import { WorkspacePageHeader } from '../ui/WorkspacePageHeader/WorkspacePageHeader';
@@ -31,7 +33,7 @@ import { useWorkspaceRefreshSignals } from './useWorkspaceRefreshSignals';
 import { useWorkspaceImportCoordinator } from './useWorkspaceImportCoordinator';
 import { useWorkspaceToast } from './useWorkspaceToast';
 import { useMovementComposerCoordinator } from './useMovementComposerCoordinator';
-import { resolveWorkspaceRoutePage } from './workspaceNavigation';
+import { analyticsRouteForContext, resolveWorkspaceRoutePage, shouldSyncAnalyticsContext } from './workspaceNavigation';
 import { useWorkspaceAccountEvents } from './useWorkspaceAccountEvents';
 import type { MovementVoiceEntryContext } from '../../transactions/application/MovementVoiceEntry/movementVoiceEntryContext';
 import { useExperimentalFeaturesModel } from '../../experiments/application/useExperimentalFeaturesModel';
@@ -145,6 +147,12 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     resetTransactionEntryPrefill,
   } = movementComposer.actions;
   const currentPage = resolveWorkspaceRoutePage(location.pathname);
+  const syncAnalyticsContext = useCallback((filters: AnalyticsFilters) => {
+    if (currentPage !== 'analytics' || !shouldSyncAnalyticsContext(location.search, filters)) {
+      return;
+    }
+    void navigate(analyticsRouteForContext(filters), { replace: true });
+  }, [currentPage, location.search, navigate]);
   const [voiceWorkflowBusy, setVoiceWorkflowBusy] = useState(false);
   const {
     handleAccountDeleted,
@@ -441,9 +449,26 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       provided={{
         events: {
           onError: showError,
+          onContextChanged: syncAnalyticsContext,
           onCategorySelected: (selectedCategoryId) => {
-            const suffix = serializeAnalyticsContext(analyticsContext);
-            void navigate(`/analytics/category/${encodeURIComponent(selectedCategoryId)}${suffix ? `?${suffix}` : ''}`);
+            const periodWindow = resolveAnalyticsPeriodWindow(
+              analyticsContext.period,
+              analyticsReferenceDateFromNow(),
+              analyticsContext.includePlannedMovements,
+            );
+            const href = buildMovementSearchHref({
+              source: 'posted',
+              type: 'expense',
+              fromDate: periodWindow.currentRange?.from,
+              toDate: periodWindow.currentRange?.to,
+              categoryIds: selectedCategoryId === 'uncategorized' ? undefined : [selectedCategoryId],
+              uncategorized: selectedCategoryId === 'uncategorized',
+              tagIds: analyticsContext.tagIds,
+              currency: analyticsContext.currency,
+              accountIds: analyticsContext.accountIds,
+              returnTo: analyticsReturnTo(analyticsContext),
+            });
+            void navigate(href);
           },
           onMerchantSelected: (merchant) => {
             const href = buildMovementSearchHref({ source: 'posted', type: 'expense', merchant, returnTo: analyticsReturnTo(analyticsContext) });
@@ -464,14 +489,9 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   );
 
   const analyticsCurrency = analyticsContext.currency;
-  const categoryId = location.pathname.startsWith('/analytics/category/')
-    ? decodeURIComponent(location.pathname.slice('/analytics/category/'.length))
-    : '';
   const analyticsSecondaryPage = currentPage === 'analyticsForecast'
     ? <AnalyticsForecastPageComponent core={pageRequired.core} currency={analyticsCurrency} filters={analyticsContext} refreshSignal={analyticsRefreshSignal} amountVisibility={amountVisibility?.state.visibility} onError={showError} />
-    : currentPage === 'analyticsCategory'
-      ? <AnalyticsCategoryDetailComponent core={pageRequired.core} categoryId={categoryId} currency={analyticsCurrency} filters={analyticsContext} refreshSignal={analyticsRefreshSignal} amountVisibility={amountVisibility?.state.visibility} onError={showError} />
-      : null;
+    : null;
 
   const pageHeader = currentPage === 'home'
     ? (
@@ -494,11 +514,11 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           }}
         />
       )
-    : currentPage === 'analytics' || currentPage === 'analyticsForecast' || currentPage === 'analyticsCategory'
+    : currentPage === 'analytics' || currentPage === 'analyticsForecast'
       ? (
           <WorkspacePageHeader
             required={{
-            title: currentPage === 'analyticsForecast' ? 'Forecast' : currentPage === 'analyticsCategory' ? 'Category detail' : 'Analytics',
+            title: currentPage === 'analyticsForecast' ? 'Forecast' : 'Analytics',
             unreadCount,
             amountVisibility: amountVisibility && {
               visibility: amountVisibility.state.visibility,
@@ -709,7 +729,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           )
           : currentPage === 'analytics'
             ? analyticsPage
-            : currentPage === 'analyticsForecast' || currentPage === 'analyticsCategory'
+            : currentPage === 'analyticsForecast'
               ? analyticsSecondaryPage
             : currentPage === 'movementsSearch'
               ? movementsSearchPage

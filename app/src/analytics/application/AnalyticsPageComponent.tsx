@@ -9,8 +9,9 @@ import { AnalyticsDashboardComponent } from './AnalyticsDashboardComponent';
 import { useAnalyticsFiltersModel } from './useAnalyticsFiltersModel';
 import styles from '../ui/AnalyticsPageView.module.css';
 import type { AmountVisibility } from '../../shared/domain/amountVisibility';
-import type { AnalyticsFiltersInput } from './analyticsFilters';
-import type { OverviewStarterItemView } from '../ui/AnalyticsHighlights/AnalyticsHighlightsView.contract';
+import { useEffect } from 'react';
+import type { AnalyticsFilters, AnalyticsFiltersInput } from './analyticsFilters';
+import type { AnalyticsHighlightViewModel } from '../ui/AnalyticsHighlights/AnalyticsHighlightsView.contract';
 
 export type AnalyticsPageComponentProps = {
   required: {
@@ -29,8 +30,9 @@ export type AnalyticsPageComponentProps = {
       onError?: (error: { message: string }) => void;
       onCategorySelected?: (categoryId: string) => void;
       onMerchantSelected?: (merchant: string) => void;
-      onHighlightSelected?: (item: OverviewStarterItemView) => void;
+      onHighlightSelected?: (item: AnalyticsHighlightViewModel) => void;
       onForecastSelected?: () => void;
+      onContextChanged?: (filters: AnalyticsFilters) => void;
     };
   };
 };
@@ -49,6 +51,12 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
     + Number(filterModel.filters.includeIgnoredMovements)
     + Number(!filterModel.filters.includePlannedMovements)
     + Number(filterModel.filters.sharedAmountMode === 'full');
+
+  useEffect(() => {
+    if (!filterModel.loading && filterModel.filters.currency) {
+      provided?.events?.onContextChanged?.(filterModel.filters);
+    }
+  }, [filterModel.filters, filterModel.loading, provided?.events]);
 
   return (
     <section className={styles.page}>

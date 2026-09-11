@@ -50,6 +50,7 @@ export function hasPostedTaxonomyFilters(filters: MovementsSearchFiltersState): 
   return filters.source === 'posted'
     && (
       normalizeMovementSearchIdentifierList(filters.categoryIds).length > 0
+      || filters.uncategorized
       || normalizeMovementSearchIdentifierList(filters.tagIds).length > 0
     );
 }
@@ -127,7 +128,7 @@ function applyPostedTaxonomyFilters(
 ): MovementsSearchItemView[] {
   const categoryFilter = normalizeMovementSearchIdentifierList(filters.categoryIds);
   const tagFilter = normalizeMovementSearchIdentifierList(filters.tagIds);
-  if (categoryFilter.length === 0 && tagFilter.length === 0) {
+  if (categoryFilter.length === 0 && tagFilter.length === 0 && !filters.uncategorized) {
     return searchItems;
   }
 
@@ -142,6 +143,9 @@ function applyPostedTaxonomyFilters(
       if (!itemCategoryId || !categoryIds.has(itemCategoryId)) {
         return false;
       }
+    }
+    if (filters.uncategorized && (item.categoryId ?? item.category?.id)) {
+      return false;
     }
     if (tagIds.size > 0) {
       const itemTagIds = new Set((item.tags ?? []).map((tag) => tag.id));

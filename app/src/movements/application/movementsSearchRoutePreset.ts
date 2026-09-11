@@ -8,7 +8,10 @@ export type MovementSearchPreset = {
   fromDate?: string;
   toDate?: string;
   categoryIds?: string[];
+  uncategorized?: boolean;
   tagIds?: string[];
+  currency?: string;
+  accountIds?: string[];
   merchant?: string;
   returnTo?: string;
 };
@@ -19,7 +22,10 @@ export function buildMovementSearchHref(preset: MovementSearchPreset): string {
   if (preset.fromDate) params.set('fromDate', preset.fromDate);
   if (preset.toDate) params.set('toDate', preset.toDate);
   if (preset.categoryIds?.length) params.set('categoryIds', preset.categoryIds.join(','));
+  if (preset.uncategorized) params.set('uncategorized', '1');
   if (preset.tagIds?.length) params.set('tagIds', preset.tagIds.join(','));
+  if (preset.currency?.trim()) params.set('currency', preset.currency.trim().toUpperCase());
+  if (preset.accountIds?.length) params.set('accountIds', preset.accountIds.join(','));
   if (preset.merchant?.trim()) params.set('merchant', preset.merchant.trim());
   if (preset.returnTo?.startsWith('/')) params.set('returnTo', preset.returnTo);
   return `/movements/search?${params.toString()}`;
@@ -41,6 +47,7 @@ export function parseMovementsSearchRoutePreset(search: string): MovementsSearch
   if (fromDate) filters.fromDate = fromDate;
   if (toDate) filters.toDate = toDate;
   filters.categoryIds = splitList(params.get('categoryIds'));
+  filters.uncategorized = params.get('uncategorized') === '1';
   filters.tagIds = splitList(params.get('tagIds'));
   filters.merchant = params.get('merchant')?.trim() ?? '';
   return filters;

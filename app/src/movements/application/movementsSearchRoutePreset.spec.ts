@@ -15,8 +15,13 @@ describe('parseMovementsSearchRoutePreset', () => {
   });
 
   it('round-trips analytics drilldown fields', () => {
-    const href = buildMovementSearchHref({ source: 'posted', type: 'expense', fromDate: '2026-07-01', toDate: '2026-07-31', categoryIds: ['cat-food'], tagIds: ['tag-trip'], merchant: 'Cafe' });
-    expect(href).toBe('/movements/search?source=posted&type=expense&fromDate=2026-07-01&toDate=2026-07-31&categoryIds=cat-food&tagIds=tag-trip&merchant=Cafe');
+    const href = buildMovementSearchHref({ source: 'posted', type: 'expense', fromDate: '2026-07-01', toDate: '2026-07-31', categoryIds: ['cat-food'], tagIds: ['tag-trip'], merchant: 'Cafe', currency: 'EUR', accountIds: ['acc-1'] });
+    expect(href).toBe('/movements/search?source=posted&type=expense&fromDate=2026-07-01&toDate=2026-07-31&categoryIds=cat-food&tagIds=tag-trip&currency=EUR&accountIds=acc-1&merchant=Cafe');
     expect(parseMovementsSearchRoutePreset(href.split('?')[1])).toMatchObject({ types: ['expense'], fromDate: '2026-07-01', toDate: '2026-07-31', categoryIds: ['cat-food'], tagIds: ['tag-trip'], merchant: 'Cafe' });
+  });
+
+  it('represents uncategorized analytics expenses explicitly', () => {
+    const href = buildMovementSearchHref({ source: 'posted', type: 'expense', uncategorized: true });
+    expect(parseMovementsSearchRoutePreset(href.split('?')[1]).uncategorized).toBe(true);
   });
 });

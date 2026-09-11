@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { resolveWorkspaceRoutePage } from './workspaceNavigation';
+import { parseAnalyticsContext } from '../../analytics/application/analyticsContext';
+import { resolveWorkspaceRoutePage, shouldSyncAnalyticsContext } from './workspaceNavigation';
 
 describe('resolveWorkspaceRoutePage', () => {
   it('resolves search and its query parameters as movementsSearch', () => {
@@ -21,6 +22,17 @@ describe('resolveWorkspaceRoutePage', () => {
     expect(resolveWorkspaceRoutePage('/home')).toBe('home');
     expect(resolveWorkspaceRoutePage('/accounts')).toBe('home');
     expect(resolveWorkspaceRoutePage('/analytics')).toBe('analytics');
+    expect(resolveWorkspaceRoutePage('/analytics/category/cat-food')).toBe('home');
     expect(resolveWorkspaceRoutePage('/profile')).toBe('profile');
+  });
+});
+
+describe('analytics context synchronization', () => {
+  it('detects an asynchronously resolved currency that is absent from the URL', () => {
+    expect(shouldSyncAnalyticsContext('', { ...parseAnalyticsContext(''), currency: 'EUR' })).toBe(true);
+  });
+
+  it('does not navigate when the normalized context already matches', () => {
+    expect(shouldSyncAnalyticsContext('?currency=EUR&period=thisMonth', { ...parseAnalyticsContext('?currency=EUR'), currency: 'EUR' })).toBe(false);
   });
 });

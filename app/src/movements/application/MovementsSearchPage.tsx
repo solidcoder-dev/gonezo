@@ -43,6 +43,10 @@ function resolveInitialAccountId(accounts: LedgerAccountItem[], queryValue: stri
   return null;
 }
 
+function routeAccountIds(search: string): string[] {
+  return new URLSearchParams(search).get('accountIds')?.split(',').map((value) => value.trim()).filter(Boolean) ?? [];
+}
+
 export type { MovementsSearchPageProps };
 
 export function MovementsSearchPage({ required, provided }: MovementsSearchPageProps) {
@@ -69,8 +73,14 @@ export function MovementsSearchPage({ required, provided }: MovementsSearchPageP
         }
         const query = new URLSearchParams(location.search);
         const requestedAccountId = query.get('accountId');
-        setAccounts(result.items);
-        setSelectedAccountId(resolveInitialAccountId(result.items, requestedAccountId));
+        const requestedCurrency = query.get('currency')?.trim().toUpperCase();
+        const requestedAccountIds = new Set(routeAccountIds(location.search));
+        const scopedAccounts = result.items.filter((account) => (
+          (!requestedCurrency || account.currency.toUpperCase() === requestedCurrency)
+          && (requestedAccountIds.size === 0 || requestedAccountIds.has(account.id))
+        ));
+        setAccounts(scopedAccounts);
+        setSelectedAccountId(resolveInitialAccountId(scopedAccounts, requestedAccountId));
       } catch (err) {
         if (!cancelled) {
           setError(toErrorMessage(err));

@@ -6,6 +6,7 @@ export const DEFAULT_MOVEMENTS_SEARCH_FILTERS: MovementsSearchFiltersState = {
   text: '',
   merchant: '',
   categoryIds: [],
+  uncategorized: false,
   tagIds: [],
   amountMin: '',
   amountMax: '',
@@ -22,6 +23,7 @@ export function createDefaultMovementsSearchFilters(): MovementsSearchFiltersSta
   return {
     ...DEFAULT_MOVEMENTS_SEARCH_FILTERS,
     categoryIds: [],
+    uncategorized: false,
     tagIds: [],
     types: [],
   };

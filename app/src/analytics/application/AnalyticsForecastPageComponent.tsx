@@ -13,7 +13,6 @@ export function AnalyticsForecastPageComponent({ core, filters, currency, refres
 }) {
   return (
     <main className="d-grid gap-4" aria-label="Forecast">
-      <h2 className="m-0">Forecast</h2>
       <ForecastComponent core={core} currency={currency} filters={filters} refreshSignal={refreshSignal} amountVisibility={amountVisibility} onError={onError} />
     </main>
   );

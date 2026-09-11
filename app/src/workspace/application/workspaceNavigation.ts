@@ -1,9 +1,9 @@
-export type WorkspaceRoutePage = 'analytics' | 'analyticsCategory' | 'analyticsForecast' | 'home' | 'movementNew' | 'movements' | 'movementsSearch' | 'profile';
+import { parseAnalyticsContext, serializeAnalyticsContext } from '../../analytics/application/analyticsContext';
+import type { AnalyticsFilters } from '../../analytics/application/analyticsFilters';
+
+export type WorkspaceRoutePage = 'analytics' | 'analyticsForecast' | 'home' | 'movementNew' | 'movements' | 'movementsSearch' | 'profile';
 
 export function resolveWorkspaceRoutePage(pathname: string): WorkspaceRoutePage {
-  if (pathname.startsWith('/analytics/category/')) {
-    return 'analyticsCategory';
-  }
   if (pathname === '/analytics/forecast') {
     return 'analyticsForecast';
   }
@@ -23,4 +23,13 @@ export function resolveWorkspaceRoutePage(pathname: string): WorkspaceRoutePage 
     return 'profile';
   }
   return 'home';
+}
+
+export function analyticsRouteForContext(filters: AnalyticsFilters): string {
+  const serialized = serializeAnalyticsContext(filters);
+  return `/analytics${serialized ? `?${serialized}` : ''}`;
+}
+
+export function shouldSyncAnalyticsContext(search: string, filters: AnalyticsFilters): boolean {
+  return serializeAnalyticsContext(parseAnalyticsContext(search)) !== serializeAnalyticsContext(filters);
 }
