@@ -3,6 +3,10 @@ import type { MovementsSearchFiltersState } from './movementsView.types';
 
 export const DEFAULT_MOVEMENTS_SEARCH_FILTERS: MovementsSearchFiltersState = {
   source: 'posted',
+  currency: '',
+  accountIds: [],
+  sharing: 'all',
+  sharingPersonId: '',
   text: '',
   merchant: '',
   categoryIds: [],
@@ -22,6 +26,7 @@ export const DEFAULT_MOVEMENTS_SEARCH_FILTERS: MovementsSearchFiltersState = {
 export function createDefaultMovementsSearchFilters(): MovementsSearchFiltersState {
   return {
     ...DEFAULT_MOVEMENTS_SEARCH_FILTERS,
+    accountIds: [],
     categoryIds: [],
     uncategorized: false,
     tagIds: [],
@@ -77,6 +82,12 @@ export function buildMovementsSearchFilters(filters: MovementsSearchFiltersState
   const { amountMin, amountMax } = normalizedAmountRange(filters);
 
   return {
+    currency: filters.currency.trim().toUpperCase() || undefined,
+    accountIds: normalizeMovementSearchIdentifierList(filters.accountIds).length > 0
+      ? normalizeMovementSearchIdentifierList(filters.accountIds)
+      : undefined,
+    sharing: filters.sharing === 'shared' ? 'shared' : undefined,
+    sharingPersonId: filters.sharingPersonId.trim() || undefined,
     text: filters.text.trim() || undefined,
     merchant: filters.merchant.trim() || undefined,
     categoryIds: normalizedCategoryIds.length > 0 ? normalizedCategoryIds : undefined,

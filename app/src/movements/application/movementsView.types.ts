@@ -96,6 +96,10 @@ export type MovementsSearchItemView = {
 
 export type MovementsSearchFiltersState = {
   source: MovementsSearchSourceView;
+  currency: string;
+  accountIds: string[];
+  sharing: 'all' | 'shared';
+  sharingPersonId: string;
   text: string;
   merchant: string;
   categoryIds: string[];

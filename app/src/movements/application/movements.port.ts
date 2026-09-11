@@ -83,6 +83,10 @@ export type MovementsGetDetailResult =
   | { found: true; detail: MovementsDetailData };
 
 export type MovementsSearchFiltersInput = {
+  currency?: string;
+  accountIds?: string[];
+  sharing?: 'all' | 'shared';
+  sharingPersonId?: string;
   text?: string;
   merchant?: string;
   categoryId?: string;
