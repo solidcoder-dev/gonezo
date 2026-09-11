@@ -36,6 +36,7 @@ export type ComposerExpenseItem = {
 
 export type TransactionComposerShellRequired = {
   open: boolean;
+  initialFocus: 'amount' | 'none';
   mode: ComposerMode;
   disabled: boolean;
   advancedOpen: boolean;
@@ -274,6 +275,7 @@ function recurrenceSummary(
 export function TransactionComposerView({ required, provided }: Props) {
   const {
     open,
+    initialFocus,
     mode,
     disabled,
     amount,
@@ -406,16 +408,24 @@ export function TransactionComposerView({ required, provided }: Props) {
   const amountInputRef = useRef<HTMLInputElement | null>(null);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
 
+  const initialFocusHandledRef = useRef(false);
+
   useEffect(() => {
-    if (open && mode !== 'picker') {
-      const timer = window.setTimeout(() => {
-        amountInputRef.current?.focus();
-        amountInputRef.current?.select();
-      }, 20);
-      return () => window.clearTimeout(timer);
+    if (!open) {
+      initialFocusHandledRef.current = false;
+      return;
     }
-    return undefined;
-  }, [open, mode]);
+    if (initialFocus !== 'amount' || mode === 'picker' || disabled || initialFocusHandledRef.current) {
+      return;
+    }
+    const amountInput = amountInputRef.current;
+    if (!amountInput) {
+      return;
+    }
+    amountInput.focus();
+    amountInput.select();
+    initialFocusHandledRef.current = true;
+  }, [disabled, initialFocus, mode, open]);
 
   const editingScheduledMovement = Boolean(editedScheduledMovementId);
   const expectedAvailable = (mode === 'expense' || mode === 'income') && !editingScheduledMovement;

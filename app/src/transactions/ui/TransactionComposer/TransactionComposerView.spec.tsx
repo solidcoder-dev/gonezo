@@ -5,6 +5,7 @@ import { TransactionComposerView, type TransactionComposerViewProvided, type Tra
 function makeRequired(overrides: Partial<TransactionComposerViewRequired> = {}): TransactionComposerViewRequired {
   return {
     open: true,
+    initialFocus: 'none',
     mode: 'expense',
     disabled: false,
     amount: '20.00',
@@ -115,6 +116,41 @@ function makeProvided(overrides: Partial<TransactionComposerViewProvided> = {}):
 }
 
 describe('TransactionComposerView movement more control', () => {
+  it('focuses Amount once when initial focus requests it', () => {
+    render(<TransactionComposerView required={makeRequired({ initialFocus: 'amount' })} provided={makeProvided()} />);
+
+    expect(screen.getByRole('spinbutton', { name: 'Amount' })).toHaveFocus();
+  });
+
+  it('selects a prefilled amount when it receives initial focus', () => {
+    const select = vi.spyOn(HTMLInputElement.prototype, 'select');
+    render(<TransactionComposerView required={makeRequired({ initialFocus: 'amount', amount: '20.00' })} provided={makeProvided()} />);
+
+    const amount = screen.getByRole('spinbutton', { name: 'Amount' }) as HTMLInputElement;
+    expect(select).toHaveBeenCalledWith();
+    expect(select.mock.instances).toContain(amount);
+    select.mockRestore();
+  });
+
+  it('does not steal focus after a rerender', () => {
+    const view = render(<TransactionComposerView required={makeRequired({ initialFocus: 'amount' })} provided={makeProvided()} />);
+    const note = screen.getByRole('textbox', { name: 'Merchant' });
+    note.focus();
+
+    view.rerender(<TransactionComposerView required={makeRequired({ initialFocus: 'amount' })} provided={makeProvided()} />);
+
+    expect(note).toHaveFocus();
+  });
+
+  it('does not focus Amount in picker mode or while disabled', () => {
+    const picker = render(<TransactionComposerView required={makeRequired({ initialFocus: 'amount', mode: 'picker' })} provided={makeProvided()} />);
+    expect(picker.container.querySelector('input[aria-label="Amount"]')).not.toHaveFocus();
+    picker.unmount();
+
+    render(<TransactionComposerView required={makeRequired({ initialFocus: 'amount', disabled: true })} provided={makeProvided()} />);
+    expect(screen.getByRole('spinbutton', { name: 'Amount' })).not.toHaveFocus();
+  });
+
   it('keeps type and account selectors independent and dispatches their callbacks', () => {
     const onSelectMode = vi.fn();
     const onSelectSourceAccount = vi.fn();

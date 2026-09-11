@@ -44,6 +44,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   const [accounts, setAccounts] = useState<LedgerAccountItem[]>([]);
   const [accountCurrency, setAccountCurrency] = useState('USD');
   const [composerOpen, setComposerOpen] = useState(false);
+  const [initialFocus, setInitialFocus] = useState<'amount' | 'none'>('none');
   const [composerMode, setComposerMode] = useState<ComposerMode>('picker');
   const [composerAdvancedOpen, setComposerAdvancedOpen] = useState(false);
   const [transactionAmount, setTransactionAmount] = useState('');
@@ -200,6 +201,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   function resetComposerState() {
     const today = clock.todayIso();
     setComposerMode('expense');
+    setInitialFocus('none');
     setComposerAdvancedOpen(false);
     setTransactionAmount('');
     setTransactionDate(today);
@@ -286,6 +288,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     modelEffectsRef.current.resetComposerState();
     setComposerOpen(true);
     setComposerMode(currentPrefillRequest.mode);
+    setInitialFocus(currentPrefillRequest.initialFocus ?? 'none');
     setComposerAdvancedOpen(true);
     setTransactionAmount(currentPrefillRequest.amount.replace('-', ''));
     setTransactionDate(currentPrefillRequest.date);
@@ -317,6 +320,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     }
     clearError();
     setComposerOpen(true);
+    setInitialFocus('amount');
     resetComposerState();
     applyTransactionEntryInitialMode(initialMode ?? 'expense', setComposerMode, () => {
       setExpectedMovement(false);
@@ -539,8 +543,9 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   }
 
   const required: TransactionEntryViewRequired = {
-    state: {
-      open: composerOpen,
+      state: {
+        open: composerOpen,
+        initialFocus,
       mode: composerMode,
       advancedOpen: composerAdvancedOpen,
       amount: transactionAmount,

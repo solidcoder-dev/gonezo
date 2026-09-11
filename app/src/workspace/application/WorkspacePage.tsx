@@ -212,6 +212,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           mode: movement.type,
           amount: '',
           date: monthlyMovementEntryDate(decodeMonthlyMovementsRouteState(location.search, { now: () => new Date() }).month, new Date()),
+          initialFocus: 'amount' as const,
         }
       : movement.prefillRequest;
     createMovementForAccount({ ...movement, prefillRequest });

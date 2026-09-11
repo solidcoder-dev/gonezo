@@ -13,6 +13,7 @@ import type { MovementReuseSuggestionGroup, MovementReuseSuggestionVariant } fro
 export type TransactionEntryViewRequired = {
   state: {
     open: boolean;
+    initialFocus: 'amount' | 'none';
     mode: ComposerMode;
     advancedOpen: boolean;
     amount: string;

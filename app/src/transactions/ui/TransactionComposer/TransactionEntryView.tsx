@@ -14,6 +14,7 @@ export function TransactionEntryView({ required, provided }: TransactionEntryVie
     <TransactionComposerView
       required={{
         open: required.state.open,
+        initialFocus: required.state.initialFocus,
         mode: required.state.mode,
         disabled: required.status.disabled,
         amount: required.state.amount,

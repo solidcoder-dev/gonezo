@@ -17,6 +17,7 @@ export type TransactionEntryPrefillRequest = {
   mode: ComposerMode;
   amount: string;
   date: string;
+  initialFocus?: 'amount' | 'none';
   note?: string;
   categoryId?: string;
   tagNames?: string[];
