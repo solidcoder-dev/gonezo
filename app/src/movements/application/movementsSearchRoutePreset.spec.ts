@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildMovementSearchHref, parseMovementsSearchRoutePreset } from './movementsSearchRoutePreset';
+import { buildMovementSearchHref, parseMovementsSearchRoutePreset, safeMovementSearchReturnTo } from './movementsSearchRoutePreset';
 
 describe('parseMovementsSearchRoutePreset', () => {
   it('initializes pending expected expense searches without narrowing account or currency', () => {
@@ -45,6 +45,8 @@ describe('parseMovementsSearchRoutePreset', () => {
     expect(parseMovementsSearchRoutePreset('?source=posted&fromDate=07-01-2026').source).toBe('posted');
     expect(parseMovementsSearchRoutePreset('?source=posted&sharing=mine').source).toBe('posted');
     expect(buildMovementSearchHref({ source: 'posted', returnTo: '//external.example' })).toBe('/movements/search?source=posted');
+    expect(safeMovementSearchReturnTo('/analytics')).toBe('/analytics');
+    expect(safeMovementSearchReturnTo('/movements/new')).toBeUndefined();
   });
 
   it('represents uncategorized analytics expenses explicitly', () => {

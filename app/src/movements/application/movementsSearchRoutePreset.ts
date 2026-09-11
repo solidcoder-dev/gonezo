@@ -26,7 +26,7 @@ function validIsoDate(value: string | null): value is string {
   return value == null || /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
-function safeReturnTo(value: string | undefined): string | undefined {
+export function safeMovementSearchReturnTo(value: string | null | undefined): string | undefined {
   return value?.startsWith('/') && !value.startsWith('//') && value !== '/movements/new' ? value : undefined;
 }
 
@@ -46,7 +46,7 @@ export function buildMovementSearchHref(preset: MovementSearchPreset): string {
   if (preset.merchant?.trim()) params.set('merchant', preset.merchant.trim());
   if (preset.sharing === 'shared') params.set('sharing', 'shared');
   if (preset.sharingPersonId?.trim()) params.set('sharingPersonId', preset.sharingPersonId.trim());
-  const returnTo = safeReturnTo(preset.returnTo);
+  const returnTo = safeMovementSearchReturnTo(preset.returnTo);
   if (returnTo) params.set('returnTo', returnTo);
   return `/movements/search?${params.toString()}`;
 }

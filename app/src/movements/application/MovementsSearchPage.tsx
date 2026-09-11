@@ -7,7 +7,7 @@ import type { MovementDetailViewModel } from './movementDetailView.types';
 import { useMovementsSearchModel } from './useMovementsSearchModel';
 import { MovementsSearchFilters } from '../ui/MovementsSearch/MovementsSearchFilters';
 import { MovementsSearchResults } from '../ui/MovementsSearch/MovementsSearchResults';
-import { parseMovementsSearchRoutePreset } from './movementsSearchRoutePreset';
+import { parseMovementsSearchRoutePreset, safeMovementSearchReturnTo } from './movementsSearchRoutePreset';
 import type { AmountVisibility } from '../../shared/domain/amountVisibility';
 
 type MovementsSearchPageProps = {
@@ -48,8 +48,7 @@ export type { MovementsSearchPageProps };
 export function MovementsSearchPage({ required, provided }: MovementsSearchPageProps) {
   const location = useLocation();
   const routePreset = useMemo(() => parseMovementsSearchRoutePreset(location.search), [location.search]);
-  const returnTo = new URLSearchParams(location.search).get('returnTo');
-  const closeHref = returnTo?.startsWith('/') ? returnTo : '/';
+  const closeHref = safeMovementSearchReturnTo(new URLSearchParams(location.search).get('returnTo')) ?? '/';
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
