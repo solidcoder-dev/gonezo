@@ -564,6 +564,39 @@ describe('analytics queries', () => {
     });
   });
 
+  it('includes the next scheduled movement in the forecast report', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
+    const port = createPort(
+      [transaction({ id: 'posted-expense', type: 'expense', amount: '25.00', occurredAt: '2026-06-15T12:00:00.000Z' })],
+      undefined,
+      [{
+        id: 'scheduled-expense',
+        type: 'expense',
+        sourceAccountId: 'acc-1',
+        amount: '50.00',
+        currency: 'EUR',
+        status: 'active',
+        startAt: '2026-06-20T09:00:00.000Z',
+        nextDueAt: '2026-06-20T09:00:00.000Z',
+        zoneId: 'UTC',
+        generatedOccurrences: 0,
+        splitItems: [],
+        rule: { frequency: 'monthly' },
+        recurrenceEnd: { kind: 'never' },
+      }],
+    );
+
+    await expect(analyticsGetFlowReport(port, {
+      currency: 'EUR',
+      filters: { includePlannedMovements: true },
+      periodSelection: { period: { kind: 'thisMonth' }, shift: 0 },
+    })).resolves.toMatchObject({
+      upcoming: { outgoingTotal: { value: '50.00' }, outgoingCount: 1 },
+      summary: { endBalance: { value: '950.00' } },
+    });
+  });
+
   it('rejects an unknown analytics currency', async () => {
     const port = createPort([transaction({ id: 'expense', type: 'expense', amount: '25.00' })]);
 

@@ -11,7 +11,7 @@ import type {
   TaxonomyListCategoriesResult,
   TaxonomyListTagsResult,
 } from '../../taxonomy/application/taxonomy.port';
-import type { SchedulingListMovementsResult } from '../../scheduling/application/scheduling.port';
+import type { SchedulingListMovementsResult, SchedulingMovementItem } from '../../scheduling/application/scheduling.port';
 import {
   buildAnalyticsCashFlowSummary,
   buildFlowInsights,
@@ -703,6 +703,41 @@ function flowFact(transaction: Awaited<ReturnType<typeof listAnalyticsMovements>
   return { id: transaction.analyticsFactId ?? transaction.id, source, effectiveAt: transaction.occurredAt, accountId: transaction.accountId, type: transaction.type, amount: { value: amountMode === 'full' ? transaction.analyticsFullAmount : transaction.analyticsPersonalAmount, currency } };
 }
 
+function scheduledFlowFacts(
+  movements: SchedulingMovementItem[],
+  selectedAccountIds: Set<string>,
+  currency: string,
+  now: string,
+): AnalyticsFlowFact[] {
+  return movements.flatMap((movement) => {
+    if (movement.status !== 'active' || movement.currency.trim().toUpperCase() !== currency) return [];
+    const effectiveAt = movement.nextDueAt ?? movement.startAt;
+    if (!effectiveAt || effectiveAt < now) return [];
+    const facts: AnalyticsFlowFact[] = [];
+    if (selectedAccountIds.has(movement.sourceAccountId)) {
+      facts.push({
+        id: `scheduled/${movement.id}/out/${effectiveAt}`,
+        source: 'scheduledProjection',
+        effectiveAt,
+        accountId: movement.sourceAccountId,
+        type: movement.type === 'transfer' ? 'transfer_out' : movement.type,
+        amount: { value: movement.amount, currency },
+      });
+    }
+    if (movement.type === 'transfer' && movement.targetAccountId && selectedAccountIds.has(movement.targetAccountId)) {
+      facts.push({
+        id: `scheduled/${movement.id}/in/${effectiveAt}`,
+        source: 'scheduledProjection',
+        effectiveAt,
+        accountId: movement.targetAccountId,
+        type: 'transfer_in',
+        amount: { value: movement.destinationAmount ?? movement.amount, currency: movement.destinationCurrency?.trim().toUpperCase() ?? currency },
+      });
+    }
+    return facts;
+  });
+}
+
 export async function analyticsGetFlowReport(port: AnalyticsQueryPort, input: AnalyticsFlowReportInput): Promise<AnalyticsFlowReport> {
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
   if (scope.selectedAccountIds.length === 0) throw new Error('No compatible accounts for this currency');
@@ -721,16 +756,25 @@ export async function analyticsGetFlowReport(port: AnalyticsQueryPort, input: An
     ? { ...resolvedWindow, start: `${new Date(`${earliestMovement}T00:00:00.000Z`).getUTCFullYear()}-01-01`, canGoPrevious: false }
     : resolvedWindow;
   const windowDates = { start: new Date(`${window.start}T00:00:00.000Z`), end: new Date(`${window.endExclusive}T00:00:00.000Z`) };
-  const [accounts, balanceMovements, selectedMovements] = await Promise.all([
+  const [accounts, balanceMovements, selectedMovements, scheduledResults] = await Promise.all([
     selectedAccountSummaries(port, scope.selectedAccountIds),
     balanceHistory ?? balanceMovementsPromise,
     listAnalyticsMovements(port, { accountIds: scope.selectedAccountIds, filters: analyticsTransactionFilters(scope.filters, windowDates, true), includeIgnoredMovements: scope.filters.includeIgnoredMovements, sharedAmountMode: scope.filters.sharedAmountMode }),
+    scope.filters.includePlannedMovements
+      ? Promise.all(scope.compatibleAccounts.map((account) => port.schedulingListMovements({ sourceAccountId: account.id })))
+      : Promise.resolve([]),
   ]);
   const currency = input.currency.trim().toUpperCase();
   const currentCents = accounts.reduce((sum, account) => sum + Math.round(Number(account.balanceAmount) * 100), 0);
   const postedBalanceFacts = balanceMovements.transactions.map((transaction) => flowFact(transaction, currency, 'full')).filter((fact): fact is AnalyticsFlowFact => Boolean(fact && fact.source === 'posted' && fact.effectiveAt >= `${window.start}T00:00:00.000Z` && fact.effectiveAt < now.toISOString()));
   const openingCents = currentCents - postedBalanceFacts.reduce((sum, fact) => sum + (fact.type === 'expense' || fact.type === 'transfer_out' ? -Math.abs(Math.round(Number(fact.amount.value) * 100)) : Math.round(Number(fact.amount.value) * 100)), 0);
   const facts = selectedMovements.transactions.map((transaction) => flowFact(transaction, currency, scope.filters.sharedAmountMode)).filter((fact): fact is AnalyticsFlowFact => Boolean(fact));
+  const scheduledFacts = scheduledFlowFacts(
+    scheduledResults.flatMap((result) => result.items),
+    new Set(scope.selectedAccountIds),
+    currency,
+    now.toISOString(),
+  );
   const hasCompleteBalanceScope = scope.filters.sharedAmountMode === 'full' && scope.filters.tagIds.length === 0 && scope.filters.includeIgnoredMovements;
   return buildAnalyticsFlowReport({
     window,
@@ -739,7 +783,7 @@ export async function analyticsGetFlowReport(port: AnalyticsQueryPort, input: An
     currency,
     openingBalance: { value: (openingCents / 100).toFixed(2), currency },
     currentBalance: { value: (currentCents / 100).toFixed(2), currency },
-    facts,
+    facts: [...facts, ...scheduledFacts],
     now: now.toISOString(),
   });
 }
