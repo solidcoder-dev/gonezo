@@ -7,10 +7,9 @@
 .netFlowAmountIncome, .netFlowAmountExpense, .netFlowAmountNeutral { min-width: 0; overflow-wrap: anywhere; color: var(--color-text-primary); font-size: clamp(2.5rem, 12vw, 4rem); font-variant-numeric: tabular-nums; font-weight: 900; letter-spacing: -.06em; line-height: .95; }
 .netFlowAmountIncome { color: var(--color-income); }
 .netFlowAmountExpense { color: var(--color-expense); }
-.comparisonBadgeIncome, .comparisonBadgeExpense, .comparisonBadgeNeutral { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 5px; max-width: 100%; padding: 7px 10px; border-radius: 10px; font-size: .76rem; line-height: 1.15; }
-.comparisonBadgeIncome { background: var(--color-income-soft); color: var(--color-income); }
-.comparisonBadgeExpense { background: var(--color-expense-soft); color: var(--color-expense); }
-.comparisonBadgeNeutral { background: var(--color-border-subtle); color: var(--color-text-secondary); }
+.comparisonBadgeIncome, .comparisonBadgeExpense, .comparisonBadgeNeutral { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 5px; max-width: 100%; color: var(--color-text-secondary); font-size: .76rem; line-height: 1.15; }
+.comparisonBadgeIncome strong { color: var(--color-income-text); }
+.comparisonBadgeExpense strong { color: var(--color-expense-text); }
 .comparisonBadgeIncome span:last-child, .comparisonBadgeExpense span:last-child, .comparisonBadgeNeutral span:last-child { color: var(--color-text-muted); }
 .totalsGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .summaryColumn { display: grid; gap: 7px; min-width: 0; }

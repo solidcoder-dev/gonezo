@@ -176,7 +176,7 @@ describe('AnalyticsPageComponent', () => {
     expect(screen.getAllByLabelText('Amount hidden').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Open currency filter')).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Overview snapshot' })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Spending by category' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'By category' })).toBeInTheDocument();
     expect(screen.queryByText('€250.00')).not.toBeInTheDocument();
     expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalled();
   });
@@ -351,7 +351,7 @@ describe('AnalyticsPageComponent', () => {
       await snapshotDeferred.promise;
     });
 
-    expect(await screen.findByRole('heading', { name: 'Jun 1-Jun 30, 2026' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Saved' })).toBeInTheDocument();
     expect(screen.getByRole('status', { name: 'Loading overview starters' })).toBeInTheDocument();
 
     await act(async () => {

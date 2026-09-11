@@ -11,8 +11,8 @@ export function OverviewSnapshotCardView({ required }: OverviewSnapshotCardViewP
       <article className={styles.summaryCard}>
         <header className={styles.header}>
           <div>
-            <h2>{currentWindowLabel}</h2>
-            {previousWindowLabel ? <p>{`Compared to ${previousWindowLabel}`}</p> : null}
+            <h2>Saved</h2>
+            <p>{currentWindowLabel}{previousWindowLabel ? ` · Compared to ${previousWindowLabel}` : ''}</p>
           </div>
         </header>
 
@@ -21,7 +21,7 @@ export function OverviewSnapshotCardView({ required }: OverviewSnapshotCardViewP
         ) : (
           <>
             <div className={styles.netFlowBlock}>
-              <span>Net flow</span>
+              <span>Saved</span>
               <div className={styles.netFlowLine}>
                     <FinancialAmountView formattedAmount={netFlowAmount} visibility={visibility} className={styles.netFlowAmountNeutral} />
                 {comparisonPercent ? (

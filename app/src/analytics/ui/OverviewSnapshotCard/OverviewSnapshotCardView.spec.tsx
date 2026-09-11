@@ -27,13 +27,13 @@ describe('OverviewSnapshotCardView', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: 'Jun 24-Jun 30, 2026' })).toBeInTheDocument();
-    expect(screen.getByText('Compared to Jun 17-Jun 23, 2026')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Saved' })).toBeInTheDocument();
+    expect(screen.getByText('Jun 24-Jun 30, 2026 · Compared to Jun 17-Jun 23, 2026')).toBeInTheDocument();
     expect(screen.getByText('Income')).toBeInTheDocument();
     expect(screen.getByText('Expenses')).toBeInTheDocument();
     expect(screen.getByText('+18%')).toBeInTheDocument();
     expect(screen.getByText('vs previous period')).toBeInTheDocument();
-    expect(screen.getByText('Net flow')).toBeInTheDocument();
+    expect(screen.getAllByText('Saved')).toHaveLength(2);
     expect(screen.queryByText('Income vs Expenses')).not.toBeInTheDocument();
     expect(screen.queryByText('Biggest expense')).not.toBeInTheDocument();
     expect(screen.queryByText('Biggest income')).not.toBeInTheDocument();
