@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import type { AmountVisibility } from '../../shared/domain/amountVisibility';
 import type { AnalyticsOverviewInsightsResult, AnalyticsPort } from './analytics.port';
 import type { AnalyticsFiltersInput } from './analyticsFilters';
-import { normalizeAnalyticsPeriodInput } from './analyticsFilters';
+import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
+import type { AnalyticsPeriodNavigation } from './useAnalyticsPeriodNavigation';
 import { presentOverviewSnapshot, presentAnalyticsHighlights } from './OverviewTabPresentation';
 import { presentSpendingSummary, type SpendingReportViewModel } from './spendingPresenters';
 import { presentFlowReport, type FlowViewModel } from './flowPresenters';
@@ -11,7 +12,7 @@ import type { AnalyticsHighlightViewModel } from '../ui/AnalyticsHighlights/Anal
 import styles from '../ui/AnalyticsPageView.module.css';
 
 export type AnalyticsDashboardComponentProps = {
-  required: { context: { core: AnalyticsPort }; config: { enabled: boolean; currency: string; filters?: AnalyticsFiltersInput; refreshSignal: boolean; amountVisibility?: AmountVisibility } };
+  required: { context: { core: AnalyticsPort }; config: { enabled: boolean; currency: string; filters?: AnalyticsFiltersInput; periodSelection: AnalyticsPeriodSelection; periodNavigation: AnalyticsPeriodNavigation; refreshSignal: boolean; amountVisibility?: AmountVisibility } };
   provided?: { events?: { onError?: (error: { message: string }) => void; onCategorySelected?: (categoryId: string) => void; onMerchantSelected?: (merchant: string) => void; onHighlightSelected?: (item: AnalyticsHighlightViewModel) => void; onForecastSelected?: () => void; onIncomeSelected?: (window: { start: string; end: string }) => void; onExpensesSelected?: (window: { start: string; end: string }) => void; onSpendingPeriodSelected?: (bucket: { start: string; endExclusive: string }) => void } };
 };
 
@@ -31,13 +32,13 @@ export function AnalyticsDashboardComponent({ required, provided }: AnalyticsDas
   const { config } = required;
   const [state, setState] = useState<DashboardState>({ summaryLoading: true, insightsLoading: true, spendingLoading: true, forecastLoading: true });
   const filters = config.filters;
-  const periodSelection = useMemo(() => ({ period: normalizeAnalyticsPeriodInput(filters?.period), shift: 0 }), [filters?.period]);
-  const inputKey = JSON.stringify({ currency: config.currency, filters, refreshSignal: config.refreshSignal });
+  const periodSelection = config.periodSelection;
+  const inputKey = JSON.stringify({ currency: config.currency, filters, periodSelection, refreshSignal: config.refreshSignal });
 
   useEffect(() => {
     if (!config.enabled || !config.currency) return undefined;
     let active = true;
-    const input = { currency: config.currency, filters };
+    const input = { currency: config.currency, filters, periodSelection };
     void Promise.resolve().then(() => {
       if (active) setState({ summaryLoading: true, insightsLoading: true, spendingLoading: true, forecastLoading: true });
     });
@@ -76,7 +77,7 @@ export function AnalyticsDashboardComponent({ required, provided }: AnalyticsDas
   const summary = presentOverviewSnapshot(state.snapshot, config.currency || 'USD');
   const highlights = useMemo(() => presentAnalyticsHighlights(state.snapshot, state.insights, config.currency || 'USD'), [config.currency, state.insights, state.snapshot]);
   return <div className={`${styles.analyticsOverviewContent} ${styles.dashboard}`} data-testid="analytics-dashboard">
-    <AnalyticsSummaryView data={summary} loading={state.summaryLoading} visibility={config.amountVisibility} onIncomeSelected={() => provided?.events?.onIncomeSelected?.({ start: state.snapshot?.currentWindow.startDate ?? '', end: state.snapshot?.currentWindow.endDate ?? '' })} onExpensesSelected={() => provided?.events?.onExpensesSelected?.({ start: state.snapshot?.currentWindow.startDate ?? '', end: state.snapshot?.currentWindow.endDate ?? '' })} />
+    <AnalyticsSummaryView data={summary} loading={state.summaryLoading} visibility={config.amountVisibility} periodNavigation={config.periodNavigation} onIncomeSelected={() => provided?.events?.onIncomeSelected?.({ start: state.snapshot?.currentWindow.startDate ?? '', end: state.snapshot?.currentWindow.endDate ?? '' })} onExpensesSelected={() => provided?.events?.onExpensesSelected?.({ start: state.snapshot?.currentWindow.startDate ?? '', end: state.snapshot?.currentWindow.endDate ?? '' })} />
     <SpendingTimelineView report={state.spending} loading={state.spendingLoading} onSelect={(bucket) => provided?.events?.onSpendingPeriodSelected?.(bucket)} />
     <CategoryBreakdownView report={state.spending} loading={state.spendingLoading} visibility={config.amountVisibility} onSelect={(categoryId) => provided?.events?.onCategorySelected?.(categoryId)} />
     <HighlightsView items={highlights} loading={state.insightsLoading || state.summaryLoading} visibility={config.amountVisibility} onSelect={(item) => provided?.events?.onHighlightSelected?.(item)} />

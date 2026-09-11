@@ -12,6 +12,7 @@ import type { AnalyticsFlowReport } from './analyticsFlowReport';
 export type AnalyticsCurrencyScopeInput = {
   currency: string;
   filters?: AnalyticsFiltersInput;
+  periodSelection?: AnalyticsPeriodSelection;
 };
 
 export type AnalyticsListMovementFactsInput = {

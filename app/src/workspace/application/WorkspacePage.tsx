@@ -22,10 +22,11 @@ import { ManageAccountSheetComponent } from '../../account/application/ManageAcc
 import { PendingExpectedOverviewComponent, type PendingExpectedOverviewPort } from './PendingExpectedOverviewComponent';
 import { AnalyticsPageComponent } from '../../analytics/application/AnalyticsPageComponent';
 import { AnalyticsForecastPageComponent } from '../../analytics/application/AnalyticsForecastPageComponent';
-import { parseAnalyticsContext, serializeAnalyticsContext } from '../../analytics/application/analyticsContext';
+import { analyticsContextPeriodSelection, parseAnalyticsContext, serializeAnalyticsContext } from '../../analytics/application/analyticsContext';
 import type { AnalyticsFilters } from '../../analytics/application/analyticsFilters';
 import { analyticsReferenceDateFromNow } from '../../analytics/application/analyticsFilters';
-import { resolveAnalyticsPeriodWindow } from '../../analytics/application/analyticsPeriodResolver';
+import type { AnalyticsPeriodSelection } from '../../analytics/application/analyticsPeriodSelection';
+import { resolveAnalyticsPeriodSelectionWindow } from '../../analytics/application/analyticsPeriodSelection';
 import { buildMovementSearchHref } from '../../movements/application/movementsSearchRoutePreset';
 import { HomeRecentMovementsComponent, type HomeRecentMovementsPort } from './HomeRecentMovementsComponent';
 import { WorkspacePageHeader } from '../ui/WorkspacePageHeader/WorkspacePageHeader';
@@ -147,11 +148,12 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     resetTransactionEntryPrefill,
   } = movementComposer.actions;
   const currentPage = resolveWorkspaceRoutePage(location.pathname);
-  const syncAnalyticsContext = useCallback((filters: AnalyticsFilters) => {
-    if (currentPage !== 'analytics' || !shouldSyncAnalyticsContext(location.search, filters)) {
+  const syncAnalyticsContext = useCallback((filters: AnalyticsFilters, periodSelection?: AnalyticsPeriodSelection) => {
+    const periodShift = periodSelection?.shift ?? analyticsContextPeriodSelection(parseAnalyticsContext(location.search)).shift;
+    if (currentPage !== 'analytics' || !shouldSyncAnalyticsContext(location.search, filters, periodShift)) {
       return;
     }
-    void navigate(analyticsRouteForContext(filters), { replace: true });
+    void navigate(analyticsRouteForContext(filters, periodShift), { replace: true });
   }, [currentPage, location.search, navigate]);
   const [voiceWorkflowBusy, setVoiceWorkflowBusy] = useState(false);
   const {
@@ -444,18 +446,16 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           refreshSignal: analyticsRefreshSignal,
           amountVisibility: amountVisibility?.state.visibility,
           initialFilters: analyticsContext,
+          initialPeriodShift: analyticsContext.periodShift,
         },
       }}
       provided={{
         events: {
           onError: showError,
           onContextChanged: syncAnalyticsContext,
+          onPeriodSelectionChanged: (selection) => syncAnalyticsContext(analyticsContext, selection),
           onCategorySelected: (selectedCategoryId) => {
-            const periodWindow = resolveAnalyticsPeriodWindow(
-              analyticsContext.period,
-              analyticsReferenceDateFromNow(),
-              analyticsContext.includePlannedMovements,
-            );
+            const periodWindow = resolveAnalyticsPeriodSelectionWindow(analyticsContextPeriodSelection(analyticsContext), analyticsReferenceDateFromNow(), analyticsContext.includePlannedMovements);
             const href = buildMovementSearchHref({
               source: 'posted',
               type: 'expense',
@@ -482,11 +482,13 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             void navigate(buildMovementSearchHref({ source: 'posted', type: 'expense', fromDate: bucket.start, toDate: end.toISOString().slice(0, 10), currency: analyticsContext.currency, accountIds: analyticsContext.accountIds, tagIds: analyticsContext.tagIds, returnTo: analyticsReturnTo(analyticsContext) }));
           },
           onMerchantSelected: (merchant) => {
-            const href = buildMovementSearchHref({ source: 'posted', type: 'expense', merchant, currency: analyticsContext.currency, accountIds: analyticsContext.accountIds, tagIds: analyticsContext.tagIds, returnTo: analyticsReturnTo(analyticsContext) });
+            const range = resolveAnalyticsPeriodSelectionWindow(analyticsContextPeriodSelection(analyticsContext), analyticsReferenceDateFromNow(), analyticsContext.includePlannedMovements).currentRange;
+            const href = buildMovementSearchHref({ source: 'posted', type: 'expense', merchant, fromDate: range?.from, toDate: range?.to, currency: analyticsContext.currency, accountIds: analyticsContext.accountIds, tagIds: analyticsContext.tagIds, returnTo: analyticsReturnTo(analyticsContext) });
             void navigate(href);
           },
           onHighlightSelected: (item) => {
             const type = item.tone === 'income' ? 'income' : 'expense';
+            const range = resolveAnalyticsPeriodSelectionWindow(analyticsContextPeriodSelection(analyticsContext), analyticsReferenceDateFromNow(), analyticsContext.includePlannedMovements).currentRange;
             const href = buildMovementSearchHref({
               source: 'posted',
               type,
@@ -495,6 +497,8 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
               tagIds: item.filterIntent === 'topTags' ? item.tagIds : analyticsContext.tagIds,
               sharing: item.filterIntent === 'sharedExpenses' || item.filterIntent === 'mostSharedWith' ? 'shared' : undefined,
               sharingPersonId: item.filterIntent === 'mostSharedWith' ? item.sharingPersonId : undefined,
+              fromDate: range?.from,
+              toDate: range?.to,
               returnTo: analyticsReturnTo(analyticsContext),
             });
             void navigate(href);
@@ -800,6 +804,6 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
 }
 
 function analyticsReturnTo(context: ReturnType<typeof parseAnalyticsContext>): string {
-  const serialized = serializeAnalyticsContext(context);
+  const serialized = serializeAnalyticsContext(context, context.periodShift);
   return `/analytics${serialized ? `?${serialized}` : ''}`;
 }

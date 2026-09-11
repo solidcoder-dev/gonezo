@@ -436,6 +436,7 @@ export async function analyticsGetOverviewSnapshot(
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
   const now = new Date();
   const accountIds = scope.selectedAccountIds;
+  const periodSelection = input.periodSelection ?? { period: scope.filters.period, shift: 0 };
   const allTimeResult = scope.filters.period.kind === 'allTime'
     ? await listAnalyticsMovements(port, {
         accountIds,
@@ -449,6 +450,7 @@ export async function analyticsGetOverviewSnapshot(
     now,
     allTimeResult ? earliestTransactionDate(allTimeResult.transactions) : undefined,
     scope.filters.includePlannedMovements,
+    periodSelection,
   );
 
   const [currentResult, previousResult] = await Promise.all([
@@ -484,7 +486,8 @@ export async function analyticsGetOverviewInsights(
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
   const now = new Date();
   const accountIds = scope.selectedAccountIds;
-  const windows = buildAnalyticsOverviewWindows(scope.filters.period, now, undefined, scope.filters.includePlannedMovements);
+  const periodSelection = input.periodSelection ?? { period: scope.filters.period, shift: 0 };
+  const windows = buildAnalyticsOverviewWindows(scope.filters.period, now, undefined, scope.filters.includePlannedMovements, periodSelection);
   const { transactions } = await listAnalyticsMovements(port, {
     accountIds,
     filters: analyticsTransactionFilters(scope.filters, windows.currentWindow, true),

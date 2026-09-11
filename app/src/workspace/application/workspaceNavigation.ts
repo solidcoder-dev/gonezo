@@ -25,11 +25,11 @@ export function resolveWorkspaceRoutePage(pathname: string): WorkspaceRoutePage 
   return 'home';
 }
 
-export function analyticsRouteForContext(filters: AnalyticsFilters): string {
-  const serialized = serializeAnalyticsContext(filters);
+export function analyticsRouteForContext(filters: AnalyticsFilters, periodShift = 0): string {
+  const serialized = serializeAnalyticsContext(filters, periodShift);
   return `/analytics${serialized ? `?${serialized}` : ''}`;
 }
 
-export function shouldSyncAnalyticsContext(search: string, filters: AnalyticsFilters): boolean {
-  return serializeAnalyticsContext(parseAnalyticsContext(search)) !== serializeAnalyticsContext(filters);
+export function shouldSyncAnalyticsContext(search: string, filters: AnalyticsFilters, periodShift = 0): boolean {
+  return serializeAnalyticsContext(parseAnalyticsContext(search), parseAnalyticsContext(search).periodShift) !== serializeAnalyticsContext(filters, periodShift);
 }

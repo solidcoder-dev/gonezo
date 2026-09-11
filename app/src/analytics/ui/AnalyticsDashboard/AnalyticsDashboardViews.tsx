@@ -5,15 +5,17 @@ import type { SpendingReportViewModel } from '../../application/spendingPresente
 import type { FlowViewModel } from '../../application/flowPresenters';
 import type { AnalyticsHighlightViewModel } from '../AnalyticsHighlights/AnalyticsHighlightsView.contract';
 import styles from './AnalyticsDashboardViews.module.css';
+import type { AnalyticsPeriodNavigationViewModel } from '../AnalyticsPeriodNavigator/AnalyticsPeriodNavigator';
+import { AnalyticsPeriodNavigator } from '../AnalyticsPeriodNavigator/AnalyticsPeriodNavigator';
 
 export type AnalyticsSummaryData = { currentWindowLabel: string; previousWindowLabel?: string; comparisonPercent?: string; incomeAmount: string; expenseAmount: string; netFlowAmount: string; incomeShare: number; expenseShare: number; netFlowTone: 'income' | 'expense' | 'neutral'; comparisonTone: 'income' | 'expense' | 'neutral'; comparisonDirection: 'up' | 'down' | 'flat' };
 type SummaryData = AnalyticsSummaryData;
 
-export function AnalyticsSummaryView({ data, loading, visibility, onIncomeSelected = () => undefined, onExpensesSelected = () => undefined }: { data: SummaryData; loading: boolean; visibility?: AmountVisibility; onIncomeSelected?: () => void; onExpensesSelected?: () => void }) {
+export function AnalyticsSummaryView({ data, loading, visibility, periodNavigation = { currentWindowLabel: data.currentWindowLabel, canGoPrevious: false, canGoNext: false, goPrevious: () => undefined, goNext: () => undefined }, onIncomeSelected = () => undefined, onExpensesSelected = () => undefined }: { data: SummaryData; loading: boolean; visibility?: AmountVisibility; periodNavigation?: AnalyticsPeriodNavigationViewModel; onIncomeSelected?: () => void; onExpensesSelected?: () => void }) {
   const amountVisibility = visibility ?? 'visible';
   return <section className={styles.section} aria-label="Saved summary" aria-busy={loading}>
     <div className={styles.summary}>
-      <div><h2 className={styles.sectionTitle}>Saved</h2><p className={styles.metadata}>{data.currentWindowLabel}{data.previousWindowLabel ? ` · ${data.previousWindowLabel}` : ''}</p></div>
+      <AnalyticsPeriodNavigator label={periodNavigation.currentWindowLabel || data.currentWindowLabel} canGoPrevious={periodNavigation.canGoPrevious} canGoNext={periodNavigation.canGoNext} onPrevious={periodNavigation.goPrevious} onNext={periodNavigation.goNext} />
       {loading ? <SummarySkeleton /> : <>
         <FinancialAmountView formattedAmount={data.netFlowAmount} visibility={amountVisibility} className={styles.hero} />
         {data.comparisonPercent ? <div className={styles.comparison}><span className={data.comparisonTone === 'income' ? styles.comparisonPositive : data.comparisonTone === 'expense' ? styles.comparisonNegative : ''}><span aria-hidden>{data.comparisonDirection === 'up' ? '↑' : data.comparisonDirection === 'down' ? '↓' : '→'}</span> {data.comparisonPercent}</span><span>vs previous period</span></div> : null}

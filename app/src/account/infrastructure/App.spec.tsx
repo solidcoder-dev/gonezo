@@ -1149,7 +1149,7 @@ describe('App Accounts UX', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Analytics' }));
     expect(await screen.findByRole('heading', { name: 'Analytics' })).toBeInTheDocument();
-    expect(await screen.findByText('Saved')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Analytics period')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Profile' }));
     expect(await screen.findByText('Favorite account')).toBeInTheDocument();

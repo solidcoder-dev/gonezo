@@ -12,6 +12,8 @@ import type { AmountVisibility } from '../../shared/domain/amountVisibility';
 import { useEffect } from 'react';
 import type { AnalyticsFilters, AnalyticsFiltersInput } from './analyticsFilters';
 import type { AnalyticsHighlightViewModel } from '../ui/AnalyticsHighlights/AnalyticsHighlightsView.contract';
+import { useAnalyticsPeriodNavigation } from './useAnalyticsPeriodNavigation';
+import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 
 export type AnalyticsPageComponentProps = {
   required: {
@@ -23,6 +25,7 @@ export type AnalyticsPageComponentProps = {
       refreshSignal: boolean;
       amountVisibility?: AmountVisibility;
       initialFilters?: AnalyticsFiltersInput;
+      initialPeriodShift?: number;
     };
   };
   provided?: {
@@ -36,6 +39,7 @@ export type AnalyticsPageComponentProps = {
       onExpensesSelected?: (window: { start: string; end: string }) => void;
       onSpendingPeriodSelected?: (bucket: { start: string; endExclusive: string }) => void;
       onContextChanged?: (filters: AnalyticsFilters) => void;
+      onPeriodSelectionChanged?: (selection: AnalyticsPeriodSelection) => void;
     };
   };
 };
@@ -49,6 +53,7 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
     onError: provided?.events?.onError,
   });
   const currency = filterModel.filters.currency;
+  const periodNavigation = useAnalyticsPeriodNavigation(filterModel.filters.period, required.config.initialPeriodShift, filterModel.filters.includePlannedMovements);
   const moreFiltersCount = Number(filterModel.filters.accountIds.length > 0)
     + Number(filterModel.filters.tagIds.length > 0)
     + Number(filterModel.filters.includeIgnoredMovements)
@@ -60,6 +65,12 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
       provided?.events?.onContextChanged?.(filterModel.filters);
     }
   }, [filterModel.filters, filterModel.loading, provided?.events]);
+
+  useEffect(() => {
+    if (!filterModel.loading) {
+      provided?.events?.onPeriodSelectionChanged?.(periodNavigation.periodSelection);
+    }
+  }, [filterModel.loading, periodNavigation.periodSelection, provided?.events]);
 
   return (
     <section className={styles.page}>
@@ -162,6 +173,8 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
             enabled: required.config.enabled,
             currency,
             filters: filterModel.filters,
+            periodSelection: periodNavigation.periodSelection,
+            periodNavigation,
             refreshSignal: required.config.refreshSignal,
             amountVisibility: required.config.amountVisibility,
           },

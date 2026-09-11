@@ -30,6 +30,7 @@ import {
   type LegacyAnalyticsPeriodPreset,
 } from './analyticsFilters';
 import { resolveAnalyticsPeriodWindow } from './analyticsPeriodResolver';
+import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 import { buildOverviewInsightsResult } from './overviewInsights';
 import { addDecimalAmounts, subtractDecimalAmounts } from '../../ledger/application/decimalAmount';
 
@@ -190,6 +191,7 @@ export function buildAnalyticsOverviewWindows(
   now: Date,
   earliestOccurredAt?: Date,
   includePlannedMovements = false,
+  periodSelection?: AnalyticsPeriodSelection,
 ): { currentWindow: AnalyticsOverviewWindowRange; previousWindow?: AnalyticsOverviewWindowRange } {
   const normalizedPeriod = normalizeAnalyticsPeriodInput(period);
   if (normalizedPeriod.kind === 'allTime') {
@@ -203,11 +205,36 @@ export function buildAnalyticsOverviewWindows(
       },
     };
   }
-  const resolved = resolveAnalyticsPeriodWindow(
-    normalizedPeriod,
-    analyticsReferenceDateFromNow(now),
-    includePlannedMovements,
-  );
+  let resolved = resolveAnalyticsPeriodWindow(normalizedPeriod, analyticsReferenceDateFromNow(now), includePlannedMovements);
+  const shift = Math.min(0, Math.trunc(periodSelection?.shift ?? 0));
+  for (let index = 0; index > shift; index -= 1) {
+    if (!resolved.comparisonRange) break;
+    resolved = resolveAnalyticsPeriodWindow(
+      { kind: 'custom', from: resolved.comparisonRange.from, to: resolved.comparisonRange.to },
+      resolved.comparisonRange.to,
+      includePlannedMovements,
+    );
+  }
+  if (resolved.currentRange && normalizedPeriod.kind === 'lastMonth') {
+    const currentStart = new Date(`${resolved.currentRange.from}T00:00:00.000Z`);
+    const previousStart = addUtcMonths(currentStart, -1);
+    const previousEnd = addUtcMonths(previousStart, 1);
+    resolved = {
+      ...resolved,
+      comparisonRange: {
+        from: toLocalDate(previousStart),
+        to: toLocalDate(addUtcDays(previousEnd, -1)),
+      },
+      comparisonWindowLabel: `${monthDayLabel(previousStart)}-${monthDayLabel(addUtcDays(previousEnd, -1))}, ${previousEnd.getUTCFullYear()}`,
+    };
+  } else if (resolved.currentRange && (normalizedPeriod.kind === 'thisMonth' || normalizedPeriod.kind === 'thisYear')) {
+    const comparison = resolveAnalyticsPeriodWindow(normalizedPeriod, resolved.currentRange.to, includePlannedMovements);
+    resolved = {
+      ...resolved,
+      comparisonRange: comparison.comparisonRange,
+      comparisonWindowLabel: comparison.comparisonWindowLabel,
+    };
+  }
   const currentWindow = toWindowRange(resolved.currentRange!, resolved.currentWindowLabel);
   return {
     currentWindow,

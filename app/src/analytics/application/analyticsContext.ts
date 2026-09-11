@@ -6,14 +6,17 @@ import {
   type AnalyticsFiltersInput,
   type AnalyticsPeriod,
 } from './analyticsFilters';
+import { normalizeAnalyticsPeriodSelection, type AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 
-export type AnalyticsContext = AnalyticsFilters;
+export type AnalyticsContext = AnalyticsFilters & { periodShift?: number };
 
-export function serializeAnalyticsContext(input: AnalyticsFiltersInput | AnalyticsFilters): string {
+export function serializeAnalyticsContext(input: AnalyticsFiltersInput | AnalyticsFilters, periodShift = 0): string {
   const context = normalizeAnalyticsFilters(input);
   const params = new URLSearchParams();
   if (context.currency) params.set('currency', context.currency);
   writePeriod(params, context.period);
+  const normalizedShift = Math.min(0, Math.trunc(periodShift));
+  if (normalizedShift !== 0) params.set('shift', String(normalizedShift));
   if (context.accountIds.length) params.set('accounts', context.accountIds.join(','));
   if (context.tagIds.length) params.set('tags', context.tagIds.join(','));
   if (context.includeIgnoredMovements) params.set('ignored', '1');
@@ -25,7 +28,7 @@ export function serializeAnalyticsContext(input: AnalyticsFiltersInput | Analyti
 export function parseAnalyticsContext(search: string): AnalyticsContext {
   const params = new URLSearchParams(search);
   const period = readPeriod(params);
-  return normalizeAnalyticsFilters({
+  const context = normalizeAnalyticsFilters({
     currency: params.get('currency') ?? DEFAULT_ANALYTICS_FILTERS.currency,
     period,
     accountIds: splitList(params.get('accounts')),
@@ -34,6 +37,12 @@ export function parseAnalyticsContext(search: string): AnalyticsContext {
     includePlannedMovements: params.get('planned') !== '0',
     sharedAmountMode: params.get('shared') === 'full' ? 'full' : 'personal',
   });
+  const periodShift = Math.min(0, Math.trunc(Number(params.get('shift') ?? '0') || 0));
+  return periodShift === 0 ? context : { ...context, periodShift };
+}
+
+export function analyticsContextPeriodSelection(context: AnalyticsContext): AnalyticsPeriodSelection {
+  return normalizeAnalyticsPeriodSelection({ period: context.period, shift: context.periodShift ?? 0 });
 }
 
 function writePeriod(params: URLSearchParams, period: AnalyticsPeriod): void {

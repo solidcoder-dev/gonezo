@@ -363,7 +363,8 @@ describe('AnalyticsPageComponent', () => {
       await snapshotDeferred.promise;
     });
 
-    expect(await screen.findByRole('heading', { name: 'Saved' })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Saved summary' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Analytics period')).toBeInTheDocument();
     expect(screen.getByRole('status', { name: 'Loading highlights' })).toBeInTheDocument();
 
     await act(async () => {
