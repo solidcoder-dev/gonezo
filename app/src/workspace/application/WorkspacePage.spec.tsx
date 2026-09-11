@@ -39,7 +39,7 @@ function makeExperimentalFeaturesPort(initialEnabled = false) {
 
 function LocationProbe() {
   const location = useLocation();
-  return <div data-testid="workspace-path">{location.pathname}</div>;
+  return <div data-testid="workspace-path">{location.pathname}{location.search}</div>;
 }
 
 vi.mock('../../account/ui/AccountPageView/AccountPageView', () => ({
@@ -279,6 +279,12 @@ function renderSubject(route: string, experimentalFeatures = makeExperimentalFea
 describe('WorkspacePage', () => {
   it('accepts internal movement return paths with their query context', () => {
     expect(readMovementEntryReturnTo({ returnTo: '/movements?month=2023-07&mode=planned' })).toBe('/movements?month=2023-07&mode=planned');
+  });
+
+  it('mounts the movements workspace without dropping its monthly query context', () => {
+    renderSubject('/movements?month=2023-07&mode=posted');
+
+    expect(screen.getByTestId('workspace-path')).toHaveTextContent('/movements?month=2023-07&mode=posted');
   });
 
   it('rejects movement entry, external, and protocol-relative return paths', () => {
