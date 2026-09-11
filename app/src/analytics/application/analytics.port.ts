@@ -140,6 +140,9 @@ export type AnalyticsOverviewInsightItem = {
   title: string;
   subtitle: string;
   amount: string;
+  filterIntent?: 'topTags' | 'sharedExpenses' | 'mostSharedWith' | 'transfers' | 'recurringImpact';
+  tagIds?: string[];
+  sharingPersonId?: string;
 };
 
 export type AnalyticsOverviewInsightsInput = AnalyticsCurrencyScopeInput;

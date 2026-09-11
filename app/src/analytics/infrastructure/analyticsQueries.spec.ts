@@ -826,6 +826,8 @@ describe('analytics queries', () => {
           title: 'Top tags',
           subtitle: '1 tag',
           amount: '120.00',
+          filterIntent: 'topTags',
+          tagIds: ['tag-trip'],
         },
       ],
     });
@@ -1030,6 +1032,8 @@ describe('analytics queries', () => {
           title: 'Top tags',
           subtitle: '1 tag',
           amount: '120.00',
+          filterIntent: 'topTags',
+          tagIds: ['tag-trip'],
         },
       ],
     });
@@ -1105,18 +1109,23 @@ describe('analytics queries', () => {
           title: 'Top tags',
           subtitle: '1 tag',
           amount: '180.00',
+          filterIntent: 'topTags',
+          tagIds: ['tag-trip'],
         },
       {
         key: 'sharedExpenses',
         title: 'Shared expenses',
         subtitle: '1 shared',
         amount: '60.00',
+        filterIntent: 'sharedExpenses',
       },
         {
         key: 'mostSharedWith',
         title: 'Most shared with',
         subtitle: 'Ana',
         amount: '60.00',
+        filterIntent: 'mostSharedWith',
+        sharingPersonId: 'person-1',
       },
         {
           key: 'recurringImpact',

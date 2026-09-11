@@ -73,8 +73,8 @@ function buildTopTagsInsight(facts: OverviewInsightsFacts): AnalyticsOverviewIns
     }
   }
 
-  const topTags = [...amountByTag.values()]
-    .sort((left, right) => Number(right.amount) - Number(left.amount))
+  const topTags = [...amountByTag.entries()]
+    .sort((left, right) => Number(right[1].amount) - Number(left[1].amount))
     .slice(0, 3);
 
   if (topTags.length === 0) return undefined;
@@ -82,7 +82,9 @@ function buildTopTagsInsight(facts: OverviewInsightsFacts): AnalyticsOverviewIns
     key: 'topTags',
     title: 'Top tags',
     subtitle: pluralize(topTags.length, 'tag', 'tags'),
-    amount: topTags.reduce((current, tag) => addAmount(current, tag.amount), '0.00'),
+    amount: topTags.reduce((current, [, tag]) => addAmount(current, tag.amount), '0.00'),
+    filterIntent: 'topTags',
+    tagIds: topTags.map(([tagId]) => tagId),
   };
 }
 

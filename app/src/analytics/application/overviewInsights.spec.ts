@@ -66,6 +66,8 @@ describe('overviewInsights', () => {
       title: 'Top tags',
       subtitle: '1 tag',
       amount: '120.00',
+      filterIntent: 'topTags',
+      tagIds: ['tag-trip'],
     });
   });
 });

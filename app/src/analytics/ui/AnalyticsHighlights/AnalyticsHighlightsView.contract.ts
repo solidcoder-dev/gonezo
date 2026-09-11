@@ -5,4 +5,7 @@ export type AnalyticsHighlightViewModel = {
   formattedAmount?: string;
   supportingText?: string;
   tone: 'income' | 'expense' | 'sharing' | 'recurring' | 'transfer' | 'neutral';
+  filterIntent?: string;
+  tagIds?: string[];
+  sharingPersonId?: string;
 };

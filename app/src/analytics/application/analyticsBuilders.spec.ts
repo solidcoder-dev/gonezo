@@ -553,6 +553,8 @@ describe('analytics builders', () => {
           title: 'Top tags',
           subtitle: '3 tags',
           amount: '320.00',
+          filterIntent: 'topTags',
+          tagIds: ['tag-trip', 'tag-friends', 'tag-home'],
         },
         {
           key: 'sharedExpenses',
@@ -619,6 +621,8 @@ describe('analytics builders', () => {
       title: 'Top tags',
       subtitle: '1 tag',
       amount: '120.00',
+      filterIntent: 'topTags',
+      tagIds: ['tag-trip'],
     });
   });
 });

@@ -21,25 +21,25 @@ function sharedExpensesAmount(details: SharingMovementDetails[], mode: SharedAmo
   ), '0.00');
 }
 
-function mostSharedWithSummary(details: SharingMovementDetails[]): { name: string; amount: string } | undefined {
-  const amountByPerson = new Map<string, string>();
+function mostSharedWithSummary(details: SharingMovementDetails[]): { personId: string; name: string; amount: string } | undefined {
+  const amountByPerson = new Map<string, { name: string; amount: string }>();
 
   for (const item of details) {
     for (const participant of item.participants) {
       if (!participant.reimbursable) {
         continue;
       }
-      const current = amountByPerson.get(participant.displayName) ?? '0.00';
-      amountByPerson.set(participant.displayName, addAmount(current, participant.amount));
+      const current = amountByPerson.get(participant.personId) ?? { name: participant.displayName, amount: '0.00' };
+      amountByPerson.set(participant.personId, { name: current.name, amount: addAmount(current.amount, participant.amount) });
     }
   }
 
   return [...amountByPerson.entries()]
     .sort((left, right) => {
-      const amountDelta = Number(right[1]) - Number(left[1]);
-      return amountDelta !== 0 ? amountDelta : left[0].localeCompare(right[0]);
+      const amountDelta = Number(right[1].amount) - Number(left[1].amount);
+      return amountDelta !== 0 ? amountDelta : left[1].name.localeCompare(right[1].name);
     })
-    .map(([name, amount]) => ({ name, amount }))[0];
+    .map(([personId, person]) => ({ personId, ...person }))[0];
 }
 
 function sharedExpensesSubtitle(count: number): string {
@@ -55,12 +55,15 @@ export function buildOverviewSharingInsights(details: SharingMovementDetails[], 
       title: 'Shared expenses',
       subtitle: sharedExpensesSubtitle(count),
       amount: sharedExpensesAmount(details, sharedAmountMode),
+      filterIntent: 'sharedExpenses',
     });
   if (mostSharedWith) insights.push({
       key: 'mostSharedWith',
       title: 'Most shared with',
       subtitle: mostSharedWith.name,
       amount: mostSharedWith.amount,
+      filterIntent: 'mostSharedWith',
+      sharingPersonId: mostSharedWith.personId,
     });
   return insights;
 }

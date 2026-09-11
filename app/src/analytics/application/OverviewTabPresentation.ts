@@ -34,7 +34,7 @@ export function presentAnalyticsHighlights(snapshot: AnalyticsOverviewSnapshotRe
     const insight = insights?.items.find((item) => item.key === key);
     if (insight) {
       const item = presentation[key];
-      items.push({ key: insight.key, label: item.label, title: insight.subtitle, formattedAmount: formatCurrencyAmount(insight.amount, currency), tone: item.tone });
+      items.push({ key: insight.key, label: item.label, title: insight.subtitle, formattedAmount: formatCurrencyAmount(insight.amount, currency), tone: item.tone, filterIntent: insight.filterIntent, tagIds: insight.tagIds, sharingPersonId: insight.sharingPersonId });
     }
   }
   return items;

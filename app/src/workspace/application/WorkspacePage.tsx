@@ -487,7 +487,16 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           },
           onHighlightSelected: (item) => {
             const type = item.tone === 'income' ? 'income' : 'expense';
-            const href = buildMovementSearchHref({ source: 'posted', type, currency: analyticsContext.currency, accountIds: analyticsContext.accountIds, tagIds: analyticsContext.tagIds, returnTo: analyticsReturnTo(analyticsContext) });
+            const href = buildMovementSearchHref({
+              source: 'posted',
+              type,
+              currency: analyticsContext.currency,
+              accountIds: analyticsContext.accountIds,
+              tagIds: item.filterIntent === 'topTags' ? item.tagIds : analyticsContext.tagIds,
+              sharing: item.filterIntent === 'sharedExpenses' || item.filterIntent === 'mostSharedWith' ? 'shared' : undefined,
+              sharingPersonId: item.filterIntent === 'mostSharedWith' ? item.sharingPersonId : undefined,
+              returnTo: analyticsReturnTo(analyticsContext),
+            });
             void navigate(href);
           },
           onForecastSelected: () => {
