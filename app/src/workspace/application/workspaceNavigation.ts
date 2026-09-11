@@ -3,6 +3,24 @@ import type { AnalyticsFilters } from '../../analytics/application/analyticsFilt
 
 export type WorkspaceRoutePage = 'analytics' | 'analyticsForecast' | 'home' | 'movementNew' | 'movements' | 'movementsSearch' | 'profile';
 
+export type MovementEntryNavigationState = {
+  returnTo: string;
+};
+
+export function readMovementEntryReturnTo(state: unknown): string | null {
+  if (!state || typeof state !== 'object' || !('returnTo' in state)) {
+    return null;
+  }
+  const returnTo = state.returnTo;
+  if (typeof returnTo !== 'string' || !returnTo.startsWith('/') || returnTo.startsWith('//') || returnTo.startsWith('/\\')) {
+    return null;
+  }
+  const parsed = new URL(returnTo, 'https://gonezo.invalid');
+  return parsed.origin === 'https://gonezo.invalid' && parsed.pathname !== '/movements/new'
+    ? returnTo
+    : null;
+}
+
 export function resolveWorkspaceRoutePage(pathname: string): WorkspaceRoutePage {
   if (pathname === '/analytics/forecast') {
     return 'analyticsForecast';

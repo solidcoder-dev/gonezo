@@ -36,7 +36,7 @@ import { useWorkspaceRefreshSignals } from './useWorkspaceRefreshSignals';
 import { useWorkspaceImportCoordinator } from './useWorkspaceImportCoordinator';
 import { useWorkspaceToast } from './useWorkspaceToast';
 import { useMovementComposerCoordinator } from './useMovementComposerCoordinator';
-import { analyticsRouteForContext, resolveWorkspaceRoutePage, shouldSyncAnalyticsContext } from './workspaceNavigation';
+import { analyticsRouteForContext, readMovementEntryReturnTo, resolveWorkspaceRoutePage, shouldSyncAnalyticsContext, type MovementEntryNavigationState } from './workspaceNavigation';
 import { useWorkspaceAccountEvents } from './useWorkspaceAccountEvents';
 import type { MovementVoiceEntryContext } from '../../transactions/application/MovementVoiceEntry/movementVoiceEntryContext';
 import { useExperimentalFeaturesModel } from '../../experiments/application/useExperimentalFeaturesModel';
@@ -62,24 +62,6 @@ export type WorkspacePagePort = AccountWorkspacePort & MovementsBackupPort & App
 type WorkspacePageProps = {
   required: WorkspacePageRequired;
 };
-
-export type MovementEntryNavigationState = {
-  returnTo: string;
-};
-
-export function readMovementEntryReturnTo(state: unknown): string | null {
-  if (!state || typeof state !== 'object' || !('returnTo' in state)) {
-    return null;
-  }
-  const returnTo = state.returnTo;
-  if (typeof returnTo !== 'string' || !returnTo.startsWith('/') || returnTo.startsWith('//') || returnTo.startsWith('/\\')) {
-    return null;
-  }
-  const parsed = new URL(returnTo, 'https://gonezo.invalid');
-  return parsed.origin === 'https://gonezo.invalid' && parsed.pathname !== '/movements/new'
-    ? returnTo
-    : null;
-}
 
 export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const location = useLocation();

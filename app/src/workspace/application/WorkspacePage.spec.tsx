@@ -7,7 +7,8 @@ import type { ExperimentalMovementDockNavigationComponentProps } from '../../tra
 import type { ProfilePageProps } from './ProfilePage';
 import type { CurrencyAccountsSheetComponentProps } from '../../account/application/CurrencyAccountsSheet/CurrencyAccountsSheetComponent';
 import type { ManageAccountSheetComponentProps } from '../../account/application/ManageAccountSheet/ManageAccountSheetComponent';
-import { WorkspacePage, readMovementEntryReturnTo, type WorkspacePageRequired } from './WorkspacePage';
+import { WorkspacePage, type WorkspacePageRequired } from './WorkspacePage';
+import { readMovementEntryReturnTo } from './workspaceNavigation';
 
 let movementDockNavigationProps: MovementDockNavigationComponentProps | null = null;
 let experimentalMovementDockNavigationProps: ExperimentalMovementDockNavigationComponentProps | null = null;
