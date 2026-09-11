@@ -32,6 +32,8 @@ export type OverviewStartersViewProps = {
       sheetTitle?: string;
       emptyLabel?: string;
       loadingLabel?: string;
+      amountVisibility?: AmountVisibility;
     };
   };
 };
+import type { AmountVisibility } from '../../../shared/domain/amountVisibility';

@@ -87,7 +87,7 @@ describe('OverviewSnapshotCardView', () => {
       />,
     );
 
-    expect(screen.getByText('-EUR 99,932.00')).toHaveClass(styles.netFlowAmountExpense);
+    expect(screen.getByText('-EUR 99,932.00')).toHaveClass(styles.netFlowAmountNeutral);
     expect(screen.getByText('-129.44%').parentElement).toHaveClass(styles.comparisonBadgeExpense);
   });
 });

@@ -23,7 +23,7 @@ export function OverviewStartersView({ required }: OverviewStartersViewProps) {
         </div>
       ) : previewItems.length > 0 ? (
         <ul className={styles.grid}>
-          {previewItems.map((item) => <OverviewStarterItemView item={item} key={item.key} />)}
+          {previewItems.map((item) => <OverviewStarterItemView item={item} key={item.key} visibility={config?.amountVisibility} />)}
         </ul>
       ) : (
         <p className={styles.emptyState}>{config?.emptyLabel ?? 'No starter insights for this period.'}</p>
@@ -32,7 +32,7 @@ export function OverviewStartersView({ required }: OverviewStartersViewProps) {
       <SheetView
         required={{
           config: { ariaLabel: `All ${config?.title?.toLowerCase() ?? 'overview starters'}`, title: config?.sheetTitle ?? config?.title ?? 'Starters', closeLabel: `Close ${config?.title?.toLowerCase() ?? 'starters'}`, contentClassName: styles.sheetContent },
-          data: { body: <ul className={styles.allItems}>{allItems.map((item) => <OverviewStarterItemView item={item} key={item.key} />)}</ul> },
+          data: { body: <ul className={styles.allItems}>{allItems.map((item) => <OverviewStarterItemView item={item} key={item.key} visibility={config?.amountVisibility} />)}</ul> },
           state: { open: allOpen },
           status: {},
         }}

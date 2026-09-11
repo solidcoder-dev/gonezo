@@ -161,7 +161,7 @@ function createCore(): AnalyticsPort {
 }
 
 describe('AnalyticsPageComponent', () => {
-  it('keeps filters available and replaces financial reports with a neutral hidden state', async () => {
+  it('keeps every analytics section and masks only financial values when hidden', async () => {
     const core = createCore();
     render(
       <AnalyticsPageComponent
@@ -172,11 +172,13 @@ describe('AnalyticsPageComponent', () => {
       />,
     );
 
-    expect(screen.getByRole('status', { name: 'Amounts hidden' })).toBeInTheDocument();
+    await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalled());
+    expect(screen.getAllByLabelText('Amount hidden').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Open currency filter')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Overview snapshot' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Spending by category' })).toBeInTheDocument();
     expect(screen.queryByText('€250.00')).not.toBeInTheDocument();
-    expect(core.analyticsGetOverviewSnapshot).not.toHaveBeenCalled();
-    await waitFor(() => expect(screen.getByRole('status', { name: 'Amounts hidden' })).toBeInTheDocument());
+    expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalled();
   });
 
   it('does not render a local page title', () => {
@@ -231,8 +233,8 @@ describe('AnalyticsPageComponent', () => {
       }),
     })));
 
-    fireEvent.click(screen.getByLabelText('Open tags filter'));
-    expect(screen.getByRole('dialog', { name: 'Tags filter' })).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Open more filters'));
+    expect(screen.getByRole('dialog', { name: 'More analytics filters' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Trip Tenerife/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     await waitFor(() => expect(core.analyticsGetOverviewSnapshot).toHaveBeenCalledWith(expect.objectContaining({
@@ -240,7 +242,7 @@ describe('AnalyticsPageComponent', () => {
     })));
   }, 30000);
 
-  it('shows four independent sheets and exposes the planned movement filter in More filters', async () => {
+  it('shows the advanced filters in one progressive disclosure sheet', async () => {
     const core = createCore();
 
     render(
@@ -256,11 +258,12 @@ describe('AnalyticsPageComponent', () => {
     fireEvent.click(screen.getByLabelText('Open more filters'));
     expect(screen.getByRole('dialog', { name: 'More analytics filters' })).toBeInTheDocument();
     expect(screen.getByText('Accounts')).toBeInTheDocument();
+    expect(screen.getByText('Tags')).toBeInTheDocument();
     expect(screen.getByText('Include ignored movements')).toBeInTheDocument();
     expect(screen.getByText('Include scheduled and expected movements')).toBeInTheDocument();
     expect(screen.getByText('Count full shared amounts')).toBeInTheDocument();
     expect(screen.queryByText('Movement type')).not.toBeInTheDocument();
-    expect(screen.queryByText('Add tag')).not.toBeInTheDocument();
+    expect(screen.getByText('Trip Tenerife')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Analytics account'), { target: { value: 'acc-1' } });
     fireEvent.click(screen.getByRole('switch', { name: 'Include ignored movements' }));

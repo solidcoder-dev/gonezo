@@ -16,9 +16,11 @@ export type OverviewSnapshotCardViewProps = {
     status: {
       loading: boolean;
       disabled?: boolean;
+      amountVisibility?: AmountVisibility;
     };
   };
   provided: {
     commands: Record<string, never>;
   };
 };
+import type { AmountVisibility } from '../../../shared/domain/amountVisibility';

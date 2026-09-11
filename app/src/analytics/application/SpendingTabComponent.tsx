@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AnalyticsPort } from './analytics.port';
+import type { AmountVisibility } from '../../shared/domain/amountVisibility';
 import type { AnalyticsFiltersInput } from './analyticsFilters';
 import { normalizeAnalyticsPeriodInput } from './analyticsFilters';
 import { presentSpendingSummary, presentTopExpenses } from './spendingPresenters';
@@ -9,7 +10,7 @@ import styles from '../ui/AnalyticsPageView.module.css';
 export type SpendingTabComponentProps = {
   required: {
     context: { core: AnalyticsPort };
-    config: { enabled: boolean; currency: string; filters?: AnalyticsFiltersInput; refreshSignal: boolean };
+    config: { enabled: boolean; currency: string; filters?: AnalyticsFiltersInput; refreshSignal: boolean; amountVisibility?: AmountVisibility };
   };
   provided?: { events?: { onError?: (error: { message: string }) => void } };
 };
@@ -33,7 +34,7 @@ function topExpensesSearchHref(report?: ReturnType<typeof presentSpendingSummary
 
 export function SpendingTabComponent({ required, provided }: SpendingTabComponentProps) {
   const { core } = required.context;
-  const { enabled, currency, filters, refreshSignal } = required.config;
+  const { enabled, currency, filters, refreshSignal, amountVisibility } = required.config;
   const [shift, setShift] = useState(0);
   const [report, setReport] = useState<ReturnType<typeof presentSpendingSummary>>();
   const [topExpenses, setTopExpenses] = useState<ReturnType<typeof presentTopExpenses>>();
@@ -79,7 +80,7 @@ export function SpendingTabComponent({ required, provided }: SpendingTabComponen
 
   return <div className={styles.stack}>
     <SpendingTabView
-      required={{ report: enabled && currency ? report : undefined, topExpenses: enabled && currency ? topExpenses : undefined, topExpensesSearchHref: enabled && currency ? topExpensesSearchHref(report) : undefined, status: { reportLoading: enabled && Boolean(currency) && reportLoadedKey !== requestKey, topLoading: enabled && Boolean(currency) && topLoadedKey !== requestKey, reportError: reportError || (reportUnavailable ? 'Spending report is unavailable' : undefined), topError: topError || (topUnavailable ? 'Top expenses is unavailable' : undefined) } }}
+      required={{ report: enabled && currency ? report : undefined, topExpenses: enabled && currency ? topExpenses : undefined, topExpensesSearchHref: enabled && currency ? topExpensesSearchHref(report) : undefined, status: { reportLoading: enabled && Boolean(currency) && reportLoadedKey !== requestKey, topLoading: enabled && Boolean(currency) && topLoadedKey !== requestKey, reportError: reportError || (reportUnavailable ? 'Spending report is unavailable' : undefined), topError: topError || (topUnavailable ? 'Top expenses is unavailable' : undefined), amountVisibility } }}
       provided={{
         state: { canPrevious: report?.window.canGoPrevious ?? true, canNext: report?.window.canGoNext ?? effectiveShift < 0, sheetOpen },
         commands: { previous: () => { setSelectionKey(filterKey); setShift((current) => current - 1); }, next: () => { setSelectionKey(filterKey); setShift((current) => Math.min(0, current + 1)); }, openCategories: () => setSheetOpen('categories'), closeSheet: () => setSheetOpen(null) },

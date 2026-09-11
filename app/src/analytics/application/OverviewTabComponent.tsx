@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { AnalyticsFiltersInput } from './analyticsFilters';
 import type { AnalyticsOverviewInsightsResult, AnalyticsPort } from './analytics.port';
+import type { AmountVisibility } from '../../shared/domain/amountVisibility';
 import { OverviewSnapshotCardView } from '../ui/OverviewSnapshotCard/OverviewSnapshotCardView';
 import { OverviewStartersView } from '../ui/OverviewStarters/OverviewStartersView';
 import styles from '../ui/AnalyticsPageView.module.css';
@@ -9,7 +10,7 @@ import { presentOverviewSnapshot, presentOverviewStarters } from './OverviewTabP
 type OverviewTabComponentProps = {
   required: {
     context: { core: AnalyticsPort };
-    config: { enabled: boolean; currency: string; filters?: AnalyticsFiltersInput; refreshSignal: boolean };
+    config: { enabled: boolean; currency: string; filters?: AnalyticsFiltersInput; refreshSignal: boolean; amountVisibility?: AmountVisibility };
   };
   provided?: { events?: { onError?: (error: { message: string }) => void } };
 };
@@ -22,7 +23,7 @@ export function OverviewTabComponent({ required, provided }: OverviewTabComponen
   const [insightsState, setInsightsState] = useState<InsightsState>({ loading: true });
   const requestId = useRef(0);
   const { core } = required.context;
-  const { currency, enabled, filters, refreshSignal } = required.config;
+  const { currency, enabled, filters, refreshSignal, amountVisibility } = required.config;
   const onError = provided?.events?.onError;
   const inputKey = JSON.stringify({ currency, filters, refreshSignal });
 
@@ -68,7 +69,7 @@ export function OverviewTabComponent({ required, provided }: OverviewTabComponen
       <OverviewSnapshotCardView
         required={{
           data: presentOverviewSnapshot(snapshot, currency || 'USD'),
-          status: { loading: (snapshotState.loading || snapshotState.inputKey !== inputKey) && enabled && Boolean(currency) },
+          status: { loading: (snapshotState.loading || snapshotState.inputKey !== inputKey) && enabled && Boolean(currency), amountVisibility },
         }}
         provided={{ commands: {} }}
       />
@@ -76,6 +77,7 @@ export function OverviewTabComponent({ required, provided }: OverviewTabComponen
         required={{
           data: { previewItems: starterItems.slice(0, 6), allItems: starterItems },
           status: { loading: (insightsState.loading || insightsState.inputKey !== inputKey) && enabled && Boolean(currency) },
+          config: { amountVisibility },
         }}
       />
     </div>
