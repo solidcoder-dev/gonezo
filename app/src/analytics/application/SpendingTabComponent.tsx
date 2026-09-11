@@ -6,6 +6,7 @@ import { normalizeAnalyticsPeriodInput } from './analyticsFilters';
 import { presentSpendingSummary, presentTopExpenses } from './spendingPresenters';
 import { SpendingTabView } from '../ui/SpendingTab/SpendingTabView';
 import styles from '../ui/AnalyticsPageView.module.css';
+import { buildMovementSearchHref } from '../../movements/application/movementsSearchRoutePreset';
 
 export type SpendingTabComponentProps = {
   required: {
@@ -23,13 +24,12 @@ function topExpensesSearchHref(report?: ReturnType<typeof presentSpendingSummary
   if (!report) return undefined;
   const endDate = new Date(`${report.window.endExclusive}T00:00:00.000Z`);
   endDate.setUTCDate(endDate.getUTCDate() - 1);
-  const params = new URLSearchParams({
+  return buildMovementSearchHref({
     source: 'posted',
     type: 'expense',
     fromDate: report.window.start,
     toDate: endDate.toISOString().slice(0, 10),
   });
-  return `/movements/search?${params.toString()}`;
 }
 
 export function SpendingTabComponent({ required, provided }: SpendingTabComponentProps) {

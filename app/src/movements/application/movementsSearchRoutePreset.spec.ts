@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseMovementsSearchRoutePreset } from './movementsSearchRoutePreset';
+import { buildMovementSearchHref, parseMovementsSearchRoutePreset } from './movementsSearchRoutePreset';
 
 describe('parseMovementsSearchRoutePreset', () => {
   it('initializes pending expected expense searches without narrowing account or currency', () => {
@@ -12,5 +12,11 @@ describe('parseMovementsSearchRoutePreset', () => {
     const preset = parseMovementsSearchRoutePreset('?source=expected&type=transfer&state=posted');
     expect(preset.source).toBe('posted');
     expect(preset.types).toEqual([]);
+  });
+
+  it('round-trips analytics drilldown fields', () => {
+    const href = buildMovementSearchHref({ source: 'posted', type: 'expense', fromDate: '2026-07-01', toDate: '2026-07-31', categoryIds: ['cat-food'], tagIds: ['tag-trip'], merchant: 'Cafe' });
+    expect(href).toBe('/movements/search?source=posted&type=expense&fromDate=2026-07-01&toDate=2026-07-31&categoryIds=cat-food&tagIds=tag-trip&merchant=Cafe');
+    expect(parseMovementsSearchRoutePreset(href.split('?')[1])).toMatchObject({ types: ['expense'], fromDate: '2026-07-01', toDate: '2026-07-31', categoryIds: ['cat-food'], tagIds: ['tag-trip'], merchant: 'Cafe' });
   });
 });
