@@ -7,7 +7,7 @@ import type { ExperimentalMovementDockNavigationComponentProps } from '../../tra
 import type { ProfilePageProps } from './ProfilePage';
 import type { CurrencyAccountsSheetComponentProps } from '../../account/application/CurrencyAccountsSheet/CurrencyAccountsSheetComponent';
 import type { ManageAccountSheetComponentProps } from '../../account/application/ManageAccountSheet/ManageAccountSheetComponent';
-import { WorkspacePage, type WorkspacePageRequired } from './WorkspacePage';
+import { WorkspacePage, readMovementEntryReturnTo, type WorkspacePageRequired } from './WorkspacePage';
 
 let movementDockNavigationProps: MovementDockNavigationComponentProps | null = null;
 let experimentalMovementDockNavigationProps: ExperimentalMovementDockNavigationComponentProps | null = null;
@@ -277,6 +277,16 @@ function renderSubject(route: string, experimentalFeatures = makeExperimentalFea
 }
 
 describe('WorkspacePage', () => {
+  it('accepts internal movement return paths with their query context', () => {
+    expect(readMovementEntryReturnTo({ returnTo: '/movements?month=2023-07&mode=planned' })).toBe('/movements?month=2023-07&mode=planned');
+  });
+
+  it('rejects movement entry, external, and protocol-relative return paths', () => {
+    expect(readMovementEntryReturnTo({ returnTo: '/movements/new?month=2023-07' })).toBeNull();
+    expect(readMovementEntryReturnTo({ returnTo: 'https://example.com/movements' })).toBeNull();
+    expect(readMovementEntryReturnTo({ returnTo: '//example.com/movements' })).toBeNull();
+  });
+
   it('opens and closes currency accounts without changing the Home route', async () => {
     renderSubject('/home');
 

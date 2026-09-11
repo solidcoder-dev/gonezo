@@ -61,16 +61,20 @@ type WorkspacePageProps = {
   required: WorkspacePageRequired;
 };
 
-type MovementEntryNavigationState = {
+export type MovementEntryNavigationState = {
   returnTo: string;
 };
 
-function readMovementEntryReturnTo(state: unknown): string | null {
+export function readMovementEntryReturnTo(state: unknown): string | null {
   if (!state || typeof state !== 'object' || !('returnTo' in state)) {
     return null;
   }
   const returnTo = state.returnTo;
-  return typeof returnTo === 'string' && returnTo.startsWith('/') && returnTo !== '/movements/new'
+  if (typeof returnTo !== 'string' || !returnTo.startsWith('/') || returnTo.startsWith('//') || returnTo.startsWith('/\\')) {
+    return null;
+  }
+  const parsed = new URL(returnTo, 'https://gonezo.invalid');
+  return parsed.origin === 'https://gonezo.invalid' && parsed.pathname !== '/movements/new'
     ? returnTo
     : null;
 }
