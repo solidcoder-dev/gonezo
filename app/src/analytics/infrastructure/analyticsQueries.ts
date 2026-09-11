@@ -667,7 +667,7 @@ export async function analyticsGetFlowProjection(
   const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
   const now = new Date();
   const windows = buildSpendingTimelineWindow(scope.filters.period, now, input.periodOffset, undefined, 5, scope.filters.includePlannedMovements);
-  const [balances, transactions] = await Promise.all([
+  const [balances, transactions, scheduledResults] = await Promise.all([
     selectedAccountSummaries(port, scope.selectedAccountIds),
     listAnalyticsMovements(port, {
       accountIds: scope.selectedAccountIds,
@@ -675,7 +675,9 @@ export async function analyticsGetFlowProjection(
       includeIgnoredMovements: scope.filters.includeIgnoredMovements,
       sharedAmountMode: 'full',
     }),
+    Promise.all(scope.selectedAccountIds.map((accountId) => port.schedulingListMovements({ sourceAccountId: accountId }))),
   ]);
+  const scheduledMovements = scheduledResults.flatMap((result) => result.items);
 
   const currentBalanceAmount = balances.reduce(
     (total, account) => (Number.isFinite(Number(account.balanceAmount))
@@ -690,7 +692,7 @@ export async function analyticsGetFlowProjection(
     period: scope.filters.period,
     currentBalanceAmount,
     postedTransactions: transactions.transactions,
-    scheduledMovements: [],
+    scheduledMovements,
     now,
   });
 }

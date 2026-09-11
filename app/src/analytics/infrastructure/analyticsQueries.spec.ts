@@ -208,6 +208,31 @@ describe('analytics queries', () => {
     });
   });
 
+  it('passes selected scheduled movements into the flow projection', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
+    const port = createPort([], undefined, [{
+      id: 'scheduled-income',
+      type: 'income',
+      sourceAccountId: 'acc-1',
+      amount: '100.00',
+      currency: 'EUR',
+      status: 'active',
+      startAt: '2026-06-20T10:00:00.000Z',
+      nextDueAt: '2026-06-20T10:00:00.000Z',
+      zoneId: 'UTC',
+      generatedOccurrences: 0,
+      splitItems: [],
+      rule: { frequency: 'monthly' },
+      recurrenceEnd: { kind: 'never' },
+    }]);
+
+    await expect(analyticsGetFlowProjection(port, { currency: 'EUR', periodOffset: 0 })).resolves.toMatchObject({
+      expectedEndBalanceAmount: '1100.00',
+    });
+    expect(port.schedulingListMovements).toHaveBeenCalledWith({ sourceAccountId: 'acc-1' });
+  });
+
   it('counts only the personal share by default across overview, spending and flow analytics while preserving balances', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
