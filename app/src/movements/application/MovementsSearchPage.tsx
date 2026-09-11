@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { LedgerAccountItem } from '../../ledger/application/ledger.port';
 import type { MovementsSearchPagePort } from './movementsSearch.port';
@@ -47,7 +47,7 @@ export type { MovementsSearchPageProps };
 
 export function MovementsSearchPage({ required, provided }: MovementsSearchPageProps) {
   const location = useLocation();
-  const routePreset = parseMovementsSearchRoutePreset(location.search);
+  const routePreset = useMemo(() => parseMovementsSearchRoutePreset(location.search), [location.search]);
   const returnTo = new URLSearchParams(location.search).get('returnTo');
   const closeHref = returnTo?.startsWith('/') ? returnTo : '/';
 
@@ -93,7 +93,7 @@ export function MovementsSearchPage({ required, provided }: MovementsSearchPageP
     return () => {
       cancelled = true;
     };
-  }, [location.search, required.core]);
+  }, [location.search, required.core, routePreset]);
 
   const searchModel = useMovementsSearchModel({
     core: required.core,
