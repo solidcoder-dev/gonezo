@@ -91,6 +91,18 @@ describe('analytics builders', () => {
     });
   });
 
+  it('characterizes a legacy transfer as neither income nor expense', () => {
+    const result = buildAnalyticsCashFlowSummary([
+      transaction({ id: 'legacy-transfer', type: 'transfer', amount: '80.00', currency: 'EUR' }),
+    ], 'EUR');
+
+    expect(result).toEqual({
+      incomeAmount: '0.00',
+      expenseAmount: '0.00',
+      netFlowAmount: '0.00',
+    });
+  });
+
   it('builds an overview snapshot with current totals, previous comparison and biggest movements', () => {
     const result = buildAnalyticsOverviewSnapshot({
       currentTransactions: [
