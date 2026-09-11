@@ -8,7 +8,7 @@ import styles from './AnalyticsDashboardViews.module.css';
 import type { AnalyticsPeriodNavigationViewModel } from '../AnalyticsPeriodNavigator/AnalyticsPeriodNavigator';
 import { AnalyticsPeriodNavigator } from '../AnalyticsPeriodNavigator/AnalyticsPeriodNavigator';
 
-export type AnalyticsSummaryData = { currentWindowLabel: string; previousWindowLabel?: string; comparisonPercent?: string; incomeAmount: string; expenseAmount: string; netFlowAmount: string; incomeShare: number; expenseShare: number; netFlowTone: 'income' | 'expense' | 'neutral'; comparisonTone: 'income' | 'expense' | 'neutral'; comparisonDirection: 'up' | 'down' | 'flat' };
+export type AnalyticsSummaryData = { currentWindowLabel: string; previousWindowLabel?: string; comparisonPercent?: string; inflowAmount: string; outflowAmount: string; netFlowAmount: string; inflowShare: number; outflowShare: number; netFlowTone: 'income' | 'expense' | 'neutral'; comparisonTone: 'income' | 'expense' | 'neutral'; comparisonDirection: 'up' | 'down' | 'flat' };
 type SummaryData = AnalyticsSummaryData;
 
 export function AnalyticsSummaryView({ data, loading, visibility, periodNavigation = { currentWindowLabel: data.currentWindowLabel, canGoPrevious: false, canGoNext: false, goPrevious: () => undefined, goNext: () => undefined }, onIncomeSelected = () => undefined, onExpensesSelected = () => undefined }: { data: SummaryData; loading: boolean; visibility?: AmountVisibility; periodNavigation?: AnalyticsPeriodNavigationViewModel; onIncomeSelected?: () => void; onExpensesSelected?: () => void }) {
@@ -19,13 +19,13 @@ export function AnalyticsSummaryView({ data, loading, visibility, periodNavigati
       {loading ? <SummarySkeleton /> : <>
         <FinancialAmountView formattedAmount={data.netFlowAmount} visibility={amountVisibility} className={styles.hero} />
         {data.comparisonPercent ? <div className={styles.comparison}><span className={data.comparisonTone === 'income' ? styles.comparisonPositive : data.comparisonTone === 'expense' ? styles.comparisonNegative : ''}><span aria-hidden>{data.comparisonDirection === 'up' ? '↑' : data.comparisonDirection === 'down' ? '↓' : '→'}</span> {data.comparisonPercent}</span><span>vs previous period</span></div> : null}
-        <div className={styles.totals}><SummaryTotal label="Income" amount={data.incomeAmount} width={data.incomeShare} tone="income" visibility={amountVisibility} onSelect={onIncomeSelected} /><SummaryTotal label="Expenses" amount={data.expenseAmount} width={data.expenseShare} tone="expense" visibility={amountVisibility} onSelect={onExpensesSelected} /></div>
+        <div className={styles.totals}><SummaryTotal label="Inflows" amount={data.inflowAmount} width={data.inflowShare} tone="income" visibility={amountVisibility} onSelect={onIncomeSelected} /><SummaryTotal label="Outflows" amount={data.outflowAmount} width={data.outflowShare} tone="expense" visibility={amountVisibility} onSelect={onExpensesSelected} /></div>
       </>}
     </div>
   </section>;
 }
 
-function SummaryTotal({ label, amount, width, tone, visibility, onSelect }: { label: string; amount: string; width: number; tone: 'income' | 'expense'; visibility: AmountVisibility; onSelect: () => void }) {
+function SummaryTotal({ label, amount, width, tone, visibility, onSelect = () => undefined }: { label: string; amount: string; width: number; tone: 'income' | 'expense'; visibility: AmountVisibility; onSelect?: () => void }) {
   return <button type="button" className={styles.total} onClick={onSelect} aria-label={`${label}, ${amount}`}><span className={styles.label}>{label}</span><FinancialAmountView formattedAmount={amount} visibility={visibility} tone={tone} className={styles.amount} /><span className={styles.track} aria-hidden><span className={`${styles.fill} ${tone === 'income' ? styles.incomeFill : styles.expenseFill}`} style={{ width: `${width}%` }} /></span></button>;
 }
 

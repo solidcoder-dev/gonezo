@@ -487,7 +487,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             void navigate(href);
           },
           onHighlightSelected: (item) => {
-            const type = item.tone === 'income' ? 'income' : 'expense';
+            const type = item.tone === 'income' ? 'income' : item.tone === 'transfer' ? 'transfer' : 'expense';
             const range = resolveAnalyticsPeriodSelectionWindow(analyticsContextPeriodSelection(analyticsContext), analyticsReferenceDateFromNow(), analyticsContext.includePlannedMovements).currentRange;
             const href = buildMovementSearchHref({
               source: 'posted',

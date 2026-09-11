@@ -3,6 +3,7 @@ import type {
   WebLedgerAccount,
   WebLedgerTransaction,
 } from '../../core/infrastructure/webAppState';
+import { balanceImpact } from '../application/movementSemantics';
 
 export function getWebLedgerAccountOrThrow(
   state: WebAppState,
@@ -45,18 +46,7 @@ export function calculateWebAccountNet(state: WebAppState, accountId: string): n
     if (Number.isNaN(amount)) {
       continue;
     }
-    if (tx.type === 'income') {
-      net += amount;
-    }
-    if (tx.type === 'expense') {
-      net -= amount;
-    }
-    if (tx.type === 'transfer_in') {
-      net += amount;
-    }
-    if (tx.type === 'transfer_out') {
-      net -= amount;
-    }
+    net += Number(balanceImpact(tx.type, amount.toString()));
   }
   return net;
 }

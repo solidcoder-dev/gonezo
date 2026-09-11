@@ -4,6 +4,7 @@ import type { SchedulingMovementItem, SchedulingPort } from '../../scheduling/ap
 import type { TaxonomyListCategoriesResult, TaxonomyPort } from '../../taxonomy/application/taxonomy.port';
 import type { SharingPort } from '../../sharing/application/sharing.port';
 import { parseDateFilterEpoch } from '../../shared/domain/dateFilterRange';
+import { expandLedgerSearchTypes } from '../../ledger/application/ledgerTransactionTypeFilters';
 import type {
   MovementsListScheduledInput,
   MovementsListScheduledResult,
@@ -462,7 +463,10 @@ export async function searchNativeMovements(
 
   if (input.source === 'posted') {
     if (filters.sharing === 'shared' || filters.sharingPersonId?.trim()) {
-      const transactions = await listAllNativePostedTransactions(core, input.accountId, filters, sort);
+      const transactions = await listAllNativePostedTransactions(core, input.accountId, {
+        ...filters,
+        types: filters.types ? expandLedgerSearchTypes(filters.types) : undefined,
+      }, sort);
       const details = transactions.length > 0 && core.sharingListMovementDetails
         ? await core.sharingListMovementDetails({ transactionIds: transactions.map((transaction) => transaction.id) })
         : { items: [] };
@@ -494,7 +498,7 @@ export async function searchNativeMovements(
         amountMax: filters.amountMax,
         fromDate: filters.fromDate,
         toDate: filters.toDate,
-        types: filters.types,
+        types: filters.types ? expandLedgerSearchTypes(filters.types) : undefined,
         statuses: ['posted'],
       },
       pagination: {

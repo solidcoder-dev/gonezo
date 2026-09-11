@@ -6,6 +6,7 @@ import type { WebLedgerTransaction } from '../../core/infrastructure/webAppState
 import type { WebAppState } from '../../core/infrastructure/webAppState';
 import type { LedgerTransactionListItem } from '../application/ledger.port';
 import { parseDateFilterEpoch } from '../../shared/domain/dateFilterRange';
+import { expandLedgerSearchTypes } from '../application/ledgerTransactionTypeFilters';
 
 export function listWebLedgerTransactions(
   input: LedgerListTransactionsInput,
@@ -27,7 +28,7 @@ export function listWebLedgerTransactions(
   const textFilter = filters.text?.trim().toLowerCase();
   const merchantFilter = filters.merchant?.trim().toLowerCase();
   const statusesFilter = filters.statuses && filters.statuses.length > 0 ? new Set(filters.statuses) : null;
-  const typesFilter = filters.types && filters.types.length > 0 ? new Set(filters.types) : null;
+  const typesFilter = filters.types && filters.types.length > 0 ? new Set(expandLedgerSearchTypes(filters.types)) : null;
   const categoryIds = filters.categoryIds && filters.categoryIds.length > 0
     ? filters.categoryIds
     : filters.categoryId

@@ -40,6 +40,26 @@ const transactions: WebLedgerTransaction[] = [
     description: 'Other account',
     items: [],
   },
+  {
+    id: 'tx-transfer-out',
+    accountId: 'account-1',
+    type: 'transfer_out',
+    status: 'posted',
+    amount: '500.00',
+    currency: 'EUR',
+    occurredAt: '2026-05-04T10:00:00.000Z',
+    items: [],
+  },
+  {
+    id: 'tx-transfer-in',
+    accountId: 'account-1',
+    type: 'transfer_in',
+    status: 'posted',
+    amount: '580.00',
+    currency: 'EUR',
+    occurredAt: '2026-05-04T10:00:00.000Z',
+    items: [],
+  },
 ];
 
 describe('listWebLedgerTransactions', () => {
@@ -73,6 +93,7 @@ describe('listWebLedgerTransactions', () => {
       {
         accountId: 'account-1',
         pagination: { page: 10, size: 1 },
+        filters: { types: ['income', 'expense'] },
         sort: [{ field: 'amount', direction: 'asc' }],
       },
       transactions,
@@ -88,7 +109,7 @@ describe('listWebLedgerTransactions', () => {
       hasPrevious: true,
     });
     expect(result.content[0]?.id).toBe('tx-2');
-    expect(transactions.map((transaction) => transaction.id)).toEqual(['tx-1', 'tx-2', 'tx-3']);
+    expect(transactions.map((transaction) => transaction.id)).toEqual(['tx-1', 'tx-2', 'tx-3', 'tx-transfer-out', 'tx-transfer-in']);
   });
 
   it('treats a date-only toDate filter as the end of that calendar day', () => {
@@ -106,5 +127,18 @@ describe('listWebLedgerTransactions', () => {
     );
 
     expect(result.content.map((transaction) => transaction.id)).toEqual(['tx-2']);
+  });
+
+  it('matches both transfer legs when searching by the transfer type', () => {
+    const result = listWebLedgerTransactions(
+      {
+        accountId: 'account-1',
+        filters: { types: ['transfer'], statuses: ['posted'] },
+      },
+      transactions,
+      new Map(),
+    );
+
+    expect(result.content.map((transaction) => transaction.id)).toEqual(['tx-transfer-out', 'tx-transfer-in']);
   });
 });

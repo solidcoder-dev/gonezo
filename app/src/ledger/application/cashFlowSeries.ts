@@ -4,6 +4,7 @@ import type {
   LedgerGetCashFlowSeriesResult,
   LedgerTransactionListItem,
 } from './ledger.port';
+import { balanceImpact, isBalanceInflow, isBalanceOutflow, isEconomicExpense, isEconomicIncome } from './movementSemantics';
 
 type BuildCashFlowSeriesInput = {
   accounts: LedgerAccountItem[];
@@ -184,7 +185,7 @@ function isCashFlowTransaction(
   accountIds: Set<string>,
 ): boolean {
   return transaction.status === 'posted'
-    && (transaction.type === 'income' || transaction.type === 'expense')
+    && (isBalanceInflow(transaction.type) || isBalanceOutflow(transaction.type))
     && transaction.currency.toUpperCase() === selectedCurrency
     && accountIds.has(transaction.accountId)
     && !isAutomaticOpeningBalance(transaction);
@@ -218,6 +219,7 @@ export function buildCashFlowSeries(input: BuildCashFlowSeriesInput): LedgerGetC
       label: period.label,
       incomeAmount: '0.00',
       expenseAmount: '0.00',
+      balanceDeltaAmount: '0.00',
     },
   ]));
 
@@ -233,9 +235,10 @@ export function buildCashFlowSeries(input: BuildCashFlowSeriesInput): LedgerGetC
     if (!point) {
       continue;
     }
-    if (transaction.type === 'income') {
+    point.balanceDeltaAmount = addAmount(point.balanceDeltaAmount ?? '0.00', balanceImpact(transaction.type, transaction.amount));
+    if (isEconomicIncome(transaction.type)) {
       point.incomeAmount = addAmount(point.incomeAmount, transaction.amount);
-    } else {
+    } else if (isEconomicExpense(transaction.type)) {
       point.expenseAmount = addAmount(point.expenseAmount, transaction.amount);
     }
   }
@@ -249,8 +252,9 @@ export function buildCashFlowSeries(input: BuildCashFlowSeriesInput): LedgerGetC
       (totals, point) => ({
         incomeAmount: addAmount(totals.incomeAmount, point.incomeAmount),
         expenseAmount: addAmount(totals.expenseAmount, point.expenseAmount),
+        balanceDeltaAmount: addAmount(totals.balanceDeltaAmount ?? '0.00', point.balanceDeltaAmount ?? '0.00'),
       }),
-      { incomeAmount: '0.00', expenseAmount: '0.00' },
+      { incomeAmount: '0.00', expenseAmount: '0.00', balanceDeltaAmount: '0.00' },
     ),
     window: {
       label,

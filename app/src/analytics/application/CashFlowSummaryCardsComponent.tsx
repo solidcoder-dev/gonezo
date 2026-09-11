@@ -40,15 +40,15 @@ function toCards(summary: AnalyticsCashFlowSummaryResult, currency: string): Cas
   return [
     {
       key: 'income',
-      label: 'Income',
-      amount: formatCurrencyAmount(summary.incomeAmount, currency),
+      label: 'Inflows',
+      amount: formatCurrencyAmount(summary.inflowAmount ?? summary.incomeAmount, currency),
       iconClassName: 'bi bi-graph-up-arrow',
       tone: 'income',
     },
     {
       key: 'expense',
-      label: 'Expenses',
-      amount: formatCurrencyAmount(summary.expenseAmount, currency),
+      label: 'Outflows',
+      amount: formatCurrencyAmount(summary.outflowAmount ?? summary.expenseAmount, currency),
       iconClassName: 'bi bi-graph-down-arrow',
       tone: 'expense',
     },

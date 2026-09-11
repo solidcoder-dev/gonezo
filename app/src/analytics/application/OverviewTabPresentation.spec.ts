@@ -17,8 +17,8 @@ describe('Analytics presentation', () => {
     expect(view.comparisonTone).toBe('expense');
     expect(view.comparisonDirection).toBe('down');
     expect(view.netFlowAmount).toContain('-');
-    expect(view.incomeShare).toBeCloseTo(22.81, 1);
-    expect(view.expenseShare).toBe(100);
+    expect(view.inflowShare).toBeCloseTo(22.81, 1);
+    expect(view.outflowShare).toBe(100);
   });
 
   it('keeps the required preview order and recurring data available to See all', () => {
@@ -43,9 +43,25 @@ describe('Analytics presentation', () => {
 
   it('handles zero totals without a false bar or positive zero sign', () => {
     const view = presentOverviewSnapshot({ currentWindow: { label: 'All time', startDate: '', endDate: '' }, currentTotals: { incomeAmount: '0.00', expenseAmount: '0.00', netFlowAmount: '0.00' }, netFlowChangePercent: '0' }, 'EUR');
-    expect(view.incomeShare).toBe(0);
-    expect(view.expenseShare).toBe(0);
+    expect(view.inflowShare).toBe(0);
+    expect(view.outflowShare).toBe(0);
     expect(view.netFlowAmount.startsWith('+')).toBe(false);
     expect(view.comparisonDirection).toBe('flat');
+  });
+
+  it('presents transfer totals separately from economic income and expenses', () => {
+    const view = presentOverviewSnapshot({
+      currentWindow: { label: 'Jul 2026', startDate: '', endDate: '' },
+      currentTotals: {
+        incomeAmount: '0.00',
+        expenseAmount: '0.00',
+        inflowAmount: '580.00',
+        outflowAmount: '0.00',
+        netFlowAmount: '580.00',
+      },
+    }, 'USD');
+
+    expect(view.inflowAmount).toContain('580.00');
+    expect(view.outflowAmount).toContain('0.00');
   });
 });

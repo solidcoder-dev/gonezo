@@ -20,6 +20,13 @@ describe('parseMovementsSearchRoutePreset', () => {
     expect(parseMovementsSearchRoutePreset(href.split('?')[1])).toMatchObject({ types: ['expense'], fromDate: '2026-07-01', toDate: '2026-07-31', categoryIds: ['cat-food'], tagIds: ['tag-trip'], merchant: 'Cafe', currency: 'EUR', accountIds: ['acc-1'] });
   });
 
+  it('round-trips the transfer search type', () => {
+    const href = buildMovementSearchHref({ source: 'posted', type: 'transfer' });
+
+    expect(href).toBe('/movements/search?source=posted&type=transfer');
+    expect(parseMovementsSearchRoutePreset(href.split('?')[1]).types).toEqual(['transfer']);
+  });
+
   it('round-trips sharing context and normalizes duplicate identifiers', () => {
     const href = buildMovementSearchHref({
       source: 'posted',

@@ -1,4 +1,5 @@
 import { buildCashFlowSeries } from '../../ledger/application/cashFlowSeries';
+import { balanceImpact } from '../../ledger/application/movementSemantics';
 import type {
   LedgerAccountItem,
   LedgerTransactionFilterInput,
@@ -770,7 +771,7 @@ export async function analyticsGetFlowReport(port: AnalyticsQueryPort, input: An
   const currency = input.currency.trim().toUpperCase();
   const currentCents = accounts.reduce((sum, account) => sum + Math.round(Number(account.balanceAmount) * 100), 0);
   const postedBalanceFacts = balanceMovements.transactions.map((transaction) => flowFact(transaction, currency, 'full')).filter((fact): fact is AnalyticsFlowFact => Boolean(fact && fact.source === 'posted' && fact.effectiveAt >= `${window.start}T00:00:00.000Z` && fact.effectiveAt < now.toISOString()));
-  const openingCents = currentCents - postedBalanceFacts.reduce((sum, fact) => sum + (fact.type === 'expense' || fact.type === 'transfer_out' ? -Math.abs(Math.round(Number(fact.amount.value) * 100)) : Math.round(Number(fact.amount.value) * 100)), 0);
+  const openingCents = currentCents - postedBalanceFacts.reduce((sum, fact) => sum + Math.round(Number(balanceImpact(fact.type, fact.amount.value)) * 100), 0);
   const facts = selectedMovements.transactions.map((transaction) => flowFact(transaction, currency, scope.filters.sharedAmountMode)).filter((fact): fact is AnalyticsFlowFact => Boolean(fact));
   const scheduledFacts = scheduledFlowFacts(
     scheduledResults.flatMap((result) => result.items),

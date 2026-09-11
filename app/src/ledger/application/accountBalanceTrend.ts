@@ -1,5 +1,6 @@
 import type { LedgerNetWorthTrendPoint, LedgerTransactionListItem } from './ledger.port';
 import { addDecimalAmounts } from './decimalAmount';
+import { balanceImpact } from './movementSemantics';
 
 type BuildAccountBalanceTrendInput = {
   transactions: LedgerTransactionListItem[];
@@ -50,13 +51,7 @@ export function ledgerTransactionBalanceDelta(transaction: LedgerTransactionList
   if (transaction.status !== 'posted') {
     return '0.00';
   }
-  if (transaction.type === 'income' || transaction.type === 'transfer_in') {
-    return transaction.amount;
-  }
-  if (transaction.type === 'expense' || transaction.type === 'transfer_out') {
-    return addDecimalAmounts('0', `-${transaction.amount}`);
-  }
-  return '0.00';
+  return balanceImpact(transaction.type, transaction.amount);
 }
 
 export function buildAccountBalanceTrend(input: BuildAccountBalanceTrendInput): LedgerNetWorthTrendPoint[] | undefined {

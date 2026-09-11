@@ -1,5 +1,6 @@
 import type { AnalyticsPeriod } from './analyticsFilters';
 import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
+import { balanceImpact, isBalanceInflow, isBalanceOutflow } from '../../ledger/application/movementSemantics';
 
 export type AnalyticsMoneyDto = { value: string; currency: string };
 export type AnalyticsFlowFact = {
@@ -30,7 +31,7 @@ function cents(value: string): number {
   return sign * (Math.abs(Number(whole || 0)) * 100 + Number((fraction + '00').slice(0, 2)));
 }
 function money(value: number, currency: string): AnalyticsMoneyDto { return { value: (value / 100).toFixed(2), currency }; }
-function signed(fact: AnalyticsFlowFact): number { return (fact.type === 'expense' || fact.type === 'transfer_out') ? -cents(fact.amount.value) : cents(fact.amount.value); }
+function signed(fact: AnalyticsFlowFact): number { return cents(balanceImpact(fact.type, fact.amount.value)); }
 export function calculateSignedFlowDelta(fact: AnalyticsFlowFact): AnalyticsMoneyDto { return money(signed(fact), fact.amount.currency); }
 function date(value: string): Date { return new Date(value); }
 function day(value: string): string { return value.slice(0, 10); }
@@ -62,8 +63,8 @@ export function calculateFlowSummary(projection: AnalyticsFlowProjectionPoint[],
 
 export function calculateUpcomingFlow(facts: AnalyticsFlowFact[], window: AnalyticsFlowReport['window'], now: string, currency: string) {
   const upcoming = facts.filter((fact) => fact.effectiveAt >= now && fact.effectiveAt >= window.start && fact.effectiveAt < window.endExclusive && fact.source !== 'posted');
-  const incoming = upcoming.filter((fact) => fact.type === 'income' || fact.type === 'transfer_in').sort((a, b) => a.effectiveAt.localeCompare(b.effectiveAt));
-  const outgoing = upcoming.filter((fact) => fact.type === 'expense' || fact.type === 'transfer_out').sort((a, b) => a.effectiveAt.localeCompare(b.effectiveAt));
+  const incoming = upcoming.filter((fact) => isBalanceInflow(fact.type)).sort((a, b) => a.effectiveAt.localeCompare(b.effectiveAt));
+  const outgoing = upcoming.filter((fact) => isBalanceOutflow(fact.type)).sort((a, b) => a.effectiveAt.localeCompare(b.effectiveAt));
   return { incomingTotal: money(incoming.reduce((sum, fact) => sum + Math.abs(signed(fact)), 0), currency), outgoingTotal: money(outgoing.reduce((sum, fact) => sum + Math.abs(signed(fact)), 0), currency), incomingCount: incoming.length, outgoingCount: outgoing.length, nextIncomingAt: incoming[0]?.effectiveAt, nextOutgoingAt: outgoing[0]?.effectiveAt };
 }
 

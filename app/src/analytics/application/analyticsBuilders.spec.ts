@@ -87,8 +87,19 @@ describe('analytics builders', () => {
     expect(result).toEqual({
       incomeAmount: '1000.00',
       expenseAmount: '250.00',
-      netFlowAmount: '750.00',
+      inflowAmount: '1000.00',
+      outflowAmount: '270.00',
+      netFlowAmount: '730.00',
     });
+  });
+
+  it('includes transfer balance impact without classifying transfers as economic flow', () => {
+    const result = buildAnalyticsCashFlowSummary([
+      transaction({ id: 'usd-transfer-in', type: 'transfer_in', amount: '580.00', currency: 'USD' }),
+      transaction({ id: 'usd-transfer-out', type: 'transfer_out', amount: '80.00', currency: 'USD' }),
+    ], 'USD');
+
+    expect(result).toEqual({ incomeAmount: '0.00', expenseAmount: '0.00', inflowAmount: '580.00', outflowAmount: '80.00', netFlowAmount: '500.00' });
   });
 
   it('characterizes a legacy transfer as neither income nor expense', () => {

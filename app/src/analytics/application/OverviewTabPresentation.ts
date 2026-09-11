@@ -5,18 +5,18 @@ import type { AnalyticsHighlightViewModel } from '../ui/AnalyticsHighlights/Anal
 
 export function presentOverviewSnapshot(snapshot: AnalyticsOverviewSnapshotResult | undefined, currency: string): AnalyticsSummaryData {
   const totals = snapshot?.currentTotals ?? { incomeAmount: '0.00', expenseAmount: '0.00', netFlowAmount: '0.00' };
-  const income = numericAmount(totals.incomeAmount);
-  const expense = numericAmount(totals.expenseAmount);
+  const inflow = numericAmount(totals.inflowAmount ?? totals.incomeAmount);
+  const outflow = numericAmount(totals.outflowAmount ?? totals.expenseAmount);
   const changeValue = snapshot?.netFlowChangePercent === undefined ? undefined : numericAmount(snapshot.netFlowChangePercent);
   return {
     currentWindowLabel: snapshot?.currentWindow.label ?? '',
     previousWindowLabel: snapshot?.previousWindow?.label,
     comparisonPercent: changeValue === undefined ? undefined : `${changeValue > 0 ? '+' : ''}${changeValue}%`,
-    incomeAmount: formatCurrencyAmount(totals.incomeAmount, currency),
-    expenseAmount: formatCurrencyAmount(totals.expenseAmount, currency),
+    inflowAmount: formatCurrencyAmount(totals.inflowAmount ?? totals.incomeAmount, currency),
+    outflowAmount: formatCurrencyAmount(totals.outflowAmount ?? totals.expenseAmount, currency),
     netFlowAmount: signedCurrency(totals.netFlowAmount, currency),
-    incomeShare: percentage(income, expense),
-    expenseShare: percentage(expense, income),
+    inflowShare: percentage(inflow, outflow),
+    outflowShare: percentage(outflow, inflow),
     netFlowTone: toneFor(numericAmount(totals.netFlowAmount)),
     comparisonTone: toneFor(changeValue ?? 0),
     comparisonDirection: changeValue === undefined || changeValue === 0 ? 'flat' : changeValue > 0 ? 'up' : 'down',

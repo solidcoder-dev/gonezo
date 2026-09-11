@@ -4,7 +4,7 @@ import type { MovementsSearchSourceView, LedgerTransactionTypeView } from './mov
 
 export type MovementSearchPreset = {
   source: MovementsSearchSourceView;
-  type?: Extract<LedgerTransactionTypeView, 'income' | 'expense'>;
+  type?: Extract<LedgerTransactionTypeView, 'income' | 'expense' | 'transfer'>;
   fromDate?: string;
   toDate?: string;
   categoryIds?: string[];
@@ -58,7 +58,7 @@ export function parseMovementsSearchRoutePreset(search: string): MovementsSearch
   const state = params.get('state');
   const filters = createDefaultMovementsSearchFilters();
   if (source !== 'posted' && source !== 'expected' || (source === 'expected' && state !== null && state !== 'pending')) return filters;
-  if (type !== null && type !== 'expense' && type !== 'income') return filters;
+  if (type !== null && type !== 'expense' && type !== 'income' && type !== 'transfer') return filters;
   if (!validIsoDate(params.get('fromDate')) || !validIsoDate(params.get('toDate'))) return filters;
   const currency = params.get('currency')?.trim().toUpperCase() ?? '';
   const sharing = params.get('sharing');

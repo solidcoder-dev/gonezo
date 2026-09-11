@@ -89,6 +89,7 @@ export type LedgerCashFlowSeriesPoint = {
   label: string;
   incomeAmount: string;
   expenseAmount: string;
+  balanceDeltaAmount?: string;
 };
 
 export type LedgerGetCashFlowSeriesResult = {
@@ -98,6 +99,7 @@ export type LedgerGetCashFlowSeriesResult = {
   totals: {
     incomeAmount: string;
     expenseAmount: string;
+    balanceDeltaAmount?: string;
   };
   window: {
     label: string;

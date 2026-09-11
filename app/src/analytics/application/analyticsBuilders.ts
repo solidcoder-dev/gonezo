@@ -33,6 +33,7 @@ import { resolveAnalyticsPeriodWindow } from './analyticsPeriodResolver';
 import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 import { buildOverviewInsightsResult } from './overviewInsights';
 import { addDecimalAmounts, subtractDecimalAmounts } from '../../ledger/application/decimalAmount';
+import { balanceImpact, isBalanceInflow, isBalanceOutflow, isEconomicExpense, isEconomicIncome } from '../../ledger/application/movementSemantics';
 
 const UNCATEGORIZED = 'Uncategorized';
 const OPENING_BALANCE_DESCRIPTION = 'opening balance';
@@ -292,7 +293,7 @@ function isAutomaticOpeningBalance(transaction: LedgerTransactionListItem): bool
 
 function isAnalyticsCashFlowTransaction(transaction: LedgerTransactionListItem, currency: string): boolean {
   return transaction.status === 'posted'
-    && (transaction.type === 'income' || transaction.type === 'expense')
+    && (isBalanceInflow(transaction.type) || isBalanceOutflow(transaction.type))
     && transaction.currency.toUpperCase() === currency
     && !isAutomaticOpeningBalance(transaction);
 }
@@ -318,17 +319,32 @@ export function buildAnalyticsCashFlowSummary(
     .filter((transaction) => isAnalyticsCashFlowTransaction(transaction, currency))
     .reduce(
       (current, transaction) => {
-        if (transaction.type === 'income') {
+        if (isEconomicIncome(transaction.type)) {
           return { ...current, incomeAmount: addAmount(current.incomeAmount, analyticsTransactionAmount(transaction)) };
         }
-        return { ...current, expenseAmount: addAmount(current.expenseAmount, analyticsTransactionAmount(transaction)) };
+        if (isEconomicExpense(transaction.type)) {
+          return { ...current, expenseAmount: addAmount(current.expenseAmount, analyticsTransactionAmount(transaction)) };
+        }
+        return current;
       },
       { incomeAmount: '0.00', expenseAmount: '0.00' },
     );
 
   return {
     ...totals,
-    netFlowAmount: addAmount(totals.incomeAmount, (-Number(totals.expenseAmount)).toFixed(2)),
+    ...(transactions.some((transaction) => transaction.type === 'transfer_in' || transaction.type === 'transfer_out')
+      ? {
+          inflowAmount: transactions
+            .filter((transaction) => isAnalyticsCashFlowTransaction(transaction, currency) && isBalanceInflow(transaction.type))
+            .reduce((total, transaction) => addAmount(total, analyticsTransactionAmount(transaction)), '0.00'),
+          outflowAmount: transactions
+            .filter((transaction) => isAnalyticsCashFlowTransaction(transaction, currency) && isBalanceOutflow(transaction.type))
+            .reduce((total, transaction) => addAmount(total, analyticsTransactionAmount(transaction)), '0.00'),
+        }
+      : {}),
+    netFlowAmount: transactions
+      .filter((transaction) => isAnalyticsCashFlowTransaction(transaction, currency))
+      .reduce((total, transaction) => addAmount(total, balanceImpact(transaction.type, analyticsTransactionAmount(transaction))), '0.00'),
   };
 }
 
@@ -707,11 +723,7 @@ export function buildSpendingOverview(input: {
 }
 
 function movementSignedAmount(movement: SchedulingMovementItem): string {
-  return movement.type === 'expense'
-    ? `-${movement.amount}`
-    : movement.type === 'income'
-      ? movement.amount
-      : '0.00';
+  return balanceImpact(movement.type === 'transfer' ? 'transfer_out' : movement.type, movement.amount);
 }
 
 function movementTitle(movement: SchedulingMovementItem): string {
@@ -827,9 +839,7 @@ export function buildFlowProjection(input: {
     }
     const key = bucketStartFor(occurredAt, grouping).toISOString();
     const current = postedDeltasByBucket.get(key) ?? '0.00';
-    const delta = transaction.type === 'income'
-      ? analyticsTransactionAmount(transaction)
-      : `-${analyticsTransactionAmount(transaction)}`;
+    const delta = balanceImpact(transaction.type, analyticsTransactionAmount(transaction));
     postedDeltasByBucket.set(key, addAmount(current, delta));
     if (occurredAt <= input.now) {
       postedDeltaToNow = addAmount(postedDeltaToNow, delta);
@@ -840,7 +850,7 @@ export function buildFlowProjection(input: {
     if (movement.status !== 'active' || movement.currency.toUpperCase() !== currency) {
       continue;
     }
-    if (movement.type !== 'income' && movement.type !== 'expense') {
+    if (movement.type !== 'income' && movement.type !== 'expense' && movement.type !== 'transfer') {
       continue;
     }
     const dueAt = scheduledMovementDueAt(movement);
@@ -948,9 +958,7 @@ export function buildFlowInsights(input: {
     }
     const key = bucketStartFor(occurredAt, grouping).toISOString();
     const current = netByBucket.get(key) ?? '0.00';
-    const delta = transaction.type === 'income'
-      ? analyticsTransactionAmount(transaction)
-      : `-${analyticsTransactionAmount(transaction)}`;
+    const delta = balanceImpact(transaction.type, analyticsTransactionAmount(transaction));
     netByBucket.set(key, addAmount(current, delta));
   }
 

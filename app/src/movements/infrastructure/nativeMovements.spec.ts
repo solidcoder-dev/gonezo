@@ -231,4 +231,29 @@ describe('nativeMovements', () => {
     expect(core.ledgerListTransactions).not.toHaveBeenCalled();
     expect(core.expectedListMovements).not.toHaveBeenCalled();
   });
+
+  it('expands transfer search filters to both ledger transfer directions', async () => {
+    const core = nativeMovementsPort({
+      ledgerListTransactions: vi.fn(async () => ({
+        content: [],
+        page: 0,
+        size: 20,
+        totalElements: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
+      })),
+    });
+
+    await searchNativeMovements(core, {
+      accountId: 'account-1',
+      source: 'posted',
+      filters: { types: ['transfer'] },
+      pagination: { page: 0, size: 20 },
+    });
+
+    expect(core.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({
+      filters: expect.objectContaining({ types: ['transfer', 'transfer_in', 'transfer_out'] }),
+    }));
+  });
 });

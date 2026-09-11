@@ -36,11 +36,12 @@ describe('buildCashFlowSeries', () => {
 
     expect(result.currencies).toEqual(['EUR', 'GBP', 'USD']);
     expect(result.selectedCurrency).toBe('EUR');
-    expect(result.totals).toEqual({ incomeAmount: '1000.00', expenseAmount: '250.00' });
+    expect(result.totals).toEqual({ incomeAmount: '1000.00', expenseAmount: '250.00', balanceDeltaAmount: '675.00' });
     expect(result.points.at(-1)).toMatchObject({
       periodKey: '2026-06',
       incomeAmount: '1000.00',
       expenseAmount: '250.00',
+      balanceDeltaAmount: '675.00',
     });
   });
 
@@ -187,6 +188,7 @@ describe('buildCashFlowSeries', () => {
     expect(result.totals).toEqual({
       incomeAmount: '150.00',
       expenseAmount: '20.00',
+      balanceDeltaAmount: '130.00',
     });
   });
 
@@ -254,11 +256,28 @@ describe('buildCashFlowSeries', () => {
     expect(result.totals).toEqual({
       incomeAmount: '250.00',
       expenseAmount: '0.00',
+      balanceDeltaAmount: '250.00',
     });
     expect(result.points.at(-1)).toMatchObject({
       periodKey: '2026-06',
       incomeAmount: '250.00',
       expenseAmount: '0.00',
+      balanceDeltaAmount: '250.00',
     });
+  });
+
+  it('includes transfers in balance deltas without classifying them as income or expense', () => {
+    const result = buildCashFlowSeries({
+      accounts,
+      transactions: [
+        transaction({ id: 'usd-transfer-in', accountId: 'acc-usd', type: 'transfer_in', amount: '580.00', currency: 'USD', occurredAt: '2026-06-10T10:00:00.000Z' }),
+        transaction({ id: 'usd-transfer-out', accountId: 'acc-usd', type: 'transfer_out', amount: '80.00', currency: 'USD', occurredAt: '2026-06-11T10:00:00.000Z' }),
+      ],
+      currency: 'USD',
+      granularity: 'monthly',
+      now: new Date('2026-06-17T12:00:00.000Z'),
+    });
+
+    expect(result.totals).toEqual({ incomeAmount: '0.00', expenseAmount: '0.00', balanceDeltaAmount: '500.00' });
   });
 });

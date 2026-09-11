@@ -91,6 +91,8 @@ export type AnalyticsGetFilterFacetsResult = {
 export type AnalyticsCashFlowSummaryResult = {
   incomeAmount: string;
   expenseAmount: string;
+  inflowAmount?: string;
+  outflowAmount?: string;
   netFlowAmount: string;
   previousIncomeChangePercent?: string;
   previousExpenseChangePercent?: string;
@@ -106,6 +108,8 @@ export type AnalyticsOverviewWindow = {
 export type AnalyticsOverviewTotals = {
   incomeAmount: string;
   expenseAmount: string;
+  inflowAmount?: string;
+  outflowAmount?: string;
   netFlowAmount: string;
 };
 
