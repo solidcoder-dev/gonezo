@@ -268,10 +268,11 @@ export function buildAnalyticsSpendingReport(input: {
   currentMovements: AnalyticsSpendingMovement[];
   previousMovements: AnalyticsSpendingMovement[];
   categories: AnalyticsCategoryReference[];
+  categoryId?: string;
 }): AnalyticsSpendingReport {
-  const current = expenseMovements(input.currentMovements, input.window, input.currency.toUpperCase());
+  const current = filterCategory(expenseMovements(input.currentMovements, input.window, input.currency.toUpperCase()), input.categoryId);
   const totalExpense = calculateSpendingTotals(current, input.currency.toUpperCase());
-  const previousExpense = input.previousWindow ? calculateSpendingTotals(expenseMovements(input.previousMovements, input.previousWindow, input.currency.toUpperCase()), input.currency.toUpperCase()) : undefined;
+  const previousExpense = input.previousWindow ? calculateSpendingTotals(filterCategory(expenseMovements(input.previousMovements, input.previousWindow, input.currency.toUpperCase()), input.categoryId), input.currency.toUpperCase()) : undefined;
   return {
     window: input.window,
     previousWindow: input.previousWindow,
@@ -283,4 +284,9 @@ export function buildAnalyticsSpendingReport(input: {
     categories: buildSpendingCategories(current, input.window, input.currency.toUpperCase(), input.categories),
     merchants: buildSpendingMerchants(current, input.window, input.currency.toUpperCase()),
   };
+}
+
+function filterCategory(movements: AnalyticsSpendingMovement[], categoryId?: string): AnalyticsSpendingMovement[] {
+  if (!categoryId) return movements;
+  return movements.filter((movement) => categoryId === 'uncategorized' ? !movement.categoryId : movement.categoryId === categoryId);
 }

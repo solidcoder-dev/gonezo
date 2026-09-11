@@ -26,9 +26,8 @@ export function AnalyticsDashboardComponent({ required, provided }: AnalyticsDas
   const inputKey = JSON.stringify({ currency: config.currency, filters, refreshSignal: config.refreshSignal });
 
   useEffect(() => {
-    if (!config.enabled || !config.currency) { setState({ loading: false }); return undefined; }
+    if (!config.enabled || !config.currency) return undefined;
     let active = true;
-    setState((current) => ({ ...current, loading: true }));
     const input = { currency: config.currency, filters };
     const requests: [
       ReturnType<AnalyticsPort['analyticsGetOverviewSnapshot']>,

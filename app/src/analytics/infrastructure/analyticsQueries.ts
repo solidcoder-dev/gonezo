@@ -321,6 +321,7 @@ export async function analyticsGetSpendingReport(
     currentMovements,
     previousMovements,
     categories,
+    categoryId: input.categoryId,
   });
 }
 

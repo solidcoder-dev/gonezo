@@ -290,6 +290,7 @@ export type AnalyticsPort = {
 
 export type AnalyticsSpendingReportInput = AnalyticsCurrencyScopeInput & {
   periodSelection: AnalyticsPeriodSelection;
+  categoryId?: string;
 };
 
 export type AnalyticsTopExpenseDto = {
