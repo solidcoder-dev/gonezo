@@ -41,4 +41,23 @@ describe('Analytics spending read model', () => {
     const categories = buildSpendingCategories([{ ...movement('a', '2026-06-01T00:00:00Z', '3.00'), items: [{ amount: '1.00', categoryId: 'food' }, { amount: '2.00' }] }], window, 'EUR', [{ id: 'food', name: 'Food' }]);
     expect(categories.map((category) => [category.categoryName, category.amount.value])).toEqual([['Uncategorized', '2.00'], ['Food', '1.00']]);
   });
+
+  it('isolates spending totals and categories to the selected currency', () => {
+    const window = { start: '2026-06-01', endExclusive: '2026-07-01', selection: { period: { kind: 'thisMonth' as const }, shift: 0 }, canGoPrevious: true, canGoNext: false };
+    const movements = [
+      movement('eur', '2026-06-01T00:00:00Z', '3.00', 'food'),
+      { ...movement('usd', '2026-06-02T00:00:00Z', '99.00', 'travel'), currency: 'USD' },
+    ];
+
+    const report = buildAnalyticsSpendingReport({
+      window,
+      currency: 'EUR',
+      currentMovements: movements,
+      previousMovements: [],
+      categories: [{ id: 'food', name: 'Food' }, { id: 'travel', name: 'Travel' }],
+    });
+
+    expect(report.totalExpense.value).toBe('3.00');
+    expect(report.categories.map((category) => category.categoryName)).toEqual(['Food']);
+  });
 });
