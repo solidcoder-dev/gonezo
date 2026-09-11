@@ -161,7 +161,7 @@ describe('useAnalyticsFiltersModel', () => {
       result.current.commands.applyMoreFiltersDraft();
     });
 
-    await waitFor(() => expect(result.current.filters.tagIds).toEqual(['tag-trip']));
+    await waitFor(() => expect(result.current.filters.tagIds).toEqual([]));
     expect(result.current.filters.currency).toBe('EUR');
     expect(result.current.filters.period).toEqual({ kind: 'thisMonth' });
     expect(result.current.filters.accountIds).toEqual([]);

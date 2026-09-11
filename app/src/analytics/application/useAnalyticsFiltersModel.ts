@@ -341,6 +341,7 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput): Ana
       setDraftSharedAmountMode,
       resetMoreFiltersDraft: () => {
         setDraftAccountIds([]);
+        setDraftTagIds([]);
         setDraftIncludeIgnoredMovements(false);
         setDraftIncludePlannedMovements(true);
         setDraftSharedAmountMode('personal');
@@ -348,6 +349,7 @@ export function useAnalyticsFiltersModel(input: AnalyticsFiltersModelInput): Ana
       applyMoreFiltersDraft: () => {
         applyFilters({
           accountIds: draftAccountIds,
+          tagIds: draftTagIds,
           includeIgnoredMovements: draftIncludeIgnoredMovements,
           includePlannedMovements: draftIncludePlannedMovements,
           sharedAmountMode: draftSharedAmountMode,

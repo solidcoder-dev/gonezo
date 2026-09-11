@@ -1,4 +1,5 @@
 import type { AnalyticsFilterFacetAccount } from '../application/analytics.port';
+import type { AnalyticsFilterFacetTag } from '../application/analytics.port';
 import type { AnalyticsSharedAmountMode } from '../application/analyticsFilters';
 import { SheetView } from '../../shared/ui/SheetView';
 import { BinarySwitchCardView } from '../../shared/ui/BinarySwitchCard/BinarySwitchCardView';
@@ -8,6 +9,7 @@ type AnalyticsMoreFiltersSheetViewProps = {
   required: {
     data: {
       accounts: AnalyticsFilterFacetAccount[];
+      tags: AnalyticsFilterFacetTag[];
     };
     state: {
       open: boolean;
@@ -15,6 +17,7 @@ type AnalyticsMoreFiltersSheetViewProps = {
       draftIncludeIgnoredMovements: boolean;
       draftIncludePlannedMovements: boolean;
       draftSharedAmountMode: AnalyticsSharedAmountMode;
+      draftTagIds: string[];
     };
     status: {
       disabled: boolean;
@@ -27,6 +30,7 @@ type AnalyticsMoreFiltersSheetViewProps = {
       setDraftIncludeIgnoredMovements: (includeIgnoredMovements: boolean) => void;
       setDraftIncludePlannedMovements: (includePlannedMovements: boolean) => void;
       setDraftSharedAmountMode: (sharedAmountMode: AnalyticsSharedAmountMode) => void;
+      toggleDraftTagId: (tagId: string) => void;
       resetMoreFiltersDraft: () => void;
       applyMoreFiltersDraft: () => void;
     };
@@ -51,7 +55,7 @@ export function AnalyticsMoreFiltersSheetView({ required, provided }: AnalyticsM
               <div className={styles.sheetHeaderRow}>
                 <div className={styles.sheetIntro}>
                   <h3>More filters</h3>
-                  <p>Adjust extra analytics filters without changing currency, period or tags.</p>
+                  <p>Adjust accounts, tags, and advanced analytics filters.</p>
                 </div>
                 <button
                   type="button"
@@ -61,6 +65,28 @@ export function AnalyticsMoreFiltersSheetView({ required, provided }: AnalyticsM
                 >
                   Reset
                 </button>
+              </div>
+
+              <div className={styles.moreFiltersSection}>
+                <span className={styles.moreFiltersLabel}>Tags</span>
+                <div className="d-grid gap-2">
+                  {required.data.tags.map((tag) => {
+                    const selected = required.state.draftTagIds.includes(tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        className="btn btn-link d-flex align-items-center justify-content-between text-start text-decoration-none p-2"
+                        onClick={() => provided.commands.toggleDraftTagId(tag.id)}
+                        disabled={required.status.disabled}
+                        aria-pressed={selected}
+                      >
+                        <span>{tag.name}</span>
+                        <i className={selected ? 'bi bi-check-square-fill' : 'bi bi-square'} aria-hidden />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className={styles.moreFiltersSection}>

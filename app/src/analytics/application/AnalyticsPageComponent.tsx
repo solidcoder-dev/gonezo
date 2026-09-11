@@ -1,15 +1,11 @@
 import type { AnalyticsPort } from './analytics.port';
 import {
   AnalyticsFilterBarView,
-  AnalyticsViewTabsView,
 } from '../ui/AnalyticsFilterBarView';
 import { AnalyticsCurrencySheetView } from '../ui/AnalyticsCurrencySheetView';
 import { AnalyticsMoreFiltersSheetView } from '../ui/AnalyticsMoreFiltersSheetView';
 import { AnalyticsPeriodSheetView } from '../ui/AnalyticsPeriodSheetView';
-import { AnalyticsTagsSheetView } from '../ui/AnalyticsTagsSheetView';
-import { OverviewTabComponent } from './OverviewTabComponent';
-import { FlowTabComponent } from './FlowTabComponent';
-import { SpendingTabComponent } from './SpendingTabComponent';
+import { AnalyticsDashboardComponent } from './AnalyticsDashboardComponent';
 import { useAnalyticsFiltersModel } from './useAnalyticsFiltersModel';
 import styles from '../ui/AnalyticsPageView.module.css';
 import type { AmountVisibility } from '../../shared/domain/amountVisibility';
@@ -41,6 +37,7 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
   });
   const currency = filterModel.filters.currency;
   const moreFiltersCount = Number(filterModel.filters.accountIds.length > 0)
+    + Number(filterModel.filters.tagIds.length > 0)
     + Number(filterModel.filters.includeIgnoredMovements)
     + Number(!filterModel.filters.includePlannedMovements)
     + Number(filterModel.filters.sharedAmountMode === 'full');
@@ -48,16 +45,11 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
   return (
     <section className={styles.page}>
       <div className={styles.navigation}>
-        <AnalyticsViewTabsView
-          required={{ state: { viewMode: filterModel.viewMode } }}
-          provided={{ commands: { selectViewMode: filterModel.commands.selectViewMode } }}
-        />
         <AnalyticsFilterBarView
           required={{
             state: {
               currency: filterModel.filters.currency,
               period: filterModel.filters.period,
-              tagsSelected: filterModel.filters.tagIds.length > 0,
               moreFiltersCount,
             },
             status: {
@@ -68,7 +60,6 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
             commands: {
               openCurrencySheet: filterModel.commands.openCurrencySheet,
               openPeriodSheet: filterModel.commands.openPeriodSheet,
-              openTagSheet: filterModel.commands.openTagSheet,
               openMoreFiltersSheet: filterModel.commands.openMoreFiltersSheet,
             },
           }}
@@ -116,35 +107,16 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
           },
         }}
       />
-      <AnalyticsTagsSheetView
-        required={{
-          data: { tags: filterModel.availableTags },
-          state: {
-            open: filterModel.tagSheetOpen,
-            draftTagIds: filterModel.draftTagIds,
-          },
-          status: {
-            disabled: filterModel.disabled || filterModel.loading,
-          },
-        }}
-        provided={{
-          commands: {
-            close: filterModel.commands.closeTagSheet,
-            toggleDraftTagId: filterModel.commands.toggleDraftTagId,
-            resetDraftTagIds: filterModel.commands.resetDraftTagIds,
-            applyDraftTagIds: filterModel.commands.applyDraftTagIds,
-          },
-        }}
-      />
       <AnalyticsMoreFiltersSheetView
         required={{
-          data: { accounts: filterModel.availableAccounts },
+          data: { accounts: filterModel.availableAccounts, tags: filterModel.availableTags },
           state: {
             open: filterModel.moreFiltersSheetOpen,
             draftAccountIds: filterModel.draftAccountIds,
             draftIncludeIgnoredMovements: filterModel.draftIncludeIgnoredMovements,
             draftIncludePlannedMovements: filterModel.draftIncludePlannedMovements,
             draftSharedAmountMode: filterModel.draftSharedAmountMode,
+            draftTagIds: filterModel.draftTagIds,
           },
           status: {
             disabled: filterModel.disabled || filterModel.loading,
@@ -157,56 +129,26 @@ export function AnalyticsPageComponent({ required, provided }: AnalyticsPageComp
             setDraftIncludeIgnoredMovements: filterModel.commands.setDraftIncludeIgnoredMovements,
             setDraftIncludePlannedMovements: filterModel.commands.setDraftIncludePlannedMovements,
             setDraftSharedAmountMode: filterModel.commands.setDraftSharedAmountMode,
+            toggleDraftTagId: filterModel.commands.toggleDraftTagId,
             resetMoreFiltersDraft: filterModel.commands.resetMoreFiltersDraft,
             applyMoreFiltersDraft: filterModel.commands.applyMoreFiltersDraft,
           },
         }}
       />
 
-      {required.config.amountVisibility === 'hidden' ? (
-        <div className={styles.emptyView} role="status" aria-label="Amounts hidden">Amounts hidden</div>
-      ) : filterModel.viewMode === 'overview' ? (
-        <OverviewTabComponent
-          required={{
-            context: { core: required.context.core },
-            config: {
-              enabled: required.config.enabled,
-              currency,
-              filters: filterModel.filters,
-              refreshSignal: required.config.refreshSignal,
-            },
-          }}
-          provided={provided}
-        />
-      ) : filterModel.viewMode === 'spending' ? (
-        <SpendingTabComponent
-          required={{
-            context: { core: required.context.core },
-            config: {
-              enabled: required.config.enabled,
-              currency,
-              filters: filterModel.filters,
-              refreshSignal: required.config.refreshSignal,
-            },
-          }}
-          provided={provided}
-        />
-      ) : filterModel.viewMode === 'cashFlow' ? (
-        <FlowTabComponent
-          required={{
-            context: { core: required.context.core },
-            config: {
-              enabled: required.config.enabled,
-              currency,
-              filters: filterModel.filters,
-              refreshSignal: required.config.refreshSignal,
-            },
-          }}
-          provided={provided}
-        />
-      ) : (
-        <div className={styles.emptyView} aria-label={`${filterModel.viewMode} analytics view`} />
-      )}
+      <AnalyticsDashboardComponent
+        required={{
+          context: { core: required.context.core },
+          config: {
+            enabled: required.config.enabled,
+            currency,
+            filters: filterModel.filters,
+            refreshSignal: required.config.refreshSignal,
+            amountVisibility: required.config.amountVisibility,
+          },
+        }}
+        provided={provided}
+      />
     </section>
   );
 }
