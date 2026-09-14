@@ -9,14 +9,6 @@
 .avatarMaria { background: var(--color-tag-pink); }
 .avatarJohn, .avatarAlex { background: var(--color-tag-orange); }
 .avatarCustom { background: var(--color-tag-slate); }
-.searchField { min-height: var(--touch-target-min); padding: 0 12px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-surface-primary); color: var(--color-text-muted); }
-.searchField input { min-width: 0; border: 0; outline: 0; background: transparent; color: var(--color-text-primary); }
-.suggestions { padding: 8px 0; border-radius: var(--radius-md); background: var(--color-surface-primary); box-shadow: var(--shadow-lg); }
-.suggestions button { min-height: 48px; padding: 8px 12px; color: var(--color-text-primary); }
-.suggestions button:hover, .suggestions button:focus-visible { background: var(--color-surface-secondary); }
-.suggestions small { color: var(--color-text-muted); font-size: 12px; }
-.groupAvatars { display: inline-flex; min-width: 56px; }
-.groupAvatars span { width: 28px; height: 28px; margin-right: -8px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--color-surface-primary); border-radius: var(--radius-full); background: var(--color-tag-slate); color: var(--color-on-brand); font-size: 12px; }
 .partsInput { min-width: 3rem; min-height: 44px; font-variant-numeric: tabular-nums; appearance: textfield; }
 .partsInput::-webkit-inner-spin-button, .partsInput::-webkit-outer-spin-button { margin: 0; appearance: none; }
 .amountField { min-height: 44px; padding: 0 8px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-surface-primary); }
