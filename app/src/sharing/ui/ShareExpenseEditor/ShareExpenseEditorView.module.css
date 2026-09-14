@@ -10,8 +10,10 @@
 .avatarJohn, .avatarAlex { background: var(--color-tag-orange); }
 .avatarCustom { background: var(--color-tag-slate); }
 .partsInput { min-width: 3rem; min-height: 44px; font-variant-numeric: tabular-nums; appearance: textfield; }
+.partsControl { width: 128px; flex: 0 0 128px; }
+.partsControl .btn { width: 44px; flex: 0 0 44px; min-height: 44px; padding: 0; }
 .partsInput::-webkit-inner-spin-button, .partsInput::-webkit-outer-spin-button { margin: 0; appearance: none; }
-.amountField { min-height: 44px; padding: 0 8px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-surface-primary); }
+.amountField { width: 128px; min-height: 44px; flex: 0 0 128px; padding: 0 8px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-surface-primary); }
 .amountField input { width: 72px; min-width: 0; min-height: 42px; border: 0; outline: 0; background: transparent; text-align: right; font-variant-numeric: tabular-nums; }
 .removePersonButton { min-width: 44px; min-height: 44px; color: var(--color-danger); }
 .personSpacer { width: 44px; }
