@@ -67,4 +67,11 @@ describe('share allocation calculations', () => {
     expect(projectShareGroups(groups, 'Person 6', new Set()).map((group) => group.key)).toEqual(['group-6']);
     expect(projectShareGroups(groups, '', new Set()).map((group) => group.key)).toEqual(['group-0', 'group-1', 'group-2', 'group-3', 'group-4']);
   });
+
+  it('sets the owner allocation to zero when the owner is excluded', () => {
+    const excludedOwner = { ...people[0], includedInAllocation: false };
+    const recalculated = resetSharePeopleForMode('parts', 100, [excludedOwner, people[1], people[2]]);
+
+    expect(recalculated.map((person) => person.amount)).toEqual(['0.00', '0.50', '0.50']);
+  });
 });

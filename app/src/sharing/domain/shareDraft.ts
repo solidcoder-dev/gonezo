@@ -12,7 +12,7 @@ type ShareDraftMemberBase = {
 };
 
 export type ShareMemberDraft =
-  | (ShareDraftMemberBase & { readonly role: 'owner' })
+  | (ShareDraftMemberBase & { readonly role: 'owner'; includedInAllocation?: boolean })
   | (ShareDraftMemberBase & { readonly role: 'participant'; readonly personId?: string; settlementChoice: ShareSettlementChoice });
 
 export type ShareDraft = {

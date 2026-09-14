@@ -26,8 +26,8 @@ export function useShareEditorModel(input: UseShareEditorModelInput) {
   const [mode, setMode] = useState<ShareMode>(input.draft?.mode ?? 'parts');
   const [query, setQuery] = useState('');
   const [selectionContext, setSelectionContextState] = useState<'people' | 'groups'>('people');
-  const [people, setPeople] = useState<ShareMemberDraft[]>(() => input.draft?.people ?? resetSharePeopleForMode('parts', amountCents, [{
-    id: 'owner', role: 'owner', name: 'You (Payer)', parts: 1, amount: '', avatarTone: 'you',
+  const [people, setPeople] = useState<ShareMemberDraft[]>(() => input.draft?.people.map((person) => person.role === 'owner' ? { ...person, includedInAllocation: person.includedInAllocation !== false } : person) ?? resetSharePeopleForMode('parts', amountCents, [{
+    id: 'owner', role: 'owner', name: 'You (Payer)', includedInAllocation: true, parts: 1, amount: '', avatarTone: 'you',
   }]));
 
   const normalizedQuery = query.trim();
@@ -70,7 +70,16 @@ export function useShareEditorModel(input: UseShareEditorModelInput) {
   }
 
   function removePerson(id: string) {
+    const person = people.find((candidate) => candidate.id === id);
+    if (person?.role === 'owner') {
+      setOwnerIncluded(false);
+      return;
+    }
     replacePeople(people.filter((person) => person.id !== id));
+  }
+
+  function setOwnerIncluded(included: boolean) {
+    replacePeople(people.map((person) => person.role === 'owner' ? { ...person, includedInAllocation: included } : person));
   }
 
   function restorePeople(nextPeople: ShareMemberDraft[]) {
@@ -98,7 +107,7 @@ export function useShareEditorModel(input: UseShareEditorModelInput) {
     totalCents,
     remainingCents,
     exceedsTotal: remainingCents < 0,
-    valid: remainingCents === 0 && people.every((person) => Number.isFinite(parseShareCents(person.amount))),
+    valid: remainingCents === 0 && people.some((person) => person.role === 'participant') && people.every((person) => Number.isFinite(parseShareCents(person.amount))),
     message: remainingCents < 0
       ? `Remove ${Math.abs(remainingCents / 100).toFixed(2)} ${input.amount.replace(/[\d.,\s-]/g, '')} from the allocation.`
       : remainingCents > 0 ? `Assign ${(remainingCents / 100).toFixed(2)} more.` : undefined,
@@ -106,7 +115,7 @@ export function useShareEditorModel(input: UseShareEditorModelInput) {
 
   return {
     state: { mode, selectionContext, query, people, availablePeople: peopleOptions, matchingPeople, selectionPeople, matchingGroups, canCreatePerson: normalizedQuery.length > 0 && !peopleOptions.some((person) => person.name.trim().toLowerCase() === normalizedQuery.toLowerCase()), movementType: input.movementType },
-    commands: { setQuery, setSelectionContext, selectMode, addPerson, addGroup, addTypedPerson, removePerson, restorePeople, updateParts, updateAmount, updateSettlement },
+    commands: { setQuery, setSelectionContext, selectMode, addPerson, addGroup, addTypedPerson, removePerson, setOwnerIncluded, restorePeople, updateParts, updateAmount, updateSettlement },
     validation,
   };
 }

@@ -52,32 +52,27 @@ export function normalizeShareSettlementChoice(person: Extract<ShareMemberDraft,
 }
 
 export function distributeShareByParts(amountCents: number, people: ShareMemberDraft[]): ShareMemberDraft[] {
-  const totalParts = people.reduce((total, person) => total + Math.max(1, person.parts), 0);
-  const participantAllocations = people.map((person, index) => index === 0
-    ? 0
-    : Math.floor((amountCents * Math.max(1, person.parts)) / totalParts));
-  const participantsTotal = participantAllocations.reduce((total, cents) => total + cents, 0);
-  return people.map((person, index) => {
-    const parts = Math.max(1, person.parts);
-    const cents = index === 0
-      ? amountCents - participantsTotal
-      : Math.floor((amountCents * parts) / totalParts);
+  const included = people.filter((person) => person.role === 'participant' || person.includedInAllocation !== false);
+  const totalParts = included.reduce((total, person) => total + Math.max(1, person.parts), 0);
+  const allocations = included.map((person) => Math.floor((amountCents * Math.max(1, person.parts)) / totalParts));
+  const residual = amountCents - allocations.reduce((total, cents) => total + cents, 0);
+  let allocationIndex = 0;
+  return people.map((person) => {
+    if (person.role === 'owner' && person.includedInAllocation === false) return { ...person, amount: '0.00' };
+    if (!included.includes(person)) return { ...person, amount: '0.00' };
+    const cents = allocations[allocationIndex] + (allocationIndex === 0 ? residual : 0);
+    allocationIndex += 1;
     return { ...person, amount: formatShareCents(cents) };
   });
 }
 
 export function distributeShareEqually(amountCents: number, people: ShareMemberDraft[]): ShareMemberDraft[] {
   if (people.length === 0) return people;
-  const participantAmount = Math.floor(amountCents / people.length);
-  const participantsTotal = participantAmount * (people.length - 1);
-  return people.map((person, index) => ({
-    ...person,
-    amount: formatShareCents(index === 0 ? amountCents - participantsTotal : participantAmount),
-  }));
+  return distributeShareByParts(amountCents, people.map((person) => ({ ...person, parts: 1 })));
 }
 
 export function resetSharePeopleForMode(mode: ShareMode, amountCents: number, people: ShareMemberDraft[]): ShareMemberDraft[] {
-  const resetPeople = people.map((person) => ({ ...person, parts: 1, amount: '' }));
+  const resetPeople = people.map((person) => ({ ...person, parts: 1, amount: person.role === 'owner' && person.includedInAllocation === false ? '0.00' : '' }));
   return mode === 'equal'
     ? distributeShareEqually(amountCents, resetPeople)
     : mode === 'parts' ? distributeShareByParts(amountCents, resetPeople) : resetPeople;
