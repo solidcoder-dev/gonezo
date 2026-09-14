@@ -58,8 +58,25 @@ export function SheetView({ required, provided }: SheetViewProps) {
     if (!state.open) {
       return undefined;
     }
+    const scrollY = window.scrollY;
+    const bodyStyle = document.body.style;
+    const previousBodyStyle = {
+      overflow: bodyStyle.overflow,
+      position: bodyStyle.position,
+      top: bodyStyle.top,
+      width: bodyStyle.width,
+    };
+    bodyStyle.overflow = 'hidden';
+    bodyStyle.position = 'fixed';
+    bodyStyle.top = `-${scrollY}px`;
+    bodyStyle.width = '100%';
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     return () => {
+      bodyStyle.overflow = previousBodyStyle.overflow;
+      bodyStyle.position = previousBodyStyle.position;
+      bodyStyle.top = previousBodyStyle.top;
+      bodyStyle.width = previousBodyStyle.width;
+      window.scrollTo(0, scrollY);
       opener?.focus();
     };
   }, [state.open]);
@@ -140,11 +157,9 @@ export function SheetView({ required, provided }: SheetViewProps) {
             </>
           ) : null
         )}
-        {config.contentClassName ? (
-          <div className={config.contentClassName} aria-label={config.contentAriaLabel}>
-            {data.body}
-          </div>
-        ) : data.body}
+        <div className={`${styles.content}${config.contentClassName ? ` ${config.contentClassName}` : ''}`} aria-label={config.contentAriaLabel}>
+          {data.body}
+        </div>
         {data.footer}
         <FeedbackNoticeDestination />
       </section>

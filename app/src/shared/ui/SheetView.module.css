@@ -7,8 +7,8 @@
   justify-content: center;
   padding: calc(12px + var(--app-safe-area-top)) 12px calc(12px + var(--app-safe-area-bottom));
   box-sizing: border-box;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .backdrop {
@@ -27,8 +27,19 @@
   border-radius: var(--radius-md);
   background: var(--color-surface-primary);
   box-shadow: var(--shadow-lg);
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
   transition: transform 140ms ease-out;
   will-change: transform;
+}
+
+.content {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .dragging {

@@ -339,10 +339,7 @@
   display: grid;
   gap: 16px;
   min-height: 0;
-  max-height: min(72dvh, 720px);
   padding: 0 4px 4px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
 }
 
 .movement-detail-sheet-panel {
