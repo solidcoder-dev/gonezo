@@ -240,6 +240,7 @@ describe('MovementDetailView', () => {
     expect(screen.getByText('-€15.00')).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Void movement' })).toBeInTheDocument();
     expect(screen.getByRole('menu')).toHaveClass('dropdown-menu', 'dropdown-menu-end', 'show', 'shadow-sm');
+    expect(screen.getByRole('menu').parentElement).toHaveClass('dropdown');
     expect(screen.getByRole('menuitem', { name: 'Duplicate' })).not.toHaveClass('text-danger');
     expect(screen.getByRole('menuitem', { name: 'Void movement' })).toHaveClass('text-danger');
 
