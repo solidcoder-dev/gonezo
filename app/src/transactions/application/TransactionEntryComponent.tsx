@@ -117,8 +117,8 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
     return null;
   }
 
-  const shareEnabled = model.required.state.mode === 'expense' && Number(model.required.state.amount) > 0;
-  const shareControl = model.required.state.mode === 'expense' ? (
+  const shareEnabled = (model.required.state.mode === 'expense' || model.required.state.mode === 'income') && Number(model.required.state.amount) > 0;
+  const shareControl = model.required.state.mode !== 'transfer' ? (
     <ShareControlsView
       required={{
         config: {},
@@ -151,6 +151,7 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
             amount: model.required.state.amount,
             currencyCode: model.required.state.currencyCode,
             draft: model.required.state.shareDraft,
+            movementType: model.required.state.mode === 'income' ? 'income' : 'expense',
           },
           status: { disabled: model.required.status.disabled },
         }}

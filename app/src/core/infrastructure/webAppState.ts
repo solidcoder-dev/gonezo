@@ -86,6 +86,7 @@ export type WebShareParticipant = {
   personId: string;
   amount: string;
   reimbursable: boolean;
+  settlementChoice?: 'not_required' | 'pending' | 'settled';
   expectedMovementId?: string;
 };
 
@@ -98,6 +99,7 @@ export type WebExpenseShare = {
   participants: WebShareParticipant[];
   createdAt: string;
   updatedAt: string;
+  movementType?: 'expense' | 'income';
 };
 
 export type WebRecurringSharingPlan = PortableRecurringSharingPlan;

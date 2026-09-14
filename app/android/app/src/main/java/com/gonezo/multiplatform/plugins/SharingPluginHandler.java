@@ -9,6 +9,7 @@ import com.gonezo.sharing.application.ApplyShareParticipantCommand;
 import com.gonezo.sharing.application.ApplyShareToPostedMovementCommand;
 import com.gonezo.sharing.application.ApplyShareToPostedMovementResult;
 import com.gonezo.sharing.application.SharingPersonReference;
+import com.gonezo.sharing.domain.ShareSettlementStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -59,6 +60,7 @@ final class SharingPluginHandler {
         item.put("displayName", participant.getDisplayName());
         item.put("amount", participant.getAmount().toPlainString());
         item.put("reimbursable", participant.getReimbursable());
+        item.put("settlementChoice", participant.getSettlementStatus().name().toLowerCase());
         item.put("expectedMovementId", JSONObject.NULL);
         participants.put(item);
       }
@@ -140,11 +142,17 @@ final class SharingPluginHandler {
       JSONObject item = values.optJSONObject(index);
       if (item != null) {
         participants.add(new ApplyShareParticipantCommand(
-          toCorePersonReference(item.optJSONObject("person")), new BigDecimal(item.optString("amount", null)), item.optBoolean("reimbursable", false)
+          toCorePersonReference(item.optJSONObject("person")), new BigDecimal(item.optString("amount", null)), item.optBoolean("reimbursable", false), toSettlementStatus(item)
         ));
       }
     }
     return participants;
+  }
+
+  private ShareSettlementStatus toSettlementStatus(JSONObject item) {
+    String value = item.optString("settlementChoice", null);
+    if (value == null || value.isBlank()) return null;
+    return ShareSettlementStatus.valueOf(value.trim().toUpperCase());
   }
 
   private SharingPersonReference toCorePersonReference(JSONObject value) {

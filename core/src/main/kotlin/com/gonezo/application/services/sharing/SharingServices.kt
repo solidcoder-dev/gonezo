@@ -45,7 +45,13 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
         val participantRows =
             command.participants.map { participantCommand ->
                 val person = resolvePerson(participantCommand.person, command.appliedAt)
-                val requiresSettlement = participantCommand.reimbursable && participantCommand.amount.compareTo(BigDecimal.ZERO) > 0
+                val settlementStatus = when {
+                    participantCommand.amount.compareTo(BigDecimal.ZERO) == 0 -> ShareSettlementStatus.NOT_REQUIRED
+                    participantCommand.settlementStatus != null -> participantCommand.settlementStatus
+                    participantCommand.reimbursable -> ShareSettlementStatus.PENDING
+                    else -> ShareSettlementStatus.NOT_REQUIRED
+                }
+                val requiresSettlement = settlementStatus == ShareSettlementStatus.PENDING
                 val expectedMovementId =
                     if (requiresSettlement) {
                         createExpectedMovementUC.execute(
@@ -68,8 +74,9 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
                     id = ShareParticipantId.random(),
                     personId = person.id,
                     amount = participantCommand.amount,
-                    settlementStatus = if (requiresSettlement) ShareSettlementStatus.PENDING else ShareSettlementStatus.NOT_REQUIRED,
+                    settlementStatus = settlementStatus,
                     expectedMovementId = expectedMovementId?.toString(),
+                    settlementTransactionId = if (settlementStatus == ShareSettlementStatus.SETTLED) "external" else null,
                 ) to person
             }
 
@@ -100,6 +107,7 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
                     amount = participant.amount,
                     reimbursable = participant.requiresSettlement,
                     expectedMovementId = participant.expectedMovementId?.let(ExpectedMovementId::from),
+                    settlementStatus = participant.settlementStatus,
                 )
             },
         )
@@ -172,7 +180,7 @@ class GetMovementSharingDetailsService(private val ledgerTransactionRepository: 
                     amount = participant.amount,
                     reimbursable = participant.requiresSettlement,
                     expectedMovementId = participant.expectedMovementId,
-                    repaymentStatus = repaymentStatus(participant.requiresSettlement, expected?.status),
+                    repaymentStatus = repaymentStatus(participant.settlementStatus, expected?.status),
                 )
             }
         val excludedLentAmount =
@@ -209,8 +217,9 @@ class GetMovementSharingDetailsService(private val ledgerTransactionRepository: 
         )
     }
 
-    private fun repaymentStatus(reimbursable: Boolean, expectedStatus: ExpectedMovementStatus?): String = when {
-        !reimbursable -> "not_expected"
+    private fun repaymentStatus(settlementStatus: ShareSettlementStatus, expectedStatus: ExpectedMovementStatus?): String = when {
+        settlementStatus == ShareSettlementStatus.NOT_REQUIRED -> "not_expected"
+        settlementStatus == ShareSettlementStatus.SETTLED -> "paid"
         expectedStatus == ExpectedMovementStatus.PENDING -> "pending"
         expectedStatus == ExpectedMovementStatus.RESOLVED -> "paid"
         expectedStatus == ExpectedMovementStatus.DISMISSED -> "dismissed"

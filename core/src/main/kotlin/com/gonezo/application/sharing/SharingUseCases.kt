@@ -2,14 +2,20 @@ package com.gonezo.sharing.application
 
 import com.gonezo.expected.domain.ExpectedMovementId
 import com.gonezo.sharing.domain.SharedMovementType
+import com.gonezo.sharing.domain.ShareSettlementStatus
 import java.math.BigDecimal
 import java.time.Instant
 
-data class ApplyShareParticipantCommand(val person: SharingPersonReference, val amount: BigDecimal, val reimbursable: Boolean)
+data class ApplyShareParticipantCommand(
+    val person: SharingPersonReference,
+    val amount: BigDecimal,
+    @Deprecated("Use settlementStatus at the adapter boundary") val reimbursable: Boolean = false,
+    val settlementStatus: ShareSettlementStatus? = null,
+)
 
 data class ApplyShareToPostedMovementCommand(val transactionId: String, val payer: SharingPersonReference, val participants: List<ApplyShareParticipantCommand>, val appliedAt: Instant)
 
-data class AppliedShareParticipantResult(val participantId: String, val personId: String, val displayName: String, val amount: BigDecimal, val reimbursable: Boolean, val expectedMovementId: ExpectedMovementId?)
+data class AppliedShareParticipantResult(val participantId: String, val personId: String, val displayName: String, val amount: BigDecimal, val reimbursable: Boolean, val expectedMovementId: ExpectedMovementId?, val settlementStatus: ShareSettlementStatus = if (reimbursable) ShareSettlementStatus.PENDING else ShareSettlementStatus.NOT_REQUIRED)
 
 data class ApplyShareToPostedMovementResult(val shareId: String, val transactionId: String, val participants: List<AppliedShareParticipantResult>)
 

@@ -11,7 +11,8 @@ export type SharingListPeopleResult = {
 export type SharingApplyShareParticipantInput = {
   person: SharingPersonReference;
   amount: string;
-  reimbursable: boolean;
+  settlementChoice?: 'not_required' | 'pending' | 'settled';
+  reimbursable?: boolean;
 };
 
 export type SharingPersonReference =
@@ -34,7 +35,8 @@ export type SharingApplyShareToPostedMovementResult = {
     personId: string;
     displayName: string;
     amount: string;
-    reimbursable: boolean;
+    settlementChoice?: 'not_required' | 'pending' | 'settled';
+    reimbursable?: boolean;
     expectedMovementId?: string;
   }>;
 };
@@ -51,7 +53,8 @@ export type SharingMovementDetailsResult = {
     personId: string;
     displayName: string;
     amount: string;
-    reimbursable: boolean;
+    settlementChoice?: 'not_required' | 'pending' | 'settled';
+    reimbursable?: boolean;
     expectedMovementId?: string;
     repaymentStatus: 'not_expected' | 'pending' | 'paid' | 'dismissed' | 'missing_expected';
   }>;

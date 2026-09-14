@@ -1,7 +1,7 @@
 package com.gonezo.application.services.workflows
 
-import com.gonezo.analytics.application.AnalyticsExclusionReason
-import com.gonezo.analytics.application.AnalyticsExclusionScopeType
+import com.gonezo.analytics.domain.AnalyticsExclusionReason
+import com.gonezo.analytics.domain.AnalyticsExclusionScopeType
 import com.gonezo.domain.shared.Money
 import com.gonezo.expected.application.ResolveExpectedMovementCommand
 import com.gonezo.expected.domain.ExpectedMovementStatus
@@ -9,7 +9,7 @@ import com.gonezo.expected.domain.ExpectedMovementId
 import com.gonezo.ledger.application.OpenLedgerAccountCommand
 import com.gonezo.ledger.application.RecordLedgerExpenseCommand
 import com.gonezo.ledger.domain.AccountType
-import com.gonezo.ledger.domain.CurrencyCode
+import com.gonezo.domain.shared.CurrencyCode
 import com.gonezo.sharing.application.ApplyShareParticipantCommand
 import com.gonezo.sharing.application.ApplyShareToPostedMovementCommand
 import com.gonezo.sharing.application.SharingPersonReference
@@ -224,6 +224,31 @@ class SharingWorkflowIT : SqliteE2ETest() {
         assertThat(details.analytics.paidOut).isEqualByComparingTo("0.00")
         val expectedMovement = app.expectedMovementRepository.findById(ExpectedMovementId.from(details.participants.single().expectedMovementId!!))
         assertThat(expectedMovement!!.type.value).isEqualTo("expense")
+    }
+
+    @Test
+    fun `settled sharing records the participant without creating an expected movement`() {
+        val accountId = openCashAccount()
+        val transactionId = recordExpense(accountId.toString(), "20.00")
+
+        val result = app.sharingApplyShareToPostedMovementUC.execute(
+            ApplyShareToPostedMovementCommand(
+                transactionId = transactionId,
+                payer = SharingPersonReference.CurrentUser,
+                participants = listOf(
+                    ApplyShareParticipantCommand(
+                        person = SharingPersonReference.New("Tyler"),
+                        amount = BigDecimal("10.00"),
+                        settlementStatus = ShareSettlementStatus.SETTLED,
+                    ),
+                ),
+                appliedAt = Instant.parse("2026-06-29T10:15:00Z"),
+            ),
+        )
+
+        assertThat(result.participants.single().expectedMovementId).isNull()
+        assertThat(app.sharingGetMovementSharingDetailsUC.execute(GetMovementSharingDetailsQuery(transactionId))!!.participants.single().repaymentStatus)
+            .isEqualTo("paid")
     }
 
     @Test

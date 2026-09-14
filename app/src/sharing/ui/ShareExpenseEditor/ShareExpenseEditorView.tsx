@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { ViewProps } from '../../../shared/ui/ViewProps';
-import type { ShareDraft, ShareMode, SharePersonDraft, SharingPersonSuggestion } from '../../domain/shareDraft';
+import type { ShareDraft, ShareMode, SharePersonDraft, ShareSettlementChoice, SharingPersonSuggestion } from '../../domain/shareDraft';
 import {
   DEFAULT_SHARE_PEOPLE_OPTIONS,
   distributeShareByParts,
@@ -24,6 +24,7 @@ export type ShareExpenseEditorViewProps = ViewProps<
     amount: string;
     currencyCode?: string;
     draft?: ShareDraft;
+    movementType?: 'expense' | 'income';
   },
   {
     disabled?: boolean;
@@ -52,13 +53,13 @@ function amountInputLabel(person: SharePersonDraft): string {
 export function ShareExpenseEditorView({ required, provided }: ShareExpenseEditorViewProps) {
   const amountCents = parseShareCents(required.state.amount);
   const peopleOptions = required.data.peopleSuggestions?.length ? required.data.peopleSuggestions : DEFAULT_SHARE_PEOPLE_OPTIONS;
-  const [mode, setMode] = useState<ShareMode>(required.state.draft?.mode ?? 'parts');
+  const [mode, setMode] = useState<ShareMode>(required.state.draft?.mode === 'equal' ? 'parts' : required.state.draft?.mode ?? 'parts');
   const [personQuery, setPersonQuery] = useState('');
   const [people, setPeople] = useState<SharePersonDraft[]>(() => required.state.draft?.people ?? resetSharePeopleForMode('parts', amountCents, [
     {
       id: 'you',
       name: 'You (Payer)',
-      reimbursable: false,
+      settlementChoice: 'not_required',
       parts: 1,
       amount: '',
       avatarTone: 'you',
@@ -81,7 +82,7 @@ export function ShareExpenseEditorView({ required, provided }: ShareExpenseEdito
   const exceedsTotal = totalCents > amountCents;
 
   function changeMode(nextMode: ShareMode) {
-    setMode(nextMode);
+    setMode(nextMode === 'equal' ? 'parts' : nextMode);
     setPeople((current) => resetSharePeopleForMode(nextMode, amountCents, current));
   }
 
@@ -108,9 +109,11 @@ export function ShareExpenseEditorView({ required, provided }: ShareExpenseEdito
     setPeople((current) => current.map((person) => (person.id === personId ? { ...person, amount } : person)));
   }
 
-  function toggleReimbursable(personId: string) {
+  function changeSettlement(personId: string, settlementChoice: ShareSettlementChoice) {
     setPeople((current) => current.map((person) => (
-      person.id === personId ? { ...person, reimbursable: !person.reimbursable } : person
+      person.id === personId
+        ? { ...person, settlementChoice: parseShareCents(person.amount) === 0 ? 'not_required' : settlementChoice }
+        : person
     )));
   }
 
@@ -123,16 +126,6 @@ export function ShareExpenseEditorView({ required, provided }: ShareExpenseEdito
       </div>
 
       <div className={styles.modeTabs} role="tablist" aria-label="Share mode">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'equal'}
-          className={mode === 'equal' ? styles.activeModeTab : undefined}
-          onClick={() => changeMode('equal')}
-          disabled={required.status.disabled}
-        >
-          Equal
-        </button>
         <button
           type="button"
           role="tab"
@@ -157,7 +150,7 @@ export function ShareExpenseEditorView({ required, provided }: ShareExpenseEdito
 
       <div className={styles.peopleHeader}>
         <span>Person</span>
-        <span>Reimburse</span>
+        <span>Status</span>
         <span>{mode === 'parts' ? 'Parts' : 'Amount'}</span>
       </div>
       <ul className={styles.peopleList} aria-label="Share people">
@@ -171,16 +164,16 @@ export function ShareExpenseEditorView({ required, provided }: ShareExpenseEdito
               {person.id === 'you' ? (
                 <span aria-label="You do not reimburse">-</span>
               ) : (
-                <button
-                  type="button"
-                  className={person.reimbursable ? styles.reimburseOn : styles.reimburseOff}
-                  aria-label={`Toggle reimbursement for ${person.name}`}
-                  aria-pressed={person.reimbursable}
+                <select
+                  aria-label={`${person.name} settlement status`}
+                  value={person.settlementChoice ?? (person.reimbursable ? 'pending' : 'not_required')}
                   disabled={required.status.disabled}
-                  onClick={() => toggleReimbursable(person.id)}
+                  onChange={(event) => changeSettlement(person.id, event.target.value as ShareSettlementChoice)}
                 >
-                  <i className="bi bi-check-lg" aria-hidden />
-                </button>
+                  <option value="pending">{required.state.movementType === 'income' ? 'Pending payout' : 'Pending reimbursement'}</option>
+                  <option value="settled">{required.state.movementType === 'income' ? 'Already paid' : 'Already reimbursed'}</option>
+                  <option value="not_required">{required.state.movementType === 'income' ? 'No payout required' : 'No reimbursement'}</option>
+                </select>
               )}
             </span>
             {mode === 'parts' ? (
@@ -309,7 +302,7 @@ export function ShareExpenseEditorView({ required, provided }: ShareExpenseEdito
       <button
         type="button"
         className={styles.applyButton}
-        disabled={required.status.disabled || exceedsTotal}
+        disabled={required.status.disabled || exceedsTotal || remainingCents !== 0}
         onClick={() => provided.commands.applyShare(
           { peopleCount: people.length, total: formatShareCents(totalCents) },
           { mode, people },

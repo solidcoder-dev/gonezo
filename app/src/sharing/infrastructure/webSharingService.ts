@@ -61,22 +61,24 @@ export class WebSharingService {
     input: SharingApplyShareToPostedMovementInput,
   ): Promise<SharingApplyShareToPostedMovementResult> {
     const transaction = this.ledger.getTransactionOrThrow(input.transactionId);
-    if (transaction.status !== 'posted' || transaction.type !== 'expense') {
-      throw new Error('Only posted expenses can be shared');
+    if (transaction.status !== 'posted' || (transaction.type !== 'expense' && transaction.type !== 'income')) {
+      throw new Error('Only posted expenses and incomes can be shared');
     }
     const appliedAt = input.appliedAt ?? this.dependencies.clock.nowIso();
     const payer = this.resolvePerson(input.payer, appliedAt);
     const participants = [];
     for (const participantInput of input.participants) {
       const person = this.resolvePerson(participantInput.person, appliedAt);
-      const expectedMovementId = participantInput.reimbursable
+      const requestedSettlement = participantInput.settlementChoice ?? (participantInput.reimbursable ? 'pending' : 'not_required');
+      const settlementChoice = parseAmount(participantInput.amount) === 0 ? 'not_required' : requestedSettlement;
+      const expectedMovementId = settlementChoice === 'pending' && parseAmount(participantInput.amount) > 0
         ? (await this.expected.createMovement({
             accountId: transaction.accountId,
-            type: 'income',
+            type: transaction.type === 'expense' ? 'income' : 'expense',
             amount: formatAmount(parseAmount(participantInput.amount)),
             currency: transaction.currency,
             expectedAt: transaction.occurredAt,
-            description: `Reimbursement from ${person.name}`,
+            description: transaction.type === 'expense' ? `Reimbursement from ${person.name}` : `Payout to ${person.name}`,
             merchant: person.name,
           })).id
         : undefined;
@@ -85,10 +87,11 @@ export class WebSharingService {
         participantId,
         personId: person.id,
         amount: formatAmount(parseAmount(participantInput.amount)),
-        reimbursable: participantInput.reimbursable,
+        reimbursable: settlementChoice === 'pending',
+        settlementChoice,
         expectedMovementId,
       });
-      if (participantInput.reimbursable) {
+      if (settlementChoice !== 'not_required') {
         this.addAnalyticsExclusion('share_participant', participantId, 'shared_expense', appliedAt);
         if (expectedMovementId) {
           this.addAnalyticsExclusion('expected_movement', expectedMovementId, 'reimbursement', appliedAt);
@@ -106,6 +109,7 @@ export class WebSharingService {
       participants,
       createdAt: existingIndex >= 0 ? this.state.expenseShares[existingIndex].createdAt : appliedAt,
       updatedAt: appliedAt,
+      movementType: transaction.type,
     };
     if (existingIndex >= 0) {
       this.state.expenseShares[existingIndex] = share;
@@ -206,7 +210,7 @@ export class WebSharingService {
           personId: participant.personId,
           displayName: person?.name ?? 'Unknown',
           amount: participant.amount,
-          reimbursable: participant.reimbursable,
+          settlementChoice: participant.settlementChoice ?? (participant.reimbursable ? 'pending' : 'not_required'),
           expectedMovementId: participant.expectedMovementId,
         };
       }),
@@ -215,14 +219,14 @@ export class WebSharingService {
 
   private toMovementDetails(share: WebExpenseShare, transaction: WebLedgerTransaction): SharingMovementDetailsResult {
     const excludedLentAmount = share.participants
-      .filter((participant) => participant.reimbursable)
+      .filter((participant) => (participant.settlementChoice ?? (participant.reimbursable ? 'pending' : 'not_required')) !== 'not_required')
       .reduce((total, participant) => total + parseAmount(participant.amount), 0);
     const excludedReimbursementIncomeAmount = share.participants
       .filter((participant) => {
         const expected = participant.expectedMovementId
           ? this.state.expectedMovements.find((movement) => movement.id === participant.expectedMovementId)
           : undefined;
-        return participant.reimbursable && expected?.status === 'resolved';
+        return (participant.settlementChoice ?? (participant.reimbursable ? 'pending' : 'not_required')) === 'pending' && expected?.status === 'resolved';
       })
       .reduce((total, participant) => total + parseAmount(participant.amount), 0);
     return {
@@ -238,10 +242,12 @@ export class WebSharingService {
           personId: participant.personId,
           displayName: person?.name ?? 'Unknown',
           amount: participant.amount,
-          reimbursable: participant.reimbursable,
+          settlementChoice: participant.settlementChoice ?? (participant.reimbursable ? 'pending' : 'not_required'),
           expectedMovementId: participant.expectedMovementId,
-          repaymentStatus: !participant.reimbursable
+          repaymentStatus: (participant.settlementChoice ?? (participant.reimbursable ? 'pending' : 'not_required')) === 'not_required'
             ? 'not_expected'
+            : (participant.settlementChoice ?? (participant.reimbursable ? 'pending' : 'not_required')) === 'settled'
+              ? 'paid'
             : expected?.status === 'pending'
               ? 'pending'
               : expected?.status === 'resolved'

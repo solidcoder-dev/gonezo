@@ -1,11 +1,14 @@
 export type ShareMode = 'equal' | 'parts' | 'amounts';
 
+export type ShareSettlementChoice = 'not_required' | 'pending' | 'settled';
+
 export type SharePersonDraft = {
   id: string;
   personId?: string;
   name: string;
   email?: string;
-  reimbursable: boolean;
+  settlementChoice?: ShareSettlementChoice;
+  reimbursable?: boolean;
   parts: number;
   amount: string;
   avatarTone: 'you' | 'emma' | 'luis' | 'maria' | 'john' | 'alex' | 'alexandra' | 'ali' | 'custom';

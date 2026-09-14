@@ -142,7 +142,7 @@ describe('transaction submission plan', () => {
     expect(input.ports.sharing.sharingApplyShareToPostedMovement).toHaveBeenCalledWith({
       transactionId: 'tx-1',
       payer: { currentUser: true },
-      participants: [{ person: { displayName: 'Alex' }, amount: '4.00', reimbursable: true }],
+      participants: [{ person: { displayName: 'Alex' }, amount: '4.00', settlementChoice: 'pending' }],
       appliedAt: '2026-05-18T10:20:30.000Z',
     });
   });
@@ -162,7 +162,7 @@ describe('transaction submission plan', () => {
     await runTransactionSubmissionPlan(input);
 
     expect(input.ports.sharing.sharingApplyShareToPostedMovement).toHaveBeenCalledWith(expect.objectContaining({
-      participants: [{ person: { displayName: 'Alex' }, amount: '0.00', reimbursable: false }],
+      participants: [{ person: { displayName: 'Alex' }, amount: '0.00', settlementChoice: 'not_required' }],
     }));
   });
 

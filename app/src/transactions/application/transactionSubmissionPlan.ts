@@ -9,6 +9,7 @@ import type { ExpectedGatewayPort } from '../../expected/application/expectedGat
 import type { ExpectedPostingMovementSnapshot } from '../../expected/application/expected.port';
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port';
 import type { ShareDraft } from '../../sharing/domain/shareDraft';
+import { normalizeShareSettlementChoice } from '../../sharing/application/shareDraftCalculator';
 import type { SchedulingPort } from '../../scheduling/application/scheduling.port';
 import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 import type { TaxonomyCategoryAppliesTo } from '../../taxonomy/domain/taxonomy.types';
@@ -191,7 +192,7 @@ function buildSharingPlan(context: TransactionSubmissionContext) {
   if (context.composerMode !== 'expense' || !context.shareDraft) return undefined;
   const participants = context.shareDraft.people.filter((person) => person.id !== 'you').map((person) => ({
     personName: person.name,
-    reimbursable: person.reimbursable,
+    reimbursable: normalizeShareSettlementChoice(person) === 'pending',
     ...(context.shareDraft?.mode === 'parts' ? { parts: person.parts } : { amount: formatAmount(parseAmount(person.amount)) }),
   }));
   if (participants.length === 0) return undefined;
@@ -621,7 +622,7 @@ async function handlePostExpectedMovement(
       participants: context.shareDraft.people.filter((person) => person.id !== 'you').map((person) => ({
         personName: person.name,
         amount: formatAmount(parseAmount(person.amount)),
-        reimbursable: person.reimbursable,
+        reimbursable: normalizeShareSettlementChoice(person) === 'pending',
       })),
     } : undefined,
     idempotencyKey: context.postExpectedMovementId,
@@ -635,7 +636,7 @@ async function handlePostedShare(
   state: TransactionSubmissionState,
 ) {
   if (
-    context.composerMode !== 'expense'
+    context.composerMode !== 'expense' && context.composerMode !== 'income'
     || !state.postedTransactionId
     || !context.shareDraft
     || context.postExpectedMovementId
@@ -648,7 +649,7 @@ async function handlePostedShare(
     .map((person) => ({
       person: person.personId ? { personId: person.personId } : { displayName: person.name },
       amount: formatAmount(parseAmount(person.amount)),
-      reimbursable: person.reimbursable,
+      settlementChoice: normalizeShareSettlementChoice(person),
     }));
 
   if (participants.length === 0) {

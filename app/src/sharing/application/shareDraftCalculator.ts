@@ -1,13 +1,13 @@
-import type { ShareMode, SharePersonDraft, SharingPersonSuggestion } from '../domain/shareDraft';
+import type { ShareMode, SharePersonDraft, ShareSettlementChoice, SharingPersonSuggestion } from '../domain/shareDraft';
 
 export const DEFAULT_SHARE_PEOPLE_OPTIONS: SharePersonDraft[] = [
-  { id: 'emma', name: 'Emma', email: 'emma@example.com', reimbursable: true, parts: 1, amount: '', avatarTone: 'emma' },
-  { id: 'luis', name: 'Luis', email: 'luis@example.com', reimbursable: true, parts: 1, amount: '', avatarTone: 'luis' },
-  { id: 'maria', name: 'Maria', email: 'maria@example.com', reimbursable: true, parts: 1, amount: '', avatarTone: 'maria' },
-  { id: 'john', name: 'John', email: 'john@example.com', reimbursable: true, parts: 1, amount: '', avatarTone: 'john' },
-  { id: 'alex-johnson', name: 'Alex Johnson', email: 'alex.j@example.com', reimbursable: true, parts: 1, amount: '', avatarTone: 'alex' },
-  { id: 'alexandra-rossi', name: 'Alexandra Rossi', email: 'alexandra.r@example.com', reimbursable: true, parts: 1, amount: '', avatarTone: 'alexandra' },
-  { id: 'ali-khan', name: 'Ali Khan', email: 'ali.k@example.com', reimbursable: true, parts: 1, amount: '', avatarTone: 'ali' },
+  { id: 'emma', name: 'Emma', email: 'emma@example.com', settlementChoice: 'pending', parts: 1, amount: '', avatarTone: 'emma' },
+  { id: 'luis', name: 'Luis', email: 'luis@example.com', settlementChoice: 'pending', parts: 1, amount: '', avatarTone: 'luis' },
+  { id: 'maria', name: 'Maria', email: 'maria@example.com', settlementChoice: 'pending', parts: 1, amount: '', avatarTone: 'maria' },
+  { id: 'john', name: 'John', email: 'john@example.com', settlementChoice: 'pending', parts: 1, amount: '', avatarTone: 'john' },
+  { id: 'alex-johnson', name: 'Alex Johnson', email: 'alex.j@example.com', settlementChoice: 'pending', parts: 1, amount: '', avatarTone: 'alex' },
+  { id: 'alexandra-rossi', name: 'Alexandra Rossi', email: 'alexandra.r@example.com', settlementChoice: 'pending', parts: 1, amount: '', avatarTone: 'alexandra' },
+  { id: 'ali-khan', name: 'Ali Khan', email: 'ali.k@example.com', settlementChoice: 'pending', parts: 1, amount: '', avatarTone: 'ali' },
 ];
 
 export function parseShareCents(value: string): number {
@@ -28,7 +28,7 @@ export function makeSharePerson(name: string, options: SharingPersonSuggestion[]
       personId: existing.id,
       name: existing.name,
       email: existing.email,
-      reimbursable: true,
+      settlementChoice: 'pending',
       parts: 1,
       amount: '',
       avatarTone: 'custom',
@@ -37,11 +37,15 @@ export function makeSharePerson(name: string, options: SharingPersonSuggestion[]
   return {
     id: crypto.randomUUID(),
     name: normalizedName,
-    reimbursable: true,
+    settlementChoice: 'pending',
     parts: 1,
     amount: '',
     avatarTone: 'custom',
   };
+}
+
+export function normalizeShareSettlementChoice(person: Pick<SharePersonDraft, 'settlementChoice' | 'reimbursable'>): ShareSettlementChoice {
+  return person.settlementChoice ?? (person.reimbursable ? 'pending' : 'not_required');
 }
 
 export function distributeShareByParts(amountCents: number, people: SharePersonDraft[]): SharePersonDraft[] {
