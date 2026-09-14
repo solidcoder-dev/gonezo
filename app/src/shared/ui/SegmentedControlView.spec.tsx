@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { SegmentedControlView } from './SegmentedControlView';
+import styles from './SegmentedControlView.module.css';
 
 describe('SegmentedControlView', () => {
   it('renders radio-style segment options and reports selection', () => {
@@ -51,5 +52,17 @@ describe('SegmentedControlView', () => {
 
     fireEvent.click(screen.getByRole('radio', { name: 'Ascending' }));
     expect(select).not.toHaveBeenCalled();
+  });
+
+  it('supports a compact variant without vertical growth', () => {
+    render(
+      <SegmentedControlView
+        required={{ config: { ariaLabel: 'Share mode', columns: 2, compact: true }, data: { options: [{ value: 'parts', label: 'As parts' }, { value: 'amounts', label: 'As amounts' }] }, state: { value: 'parts' }, status: {} }}
+        provided={{ commands: { select: vi.fn() } }}
+      />,
+    );
+
+    expect(screen.getByRole('radiogroup')).toHaveClass(styles.compact);
+    expect(screen.getByRole('radio', { name: 'As parts' })).not.toHaveClass('flex-grow-1');
   });
 });

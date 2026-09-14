@@ -48,3 +48,11 @@
 .option:disabled {
   opacity: 0.5;
 }
+
+.compact {
+  min-height: 44px;
+}
+
+.compact .option {
+  min-height: 36px;
+}
