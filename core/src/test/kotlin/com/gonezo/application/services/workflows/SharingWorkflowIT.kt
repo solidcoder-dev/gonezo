@@ -107,6 +107,26 @@ class SharingWorkflowIT : SqliteE2ETest() {
     }
 
     @Test
+    fun `sharing a second expense with the current payer reproduces the duplicate payer failure`() {
+        val accountId = openCashAccount()
+        val firstTransactionId = recordExpense(accountId.toString(), "20.00")
+        val secondTransactionId = recordExpense(accountId.toString(), "12.00")
+        val command = { transactionId: String ->
+            ApplyShareToPostedMovementCommand(
+                transactionId = transactionId,
+                payer = SharingPersonReference.New("You"),
+                participants = listOf(ApplyShareParticipantCommand(SharingPersonReference.New("Tyler"), BigDecimal("10.00"), true)),
+                appliedAt = Instant.parse("2026-06-29T10:15:00Z"),
+            )
+        }
+
+        app.sharingApplyShareToPostedMovementUC.execute(command(firstTransactionId))
+
+        assertThatThrownBy { app.sharingApplyShareToPostedMovementUC.execute(command(secondTransactionId)) }
+            .hasMessage("Sharing person already exists: You")
+    }
+
+    @Test
     fun `resolved expected marks shared participant as paid in movement sharing details`() {
         val accountId = openCashAccount()
         val transactionId = recordExpense(accountId.toString(), "20.00")
