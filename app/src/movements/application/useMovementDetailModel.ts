@@ -575,6 +575,7 @@ export function useMovementDetailModel(input: MovementDetailModelInputWithSeed) 
     try {
       await ports.expected.expectedDismissMovement({
         expectedMovementId,
+        originKind: movement?.source === 'expected' ? movement.origin.kind : 'manual',
         dismissedAt: clock.now().toISOString(),
       });
       await refreshMovements();

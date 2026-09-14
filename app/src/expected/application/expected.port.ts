@@ -92,6 +92,7 @@ export type ExpectedResolveMovementInput = {
 
 export type ExpectedDismissMovementInput = {
   expectedMovementId: string;
+  originKind: 'manual' | 'recurring' | 'recurring_unlinked';
   dismissedAt?: string;
 };
 

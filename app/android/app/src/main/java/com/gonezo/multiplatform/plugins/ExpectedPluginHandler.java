@@ -159,7 +159,12 @@ final class ExpectedPluginHandler {
     try {
       String dismissedAt = call.getString("dismissedAt", Instant.now().toString());
       String expectedMovementId = call.getString("expectedMovementId");
-      AndroidRecurringExpectedRuntime.getInstance(context).continueAfterDismissal(expectedMovementId, dismissedAt);
+      String originKind = call.getString("originKind", "manual");
+      if ("manual".equals(originKind)) {
+        AndroidExpectedCore.getInstance(context).dismissMovement(expectedMovementId, dismissedAt);
+      } else {
+        AndroidRecurringExpectedRuntime.getInstance(context).continueAfterDismissal(expectedMovementId, dismissedAt);
+      }
       call.resolve();
     } catch (Exception ex) {
       call.reject(ex.getMessage());

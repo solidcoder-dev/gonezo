@@ -157,6 +157,7 @@ export function useMonthlyMovementMutationsModel(input: UseMonthlyMovementMutati
     try {
       await ports.expected.expectedDismissMovement({
         expectedMovementId: movement.id,
+        originKind: movement.origin.kind,
         dismissedAt: clock.now().toISOString(),
       });
       await refreshMovements();
