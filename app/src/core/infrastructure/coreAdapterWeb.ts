@@ -110,6 +110,7 @@ import type {
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
   SharingListPeopleResult,
+  SharingRenamePersonInput,
   SharingMovementDetailsResult,
   SharingGetPlannedShareInput,
   SharingPlannedShareResult,
@@ -254,6 +255,7 @@ export class CoreAdapterWeb implements CorePort {
   async analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult> { return analyticsGetSpendingOverview(this, input); }
   async analyticsGetFlowReport(input: AnalyticsFlowReportInput): Promise<AnalyticsFlowReport> { return analyticsGetFlowReport(this, input); }
   async sharingListPeople(): Promise<SharingListPeopleResult> { return this.sharingService.listPeople(); }
+  async sharingRenamePerson(input: SharingRenamePersonInput): Promise<void> { return this.sharingService.renamePerson(input); }
   async sharingListGroupSuggestions() { return this.sharingService.listGroupSuggestions(); }
 
   async sharingApplyShareToPostedMovement(

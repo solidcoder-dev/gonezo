@@ -43,12 +43,12 @@ public final class AndroidSharingCore {
 
   public List<GroupSuggestionView> listGroupSuggestions() {
     List<GroupSuggestionView> suggestions = new ArrayList<>();
-    for (com.gonezo.application.sharing.SharingGroupSuggestionView suggestion:
+    for (com.gonezo.sharing.application.SharingGroupSuggestionView suggestion:
       new com.gonezo.sharing.application.ListSharingGroupSuggestionsService(
         new AndroidSharingPersonRepository(database), new AndroidMovementShareRepository(database)
       ).execute()) {
       List<PersonView> people = new ArrayList<>();
-      for (com.gonezo.application.sharing.SharingPersonSuggestionView person : suggestion.getPeople()) {
+      for (com.gonezo.sharing.application.SharingPersonSuggestionView person : suggestion.getPeople()) {
         people.add(new PersonView(person.getId(), person.getDisplayName()));
       }
       suggestions.add(new GroupSuggestionView(suggestion.getKey(), people, suggestion.getUsageCount(), suggestion.getLastUsedAt().toString()));

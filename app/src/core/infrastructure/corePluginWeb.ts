@@ -115,6 +115,7 @@ import type {
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
   SharingListPeopleResult,
+  SharingRenamePersonInput,
   SharingMovementDetailsResult,
   SharingGetPlannedShareInput,
   SharingPlannedShareResult,
@@ -377,6 +378,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async sharingListPeople(): Promise<SharingListPeopleResult> {
     return this.core.sharingListPeople();
+  }
+
+  async sharingRenamePerson(options: SharingRenamePersonInput): Promise<void> {
+    return this.core.sharingRenamePerson(options);
   }
 
   async sharingListGroupSuggestions() {

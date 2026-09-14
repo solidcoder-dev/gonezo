@@ -91,6 +91,7 @@ internal class AndroidExpectedPostingApplication private constructor(context: Co
 
   fun execute(command: PostExpectedMovementCommand): PostExpectedMovementResult = workflow.execute(command)
   fun applyShare(command: com.gonezo.sharing.application.ApplyShareToPostedMovementCommand): com.gonezo.sharing.application.ApplyShareToPostedMovementResult = applyShare.execute(command)
+  fun renamePerson(command: RenameSharingPersonCommand): SharingPersonSuggestionView = RenameSharingPersonService(people).execute(command)
   fun projectNext(recurringMovementId: String): String? = projection.projectNext(recurringMovementId, Instant.now(clock))?.toString()
   fun resolve(expectedMovementId: String, transactionId: String, resolvedAt: Instant) {
     closeExpected.execute(CloseExpectedAndContinueRecurrenceCommand(

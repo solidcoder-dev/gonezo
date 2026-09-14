@@ -5,6 +5,7 @@ import type {
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
   SharingListPeopleResult,
+  SharingRenamePersonInput,
   SharingListGroupSuggestionsResult,
   SharingGetPlannedShareInput,
   SharingPlannedShareResult,
@@ -23,6 +24,10 @@ export class SharingRuntimeAdapter {
 
   sharingListPeople(): Promise<SharingListPeopleResult> {
     return isNativeRuntime() ? CorePlugin.sharingListPeople() : this.web.sharingListPeople();
+  }
+
+  sharingRenamePerson(input: SharingRenamePersonInput): Promise<void> {
+    return isNativeRuntime() ? CorePlugin.sharingRenamePerson(input) : this.web.sharingRenamePerson(input);
   }
 
   sharingListGroupSuggestions(): Promise<SharingListGroupSuggestionsResult> {

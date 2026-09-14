@@ -67,7 +67,7 @@ export class CoreAdapter implements CorePort {
   analyticsListIgnoredMovements = this.analytics.analyticsListIgnoredMovements.bind(this.analytics);
   analyticsListMovementFacts = this.analytics.analyticsListMovementFacts.bind(this.analytics);
 
-  sharingListPeople = this.sharing.sharingListPeople.bind(this.sharing); sharingListGroupSuggestions = this.sharing.sharingListGroupSuggestions.bind(this.sharing);
+  sharingListPeople = this.sharing.sharingListPeople.bind(this.sharing); sharingListGroupSuggestions = this.sharing.sharingListGroupSuggestions.bind(this.sharing); sharingRenamePerson = this.sharing.sharingRenamePerson.bind(this.sharing);
   sharingApplyShareToPostedMovement = this.sharing.sharingApplyShareToPostedMovement.bind(this.sharing);
   sharingGetMovementDetails = this.sharing.sharingGetMovementDetails.bind(this.sharing);
   sharingListMovementDetails = this.sharing.sharingListMovementDetails.bind(this.sharing);

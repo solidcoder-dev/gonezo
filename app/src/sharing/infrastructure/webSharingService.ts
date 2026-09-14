@@ -58,6 +58,18 @@ export class WebSharingService {
     };
   }
 
+  async renamePerson(input: { personId: string; displayName: string }): Promise<void> {
+    const person = this.state.sharingPersons.find((item) => item.id === input.personId && !item.archivedAt);
+    if (!person) throw new Error(`Sharing person not found: ${input.personId}`);
+    const displayName = input.displayName.trim();
+    if (!displayName) throw new Error('sharing person display name is required');
+    const normalizedName = normalizeName(displayName);
+    const collision = this.state.sharingPersons.find((item) => item.id !== person.id && item.normalizedName === normalizedName && !item.archivedAt);
+    if (collision) throw new Error(`Sharing person already exists: ${displayName}`);
+    person.name = displayName;
+    person.normalizedName = normalizedName;
+  }
+
   async listGroupSuggestions() {
     const history = this.state.expenseShares.map((share) => ({
       ownerId: share.payerPersonId,

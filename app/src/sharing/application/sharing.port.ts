@@ -9,6 +9,8 @@ export type SharingListPeopleResult = {
   items: SharingPersonItem[];
 };
 
+export type SharingRenamePersonInput = { personId: string; displayName: string };
+
 export type SharingListGroupSuggestionsResult = { items: SharingGroupSuggestion[] };
 
 export type SharingApplyShareParticipantInput = {
@@ -98,6 +100,7 @@ export type SharingPlannedShareResult = {
 
 export interface SharingPort {
   sharingListPeople(): Promise<SharingListPeopleResult>;
+  sharingRenamePerson?(input: SharingRenamePersonInput): Promise<void>;
   sharingListGroupSuggestions?(): Promise<SharingListGroupSuggestionsResult>;
   sharingApplyShareToPostedMovement(
     input: SharingApplyShareToPostedMovementInput,

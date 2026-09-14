@@ -41,6 +41,17 @@ final class SharingPluginHandler {
     }
   }
 
+  void sharingRenamePerson(PluginCall call) {
+    try {
+      AndroidExpectedPostingApplication.getInstance(context).renamePerson(
+        new com.gonezo.sharing.application.RenameSharingPersonCommand(call.getString("personId"), call.getString("displayName"))
+      );
+      call.resolve();
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
   void sharingListGroupSuggestions(PluginCall call) {
     try {
       JSONArray items = new JSONArray();
