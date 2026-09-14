@@ -14,8 +14,10 @@ and from the expected or posted movements created when a participant is settled.
 stores the movement type, total and currency, the owner's allocation, and the
 participants included in the sharing decision.
 
-The owner is represented explicitly by `ownerAllocation`; the system does not
-use a magic person identifier such as `you`.
+The owner is represented explicitly by `ownerAllocation`; the owner remains the
+owner even when they do not participate in the allocation. In that case
+`ownerAllocation` is exactly zero. The system does not use a magic person
+identifier such as `you`.
 
 ### Participant and identity
 
@@ -35,9 +37,10 @@ groups display the current name.
 - `PARTS`: divide the total according to positive integer parts.
 - `AMOUNTS`: accept explicit amounts.
 
-The owner absorbs the rounding cent in `EQUAL` and `PARTS` allocations. The
-owner amount plus all participant amounts must equal the movement total at the
-currency precision.
+When the owner is included, they absorb the rounding cent in `EQUAL` and `PARTS`
+allocations. When the owner is excluded, the first participant in stable order
+absorbs the rounding cent. The owner amount plus all participant amounts must
+equal the movement total at the currency precision.
 
 ### Settlement
 
@@ -78,6 +81,8 @@ settlement states when reused.
 - Participants are unique and none is the owner.
 - The owner allocation and participant allocations sum exactly to the movement
   total at the currency precision.
+- Recurring templates persist whether the owner is included; old templates
+  without that field are interpreted as included.
 - Settlement currency, amount and type match the participant and source movement.
 - A person command contains exactly one of `personId` and `displayName`.
 - Renaming rejects blank names and collisions with another active person.

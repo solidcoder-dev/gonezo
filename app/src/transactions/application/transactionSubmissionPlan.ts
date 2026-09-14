@@ -199,6 +199,7 @@ function buildSharingPlan(context: TransactionSubmissionContext) {
   return {
     mode: context.shareDraft.mode === 'equal' ? 'parts' : context.shareDraft.mode,
     payerName: 'You',
+    ownerIncluded: context.shareDraft.people.find((person) => person.role === 'owner')?.includedInAllocation !== false,
     ...(context.shareDraft.mode === 'parts' ? { payerParts: context.shareDraft.people.find((person) => person.role === 'owner')?.parts ?? 1 } : {}),
     participants,
   };

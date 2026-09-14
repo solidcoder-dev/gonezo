@@ -5,6 +5,7 @@ export type RecurrenceReviewPolicy = 'automatic' | 'require_user_confirmation';
 export type RecurringSharingPlanInput = {
   mode: 'parts' | 'amounts';
   payerName: string;
+  ownerIncluded?: boolean;
   payerParts?: number;
   participants: Array<{
     personName: string;

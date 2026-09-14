@@ -50,7 +50,7 @@ export function useShareEditorModel(input: UseShareEditorModelInput) {
   function addPerson(person: SharingPersonSuggestion) {
     if (existingIds.has(person.id)) return;
     const next = { ...makeSharePerson(person.name, peopleOptions), role: 'participant' as const, personId: person.id };
-    replacePeople([people[0], next, ...people.slice(1)]);
+    replacePeople(insertBeforeOwner(next));
     setQuery('');
   }
 
@@ -58,14 +58,14 @@ export function useShareEditorModel(input: UseShareEditorModelInput) {
     const additions = group.people.filter((person) => !existingIds.has(person.id)).map((person) => ({
       ...makeSharePerson(person.name, peopleOptions), role: 'participant' as const, personId: person.id,
     }));
-    if (additions.length > 0) replacePeople([people[0], ...additions, ...people.slice(1)]);
+    if (additions.length > 0) replacePeople(additions.reduceRight((current, person) => insertBeforeOwner(person, current), people));
     setQuery('');
   }
 
   function addTypedPerson(name: string) {
     const normalized = name.trim().toLowerCase();
     if (!normalized || people.some((person) => person.name.trim().toLowerCase() === normalized)) return;
-    replacePeople([people[0], makeSharePerson(name, peopleOptions), ...people.slice(1)]);
+    replacePeople(insertBeforeOwner(makeSharePerson(name, peopleOptions)));
     setQuery('');
   }
 
@@ -76,6 +76,12 @@ export function useShareEditorModel(input: UseShareEditorModelInput) {
       return;
     }
     replacePeople(people.filter((person) => person.id !== id));
+  }
+
+  function insertBeforeOwner(person: ShareMemberDraft, currentPeople = people): ShareMemberDraft[] {
+    const ownerIndex = currentPeople.findIndex((candidate) => candidate.role === 'owner');
+    if (ownerIndex < 0) return [...currentPeople, person];
+    return [...currentPeople.slice(0, ownerIndex + 1), person, ...currentPeople.slice(ownerIndex + 1)];
   }
 
   function setOwnerIncluded(included: boolean) {

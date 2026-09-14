@@ -3,7 +3,7 @@ package com.gonezo.sharing.domain
 import java.math.BigDecimal
 
 sealed interface AllocationRule {
-    data class Parts(val payerParts: Int, val participantParts: List<Int>) : AllocationRule
+    data class Parts(val payerParts: Int, val participantParts: List<Int>, val ownerIncluded: Boolean = true) : AllocationRule
 
     data class FixedAmounts(val amounts: List<BigDecimal>) : AllocationRule
 
@@ -38,9 +38,13 @@ object AllocationCalculator {
         require(rule.payerParts > 0) { "payer parts must be positive" }
         require(rule.participantParts.isNotEmpty()) { "participant parts are required" }
         require(rule.participantParts.all { it > 0 }) { "participant parts must be positive" }
-        val denominator = rule.payerParts + rule.participantParts.sum()
+        val denominator = (if (rule.ownerIncluded) rule.payerParts else 0) + rule.participantParts.sum()
         val unit = total.divide(BigDecimal(denominator), scale + 8, java.math.RoundingMode.DOWN)
-        return rule.participantParts.map { unit.multiply(BigDecimal(it)).setScale(scale, java.math.RoundingMode.DOWN) }
+        val allocations = rule.participantParts.map { unit.multiply(BigDecimal(it)).setScale(scale, java.math.RoundingMode.DOWN) }.toMutableList()
+        if (!rule.ownerIncluded) {
+            allocations[0] = allocations[0] + (total.setScale(scale, java.math.RoundingMode.DOWN) - allocations.sumOf { it })
+        }
+        return allocations
     }
 
     private fun allocateFixedAmounts(total: BigDecimal, rule: AllocationRule.FixedAmounts): List<BigDecimal> {

@@ -77,6 +77,17 @@ class RecurringSharingDomainTest {
     }
 
     @Test
+    fun `parts allocation assigns the residual to the first external participant when owner is excluded`() {
+        val amounts = AllocationCalculator.allocate(
+            BigDecimal("10.00"),
+            AllocationRule.Parts(1, listOf(1, 1), ownerIncluded = false),
+            2,
+        )
+
+        assertThat(amounts).containsExactly(BigDecimal("5.00"), BigDecimal("5.00"))
+    }
+
+    @Test
     fun `equal split uses the requested participant count`() {
         assertThat(AllocationCalculator.allocateEqualSplit(BigDecimal("10.00"), 3, 2))
             .containsExactly(BigDecimal("3.33"), BigDecimal("3.33"), BigDecimal("3.33"))
