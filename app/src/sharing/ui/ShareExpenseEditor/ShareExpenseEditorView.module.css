@@ -1,4 +1,4 @@
-.shareEditor { min-width: 0; padding: 0 24px calc(80px + var(--app-safe-area-bottom)); }
+.shareEditor { min-width: 0; padding: 0 24px; }
 .totalAmount { color: var(--color-action-primary); font-variant-numeric: tabular-nums; font-size: var(--type-amount-primary-font-size); font-weight: 700; }
 .personRow { min-width: 0; border-bottom: 1px solid var(--color-border-subtle); }
 .personRow:last-child { border-bottom: 0; }

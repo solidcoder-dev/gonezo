@@ -9,7 +9,7 @@ type ShareMovementEditorPageViewProps = ShareExpenseEditorViewProps & {
 
 export function ShareMovementEditorPageView({ title, onClose, required, provided }: ShareMovementEditorPageViewProps) {
   return (
-    <main className="min-vh-100 bg-body" aria-label={title}>
+    <main className="min-vh-100 d-flex flex-column bg-body" aria-label={title}>
       <header className={`${styles.header} d-flex align-items-center gap-3 px-4`}>
         <button type="button" className={`${styles.backButton} btn btn-link d-inline-flex align-items-center justify-content-center p-0`} aria-label="Back" onClick={onClose}>
           <i className="bi bi-arrow-left" aria-hidden="true" />
