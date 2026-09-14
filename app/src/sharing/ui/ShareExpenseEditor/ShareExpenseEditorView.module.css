@@ -17,9 +17,8 @@
 .suggestions small { color: var(--color-text-muted); font-size: 12px; }
 .groupAvatars { display: inline-flex; min-width: 56px; }
 .groupAvatars span { width: 28px; height: 28px; margin-right: -8px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--color-surface-primary); border-radius: var(--radius-full); background: var(--color-tag-slate); color: var(--color-on-brand); font-size: 12px; }
-.partsStepper { display: grid; grid-template-columns: 44px 36px 44px; align-items: center; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); overflow: hidden; }
-.partsStepper button { min-width: 44px; min-height: 44px; border: 0; background: transparent; color: var(--color-text-primary); }
-.partsStepper input { width: 36px; min-height: 44px; border: 0; background: transparent; text-align: center; font-weight: 600; }
+.partsInput { min-width: 3rem; min-height: 44px; font-variant-numeric: tabular-nums; appearance: textfield; }
+.partsInput::-webkit-inner-spin-button, .partsInput::-webkit-outer-spin-button { margin: 0; appearance: none; }
 .amountField { min-height: 44px; padding: 0 8px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-surface-primary); }
 .amountField input { width: 72px; min-width: 0; min-height: 42px; border: 0; outline: 0; background: transparent; text-align: right; font-variant-numeric: tabular-nums; }
 .removePersonButton { min-width: 44px; min-height: 44px; color: var(--color-danger); }
