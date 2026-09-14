@@ -61,6 +61,29 @@ describe('ShareExpenseEditorView', () => {
     expect(screen.queryByRole('button', { name: /^Emma$/ })).not.toBeInTheDocument();
   });
 
+  it('cancelling participant selection restores the previous draft', () => {
+    renderShareEditor();
+
+    openParticipantSelection();
+    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Emma' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+    expect(screen.queryByText('Emma')).not.toBeInTheDocument();
+    expect(screen.getByText('You (Payer)')).toBeInTheDocument();
+  });
+
+  it('confirming participant selection preserves the selected draft', () => {
+    renderShareEditor();
+
+    openParticipantSelection();
+    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Emma' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+
+    expect(screen.getByText('Emma')).toBeInTheDocument();
+  });
+
   it('adds only unselected people from a historical group', () => {
     renderShareEditor(vi.fn(), undefined, {
       groupSuggestions: [{
@@ -106,6 +129,24 @@ describe('ShareExpenseEditorView', () => {
 
     fireEvent.click(screen.getByRole('radio', { name: 'As parts' }));
     expect(screen.getByLabelText('You (Payer) parts')).toHaveValue(1);
+  });
+
+  it('keeps the owner included by default and keeps the apply action available for long lists', () => {
+    renderShareEditor(vi.fn(), {
+      mode: 'parts',
+      people: Array.from({ length: 20 }, (_, index) => ({
+        id: `person-${index}`,
+        role: 'participant' as const,
+        name: `Person ${index}`,
+        parts: 1,
+        amount: '0.95',
+        settlementChoice: 'not_required' as const,
+        avatarTone: 'custom' as const,
+      })).concat([{ id: 'owner', role: 'owner' as const, name: 'You (Payer)', parts: 1, amount: '0.95', avatarTone: 'you' as const }]),
+    });
+
+    expect(screen.getByText('You (Payer)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Apply share' })).toBeInTheDocument();
   });
 
   it('shows amount totals, blocks over-total apply and applies a valid share', () => {
