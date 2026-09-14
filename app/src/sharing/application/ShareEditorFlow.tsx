@@ -17,7 +17,7 @@ export function ShareEditorFlow({ title, onClose, required, provided }: ShareEdi
   const confirmSelection = () => setSelectionOpen(false);
 
   if (selectionOpen) {
-    return <ShareParticipantSelectionView people={model.state.selectionPeople} groups={model.state.matchingGroups} selectedPersonIds={selectedPersonIds} query={model.state.query} disabled={required.status.disabled ?? false} onQueryChange={model.commands.setQuery} onPersonToggle={(person) => {
+    return <ShareParticipantSelectionView context={model.state.selectionContext} people={model.state.selectionPeople} groups={model.state.matchingGroups} selectedPersonIds={selectedPersonIds} query={model.state.query} disabled={required.status.disabled ?? false} onContextChange={model.commands.setSelectionContext} onQueryChange={model.commands.setQuery} onPersonToggle={(person) => {
       const selectedMember = model.state.people.find((member) => member.role === 'participant' && member.personId === person.id);
       if (selectedMember) model.commands.removePerson(selectedMember.id);
       else model.commands.addPerson(person);

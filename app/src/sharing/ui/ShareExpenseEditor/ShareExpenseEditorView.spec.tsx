@@ -33,9 +33,9 @@ describe('ShareExpenseEditorView', () => {
     renderShareEditor();
 
     openParticipantSelection();
-    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
+    fireEvent.change(screen.getByLabelText('Search people'), { target: { value: 'Emma' } });
     fireEvent.click(screen.getByRole('button', { name: 'Emma' }));
-    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Luis' } });
+    fireEvent.change(screen.getByLabelText('Search people'), { target: { value: 'Luis' } });
     fireEvent.click(screen.getByRole('button', { name: 'Luis' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
@@ -53,9 +53,9 @@ describe('ShareExpenseEditorView', () => {
     renderShareEditor();
 
     openParticipantSelection();
-    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
+    fireEvent.change(screen.getByLabelText('Search people'), { target: { value: 'Emma' } });
     fireEvent.click(screen.getByRole('button', { name: 'Emma' }));
-    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
+    fireEvent.change(screen.getByLabelText('Search people'), { target: { value: 'Emma' } });
 
     expect(screen.getAllByText('Emma')).toHaveLength(1);
     expect(screen.queryByRole('button', { name: /^Emma$/ })).not.toBeInTheDocument();
@@ -65,7 +65,7 @@ describe('ShareExpenseEditorView', () => {
     renderShareEditor();
 
     openParticipantSelection();
-    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
+    fireEvent.change(screen.getByLabelText('Search people'), { target: { value: 'Emma' } });
     fireEvent.click(screen.getByRole('button', { name: 'Emma' }));
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 
@@ -77,7 +77,7 @@ describe('ShareExpenseEditorView', () => {
     renderShareEditor();
 
     openParticipantSelection();
-    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
+    fireEvent.change(screen.getByLabelText('Search people'), { target: { value: 'Emma' } });
     fireEvent.click(screen.getByRole('button', { name: 'Emma' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
@@ -95,9 +95,9 @@ describe('ShareExpenseEditorView', () => {
     });
 
     openParticipantSelection();
-    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
+    fireEvent.change(screen.getByLabelText('Search people'), { target: { value: 'Emma' } });
     fireEvent.click(screen.getByRole('button', { name: 'Emma' }));
-    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Groups' }));
     fireEvent.click(screen.getByRole('button', { name: /Emma, Luis/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
@@ -109,7 +109,7 @@ describe('ShareExpenseEditorView', () => {
     renderShareEditor();
 
     openParticipantSelection();
-    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Nora' } });
+    fireEvent.change(screen.getByLabelText('Search people'), { target: { value: 'Nora' } });
     fireEvent.click(screen.getByRole('button', { name: /Create Nora/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
@@ -153,7 +153,7 @@ describe('ShareExpenseEditorView', () => {
     const applyShare = renderShareEditor();
 
     openParticipantSelection();
-    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
+    fireEvent.change(screen.getByLabelText('Search people'), { target: { value: 'Emma' } });
     fireEvent.click(screen.getByRole('button', { name: 'Emma' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
     fireEvent.click(screen.getByRole('radio', { name: 'As amounts' }));

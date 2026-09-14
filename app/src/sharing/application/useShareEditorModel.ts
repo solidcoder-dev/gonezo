@@ -24,6 +24,7 @@ export function useShareEditorModel(input: UseShareEditorModelInput) {
   const peopleOptions = input.peopleSuggestions?.length ? input.peopleSuggestions : DEFAULT_SHARE_PEOPLE_OPTIONS;
   const [mode, setMode] = useState<ShareMode>(input.draft?.mode ?? 'parts');
   const [query, setQuery] = useState('');
+  const [selectionContext, setSelectionContextState] = useState<'people' | 'groups'>('people');
   const [people, setPeople] = useState<ShareMemberDraft[]>(() => input.draft?.people ?? resetSharePeopleForMode('parts', amountCents, [{
     id: 'owner', role: 'owner', name: 'You (Payer)', parts: 1, amount: '', avatarTone: 'you',
   }]));
@@ -44,6 +45,11 @@ export function useShareEditorModel(input: UseShareEditorModelInput) {
 
   function replacePeople(nextPeople: ShareMemberDraft[]) {
     setPeople(resetSharePeopleForMode(mode, amountCents, nextPeople));
+  }
+
+  function setSelectionContext(context: 'people' | 'groups') {
+    setSelectionContextState(context);
+    setQuery('');
   }
 
   function addPerson(person: SharingPersonSuggestion) {
@@ -104,8 +110,8 @@ export function useShareEditorModel(input: UseShareEditorModelInput) {
   };
 
   return {
-    state: { mode, query, people, availablePeople: peopleOptions, matchingPeople, selectionPeople, matchingGroups, movementType: input.movementType },
-    commands: { setQuery, selectMode, addPerson, addGroup, addTypedPerson, removePerson, restorePeople, updateParts, updateAmount, updateSettlement },
+    state: { mode, selectionContext, query, people, availablePeople: peopleOptions, matchingPeople, selectionPeople, matchingGroups, movementType: input.movementType },
+    commands: { setQuery, setSelectionContext, selectMode, addPerson, addGroup, addTypedPerson, removePerson, restorePeople, updateParts, updateAmount, updateSettlement },
     validation,
   };
 }
