@@ -319,13 +319,13 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       return;
     }
     clearError();
-    setComposerOpen(true);
-    setInitialFocus('amount');
     resetComposerState();
     applyTransactionEntryInitialMode(initialMode ?? 'expense', setComposerMode, () => {
       setExpectedMovement(false);
       syncForTransferMode();
     });
+    setInitialFocus('amount');
+    setComposerOpen(true);
     void (async () => {
       try {
         await refreshTaxonomyCategories();
