@@ -1,15 +1,19 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ShareEditorComponent } from '../../application/ShareEditorComponent';
-import type { ShareDraft } from './ShareExpenseEditorView';
+import type { ShareDraft, SharingGroupSuggestion } from '../../domain/shareDraft';
 
-function renderShareEditor(applyShare = vi.fn(), draft?: ShareDraft) {
+function renderShareEditor(
+  applyShare = vi.fn(),
+  draft?: ShareDraft,
+  options: { movementType?: 'expense' | 'income'; groupSuggestions?: readonly SharingGroupSuggestion[] } = {},
+) {
   render(
     <ShareEditorComponent
       required={{
         config: {},
-        data: {},
-        state: { amount: '20.00', currencyCode: 'EUR', draft },
+        data: { groupSuggestions: options.groupSuggestions },
+        state: { amount: '20.00', currencyCode: 'EUR', draft, movementType: options.movementType },
         status: { disabled: false },
       }}
       provided={{ commands: { applyShare } }}
@@ -34,6 +38,37 @@ describe('ShareExpenseEditorView', () => {
 
     fireEvent.click(within(rows[1]).getByRole('button', { name: 'Remove Luis' }));
     expect(screen.queryByText('Luis')).not.toBeInTheDocument();
+    expect(within(rows[0]).queryByRole('button', { name: 'Remove You (Payer)' })).not.toBeInTheDocument();
+  });
+
+  it('does not add the same person twice', () => {
+    renderShareEditor();
+
+    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
+    fireEvent.click(screen.getByRole('button', { name: /Emma.*emma@example.com/i }));
+    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
+
+    expect(screen.getAllByText('Emma')).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: /^Emma$/ })).not.toBeInTheDocument();
+  });
+
+  it('adds only unselected people from a historical group', () => {
+    renderShareEditor(vi.fn(), undefined, {
+      groupSuggestions: [{
+        key: 'emma|luis',
+        people: [{ id: 'emma', name: 'Emma' }, { id: 'luis', name: 'Luis' }],
+        usageCount: 2,
+        lastUsedAt: '2026-06-02T10:00:00Z',
+      }],
+    });
+
+    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
+    fireEvent.click(screen.getByRole('button', { name: /Emma.*emma@example.com/i }));
+    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: /Emma, Luis/i }));
+
+    expect(screen.getAllByText('Emma')).toHaveLength(1);
+    expect(screen.getAllByText('Luis')).toHaveLength(1);
   });
 
   it('allows adding a typed person when there are no matches', () => {
@@ -98,5 +133,23 @@ describe('ShareExpenseEditorView', () => {
     expect(screen.getByRole('radio', { name: 'As amounts' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByText('Emma')).toBeInTheDocument();
     expect(screen.getByLabelText('Emma amount')).toHaveValue(8);
+    expect(screen.getByRole('button', { name: 'Emma settlement status' })).toHaveTextContent('Pending');
+  });
+
+  it.each([
+    ['expense', 'Reimbursed', 'No reimbursement'],
+    ['income', 'Paid out', 'No payout'],
+  ] as const)('keeps %s settlement labels', (movementType, settledLabel, notRequiredLabel) => {
+    renderShareEditor(vi.fn(), {
+      mode: 'amounts',
+      people: [
+        { id: 'owner', role: 'owner', name: 'You (Payer)', parts: 1, amount: '20.00', avatarTone: 'you' },
+        { id: 'emma-1', role: 'participant', name: 'Emma', settlementChoice: 'settled', parts: 1, amount: '0.00', avatarTone: 'emma' },
+      ],
+    }, { movementType });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Emma settlement status' }));
+    expect(screen.getByRole('option', { name: settledLabel })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: notRequiredLabel })).toBeInTheDocument();
   });
 });
