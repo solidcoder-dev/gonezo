@@ -245,7 +245,7 @@ describe('CoreAdapterWeb state and effects boundaries', () => {
       occurredAt: '2026-06-02T09:00:00.000Z',
       amount: '30.00',
       currency: 'EUR',
-      merchant: 'Dinner',
+      description: 'Dinner',
     });
 
     const share = await core.sharingApplyShareToPostedMovement({
@@ -256,6 +256,9 @@ describe('CoreAdapterWeb state and effects boundaries', () => {
 
     const expectedMovementId = share.participants[0].expectedMovementId;
     expect(expectedMovementId).toBeTruthy();
+    await expect(core.expectedListMovements({ accountId: account.id })).resolves.toMatchObject({
+      items: [expect.objectContaining({ description: 'Dinner · Alex', merchant: 'Alex' })],
+    });
     expect(state.analyticsExclusions).toContainEqual(expect.objectContaining({
       scopeType: 'expected_movement',
       scopeId: expectedMovementId,

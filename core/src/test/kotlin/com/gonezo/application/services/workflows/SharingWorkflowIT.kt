@@ -41,7 +41,7 @@ class SharingWorkflowIT : SqliteE2ETest() {
     @Test
     fun `sharing an expense creates reusable person expected repayment and analytics exclusions`() {
         val accountId = openCashAccount()
-        val transactionId = recordExpense(accountId.toString(), "20.00")
+        val transactionId = recordExpense(accountId.toString(), "20.00", description = "Dinner", merchant = null)
 
         val result =
             app.sharingApplyShareToPostedMovementUC.execute(
@@ -66,6 +66,8 @@ class SharingWorkflowIT : SqliteE2ETest() {
         val expectedMovement = app.expectedMovementRepository.findById(result.participants.single().expectedMovementId!!)
         assertThat(expectedMovement!!.type.value).isEqualTo("income")
         assertThat(expectedMovement.amount).isEqualByComparingTo("10.00")
+        assertThat(expectedMovement.description).isEqualTo("Dinner · Tyler")
+        assertThat(expectedMovement.merchant).isEqualTo("Tyler")
         assertThat(expectedMovement.status).isEqualTo(ExpectedMovementStatus.PENDING)
 
         val exclusions = app.analyticsExclusionRepository.listAll()
@@ -280,7 +282,7 @@ class SharingWorkflowIT : SqliteE2ETest() {
         ),
     )
 
-    private fun recordExpense(accountId: String, amount: String): String = app.ledgerRecordExpenseUC
+    private fun recordExpense(accountId: String, amount: String, description: String = "Cafe", merchant: String? = "Cafe"): String = app.ledgerRecordExpenseUC
         .execute(
             RecordLedgerExpenseCommand(
                 accountId =
@@ -288,8 +290,8 @@ class SharingWorkflowIT : SqliteE2ETest() {
                     .from(accountId),
                 amount = Money(BigDecimal(amount), "EUR"),
                 occurredAt = Instant.parse("2026-06-29T10:00:00Z"),
-                description = "Cafe",
-                merchant = "Cafe",
+                description = description,
+                merchant = merchant,
             ),
         ).toString()
 
