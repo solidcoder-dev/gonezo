@@ -199,6 +199,28 @@ describe('useTransactionEntryModel', () => {
     expect(onRecorded).toHaveBeenCalledTimes(1);
   });
 
+  it('opens a fresh composer with today and amount focus after any previous entry', async () => {
+    const ports = makePorts();
+    const { result } = renderHook(() => useTransactionEntryModel({
+      ports,
+      clock: makeClock(),
+      idGenerator: makeIdGenerator([]),
+      accountId: 'account-1',
+      enabled: true,
+    }));
+
+    await waitFor(() => expect(result.current.required.status.disabled).toBe(false));
+    act(() => {
+      result.current.provided.commands.open();
+      result.current.provided.commands.setDate('2023-07-15');
+      result.current.provided.commands.close();
+    });
+    act(() => result.current.provided.commands.open());
+
+    expect(result.current.required.state.date).toBe('2026-05-18');
+    expect(result.current.required.state.initialFocus).toBe('amount');
+  });
+
   it('keeps form values and local field validation after an invalid submit', async () => {
     const ports = makePorts();
     const onError = vi.fn();
