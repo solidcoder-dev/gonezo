@@ -109,6 +109,31 @@ class SharingWorkflowIT : SqliteE2ETest() {
     }
 
     @Test
+    fun `reimbursement titles use merchant precedence and trimmed participant names`() {
+        val accountId = openCashAccount()
+        val transactionId = recordExpense(accountId.toString(), "30.00", description = "Dinner note", merchant = "Restaurant")
+
+        val result = app.sharingApplyShareToPostedMovementUC.execute(
+            ApplyShareToPostedMovementCommand(
+                transactionId = transactionId,
+                payer = SharingPersonReference.CurrentUser,
+                participants = listOf(
+                    ApplyShareParticipantCommand(SharingPersonReference.New(" Tyler "), BigDecimal("10.00"), true),
+                    ApplyShareParticipantCommand(SharingPersonReference.New(" Laura "), BigDecimal("5.00"), true),
+                    ApplyShareParticipantCommand(SharingPersonReference.New(" No settlement "), BigDecimal.ZERO, true),
+                ),
+                appliedAt = Instant.parse("2026-06-29T10:15:00Z"),
+            ),
+        )
+
+        val expected = result.participants.filter { it.expectedMovementId != null }
+            .map { app.expectedMovementRepository.findById(it.expectedMovementId!!)!! }
+        assertThat(expected.map { it.description }).containsExactlyInAnyOrder("Restaurant · Tyler", "Restaurant · Laura")
+        assertThat(expected.map { it.merchant }).containsExactlyInAnyOrder("Tyler", "Laura")
+        assertThat(result.participants.single { it.displayName == "No settlement" }.expectedMovementId).isNull()
+    }
+
+    @Test
     fun `sharing a second expense with the current payer reproduces the duplicate payer failure`() {
         val accountId = openCashAccount()
         val firstTransactionId = recordExpense(accountId.toString(), "20.00")
