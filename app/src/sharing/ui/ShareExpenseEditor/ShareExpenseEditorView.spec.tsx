@@ -177,6 +177,15 @@ describe('ShareExpenseEditorView', () => {
     );
   });
 
+  it('uses a vertical scrolling content region without elastic grid tracks', () => {
+    renderShareEditor();
+
+    const content = screen.getByText('Total').parentElement?.parentElement?.parentElement;
+    expect(content).toHaveClass('flex-grow-1', 'overflow-y-auto', 'overflow-x-hidden');
+    expect(content?.firstElementChild).toHaveClass('d-flex', 'flex-column', 'gap-4');
+    expect(content).not.toHaveClass('d-grid');
+  });
+
   it('restores a previously applied share draft', () => {
     renderShareEditor(vi.fn(), {
       mode: 'amounts',
