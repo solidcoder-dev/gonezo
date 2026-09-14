@@ -3,8 +3,9 @@ import {
   DEFAULT_SHARE_PEOPLE_OPTIONS,
   distributeShareByParts,
   makeSharePerson,
-  matchesSharePerson,
   parseShareCents,
+  projectShareGroups,
+  projectSharePeople,
   resetSharePeopleForMode,
   totalShareCents,
 } from './shareDraftCalculator';
@@ -31,15 +32,9 @@ export function useShareEditorModel(input: UseShareEditorModelInput) {
 
   const normalizedQuery = query.trim();
   const existingIds = useMemo(() => new Set(people.flatMap((person) => person.role === 'participant' && person.personId ? [person.personId] : [])), [people]);
-  const matchingPeople = useMemo(() => peopleOptions
-    .filter((person) => !existingIds.has(person.id))
-    .filter((person) => normalizedQuery.length > 0 && matchesSharePerson(person, normalizedQuery))
-    .slice(0, 5), [existingIds, normalizedQuery, peopleOptions]);
-  const selectionPeople = useMemo(() => peopleOptions
-    .filter((person) => normalizedQuery.length === 0 || matchesSharePerson(person, normalizedQuery)), [normalizedQuery, peopleOptions]);
-  const matchingGroups = useMemo(() => (input.groupSuggestions ?? [])
-    .filter((group) => normalizedQuery.length === 0 || group.people.some((person) => matchesSharePerson(person, normalizedQuery)))
-    .filter((group) => group.people.some((person) => !existingIds.has(person.id))), [existingIds, input.groupSuggestions, normalizedQuery]);
+  const selectionPeople = useMemo(() => projectSharePeople(peopleOptions, normalizedQuery), [normalizedQuery, peopleOptions]);
+  const matchingPeople = selectionPeople;
+  const matchingGroups = useMemo(() => projectShareGroups(input.groupSuggestions ?? [], normalizedQuery, existingIds), [existingIds, input.groupSuggestions, normalizedQuery]);
   const totalCents = totalShareCents(people);
   const remainingCents = amountCents - totalCents;
 
@@ -110,7 +105,7 @@ export function useShareEditorModel(input: UseShareEditorModelInput) {
   };
 
   return {
-    state: { mode, selectionContext, query, people, availablePeople: peopleOptions, matchingPeople, selectionPeople, matchingGroups, movementType: input.movementType },
+    state: { mode, selectionContext, query, people, availablePeople: peopleOptions, matchingPeople, selectionPeople, matchingGroups, canCreatePerson: normalizedQuery.length > 0 && !peopleOptions.some((person) => person.name.trim().toLowerCase() === normalizedQuery.toLowerCase()), movementType: input.movementType },
     commands: { setQuery, setSelectionContext, selectMode, addPerson, addGroup, addTypedPerson, removePerson, restorePeople, updateParts, updateAmount, updateSettlement },
     validation,
   };

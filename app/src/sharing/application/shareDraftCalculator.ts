@@ -1,4 +1,7 @@
-import type { ShareMemberDraft, ShareMode, ShareSettlementChoice, SharingPersonSuggestion } from '../domain/shareDraft';
+import type { ShareMemberDraft, ShareMode, ShareSettlementChoice, SharingGroupSuggestion, SharingPersonSuggestion } from '../domain/shareDraft';
+
+export const INITIAL_SHARE_SUGGESTION_LIMIT = 5;
+export const SEARCH_SHARE_RESULT_LIMIT = 20;
 
 export const DEFAULT_SHARE_PEOPLE_OPTIONS: SharingPersonSuggestion[] = [
   { id: 'emma', name: 'Emma', email: 'emma@example.com' },
@@ -87,4 +90,24 @@ export function totalShareCents(people: ShareMemberDraft[]): number {
 export function matchesSharePerson(person: SharingPersonSuggestion, query: string): boolean {
   const normalized = query.trim().toLowerCase();
   return person.name.toLowerCase().includes(normalized) || Boolean(person.email?.toLowerCase().includes(normalized));
+}
+
+export function projectSharePeople(people: readonly SharingPersonSuggestion[], query: string): SharingPersonSuggestion[] {
+  const normalizedQuery = query.trim();
+  return people
+    .filter((person) => normalizedQuery.length === 0 || matchesSharePerson(person, normalizedQuery))
+    .slice(0, normalizedQuery.length === 0 ? INITIAL_SHARE_SUGGESTION_LIMIT : SEARCH_SHARE_RESULT_LIMIT);
+}
+
+export function matchesShareGroup(group: SharingGroupSuggestion, query: string): boolean {
+  const normalizedQuery = query.trim().toLowerCase();
+  return group.people.some((person) => matchesSharePerson(person, normalizedQuery));
+}
+
+export function projectShareGroups(groups: readonly SharingGroupSuggestion[], query: string, excludedIds: ReadonlySet<string>): SharingGroupSuggestion[] {
+  const normalizedQuery = query.trim();
+  return groups
+    .filter((group) => normalizedQuery.length === 0 || matchesShareGroup(group, normalizedQuery))
+    .filter((group) => group.people.some((person) => !excludedIds.has(person.id)))
+    .slice(0, normalizedQuery.length === 0 ? INITIAL_SHARE_SUGGESTION_LIMIT : SEARCH_SHARE_RESULT_LIMIT);
 }

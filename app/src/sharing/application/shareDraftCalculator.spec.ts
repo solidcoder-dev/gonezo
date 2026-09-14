@@ -5,6 +5,8 @@ import {
   makeSharePerson,
   resetSharePeopleForMode,
   totalShareCents,
+  projectShareGroups,
+  projectSharePeople,
 } from './shareDraftCalculator';
 
 const people = [
@@ -53,5 +55,16 @@ describe('share allocation calculations', () => {
 
     expect(recalculated.map((person) => person.id)).toEqual(['owner', 'alex']);
     expect(recalculated[1].amount).toBe('');
+  });
+
+  it('limits empty people projections while preserving gateway order', () => {
+    const suggestions = Array.from({ length: 7 }, (_, index) => ({ id: `person-${index}`, name: `Person ${index}` }));
+    expect(projectSharePeople(suggestions, '').map((person) => person.id)).toEqual(['person-0', 'person-1', 'person-2', 'person-3', 'person-4']);
+  });
+
+  it('matches groups through member names and limits empty group projections', () => {
+    const groups = Array.from({ length: 7 }, (_, index) => ({ key: `group-${index}`, people: [{ id: `person-${index}`, name: `Person ${index}` }], usageCount: 1, lastUsedAt: '2026-01-01T00:00:00Z' }));
+    expect(projectShareGroups(groups, 'Person 6', new Set()).map((group) => group.key)).toEqual(['group-6']);
+    expect(projectShareGroups(groups, '', new Set()).map((group) => group.key)).toEqual(['group-0', 'group-1', 'group-2', 'group-3', 'group-4']);
   });
 });

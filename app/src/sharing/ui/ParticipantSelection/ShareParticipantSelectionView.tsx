@@ -4,6 +4,7 @@ export type ShareParticipantSelectionViewProps = {
   readonly context: 'people' | 'groups';
   readonly people: readonly SharingPersonSuggestion[];
   readonly groups: readonly SharingGroupSuggestion[];
+  readonly canCreatePerson: boolean;
   readonly selectedPersonIds: ReadonlySet<string>;
   readonly query: string;
   readonly disabled: boolean;
@@ -16,8 +17,7 @@ export type ShareParticipantSelectionViewProps = {
   readonly onConfirm: () => void;
 };
 
-export function ShareParticipantSelectionView({ context, people, groups, selectedPersonIds, query, disabled, onContextChange, onQueryChange, onPersonToggle, onGroupSelect, onCreatePerson, onBack, onConfirm }: ShareParticipantSelectionViewProps) {
-  const canCreatePerson = query.trim().length > 0 && people.every((person) => person.name.trim().toLowerCase() !== query.trim().toLowerCase());
+export function ShareParticipantSelectionView({ context, people, groups, canCreatePerson, selectedPersonIds, query, disabled, onContextChange, onQueryChange, onPersonToggle, onGroupSelect, onCreatePerson, onBack, onConfirm }: ShareParticipantSelectionViewProps) {
   return (
     <main className="min-vh-100 d-flex flex-column bg-body" aria-label="Add people or groups">
       <header className="d-flex align-items-center gap-3 px-4">
@@ -39,6 +39,7 @@ export function ShareParticipantSelectionView({ context, people, groups, selecte
           <h2 className="h6">Suggested groups</h2>
           <div className="vstack">
             {groups.map((group) => <button key={group.key} type="button" className="btn d-flex align-items-center gap-3 w-100 text-start" onClick={() => onGroupSelect(group)} disabled={disabled}><i className="bi bi-people" aria-hidden="true" /><span className="flex-grow-1 text-truncate">{group.people.map((person) => person.name).join(', ')}</span><small className="text-body-secondary">{group.usageCount}</small></button>)}
+            {groups.length === 0 ? <p className="small text-body-secondary mb-0">No matching groups.</p> : null}
           </div>
         </section> : <section id="people-panel" role="tabpanel" aria-labelledby="people-tab" className="mt-4" aria-label="Suggested people">
           <h2 className="h6">Suggested people</h2>
@@ -48,6 +49,7 @@ export function ShareParticipantSelectionView({ context, people, groups, selecte
               return <button key={person.id} type="button" className="btn d-flex align-items-center gap-3 w-100 text-start" aria-pressed={selected} onClick={() => onPersonToggle(person)} disabled={disabled}><span className="rounded-circle bg-secondary-subtle d-inline-flex align-items-center justify-content-center" style={{ width: 40, height: 40 }} aria-hidden="true">{person.name.slice(0, 1)}</span><span className="flex-grow-1 text-truncate">{person.name}</span>{selected ? <i className="bi bi-check2 text-primary" aria-label="Selected" /> : null}</button>;
             })}
             {canCreatePerson ? <button type="button" className="btn d-flex align-items-center gap-3 w-100 text-start" onClick={() => onCreatePerson(query)} disabled={disabled}><i className="bi bi-person-plus" aria-hidden="true" /><span className="flex-grow-1">Create {query.trim()}</span></button> : null}
+            {people.length === 0 && !canCreatePerson ? <p className="small text-body-secondary mb-0">No matching people.</p> : null}
           </div>
         </section>}
       </div>
