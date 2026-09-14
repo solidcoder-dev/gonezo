@@ -1,6 +1,8 @@
 package com.gonezo.sharing.application
 
 sealed interface SharingPersonReference {
+    data object CurrentUser : SharingPersonReference
+
     data class Existing(val personId: String) : SharingPersonReference {
         init {
             require(personId.isNotBlank()) { "Existing sharing person requires an id" }

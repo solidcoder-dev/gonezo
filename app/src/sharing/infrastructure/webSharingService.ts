@@ -143,6 +143,13 @@ export class WebSharingService {
   }
 
   private resolvePerson(reference: SharingPersonReference, createdAt: string): WebSharingPerson {
+    if ('currentUser' in reference) {
+      const existing = this.state.sharingPersons.find((person) => person.normalizedName === 'you' && !person.archivedAt);
+      if (existing) return existing;
+      const person = { id: this.dependencies.idGenerator.nextId(), name: 'You', normalizedName: 'you', createdAt };
+      this.state.sharingPersons.push(person);
+      return person;
+    }
     if ('personId' in reference) {
       const existing = this.state.sharingPersons.find((person) => person.id === reference.personId && !person.archivedAt);
       if (!existing) {

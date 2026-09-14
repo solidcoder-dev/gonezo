@@ -106,6 +106,7 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
     }
 
     private fun resolvePerson(reference: SharingPersonReference, createdAt: java.time.Instant): SharingPerson = when (reference) {
+        SharingPersonReference.CurrentUser -> resolveCurrentUser(createdAt)
         is SharingPersonReference.Existing -> sharingPersonRepository.findById(SharingPersonId.from(reference.personId))
             ?: throw IllegalArgumentException("Sharing person not found: ${reference.personId}")
         is SharingPersonReference.New -> {
@@ -116,6 +117,11 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
             SharingPerson.create(SharingPersonId.random(), reference.displayName, createdAt).also(sharingPersonRepository::save)
         }
     }
+
+    private fun resolveCurrentUser(createdAt: java.time.Instant): SharingPerson =
+        sharingPersonRepository.findByNormalizedName(SharingPerson.CURRENT_USER_NAME)
+            ?: SharingPerson.create(SharingPersonId.random(), SharingPerson.CURRENT_USER_DISPLAY_NAME, createdAt)
+                .also(sharingPersonRepository::save)
 
     private fun createAnalyticsExclusions(share: MovementShare, createdAt: java.time.Instant) {
         share.participants

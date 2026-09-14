@@ -150,14 +150,27 @@ class DefaultMaterializePlannedShareForPostedMovementService(private val planned
         val result = applyShare.execute(
             ApplyShareToPostedMovementCommand(
                 command.transactionId,
-                SharingPersonReference.New(command.finalDraft?.payerName ?: payer.displayName),
-                participants.map { ApplyShareParticipantCommand(SharingPersonReference.New(it.personName), it.amount, it.reimbursable) },
+                command.finalDraft?.let { payerReference(it.payerName) } ?: SharingPersonReference.Existing(payer.id.toString()),
+                if (command.finalDraft == null) {
+                    planned.participants.sortedBy { it.order }.map {
+                        ApplyShareParticipantCommand(SharingPersonReference.Existing(it.personId.toString()), it.amount, it.reimbursable)
+                    }
+                } else {
+                    participants.map { ApplyShareParticipantCommand(SharingPersonReference.New(it.personName), it.amount, it.reimbursable) }
+                },
                 command.materializedAt,
             ),
         )
         plannedShares.save(planned.materialize(command.transactionId, MovementShareId.from(result.shareId), command.materializedAt))
         result.shareId
     }
+
+    private fun payerReference(name: String): SharingPersonReference =
+        if (SharingPerson.normalizeName(name) == SharingPerson.CURRENT_USER_NAME) {
+            SharingPersonReference.CurrentUser
+        } else {
+            SharingPersonReference.New(name)
+        }
 
     private fun validateOverride(participants: List<FinalPlannedShareParticipant>, planned: PlannedMovementShare) {
         require(participants.isNotEmpty()) { "sharing override requires participants" }

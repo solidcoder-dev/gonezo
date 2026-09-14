@@ -152,11 +152,17 @@ final class SharingPluginHandler {
       throw new IllegalArgumentException("Sharing person reference is required");
     }
     boolean hasId = value.has("personId") && !value.isNull("personId") && !value.optString("personId").isBlank();
+    boolean currentUser = value.optBoolean("currentUser", false);
     boolean hasName = value.has("displayName") && !value.isNull("displayName") && !value.optString("displayName").isBlank();
-    if (hasId == hasName) {
+    if (currentUser && (hasId || hasName)) {
+      throw new IllegalArgumentException("Current user reference cannot contain another identity");
+    }
+    if (!currentUser && hasId == hasName) {
       throw new IllegalArgumentException("Sharing person reference must contain exactly one id or display name");
     }
-    return hasId
+    return currentUser
+      ? SharingPersonReference.CurrentUser.INSTANCE
+      : hasId
       ? new SharingPersonReference.Existing(value.optString("personId"))
       : new SharingPersonReference.New(value.optString("displayName"));
   }

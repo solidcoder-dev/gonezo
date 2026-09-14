@@ -15,6 +15,7 @@ export type SharingApplyShareParticipantInput = {
 };
 
 export type SharingPersonReference =
+  | { currentUser: true; personId?: never; displayName?: never }
   | { personId: string; displayName?: never }
   | { displayName: string; personId?: never };
 

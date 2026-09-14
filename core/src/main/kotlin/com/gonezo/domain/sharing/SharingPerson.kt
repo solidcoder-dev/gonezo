@@ -18,6 +18,9 @@ data class SharingPerson(val id: SharingPersonId, val displayName: String, val n
     }
 
     companion object {
+        const val CURRENT_USER_DISPLAY_NAME = "You"
+        const val CURRENT_USER_NAME = "you"
+
         fun create(id: SharingPersonId, displayName: String, createdAt: Instant): SharingPerson {
             val cleanName = displayName.trim()
             return SharingPerson(

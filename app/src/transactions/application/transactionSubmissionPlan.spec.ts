@@ -141,7 +141,7 @@ describe('transaction submission plan', () => {
 
     expect(input.ports.sharing.sharingApplyShareToPostedMovement).toHaveBeenCalledWith({
       transactionId: 'tx-1',
-      payer: { displayName: 'You' },
+      payer: { currentUser: true },
       participants: [{ person: { displayName: 'Alex' }, amount: '4.00', reimbursable: true }],
       appliedAt: '2026-05-18T10:20:30.000Z',
     });

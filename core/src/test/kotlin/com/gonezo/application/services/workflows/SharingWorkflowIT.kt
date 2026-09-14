@@ -127,6 +127,27 @@ class SharingWorkflowIT : SqliteE2ETest() {
     }
 
     @Test
+    fun `current payer identity is reused across shared expenses`() {
+        val accountId = openCashAccount()
+        val firstTransactionId = recordExpense(accountId.toString(), "20.00")
+        val secondTransactionId = recordExpense(accountId.toString(), "12.00")
+        val command = { transactionId: String, participant: SharingPersonReference ->
+            ApplyShareToPostedMovementCommand(
+                transactionId = transactionId,
+                payer = SharingPersonReference.CurrentUser,
+                participants = listOf(ApplyShareParticipantCommand(participant, BigDecimal("10.00"), true)),
+                appliedAt = Instant.parse("2026-06-29T10:15:00Z"),
+            )
+        }
+
+        app.sharingApplyShareToPostedMovementUC.execute(command(firstTransactionId, SharingPersonReference.New("Tyler")))
+        val tyler = app.sharingPersonRepository.listActive().single { it.normalizedName == "tyler" }
+        app.sharingApplyShareToPostedMovementUC.execute(command(secondTransactionId, SharingPersonReference.Existing(tyler.id.toString())))
+
+        assertThat(app.sharingPersonRepository.listActive().count { it.normalizedName == "you" }).isEqualTo(1)
+    }
+
+    @Test
     fun `resolved expected marks shared participant as paid in movement sharing details`() {
         val accountId = openCashAccount()
         val transactionId = recordExpense(accountId.toString(), "20.00")
