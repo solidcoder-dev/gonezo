@@ -146,7 +146,7 @@ describe('ShareExpenseEditorView', () => {
   it('keeps the owner included by default and keeps the apply action available for long lists', () => {
     renderShareEditor(vi.fn(), {
       mode: 'parts',
-      people: Array.from({ length: 20 }, (_, index) => ({
+      people: (Array.from({ length: 20 }, (_, index) => ({
         id: `person-${index}`,
         role: 'participant' as const,
         name: `Person ${index}`,
@@ -154,7 +154,7 @@ describe('ShareExpenseEditorView', () => {
         amount: '0.95',
         settlementChoice: 'not_required' as const,
         avatarTone: 'custom' as const,
-      })).concat([{ id: 'owner', role: 'owner' as const, name: 'You (Payer)', parts: 1, amount: '0.95', avatarTone: 'you' as const }]),
+      })) as ShareDraft['people']).concat([{ id: 'owner', role: 'owner' as const, name: 'You (Payer)', parts: 1, amount: '0.95', avatarTone: 'you' as const }]),
     });
 
     expect(screen.getByText('You (Payer)')).toBeInTheDocument();
