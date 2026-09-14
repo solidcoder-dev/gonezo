@@ -73,7 +73,7 @@ data class RecurringShareParticipantTemplate(val id: RecurringShareParticipantTe
     }
 }
 
-data class RecurringSharePlan(val id: RecurringSharePlanId, val recurringMovementRef: RecurringMovementRef, val payerPersonId: SharingPersonId, val mode: RecurringShareAllocationMode, val currency: String, val payerParts: Int?, val participants: List<RecurringShareParticipantTemplate>, val createdAt: Instant, val updatedAt: Instant) {
+data class RecurringSharePlan(val id: RecurringSharePlanId, val recurringMovementRef: RecurringMovementRef, val payerPersonId: SharingPersonId, val mode: RecurringShareAllocationMode, val currency: String, val payerParts: Int?, val participants: List<RecurringShareParticipantTemplate>, val createdAt: Instant, val updatedAt: Instant, val ownerIncluded: Boolean = true) {
     init {
         require(currency.matches(Regex("^[A-Z]{3}$"))) { "sharing currency must be 3 uppercase letters" }
         require(participants.isNotEmpty()) { "sharing plan requires participants" }
@@ -98,7 +98,7 @@ data class PlannedMovementShareParticipant(val id: PlannedMovementShareParticipa
     }
 }
 
-data class PlannedMovementShare(val id: PlannedMovementShareId, val expectedMovementRef: ExpectedMovementRef, val sourcePlanId: RecurringSharePlanId?, val payerPersonId: SharingPersonId, val mode: RecurringShareAllocationMode, val payerParts: Int?, val totalAmount: BigDecimal, val currency: String, val participants: List<PlannedMovementShareParticipant>, val status: PlannedMovementShareStatus, val materializedTransactionId: String?, val materializedShareId: MovementShareId?, val createdAt: Instant, val updatedAt: Instant) {
+data class PlannedMovementShare(val id: PlannedMovementShareId, val expectedMovementRef: ExpectedMovementRef, val sourcePlanId: RecurringSharePlanId?, val payerPersonId: SharingPersonId, val mode: RecurringShareAllocationMode, val payerParts: Int?, val totalAmount: BigDecimal, val currency: String, val participants: List<PlannedMovementShareParticipant>, val status: PlannedMovementShareStatus, val materializedTransactionId: String?, val materializedShareId: MovementShareId?, val createdAt: Instant, val updatedAt: Instant, val ownerIncluded: Boolean = true) {
     init {
         require(totalAmount > BigDecimal.ZERO) { "planned share total must be positive" }
         require(participants.isNotEmpty()) { "planned share requires participants" }
@@ -150,12 +150,14 @@ class AmountMovementShareAllocationStrategy : MovementShareAllocationStrategy {
 
 class PartsMovementShareAllocationStrategy : MovementShareAllocationStrategy {
     override fun allocate(total: BigDecimal, plan: RecurringSharePlan, scale: Int): List<BigDecimal> {
-        val denominator = plan.payerParts!! + plan.participants.sumOf { it.parts!! }
+        val denominator = (if (plan.ownerIncluded) plan.payerParts!! else 0) + plan.participants.sumOf { it.parts!! }
         val unit = total.divide(BigDecimal(denominator), scale + 8, RoundingMode.DOWN)
-        return plan.participants
+        val allocations = plan.participants
             .sortedBy { it.order }
             .map {
                 unit.multiply(BigDecimal(it.parts!!)).setScale(scale, RoundingMode.DOWN)
-            }.also { require(it.sumOf { amount -> amount } <= total) { "participant allocation exceeds movement total" } }
+            }.toMutableList()
+        if (!plan.ownerIncluded) allocations[0] = allocations[0] + (total.setScale(scale, RoundingMode.DOWN) - allocations.sumOf { it })
+        return allocations.also { require(it.sumOf { amount -> amount } <= total) { "participant allocation exceeds movement total" } }
     }
 }

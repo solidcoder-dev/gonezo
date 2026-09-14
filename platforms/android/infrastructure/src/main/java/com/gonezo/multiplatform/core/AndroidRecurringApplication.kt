@@ -78,7 +78,7 @@ internal class AndroidRecurringApplication private constructor(context: Context)
     }
     val command = CreateRecurringSharePlanCommand(
       recurringId ?: "pending", type ?: "expense", reviewPolicy ?: "automatic", raw.getString("payerName"),
-      RecurringShareAllocationMode.from(raw.optString("mode", "parts")), currency ?: "", raw.optIntOrNull("payerParts"), inputs, at,
+      RecurringShareAllocationMode.from(raw.optString("mode", "parts")), currency ?: "", raw.optIntOrNull("payerParts"), inputs, at, raw.optBoolean("ownerIncluded", true),
     )
     return SharingPlanChange.Replace(command)
   }

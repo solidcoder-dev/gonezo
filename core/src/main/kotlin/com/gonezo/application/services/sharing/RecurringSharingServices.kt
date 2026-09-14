@@ -35,7 +35,7 @@ sealed interface SharingPlanChange {
     data class Replace(val plan: CreateRecurringSharePlanCommand) : SharingPlanChange
 }
 
-data class CreateRecurringSharePlanCommand(val recurringMovementId: String, val movementType: String, val reviewPolicy: String, val payerName: String, val mode: RecurringShareAllocationMode, val currency: String, val payerParts: Int?, val participants: List<RecurringShareParticipantInput>, val savedAt: Instant)
+data class CreateRecurringSharePlanCommand(val recurringMovementId: String, val movementType: String, val reviewPolicy: String, val payerName: String, val mode: RecurringShareAllocationMode, val currency: String, val payerParts: Int?, val participants: List<RecurringShareParticipantInput>, val savedAt: Instant, val ownerIncluded: Boolean = true)
 
 interface RecurringSharePlanService {
     fun createOrUpdate(command: CreateRecurringSharePlanCommand): RecurringSharePlanId
@@ -73,7 +73,7 @@ class DefaultRecurringSharePlanService(private val plans: RecurringSharePlanRepo
         val plan = RecurringSharePlan(
             id = existing?.id ?: RecurringSharePlanId.random(), recurringMovementRef = RecurringMovementRef(command.recurringMovementId),
             payerPersonId = payer.id, mode = command.mode, currency = command.currency.trim().uppercase(), payerParts = command.payerParts,
-            participants = templates, createdAt = existing?.createdAt ?: command.savedAt, updatedAt = command.savedAt,
+            participants = templates, createdAt = existing?.createdAt ?: command.savedAt, updatedAt = command.savedAt, ownerIncluded = command.ownerIncluded,
         )
         plans.save(plan)
         return plan.id
@@ -114,7 +114,7 @@ class DefaultPlannedShareInstantiator(private val plans: RecurringSharePlanRepos
         val ordered = plan.participants.sortedBy { it.order }
         PlannedMovementShare(
             id = PlannedMovementShareId.random(), expectedMovementRef = expectedRef, sourcePlanId = plan.id,
-            payerPersonId = plan.payerPersonId, mode = plan.mode, payerParts = plan.payerParts, totalAmount = snapshot.totalAmount,
+            payerPersonId = plan.payerPersonId, mode = plan.mode, payerParts = plan.payerParts, totalAmount = snapshot.totalAmount, ownerIncluded = plan.ownerIncluded,
             currency = snapshot.currency.trim().uppercase(),
             participants = ordered.mapIndexed { index, template ->
                 PlannedMovementShareParticipant(PlannedMovementShareParticipantId.random(), template.personId, template.parts, amounts[index], template.reimbursable, template.order)
