@@ -1,5 +1,7 @@
 package com.gonezo.application.services.sharing
 
+import com.gonezo.sharing.application.RenameSharingPersonCommand
+import com.gonezo.sharing.application.RenameSharingPersonService
 import com.gonezo.sharing.domain.ShareAllocationMode
 import com.gonezo.sharing.domain.ShareParticipant
 import com.gonezo.sharing.domain.ShareParticipantId
@@ -9,6 +11,7 @@ import com.gonezo.sharing.domain.MovementShare
 import com.gonezo.sharing.domain.MovementShareId
 import com.gonezo.sharing.domain.SharingPerson
 import com.gonezo.sharing.domain.SharingPersonId
+import com.gonezo.sharing.domain.ports.SharingPersonRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
@@ -16,6 +19,21 @@ import java.time.Instant
 import java.math.BigDecimal
 
 class SharingSemanticsDomainTest {
+    @Test
+    fun `rename use case persists the same identity and rejects active name collisions`() {
+        val first = SharingPerson.create(SharingPersonId.random(), "Taylor", Instant.EPOCH)
+        val second = SharingPerson.create(SharingPersonId.random(), "Morgan", Instant.EPOCH)
+        val repository = InMemorySharingPersonRepository(mutableListOf(first, second))
+        val service = RenameSharingPersonService(repository)
+
+        val result = service.execute(RenameSharingPersonCommand(first.id.toString(), " Taylor Jones "))
+
+        assertThat(result.id).isEqualTo(first.id.toString())
+        assertThat(repository.findById(first.id)?.displayName).isEqualTo("Taylor Jones")
+        assertThatThrownBy { service.execute(RenameSharingPersonCommand(first.id.toString(), " Morgan ")) }
+            .isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessage("Sharing person already exists:  Morgan ")
+    }
     @Test
     fun `sharing semantics expose the closed vocabulary`() {
         assertThat(SharedMovementType.values()).containsExactly(SharedMovementType.EXPENSE, SharedMovementType.INCOME)
@@ -123,4 +141,14 @@ class SharingSemanticsDomainTest {
 
         assertThat(share.ownerAllocation + share.participants.single().amount).isEqualByComparingTo("10.00")
     }
+}
+
+private class InMemorySharingPersonRepository(private val values: MutableList<SharingPerson>) : SharingPersonRepository {
+    override fun save(person: SharingPerson) {
+        values[values.indexOfFirst { it.id == person.id }] = person
+    }
+
+    override fun findByNormalizedName(normalizedName: String): SharingPerson? = values.firstOrNull { it.archivedAt == null && it.normalizedName == normalizedName }
+
+    override fun listActive(): List<SharingPerson> = values.filter { it.archivedAt == null }
 }

@@ -274,3 +274,18 @@ class ListSharingGroupSuggestionsService(
         var lastUsedAt: java.time.Instant,
     )
 }
+
+class RenameSharingPersonService(
+    private val people: SharingPersonRepository,
+) : RenameSharingPersonUC {
+    override fun execute(command: RenameSharingPersonCommand): SharingPersonSuggestionView {
+        require(command.displayName.isNotBlank()) { "sharing person display name is required" }
+        val person = people.findById(SharingPersonId.from(command.personId))
+            ?: throw IllegalArgumentException("Sharing person not found: ${command.personId}")
+        val renamed = person.rename(command.displayName)
+        val collision = people.findByNormalizedName(renamed.normalizedName)
+        require(collision == null || collision.id == person.id) { "Sharing person already exists: ${command.displayName}" }
+        people.save(renamed)
+        return SharingPersonSuggestionView(renamed.id.toString(), renamed.displayName)
+    }
+}

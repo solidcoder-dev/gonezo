@@ -56,3 +56,9 @@ data class SharingGroupSuggestionView(
 interface ListSharingGroupSuggestionsUC {
     fun execute(): List<SharingGroupSuggestionView>
 }
+
+data class RenameSharingPersonCommand(val personId: String, val displayName: String)
+
+interface RenameSharingPersonUC {
+    fun execute(command: RenameSharingPersonCommand): SharingPersonSuggestionView
+}
