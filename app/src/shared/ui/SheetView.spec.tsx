@@ -4,6 +4,33 @@ import { describe, expect, it, vi } from 'vitest';
 import { SheetView } from './SheetView';
 
 describe('SheetView', () => {
+  it('locks document scrolling while open and restores it after close', () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 240 });
+    const { rerender } = render(
+      <SheetView required={{ config: { ariaLabel: 'Sheet' }, data: { body: <p>Content</p> }, state: { open: true }, status: {} }} provided={{ commands: { close: vi.fn() } }} />,
+    );
+
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.body.style.position).toBe('fixed');
+    expect(document.body.style.top).toBe('-240px');
+
+    rerender(
+      <SheetView required={{ config: { ariaLabel: 'Sheet' }, data: { body: <p>Content</p> }, state: { open: false }, status: {} }} provided={{ commands: { close: vi.fn() } }} />,
+    );
+    expect(document.body.style.overflow).toBe('');
+    expect(window.scrollTo).toHaveBeenCalledWith(0, 240);
+    scrollTo.mockRestore();
+  });
+
+  it('keeps the drag surface on the handle while content remains scrollable', () => {
+    render(
+      <SheetView required={{ config: { ariaLabel: 'Sheet', showHandle: true, dragToClose: true }, data: { body: <div data-testid="sheet-content">Content</div> }, state: { open: true }, status: {} }} provided={{ commands: { close: vi.fn() } }} />,
+    );
+
+    expect(screen.getByTestId('sheet-content').parentElement).toHaveClass('content');
+    expect(screen.getByTestId('sheet-drag-handle').parentElement).toHaveAttribute('class');
+  });
   it('restores focus to the opener when it closes', () => {
     function Subject() {
       const [open, setOpen] = useState(false);
