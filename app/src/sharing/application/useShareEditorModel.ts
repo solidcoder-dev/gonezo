@@ -34,6 +34,8 @@ export function useShareEditorModel(input: UseShareEditorModelInput) {
     .filter((person) => !existingIds.has(person.id))
     .filter((person) => normalizedQuery.length > 0 && matchesSharePerson(person, normalizedQuery))
     .slice(0, 5), [existingIds, normalizedQuery, peopleOptions]);
+  const selectionPeople = useMemo(() => peopleOptions
+    .filter((person) => normalizedQuery.length === 0 || matchesSharePerson(person, normalizedQuery)), [normalizedQuery, peopleOptions]);
   const matchingGroups = useMemo(() => (input.groupSuggestions ?? [])
     .filter((group) => normalizedQuery.length === 0 || group.people.some((person) => matchesSharePerson(person, normalizedQuery)))
     .filter((group) => group.people.some((person) => !existingIds.has(person.id))), [existingIds, input.groupSuggestions, normalizedQuery]);
@@ -70,6 +72,10 @@ export function useShareEditorModel(input: UseShareEditorModelInput) {
     replacePeople(people.filter((person) => person.id !== id));
   }
 
+  function restorePeople(nextPeople: ShareMemberDraft[]) {
+    setPeople(nextPeople);
+  }
+
   function selectMode(nextMode: ShareMode) {
     setMode(nextMode);
     setPeople(resetSharePeopleForMode(nextMode, amountCents, people));
@@ -98,8 +104,8 @@ export function useShareEditorModel(input: UseShareEditorModelInput) {
   };
 
   return {
-    state: { mode, query, people, matchingPeople, matchingGroups, movementType: input.movementType },
-    commands: { setQuery, selectMode, addPerson, addGroup, addTypedPerson, removePerson, updateParts, updateAmount, updateSettlement },
+    state: { mode, query, people, availablePeople: peopleOptions, matchingPeople, selectionPeople, matchingGroups, movementType: input.movementType },
+    commands: { setQuery, selectMode, addPerson, addGroup, addTypedPerson, removePerson, restorePeople, updateParts, updateAmount, updateSettlement },
     validation,
   };
 }

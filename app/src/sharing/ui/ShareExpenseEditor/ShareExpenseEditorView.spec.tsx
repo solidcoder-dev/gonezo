@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ShareEditorComponent } from '../../application/ShareEditorComponent';
+import { ShareEditorFlow } from '../../application/ShareEditorFlow';
 import type { ShareDraft, SharingGroupSuggestion } from '../../domain/shareDraft';
 
 function renderShareEditor(
@@ -9,7 +9,9 @@ function renderShareEditor(
   options: { movementType?: 'expense' | 'income'; groupSuggestions?: readonly SharingGroupSuggestion[] } = {},
 ) {
   render(
-    <ShareEditorComponent
+    <ShareEditorFlow
+      title="Share expense"
+      onClose={vi.fn()}
       required={{
         config: {},
         data: { groupSuggestions: options.groupSuggestions },
@@ -22,14 +24,20 @@ function renderShareEditor(
   return applyShare;
 }
 
+function openParticipantSelection() {
+  fireEvent.click(screen.getByRole('button', { name: /Add people or groups/ }));
+}
+
 describe('ShareExpenseEditorView', () => {
   it('adds people below the payer with newest person second and removes people', () => {
     renderShareEditor();
 
+    openParticipantSelection();
     fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
-    fireEvent.click(screen.getByRole('button', { name: /Emma/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Emma' }));
     fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Luis' } });
-    fireEvent.click(screen.getByRole('button', { name: /Luis/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Luis' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
     const rows = within(screen.getByRole('list', { name: 'Share people' })).getAllByRole('listitem');
     expect(within(rows[0]).getByText('You (Payer)')).toBeInTheDocument();
@@ -44,8 +52,9 @@ describe('ShareExpenseEditorView', () => {
   it('does not add the same person twice', () => {
     renderShareEditor();
 
+    openParticipantSelection();
     fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
-    fireEvent.click(screen.getByRole('button', { name: /Emma.*emma@example.com/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Emma' }));
     fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
 
     expect(screen.getAllByText('Emma')).toHaveLength(1);
@@ -62,10 +71,12 @@ describe('ShareExpenseEditorView', () => {
       }],
     });
 
+    openParticipantSelection();
     fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
-    fireEvent.click(screen.getByRole('button', { name: /Emma.*emma@example.com/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Emma' }));
     fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: '' } });
     fireEvent.click(screen.getByRole('button', { name: /Emma, Luis/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
     expect(screen.getAllByText('Emma')).toHaveLength(1);
     expect(screen.getAllByText('Luis')).toHaveLength(1);
@@ -74,8 +85,10 @@ describe('ShareExpenseEditorView', () => {
   it('allows adding a typed person when there are no matches', () => {
     renderShareEditor();
 
+    openParticipantSelection();
     fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Nora' } });
-    fireEvent.click(screen.getByRole('button', { name: /Add Nora/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Create Nora/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
     expect(screen.getByText('Nora')).toBeInTheDocument();
   });
@@ -98,8 +111,10 @@ describe('ShareExpenseEditorView', () => {
   it('shows amount totals, blocks over-total apply and applies a valid share', () => {
     const applyShare = renderShareEditor();
 
+    openParticipantSelection();
     fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
-    fireEvent.click(screen.getByRole('button', { name: /Emma/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Emma' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
     fireEvent.click(screen.getByRole('radio', { name: 'As amounts' }));
     fireEvent.change(screen.getByLabelText('You (Payer) amount'), { target: { value: '12.00' } });
     fireEvent.change(screen.getByLabelText('Emma amount'), { target: { value: '11.00' } });
