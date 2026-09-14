@@ -17,10 +17,10 @@ class JdbcRecurringSharePlanRepository(private val jdbc: NamedParameterJdbcTempl
     override fun save(plan: RecurringSharePlan) {
         jdbc.update(
             """
-            insert into sharing_recurring_plans (id, recurring_movement_ref, payer_person_id, mode, currency, payer_parts, created_at, updated_at)
-            values (:id, :movement, :payer, :mode, :currency, :payer_parts, :created_at, :updated_at)
+            insert into sharing_recurring_plans (id, recurring_movement_ref, payer_person_id, mode, currency, payer_parts, owner_included, created_at, updated_at)
+            values (:id, :movement, :payer, :mode, :currency, :payer_parts, :owner_included, :created_at, :updated_at)
             on conflict(id) do update set recurring_movement_ref=excluded.recurring_movement_ref, payer_person_id=excluded.payer_person_id,
-              mode=excluded.mode, currency=excluded.currency, payer_parts=excluded.payer_parts, updated_at=excluded.updated_at
+              mode=excluded.mode, currency=excluded.currency, payer_parts=excluded.payer_parts, owner_included=excluded.owner_included, updated_at=excluded.updated_at
             """.trimIndent(),
             planParams(plan),
         )
@@ -84,6 +84,7 @@ class JdbcRecurringSharePlanRepository(private val jdbc: NamedParameterJdbcTempl
                     participants,
                     Instant.parse(rs.getString("created_at")),
                     Instant.parse(rs.getString("updated_at")),
+                    rs.getInt("owner_included") == 1,
                 )
             }
         return rows.firstOrNull()
@@ -98,6 +99,7 @@ class JdbcRecurringSharePlanRepository(private val jdbc: NamedParameterJdbcTempl
         .addValue("mode", plan.mode.value)
         .addValue("currency", plan.currency)
         .addValue("payer_parts", plan.payerParts)
+        .addValue("owner_included", if (plan.ownerIncluded) 1 else 0)
         .addValue("created_at", plan.createdAt.toString())
         .addValue("updated_at", plan.updatedAt.toString())
 }
