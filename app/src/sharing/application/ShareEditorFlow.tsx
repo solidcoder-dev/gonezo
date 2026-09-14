@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import type { ShareExpenseEditorViewProps } from '../ui/ShareExpenseEditor/ShareExpenseEditorView';
+import type { ShareSelectionCandidate } from '../domain/shareDraft';
 import { ShareExpenseEditorView } from '../ui/ShareExpenseEditor/ShareExpenseEditorView';
 import { ShareParticipantSelectionView } from '../ui/ParticipantSelection/ShareParticipantSelectionView';
 import { useShareEditorModel } from './useShareEditorModel';
@@ -17,10 +18,17 @@ export function ShareEditorFlow({ title, onClose, required, provided }: ShareEdi
   const confirmSelection = () => setSelectionOpen(false);
 
   if (selectionOpen) {
-    return <ShareParticipantSelectionView context={model.state.selectionContext} people={model.state.selectionPeople} groups={model.state.matchingGroups} canCreatePerson={model.state.canCreatePerson} selectedPersonIds={selectedPersonIds} query={model.state.query} disabled={required.status.disabled ?? false} onContextChange={model.commands.setSelectionContext} onQueryChange={model.commands.setQuery} onPersonToggle={(person) => {
-      const selectedMember = model.state.people.find((member) => member.role === 'participant' && member.personId === person.id);
+    const ownerIncluded = model.state.people.some((person) => person.role === 'owner' && person.includedInAllocation !== false);
+    const ownerMatchesQuery = model.state.query.trim().length === 0 || 'you'.includes(model.state.query.trim().toLowerCase());
+    const selectionPeople: ShareSelectionCandidate[] = ownerMatchesQuery ? [{ kind: 'owner', name: 'You' }, ...model.state.selectionPeople.map((person) => ({ kind: 'person' as const, person }))] : model.state.selectionPeople.map((person) => ({ kind: 'person' as const, person }));
+    return <ShareParticipantSelectionView context={model.state.selectionContext} people={selectionPeople} groups={model.state.matchingGroups} canCreatePerson={model.state.canCreatePerson} ownerSelected={ownerIncluded} selectedPersonIds={selectedPersonIds} query={model.state.query} disabled={required.status.disabled ?? false} onContextChange={model.commands.setSelectionContext} onQueryChange={model.commands.setQuery} onPersonToggle={(candidate) => {
+      if (candidate.kind === 'owner') {
+        model.commands.setOwnerIncluded(!ownerIncluded);
+        return;
+      }
+      const selectedMember = model.state.people.find((member) => member.role === 'participant' && member.personId === candidate.person.id);
       if (selectedMember) model.commands.removePerson(selectedMember.id);
-      else model.commands.addPerson(person);
+      else model.commands.addPerson(candidate.person);
     }} onGroupSelect={model.commands.addGroup} onCreatePerson={model.commands.addTypedPerson} onBack={cancelSelection} onConfirm={confirmSelection} />;
   }
 

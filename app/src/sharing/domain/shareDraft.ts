@@ -26,6 +26,10 @@ export type SharingPersonSuggestion = {
   email?: string;
 };
 
+export type ShareSelectionCandidate =
+  | { readonly kind: 'owner'; readonly name: 'You' }
+  | { readonly kind: 'person'; readonly person: SharingPersonSuggestion };
+
 export type SharingGroupSuggestion = {
   readonly key: string;
   readonly people: readonly SharingPersonSuggestion[];

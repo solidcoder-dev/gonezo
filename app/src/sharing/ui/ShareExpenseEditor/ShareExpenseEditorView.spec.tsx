@@ -47,7 +47,8 @@ describe('ShareExpenseEditorView', () => {
 
     fireEvent.click(within(rows[1]).getByRole('button', { name: 'Remove Luis' }));
     expect(screen.queryByText('Luis')).not.toBeInTheDocument();
-    expect(within(rows[0]).queryByRole('button', { name: 'Remove You (Payer)' })).not.toBeInTheDocument();
+    fireEvent.click(within(rows[0]).getByRole('button', { name: 'Remove You (Payer)' }));
+    expect(screen.queryByText('You (Payer)')).not.toBeInTheDocument();
   });
 
   it('keeps Confirm in a sticky footer outside the selection scroll region', () => {
@@ -158,6 +159,23 @@ describe('ShareExpenseEditorView', () => {
 
     expect(screen.getByText('You (Payer)')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Apply share' })).toBeInTheDocument();
+  });
+
+  it('allows You to be excluded and added again without creating an external person', () => {
+    renderShareEditor();
+    openParticipantSelection();
+
+    const you = screen.getByRole('button', { name: /You/ });
+    expect(you).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(you);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    expect(screen.queryByText('You (Payer)')).not.toBeInTheDocument();
+
+    openParticipantSelection();
+    fireEvent.click(screen.getByRole('button', { name: /You/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    expect(screen.getByText('You (Payer)')).toBeInTheDocument();
+    expect(screen.queryByText('Create You')).not.toBeInTheDocument();
   });
 
   it('shows amount totals, blocks over-total apply and applies a valid share', () => {

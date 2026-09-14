@@ -1,24 +1,25 @@
-import type { SharingGroupSuggestion, SharingPersonSuggestion } from '../../domain/shareDraft';
+import type { ShareSelectionCandidate, SharingGroupSuggestion } from '../../domain/shareDraft';
 import styles from './ShareParticipantSelectionView.module.css';
 
 export type ShareParticipantSelectionViewProps = {
   readonly context: 'people' | 'groups';
-  readonly people: readonly SharingPersonSuggestion[];
+  readonly people: readonly ShareSelectionCandidate[];
   readonly groups: readonly SharingGroupSuggestion[];
   readonly canCreatePerson: boolean;
+  readonly ownerSelected: boolean;
   readonly selectedPersonIds: ReadonlySet<string>;
   readonly query: string;
   readonly disabled: boolean;
   readonly onQueryChange: (query: string) => void;
   readonly onContextChange: (context: 'people' | 'groups') => void;
-  readonly onPersonToggle: (person: SharingPersonSuggestion) => void;
+  readonly onPersonToggle: (candidate: ShareSelectionCandidate) => void;
   readonly onGroupSelect: (group: SharingGroupSuggestion) => void;
   readonly onCreatePerson: (name: string) => void;
   readonly onBack: () => void;
   readonly onConfirm: () => void;
 };
 
-export function ShareParticipantSelectionView({ context, people, groups, canCreatePerson, selectedPersonIds, query, disabled, onContextChange, onQueryChange, onPersonToggle, onGroupSelect, onCreatePerson, onBack, onConfirm }: ShareParticipantSelectionViewProps) {
+export function ShareParticipantSelectionView({ context, people, groups, canCreatePerson, ownerSelected, selectedPersonIds, query, disabled, onContextChange, onQueryChange, onPersonToggle, onGroupSelect, onCreatePerson, onBack, onConfirm }: ShareParticipantSelectionViewProps) {
   return (
     <main className="min-vh-100 d-flex flex-column bg-body" aria-label="Add people or groups">
       <header className="d-flex align-items-center gap-3 px-4">
@@ -45,9 +46,10 @@ export function ShareParticipantSelectionView({ context, people, groups, canCrea
         </section> : <section id="people-panel" role="tabpanel" aria-labelledby="people-tab" className="mt-4" aria-label="Suggested people">
           <h2 className="h6">Suggested people</h2>
           <div className="vstack">
-            {people.map((person) => {
-              const selected = selectedPersonIds.has(person.id);
-              return <button key={person.id} type="button" className="btn d-flex align-items-center gap-3 w-100 text-start" aria-pressed={selected} onClick={() => onPersonToggle(person)} disabled={disabled}><span className="rounded-circle bg-secondary-subtle d-inline-flex align-items-center justify-content-center" style={{ width: 40, height: 40 }} aria-hidden="true">{person.name.slice(0, 1)}</span><span className="flex-grow-1 text-truncate">{person.name}</span>{selected ? <i className="bi bi-check2 text-primary" aria-label="Selected" /> : null}</button>;
+            {people.map((candidate) => {
+              const selected = candidate.kind === 'owner' ? ownerSelected : selectedPersonIds.has(candidate.person.id);
+              const name = candidate.kind === 'owner' ? candidate.name : candidate.person.name;
+              return <button key={candidate.kind === 'owner' ? 'owner' : candidate.person.id} type="button" className="btn d-flex align-items-center gap-3 w-100 text-start" aria-pressed={selected} onClick={() => onPersonToggle(candidate)} disabled={disabled}><span className="rounded-circle bg-secondary-subtle d-inline-flex align-items-center justify-content-center" style={{ width: 40, height: 40 }} aria-hidden="true">{name.slice(0, 1)}</span><span className="flex-grow-1 text-truncate">{name}</span>{selected ? <i className="bi bi-check2 text-primary" aria-label="Selected" /> : null}</button>;
             })}
             {canCreatePerson ? <button type="button" className="btn d-flex align-items-center gap-3 w-100 text-start" onClick={() => onCreatePerson(query)} disabled={disabled}><i className="bi bi-person-plus" aria-hidden="true" /><span className="flex-grow-1">Create {query.trim()}</span></button> : null}
             {people.length === 0 && !canCreatePerson ? <p className="small text-body-secondary mb-0">No matching people.</p> : null}
