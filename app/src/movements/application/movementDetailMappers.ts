@@ -1,5 +1,6 @@
 import { formatCurrencyAmount, formatIsoDate, formatIsoDateTime } from '../../shared/utils/formatting';
 import { normalizeTaxonomyName } from '../../transactions/application/transactionTaxonomySelection';
+import { displayedMovementTitle } from '../../shared/utils/movementTitle';
 import type { TransactionHistoryItemView } from '../../transactions/application/transactionView.types';
 import type { ExpectedMovementItem } from '../../expected/application/expected.port';
 import type { MovementsDetailData } from './movements.port';
@@ -62,14 +63,19 @@ function titleFromMovement(input: {
   source: MovementDetailSelection['source'];
   financialType: MovementDetailFinancialType;
 }): string {
+  if (input.source === 'expected') {
+    return displayedMovementTitle({
+      merchant: input.merchant,
+      description: input.description,
+      fallback: input.financialType === 'income' ? 'Expected income' : 'Expected expense',
+      preferDescription: true,
+    });
+  }
   if (input.merchant?.trim()) {
     return input.merchant.trim();
   }
   if (input.description?.trim()) {
     return input.description.trim();
-  }
-  if (input.source === 'expected') {
-    return input.financialType === 'income' ? 'Expected income' : 'Expected expense';
   }
   if (input.source === 'scheduled') {
     return 'Scheduled movement';

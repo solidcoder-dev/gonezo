@@ -2,6 +2,7 @@ import type { LedgerTransactionListItem } from '../../ledger/application/ledger.
 import type { SchedulingMovementItem } from '../../scheduling/application/scheduling.port';
 import type { ExpectedMovementItem } from '../../expected/application/expected.port';
 import type { MovementsSearchItem } from '../application/movements.port';
+import { displayedMovementTitle } from '../../shared/utils/movementTitle';
 
 export function mapPostedTransactionToSearchItem(transaction: LedgerTransactionListItem): MovementsSearchItem {
   return {
@@ -59,7 +60,7 @@ export function mapExpectedMovementToSearchItem(
     amount: movement.amount,
     currency: movement.currency,
     occurredAt: movement.expectedAt,
-    title: movement.merchant || movement.description || 'Expected movement',
+    title: displayedMovementTitle({ merchant: movement.merchant, description: movement.description, fallback: 'Expected movement', preferDescription: true }),
     description: movement.description,
     merchant: movement.merchant,
     categoryId: movement.categoryId,

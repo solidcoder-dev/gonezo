@@ -15,6 +15,7 @@ import type { WebRuntimeDependencies } from '../../core/infrastructure/webRuntim
 import type { WebAppState, WebExpenseShare, WebLedgerTransaction, WebSharingPerson } from '../../core/infrastructure/webAppState';
 import type { WebLedgerService } from '../../ledger/infrastructure/webLedgerService';
 import type { WebExpectedMovementsService } from '../../expected/infrastructure/webExpectedService';
+import { displayedMovementTitle } from '../../shared/utils/movementTitle';
 
 export type WebSharingServiceOptions = {
   state: WebAppState;
@@ -87,6 +88,11 @@ export class WebSharingService {
       throw new Error('Only posted expenses and incomes can be shared');
     }
     const appliedAt = input.appliedAt ?? this.dependencies.clock.nowIso();
+    const sourceTitle = displayedMovementTitle({
+      merchant: transaction.merchant,
+      description: transaction.description,
+      fallback: transaction.type === 'expense' ? 'Expense' : 'Income',
+    });
     const payer = this.resolvePerson(input.payer, appliedAt);
     const participants = [];
     for (const participantInput of input.participants) {
@@ -100,7 +106,7 @@ export class WebSharingService {
             amount: formatAmount(parseAmount(participantInput.amount)),
             currency: transaction.currency,
             expectedAt: transaction.occurredAt,
-            description: transaction.type === 'expense' ? `Reimbursement from ${person.name}` : `Payout to ${person.name}`,
+            description: `${sourceTitle} · ${person.name.trim()}`,
             merchant: person.name,
           })).id
         : undefined;

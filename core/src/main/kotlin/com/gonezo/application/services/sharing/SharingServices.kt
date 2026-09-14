@@ -6,6 +6,7 @@ import com.gonezo.analytics.domain.AnalyticsExclusionScopeType
 import com.gonezo.analytics.domain.ports.AnalyticsExclusionRepository
 import com.gonezo.application.ConsistencyBoundary
 import com.gonezo.application.ImmediateConsistencyBoundary
+import com.gonezo.ledger.application.displayedMovementTitle
 import com.gonezo.expected.application.CreateExpectedMovementCommand
 import com.gonezo.expected.application.CreateExpectedMovementUC
 import com.gonezo.expected.domain.ExpectedMovementId
@@ -42,6 +43,11 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
         require(command.participants.isNotEmpty()) { "Share requires participants" }
 
         val payer = resolvePerson(command.payer, command.appliedAt)
+        val sourceTitle = displayedMovementTitle(
+            merchant = transaction.merchant,
+            description = transaction.description,
+            fallback = if (transaction.type == TransactionType.EXPENSE) "Expense" else "Income",
+        )
         val participantRows =
             command.participants.map { participantCommand ->
                 val person = resolvePerson(participantCommand.person, command.appliedAt)
@@ -61,7 +67,7 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
                                 amount = participantCommand.amount,
                                 currency = transaction.amount.currency,
                                 expectedAt = transaction.occurredAt,
-                                description = "Reimbursement from ${person.displayName}",
+                                description = "$sourceTitle · ${person.displayName.trim()}",
                                 merchant = person.displayName,
                                 categoryId = null,
                                 createdAt = command.appliedAt,

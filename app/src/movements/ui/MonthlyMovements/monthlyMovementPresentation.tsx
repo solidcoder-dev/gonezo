@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { resolveSchedulingKind } from '../../../shared/domain/schedulingKind';
 import { formatCurrencyAmount } from '../../../shared/utils/formatting';
+import { displayedMovementTitle } from '../../../shared/utils/movementTitle';
 import type { TransactionHistoryItemView } from '../../../transactions/application/transactionView.types';
 import { formatCalendarDay } from './postedGrouping';
 import type { ExpectedMovementView, ScheduledMovementView } from '../../application/movementsView.types';
@@ -217,7 +218,7 @@ export function buildExpectedMovementRowData(
   return {
     itemClassName: movementRowClassName(movementTypeClass(movement.type), movement.ignored),
     iconClassName: movementKindIconClass(movement.type),
-    title: movement.merchant || movement.description || 'Expected movement',
+    title: displayedMovementTitle({ merchant: movement.merchant, description: movement.description, fallback: 'Expected movement', preferDescription: true }),
     amount: {
       sign: movement.type === 'income' ? '+' : '-',
       label: txAmount(movement.amount, movement.currency),
@@ -285,7 +286,7 @@ export function buildExpectedMovementDetailData(
   options: ExpectedDetailOptions = {},
 ): MovementDetailDataView {
   return {
-    title: movement.merchant || movement.description || 'Expected movement',
+    title: displayedMovementTitle({ merchant: movement.merchant, description: movement.description, fallback: 'Expected movement', preferDescription: true }),
     kicker: 'Expected',
     iconClassName: movementKindIconClass(movement.type),
     ignored: movement.ignored,

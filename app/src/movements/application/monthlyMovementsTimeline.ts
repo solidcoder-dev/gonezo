@@ -1,4 +1,5 @@
 import { formatCurrencyAmount } from '../../shared/utils/formatting';
+import { displayedMovementTitle } from '../../shared/utils/movementTitle';
 import type { TransactionHistoryItemView } from '../../transactions/application/transactionView.types';
 import { resolveMovementIcon, type MovementIconDirection } from '../../transactions/application/movementIconPresentation';
 import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
@@ -116,7 +117,7 @@ function expectedItem(item: ExpectedMovementView, labels: ReadonlyMap<string, st
     source: 'expected',
     id: item.id,
     occurredOn: item.expectedAt,
-    title: item.merchant || item.description || 'Expected movement',
+    title: displayedMovementTitle({ merchant: item.merchant, description: item.description, fallback: 'Expected movement', preferDescription: true }),
     amountLabel: amountLabel(item.amount, item.currency),
     amountSign: direction === 'income' ? '+' : '-',
     direction,

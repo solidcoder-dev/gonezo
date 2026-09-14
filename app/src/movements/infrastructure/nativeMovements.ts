@@ -4,6 +4,7 @@ import type { SchedulingMovementItem, SchedulingPort } from '../../scheduling/ap
 import type { TaxonomyListCategoriesResult, TaxonomyPort } from '../../taxonomy/application/taxonomy.port';
 import type { SharingPort } from '../../sharing/application/sharing.port';
 import { parseDateFilterEpoch } from '../../shared/domain/dateFilterRange';
+import { displayedMovementTitle } from '../../shared/utils/movementTitle';
 import { expandLedgerSearchTypes } from '../../ledger/application/ledgerTransactionTypeFilters';
 import type {
   MovementsListScheduledInput,
@@ -300,7 +301,7 @@ function mapExpectedMovementToSearchItem(
     amount: movement.amount,
     currency: movement.currency,
     occurredAt: movement.expectedAt,
-    title: movement.merchant || movement.description || 'Expected movement',
+    title: displayedMovementTitle({ merchant: movement.merchant, description: movement.description, fallback: 'Expected movement', preferDescription: true }),
     description: movement.description,
     merchant: movement.merchant,
     categoryId: movement.categoryId,
