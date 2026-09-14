@@ -570,14 +570,16 @@ export function useMovementDetailModel(input: MovementDetailModelInputWithSeed) 
       return;
     }
     clearError();
+    const originKind = movement?.source === 'expected' ? movement.raw.origin.kind : 'manual';
+    const dismissal = ports.expected.expectedDismissMovement({
+      expectedMovementId,
+      originKind,
+      dismissedAt: clock.now().toISOString(),
+    });
     dismissingExpectedRef.current = true;
     setDismissingExpected(true);
     try {
-      await ports.expected.expectedDismissMovement({
-        expectedMovementId,
-        originKind: movement?.source === 'expected' ? movement.origin.kind : 'manual',
-        dismissedAt: clock.now().toISOString(),
-      });
+      await dismissal;
       await refreshMovements();
       closeDetail();
     } catch (error) {
