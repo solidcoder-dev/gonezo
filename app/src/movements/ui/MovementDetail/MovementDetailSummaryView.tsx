@@ -47,7 +47,7 @@ export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryView
         <i className="bi bi-arrow-left" aria-hidden />
       </button>
       <h2 className={styles.headerTitle}>Movement</h2>
-      <div>
+      <div className="dropdown">
         {overflowActions.length > 0 ? (
           <button
             type="button"
@@ -60,25 +60,25 @@ export function MovementDetailSummaryHeaderView(props: MovementDetailSummaryView
             <i className="bi bi-three-dots" aria-hidden />
           </button>
         ) : null}
+        {overflowOpen && overflowActions.length > 0 ? (
+          <div className="dropdown-menu dropdown-menu-end show shadow-sm" role="menu" aria-label="Movement actions">
+            {overflowActions.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                className={`dropdown-item${action.destructive ? ' text-danger' : ''}`}
+                role="menuitem"
+                onClick={() => onRunOverflowAction(action)}
+                disabled={(action.id === 'void-posted' && pendingVoid) || (action.id === 'stop-recurring-series' && deactivating) || (action.id === 'dismiss-expected' && dismissingExpected)}
+              >
+                {(action.id === 'void-posted' && pendingVoid) || (action.id === 'stop-recurring-series' && deactivating) || (action.id === 'dismiss-expected' && dismissingExpected)
+                  ? 'Pending...'
+                  : action.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
-      {overflowOpen && overflowActions.length > 0 ? (
-        <div className="dropdown-menu dropdown-menu-end show shadow-sm" role="menu" aria-label="Movement actions">
-          {overflowActions.map((action) => (
-            <button
-              key={action.id}
-              type="button"
-              className={`dropdown-item${action.destructive ? ' text-danger' : ''}`}
-              role="menuitem"
-              onClick={() => onRunOverflowAction(action)}
-              disabled={(action.id === 'void-posted' && pendingVoid) || (action.id === 'stop-recurring-series' && deactivating) || (action.id === 'dismiss-expected' && dismissingExpected)}
-            >
-              {(action.id === 'void-posted' && pendingVoid) || (action.id === 'stop-recurring-series' && deactivating) || (action.id === 'dismiss-expected' && dismissingExpected)
-                ? 'Pending...'
-                : action.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }
