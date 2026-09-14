@@ -47,6 +47,9 @@ export function ProfilePageView({ required, provided }: ProfilePageViewProps) {
           <button type="button" className="btn btn-outline-secondary" disabled={required.status.disabled} onClick={provided.commands.manageTaxonomy}>
             Taxonomy
           </button>
+          <button type="button" className="btn btn-outline-secondary" disabled={required.status.disabled} onClick={provided.commands.manageSharingPeople}>
+            Sharing people
+          </button>
         </div>
       </section>
 

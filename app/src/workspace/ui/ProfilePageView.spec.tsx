@@ -10,6 +10,7 @@ function renderSubject(overrides: Partial<Parameters<typeof ProfilePageView>[0]>
     importMovements: () => undefined,
     exportBackup: () => undefined,
     manageTaxonomy: () => undefined,
+    manageSharingPeople: () => undefined,
     openNotificationSettings: notificationCommand,
     setVoiceMovementExperimentEnabled: vi.fn(),
     ...overrides.provided?.commands,
@@ -79,6 +80,7 @@ describe('ProfilePageView', () => {
     expect(screen.getByRole('button', { name: 'Restore backup' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Backup' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Taxonomy' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sharing people' })).toBeInTheDocument();
   });
 
   it('reflects the current experiment state and disables while saving', () => {
