@@ -10,6 +10,7 @@ import type {
   SharingGetPlannedShareInput,
   SharingPlannedShareResult,
 } from '../application/sharing.port';
+import { listSharingGroupSuggestions } from '../application/listSharingGroupSuggestions';
 import type { WebRuntimeDependencies } from '../../core/infrastructure/webRuntimeDependencies';
 import type { WebAppState, WebExpenseShare, WebLedgerTransaction, WebSharingPerson } from '../../core/infrastructure/webAppState';
 import type { WebLedgerService } from '../../ledger/infrastructure/webLedgerService';
@@ -55,6 +56,15 @@ export class WebSharingService {
         .map((person) => ({ id: person.id, name: person.name, email: person.email }))
         .sort((left, right) => left.name.localeCompare(right.name)),
     };
+  }
+
+  async listGroupSuggestions() {
+    const history = this.state.expenseShares.map((share) => ({
+      ownerId: share.payerPersonId,
+      participantIds: share.participants.map((participant) => participant.personId),
+      usedAt: share.updatedAt,
+    }));
+    return { items: listSharingGroupSuggestions(history, await this.listPeople().then((result) => result.items)) };
   }
 
   async applyShareToPostedMovement(

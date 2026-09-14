@@ -131,8 +131,8 @@ describe('transaction submission plan', () => {
       shareDraft: {
         mode: 'amounts' as const,
         people: [
-          { id: 'you', name: 'You', reimbursable: false, parts: 1, amount: '8', avatarTone: 'you' as const },
-          { id: 'person-1', name: 'Alex', reimbursable: true, parts: 1, amount: '4', avatarTone: 'custom' as const },
+          { id: 'owner', role: 'owner' as const, name: 'You', parts: 1, amount: '8', avatarTone: 'you' as const },
+          { id: 'person-1', role: 'participant' as const, name: 'Alex', settlementChoice: 'pending' as const, parts: 1, amount: '4', avatarTone: 'custom' as const },
         ],
       },
     };
@@ -153,8 +153,8 @@ describe('transaction submission plan', () => {
       shareDraft: {
         mode: 'amounts' as const,
         people: [
-          { id: 'you', name: 'You', reimbursable: false, parts: 1, amount: '20', avatarTone: 'you' as const },
-          { id: 'person-1', name: 'Alex', reimbursable: false, parts: 1, amount: '0', avatarTone: 'custom' as const },
+          { id: 'owner', role: 'owner' as const, name: 'You', parts: 1, amount: '20', avatarTone: 'you' as const },
+          { id: 'person-1', role: 'participant' as const, name: 'Alex', settlementChoice: 'not_required' as const, parts: 1, amount: '0', avatarTone: 'custom' as const },
         ],
       },
     };

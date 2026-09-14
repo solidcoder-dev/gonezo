@@ -8,9 +8,9 @@ import {
 } from './shareDraftCalculator';
 
 const people = [
-  { id: 'owner', name: 'You', amount: '', parts: 1, reimbursable: false, avatarTone: 'you' as const },
-  { id: 'alex', name: 'Alex', amount: '', parts: 1, reimbursable: true, avatarTone: 'custom' as const },
-  { id: 'sam', name: 'Sam', amount: '', parts: 1, reimbursable: true, avatarTone: 'custom' as const },
+  { id: 'owner', role: 'owner' as const, name: 'You', amount: '', parts: 1, avatarTone: 'you' as const },
+  { id: 'alex', role: 'participant' as const, name: 'Alex', amount: '', parts: 1, settlementChoice: 'pending' as const, avatarTone: 'custom' as const },
+  { id: 'sam', role: 'participant' as const, name: 'Sam', amount: '', parts: 1, settlementChoice: 'pending' as const, avatarTone: 'custom' as const },
 ];
 
 describe('share allocation calculations', () => {
@@ -27,6 +27,7 @@ describe('share allocation calculations', () => {
     const second = makeSharePerson('Nora');
 
     expect(first.name).toBe('Nora');
+    expect(first.role).toBe('participant');
     expect(first.personId).toBeUndefined();
     expect(first.id).not.toBe(second.id);
   });
@@ -34,7 +35,7 @@ describe('share allocation calculations', () => {
   it('reuses the stable identity of an existing person', () => {
     const person = makeSharePerson(' alex ', [{ id: 'person-1', name: 'Alex' }]);
 
-    expect(person.personId).toBe('person-1');
+    expect(person.role === 'participant' ? person.personId : undefined).toBe('person-1');
     expect(person.name).toBe('Alex');
   });
 

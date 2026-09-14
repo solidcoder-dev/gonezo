@@ -118,6 +118,7 @@ import type {
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
   SharingListPeopleResult,
+  SharingListGroupSuggestionsResult,
   SharingGetPlannedShareInput,
   SharingPlannedShareResult,
   SharingMovementDetailsResult,
@@ -212,6 +213,7 @@ export interface CorePlugin {
     nextExpectedMovementId?: string;
   }>;
   sharingListPeople(): Promise<SharingListPeopleResult>;
+  sharingListGroupSuggestions(): Promise<SharingListGroupSuggestionsResult>;
   sharingApplyShareToPostedMovement(
     options: SharingApplyShareToPostedMovementInput,
   ): Promise<SharingApplyShareToPostedMovementResult>;

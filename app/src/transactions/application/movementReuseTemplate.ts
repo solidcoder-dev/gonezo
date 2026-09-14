@@ -52,15 +52,7 @@ export function createMovementReuseTemplate(source: MovementReuseTemplateSource)
     shareDraft: source.sharing
       ? {
         mode: source.sharing.people.some((person) => person.amount != null) ? 'amounts' : 'parts',
-        people: source.sharing.people.map((person, index) => ({
-          id: person.id,
-          name: person.name,
-          email: person.email,
-          reimbursable: person.reimbursable,
-          parts: person.parts ?? 1,
-          amount: person.amount ?? '',
-          avatarTone: avatarToneFor(index),
-        })),
+        people: source.sharing.people.map((person, index) => index === 0 ? ({ id: person.id, role: 'owner', name: person.name, email: person.email, parts: person.parts ?? 1, amount: person.amount ?? '', avatarTone: avatarToneFor(index) }) : ({ id: person.id, role: 'participant', name: person.name, email: person.email, settlementChoice: person.reimbursable ? 'pending' : 'not_required', parts: person.parts ?? 1, amount: person.amount ?? '', avatarTone: avatarToneFor(index) })),
       }
       : undefined,
     transferTargetAccountId: source.targetAccountId,

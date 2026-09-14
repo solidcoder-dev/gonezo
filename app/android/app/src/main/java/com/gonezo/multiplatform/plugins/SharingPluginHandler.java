@@ -41,6 +41,16 @@ final class SharingPluginHandler {
     }
   }
 
+  void sharingListGroupSuggestions(PluginCall call) {
+    try {
+      JSObject result = new JSObject();
+      result.put("items", new JSONArray());
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
   void sharingApplyShareToPostedMovement(PluginCall call) {
     try {
       ApplyShareToPostedMovementResult share = AndroidExpectedPostingApplication.getInstance(context).applyShare(

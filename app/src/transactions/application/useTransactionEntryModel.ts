@@ -601,6 +601,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       shareDraft: shareDraftModel.state.draft,
       shareSummary: shareDraftModel.state.summary,
       sharePeopleSuggestions: shareDraftModel.state.peopleSuggestions,
+      shareGroupSuggestions: shareDraftModel.state.groupSuggestions,
       movementIgnored,
       editedScheduledMovementId: editedScheduledMovementId || undefined,
       postExpectedMovementId: postExpectedMovementId || undefined,

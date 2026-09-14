@@ -379,6 +379,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
     return this.core.sharingListPeople();
   }
 
+  async sharingListGroupSuggestions() {
+    return this.core.sharingListGroupSuggestions();
+  }
+
   async sharingApplyShareToPostedMovement(
     options: SharingApplyShareToPostedMovementInput,
   ): Promise<SharingApplyShareToPostedMovementResult> {

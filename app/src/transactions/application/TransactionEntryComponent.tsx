@@ -146,7 +146,7 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
         onClose={model.provided.commands.closeShareEditor}
         required={{
           config: {},
-          data: { peopleSuggestions: model.required.state.sharePeopleSuggestions },
+          data: { peopleSuggestions: model.required.state.sharePeopleSuggestions, groupSuggestions: model.required.state.shareGroupSuggestions },
           state: {
             amount: model.required.state.amount,
             currencyCode: model.required.state.currencyCode,

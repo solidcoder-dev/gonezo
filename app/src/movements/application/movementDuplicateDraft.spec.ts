@@ -95,8 +95,8 @@ describe('createDraftFromMovementDetail', () => {
     } } };
     const draft = createDraftFromMovementDetail(detail);
     expect(draft.shareDraft).toEqual<ShareDraft>({ mode: 'amounts', people: [
-      { id: 'you', name: 'You (Payer)', reimbursable: false, parts: 1, amount: '10.00', avatarTone: 'you' },
-      { id: 'person-1', name: 'Alex', reimbursable: true, parts: 1, amount: '15.00', avatarTone: 'custom' },
+      { id: 'owner', role: 'owner', name: 'You (Payer)', parts: 1, amount: '10.00', avatarTone: 'you' },
+      { id: 'person-1', role: 'participant', name: 'Alex', settlementChoice: 'pending', parts: 1, amount: '15.00', avatarTone: 'custom' },
     ] });
   });
 });

@@ -190,7 +190,7 @@ function buildDraftMovementInput(context: TransactionSubmissionContext, type: In
 
 function buildSharingPlan(context: TransactionSubmissionContext) {
   if (context.composerMode !== 'expense' || !context.shareDraft) return undefined;
-  const participants = context.shareDraft.people.filter((person) => person.id !== 'you').map((person) => ({
+  const participants = context.shareDraft.people.filter((person) => person.role === 'participant').map((person) => ({
     personName: person.name,
     reimbursable: normalizeShareSettlementChoice(person) === 'pending',
     ...(context.shareDraft?.mode === 'parts' ? { parts: person.parts } : { amount: formatAmount(parseAmount(person.amount)) }),
@@ -199,7 +199,7 @@ function buildSharingPlan(context: TransactionSubmissionContext) {
   return {
     mode: context.shareDraft.mode === 'equal' ? 'parts' : context.shareDraft.mode,
     payerName: 'You',
-    ...(context.shareDraft.mode === 'parts' ? { payerParts: context.shareDraft.people.find((person) => person.id === 'you')?.parts ?? 1 } : {}),
+    ...(context.shareDraft.mode === 'parts' ? { payerParts: context.shareDraft.people.find((person) => person.role === 'owner')?.parts ?? 1 } : {}),
     participants,
   };
 }
@@ -619,7 +619,7 @@ async function handlePostExpectedMovement(
     ignored: context.movementIgnored,
     sharingOverride: context.composerMode === 'expense' && context.shareDraft ? {
       payerName: 'You',
-      participants: context.shareDraft.people.filter((person) => person.id !== 'you').map((person) => ({
+      participants: context.shareDraft.people.filter((person) => person.role === 'participant').map((person) => ({
         personName: person.name,
         amount: formatAmount(parseAmount(person.amount)),
         reimbursable: normalizeShareSettlementChoice(person) === 'pending',
@@ -645,7 +645,7 @@ async function handlePostedShare(
   }
 
   const participants = context.shareDraft.people
-    .filter((person) => person.id !== 'you')
+    .filter((person) => person.role === 'participant')
     .map((person) => ({
       person: person.personId ? { personId: person.personId } : { displayName: person.name },
       amount: formatAmount(parseAmount(person.amount)),

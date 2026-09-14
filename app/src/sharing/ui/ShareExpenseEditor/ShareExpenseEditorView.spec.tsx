@@ -1,11 +1,11 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ShareExpenseEditorView } from './ShareExpenseEditorView';
+import { ShareEditorComponent } from '../../application/ShareEditorComponent';
 import type { ShareDraft } from './ShareExpenseEditorView';
 
 function renderShareEditor(applyShare = vi.fn(), draft?: ShareDraft) {
   render(
-    <ShareExpenseEditorView
+    <ShareEditorComponent
       required={{
         config: {},
         data: {},
@@ -22,9 +22,9 @@ describe('ShareExpenseEditorView', () => {
   it('adds people below the payer with newest person second and removes people', () => {
     renderShareEditor();
 
-    fireEvent.change(screen.getByLabelText('Search people to add'), { target: { value: 'Emma' } });
+    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
     fireEvent.click(screen.getByRole('button', { name: /Emma/i }));
-    fireEvent.change(screen.getByLabelText('Search people to add'), { target: { value: 'Luis' } });
+    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Luis' } });
     fireEvent.click(screen.getByRole('button', { name: /Luis/i }));
 
     const rows = within(screen.getByRole('list', { name: 'Share people' })).getAllByRole('listitem');
@@ -39,7 +39,7 @@ describe('ShareExpenseEditorView', () => {
   it('allows adding a typed person when there are no matches', () => {
     renderShareEditor();
 
-    fireEvent.change(screen.getByLabelText('Search people to add'), { target: { value: 'Nora' } });
+    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Nora' } });
     fireEvent.click(screen.getByRole('button', { name: /Add Nora/i }));
 
     expect(screen.getByText('Nora')).toBeInTheDocument();
@@ -51,25 +51,25 @@ describe('ShareExpenseEditorView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Increase parts for You (Payer)' }));
     expect(screen.getByLabelText('You (Payer) parts')).toHaveValue(2);
 
-    fireEvent.click(screen.getByRole('tab', { name: 'As amounts' }));
-    expect(screen.getByLabelText('Your amount')).toHaveValue(null);
-    fireEvent.change(screen.getByLabelText('Your amount'), { target: { value: '8.00' } });
-    expect(screen.getByLabelText('Your amount')).toHaveValue(8);
+    fireEvent.click(screen.getByRole('radio', { name: 'As amounts' }));
+    expect(screen.getByLabelText('You (Payer) amount')).toHaveValue(null);
+    fireEvent.change(screen.getByLabelText('You (Payer) amount'), { target: { value: '8.00' } });
+    expect(screen.getByLabelText('You (Payer) amount')).toHaveValue(8);
 
-    fireEvent.click(screen.getByRole('tab', { name: 'As parts' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'As parts' }));
     expect(screen.getByLabelText('You (Payer) parts')).toHaveValue(1);
   });
 
   it('shows amount totals, blocks over-total apply and applies a valid share', () => {
     const applyShare = renderShareEditor();
 
-    fireEvent.change(screen.getByLabelText('Search people to add'), { target: { value: 'Emma' } });
+    fireEvent.change(screen.getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
     fireEvent.click(screen.getByRole('button', { name: /Emma/i }));
-    fireEvent.click(screen.getByRole('tab', { name: 'As amounts' }));
-    fireEvent.change(screen.getByLabelText('Your amount'), { target: { value: '12.00' } });
+    fireEvent.click(screen.getByRole('radio', { name: 'As amounts' }));
+    fireEvent.change(screen.getByLabelText('You (Payer) amount'), { target: { value: '12.00' } });
     fireEvent.change(screen.getByLabelText('Emma amount'), { target: { value: '11.00' } });
 
-    expect(screen.getByText(/Can't exceed 20.00 EUR total/)).toBeInTheDocument();
+    expect(screen.getByText(/Remove 3.00/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Apply share' })).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText('Emma amount'), { target: { value: '8.00' } });
@@ -90,12 +90,12 @@ describe('ShareExpenseEditorView', () => {
     renderShareEditor(vi.fn(), {
       mode: 'amounts',
       people: [
-        { id: 'you', name: 'You (Payer)', reimbursable: false, parts: 1, amount: '12.00', avatarTone: 'you' },
-        { id: 'emma-1', name: 'Emma', email: 'emma@example.com', reimbursable: true, parts: 1, amount: '8.00', avatarTone: 'emma' },
+        { id: 'owner', role: 'owner', name: 'You (Payer)', parts: 1, amount: '12.00', avatarTone: 'you' },
+        { id: 'emma-1', role: 'participant', name: 'Emma', email: 'emma@example.com', settlementChoice: 'pending', parts: 1, amount: '8.00', avatarTone: 'emma' },
       ],
     });
 
-    expect(screen.getByRole('tab', { name: 'As amounts' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('radio', { name: 'As amounts' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByText('Emma')).toBeInTheDocument();
     expect(screen.getByLabelText('Emma amount')).toHaveValue(8);
   });

@@ -1375,7 +1375,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(within(composer).getByRole('button', { name: 'Sharing' }));
 
     const shareEditor = await screen.findByRole('main', { name: 'Share expense' });
-    fireEvent.change(within(shareEditor).getByLabelText('Search people to add'), { target: { value: 'Emma' } });
+    fireEvent.change(within(shareEditor).getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
     fireEvent.click(within(shareEditor).getByRole('button', { name: /Emma/i }));
     fireEvent.click(within(shareEditor).getByRole('button', { name: 'Apply share' }));
 
@@ -1415,7 +1415,7 @@ describe('App Accounts UX', () => {
     fireEvent.click(within(composer).getByRole('button', { name: 'Sharing' }));
 
     const shareEditor = await screen.findByRole('main', { name: 'Share expense' });
-    fireEvent.change(within(shareEditor).getByLabelText('Search people to add'), { target: { value: 'Emma' } });
+    fireEvent.change(within(shareEditor).getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
     fireEvent.click(within(shareEditor).getByRole('button', { name: /Emma/i }));
     fireEvent.click(within(shareEditor).getByRole('button', { name: 'Apply share' }));
     fireEvent.click(screen.getByRole('button', { name: 'Post now' }));

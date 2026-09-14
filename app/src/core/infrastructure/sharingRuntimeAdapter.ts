@@ -5,6 +5,7 @@ import type {
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
   SharingListPeopleResult,
+  SharingListGroupSuggestionsResult,
   SharingGetPlannedShareInput,
   SharingPlannedShareResult,
   SharingMovementDetailsResult,
@@ -22,6 +23,10 @@ export class SharingRuntimeAdapter {
 
   sharingListPeople(): Promise<SharingListPeopleResult> {
     return isNativeRuntime() ? CorePlugin.sharingListPeople() : this.web.sharingListPeople();
+  }
+
+  sharingListGroupSuggestions(): Promise<SharingListGroupSuggestionsResult> {
+    return isNativeRuntime() ? CorePlugin.sharingListGroupSuggestions() : this.web.sharingListGroupSuggestions();
   }
 
   sharingApplyShareToPostedMovement(

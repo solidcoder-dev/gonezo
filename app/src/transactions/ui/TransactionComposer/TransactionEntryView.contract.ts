@@ -7,7 +7,7 @@ import type {
   RecurrenceFrequencyView as RecurrenceFrequency,
   RecurrenceMonthlyPatternView as RecurrenceMonthlyPattern,
 } from '../../../shared/domain/schedulingView.types';
-import type { ShareDraft, SharingPersonSuggestion } from '../../../sharing/domain/shareDraft';
+import type { ShareDraft, SharingGroupSuggestion, SharingPersonSuggestion } from '../../../sharing/domain/shareDraft';
 import type { MovementReuseSuggestionGroup, MovementReuseSuggestionVariant } from '../../../movements/application/movementReuseSuggestions.port';
 
 export type TransactionEntryViewRequired = {
@@ -69,6 +69,7 @@ export type TransactionEntryViewRequired = {
     shareDraft?: ShareDraft;
     shareSummary?: { peopleCount: number; total: string };
     sharePeopleSuggestions: SharingPersonSuggestion[];
+    shareGroupSuggestions: SharingGroupSuggestion[];
     shareEditorOpen: boolean;
     movementIgnored: boolean;
     shareControl?: ReactNode;

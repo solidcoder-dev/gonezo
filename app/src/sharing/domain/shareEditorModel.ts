@@ -1,0 +1,7 @@
+import type { ShareMemberDraft, ShareMode, ShareSettlementChoice, SharingGroupSuggestion, SharingPersonSuggestion } from './shareDraft';
+
+export type ShareEditorModel = {
+  readonly state: { readonly mode: ShareMode; readonly query: string; readonly people: ShareMemberDraft[]; readonly matchingPeople: readonly SharingPersonSuggestion[]; readonly matchingGroups: readonly SharingGroupSuggestion[]; readonly movementType: 'expense' | 'income' };
+  readonly commands: { readonly setQuery: (value: string) => void; readonly selectMode: (mode: ShareMode) => void; readonly addPerson: (person: SharingPersonSuggestion) => void; readonly addGroup: (group: SharingGroupSuggestion) => void; readonly addTypedPerson: (name: string) => void; readonly removePerson: (id: string) => void; readonly updateParts: (id: string, parts: number) => void; readonly updateAmount: (id: string, amount: string) => void; readonly updateSettlement: (id: string, choice: ShareSettlementChoice) => void };
+  readonly validation: { readonly totalCents: number; readonly remainingCents: number; readonly exceedsTotal: boolean; readonly valid: boolean; readonly message?: string };
+};

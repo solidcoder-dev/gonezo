@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import type { SharingGatewayPort } from './sharingGateway.port';
-import type { ShareDraft, SharingPersonSuggestion } from '../domain/shareDraft';
+import type { ShareDraft, SharingGroupSuggestion, SharingPersonSuggestion } from '../domain/shareDraft';
 
 export function useShareDraftModel(sharing: SharingGatewayPort) {
   const [editorOpen, setEditorOpen] = useState(false);
   const [summary, setSummary] = useState<{ peopleCount: number; total: string } | undefined>();
   const [draft, setDraft] = useState<ShareDraft | undefined>();
   const [peopleSuggestions, setPeopleSuggestions] = useState<SharingPersonSuggestion[]>([]);
+  const [groupSuggestions, setGroupSuggestions] = useState<SharingGroupSuggestion[]>([]);
 
   function reset() {
     setEditorOpen(false);
@@ -17,6 +18,7 @@ export function useShareDraftModel(sharing: SharingGatewayPort) {
   async function refreshPeopleSuggestions() {
     const people = await sharing.sharingListPeople();
     setPeopleSuggestions(people.items.map((person) => ({ id: person.id, name: person.name, email: person.email })));
+    setGroupSuggestions((await sharing.sharingListGroupSuggestions?.())?.items ?? []);
   }
 
   function applyShareDraft(nextSummary: { peopleCount: number; total: string }, nextDraft: ShareDraft) {
@@ -50,6 +52,7 @@ export function useShareDraftModel(sharing: SharingGatewayPort) {
       summary,
       draft,
       peopleSuggestions,
+      groupSuggestions,
     },
     actions: {
       reset,

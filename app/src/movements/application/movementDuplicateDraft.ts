@@ -20,11 +20,12 @@ function shareDraftFromDetail(movement: Extract<MovementDetailViewModel, { sourc
   return {
     mode: 'amounts',
     people: [
-      { id: 'you', name: 'You (Payer)', reimbursable: false, parts: 1, amount: movement.sharing.value.personalExpenseAmount, avatarTone: 'you' },
+      { id: 'owner', role: 'owner', name: 'You (Payer)', parts: 1, amount: movement.sharing.value.personalExpenseAmount, avatarTone: 'you' },
       ...movement.sharing.value.participants.map((participant) => ({
         id: participant.id,
         name: participant.name,
-        reimbursable: participant.reimbursementStatus !== 'dismissed',
+        role: 'participant' as const,
+        settlementChoice: participant.reimbursementStatus !== 'dismissed' ? 'pending' as const : 'not_required' as const,
         parts: 1,
         amount: participant.amount,
         avatarTone: 'custom' as const,

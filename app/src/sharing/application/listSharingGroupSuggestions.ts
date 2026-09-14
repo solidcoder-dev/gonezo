@@ -1,4 +1,4 @@
-import type { SharingPersonSuggestion } from '../domain/shareDraft';
+import type { SharingGroupSuggestion, SharingPersonSuggestion } from '../domain/shareDraft';
 
 export type SharingGroupHistoryEntry = {
   ownerId: string;
@@ -6,19 +6,12 @@ export type SharingGroupHistoryEntry = {
   usedAt: string;
 };
 
-export type SharingGroupSuggestion = {
-  key: string;
-  people: SharingPersonSuggestion[];
-  usageCount: number;
-  lastUsedAt: string;
-};
-
 export function listSharingGroupSuggestions(
-  history: SharingGroupHistoryEntry[],
-  people: SharingPersonSuggestion[],
+  history: readonly SharingGroupHistoryEntry[],
+  people: readonly SharingPersonSuggestion[],
 ): SharingGroupSuggestion[] {
   const peopleById = new Map(people.map((person) => [person.id, person]));
-  const groups = new Map<string, SharingGroupSuggestion>();
+  const groups = new Map<string, { key: string; people: SharingPersonSuggestion[]; usageCount: number; lastUsedAt: string }>();
 
   history.forEach((entry) => {
     const ids = [...new Set(entry.participantIds)]
@@ -34,7 +27,10 @@ export function listSharingGroupSuggestions(
     }
     groups.set(key, {
       key,
-      people: ids.map((id) => peopleById.get(id)!),
+      people: ids.flatMap((id) => {
+        const person = peopleById.get(id);
+        return person ? [person] : [];
+      }),
       usageCount: 1,
       lastUsedAt: entry.usedAt,
     });

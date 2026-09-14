@@ -1,3 +1,4 @@
+
 export type SharingPersonItem = {
   id: string;
   name: string;
@@ -7,6 +8,8 @@ export type SharingPersonItem = {
 export type SharingListPeopleResult = {
   items: SharingPersonItem[];
 };
+
+export type SharingListGroupSuggestionsResult = { items: SharingGroupSuggestion[] };
 
 export type SharingApplyShareParticipantInput = {
   person: SharingPersonReference;
@@ -95,6 +98,7 @@ export type SharingPlannedShareResult = {
 
 export interface SharingPort {
   sharingListPeople(): Promise<SharingListPeopleResult>;
+  sharingListGroupSuggestions?(): Promise<SharingListGroupSuggestionsResult>;
   sharingApplyShareToPostedMovement(
     input: SharingApplyShareToPostedMovementInput,
   ): Promise<SharingApplyShareToPostedMovementResult>;
@@ -102,3 +106,4 @@ export interface SharingPort {
   sharingListMovementDetails(input: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult>;
   sharingGetPlannedShare?(input: SharingGetPlannedShareInput): Promise<SharingPlannedShareResult>;
 }
+import type { SharingGroupSuggestion } from '../domain/shareDraft';

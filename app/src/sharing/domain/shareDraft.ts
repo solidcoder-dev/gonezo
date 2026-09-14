@@ -2,25 +2,33 @@ export type ShareMode = 'equal' | 'parts' | 'amounts';
 
 export type ShareSettlementChoice = 'not_required' | 'pending' | 'settled';
 
-export type SharePersonDraft = {
-  id: string;
-  personId?: string;
+type ShareDraftMemberBase = {
+  readonly id: string;
   name: string;
   email?: string;
-  settlementChoice?: ShareSettlementChoice;
-  reimbursable?: boolean;
   parts: number;
   amount: string;
   avatarTone: 'you' | 'emma' | 'luis' | 'maria' | 'john' | 'alex' | 'alexandra' | 'ali' | 'custom';
 };
 
+export type ShareMemberDraft =
+  | (ShareDraftMemberBase & { readonly role: 'owner' })
+  | (ShareDraftMemberBase & { readonly role: 'participant'; readonly personId?: string; settlementChoice: ShareSettlementChoice });
+
 export type ShareDraft = {
-  mode: ShareMode;
-  people: SharePersonDraft[];
+  readonly mode: ShareMode;
+  readonly people: ShareMemberDraft[];
 };
 
 export type SharingPersonSuggestion = {
-  id: string;
-  name: string;
+  readonly id: string;
+  readonly name: string;
   email?: string;
+};
+
+export type SharingGroupSuggestion = {
+  readonly key: string;
+  readonly people: readonly SharingPersonSuggestion[];
+  readonly usageCount: number;
+  readonly lastUsedAt: string;
 };

@@ -1,13 +1,13 @@
-import type { ShareMode, SharePersonDraft, ShareSettlementChoice, SharingPersonSuggestion } from '../domain/shareDraft';
+import type { ShareMemberDraft, ShareMode, ShareSettlementChoice, SharingPersonSuggestion } from '../domain/shareDraft';
 
-export const DEFAULT_SHARE_PEOPLE_OPTIONS: SharePersonDraft[] = [
-  { id: 'emma', name: 'Emma', email: 'emma@example.com', settlementChoice: 'pending', parts: 1, amount: '', avatarTone: 'emma' },
-  { id: 'luis', name: 'Luis', email: 'luis@example.com', settlementChoice: 'pending', parts: 1, amount: '', avatarTone: 'luis' },
-  { id: 'maria', name: 'Maria', email: 'maria@example.com', settlementChoice: 'pending', parts: 1, amount: '', avatarTone: 'maria' },
-  { id: 'john', name: 'John', email: 'john@example.com', settlementChoice: 'pending', parts: 1, amount: '', avatarTone: 'john' },
-  { id: 'alex-johnson', name: 'Alex Johnson', email: 'alex.j@example.com', settlementChoice: 'pending', parts: 1, amount: '', avatarTone: 'alex' },
-  { id: 'alexandra-rossi', name: 'Alexandra Rossi', email: 'alexandra.r@example.com', settlementChoice: 'pending', parts: 1, amount: '', avatarTone: 'alexandra' },
-  { id: 'ali-khan', name: 'Ali Khan', email: 'ali.k@example.com', settlementChoice: 'pending', parts: 1, amount: '', avatarTone: 'ali' },
+export const DEFAULT_SHARE_PEOPLE_OPTIONS: SharingPersonSuggestion[] = [
+  { id: 'emma', name: 'Emma', email: 'emma@example.com' },
+  { id: 'luis', name: 'Luis', email: 'luis@example.com' },
+  { id: 'maria', name: 'Maria', email: 'maria@example.com' },
+  { id: 'john', name: 'John', email: 'john@example.com' },
+  { id: 'alex-johnson', name: 'Alex Johnson', email: 'alex.j@example.com' },
+  { id: 'alexandra-rossi', name: 'Alexandra Rossi', email: 'alexandra.r@example.com' },
+  { id: 'ali-khan', name: 'Ali Khan', email: 'ali.k@example.com' },
 ];
 
 export function parseShareCents(value: string): number {
@@ -19,12 +19,12 @@ export function formatShareCents(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
-export function makeSharePerson(name: string, options: SharingPersonSuggestion[] = DEFAULT_SHARE_PEOPLE_OPTIONS): SharePersonDraft {
+export function makeSharePerson(name: string, options: readonly SharingPersonSuggestion[] = DEFAULT_SHARE_PEOPLE_OPTIONS): Extract<ShareMemberDraft, { role: 'participant' }> {
   const normalizedName = name.trim();
   const existing = options.find((person) => person.name.toLowerCase() === normalizedName.toLowerCase());
   if (existing) {
     return {
-      id: crypto.randomUUID(),
+      id: crypto.randomUUID(), role: 'participant',
       personId: existing.id,
       name: existing.name,
       email: existing.email,
@@ -35,7 +35,7 @@ export function makeSharePerson(name: string, options: SharingPersonSuggestion[]
     };
   }
   return {
-    id: crypto.randomUUID(),
+    id: crypto.randomUUID(), role: 'participant',
     name: normalizedName,
     settlementChoice: 'pending',
     parts: 1,
@@ -44,11 +44,11 @@ export function makeSharePerson(name: string, options: SharingPersonSuggestion[]
   };
 }
 
-export function normalizeShareSettlementChoice(person: Pick<SharePersonDraft, 'settlementChoice' | 'reimbursable'>): ShareSettlementChoice {
-  return person.settlementChoice ?? (person.reimbursable ? 'pending' : 'not_required');
+export function normalizeShareSettlementChoice(person: Extract<ShareMemberDraft, { role: 'participant' }>): ShareSettlementChoice {
+  return person.settlementChoice;
 }
 
-export function distributeShareByParts(amountCents: number, people: SharePersonDraft[]): SharePersonDraft[] {
+export function distributeShareByParts(amountCents: number, people: ShareMemberDraft[]): ShareMemberDraft[] {
   const totalParts = people.reduce((total, person) => total + Math.max(1, person.parts), 0);
   const participantAllocations = people.map((person, index) => index === 0
     ? 0
@@ -63,7 +63,7 @@ export function distributeShareByParts(amountCents: number, people: SharePersonD
   });
 }
 
-export function distributeShareEqually(amountCents: number, people: SharePersonDraft[]): SharePersonDraft[] {
+export function distributeShareEqually(amountCents: number, people: ShareMemberDraft[]): ShareMemberDraft[] {
   if (people.length === 0) return people;
   const participantAmount = Math.floor(amountCents / people.length);
   const participantsTotal = participantAmount * (people.length - 1);
@@ -73,16 +73,14 @@ export function distributeShareEqually(amountCents: number, people: SharePersonD
   }));
 }
 
-export function resetSharePeopleForMode(mode: ShareMode, amountCents: number, people: SharePersonDraft[]): SharePersonDraft[] {
+export function resetSharePeopleForMode(mode: ShareMode, amountCents: number, people: ShareMemberDraft[]): ShareMemberDraft[] {
   const resetPeople = people.map((person) => ({ ...person, parts: 1, amount: '' }));
   return mode === 'equal'
     ? distributeShareEqually(amountCents, resetPeople)
-    : mode === 'parts'
-      ? distributeShareByParts(amountCents, resetPeople)
-      : resetPeople;
+    : mode === 'parts' ? distributeShareByParts(amountCents, resetPeople) : resetPeople;
 }
 
-export function totalShareCents(people: SharePersonDraft[]): number {
+export function totalShareCents(people: ShareMemberDraft[]): number {
   return people.reduce((total, person) => total + parseShareCents(person.amount), 0);
 }
 

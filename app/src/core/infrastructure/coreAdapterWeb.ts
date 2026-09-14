@@ -254,6 +254,7 @@ export class CoreAdapterWeb implements CorePort {
   async analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult> { return analyticsGetSpendingOverview(this, input); }
   async analyticsGetFlowReport(input: AnalyticsFlowReportInput): Promise<AnalyticsFlowReport> { return analyticsGetFlowReport(this, input); }
   async sharingListPeople(): Promise<SharingListPeopleResult> { return this.sharingService.listPeople(); }
+  async sharingListGroupSuggestions() { return this.sharingService.listGroupSuggestions(); }
 
   async sharingApplyShareToPostedMovement(
     input: SharingApplyShareToPostedMovementInput,
