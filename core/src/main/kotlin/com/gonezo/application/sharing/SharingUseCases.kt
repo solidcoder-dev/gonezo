@@ -43,3 +43,16 @@ data class MovementSharingAnalyticsView(
 interface GetMovementSharingDetailsUC {
     fun execute(query: GetMovementSharingDetailsQuery): MovementSharingDetailsView?
 }
+
+data class SharingPersonSuggestionView(val id: String, val displayName: String)
+
+data class SharingGroupSuggestionView(
+    val key: String,
+    val people: List<SharingPersonSuggestionView>,
+    val usageCount: Int,
+    val lastUsedAt: Instant,
+)
+
+interface ListSharingGroupSuggestionsUC {
+    fun execute(): List<SharingGroupSuggestionView>
+}

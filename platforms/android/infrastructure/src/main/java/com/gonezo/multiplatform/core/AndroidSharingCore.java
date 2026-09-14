@@ -41,6 +41,21 @@ public final class AndroidSharingCore {
     }
   }
 
+  public List<GroupSuggestionView> listGroupSuggestions() {
+    List<GroupSuggestionView> suggestions = new ArrayList<>();
+    for (com.gonezo.application.sharing.SharingGroupSuggestionView suggestion:
+      new com.gonezo.sharing.application.ListSharingGroupSuggestionsService(
+        new AndroidSharingPersonRepository(database), new AndroidMovementShareRepository(database)
+      ).execute()) {
+      List<PersonView> people = new ArrayList<>();
+      for (com.gonezo.application.sharing.SharingPersonSuggestionView person : suggestion.getPeople()) {
+        people.add(new PersonView(person.getId(), person.getDisplayName()));
+      }
+      suggestions.add(new GroupSuggestionView(suggestion.getKey(), people, suggestion.getUsageCount(), suggestion.getLastUsedAt().toString()));
+    }
+    return suggestions;
+  }
+
   public MovementDetailsView getMovementDetails(String transactionId) {
     String resolvedTransactionId = requireText(transactionId, "transactionId is required");
     Cursor shareCursor = database.getReadableDatabase().query(
@@ -178,6 +193,8 @@ public final class AndroidSharingCore {
   }
 
   public record PersonView(String id, String displayName) {}
+
+  public record GroupSuggestionView(String key, List<PersonView> people, int usageCount, String lastUsedAt) {}
 
   public record ParticipantView(
     String participantId,

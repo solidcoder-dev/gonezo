@@ -226,3 +226,51 @@ class GetMovementSharingDetailsService(private val ledgerTransactionRepository: 
         else -> "missing_expected"
     }
 }
+
+class ListSharingGroupSuggestionsService(
+    private val people: SharingPersonRepository,
+    private val shares: MovementShareRepository,
+) : ListSharingGroupSuggestionsUC {
+    override fun execute(): List<SharingGroupSuggestionView> {
+        val peopleById = people.listActive().associateBy { it.id }
+        val groups = linkedMapOf<String, MutableGroupSuggestion>()
+        shares.listAll().forEach { share ->
+            val participantIds = share.participants
+                .asSequence()
+                .map { it.personId }
+                .filter { it != share.payerPersonId && peopleById.containsKey(it) }
+                .distinct()
+                .sortedBy { it.toString() }
+                .toList()
+            if (participantIds.isEmpty()) return@forEach
+            val key = participantIds.joinToString("|")
+            val existing = groups[key]
+            if (existing == null) {
+                groups[key] = MutableGroupSuggestion(key, participantIds, 1, share.updatedAt)
+            } else {
+                existing.usageCount += 1
+                if (share.updatedAt.isAfter(existing.lastUsedAt)) existing.lastUsedAt = share.updatedAt
+            }
+        }
+        return groups.values
+            .sortedWith(compareByDescending<MutableGroupSuggestion> { it.lastUsedAt }.thenByDescending { it.usageCount }.thenBy { it.key })
+            .map { group ->
+                SharingGroupSuggestionView(
+                    key = group.key,
+                    people = group.personIds.map { id ->
+                        val person = peopleById.getValue(id)
+                        SharingPersonSuggestionView(person.id.toString(), person.displayName)
+                    },
+                    usageCount = group.usageCount,
+                    lastUsedAt = group.lastUsedAt,
+                )
+            }
+    }
+
+    private data class MutableGroupSuggestion(
+        val key: String,
+        val personIds: List<com.gonezo.sharing.domain.SharingPersonId>,
+        var usageCount: Int,
+        var lastUsedAt: java.time.Instant,
+    )
+}

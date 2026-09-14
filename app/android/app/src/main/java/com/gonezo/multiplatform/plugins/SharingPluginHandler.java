@@ -43,8 +43,24 @@ final class SharingPluginHandler {
 
   void sharingListGroupSuggestions(PluginCall call) {
     try {
+      JSONArray items = new JSONArray();
+      for (AndroidSharingCore.GroupSuggestionView suggestion : AndroidSharingCore.getInstance(context).listGroupSuggestions()) {
+        JSObject item = new JSObject();
+        item.put("key", suggestion.key());
+        item.put("usageCount", suggestion.usageCount());
+        item.put("lastUsedAt", suggestion.lastUsedAt());
+        JSONArray people = new JSONArray();
+        for (AndroidSharingCore.PersonView person : suggestion.people()) {
+          JSObject personItem = new JSObject();
+          personItem.put("id", person.id());
+          personItem.put("name", person.displayName());
+          people.put(personItem);
+        }
+        item.put("people", people);
+        items.put(item);
+      }
       JSObject result = new JSObject();
-      result.put("items", new JSONArray());
+      result.put("items", items);
       call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());
