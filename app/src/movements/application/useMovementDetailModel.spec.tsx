@@ -336,7 +336,7 @@ describe('useMovementDetailModel', () => {
     expect(input.confirm).toHaveBeenCalledWith(expect.stringContaining('Only this expected movement will be dismissed'));
     expect(input.ports.expected.expectedDismissMovement).toHaveBeenCalledOnce();
     expect(input.ports.expected.expectedDismissMovement).toHaveBeenCalledWith({
-      expectedMovementId: 'expected-id', dismissedAt: '2026-07-13T12:00:00.000Z',
+      expectedMovementId: 'expected-id', originKind: 'recurring', dismissedAt: '2026-07-13T12:00:00.000Z',
     });
     expect(input.ports.scheduling.schedulingDeactivateMovement).not.toHaveBeenCalled();
     expect(refreshMovements).toHaveBeenCalledOnce();
@@ -362,6 +362,24 @@ describe('useMovementDetailModel', () => {
     expect(input.reportError).toHaveBeenCalledWith(expect.any(Error));
     expect(result.current.state.selection).toEqual({ source: 'expected', id: 'expected-1' });
     expect(result.current.required.status.dismissingExpected).toBe(false);
+  });
+
+  it('dismisses a standalone expected movement without recurrence intent', async () => {
+    const refreshMovements = vi.fn().mockResolvedValue(undefined);
+    const input = makeInput({ postedItems: [], expectedItems: [expectedMovement()], refreshMovements });
+    const { result } = renderHook(() => useMovementDetailModel(input));
+
+    act(() => result.current.actions.openExpectedMovementDetail('expected-1'));
+    await act(async () => {
+      result.current.provided.commands.runOverflowAction({ id: 'dismiss-expected', expectedMovementId: 'expected-1', label: 'Delete expected', destructive: true });
+    });
+
+    expect(input.ports.expected.expectedDismissMovement).toHaveBeenCalledWith({
+      expectedMovementId: 'expected-1', originKind: 'manual', dismissedAt: '2026-07-13T12:00:00.000Z',
+    });
+    expect(refreshMovements).toHaveBeenCalledOnce();
+    expect(result.current.state.selection).toBeNull();
+    expect(input.reportError).not.toHaveBeenCalled();
   });
 
   it('stops an expected movement series with the series id and closes after refresh', async () => {
