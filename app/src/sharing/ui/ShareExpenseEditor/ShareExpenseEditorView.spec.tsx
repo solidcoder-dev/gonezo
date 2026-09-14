@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ShareEditorFlow } from '../../application/ShareEditorFlow';
 import type { ShareDraft, SharingGroupSuggestion } from '../../domain/shareDraft';
+import selectionStyles from '../ParticipantSelection/ShareParticipantSelectionView.module.css';
 
 function renderShareEditor(
   applyShare = vi.fn(),
@@ -25,7 +26,7 @@ function renderShareEditor(
 }
 
 function openParticipantSelection() {
-  fireEvent.click(screen.getByRole('button', { name: /Add people or groups/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Add people or groups/ }));
 }
 
 describe('ShareExpenseEditorView', () => {
@@ -47,6 +48,16 @@ describe('ShareExpenseEditorView', () => {
     fireEvent.click(within(rows[1]).getByRole('button', { name: 'Remove Luis' }));
     expect(screen.queryByText('Luis')).not.toBeInTheDocument();
     expect(within(rows[0]).queryByRole('button', { name: 'Remove You (Payer)' })).not.toBeInTheDocument();
+  });
+
+  it('keeps Confirm in a sticky footer outside the selection scroll region', () => {
+    renderShareEditor();
+    openParticipantSelection();
+
+    const confirm = screen.getByRole('button', { name: 'Confirm' });
+    expect(confirm).toHaveClass('btn-primary', 'w-100');
+    expect(confirm.parentElement).toHaveClass(selectionStyles.stickyAction, 'position-sticky', 'bottom-0');
+    expect(confirm.parentElement?.previousElementSibling).toHaveClass('flex-grow-1', 'overflow-y-auto');
   });
 
   it('does not add the same person twice', () => {

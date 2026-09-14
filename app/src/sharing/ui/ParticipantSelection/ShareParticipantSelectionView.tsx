@@ -1,4 +1,5 @@
 import type { SharingGroupSuggestion, SharingPersonSuggestion } from '../../domain/shareDraft';
+import styles from './ShareParticipantSelectionView.module.css';
 
 export type ShareParticipantSelectionViewProps = {
   readonly context: 'people' | 'groups';
@@ -26,7 +27,7 @@ export function ShareParticipantSelectionView({ context, people, groups, canCrea
         </button>
         <h1 className="mb-0">Add people or groups</h1>
       </header>
-      <div className="flex-grow-1 px-4 py-3">
+      <div className="flex-grow-1 overflow-y-auto overflow-x-hidden px-4 py-3">
         <div className="nav nav-underline" role="tablist" aria-label="Participant type">
           {(['people', 'groups'] as const).map((tab) => <button key={tab} id={`${tab}-tab`} type="button" role="tab" className={`nav-link ${context === tab ? 'active' : ''}`} aria-selected={context === tab} aria-controls={`${tab}-panel`} onClick={() => onContextChange(tab)} disabled={disabled}>{tab === 'people' ? 'People' : 'Groups'}</button>)}
         </div>
@@ -53,7 +54,7 @@ export function ShareParticipantSelectionView({ context, people, groups, canCrea
           </div>
         </section>}
       </div>
-      <footer className="mt-auto px-4 pb-3">
+      <footer className={`${styles.stickyAction} position-sticky bottom-0`}>
         <button type="button" className="btn btn-primary w-100" onClick={onConfirm} disabled={disabled}>Confirm</button>
       </footer>
     </main>

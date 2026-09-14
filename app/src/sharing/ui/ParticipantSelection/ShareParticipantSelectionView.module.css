@@ -1,0 +1,10 @@
+.stickyAction {
+  padding: 12px 24px calc(12px + var(--app-safe-area-bottom));
+  background: var(--color-surface);
+}
+
+.stickyAction button {
+  min-height: 52px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
