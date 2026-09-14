@@ -325,16 +325,17 @@ describe('useMovementDetailModel', () => {
       id: 'expected-id',
       origin: { kind: 'recurring', occurrenceId: 'occurrence-id', recurringMovementId: 'series-id' },
     })], refreshMovements });
+    input.ports.movements.movementsGetDetail.mockReturnValue(new Promise(() => undefined));
     const { result } = renderHook(() => useMovementDetailModel(input));
 
     act(() => result.current.actions.openExpectedMovementDetail('expected-id'));
-    await act(async () => { await Promise.resolve(); });
+    await waitFor(() => expect(result.current.required.data.movement).toMatchObject({ id: 'expected-id' }));
     await act(async () => {
       result.current.provided.commands.runOverflowAction({ id: 'dismiss-expected', expectedMovementId: 'expected-id', label: 'Delete expected', destructive: true });
     });
 
     expect(input.confirm).toHaveBeenCalledWith(expect.stringContaining('Only this expected movement will be dismissed'));
-    expect(input.ports.expected.expectedDismissMovement).toHaveBeenCalledOnce();
+    await waitFor(() => expect(input.ports.expected.expectedDismissMovement).toHaveBeenCalledOnce());
     expect(input.ports.expected.expectedDismissMovement).toHaveBeenCalledWith({
       expectedMovementId: 'expected-id', originKind: 'recurring', dismissedAt: '2026-07-13T12:00:00.000Z',
     });
@@ -346,16 +347,18 @@ describe('useMovementDetailModel', () => {
   it('prevents double dismiss execution and keeps the detail open after an error', async () => {
     const dismissal = deferred<void>();
     const input = makeInput({ postedItems: [], expectedItems: [expectedMovement()] });
+    input.ports.movements.movementsGetDetail.mockReturnValue(new Promise(() => undefined));
     input.ports.expected.expectedDismissMovement.mockReturnValue(dismissal.promise);
     const { result } = renderHook(() => useMovementDetailModel(input));
 
     act(() => result.current.actions.openExpectedMovementDetail('expected-1'));
+    await waitFor(() => expect(result.current.required.data.movement).toMatchObject({ id: 'expected-1' }));
     act(() => {
       const action = { id: 'dismiss-expected' as const, expectedMovementId: 'expected-1', label: 'Delete expected' as const, destructive: true as const };
       result.current.provided.commands.runOverflowAction(action);
       result.current.provided.commands.runOverflowAction(action);
     });
-    expect(input.ports.expected.expectedDismissMovement).toHaveBeenCalledOnce();
+    await waitFor(() => expect(input.ports.expected.expectedDismissMovement).toHaveBeenCalledOnce());
 
     dismissal.reject(new Error('dismiss failed'));
     await act(async () => { await dismissal.promise.catch(() => undefined); });
@@ -367,16 +370,18 @@ describe('useMovementDetailModel', () => {
   it('dismisses a standalone expected movement without recurrence intent', async () => {
     const refreshMovements = vi.fn().mockResolvedValue(undefined);
     const input = makeInput({ postedItems: [], expectedItems: [expectedMovement()], refreshMovements });
+    input.ports.movements.movementsGetDetail.mockReturnValue(new Promise(() => undefined));
     const { result } = renderHook(() => useMovementDetailModel(input));
 
     act(() => result.current.actions.openExpectedMovementDetail('expected-1'));
+    await waitFor(() => expect(result.current.required.data.movement).toMatchObject({ id: 'expected-1' }));
     await act(async () => {
       result.current.provided.commands.runOverflowAction({ id: 'dismiss-expected', expectedMovementId: 'expected-1', label: 'Delete expected', destructive: true });
     });
 
-    expect(input.ports.expected.expectedDismissMovement).toHaveBeenCalledWith({
+    await waitFor(() => expect(input.ports.expected.expectedDismissMovement).toHaveBeenCalledWith({
       expectedMovementId: 'expected-1', originKind: 'manual', dismissedAt: '2026-07-13T12:00:00.000Z',
-    });
+    }));
     expect(refreshMovements).toHaveBeenCalledOnce();
     expect(result.current.state.selection).toBeNull();
     expect(input.reportError).not.toHaveBeenCalled();

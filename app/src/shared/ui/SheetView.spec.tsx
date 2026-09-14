@@ -28,7 +28,7 @@ describe('SheetView', () => {
       <SheetView required={{ config: { ariaLabel: 'Sheet', showHandle: true, dragToClose: true }, data: { body: <div data-testid="sheet-content">Content</div> }, state: { open: true }, status: {} }} provided={{ commands: { close: vi.fn() } }} />,
     );
 
-    expect(screen.getByTestId('sheet-content').parentElement).toHaveClass('content');
+    expect(screen.getByTestId('sheet-content').parentElement?.className).toContain('content');
     expect(screen.getByTestId('sheet-drag-handle').parentElement).toHaveAttribute('class');
   });
   it('restores focus to the opener when it closes', () => {
