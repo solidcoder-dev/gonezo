@@ -12,6 +12,7 @@ import type { LedgerTransactionOperationsPort } from '../../ledger/application/u
 import type { MovementDetailQueryPort } from './movements.port';
 import type { ExpectedMovementView } from './movementsView.types';
 import type { MovementDetailViewModel } from './movementDetailView.types';
+import type { MovementFeatureEditRequest } from './movementFeatureEditRequest';
 import type { FeedbackNoticeInput, FeedbackNoticeUpdate } from '../../shared/ui/FeedbackNotice/feedbackNotice.types';
 import type { AmountVisibility } from '../../shared/domain/amountVisibility';
 import { decodeMonthlyMovementsRouteState, monthlyMovementsRouteStateNeedsNormalization, serializeMonthlyMovementsRouteState } from './monthlyMovementsRouteState';
@@ -45,6 +46,7 @@ export type MonthlyMovementsComponentProps = {
       onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
       onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
       onDuplicateMovement?: (movement: MovementDetailViewModel) => void;
+      onFeatureEditRequested?: (request: MovementFeatureEditRequest) => void;
       onNotice?: (notice: FeedbackNoticeInput) => string;
       onNoticeUpdated?: (id: string, update: FeedbackNoticeUpdate) => void;
       onNoticeClosed?: (id: string) => void;
@@ -88,6 +90,7 @@ export function MonthlyMovementsComponent({ required, provided = {} }: MonthlyMo
     onPostExpectedMovement: provided.events?.onPostExpectedMovement,
     onEditExpectedMovement: provided.events?.onEditExpectedMovement,
     onDuplicateMovement: provided.events?.onDuplicateMovement,
+    onFeatureEditRequested: provided.events?.onFeatureEditRequested,
     onNotice: provided.events?.onNotice,
     onNoticeUpdated: provided.events?.onNoticeUpdated,
     onNoticeClosed: provided.events?.onNoticeClosed,

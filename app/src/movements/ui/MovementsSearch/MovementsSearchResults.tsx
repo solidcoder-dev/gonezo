@@ -7,6 +7,7 @@ import type {
 import type { MovementsSearchPagePort } from '../../application/movementsSearch.port';
 import type { ExpectedMovementView } from '../../application/movementsView.types';
 import type { MovementDetailViewModel } from '../../application/movementDetailView.types';
+import type { MovementFeatureEditRequest } from '../../application/movementFeatureEditRequest';
 import { MovementDetailOverlayComponent } from '../../application/MovementDetailOverlayComponent';
 import { MovementSummaryTileView } from '../../../shared/ui/MovementSummaryTileView';
 import {
@@ -46,6 +47,7 @@ export type MovementsSearchResultsProvided = {
     onPostExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => void;
     onEditExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => void;
     onDuplicateMovement?: (movement: MovementDetailViewModel) => void;
+    onFeatureEditRequested?: (request: MovementFeatureEditRequest) => void;
   };
 };
 
@@ -151,6 +153,7 @@ export function MovementsSearchResults({ required, provided }: MovementsSearchRe
               onPostExpectedMovement: provided.events.onPostExpectedMovement,
               onEditExpectedMovement: provided.events.onEditExpectedMovement,
               onDuplicateMovement: provided.events.onDuplicateMovement,
+              onFeatureEditRequested: provided.events.onFeatureEditRequested,
             },
           }}
         />

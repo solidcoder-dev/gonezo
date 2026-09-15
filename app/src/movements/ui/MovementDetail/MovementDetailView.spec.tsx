@@ -170,6 +170,7 @@ function makeCommands(overrides: Partial<MovementDetailViewProps['provided']['co
     runOverflowAction: vi.fn(),
     stopFutureMovements: vi.fn(),
     postExpectedMovement: vi.fn(),
+    requestFeatureEdit: vi.fn(),
     ...overrides,
   };
 }

@@ -31,6 +31,7 @@ import type {
   MovementDetailViewModel,
 } from './movementDetailView.types';
 import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types';
+import type { MovementFeatureEditRequest } from './movementFeatureEditRequest';
 
 type MovementDetailModelInput = {
   ports: {
@@ -55,6 +56,7 @@ type MovementDetailModelInput = {
   onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
   onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
   onDuplicateMovement?: (movement: MovementDetailViewModel) => void;
+  onFeatureEditRequested?: (request: MovementFeatureEditRequest) => void;
 };
 
 type MovementDetailModelInputWithSeed = MovementDetailModelInput & {
@@ -124,6 +126,7 @@ export function useMovementDetailModel(input: MovementDetailModelInputWithSeed) 
     onEditExpectedMovement,
     onPostExpectedMovement,
     onDuplicateMovement,
+    onFeatureEditRequested,
   } = input;
 
   const [selection, setSelection] = useState<MovementDetailSelection | null>(null);
@@ -407,6 +410,13 @@ export function useMovementDetailModel(input: MovementDetailModelInputWithSeed) 
     setActiveSheet('items');
   }
 
+  function requestFeatureEdit(feature: MovementFeatureEditRequest['feature']) {
+    if (!movement || movement.capabilities[feature].mode !== 'editable') {
+      return;
+    }
+    onFeatureEditRequested?.({ feature, movement });
+  }
+
   function openMoreDetailsSheet() {
     if (!movement) {
       return;
@@ -665,6 +675,7 @@ export function useMovementDetailModel(input: MovementDetailModelInputWithSeed) 
         openTagsSheet,
         openSharingSheet,
         openItemsSheet,
+        requestFeatureEdit,
         openMoreDetailsSheet,
         setCategoryQuery,
         setTagsQuery,

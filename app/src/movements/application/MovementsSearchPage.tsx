@@ -4,6 +4,7 @@ import type { LedgerAccountItem } from '../../ledger/application/ledger.port';
 import type { MovementsSearchPagePort } from './movementsSearch.port';
 import type { ExpectedMovementView } from './movementsView.types';
 import type { MovementDetailViewModel } from './movementDetailView.types';
+import type { MovementFeatureEditRequest } from './movementFeatureEditRequest';
 import { useMovementsSearchModel } from './useMovementsSearchModel';
 import { MovementsSearchFilters } from '../ui/MovementsSearch/MovementsSearchFilters';
 import { MovementsSearchResults } from '../ui/MovementsSearch/MovementsSearchResults';
@@ -21,6 +22,7 @@ type MovementsSearchPageProps = {
       onPostExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => void;
       onEditExpectedMovement: (movement: ExpectedMovementView, categoryName?: string) => void;
       onDuplicateMovement?: (movement: MovementDetailViewModel) => void;
+      onFeatureEditRequested?: (request: MovementFeatureEditRequest) => void;
       onOperationError?: (error: { message: string }) => void;
     };
   };

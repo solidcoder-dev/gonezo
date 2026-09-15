@@ -2,7 +2,7 @@ import type { AnalyticsPort } from '../../analytics/application/analytics.port';
 import type { ExpectedGatewayPort } from '../../expected/application/expectedGateway.port'; import type { LedgerPort, LedgerTransactionListItem } from '../../ledger/application/ledger.port';
 import type { LedgerTransactionOperationsPort } from '../../ledger/application/ledgerTransactionOperations.port'; import type { SchedulingPort } from '../../scheduling/application/scheduling.port';
 import type { SharingGatewayPort } from '../../sharing/application/sharingGateway.port'; import type { TaxonomyGatewayPort } from '../../taxonomy/application/taxonomyGateway.port';
-import type { MovementDetailQueryPort, MovementsQueryPort } from './movements.port'; import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types'; import type { MovementDetailViewModel } from './movementDetailView.types';
+import type { MovementDetailQueryPort, MovementsQueryPort } from './movements.port'; import type { ExpectedMovementView, ScheduledMovementView } from './movementsView.types'; import type { MovementDetailViewModel } from './movementDetailView.types'; import type { MovementFeatureEditRequest } from './movementFeatureEditRequest';
 import { useMovementDetailModel } from './useMovementDetailModel';
 import { useMonthlyMovementMutationsModel } from './useMonthlyMovementMutationsModel';
 import { useMonthlyMovementsRouteModel } from './useMonthlyMovementsRouteModel';
@@ -33,6 +33,7 @@ type UseMonthlyMovementsModelInput = {
   onExpectedDismissed?: () => void;
   onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void; onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
   onDuplicateMovement?: (movement: MovementDetailViewModel) => void;
+  onFeatureEditRequested?: (request: MovementFeatureEditRequest) => void;
   onNotice?: (notice: FeedbackNoticeInput) => string;
   onNoticeUpdated?: (id: string, update: FeedbackNoticeUpdate) => void;
   onNoticeClosed?: (id: string) => void;
@@ -56,6 +57,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     onExpectedDismissed,
     onPostExpectedMovement, onEditExpectedMovement,
     onDuplicateMovement,
+    onFeatureEditRequested,
     onNotice,
     onNoticeUpdated,
     onNoticeClosed,
@@ -161,6 +163,7 @@ export function useMonthlyMovementsModel(input: UseMonthlyMovementsModelInput) {
     onEditExpectedMovement,
     onPostExpectedMovement,
     onDuplicateMovement,
+    onFeatureEditRequested,
     postedItems: taxonomyModel.state.historyItems,
     scheduledItems: overviewModel.state.scheduledItems,
     expectedItems: overviewModel.state.expectedItems,

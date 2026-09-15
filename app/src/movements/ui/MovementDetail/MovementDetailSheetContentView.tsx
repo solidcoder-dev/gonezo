@@ -13,6 +13,7 @@ import type {
 import styles from './MovementDetailSheetContentView.module.css';
 import { FinancialAmountView } from '../../../shared/ui/FinancialAmount/FinancialAmountView';
 import type { AmountVisibility } from '../../../shared/domain/amountVisibility';
+import type { MovementFeatureEditRequest } from '../../application/movementFeatureEditRequest';
 
 type MovementDetailSheetContentViewProps = {
   movement: MovementDetailViewModel;
@@ -32,6 +33,7 @@ type MovementDetailSheetContentViewProps = {
   onToggleDraftTag: (tag: MovementDetailTagView) => void;
   onSaveTags: () => void;
   onSetIgnored: (value: boolean) => void;
+  onRequestFeatureEdit: (feature: MovementFeatureEditRequest['feature']) => void;
   amountVisibility?: AmountVisibility;
 };
 
@@ -184,7 +186,7 @@ function tagsContent(props: MovementDetailSheetContentViewProps): MovementDetail
   };
 }
 
-function sharingContent(movement: MovementDetailViewModel, amountVisibility: AmountVisibility): MovementDetailSheetContent {
+function sharingContent(movement: MovementDetailViewModel, amountVisibility: AmountVisibility, onRequestFeatureEdit: MovementDetailSheetContentViewProps['onRequestFeatureEdit']): MovementDetailSheetContent {
   const sharing = movement.source === 'posted'
     ? movement.sharing
     : { phase: 'loaded' as const, value: null };
@@ -228,12 +230,17 @@ function sharingContent(movement: MovementDetailViewModel, amountVisibility: Amo
             </div>
           </>
         ) : sharing.phase === 'loaded' ? <p>Not shared</p> : null}
+        {movement.capabilities.sharing.mode === 'editable' ? (
+          <button type="button" className="btn btn-primary w-100 mt-3" onClick={() => onRequestFeatureEdit('sharing')}>
+            Edit sharing
+          </button>
+        ) : null}
       </>
     ),
   };
 }
 
-function itemsContent(movement: MovementDetailViewModel, amountVisibility: AmountVisibility): MovementDetailSheetContent {
+function itemsContent(movement: MovementDetailViewModel, amountVisibility: AmountVisibility, onRequestFeatureEdit: MovementDetailSheetContentViewProps['onRequestFeatureEdit']): MovementDetailSheetContent {
   return {
     title: 'Items',
     body: (
@@ -250,6 +257,11 @@ function itemsContent(movement: MovementDetailViewModel, amountVisibility: Amoun
             </strong>
           </div>
         ))}
+        {movement.capabilities.items.mode === 'editable' ? (
+          <button type="button" className="btn btn-primary w-100" onClick={() => onRequestFeatureEdit('items')}>
+            {movement.items.length === 0 ? 'Add items' : 'Edit items'}
+          </button>
+        ) : null}
       </div>
     ),
   };
@@ -346,10 +358,10 @@ export function buildMovementDetailSheetContent(props: MovementDetailSheetConten
       content = tagsContent(props);
       break;
     case 'sharing':
-    content = sharingContent(props.movement, props.amountVisibility ?? 'visible');
+    content = sharingContent(props.movement, props.amountVisibility ?? 'visible', props.onRequestFeatureEdit);
       break;
     case 'items':
-      content = itemsContent(props.movement, props.amountVisibility ?? 'visible');
+    content = itemsContent(props.movement, props.amountVisibility ?? 'visible', props.onRequestFeatureEdit);
       break;
     case 'more':
       content = moreDetailsContent(props);

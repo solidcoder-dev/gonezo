@@ -11,6 +11,7 @@ import type {
 import type { ExpectedMovementView } from './movementsView.types';
 import type { MovementDetailViewModel } from './movementDetailView.types';
 import type { AmountVisibility } from '../../shared/domain/amountVisibility';
+import type { MovementFeatureEditRequest } from './movementFeatureEditRequest';
 
 type MovementDetailOverlayComponentProps = {
   required: {
@@ -35,6 +36,7 @@ type MovementDetailOverlayComponentProps = {
       onEditExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
       onPostExpectedMovement?: (movement: ExpectedMovementView, categoryName?: string) => void;
       onDuplicateMovement?: (movement: MovementDetailViewModel) => void;
+      onFeatureEditRequested?: (request: MovementFeatureEditRequest) => void;
     };
   };
 };
@@ -126,6 +128,7 @@ export function MovementDetailOverlayComponent({ required, provided }: MovementD
     onEditExpectedMovement: provided.events.onEditExpectedMovement,
     onPostExpectedMovement: provided.events.onPostExpectedMovement,
     onDuplicateMovement: provided.events.onDuplicateMovement,
+    onFeatureEditRequested: provided.events.onFeatureEditRequested,
   });
 
   useEffect(() => {
