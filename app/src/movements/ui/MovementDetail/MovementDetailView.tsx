@@ -54,7 +54,7 @@ export type MovementDetailViewProps = {
       runOverflowAction: (action: MovementDetailOverflowAction) => void;
       stopFutureMovements: (recurringMovementId: string) => void;
       postExpectedMovement: () => void;
-      requestFeatureEdit: (feature: MovementFeatureEditRequest['feature']) => void;
+      requestFeatureEdit?: (feature: MovementFeatureEditRequest['feature']) => void;
     };
   };
 };
@@ -129,7 +129,7 @@ export function MovementDetailView(props: MovementDetailViewProps) {
     onToggleDraftTag: props.provided.commands.toggleDraftTag,
     onSaveTags: props.provided.commands.saveTags,
     onSetIgnored: props.provided.commands.setIgnored,
-    onRequestFeatureEdit: props.provided.commands.requestFeatureEdit,
+    onRequestFeatureEdit: props.provided.commands.requestFeatureEdit ?? (() => {}),
     amountVisibility: props.required.data.amountVisibility,
   }) : null;
   const summaryProps = {

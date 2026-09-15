@@ -122,6 +122,7 @@ export type PostedMovementDetailViewModel = MovementDetailBaseViewModel & {
   canEditTags: boolean;
   canToggleIgnored: boolean;
   canVoid: boolean;
+  sharing: SharingDetailState;
   duplicateReadiness: DuplicateReadiness;
   postedAtLabel: string;
 };

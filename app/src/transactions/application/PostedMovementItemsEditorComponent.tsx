@@ -12,6 +12,7 @@ export function PostedMovementItemsEditorComponent(props: { movement: PostedMove
       {model.error ? <div className="alert alert-danger" role="alert">{model.error}</div> : null}
       <ItemBreakdownEditorView
         required={{
+          config: {},
           data: { items },
           state: {
             enabled: true,

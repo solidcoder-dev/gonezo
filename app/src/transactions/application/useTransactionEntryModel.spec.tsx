@@ -39,6 +39,7 @@ function makePorts(): TransactionEntryModelPorts {
       ledgerRecordTransferFx: vi.fn().mockResolvedValue({ transferOutId: 'out-1', transferInId: 'in-1' }),
       ledgerCreateExpenseDraft: vi.fn().mockResolvedValue({ id: 'draft-1' }),
       ledgerAddTransactionItem: vi.fn().mockResolvedValue(undefined),
+      ledgerReplacePostedTransactionItems: vi.fn().mockResolvedValue(undefined),
       ledgerPostDraftTransaction: vi.fn().mockResolvedValue(undefined),
       ledgerVoidTransaction: vi.fn(),
     },

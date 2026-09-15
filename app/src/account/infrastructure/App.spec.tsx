@@ -457,6 +457,7 @@ function makeCore(transactionCount = 0): AppTestPort {
     ledgerRecordTransferFx: vi.fn(async () => ({ transferOutId: 'tx-tr-fx-out', transferInId: 'tx-tr-fx-in' })),
     ledgerCreateExpenseDraft: vi.fn(async () => ({ id: 'tx-draft' })),
     ledgerAddTransactionItem: vi.fn(async () => ({ id: 'item-1' })),
+    ledgerReplacePostedTransactionItems: vi.fn(async () => undefined),
     ledgerPostDraftTransaction: vi.fn(async () => undefined),
     ledgerVoidTransaction: vi.fn(async () => undefined),
     taxonomyListCategories: vi.fn(async () => ({

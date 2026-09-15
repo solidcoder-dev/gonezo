@@ -13,7 +13,7 @@ export function usePostedMovementItemsEditorModel(input: {
   const [fieldErrors, setFieldErrors] = useState<TransactionFieldErrors>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const initializedMovementId = useRef<string>();
+  const initializedMovementId = useRef<string | undefined>(undefined);
   const editor = useExpenseSplitEditorModel({
     transactionAmount: input.movement.amount.value,
     nextId: () => crypto.randomUUID(),
