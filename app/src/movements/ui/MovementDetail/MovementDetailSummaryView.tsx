@@ -95,16 +95,11 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
   const showCategory = movement.financialType !== 'transfer' && (movement.canEditCategory || movement.category != null);
   const showTags = ('canEditTags' in movement && movement.canEditTags) || movement.tags.length > 0 || movement.source === 'expected';
   const canEditTags = 'canEditTags' in movement && movement.canEditTags;
-  const showSharing = movement.source === 'posted'
-    && movement.financialType === 'expense'
-    && (
-      movement.sharing.phase === 'loading'
-      || movement.sharing.phase === 'error'
-      || (movement.sharing.phase === 'loaded' && movement.sharing.value != null)
-    );
-  const showItems = movement.items.length > 0;
-  const sharingValue = movement.source === 'posted' && movement.sharing.phase === 'loaded'
-    ? movement.sharing.value
+  const showSharing = movement.capabilities.sharing.mode !== 'unsupported';
+  const showItems = movement.capabilities.items.mode !== 'unsupported';
+  const sharing = movement.source === 'posted' ? movement.sharing : { phase: 'loaded' as const, value: null };
+  const sharingValue = sharing.phase === 'loaded'
+    ? sharing.value
     : null;
   return (
     <div className={styles.body}>
@@ -170,18 +165,21 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
             <button type="button" className={styles.row} onClick={onOpenSharingSheet}>
               <span className={styles.rowMain}>
                 <span>
-                  {movement.sharing.phase === 'error'
+                  {sharing.phase === 'error'
                     ? 'Sharing unavailable'
-                    : movement.sharing.phase === 'loading'
+                    : sharing.phase === 'loading'
                       ? 'Loading sharing...'
-                      : `Shared with ${sharingValue?.participantCount ?? 0} people`}
+                      : sharingValue
+                        ? `Shared with ${sharingValue.participantCount} people`
+                        : 'Not shared'}
                 </span>
                 {sharingValue ? (
                     <small className={styles.supporting}>Your share · <FinancialAmountView formattedAmount={formatCurrencyAmount(sharingValue.personalExpenseAmount, movement.amount.currency)} visibility={props.amountVisibility ?? 'visible'} /></small>
                 ) : null}
               </span>
               <span className={styles.rowValue}>
-                <i className="bi bi-chevron-right" aria-hidden />
+                {movement.capabilities.sharing.mode === 'editable' ? (sharingValue ? 'Edit sharing' : 'Add sharing') : null}
+                {movement.capabilities.sharing.mode !== 'read-only' ? <i className="bi bi-chevron-right" aria-hidden /> : null}
               </span>
             </button>
           ) : null}
@@ -189,10 +187,11 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
             <button type="button" className={styles.row} onClick={onOpenItemsSheet}>
               <span className={styles.rowMain}>
                 <span>Items</span>
-                <small className={styles.supporting}>{movement.items.length} items · <FinancialAmountView formattedAmount={movementDetailAmountLabel(movement.amount.value, movement.amount.currency)} visibility={props.amountVisibility ?? 'visible'} /></small>
+                <small className={styles.supporting}>{movement.items.length === 0 ? 'No items' : `${movement.items.length} items · `}<FinancialAmountView formattedAmount={movementDetailAmountLabel(movement.amount.value, movement.amount.currency)} visibility={props.amountVisibility ?? 'visible'} /></small>
               </span>
               <span className={styles.rowValue}>
-                <i className="bi bi-chevron-right" aria-hidden />
+                {movement.capabilities.items.mode === 'editable' ? (movement.items.length === 0 ? 'Add items' : 'Edit items') : null}
+                {movement.capabilities.items.mode !== 'read-only' ? <i className="bi bi-chevron-right" aria-hidden /> : null}
               </span>
             </button>
           ) : null}

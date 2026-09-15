@@ -184,28 +184,31 @@ function tagsContent(props: MovementDetailSheetContentViewProps): MovementDetail
   };
 }
 
-function sharingContent(movement: Extract<MovementDetailViewModel, { source: 'posted' }>, amountVisibility: AmountVisibility): MovementDetailSheetContent {
+function sharingContent(movement: MovementDetailViewModel, amountVisibility: AmountVisibility): MovementDetailSheetContent {
+  const sharing = movement.source === 'posted'
+    ? movement.sharing
+    : { phase: 'loaded' as const, value: null };
   return {
     title: 'Sharing',
     body: (
       <>
-        {movement.sharing.phase === 'loading' ? <p role="status">Loading sharing...</p> : null}
-        {movement.sharing.phase === 'error' ? <p>Sharing unavailable</p> : null}
-        {movement.sharing.phase === 'loaded' && movement.sharing.value ? (
+        {sharing.phase === 'loading' ? <p role="status">Loading sharing...</p> : null}
+        {sharing.phase === 'error' ? <p>Sharing unavailable</p> : null}
+        {sharing.phase === 'loaded' && sharing.value ? (
           <>
             <div className="movement-detail-summary-grid">
               <div>
                 <small>Total amount</small>
-                <strong><FinancialAmountView formattedAmount={formatCurrencyAmount(movement.sharing.value.totalAmount, movement.amount.currency)} visibility={amountVisibility} /></strong>
+                <strong><FinancialAmountView formattedAmount={formatCurrencyAmount(sharing.value.totalAmount, movement.amount.currency)} visibility={amountVisibility} /></strong>
               </div>
               <div>
                 <small>Your share</small>
-                <strong><FinancialAmountView formattedAmount={formatCurrencyAmount(movement.sharing.value.personalExpenseAmount, movement.amount.currency)} visibility={amountVisibility} /></strong>
+                <strong><FinancialAmountView formattedAmount={formatCurrencyAmount(sharing.value.personalExpenseAmount, movement.amount.currency)} visibility={amountVisibility} /></strong>
               </div>
             </div>
             <div className="movement-detail-list">
               <span className="movement-detail-section-title">Participants</span>
-              {movement.sharing.value.participants.map((participant) => (
+              {sharing.value.participants.map((participant) => (
                 <div key={participant.id} className="movement-detail-choice movement-detail-choice--static">
                   <span className="movement-detail-choice-stack">
                     <strong>{participant.name}</strong>
@@ -224,7 +227,7 @@ function sharingContent(movement: Extract<MovementDetailViewModel, { source: 'po
               ))}
             </div>
           </>
-        ) : null}
+        ) : sharing.phase === 'loaded' ? <p>Not shared</p> : null}
       </>
     ),
   };
@@ -235,6 +238,7 @@ function itemsContent(movement: MovementDetailViewModel, amountVisibility: Amoun
     title: 'Items',
     body: (
       <div className={`${styles.itemsList} d-flex flex-column gap-4`}>
+        {movement.items.length === 0 ? <p>No items</p> : null}
         {movement.items.map((item) => (
           <div key={item.id} className="d-flex justify-content-between align-items-start gap-3">
             <span className="d-flex flex-column gap-1 min-w-0">
@@ -342,7 +346,7 @@ export function buildMovementDetailSheetContent(props: MovementDetailSheetConten
       content = tagsContent(props);
       break;
     case 'sharing':
-      content = sharingContent(props.movement as Extract<MovementDetailViewModel, { source: 'posted' }>, props.amountVisibility ?? 'visible');
+    content = sharingContent(props.movement, props.amountVisibility ?? 'visible');
       break;
     case 'items':
       content = itemsContent(props.movement, props.amountVisibility ?? 'visible');

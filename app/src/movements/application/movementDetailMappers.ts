@@ -321,6 +321,7 @@ function mapScheduledMovement(
     items: movement.splitItems.map((item) => ({ ...item, currency: movement.currency })),
     merchant: movement.merchant,
     note: movement.description,
+    sharing: { phase: 'idle' },
     capabilities: {
       items: movementFeatureAccess(financialType, movement.status),
       sharing: movementFeatureAccess(financialType, movement.status),
@@ -366,6 +367,7 @@ function mapExpectedMovement(
     items: movement.splitItems.map((item) => ({ ...item, currency: movement.currency })),
     merchant: movement.merchant,
     note: movement.description,
+    sharing: { phase: 'idle' },
     capabilities: {
       items: movementFeatureAccess(financialType, movement.status),
       sharing: movementFeatureAccess(financialType, movement.status),

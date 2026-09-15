@@ -33,7 +33,10 @@ function postedMovement(overrides: Partial<Extract<MovementDetailViewModel, { so
     items: [],
     merchant: 'Mercadona',
     note: 'Weekly family grocery run',
-    canOpenItems: false,
+    capabilities: {
+      items: { mode: 'editable', target: 'posted' },
+      sharing: { mode: 'editable', target: 'posted' },
+    },
     status: 'posted',
     ignored: false,
     canEditCategory: true,
@@ -81,7 +84,10 @@ function scheduledMovement(overrides: Partial<Extract<MovementDetailViewModel, {
     tags: [{ id: 'tag-1', name: 'Home' }],
     items: [],
     note: 'Monthly rent',
-    canOpenItems: false,
+    capabilities: {
+      items: { mode: 'editable', target: 'scheduled' },
+      sharing: { mode: 'editable', target: 'scheduled' },
+    },
     status: 'active',
     lifecycleChip: 'Scheduled',
     canEditCategory: true,
@@ -126,7 +132,10 @@ function expectedMovement(overrides: Partial<Extract<MovementDetailViewModel, { 
     items: [],
     merchant: 'Mercadona',
     note: 'Weekly family grocery run',
-    canOpenItems: false,
+    capabilities: {
+      items: { mode: 'editable', target: 'expected' },
+      sharing: { mode: 'editable', target: 'expected' },
+    },
     status: 'pending',
     lifecycleChip: 'Expected',
     ignored: true,
@@ -438,7 +447,6 @@ describe('MovementDetailView', () => {
           })
           : activeSheet === 'items'
             ? postedMovement({
-              canOpenItems: true,
               items: [
                 { id: 'item-1', name: 'Milk', amount: '3.20', currency: 'EUR', tags: [] },
                 { id: 'item-2', name: 'Groceries', amount: '11.80', currency: 'EUR', tags: [{ id: 'tag-home', name: 'home' }, { id: 'tag-utilities', name: 'utilities' }] },
@@ -582,7 +590,8 @@ describe('MovementDetailView', () => {
           state: { open: true, activeSheet: 'sharing', overflowOpen: false, categoryQuery: '', tagsQuery: '' },
           data: {
             movement: postedMovement({
-              sharing: {
+              capabilities: { items: { mode: 'read-only' }, sharing: { mode: 'read-only' } },
+                sharing: {
                 phase: 'loaded',
                 value: {
                   participantCount: 2,
@@ -612,7 +621,6 @@ describe('MovementDetailView', () => {
           state: { open: true, activeSheet: 'items', overflowOpen: false, categoryQuery: '', tagsQuery: '' },
           data: {
             movement: postedMovement({
-              canOpenItems: true,
               items: [
                 { id: 'item-1', name: 'Milk', amount: '3.20', currency: 'EUR', tags: [] },
                 { id: 'item-2', name: 'Groceries', amount: '11.80', currency: 'EUR', tags: [{ id: 'tag-home', name: 'home' }, { id: 'tag-utilities', name: 'utilities' }] },
@@ -679,7 +687,6 @@ describe('MovementDetailView', () => {
     const { commands } = renderView({
       data: {
         movement: postedMovement({
-          canOpenItems: true,
           items: [{ id: 'item-1', name: 'Milk', amount: '3.20', currency: 'EUR' }],
           sharing: {
             phase: 'loaded',
@@ -701,8 +708,8 @@ describe('MovementDetailView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back to movements' }));
     fireEvent.click(screen.getByRole('button', { name: 'CategoryGroceries' }));
     fireEvent.click(screen.getByRole('button', { name: 'TagsHome, Trip' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Shared with 2 peopleYour share · €5.00' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Items1 items · €15.00' }));
+    fireEvent.click(screen.getByRole('button', { name: /Shared with 2 peopleYour share · €5.00Edit sharing/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Items1 items · €15.00Edit items/ }));
     fireEvent.click(screen.getByRole('button', { name: /More details/i }));
 
     expect(commands.closeDetail).toHaveBeenCalledTimes(1);
