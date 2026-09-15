@@ -11,30 +11,7 @@ import type { TransactionEntryPrefillRequest } from '../../transactions/applicat
 import type { MovementEntryDraft } from '../../transactions/application/MovementVoiceEntry/MovementEntryDraftInterpreterPort';
 import { mapMovementEntryDraftToTransactionEntryPrefill } from '../../transactions/application/movementEntryPrefill';
 import type { TransactionType } from '../../transactions/application/transactions.types';
-import type { ShareDraft } from '../../sharing/domain/shareDraft';
-import { formatShareCents, parseShareCents } from '../../sharing/application/shareDraftCalculator';
-
-function shareDraftFromMovement(movement: MovementDetailViewModel): ShareDraft | undefined {
-  if (movement.source !== 'posted' || movement.sharing.phase !== 'loaded' || !movement.sharing.value) return undefined;
-  const totalCents = parseShareCents(movement.amount.value);
-  const participantCents = movement.sharing.value.participants.reduce((sum, participant) => sum + parseShareCents(participant.amount), 0);
-  return {
-    mode: 'amounts',
-    people: [
-      { id: 'owner', role: 'owner', name: 'You (Payer)', parts: 1, amount: formatShareCents(totalCents - participantCents), avatarTone: 'you', includedInAllocation: true },
-      ...movement.sharing.value.participants.map((participant) => ({
-        id: participant.id,
-        role: 'participant' as const,
-        personId: participant.personId,
-        name: participant.name,
-        parts: 1,
-        amount: participant.amount,
-        avatarTone: 'custom' as const,
-        settlementChoice: participant.reimbursementStatus === 'paid' || participant.reimbursementStatus === 'dismissed' ? 'settled' as const : participant.reimbursementStatus === 'pending' ? 'pending' as const : 'not_required' as const,
-      })),
-    ],
-  };
-}
+import { movementSharingDraft } from '../../sharing/application/movementSharingDraftMapper';
 
 type MovementComposerCoordinatorInput = {
   selectedAccountId: string | null;
@@ -46,6 +23,7 @@ export function useMovementComposerCoordinator({ selectedAccountId }: MovementCo
   const [movementEntryAccountName, setMovementEntryAccountName] = useState<string | null>(null);
   const [movementEntryType, setMovementEntryType] = useState<TransactionType | undefined>();
   const [movementEntryOpenSignal, setMovementEntryOpenSignal] = useState(0);
+  const [featureEditRequest, setFeatureEditRequest] = useState<{ feature: 'items' | 'sharing'; movement: MovementDetailViewModel }>();
   const duplicateRequestId = useRef(0);
   const featureEditRequestId = useRef(0);
 
@@ -87,13 +65,16 @@ export function useMovementComposerCoordinator({ selectedAccountId }: MovementCo
       return;
     }
     const movement = request.movement;
+    if (movement.source === 'posted') {
+      setFeatureEditRequest(request);
+      setTransactionEntryPrefill(undefined);
+      return;
+    }
     const source = movement.source;
     const accountId = source === 'scheduled' ? movement.raw.sourceAccountId : movement.raw.accountId;
-    const date = source === 'posted'
-      ? movement.raw.occurredAt
-      : source === 'expected'
-        ? movement.raw.expectedAt
-        : movement.raw.nextDueAt ?? movement.raw.startAt;
+    const date = source === 'expected'
+      ? movement.raw.expectedAt
+      : movement.raw.nextDueAt ?? movement.raw.startAt;
     const prefill: TransactionEntryPrefillRequest = {
       requestId: ++featureEditRequestId.current,
       initialEditor: request.feature,
@@ -102,9 +83,7 @@ export function useMovementComposerCoordinator({ selectedAccountId }: MovementCo
       date,
       note: movement.note ?? movement.title,
       splitItems: movement.items.map((item) => ({ id: item.id, name: item.name, amount: item.amount })),
-      shareDraft: shareDraftFromMovement(movement),
-      ...(source === 'posted' && request.feature === 'items' ? { editedPostedMovementId: movement.id } : {}),
-      ...(source === 'posted' ? { editedPostedMovementFeature: request.feature } : {}),
+      shareDraft: movementSharingDraft(movement),
       ...(source === 'expected'
         ? { editedExpectedMovementId: movement.id, editNotice: 'expected' as const }
         : source === 'scheduled'
@@ -120,6 +99,10 @@ export function useMovementComposerCoordinator({ selectedAccountId }: MovementCo
     setMovementEntryAccountId(null);
     setMovementEntryAccountName(null);
     setMovementEntryType(undefined);
+  }
+
+  function clearFeatureEditRequest() {
+    setFeatureEditRequest(undefined);
   }
 
   function createMovementForAccount(
@@ -158,6 +141,7 @@ export function useMovementComposerCoordinator({ selectedAccountId }: MovementCo
     state: {
       transactionEntryAccountId: movementEntryAccountId ?? selectedAccountId,
       transactionEntryPrefill,
+      featureEditRequest,
       movementEntryOpenSignal,
       movementEntryType,
       movementAccountContext: movementEntryAccountName ? { name: movementEntryAccountName, type: movementEntryType } : undefined,
@@ -173,6 +157,7 @@ export function useMovementComposerCoordinator({ selectedAccountId }: MovementCo
       editMovementFeature,
       duplicateMovement,
       resetTransactionEntryPrefill: () => setTransactionEntryPrefill(undefined),
+      clearFeatureEditRequest,
     },
   };
 }

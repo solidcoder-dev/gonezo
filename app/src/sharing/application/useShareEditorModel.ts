@@ -17,12 +17,16 @@ type UseShareEditorModelInput = {
   readonly movementType: 'expense' | 'income';
   readonly peopleSuggestions?: readonly SharingPersonSuggestion[];
   readonly groupSuggestions?: readonly SharingGroupSuggestion[];
+  readonly useDefaultPeopleOptions?: boolean;
   readonly disabled: boolean;
 };
 
 export function useShareEditorModel(input: UseShareEditorModelInput) {
   const amountCents = parseShareCents(input.amount);
-  const peopleOptions = input.peopleSuggestions?.length ? input.peopleSuggestions : DEFAULT_SHARE_PEOPLE_OPTIONS;
+  const peopleOptions = useMemo(() => input.useDefaultPeopleOptions === false
+    ? input.peopleSuggestions ?? []
+    : input.peopleSuggestions?.length ? input.peopleSuggestions : DEFAULT_SHARE_PEOPLE_OPTIONS,
+  [input.peopleSuggestions, input.useDefaultPeopleOptions]);
   const [mode, setMode] = useState<ShareMode>(input.draft?.mode ?? 'parts');
   const [query, setQuery] = useState('');
   const [selectionContext, setSelectionContextState] = useState<'people' | 'groups'>('people');

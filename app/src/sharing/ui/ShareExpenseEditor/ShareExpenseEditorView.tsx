@@ -8,7 +8,7 @@ import styles from './ShareExpenseEditorView.module.css';
 
 export type { ShareDraft, ShareMemberDraft, ShareMode } from '../../domain/shareDraft';
 
-export type ShareExpenseEditorViewProps = ViewProps<Record<string, never>, { readonly peopleSuggestions?: readonly SharingPersonSuggestion[]; readonly groupSuggestions?: readonly SharingGroupSuggestion[] }, { readonly amount: string; readonly currencyCode?: string; readonly draft?: ShareDraft; readonly movementType?: 'expense' | 'income'; readonly editorModel?: ShareEditorModel }, { readonly disabled?: boolean }, { readonly applyShare: (summary: { peopleCount: number; total: string }, draft: ShareDraft) => void; readonly openParticipantSelection?: () => void }>;
+export type ShareExpenseEditorViewProps = ViewProps<Record<string, never>, { readonly peopleSuggestions?: readonly SharingPersonSuggestion[]; readonly groupSuggestions?: readonly SharingGroupSuggestion[] }, { readonly amount: string; readonly currencyCode?: string; readonly draft?: ShareDraft; readonly movementType?: 'expense' | 'income'; readonly editorModel?: ShareEditorModel }, { readonly disabled?: boolean }, { readonly applyShare: (summary: { peopleCount: number; total: string }, draft: ShareDraft) => void; readonly openParticipantSelection?: () => void; readonly removeShare?: () => void }>;
 
 const AVATAR_TONES: Record<ShareMemberDraft['avatarTone'], string> = { you: styles.avatarYou, emma: styles.avatarEmma, luis: styles.avatarLuis, maria: styles.avatarMaria, john: styles.avatarJohn, alex: styles.avatarAlex, alexandra: styles.avatarAlexandra, ali: styles.avatarAli, custom: styles.avatarCustom };
 function isParticipant(person: ShareMemberDraft): person is Extract<ShareMemberDraft, { role: 'participant' }> { return person.role === 'participant'; }
@@ -34,6 +34,6 @@ export function ShareExpenseEditorView({ required, provided }: ShareExpenseEdito
       {!model.validation.valid ? <p className={`${styles.shareWarning} m-0`} role="alert" aria-live="assertive"><i className="bi bi-exclamation-circle" aria-hidden="true" />{model.validation.message ?? 'Assign the full total before applying.'}</p> : null}
       </div>
     </div>
-    <div className={`${styles.stickyAction} mt-auto`}><button type="button" className="btn btn-primary w-100" disabled={disabled || !model.validation.valid} onClick={() => provided.commands.applyShare({ peopleCount: model.state.people.length, total: formatShareCents(model.validation.totalCents) }, { mode: model.state.mode, people: model.state.people })}>Apply share</button></div>
+    <div className={`${styles.stickyAction} mt-auto d-grid gap-2`}><button type="button" className="btn btn-primary w-100" disabled={disabled || !model.validation.valid} onClick={() => provided.commands.applyShare({ peopleCount: model.state.people.length, total: formatShareCents(model.validation.totalCents) }, { mode: model.state.mode, people: model.state.people })}>Apply share</button>{provided.commands.removeShare ? <button type="button" className="btn btn-link text-danger" disabled={disabled} onClick={provided.commands.removeShare}>Remove sharing</button> : null}</div>
   </div>;
 }

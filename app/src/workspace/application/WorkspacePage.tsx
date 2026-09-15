@@ -45,6 +45,7 @@ import { FeedbackNoticeDestinationProvider } from '../../shared/ui/FeedbackNotic
 import type { NotificationsPort } from '../../notifications/application/notifications.port';
 import type { AmountVisibilityModel } from './useAmountVisibilityModel';
 import type { MovementFeatureEditRequest } from '../../movements/application/movementFeatureEditRequest';
+import { MovementFeatureEditPage } from './MovementFeatureEditPage';
 
 export type WorkspacePageRequired = {
   core: WorkspacePagePort;
@@ -123,6 +124,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     movementEntryType,
     transactionEntryAccountId,
     transactionEntryPrefill,
+    featureEditRequest,
   } = movementComposer.state;
   const {
     changeMovementComposerAccount,
@@ -134,6 +136,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     duplicateMovement,
     resetTransactionEntryPrefill,
     editMovementFeature,
+    clearFeatureEditRequest,
   } = movementComposer.actions;
   const currentPage = resolveWorkspaceRoutePage(location.pathname);
   const syncAnalyticsContext = useCallback((filters: AnalyticsFilters, periodSelection?: AnalyticsPeriodSelection) => {
@@ -222,6 +225,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
 
   function closeMovementEntry() {
     resetTransactionEntryPrefill();
+    clearFeatureEditRequest();
     clearMovementEntryAccount();
     const returnTo = readMovementEntryReturnTo(location.state);
     if (returnTo) {
@@ -237,7 +241,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     }
   }, [currentPage, navigate, screenLoadPhase, transactionEntryAccountId]);
 
-  const transactionEntry = (currentPage === 'movementNew' || currentPage === 'movementFeatureEdit' || Boolean(transactionEntryPrefill)) && transactionEntryAccountId
+  const transactionEntry = (currentPage === 'movementNew' || Boolean(transactionEntryPrefill)) && transactionEntryAccountId
     ? (
         <TransactionEntryComponent
           required={{
@@ -269,6 +273,19 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         />
       )
     : null;
+
+  const movementFeatureEdit = currentPage === 'movementFeatureEdit' && featureEditRequest ? (
+    <MovementFeatureEditPage
+      core={pageRequired.core}
+      request={featureEditRequest}
+      onClose={closeMovementEntry}
+      onSaved={() => {
+        refresh('recentTransactions', 'accountSummary', 'netWorth', 'expectedMovements', 'analytics');
+        closeMovementEntry();
+      }}
+      onError={showError}
+    />
+  ) : null;
 
   const voiceMovementExperimentEnabled = experimentalFeatures.state.features.voiceMovementEntryEnabled;
   const voiceMovementExperimentActive = !experimentalFeatures.state.loading
@@ -762,7 +779,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
             : null,
       transactionEntry: (
         <>
-          {transactionEntry}
+          {movementFeatureEdit ?? transactionEntry}
           {currentPage === 'movementsSearch' || currentPage === 'movementNew' || currentPage === 'movementFeatureEdit' ? null : dockNavigation}
         </>
       ),

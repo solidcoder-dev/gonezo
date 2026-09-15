@@ -6,10 +6,10 @@ import { ShareParticipantSelectionView } from '../ui/ParticipantSelection/ShareP
 import { useShareEditorModel } from './useShareEditorModel';
 import styles from '../ui/ShareMovementEditor/ShareMovementEditorPageView.module.css';
 
-type ShareEditorFlowProps = ShareExpenseEditorViewProps & { readonly title: string; readonly onClose: () => void };
+type ShareEditorFlowProps = ShareExpenseEditorViewProps & { readonly title: string; readonly onClose: () => void; readonly useDefaultPeopleOptions?: boolean };
 
-export function ShareEditorFlow({ title, onClose, required, provided }: ShareEditorFlowProps) {
-  const model = useShareEditorModel({ amount: required.state.amount, draft: required.state.draft, movementType: required.state.movementType ?? 'expense', peopleSuggestions: required.data.peopleSuggestions, groupSuggestions: required.data.groupSuggestions, disabled: required.status.disabled ?? false });
+export function ShareEditorFlow({ title, onClose, required, provided, useDefaultPeopleOptions }: ShareEditorFlowProps) {
+  const model = useShareEditorModel({ amount: required.state.amount, draft: required.state.draft, movementType: required.state.movementType ?? 'expense', peopleSuggestions: required.data.peopleSuggestions, groupSuggestions: required.data.groupSuggestions, useDefaultPeopleOptions, disabled: required.status.disabled ?? false });
   const [selectionOpen, setSelectionOpen] = useState(false);
   const draftBeforeSelection = useRef(model.state.people);
   const selectedPersonIds = new Set(model.state.people.flatMap((person) => person.role === 'participant' && person.personId ? [person.personId] : []));
