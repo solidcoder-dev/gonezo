@@ -17,6 +17,11 @@ describe('resolveWorkspaceRoutePage', () => {
     expect(resolveWorkspaceRoutePage('/movements/new')).toBe('movementNew');
   });
 
+  it('resolves feature editing as a dedicated workspace screen', () => {
+    expect(resolveWorkspaceRoutePage('/movements/posted/tx-1/edit/items')).toBe('movementFeatureEdit');
+    expect(resolveWorkspaceRoutePage('/movements/posted/tx-1/edit/sharing')).toBe('movementFeatureEdit');
+  });
+
   it('keeps current workspace routes stable', () => {
     expect(resolveWorkspaceRoutePage('/')).toBe('home');
     expect(resolveWorkspaceRoutePage('/home')).toBe('home');

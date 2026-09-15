@@ -1,7 +1,7 @@
 import { parseAnalyticsContext, serializeAnalyticsContext } from '../../analytics/application/analyticsContext';
 import type { AnalyticsFilters } from '../../analytics/application/analyticsFilters';
 
-export type WorkspaceRoutePage = 'analytics' | 'analyticsForecast' | 'home' | 'movementNew' | 'movements' | 'movementsSearch' | 'profile';
+export type WorkspaceRoutePage = 'analytics' | 'analyticsForecast' | 'home' | 'movementFeatureEdit' | 'movementNew' | 'movements' | 'movementsSearch' | 'profile';
 
 export type MovementEntryNavigationState = {
   returnTo: string;
@@ -33,6 +33,9 @@ export function resolveWorkspaceRoutePage(pathname: string): WorkspaceRoutePage 
   }
   if (pathname === '/movements/new') {
     return 'movementNew';
+  }
+  if (/^\/movements\/(posted|expected|scheduled)\/[^/]+\/edit\/(items|sharing)$/.test(pathname)) {
+    return 'movementFeatureEdit';
   }
   if (pathname.startsWith('/movements') && !pathname.startsWith('/movements/search')) {
     return 'movements';

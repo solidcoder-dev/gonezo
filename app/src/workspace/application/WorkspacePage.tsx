@@ -237,7 +237,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
     }
   }, [currentPage, navigate, screenLoadPhase, transactionEntryAccountId]);
 
-  const transactionEntry = (currentPage === 'movementNew' || Boolean(transactionEntryPrefill)) && transactionEntryAccountId
+  const transactionEntry = (currentPage === 'movementNew' || currentPage === 'movementFeatureEdit' || Boolean(transactionEntryPrefill)) && transactionEntryAccountId
     ? (
         <TransactionEntryComponent
           required={{
@@ -763,7 +763,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       transactionEntry: (
         <>
           {transactionEntry}
-          {currentPage === 'movementsSearch' || currentPage === 'movementNew' ? null : dockNavigation}
+          {currentPage === 'movementsSearch' || currentPage === 'movementNew' || currentPage === 'movementFeatureEdit' ? null : dockNavigation}
         </>
       ),
       recentTransactions: currentPage === 'movements' ? movementsPage : null,
