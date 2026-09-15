@@ -104,6 +104,7 @@ function sharingViewModel(
     currency,
     participants: input.participants.map((participant) => ({
       id: participant.participantId,
+      personId: participant.personId,
       name: participant.displayName,
       amount: participant.amount,
       reimbursementStatus: sharingParticipantStatus(participant.repaymentStatus),

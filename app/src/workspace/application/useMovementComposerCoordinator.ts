@@ -11,6 +11,30 @@ import type { TransactionEntryPrefillRequest } from '../../transactions/applicat
 import type { MovementEntryDraft } from '../../transactions/application/MovementVoiceEntry/MovementEntryDraftInterpreterPort';
 import { mapMovementEntryDraftToTransactionEntryPrefill } from '../../transactions/application/movementEntryPrefill';
 import type { TransactionType } from '../../transactions/application/transactions.types';
+import type { ShareDraft } from '../../sharing/domain/shareDraft';
+import { formatShareCents, parseShareCents } from '../../sharing/application/shareDraftCalculator';
+
+function shareDraftFromMovement(movement: MovementDetailViewModel): ShareDraft | undefined {
+  if (movement.source !== 'posted' || movement.sharing.phase !== 'loaded' || !movement.sharing.value) return undefined;
+  const totalCents = parseShareCents(movement.amount.value);
+  const participantCents = movement.sharing.value.participants.reduce((sum, participant) => sum + parseShareCents(participant.amount), 0);
+  return {
+    mode: 'amounts',
+    people: [
+      { id: 'owner', role: 'owner', name: 'You (Payer)', parts: 1, amount: formatShareCents(totalCents - participantCents), avatarTone: 'you', includedInAllocation: true },
+      ...movement.sharing.value.participants.map((participant) => ({
+        id: participant.id,
+        role: 'participant' as const,
+        personId: participant.personId,
+        name: participant.name,
+        parts: 1,
+        amount: participant.amount,
+        avatarTone: 'custom' as const,
+        settlementChoice: participant.reimbursementStatus === 'paid' || participant.reimbursementStatus === 'dismissed' ? 'settled' as const : participant.reimbursementStatus === 'pending' ? 'pending' as const : 'not_required' as const,
+      })),
+    ],
+  };
+}
 
 type MovementComposerCoordinatorInput = {
   selectedAccountId: string | null;
@@ -78,7 +102,9 @@ export function useMovementComposerCoordinator({ selectedAccountId }: MovementCo
       date,
       note: movement.note ?? movement.title,
       splitItems: movement.items.map((item) => ({ id: item.id, name: item.name, amount: item.amount })),
+      shareDraft: shareDraftFromMovement(movement),
       ...(source === 'posted' && request.feature === 'items' ? { editedPostedMovementId: movement.id } : {}),
+      ...(source === 'posted' ? { editedPostedMovementFeature: request.feature } : {}),
       ...(source === 'expected'
         ? { editedExpectedMovementId: movement.id, editNotice: 'expected' as const }
         : source === 'scheduled'

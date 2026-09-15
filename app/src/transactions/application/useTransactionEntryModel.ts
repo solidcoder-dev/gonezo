@@ -26,6 +26,7 @@ import type { MovementReuseSuggestionsPort, MovementReuseTemplatePort } from '..
 import { useTransactionMovementReuseModel } from './useTransactionMovementReuseModel';
 import { applyMovementReuseSetup, applyMovementReuseWithDetails } from './applyMovementReuseTemplate';
 import { refreshTransactionAccountSnapshot } from './refreshTransactionAccountSnapshot';
+import type { ShareDraft } from '../../sharing/domain/shareDraft';
 export type TransactionEntryModelPorts = {
   ledger: LedgerGatewayPort; scheduling: SchedulingPort; expected: ExpectedGatewayPort; sharing: SharingGatewayPort; taxonomy: TaxonomyGatewayPort; analytics: Pick<AnalyticsPort, 'analyticsSetMovementIgnored'>;
   reuse: MovementReuseSuggestionsPort & MovementReuseTemplatePort;
@@ -425,6 +426,72 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     applySplit();
   }
 
+  async function savePostedShare(transactionId: string, draft: ShareDraft) {
+    if (!ports.sharing.sharingReplaceMovementShare) {
+      reportError(new Error('Sharing replacement unavailable'), 'operation');
+      return;
+    }
+    setPostingTransaction(true);
+    setError('');
+    try {
+      await ports.sharing.sharingReplaceMovementShare({
+        transactionId,
+        payer: { currentUser: true },
+        participants: draft.people.filter((person) => person.role === 'participant').map((person) => ({
+          person: person.personId ? { personId: person.personId } : { displayName: person.name },
+          amount: person.amount,
+          settlementChoice: person.settlementChoice,
+        })),
+      });
+      onRecorded?.();
+      setComposerOpen(false);
+      resetComposerState();
+      await refreshAccountSnapshot();
+      onClosed?.();
+    } catch (err) {
+      reportError(err, 'operation');
+    } finally {
+      setPostingTransaction(false);
+    }
+  }
+
+  function applyShareDraftValue(summary: { peopleCount: number; total: string }, draft: ShareDraft) {
+    if (prefillRequest?.editedPostedMovementFeature === 'sharing' && prefillRequest.editedPostedMovementId) {
+      void savePostedShare(prefillRequest.editedPostedMovementId, draft);
+      return;
+    }
+    shareDraftModel.actions.applyShareDraft(summary, draft);
+  }
+
+  async function removePostedShare(transactionId: string) {
+    if (!ports.sharing.sharingRemoveMovementShare) {
+      reportError(new Error('Sharing removal unavailable'), 'operation');
+      return;
+    }
+    setPostingTransaction(true);
+    setError('');
+    try {
+      await ports.sharing.sharingRemoveMovementShare({ transactionId });
+      onRecorded?.();
+      setComposerOpen(false);
+      resetComposerState();
+      await refreshAccountSnapshot();
+      onClosed?.();
+    } catch (err) {
+      reportError(err, 'operation');
+    } finally {
+      setPostingTransaction(false);
+    }
+  }
+
+  function removeShareDraftValue() {
+    if (prefillRequest?.editedPostedMovementFeature === 'sharing' && prefillRequest.editedPostedMovementId) {
+      void removePostedShare(prefillRequest.editedPostedMovementId);
+      return;
+    }
+    shareDraftModel.actions.removeShareDraft();
+  }
+
   async function savePostedItems(transactionId: string) {
     setPostingTransaction(true);
     setError('');
@@ -708,7 +775,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       setExpected: setExpectedMovementValue,
       setMovementIgnored,
       openShareEditor: shareDraftModel.actions.openEditor, closeShareEditor: shareDraftModel.actions.closeEditor,
-      applyShareDraft: shareDraftModel.actions.applyShareDraft, removeShareDraft: shareDraftModel.actions.removeShareDraft,
+      applyShareDraft: applyShareDraftValue, removeShareDraft: removeShareDraftValue,
       submit: submitTransaction,
       closeMovementReuse: () => { movementReuseModel.actions.close(); movementReuseModel.actions.cancelReuse(); },
       activateMovementReuse: movementReuseModel.actions.activate,

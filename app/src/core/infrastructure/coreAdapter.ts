@@ -70,6 +70,8 @@ export class CoreAdapter implements CorePort {
 
   sharingListPeople = this.sharing.sharingListPeople.bind(this.sharing); sharingListGroupSuggestions = this.sharing.sharingListGroupSuggestions.bind(this.sharing); sharingRenamePerson = this.sharing.sharingRenamePerson.bind(this.sharing);
   sharingApplyShareToPostedMovement = this.sharing.sharingApplyShareToPostedMovement.bind(this.sharing);
+  sharingReplaceMovementShare = this.sharing.sharingReplaceMovementShare.bind(this.sharing);
+  sharingRemoveMovementShare = this.sharing.sharingRemoveMovementShare.bind(this.sharing);
   sharingGetMovementDetails = this.sharing.sharingGetMovementDetails.bind(this.sharing);
   sharingListMovementDetails = this.sharing.sharingListMovementDetails.bind(this.sharing);
   sharingGetPlannedShare = this.sharing.sharingGetPlannedShare.bind(this.sharing);

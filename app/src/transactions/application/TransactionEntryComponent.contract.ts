@@ -13,6 +13,7 @@ export type TransactionEntryPrefillRequest = {
   initialEditor?: 'items' | 'sharing';
   editNotice?: 'expected' | 'scheduled';
   editedPostedMovementId?: string;
+  editedPostedMovementFeature?: 'items' | 'sharing';
   initialIntent?: 'now' | 'expected' | 'scheduled';
   editedExpectedMovementId?: string;
   editedScheduledMovementId?: string;

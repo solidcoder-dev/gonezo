@@ -100,7 +100,7 @@ final class SharingPluginHandler {
         item.put("amount", participant.getAmount().toPlainString());
         item.put("reimbursable", participant.getReimbursable());
         item.put("settlementChoice", participant.getSettlementStatus().name().toLowerCase());
-        item.put("expectedMovementId", JSONObject.NULL);
+        item.put("expectedMovementId", participant.expectedMovementIdString() == null ? JSONObject.NULL : participant.expectedMovementIdString());
         participants.put(item);
       }
       result.put("participants", participants);

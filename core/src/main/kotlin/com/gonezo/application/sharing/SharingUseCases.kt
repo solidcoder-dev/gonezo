@@ -15,7 +15,9 @@ data class ApplyShareParticipantCommand(
 
 data class ApplyShareToPostedMovementCommand(val transactionId: String, val payer: SharingPersonReference, val participants: List<ApplyShareParticipantCommand>, val appliedAt: Instant)
 
-data class AppliedShareParticipantResult(val participantId: String, val personId: String, val displayName: String, val amount: BigDecimal, val reimbursable: Boolean, val expectedMovementId: ExpectedMovementId?, val settlementStatus: ShareSettlementStatus = if (reimbursable) ShareSettlementStatus.PENDING else ShareSettlementStatus.NOT_REQUIRED)
+data class AppliedShareParticipantResult(val participantId: String, val personId: String, val displayName: String, val amount: BigDecimal, val reimbursable: Boolean, val expectedMovementId: ExpectedMovementId?, val settlementStatus: ShareSettlementStatus = if (reimbursable) ShareSettlementStatus.PENDING else ShareSettlementStatus.NOT_REQUIRED) {
+    fun expectedMovementIdString(): String? = expectedMovementId?.toString()
+}
 
 data class ApplyShareToPostedMovementResult(val shareId: String, val transactionId: String, val participants: List<AppliedShareParticipantResult>)
 

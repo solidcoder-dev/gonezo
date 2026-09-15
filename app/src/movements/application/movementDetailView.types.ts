@@ -42,6 +42,7 @@ export type MovementDetailCategoryView = {
 
 export type SharingParticipantView = {
   id: string;
+  personId?: string;
   name: string;
   amount: string;
   reimbursementStatus?: 'pending' | 'paid' | 'dismissed';

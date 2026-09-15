@@ -11,6 +11,8 @@ import type { TransactionEntryComponentProps } from './TransactionEntryComponent
 import type { TransactionEntryModelClock, TransactionEntryModelIdGenerator } from './useTransactionEntryModel';
 import { useTransactionEntryModel } from './useTransactionEntryModel';
 import { MovementReuseConfirmationView } from '../ui/MovementReuseConfirmation/MovementReuseConfirmationView';
+import { ItemBreakdownEditorView } from '../ui/ItemBreakdownEditor/ItemBreakdownEditorView';
+import { ItemBreakdownEditorPageView } from '../ui/ItemBreakdownEditor/ItemBreakdownEditorPageView';
 
 export type {
   TransactionEntryComponentProps,
@@ -139,6 +141,66 @@ export function TransactionEntryComponent({ required, provided = {} }: Transacti
       }}
     />
   ) : null;
+  if (model.required.state.splitEditorOpen && required.config.prefillRequest?.initialEditor === 'items') {
+    return (
+      <ItemBreakdownEditorPageView
+        title="Items"
+        onClose={model.provided.commands.closeSplitEditor}
+        footer={(
+          <button type="button" className="btn btn-primary w-100" onClick={model.provided.commands.applySplit} disabled={model.required.status.disabled}>
+            Apply items
+          </button>
+        )}
+      >
+        <ItemBreakdownEditorView
+          required={{
+            config: {},
+            data: { items: model.required.state.splitItems, itemOptions: model.required.state.splitItemOptions },
+            state: {
+              enabled: true,
+              itemName: model.required.state.splitItemName,
+              itemAmount: model.required.state.splitItemAmount,
+              editingItemId: model.required.state.editingSplitItemId,
+              splitMode: model.required.state.splitDraftMode,
+              splitTotal: model.required.state.splitTotal,
+              splitBaseAmount: model.required.state.amount,
+              splitRemaining: model.required.state.splitRemaining,
+              currencyCode: model.required.state.currencyCode,
+              itemNameError: model.required.status.errors.expenseItemName,
+              itemAmountError: model.required.status.errors.expenseItemAmount,
+              splitError: model.required.status.errors.expenseSplit,
+              itemTagNames: model.required.state.splitItemTagNames,
+              tagQuery: model.required.state.splitItemTagQuery,
+              itemTagOptions: model.required.state.splitItemTagOptions,
+              itemTagSuggestions: model.required.state.splitItemTagSuggestions,
+              tagCreateCandidate: model.required.state.splitItemTagCreateCandidate,
+            },
+            status: { disabled: model.required.status.disabled, hideToggle: true },
+          }}
+          provided={{
+            commands: {
+              toggleEnabled: () => undefined,
+              changeItemName: model.provided.commands.setSplitItemName,
+              changeItemAmount: model.provided.commands.setSplitItemAmount,
+              startItem: model.provided.commands.startSplitItem,
+              cancelItem: model.provided.commands.cancelSplitItem,
+              addItem: model.provided.commands.addSplitItem,
+              editItem: model.provided.commands.editSplitItem,
+              removeItem: model.provided.commands.removeSplitItem,
+              changeTagQuery: model.provided.commands.setSplitItemTagQuery,
+              selectTag: model.provided.commands.selectSplitItemTag,
+              createTag: model.provided.commands.createSplitItemTag,
+              removeTag: model.provided.commands.removeSplitItemTag,
+              removeLastTag: model.provided.commands.removeLastSplitItemTag,
+              splitByParts: model.provided.commands.splitByParts,
+              splitByWeightedParts: model.provided.commands.splitByWeightedParts,
+              selectMode: model.provided.commands.selectSplitMode,
+            },
+          }}
+        />
+      </ItemBreakdownEditorPageView>
+    );
+  }
   if (model.required.state.shareEditorOpen) {
     return (
       <ShareMovementEditorPageView
