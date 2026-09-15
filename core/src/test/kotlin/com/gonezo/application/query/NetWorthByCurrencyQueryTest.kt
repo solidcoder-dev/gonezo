@@ -42,6 +42,51 @@ class NetWorthByCurrencyQueryTest {
         assertThat(result.items[1].trend).hasSize(6)
     }
 
+    @Test
+    fun `uses posted transaction types to calculate net worth`() {
+        val eur = account("00000000-0000-4000-8000-000000000001", "EUR")
+        val result =
+            service(
+                accounts = listOf(eur),
+                transactions =
+                listOf(
+                    transaction("income", "100.00", "EUR", "2026-01-01T00:00:00Z"),
+                    transaction("transfer_in", "20.00", "EUR", "2026-02-01T00:00:00Z"),
+                    transaction("expense", "30.00", "EUR", "2026-03-01T00:00:00Z"),
+                    transaction("transfer_out", "10.00", "EUR", "2026-04-01T00:00:00Z"),
+                    transaction("transfer", "999.00", "EUR", "2026-05-01T00:00:00Z"),
+                    transaction("income", "999.00", "EUR", "2026-06-01T00:00:00Z", status = "draft"),
+                ),
+            ).execute(NetWorthByCurrencyQuery(Instant.parse("2026-06-22T00:00:00Z"), null))
+
+        val item = result.items.single()
+        assertThat(item.balance.amount).isEqualByComparingTo(BigDecimal("80.00"))
+        assertThat(item.trend.map { it.period }).containsExactly("2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06")
+        assertThat(item.trend.map { it.balance.amount }).containsExactly(
+            BigDecimal("100.00"),
+            BigDecimal("120.00"),
+            BigDecimal("90.00"),
+            BigDecimal("80.00"),
+            BigDecimal("80.00"),
+            BigDecimal("80.00"),
+        )
+    }
+
+    @Test
+    fun `keeps zero trend for a currency with no posted transactions`() {
+        val eur = account("00000000-0000-4000-8000-000000000001", "EUR")
+        val result =
+            service(
+                accounts = listOf(eur),
+                transactions = listOf(transaction("income", "10.00", "EUR", "2026-01-01T00:00:00Z", status = "voided")),
+            ).execute(NetWorthByCurrencyQuery(Instant.parse("2026-06-22T00:00:00Z"), null))
+
+        val item = result.items.single()
+        assertThat(item.balance.amount).isEqualByComparingTo(BigDecimal.ZERO)
+        assertThat(item.trend).hasSize(6)
+        assertThat(item.trend.map { it.balance.amount }).allMatch { it.compareTo(BigDecimal.ZERO) == 0 }
+    }
+
     private fun service(accounts: List<NetWorthAccountRead>, transactions: List<NetWorthTransactionRead>) = GetNetWorthByCurrencyService(
         object : NetWorthByCurrencyReadPort {
             override fun read() = NetWorthByCurrencyReadData(accounts, transactions)
