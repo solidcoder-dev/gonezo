@@ -55,9 +55,10 @@ export function splitAmountByWeightedParts(amountInput: string, parts: WeightedS
 export function cloneSplitItems(
   items: Array<{ id: string; name: string; amount: string }>,
   nextId: () => string,
+  preserveExistingIds = false,
 ): ExpenseSplitItem[] {
   return items.map((item) => ({
-    id: item.id || nextId(),
+    id: preserveExistingIds && item.id ? item.id : nextId(),
     name: item.name,
     amount: item.amount,
   }));
