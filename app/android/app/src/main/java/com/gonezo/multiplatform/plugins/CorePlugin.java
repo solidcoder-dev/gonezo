@@ -92,6 +92,11 @@ import com.getcapacitor.annotation.CapacitorPlugin;
   }
 
   @PluginMethod
+  public void ledgerReplacePostedTransactionItems(PluginCall call) {
+    new LedgerPluginHandler(getContext()).ledgerReplacePostedTransactionItems(call);
+  }
+
+  @PluginMethod
   public void ledgerPostDraftTransaction(PluginCall call) {
     new LedgerPluginHandler(getContext()).ledgerPostDraftTransaction(call);
   }

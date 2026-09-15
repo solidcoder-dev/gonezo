@@ -21,6 +21,7 @@ export function createLedgerGateway(core: LedgerGatewayPort): LedgerGatewayPort 
     ledgerRecordTransferFx: (input) => core.ledgerRecordTransferFx(input),
     ledgerCreateExpenseDraft: (input) => core.ledgerCreateExpenseDraft(input),
     ledgerAddTransactionItem: (input) => core.ledgerAddTransactionItem(input),
+    ledgerReplacePostedTransactionItems: (input) => core.ledgerReplacePostedTransactionItems(input),
     ledgerPostDraftTransaction: (input) => core.ledgerPostDraftTransaction(input),
     ledgerVoidTransaction: (input) => core.ledgerVoidTransaction(input),
   };

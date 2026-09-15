@@ -9,6 +9,7 @@ import type {
 import type {
   LedgerAddTransactionItemInput,
   LedgerAddTransactionItemResult,
+  LedgerReplacePostedTransactionItemsInput,
   LedgerArchiveAccountInput,
   LedgerCreateExpenseDraftInput,
   LedgerCreateExpenseDraftResult,
@@ -273,6 +274,7 @@ export class CoreAdapterWeb implements CorePort {
   async ledgerRecordTransferFx(input: LedgerRecordTransferFxInput): Promise<LedgerRecordTransferFxResult> { return this.ledgerService.recordTransferFx(input); }
   async ledgerCreateExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult> { return this.ledgerService.createExpenseDraft(input); }
   async ledgerAddTransactionItem(input: LedgerAddTransactionItemInput): Promise<LedgerAddTransactionItemResult> { return this.ledgerService.addTransactionItem(input); }
+  async ledgerReplacePostedTransactionItems(input: LedgerReplacePostedTransactionItemsInput): Promise<void> { return this.ledgerService.replacePostedTransactionItems(input); }
   async ledgerPostDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void> { return this.ledgerService.postDraftTransaction(input); }
   async ledgerVoidTransaction(input: LedgerVoidTransactionInput): Promise<void> { return this.ledgerService.voidTransaction(input); }
   async ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult> { return this.analyticsExclusionService.applyIgnoredMovements(await this.ledgerService.listTransactions(input)); }

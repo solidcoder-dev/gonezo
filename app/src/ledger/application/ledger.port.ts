@@ -197,6 +197,20 @@ export type LedgerAddTransactionItemResult = {
   id: string;
 };
 
+export type LedgerReplacePostedTransactionItemsInput = {
+  transactionId: string;
+  items: Array<{
+    id?: string;
+    name: string;
+    amount: string;
+    currency: string;
+    categoryId?: string;
+    note?: string;
+    tagIds?: string[];
+  }>;
+  changedAt?: string;
+};
+
 export type LedgerPostDraftTransactionInput = {
   transactionId: string;
 };
@@ -313,6 +327,7 @@ export interface LedgerPort {
   ledgerRecordTransferFx(input: LedgerRecordTransferFxInput): Promise<LedgerRecordTransferFxResult>;
   ledgerCreateExpenseDraft(input: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult>;
   ledgerAddTransactionItem(input: LedgerAddTransactionItemInput): Promise<LedgerAddTransactionItemResult>;
+  ledgerReplacePostedTransactionItems(input: LedgerReplacePostedTransactionItemsInput): Promise<void>;
   ledgerPostDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void>;
   ledgerVoidTransaction(input: LedgerVoidTransactionInput): Promise<void>;
   ledgerListTransactions(input: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult>;

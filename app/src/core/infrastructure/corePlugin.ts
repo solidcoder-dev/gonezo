@@ -34,6 +34,7 @@ import type {
   LedgerCreateExpenseDraftResult,
   LedgerAddTransactionItemInput,
   LedgerAddTransactionItemResult,
+  LedgerReplacePostedTransactionItemsInput,
   LedgerPostDraftTransactionInput,
   LedgerVoidTransactionInput,
   LedgerListTransactionsInput,
@@ -153,6 +154,7 @@ export interface CorePlugin {
   ledgerRecordTransferFx(options: LedgerRecordTransferFxInput): Promise<LedgerRecordTransferFxResult>;
   ledgerCreateExpenseDraft(options: LedgerCreateExpenseDraftInput): Promise<LedgerCreateExpenseDraftResult>;
   ledgerAddTransactionItem(options: LedgerAddTransactionItemInput): Promise<LedgerAddTransactionItemResult>;
+  ledgerReplacePostedTransactionItems(options: LedgerReplacePostedTransactionItemsInput): Promise<void>;
   ledgerPostDraftTransaction(options: LedgerPostDraftTransactionInput): Promise<void>;
   ledgerVoidTransaction(options: LedgerVoidTransactionInput): Promise<void>;
   ledgerListTransactions(options: LedgerListTransactionsInput): Promise<LedgerListTransactionsResult>;

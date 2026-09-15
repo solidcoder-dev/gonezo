@@ -32,6 +32,7 @@ import type {
   LedgerCreateExpenseDraftResult,
   LedgerAddTransactionItemInput,
   LedgerAddTransactionItemResult,
+  LedgerReplacePostedTransactionItemsInput,
   LedgerPostDraftTransactionInput,
   LedgerVoidTransactionInput,
   LedgerListTransactionsInput,
@@ -218,6 +219,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async ledgerAddTransactionItem(options: LedgerAddTransactionItemInput): Promise<LedgerAddTransactionItemResult> {
     return this.core.ledgerAddTransactionItem(options);
+  }
+
+  async ledgerReplacePostedTransactionItems(options: LedgerReplacePostedTransactionItemsInput): Promise<void> {
+    return this.core.ledgerReplacePostedTransactionItems(options);
   }
 
   async ledgerPostDraftTransaction(options: LedgerPostDraftTransactionInput): Promise<void> {

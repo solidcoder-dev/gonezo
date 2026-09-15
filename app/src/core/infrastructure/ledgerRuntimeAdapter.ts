@@ -2,6 +2,7 @@ import type { AccountsListBalancesResult } from '../../account/application/accou
 import type {
   LedgerAddTransactionItemInput,
   LedgerAddTransactionItemResult,
+  LedgerReplacePostedTransactionItemsInput,
   LedgerArchiveAccountInput,
   LedgerCreateExpenseDraftInput,
   LedgerCreateExpenseDraftResult,
@@ -128,6 +129,14 @@ export class LedgerRuntimeAdapter {
       return CorePlugin.ledgerAddTransactionItem(input);
     }
     return this.web.ledgerAddTransactionItem(input);
+  }
+
+  async ledgerReplacePostedTransactionItems(input: LedgerReplacePostedTransactionItemsInput): Promise<void> {
+    if (isNativeRuntime()) {
+      await CorePlugin.ledgerReplacePostedTransactionItems(input);
+      return;
+    }
+    await this.web.ledgerReplacePostedTransactionItems(input);
   }
 
   async ledgerPostDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void> {

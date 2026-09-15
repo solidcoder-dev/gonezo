@@ -6,12 +6,18 @@ import com.gonezo.application.events.DomainEventPublisher;
 import com.gonezo.application.orchestration.AddLedgerTransactionItemWithCategoryCommand;
 import com.gonezo.application.orchestration.AddLedgerTransactionItemWithCategoryService;
 import com.gonezo.application.orchestration.AddLedgerTransactionItemWithCategoryUC;
+import com.gonezo.application.orchestration.PostedTransactionItemBreakdownEntry;
+import com.gonezo.application.orchestration.ReplacePostedTransactionItemBreakdownCommand;
+import com.gonezo.application.orchestration.ReplacePostedTransactionItemBreakdownService;
+import com.gonezo.application.orchestration.ReplacePostedTransactionItemBreakdownUC;
 import com.gonezo.application.query.GetNetWorthByCurrencyQuery;
 import com.gonezo.application.query.GetNetWorthByCurrencyService;
 import com.gonezo.application.query.NetWorthByCurrencyQuery;
 import com.gonezo.application.query.NetWorthByCurrencyResult;
 import com.gonezo.ledger.application.AddLedgerTransactionItemCommand;
 import com.gonezo.ledger.application.AddLedgerTransactionItemUC;
+import com.gonezo.ledger.application.ReplacePostedTransactionItemsService;
+import com.gonezo.ledger.application.ReplacePostedTransactionItemsUC;
 import com.gonezo.ledger.application.ArchiveLedgerAccountCommand;
 import com.gonezo.ledger.application.ArchiveLedgerAccountUC;
 import com.gonezo.ledger.application.CreateLedgerExpenseDraftCommand;
@@ -63,9 +69,15 @@ import com.gonezo.ledger.domain.AccountId;
 import com.gonezo.domain.shared.CurrencyCode;
 import com.gonezo.ledger.domain.Transaction;
 import com.gonezo.ledger.domain.TransactionId;
+import com.gonezo.ledger.domain.TransactionItem;
+import com.gonezo.ledger.domain.TransactionItemId;
 import com.gonezo.ledger.domain.services.BalanceCalculator;
 import com.gonezo.domain.shared.Money;
 import com.gonezo.taxonomy.domain.CategoryId;
+import com.gonezo.taxonomy.domain.TagId;
+import com.gonezo.taxonomy.domain.TagIdInterop;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -94,6 +106,7 @@ public final class AndroidLedgerCore {
   private final RecordLedgerTransferFxUC recordTransferFxUC;
   private final CreateLedgerExpenseDraftUC createExpenseDraftUC;
   private final AddLedgerTransactionItemUC addTransactionItemUC;
+  private final ReplacePostedTransactionItemBreakdownUC replacePostedItemsUC;
   private final AddLedgerTransactionItemWithCategoryUC addTransactionItemWithCategoryUC;
   private final PostLedgerDraftTransactionUC postDraftTransactionUC;
   private final VoidLedgerTransactionUC voidTransactionUC;
@@ -141,9 +154,18 @@ public final class AndroidLedgerCore {
     this.createExpenseDraftUC = new CreateLedgerExpenseDraftService(accountRepository, transactionRepository);
     this.addTransactionItemUC = new AddLedgerTransactionItemService(transactionRepository, eventPublisher);
     this.itemCategoryAssignmentRepository = new AndroidTaxonomyTransactionItemCategoryAssignmentRepository(database);
+    AndroidTaxonomyTransactionItemTagAssignmentRepository itemTagAssignmentRepository = new AndroidTaxonomyTransactionItemTagAssignmentRepository(database);
     this.addTransactionItemWithCategoryUC = new AddLedgerTransactionItemWithCategoryService(
       addTransactionItemUC,
       itemCategoryAssignmentRepository,
+      consistencyBoundary
+    );
+    ReplacePostedTransactionItemsUC replacePostedLedgerItems = new ReplacePostedTransactionItemsService(transactionRepository, consistencyBoundary);
+    this.replacePostedItemsUC = new ReplacePostedTransactionItemBreakdownService(
+      replacePostedLedgerItems,
+      transactionRepository,
+      itemCategoryAssignmentRepository,
+      itemTagAssignmentRepository,
       consistencyBoundary
     );
     this.postDraftTransactionUC = new PostLedgerDraftTransactionService(transactionRepository, eventPublisher);
@@ -349,6 +371,29 @@ public final class AndroidLedgerCore {
         Instant.now()
       )
     ).getValue();
+  }
+
+  public void replacePostedTransactionItems(String transactionId, JSONArray items) {
+    java.util.ArrayList<PostedTransactionItemBreakdownEntry> entries = new java.util.ArrayList<>();
+    for (int index = 0; index < items.length(); index++) {
+      JSONObject value = items.optJSONObject(index);
+      if (value == null) throw new IllegalArgumentException("item must be an object");
+      String rawId = blankToNull(value.optString("id", null));
+      TransactionItemId itemId = new TransactionItemId(rawId == null ? UUID.randomUUID() : UUID.fromString(rawId));
+      TransactionItem item = TransactionItem.Companion.create(
+        itemId,
+        requireText(value.optString("name", null), "item name is required"),
+        new Money(new BigDecimal(requireText(value.optString("amount", null), "item amount is required")), requireText(value.optString("currency", null), "item currency is required").toUpperCase()),
+        blankToNull(value.optString("note", null))
+      );
+      CategoryId categoryId = blankToNull(value.optString("categoryId", null)) == null ? null : CategoryId.Companion.from(value.optString("categoryId"));
+      JSONArray tagValues = value.optJSONArray("tagIds");
+      java.util.ArrayList<String> rawTagIds = new java.util.ArrayList<>();
+      if (tagValues != null) for (int tagIndex = 0; tagIndex < tagValues.length(); tagIndex++) rawTagIds.add(tagValues.optString(tagIndex));
+      java.util.List<TagId> tagIds = TagIdInterop.fromStrings(rawTagIds);
+      entries.add(new PostedTransactionItemBreakdownEntry(item, categoryId, tagIds));
+    }
+    replacePostedItemsUC.execute(new ReplacePostedTransactionItemBreakdownCommand(new TransactionId(UUID.fromString(requireText(transactionId, "transactionId is required"))), entries, Instant.now()));
   }
 
   public void postDraftTransaction(String transactionId) {

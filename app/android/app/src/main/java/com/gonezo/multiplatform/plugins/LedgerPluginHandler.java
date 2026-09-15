@@ -264,6 +264,15 @@ final class LedgerPluginHandler {
     }
   }
 
+  void ledgerReplacePostedTransactionItems(PluginCall call) {
+    try {
+      AndroidLedgerCore.getInstance(context).replacePostedTransactionItems(call.getString("transactionId"), call.getArray("items"));
+      call.resolve();
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
   void ledgerPostDraftTransaction(PluginCall call) {
     try {
       AndroidLedgerCore.getInstance(context).postDraftTransaction(call.getString("transactionId"));

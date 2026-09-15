@@ -10,5 +10,11 @@ value class TagId(val value: UUID) {
         fun random(): TagId = TagId(UUID.randomUUID())
 
         fun from(raw: String): TagId = TagId(UUID.fromString(raw))
+
     }
+}
+
+object TagIdInterop {
+    @JvmStatic
+    fun fromStrings(raw: List<String>): List<TagId> = raw.map(TagId::from)
 }

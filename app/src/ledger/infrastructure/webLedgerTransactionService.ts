@@ -1,6 +1,7 @@
 import type {
   LedgerAddTransactionItemInput,
   LedgerAddTransactionItemResult,
+  LedgerReplacePostedTransactionItemsInput,
   LedgerCreateExpenseDraftInput,
   LedgerCreateExpenseDraftResult,
   LedgerListTransactionsInput,
@@ -12,6 +13,7 @@ import type {
   LedgerRecordIncomeResult,
   LedgerVoidTransactionInput,
 } from '../application/ledger.port';
+import { addDecimalAmounts, isZeroDecimalAmount, subtractDecimalAmounts } from '../application/decimalAmount';
 import type { WebRuntimeDependencies } from '../../core/infrastructure/webRuntimeDependencies';
 import {
   ensureWebAccountCanPost,
@@ -125,6 +127,26 @@ export class WebLedgerTransactionService {
       note: input.note,
     });
     return { id };
+  }
+
+  async replacePostedTransactionItems(input: LedgerReplacePostedTransactionItemsInput): Promise<void> {
+    const tx = this.getTransactionOrThrow(input.transactionId);
+    if (tx.status !== 'posted') throw new Error('Items can only be replaced in posted status');
+    if (tx.type === 'transfer' || tx.type === 'transfer_in' || tx.type === 'transfer_out') throw new Error('Transfers cannot contain items');
+    const ids = input.items.map((item) => item.id).filter((id): id is string => Boolean(id));
+    if (new Set(ids).size !== ids.length) throw new Error('Duplicate item id');
+    const items = input.items.map((item) => ({
+      id: item.id ?? this.nextId(),
+      name: item.name,
+      amount: item.amount,
+      currency: item.currency.toUpperCase(),
+      categoryId: item.categoryId,
+      note: item.note,
+    }));
+    if (items.some((item) => item.currency !== tx.currency)) throw new Error('Item currency must match transaction currency');
+    const total = items.reduce((sum, item) => addDecimalAmounts(sum, item.amount), '0');
+    if (items.length > 0 && !isZeroDecimalAmount(subtractDecimalAmounts(total, tx.amount))) throw new Error('sum(items) must match transaction amount');
+    tx.items = items;
   }
 
   async postDraftTransaction(input: LedgerPostDraftTransactionInput): Promise<void> {

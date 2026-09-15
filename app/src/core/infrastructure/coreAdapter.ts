@@ -46,6 +46,7 @@ export class CoreAdapter implements CorePort {
   ledgerRecordTransferFx = this.ledger.ledgerRecordTransferFx.bind(this.ledger);
   ledgerCreateExpenseDraft = this.ledger.ledgerCreateExpenseDraft.bind(this.ledger);
   ledgerAddTransactionItem = this.ledger.ledgerAddTransactionItem.bind(this.ledger);
+  ledgerReplacePostedTransactionItems = this.ledger.ledgerReplacePostedTransactionItems.bind(this.ledger);
   ledgerPostDraftTransaction = this.ledger.ledgerPostDraftTransaction.bind(this.ledger);
   ledgerVoidTransaction = this.ledger.ledgerVoidTransaction.bind(this.ledger);
   ledgerListTransactions = this.ledger.ledgerListTransactions.bind(this.ledger);
