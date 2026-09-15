@@ -107,6 +107,9 @@ import type {
 import type {
   SharingApplyShareToPostedMovementInput,
   SharingApplyShareToPostedMovementResult,
+  SharingReplaceMovementShareInput,
+  SharingReplaceMovementShareResult,
+  SharingRemoveMovementShareInput,
   SharingGetMovementDetailsInput,
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
@@ -264,6 +267,9 @@ export class CoreAdapterWeb implements CorePort {
   ): Promise<SharingApplyShareToPostedMovementResult> {
     return this.sharingService.applyShareToPostedMovement(input);
   }
+
+  async sharingReplaceMovementShare(input: SharingReplaceMovementShareInput): Promise<SharingReplaceMovementShareResult> { return this.sharingService.replaceMovementShare(input); }
+  async sharingRemoveMovementShare(input: SharingRemoveMovementShareInput): Promise<void> { return this.sharingService.removeMovementShare(input); }
 
   async sharingGetMovementDetails(input: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult> { return this.sharingService.getMovementDetails(input); }
   async sharingListMovementDetails(input: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult> { return this.sharingService.listMovementDetails(input); }

@@ -26,6 +26,7 @@ internal class AndroidSharingPersonRepository(private val database: CoreDatabase
 }
 
 internal class AndroidAnalyticsExclusionRepository(private val database: CoreDatabase) : AnalyticsExclusionRepository {
+  override fun deleteByScope(scopeType: AnalyticsExclusionScopeType, scopeId: String, reason: AnalyticsExclusionReason?) { database.writableDatabase.delete("analytics_exclusions", if (reason == null) "scope_type = ? and scope_id = ?" else "scope_type = ? and scope_id = ? and reason = ?", if (reason == null) arrayOf(scopeType.value, scopeId) else arrayOf(scopeType.value, scopeId, reason.value)) }
   override fun save(exclusion: AnalyticsExclusion) { database.writableDatabase.insertWithOnConflict("analytics_exclusions", null, ContentValues().apply { put("id", exclusion.id.toString()); put("scope_type", exclusion.scopeType.value); put("scope_id", exclusion.scopeId); put("reason", exclusion.reason.value); put("created_at", exclusion.createdAt.toString()) }, android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE) }
   override fun findByScope(scopeType: AnalyticsExclusionScopeType, scopeId: String): List<AnalyticsExclusion> = query("scope_type = ? and scope_id = ?", arrayOf(scopeType.value, scopeId))
   override fun listAll(): List<AnalyticsExclusion> = query(null, emptyArray())
@@ -33,6 +34,7 @@ internal class AndroidAnalyticsExclusionRepository(private val database: CoreDat
 }
 
 internal class AndroidMovementShareRepository(private val database: CoreDatabase) : MovementShareRepository {
+  override fun deleteBySourceTransactionId(sourceTransactionId: String) { database.writableDatabase.delete("sharing_expense_shares", "source_transaction_id = ?", arrayOf(sourceTransactionId)) }
   override fun save(share: MovementShare) {
     database.writableDatabase.insertWithOnConflict("sharing_expense_shares", null, ContentValues().apply { put("id", share.id.toString()); put("source_transaction_id", share.sourceTransactionId); put("payer_person_id", share.payerPersonId.toString()); put("total_amount", share.totalAmount.toPlainString()); put("currency", share.currency); put("created_at", share.createdAt.toString()); put("updated_at", share.updatedAt.toString()) }, android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE)
     database.writableDatabase.delete("sharing_expense_share_participants", "share_id = ?", arrayOf(share.id.toString()))

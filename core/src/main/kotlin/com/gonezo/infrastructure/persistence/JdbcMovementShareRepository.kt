@@ -19,6 +19,13 @@ import java.time.Instant
 
 @Repository
 class JdbcMovementShareRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) : MovementShareRepository {
+    override fun deleteBySourceTransactionId(sourceTransactionId: String) {
+        jdbcTemplate.update(
+            "delete from sharing_expense_shares where source_transaction_id = :source_transaction_id",
+            MapSqlParameterSource("source_transaction_id", sourceTransactionId),
+        )
+    }
+
     override fun save(share: MovementShare) {
         jdbcTemplate.update(
             """

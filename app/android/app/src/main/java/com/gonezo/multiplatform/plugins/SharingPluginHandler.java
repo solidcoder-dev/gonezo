@@ -8,6 +8,8 @@ import com.gonezo.multiplatform.core.AndroidExpectedPostingApplication;
 import com.gonezo.sharing.application.ApplyShareParticipantCommand;
 import com.gonezo.sharing.application.ApplyShareToPostedMovementCommand;
 import com.gonezo.sharing.application.ApplyShareToPostedMovementResult;
+import com.gonezo.sharing.application.ReplaceMovementShareCommand;
+import com.gonezo.sharing.application.RemoveMovementShareCommand;
 import com.gonezo.sharing.application.SharingPersonReference;
 import com.gonezo.sharing.domain.ShareSettlementStatus;
 import java.math.BigDecimal;
@@ -106,6 +108,27 @@ final class SharingPluginHandler {
     } catch (Exception ex) {
       call.reject(ex.getMessage());
     }
+  }
+
+  void sharingReplaceMovementShare(PluginCall call) {
+    try {
+      ApplyShareToPostedMovementResult share = AndroidExpectedPostingApplication.getInstance(context).replaceShare(
+        new ReplaceMovementShareCommand(
+          call.getString("transactionId"), toCorePersonReference(call.getObject("payer")), toCoreParticipants(call.getArray("participants")),
+          Instant.parse(call.getString("updatedAt", Instant.now().toString()))
+        )
+      );
+      call.resolve(new JSObject().put("shareId", share.getShareId()).put("transactionId", share.getTransactionId()));
+    } catch (Exception ex) { call.reject(ex.getMessage()); }
+  }
+
+  void sharingRemoveMovementShare(PluginCall call) {
+    try {
+      AndroidExpectedPostingApplication.getInstance(context).removeShare(new RemoveMovementShareCommand(
+        call.getString("transactionId"), Instant.parse(call.getString("removedAt", Instant.now().toString()))
+      ));
+      call.resolve();
+    } catch (Exception ex) { call.reject(ex.getMessage()); }
   }
 
   void sharingGetMovementDetails(PluginCall call) {

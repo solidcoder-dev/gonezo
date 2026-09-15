@@ -115,6 +115,9 @@ import type {
 import type {
   SharingApplyShareToPostedMovementInput,
   SharingApplyShareToPostedMovementResult,
+  SharingReplaceMovementShareInput,
+  SharingReplaceMovementShareResult,
+  SharingRemoveMovementShareInput,
   SharingGetMovementDetailsInput,
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
@@ -221,6 +224,8 @@ export interface CorePlugin {
   sharingApplyShareToPostedMovement(
     options: SharingApplyShareToPostedMovementInput,
   ): Promise<SharingApplyShareToPostedMovementResult>;
+  sharingReplaceMovementShare(options: SharingReplaceMovementShareInput): Promise<SharingReplaceMovementShareResult>;
+  sharingRemoveMovementShare(options: SharingRemoveMovementShareInput): Promise<void>;
   sharingGetMovementDetails(options: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult>;
   sharingListMovementDetails(options: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult>;
   sharingGetPlannedShare(options: SharingGetPlannedShareInput): Promise<SharingPlannedShareResult>;

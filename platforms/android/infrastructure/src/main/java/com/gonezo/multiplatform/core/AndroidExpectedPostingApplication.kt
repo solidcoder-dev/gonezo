@@ -50,6 +50,8 @@ internal class AndroidExpectedPostingApplication private constructor(context: Co
   private val acknowledgeOccurrence: AcknowledgeRecurringMovementOccurrenceUC = AcknowledgeRecurringMovementOccurrenceService(occurrenceRepository)
   private val plannedInstantiator: PlannedShareInstantiator = DefaultPlannedShareInstantiator(plans, plannedShares, consistencyBoundary = consistencyBoundary)
   private val applyShare: ApplyShareToPostedMovementUC = ApplyShareToPostedMovementService(transactions, people, movementShares, expectedCreate, exclusions, consistencyBoundary)
+  private val replaceShare: ReplaceMovementShareUC = ReplaceMovementShareService(transactions, people, movementShares, expected, expectedCreate, exclusions, consistencyBoundary)
+  private val removeShare: RemoveMovementShareUC = RemoveMovementShareService(transactions, movementShares, expected, exclusions, consistencyBoundary)
   private val materializeShare: MaterializePlannedShareForPostedMovementUC = DefaultMaterializePlannedShareForPostedMovementService(plannedShares, people, applyShare, consistencyBoundary)
   private val projection = DefaultExpectedOccurrenceProjectionService(
     recurringRepository, occurrenceRepository, expected, expectedCreate,
@@ -91,6 +93,8 @@ internal class AndroidExpectedPostingApplication private constructor(context: Co
 
   fun execute(command: PostExpectedMovementCommand): PostExpectedMovementResult = workflow.execute(command)
   fun applyShare(command: com.gonezo.sharing.application.ApplyShareToPostedMovementCommand): com.gonezo.sharing.application.ApplyShareToPostedMovementResult = applyShare.execute(command)
+  fun replaceShare(command: ReplaceMovementShareCommand): ApplyShareToPostedMovementResult = replaceShare.execute(command)
+  fun removeShare(command: RemoveMovementShareCommand) = removeShare.execute(command)
   fun renamePerson(command: RenameSharingPersonCommand): SharingPersonSuggestionView = RenameSharingPersonService(people).execute(command)
   fun projectNext(recurringMovementId: String): String? = projection.projectNext(recurringMovementId, Instant.now(clock))?.toString()
   fun resolve(expectedMovementId: String, transactionId: String, resolvedAt: Instant) {

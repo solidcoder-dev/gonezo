@@ -1,6 +1,9 @@
 import type {
   SharingApplyShareToPostedMovementInput,
   SharingApplyShareToPostedMovementResult,
+  SharingReplaceMovementShareInput,
+  SharingReplaceMovementShareResult,
+  SharingRemoveMovementShareInput,
   SharingGetMovementDetailsInput,
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
@@ -12,7 +15,7 @@ import type {
 } from '../application/sharing.port';
 import { listSharingGroupSuggestions } from '../application/listSharingGroupSuggestions';
 import type { WebRuntimeDependencies } from '../../core/infrastructure/webRuntimeDependencies';
-import type { WebAppState, WebExpenseShare, WebLedgerTransaction, WebSharingPerson } from '../../core/infrastructure/webAppState';
+import type { WebAppState, WebExpenseShare, WebLedgerTransaction, WebSharingPerson, WebShareParticipant } from '../../core/infrastructure/webAppState';
 import type { WebLedgerService } from '../../ledger/infrastructure/webLedgerService';
 import type { WebExpectedMovementsService } from '../../expected/infrastructure/webExpectedService';
 import { displayedMovementTitle } from '../../shared/utils/movementTitle';
@@ -42,6 +45,10 @@ export class WebSharingService {
   private readonly dependencies: WebRuntimeDependencies;
   private readonly ledger: WebLedgerService;
   private readonly expected: WebExpectedMovementsService;
+
+  private nextId(): string {
+    return this.dependencies.idGenerator.nextId();
+  }
 
   constructor(options: WebSharingServiceOptions) {
     this.state = options.state;
@@ -145,6 +152,100 @@ export class WebSharingService {
       this.state.expenseShares.push(share);
     }
     return this.toApplyResult(share);
+  }
+
+  async replaceMovementShare(
+    input: SharingReplaceMovementShareInput,
+  ): Promise<SharingReplaceMovementShareResult> {
+    const transaction = this.ledger.getTransactionOrThrow(input.transactionId);
+    if (transaction.status !== 'posted' || (transaction.type !== 'expense' && transaction.type !== 'income')) {
+      throw new Error('Only posted expenses and incomes can be shared');
+    }
+    const updatedAt = input.updatedAt ?? this.dependencies.clock.nowIso();
+    const previous = this.state.expenseShares.find((share) => share.transactionId === transaction.id);
+    if (input.participants.length === 0) {
+      await this.removeMovementShare({ transactionId: transaction.id, removedAt: updatedAt });
+      return { shareId: previous?.id ?? '', transactionId: transaction.id };
+    }
+    const payer = this.resolvePerson(input.payer, updatedAt);
+    const oldByPerson = new Map((previous?.participants ?? []).map((participant) => [participant.personId, participant]));
+    const participants: WebShareParticipant[] = [];
+    for (const participantInput of input.participants) {
+      const person = this.resolvePerson(participantInput.person, updatedAt);
+      const old = oldByPerson.get(person.id);
+      const requestedStatus = participantInput.settlementChoice ?? (participantInput.reimbursable ? 'pending' : 'not_required');
+      const amount = formatAmount(parseAmount(participantInput.amount));
+      const settlementChoice = parseAmount(amount) === 0 ? 'not_required' : requestedStatus;
+      if (old?.settlementChoice === 'settled' && (old.amount !== amount || settlementChoice !== 'settled')) {
+        throw new Error('Published settlements cannot be changed');
+      }
+      let expectedMovementId = old?.expectedMovementId;
+      if (settlementChoice === 'pending' && parseAmount(amount) > 0) {
+        if (expectedMovementId) {
+          const expectedMovement = this.state.expectedMovements.find((movement) => movement.id === expectedMovementId);
+          if (expectedMovement?.status === 'pending') {
+            expectedMovement.amount = amount;
+            expectedMovement.updatedAt = updatedAt;
+          }
+        } else {
+          expectedMovementId = (await this.expected.createMovement({
+            accountId: transaction.accountId,
+            type: transaction.type === 'expense' ? 'income' : 'expense',
+            amount,
+            currency: transaction.currency,
+            expectedAt: transaction.occurredAt,
+            description: `${transaction.merchant ?? transaction.description ?? 'Movement'} · ${person.name.trim()}`,
+            merchant: person.name,
+          })).id;
+        }
+      } else if (expectedMovementId) {
+        const expectedMovement = this.state.expectedMovements.find((movement) => movement.id === expectedMovementId);
+          if (expectedMovement?.status === 'pending') await this.expected.dismissMovement({ expectedMovementId, originKind: 'manual', dismissedAt: updatedAt });
+        expectedMovementId = undefined;
+      }
+      participants.push({ participantId: old?.participantId ?? this.nextId(), personId: person.id, amount, reimbursable: settlementChoice === 'pending', settlementChoice, expectedMovementId });
+    }
+    for (const old of previous?.participants ?? []) {
+      if (!participants.some((participant) => participant.personId === old.personId) && old.expectedMovementId) {
+        const expectedMovement = this.state.expectedMovements.find((movement) => movement.id === old.expectedMovementId);
+        if (expectedMovement?.status === 'pending') await this.expected.dismissMovement({ expectedMovementId: old.expectedMovementId, originKind: 'manual', dismissedAt: updatedAt });
+      }
+      this.removeAnalyticsExclusions(old);
+    }
+    const share: WebExpenseShare = {
+      id: previous?.id ?? this.nextId(), transactionId: transaction.id, payerPersonId: payer.id,
+      totalAmount: transaction.amount, currency: transaction.currency, participants,
+      createdAt: previous?.createdAt ?? updatedAt, updatedAt, movementType: transaction.type,
+    };
+    if (previous) this.state.expenseShares[this.state.expenseShares.indexOf(previous)] = share;
+    else this.state.expenseShares.push(share);
+    participants.filter((participant) => participant.settlementChoice !== 'not_required').forEach((participant) => {
+      this.addAnalyticsExclusion('share_participant', participant.participantId, 'shared_expense', updatedAt);
+      if (participant.expectedMovementId) this.addAnalyticsExclusion('expected_movement', participant.expectedMovementId, 'reimbursement', updatedAt);
+    });
+    return { shareId: share.id, transactionId: share.transactionId };
+  }
+
+  async removeMovementShare(input: SharingRemoveMovementShareInput): Promise<void> {
+    const shareIndex = this.state.expenseShares.findIndex((share) => share.transactionId === input.transactionId);
+    if (shareIndex < 0) return;
+    const share = this.state.expenseShares[shareIndex];
+    if (share.participants.some((participant) => participant.settlementChoice === 'settled')) throw new Error('Published settlements cannot be deleted');
+    for (const participant of share.participants) {
+      if (participant.expectedMovementId) {
+        const expectedMovement = this.state.expectedMovements.find((movement) => movement.id === participant.expectedMovementId);
+        if (expectedMovement?.status === 'pending') await this.expected.dismissMovement({ expectedMovementId: participant.expectedMovementId, originKind: 'manual', dismissedAt: input.removedAt ?? this.dependencies.clock.nowIso() });
+      }
+      this.removeAnalyticsExclusions(participant);
+    }
+    this.state.expenseShares.splice(shareIndex, 1);
+  }
+
+  private removeAnalyticsExclusions(participant: WebShareParticipant) {
+    this.state.analyticsExclusions = this.state.analyticsExclusions.filter((item) => !(
+      (item.scopeType === 'share_participant' && item.scopeId === participant.participantId && item.reason === 'shared_expense')
+      || (item.scopeType === 'expected_movement' && item.scopeId === participant.expectedMovementId && item.reason === 'reimbursement')
+    ));
   }
 
   async getMovementDetails(input: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult> {

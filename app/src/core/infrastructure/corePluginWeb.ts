@@ -112,6 +112,9 @@ import type {
 import type {
   SharingApplyShareToPostedMovementInput,
   SharingApplyShareToPostedMovementResult,
+  SharingReplaceMovementShareInput,
+  SharingReplaceMovementShareResult,
+  SharingRemoveMovementShareInput,
   SharingGetMovementDetailsInput,
   SharingListMovementDetailsInput,
   SharingListMovementDetailsResult,
@@ -397,6 +400,14 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
     options: SharingApplyShareToPostedMovementInput,
   ): Promise<SharingApplyShareToPostedMovementResult> {
     return this.core.sharingApplyShareToPostedMovement(options);
+  }
+
+  async sharingReplaceMovementShare(options: SharingReplaceMovementShareInput): Promise<SharingReplaceMovementShareResult> {
+    return this.core.sharingReplaceMovementShare(options);
+  }
+
+  async sharingRemoveMovementShare(options: SharingRemoveMovementShareInput): Promise<void> {
+    return this.core.sharingRemoveMovementShare(options);
   }
 
   async sharingGetMovementDetails(options: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult> {

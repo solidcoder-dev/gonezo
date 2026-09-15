@@ -46,6 +46,10 @@ export type SharingApplyShareToPostedMovementResult = {
   }>;
 };
 
+export type SharingReplaceMovementShareInput = SharingApplyShareToPostedMovementInput & { updatedAt?: string };
+export type SharingReplaceMovementShareResult = { shareId: string; transactionId: string };
+export type SharingRemoveMovementShareInput = { transactionId: string; removedAt?: string };
+
 export type SharingGetMovementDetailsInput = {
   transactionId: string;
 };
@@ -105,6 +109,8 @@ export interface SharingPort {
   sharingApplyShareToPostedMovement(
     input: SharingApplyShareToPostedMovementInput,
   ): Promise<SharingApplyShareToPostedMovementResult>;
+  sharingReplaceMovementShare?(input: SharingReplaceMovementShareInput): Promise<SharingReplaceMovementShareResult>;
+  sharingRemoveMovementShare?(input: SharingRemoveMovementShareInput): Promise<void>;
   sharingGetMovementDetails(input: SharingGetMovementDetailsInput): Promise<SharingMovementDetailsResult>;
   sharingListMovementDetails(input: SharingListMovementDetailsInput): Promise<SharingListMovementDetailsResult>;
   sharingGetPlannedShare?(input: SharingGetPlannedShareInput): Promise<SharingPlannedShareResult>;

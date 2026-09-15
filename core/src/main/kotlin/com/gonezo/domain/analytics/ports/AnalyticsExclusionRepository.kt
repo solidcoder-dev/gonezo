@@ -1,10 +1,13 @@
 package com.gonezo.analytics.domain.ports
 
 import com.gonezo.analytics.domain.AnalyticsExclusion
+import com.gonezo.analytics.domain.AnalyticsExclusionReason
 import com.gonezo.analytics.domain.AnalyticsExclusionScopeType
 
 interface AnalyticsExclusionRepository {
     fun save(exclusion: AnalyticsExclusion)
+
+    fun deleteByScope(scopeType: AnalyticsExclusionScopeType, scopeId: String, reason: AnalyticsExclusionReason? = null)
 
     fun findByScope(scopeType: AnalyticsExclusionScopeType, scopeId: String): List<AnalyticsExclusion>
 
