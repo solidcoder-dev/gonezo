@@ -27,6 +27,17 @@ data class Transaction(val id: TransactionId, val accountId: AccountId, val type
         return copy(items = items + item)
     }
 
+    fun replacePostedItems(items: List<TransactionItem>): Transaction {
+        require(status == TransactionStatus.POSTED) { "items can only be replaced in posted status" }
+        require(type != TransactionType.TRANSFER_OUT && type != TransactionType.TRANSFER_IN) { "transfers cannot contain items" }
+        require(items.map { it.id }.toSet().size == items.size) { "duplicate item id" }
+        require(items.all { it.amount.currency == amount.currency }) { "item currency must match transaction currency" }
+        require(items.fold(BigDecimal.ZERO) { total, item -> total + item.amount.amount }.compareTo(amount.amount) == 0 || items.isEmpty()) {
+            "sum(items) must match transaction amount"
+        }
+        return copy(items = items)
+    }
+
     fun post(): Transaction {
         require(status == TransactionStatus.DRAFT) { "only draft transactions can be posted" }
         if (items.isNotEmpty()) {

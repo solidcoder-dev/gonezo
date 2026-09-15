@@ -131,6 +131,45 @@ class TransactionAggregateTest {
     }
 
     @Test
+    fun `replaces posted items without changing transaction facts`() {
+        val id = TransactionId.random()
+        val accountId = AccountId.random()
+        val occurredAt = Instant.parse("2026-03-15T09:00:00Z")
+        val posted = Transaction.recordExpense(id, accountId, Money(BigDecimal("80.00"), "USD"), occurredAt, "Lunch", "Cafe")
+        val replacement = posted.replacePostedItems(
+            listOf(
+                TransactionItem.create(TransactionItemId.random(), "Food", Money(BigDecimal("50.00"), "USD"), null),
+                TransactionItem.create(TransactionItemId.random(), "Tip", Money(BigDecimal("30.00"), "USD"), null),
+            ),
+        )
+
+        assertThat(replacement).isEqualTo(posted.copy(items = replacement.items))
+        assertThat(replacement.amount).isEqualTo(posted.amount)
+        assertThat(replacement.accountId).isEqualTo(posted.accountId)
+        assertThat(replacement.occurredAt).isEqualTo(posted.occurredAt)
+    }
+
+    @Test
+    fun `removes posted breakdown when replacement is empty`() {
+        val posted = Transaction.recordExpense(TransactionId.random(), AccountId.random(), Money(BigDecimal("80.00"), "USD"), Instant.now(), null, null)
+            .replacePostedItems(listOf(TransactionItem.create(TransactionItemId.random(), "Food", Money(BigDecimal("80.00"), "USD"), null)));
+
+        assertThat(posted.replacePostedItems(emptyList()).items).isEmpty()
+    }
+
+    @Test
+    fun `rejects incomplete posted breakdowns, transfers and voided transactions`() {
+        val posted = Transaction.recordExpense(TransactionId.random(), AccountId.random(), Money(BigDecimal("80.00"), "USD"), Instant.now(), null, null)
+        val incomplete = TransactionItem.create(TransactionItemId.random(), "Food", Money(BigDecimal("79.99"), "USD"), null)
+        assertThatThrownBy { posted.replacePostedItems(listOf(incomplete)) }.isInstanceOf(IllegalArgumentException::class.java)
+
+        val transfer = Transaction.recordTransferOut(TransactionId.random(), AccountId.random(), Money(BigDecimal("80.00"), "USD"), Instant.now(), null, TransactionId.random())
+        assertThatThrownBy { transfer.replacePostedItems(emptyList()) }.isInstanceOf(IllegalArgumentException::class.java)
+        val voided = posted.void()
+        assertThatThrownBy { voided.replacePostedItems(emptyList()) }.isInstanceOf(IllegalArgumentException::class.java)
+    }
+
+    @Test
     fun `records linked transfer out and in with opposite signed amounts`() {
         val fromAccountId = AccountId.random()
         val toAccountId = AccountId.random()

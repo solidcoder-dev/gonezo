@@ -8,6 +8,7 @@ import com.gonezo.ledger.domain.CurrencyCode
 import com.gonezo.ledger.domain.DateRange
 import com.gonezo.ledger.domain.Transaction
 import com.gonezo.ledger.domain.TransactionId
+import com.gonezo.ledger.domain.TransactionItem
 import com.gonezo.ledger.domain.TransactionItemId
 import java.math.BigDecimal
 import java.time.Instant
@@ -82,6 +83,12 @@ data class AddLedgerTransactionItemCommand(val transactionId: TransactionId, val
 
 interface AddLedgerTransactionItemUC {
     fun execute(command: AddLedgerTransactionItemCommand): TransactionItemId
+}
+
+data class ReplacePostedTransactionItemsCommand(val transactionId: TransactionId, val items: List<TransactionItem>)
+
+interface ReplacePostedTransactionItemsUC {
+    fun execute(command: ReplacePostedTransactionItemsCommand)
 }
 
 data class PostLedgerDraftTransactionCommand(val transactionId: TransactionId)

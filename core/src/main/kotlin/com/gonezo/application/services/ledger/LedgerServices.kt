@@ -313,6 +313,22 @@ class AddLedgerTransactionItemService(private val transactionRepository: LedgerT
     }
 }
 
+class ReplacePostedTransactionItemsService(private val transactionRepository: LedgerTransactionRepository, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary) : ReplacePostedTransactionItemsUC {
+    override fun execute(command: ReplacePostedTransactionItemsCommand) = consistencyBoundary.withinConsistencyBoundary {
+        val transaction = requireTransaction(transactionRepository, command.transactionId)
+        val itemIds = command.items.map { it.id }
+        require(itemIds.toSet().size == itemIds.size) { "duplicate item id" }
+        val foreignItemIds = transactionRepository.listAll()
+            .asSequence()
+            .filter { it.id != transaction.id }
+            .flatMap { it.items.asSequence() }
+            .map { it.id }
+            .toSet()
+        require(command.items.none { it.id in foreignItemIds }) { "item belongs to another transaction" }
+        transactionRepository.save(transaction.replacePostedItems(command.items))
+    }
+}
+
 class PostLedgerDraftTransactionService(private val transactionRepository: LedgerTransactionRepository, private val domainEventPublisher: DomainEventPublisher) : PostLedgerDraftTransactionUC {
     override fun execute(command: PostLedgerDraftTransactionCommand) {
         val transaction = requireTransaction(transactionRepository, command.transactionId)
