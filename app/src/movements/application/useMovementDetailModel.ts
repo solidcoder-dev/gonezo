@@ -401,7 +401,7 @@ export function useMovementDetailModel(input: MovementDetailModelInputWithSeed) 
   }
 
   function openItemsSheet() {
-    if (!movement?.canOpenItems) {
+    if (!movement || movement.capabilities.items.mode === 'unsupported') {
       return;
     }
     setActiveSheet('items');

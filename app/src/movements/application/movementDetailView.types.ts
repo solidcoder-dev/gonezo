@@ -17,6 +17,11 @@ export type MovementDetailSheet =
 
 export type MovementDetailFinancialType = 'expense' | 'income' | 'transfer';
 
+export type MovementFeatureAccess =
+  | { mode: 'editable'; target: 'posted' | 'expected' | 'scheduled' }
+  | { mode: 'read-only' }
+  | { mode: 'unsupported' };
+
 export type MovementDetailTagView = {
   id?: string;
   name: string;
@@ -100,7 +105,10 @@ export type MovementDetailBaseViewModel = {
   items: MovementDetailItemView[];
   merchant?: string;
   note?: string;
-  canOpenItems: boolean;
+  capabilities: {
+    items: MovementFeatureAccess;
+    sharing: MovementFeatureAccess;
+  };
 };
 
 export type PostedMovementDetailViewModel = MovementDetailBaseViewModel & {

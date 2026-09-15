@@ -3,6 +3,7 @@ import type { ExpectedMovementItem } from '../../expected/application/expected.p
 import {
   mapExpectedMovementView,
   mapMovementDetailViewModel,
+  movementFeatureAccess,
   normalizeExpectedMovementOrigin,
 } from './movementDetailMappers';
 import type { ScheduledMovementView } from './movementsView.types';
@@ -120,5 +121,22 @@ describe('expected movement detail mapping', () => {
       originLabel: 'Recurring',
       series: { kind: 'recurring', occurrenceId: 'occurrence-1', series: null },
     });
+  });
+});
+
+describe('movement feature access mapping', () => {
+  it.each([
+    ['expense', 'posted', { mode: 'editable', target: 'posted' }],
+    ['income', 'pending', { mode: 'editable', target: 'expected' }],
+    ['expense', 'active', { mode: 'editable', target: 'scheduled' }],
+    ['income', 'voided', { mode: 'read-only' }],
+    ['expense', 'resolved', { mode: 'read-only' }],
+    ['income', 'deactivated', { mode: 'read-only' }],
+    ['expense', 'completed', { mode: 'read-only' }],
+    ['transfer', 'posted', { mode: 'unsupported' }],
+    ['transfer', 'pending', { mode: 'unsupported' }],
+    ['transfer', 'active', { mode: 'unsupported' }],
+  ] as const)('maps %s %s to an explicit access mode', (financialType, lifecycle, expectedAccess) => {
+    expect(movementFeatureAccess(financialType, lifecycle)).toEqual(expectedAccess);
   });
 });

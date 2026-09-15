@@ -13,12 +13,26 @@ import type {
   MovementDetailTagOption,
   MovementDetailTagView,
   MovementDetailViewModel,
+  MovementFeatureAccess,
   SharingDetailState,
   SharingViewModel,
   DuplicateReadiness,
   ExpectedMovementSeriesViewModel,
   ExpectedSeriesState,
 } from './movementDetailView.types';
+
+export function movementFeatureAccess(
+  financialType: MovementDetailFinancialType,
+  lifecycle: 'posted' | 'voided' | 'pending' | 'dismissed' | 'resolved' | 'active' | 'deactivated' | 'completed',
+): MovementFeatureAccess {
+  if (financialType === 'transfer') {
+    return { mode: 'unsupported' };
+  }
+  if (lifecycle === 'posted' || lifecycle === 'pending' || lifecycle === 'active') {
+    return { mode: 'editable', target: lifecycle === 'pending' ? 'expected' : lifecycle === 'active' ? 'scheduled' : 'posted' };
+  }
+  return { mode: 'read-only' };
+}
 
 function movementDetailFinancialType(type: TransactionHistoryItemView['type'] | ExpectedMovementView['type'] | ScheduledMovementView['type']): MovementDetailFinancialType {
   if (type === 'transfer' || type === 'transfer_in' || type === 'transfer_out') {
@@ -258,7 +272,10 @@ function mapPostedMovement(
     items: transaction.items.map((item) => ({ ...item, currency: transaction.currency })),
     merchant: transaction.merchant,
     note: transaction.description,
-    canOpenItems: transaction.items.length > 0,
+    capabilities: {
+      items: movementFeatureAccess(financialType, transaction.status === 'voided' ? 'voided' : 'posted'),
+      sharing: movementFeatureAccess(financialType, transaction.status === 'voided' ? 'voided' : 'posted'),
+    },
     status: transaction.status === 'voided' ? 'voided' : 'posted',
     ignored: transaction.ignored === true,
     canEditCategory: financialType !== 'transfer',
@@ -304,7 +321,10 @@ function mapScheduledMovement(
     items: movement.splitItems.map((item) => ({ ...item, currency: movement.currency })),
     merchant: movement.merchant,
     note: movement.description,
-    canOpenItems: movement.splitItems.length > 0,
+    capabilities: {
+      items: movementFeatureAccess(financialType, movement.status),
+      sharing: movementFeatureAccess(financialType, movement.status),
+    },
     status: movement.status,
     lifecycleChip: 'Scheduled',
     canEditCategory: financialType !== 'transfer',
@@ -346,7 +366,10 @@ function mapExpectedMovement(
     items: movement.splitItems.map((item) => ({ ...item, currency: movement.currency })),
     merchant: movement.merchant,
     note: movement.description,
-    canOpenItems: movement.splitItems.length > 0,
+    capabilities: {
+      items: movementFeatureAccess(financialType, movement.status),
+      sharing: movementFeatureAccess(financialType, movement.status),
+    },
     status: movement.status,
     lifecycleChip: 'Expected',
     ignored: movement.ignored === true,
