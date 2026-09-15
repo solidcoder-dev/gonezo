@@ -28,7 +28,7 @@ const defaultExperimentalFeatures = new LocalExperimentalFeaturesAdapter();
 const defaultKeyboardVisibility = createKeyboardVisibilityCapability();
 const defaultNotifications = createNotificationsAdapter();
 const defaultAmountVisibility = new LocalAmountVisibilityAdapter();
-const workspaceRoutes = ['/', '/home', '/accounts', '/analytics', '/analytics/category/:categoryId', '/analytics/forecast', '/movements', '/movements/new', '/movements/search', '/profile'];
+const workspaceRoutes = ['/', '/home', '/accounts', '/analytics', '/analytics/category/:categoryId', '/analytics/forecast', '/movements', '/movements/new', '/movements/search', '/movements/:source/:movementId/edit/:feature', '/profile'];
 
 export type AppPort = WorkspacePagePort & TaxonomyPagePort;
 

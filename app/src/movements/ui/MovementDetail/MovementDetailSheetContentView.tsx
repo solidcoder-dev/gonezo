@@ -230,7 +230,7 @@ function sharingContent(movement: MovementDetailViewModel, amountVisibility: Amo
             </div>
           </>
         ) : sharing.phase === 'loaded' ? <p>Not shared</p> : null}
-        {movement.capabilities.sharing.mode === 'editable' ? (
+        {movement.capabilities.sharing.mode === 'editable' && sharing.phase === 'loaded' && sharing.value ? (
           <button type="button" className="btn btn-primary w-100 mt-3" onClick={() => onRequestFeatureEdit('sharing')}>
             Edit sharing
           </button>
@@ -257,9 +257,9 @@ function itemsContent(movement: MovementDetailViewModel, amountVisibility: Amoun
             </strong>
           </div>
         ))}
-        {movement.capabilities.items.mode === 'editable' ? (
+        {movement.capabilities.items.mode === 'editable' && movement.items.length > 0 ? (
           <button type="button" className="btn btn-primary w-100" onClick={() => onRequestFeatureEdit('items')}>
-            {movement.items.length === 0 ? 'Add items' : 'Edit items'}
+            Edit items
           </button>
         ) : null}
       </div>

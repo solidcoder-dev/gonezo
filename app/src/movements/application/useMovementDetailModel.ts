@@ -399,7 +399,8 @@ export function useMovementDetailModel(input: MovementDetailModelInputWithSeed) 
     }
 
     const sharingIsEmpty = movement.source !== 'posted'
-      || (movement.sharing.phase === 'loaded' && movement.sharing.value == null);
+      || movement.sharing.phase !== 'loaded'
+      || movement.sharing.value == null;
     if (movement.capabilities.sharing.mode === 'editable' && sharingIsEmpty) {
       requestFeatureEdit('sharing');
       return;

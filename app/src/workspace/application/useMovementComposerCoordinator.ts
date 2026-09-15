@@ -78,7 +78,7 @@ export function useMovementComposerCoordinator({ selectedAccountId }: MovementCo
       date,
       note: movement.note ?? movement.title,
       splitItems: movement.items.map((item) => ({ id: item.id, name: item.name, amount: item.amount })),
-      ...(source === 'posted' ? { editedPostedMovementId: movement.id } : {}),
+      ...(source === 'posted' && request.feature === 'items' ? { editedPostedMovementId: movement.id } : {}),
       ...(source === 'expected'
         ? { editedExpectedMovementId: movement.id, editNotice: 'expected' as const }
         : source === 'scheduled'

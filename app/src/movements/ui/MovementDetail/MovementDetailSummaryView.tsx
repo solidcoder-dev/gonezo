@@ -162,7 +162,7 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
         <span className={styles.sectionLabel}>Details</span>
         <div>
           {showSharing ? (
-            <button type="button" className={styles.row} onClick={onOpenSharingSheet}>
+            <button type="button" className={styles.row} onClick={onOpenSharingSheet} disabled={movement.capabilities.sharing.mode === 'read-only' && sharingValue == null}>
               <span className={styles.rowMain}>
                 <span>
                   {sharing.phase === 'error'
@@ -184,7 +184,7 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
             </button>
           ) : null}
           {showItems ? (
-            <button type="button" className={styles.row} onClick={onOpenItemsSheet}>
+            <button type="button" className={styles.row} onClick={onOpenItemsSheet} disabled={movement.capabilities.items.mode === 'read-only' && movement.items.length === 0}>
               <span className={styles.rowMain}>
                 <span>Items</span>
                 <small className={styles.supporting}>{movement.items.length === 0 ? 'No items' : `${movement.items.length} items · `}<FinancialAmountView formattedAmount={movementDetailAmountLabel(movement.amount.value, movement.amount.currency)} visibility={props.amountVisibility ?? 'visible'} /></small>

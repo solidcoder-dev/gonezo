@@ -213,6 +213,10 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   }
 
   function handleFeatureEditRequested(request: MovementFeatureEditRequest) {
+    const returnTo = `${location.pathname}${location.search}`;
+    void navigate(`/movements/${request.movement.source}/${request.movement.id}/edit/${request.feature}`, {
+      state: { returnTo },
+    });
     editMovementFeature(request);
   }
 
