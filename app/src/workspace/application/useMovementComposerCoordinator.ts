@@ -23,6 +23,7 @@ export function useMovementComposerCoordinator({ selectedAccountId }: MovementCo
   const [movementEntryType, setMovementEntryType] = useState<TransactionType | undefined>();
   const [movementEntryOpenSignal, setMovementEntryOpenSignal] = useState(0);
   const duplicateRequestId = useRef(0);
+  const featureEditRequestId = useRef(0);
 
   function editExpectedMovement(movement: ExpectedMovementView, categoryName?: string) {
     setMovementEntryAccountId(movement.accountId);
@@ -55,6 +56,38 @@ export function useMovementComposerCoordinator({ selectedAccountId }: MovementCo
       requestId: ++duplicateRequestId.current,
     });
     setMovementEntryOpenSignal((previous) => previous + 1);
+  }
+
+  function editMovementFeature(request: { feature: 'items' | 'sharing'; movement: MovementDetailViewModel }) {
+    if (request.movement.financialType === 'transfer') {
+      return;
+    }
+    const movement = request.movement;
+    const source = movement.source;
+    const accountId = source === 'scheduled' ? movement.raw.sourceAccountId : movement.raw.accountId;
+    const date = source === 'posted'
+      ? movement.raw.occurredAt
+      : source === 'expected'
+        ? movement.raw.expectedAt
+        : movement.raw.nextDueAt ?? movement.raw.startAt;
+    const prefill: TransactionEntryPrefillRequest = {
+      requestId: ++featureEditRequestId.current,
+      initialEditor: request.feature,
+      mode: movement.financialType,
+      amount: movement.amount.value,
+      date,
+      note: movement.note ?? movement.title,
+      splitItems: movement.items.map((item) => ({ id: item.id, name: item.name, amount: item.amount })),
+      ...(source === 'posted' ? { editedPostedMovementId: movement.id } : {}),
+      ...(source === 'expected'
+        ? { editedExpectedMovementId: movement.id, editNotice: 'expected' as const }
+        : source === 'scheduled'
+          ? { editedScheduledMovementId: movement.id, editNotice: 'scheduled' as const }
+          : {}),
+    };
+    setMovementEntryAccountId(accountId);
+    setMovementEntryAccountName(null);
+    setTransactionEntryPrefill(prefill);
   }
 
   function clearMovementEntryAccount() {
@@ -111,6 +144,7 @@ export function useMovementComposerCoordinator({ selectedAccountId }: MovementCo
       editExpectedMovement,
       editScheduledMovement,
       postExpectedMovement,
+      editMovementFeature,
       duplicateMovement,
       resetTransactionEntryPrefill: () => setTransactionEntryPrefill(undefined),
     },

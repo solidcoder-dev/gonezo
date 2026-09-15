@@ -11,6 +11,7 @@ import {
   type HomeMovementMetadata,
 } from '../ui/HomeRecentMovements/HomeRecentMovementsView';
 import type { AmountVisibility } from '../../shared/domain/amountVisibility';
+import type { MovementFeatureEditRequest } from '../../movements/application/movementFeatureEditRequest';
 
 export type HomeRecentMovementsPort = TransactionsPort & Pick<MovementsQueryPort, 'movementsGetOverview' | 'movementsGetDetail'>;
 
@@ -30,6 +31,7 @@ export type HomeRecentMovementsComponentProps = {
       onError?: (error: { message: string }) => void;
       onSelectMovement?: (movement: TransactionHistoryItemView) => void;
       onSeeAll?: () => void;
+      onFeatureEditRequested?: (request: MovementFeatureEditRequest) => void;
     };
   };
 };
@@ -101,6 +103,7 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
   const onError = provided?.events?.onError;
   const onSelectMovement = provided?.events?.onSelectMovement;
   const onSeeAll = provided?.events?.onSeeAll;
+  const onFeatureEditRequested = provided?.events?.onFeatureEditRequested;
   const [movements, setMovements] = useState<TransactionHistoryItemView[]>([]);
   const [movementMetadataById, setMovementMetadataById] = useState<Record<string, HomeMovementMetadata>>({});
   const [selectedMovementId, setSelectedMovementId] = useState<string | null>(null);
@@ -217,6 +220,7 @@ export function HomeRecentMovementsComponent({ required, provided }: HomeRecentM
             events: {
               onClose: () => setSelectedMovementId(null),
               onError,
+              onFeatureEditRequested,
             },
           }}
         />

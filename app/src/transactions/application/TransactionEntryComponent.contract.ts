@@ -10,6 +10,9 @@ import type { MovementReuseSuggestionsPort, MovementReuseTemplatePort } from '..
 
 export type TransactionEntryPrefillRequest = {
   requestId: number;
+  initialEditor?: 'items' | 'sharing';
+  editNotice?: 'expected' | 'scheduled';
+  editedPostedMovementId?: string;
   initialIntent?: 'now' | 'expected' | 'scheduled';
   editedExpectedMovementId?: string;
   editedScheduledMovementId?: string;

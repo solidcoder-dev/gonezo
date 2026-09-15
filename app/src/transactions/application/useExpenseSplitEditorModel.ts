@@ -100,13 +100,13 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     itemTagSelection.actions.reset();
   }
 
-  function prefill(items: Array<{ id?: string; name: string; amount: string; tagNames?: string[] }>) {
+  function prefill(items: Array<{ id?: string; name: string; amount: string; tagNames?: string[] }>, preserveExistingIds = false) {
     setExpenseDetailed(items.length > 0);
     setSplitApplied(items.length > 0);
     setSplitEditorOpen(false);
     setSplitEditorSnapshot(null);
     setSplitDraftMode('items');
-    setManualExpenseItems(cloneSplitItems(items.map(({ id, name, amount }) => ({ id: id ?? '', name, amount })), nextId, true).map((item, index) => preserveTagNames(item, items[index]?.tagNames ?? [])));
+    setManualExpenseItems(cloneSplitItems(items.map(({ id, name, amount }) => ({ id: id ?? '', name, amount })), nextId, preserveExistingIds).map((item, index) => preserveTagNames(item, items[index]?.tagNames ?? [])));
     setPartsExpenseItems([]);
     setPartsBaseAmount('');
     setEditingExpenseItemId('');

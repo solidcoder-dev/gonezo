@@ -63,7 +63,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     transactionAmount,
     setFieldErrors,
   });
-  const { prefill: prefillShareDraft } = shareDraftModel.actions; const schedulingModel = useTransactionSchedulingModel({
+  const { prefill: prefillShareDraft, openEditor: openShareEditor } = shareDraftModel.actions; const schedulingModel = useTransactionSchedulingModel({
     clock,
     initialToday,
     setFieldErrors,
@@ -234,7 +234,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setTransferAmountIn,
     setTransferFxMode,
     setTransferFxRate,
-    setTransferToAccountId, prefillShareDraft,
+    setTransferToAccountId, prefillShareDraft, openSplitEditor, openShareEditor,
   });
   modelEffectsRef.current = {
     prefillExpenseSplit,
@@ -248,7 +248,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setTransferAmountIn,
     setTransferFxMode,
     setTransferFxRate,
-    setTransferToAccountId, prefillShareDraft,
+    setTransferToAccountId, prefillShareDraft, openSplitEditor, openShareEditor,
   };
   useEffect(() => {
     if (!enabled || !accountId) {
@@ -303,7 +303,16 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       modelEffectsRef.current.setTransferFxMode(currentPrefillRequest.transferFxMode ?? 'auto_destination');
     }
     modelEffectsRef.current.prefillScheduling(currentPrefillRequest);
-    modelEffectsRef.current.prefillExpenseSplit(currentPrefillRequest.splitItems ?? []);
+    modelEffectsRef.current.prefillExpenseSplit(
+      currentPrefillRequest.splitItems ?? [],
+      Boolean(currentPrefillRequest.editedPostedMovementId),
+    );
+    if (currentPrefillRequest.initialEditor === 'items') {
+      modelEffectsRef.current.openSplitEditor();
+    }
+    if (currentPrefillRequest.initialEditor === 'sharing') {
+      modelEffectsRef.current.openShareEditor();
+    }
     void (async () => {
       try {
         await modelEffectsRef.current.refreshTaxonomyLookups();
@@ -409,7 +418,36 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       setTransactionAmount(expenseSplitTotal);
       syncSourceAmount(expenseSplitTotal);
     }
+    if (prefillRequest?.editedPostedMovementId) {
+      void savePostedItems(prefillRequest.editedPostedMovementId);
+      return;
+    }
     applySplit();
+  }
+
+  async function savePostedItems(transactionId: string) {
+    setPostingTransaction(true);
+    setError('');
+    try {
+      await ports.ledger.ledgerReplacePostedTransactionItems({
+        transactionId,
+        items: expenseItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          amount: item.amount,
+          currency: accountCurrency,
+        })),
+      });
+      onRecorded?.();
+      setComposerOpen(false);
+      resetComposerState();
+      await refreshAccountSnapshot();
+      onClosed?.();
+    } catch (err) {
+      reportError(err, 'operation');
+    } finally {
+      setPostingTransaction(false);
+    }
   }
   async function submitTransaction(event: FormEvent) {
     event.preventDefault();
