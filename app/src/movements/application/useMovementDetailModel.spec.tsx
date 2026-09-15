@@ -225,6 +225,43 @@ describe('useMovementDetailModel', () => {
     expect(input.ports.scheduling.schedulingGetMovement).not.toHaveBeenCalled();
   });
 
+  it('opens the items editor request directly when an editable movement has no items', async () => {
+    const onFeatureEditRequested = vi.fn();
+    const input = makeInput({ onFeatureEditRequested });
+    const { result } = renderHook(() => useMovementDetailModel(input));
+
+    act(() => result.current.actions.openPostedMovementDetail('tx-1'));
+    await waitFor(() => expect(result.current.required.data.movement).toMatchObject({ id: 'tx-1' }));
+
+    act(() => result.current.provided.commands.openItemsSheet());
+
+    expect(onFeatureEditRequested).toHaveBeenCalledWith(expect.objectContaining({
+      feature: 'items',
+      movement: expect.objectContaining({ id: 'tx-1' }),
+    }));
+    expect(result.current.state.activeSheet).toBeNull();
+  });
+
+  it('opens the sharing editor request directly when an editable movement has no sharing', async () => {
+    const onFeatureEditRequested = vi.fn();
+    const input = makeInput({ onFeatureEditRequested });
+    const { result } = renderHook(() => useMovementDetailModel(input));
+
+    act(() => result.current.actions.openPostedMovementDetail('tx-1'));
+    await waitFor(() => expect(result.current.required.data.movement).toMatchObject({
+      id: 'tx-1',
+      sharing: { phase: 'loaded', value: null },
+    }));
+
+    act(() => result.current.provided.commands.openSharingSheet());
+
+    expect(onFeatureEditRequested).toHaveBeenCalledWith(expect.objectContaining({
+      feature: 'sharing',
+      movement: expect.objectContaining({ id: 'tx-1' }),
+    }));
+    expect(result.current.state.activeSheet).toBeNull();
+  });
+
   it('does not expose or execute duplicate while sharing is loading, then exposes it when loaded', async () => {
     const sharingRequest = deferred<null>();
     const onDuplicateMovement = vi.fn();

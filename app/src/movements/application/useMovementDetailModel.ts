@@ -394,17 +394,26 @@ export function useMovementDetailModel(input: MovementDetailModelInputWithSeed) 
   }
 
   function openSharingSheet() {
-    if (movement?.source !== 'posted') {
+    if (!movement || movement.capabilities.sharing.mode === 'unsupported') {
       return;
     }
-    if (movement.sharing.phase === 'loaded' && movement.sharing.value == null) {
+
+    const sharingIsEmpty = movement.source !== 'posted'
+      || (movement.sharing.phase === 'loaded' && movement.sharing.value == null);
+    if (movement.capabilities.sharing.mode === 'editable' && sharingIsEmpty) {
+      requestFeatureEdit('sharing');
       return;
     }
+
     setActiveSheet('sharing');
   }
 
   function openItemsSheet() {
     if (!movement || movement.capabilities.items.mode === 'unsupported') {
+      return;
+    }
+    if (movement.capabilities.items.mode === 'editable' && movement.items.length === 0) {
+      requestFeatureEdit('items');
       return;
     }
     setActiveSheet('items');
