@@ -178,7 +178,7 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
                 ) : null}
               </span>
               <span className={styles.rowValue}>
-                {movement.capabilities.sharing.mode === 'editable' ? (sharingValue ? 'Edit sharing' : 'Add sharing') : null}
+                {movement.capabilities.sharing.mode === 'editable' && !sharingValue ? 'Add sharing' : null}
                 {movement.capabilities.sharing.mode !== 'read-only' ? <i className="bi bi-chevron-right" aria-hidden /> : null}
               </span>
             </button>
@@ -190,7 +190,7 @@ export function MovementDetailSummaryBodyView(props: MovementDetailSummaryViewPr
                 <small className={styles.supporting}>{movement.items.length === 0 ? 'No items' : `${movement.items.length} items · `}<FinancialAmountView formattedAmount={movementDetailAmountLabel(movement.amount.value, movement.amount.currency)} visibility={props.amountVisibility ?? 'visible'} /></small>
               </span>
               <span className={styles.rowValue}>
-                {movement.capabilities.items.mode === 'editable' ? (movement.items.length === 0 ? 'Add items' : 'Edit items') : null}
+                {movement.capabilities.items.mode === 'editable' && movement.items.length === 0 ? 'Add items' : null}
                 {movement.capabilities.items.mode !== 'read-only' ? <i className="bi bi-chevron-right" aria-hidden /> : null}
               </span>
             </button>

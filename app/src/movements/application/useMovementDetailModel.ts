@@ -425,6 +425,7 @@ export function useMovementDetailModel(input: MovementDetailModelInputWithSeed) 
       return;
     }
     onFeatureEditRequested?.({ feature, movement });
+    closeDetail();
   }
 
   function openMoreDetailsSheet() {

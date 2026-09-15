@@ -709,8 +709,8 @@ describe('MovementDetailView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back to movements' }));
     fireEvent.click(screen.getByRole('button', { name: 'CategoryGroceries' }));
     fireEvent.click(screen.getByRole('button', { name: 'TagsHome, Trip' }));
-    fireEvent.click(screen.getByRole('button', { name: /Shared with 2 peopleYour share · €5.00Edit sharing/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Items1 items · €15.00Edit items/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Shared with 2 peopleYour share · €5.00/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Items1 items · €15.00/ }));
     fireEvent.click(screen.getByRole('button', { name: /More details/i }));
 
     expect(commands.closeDetail).toHaveBeenCalledTimes(1);
