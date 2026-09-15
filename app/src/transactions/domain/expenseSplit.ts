@@ -57,7 +57,7 @@ export function cloneSplitItems(
   nextId: () => string,
 ): ExpenseSplitItem[] {
   return items.map((item) => ({
-    id: nextId(),
+    id: item.id || nextId(),
     name: item.name,
     amount: item.amount,
   }));

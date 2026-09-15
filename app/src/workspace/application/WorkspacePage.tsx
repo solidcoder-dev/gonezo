@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { TransactionsImportFileReaderPort } from '../../imports/application/transactionsImportFileReader.port';
 import { MovementDockNavigationComponent, TransactionEntryComponent } from '../../transactions/index';
+import { PostedMovementItemsEditorComponent } from '../../transactions/application/PostedMovementItemsEditorComponent';
 import { ExperimentalMovementDockNavigationComponent } from '../../transactions/application/ExperimentalMovementDockNavigationComponent';
 import { MonthlyMovementsComponent } from '../../movements/index';
 import { MovementsSearchPage } from '../../movements/index';
@@ -44,6 +45,8 @@ import type { FeedbackNoticeWriter } from '../../shared/ui/FeedbackNotice/feedba
 import { FeedbackNoticeDestinationProvider } from '../../shared/ui/FeedbackNotice/FeedbackNoticeDestination';
 import type { NotificationsPort } from '../../notifications/application/notifications.port';
 import type { AmountVisibilityModel } from './useAmountVisibilityModel';
+import type { MovementFeatureEditRequest } from '../../movements/application/movementFeatureEditRequest';
+import type { PostedMovementDetailViewModel } from '../../movements/application/movementDetailView.types';
 
 export type WorkspacePageRequired = {
   core: WorkspacePagePort;
@@ -71,6 +74,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const [managedAccountId, setManagedAccountId] = useState<string | null>(null);
   const [accountsCount, setAccountsCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState<number | null>(null);
+  const [postedItemsEditorMovement, setPostedItemsEditorMovement] = useState<PostedMovementDetailViewModel | null>(null);
 
   const workspaceToast = useWorkspaceToast();
   const { closeNotice, pauseNotice, resumeNotice, showError, showInfo, showNotice, showToast, showWarning, updateNotice } = workspaceToast.actions;
@@ -208,6 +212,12 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   function handlePostExpectedMovement(...args: Parameters<typeof postExpectedMovement>) {
     postExpectedMovement(...args);
     navigateToMovementEntry();
+  }
+
+  function handleFeatureEditRequested(request: MovementFeatureEditRequest) {
+    if (request.feature === 'items' && request.movement.source === 'posted') {
+      setPostedItemsEditorMovement(request.movement);
+    }
   }
 
   function closeMovementEntry() {
@@ -394,6 +404,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           onPostExpectedMovement: handlePostExpectedMovement,
           onEditExpectedMovement: handleEditExpectedMovement,
           onDuplicateMovement: handleDuplicateMovement,
+          onFeatureEditRequested: handleFeatureEditRequested,
           onNotice: showNotice,
           onNoticeUpdated: updateNotice,
           onNoticeClosed: closeNotice,
@@ -414,6 +425,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
           onPostExpectedMovement: handlePostExpectedMovement,
           onEditExpectedMovement: handleEditExpectedMovement,
           onDuplicateMovement: handleDuplicateMovement,
+          onFeatureEditRequested: handleFeatureEditRequested,
           onOperationError: showError,
         },
       }}
@@ -749,6 +761,17 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       transactionEntry: (
         <>
           {transactionEntry}
+          {postedItemsEditorMovement ? (
+            <PostedMovementItemsEditorComponent
+              movement={postedItemsEditorMovement}
+              ledger={pageRequired.core}
+              onClose={() => setPostedItemsEditorMovement(null)}
+              onSaved={() => {
+                setPostedItemsEditorMovement(null);
+                refresh('recentTransactions', 'accountSummary', 'netWorth', 'expectedMovements', 'analytics');
+              }}
+            />
+          ) : null}
           {currentPage === 'movementsSearch' || currentPage === 'movementNew' ? null : dockNavigation}
         </>
       ),

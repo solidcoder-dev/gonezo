@@ -106,7 +106,7 @@ export function useExpenseSplitEditorModel(input: UseExpenseSplitEditorModelInpu
     setSplitEditorOpen(false);
     setSplitEditorSnapshot(null);
     setSplitDraftMode('items');
-    setManualExpenseItems(cloneSplitItems(items.map(({ name, amount }) => ({ id: '', name, amount })), nextId).map((item, index) => preserveTagNames(item, items[index]?.tagNames ?? [])));
+    setManualExpenseItems(cloneSplitItems(items.map(({ id, name, amount }) => ({ id: id ?? '', name, amount })), nextId).map((item, index) => preserveTagNames(item, items[index]?.tagNames ?? [])));
     setPartsExpenseItems([]);
     setPartsBaseAmount('');
     setEditingExpenseItemId('');
