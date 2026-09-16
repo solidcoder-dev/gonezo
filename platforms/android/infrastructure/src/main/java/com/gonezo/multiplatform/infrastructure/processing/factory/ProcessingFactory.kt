@@ -18,6 +18,9 @@ import com.gonezo.multiplatform.infrastructure.processing.litert.runtime.Android
 import com.gonezo.multiplatform.infrastructure.processing.litert.runtime.AndroidLiteRtBackendFactory
 import com.gonezo.multiplatform.infrastructure.processing.litert.runtime.LiteRtStructuredGenerationRuntime
 import com.gonezo.multiplatform.infrastructure.processing.litert.runtime.liteRtEngineFactory
+import com.gonezo.multiplatform.infrastructure.processing.gemini.runtime.GeminiNanoStructuredGenerationRuntime
+import com.gonezo.multiplatform.infrastructure.processing.gemini.runtime.MlKitGeminiNanoGenerationClient
+import com.gonezo.multiplatform.infrastructure.processing.runtime.FallbackStructuredGenerationRuntime
 import dev.solidcoder.interpretation.application.FieldProcessingOrder
 import dev.solidcoder.interpretation.application.OnDeviceInputInterpreter
 import dev.solidcoder.interpretation.application.port.InputInterpreter
@@ -37,7 +40,7 @@ internal class ProcessingFactory(
 ) {
   fun create(): ProcessingAssembly {
     return when (configuration.processingProvider) {
-      ProcessingProvider.LOCAL_LITERT -> createLocalLiteRtAssembly()
+      ProcessingProvider.LOCAL_LITERT, ProcessingProvider.LOCAL_GEMINI_NANO -> createLocalLiteRtAssembly()
       ProcessingProvider.REMOTE -> throw ProcessingConfigurationException(
         "Processing provider REMOTE is not implemented yet",
       )
@@ -66,7 +69,15 @@ internal class ProcessingFactory(
       plan = executionPlan,
       interpretationModel = modelConfiguration.fileName,
     )
-    val runtime = createRuntime(androidContext, modelConfiguration, executionPlan)
+    val liteRtRuntime = createRuntime(androidContext, modelConfiguration, executionPlan)
+    val runtime = if (configuration.processingProvider == ProcessingProvider.LOCAL_GEMINI_NANO && runtimeFactory == null) {
+      FallbackStructuredGenerationRuntime(
+        preferred = GeminiNanoStructuredGenerationRuntime(MlKitGeminiNanoGenerationClient()),
+        fallback = liteRtRuntime,
+      )
+    } else {
+      liteRtRuntime
+    }
     return ProcessingAssembly(
       inputInterpreter = OnDeviceInputInterpreter(
         promptCompiler = promptCompiler,

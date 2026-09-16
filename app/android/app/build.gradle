@@ -320,6 +320,7 @@ dependencies {
     implementation project(':core:schema-guided-interpretation-json')
     implementation project(':speech-transcription-contract')
     implementation "com.google.ai.edge.litertlm:litertlm-android:$litertLmAndroidVersion"
+    implementation 'com.google.mlkit:genai-prompt:1.0.0-beta4'
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test:core:1.6.1"

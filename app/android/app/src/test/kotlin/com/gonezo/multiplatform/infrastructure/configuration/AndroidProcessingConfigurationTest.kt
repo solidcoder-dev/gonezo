@@ -29,6 +29,14 @@ class AndroidProcessingConfigurationTest {
   }
 
   @Test
+  fun parsesGeminiNanoAsThePreferredLocalProcessingProvider() {
+    assertEquals(
+      ProcessingProvider.LOCAL_GEMINI_NANO,
+      reader.read("FULL", "ANDROID_SPEECH", "LOCAL_GEMINI_NANO").processingProvider,
+    )
+  }
+
+  @Test
   fun rejectsUnknownValuesExplicitly() {
     val exception = assertThrows(AndroidProcessingConfigurationException::class.java) {
       reader.read("FULL", "WHISPR", "LOCAL_LITERT")
