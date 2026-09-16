@@ -10,12 +10,13 @@ internal class AndroidDeviceMlCapabilities(
   private val socModelProvider: () -> String? = { android.os.Build.SOC_MODEL },
   private val socResolver: AndroidSocResolver = KnownAndroidSocResolver,
   override val supportsGpu: Boolean = true,
+  private val npuRuntimeAvailable: (NpuTarget?) -> Boolean = { true },
 ) : DeviceMlCapabilities {
   internal val rawSocModel: String? = socModelProvider()
 
   override val npuTarget: NpuTarget? = socResolver.resolve(rawSocModel)
 
   override val supportsNpu: Boolean
-    get() = npuTarget != null
+    get() = npuTarget != null && npuRuntimeAvailable(npuTarget)
 
 }

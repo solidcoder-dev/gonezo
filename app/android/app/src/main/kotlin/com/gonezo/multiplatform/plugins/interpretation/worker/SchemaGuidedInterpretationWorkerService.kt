@@ -73,25 +73,26 @@ class SchemaGuidedInterpretationWorkerService : Service() {
     when (action) {
       StructuredGenerationWorkerProtocol.ACTION_PREPARE,
       StructuredGenerationWorkerProtocol.ACTION_GENERATE -> {
-        if (requestId == null || message.replyTo == null) return true
+        val replyTo = message.replyTo
+        if (requestId == null || replyTo == null) return true
         val job = workerScope.launch {
           try {
             if (action == StructuredGenerationWorkerProtocol.ACTION_PREPARE) {
               processing.prepare()
-              sendSuccess(message.replyTo, requestId)
+              sendSuccess(replyTo, requestId)
             } else {
               val request = StructuredGenerationRequestCodec.decode(
                 requireNotNull(data.getBundle(StructuredGenerationWorkerProtocol.KEY_REQUEST)),
               )
               val result = processing.generate(request)
-              sendSuccess(message.replyTo, requestId, result.output)
+              sendSuccess(replyTo, requestId, result.output)
             }
           } catch (_: CancellationException) {
           } catch (exception: StructuredGenerationException) {
-            sendFailure(message.replyTo, requestId, exception)
+            sendFailure(replyTo, requestId, exception)
           } catch (exception: RuntimeException) {
             sendFailure(
-              message.replyTo,
+              replyTo,
               requestId,
               StructuredGenerationException(
                 failureCode = dev.solidcoder.interpretation.application.InterpretationFailureCode.INFERENCE_FAILED,

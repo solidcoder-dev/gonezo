@@ -25,6 +25,17 @@ class MlExecutionPlanFactoryTest {
   }
 
   @Test
+  fun `does not expose NPU when the packaged runtime is unavailable`() {
+    val capabilities = AndroidDeviceMlCapabilities(
+      socModelProvider = { "SM8750" },
+      npuRuntimeAvailable = { false },
+    )
+
+    assertFalse(capabilities.supportsNpu)
+    assertEquals(NpuTarget.QUALCOMM_SM8750, capabilities.npuTarget)
+  }
+
+  @Test
   fun `selects CPU speech and NPU interpretation for SM8850`() {
     val plan = MlExecutionPlanFactory().create(
       AndroidDeviceMlCapabilities(socModelProvider = { "SM8850" }),

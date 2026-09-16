@@ -8,7 +8,7 @@ internal class QualcommLiteRtRuntimeBundle(
   private val logger: InterpretationRuntimeLogger,
 ) {
   fun validateBeforeNpuInitialization() {
-    val missingLibraries = requiredLibraries.filterNot { File(nativeLibraryDir, it).isFile }
+    val missingLibraries = missingLibraries()
     logger.log(
       TAG,
       "litertlm_version=${BuildConfig.LITERTLM_ANDROID_VERSION} " +
@@ -26,6 +26,10 @@ internal class QualcommLiteRtRuntimeBundle(
       )
     }
   }
+
+  fun isAvailable(): Boolean = missingLibraries().isEmpty()
+
+  private fun missingLibraries(): List<String> = requiredLibraries.filterNot { File(nativeLibraryDir, it).isFile }
 
   private companion object {
     const val TAG = "GonezoLiteRt"

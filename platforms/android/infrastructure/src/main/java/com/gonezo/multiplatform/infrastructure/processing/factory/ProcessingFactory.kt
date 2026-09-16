@@ -17,6 +17,7 @@ import com.gonezo.multiplatform.infrastructure.processing.litert.runtime.Android
 import com.gonezo.multiplatform.infrastructure.processing.litert.runtime.AndroidInterpretationRuntimeLogger
 import com.gonezo.multiplatform.infrastructure.processing.litert.runtime.AndroidLiteRtBackendFactory
 import com.gonezo.multiplatform.infrastructure.processing.litert.runtime.LiteRtStructuredGenerationRuntime
+import com.gonezo.multiplatform.infrastructure.processing.litert.runtime.QualcommLiteRtRuntimeBundle
 import com.gonezo.multiplatform.infrastructure.processing.litert.runtime.liteRtEngineFactory
 import com.gonezo.multiplatform.infrastructure.processing.gemini.runtime.GeminiNanoStructuredGenerationRuntime
 import com.gonezo.multiplatform.infrastructure.processing.gemini.runtime.MlKitGeminiNanoGenerationClient
@@ -49,7 +50,13 @@ internal class ProcessingFactory(
 
   private fun createLocalLiteRtAssembly(): ProcessingAssembly {
     val androidContext = requireNotNull(context)
-    val capabilities = AndroidDeviceMlCapabilities()
+    val nativeLibraryDir = java.io.File(androidContext.applicationInfo.nativeLibraryDir)
+    val capabilities = AndroidDeviceMlCapabilities(
+      npuRuntimeAvailable = { target ->
+        target == NpuTarget.QUALCOMM_SM8750 &&
+          QualcommLiteRtRuntimeBundle(nativeLibraryDir, AndroidInterpretationRuntimeLogger).isAvailable()
+      },
+    )
     val executionPlan = MlExecutionPlanFactory().create(capabilities)
     val modelConfiguration = modelConfigurationOverride ?: run {
       val modelReader = InterpretationModelConfigurationReader(androidContext)
