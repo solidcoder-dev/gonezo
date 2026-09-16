@@ -72,7 +72,7 @@ internal class ProcessingFactory(
     val liteRtRuntime = createRuntime(androidContext, modelConfiguration, executionPlan)
     val runtime = if (configuration.processingProvider == ProcessingProvider.LOCAL_GEMINI_NANO && runtimeFactory == null) {
       FallbackStructuredGenerationRuntime(
-        preferred = GeminiNanoStructuredGenerationRuntime(MlKitGeminiNanoGenerationClient()),
+        preferred = GeminiNanoStructuredGenerationRuntime(MlKitGeminiNanoGenerationClient(androidContext)),
         fallback = liteRtRuntime,
       )
     } else {

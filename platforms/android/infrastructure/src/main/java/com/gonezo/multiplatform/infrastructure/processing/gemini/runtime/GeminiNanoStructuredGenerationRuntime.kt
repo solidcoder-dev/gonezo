@@ -1,6 +1,8 @@
 package com.gonezo.multiplatform.infrastructure.processing.gemini.runtime
 
+import android.content.Context
 import android.os.Build
+import com.google.mlkit.common.MlKit
 import com.google.mlkit.genai.common.FeatureStatus
 import com.google.mlkit.genai.prompt.Generation
 import dev.solidcoder.interpretation.application.InterpretationFailureCode
@@ -20,7 +22,12 @@ internal interface GeminiNanoGenerationClient : Closeable {
 }
 
 internal class MlKitGeminiNanoGenerationClient(
+  context: Context,
 ) : GeminiNanoGenerationClient {
+  init {
+    MlKit.initialize(context.applicationContext)
+  }
+
   private val model = Generation.getClient()
 
   override suspend fun isAvailable(): Boolean {
