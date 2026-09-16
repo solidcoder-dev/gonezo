@@ -7,9 +7,18 @@ import dev.solidcoder.interpretation.json.JsonFieldInterpretationResultDecoder
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
+import java.io.File
 
 class AndroidProcessingConfigurationTest {
   private val reader = AndroidProcessingConfigurationReader()
+
+  @Test
+  fun usesOnDeviceProvidersAsBuildDefaults() {
+    val buildScript = File("build.gradle").readText()
+
+    assertEquals(true, buildScript.contains("?: 'ANDROID_SPEECH'"))
+    assertEquals(true, buildScript.contains("?: 'LOCAL_GEMINI_NANO'"))
+  }
 
   @Test
   fun parsesTheSupportedDefaultValues() {
