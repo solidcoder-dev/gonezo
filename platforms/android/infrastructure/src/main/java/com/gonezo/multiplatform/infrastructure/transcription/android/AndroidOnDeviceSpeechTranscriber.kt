@@ -123,7 +123,7 @@ internal class AndroidOnDeviceSpeechTranscriber(
       override fun onResults(results: Bundle?) {
         val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.trim().orEmpty()
         if (text.isBlank()) {
-          complete(transcriptionFailure(TranscriptionFailureCodes.TRANSCRIPTION_EMPTY, "On-device speech transcription returned no text.", true))
+          complete(transcriptionFailure(TranscriptionFailureCodes.TRANSCRIPTION_INVALID_OUTPUT, "On-device speech transcription returned no text.", true))
         } else {
           complete(TranscriptionResult.success(Transcript(text)))
         }

@@ -44,11 +44,13 @@ class FallbackStructuredGenerationRuntimeTest {
   }
 
   @Test(expected = CancellationException::class)
-  fun doesNotFallbackOnCancellation() = runBlocking {
-    val preferred = FakeRuntime(CancellationException("cancelled"))
-    val fallback = FakeRuntime(StructuredGenerationResult("litert"))
+  fun doesNotFallbackOnCancellation() {
+    runBlocking {
+      val preferred = FakeRuntime(CancellationException("cancelled"))
+      val fallback = FakeRuntime(StructuredGenerationResult("litert"))
 
-    FallbackStructuredGenerationRuntime(preferred, fallback).generate(request)
+      FallbackStructuredGenerationRuntime(preferred, fallback).generate(request)
+    }
   }
 
   @Test

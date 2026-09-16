@@ -1,7 +1,7 @@
 package com.gonezo.multiplatform.infrastructure.processing.gemini.runtime
 
 import android.os.Build
-import com.google.mlkit.genai.prompt.FeatureStatus
+import com.google.mlkit.genai.common.FeatureStatus
 import com.google.mlkit.genai.prompt.Generation
 import dev.solidcoder.interpretation.application.InterpretationFailureCode
 import dev.solidcoder.interpretation.application.port.generation.StructuredGenerationException

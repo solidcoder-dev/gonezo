@@ -34,7 +34,8 @@ internal class TranscriberFactory(
       throw TranscriptionConfigurationException("ANDROID_SPEECH transcription requires FULL mode")
     }
 
-    val fallback = createWhisper()
+    val fallback = createWhisper() as? com.gonezo.multiplatform.infrastructure.transcription.runtime.AndroidSpeechTranscriber
+      ?: throw TranscriptionConfigurationException("ANDROID_SPEECH transcription requires FULL mode")
     val preferred = try {
       AndroidOnDeviceSpeechTranscriber(
         sourceResolver = sourceResolver,
