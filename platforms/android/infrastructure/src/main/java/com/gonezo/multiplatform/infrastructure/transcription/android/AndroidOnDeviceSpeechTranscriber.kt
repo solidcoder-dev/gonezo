@@ -103,6 +103,7 @@ internal class AndroidOnDeviceSpeechTranscriber(
     putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_CHANNEL_COUNT, 1)
     putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_ENCODING, AudioFormat.ENCODING_PCM_16BIT)
     putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_SAMPLING_RATE, 16_000)
+    putExtra(RecognizerIntent.EXTRA_SEGMENTED_SESSION, RecognizerIntent.EXTRA_AUDIO_SOURCE)
     putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
     request.language?.let { putExtra(RecognizerIntent.EXTRA_LANGUAGE, it) }
     putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
@@ -127,6 +128,10 @@ internal class AndroidOnDeviceSpeechTranscriber(
         } else {
           complete(TranscriptionResult.success(Transcript(text)))
         }
+      }
+
+      override fun onSegmentResults(results: Bundle) {
+        onResults(results)
       }
 
       override fun onError(error: Int) {
