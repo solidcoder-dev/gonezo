@@ -14,6 +14,7 @@ import com.gonezo.application.query.GetNetWorthByCurrencyQuery;
 import com.gonezo.application.query.GetNetWorthByCurrencyService;
 import com.gonezo.application.query.NetWorthByCurrencyQuery;
 import com.gonezo.application.query.NetWorthByCurrencyResult;
+import com.gonezo.application.query.NetWorthTrendCalculator;
 import com.gonezo.ledger.application.AddLedgerTransactionItemCommand;
 import com.gonezo.ledger.application.AddLedgerTransactionItemUC;
 import com.gonezo.ledger.application.ReplacePostedTransactionItemsService;
@@ -181,7 +182,8 @@ public final class AndroidLedgerCore {
     this.mobillsImportFingerprintRepository = new AndroidMobillsImportFingerprintRepository(database);
     this.preferencesCore = AndroidPreferencesCore.getInstance(context);
     this.getNetWorthByCurrencyQuery = new GetNetWorthByCurrencyService(
-      new AndroidNetWorthByCurrencyReadAdapter(database)
+      new AndroidNetWorthByCurrencyReadAdapter(database),
+      new NetWorthTrendCalculator()
     );
   }
 
