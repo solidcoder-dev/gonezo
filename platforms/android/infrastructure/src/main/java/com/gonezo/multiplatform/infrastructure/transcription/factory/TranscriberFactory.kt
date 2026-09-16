@@ -6,6 +6,9 @@ import com.gonezo.multiplatform.infrastructure.configuration.TranscriptionMode
 import com.gonezo.multiplatform.infrastructure.configuration.TranscriptionProvider
 import com.gonezo.multiplatform.infrastructure.transcription.model.AssetModelProvider
 import com.gonezo.multiplatform.infrastructure.transcription.model.SpeechModelConfigurationReader
+import com.gonezo.multiplatform.infrastructure.transcription.android.AndroidOnDeviceSpeechRecognizerFactory
+import com.gonezo.multiplatform.infrastructure.transcription.android.AndroidOnDeviceSpeechTranscriber
+import com.gonezo.multiplatform.infrastructure.transcription.runtime.FallbackAndroidSpeechTranscriber
 import com.gonezo.multiplatform.infrastructure.transcription.runtime.AndroidTranscriber
 import com.gonezo.multiplatform.infrastructure.transcription.whisper.WhisperCppTranscriber
 import com.gonezo.multiplatform.infrastructure.transcription.whisper.WhisperCppStreamingTranscriber
@@ -18,13 +21,32 @@ internal class TranscriberFactory(
   private val sourceResolver: (AudioSourceRef) -> File,
 ) {
   fun create(): AndroidTranscriber {
-    if (configuration.transcriptionProvider != TranscriptionProvider.WHISPER_CPP) {
+    if (configuration.transcriptionProvider == TranscriptionProvider.WHISPER_CPP) {
+      return createWhisper()
+    }
+    if (configuration.transcriptionProvider != TranscriptionProvider.ANDROID_SPEECH) {
       throw TranscriptionConfigurationException(
         "Transcription configuration ${configuration.transcriptionMode} + " +
           "${configuration.transcriptionProvider} is not implemented yet",
       )
     }
+    if (configuration.transcriptionMode != TranscriptionMode.FULL) {
+      throw TranscriptionConfigurationException("ANDROID_SPEECH transcription requires FULL mode")
+    }
 
+    val fallback = createWhisper()
+    val preferred = try {
+      AndroidOnDeviceSpeechTranscriber(
+        sourceResolver = sourceResolver,
+        recognizerFactory = AndroidOnDeviceSpeechRecognizerFactory(requireNotNull(context)),
+      )
+    } catch (_: Exception) {
+      return fallback
+    }
+    return FallbackAndroidSpeechTranscriber(preferred, fallback)
+  }
+
+  private fun createWhisper(): AndroidTranscriber {
     val modelConfiguration = SpeechModelConfigurationReader(requireNotNull(context)).read()
     val modelProvider = AssetModelProvider(
       context = context,

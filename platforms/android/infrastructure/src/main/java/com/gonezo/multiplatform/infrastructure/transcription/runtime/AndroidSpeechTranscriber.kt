@@ -13,3 +13,15 @@ internal interface AndroidSpeechTranscriber : AndroidTranscriber, SpeechTranscri
 
   override fun close()
 }
+
+internal interface OnDeviceSpeechRecognizer {
+  fun setRecognitionListener(listener: android.speech.RecognitionListener)
+
+  fun startListening(intent: android.content.Intent)
+
+  fun stopListening()
+
+  fun cancel()
+
+  fun destroy()
+}
