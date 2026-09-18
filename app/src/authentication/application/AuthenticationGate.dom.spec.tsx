@@ -11,13 +11,14 @@ function LogoutControl() {
 
 function createAuthentication(exists: boolean, startsAuthenticated = false) {
   let authenticated = startsAuthenticated;
+  let credentialsExist = exists;
   let enabled = false;
   const authentication = {
     getAuthenticationState: async () => ({ status: authenticated ? 'authenticated' : 'unauthenticated' } as const),
-    hasCredentials: async () => exists,
+    hasCredentials: async () => credentialsExist,
     isDeviceUnlockAvailable: vi.fn(async () => true),
     isDeviceUnlockEnabled: vi.fn(async () => enabled),
-    setupCredentials: vi.fn(async () => { authenticated = true; }),
+    setupCredentials: vi.fn(async () => { authenticated = true; credentialsExist = true; }),
     loginWithPassword: vi.fn(async () => { authenticated = true; }),
     unlockWithDevice: vi.fn(async () => { authenticated = true; }),
     enableDeviceUnlock: vi.fn(async () => { enabled = true; }),
@@ -106,7 +107,7 @@ describe('AuthenticationGate', () => {
     vi.mocked(authentication.isDeviceUnlockAvailable).mockResolvedValue(false);
     render(<AuthenticationGate required={{ authentication }}><p>Gonezo home</p></AuthenticationGate>);
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Device authentication is unavailable');
+    expect(await screen.findByText('Device authentication is unavailable. Sign in with your password.')).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Unlock with device' })).not.toBeInTheDocument();
   });
@@ -122,7 +123,7 @@ describe('AuthenticationGate', () => {
     expect(authentication.unlockWithDevice).toHaveBeenCalledOnce();
   });
 
-  it('returns to sign-in mode after creating an account and logging out', async () => {
+  it('offers sign-in after creating an account and logging out', async () => {
     const authentication = createAuthentication(false);
     render(<AuthenticationGate required={{ authentication }}><><p>Gonezo home</p><LogoutControl /></></AuthenticationGate>);
 
@@ -134,9 +135,9 @@ describe('AuthenticationGate', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Log out' }));
 
-    expect(await screen.findByRole('group', { name: 'Authentication mode' })).toContainElement(
-      screen.getByRole('button', { name: 'Sign in', pressed: true }),
-    );
+    expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Create account' })).not.toBeInTheDocument();
   });
 
   it('renders only application content after authentication', async () => {

@@ -10,7 +10,6 @@ type AuthenticationGateProps = {
 
 export function AuthenticationGate({ required, children }: AuthenticationGateProps) {
   const [state, setState] = useState<'loading' | 'setup' | 'locked' | 'authenticated'>('loading');
-  const [mode, setMode] = useState<'sign-in' | 'create-account'>('sign-in');
   const [deviceUnlockAvailable, setDeviceUnlockAvailable] = useState(false);
   const [deviceUnlockEnabled, setDeviceUnlockEnabled] = useState(false);
   const [error, setError] = useState('');
@@ -36,7 +35,6 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
       const exists = await required.authentication.hasCredentials();
       if (active) {
         setState(exists ? 'locked' : 'setup');
-        setMode(exists ? 'sign-in' : 'create-account');
       }
     }).catch(() => {
       if (active) setError('Secure authentication is unavailable. Restart Gonezo and try again.');
@@ -56,19 +54,19 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
     const password = event.currentTarget.elements.namedItem('password');
     const confirmation = event.currentTarget.elements.namedItem('confirmPassword');
     if (!(username instanceof HTMLInputElement) || !(password instanceof HTMLInputElement)) return;
-    if (mode === 'create-account' && (!(confirmation instanceof HTMLInputElement) || confirmation.value !== password.value)) {
+      if (state === 'setup' && (!(confirmation instanceof HTMLInputElement) || confirmation.value !== password.value)) {
       setError('Passwords do not match');
       return;
     }
     setSubmitting(true);
     setError('');
     try {
-      if (mode === 'create-account') await required.authentication.setupCredentials(username.value, password.value);
+      if (state === 'setup') await required.authentication.setupCredentials(username.value, password.value);
       else await required.authentication.loginWithPassword(username.value, password.value);
       setState('authenticated');
       await refreshDeviceUnlock();
     } catch (cause) {
-      setError(mode === 'sign-in' ? 'Invalid credentials' : cause instanceof Error ? cause.message : 'Account could not be created');
+      setError(state === 'locked' ? 'Invalid credentials' : cause instanceof Error ? cause.message : 'Account could not be created');
     } finally {
       setSubmitting(false);
     }
@@ -89,7 +87,6 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
 
   async function logout(): Promise<void> {
     await required.authentication.logout();
-    setMode('sign-in');
     setError('');
     setState('locked');
   }
@@ -107,8 +104,6 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
       error={error}
       onSubmit={(event) => { void submit(event); }}
       onDeviceUnlock={() => { void unlockWithDevice(); }}
-      onModeChange={(nextMode) => { setMode(nextMode); setError(''); }}
-      mode={mode}
     />
   );
 }
