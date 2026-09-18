@@ -92,7 +92,24 @@ describe('AuthenticationGate', () => {
     expect(authentication.unlockWithDevice).toHaveBeenCalledOnce();
   });
 
-  it('enables device unlock only after password login and can lock the session', async () => {
+  it('returns to sign-in mode after creating an account and logging out', async () => {
+    const authentication = createAuthentication(false);
+    render(<AuthenticationGate required={{ authentication }}><p>Gonezo home</p></AuthenticationGate>);
+
+    fireEvent.change(await screen.findByLabelText('Username'), { target: { value: 'alice' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'long-password' } });
+    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'long-password' } });
+    fireEvent.submit(screen.getByLabelText('Password').closest('form')!);
+    await screen.findByText('Gonezo home');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Lock Gonezo' }));
+
+    expect(await screen.findByRole('group', { name: 'Authentication mode' })).toContainElement(
+      screen.getByRole('button', { name: 'Sign in', pressed: true }),
+    );
+  });
+
+  it('enables device unlock only after password login and can log out', async () => {
     const authentication = createAuthentication(true);
     render(<AuthenticationGate required={{ authentication }}><p>Gonezo home</p></AuthenticationGate>);
 

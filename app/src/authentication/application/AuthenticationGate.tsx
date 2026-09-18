@@ -98,6 +98,7 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
     setError('');
     try {
       await required.authentication.logout();
+      setMode('sign-in');
       setState('locked');
     } catch {
       setError('Secure session could not be cleared. Try again.');
