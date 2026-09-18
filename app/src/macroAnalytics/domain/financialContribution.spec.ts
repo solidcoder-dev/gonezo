@@ -14,6 +14,10 @@ describe('macro analytics financial contribution', () => {
       fact('c', 'POSTED', 'EXPENSE', '10.005'),
     ]);
     expect(summary.currencies[0].buckets).toEqual([{ source: 'POSTED', kind: 'EXPENSE', amount: '10.305', count: 3 }]);
+    expect(aggregateFinancialFacts([
+      fact('d', 'POSTED', 'INCOME', '1.005'),
+      fact('e', 'POSTED', 'INCOME', '2.01'),
+    ]).currencies[0].buckets[0].amount).toBe('3.015');
   });
 
   it('keeps currency, source, and kind buckets separate in canonical order', () => {

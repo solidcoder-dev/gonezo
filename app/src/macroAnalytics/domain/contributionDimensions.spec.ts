@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { deriveContributionDimensions } from './contributionDimensions';
+import { createAnalyticsPeriod } from './analyticsPeriod';
 
 describe('macro analytics contribution dimensions', () => {
   it('maps demographic values and derives age from the contribution period', () => {
@@ -8,7 +9,7 @@ describe('macro analytics contribution dimensions', () => {
       sex: 'female',
       countryCode: 'ES',
       regionCode: 'ES-CN',
-    }, '2026-09')).toEqual({
+    }, createAnalyticsPeriod('2026-09'))).toEqual({
       countryCode: 'ES',
       regionCode: 'ES-CN',
       sex: 'FEMALE',
@@ -26,12 +27,12 @@ describe('macro analytics contribution dimensions', () => {
       sex: 'not_disclosed',
       countryCode: 'ES',
       regionCode: 'ES-CN',
-    }, '2026-01').ageBand).toBe(ageBand);
+    }, createAnalyticsPeriod('2026-01'))?.ageBand).toBe(ageBand);
   });
 
   it('derives the age band from the contribution year, including historical periods', () => {
     const profile = { birthYear: 1995, sex: 'female' as const, countryCode: 'ES', regionCode: 'ES-CN' };
-    expect(deriveContributionDimensions(profile, '2019-06').ageBand).toBe('18_24');
-    expect(deriveContributionDimensions(profile, '2026-06').ageBand).toBe('25_34');
+    expect(deriveContributionDimensions(profile, createAnalyticsPeriod('2019-06'))?.ageBand).toBe('18_24');
+    expect(deriveContributionDimensions(profile, createAnalyticsPeriod('2026-06'))?.ageBand).toBe('25_34');
   });
 });
