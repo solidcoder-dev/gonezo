@@ -54,9 +54,14 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
   const navigate = useNavigate();
   const session = useContext(AuthenticationSessionContext);
   const [analyticsProfile, setAnalyticsProfile] = useState<AnalyticsProfile | null>(null);
+  const [analyticsProfileLoading, setAnalyticsProfileLoading] = useState(true);
+  const [analyticsProfileError, setAnalyticsProfileError] = useState('');
   useEffect(() => {
     if (!required.analyticsProfile || !session) return;
-    void getAnalyticsProfile(required.analyticsProfile, session.userId).then(setAnalyticsProfile).catch(() => setAnalyticsProfile(null));
+    void getAnalyticsProfile(required.analyticsProfile, session.userId)
+      .then(setAnalyticsProfile)
+      .catch(() => setAnalyticsProfileError('Analytics profile could not be loaded. Open the settings to try again.'))
+      .finally(() => setAnalyticsProfileLoading(false));
   }, [required.analyticsProfile, session]);
   const model = useAccountHubModel({
     ports: { ledger: required.context.core, preferences: required.context.core },
@@ -208,12 +213,13 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
       />
       <section className="profile-analytics-section" aria-labelledby="profile-analytics-heading">
         <h2 id="profile-analytics-heading">Privacy &amp; Analytics</h2>
+        {analyticsProfileError ? <p role="alert">{analyticsProfileError}</p> : null}
         {([
           ['Year of birth', analyticsProfileSummary?.birthYear ?? ''],
           ['Sex', analyticsProfileSummary?.sex ?? ''],
           ['Country', analyticsProfileSummary?.country ?? ''],
           ['Region', analyticsProfileSummary?.region ?? ''],
-        ] as const).map(([label, value]) => <button className="profile-analytics-row" type="button" key={label} onClick={() => { void navigate('/profile/analytics-profile'); }}><span>{label}</span><span>{value || 'Edit'}<span aria-hidden="true"> ›</span></span></button>)}
+        ] as const).map(([label, value]) => <button className="profile-analytics-row" type="button" key={label} onClick={() => { void navigate('/profile/analytics-profile'); }}><span>{label}</span><span>{analyticsProfileLoading ? 'Loading…' : value || 'Edit'}<span aria-hidden="true"> ›</span></span></button>)}
       </section>
       {required.authentication ? <AuthenticationSecuritySettings authentication={required.authentication} /> : null}
       </>
