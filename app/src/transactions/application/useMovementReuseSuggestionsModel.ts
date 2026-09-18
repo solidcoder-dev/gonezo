@@ -21,7 +21,7 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
   const [variants, setVariants] = useState<MovementReuseSuggestionVariant[]>([]);
   const [error, setError] = useState('');
   const [loadedTitle, setLoadedTitle] = useState<string | null>(null);
-  const [sessionActive, setSessionActive] = useState(input.enabled);
+  const [searchActive, setSearchActive] = useState(false);
   const requestVersion = useRef(0);
   const sessionVersion = useRef(0);
   const inputRef = useRef(input);
@@ -29,16 +29,12 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
   inputRef.current = input;
 
   useEffect(() => {
-    if (input.enabled) setSessionActive(true);
-  }, [input.enabled]);
-
-  useEffect(() => {
     const normalizedQuery = input.query.trim();
     const version = ++requestVersion.current;
     setExpandedTitle(null);
     setVariants([]);
     setLoadedTitle(null);
-    if (!input.enabled || !sessionActive || normalizedQuery.length < 2) {
+    if (!input.enabled || !searchActive || normalizedQuery.length < 2) {
       setOpen(false);
       setGroups([]);
       setLoading(false);
@@ -70,12 +66,12 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
       clearTimeout(timer);
       requestVersion.current += 1;
     };
-  }, [accountScopeKey, input.enabled, input.port, input.query, sessionActive]);
+  }, [accountScopeKey, input.enabled, input.port, input.query, searchActive]);
 
-  const close = useCallback(() => {
+  const endSearch = useCallback(() => {
     requestVersion.current += 1;
     sessionVersion.current += 1;
-    setSessionActive(false);
+    setSearchActive(false);
     setOpen(false);
     setExpandedTitle(null);
     setVariants([]);
@@ -84,19 +80,15 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
     setLoading(false);
   }, []);
 
-  const activate = useCallback(() => {
+  const beginSearch = useCallback(() => {
     sessionVersion.current += 1;
-    setSessionActive(true);
+    setSearchActive(true);
   }, []);
-
-  const deactivate = useCallback(() => {
-    close();
-  }, [close]);
 
   async function toggleGroup(group: MovementReuseSuggestionGroup) {
     if (group.variantCount <= 1) {
       inputRef.current.onSelected?.({ title: group.title, variant: group.primaryVariant });
-      close();
+      endSearch();
       return;
     }
     if (expandedTitle === group.normalizedTitle) {
@@ -130,11 +122,11 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
 
   function selectVariant(selection: { title: string; variant: MovementReuseSuggestionVariant }) {
     inputRef.current.onSelected?.(selection);
-    close();
+    endSearch();
   }
 
   return {
-    state: { query: input.query, open: open && sessionActive, loading, groups, expandedTitle, variants, error },
-    actions: { activate, deactivate, close, toggleGroup, selectVariant },
+    state: { query: input.query, open: open && searchActive, loading, groups, expandedTitle, variants, error },
+    actions: { beginSearch, endSearch, close: endSearch, toggleGroup, selectVariant },
   };
 }

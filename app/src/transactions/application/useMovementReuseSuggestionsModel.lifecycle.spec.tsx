@@ -25,7 +25,7 @@ describe('useMovementReuseSuggestionsModel request lifecycle', () => {
     let resolveSearch: ((value: { groups: ReturnType<typeof group>[] }) => void) | undefined;
     port.movementReuseSearchGroups.mockReturnValue(new Promise((resolve) => { resolveSearch = resolve; }));
     const { result } = renderHook(() => useMovementReuseSuggestionsModel({ port, accountIds: ['account-1'], query: 'merc', enabled: true }));
-    act(() => result.current.actions.activate());
+    act(() => result.current.actions.beginSearch());
     act(() => { vi.advanceTimersByTime(250); });
     await act(async () => { result.current.actions.close(); });
     await act(async () => { resolveSearch?.({ groups: [group('Mercadona')] }); });
@@ -39,7 +39,7 @@ describe('useMovementReuseSuggestionsModel request lifecycle', () => {
     let resolveVariants: ((value: { variants: [] }) => void) | undefined;
     port.movementReuseListVariants.mockReturnValue(new Promise((resolve) => { resolveVariants = resolve; }));
     const { result } = renderHook(() => useMovementReuseSuggestionsModel({ port, accountIds: ['account-1'], query: 'merc', enabled: true }));
-    act(() => result.current.actions.activate());
+    act(() => result.current.actions.beginSearch());
     await act(async () => { void result.current.actions.toggleGroup({ ...group('Mercadona'), variantCount: 2 }); });
     await act(async () => { result.current.actions.close(); });
     await act(async () => { resolveVariants?.({ variants: [] }); });

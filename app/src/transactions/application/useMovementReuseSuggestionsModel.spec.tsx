@@ -10,13 +10,17 @@ describe('useMovementReuseSuggestionsModel', () => {
       movementReuseSearchGroups: vi.fn(() => new Promise<{ groups: [] }>((resolve) => resolvers.push(resolve))),
       movementReuseListVariants: vi.fn(),
     };
-    const { rerender } = renderHook(({ query }) => useMovementReuseSuggestionsModel({ port, accountIds: ['main'], query, enabled: true }), { initialProps: { query: '' } });
-    rerender({ query: 'm' });
+    const { result, rerender } = renderHook(({ query, accountIds }) => useMovementReuseSuggestionsModel({ port, accountIds, query, enabled: true }), { initialProps: { query: '', accountIds: ['main'] } });
+    rerender({ query: 'merc', accountIds: ['main'] });
     act(() => { vi.advanceTimersByTime(250); });
     expect(port.movementReuseSearchGroups).not.toHaveBeenCalled();
-    rerender({ query: 'me' });
+    act(() => result.current.actions.beginSearch());
+    rerender({ query: 'm', accountIds: ['main'] });
     act(() => { vi.advanceTimersByTime(250); });
-    rerender({ query: 'mer' });
+    expect(port.movementReuseSearchGroups).not.toHaveBeenCalled();
+    rerender({ query: 'me', accountIds: ['main'] });
+    act(() => { vi.advanceTimersByTime(250); });
+    rerender({ query: 'mer', accountIds: ['main'] });
     act(() => { vi.advanceTimersByTime(250); });
     expect(port.movementReuseSearchGroups).toHaveBeenCalledTimes(2);
     resolvers[0]({ groups: [] });
