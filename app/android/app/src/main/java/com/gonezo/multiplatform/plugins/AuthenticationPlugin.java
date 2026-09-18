@@ -74,13 +74,19 @@ public class AuthenticationPlugin extends Plugin {
 
   @PluginMethod
   public void enableDeviceUnlock(PluginCall call) {
-    getContext().getSharedPreferences(STORE, 0).edit().putBoolean("deviceUnlockEnabled", true).apply();
+    if (!getContext().getSharedPreferences(STORE, 0).edit().putBoolean("deviceUnlockEnabled", true).commit()) {
+      call.reject("Device unlock settings could not be saved", "SECURE_STORAGE_FAILURE");
+      return;
+    }
     call.resolve();
   }
 
   @PluginMethod
   public void disableDeviceUnlock(PluginCall call) {
-    getContext().getSharedPreferences(STORE, 0).edit().remove("deviceUnlockEnabled").apply();
+    if (!getContext().getSharedPreferences(STORE, 0).edit().remove("deviceUnlockEnabled").commit()) {
+      call.reject("Device unlock settings could not be saved", "SECURE_STORAGE_FAILURE");
+      return;
+    }
     call.resolve();
   }
 
@@ -115,11 +121,15 @@ public class AuthenticationPlugin extends Plugin {
       Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
       cipher.init(Cipher.ENCRYPT_MODE, key());
       byte[] ciphertext = cipher.doFinal(plaintext);
-      getContext().getSharedPreferences(STORE, 0).edit()
+      boolean saved = getContext().getSharedPreferences(STORE, 0).edit()
           .putString("iv", Base64.encodeToString(cipher.getIV(), Base64.NO_WRAP))
           .putString("ciphertext", Base64.encodeToString(ciphertext, Base64.NO_WRAP))
-          .apply();
+          .commit();
       java.util.Arrays.fill(ciphertext, (byte) 0);
+      if (!saved) {
+        call.reject("Secure credentials could not be saved", "SECURE_STORAGE_FAILURE");
+        return;
+      }
       call.resolve();
     } catch (Exception error) {
       call.reject("Secure credentials could not be saved", "SECURE_STORAGE_FAILURE");
@@ -152,10 +162,14 @@ public class AuthenticationPlugin extends Plugin {
 
   @PluginMethod
   public void clearSession(PluginCall call) {
-    getContext().getSharedPreferences(STORE, 0).edit()
+    boolean cleared = getContext().getSharedPreferences(STORE, 0).edit()
         .remove("sessionIv")
         .remove("sessionCiphertext")
-        .apply();
+        .commit();
+    if (!cleared) {
+      call.reject("Secure session could not be cleared", "SECURE_STORAGE_FAILURE");
+      return;
+    }
     call.resolve();
   }
 
@@ -181,10 +195,14 @@ public class AuthenticationPlugin extends Plugin {
       Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
       cipher.init(Cipher.ENCRYPT_MODE, key());
       ciphertext = cipher.doFinal(plaintext);
-      getContext().getSharedPreferences(STORE, 0).edit()
+      boolean saved = getContext().getSharedPreferences(STORE, 0).edit()
           .putString(ivKey, Base64.encodeToString(cipher.getIV(), Base64.NO_WRAP))
           .putString(ciphertextKey, Base64.encodeToString(ciphertext, Base64.NO_WRAP))
-          .apply();
+          .commit();
+      if (!saved) {
+        call.reject("Secure value could not be saved", "SECURE_STORAGE_FAILURE");
+        return;
+      }
       call.resolve();
     } catch (Exception error) {
       call.reject("Secure value could not be saved", "SECURE_STORAGE_FAILURE");
