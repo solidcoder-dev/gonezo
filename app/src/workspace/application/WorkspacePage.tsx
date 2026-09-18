@@ -50,6 +50,7 @@ import type { AuthenticationUseCases } from '../../authentication/application/au
 import type { AnalyticsProfilePort } from '../../analyticsProfile/application/analyticsProfile.port';
 import type { AnalyticsContributionConsentPort } from '../../macroAnalytics/application/analyticsContributionConsent.port';
 import type { ConsentClock } from '../../macroAnalytics/application/analyticsContributionConsentUseCases';
+import type { MacroAnalyticsOutboxPort } from '../../macroAnalytics/application/macroAnalyticsOutbox.port';
 
 export type WorkspacePageRequired = {
   core: WorkspacePagePort;
@@ -63,6 +64,7 @@ export type WorkspacePageRequired = {
   analyticsProfile?: AnalyticsProfilePort;
   contributionConsent?: AnalyticsContributionConsentPort;
   contributionConsentClock?: ConsentClock;
+  macroAnalyticsOutbox?: Pick<MacroAnalyticsOutboxPort, 'clear'>;
 };
 
 export type WorkspacePagePort = AccountWorkspacePort & MovementsBackupPort & ApplicationBackupPort & AnalyticsPort & HomeRecentMovementsPort & PendingExpectedOverviewPort & MovementsSearchPagePort & MovementReuseSuggestionsPort & MovementReuseTemplatePort;
@@ -378,6 +380,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
         analyticsProfile: pageRequired.analyticsProfile,
         contributionConsent: pageRequired.contributionConsent,
         contributionConsentClock: pageRequired.contributionConsentClock,
+        macroAnalyticsOutbox: pageRequired.macroAnalyticsOutbox,
         context: {
           core: pageRequired.core,
         },

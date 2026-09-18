@@ -34,6 +34,9 @@ import { InMemoryAnalyticsContributionConsentAdapter } from './macroAnalytics/in
 import { NativeAnalyticsContributionConsentAdapter } from './macroAnalytics/infrastructure/NativeAnalyticsContributionConsentAdapter';
 import type { AnalyticsContributionConsentPort } from './macroAnalytics/application/analyticsContributionConsent.port';
 import type { ConsentClock } from './macroAnalytics/application/analyticsContributionConsentUseCases';
+import type { MacroAnalyticsOutboxPort } from './macroAnalytics/application/macroAnalyticsOutbox.port';
+import { InMemoryMacroAnalyticsOutboxAdapter } from './macroAnalytics/infrastructure/InMemoryMacroAnalyticsAdapters';
+import { NativeMacroAnalyticsOutboxAdapter } from './macroAnalytics/infrastructure/NativeMacroAnalyticsAdapters';
 
 const systemConsentClock = () => new Date().toISOString();
 
@@ -51,6 +54,9 @@ const defaultAnalyticsProfile: AnalyticsProfilePort = Capacitor.isNativePlatform
 const defaultContributionConsent: AnalyticsContributionConsentPort = Capacitor.isNativePlatform()
   ? new NativeAnalyticsContributionConsentAdapter()
   : new InMemoryAnalyticsContributionConsentAdapter();
+const defaultMacroAnalyticsOutbox: MacroAnalyticsOutboxPort = Capacitor.isNativePlatform()
+  ? new NativeMacroAnalyticsOutboxAdapter()
+  : new InMemoryMacroAnalyticsOutboxAdapter();
 const workspaceRoutes = ['/', '/home', '/accounts', '/analytics', '/analytics/category/:categoryId', '/analytics/forecast', '/movements', '/movements/new', '/movements/search', '/movements/:source/:movementId/edit/:feature', '/profile'];
 
 export type AppPort = WorkspacePagePort & TaxonomyPagePort;
@@ -64,6 +70,7 @@ export type AppRequired = {
   authentication?: AuthenticationUseCases;
   analyticsProfile?: AnalyticsProfilePort;
   contributionConsent?: AnalyticsContributionConsentPort;
+  macroAnalyticsOutbox?: MacroAnalyticsOutboxPort;
   contributionConsentClock?: ConsentClock;
 };
 
@@ -79,6 +86,7 @@ export function App({ required }: AppProps) {
   const resolvedAuthentication = required?.authentication ?? defaultAuthentication;
   const resolvedAnalyticsProfile = required?.analyticsProfile ?? defaultAnalyticsProfile;
   const resolvedContributionConsent = required?.contributionConsent ?? defaultContributionConsent;
+  const resolvedMacroAnalyticsOutbox = required?.macroAnalyticsOutbox ?? defaultMacroAnalyticsOutbox;
   const amountVisibility = useAmountVisibilityModel({ port: resolvedAmountVisibility });
   const notificationIntentRouter = <NotificationIntentRouter />;
   const voiceCategorySource = useMemo(() => ({
@@ -89,8 +97,8 @@ export function App({ required }: AppProps) {
     categorySource: voiceCategorySource,
   }), [required?.movementVoiceEntry, voiceCategorySource]);
   const workspacePage = useMemo(() => (
-    <WorkspacePage required={{ core: resolvedCore, notifications: resolvedNotifications, importFileReader: defaultImportFileReader, voiceEntry: resolvedMovementVoiceEntry, experimentalFeatures: resolvedExperimentalFeatures, amountVisibility, writeText, authentication: resolvedAuthentication, analyticsProfile: resolvedAnalyticsProfile, contributionConsent: resolvedContributionConsent, contributionConsentClock: required?.contributionConsentClock ?? systemConsentClock }} />
-  ), [amountVisibility, required?.contributionConsentClock, resolvedAnalyticsProfile, resolvedAuthentication, resolvedContributionConsent, resolvedCore, resolvedExperimentalFeatures, resolvedMovementVoiceEntry, resolvedNotifications]);
+    <WorkspacePage required={{ core: resolvedCore, notifications: resolvedNotifications, importFileReader: defaultImportFileReader, voiceEntry: resolvedMovementVoiceEntry, experimentalFeatures: resolvedExperimentalFeatures, amountVisibility, writeText, authentication: resolvedAuthentication, analyticsProfile: resolvedAnalyticsProfile, contributionConsent: resolvedContributionConsent, contributionConsentClock: required?.contributionConsentClock ?? systemConsentClock, macroAnalyticsOutbox: resolvedMacroAnalyticsOutbox }} />
+  ), [amountVisibility, required?.contributionConsentClock, resolvedAnalyticsProfile, resolvedAuthentication, resolvedContributionConsent, resolvedCore, resolvedExperimentalFeatures, resolvedMovementVoiceEntry, resolvedNotifications, resolvedMacroAnalyticsOutbox]);
 
   return (
     <AuthenticationGate required={{ authentication: resolvedAuthentication }}>

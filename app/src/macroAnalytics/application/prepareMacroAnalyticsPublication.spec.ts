@@ -53,6 +53,8 @@ describe('prepareMacroAnalyticsPublication', () => {
     vi.mocked(state.financialFacts.listFinancialFacts).mockResolvedValue([createFinancialFact({ ...facts[0], amount: '13' })]);
     const changed = await prepareMacroAnalyticsPublication(state.ports, input);
     expect(changed.status === 'PREPARED' && changed.publication.revision).toBe(2);
+    const unchanged = await prepareMacroAnalyticsPublication(state.ports, input);
+    expect(unchanged.status === 'PREPARED' && unchanged.publication.revision).toBe(2);
     const pending = await state.outbox.listPending(input.userId);
     expect(pending).toHaveLength(1);
     expect(pending[0].revision).toBe(2);
@@ -95,9 +97,11 @@ describe('prepareMacroAnalyticsPublication', () => {
     await expect(prepareMacroAnalyticsPublication(state.ports, input)).resolves.toEqual({ status: 'NOT_ELIGIBLE', reason: 'CONSENT_NOT_GRANTED' });
     expect(await state.outbox.listPending('user-A')).toHaveLength(0);
 
-    const profileMissing = setup({ consent: 'GRANTED', profile: null });
+    const profileMissing = setup({ consent: 'GRANTED' });
     await prepareMacroAnalyticsPublication(profileMissing.ports, input);
+    vi.mocked(profileMissing.ports.contribution.profile.get).mockResolvedValue(null);
     expect(await prepareMacroAnalyticsPublication(profileMissing.ports, input)).toEqual({ status: 'NOT_ELIGIBLE', reason: 'PROFILE_UNAVAILABLE' });
+    expect(await profileMissing.outbox.listPending('user-A')).toHaveLength(1);
   });
 
   it('allows empty financial periods to be published', async () => {

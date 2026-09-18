@@ -17,12 +17,14 @@ import type { AnalyticsProfile } from '../../analyticsProfile/domain/analyticsPr
 import type { AnalyticsContributionConsent } from '../../macroAnalytics/domain/analyticsContributionConsent';
 import type { AnalyticsContributionConsentPort } from '../../macroAnalytics/application/analyticsContributionConsent.port';
 import { grantContributionConsent, getContributionConsent, withdrawContributionConsent, type ConsentClock } from '../../macroAnalytics/application/analyticsContributionConsentUseCases';
+import type { MacroAnalyticsOutboxPort } from '../../macroAnalytics/application/macroAnalyticsOutbox.port';
 
 export type ProfilePageRequired = {
   authentication?: AuthenticationUseCases;
   analyticsProfile?: AnalyticsProfilePort;
   contributionConsent?: AnalyticsContributionConsentPort;
   contributionConsentClock?: ConsentClock;
+  macroAnalyticsOutbox?: Pick<MacroAnalyticsOutboxPort, 'clear'>;
   context: {
     core: LedgerAccountHubPort & UserPreferencesPort;
   };
@@ -145,7 +147,7 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
     setContributionConsentError('');
     try {
       const updated = contributionConsent.status === 'GRANTED'
-        ? await withdrawContributionConsent(required.contributionConsent, session.userId, required.contributionConsentClock)
+        ? await withdrawContributionConsent(required.contributionConsent, session.userId, required.contributionConsentClock, required.macroAnalyticsOutbox)
         : await grantContributionConsent(required.contributionConsent, session.userId, required.contributionConsentClock);
       setContributionConsent(updated);
     } catch {
