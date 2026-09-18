@@ -87,7 +87,7 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
     }
   }
 
-  async function logout() {
+  async function logout(): Promise<void> {
     await required.authentication.logout();
     setMode('sign-in');
     setError('');

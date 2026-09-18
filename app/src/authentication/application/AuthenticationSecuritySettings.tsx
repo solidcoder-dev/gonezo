@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { AuthenticationUseCases } from './authentication.port';
-import { useAuthenticationSession } from './authenticationSession';
+import { useAuthenticationSession } from './authenticationSessionContext';
 import { AuthenticationSecuritySettingsView } from '../ui/AuthenticationSecuritySettingsView';
 
 export function AuthenticationSecuritySettings({ authentication }: { authentication: AuthenticationUseCases }) {

@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AuthenticationGate } from './AuthenticationGate';
 import type { AuthenticationUseCases } from './authentication.port';
-import { useAuthenticationSession } from './authenticationSession';
+import { useAuthenticationSession } from './authenticationSessionContext';
 
 function LogoutControl() {
   const session = useAuthenticationSession();
