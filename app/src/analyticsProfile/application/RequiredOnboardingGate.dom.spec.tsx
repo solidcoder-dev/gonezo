@@ -101,6 +101,18 @@ describe('RequiredOnboardingGate', () => {
     expect(screen.queryByText('Home workspace')).not.toBeInTheDocument();
   });
 
+  it('blocks invalid birth years with a field-local error', async () => {
+    const port = new MemoryProfilePort();
+    renderGate(port);
+    fireEvent.click(await screen.findByRole('button', { name: 'Get started' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.change(screen.getByLabelText('Year of birth'), { target: { value: '1899' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Start using Gonezo' }));
+    expect(await screen.findByText('Enter a valid year of birth.')).toBeInTheDocument();
+    expect(screen.queryByText('Analytics workspace')).not.toBeInTheDocument();
+  });
+
   it('renders the requested route for a complete profile and isolates profiles by user ID', async () => {
     const port = new MemoryProfilePort();
     await port.save(completeProfile);
