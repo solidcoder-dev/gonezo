@@ -1,5 +1,16 @@
 import type { MacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
 
+const sources = ['POSTED', 'EXPECTED', 'SCHEDULED'] as const;
+const kinds = ['INCOME', 'EXPENSE', 'TRANSFER_IN', 'TRANSFER_OUT'] as const;
+
+function orderBy<T extends string>(values: readonly T[], left: T, right: T): number {
+  return values.indexOf(left) - values.indexOf(right);
+}
+
+function compareCanonicalText(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 export type MacroAnalyticsPublicationWireV1 = Readonly<{
   protocolVersion: 1;
   contributorId: string;
@@ -16,7 +27,7 @@ export type MacroAnalyticsPublicationWireV1 = Readonly<{
     financial: Readonly<{
       currencies: readonly Readonly<{
         currency: string;
-        buckets: readonly Readonly<{ source: string; kind: string; amount: string; count: number }> [];
+        buckets: readonly Readonly<{ source: string; kind: string; amount: string; count: number }>[];
       }>[];
     }>;
   }>;
@@ -38,10 +49,12 @@ export function toMacroAnalyticsPublicationWireV1(publication: MacroAnalyticsPub
       },
       financial: {
         currencies: [...publication.contribution.financial.currencies]
-          .sort((left, right) => left.currency.localeCompare(right.currency))
+          .sort((left, right) => compareCanonicalText(left.currency, right.currency))
           .map(({ currency, buckets }) => ({
             currency,
-            buckets: [...buckets].map(({ source, kind, amount, count }) => ({ source, kind, amount, count })),
+            buckets: [...buckets]
+              .sort((left, right) => orderBy(sources, left.source, right.source) || orderBy(kinds, left.kind, right.kind))
+              .map(({ source, kind, amount, count }) => ({ source, kind, amount, count })),
           })),
       },
     },

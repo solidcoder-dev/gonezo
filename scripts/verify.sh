@@ -5,6 +5,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
 app_root="$repo_root/app"
 core_root="$repo_root/core"
+macro_analytics_ingestion_root="$repo_root/services/macro-analytics-ingestion"
 default_report_root="$repo_root/.reports/verify"
 run_id="$(date -u +%Y%m%dT%H%M%SZ)-$$"
 run_dir="${REPORT_DIR:-$default_report_root/$run_id}"
@@ -18,10 +19,11 @@ frontend_e2e_dir="$run_dir/frontend-e2e"
 core_dir="$run_dir/core"
 build_dir="$run_dir/build-frontend"
 health_dir="$run_dir/health"
+macro_analytics_ingestion_dir="$run_dir/macro-analytics-ingestion"
 frontend_image_tag="gonezo-verify-frontend:node-22.14.0-chromium-1.62.0"
 frontend_image_built=false
 
-for dir in "$frontend_dir" "$frontend_e2e_dir" "$core_dir" "$build_dir" "$health_dir"; do
+for dir in "$frontend_dir" "$frontend_e2e_dir" "$core_dir" "$build_dir" "$health_dir" "$macro_analytics_ingestion_dir"; do
   verify_init_report_dir "$dir"
 done
 
@@ -149,6 +151,17 @@ run_core_local() {
   run_logged_command "core" "$core_dir/runner.log" bash -lc 'report_dir=$1; script_path=$2; shift 2; env REPORT_DIR="$report_dir" bash "$script_path" "$@"' bash "$core_dir" "$repo_root/scripts/verify-core.sh" "${steps[@]}"
 }
 
+run_macro_analytics_ingestion_local() {
+  local step="$1"
+  local task
+  case "$step" in
+    fast) task="spotlessCheck test" ;;
+    check|standard) task="spotlessCheck check" ;;
+    *) printf 'verify failed: unknown macro analytics ingestion step "%s"\n' "$step" >&2; return 1 ;;
+  esac
+  run_logged_command "macro-analytics-ingestion-$step" "$macro_analytics_ingestion_dir/$step.log" bash -lc 'service_root=$1; task=$2; export GRADLE_USER_HOME="${GRADLE_USER_HOME:-/tmp/gonezo-verify-gradle}"; cd "$service_root" && ./gradlew $task' bash "$macro_analytics_ingestion_root" "$task"
+}
+
 run_frontend() {
   local -a steps=("$@")
   run_frontend_local "${steps[@]}"
@@ -180,6 +193,7 @@ run_fast() {
   local status=0
   VERIFY_CHANGED_ONLY=1 run_frontend_local typecheck lint:js check:structure check:architecture check:styles check:contrast lint:css || status=$?
   run_core_local fast || status=$?
+  run_macro_analytics_ingestion_local fast || status=$?
   return "$status"
 }
 
@@ -187,6 +201,7 @@ run_standard() {
   local status=0
   run_frontend || status=$?
   run_core || status=$?
+  run_macro_analytics_ingestion_local standard || status=$?
   return "$status"
 }
 

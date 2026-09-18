@@ -13,3 +13,11 @@ Withdrawal only ends future contribution eligibility. Handling or deleting contr
 Stage 4 builds a local, monthly `MacroAnalyticsContribution` only after granted consent and an available demographic profile. The contribution includes the period, schema version, cohort dimensions, and sparse financial totals grouped by currency, source, and kind. It excludes user and movement identifiers, timestamps, raw birth year, and transaction details. No contribution is stored remotely or uploaded.
 
 V1 age bands use `contribution period year - birthYear` as an approximate age. This is a birth-year-based cohort, not an exact birthday-derived age. Financial totals use exact decimal-string addition and remain separate by currency, `POSTED`/`EXPECTED`/`SCHEDULED` source, and `INCOME`/`EXPENSE`/`TRANSFER_IN`/`TRANSFER_OUT` kind. An absent bucket means zero; an eligible period with no financial facts is still a valid contribution.
+
+## Publication protocol and ingestion boundary
+
+The client maps a domain publication through an explicit V1 wire serializer. The shared schema and fixtures live in `contracts/macro-analytics`. The wire period is `YYYY-MM`; the protocol does not contain a Gonezo user ID or movement-level facts.
+
+The standalone Kotlin ingestion module validates V1 publications and retains only the latest value for each contributor ID and month. Repeated equal revisions are idempotent, higher revisions replace older ones, lower revisions are stale, and a same-revision payload mismatch is a conflict. Its current repository is in-memory.
+
+This stage has no HTTP listener or remote endpoint. Gonezo authentication is currently local to the device, and the pseudonymous contributor ID is not an authentication credential. Persistent storage, authenticated transport, and aggregate analytics remain future work.
