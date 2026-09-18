@@ -89,6 +89,15 @@ module.exports = {
       to: { path: '^src/analytics/' },
     },
     {
+      name: 'macro-analytics-infrastructure-analytics-contract-only',
+      severity: 'error',
+      from: { path: '^src/macroAnalytics/infrastructure/' },
+      to: {
+        path: '^src/analytics/',
+        pathNot: '^src/analytics/application/analytics\\.port\\.ts$',
+      },
+    },
+    {
       name: 'application-and-ui-no-infrastructure',
       severity: 'error',
       from: {
