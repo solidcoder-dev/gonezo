@@ -8,6 +8,10 @@ import {
   grantContributionConsent,
   withdrawContributionConsent,
 } from './analyticsContributionConsentUseCases';
+import { InMemoryMacroAnalyticsOutboxAdapter } from '../infrastructure/InMemoryMacroAnalyticsAdapters';
+import { createAnalyticsContributorId } from '../domain/analyticsContributorId';
+import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
+import { createMacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
 
 class MemoryConsentPort implements AnalyticsContributionConsentPort {
   readonly decisions = new Map<string, AnalyticsContributionConsent>();
@@ -39,5 +43,25 @@ describe('analytics contribution consent use cases', () => {
     await withdrawContributionConsent(port, 'user-A', clock);
     expect((await getContributionConsent(port, 'user-A'))?.status).toBe('WITHDRAWN');
     expect(canContribute(await getContributionConsent(port, 'user-A'))).toBe(false);
+  });
+
+  it('clears every local pending period when consent is withdrawn', async () => {
+    const port = new MemoryConsentPort();
+    const outbox = new InMemoryMacroAnalyticsOutboxAdapter();
+    await grantContributionConsent(port, 'user-A', () => '2026-09-01T00:00:00Z');
+    const contribution = {
+      schemaVersion: 1 as const,
+      period: createAnalyticsPeriod('2026-07'),
+      dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE' as const, ageBand: '25_34' as const },
+      financial: { currencies: [] },
+    };
+    for (const month of ['2026-07', '2026-08', '2026-09']) {
+      const monthlyContribution = { ...contribution, period: createAnalyticsPeriod(month) };
+      await outbox.save('user-A', createMacroAnalyticsPublication({
+        contributorId: createAnalyticsContributorId('opaque-id'), period: monthlyContribution.period, revision: 1, contribution: monthlyContribution,
+      }));
+    }
+    await withdrawContributionConsent(port, 'user-A', () => '2026-09-18T10:00:00Z', outbox);
+    expect(await outbox.listPending('user-A')).toEqual([]);
   });
 });

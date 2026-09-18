@@ -5,6 +5,11 @@ import {
   type AnalyticsContributionConsent,
 } from '../domain/analyticsContributionConsent';
 import type { AnalyticsContributionConsentPort } from './analyticsContributionConsent.port';
+import type { MacroAnalyticsOutboxPort } from './macroAnalyticsOutbox.port';
+
+export function clearPendingMacroAnalyticsPublications(userId: string, outbox: Pick<MacroAnalyticsOutboxPort, 'clear'>): Promise<void> {
+  return outbox.clear(userId);
+}
 
 export type ConsentClock = () => string;
 
@@ -24,10 +29,16 @@ export async function declineContributionConsent(port: AnalyticsContributionCons
   return decision;
 }
 
-export async function withdrawContributionConsent(port: AnalyticsContributionConsentPort, userId: string, clock: ConsentClock): Promise<AnalyticsContributionConsent> {
+export async function withdrawContributionConsent(
+  port: AnalyticsContributionConsentPort,
+  userId: string,
+  clock: ConsentClock,
+  outbox?: Pick<MacroAnalyticsOutboxPort, 'clear'>,
+): Promise<AnalyticsContributionConsent> {
   const existing = await port.get(userId);
   if (!existing || existing.status !== 'GRANTED') throw new Error('Only granted contribution consent can be withdrawn.');
   const decision = withdrawAnalyticsContribution(existing, clock());
+  if (outbox) await clearPendingMacroAnalyticsPublications(userId, outbox);
   await port.save(decision);
   return decision;
 }
