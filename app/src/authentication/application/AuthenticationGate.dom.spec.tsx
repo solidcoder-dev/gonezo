@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { AuthenticationGate } from './AuthenticationGate';
 import type { AuthenticationUseCases } from './authentication.port';
 import { useAuthenticationSession } from './authenticationSessionContext';
+import type { AuthState } from '../domain/authentication.types';
 
 function LogoutControl() {
   const session = useAuthenticationSession();
@@ -14,7 +15,7 @@ function createAuthentication(exists: boolean, startsAuthenticated = false) {
   let credentialsExist = exists;
   let enabled = false;
   const authentication = {
-    getAuthenticationState: async () => ({ status: authenticated ? 'authenticated' : 'unauthenticated' } as const),
+    getAuthenticationState: async () => (authenticated ? { status: 'authenticated', userId: 'alice' } : { status: 'unauthenticated' }) as AuthState,
     hasCredentials: async () => credentialsExist,
     isDeviceUnlockAvailable: vi.fn(async () => true),
     isDeviceUnlockEnabled: vi.fn(async () => enabled),

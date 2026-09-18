@@ -9,7 +9,7 @@ type AuthenticationGateProps = {
 };
 
 export function AuthenticationGate({ required, children }: AuthenticationGateProps) {
-  const [state, setState] = useState<'loading' | 'setup' | 'locked' | 'authenticated'>('loading');
+  const [state, setState] = useState<'loading' | 'setup' | 'locked' | { status: 'authenticated'; userId: string }>('loading');
   const [deviceUnlockAvailable, setDeviceUnlockAvailable] = useState(false);
   const [deviceUnlockEnabled, setDeviceUnlockEnabled] = useState(false);
   const [error, setError] = useState('');
@@ -29,7 +29,7 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
     void required.authentication.getAuthenticationState().then(async (authState) => {
       if (!active) return;
       if (authState.status === 'authenticated') {
-        setState('authenticated');
+        setState({ status: 'authenticated', userId: authState.userId });
         return;
       }
       const exists = await required.authentication.hasCredentials();
@@ -63,7 +63,9 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
     try {
       if (state === 'setup') await required.authentication.setupCredentials(username.value, password.value);
       else await required.authentication.loginWithPassword(username.value, password.value);
-      setState('authenticated');
+      const authState = await required.authentication.getAuthenticationState();
+      if (authState.status !== 'authenticated') throw new Error('Authentication session could not be established');
+      setState({ status: 'authenticated', userId: authState.userId });
       await refreshDeviceUnlock();
     } catch (cause) {
       setError(state === 'locked' ? 'Invalid credentials' : cause instanceof Error ? cause.message : 'Account could not be created');
@@ -76,7 +78,9 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
     setError('');
     try {
       await required.authentication.unlockWithDevice();
-      setState('authenticated');
+      const authState = await required.authentication.getAuthenticationState();
+      if (authState.status !== 'authenticated') throw new Error('Authentication session could not be established');
+      setState({ status: 'authenticated', userId: authState.userId });
     } catch (cause) {
       const code = typeof cause === 'object' && cause !== null && 'code' in cause ? cause.code : undefined;
       setError(code === 'DEVICE_AUTHENTICATION_UNAVAILABLE'
@@ -91,8 +95,8 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
     setState('locked');
   }
 
-  if (state === 'authenticated') {
-    return <AuthenticationSessionProvider session={{ logout }}>{children}</AuthenticationSessionProvider>;
+  if (typeof state === 'object') {
+    return <AuthenticationSessionProvider session={{ userId: state.userId, logout }}>{children}</AuthenticationSessionProvider>;
   }
 
   return (

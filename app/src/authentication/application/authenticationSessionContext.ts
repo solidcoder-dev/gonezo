@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 
 export type AuthenticationSession = {
+  readonly userId: string;
   logout(): Promise<void>;
 };
 

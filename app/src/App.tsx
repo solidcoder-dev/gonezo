@@ -23,6 +23,12 @@ import { SharingPeoplePage } from './sharing/application/SharingPeoplePage';
 import { AuthenticationGate } from './authentication/application/AuthenticationGate';
 import { createAuthenticationService } from './authentication/infrastructure/createAuthenticationService';
 import type { AuthenticationUseCases } from './authentication/application/authentication.port';
+import { Capacitor } from '@capacitor/core';
+import { RequiredOnboardingGate } from './analyticsProfile/application/RequiredOnboardingGate';
+import { AnalyticsProfileSettingsPage } from './analyticsProfile/application/AnalyticsProfileSettingsPage';
+import { InMemoryAnalyticsProfileAdapter } from './analyticsProfile/infrastructure/InMemoryAnalyticsProfileAdapter';
+import { NativeAnalyticsProfileAdapter } from './analyticsProfile/infrastructure/NativeAnalyticsProfileAdapter';
+import type { AnalyticsProfilePort } from './analyticsProfile/application/analyticsProfile.port';
 
 const defaultCore = new CoreAdapter();
 const defaultImportFileReader = { readAsBase64: readImportFileAsBase64 };
@@ -32,6 +38,9 @@ const defaultKeyboardVisibility = createKeyboardVisibilityCapability();
 const defaultNotifications = createNotificationsAdapter();
 const defaultAmountVisibility = new LocalAmountVisibilityAdapter();
 const defaultAuthentication = createAuthenticationService();
+const defaultAnalyticsProfile: AnalyticsProfilePort = Capacitor.isNativePlatform()
+  ? new NativeAnalyticsProfileAdapter()
+  : new InMemoryAnalyticsProfileAdapter();
 const workspaceRoutes = ['/', '/home', '/accounts', '/analytics', '/analytics/category/:categoryId', '/analytics/forecast', '/movements', '/movements/new', '/movements/search', '/movements/:source/:movementId/edit/:feature', '/profile'];
 
 export type AppPort = WorkspacePagePort & TaxonomyPagePort;
@@ -43,6 +52,7 @@ export type AppRequired = {
   notifications?: ReturnType<typeof createNotificationsAdapter>;
   amountVisibility?: AmountVisibilityPort;
   authentication?: AuthenticationUseCases;
+  analyticsProfile?: AnalyticsProfilePort;
 };
 
 type AppProps = {
@@ -55,6 +65,7 @@ export function App({ required }: AppProps) {
   const resolvedNotifications = required?.notifications ?? defaultNotifications;
   const resolvedAmountVisibility = required?.amountVisibility ?? defaultAmountVisibility;
   const resolvedAuthentication = required?.authentication ?? defaultAuthentication;
+  const resolvedAnalyticsProfile = required?.analyticsProfile ?? defaultAnalyticsProfile;
   const amountVisibility = useAmountVisibilityModel({ port: resolvedAmountVisibility });
   const notificationIntentRouter = <NotificationIntentRouter />;
   const voiceCategorySource = useMemo(() => ({
@@ -65,11 +76,12 @@ export function App({ required }: AppProps) {
     categorySource: voiceCategorySource,
   }), [required?.movementVoiceEntry, voiceCategorySource]);
   const workspacePage = useMemo(() => (
-    <WorkspacePage required={{ core: resolvedCore, notifications: resolvedNotifications, importFileReader: defaultImportFileReader, voiceEntry: resolvedMovementVoiceEntry, experimentalFeatures: resolvedExperimentalFeatures, amountVisibility, writeText, authentication: resolvedAuthentication }} />
-  ), [amountVisibility, resolvedAuthentication, resolvedCore, resolvedExperimentalFeatures, resolvedMovementVoiceEntry, resolvedNotifications]);
+    <WorkspacePage required={{ core: resolvedCore, notifications: resolvedNotifications, importFileReader: defaultImportFileReader, voiceEntry: resolvedMovementVoiceEntry, experimentalFeatures: resolvedExperimentalFeatures, amountVisibility, writeText, authentication: resolvedAuthentication, analyticsProfile: resolvedAnalyticsProfile }} />
+  ), [amountVisibility, resolvedAnalyticsProfile, resolvedAuthentication, resolvedCore, resolvedExperimentalFeatures, resolvedMovementVoiceEntry, resolvedNotifications]);
 
   return (
     <AuthenticationGate required={{ authentication: resolvedAuthentication }}>
+    <RequiredOnboardingGate port={resolvedAnalyticsProfile}>
     <KeyboardVisibilityProvider capability={defaultKeyboardVisibility}>
       {notificationIntentRouter}
       <Routes>
@@ -80,9 +92,11 @@ export function App({ required }: AppProps) {
       <Route path="/notifications" element={<NotificationsPageComponent required={{ notifications: resolvedNotifications, core: resolvedCore }} />} />
       <Route path="/profile/notifications" element={<NotificationSettingsPageComponent required={{ notifications: resolvedNotifications, lifecycle: resolvedNotifications }} />} />
       <Route path="/profile/sharing-people" element={<SharingPeoplePage required={{ core: resolvedCore }} />} />
+      <Route path="/profile/analytics-profile" element={<AnalyticsProfileSettingsPage port={resolvedAnalyticsProfile} />} />
       {import.meta.env.DEV ? <Route path="/__gallery" element={<ComponentGalleryView />} /> : null}
       </Routes>
     </KeyboardVisibilityProvider>
+    </RequiredOnboardingGate>
     </AuthenticationGate>
   );
 }

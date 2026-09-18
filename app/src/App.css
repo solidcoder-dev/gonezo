@@ -6,3 +6,70 @@
   padding: calc(var(--app-page-horizontal-padding) + var(--app-safe-area-top)) calc(var(--app-page-horizontal-padding) + var(--app-safe-area-right)) calc(var(--app-bottom-navigation-height) + var(--space-xl) + var(--app-safe-area-bottom)) calc(var(--app-page-horizontal-padding) + var(--app-safe-area-left));
   box-sizing: border-box;
 }
+
+.profile-analytics-section,
+.profile-security-section {
+  display: grid;
+  gap: var(--space-md);
+  margin-block: var(--space-xl);
+}
+
+.profile-analytics-section h2,
+.profile-security-section h2 {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.profile-security-state {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.profile-security-form {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.profile-security-form input {
+  min-height: 52px;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-primary);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.profile-secondary-action {
+  min-height: 48px;
+  justify-self: start;
+  padding: var(--space-sm) 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-action-primary);
+  font: inherit;
+  font-weight: var(--font-weight-medium);
+}
+
+.profile-analytics-row {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: left;
+}
+
+.profile-analytics-row:focus-visible,
+.profile-security-section button:focus-visible {
+  outline: 2px solid var(--color-action-primary-focus);
+  outline-offset: 2px;
+}

@@ -8,9 +8,16 @@ import type { LoadPhase } from '../../account/application/accountPage.types';
 import type { VoiceMovementExperimentViewModel } from '../ui/ProfilePageView.contract';
 import type { AuthenticationUseCases } from '../../authentication/application/authentication.port';
 import { AuthenticationSecuritySettings } from '../../authentication/application/AuthenticationSecuritySettings';
+import type { AnalyticsProfilePort } from '../../analyticsProfile/application/analyticsProfile.port';
+import { getAnalyticsProfile } from '../../analyticsProfile/application/analyticsProfileUseCases';
+import { analyticsProfileLabels } from '../../analyticsProfile/application/AnalyticsProfileLabels';
+import { AuthenticationSessionContext } from '../../authentication/application/authenticationSessionContext';
+import { useContext, useEffect, useState } from 'react';
+import type { AnalyticsProfile } from '../../analyticsProfile/domain/analyticsProfile';
 
 export type ProfilePageRequired = {
   authentication?: AuthenticationUseCases;
+  analyticsProfile?: AnalyticsProfilePort;
   context: {
     core: LedgerAccountHubPort & UserPreferencesPort;
   };
@@ -45,6 +52,12 @@ export type ProfilePageProps = {
 
 export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
   const navigate = useNavigate();
+  const session = useContext(AuthenticationSessionContext);
+  const [analyticsProfile, setAnalyticsProfile] = useState<AnalyticsProfile | null>(null);
+  useEffect(() => {
+    if (!required.analyticsProfile || !session) return;
+    void getAnalyticsProfile(required.analyticsProfile, session.userId).then(setAnalyticsProfile).catch(() => setAnalyticsProfile(null));
+  }, [required.analyticsProfile, session]);
   const model = useAccountHubModel({
     ports: { ledger: required.context.core, preferences: required.context.core },
     refreshSignal: required.config.refreshSignal,
@@ -79,6 +92,7 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
             ? 'Finish the current voice operation before changing this setting.'
             : 'Replaces the standard Add navigation with the experimental manual and voice movement controls.',
   };
+  const analyticsProfileSummary = analyticsProfile ? analyticsProfileLabels(analyticsProfile) : null;
 
   const {
     submitCreateAccount,
@@ -192,6 +206,15 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
           },
         }}
       />
+      <section className="profile-analytics-section" aria-labelledby="profile-analytics-heading">
+        <h2 id="profile-analytics-heading">Privacy &amp; Analytics</h2>
+        {([
+          ['Year of birth', analyticsProfileSummary?.birthYear ?? ''],
+          ['Sex', analyticsProfileSummary?.sex ?? ''],
+          ['Country', analyticsProfileSummary?.country ?? ''],
+          ['Region', analyticsProfileSummary?.region ?? ''],
+        ] as const).map(([label, value]) => <button className="profile-analytics-row" type="button" key={label} onClick={() => { void navigate('/profile/analytics-profile'); }}><span>{label}</span><span>{value || 'Edit'}<span aria-hidden="true"> ›</span></span></button>)}
+      </section>
       {required.authentication ? <AuthenticationSecuritySettings authentication={required.authentication} /> : null}
       </>
     );
