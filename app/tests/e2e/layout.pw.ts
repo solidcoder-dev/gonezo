@@ -43,6 +43,45 @@ async function assertSticky(locator: Locator) {
   await expect(locator).toHaveCSS('position', 'sticky');
 }
 
+async function enterWorkspace(page: Page) {
+  await startOnboarding(page);
+  await page.getByRole('button', { name: 'Get started' }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByLabel('Year of birth').fill('1990');
+  await page.getByLabel('Sex').selectOption('not_disclosed');
+  await page.getByLabel('Country').selectOption('ES');
+  await page.getByLabel('Region').selectOption('ES-CN');
+  await page.getByRole('button', { name: 'Start using Gonezo' }).click();
+  await expect(page.getByRole('button', { name: 'Home' })).toBeVisible();
+}
+
+async function startOnboarding(page: Page) {
+  await page.goto('/#/');
+  await page.getByLabel('Username').fill('layout-user');
+  await page.getByLabel('Password').fill('long-password');
+  await page.getByLabel('Confirm password').fill('long-password');
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page.getByRole('button', { name: 'Get started' })).toBeVisible();
+}
+
+for (const viewport of [{ width: 384, height: 832 }, { width: 320, height: 700 }]) {
+  test(`required onboarding stays usable at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await startOnboarding(page);
+    await expect(page.getByRole('heading', { name: /Your money\./ })).toBeVisible();
+    await assertNoHorizontalOverflow(page);
+    await assertTouchTargets(page);
+    await page.getByRole('button', { name: 'Get started' }).click();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page.getByLabel('Year of birth')).toBeVisible();
+    await expect(page.locator('main footer button')).toBeVisible();
+    await assertNoHorizontalOverflow(page);
+    await assertTouchTargets(page);
+  });
+}
+
 async function openProfileCreateAccountSheet(page: Page) {
   await page.getByRole('button', { name: 'Profile' }).click();
   await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible();
@@ -98,7 +137,7 @@ const seededBackup = {
 
 test('workspace notices do not shift content at the reference viewport', async ({ page }) => {
   await page.setViewportSize({ width: 384, height: 832 });
-  await page.goto('/#/');
+  await enterWorkspace(page);
   const screen = page.locator('.gz-app-screen');
   const before = await screen.boundingBox();
   await page.getByRole('button', { name: 'Profile' }).click();
@@ -122,7 +161,7 @@ for (const theme of themes) {
       });
 
       test('keeps the main routes within bounds and accessible', async ({ page }) => {
-        await page.goto('/#/');
+        await enterWorkspace(page);
         await expect(page.getByRole('heading', { name: 'Gonezo' })).toBeVisible();
         await assertSticky(page.locator('header').first());
         await assertNoHorizontalOverflow(page);
@@ -169,7 +208,7 @@ for (const theme of themes) {
       });
 
       test('opens the create-account sheet from profile and keeps it within bounds', async ({ page }) => {
-        await page.goto('/#/');
+        await enterWorkspace(page);
         const sheet = await openProfileCreateAccountSheet(page);
         await assertVisibleBoxWithinViewport(sheet, viewport);
         await assertNoHorizontalOverflow(page);
@@ -190,7 +229,7 @@ for (const theme of themes) {
       });
 
       test('imports a backup and opens its detail and secondary sheet', async ({ page }) => {
-        await page.goto('/#/');
+        await enterWorkspace(page);
         const importSheet = await openProfileImportBackupSheet(page);
         await importSheet.getByLabel('Backup file (JSON)').setInputFiles({
           name: `gonezo-backup-${theme}-${viewport.width}.json`,
