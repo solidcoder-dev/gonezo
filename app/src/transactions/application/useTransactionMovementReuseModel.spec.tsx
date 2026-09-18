@@ -27,7 +27,7 @@ function setup(reuseTemplate = template) {
 
 async function select(result: ReturnType<typeof setup>['result']) {
   act(() => result.current.actions.selectVariant({ title: 'Mercadona', variant }));
-  await waitFor(() => expect(result.current.state.pendingTemplate !== undefined).toBe(true));
+  await waitFor(() => expect(result.current.state.appliedVersion > 0 || result.current.state.pendingTemplate !== null).toBe(true));
 }
 
 describe('useTransactionMovementReuseModel application completion', () => {

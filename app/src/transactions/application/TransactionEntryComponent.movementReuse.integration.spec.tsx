@@ -129,6 +129,7 @@ describe('TransactionEntryComponent movement reuse integration', () => {
     fireEvent.click(await screen.findByText('Mercadona'));
     expect(await screen.findByRole('button', { name: 'Remove tag Food' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Remove tag Weekly' })).toBeVisible();
+    expect(screen.getByLabelText('Date')).toHaveFocus();
   });
 
   it('waits for one details decision and applies full historical details only when requested', async () => {
@@ -144,9 +145,11 @@ describe('TransactionEntryComponent movement reuse integration', () => {
     fireEvent.change(await screen.findByLabelText('Merchant'), { target: { value: 'merc' } });
     fireEvent.click(await screen.findByText('Mercadona'));
     expect(await screen.findByRole('dialog', { name: 'Reuse movement details?' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Date')).not.toHaveFocus();
     expect(screen.getByLabelText('Amount')).toHaveValue(25);
     fireEvent.click(screen.getByRole('button', { name: 'Reuse details' }));
     await waitFor(() => expect(screen.getByLabelText('Amount')).toHaveValue(63));
+    expect(screen.getByLabelText('Date')).toHaveFocus();
   });
 
   it('cancelling details reuse leaves the composer unchanged', async () => {
@@ -163,6 +166,7 @@ describe('TransactionEntryComponent movement reuse integration', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog', { name: 'Reuse movement details?' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Amount')).toHaveValue(25);
+    expect(screen.getByLabelText('Date')).not.toHaveFocus();
   });
 
   it('applies setup immediately when the read model has no details', async () => {

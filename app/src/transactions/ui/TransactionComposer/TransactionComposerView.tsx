@@ -408,6 +408,7 @@ export function TransactionComposerView({ required, provided }: Props) {
   const amountInputRef = useRef<HTMLInputElement | null>(null);
   const dateEditorRef = useRef<HTMLInputElement | null>(null);
   const datePickerRef = useRef<HTMLInputElement | null>(null);
+  const lastAppliedReuseVersionRef = useRef(movementReuse?.appliedVersion ?? 0);
 
   const initialFocusHandledRef = useRef(false);
 
@@ -450,6 +451,14 @@ export function TransactionComposerView({ required, provided }: Props) {
   const transferScheduleAvailable = mode === 'transfer';
   const transferScheduleConfigured = transferScheduleAvailable && schedulingMode === 'scheduled';
   const scheduleControlsDate = recurringScheduleConfigured || transferScheduleConfigured;
+  const dateVisible = !scheduleControlsDate;
+  useEffect(() => {
+    const appliedVersion = movementReuse?.appliedVersion ?? 0;
+    if (appliedVersion === lastAppliedReuseVersionRef.current) return;
+    lastAppliedReuseVersionRef.current = appliedVersion;
+    if (!open || !dateVisible || recurringScheduleConfigured || disabled) return;
+    dateEditorRef.current?.focus();
+  }, [dateVisible, disabled, movementReuse?.appliedVersion, open, recurringScheduleConfigured]);
   const scheduleEditorTitle = transferScheduleAvailable ? 'Schedule rule' : 'Recurring schedule';
   const dateInputLabel = recurringScheduleConfigured
     ? 'Next execution date'
@@ -554,7 +563,7 @@ export function TransactionComposerView({ required, provided }: Props) {
                     disabled,
                     amountDisabled: amountLocked,
                     dateDisabled: recurringScheduleConfigured,
-                    dateVisible: !scheduleControlsDate,
+                    dateVisible,
                     amountError,
                     dateError,
                   },
