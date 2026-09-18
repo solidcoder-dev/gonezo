@@ -42,7 +42,7 @@ const EXPECTED_CONTEXT_DIRS = {
   expected: ['application', 'infrastructure'],
   experiments: ['application', 'infrastructure'],
   ledger: ['application', 'infrastructure', 'ui'],
-  macroAnalytics: ['application', 'domain'],
+  macroAnalytics: ['application', 'domain', 'infrastructure'],
   movements: ['application', 'infrastructure', 'ui'],
   scheduling: ['application', 'infrastructure'],
   sharing: ['application', 'domain', 'infrastructure', 'ui'],

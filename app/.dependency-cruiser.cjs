@@ -83,6 +83,12 @@ module.exports = {
     ...domainContexts.map(domainPurityRule),
     domainPurityRule('shared'),
     {
+      name: 'macro-analytics-application-no-analytics-dependency',
+      severity: 'error',
+      from: { path: '^src/macroAnalytics/application/' },
+      to: { path: '^src/analytics/' },
+    },
+    {
       name: 'application-and-ui-no-infrastructure',
       severity: 'error',
       from: {

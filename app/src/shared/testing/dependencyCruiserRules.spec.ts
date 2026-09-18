@@ -281,4 +281,20 @@ describe('dependency-cruiser rules', () => {
       expect.objectContaining({ from: 'FinancialFact.ts', to: 'adapter.ts' }),
     ]));
   });
+
+  it('keeps Analytics source contracts out of Macro Analytics application code', { timeout: 10000 }, () => {
+    const root = makeTempRoot();
+
+    writeFixtureFile(root, 'src/analytics/application/analytics.port.ts', 'export const analyticsPort = 1;\\n');
+    writeFixtureFile(root, 'src/macroAnalytics/application/source.ts', [
+      "import { analyticsPort } from '../../analytics/application/analytics.port';",
+      'export const source = analyticsPort;',
+      '',
+    ].join('\\n'));
+
+    const report = runDependencyCruiser(root, repoConfigPath);
+    expect(collectInvalidDependencies(report)).toEqual([
+      expect.objectContaining({ from: 'source.ts', to: 'analytics.port.ts' }),
+    ]);
+  });
 });
