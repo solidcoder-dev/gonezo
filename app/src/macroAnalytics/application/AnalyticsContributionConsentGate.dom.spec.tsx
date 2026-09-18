@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { AuthenticationSessionProvider } from '../../authentication/application/authenticationSession';
@@ -12,8 +12,8 @@ class MemoryConsentPort implements AnalyticsContributionConsentPort {
   async save(decision: AnalyticsContributionConsent) { this.decisions.set(decision.userId, decision); }
 }
 
-function renderGate(port: AnalyticsContributionConsentPort) {
-  return render(<MemoryRouter><AuthenticationSessionProvider session={{ userId: 'user-A', logout: async () => undefined }}>
+function renderGate(port: AnalyticsContributionConsentPort, userId = 'user-A') {
+  return render(<MemoryRouter><AuthenticationSessionProvider session={{ userId, logout: async () => undefined }}>
     <AnalyticsContributionConsentGate port={port} clock={() => '2026-09-18T10:00:00.000Z'}>
       <p>Gonezo workspace</p>
     </AnalyticsContributionConsentGate>
@@ -70,5 +70,24 @@ describe('AnalyticsContributionConsentGate', () => {
 
     expect(await screen.findByText('Gonezo workspace')).toBeInTheDocument();
     expect(await port.get('user-A')).toMatchObject({ status: 'DECLINED' });
+  });
+
+  it('does not expose the previous user workspace while loading the next user choice', async () => {
+    const port = new MemoryConsentPort();
+    port.decisions.set('user-A', { userId: 'user-A', status: 'GRANTED', noticeVersion: 1, decidedAt: '2026-09-18T10:00:00.000Z' });
+    let finishUserBRead!: (consent: AnalyticsContributionConsent | null) => void;
+    port.get = async (userId) => userId === 'user-B'
+      ? new Promise((resolve) => { finishUserBRead = resolve; })
+      : port.decisions.get(userId) ?? null;
+    const view = renderGate(port);
+    expect(await screen.findByText('Gonezo workspace')).toBeInTheDocument();
+
+    view.rerender(<MemoryRouter><AuthenticationSessionProvider session={{ userId: 'user-B', logout: async () => undefined }}>
+      <AnalyticsContributionConsentGate port={port} clock={() => '2026-09-18T10:00:00.000Z'}><p>Gonezo workspace</p></AnalyticsContributionConsentGate>
+    </AuthenticationSessionProvider></MemoryRouter>);
+    await waitFor(() => expect(screen.queryByText('Gonezo workspace')).not.toBeInTheDocument());
+    finishUserBRead(null);
+
+    expect(await screen.findByRole('heading', { name: 'Contribute to aggregated insights?' })).toBeInTheDocument();
   });
 });
