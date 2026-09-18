@@ -258,4 +258,27 @@ describe('dependency-cruiser rules', () => {
       ]),
     );
   });
+
+  it('keeps the macro analytics domain independent from operational contexts and frameworks', { timeout: 10000 }, () => {
+    const root = makeTempRoot();
+
+    writeFixtureFile(root, 'src/analytics/application/analytics.port.ts', 'export const analyticsPort = 1;\n');
+    writeFixtureFile(root, 'src/macroAnalytics/infrastructure/adapter.ts', 'export const adapter = 1;\n');
+    writeFixtureFile(root, 'src/macroAnalytics/domain/FinancialFact.ts', [
+      "import React from 'react';",
+      "import { analyticsPort } from '../../analytics/application/analytics.port';",
+      "import { adapter } from '../infrastructure/adapter';",
+      'export const fact = React && analyticsPort + adapter;',
+      '',
+    ].join('\n'));
+
+    const report = runDependencyCruiser(root, repoConfigPath);
+    const invalidDependencies = collectInvalidDependencies(report);
+
+    expect(invalidDependencies).toEqual(expect.arrayContaining([
+      expect.objectContaining({ from: 'FinancialFact.ts', to: 'index.js' }),
+      expect.objectContaining({ from: 'FinancialFact.ts', to: 'analytics.port.ts' }),
+      expect.objectContaining({ from: 'FinancialFact.ts', to: 'adapter.ts' }),
+    ]));
+  });
 });
