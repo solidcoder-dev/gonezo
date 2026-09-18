@@ -14,10 +14,15 @@ import { analyticsProfileLabels } from '../../analyticsProfile/application/Analy
 import { AuthenticationSessionContext } from '../../authentication/application/authenticationSessionContext';
 import { useContext, useEffect, useState } from 'react';
 import type { AnalyticsProfile } from '../../analyticsProfile/domain/analyticsProfile';
+import type { AnalyticsContributionConsent } from '../../macroAnalytics/domain/analyticsContributionConsent';
+import type { AnalyticsContributionConsentPort } from '../../macroAnalytics/application/analyticsContributionConsent.port';
+import { grantContributionConsent, getContributionConsent, withdrawContributionConsent, type ConsentClock } from '../../macroAnalytics/application/analyticsContributionConsentUseCases';
 
 export type ProfilePageRequired = {
   authentication?: AuthenticationUseCases;
   analyticsProfile?: AnalyticsProfilePort;
+  contributionConsent?: AnalyticsContributionConsentPort;
+  contributionConsentClock?: ConsentClock;
   context: {
     core: LedgerAccountHubPort & UserPreferencesPort;
   };
@@ -56,6 +61,11 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
   const [analyticsProfile, setAnalyticsProfile] = useState<AnalyticsProfile | null>(null);
   const [analyticsProfileLoading, setAnalyticsProfileLoading] = useState(true);
   const [analyticsProfileError, setAnalyticsProfileError] = useState('');
+  const [contributionConsent, setContributionConsent] = useState<AnalyticsContributionConsent | null>(null);
+  const [contributionConsentLoading, setContributionConsentLoading] = useState(true);
+  const [contributionConsentSaving, setContributionConsentSaving] = useState(false);
+  const [contributionConsentError, setContributionConsentError] = useState('');
+  const [contributionConsentReloadCount, setContributionConsentReloadCount] = useState(0);
   useEffect(() => {
     if (!required.analyticsProfile || !session) return;
     void getAnalyticsProfile(required.analyticsProfile, session.userId)
@@ -63,6 +73,16 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
       .catch(() => setAnalyticsProfileError('Analytics profile could not be loaded. Open the settings to try again.'))
       .finally(() => setAnalyticsProfileLoading(false));
   }, [required.analyticsProfile, session]);
+  useEffect(() => {
+    if (!required.contributionConsent || !session) return;
+    let active = true;
+    setContributionConsentLoading(true);
+    void getContributionConsent(required.contributionConsent, session.userId)
+      .then((consent) => { if (active) setContributionConsent(consent); })
+      .catch(() => { if (active) setContributionConsentError('Contribution choice could not be loaded. Try again.'); })
+      .finally(() => { if (active) setContributionConsentLoading(false); });
+    return () => { active = false; };
+  }, [required.contributionConsent, contributionConsentReloadCount, session]);
   const model = useAccountHubModel({
     ports: { ledger: required.context.core, preferences: required.context.core },
     refreshSignal: required.config.refreshSignal,
@@ -117,6 +137,22 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
       await clearDefaultAccount();
     }
     provided.events?.onAccountMutated?.();
+  }
+
+  async function updateContributionConsent() {
+    if (!required.contributionConsent || !required.contributionConsentClock || !session || !contributionConsent) return;
+    setContributionConsentSaving(true);
+    setContributionConsentError('');
+    try {
+      const updated = contributionConsent.status === 'GRANTED'
+        ? await withdrawContributionConsent(required.contributionConsent, session.userId, required.contributionConsentClock)
+        : await grantContributionConsent(required.contributionConsent, session.userId, required.contributionConsentClock);
+      setContributionConsent(updated);
+    } catch {
+      setContributionConsentError('Contribution choice could not be saved. Try again.');
+    } finally {
+      setContributionConsentSaving(false);
+    }
   }
 
   return (
@@ -220,6 +256,18 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
           ['Country', analyticsProfileSummary?.country ?? ''],
           ['Region', analyticsProfileSummary?.region ?? ''],
         ] as const).map(([label, value]) => <button className="profile-analytics-row" type="button" key={label} onClick={() => { void navigate('/profile/analytics-profile'); }}><span>{label}</span><span>{analyticsProfileLoading ? 'Loading…' : value || 'Edit'}<span aria-hidden="true"> ›</span></span></button>)}
+        {required.contributionConsent ? <div className="profile-analytics-row">
+          <span>Optional contribution</span>
+          {contributionConsentLoading ? <span role="status">Loading…</span> : contributionConsentError && !contributionConsent
+            ? <span><span role="alert">{contributionConsentError}</span> <button type="button" onClick={() => { setContributionConsentError(''); setContributionConsentReloadCount((count) => count + 1); }}>Try again</button></span>
+            : contributionConsent ? <span>
+              <span>{contributionConsent.status === 'GRANTED' ? 'Contribution allowed' : 'Not contributing'}</span>
+              <button type="button" disabled={contributionConsentSaving} onClick={() => { void updateContributionConsent(); }}>
+                {contributionConsentSaving ? 'Saving…' : contributionConsent.status === 'GRANTED' ? 'Withdraw' : 'Allow'}
+              </button>
+              {contributionConsentError ? <span role="alert">{contributionConsentError}</span> : null}
+            </span> : <span role="status">No choice recorded</span>}
+        </div> : null}
       </section>
       {required.authentication ? <AuthenticationSecuritySettings authentication={required.authentication} /> : null}
       </>

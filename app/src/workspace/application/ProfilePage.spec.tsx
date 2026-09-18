@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AccountSummaryView } from '../../account/application/accountView.types';
@@ -6,6 +6,9 @@ import type { ProfilePageViewProps } from '../ui/ProfilePageView.contract';
 import { ProfilePage, type ProfilePageRequired } from './ProfilePage';
 import { AuthenticationGate } from '../../authentication/application/AuthenticationGate';
 import type { AuthenticationUseCases } from '../../authentication/application/authentication.port';
+import { AuthenticationSessionProvider } from '../../authentication/application/authenticationSession';
+import type { AnalyticsContributionConsent } from '../../macroAnalytics/domain/analyticsContributionConsent';
+import type { AnalyticsContributionConsentPort } from '../../macroAnalytics/application/analyticsContributionConsent.port';
 
 type ProfileModelState = {
   accounts: AccountSummaryView[];
@@ -54,6 +57,8 @@ vi.mock('../ui/ProfilePageView', () => ({
 function makeRequired(overrides: Partial<ProfilePageRequired> = {}): ProfilePageRequired {
   return {
     authentication: overrides.authentication,
+    contributionConsent: overrides.contributionConsent,
+    contributionConsentClock: overrides.contributionConsentClock,
     context: {
       core: {} as never,
       ...overrides.context,
@@ -89,6 +94,38 @@ beforeEach(() => {
 });
 
 describe('ProfilePage', () => {
+  it.each(['GRANTED', 'DECLINED', 'WITHDRAWN'] as const)('allows updating a %s contribution choice', async (status) => {
+    const port = new (class implements AnalyticsContributionConsentPort {
+      decision: AnalyticsContributionConsent = { userId: 'user-A', status, noticeVersion: 1, decidedAt: '2026-09-18T10:00:00.000Z' };
+      async get(userId: string) { return userId === 'user-A' ? this.decision : null; }
+      async save(decision: AnalyticsContributionConsent) { this.decision = decision; }
+    })();
+    render(<MemoryRouter><AuthenticationSessionProvider session={{ userId: 'user-A', logout: async () => undefined }}>
+      <ProfilePage required={makeRequired({ contributionConsent: port, contributionConsentClock: () => '2026-09-19T10:00:00.000Z' })} />
+    </AuthenticationSessionProvider></MemoryRouter>);
+
+    const action = status === 'GRANTED' ? 'Withdraw' : 'Allow';
+    fireEvent.click(await screen.findByRole('button', { name: action }));
+
+    await waitFor(() => expect(port.decision.status).toBe(status === 'GRANTED' ? 'WITHDRAWN' : 'GRANTED'));
+    expect(await screen.findByText(status === 'GRANTED' ? 'Not contributing' : 'Contribution allowed')).toBeInTheDocument();
+  });
+
+  it('keeps the current choice visible and retryable when saving a privacy change fails', async () => {
+    const port = new (class implements AnalyticsContributionConsentPort {
+      async get(userId: string) { return { userId, status: 'DECLINED', noticeVersion: 1, decidedAt: '2026-09-18T10:00:00.000Z' } as const; }
+      async save() { throw new Error('storage unavailable'); }
+    })();
+    render(<MemoryRouter><AuthenticationSessionProvider session={{ userId: 'user-A', logout: async () => undefined }}>
+      <ProfilePage required={makeRequired({ contributionConsent: port, contributionConsentClock: () => '2026-09-19T10:00:00.000Z' })} />
+    </AuthenticationSessionProvider></MemoryRouter>);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Allow' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('could not be saved');
+    expect(screen.getByRole('button', { name: 'Allow' })).toBeInTheDocument();
+  });
+
   it('does not filter profile accounts from a currency query parameter', async () => {
     render(
       <MemoryRouter initialEntries={['/profile?currency=EUR']}>

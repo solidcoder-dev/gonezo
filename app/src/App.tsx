@@ -33,6 +33,7 @@ import { AnalyticsContributionConsentGate } from './macroAnalytics/application/A
 import { InMemoryAnalyticsContributionConsentAdapter } from './macroAnalytics/infrastructure/InMemoryAnalyticsContributionConsentAdapter';
 import { NativeAnalyticsContributionConsentAdapter } from './macroAnalytics/infrastructure/NativeAnalyticsContributionConsentAdapter';
 import type { AnalyticsContributionConsentPort } from './macroAnalytics/application/analyticsContributionConsent.port';
+import type { ConsentClock } from './macroAnalytics/application/analyticsContributionConsentUseCases';
 
 const systemConsentClock = () => new Date().toISOString();
 
@@ -63,6 +64,7 @@ export type AppRequired = {
   authentication?: AuthenticationUseCases;
   analyticsProfile?: AnalyticsProfilePort;
   contributionConsent?: AnalyticsContributionConsentPort;
+  contributionConsentClock?: ConsentClock;
 };
 
 type AppProps = {
@@ -87,13 +89,13 @@ export function App({ required }: AppProps) {
     categorySource: voiceCategorySource,
   }), [required?.movementVoiceEntry, voiceCategorySource]);
   const workspacePage = useMemo(() => (
-    <WorkspacePage required={{ core: resolvedCore, notifications: resolvedNotifications, importFileReader: defaultImportFileReader, voiceEntry: resolvedMovementVoiceEntry, experimentalFeatures: resolvedExperimentalFeatures, amountVisibility, writeText, authentication: resolvedAuthentication, analyticsProfile: resolvedAnalyticsProfile }} />
-  ), [amountVisibility, resolvedAnalyticsProfile, resolvedAuthentication, resolvedCore, resolvedExperimentalFeatures, resolvedMovementVoiceEntry, resolvedNotifications]);
+    <WorkspacePage required={{ core: resolvedCore, notifications: resolvedNotifications, importFileReader: defaultImportFileReader, voiceEntry: resolvedMovementVoiceEntry, experimentalFeatures: resolvedExperimentalFeatures, amountVisibility, writeText, authentication: resolvedAuthentication, analyticsProfile: resolvedAnalyticsProfile, contributionConsent: resolvedContributionConsent, contributionConsentClock: required?.contributionConsentClock ?? systemConsentClock }} />
+  ), [amountVisibility, required?.contributionConsentClock, resolvedAnalyticsProfile, resolvedAuthentication, resolvedContributionConsent, resolvedCore, resolvedExperimentalFeatures, resolvedMovementVoiceEntry, resolvedNotifications]);
 
   return (
     <AuthenticationGate required={{ authentication: resolvedAuthentication }}>
     <RequiredOnboardingGate port={resolvedAnalyticsProfile}>
-    <AnalyticsContributionConsentGate port={resolvedContributionConsent} clock={systemConsentClock}>
+    <AnalyticsContributionConsentGate port={resolvedContributionConsent} clock={required?.contributionConsentClock ?? systemConsentClock}>
     <KeyboardVisibilityProvider capability={defaultKeyboardVisibility}>
       {notificationIntentRouter}
       <Routes>

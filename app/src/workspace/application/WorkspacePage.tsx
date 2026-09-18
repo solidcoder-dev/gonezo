@@ -48,6 +48,8 @@ import type { MovementFeatureEditRequest } from '../../movements/application/mov
 import { MovementFeatureEditPage } from './MovementFeatureEditPage';
 import type { AuthenticationUseCases } from '../../authentication/application/authentication.port';
 import type { AnalyticsProfilePort } from '../../analyticsProfile/application/analyticsProfile.port';
+import type { AnalyticsContributionConsentPort } from '../../macroAnalytics/application/analyticsContributionConsent.port';
+import type { ConsentClock } from '../../macroAnalytics/application/analyticsContributionConsentUseCases';
 
 export type WorkspacePageRequired = {
   core: WorkspacePagePort;
@@ -59,6 +61,8 @@ export type WorkspacePageRequired = {
   writeText?: FeedbackNoticeWriter;
   authentication?: AuthenticationUseCases;
   analyticsProfile?: AnalyticsProfilePort;
+  contributionConsent?: AnalyticsContributionConsentPort;
+  contributionConsentClock?: ConsentClock;
 };
 
 export type WorkspacePagePort = AccountWorkspacePort & MovementsBackupPort & ApplicationBackupPort & AnalyticsPort & HomeRecentMovementsPort & PendingExpectedOverviewPort & MovementsSearchPagePort & MovementReuseSuggestionsPort & MovementReuseTemplatePort;
@@ -372,6 +376,8 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
       required={{
         authentication: pageRequired.authentication,
         analyticsProfile: pageRequired.analyticsProfile,
+        contributionConsent: pageRequired.contributionConsent,
+        contributionConsentClock: pageRequired.contributionConsentClock,
         context: {
           core: pageRequired.core,
         },
