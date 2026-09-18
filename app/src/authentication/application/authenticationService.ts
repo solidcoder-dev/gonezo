@@ -25,16 +25,22 @@ export type DeviceAuthenticator = {
   disable(): Promise<void>;
 };
 
+export type AuthenticationDelay = {
+  wait(milliseconds: number): Promise<void>;
+};
+
 export type AuthenticationPorts = {
   credentials: CredentialsRepository;
   passwordHasher: PasswordHasher;
   sessions: SessionStore;
   deviceAuthenticator: DeviceAuthenticator;
+  authenticationDelay: AuthenticationDelay;
   createUserId(): string;
 };
 
 export class AuthenticationService implements AuthenticationUseCases {
   private readonly ports: AuthenticationPorts;
+  private failedPasswordAttempts = 0;
 
   constructor(ports: AuthenticationPorts) {
     this.ports = ports;
@@ -57,12 +63,22 @@ export class AuthenticationService implements AuthenticationUseCases {
   }
 
   async loginWithPassword(username: string, password: string): Promise<void> {
+    if (this.failedPasswordAttempts > 0) {
+      await this.ports.authenticationDelay.wait(Math.min(this.failedPasswordAttempts, 5) * 250);
+    }
     const record = await this.ports.credentials.read();
     const normalizedUsername = username.trim().toLocaleLowerCase('en-US');
-    const passwordIsValid = record ? await this.ports.passwordHasher.verify(password, record.passwordHash) : false;
+    let passwordIsValid = false;
+    try {
+      passwordIsValid = record ? await this.ports.passwordHasher.verify(password, record.passwordHash) : false;
+    } catch {
+      passwordIsValid = false;
+    }
     if (!record || record.normalizedUsername !== normalizedUsername || !passwordIsValid) {
+      this.failedPasswordAttempts += 1;
       throw new Error('Invalid credentials');
     }
+    this.failedPasswordAttempts = 0;
     await this.ports.sessions.establish(record.userId);
   }
 

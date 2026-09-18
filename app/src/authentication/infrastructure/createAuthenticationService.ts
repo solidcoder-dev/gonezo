@@ -7,33 +7,34 @@ import { AndroidDeviceAuthenticator } from './androidDeviceAuthenticator';
 import { AuthenticationNativePlugin } from './authenticationPlugin';
 
 export function createAuthenticationService() {
-  let credentials: CredentialRecord | undefined;
-  let state: AuthState = UNAUTHENTICATED;
-  const webCredentials: CredentialsRepository = {
-    read: async () => credentials,
-    create: async (record) => { credentials = record; },
+  let webCredentialsValue: CredentialRecord | undefined;
+  let webSessionState: AuthState = UNAUTHENTICATED;
+  const inMemoryCredentialsRepository: CredentialsRepository = {
+    read: async () => webCredentialsValue,
+    create: async (record) => { webCredentialsValue = record; },
   };
-  const sessions: SessionStore = {
+  const inMemorySessionStore: SessionStore = {
     read: async () => {
-      if (!Capacitor.isNativePlatform()) return state;
+      if (!Capacitor.isNativePlatform()) return webSessionState;
       const { userId } = await AuthenticationNativePlugin.readSession();
-      state = userId ? { status: 'authenticated', userId } : UNAUTHENTICATED;
-      return state;
+      webSessionState = userId ? { status: 'authenticated', userId } : UNAUTHENTICATED;
+      return webSessionState;
     },
     establish: async (userId) => {
       if (Capacitor.isNativePlatform()) await AuthenticationNativePlugin.saveSession({ userId });
-      state = { status: 'authenticated', userId };
+      webSessionState = { status: 'authenticated', userId };
     },
     clear: async () => {
       if (Capacitor.isNativePlatform()) await AuthenticationNativePlugin.clearSession();
-      state = UNAUTHENTICATED;
+      webSessionState = UNAUTHENTICATED;
     },
   };
   return new AuthenticationService({
-    credentials: Capacitor.isNativePlatform() ? new NativeCredentialsRepository() : webCredentials,
+    credentials: Capacitor.isNativePlatform() ? new NativeCredentialsRepository() : inMemoryCredentialsRepository,
     passwordHasher: new Argon2PasswordHasher(),
-    sessions,
+    sessions: inMemorySessionStore,
     deviceAuthenticator: new AndroidDeviceAuthenticator(),
+    authenticationDelay: { wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)) },
     createUserId: () => crypto.randomUUID(),
   });
 }

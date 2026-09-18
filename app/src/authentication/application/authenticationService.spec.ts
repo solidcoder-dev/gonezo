@@ -12,6 +12,7 @@ function createService(existing?: CredentialRecord, deviceAuthenticator: DeviceA
   let credentials = existing;
   let state: AuthState = startsAuthenticated ? { status: 'authenticated', userId: 'user-1' } : { status: 'unauthenticated' };
   let passwordVerifications = 0;
+  const delays: number[] = [];
   const passwordByHash = new Map<string, string>();
   if (existing) passwordByHash.set(existing.passwordHash, 'right-pass');
   const ports: AuthenticationPorts = {
@@ -33,6 +34,7 @@ function createService(existing?: CredentialRecord, deviceAuthenticator: DeviceA
       clear: async () => { state = { status: 'unauthenticated' }; },
     },
     deviceAuthenticator,
+    authenticationDelay: { wait: async (milliseconds) => { delays.push(milliseconds); } },
     createUserId: () => 'user-1',
   };
   return {
@@ -40,21 +42,19 @@ function createService(existing?: CredentialRecord, deviceAuthenticator: DeviceA
     get credentials() { return credentials; },
     get state() { return state; },
     get passwordVerifications() { return passwordVerifications; },
+    get delays() { return delays; },
   };
 }
 
 describe('AuthenticationService', () => {
   it('creates credentials and authenticates the first local user', async () => {
     const context = createService();
-    const existingGonezoData = { accounts: ['existing-account'], movements: ['existing-movement'] };
-    const existingGonezoDataBefore = structuredClone(existingGonezoData);
     await context.service.setupCredentials(' Alice ', 'secret-pass');
 
     expect(context.credentials?.normalizedUsername).toBe('alice');
     expect(context.credentials?.passwordHash).toBe('test-hash-1');
     expect(JSON.stringify(context.credentials)).not.toContain('secret-pass');
     expect(context.state).toEqual({ status: 'authenticated', userId: 'user-1' });
-    expect(existingGonezoData).toEqual(existingGonezoDataBefore);
     expect(JSON.stringify(context.state)).not.toContain('secret-pass');
   });
 
@@ -64,6 +64,18 @@ describe('AuthenticationService', () => {
     await expect(context.service.loginWithPassword('nobody', 'wrong-pass')).rejects.toThrow('Invalid credentials');
     await expect(context.service.loginWithPassword('Alice', 'wrong-pass')).rejects.toThrow('Invalid credentials');
     expect(context.passwordVerifications).toBe(2);
+  });
+
+  it('increases delays after failed password attempts and resets after successful login', async () => {
+    const context = createService({ userId: 'user-1', username: 'Alice', normalizedUsername: 'alice', passwordHash: 'hash:right-pass' });
+
+    await expect(context.service.loginWithPassword('alice', 'bad-one')).rejects.toThrow('Invalid credentials');
+    await expect(context.service.loginWithPassword('alice', 'bad-two')).rejects.toThrow('Invalid credentials');
+    await context.service.loginWithPassword('alice', 'right-pass');
+    await expect(context.service.loginWithPassword('alice', 'bad-three')).rejects.toThrow('Invalid credentials');
+    await expect(context.service.loginWithPassword('alice', 'bad-four')).rejects.toThrow('Invalid credentials');
+
+    expect(context.delays).toEqual([250, 500, 250]);
   });
 
   it('authenticates valid credentials and logout clears the session', async () => {
