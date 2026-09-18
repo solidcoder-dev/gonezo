@@ -74,8 +74,11 @@ export class AuthenticationService implements AuthenticationUseCases {
     await this.ports.sessions.establish(record.userId);
   }
 
-  async enableDeviceUnlock(): Promise<void> {
+  async enableDeviceUnlock(password: string): Promise<void> {
     if ((await this.getAuthenticationState()).status !== 'authenticated') throw new Error('Authenticate with your password first');
+    const record = await this.ports.credentials.read();
+    const passwordIsValid = record ? await this.ports.passwordHasher.verify(password, record.passwordHash) : false;
+    if (!record || !passwordIsValid) throw new Error('Invalid credentials');
     if (!(await this.ports.deviceAuthenticator.isAvailable())) throw new Error('Device authentication is unavailable');
     await this.ports.deviceAuthenticator.enable();
   }

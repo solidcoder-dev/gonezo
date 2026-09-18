@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import type { AuthenticationUseCases } from './authentication.port';
 import { AuthenticationGateView } from '../ui/AuthenticationGateView';
+import { AuthenticationSessionProvider } from './authenticationSession';
 
 type AuthenticationGateProps = {
   required: { authentication: AuthenticationUseCases };
@@ -83,26 +84,15 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
     }
   }
 
-  async function changeDeviceUnlock(enable: boolean) {
+  async function logout() {
+    await required.authentication.logout();
+    setMode('sign-in');
     setError('');
-    try {
-      if (enable) await required.authentication.enableDeviceUnlock();
-      else await required.authentication.disableDeviceUnlock();
-      await refreshDeviceUnlock();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Device unlock could not be changed');
-    }
+    setState('locked');
   }
 
-  async function logout() {
-    setError('');
-    try {
-      await required.authentication.logout();
-      setMode('sign-in');
-      setState('locked');
-    } catch {
-      setError('Secure session could not be cleared. Try again.');
-    }
+  if (state === 'authenticated') {
+    return <AuthenticationSessionProvider session={{ logout }}>{children}</AuthenticationSessionProvider>;
   }
 
   return (
@@ -114,13 +104,8 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
       error={error}
       onSubmit={(event) => { void submit(event); }}
       onDeviceUnlock={() => { void unlockWithDevice(); }}
-      onEnableDeviceUnlock={() => { void changeDeviceUnlock(true); }}
-      onDisableDeviceUnlock={() => { void changeDeviceUnlock(false); }}
       onModeChange={(nextMode) => { setMode(nextMode); setError(''); }}
       mode={mode}
-      onLogout={() => { void logout(); }}
-    >
-      {children}
-    </AuthenticationGateView>
+    />
   );
 }

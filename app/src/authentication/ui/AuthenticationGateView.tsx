@@ -1,7 +1,7 @@
-import type { FormEvent, ReactNode } from 'react';
+import type { FormEvent } from 'react';
 
 export type AuthenticationGateViewProps = {
-  readonly state: 'loading' | 'setup' | 'locked' | 'authenticated';
+  readonly state: 'loading' | 'setup' | 'locked';
   readonly mode: 'sign-in' | 'create-account';
   readonly deviceUnlockAvailable: boolean;
   readonly deviceUnlockEnabled: boolean;
@@ -10,28 +10,10 @@ export type AuthenticationGateViewProps = {
   readonly onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   readonly onModeChange: (mode: 'sign-in' | 'create-account') => void;
   readonly onDeviceUnlock: () => void;
-  readonly onEnableDeviceUnlock: () => void;
-  readonly onDisableDeviceUnlock: () => void;
-  readonly onLogout: () => void;
-  readonly children: ReactNode;
 };
 
 export function AuthenticationGateView(props: AuthenticationGateViewProps) {
   if (props.state === 'loading') return <main aria-busy="true" className="container py-5">Loading authentication…</main>;
-  if (props.state === 'authenticated') {
-    return (
-      <>
-        {props.children}
-        {props.error ? <p role="alert" className="text-danger text-center">{props.error}</p> : null}
-        <div className="d-flex justify-content-center gap-2 py-2">
-          {props.deviceUnlockAvailable && !props.deviceUnlockEnabled ? <button className="btn btn-outline-secondary" type="button" onClick={props.onEnableDeviceUnlock}>Enable device unlock</button> : null}
-          {props.deviceUnlockEnabled ? <button className="btn btn-outline-secondary" type="button" onClick={props.onDisableDeviceUnlock}>Disable device unlock</button> : null}
-          <button className="btn btn-outline-secondary" type="button" onClick={props.onLogout}>Lock Gonezo</button>
-        </div>
-      </>
-    );
-  }
-
   return (
     <main className="container py-5" aria-labelledby="authentication-title">
       <section className="mx-auto" style={{ maxWidth: '28rem' }}>

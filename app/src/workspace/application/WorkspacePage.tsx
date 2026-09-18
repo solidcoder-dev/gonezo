@@ -46,6 +46,7 @@ import type { NotificationsPort } from '../../notifications/application/notifica
 import type { AmountVisibilityModel } from './useAmountVisibilityModel';
 import type { MovementFeatureEditRequest } from '../../movements/application/movementFeatureEditRequest';
 import { MovementFeatureEditPage } from './MovementFeatureEditPage';
+import type { AuthenticationUseCases } from '../../authentication/application/authentication.port';
 
 export type WorkspacePageRequired = {
   core: WorkspacePagePort;
@@ -55,6 +56,7 @@ export type WorkspacePageRequired = {
   notifications: NotificationsPort;
   amountVisibility?: AmountVisibilityModel;
   writeText?: FeedbackNoticeWriter;
+  authentication?: AuthenticationUseCases;
 };
 
 export type WorkspacePagePort = AccountWorkspacePort & MovementsBackupPort & ApplicationBackupPort & AnalyticsPort & HomeRecentMovementsPort & PendingExpectedOverviewPort & MovementsSearchPagePort & MovementReuseSuggestionsPort & MovementReuseTemplatePort;
@@ -366,6 +368,7 @@ export function WorkspacePage({ required: pageRequired }: WorkspacePageProps) {
   const profilePage = currentPage === 'profile' ? (
     <ProfilePage
       required={{
+        authentication: pageRequired.authentication,
         context: {
           core: pageRequired.core,
         },

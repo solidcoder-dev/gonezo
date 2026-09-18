@@ -1,7 +1,13 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AuthenticationGate } from './AuthenticationGate';
 import type { AuthenticationUseCases } from './authentication.port';
+import { useAuthenticationSession } from './authenticationSession';
+
+function LogoutControl() {
+  const session = useAuthenticationSession();
+  return <button onClick={() => { void session.logout(); }}>Log out</button>;
+}
 
 function createAuthentication(exists: boolean, startsAuthenticated = false) {
   let authenticated = startsAuthenticated;
@@ -94,7 +100,7 @@ describe('AuthenticationGate', () => {
 
   it('returns to sign-in mode after creating an account and logging out', async () => {
     const authentication = createAuthentication(false);
-    render(<AuthenticationGate required={{ authentication }}><p>Gonezo home</p></AuthenticationGate>);
+    render(<AuthenticationGate required={{ authentication }}><><p>Gonezo home</p><LogoutControl /></></AuthenticationGate>);
 
     fireEvent.change(await screen.findByLabelText('Username'), { target: { value: 'alice' } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'long-password' } });
@@ -102,14 +108,14 @@ describe('AuthenticationGate', () => {
     fireEvent.submit(screen.getByLabelText('Password').closest('form')!);
     await screen.findByText('Gonezo home');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Lock Gonezo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Log out' }));
 
     expect(await screen.findByRole('group', { name: 'Authentication mode' })).toContainElement(
       screen.getByRole('button', { name: 'Sign in', pressed: true }),
     );
   });
 
-  it('enables device unlock only after password login and can log out', async () => {
+  it('renders only application content after authentication', async () => {
     const authentication = createAuthentication(true);
     render(<AuthenticationGate required={{ authentication }}><p>Gonezo home</p></AuthenticationGate>);
 
@@ -117,9 +123,7 @@ describe('AuthenticationGate', () => {
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'long-password' } });
     fireEvent.submit(screen.getByLabelText('Password').closest('form')!);
     await screen.findByText('Gonezo home');
-    fireEvent.click(screen.getByRole('button', { name: 'Enable device unlock' }));
-    await waitFor(() => expect(authentication.enableDeviceUnlock).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole('button', { name: 'Lock Gonezo' }));
-    expect(await screen.findByRole('heading', { name: 'Authentication' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Enable device unlock' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Log out' })).not.toBeInTheDocument();
   });
 });

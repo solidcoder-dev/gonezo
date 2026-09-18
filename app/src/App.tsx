@@ -65,8 +65,8 @@ export function App({ required }: AppProps) {
     categorySource: voiceCategorySource,
   }), [required?.movementVoiceEntry, voiceCategorySource]);
   const workspacePage = useMemo(() => (
-    <WorkspacePage required={{ core: resolvedCore, notifications: resolvedNotifications, importFileReader: defaultImportFileReader, voiceEntry: resolvedMovementVoiceEntry, experimentalFeatures: resolvedExperimentalFeatures, amountVisibility, writeText }} />
-  ), [amountVisibility, resolvedCore, resolvedExperimentalFeatures, resolvedMovementVoiceEntry, resolvedNotifications]);
+    <WorkspacePage required={{ core: resolvedCore, notifications: resolvedNotifications, importFileReader: defaultImportFileReader, voiceEntry: resolvedMovementVoiceEntry, experimentalFeatures: resolvedExperimentalFeatures, amountVisibility, writeText, authentication: resolvedAuthentication }} />
+  ), [amountVisibility, resolvedAuthentication, resolvedCore, resolvedExperimentalFeatures, resolvedMovementVoiceEntry, resolvedNotifications]);
 
   return (
     <AuthenticationGate required={{ authentication: resolvedAuthentication }}>

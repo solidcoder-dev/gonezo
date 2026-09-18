@@ -6,8 +6,11 @@ import type { LedgerAccountHubPort } from '../../ledger/application/useLedgerAcc
 import { ProfilePageView } from '../ui/ProfilePageView';
 import type { LoadPhase } from '../../account/application/accountPage.types';
 import type { VoiceMovementExperimentViewModel } from '../ui/ProfilePageView.contract';
+import type { AuthenticationUseCases } from '../../authentication/application/authentication.port';
+import { AuthenticationSecuritySettings } from '../../authentication/application/AuthenticationSecuritySettings';
 
 export type ProfilePageRequired = {
+  authentication?: AuthenticationUseCases;
   context: {
     core: LedgerAccountHubPort & UserPreferencesPort;
   };
@@ -189,6 +192,7 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
           },
         }}
       />
+      {required.authentication ? <AuthenticationSecuritySettings authentication={required.authentication} /> : null}
       </>
     );
 }

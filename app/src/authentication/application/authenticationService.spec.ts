@@ -8,9 +8,9 @@ function createService(existing?: CredentialRecord, deviceAuthenticator: DeviceA
   isEnabled: async () => true,
   enable: async () => undefined,
   disable: async () => undefined,
-}) {
+}, startsAuthenticated = false) {
   let credentials = existing;
-  let state: AuthState = { status: 'unauthenticated' };
+  let state: AuthState = startsAuthenticated ? { status: 'authenticated', userId: 'user-1' } : { status: 'unauthenticated' };
   let passwordVerifications = 0;
   const passwordByHash = new Map<string, string>();
   if (existing) passwordByHash.set(existing.passwordHash, 'right-pass');
@@ -109,9 +109,41 @@ describe('AuthenticationService', () => {
       disable: async () => undefined,
     };
     const context = createService({ userId: 'user-1', username: 'Alice', normalizedUsername: 'alice', passwordHash: 'hash:right-pass' }, unavailable);
-    await expect(context.service.enableDeviceUnlock()).rejects.toThrow('Authenticate with your password first');
+    await expect(context.service.enableDeviceUnlock('right-pass')).rejects.toThrow('Authenticate with your password first');
     await context.service.loginWithPassword('alice', 'right-pass');
-    await expect(context.service.enableDeviceUnlock()).rejects.toThrow('Device authentication is unavailable');
+    await expect(context.service.enableDeviceUnlock('right-pass')).rejects.toThrow('Device authentication is unavailable');
+  });
+
+  it('requires the correct password to enable device unlock in a restored session', async () => {
+    let enabled = false;
+    const authenticator: DeviceAuthenticator = {
+      authenticate: async () => undefined,
+      isAvailable: async () => true,
+      isEnabled: async () => enabled,
+      enable: async () => { enabled = true; },
+      disable: async () => { enabled = false; },
+    };
+    const existing = { userId: 'user-1', username: 'Alice', normalizedUsername: 'alice', passwordHash: 'hash:right-pass' };
+    const context = createService(existing, authenticator, true);
+
+    await expect(context.service.enableDeviceUnlock('right-pass')).resolves.toBeUndefined();
+    expect(enabled).toBe(true);
+  });
+
+  it('does not enable device unlock for an incorrect password in a restored session', async () => {
+    let enabled = false;
+    const authenticator: DeviceAuthenticator = {
+      authenticate: async () => undefined,
+      isAvailable: async () => true,
+      isEnabled: async () => enabled,
+      enable: async () => { enabled = true; },
+      disable: async () => { enabled = false; },
+    };
+    const existing = { userId: 'user-1', username: 'Alice', normalizedUsername: 'alice', passwordHash: 'hash:right-pass' };
+    const context = createService(existing, authenticator, true);
+
+    await expect(context.service.enableDeviceUnlock('wrong-pass')).rejects.toThrow('Invalid credentials');
+    expect(enabled).toBe(false);
   });
 
   it('enables and disables device unlock only from an authenticated session', async () => {
@@ -125,7 +157,7 @@ describe('AuthenticationService', () => {
     };
     const context = createService({ userId: 'user-1', username: 'Alice', normalizedUsername: 'alice', passwordHash: 'hash:right-pass' }, authenticator);
     await context.service.loginWithPassword('alice', 'right-pass');
-    await context.service.enableDeviceUnlock();
+    await context.service.enableDeviceUnlock('right-pass');
     expect(await context.service.isDeviceUnlockEnabled()).toBe(true);
     await context.service.logout();
     await expect(context.service.disableDeviceUnlock()).rejects.toThrow('Authenticate with your password first');
