@@ -11,6 +11,7 @@ const EXPECTED_TOP_LEVEL = new Set([
   'App.tsx',
   'account',
   'analytics',
+  'authentication',
   'core',
   'expected',
   'experiments',
@@ -32,6 +33,7 @@ const EXPECTED_TOP_LEVEL = new Set([
 const EXPECTED_LAYER_DIRS = ['application', 'domain', 'infrastructure', 'ui'];
 const EXPECTED_CONTEXT_DIRS = {
   account: ['application', 'infrastructure', 'ui'],
+  authentication: ['application', 'domain', 'infrastructure', 'ui'],
   analytics: ['application', 'infrastructure', 'ui'],
   core: ['application', 'infrastructure'],
   expected: ['application', 'infrastructure'],
