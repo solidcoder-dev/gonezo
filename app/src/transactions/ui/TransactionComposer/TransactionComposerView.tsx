@@ -455,8 +455,12 @@ export function TransactionComposerView({ required, provided }: Props) {
   useEffect(() => {
     const appliedVersion = movementReuse?.appliedVersion ?? 0;
     if (appliedVersion === lastAppliedReuseVersionRef.current) return;
+    if (!open || !dateVisible || recurringScheduleConfigured) {
+      lastAppliedReuseVersionRef.current = appliedVersion;
+      return;
+    }
+    if (disabled) return;
     lastAppliedReuseVersionRef.current = appliedVersion;
-    if (!open || !dateVisible || recurringScheduleConfigured || disabled) return;
     dateEditorRef.current?.focus();
   }, [dateVisible, disabled, movementReuse?.appliedVersion, open, recurringScheduleConfigured]);
   const scheduleEditorTitle = transferScheduleAvailable ? 'Schedule rule' : 'Recurring schedule';

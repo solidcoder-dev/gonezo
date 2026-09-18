@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { MovementReuseSuggestionGroup, MovementReuseSuggestionVariant } from '../../movements/application/movementReuseSuggestions.port';
 import { TransactionEntryComponent } from './TransactionEntryComponent';
@@ -65,12 +65,12 @@ function makeCore() {
   return { core, movementReuseSearchGroups, movementReuseListVariants, movementReuseGetTemplate };
 }
 
-function renderComposer(core: TransactionEntryComponentRequired['context']['core']) {
+function renderComposer(core: TransactionEntryComponentRequired['context']['core'], config: Partial<TransactionEntryComponentRequired['config']> = {}) {
   return render(
     <TransactionEntryComponent
       required={{
         context: { accountId: 'account-1', core },
-        config: { enabled: true, openSignal: 1 },
+        config: { enabled: true, openSignal: 1, ...config },
       }}
     />,
   );
@@ -91,6 +91,20 @@ describe('TransactionEntryComponent movement reuse integration', () => {
     }));
     expect(await screen.findByText('Mercadona')).toBeInTheDocument();
     expect(screen.queryByText('Loading suggestions')).not.toBeInTheDocument();
+  });
+
+  it('does not search when a prefilled merchant input receives focus', async () => {
+    const { core, movementReuseSearchGroups } = makeCore();
+    renderComposer(core, {
+      prefillRequest: { requestId: 1, mode: 'expense', amount: '', date: '2026-06-01', note: 'Mercadona' },
+    });
+
+    const title = await screen.findByLabelText('Merchant');
+    await waitFor(() => expect(title).toHaveValue('Mercadona'));
+    fireEvent.focus(title);
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 300)); });
+
+    expect(movementReuseSearchGroups).not.toHaveBeenCalled();
   });
 
   it('fails during composition when the current core configuration omits template reuse', () => {

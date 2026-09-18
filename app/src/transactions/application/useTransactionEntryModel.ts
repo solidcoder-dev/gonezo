@@ -179,7 +179,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     categorizeTransaction,
     applyTransactionTags,
   } = taxonomyModel.actions;
-  const reuseActions = { setComposerMode, setComposerAdvancedOpen, setTransactionNote, setTransactionCategoryId, prefillTaxonomy, prefillExpenseSplit, prefillShareDraft, setMovementIgnored, setTransferToAccountId, syncForTransferMode, setTransactionAmountValue };
+  const reuseActions = { setComposerMode, setComposerAdvancedOpen, setTransactionNote: setTransactionNoteFromProgrammatic, setTransactionCategoryId, prefillTaxonomy, prefillExpenseSplit, prefillShareDraft, setMovementIgnored, setTransferToAccountId, syncForTransferMode, setTransactionAmountValue };
   const movementReuseModel = useTransactionMovementReuseModel({
     port: ports.reuse, accountIds: accounts.map((account) => account.id), enabled: composerOpen && !loading, query: transactionNote, accountId,
     applySetup: (template) => applyMovementReuseSetup(template, accountId, reuseActions, onAccountChanged),
@@ -188,6 +188,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
   function setTransactionNoteFromUser(value: string) {
     setTransactionNote(value);
     movementReuseModel.actions.beginSearch();
+  }
+  function setTransactionNoteFromProgrammatic(value: string) {
+    setTransactionNote(value);
+    movementReuseModel.actions.endSearch();
   }
   function clearError() {
     setError('');
@@ -210,7 +214,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setComposerAdvancedOpen(false);
     setTransactionAmount('');
     setTransactionDate(today);
-    setTransactionNote('');
+    setTransactionNoteFromProgrammatic('');
     setMovementIgnored(false);
     resetTaxonomyInputs();
     resetTransferFx();
@@ -240,6 +244,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setTransferFxMode,
     setTransferFxRate,
     setTransferToAccountId, prefillShareDraft, openSplitEditor, openShareEditor,
+    setTransactionNoteFromProgrammatic,
   });
   modelEffectsRef.current = {
     prefillExpenseSplit,
@@ -254,6 +259,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setTransferFxMode,
     setTransferFxRate,
     setTransferToAccountId, prefillShareDraft, openSplitEditor, openShareEditor,
+    setTransactionNoteFromProgrammatic,
   };
   useEffect(() => {
     if (!enabled || !accountId) {
@@ -297,7 +303,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     setComposerAdvancedOpen(true);
     setTransactionAmount(currentPrefillRequest.amount.replace('-', ''));
     setTransactionDate(currentPrefillRequest.date);
-    setTransactionNote(currentPrefillRequest.note ?? '');
+    modelEffectsRef.current.setTransactionNoteFromProgrammatic(currentPrefillRequest.note ?? '');
     modelEffectsRef.current.setTransactionCategoryId(currentPrefillRequest.categoryId ?? '');
     modelEffectsRef.current.prefillTaxonomy(currentPrefillRequest.tagNames ?? []); modelEffectsRef.current.prefillShareDraft(currentPrefillRequest.shareDraft);
     setMovementIgnored((currentPrefillRequest.mode === 'expense' || currentPrefillRequest.mode === 'income') && currentPrefillRequest.movementIgnored === true);
@@ -781,7 +787,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       openShareEditor: shareDraftModel.actions.openEditor, closeShareEditor: shareDraftModel.actions.closeEditor,
       applyShareDraft: applyShareDraftValue, removeShareDraft: removeShareDraftValue,
       submit: submitTransaction,
-      closeMovementReuse: () => { movementReuseModel.actions.close(); movementReuseModel.actions.cancelReuse(); },
+      closeMovementReuse: () => { movementReuseModel.actions.endSearch(); movementReuseModel.actions.cancelReuse(); },
       endMovementReuseSearch: movementReuseModel.actions.endSearch,
       toggleMovementReuseGroup: (group) => { void movementReuseModel.actions.toggleGroup(group); }, selectMovementReuseVariant: movementReuseModel.actions.selectVariant,
       reuseSetupOnly: movementReuseModel.actions.reuseSetupOnly,

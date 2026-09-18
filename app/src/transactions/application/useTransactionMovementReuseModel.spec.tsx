@@ -40,7 +40,7 @@ describe('useTransactionMovementReuseModel application completion', () => {
 
   it('waits for a details decision and increments after the chosen application', async () => {
     const detailedTemplate = { ...template, details: { amount: '10', items: [{ name: 'Food', amount: '10' }], sharing: [] } };
-    const { result, applySetup, applyWithDetails } = setup(detailedTemplate);
+    const { result, applySetup } = setup(detailedTemplate);
     await select(result);
     expect(result.current.state.appliedVersion).toBe(0);
     act(() => result.current.actions.reuseSetupOnly());

@@ -77,6 +77,7 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
     setVariants([]);
     setLoadedTitle(null);
     setGroups([]);
+    setError('');
     setLoading(false);
   }, []);
 
@@ -127,6 +128,6 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
 
   return {
     state: { query: input.query, open: open && searchActive, loading, groups, expandedTitle, variants, error },
-    actions: { beginSearch, endSearch, close: endSearch, toggleGroup, selectVariant },
+    actions: { beginSearch, endSearch, toggleGroup, selectVariant },
   };
 }
