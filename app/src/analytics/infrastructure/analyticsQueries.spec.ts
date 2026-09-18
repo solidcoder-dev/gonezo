@@ -458,6 +458,8 @@ describe('analytics queries', () => {
   });
 
   it('scopes analytics tag facets to posted movements in the selected period', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
     const port = createPort([
       transaction({
         id: 'expense-tagged',
