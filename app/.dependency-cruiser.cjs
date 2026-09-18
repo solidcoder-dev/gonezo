@@ -1,5 +1,5 @@
-const featureContexts = ['account', 'analytics', 'authentication', 'expected', 'imports', 'ledger', 'movements', 'scheduling', 'sharing', 'taxonomy', 'transactions', 'workspace'];
-const domainContexts = ['authentication', 'imports', 'ledger', 'sharing', 'taxonomy', 'transactions'];
+const featureContexts = ['account', 'analytics', 'analyticsProfile', 'authentication', 'expected', 'imports', 'ledger', 'movements', 'scheduling', 'sharing', 'taxonomy', 'transactions', 'workspace'];
+const domainContexts = ['analyticsProfile', 'authentication', 'imports', 'ledger', 'sharing', 'taxonomy', 'transactions'];
 function joinContexts(contexts) {
   return contexts.join('|');
 }
