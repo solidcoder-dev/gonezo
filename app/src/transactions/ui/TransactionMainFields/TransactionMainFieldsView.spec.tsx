@@ -124,7 +124,8 @@ describe('TransactionMainFieldsView', () => {
   });
 
   it('renders transfer destination, amount, description and calendar action', () => {
-    const dateInputRef = createRef<HTMLInputElement>();
+    const datePickerRef = createRef<HTMLInputElement>();
+    const dateEditorRef = createRef<HTMLInputElement>();
     const showPicker = vi.fn();
 
     render(
@@ -136,7 +137,8 @@ describe('TransactionMainFieldsView', () => {
             datePlaceholder: '2026-05-14',
             noteLabel: 'Description',
             notePlaceholder: 'Description',
-            dateInputRef,
+            datePickerRef,
+            dateEditorRef,
           },
           data: {
             transferTargetOptions: [
@@ -167,7 +169,7 @@ describe('TransactionMainFieldsView', () => {
       />,
     );
 
-    const nativeDateInput = dateInputRef.current;
+    const nativeDateInput = datePickerRef.current;
     expect(nativeDateInput).not.toBeNull();
     Object.defineProperty(nativeDateInput, 'showPicker', { value: showPicker });
 
@@ -179,6 +181,9 @@ describe('TransactionMainFieldsView', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Open calendar' }));
     expect(showPicker).toHaveBeenCalledTimes(1);
+    expect(dateEditorRef.current).toBe(screen.getByLabelText('Execution date'));
+    dateEditorRef.current?.focus();
+    expect(dateEditorRef.current).toHaveFocus();
   });
 
   it('disables manual date editing and the calendar action when the scheduler controls the date', () => {

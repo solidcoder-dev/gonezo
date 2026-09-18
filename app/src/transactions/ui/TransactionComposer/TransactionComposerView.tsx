@@ -406,7 +406,8 @@ export function TransactionComposerView({ required, provided }: Props) {
   const keyboardVisible = useKeyboardVisible();
 
   const amountInputRef = useRef<HTMLInputElement | null>(null);
-  const dateInputRef = useRef<HTMLInputElement | null>(null);
+  const dateEditorRef = useRef<HTMLInputElement | null>(null);
+  const datePickerRef = useRef<HTMLInputElement | null>(null);
 
   const initialFocusHandledRef = useRef(false);
 
@@ -534,7 +535,8 @@ export function TransactionComposerView({ required, provided }: Props) {
                     noteLabel: mode === 'transfer' ? 'Description' : mode === 'expense' ? 'Merchant' : 'Source',
                     notePlaceholder: mode === 'transfer' ? 'Add description…' : mode === 'expense' ? 'Add merchant…' : 'Add source…',
                     amountInputRef,
-                    dateInputRef,
+                    dateEditorRef,
+                    datePickerRef,
                     noteInputRef,
                     movementReuse,
                   },

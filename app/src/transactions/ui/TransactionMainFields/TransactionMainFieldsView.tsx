@@ -15,7 +15,8 @@ export type TransactionMainFieldsViewProps = ViewProps<
     notePlaceholder: string;
     afterAmount?: ReactNode;
     amountInputRef?: RefObject<HTMLInputElement | null>;
-    dateInputRef?: RefObject<HTMLInputElement | null>;
+    dateEditorRef?: RefObject<HTMLInputElement | null>;
+    datePickerRef?: RefObject<HTMLInputElement | null>;
     noteInputRef?: RefObject<HTMLInputElement | null>;
     movementReuse?: {
       query: string; open: boolean; loading: boolean; groups: MovementReuseSuggestionGroup[];
@@ -88,7 +89,8 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
     amountLabel,
     amountInputRef,
     dateInputLabel,
-    dateInputRef,
+    dateEditorRef,
+    datePickerRef,
     noteInputRef,
     datePlaceholder,
     noteLabel,
@@ -193,6 +195,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
             <div className={styles.dateField}>
               <label className="visually-hidden" htmlFor={dateFieldId}>{dateInputLabel}</label>
               <input
+                ref={dateEditorRef}
                 id={dateFieldId}
                 className={`${styles.dateInput} form-control`}
                 aria-label={dateInputLabel}
@@ -213,7 +216,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
                 aria-describedby={status.dateError ? 'composer-date-error' : undefined}
               />
               <input
-                ref={dateInputRef}
+                ref={datePickerRef}
                 className="visually-hidden"
                 aria-hidden="true"
                 tabIndex={-1}
@@ -227,7 +230,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
                 className={`${styles.dateButton} btn btn-link gz-icon-button date-picker-button`}
                 aria-label="Open calendar"
                 onClick={() => {
-                  dateInputRef?.current?.showPicker?.();
+                  datePickerRef?.current?.showPicker?.();
                 }}
                 disabled={status.disabled || status.dateDisabled}
               >
