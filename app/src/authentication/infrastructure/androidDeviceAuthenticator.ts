@@ -10,4 +10,17 @@ export class AndroidDeviceAuthenticator implements DeviceAuthenticator {
     const result = await AuthenticationNativePlugin.isDeviceAuthenticationAvailable();
     return result.available;
   }
+
+  async isEnabled(): Promise<boolean> {
+    const result = await AuthenticationNativePlugin.isDeviceUnlockEnabled();
+    return result.enabled;
+  }
+
+  async enable(): Promise<void> {
+    await AuthenticationNativePlugin.enableDeviceUnlock();
+  }
+
+  async disable(): Promise<void> {
+    await AuthenticationNativePlugin.disableDeviceUnlock();
+  }
 }

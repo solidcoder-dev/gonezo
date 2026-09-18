@@ -18,6 +18,10 @@ export type SessionStore = {
 
 export type DeviceAuthenticator = {
   authenticate(): Promise<void>;
+  isAvailable(): Promise<boolean>;
+  isEnabled(): Promise<boolean>;
+  enable(): Promise<void>;
+  disable(): Promise<void>;
 };
 
 export type AuthenticationPorts = {
@@ -62,8 +66,24 @@ export class AuthenticationService {
   async unlockWithDevice(): Promise<void> {
     const record = await this.ports.credentials.read();
     if (!record) throw new Error('Invalid credentials');
+    if (!(await this.ports.deviceAuthenticator.isEnabled())) throw new Error('Device unlock is not enabled');
     await this.ports.deviceAuthenticator.authenticate();
     this.ports.sessions.establish(record.userId);
+  }
+
+  async enableDeviceUnlock(): Promise<void> {
+    if (this.getAuthenticationState().status !== 'authenticated') throw new Error('Authenticate with your password first');
+    if (!(await this.ports.deviceAuthenticator.isAvailable())) throw new Error('Device authentication is unavailable');
+    await this.ports.deviceAuthenticator.enable();
+  }
+
+  async disableDeviceUnlock(): Promise<void> {
+    if (this.getAuthenticationState().status !== 'authenticated') throw new Error('Authenticate with your password first');
+    await this.ports.deviceAuthenticator.disable();
+  }
+
+  isDeviceUnlockEnabled(): Promise<boolean> {
+    return this.ports.deviceAuthenticator.isEnabled();
   }
 
   logout(): void {

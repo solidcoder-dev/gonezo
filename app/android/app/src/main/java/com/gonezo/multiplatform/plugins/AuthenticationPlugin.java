@@ -33,6 +33,10 @@ public class AuthenticationPlugin extends Plugin {
 
   @PluginMethod
   public void authenticateDevice(PluginCall call) {
+    if (!getContext().getSharedPreferences(STORE, 0).getBoolean("deviceUnlockEnabled", false)) {
+      call.reject("Device unlock is not enabled", "DEVICE_UNLOCK_DISABLED");
+      return;
+    }
     int authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG
         | BiometricManager.Authenticators.DEVICE_CREDENTIAL;
     if (BiometricManager.from(getContext()).canAuthenticate(authenticators) != BiometricManager.BIOMETRIC_SUCCESS) {
@@ -59,6 +63,25 @@ public class AuthenticationPlugin extends Plugin {
       }
     });
     biometricPrompt.authenticate(prompt);
+  }
+
+  @PluginMethod
+  public void isDeviceUnlockEnabled(PluginCall call) {
+    JSObject result = new JSObject();
+    result.put("enabled", getContext().getSharedPreferences(STORE, 0).getBoolean("deviceUnlockEnabled", false));
+    call.resolve(result);
+  }
+
+  @PluginMethod
+  public void enableDeviceUnlock(PluginCall call) {
+    getContext().getSharedPreferences(STORE, 0).edit().putBoolean("deviceUnlockEnabled", true).apply();
+    call.resolve();
+  }
+
+  @PluginMethod
+  public void disableDeviceUnlock(PluginCall call) {
+    getContext().getSharedPreferences(STORE, 0).edit().remove("deviceUnlockEnabled").apply();
+    call.resolve();
   }
 
   @PluginMethod
