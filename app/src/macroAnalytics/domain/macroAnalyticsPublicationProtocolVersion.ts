@@ -1,0 +1,3 @@
+export const MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION = 1 as const;
+
+export type MacroAnalyticsPublicationProtocolVersion = typeof MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION;
