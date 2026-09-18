@@ -29,6 +29,12 @@ import { AnalyticsProfileSettingsPage } from './analyticsProfile/application/Ana
 import { InMemoryAnalyticsProfileAdapter } from './analyticsProfile/infrastructure/InMemoryAnalyticsProfileAdapter';
 import { NativeAnalyticsProfileAdapter } from './analyticsProfile/infrastructure/NativeAnalyticsProfileAdapter';
 import type { AnalyticsProfilePort } from './analyticsProfile/application/analyticsProfile.port';
+import { AnalyticsContributionConsentGate } from './macroAnalytics/application/AnalyticsContributionConsentGate';
+import { InMemoryAnalyticsContributionConsentAdapter } from './macroAnalytics/infrastructure/InMemoryAnalyticsContributionConsentAdapter';
+import { NativeAnalyticsContributionConsentAdapter } from './macroAnalytics/infrastructure/NativeAnalyticsContributionConsentAdapter';
+import type { AnalyticsContributionConsentPort } from './macroAnalytics/application/analyticsContributionConsent.port';
+
+const systemConsentClock = () => new Date().toISOString();
 
 const defaultCore = new CoreAdapter();
 const defaultImportFileReader = { readAsBase64: readImportFileAsBase64 };
@@ -41,6 +47,9 @@ const defaultAuthentication = createAuthenticationService();
 const defaultAnalyticsProfile: AnalyticsProfilePort = Capacitor.isNativePlatform()
   ? new NativeAnalyticsProfileAdapter()
   : new InMemoryAnalyticsProfileAdapter();
+const defaultContributionConsent: AnalyticsContributionConsentPort = Capacitor.isNativePlatform()
+  ? new NativeAnalyticsContributionConsentAdapter()
+  : new InMemoryAnalyticsContributionConsentAdapter();
 const workspaceRoutes = ['/', '/home', '/accounts', '/analytics', '/analytics/category/:categoryId', '/analytics/forecast', '/movements', '/movements/new', '/movements/search', '/movements/:source/:movementId/edit/:feature', '/profile'];
 
 export type AppPort = WorkspacePagePort & TaxonomyPagePort;
@@ -53,6 +62,7 @@ export type AppRequired = {
   amountVisibility?: AmountVisibilityPort;
   authentication?: AuthenticationUseCases;
   analyticsProfile?: AnalyticsProfilePort;
+  contributionConsent?: AnalyticsContributionConsentPort;
 };
 
 type AppProps = {
@@ -66,6 +76,7 @@ export function App({ required }: AppProps) {
   const resolvedAmountVisibility = required?.amountVisibility ?? defaultAmountVisibility;
   const resolvedAuthentication = required?.authentication ?? defaultAuthentication;
   const resolvedAnalyticsProfile = required?.analyticsProfile ?? defaultAnalyticsProfile;
+  const resolvedContributionConsent = required?.contributionConsent ?? defaultContributionConsent;
   const amountVisibility = useAmountVisibilityModel({ port: resolvedAmountVisibility });
   const notificationIntentRouter = <NotificationIntentRouter />;
   const voiceCategorySource = useMemo(() => ({
@@ -82,6 +93,7 @@ export function App({ required }: AppProps) {
   return (
     <AuthenticationGate required={{ authentication: resolvedAuthentication }}>
     <RequiredOnboardingGate port={resolvedAnalyticsProfile}>
+    <AnalyticsContributionConsentGate port={resolvedContributionConsent} clock={systemConsentClock}>
     <KeyboardVisibilityProvider capability={defaultKeyboardVisibility}>
       {notificationIntentRouter}
       <Routes>
@@ -96,6 +108,7 @@ export function App({ required }: AppProps) {
       {import.meta.env.DEV ? <Route path="/__gallery" element={<ComponentGalleryView />} /> : null}
       </Routes>
     </KeyboardVisibilityProvider>
+    </AnalyticsContributionConsentGate>
     </RequiredOnboardingGate>
     </AuthenticationGate>
   );
