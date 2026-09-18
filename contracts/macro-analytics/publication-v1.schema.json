@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gonezo.example/contracts/macro-analytics/publication-v1.schema.json",
+  "title": "Gonezo Macro Analytics publication V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocolVersion", "contributorId", "period", "revision", "contribution"],
+  "properties": {
+    "protocolVersion": { "const": 1 },
+    "contributorId": { "type": "string", "minLength": 1, "pattern": "\\S" },
+    "period": { "type": "string", "pattern": "^(?:[0-9]{4})-(?:0[1-9]|1[0-2])$" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "contribution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "dimensions", "financial"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "dimensions": {
+          "type": "object", "additionalProperties": false,
+          "required": ["countryCode", "regionCode", "sex", "ageBand"],
+          "properties": {
+            "countryCode": { "type": "string", "pattern": "^[A-Z]{2}$" },
+            "regionCode": { "type": "string", "minLength": 1 },
+            "sex": { "enum": ["FEMALE", "MALE", "INTERSEX", "NOT_DISCLOSED"] },
+            "ageBand": { "enum": ["0_17", "18_24", "25_34", "35_44", "45_54", "55_64", "65_PLUS"] }
+          }
+        },
+        "financial": {
+          "type": "object", "additionalProperties": false, "required": ["currencies"],
+          "properties": {
+            "currencies": {
+              "type": "array", "items": {
+                "type": "object", "additionalProperties": false, "required": ["currency", "buckets"],
+                "properties": {
+                  "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+                  "buckets": {
+                    "type": "array", "items": {
+                      "type": "object", "additionalProperties": false,
+                      "required": ["source", "kind", "amount", "count"],
+                      "properties": {
+                        "source": { "enum": ["POSTED", "EXPECTED", "SCHEDULED"] },
+                        "kind": { "enum": ["INCOME", "EXPENSE", "TRANSFER_IN", "TRANSFER_OUT"] },
+                        "amount": { "type": "string", "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$" },
+                        "count": { "type": "integer", "minimum": 1 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

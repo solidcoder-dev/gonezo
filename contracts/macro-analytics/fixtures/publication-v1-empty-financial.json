@@ -1,0 +1,11 @@
+{
+  "protocolVersion": 1,
+  "contributorId": "opaque-random-id",
+  "period": "2026-09",
+  "revision": 1,
+  "contribution": {
+    "schemaVersion": 1,
+    "dimensions": { "countryCode": "ES", "regionCode": "ES-CN", "sex": "FEMALE", "ageBand": "25_34" },
+    "financial": { "currencies": [] }
+  }
+}
