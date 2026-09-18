@@ -58,6 +58,10 @@ export class AuthenticationService {
     this.ports.sessions.clear();
   }
 
+  async hasCredentials(): Promise<boolean> {
+    return Boolean(await this.ports.credentials.read());
+  }
+
   getAuthenticationState(): AuthState {
     return this.ports.sessions.read() ?? ANONYMOUS;
   }

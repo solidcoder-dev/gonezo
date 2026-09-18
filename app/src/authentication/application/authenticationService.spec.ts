@@ -49,6 +49,11 @@ describe('AuthenticationService', () => {
     expect(context.service.getAuthenticationState()).toEqual({ status: 'anonymous' });
   });
 
+  it('starts anonymous when no authenticated session is in memory', () => {
+    const context = createService({ userId: 'user-1', username: 'Alice', normalizedUsername: 'alice', passwordHash: 'hash:right-pass' });
+    expect(context.service.getAuthenticationState()).toEqual({ status: 'anonymous' });
+  });
+
   it('rejects a second setup and weak passwords', async () => {
     const context = createService();
     await expect(context.service.setupCredentials('alice', 'short')).rejects.toThrow('Password must contain at least 8 characters');
