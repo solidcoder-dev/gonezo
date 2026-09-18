@@ -1,9 +1,11 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AccountSummaryView } from '../../account/application/accountView.types';
 import type { ProfilePageViewProps } from '../ui/ProfilePageView.contract';
 import { ProfilePage, type ProfilePageRequired } from './ProfilePage';
+import { AuthenticationGate } from '../../authentication/application/AuthenticationGate';
+import type { AuthenticationUseCases } from '../../authentication/application/authentication.port';
 
 type ProfileModelState = {
   accounts: AccountSummaryView[];
@@ -51,6 +53,7 @@ vi.mock('../ui/ProfilePageView', () => ({
 
 function makeRequired(overrides: Partial<ProfilePageRequired> = {}): ProfilePageRequired {
   return {
+    authentication: overrides.authentication,
     context: {
       core: {} as never,
       ...overrides.context,
@@ -181,5 +184,25 @@ describe('ProfilePage', () => {
     await waitFor(() => expect(profilePageProps).not.toBeNull());
     profilePageProps?.provided.commands.setVoiceMovementExperimentEnabled(true);
     expect(onSetVoiceMovementExperimentEnabled).toHaveBeenCalledWith(true);
+  });
+
+  it('shows authentication security settings on Profile', async () => {
+    const authentication = {
+      getAuthenticationState: async () => ({ status: 'authenticated', userId: 'alice' } as const),
+      hasCredentials: async () => true,
+      isDeviceUnlockAvailable: async () => true,
+      isDeviceUnlockEnabled: async () => false,
+    } as AuthenticationUseCases;
+
+    render(
+      <MemoryRouter>
+        <AuthenticationGate required={{ authentication }}>
+          <ProfilePage required={makeRequired({ authentication })} />
+        </AuthenticationGate>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Security' })).toBeInTheDocument();
+    expect(await screen.findByLabelText('Password to enable device unlock')).toBeInTheDocument();
   });
 });

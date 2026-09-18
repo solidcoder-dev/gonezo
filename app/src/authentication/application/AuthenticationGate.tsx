@@ -79,8 +79,11 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
     try {
       await required.authentication.unlockWithDevice();
       setState('authenticated');
-    } catch {
-      setError('Device authentication was cancelled or failed. Use your password.');
+    } catch (cause) {
+      const code = typeof cause === 'object' && cause !== null && 'code' in cause ? cause.code : undefined;
+      setError(code === 'DEVICE_AUTHENTICATION_UNAVAILABLE'
+        ? 'Device authentication is unavailable. Use your password.'
+        : 'Device authentication was cancelled or failed. Use your password.');
     }
   }
 

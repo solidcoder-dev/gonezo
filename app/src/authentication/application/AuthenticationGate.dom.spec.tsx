@@ -87,6 +87,19 @@ describe('AuthenticationGate', () => {
     expect(screen.queryByText('Gonezo home')).not.toBeInTheDocument();
   });
 
+  it('explains when device authentication becomes unavailable', async () => {
+    const authentication = createAuthentication(true);
+    vi.mocked(authentication.isDeviceUnlockEnabled).mockResolvedValue(true);
+    const unavailable = Object.assign(new Error('unavailable'), { code: 'DEVICE_AUTHENTICATION_UNAVAILABLE' });
+    vi.mocked(authentication.unlockWithDevice).mockRejectedValue(unavailable);
+    render(<AuthenticationGate required={{ authentication }}><p>Gonezo home</p></AuthenticationGate>);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Unlock with device' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Device authentication is unavailable');
+    expect(screen.getByLabelText('Password')).toBeInTheDocument();
+  });
+
   it('opens Gonezo after successful device authentication', async () => {
     const authentication = createAuthentication(true);
     vi.mocked(authentication.isDeviceUnlockEnabled).mockResolvedValue(true);
