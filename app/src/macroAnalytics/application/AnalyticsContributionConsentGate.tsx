@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useAuthenticationSession } from '../../authentication/application/authenticationSessionContext';
 import { OnboardingShell } from '../../analyticsProfile/ui/OnboardingShell';
-import styles from '../../analyticsProfile/ui/onboarding.module.css';
 import type { AnalyticsContributionConsent } from '../domain/analyticsContributionConsent';
 import type { AnalyticsContributionConsentPort } from './analyticsContributionConsent.port';
 import {
@@ -57,16 +56,16 @@ export function AnalyticsContributionConsentGate({ port, clock, children }: {
 
   return (
     <OnboardingShell step={5} totalSteps={5} busy={false} action={(
-      <div className={styles.consentActions}>
-        <button className={styles.primaryAction} type="button" onClick={() => { void decide('GRANTED'); }}>Allow contribution</button>
-        <button className={styles.secondaryAction} type="button" onClick={() => { void decide('DECLINED'); }}>Not now</button>
+      <div className="d-grid gap-2">
+        <button className="btn btn-outline-secondary w-100" type="button" onClick={() => { void decide('GRANTED'); }}>Allow contribution</button>
+        <button className="btn btn-outline-secondary w-100" type="button" onClick={() => { void decide('DECLINED'); }}>Not now</button>
       </div>
     )}>
-      <p className={styles.eyebrow}>OPTIONAL CONTRIBUTION</p>
+      <p className="text-uppercase text-primary small fw-semibold">OPTIONAL CONTRIBUTION</p>
       <h1>Contribute to aggregated insights?</h1>
       <p>Gonezo may use financial activity together with demographic context to create aggregated statistical insights.</p>
       <p>Participation is optional. Your choice will not affect how you use Gonezo, and you can change it later in Privacy &amp; Analytics.</p>
-      {state.error ? <p className={styles.error} role="alert">{state.error}</p> : null}
+      {state.error ? <p className="text-danger" role="alert">{state.error}</p> : null}
     </OnboardingShell>
   );
 }
