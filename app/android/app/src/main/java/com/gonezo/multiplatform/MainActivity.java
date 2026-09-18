@@ -6,6 +6,7 @@ import com.gonezo.multiplatform.systemui.AndroidSystemBarsController;
 import com.getcapacitor.BridgeActivity;
 import com.gonezo.multiplatform.plugins.CorePlugin;
 import com.gonezo.multiplatform.plugins.AuthenticationPlugin;
+import com.gonezo.multiplatform.plugins.AnalyticsProfilePlugin;
 import com.gonezo.multiplatform.plugins.audio.AudioCapturePlugin;
 import com.gonezo.multiplatform.plugins.interpretation.SchemaGuidedInterpretationPlugin;
 import com.gonezo.multiplatform.plugins.interpretation.export.InterpretationRunExportPlugin;
@@ -19,6 +20,7 @@ public class MainActivity extends BridgeActivity {
   public void onCreate(Bundle savedInstanceState) {
     registerPlugin(CorePlugin.class);
     registerPlugin(AuthenticationPlugin.class);
+    registerPlugin(AnalyticsProfilePlugin.class);
     registerPlugin(AudioCapturePlugin.class);
     registerPlugin(SchemaGuidedInterpretationPlugin.class);
     registerPlugin(InterpretationRunExportPlugin.class);
