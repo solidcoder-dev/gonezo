@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App, type AppPort } from '../../App';
 vi.mock('../../authentication/infrastructure/createAuthenticationService', () => ({
   createAuthenticationService: () => ({
-    getAuthenticationState: () => ({ status: 'authenticated', userId: 'test-user' }),
+    getAuthenticationState: async () => ({ status: 'authenticated', userId: 'test-user' }),
     hasCredentials: async () => true,
     isDeviceUnlockAvailable: async () => false,
     isDeviceUnlockEnabled: async () => false,
