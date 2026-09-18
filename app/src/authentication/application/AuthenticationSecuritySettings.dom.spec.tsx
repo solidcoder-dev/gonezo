@@ -3,12 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { AuthenticationGate } from './AuthenticationGate';
 import { AuthenticationSecuritySettings } from './AuthenticationSecuritySettings';
 import type { AuthenticationUseCases } from './authentication.port';
+import type { AuthState } from '../domain/authentication.types';
 
 function makeAuthentication() {
   let enabled = false;
   let authenticated = true;
   const authentication = {
-    getAuthenticationState: async () => ({ status: authenticated ? 'authenticated' : 'unauthenticated' } as const),
+    getAuthenticationState: async () => (authenticated ? { status: 'authenticated', userId: 'user-1' } : { status: 'unauthenticated' }) as AuthState,
     hasCredentials: async () => true,
     isDeviceUnlockAvailable: async () => true,
     isDeviceUnlockEnabled: async () => enabled,
@@ -45,6 +46,6 @@ describe('AuthenticationSecuritySettings', () => {
     const authentication = renderSettings();
     fireEvent.click(await screen.findByRole('button', { name: 'Log out' }));
     await waitFor(() => expect(authentication.logout).toHaveBeenCalledOnce());
-    expect(await screen.findByRole('heading', { name: 'Authentication' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
   });
 });
