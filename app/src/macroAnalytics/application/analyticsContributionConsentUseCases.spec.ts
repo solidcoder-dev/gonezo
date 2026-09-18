@@ -26,7 +26,9 @@ describe('analytics contribution consent use cases', () => {
     const port = new MemoryConsentPort();
     const clock = () => '2026-09-18T10:00:00.000Z';
 
-    expect(await getContributionConsent(port, 'user-A')).toBeNull();
+    const undecided = await getContributionConsent(port, 'user-A');
+    expect(undecided).toBeNull();
+    expect(canContribute(undecided)).toBe(false);
     await grantContributionConsent(port, 'user-A', clock);
     expect(canContribute(await getContributionConsent(port, 'user-A'))).toBe(true);
     expect(await getContributionConsent(port, 'user-B')).toBeNull();

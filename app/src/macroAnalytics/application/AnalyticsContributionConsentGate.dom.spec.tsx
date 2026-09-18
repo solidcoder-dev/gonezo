@@ -34,4 +34,41 @@ describe('AnalyticsContributionConsentGate', () => {
     expect(await screen.findByText('Gonezo workspace')).toBeInTheDocument();
     expect(await port.get('user-A')).toMatchObject({ status, noticeVersion: 1 });
   });
+
+  it('shows a retry when reading the saved choice fails', async () => {
+    let attempts = 0;
+    const port = new MemoryConsentPort();
+    port.get = async (userId) => {
+      attempts += 1;
+      if (attempts === 1) throw new Error('storage unavailable');
+      return port.decisions.get(userId) ?? null;
+    };
+    renderGate(port);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Try again' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Not now' }));
+
+    expect(await screen.findByText('Gonezo workspace')).toBeInTheDocument();
+  });
+
+  it('keeps both decisions available when saving fails so the user can retry', async () => {
+    const port = new MemoryConsentPort();
+    const save = port.save.bind(port);
+    let shouldFail = true;
+    port.save = async (decision) => {
+      if (shouldFail) {
+        shouldFail = false;
+        throw new Error('storage unavailable');
+      }
+      await save(decision);
+    };
+    renderGate(port);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Allow contribution' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('could not be saved');
+    fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+
+    expect(await screen.findByText('Gonezo workspace')).toBeInTheDocument();
+    expect(await port.get('user-A')).toMatchObject({ status: 'DECLINED' });
+  });
 });

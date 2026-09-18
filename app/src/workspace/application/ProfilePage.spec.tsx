@@ -126,6 +126,26 @@ describe('ProfilePage', () => {
     expect(screen.getByRole('button', { name: 'Allow' })).toBeInTheDocument();
   });
 
+  it('offers a retry when the saved privacy choice cannot be loaded', async () => {
+    let attempts = 0;
+    const port: AnalyticsContributionConsentPort = {
+      async get(userId) {
+        attempts += 1;
+        if (attempts === 1) throw new Error('storage unavailable');
+        return { userId, status: 'GRANTED', noticeVersion: 1, decidedAt: '2026-09-18T10:00:00.000Z' };
+      },
+      async save() { return undefined; },
+    };
+    render(<MemoryRouter><AuthenticationSessionProvider session={{ userId: 'user-A', logout: async () => undefined }}>
+      <ProfilePage required={makeRequired({ contributionConsent: port, contributionConsentClock: () => '2026-09-19T10:00:00.000Z' })} />
+    </AuthenticationSessionProvider></MemoryRouter>);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('could not be loaded');
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByRole('button', { name: 'Withdraw' })).toBeInTheDocument();
+  });
+
   it('does not filter profile accounts from a currency query parameter', async () => {
     render(
       <MemoryRouter initialEntries={['/profile?currency=EUR']}>
