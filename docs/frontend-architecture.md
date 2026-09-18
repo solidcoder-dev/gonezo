@@ -157,6 +157,19 @@ Android es el unico runtime de producto activo. `app/src/shared/infrastructure/c
 redirige a `CorePlugin` cuando Capacitor corre en plataforma nativa. El adaptador web queda para pruebas
 y futuro runtime web; iOS queda fuera de alcance por ahora.
 
+## Autenticación local
+
+`authentication/` es un bounded context con capas `domain`, `application`, `infrastructure` y `ui`.
+El gate de aplicación separa la creación inicial de credenciales, el estado bloqueado y la sesión autenticada.
+El usuario local se verifica con Argon2id; Android cifra el registro de credenciales con AES-GCM y una clave
+del Android Keystore. La sesión solo vive en memoria y vuelve a anónima al iniciar el proceso.
+
+El desbloqueo de dispositivo es optativo. AndroidX BiometricPrompt devuelve únicamente éxito o fallo; la
+contraseña no se guarda ni se recupera mediante biometría, y el login por contraseña permanece disponible.
+Esta autenticación es local a la instalación: no crea una cuenta global Gonezo ni aporta identidad remota,
+roles o permisos. Protege el acceso a la interfaz y las credenciales; no cambia el cifrado en reposo de la
+base de datos financiera existente.
+
 ## UX Transferencias FX
 
 La logica UX de transferencias vive en:

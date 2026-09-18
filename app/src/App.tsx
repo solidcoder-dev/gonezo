@@ -20,6 +20,9 @@ import { LocalAmountVisibilityAdapter } from './core/infrastructure/LocalAmountV
 import { useAmountVisibilityModel } from './workspace/application/useAmountVisibilityModel';
 import type { AmountVisibilityPort } from './workspace/application/amountVisibility.port';
 import { SharingPeoplePage } from './sharing/application/SharingPeoplePage';
+import { AuthenticationGate } from './authentication/application/AuthenticationGate';
+import { createAuthenticationService } from './authentication/infrastructure/createAuthenticationService';
+import type { AuthenticationService } from './authentication/application/authenticationService';
 
 const defaultCore = new CoreAdapter();
 const defaultImportFileReader = { readAsBase64: readImportFileAsBase64 };
@@ -28,6 +31,7 @@ const defaultExperimentalFeatures = new LocalExperimentalFeaturesAdapter();
 const defaultKeyboardVisibility = createKeyboardVisibilityCapability();
 const defaultNotifications = createNotificationsAdapter();
 const defaultAmountVisibility = new LocalAmountVisibilityAdapter();
+const defaultAuthentication = createAuthenticationService();
 const workspaceRoutes = ['/', '/home', '/accounts', '/analytics', '/analytics/category/:categoryId', '/analytics/forecast', '/movements', '/movements/new', '/movements/search', '/movements/:source/:movementId/edit/:feature', '/profile'];
 
 export type AppPort = WorkspacePagePort & TaxonomyPagePort;
@@ -38,6 +42,7 @@ export type AppRequired = {
   experimentalFeatures?: ExperimentalFeaturesPort;
   notifications?: ReturnType<typeof createNotificationsAdapter>;
   amountVisibility?: AmountVisibilityPort;
+  authentication?: AuthenticationService;
 };
 
 type AppProps = {
@@ -49,6 +54,7 @@ export function App({ required }: AppProps) {
   const resolvedExperimentalFeatures = required?.experimentalFeatures ?? defaultExperimentalFeatures;
   const resolvedNotifications = required?.notifications ?? defaultNotifications;
   const resolvedAmountVisibility = required?.amountVisibility ?? defaultAmountVisibility;
+  const resolvedAuthentication = required?.authentication ?? defaultAuthentication;
   const amountVisibility = useAmountVisibilityModel({ port: resolvedAmountVisibility });
   const notificationIntentRouter = <NotificationIntentRouter />;
   const voiceCategorySource = useMemo(() => ({
@@ -63,6 +69,7 @@ export function App({ required }: AppProps) {
   ), [amountVisibility, resolvedCore, resolvedExperimentalFeatures, resolvedMovementVoiceEntry, resolvedNotifications]);
 
   return (
+    <AuthenticationGate required={{ authentication: resolvedAuthentication }}>
     <KeyboardVisibilityProvider capability={defaultKeyboardVisibility}>
       {notificationIntentRouter}
       <Routes>
@@ -76,6 +83,7 @@ export function App({ required }: AppProps) {
       {import.meta.env.DEV ? <Route path="/__gallery" element={<ComponentGalleryView />} /> : null}
       </Routes>
     </KeyboardVisibilityProvider>
+    </AuthenticationGate>
   );
 }
 

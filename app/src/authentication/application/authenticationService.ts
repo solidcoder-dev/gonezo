@@ -86,6 +86,10 @@ export class AuthenticationService {
     return this.ports.deviceAuthenticator.isEnabled();
   }
 
+  isDeviceUnlockAvailable(): Promise<boolean> {
+    return this.ports.deviceAuthenticator.isAvailable();
+  }
+
   logout(): void {
     this.ports.sessions.clear();
   }
