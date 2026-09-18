@@ -22,6 +22,9 @@ export function AuthenticationGateView(props: AuthenticationGateViewProps) {
           <button className={`btn ${props.mode === 'sign-in' ? 'btn-primary' : 'btn-outline-primary'}`} type="button" aria-pressed={props.mode === 'sign-in'} onClick={() => props.onModeChange('sign-in')}>Sign in</button>
           <button className={`btn ${props.mode === 'create-account' ? 'btn-primary' : 'btn-outline-primary'}`} type="button" aria-pressed={props.mode === 'create-account'} onClick={() => props.onModeChange('create-account')}>Create account</button>
         </div>
+        {props.state === 'locked' && props.deviceUnlockEnabled && !props.deviceUnlockAvailable
+          ? <p role="status">Device authentication is unavailable. Sign in with your password.</p>
+          : null}
         {props.state === 'locked' && props.deviceUnlockEnabled && props.deviceUnlockAvailable ? <button className="btn btn-outline-primary mb-3" type="button" onClick={props.onDeviceUnlock}>Unlock with device</button> : null}
         <form onSubmit={props.onSubmit}>
           <div className="mb-3">
