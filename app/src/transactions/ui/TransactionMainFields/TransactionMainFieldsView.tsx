@@ -48,8 +48,7 @@ export type TransactionMainFieldsViewProps = ViewProps<
     changeTransferTarget: (value: string) => void;
     continueEditing?: () => void;
     closeMovementReuse?: () => void;
-    activateMovementReuse?: () => void;
-    deactivateMovementReuse?: () => void;
+    endMovementReuseSearch?: () => void;
     toggleMovementReuseGroup?: (group: MovementReuseSuggestionGroup) => void;
     selectMovementReuseVariant?: (selection: { title: string; variant: MovementReuseSuggestionVariant }) => void;
   }
@@ -171,8 +170,7 @@ export function TransactionMainFieldsView({ required, provided }: TransactionMai
               placeholder={notePlaceholder}
               onChange={provided.commands.changeNote}
               onClose={provided.commands.closeMovementReuse}
-              onActivate={provided.commands.activateMovementReuse ?? (() => {})}
-              onDeactivate={provided.commands.deactivateMovementReuse ?? (() => {})}
+              onEndSearch={provided.commands.endMovementReuseSearch ?? (() => {})}
               onToggleGroup={provided.commands.toggleMovementReuseGroup}
               onSelectVariant={provided.commands.selectMovementReuseVariant}
             />

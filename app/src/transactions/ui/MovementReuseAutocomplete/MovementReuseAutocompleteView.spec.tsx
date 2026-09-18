@@ -38,20 +38,22 @@ describe('MovementReuseAutocompleteView metadata', () => {
 });
 
 describe('MovementReuseAutocompleteView focus lifecycle', () => {
-  it('activates on focus, keeps focus transitions inside the popup open, and deactivates outside', () => {
-    const activate = vi.fn();
-    const deactivate = vi.fn();
-    renderView({ onActivate: activate, onDeactivate: deactivate });
+  it('keeps focus transitions inside the popup open and ends search outside', () => {
+    const endSearch = vi.fn();
+    const change = vi.fn();
+    renderView({ onEndSearch: endSearch, onChange: change });
     const input = screen.getByRole('combobox');
     const option = screen.getByRole('option', { name: /Mercadona/ });
 
     fireEvent.focus(input);
+    expect(endSearch).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { value: 'mercadona' } });
+    expect(change).toHaveBeenCalledWith('mercadona');
     fireEvent.blur(input, { relatedTarget: option });
-    expect(activate).toHaveBeenCalledTimes(1);
-    expect(deactivate).not.toHaveBeenCalled();
+    expect(endSearch).not.toHaveBeenCalled();
 
     fireEvent.blur(input, { relatedTarget: document.body });
-    expect(deactivate).toHaveBeenCalledTimes(1);
+    expect(endSearch).toHaveBeenCalledTimes(1);
   });
 
   it('selects once by click and prevents Enter from submitting the parent form', () => {

@@ -16,8 +16,7 @@ export type MovementReuseAutocompleteViewProps = {
   error?: string;
   onChange: (value: string) => void;
   onClose: () => void;
-  onActivate?: () => void;
-  onDeactivate?: () => void;
+  onEndSearch?: () => void;
   onToggleGroup: (group: MovementReuseSuggestionGroup) => void;
   onSelectVariant: (selection: { title: string; variant: MovementReuseSuggestionVariant }) => void;
 };
@@ -35,15 +34,14 @@ export function MovementReuseAutocompleteView({
   error,
   onChange,
   onClose,
-  onActivate,
-  onDeactivate,
+  onEndSearch,
   onToggleGroup,
   onSelectVariant,
 }: MovementReuseAutocompleteViewProps) {
   const listboxId = `movement-reuse-suggestions-${useId().replace(/:/g, '')}`;
   return (
     <div className={styles.autocomplete} onBlur={(event) => {
-      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) onDeactivate?.();
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) onEndSearch?.();
     }}>
       <input
         ref={inputRef}
@@ -57,7 +55,6 @@ export function MovementReuseAutocompleteView({
         placeholder={placeholder}
         value={query}
         onChange={(event) => onChange(event.target.value)}
-        onFocus={onActivate}
         onKeyDown={(event) => {
           if (event.key === 'Escape') {
             event.preventDefault();

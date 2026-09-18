@@ -87,8 +87,8 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
 
   async function toggleGroup(group: MovementReuseSuggestionGroup) {
     if (group.variantCount <= 1) {
-      inputRef.current.onSelected?.({ title: group.title, variant: group.primaryVariant });
       endSearch();
+      inputRef.current.onSelected?.({ title: group.title, variant: group.primaryVariant });
       return;
     }
     if (expandedTitle === group.normalizedTitle) {
@@ -121,8 +121,8 @@ export function useMovementReuseSuggestionsModel(input: MovementReuseSuggestions
   }
 
   function selectVariant(selection: { title: string; variant: MovementReuseSuggestionVariant }) {
-    inputRef.current.onSelected?.(selection);
     endSearch();
+    inputRef.current.onSelected?.(selection);
   }
 
   return {
