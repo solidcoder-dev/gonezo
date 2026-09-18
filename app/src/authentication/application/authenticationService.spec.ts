@@ -10,7 +10,7 @@ function createService(existing?: CredentialRecord, deviceAuthenticator: DeviceA
   disable: async () => undefined,
 }) {
   let credentials = existing;
-  let state: AuthState = { status: 'anonymous' };
+  let state: AuthState = { status: 'unauthenticated' };
   let passwordVerifications = 0;
   const passwordByHash = new Map<string, string>();
   if (existing) passwordByHash.set(existing.passwordHash, 'right-pass');
@@ -28,9 +28,9 @@ function createService(existing?: CredentialRecord, deviceAuthenticator: DeviceA
       verify: async (password, hash) => { passwordVerifications += 1; return passwordByHash.get(hash) === password; },
     },
     sessions: {
-      read: () => state,
-      establish: (userId) => { state = { status: 'authenticated', userId }; },
-      clear: () => { state = { status: 'anonymous' }; },
+      read: async () => state,
+      establish: async (userId) => { state = { status: 'authenticated', userId }; },
+      clear: async () => { state = { status: 'unauthenticated' }; },
     },
     deviceAuthenticator,
     createUserId: () => 'user-1',
@@ -46,12 +46,16 @@ function createService(existing?: CredentialRecord, deviceAuthenticator: DeviceA
 describe('AuthenticationService', () => {
   it('creates credentials and authenticates the first local user', async () => {
     const context = createService();
+    const existingGonezoData = { accounts: ['existing-account'], movements: ['existing-movement'] };
+    const existingGonezoDataBefore = structuredClone(existingGonezoData);
     await context.service.setupCredentials(' Alice ', 'secret-pass');
 
     expect(context.credentials?.normalizedUsername).toBe('alice');
     expect(context.credentials?.passwordHash).toBe('test-hash-1');
     expect(JSON.stringify(context.credentials)).not.toContain('secret-pass');
     expect(context.state).toEqual({ status: 'authenticated', userId: 'user-1' });
+    expect(existingGonezoData).toEqual(existingGonezoDataBefore);
+    expect(JSON.stringify(context.state)).not.toContain('secret-pass');
   });
 
   it('uses one generic error for an unknown username and a wrong password', async () => {
@@ -66,19 +70,21 @@ describe('AuthenticationService', () => {
     const context = createService({ userId: 'user-1', username: 'Alice', normalizedUsername: 'alice', passwordHash: 'hash:right-pass' });
     await context.service.loginWithPassword('ALICE', 'right-pass');
     expect(context.state.status).toBe('authenticated');
-    context.service.logout();
-    expect(context.service.getAuthenticationState()).toEqual({ status: 'anonymous' });
+    await context.service.logout();
+    await expect(context.service.getAuthenticationState()).resolves.toEqual({ status: 'unauthenticated' });
+    await context.service.loginWithPassword('alice', 'right-pass');
+    await expect(context.service.getAuthenticationState()).resolves.toEqual({ status: 'authenticated', userId: 'user-1' });
   });
 
-  it('starts anonymous when no authenticated session is in memory', () => {
+  it('starts unauthenticated when no session exists', async () => {
     const context = createService({ userId: 'user-1', username: 'Alice', normalizedUsername: 'alice', passwordHash: 'hash:right-pass' });
-    expect(context.service.getAuthenticationState()).toEqual({ status: 'anonymous' });
+    await expect(context.service.getAuthenticationState()).resolves.toEqual({ status: 'unauthenticated' });
   });
 
   it('establishes a session only after device authentication succeeds', async () => {
     const context = createService({ userId: 'user-1', username: 'Alice', normalizedUsername: 'alice', passwordHash: 'hash:right-pass' });
     await context.service.unlockWithDevice();
-    expect(context.service.getAuthenticationState()).toEqual({ status: 'authenticated', userId: 'user-1' });
+    await expect(context.service.getAuthenticationState()).resolves.toEqual({ status: 'authenticated', userId: 'user-1' });
   });
 
   it('does not establish a session when device authentication fails', async () => {
@@ -91,7 +97,7 @@ describe('AuthenticationService', () => {
       disable: async () => undefined,
     });
     await expect(context.service.unlockWithDevice()).rejects.toBe(deviceFailure);
-    expect(context.service.getAuthenticationState()).toEqual({ status: 'anonymous' });
+    await expect(context.service.getAuthenticationState()).resolves.toEqual({ status: 'unauthenticated' });
   });
 
   it('requires an authenticated session and available device auth before enabling unlock', async () => {
@@ -121,7 +127,7 @@ describe('AuthenticationService', () => {
     await context.service.loginWithPassword('alice', 'right-pass');
     await context.service.enableDeviceUnlock();
     expect(await context.service.isDeviceUnlockEnabled()).toBe(true);
-    context.service.logout();
+    await context.service.logout();
     await expect(context.service.disableDeviceUnlock()).rejects.toThrow('Authenticate with your password first');
     await context.service.loginWithPassword('alice', 'right-pass');
     await context.service.disableDeviceUnlock();

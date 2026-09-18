@@ -3,11 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { AuthenticationGate } from './AuthenticationGate';
 import type { AuthenticationUseCases } from './authentication.port';
 
-function createAuthentication(exists: boolean) {
-  let authenticated = false;
+function createAuthentication(exists: boolean, startsAuthenticated = false) {
+  let authenticated = startsAuthenticated;
   let enabled = false;
   const authentication = {
-    getAuthenticationState: () => ({ status: authenticated ? 'authenticated' : 'anonymous' } as const),
+    getAuthenticationState: async () => ({ status: authenticated ? 'authenticated' : 'unauthenticated' } as const),
     hasCredentials: async () => exists,
     isDeviceUnlockAvailable: vi.fn(async () => true),
     isDeviceUnlockEnabled: vi.fn(async () => enabled),
@@ -16,22 +16,24 @@ function createAuthentication(exists: boolean) {
     unlockWithDevice: vi.fn(async () => { authenticated = true; }),
     enableDeviceUnlock: vi.fn(async () => { enabled = true; }),
     disableDeviceUnlock: vi.fn(async () => { enabled = false; }),
-    logout: vi.fn(() => { authenticated = false; }),
+    logout: vi.fn(async () => { authenticated = false; }),
   } as AuthenticationUseCases;
   return authentication;
 }
 
 describe('AuthenticationGate', () => {
-  it('sets up the first local credentials before showing Gonezo', async () => {
+  it('creates credentials and authenticates the first local user before showing Gonezo', async () => {
     const authentication = createAuthentication(false);
     render(<AuthenticationGate required={{ authentication }}><p>Gonezo home</p></AuthenticationGate>);
 
     fireEvent.change(await screen.findByLabelText('Username'), { target: { value: 'alice' } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'long-password' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create credentials' }));
+    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'long-password' } });
+    fireEvent.submit(screen.getByLabelText('Password').closest('form')!);
 
     await screen.findByText('Gonezo home');
     expect(authentication.setupCredentials).toHaveBeenCalledWith('alice', 'long-password');
+    expect(screen.queryByLabelText('Confirm password')).not.toBeInTheDocument();
   });
 
   it('shows a generic password error and keeps the gate locked', async () => {
@@ -41,10 +43,30 @@ describe('AuthenticationGate', () => {
 
     fireEvent.change(await screen.findByLabelText('Username'), { target: { value: 'alice' } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'wrong-password' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Unlock' }));
+    fireEvent.submit(screen.getByLabelText('Password').closest('form')!);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Invalid credentials');
     expect(screen.queryByText('Gonezo home')).not.toBeInTheDocument();
+  });
+
+  it('signs in and returns to Gonezo home', async () => {
+    const authentication = createAuthentication(true);
+    render(<AuthenticationGate required={{ authentication }}><p>Gonezo home</p></AuthenticationGate>);
+
+    fireEvent.change(await screen.findByLabelText('Username'), { target: { value: 'alice' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'right-password' } });
+    fireEvent.submit(screen.getByLabelText('Password').closest('form')!);
+
+    await screen.findByText('Gonezo home');
+    expect(authentication.loginWithPassword).toHaveBeenCalledWith('alice', 'right-password');
+  });
+
+  it('restores an existing authenticated session on application startup', async () => {
+    const authentication = createAuthentication(true, true);
+    render(<AuthenticationGate required={{ authentication }}><p>Gonezo home</p></AuthenticationGate>);
+
+    expect(await screen.findByText('Gonezo home')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Authentication' })).not.toBeInTheDocument();
   });
 
   it('allows device unlock and falls back to password after cancellation', async () => {
@@ -55,7 +77,7 @@ describe('AuthenticationGate', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Unlock with device' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Use your password');
-    expect(screen.getByRole('button', { name: 'Unlock' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(screen.queryByText('Gonezo home')).not.toBeInTheDocument();
   });
 
@@ -76,11 +98,11 @@ describe('AuthenticationGate', () => {
 
     fireEvent.change(await screen.findByLabelText('Username'), { target: { value: 'alice' } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'long-password' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Unlock' }));
+    fireEvent.submit(screen.getByLabelText('Password').closest('form')!);
     await screen.findByText('Gonezo home');
     fireEvent.click(screen.getByRole('button', { name: 'Enable device unlock' }));
     await waitFor(() => expect(authentication.enableDeviceUnlock).toHaveBeenCalled());
     fireEvent.click(screen.getByRole('button', { name: 'Lock Gonezo' }));
-    expect(await screen.findByRole('heading', { name: 'Unlock Gonezo' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Authentication' })).toBeInTheDocument();
   });
 });

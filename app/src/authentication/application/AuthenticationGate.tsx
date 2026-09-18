@@ -8,9 +8,8 @@ type AuthenticationGateProps = {
 };
 
 export function AuthenticationGate({ required, children }: AuthenticationGateProps) {
-  const [state, setState] = useState<'loading' | 'setup' | 'locked' | 'authenticated'>(
-    required.authentication.getAuthenticationState().status === 'authenticated' ? 'authenticated' : 'loading',
-  );
+  const [state, setState] = useState<'loading' | 'setup' | 'locked' | 'authenticated'>('loading');
+  const [mode, setMode] = useState<'sign-in' | 'create-account'>('sign-in');
   const [deviceUnlockAvailable, setDeviceUnlockAvailable] = useState(false);
   const [deviceUnlockEnabled, setDeviceUnlockEnabled] = useState(false);
   const [error, setError] = useState('');
@@ -27,8 +26,17 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
 
   useEffect(() => {
     let active = true;
-    void required.authentication.hasCredentials().then((exists) => {
-      if (active && state !== 'authenticated') setState(exists ? 'locked' : 'setup');
+    void required.authentication.getAuthenticationState().then(async (authState) => {
+      if (!active) return;
+      if (authState.status === 'authenticated') {
+        setState('authenticated');
+        return;
+      }
+      const exists = await required.authentication.hasCredentials();
+      if (active) {
+        setState(exists ? 'locked' : 'setup');
+        setMode(exists ? 'sign-in' : 'create-account');
+      }
     }).catch(() => {
       if (active) setError('Secure authentication is unavailable. Restart Gonezo and try again.');
     });
@@ -39,22 +47,27 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
       }
     });
     return () => { active = false; };
-  }, [refreshDeviceUnlock, required.authentication, state]);
+  }, [refreshDeviceUnlock, required.authentication]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const username = event.currentTarget.elements.namedItem('username');
     const password = event.currentTarget.elements.namedItem('password');
+    const confirmation = event.currentTarget.elements.namedItem('confirmPassword');
     if (!(username instanceof HTMLInputElement) || !(password instanceof HTMLInputElement)) return;
+    if (mode === 'create-account' && (!(confirmation instanceof HTMLInputElement) || confirmation.value !== password.value)) {
+      setError('Passwords do not match');
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
-      if (state === 'setup') await required.authentication.setupCredentials(username.value, password.value);
+      if (mode === 'create-account') await required.authentication.setupCredentials(username.value, password.value);
       else await required.authentication.loginWithPassword(username.value, password.value);
       setState('authenticated');
       await refreshDeviceUnlock();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Authentication failed');
+      setError(mode === 'sign-in' ? 'Invalid credentials' : cause instanceof Error ? cause.message : 'Account could not be created');
     } finally {
       setSubmitting(false);
     }
@@ -81,6 +94,16 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
     }
   }
 
+  async function logout() {
+    setError('');
+    try {
+      await required.authentication.logout();
+      setState('locked');
+    } catch {
+      setError('Secure session could not be cleared. Try again.');
+    }
+  }
+
   return (
     <AuthenticationGateView
       state={state}
@@ -92,7 +115,9 @@ export function AuthenticationGate({ required, children }: AuthenticationGatePro
       onDeviceUnlock={() => { void unlockWithDevice(); }}
       onEnableDeviceUnlock={() => { void changeDeviceUnlock(true); }}
       onDisableDeviceUnlock={() => { void changeDeviceUnlock(false); }}
-      onLogout={() => { required.authentication.logout(); setState('locked'); }}
+      onModeChange={(nextMode) => { setMode(nextMode); setError(''); }}
+      mode={mode}
+      onLogout={() => { void logout(); }}
     >
       {children}
     </AuthenticationGateView>

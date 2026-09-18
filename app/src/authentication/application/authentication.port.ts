@@ -8,7 +8,7 @@ export type AuthenticationUseCases = {
   disableDeviceUnlock(): Promise<void>;
   isDeviceUnlockEnabled(): Promise<boolean>;
   isDeviceUnlockAvailable(): Promise<boolean>;
-  logout(): void;
-  getAuthenticationState(): AuthState;
+  logout(): Promise<void>;
+  getAuthenticationState(): Promise<AuthState>;
   hasCredentials(): Promise<boolean>;
 };

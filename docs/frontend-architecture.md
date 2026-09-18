@@ -175,8 +175,10 @@ y futuro runtime web; iOS queda fuera de alcance por ahora.
 
 `authentication/` es un bounded context con capas `domain`, `application`, `infrastructure` y `ui`.
 El gate de aplicación separa la creación inicial de credenciales, el estado bloqueado y la sesión autenticada.
-El usuario local se verifica con Argon2id; Android cifra el registro de credenciales con AES-GCM y una clave
-del Android Keystore. La sesión solo vive en memoria y vuelve a anónima al iniciar el proceso.
+El usuario local se verifica con Argon2id; Android cifra el registro de credenciales y el identificador de
+sesión por separado con AES-GCM y una clave del Android Keystore. La sesión sobrevive al reinicio normal y
+se elimina al cerrar sesión. Crear credenciales solo escribe en el almacenamiento de autenticación; no toca
+la base de datos ni el almacenamiento financiero existente.
 
 El desbloqueo de dispositivo es optativo. AndroidX BiometricPrompt devuelve únicamente éxito o fallo; la
 contraseña no se guarda ni se recupera mediante biometría, y el login por contraseña permanece disponible.

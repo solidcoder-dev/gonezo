@@ -1,4 +1,4 @@
-import { ANONYMOUS, type AuthState, type CredentialRecord } from '../domain/authentication.types';
+import type { AuthState, CredentialRecord } from '../domain/authentication.types';
 import type { AuthenticationUseCases } from './authentication.port';
 
 export type CredentialsRepository = {
@@ -12,9 +12,9 @@ export type PasswordHasher = {
 };
 
 export type SessionStore = {
-  read(): AuthState;
-  establish(userId: string): void;
-  clear(): void;
+  read(): Promise<AuthState>;
+  establish(userId: string): Promise<void>;
+  clear(): Promise<void>;
 };
 
 export type DeviceAuthenticator = {
@@ -53,7 +53,7 @@ export class AuthenticationService implements AuthenticationUseCases {
       passwordHash: await this.ports.passwordHasher.hash(password),
     };
     await this.ports.credentials.create(record);
-    this.ports.sessions.establish(userId);
+    await this.ports.sessions.establish(userId);
   }
 
   async loginWithPassword(username: string, password: string): Promise<void> {
@@ -63,7 +63,7 @@ export class AuthenticationService implements AuthenticationUseCases {
     if (!record || record.normalizedUsername !== normalizedUsername || !passwordIsValid) {
       throw new Error('Invalid credentials');
     }
-    this.ports.sessions.establish(record.userId);
+    await this.ports.sessions.establish(record.userId);
   }
 
   async unlockWithDevice(): Promise<void> {
@@ -71,17 +71,17 @@ export class AuthenticationService implements AuthenticationUseCases {
     if (!record) throw new Error('Invalid credentials');
     if (!(await this.ports.deviceAuthenticator.isEnabled())) throw new Error('Device unlock is not enabled');
     await this.ports.deviceAuthenticator.authenticate();
-    this.ports.sessions.establish(record.userId);
+    await this.ports.sessions.establish(record.userId);
   }
 
   async enableDeviceUnlock(): Promise<void> {
-    if (this.getAuthenticationState().status !== 'authenticated') throw new Error('Authenticate with your password first');
+    if ((await this.getAuthenticationState()).status !== 'authenticated') throw new Error('Authenticate with your password first');
     if (!(await this.ports.deviceAuthenticator.isAvailable())) throw new Error('Device authentication is unavailable');
     await this.ports.deviceAuthenticator.enable();
   }
 
   async disableDeviceUnlock(): Promise<void> {
-    if (this.getAuthenticationState().status !== 'authenticated') throw new Error('Authenticate with your password first');
+    if ((await this.getAuthenticationState()).status !== 'authenticated') throw new Error('Authenticate with your password first');
     await this.ports.deviceAuthenticator.disable();
   }
 
@@ -93,15 +93,15 @@ export class AuthenticationService implements AuthenticationUseCases {
     return this.ports.deviceAuthenticator.isAvailable();
   }
 
-  logout(): void {
-    this.ports.sessions.clear();
+  async logout(): Promise<void> {
+    await this.ports.sessions.clear();
   }
 
   async hasCredentials(): Promise<boolean> {
     return Boolean(await this.ports.credentials.read());
   }
 
-  getAuthenticationState(): AuthState {
-    return this.ports.sessions.read() ?? ANONYMOUS;
+  getAuthenticationState(): Promise<AuthState> {
+    return this.ports.sessions.read();
   }
 }

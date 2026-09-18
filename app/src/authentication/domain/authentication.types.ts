@@ -1,5 +1,5 @@
 export type AuthState =
-  | { readonly status: 'anonymous' }
+  | { readonly status: 'unauthenticated' }
   | { readonly status: 'authenticated'; readonly userId: string };
 
 export type CredentialRecord = {
@@ -9,4 +9,4 @@ export type CredentialRecord = {
   readonly passwordHash: string;
 };
 
-export const ANONYMOUS: AuthState = Object.freeze({ status: 'anonymous' });
+export const UNAUTHENTICATED: AuthState = Object.freeze({ status: 'unauthenticated' });

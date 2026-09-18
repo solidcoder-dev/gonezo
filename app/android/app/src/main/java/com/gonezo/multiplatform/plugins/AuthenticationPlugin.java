@@ -128,6 +128,72 @@ public class AuthenticationPlugin extends Plugin {
     }
   }
 
+  @PluginMethod
+  public void readSession(PluginCall call) {
+    try {
+      String userId = readEncryptedValue("sessionIv", "sessionCiphertext");
+      JSObject result = new JSObject();
+      if (userId != null) result.put("userId", userId);
+      call.resolve(result);
+    } catch (Exception error) {
+      call.reject("Secure session is unavailable", "SECURE_STORAGE_FAILURE");
+    }
+  }
+
+  @PluginMethod
+  public void saveSession(PluginCall call) {
+    String userId = call.getString("userId");
+    if (userId == null || userId.isEmpty()) {
+      call.reject("Authenticated user is required", "INVALID_SESSION");
+      return;
+    }
+    saveEncryptedValue("sessionIv", "sessionCiphertext", userId, call);
+  }
+
+  @PluginMethod
+  public void clearSession(PluginCall call) {
+    getContext().getSharedPreferences(STORE, 0).edit()
+        .remove("sessionIv")
+        .remove("sessionCiphertext")
+        .apply();
+    call.resolve();
+  }
+
+  private String readEncryptedValue(String ivKey, String ciphertextKey) throws Exception {
+    android.content.SharedPreferences preferences = getContext().getSharedPreferences(STORE, 0);
+    String iv = preferences.getString(ivKey, null);
+    String ciphertext = preferences.getString(ciphertextKey, null);
+    if (iv == null || ciphertext == null) return null;
+    Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+    cipher.init(Cipher.DECRYPT_MODE, key(), new GCMParameterSpec(128, Base64.decode(iv, Base64.NO_WRAP)));
+    byte[] plaintext = cipher.doFinal(Base64.decode(ciphertext, Base64.NO_WRAP));
+    try {
+      return new String(plaintext, StandardCharsets.UTF_8);
+    } finally {
+      java.util.Arrays.fill(plaintext, (byte) 0);
+    }
+  }
+
+  private void saveEncryptedValue(String ivKey, String ciphertextKey, String value, PluginCall call) {
+    byte[] plaintext = value.getBytes(StandardCharsets.UTF_8);
+    byte[] ciphertext = null;
+    try {
+      Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+      cipher.init(Cipher.ENCRYPT_MODE, key());
+      ciphertext = cipher.doFinal(plaintext);
+      getContext().getSharedPreferences(STORE, 0).edit()
+          .putString(ivKey, Base64.encodeToString(cipher.getIV(), Base64.NO_WRAP))
+          .putString(ciphertextKey, Base64.encodeToString(ciphertext, Base64.NO_WRAP))
+          .apply();
+      call.resolve();
+    } catch (Exception error) {
+      call.reject("Secure value could not be saved", "SECURE_STORAGE_FAILURE");
+    } finally {
+      java.util.Arrays.fill(plaintext, (byte) 0);
+      if (ciphertext != null) java.util.Arrays.fill(ciphertext, (byte) 0);
+    }
+  }
+
   private SecretKey key() throws Exception {
     java.security.KeyStore keyStore = java.security.KeyStore.getInstance("AndroidKeyStore");
     keyStore.load(null);
