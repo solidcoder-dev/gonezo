@@ -16,10 +16,15 @@ export type SessionStore = {
   clear(): void;
 };
 
+export type DeviceAuthenticator = {
+  authenticate(): Promise<void>;
+};
+
 export type AuthenticationPorts = {
   credentials: CredentialsRepository;
   passwordHasher: PasswordHasher;
   sessions: SessionStore;
+  deviceAuthenticator: DeviceAuthenticator;
   createUserId(): string;
 };
 
@@ -51,6 +56,13 @@ export class AuthenticationService {
     if (!record || record.normalizedUsername !== normalizedUsername || !(await this.ports.passwordHasher.verify(password, record.passwordHash))) {
       throw new Error('Invalid credentials');
     }
+    this.ports.sessions.establish(record.userId);
+  }
+
+  async unlockWithDevice(): Promise<void> {
+    const record = await this.ports.credentials.read();
+    if (!record) throw new Error('Invalid credentials');
+    await this.ports.deviceAuthenticator.authenticate();
     this.ports.sessions.establish(record.userId);
   }
 

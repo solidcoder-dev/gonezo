@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { AuthenticationService, type AuthenticationPorts } from './authenticationService';
+import { AuthenticationService, type AuthenticationPorts, type DeviceAuthenticator } from './authenticationService';
 import type { AuthState, CredentialRecord } from '../domain/authentication.types';
 
-function createService(existing?: CredentialRecord) {
+function createService(existing?: CredentialRecord, deviceAuthenticator: DeviceAuthenticator = { authenticate: async () => undefined }) {
   let credentials = existing;
   let state: AuthState = { status: 'anonymous' };
   const ports: AuthenticationPorts = {
@@ -19,6 +19,7 @@ function createService(existing?: CredentialRecord) {
       establish: (userId) => { state = { status: 'authenticated', userId }; },
       clear: () => { state = { status: 'anonymous' }; },
     },
+    deviceAuthenticator,
     createUserId: () => 'user-1',
   };
   return { service: new AuthenticationService(ports), get credentials() { return credentials; }, get state() { return state; } };
@@ -51,6 +52,19 @@ describe('AuthenticationService', () => {
 
   it('starts anonymous when no authenticated session is in memory', () => {
     const context = createService({ userId: 'user-1', username: 'Alice', normalizedUsername: 'alice', passwordHash: 'hash:right-pass' });
+    expect(context.service.getAuthenticationState()).toEqual({ status: 'anonymous' });
+  });
+
+  it('establishes a session only after device authentication succeeds', async () => {
+    const context = createService({ userId: 'user-1', username: 'Alice', normalizedUsername: 'alice', passwordHash: 'hash:right-pass' });
+    await context.service.unlockWithDevice();
+    expect(context.service.getAuthenticationState()).toEqual({ status: 'authenticated', userId: 'user-1' });
+  });
+
+  it('does not establish a session when device authentication fails', async () => {
+    const deviceFailure = new Error('Authentication cancelled');
+    const context = createService({ userId: 'user-1', username: 'Alice', normalizedUsername: 'alice', passwordHash: 'hash:right-pass' }, { authenticate: async () => { throw deviceFailure; } });
+    await expect(context.service.unlockWithDevice()).rejects.toBe(deviceFailure);
     expect(context.service.getAuthenticationState()).toEqual({ status: 'anonymous' });
   });
 

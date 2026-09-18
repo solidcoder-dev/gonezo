@@ -3,6 +3,7 @@ import { AuthenticationService, type CredentialsRepository, type SessionStore } 
 import { ANONYMOUS, type CredentialRecord } from '../domain/authentication.types';
 import { Argon2PasswordHasher } from './argon2PasswordHasher';
 import { NativeCredentialsRepository } from './nativeCredentialsRepository';
+import { AndroidDeviceAuthenticator } from './androidDeviceAuthenticator';
 
 export function createAuthenticationService() {
   let credentials: CredentialRecord | undefined;
@@ -20,6 +21,7 @@ export function createAuthenticationService() {
     credentials: Capacitor.isNativePlatform() ? new NativeCredentialsRepository() : webCredentials,
     passwordHasher: new Argon2PasswordHasher(),
     sessions,
+    deviceAuthenticator: new AndroidDeviceAuthenticator(),
     createUserId: () => crypto.randomUUID(),
   });
 }

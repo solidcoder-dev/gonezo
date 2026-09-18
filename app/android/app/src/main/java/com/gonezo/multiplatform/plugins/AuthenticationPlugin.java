@@ -1,6 +1,9 @@
 package com.gonezo.multiplatform.plugins;
 
 import android.util.Base64;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -16,6 +19,47 @@ import javax.crypto.spec.GCMParameterSpec;
 public class AuthenticationPlugin extends Plugin {
   private static final String KEY_ALIAS = "gonezo.authentication.credentials.v1";
   private static final String STORE = "gonezo.authentication.secure.v1";
+
+  @PluginMethod
+  public void isDeviceAuthenticationAvailable(PluginCall call) {
+    int authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG
+        | BiometricManager.Authenticators.DEVICE_CREDENTIAL;
+    boolean available = BiometricManager.from(getContext()).canAuthenticate(authenticators)
+        == BiometricManager.BIOMETRIC_SUCCESS;
+    JSObject result = new JSObject();
+    result.put("available", available);
+    call.resolve(result);
+  }
+
+  @PluginMethod
+  public void authenticateDevice(PluginCall call) {
+    int authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG
+        | BiometricManager.Authenticators.DEVICE_CREDENTIAL;
+    if (BiometricManager.from(getContext()).canAuthenticate(authenticators) != BiometricManager.BIOMETRIC_SUCCESS) {
+      call.reject("Device authentication is unavailable", "DEVICE_AUTHENTICATION_UNAVAILABLE");
+      return;
+    }
+    BiometricPrompt.PromptInfo prompt = new BiometricPrompt.PromptInfo.Builder()
+        .setTitle("Unlock Gonezo")
+        .setAllowedAuthenticators(authenticators)
+        .build();
+    BiometricPrompt biometricPrompt = new BiometricPrompt(getActivity(), ContextCompat.getMainExecutor(getContext()), new BiometricPrompt.AuthenticationCallback() {
+      @Override
+      public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+        call.resolve();
+      }
+
+      @Override
+      public void onAuthenticationError(int errorCode, CharSequence errorString) {
+        String code = errorCode == BiometricPrompt.ERROR_USER_CANCELED
+            || errorCode == BiometricPrompt.ERROR_NEGATIVE_BUTTON
+            || errorCode == BiometricPrompt.ERROR_CANCELED
+            ? "AUTHENTICATION_CANCELLED" : "DEVICE_AUTHENTICATION_FAILED";
+        call.reject("Device authentication failed", code);
+      }
+    });
+    biometricPrompt.authenticate(prompt);
+  }
 
   @PluginMethod
   public void readCredentials(PluginCall call) {
