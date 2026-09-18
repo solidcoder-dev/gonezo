@@ -2,6 +2,20 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App, type AppPort } from '../../App';
+vi.mock('../../authentication/infrastructure/createAuthenticationService', () => ({
+  createAuthenticationService: () => ({
+    getAuthenticationState: () => ({ status: 'authenticated', userId: 'test-user' }),
+    hasCredentials: async () => true,
+    isDeviceUnlockAvailable: async () => false,
+    isDeviceUnlockEnabled: async () => false,
+    setupCredentials: async () => undefined,
+    loginWithPassword: async () => undefined,
+    unlockWithDevice: async () => undefined,
+    enableDeviceUnlock: async () => undefined,
+    disableDeviceUnlock: async () => undefined,
+    logout: () => undefined,
+  }),
+}));
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
 import type {
   LedgerListTransactionsInput,

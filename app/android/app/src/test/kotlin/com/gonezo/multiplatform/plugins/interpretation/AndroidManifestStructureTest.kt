@@ -5,11 +5,24 @@ import javax.xml.XMLConstants
 import javax.xml.parsers.DocumentBuilderFactory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.w3c.dom.Node
 import org.w3c.dom.NodeList
 
 class AndroidManifestStructureTest {
+  @Test
+  fun `excludes keystore encrypted authentication storage from Android backups`() {
+    val manifest = File("src/main/AndroidManifest.xml").readText()
+    val backupRules = File("src/main/res/xml/backup_rules.xml").readText()
+    val extractionRules = File("src/main/res/xml/data_extraction_rules.xml").readText()
+
+    assertTrue(manifest.contains("android:fullBackupContent=\"@xml/backup_rules\""))
+    assertTrue(manifest.contains("android:dataExtractionRules=\"@xml/data_extraction_rules\""))
+    assertTrue(backupRules.contains("path=\"gonezo.authentication.secure.v1.xml\""))
+    assertTrue(extractionRules.contains("path=\"gonezo.authentication.secure.v1.xml\""))
+  }
+
   @Test
   fun `declares the GPU native libraries inside the application element`() {
     val manifest = File("src/main/AndroidManifest.xml")

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import type { AuthenticationService } from './authenticationService';
+import type { AuthenticationUseCases } from './authentication.port';
 import { AuthenticationGateView } from '../ui/AuthenticationGateView';
 
 type AuthenticationGateProps = {
-  required: { authentication: AuthenticationService };
+  required: { authentication: AuthenticationUseCases };
   children: ReactNode;
 };
 

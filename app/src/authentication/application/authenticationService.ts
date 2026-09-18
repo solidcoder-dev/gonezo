@@ -1,4 +1,5 @@
 import { ANONYMOUS, type AuthState, type CredentialRecord } from '../domain/authentication.types';
+import type { AuthenticationUseCases } from './authentication.port';
 
 export type CredentialsRepository = {
   read(): Promise<CredentialRecord | undefined>;
@@ -32,7 +33,7 @@ export type AuthenticationPorts = {
   createUserId(): string;
 };
 
-export class AuthenticationService {
+export class AuthenticationService implements AuthenticationUseCases {
   private readonly ports: AuthenticationPorts;
 
   constructor(ports: AuthenticationPorts) {
@@ -40,6 +41,7 @@ export class AuthenticationService {
   }
 
   async setupCredentials(username: string, password: string): Promise<void> {
+    if (!username.trim()) throw new Error('Username is required');
     if (password.length < 8) throw new Error('Password must contain at least 8 characters');
     if (await this.ports.credentials.read()) throw new Error('Credentials already exist');
 
@@ -57,7 +59,8 @@ export class AuthenticationService {
   async loginWithPassword(username: string, password: string): Promise<void> {
     const record = await this.ports.credentials.read();
     const normalizedUsername = username.trim().toLocaleLowerCase('en-US');
-    if (!record || record.normalizedUsername !== normalizedUsername || !(await this.ports.passwordHasher.verify(password, record.passwordHash))) {
+    const passwordIsValid = record ? await this.ports.passwordHasher.verify(password, record.passwordHash) : false;
+    if (!record || record.normalizedUsername !== normalizedUsername || !passwordIsValid) {
       throw new Error('Invalid credentials');
     }
     this.ports.sessions.establish(record.userId);

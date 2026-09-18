@@ -22,7 +22,7 @@ import type { AmountVisibilityPort } from './workspace/application/amountVisibil
 import { SharingPeoplePage } from './sharing/application/SharingPeoplePage';
 import { AuthenticationGate } from './authentication/application/AuthenticationGate';
 import { createAuthenticationService } from './authentication/infrastructure/createAuthenticationService';
-import type { AuthenticationService } from './authentication/application/authenticationService';
+import type { AuthenticationUseCases } from './authentication/application/authentication.port';
 
 const defaultCore = new CoreAdapter();
 const defaultImportFileReader = { readAsBase64: readImportFileAsBase64 };
@@ -42,7 +42,7 @@ export type AppRequired = {
   experimentalFeatures?: ExperimentalFeaturesPort;
   notifications?: ReturnType<typeof createNotificationsAdapter>;
   amountVisibility?: AmountVisibilityPort;
-  authentication?: AuthenticationService;
+  authentication?: AuthenticationUseCases;
 };
 
 type AppProps = {

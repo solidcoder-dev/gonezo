@@ -52,6 +52,19 @@ app/src/
       TagComboboxField.tsx
     index.ts
 
+  authentication/
+    application/
+      AuthenticationGate.tsx
+      authentication.port.ts
+      authenticationService.ts
+    domain/
+      authentication.types.ts
+    infrastructure/
+      androidDeviceAuthenticator.ts
+      nativeCredentialsRepository.ts
+    ui/
+      AuthenticationGateView.tsx
+
   imports/
     application/
       TransactionsImportComponent.tsx
@@ -113,6 +126,7 @@ app/src/
 - `movements/*`: monthly overview, posted/scheduled/expected lists, search and edit entrypoints.
 - `imports/*`: capacidad de importacion como caja negra reutilizable. El backup Gonezo es el flujo por defecto; Mobills queda como flujo legado activado por checkbox.
 - `preferences`: no tiene pantalla propia por ahora; se consume desde `account/application` para resolver la cuenta inicial y marcar la cuenta por defecto.
+- `authentication/*`: autenticación local de la instalación, con credenciales, sesión y desbloqueo de dispositivo separados de los contextos financieros.
 - `ledger/*` y `taxonomy/*`: acceso y reglas de backend; no definen la UX por si mismos.
 - `expected/*` y `scheduling/*`: gateways de capacidades nativas/core.
 - `shared/*`: utilidades neutrales.

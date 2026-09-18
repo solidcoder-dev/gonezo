@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AuthenticationGate } from './AuthenticationGate';
-import type { AuthenticationService } from './authenticationService';
+import type { AuthenticationUseCases } from './authentication.port';
 
 function createAuthentication(exists: boolean) {
   let authenticated = false;
@@ -17,7 +17,7 @@ function createAuthentication(exists: boolean) {
     enableDeviceUnlock: vi.fn(async () => { enabled = true; }),
     disableDeviceUnlock: vi.fn(async () => { enabled = false; }),
     logout: vi.fn(() => { authenticated = false; }),
-  } as unknown as AuthenticationService;
+  } as AuthenticationUseCases;
   return authentication;
 }
 
@@ -57,6 +57,17 @@ describe('AuthenticationGate', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Use your password');
     expect(screen.getByRole('button', { name: 'Unlock' })).toBeInTheDocument();
     expect(screen.queryByText('Gonezo home')).not.toBeInTheDocument();
+  });
+
+  it('opens Gonezo after successful device authentication', async () => {
+    const authentication = createAuthentication(true);
+    vi.mocked(authentication.isDeviceUnlockEnabled).mockResolvedValue(true);
+    render(<AuthenticationGate required={{ authentication }}><p>Gonezo home</p></AuthenticationGate>);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Unlock with device' }));
+
+    await screen.findByText('Gonezo home');
+    expect(authentication.unlockWithDevice).toHaveBeenCalledOnce();
   });
 
   it('enables device unlock only after password login and can lock the session', async () => {

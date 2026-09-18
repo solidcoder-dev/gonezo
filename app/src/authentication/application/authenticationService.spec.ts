@@ -11,14 +11,21 @@ function createService(existing?: CredentialRecord, deviceAuthenticator: DeviceA
 }) {
   let credentials = existing;
   let state: AuthState = { status: 'anonymous' };
+  let passwordVerifications = 0;
+  const passwordByHash = new Map<string, string>();
+  if (existing) passwordByHash.set(existing.passwordHash, 'right-pass');
   const ports: AuthenticationPorts = {
     credentials: {
       read: async () => credentials,
       create: async (record) => { credentials = record; },
     },
     passwordHasher: {
-      hash: async (password) => `hash:${password}`,
-      verify: async (password, hash) => hash === `hash:${password}`,
+      hash: async (password) => {
+        const hash = `test-hash-${passwordByHash.size + 1}`;
+        passwordByHash.set(hash, password);
+        return hash;
+      },
+      verify: async (password, hash) => { passwordVerifications += 1; return passwordByHash.get(hash) === password; },
     },
     sessions: {
       read: () => state,
@@ -28,7 +35,12 @@ function createService(existing?: CredentialRecord, deviceAuthenticator: DeviceA
     deviceAuthenticator,
     createUserId: () => 'user-1',
   };
-  return { service: new AuthenticationService(ports), get credentials() { return credentials; }, get state() { return state; } };
+  return {
+    service: new AuthenticationService(ports),
+    get credentials() { return credentials; },
+    get state() { return state; },
+    get passwordVerifications() { return passwordVerifications; },
+  };
 }
 
 describe('AuthenticationService', () => {
@@ -37,7 +49,8 @@ describe('AuthenticationService', () => {
     await context.service.setupCredentials(' Alice ', 'secret-pass');
 
     expect(context.credentials?.normalizedUsername).toBe('alice');
-    expect(context.credentials?.passwordHash).toBe('hash:secret-pass');
+    expect(context.credentials?.passwordHash).toBe('test-hash-1');
+    expect(JSON.stringify(context.credentials)).not.toContain('secret-pass');
     expect(context.state).toEqual({ status: 'authenticated', userId: 'user-1' });
   });
 
@@ -46,6 +59,7 @@ describe('AuthenticationService', () => {
 
     await expect(context.service.loginWithPassword('nobody', 'wrong-pass')).rejects.toThrow('Invalid credentials');
     await expect(context.service.loginWithPassword('Alice', 'wrong-pass')).rejects.toThrow('Invalid credentials');
+    expect(context.passwordVerifications).toBe(2);
   });
 
   it('authenticates valid credentials and logout clears the session', async () => {
@@ -109,10 +123,14 @@ describe('AuthenticationService', () => {
     expect(await context.service.isDeviceUnlockEnabled()).toBe(true);
     context.service.logout();
     await expect(context.service.disableDeviceUnlock()).rejects.toThrow('Authenticate with your password first');
+    await context.service.loginWithPassword('alice', 'right-pass');
+    await context.service.disableDeviceUnlock();
+    expect(await context.service.isDeviceUnlockEnabled()).toBe(false);
   });
 
   it('rejects a second setup and weak passwords', async () => {
     const context = createService();
+    await expect(context.service.setupCredentials(' ', 'long-enough')).rejects.toThrow('Username is required');
     await expect(context.service.setupCredentials('alice', 'short')).rejects.toThrow('Password must contain at least 8 characters');
     await context.service.setupCredentials('alice', 'long-enough');
     await expect(context.service.setupCredentials('bob', 'long-enough')).rejects.toThrow('Credentials already exist');
