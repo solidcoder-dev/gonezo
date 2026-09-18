@@ -8,10 +8,10 @@ import {
   grantContributionConsent,
   withdrawContributionConsent,
 } from './analyticsContributionConsentUseCases';
-import { InMemoryMacroAnalyticsOutboxAdapter } from '../infrastructure/InMemoryMacroAnalyticsAdapters';
 import { createAnalyticsContributorId } from '../domain/analyticsContributorId';
 import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
-import { createMacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
+import { createMacroAnalyticsPublication, type MacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
+import type { MacroAnalyticsOutboxPort } from './macroAnalyticsOutbox.port';
 
 class MemoryConsentPort implements AnalyticsContributionConsentPort {
   readonly decisions = new Map<string, AnalyticsContributionConsent>();
@@ -47,7 +47,14 @@ describe('analytics contribution consent use cases', () => {
 
   it('clears every local pending period when consent is withdrawn', async () => {
     const port = new MemoryConsentPort();
-    const outbox = new InMemoryMacroAnalyticsOutboxAdapter();
+    const pending = new Map<string, MacroAnalyticsPublication>();
+    const outbox: MacroAnalyticsOutboxPort = {
+      get: async (_userId, period) => pending.get(period.value) ?? null,
+      save: async (_userId, publication) => { pending.set(publication.period.value, publication); },
+      remove: async (_userId, period) => { pending.delete(period.value); },
+      listPending: async () => [...pending.values()],
+      clear: async () => { pending.clear(); },
+    };
     await grantContributionConsent(port, 'user-A', () => '2026-09-01T00:00:00Z');
     const contribution = {
       schemaVersion: 1 as const,

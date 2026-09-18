@@ -1,21 +1,38 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createAnalyticsContributorId } from '../domain/analyticsContributorId';
 import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
+import type { MacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
 import { createAnalyticsContributionConsent } from '../domain/analyticsContributionConsent';
 import { createFinancialFact } from '../domain/financialFact';
 import type { ContributionProfile } from '../domain/contributionProfile';
 import type { AnalyticsContributionConsentPort } from './analyticsContributionConsent.port';
 import type { ContributionProfileSourcePort } from './contributionProfileSource.port';
 import type { FinancialFactSourcePort } from './financialFactSource.port';
-import { InMemoryAnalyticsContributorIdentityAdapter, InMemoryMacroAnalyticsOutboxAdapter } from '../infrastructure/InMemoryMacroAnalyticsAdapters';
+import type { AnalyticsContributorIdentityPort } from './analyticsContributorIdentity.port';
+import type { MacroAnalyticsOutboxPort } from './macroAnalyticsOutbox.port';
 import { prepareMacroAnalyticsPublication } from './prepareMacroAnalyticsPublication';
 
 const profile: ContributionProfile = { birthYear: 1995, sex: 'female', countryCode: 'ES', regionCode: 'ES-CN' };
 const facts = [createFinancialFact({ id: 'private-fact-id', occurredAt: '2026-09-04T10:00:00Z', source: 'POSTED', kind: 'EXPENSE', amount: '12', currency: 'EUR' })];
 
 function setup(options: { consent?: 'GRANTED' | 'DECLINED' | 'WITHDRAWN' | null; profile?: ContributionProfile | null; facts?: typeof facts } = {}) {
-  const identity = new InMemoryAnalyticsContributorIdentityAdapter();
-  const outbox = new InMemoryMacroAnalyticsOutboxAdapter();
+  const identities = new Map<string, ReturnType<typeof createAnalyticsContributorId>>();
+  const identity: AnalyticsContributorIdentityPort = {
+    get: async (userId) => identities.get(userId) ?? null,
+    save: async (userId, contributorId) => { identities.set(userId, contributorId); },
+  };
+  const publications = new Map<string, Map<string, MacroAnalyticsPublication>>();
+  const outbox: MacroAnalyticsOutboxPort = {
+    get: async (userId, period) => publications.get(userId)?.get(period.value) ?? null,
+    save: async (userId, publication) => {
+      const userPublications = publications.get(userId) ?? new Map();
+      userPublications.set(publication.period.value, publication);
+      publications.set(userId, userPublications);
+    },
+    remove: async (userId, period) => { publications.get(userId)?.delete(period.value); },
+    listPending: async (userId) => [...(publications.get(userId)?.values() ?? [])],
+    clear: async (userId) => { publications.delete(userId); },
+  };
   const consent: AnalyticsContributionConsentPort = {
     get: vi.fn(async () => options.consent ? createAnalyticsContributionConsent({ userId: 'user-A', status: options.consent, noticeVersion: 1, decidedAt: '2026-09-01T00:00:00Z' }) : null),
     save: vi.fn(async () => {}),
