@@ -86,6 +86,7 @@ export type TransactionEntryViewRequired = {
       expandedTitle: string | null; variants: MovementReuseSuggestionVariant[]; error: string;
       pendingTemplate?: { details?: { amount: string; items: Array<unknown>; sharing: Array<unknown> } } | null;
       requiresDetailsDecision?: boolean;
+      appliedVersion: number;
     };
   };
   status: {

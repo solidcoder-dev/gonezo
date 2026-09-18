@@ -62,6 +62,7 @@ export type TransactionComposerMainFieldsRequired = {
   movementReuse?: {
     query: string; open: boolean; loading: boolean; groups: MovementReuseSuggestionGroup[];
     expandedTitle: string | null; variants: MovementReuseSuggestionVariant[]; error: string;
+    appliedVersion: number;
   };
 };
 

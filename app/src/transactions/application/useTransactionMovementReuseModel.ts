@@ -8,6 +8,7 @@ export function useTransactionMovementReuseModel(input: {
 }) {
   const [pendingTemplate, setPendingTemplate] = useState<MovementReuseTemplate | null>(null);
   const [templateError, setTemplateError] = useState('');
+  const [appliedVersion, setAppliedVersion] = useState(0);
   const suggestions = useMovementReuseSuggestionsModel({
     port: input.port, accountIds: input.accountIds, enabled: input.enabled, query: input.query,
     onSelected: ({ variant }: { variant: MovementReuseSuggestionVariant; title: string }) => {
@@ -15,15 +16,25 @@ export function useTransactionMovementReuseModel(input: {
         setTemplateError('');
         const hasDetails = (template.details?.items.length ?? 0) > 0
           || (template.details?.sharing.length ?? 0) > 0;
-        if (hasDetails) setPendingTemplate(template); else input.applySetup(template);
+        if (hasDetails) setPendingTemplate(template); else applySetup(template);
       }).catch(() => setTemplateError('Unable to load movement reuse details'));
     },
   });
-  function reuseSetupOnly() { if (pendingTemplate) input.applySetup(pendingTemplate); setPendingTemplate(null); }
-  function reuseWithDetails() { if (pendingTemplate) input.applyWithDetails(pendingTemplate); setPendingTemplate(null); }
+  function applySetup(template: MovementReuseTemplate) {
+    input.applySetup(template);
+    setAppliedVersion((version) => version + 1);
+  }
+  function reuseSetupOnly() { if (pendingTemplate) applySetup(pendingTemplate); setPendingTemplate(null); }
+  function reuseWithDetails() {
+    if (pendingTemplate) {
+      input.applyWithDetails(pendingTemplate);
+      setAppliedVersion((version) => version + 1);
+    }
+    setPendingTemplate(null);
+  }
   function cancelReuse() { setPendingTemplate(null); }
   return {
-    state: { ...suggestions.state, pendingTemplate, requiresDetailsDecision: pendingTemplate !== null, error: suggestions.state.error || templateError },
+    state: { ...suggestions.state, pendingTemplate, requiresDetailsDecision: pendingTemplate !== null, appliedVersion, error: suggestions.state.error || templateError },
     actions: { ...suggestions.actions, reuseSetupOnly, reuseWithDetails, cancelReuse },
   };
 }
