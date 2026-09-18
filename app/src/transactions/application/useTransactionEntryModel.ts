@@ -185,6 +185,10 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
     applySetup: (template) => applyMovementReuseSetup(template, accountId, reuseActions, onAccountChanged),
     applyWithDetails: (template) => applyMovementReuseWithDetails(template, accountId, reuseActions, onAccountChanged),
   });
+  function setTransactionNoteFromUser(value: string) {
+    setTransactionNote(value);
+    movementReuseModel.actions.beginSearch();
+  }
   function clearError() {
     setError('');
     setErrorKind('');
@@ -727,7 +731,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       selectMode: selectComposerMode, selectSourceAccount,
       toggleAdvanced: () => setComposerAdvancedOpen((previous) => !previous),
       setAmount: setTransactionAmountValue, setDate: setTransactionDateValue,
-      setNote: setTransactionNote,
+      setNote: setTransactionNoteFromUser,
       setCategoryId: setTransactionCategoryId, setTagInput: setTransactionTagInput,
       selectTag, createTag,
       removeTag,
@@ -778,8 +782,7 @@ export function useTransactionEntryModel(input: UseTransactionEntryModelInput) {
       applyShareDraft: applyShareDraftValue, removeShareDraft: removeShareDraftValue,
       submit: submitTransaction,
       closeMovementReuse: () => { movementReuseModel.actions.close(); movementReuseModel.actions.cancelReuse(); },
-      activateMovementReuse: movementReuseModel.actions.activate,
-      deactivateMovementReuse: movementReuseModel.actions.deactivate,
+      endMovementReuseSearch: movementReuseModel.actions.endSearch,
       toggleMovementReuseGroup: (group) => { void movementReuseModel.actions.toggleGroup(group); }, selectMovementReuseVariant: movementReuseModel.actions.selectVariant,
       reuseSetupOnly: movementReuseModel.actions.reuseSetupOnly,
       reuseWithDetails: movementReuseModel.actions.reuseWithDetails,
