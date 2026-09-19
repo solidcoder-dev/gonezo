@@ -1,0 +1,56 @@
+import { describe, expect, it, vi } from 'vitest';
+import { createAnalyticsContributorId } from '../domain/analyticsContributorId';
+import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
+import { createMacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
+import { signMacroAnalyticsPublication } from './signMacroAnalyticsPublication';
+import { InMemoryPublicationSigningIdentityAdapter } from './InMemoryPublicationSigningIdentityAdapter';
+import { createContributorCredentialRegistrationV1 } from './ContributorCredentialRegistrationV1';
+
+const contributorId = createAnalyticsContributorId('opaque-random-id');
+const publication = createMacroAnalyticsPublication({
+  contributorId,
+  period: createAnalyticsPeriod('2026-09'),
+  revision: 1,
+  contribution: {
+    schemaVersion: 1,
+    period: createAnalyticsPeriod('2026-09'),
+    dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE', ageBand: '25_34' },
+    financial: { currencies: [] },
+  },
+});
+
+describe('macro analytics publication signing', () => {
+  it('signs and preserves the exact serialized wire payload', async () => {
+    const signingIdentity = new InMemoryPublicationSigningIdentityAdapter();
+    const credential = await signingIdentity.getOrCreateCredential(contributorId);
+    const signed = await signMacroAnalyticsPublication(publication, signingIdentity);
+
+    expect(signed.payload).toBe('{"protocolVersion":1,"contributorId":"opaque-random-id","period":"2026-09","revision":1,"contribution":{"schemaVersion":1,"dimensions":{"countryCode":"ES","regionCode":"ES-CN","sex":"FEMALE","ageBand":"25_34"},"financial":{"currencies":[]}}}');
+    expect(signed.signature).toMatch(/^[A-Za-z0-9_-]+$/u);
+    expect(signed.keyId).toBe(credential.keyId);
+    expect('privateKey' in credential).toBe(false);
+  });
+
+  it('reuses one credential per contributor and isolates contributors', async () => {
+    const signingIdentity = new InMemoryPublicationSigningIdentityAdapter();
+    const first = await signingIdentity.getOrCreateCredential(contributorId);
+    const repeated = await signingIdentity.getOrCreateCredential(contributorId);
+    const second = await signingIdentity.getOrCreateCredential(createAnalyticsContributorId('another-contributor'));
+
+    expect(repeated).toEqual(first);
+    expect(second.keyId).not.toBe(first.keyId);
+    expect(second.publicKey).not.toBe(first.publicKey);
+  });
+
+  it('proves credential ownership over the exact V1 registration bytes', async () => {
+    const signingIdentity = {
+      getOrCreateCredential: vi.fn(async () => ({ contributorId, keyId: 'derived-key-id', algorithm: 'ECDSA_P256_SHA256' as const, publicKey: 'spki-public-key' })),
+      sign: vi.fn(async () => 'base64url-proof'),
+    };
+
+    const registration = await createContributorCredentialRegistrationV1(contributorId, signingIdentity);
+
+    expect(signingIdentity.sign).toHaveBeenCalledWith(contributorId, new TextEncoder().encode('gonezo-macro-analytics-credential-v1\nopaque-random-id\nderived-key-id'));
+    expect(registration).toEqual({ credentialProtocolVersion: 1, contributorId, keyId: 'derived-key-id', algorithm: 'ECDSA_P256_SHA256', publicKey: 'spki-public-key', proof: 'base64url-proof' });
+  });
+});

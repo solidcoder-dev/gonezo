@@ -1,0 +1,7 @@
+{
+  "contributorId": "fixture-contributor-7",
+  "keyId": "d00gk7B9vmmfs_UbFn6J1olAOq4b2zNE0s_DrS7WeD0",
+  "algorithm": "ECDSA_P256_SHA256",
+  "payload": "{\"protocolVersion\":1,\"contributorId\":\"fixture-contributor-7\",\"period\":\"2026-09\",\"revision\":3,\"contribution\":{\"schemaVersion\":1,\"dimensions\":{\"countryCode\":\"ES\",\"regionCode\":\"ES-CN\",\"sex\":\"FEMALE\",\"ageBand\":\"25_34\"},\"financial\":{\"currencies\":[{\"currency\":\"EUR\",\"buckets\":[{\"source\":\"POSTED\",\"kind\":\"EXPENSE\",\"amount\":\"12.00\",\"count\":1}]}]}}}",
+  "signature": "MEQCIG-JvAzuC5Z0JHPNd1bclf2an9SIoufTU3yME1S3ym89AiA_7DEUnT0cifpxqqNRe5a7wnQMdQVetvI_D-k9EI7luw"
+}

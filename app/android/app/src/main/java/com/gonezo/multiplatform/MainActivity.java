@@ -9,6 +9,7 @@ import com.gonezo.multiplatform.plugins.AuthenticationPlugin;
 import com.gonezo.multiplatform.plugins.AnalyticsProfilePlugin;
 import com.gonezo.multiplatform.plugins.AnalyticsContributionConsentPlugin;
 import com.gonezo.multiplatform.plugins.MacroAnalyticsLocalStoragePlugin;
+import com.gonezo.multiplatform.plugins.MacroAnalyticsSigningIdentityPlugin;
 import com.gonezo.multiplatform.plugins.audio.AudioCapturePlugin;
 import com.gonezo.multiplatform.plugins.interpretation.SchemaGuidedInterpretationPlugin;
 import com.gonezo.multiplatform.plugins.interpretation.export.InterpretationRunExportPlugin;
@@ -25,6 +26,7 @@ public class MainActivity extends BridgeActivity {
     registerPlugin(AnalyticsProfilePlugin.class);
     registerPlugin(AnalyticsContributionConsentPlugin.class);
     registerPlugin(MacroAnalyticsLocalStoragePlugin.class);
+    registerPlugin(MacroAnalyticsSigningIdentityPlugin.class);
     registerPlugin(AudioCapturePlugin.class);
     registerPlugin(SchemaGuidedInterpretationPlugin.class);
     registerPlugin(InterpretationRunExportPlugin.class);
