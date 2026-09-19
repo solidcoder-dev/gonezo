@@ -10,16 +10,18 @@ import java.util.Base64
 
 class RegisterContributorCredential(private val repository: ContributorCredentialRepository, private val signatureVerifier: PublicationSignatureVerifier) {
     fun execute(registration: ContributorCredentialRegistrationV1): ContributorCredentialRegistrationOutcome {
-        if (registration.algorithm != ECDSA_P256_SHA256 || registration.contributorId.isBlank()) {
+        if (registration.credentialProtocolVersion != 1 || registration.algorithm != ECDSA_P256_SHA256 || registration.contributorId.isBlank()) {
             return ContributorCredentialRegistrationOutcome.INVALID_PROOF
         }
-        val expectedKeyId = signatureVerifier.keyId(registration.publicKey)
-        if (registration.keyId != expectedKeyId || !signatureVerifier.verify(registration.publicKey, proofBytes(registration), registration.proof)) {
+        val publicKey = decodeBase64Url(registration.publicKey) ?: return ContributorCredentialRegistrationOutcome.INVALID_PROOF
+        val proof = decodeBase64Url(registration.proof) ?: return ContributorCredentialRegistrationOutcome.INVALID_PROOF
+        val expectedKeyId = signatureVerifier.keyId(publicKey)
+        if (registration.keyId != expectedKeyId || !signatureVerifier.verify(publicKey, proofBytes(registration), proof)) {
             return ContributorCredentialRegistrationOutcome.INVALID_PROOF
         }
         val contributorId = ContributorId(registration.contributorId)
         val existing = repository.find(contributorId)
-        val credential = ContributorCredential(contributorId, expectedKeyId, registration.algorithm, Base64.getUrlEncoder().withoutPadding().encodeToString(registration.publicKey))
+        val credential = ContributorCredential(contributorId, expectedKeyId, registration.algorithm, Base64.getUrlEncoder().withoutPadding().encodeToString(publicKey))
         if (existing != null) {
             return if (existing == credential) ContributorCredentialRegistrationOutcome.ALREADY_REGISTERED else ContributorCredentialRegistrationOutcome.CREDENTIAL_CONFLICT
         }
@@ -28,4 +30,13 @@ class RegisterContributorCredential(private val repository: ContributorCredentia
     }
 
     private fun proofBytes(registration: ContributorCredentialRegistrationV1): ByteArray = "gonezo-macro-analytics-credential-v1\n${registration.contributorId}\n${registration.keyId}".toByteArray(StandardCharsets.UTF_8)
+
+    private fun decodeBase64Url(value: String): ByteArray? {
+        if (value.isEmpty() || !BASE64_URL.matches(value)) return null
+        return runCatching { Base64.getUrlDecoder().decode(value) }.getOrNull()
+    }
+
+    private companion object {
+        val BASE64_URL = Regex("^[A-Za-z0-9_-]+$")
+    }
 }
