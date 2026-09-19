@@ -20,6 +20,22 @@ The client maps a domain publication through an explicit V1 wire serializer. The
 
 The standalone Kotlin ingestion module validates V1 publications and retains only the latest value for each contributor ID and month. Repeated equal revisions are idempotent, higher revisions replace older ones, lower revisions are stale, and a same-revision payload mismatch is a conflict. Its current repository is in-memory.
 
+## Local-first persistence and processing
+
+The Android structured Macro Analytics state is stored in the existing `gonezo.db` database (schema version 38): contributor identity, pending publications, and latest locally processed publications have separate tables. Contributor identity is preserved during a full portable-state reset; pending and latest derived publications are cleared so they can be rebuilt from the restored financial state. Consent withdrawal continues to clear pending publications.
+
+The local flow is:
+
+```text
+Operational data → FinancialFact → MacroAnalyticsContribution → MacroAnalyticsPublication
+  → SQLite outbox → MacroAnalyticsPublicationProcessorPort
+  → local processor → SQLite latest publication
+```
+
+The P-256 signing private key remains in Android Keystore. The old encrypted SharedPreferences entry is read only for a one-way, per-user migration into SQLite; it is deleted only after the migrated state is persisted and verified. Its AES key remains available for legacy entries. Local publication processing uses the same revision outcomes as ingestion: accepted, updated, already current, stale, or revision conflict. A conflict remains pending for diagnosis.
+
+The application depends on `MacroAnalyticsPublicationProcessorPort`, so a future remote processor can serialize and sign the same domain publication, send it to a server, and translate its acknowledgement without changing contribution building or publication preparation. This task adds no remote transport or server synchronization.
+
 ## Contributor identity and publication signatures
 
 Stage 7 keeps the publication V1 schema unchanged and wraps its exact compact UTF-8 wire bytes in a signed transport model. Each contributor uses an EC P-256 key pair with SHA256withECDSA. Android creates a signing-only private key in Android Keystore; application code receives only the public SubjectPublicKeyInfo DER bytes (base64url without padding), a key ID, and signatures (base64url without padding). The key ID is base64url without padding of SHA-256 over the SPKI DER bytes.
