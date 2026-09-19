@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteException;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 37;
+  private static final int DB_VERSION = 38;
   private static final String SERVICES_CATEGORY_ID = "00000000-0000-4000-8000-000000000111";
 
   CoreDatabase(Context context) {
@@ -186,6 +186,10 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion < 37) {
       createNotificationsTables(db);
     }
+
+    if (oldVersion < 38) {
+      createMacroAnalyticsTables(db);
+    }
   }
 
   @Override
@@ -222,6 +226,13 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     backfillTransactionItemCategoryAssignments(db);
     addPlannedItemTagNames(db);
     createNotificationsTables(db);
+    createMacroAnalyticsTables(db);
+  }
+
+  private static void createMacroAnalyticsTables(SQLiteDatabase db) {
+    db.execSQL("create table if not exists macro_analytics_contributors (owner_id text primary key, contributor_id text not null unique);");
+    db.execSQL("create table if not exists macro_analytics_outbox (owner_id text not null, period text not null check (period glob '[0-9][0-9][0-9][0-9]-[0-1][0-9]' and substr(period, 6, 2) between '01' and '12'), revision integer not null check (revision >= 1), publication_json text not null, primary key(owner_id, period));");
+    db.execSQL("create table if not exists macro_analytics_latest_publications (contributor_id text not null, period text not null check (period glob '[0-9][0-9][0-9][0-9]-[0-1][0-9]' and substr(period, 6, 2) between '01' and '12'), revision integer not null check (revision >= 1), publication_json text not null, primary key(contributor_id, period));");
   }
 
   private static void createTransactionItemTagAssignmentTable(SQLiteDatabase db) {
