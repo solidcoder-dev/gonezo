@@ -7,7 +7,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.util.Base64;
+import android.security.keystore.KeyInfo;
+import android.security.keystore.KeyProperties;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.KeyStore;
@@ -30,7 +33,7 @@ public class AndroidMacroAnalyticsSigningIdentityStoreTest {
     keyStore.load(null);
     try {
       AndroidMacroAnalyticsSigningIdentityStore.Credential first = store.getOrCreateCredential(CONTRIBUTOR);
-      AndroidMacroAnalyticsSigningIdentityStore.Credential repeated = store.getOrCreateCredential(CONTRIBUTOR);
+      AndroidMacroAnalyticsSigningIdentityStore.Credential repeated = new AndroidMacroAnalyticsSigningIdentityStore().getOrCreateCredential(CONTRIBUTOR);
       AndroidMacroAnalyticsSigningIdentityStore.Credential second = store.getOrCreateCredential(secondContributor);
 
       assertEquals(first.keyId, repeated.keyId);
@@ -39,7 +42,11 @@ public class AndroidMacroAnalyticsSigningIdentityStoreTest {
       assertNotEquals(first.publicKey, second.publicKey);
       assertFalse(firstAlias.contains(CONTRIBUTOR));
       assertTrue(firstAlias.startsWith("gonezo.macro-analytics.signing.v1."));
+      assertEquals(Base64.encodeToString(MessageDigest.getInstance("SHA-256").digest(Base64.decode(first.publicKey, Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING)), Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING), first.keyId);
+      keyStore.load(null);
       assertNull(keyStore.getKey(firstAlias, null).getEncoded());
+      KeyInfo keyInfo = java.security.KeyFactory.getInstance("EC", "AndroidKeyStore").getKeySpec(keyStore.getKey(firstAlias, null), KeyInfo.class);
+      assertEquals(KeyProperties.PURPOSE_SIGN, keyInfo.getPurposes());
       assertEquals("ECDSA_P256_SHA256", first.algorithm);
 
       byte[] payload = "publication-wire-bytes".getBytes(StandardCharsets.UTF_8);
