@@ -56,6 +56,14 @@ class ContributorCredentialTest {
     }
 
     @Test
+    fun `rejects a valid ECDSA proof made with a non P-256 curve`() {
+        val registration = registration("contributor-a", keyPair("secp384r1"))
+        val register = RegisterContributorCredential(InMemoryContributorCredentialRepository(), verifier)
+
+        assertEquals(ContributorCredentialRegistrationOutcome.INVALID_PROOF, register.execute(registration))
+    }
+
+    @Test
     fun `derives a stable unpadded base64url key id from SPKI bytes`() {
         val publicKey = keyPair().public.encoded
 
@@ -79,5 +87,5 @@ class ContributorCredentialTest {
         return ContributorCredentialRegistrationV1(1, contributorId, keyId, ECDSA_P256_SHA256, encoder.encodeToString(publicKey), encoder.encodeToString(signer.sign()))
     }
 
-    private fun keyPair() = KeyPairGenerator.getInstance("EC").apply { initialize(ECGenParameterSpec("secp256r1")) }.generateKeyPair()
+    private fun keyPair(curve: String = "secp256r1") = KeyPairGenerator.getInstance("EC").apply { initialize(ECGenParameterSpec(curve)) }.generateKeyPair()
 }

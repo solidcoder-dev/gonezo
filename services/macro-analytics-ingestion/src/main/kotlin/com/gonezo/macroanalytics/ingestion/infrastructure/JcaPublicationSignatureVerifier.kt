@@ -1,9 +1,13 @@
 package com.gonezo.macroanalytics.ingestion.infrastructure
 
 import com.gonezo.macroanalytics.ingestion.application.PublicationSignatureVerifier
+import java.security.AlgorithmParameters
 import java.security.KeyFactory
 import java.security.MessageDigest
 import java.security.Signature
+import java.security.interfaces.ECPublicKey
+import java.security.spec.ECGenParameterSpec
+import java.security.spec.ECParameterSpec
 import java.security.spec.X509EncodedKeySpec
 import java.util.Base64
 
@@ -11,13 +15,19 @@ class JcaPublicationSignatureVerifier : PublicationSignatureVerifier {
     override fun keyId(subjectPublicKeyInfo: ByteArray): String = deriveKeyId(subjectPublicKeyInfo)
 
     override fun verify(subjectPublicKeyInfo: ByteArray, payload: ByteArray, signature: ByteArray): Boolean = runCatching {
-        val publicKey = KeyFactory.getInstance("EC").generatePublic(X509EncodedKeySpec(subjectPublicKeyInfo))
+        val publicKey = KeyFactory.getInstance("EC").generatePublic(X509EncodedKeySpec(subjectPublicKeyInfo)) as ECPublicKey
+        require(publicKey.params.matchesP256())
         Signature.getInstance("SHA256withECDSA").run {
             initVerify(publicKey)
             update(payload)
             verify(signature)
         }
     }.getOrDefault(false)
+
+    private fun ECParameterSpec.matchesP256(): Boolean {
+        val expected = AlgorithmParameters.getInstance("EC").apply { init(ECGenParameterSpec("secp256r1")) }.getParameterSpec(ECParameterSpec::class.java)
+        return curve == expected.curve && generator == expected.generator && order == expected.order && cofactor == expected.cofactor
+    }
 
     companion object {
         fun deriveKeyId(subjectPublicKeyInfo: ByteArray): String = Base64.getUrlEncoder().withoutPadding()
