@@ -12,6 +12,8 @@ export class InMemoryAnalyticsContributorIdentityAdapter implements AnalyticsCon
   }
 
   async save(userId: string, contributorId: AnalyticsContributorId): Promise<void> {
+    const existing = this.identities.get(userId);
+    if (existing && existing !== contributorId) throw new Error('Analytics contributor identity conflict');
     this.identities.set(userId, contributorId);
   }
 }

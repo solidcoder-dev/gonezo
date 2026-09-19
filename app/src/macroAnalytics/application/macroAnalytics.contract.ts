@@ -29,6 +29,11 @@ export type { PrepareMacroAnalyticsPublicationInput, PrepareMacroAnalyticsPublic
 export { getOrCreateAnalyticsContributorId } from './analyticsContributorIdentityUseCase';
 export type { AnalyticsContributorIdentityPort, ContributorIdGenerator } from './analyticsContributorIdentity.port';
 export type { MacroAnalyticsOutboxPort } from './macroAnalyticsOutbox.port';
+export { LocalMacroAnalyticsPublicationProcessor } from './LocalMacroAnalyticsPublicationProcessor';
+export type { LatestMacroAnalyticsPublicationPort } from './latestMacroAnalyticsPublication.port';
+export type { MacroAnalyticsPublicationProcessorPort, PublicationProcessingStatus } from './macroAnalyticsPublicationProcessor.port';
+export { processPendingMacroAnalyticsPublications } from './processPendingMacroAnalyticsPublications';
+export type { PendingPublicationProcessingResult } from './processPendingMacroAnalyticsPublications';
 export { buildMacroAnalyticsContribution } from './buildMacroAnalyticsContribution';
 export type {
   BuildMacroAnalyticsContributionInput,
