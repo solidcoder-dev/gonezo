@@ -1,5 +1,6 @@
 package com.gonezo.macroanalytics.ingestion.infrastructure
 
+import com.gonezo.macroanalytics.ingestion.application.MacroAnalyticsPublicationPayloadParser
 import com.gonezo.macroanalytics.ingestion.domain.AnalyticsPeriod
 import com.gonezo.macroanalytics.ingestion.domain.ContributionDimensions
 import com.gonezo.macroanalytics.ingestion.domain.ContributorId
@@ -18,8 +19,8 @@ class UnsupportedProtocolVersion(val version: Int) : IllegalArgumentException("U
 
 class UnsupportedSchemaVersion(val version: Int) : IllegalArgumentException("Unsupported contribution schema version: $version")
 
-class MacroAnalyticsPublicationWireV1Parser {
-    fun parse(json: String): ValidatedMacroAnalyticsPublication {
+class MacroAnalyticsPublicationWireV1Parser : MacroAnalyticsPublicationPayloadParser {
+    override fun parse(json: String): ValidatedMacroAnalyticsPublication {
         val root = JSONObject(json)
         root.requireKeys("protocolVersion", "contributorId", "period", "revision", "contribution")
         val protocolVersion = root.requiredInt("protocolVersion")
