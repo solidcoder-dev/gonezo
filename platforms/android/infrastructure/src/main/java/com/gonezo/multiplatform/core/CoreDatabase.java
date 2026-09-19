@@ -11,11 +11,11 @@ public final class CoreDatabase extends SQLiteOpenHelper {
   private static final int DB_VERSION = 38;
   private static final String SERVICES_CATEGORY_ID = "00000000-0000-4000-8000-000000000111";
 
-  CoreDatabase(Context context) {
+  public CoreDatabase(Context context) {
     this(context, DB_NAME);
   }
 
-  CoreDatabase(Context context, String databaseName) {
+  public CoreDatabase(Context context, String databaseName) {
     super(context, databaseName, null, DB_VERSION);
   }
 
@@ -26,6 +26,8 @@ public final class CoreDatabase extends SQLiteOpenHelper {
   private void dbCleanupRuntimeState(SQLiteDatabase db) {
     db.delete("notification_deliveries", null, null);
     db.delete("notifications", null, null);
+    db.delete("macro_analytics_outbox", null, null);
+    db.delete("macro_analytics_latest_publications", null, null);
     db.delete("workflow_tx_categorization", null, null);
     db.delete("recurrence_outbox", null, null);
     db.delete("expected_posting_attempts", null, null);
@@ -231,8 +233,8 @@ public final class CoreDatabase extends SQLiteOpenHelper {
 
   private static void createMacroAnalyticsTables(SQLiteDatabase db) {
     db.execSQL("create table if not exists macro_analytics_contributors (owner_id text primary key, contributor_id text not null unique);");
-    db.execSQL("create table if not exists macro_analytics_outbox (owner_id text not null, period text not null check (period glob '[0-9][0-9][0-9][0-9]-[0-1][0-9]' and substr(period, 6, 2) between '01' and '12'), revision integer not null check (revision >= 1), publication_json text not null, primary key(owner_id, period));");
-    db.execSQL("create table if not exists macro_analytics_latest_publications (contributor_id text not null, period text not null check (period glob '[0-9][0-9][0-9][0-9]-[0-1][0-9]' and substr(period, 6, 2) between '01' and '12'), revision integer not null check (revision >= 1), publication_json text not null, primary key(contributor_id, period));");
+    db.execSQL("create table if not exists macro_analytics_outbox (owner_id text not null, period text not null check (period glob '[0-9][0-9][0-9][0-9]-[0-1][0-9]' and substr(period, 1, 4) between '0001' and '9999' and substr(period, 6, 2) between '01' and '12'), revision integer not null check (revision >= 1), publication_json text not null, primary key(owner_id, period));");
+    db.execSQL("create table if not exists macro_analytics_latest_publications (contributor_id text not null, period text not null check (period glob '[0-9][0-9][0-9][0-9]-[0-1][0-9]' and substr(period, 1, 4) between '0001' and '9999' and substr(period, 6, 2) between '01' and '12'), revision integer not null check (revision >= 1), publication_json text not null, primary key(contributor_id, period));");
   }
 
   private static void createTransactionItemTagAssignmentTable(SQLiteDatabase db) {

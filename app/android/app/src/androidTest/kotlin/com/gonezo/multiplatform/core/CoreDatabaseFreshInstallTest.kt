@@ -26,6 +26,10 @@ class CoreDatabaseFreshInstallTest {
     assertEquals("table", sqlite.scalar("select type from sqlite_master where name = 'macro_analytics_contributors'"))
     assertEquals("table", sqlite.scalar("select type from sqlite_master where name = 'macro_analytics_outbox'"))
     assertEquals("table", sqlite.scalar("select type from sqlite_master where name = 'macro_analytics_latest_publications'"))
+    assertEquals(1, sqlite.primaryKeyColumnCount("macro_analytics_contributors"))
+    assertEquals(2, sqlite.primaryKeyColumnCount("macro_analytics_outbox"))
+    assertEquals(2, sqlite.primaryKeyColumnCount("macro_analytics_latest_publications"))
+    assertEquals("index", sqlite.scalar("select type from sqlite_master where name = 'sqlite_autoindex_macro_analytics_contributors_2'"))
     assertEquals(0, sqlite.scalar("select count(*) from macro_analytics_contributors")!!.toInt())
     assertEquals(0, sqlite.scalar("select count(*) from macro_analytics_outbox")!!.toInt())
     assertEquals(0, sqlite.scalar("select count(*) from macro_analytics_latest_publications")!!.toInt())
@@ -54,5 +58,11 @@ class CoreDatabaseFreshInstallTest {
 
   private fun android.database.sqlite.SQLiteDatabase.tableInfo(table: String): List<List<String>> = rawQuery("pragma table_info($table)", null).use { cursor ->
     buildList { while (cursor.moveToNext()) add(listOf(cursor.getString(1), cursor.getString(3), cursor.getString(4) ?: "", cursor.getString(5))) }
+  }
+
+  private fun android.database.sqlite.SQLiteDatabase.primaryKeyColumnCount(table: String): Int = rawQuery("pragma table_info($table)", null).use { cursor ->
+    var count = 0
+    while (cursor.moveToNext()) if (cursor.getInt(5) > 0) count++
+    count
   }
 }

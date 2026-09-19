@@ -9,6 +9,8 @@ export type MacroAnalyticsLocalStoragePlugin = {
   removePublication(options: { userId: string; period: string }): Promise<void>;
   listPublications(options: { userId: string }): Promise<{ publications: MacroAnalyticsPublication[] }>;
   clearPublications(options: { userId: string }): Promise<void>;
+  getLatestPublication(options: { contributorId: string; period: string }): Promise<{ publication?: MacroAnalyticsPublication }>;
+  saveLatestPublication(options: { publication: MacroAnalyticsPublication }): Promise<void>;
 };
 
 export const MacroAnalyticsLocalStorageNativePlugin = registerPlugin<MacroAnalyticsLocalStoragePlugin>('MacroAnalyticsLocalStoragePlugin');

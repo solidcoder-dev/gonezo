@@ -39,4 +39,21 @@ describe('processPendingMacroAnalyticsPublications', () => {
     expect(remove).toHaveBeenCalledTimes(1);
     expect(remove).toHaveBeenCalledWith('user-a', period);
   });
+
+  it('leaves pending state intact when the processor fails', async () => {
+    const remove = vi.fn(async () => undefined);
+    const outbox: MacroAnalyticsOutboxPort = {
+      async get() { return null; },
+      async save() {},
+      remove,
+      async listPending() { return [publication]; },
+      async clear() {},
+    };
+
+    await expect(processPendingMacroAnalyticsPublications('user-a', {
+      outbox,
+      processor: { async process() { throw new Error('durable processing failed'); } },
+    })).rejects.toThrow('durable processing failed');
+    expect(remove).not.toHaveBeenCalled();
+  });
 });

@@ -3,10 +3,12 @@ import { createAnalyticsContributorId } from '../domain/analyticsContributorId';
 import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
 import { createMacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
 import { NativeAnalyticsContributorIdentityAdapter, NativeMacroAnalyticsOutboxAdapter } from './NativeMacroAnalyticsAdapters';
+import { NativeLatestMacroAnalyticsPublicationAdapter } from './NativeLatestMacroAnalyticsPublicationAdapter';
 
-const { identities, publications } = vi.hoisted(() => ({
+const { identities, publications, latest } = vi.hoisted(() => ({
   identities: new Map<string, string>(),
   publications: new Map<string, Map<string, unknown>>(),
+  latest: new Map<string, unknown>(),
 }));
 
 vi.mock('./macroAnalyticsLocalStoragePlugin', () => ({
@@ -22,6 +24,8 @@ vi.mock('./macroAnalyticsLocalStoragePlugin', () => ({
     removePublication: vi.fn(async ({ userId, period }: { userId: string; period: string }) => { publications.get(userId)?.delete(period); }),
     listPublications: vi.fn(async ({ userId }: { userId: string }) => ({ publications: [...(publications.get(userId)?.values() ?? [])] })),
     clearPublications: vi.fn(async ({ userId }: { userId: string }) => { publications.delete(userId); }),
+    getLatestPublication: vi.fn(async ({ contributorId, period }: { contributorId: string; period: string }) => ({ publication: latest.get(`${contributorId}:${period}`) })),
+    saveLatestPublication: vi.fn(async ({ publication }: { publication: { contributorId: string; period: { value: string } } }) => { latest.set(`${publication.contributorId}:${publication.period.value}`, publication); }),
   },
 }));
 
@@ -29,6 +33,7 @@ describe('native macro analytics adapters', () => {
   beforeEach(() => {
     identities.clear();
     publications.clear();
+    latest.clear();
   });
 
   it('retains contributor identity and pending publication across adapter reconstruction', async () => {
@@ -43,8 +48,10 @@ describe('native macro analytics adapters', () => {
     const publication = createMacroAnalyticsPublication({ contributorId, period, revision: 1, contribution });
     await new NativeAnalyticsContributorIdentityAdapter().save('user-A', contributorId);
     await new NativeMacroAnalyticsOutboxAdapter().save('user-A', publication);
+    await new NativeLatestMacroAnalyticsPublicationAdapter().save(publication);
 
     await expect(new NativeAnalyticsContributorIdentityAdapter().get('user-A')).resolves.toBe(contributorId);
     await expect(new NativeMacroAnalyticsOutboxAdapter().get('user-A', period)).resolves.toEqual(publication);
+    await expect(new NativeLatestMacroAnalyticsPublicationAdapter().find(contributorId, period)).resolves.toEqual(publication);
   });
 });

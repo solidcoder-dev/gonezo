@@ -1,31 +1,25 @@
 package com.gonezo.multiplatform.plugins;
 
-import android.content.SharedPreferences;
-import android.util.Base64;
+import com.gonezo.multiplatform.core.AndroidMacroAnalyticsOutboxRepository;
+import com.gonezo.multiplatform.core.AndroidMacroAnalyticsLatestPublicationRepository;
+import com.gonezo.multiplatform.core.AndroidMacroAnalyticsContributorRepository;
+import com.gonezo.multiplatform.core.CoreDatabase;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import java.nio.charset.StandardCharsets;
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.GCMParameterSpec;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 @CapacitorPlugin(name = "MacroAnalyticsLocalStoragePlugin")
 public class MacroAnalyticsLocalStoragePlugin extends Plugin {
-  private static final String STORE = "gonezo.macro-analytics.local.v1";
-  private static final String KEY_ALIAS = "gonezo.macro-analytics.local.key.v1";
+  private CoreDatabase database;
 
   @PluginMethod public void getContributorId(PluginCall call) {
-    withUser(call, (userId, data) -> {
+    withUser(call, (userId, database) -> {
       JSObject result = new JSObject();
-      String id = data.optString("contributorId", "");
-      if (!id.isEmpty()) result.put("contributorId", id);
+      String id = new AndroidMacroAnalyticsContributorRepository(database).get(userId);
+      if (id != null && !id.isEmpty()) result.put("contributorId", id);
       call.resolve(result);
     });
   }
@@ -36,19 +30,18 @@ public class MacroAnalyticsLocalStoragePlugin extends Plugin {
       call.reject("Analytics contributor ID is required", "INVALID_CONTRIBUTOR_ID");
       return;
     }
-    withUser(call, (userId, data) -> {
-      data.put("contributorId", contributorId);
-      saveData(userId, data, call);
+    withUser(call, (userId, database) -> {
+      new AndroidMacroAnalyticsContributorRepository(database).save(userId, contributorId);
+      call.resolve();
     });
   }
 
   @PluginMethod public void getPublication(PluginCall call) {
     String period = call.getString("period");
-    withUser(call, (userId, data) -> {
+    withUser(call, (userId, database) -> {
       JSObject result = new JSObject();
-      JSONObject publications = data.optJSONObject("publications");
-      JSONObject publication = publications == null || period == null ? null : publications.optJSONObject(period);
-      if (publication != null) result.put("publication", new JSObject(publication.toString()));
+      String publication = period == null ? null : new AndroidMacroAnalyticsOutboxRepository(database).get(userId, period);
+      if (publication != null) result.put("publication", new JSObject(publication));
       call.resolve(result);
     });
   }
@@ -60,37 +53,24 @@ public class MacroAnalyticsLocalStoragePlugin extends Plugin {
       call.reject("Publication period is required", "INVALID_PUBLICATION");
       return;
     }
-    withUser(call, (userId, data) -> {
-      JSONObject publications = data.optJSONObject("publications");
-      if (publications == null) publications = new JSONObject();
-      publications.put(period, new JSONObject(publication.toString()));
-      data.put("publications", publications);
-      saveData(userId, data, call);
+    withUser(call, (userId, database) -> {
+      new AndroidMacroAnalyticsOutboxRepository(database).save(userId, publication.toString());
+      call.resolve();
     });
   }
 
   @PluginMethod public void removePublication(PluginCall call) {
     String period = call.getString("period");
-    withUser(call, (userId, data) -> {
-      JSONObject publications = data.optJSONObject("publications");
-      if (publications != null) publications.remove(period);
-      saveData(userId, data, call);
+    withUser(call, (userId, database) -> {
+      new AndroidMacroAnalyticsOutboxRepository(database).remove(userId, period);
+      call.resolve();
     });
   }
 
   @PluginMethod public void listPublications(PluginCall call) {
-    withUser(call, (userId, data) -> {
+    withUser(call, (userId, database) -> {
       JSArray publications = new JSArray();
-      JSONObject stored = data.optJSONObject("publications");
-      if (stored != null) {
-        JSONArray periods = stored.names();
-        if (periods != null) {
-          for (int index = 0; index < periods.length(); index++) {
-            JSONObject publication = stored.optJSONObject(periods.optString(index));
-            if (publication != null) publications.put(new JSObject(publication.toString()));
-          }
-        }
-      }
+      for (String publication : new AndroidMacroAnalyticsOutboxRepository(database).listPending(userId)) publications.put(new JSObject(publication));
       JSObject result = new JSObject();
       result.put("publications", publications);
       call.resolve(result);
@@ -98,13 +78,40 @@ public class MacroAnalyticsLocalStoragePlugin extends Plugin {
   }
 
   @PluginMethod public void clearPublications(PluginCall call) {
-    withUser(call, (userId, data) -> {
-      data.put("publications", new JSONObject());
-      saveData(userId, data, call);
+    withUser(call, (userId, database) -> {
+      new AndroidMacroAnalyticsOutboxRepository(database).clear(userId);
+      call.resolve();
     });
   }
 
-  private interface UserOperation { void run(String userId, JSONObject data) throws Exception; }
+  @PluginMethod public void getLatestPublication(PluginCall call) {
+    String contributorId = call.getString("contributorId");
+    String period = call.getString("period");
+    try {
+      String publication = new AndroidMacroAnalyticsLatestPublicationRepository(database()).find(contributorId, period);
+      JSObject result = new JSObject();
+      if (publication != null) result.put("publication", new JSObject(publication));
+      call.resolve(result);
+    } catch (Exception error) {
+      call.reject("Macro analytics local storage failed", "MACRO_ANALYTICS_STORAGE_FAILURE");
+    }
+  }
+
+  @PluginMethod public void saveLatestPublication(PluginCall call) {
+    JSObject publication = call.getObject("publication");
+    if (publication == null) {
+      call.reject("Publication is required", "INVALID_PUBLICATION");
+      return;
+    }
+    try {
+      new AndroidMacroAnalyticsLatestPublicationRepository(database()).save(publication.toString());
+      call.resolve();
+    } catch (Exception error) {
+      call.reject("Macro analytics local storage failed", "MACRO_ANALYTICS_STORAGE_FAILURE");
+    }
+  }
+
+  private interface UserOperation { void run(String userId, CoreDatabase database) throws Exception; }
 
   private void withUser(PluginCall call, UserOperation operation) {
     String userId = call.getString("userId");
@@ -113,54 +120,17 @@ public class MacroAnalyticsLocalStoragePlugin extends Plugin {
       return;
     }
     try {
-      operation.run(userId, loadData(userId));
+      CoreDatabase activeDatabase = database();
+      new MacroAnalyticsLegacyMigration(new LegacyMacroAnalyticsStorageReader(getContext())).migrate(userId, activeDatabase);
+      operation.run(userId, activeDatabase);
     } catch (Exception error) {
       call.reject("Macro analytics local storage failed", "MACRO_ANALYTICS_STORAGE_FAILURE");
     }
   }
 
-  private JSONObject loadData(String userId) throws Exception {
-    SharedPreferences preferences = getContext().getSharedPreferences(STORE, 0);
-    String iv = preferences.getString(userId + ".iv", null);
-    String ciphertext = preferences.getString(userId + ".value", null);
-    if (iv == null || ciphertext == null) return new JSONObject();
-    Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-    cipher.init(Cipher.DECRYPT_MODE, key(), new GCMParameterSpec(128, Base64.decode(iv, Base64.NO_WRAP)));
-    byte[] plaintext = cipher.doFinal(Base64.decode(ciphertext, Base64.NO_WRAP));
-    try { return new JSONObject(new String(plaintext, StandardCharsets.UTF_8)); }
-    finally { java.util.Arrays.fill(plaintext, (byte) 0); }
+  private synchronized CoreDatabase database() {
+    if (database == null) database = new CoreDatabase(getContext().getApplicationContext());
+    return database;
   }
 
-  private void saveData(String userId, JSONObject data, PluginCall call) throws Exception {
-    byte[] plaintext = data.toString().getBytes(StandardCharsets.UTF_8);
-    byte[] ciphertext = null;
-    try {
-      Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-      cipher.init(Cipher.ENCRYPT_MODE, key());
-      ciphertext = cipher.doFinal(plaintext);
-      SharedPreferences preferences = getContext().getSharedPreferences(STORE, 0);
-      boolean saved = preferences.edit()
-          .putString(userId + ".iv", Base64.encodeToString(cipher.getIV(), Base64.NO_WRAP))
-          .putString(userId + ".value", Base64.encodeToString(ciphertext, Base64.NO_WRAP))
-          .commit();
-      if (!saved) throw new IllegalStateException("Encrypted value was not saved");
-      call.resolve();
-    } finally {
-      java.util.Arrays.fill(plaintext, (byte) 0);
-      if (ciphertext != null) java.util.Arrays.fill(ciphertext, (byte) 0);
-    }
-  }
-
-  private SecretKey key() throws Exception {
-    java.security.KeyStore keyStore = java.security.KeyStore.getInstance("AndroidKeyStore");
-    keyStore.load(null);
-    if (keyStore.containsAlias(KEY_ALIAS)) return (SecretKey) keyStore.getKey(KEY_ALIAS, null);
-    KeyGenerator generator = KeyGenerator.getInstance("AES", "AndroidKeyStore");
-    generator.init(new android.security.keystore.KeyGenParameterSpec.Builder(
-        KEY_ALIAS, android.security.keystore.KeyProperties.PURPOSE_ENCRYPT | android.security.keystore.KeyProperties.PURPOSE_DECRYPT)
-        .setBlockModes(android.security.keystore.KeyProperties.BLOCK_MODE_GCM)
-        .setEncryptionPaddings(android.security.keystore.KeyProperties.ENCRYPTION_PADDING_NONE)
-        .setKeySize(256).build());
-    return generator.generateKey();
-  }
 }
