@@ -24,13 +24,26 @@ class SignedPublicationTest {
         val signed = sign("opaque-random-id", environment.keyId, payload, environment.keyPair)
 
         val result = environment.authenticateAndIngest.execute(signed)
-        val tampered = environment.authenticateAndIngest.execute(signed.copy(payload = payload.replace("12.00", "1200.00")))
-        val revised = environment.authenticateAndIngest.execute(signed.copy(payload = payload.replace("\"revision\":3", "\"revision\":4")))
+        val fieldMutations = listOf(
+            "2026-09" to "2026-10",
+            "\"revision\":3" to "\"revision\":4",
+            "\"countryCode\":\"ES\"" to "\"countryCode\":\"PT\"",
+            "ES-CN" to "ES-MD",
+            "FEMALE" to "MALE",
+            "25_34" to "35_44",
+            "\"currency\":\"EUR\"" to "\"currency\":\"USD\"",
+            "12.00" to "1200.00",
+            "\"count\":1" to "\"count\":2",
+            "POSTED" to "EXPECTED",
+            "EXPENSE" to "INCOME",
+        )
+        val tamperedResults = fieldMutations.map { (original, replacement) ->
+            environment.authenticateAndIngest.execute(signed.copy(payload = payload.replace(original, replacement)))
+        }
 
         assertEquals(PublicationAuthenticationResult.AUTHENTICATED, result.authentication)
         assertEquals("ACCEPTED", result.ingestion?.outcome?.name)
-        assertEquals(PublicationAuthenticationResult.INVALID_SIGNATURE, tampered.authentication)
-        assertEquals(PublicationAuthenticationResult.INVALID_SIGNATURE, revised.authentication)
+        assertEquals(List(fieldMutations.size) { PublicationAuthenticationResult.INVALID_SIGNATURE }, tamperedResults.map { it.authentication })
         assertEquals(environment.parser.parse(payload), environment.publications.find(ContributorId("opaque-random-id"), environment.parser.parse(payload).period))
     }
 
