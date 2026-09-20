@@ -8,6 +8,8 @@ import com.gonezo.recurrence.domain.RecurringMovementStatus
 import com.gonezo.recurrence.domain.services.RecurrenceScheduleCalculator
 import java.time.Instant
 import java.time.ZoneId
+import java.math.BigDecimal
+import java.math.RoundingMode
 
 @JvmInline
 value class AnalyticsFactId(val value: String) {
@@ -81,11 +83,46 @@ data class AnalyticsMovementIdentity(val value: String) {
     }
 }
 
-data class AnalyticsMovementFact(val identity: AnalyticsMovementIdentity, val source: AnalyticsMovementSource, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val ignored: Boolean, val categoryId: String?, val tagIds: Set<String>, val destinationAccountId: String? = null, val analyticsFactId: AnalyticsFactId = AnalyticsFactId(identity.value), val reference: AnalyticsMovementReference = AnalyticsMovementReference.ScheduledProjection("legacy", identity.value)) {
+data class AnalyticsCategoryAllocation(val categoryId: String?, val personalAmount: Money, val fullAmount: Money)
+
+data class AnalyticsCategoryAmount(val categoryId: String?, val amount: BigDecimal)
+
+object AnalyticsCategoryAllocationResolver {
+    fun resolve(categoryId: String?, personalAmount: Money, fullAmount: Money, splitAmounts: List<AnalyticsCategoryAmount> = emptyList()): List<AnalyticsCategoryAllocation> {
+        require(personalAmount.currency == fullAmount.currency) { "category allocation currencies must match" }
+        val full = fullAmount.amount
+        val personal = personalAmount.amount
+        require(full >= BigDecimal.ZERO && personal >= BigDecimal.ZERO) { "category allocation amounts cannot be negative" }
+        val amounts = if (splitAmounts.isEmpty()) {
+            listOf(AnalyticsCategoryAmount(categoryId, full))
+        } else {
+            val splitTotal = splitAmounts.fold(BigDecimal.ZERO) { total, item -> total + item.amount }
+            require(splitAmounts.all { it.amount >= BigDecimal.ZERO }) { "split allocation amounts cannot be negative" }
+            require(splitTotal <= full) { "split allocation total exceeds movement amount" }
+            splitAmounts + if (splitTotal < full) listOf(AnalyticsCategoryAmount(null, full - splitTotal)) else emptyList()
+        }
+        var allocatedPersonal = BigDecimal.ZERO
+        return amounts.mapIndexed { index, allocation ->
+            val personalSlice = when {
+                index == amounts.lastIndex -> personal - allocatedPersonal
+                full.compareTo(BigDecimal.ZERO) == 0 -> BigDecimal.ZERO
+                else -> allocation.amount.multiply(personal).divide(full, personal.scale().coerceAtLeast(0), RoundingMode.HALF_UP)
+            }
+            allocatedPersonal += personalSlice
+            AnalyticsCategoryAllocation(
+                categoryId = allocation.categoryId,
+                personalAmount = Money(personalSlice, personalAmount.currency),
+                fullAmount = Money(allocation.amount, fullAmount.currency),
+            )
+        }
+    }
+}
+
+data class AnalyticsMovementFact(val identity: AnalyticsMovementIdentity, val source: AnalyticsMovementSource, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val ignored: Boolean, val categoryId: String?, val tagIds: Set<String>, val destinationAccountId: String? = null, val analyticsFactId: AnalyticsFactId = AnalyticsFactId(identity.value), val reference: AnalyticsMovementReference = AnalyticsMovementReference.ScheduledProjection("legacy", identity.value), val categoryAllocations: List<AnalyticsCategoryAllocation> = emptyList()) {
     val sourceAccountId: String get() = accountId
 }
 
-data class AnalyticsPostedMovement(val id: String, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val ignored: Boolean = false, val categoryId: String? = null, val tagIds: Set<String> = emptySet(), val occurrenceIdentity: AnalyticsMovementIdentity? = null, val destinationAccountId: String? = null)
+data class AnalyticsPostedMovement(val id: String, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val ignored: Boolean = false, val categoryId: String? = null, val tagIds: Set<String> = emptySet(), val occurrenceIdentity: AnalyticsMovementIdentity? = null, val destinationAccountId: String? = null, val splitAmounts: List<AnalyticsCategoryAmount> = emptyList())
 
 data class AnalyticsExpectedMovement(val id: String, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val pending: Boolean, val ignored: Boolean = false, val categoryId: String? = null, val tagIds: Set<String> = emptySet(), val originOccurrenceId: String? = null, val originRecurringMovementId: String? = null, val resolvedTransactionId: String? = null, val destinationAccountId: String? = null)
 
@@ -123,6 +160,7 @@ class AnalyticsMovementFactAssembler {
                     categoryId = movement.categoryId,
                     tagIds = movement.tagIds,
                     destinationAccountId = movement.destinationAccountId,
+                    categoryAllocations = allocations(movement.type, movement.categoryId, movement.personalAmount, movement.fullAmount, movement.splitAmounts),
                 )
             }
         if (!includePlannedMovements) {
@@ -153,6 +191,7 @@ class AnalyticsMovementFactAssembler {
                         categoryId = movement.categoryId,
                         tagIds = movement.tagIds,
                         destinationAccountId = movement.destinationAccountId,
+                        categoryAllocations = allocations(movement.type, movement.categoryId, movement.personalAmount, movement.fullAmount),
                     )
                 }
         val scheduledFacts =
@@ -176,6 +215,7 @@ class AnalyticsMovementFactAssembler {
                     categoryId = movement.categoryId,
                     tagIds = movement.tagIds,
                     destinationAccountId = movement.destinationAccountId,
+                    categoryAllocations = allocations(movement.type, movement.categoryId, movement.personalAmount, movement.fullAmount),
                 )
             }
         return resolveIgnored(postedFacts + expectedFacts.toList() + scheduledFacts, exclusionReader)
@@ -192,6 +232,11 @@ class AnalyticsMovementFactAssembler {
                 }
             }
         return AnalyticsMovementDeduplicator.select(resolvedFacts)
+    }
+
+    private fun allocations(type: AnalyticsMovementType, categoryId: String?, personalAmount: Money, fullAmount: Money, splitAmounts: List<AnalyticsCategoryAmount> = emptyList()): List<AnalyticsCategoryAllocation> = when (type) {
+        AnalyticsMovementType.INCOME, AnalyticsMovementType.EXPENSE -> AnalyticsCategoryAllocationResolver.resolve(categoryId, personalAmount, fullAmount, splitAmounts)
+        AnalyticsMovementType.TRANSFER_IN, AnalyticsMovementType.TRANSFER_OUT -> emptyList()
     }
 }
 

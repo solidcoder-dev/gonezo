@@ -52,8 +52,15 @@ export type AnalyticsMovementFactItem = {
   fullAmount: string;
   ignored: boolean;
   categoryId?: string;
+  categoryAllocations: readonly AnalyticsCategoryAllocation[];
   tagIds: string[];
 };
+
+export type AnalyticsCategoryAllocation = Readonly<{
+  categoryId?: string;
+  personalAmount: string;
+  fullAmount: string;
+}>;
 
 export type AnalyticsListMovementFactsResult = { items: AnalyticsMovementFactItem[] };
 

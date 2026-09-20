@@ -21,6 +21,33 @@ class AnalyticsMovementFactsTest {
     private val currency = CurrencyCode.from("EUR")
 
     @Test
+    fun `category allocations reconcile split remainder and personal amounts exactly`() {
+        val allocations = AnalyticsCategoryAllocationResolver.resolve(
+            categoryId = "movement-category",
+            personalAmount = Money.of(BigDecimal("0.05"), "EUR"),
+            fullAmount = Money.of(BigDecimal("0.10"), "EUR"),
+            splitAmounts = listOf(
+                AnalyticsCategoryAmount("food", BigDecimal("0.03")),
+                AnalyticsCategoryAmount("home", BigDecimal("0.02")),
+            ),
+        )
+
+        assertThat(allocations.map { it.categoryId }).containsExactly("food", "home", null)
+        assertThat(allocations.fold(BigDecimal.ZERO) { total, item -> total + item.fullAmount.amount }).isEqualByComparingTo("0.10")
+        assertThat(allocations.fold(BigDecimal.ZERO) { total, item -> total + item.personalAmount.amount }).isEqualByComparingTo("0.05")
+    }
+
+    @Test
+    fun `category allocation resolver rejects split overage`() {
+        org.assertj.core.api.Assertions.assertThatThrownBy {
+            AnalyticsCategoryAllocationResolver.resolve(
+                null, Money.of(BigDecimal("1.00"), "EUR"), Money.of(BigDecimal("1.00"), "EUR"),
+                listOf(AnalyticsCategoryAmount("food", BigDecimal("1.01"))),
+            )
+        }.hasMessage("split allocation total exceeds movement amount")
+    }
+
+    @Test
     fun `posted takes precedence over expected and scheduled projection`() {
         val identity = AnalyticsMovementIdentity.scheduled("series", 1)
         val facts = listOf(
