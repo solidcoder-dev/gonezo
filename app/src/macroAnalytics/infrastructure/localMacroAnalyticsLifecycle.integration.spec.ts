@@ -3,6 +3,7 @@ import { createAnalyticsContributorId } from '../domain/analyticsContributorId';
 import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
 import { createAnalyticsContributionConsent } from '../domain/analyticsContributionConsent';
 import { createFinancialFact } from '../domain/financialFact';
+import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import type { FinancialFact } from '../domain/financialFact';
 import type { CategoryFact } from '../domain/categoryFact';
 import type { MacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
@@ -10,6 +11,8 @@ import { createCohort } from '../domain/cohort';
 import { CalculateContributorMetrics } from '../application/CalculateContributorMetrics';
 import { CalculateCohortMetrics } from '../application/CalculateCohortMetrics';
 import { GetMacroOverviewReport } from '../application/GetMacroOverviewReport';
+import { GetMacroCategoryReport } from '../application/GetMacroCategoryReport';
+import type { ProcessedContributionSourcePort } from '../application/ProcessedContributionSourcePort';
 import { contributorFinancialMetricDefinitions, contributorFinancialMetricCalculators } from '../application/contributorFinancialMetrics';
 import { cohortFinancialMetricCalculators } from '../application/cohortFinancialMetrics';
 import { LocalMacroAnalyticsPublicationProcessor } from '../application/LocalMacroAnalyticsPublicationProcessor';
@@ -26,10 +29,16 @@ describe('local Macro Analytics lifecycle integration', () => {
     const profile = { get: vi.fn(async () => ({ birthYear: 1995, sex: 'female' as const, countryCode: 'GB', regionCode: 'GB-ENG' })) };
     const financialFacts = { listFinancialFacts: vi.fn(async () => facts) };
     const categoryFacts = { listCategoryFacts: vi.fn(async (): Promise<CategoryFact[]> => (facts as readonly FinancialFact[]).flatMap((fact): CategoryFact[] => {
-      const base = { id: String(fact.id), occurredAt: fact.occurredAt, source: fact.source, currency: fact.currency, amount: String(fact.amount) };
-      if (fact.kind === 'EXPENSE') return [{ ...base, kind: 'EXPENSE', category: 'GROCERIES' }];
-      if (fact.kind === 'INCOME') return [{ ...base, kind: 'INCOME', category: 'OTHER_INCOME' }];
-      return [];
+      if (fact.kind !== 'EXPENSE' && fact.kind !== 'INCOME') return [];
+      const firstHalf = ExactDecimal.from(String(fact.amount)).ratioTo(ExactDecimal.from(2), 2).toString();
+      const secondHalf = ExactDecimal.from(String(fact.amount)).subtract(ExactDecimal.from(firstHalf)).toString();
+      const category = fact.kind === 'EXPENSE' ? 'GROCERIES' : 'OTHER_INCOME';
+      const unmapped = fact.kind === 'EXPENSE' ? 'UNMAPPED_EXPENSE' : 'UNMAPPED_INCOME';
+      const base = { occurredAt: fact.occurredAt, source: fact.source, currency: fact.currency, kind: fact.kind };
+      return [
+        { ...base, id: `${fact.id}/category/0`, amount: firstHalf, category },
+        { ...base, id: `${fact.id}/category/1`, amount: secondHalf, category: unmapped },
+      ];
     })) };
     const contributionPorts = { consent, profile, financialFacts, categoryFacts };
     const identity = new InMemoryAnalyticsContributorIdentityAdapter();
@@ -43,11 +52,13 @@ describe('local Macro Analytics lifecycle integration', () => {
     const queue = new InMemoryContributionRebuildQueueAdapter();
     const backfill = new InMemoryMacroAnalyticsBackfillStateAdapter();
     await backfill.markInitialBackfillComplete(userId, 1);
-    const report = new GetMacroOverviewReport({
+    const processed: ProcessedContributionSourcePort = {
       list: async ({ period: requestedPeriod }) => [...latest.values()]
         .filter((publication) => publication.period.value === requestedPeriod.value)
         .map((publication) => ({ contributorId: publication.contributorId, contribution: publication.contribution })),
-    }, new CalculateContributorMetrics(contributorFinancialMetricCalculators), new CalculateCohortMetrics(cohortFinancialMetricCalculators));
+    };
+    const report = new GetMacroOverviewReport(processed, new CalculateContributorMetrics(contributorFinancialMetricCalculators), new CalculateCohortMetrics(cohortFinancialMetricCalculators));
+    const categoryReport = new GetMacroCategoryReport(processed);
 
     const maintain = () => RunMacroAnalyticsMaintenance({
       consent,
@@ -72,6 +83,11 @@ describe('local Macro Analytics lifecycle integration', () => {
     const cohort = createCohort({ countryCode: 'GB', regionCode: 'GB-ENG' });
     const firstReport = await report.execute({ period, currency: 'GBP', cohort });
     expect(firstReport.medianPostedExpense?.kind === 'MONEY' && firstReport.medianPostedExpense.value.toString()).toBe('12');
+    const firstCategoryReport = await categoryReport.execute({ period, currency: 'GBP', cohort });
+    expect(firstCategoryReport.postedExpenseCategories.map(({ category, totalAmount }) => [category, totalAmount.value.toString()])).toEqual([
+      ['GROCERIES', '6'], ['UNMAPPED_EXPENSE', '6'],
+    ]);
+    expect(JSON.stringify(firstCategoryReport, (_key, value: unknown) => typeof value === 'bigint' ? value.toString() : value)).not.toMatch(/private-fact|stable-contributor|category\/0/);
 
     facts = [createFinancialFact({ ...facts[0], amount: '18' })];
     await queue.enqueue(userId, period);
@@ -81,6 +97,9 @@ describe('local Macro Analytics lifecycle integration', () => {
     expect(await outbox.listPending(userId)).toHaveLength(0);
     const updatedReport = await report.execute({ period, currency: 'GBP', cohort });
     expect(updatedReport.medianPostedExpense?.kind === 'MONEY' && updatedReport.medianPostedExpense.value.toString()).toBe('18');
+    const updatedCategoryReport = await categoryReport.execute({ period, currency: 'GBP', cohort });
+    expect(updatedCategoryReport.postedExpenseCategories.map(({ totalAmount }) => totalAmount.value.toString())).toEqual(['9', '9']);
+    expect(current.contribution.schemaVersion).toBe(2);
     expect(contributorFinancialMetricDefinitions.postedExpenseTotal.id.toString()).toBe('posted_expense_total:v1');
   });
 });
