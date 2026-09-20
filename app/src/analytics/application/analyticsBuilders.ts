@@ -34,9 +34,13 @@ import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 import { buildOverviewInsightsResult } from './overviewInsights';
 import { addDecimalAmounts, subtractDecimalAmounts } from '../../ledger/application/decimalAmount';
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
-import { balanceImpact, isBalanceInflow, isBalanceOutflow, isEconomicExpense, isEconomicIncome } from '../../ledger/application/movementSemantics';
+import { balanceImpact } from '../../ledger/application/movementSemantics';
 import { isAnalyticsCashFlowTransaction } from './analyticsMovementEligibility';
 import { compareAnalyticsAmountDescending, toAnalyticsHighlight } from './highlights/movementHighlight';
+import { buildOverviewTransferSummary } from './summaries/overviewTransferSummary';
+import { CalculateUserMetrics } from './metrics/calculateUserMetrics';
+import { userMetricCalculators } from './metrics/financialMetricCalculators';
+import { EXPENSE_TOTAL_V1, INCOME_TOTAL_V1, NET_BALANCE_FLOW_V1 } from './metrics/builtInMetricDefinitions';
 
 const UNCATEGORIZED = 'Uncategorized';
 
@@ -272,36 +276,28 @@ export function buildAnalyticsCashFlowSummary(
   currencyInput: string,
 ): AnalyticsCashFlowSummaryResult {
   const currency = selectedCurrency(currencyInput);
-  const totals = transactions
+  const currentPeriodFacts = transactions
     .filter((transaction) => isAnalyticsCashFlowTransaction(transaction, currency))
-    .reduce(
-      (current, transaction) => {
-        if (isEconomicIncome(transaction.type)) {
-          return { ...current, incomeAmount: addAmount(current.incomeAmount, analyticsTransactionAmount(transaction)) };
-        }
-        if (isEconomicExpense(transaction.type)) {
-          return { ...current, expenseAmount: addAmount(current.expenseAmount, analyticsTransactionAmount(transaction)) };
-        }
-        return current;
-      },
-      { incomeAmount: '0.00', expenseAmount: '0.00' },
-    );
-
+    .filter((transaction): transaction is typeof transaction & { type: 'income' | 'expense' | 'transfer_in' | 'transfer_out' } =>
+      transaction.type === 'income' || transaction.type === 'expense' || transaction.type === 'transfer_in' || transaction.type === 'transfer_out')
+    .map((transaction) => ({ type: transaction.type, amount: analyticsTransactionAmount(transaction) }));
+  const metrics = new CalculateUserMetrics(userMetricCalculators).execute({ currency, currentPeriodFacts }, [
+    INCOME_TOTAL_V1.id,
+    EXPENSE_TOTAL_V1.id,
+    NET_BALANCE_FLOW_V1.id,
+  ]);
+  const amounts = new Map(metrics.map((metric) => [metric.definition.id.toString(), metric.value]));
+  const income = amounts.get(INCOME_TOTAL_V1.id.toString());
+  const expense = amounts.get(EXPENSE_TOTAL_V1.id.toString());
+  const netFlow = amounts.get(NET_BALANCE_FLOW_V1.id.toString());
+  if (income?.kind !== 'MONEY' || expense?.kind !== 'MONEY' || netFlow?.kind !== 'MONEY') {
+    throw new Error('Cash flow summary metrics did not return money');
+  }
   return {
-    ...totals,
-    ...(transactions.some((transaction) => transaction.type === 'transfer_in' || transaction.type === 'transfer_out')
-      ? {
-          inflowAmount: transactions
-            .filter((transaction) => isAnalyticsCashFlowTransaction(transaction, currency) && isBalanceInflow(transaction.type))
-            .reduce((total, transaction) => addAmount(total, analyticsTransactionAmount(transaction)), '0.00'),
-          outflowAmount: transactions
-            .filter((transaction) => isAnalyticsCashFlowTransaction(transaction, currency) && isBalanceOutflow(transaction.type))
-            .reduce((total, transaction) => addAmount(total, analyticsTransactionAmount(transaction)), '0.00'),
-        }
-      : {}),
-    netFlowAmount: transactions
-      .filter((transaction) => isAnalyticsCashFlowTransaction(transaction, currency))
-      .reduce((total, transaction) => addAmount(total, balanceImpact(transaction.type, analyticsTransactionAmount(transaction))), '0.00'),
+    incomeAmount: income.value.toFixed(2),
+    expenseAmount: expense.value.toFixed(2),
+    netFlowAmount: netFlow.value.toFixed(2),
+    ...buildOverviewTransferSummary(transactions, currency),
   };
 }
 
