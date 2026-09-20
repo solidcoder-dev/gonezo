@@ -29,6 +29,7 @@ export type AnalyticsMovementReaderPort = {
 export type AnalyticsTransactionReadModel = LedgerTransactionListItem & {
   analyticsFactId?: string;
   reference?: AnalyticsListMovementFactsResult['items'][number]['reference'];
+  schedulingOrigin?: AnalyticsListMovementFactsResult['items'][number]['schedulingOrigin'];
   analyticsAmount: string;
   analyticsPersonalAmount: string;
   analyticsFullAmount: string;
@@ -132,6 +133,7 @@ export async function listAnalyticsMovements(
         id: movement.reference.source === 'posted' ? movement.reference.transactionId : movement.analyticsFactId,
         analyticsFactId: movement.analyticsFactId,
         reference: movement.reference,
+        schedulingOrigin: movement.schedulingOrigin,
         accountId: movement.accountId,
         type: movement.type,
         status: 'posted',

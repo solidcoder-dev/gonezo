@@ -44,6 +44,7 @@ export type AnalyticsMovementFactItem = {
     | { source: 'expected'; expectedMovementId: string; recurringMovementId?: string; occurrenceId?: string }
     | { source: 'scheduledProjection'; recurringMovementId: string; occurrenceId: string };
   source: 'POSTED' | 'EXPECTED' | 'SCHEDULED_PROJECTION';
+  schedulingOrigin?: AnalyticsSchedulingOrigin;
   effectiveAt: string;
   accountId: string;
   type: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
@@ -55,6 +56,12 @@ export type AnalyticsMovementFactItem = {
   categoryAllocations: readonly AnalyticsCategoryAllocation[];
   tagIds: string[];
 };
+
+export type AnalyticsSchedulingOrigin = Readonly<{
+  kind: 'recurring' | 'one_shot';
+  recurringMovementId: string;
+  occurrenceId?: string;
+}>;
 
 export type AnalyticsCategoryAllocation = Readonly<{
   categoryId?: string;

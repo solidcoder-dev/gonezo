@@ -6,6 +6,7 @@ import com.gonezo.application.query.AnalyticsMovementIdentity
 import com.gonezo.application.query.AnalyticsMovementReadResult
 import com.gonezo.application.query.AnalyticsMovementReadWindow
 import com.gonezo.application.query.AnalyticsMovementType
+import com.gonezo.application.query.AnalyticsSchedulingOrigin
 import com.gonezo.application.query.AnalyticsCategoryAmount
 import com.gonezo.application.query.AnalyticsPostedMovement
 import com.gonezo.application.query.AnalyticsScheduledMovementReader
@@ -14,12 +15,15 @@ import com.gonezo.application.query.AnalyticsExpectedMovementReader
 import com.gonezo.application.query.AnalyticsPostedMovementReader
 import com.gonezo.domain.shared.Money
 import com.gonezo.recurrence.domain.RecurringMovementType
+import com.gonezo.recurrence.domain.RecurringMovementId
+import com.gonezo.recurrence.domain.SchedulingKind
 import com.gonezo.application.query.AnalyticsScheduledOccurrenceProjector
 import com.gonezo.application.query.AnalyticsMovementQueryFilters
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.UUID
 
 class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
   private val database = CoreDatabase(context.applicationContext)
@@ -72,12 +76,15 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
     ).filter { it.status.equals("posted", true) }.mapNotNull { transaction ->
       val type = transaction.type.toAnalyticsType() ?: return@mapNotNull null
       val amount = Money(BigDecimal(transaction.amount), transaction.currency)
+      val occurrence = occurrenceForTransaction(transaction.id)
       AnalyticsPostedMovement(
         id = transaction.id, effectiveAt = Instant.parse(transaction.occurredAt), accountId = transaction.accountId,
         type = type, currency = com.gonezo.domain.shared.CurrencyCode.from(transaction.currency),
         personalAmount = amount, fullAmount = amount, ignored = isIgnored("movement", transaction.id),
         categoryId = transaction.categoryId ?: categoryId(transaction.id), tagIds = tagIds(transaction.id),
         splitAmounts = splitAmounts(transaction.id),
+        occurrenceIdentity = occurrence?.let { AnalyticsMovementIdentity.occurrence(it.id.toString()) },
+        schedulingOrigin = occurrence?.let(::schedulingOrigin),
       )
     }
   }
@@ -96,6 +103,7 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
           tagIds = expectedTagIds(movement.id),
           originOccurrenceId = movement.originOccurrenceId, originRecurringMovementId = movement.originRecurringMovementId,
           resolvedTransactionId = movement.resolvedTransactionId,
+          schedulingOrigin = schedulingOrigin(movement.originOccurrenceId, movement.originRecurringMovementId),
         )
       }
   }
@@ -108,15 +116,36 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
       }.map { occurrence ->
         val type = movement.type.value.toAnalyticsType() ?: return@map null
         val amount = Money(movement.amount, movement.currency)
+        val persistedOccurrence = occurrences.findByRecurringMovementAndDueAt(movement.id, occurrence.effectiveAt)
         AnalyticsScheduledProjection(
           identity = occurrence.identity, effectiveAt = occurrence.effectiveAt, accountId = movement.sourceAccountId,
           type = type, currency = com.gonezo.domain.shared.CurrencyCode.from(movement.currency),
           personalAmount = amount, fullAmount = amount, categoryId = movement.categoryId,
           originOccurrenceId = occurrence.originOccurrenceId,
           recurringMovementId = movement.id.toString(),
+          schedulingOrigin = AnalyticsSchedulingOrigin(
+            kind = persistedOccurrence?.schedulingKind ?: movement.schedulingKind,
+            recurringMovementId = movement.id.toString(),
+            occurrenceId = persistedOccurrence?.id?.toString() ?: occurrence.originOccurrenceId,
+          ),
         )
       }.filterNotNull()
     }
+  }
+
+  private fun occurrenceForTransaction(transactionId: String) = occurrences.findByLedgerTransactionId(transactionId)
+
+  private fun schedulingOrigin(occurrence: com.gonezo.recurrence.domain.RecurringMovementOccurrence) =
+    AnalyticsSchedulingOrigin(occurrence.schedulingKind, occurrence.recurringMovementId.toString(), occurrence.id.toString())
+
+  private fun schedulingOrigin(originOccurrenceId: String?, recurringMovementId: String?): AnalyticsSchedulingOrigin? {
+    if (originOccurrenceId != null) {
+      val occurrence = occurrences.findById(UUID.fromString(originOccurrenceId)) ?: return null
+      return schedulingOrigin(occurrence)
+    }
+    val recurringId = recurringMovementId ?: return null
+    val movement = recurring.findById(RecurringMovementId.from(recurringId)) ?: return null
+    return AnalyticsSchedulingOrigin(movement.schedulingKind, recurringId)
   }
 
   private fun isIgnored(scopeType: String, scopeId: String): Boolean = database.readableDatabase.query(

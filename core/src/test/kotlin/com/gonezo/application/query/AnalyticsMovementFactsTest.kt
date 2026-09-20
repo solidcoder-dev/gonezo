@@ -8,6 +8,7 @@ import com.gonezo.recurrence.domain.RecurrenceRule
 import com.gonezo.recurrence.domain.RecurringMovement
 import com.gonezo.recurrence.domain.RecurringMovementId
 import com.gonezo.recurrence.domain.RecurringMovementReviewPolicy
+import com.gonezo.recurrence.domain.SchedulingKind
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
@@ -206,6 +207,48 @@ class AnalyticsMovementFactsTest {
             .singleElement().extracting(AnalyticsMovementFact::source).isEqualTo(AnalyticsMovementSource.EXPECTED)
         assertThat(assembler.assemble(listOf(posted), listOf(movement.copy(pending = false)), listOf(scheduled), true))
             .singleElement().extracting(AnalyticsMovementFact::source).isEqualTo(AnalyticsMovementSource.POSTED)
+    }
+
+    @Test
+    fun `assembler carries recurring and one shot origins without guessing manual movements`() {
+        val recurringOrigin = AnalyticsSchedulingOrigin(SchedulingKind.RECURRING, "series-1", "occurrence-1")
+        val oneShotOrigin = AnalyticsSchedulingOrigin(SchedulingKind.ONE_SHOT, "series-2", "occurrence-2")
+        val recurringExpected = AnalyticsExpectedMovement(
+            id = "expected-recurring", effectiveAt = effectiveAt, accountId = "account",
+            type = AnalyticsMovementType.EXPENSE, currency = currency,
+            personalAmount = Money.of(BigDecimal("10.00"), "EUR"),
+            fullAmount = Money.of(BigDecimal("10.00"), "EUR"), pending = true,
+            originOccurrenceId = "occurrence-1", originRecurringMovementId = "series-1",
+            schedulingOrigin = recurringOrigin,
+        )
+        val manualExpected = recurringExpected.copy(
+            id = "expected-manual", originOccurrenceId = null,
+            originRecurringMovementId = null, schedulingOrigin = null,
+        )
+        val posted = AnalyticsPostedMovement(
+            id = "posted-manual", effectiveAt = effectiveAt, accountId = "account",
+            type = AnalyticsMovementType.EXPENSE, currency = currency,
+            personalAmount = recurringExpected.personalAmount, fullAmount = recurringExpected.fullAmount,
+        )
+        val scheduled = AnalyticsScheduledProjection(
+            identity = AnalyticsMovementIdentity.occurrence("occurrence-2"), effectiveAt = effectiveAt,
+            accountId = "account", type = AnalyticsMovementType.EXPENSE, currency = currency,
+            personalAmount = recurringExpected.personalAmount, fullAmount = recurringExpected.fullAmount,
+            originOccurrenceId = "occurrence-2", recurringMovementId = "series-2", schedulingOrigin = oneShotOrigin,
+        )
+
+        val facts = AnalyticsMovementFactAssembler().assemble(
+            listOf(posted), listOf(recurringExpected, manualExpected), listOf(scheduled), true,
+        )
+
+        assertThat(facts.single { it.identity == AnalyticsMovementIdentity.occurrence("occurrence-1") }.schedulingOrigin)
+            .isEqualTo(recurringOrigin)
+        assertThat(facts.single { it.identity == AnalyticsMovementIdentity.occurrence("occurrence-2") }.schedulingOrigin)
+            .isEqualTo(oneShotOrigin)
+        assertThat(facts.single { it.identity == AnalyticsMovementIdentity.expected("expected-manual", null, null) }.schedulingOrigin)
+            .isNull()
+        assertThat(facts.single { it.identity == AnalyticsMovementIdentity.posted("posted-manual") }.schedulingOrigin)
+            .isNull()
     }
 
     @Test

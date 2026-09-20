@@ -12,6 +12,11 @@ describe('analytics movement bridge contract', () => {
           occurrenceId: '00000000-0000-4000-8000-000000000001',
         },
         source: 'SCHEDULED_PROJECTION' as const,
+        schedulingOrigin: {
+          kind: 'recurring' as const,
+          recurringMovementId: '00000000-0000-4000-8000-000000000002',
+          occurrenceId: '00000000-0000-4000-8000-000000000001',
+        },
         effectiveAt: '2026-07-01T00:00:00Z',
         accountId: '00000000-0000-4000-8000-000000000003',
         type: 'expense' as const,
@@ -49,6 +54,11 @@ describe('analytics movement bridge contract', () => {
     expect(result.transactions[0].id).toBe('occurrence/00000000-0000-4000-8000-000000000001');
     expect(result.transactions[0].reference).toEqual({
       source: 'scheduledProjection',
+      recurringMovementId: '00000000-0000-4000-8000-000000000002',
+      occurrenceId: '00000000-0000-4000-8000-000000000001',
+    });
+    expect(result.transactions[0].schedulingOrigin).toEqual({
+      kind: 'recurring',
       recurringMovementId: '00000000-0000-4000-8000-000000000002',
       occurrenceId: '00000000-0000-4000-8000-000000000001',
     });

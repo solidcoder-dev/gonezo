@@ -95,6 +95,15 @@ final class AnalyticsPluginHandler {
         }
         item.put("reference", reference);
         item.put("source", fact.getSource().name());
+        if (fact.getSchedulingOrigin() != null) {
+          JSObject schedulingOrigin = new JSObject();
+          schedulingOrigin.put("kind", fact.getSchedulingOrigin().getKind().getValue());
+          schedulingOrigin.put("recurringMovementId", fact.getSchedulingOrigin().getRecurringMovementId());
+          if (fact.getSchedulingOrigin().getOccurrenceId() != null) {
+            schedulingOrigin.put("occurrenceId", fact.getSchedulingOrigin().getOccurrenceId());
+          }
+          item.put("schedulingOrigin", schedulingOrigin);
+        }
         item.put("effectiveAt", fact.getEffectiveAt().toString());
         item.put("accountId", fact.getAccountId());
         item.put("type", fact.getType().name().toLowerCase(java.util.Locale.ROOT));
