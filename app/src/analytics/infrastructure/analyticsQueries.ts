@@ -28,7 +28,14 @@ import {
   buildSpendingTopExpenses,
   listAnalyticsCurrencies,
 } from '../application/analyticsBuilders';
-import { buildAnalyticsFlowReport, type AnalyticsFlowFact } from '../application/analyticsFlowReport';
+import {
+  buildAnalyticsFlowReport,
+  type AnalyticsFlowFact,
+} from '../application/analyticsFlowReport';
+import { buildFlowProjection as calculateFlowProjection } from '../application/series/flowProjection';
+import { calculateFlowSummary } from '../application/series/flowSummary';
+import { calculateUpcomingFlow } from '../application/readModels/flowUpcoming';
+import { buildFlowInsights as calculateFlowInsights } from '../application/insights/flowInsights';
 import {
   buildAnalyticsSpendingReport,
   normalizeAnalyticsPeriodSelection,
@@ -842,11 +849,9 @@ export async function analyticsGetFlowProjection(
   const scheduledMovements = scheduledResults.flatMap((result) => result.items);
 
   const currentBalanceAmount = balances.reduce(
-    (total, account) => (Number.isFinite(Number(account.balanceAmount))
-      ? (Number(total) + Number(account.balanceAmount)).toFixed(2)
-      : total),
-    '0.00',
-  );
+    (total, account) => total.add(ExactDecimal.from(account.balanceAmount)),
+    ExactDecimal.from('0'),
+  ).toFixed(2);
 
   return buildFlowProjection({
     currency: input.currency,
@@ -927,9 +932,10 @@ export async function analyticsGetFlowReport(port: AnalyticsQueryPort, input: An
       : Promise.resolve([]),
   ]);
   const currency = input.currency.trim().toUpperCase();
-  const currentCents = accounts.reduce((sum, account) => sum + Math.round(Number(account.balanceAmount) * 100), 0);
+  const currentBalance = accounts.reduce((sum, account) => sum.add(ExactDecimal.from(account.balanceAmount)), ExactDecimal.from('0'));
   const postedBalanceFacts = balanceMovements.transactions.map((transaction) => flowFact(transaction, currency, 'full')).filter((fact): fact is AnalyticsFlowFact => Boolean(fact && fact.source === 'posted' && fact.effectiveAt >= `${window.start}T00:00:00.000Z` && fact.effectiveAt < now.toISOString()));
-  const openingCents = currentCents - postedBalanceFacts.reduce((sum, fact) => sum + Math.round(Number(balanceImpact(fact.type, fact.amount.value)) * 100), 0);
+  const windowBalanceImpact = postedBalanceFacts.reduce((sum, fact) => sum.add(ExactDecimal.from(balanceImpact(fact.type, fact.amount.value))), ExactDecimal.from('0'));
+  const openingBalance = currentBalance.subtract(windowBalanceImpact);
   const facts = selectedMovements.transactions.map((transaction) => flowFact(transaction, currency, scope.filters.sharedAmountMode)).filter((fact): fact is AnalyticsFlowFact => Boolean(fact));
   const scheduledFacts = scheduledFlowFacts(
     scheduledResults.flatMap((result) => result.items),
@@ -938,15 +944,22 @@ export async function analyticsGetFlowReport(port: AnalyticsQueryPort, input: An
     now.toISOString(),
   );
   const hasCompleteBalanceScope = scope.filters.sharedAmountMode === 'full' && scope.filters.tagIds.length === 0 && scope.filters.includeIgnoredMovements;
+  const reportFacts = [...facts, ...scheduledFacts];
+  const projection = calculateFlowProjection({
+    openingBalance: { value: openingBalance.toFixed(2), currency },
+    facts: reportFacts,
+    window,
+    now: now.toISOString(),
+  });
   return buildAnalyticsFlowReport({
     window,
     windowRelation: window.endExclusive <= now.toISOString().slice(0, 10) ? 'past' : 'current',
     projectionMode: hasCompleteBalanceScope ? 'accountBalance' : 'filteredImpact',
     currency,
-    openingBalance: { value: (openingCents / 100).toFixed(2), currency },
-    currentBalance: { value: (currentCents / 100).toFixed(2), currency },
-    facts: [...facts, ...scheduledFacts],
-    now: now.toISOString(),
+    summary: calculateFlowSummary(projection, currency, { value: currentBalance.toFixed(2), currency }),
+    projection,
+    upcoming: calculateUpcomingFlow(reportFacts, window, now.toISOString(), currency),
+    insights: calculateFlowInsights(reportFacts, projection, window, currency),
   });
 }
 

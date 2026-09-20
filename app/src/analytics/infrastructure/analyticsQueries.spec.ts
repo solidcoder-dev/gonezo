@@ -715,6 +715,32 @@ describe('analytics queries', () => {
     });
   });
 
+  it('derives flow opening and current balances without floating-point cents drift', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
+    const port = createPort([
+      transaction({ id: 'income-one', type: 'income', amount: '0.10', occurredAt: '2026-06-15T12:00:00.000Z' }),
+      transaction({ id: 'income-two', type: 'income', amount: '0.20', accountId: 'acc-2', occurredAt: '2026-06-15T12:00:00.000Z' }),
+    ], [
+      { id: 'acc-1', name: 'Main', type: 'cash', currency: 'EUR', status: 'active' },
+      { id: 'acc-2', name: 'Savings', type: 'cash', currency: 'EUR', status: 'active' },
+    ]);
+    port.ledgerGetAccountSummary = vi.fn(async ({ accountId }: { accountId: string }): Promise<LedgerGetAccountSummaryResult> => ({
+      accountId, name: accountId, type: 'cash', currency: 'EUR', balanceAmount: accountId === 'acc-1' ? '0.10' : '0.20',
+    }));
+
+    await expect(analyticsGetFlowReport(port, {
+      currency: 'EUR',
+      periodSelection: { period: { kind: 'thisMonth' }, shift: 0 },
+    })).resolves.toMatchObject({
+      summary: {
+        openingBalance: { value: '0.00' },
+        currentBalance: { value: '0.30' },
+        endBalance: { value: '0.30' },
+      },
+    });
+  });
+
   it('rejects an unknown analytics currency', async () => {
     const port = createPort([transaction({ id: 'expense', type: 'expense', amount: '25.00' })]);
 

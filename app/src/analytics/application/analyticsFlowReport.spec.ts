@@ -1,15 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { buildAnalyticsFlowReport, type AnalyticsFlowFact } from './analyticsFlowReport';
+import { buildAnalyticsFlowReport as assembleAnalyticsFlowReport, type AnalyticsFlowFact } from './analyticsFlowReport';
+import { buildFlowProjection } from './series/flowProjection';
+import { calculateFlowSummary } from './series/flowSummary';
+import { calculateUpcomingFlow } from './readModels/flowUpcoming';
+import { buildFlowInsights } from './insights/flowInsights';
 
 const window = { start: '2026-07-01', endExclusive: '2026-08-01', selection: { period: { kind: 'thisMonth' as const }, shift: 0 }, canGoPrevious: true, canGoNext: false };
 const fact = (id: string, source: AnalyticsFlowFact['source'], effectiveAt: string, type: AnalyticsFlowFact['type'], value: string): AnalyticsFlowFact => ({ id, source, effectiveAt, accountId: 'account-1', type, amount: { value, currency: 'EUR' } });
+
+function flowReport(input: { window: typeof window; windowRelation: 'current' | 'past'; projectionMode: 'accountBalance' | 'filteredImpact'; currency: string; openingBalance: { value: string; currency: string }; currentBalance?: { value: string; currency: string }; facts: AnalyticsFlowFact[]; now: string }) {
+  const projection = buildFlowProjection({ openingBalance: input.openingBalance, facts: input.facts, window: input.window, now: input.now });
+  return assembleAnalyticsFlowReport({
+    window: input.window,
+    windowRelation: input.windowRelation,
+    projectionMode: input.projectionMode,
+    currency: input.currency,
+    summary: calculateFlowSummary(projection, input.currency, input.currentBalance),
+    projection,
+    upcoming: calculateUpcomingFlow(input.facts, input.window, input.now, input.currency),
+    insights: buildFlowInsights(input.facts, projection, input.window, input.currency),
+  });
+}
 
 describe('analytics flow report', () => {
   it('characterizes same-currency transfer legs as balance impacts, never operating flow', () => {
     const transferOut = fact('transfer-out', 'posted', '2026-07-15T10:00:00.000Z', 'transfer_out', '125.00');
     const transferIn = { ...fact('transfer-in', 'posted', '2026-07-15T10:00:00.000Z', 'transfer_in', '125.00'), accountId: 'account-2' };
 
-    const report = buildAnalyticsFlowReport({
+    const report = flowReport({
       window,
       windowRelation: 'current',
       projectionMode: 'accountBalance',
@@ -30,7 +48,7 @@ describe('analytics flow report', () => {
     const transferOut = fact('transfer-out', 'posted', '2026-07-15T10:00:00.000Z', 'transfer_out', '125.00');
     const transferIn = { ...fact('transfer-in', 'posted', '2026-07-15T10:00:00.000Z', 'transfer_in', '125.00'), accountId: 'account-2' };
 
-    const sourceReport = buildAnalyticsFlowReport({
+    const sourceReport = flowReport({
       window,
       windowRelation: 'current',
       projectionMode: 'filteredImpact',
@@ -39,7 +57,7 @@ describe('analytics flow report', () => {
       now: '2026-07-20T12:00:00.000Z',
       facts: [transferOut],
     });
-    const destinationReport = buildAnalyticsFlowReport({
+    const destinationReport = flowReport({
       window,
       windowRelation: 'current',
       projectionMode: 'filteredImpact',
@@ -56,7 +74,7 @@ describe('analytics flow report', () => {
   });
 
   it('characterizes FX transfer legs with their own amounts and currencies', () => {
-    const sourceReport = buildAnalyticsFlowReport({
+    const sourceReport = flowReport({
       window,
       windowRelation: 'current',
       projectionMode: 'filteredImpact',
@@ -66,7 +84,7 @@ describe('analytics flow report', () => {
       facts: [fact('transfer-out', 'posted', '2026-07-15T10:00:00.000Z', 'transfer_out', '100.00')],
     });
     const destinationFact = { ...fact('transfer-in', 'posted', '2026-07-15T10:00:00.000Z', 'transfer_in', '112.50'), accountId: 'account-2', amount: { value: '112.50', currency: 'USD' } };
-    const destinationReport = buildAnalyticsFlowReport({
+    const destinationReport = flowReport({
       window,
       windowRelation: 'current',
       projectionMode: 'filteredImpact',
@@ -86,7 +104,7 @@ describe('analytics flow report', () => {
     const transferOut = fact('transfer-out', 'posted', '2026-07-15T10:00:00.000Z', 'transfer_out', '80.00');
     const transferIn = fact('transfer-in', 'posted', '2026-07-16T10:00:00.000Z', 'transfer_in', '80.00');
 
-    const report = buildAnalyticsFlowReport({
+    const report = flowReport({
       window,
       windowRelation: 'current',
       projectionMode: 'filteredImpact',
@@ -104,7 +122,7 @@ describe('analytics flow report', () => {
     const inside = fact('inside', 'posted', '2026-07-31T23:59:59.999Z', 'transfer_in', '40.00');
     const outside = fact('outside', 'posted', '2026-08-01T00:00:00.000Z', 'transfer_in', '60.00');
 
-    const report = buildAnalyticsFlowReport({
+    const report = flowReport({
       window,
       windowRelation: 'current',
       projectionMode: 'filteredImpact',
@@ -118,7 +136,7 @@ describe('analytics flow report', () => {
   });
 
   it('keeps the projection, summary and upcoming totals on one dataset', () => {
-    const report = buildAnalyticsFlowReport({ window, windowRelation: 'current', projectionMode: 'accountBalance', currency: 'EUR', openingBalance: { value: '28000.00', currency: 'EUR' }, currentBalance: { value: '28000.00', currency: 'EUR' }, now: '2026-07-27T12:00:00.000Z', facts: [fact('posted-1', 'posted', '2026-07-10T10:00:00.000Z', 'expense', '100.25'), fact('expected-1', 'expected', '2026-07-29T10:00:00.000Z', 'income', '250.50'), fact('scheduled-1', 'scheduledProjection', '2026-07-30T10:00:00.000Z', 'expense', '50.25')] });
+    const report = flowReport({ window, windowRelation: 'current', projectionMode: 'accountBalance', currency: 'EUR', openingBalance: { value: '28000.00', currency: 'EUR' }, currentBalance: { value: '28000.00', currency: 'EUR' }, now: '2026-07-27T12:00:00.000Z', facts: [fact('posted-1', 'posted', '2026-07-10T10:00:00.000Z', 'expense', '100.25'), fact('expected-1', 'expected', '2026-07-29T10:00:00.000Z', 'income', '250.50'), fact('scheduled-1', 'scheduledProjection', '2026-07-30T10:00:00.000Z', 'expense', '50.25')] });
     expect(report.summary.endBalance.value).toBe('28100.00');
     expect(report.summary.netFlow.value).toBe('100.00');
     expect(report.upcoming).toMatchObject({ incomingTotal: { value: '250.50' }, outgoingTotal: { value: '50.25' }, incomingCount: 1, outgoingCount: 1 });
@@ -126,7 +144,7 @@ describe('analytics flow report', () => {
   });
 
   it('uses deterministic tie breaks and daily average', () => {
-    const report = buildAnalyticsFlowReport({ window, windowRelation: 'past', projectionMode: 'filteredImpact', currency: 'EUR', openingBalance: { value: '100.00', currency: 'EUR' }, now: '2026-08-02T00:00:00.000Z', facts: [fact('b', 'posted', '2026-07-03T10:00:00.000Z', 'income', '10.00'), fact('a', 'posted', '2026-07-02T10:00:00.000Z', 'income', '10.00')] });
+    const report = flowReport({ window, windowRelation: 'past', projectionMode: 'filteredImpact', currency: 'EUR', openingBalance: { value: '100.00', currency: 'EUR' }, now: '2026-08-02T00:00:00.000Z', facts: [fact('b', 'posted', '2026-07-03T10:00:00.000Z', 'income', '10.00'), fact('a', 'posted', '2026-07-02T10:00:00.000Z', 'income', '10.00')] });
     expect(report.insights.find((item) => item.key === 'bestPeriod')?.occurredAt).toBe('2026-07-02');
     expect(report.insights.find((item) => item.key === 'averageDailyFlow')?.amount.value).toBe('0.64');
     expect(report.insights.find((item) => item.key === 'largestInflow')?.occurredAt).toBe('2026-07-02T10:00:00.000Z');
