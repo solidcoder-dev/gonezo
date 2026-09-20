@@ -13,6 +13,7 @@ function deferred<T>() {
 
 function createCore(): AnalyticsPort {
   return {
+    analyticsQueryMetrics: vi.fn(async () => ({ items: [] })),
     analyticsListCurrencies: vi.fn(async () => ({ items: ['EUR', 'USD'] })),
     analyticsGetFilterFacets: vi.fn(async () => ({
       accounts: [

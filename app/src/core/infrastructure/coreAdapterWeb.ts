@@ -1,6 +1,6 @@
 import type { CorePort } from '../application/corePort';
 import type { AccountsListBalancesResult } from '../../account/application/accountBalances.port';
-import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsCurrencyScopeInput, AnalyticsFlowReportInput, AnalyticsFlowReport, AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingDashboardInput, AnalyticsSpendingDashboardResult, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult, AnalyticsSpendingTimelineInput, AnalyticsSpendingTimelineResult, AnalyticsSpendingTopExpensesInput, AnalyticsSpendingTopExpensesResult, AnalyticsSpendingReportInput, AnalyticsSpendingReport, AnalyticsTopExpensesInput, AnalyticsTopExpensesResult } from '../../analytics/application/analytics.port';
+import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult, AnalyticsCurrencyScopeInput, AnalyticsQueryMetricsInput, AnalyticsQueryMetricsResult, AnalyticsFlowReportInput, AnalyticsFlowReport, AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsSetMovementIgnoredInput, AnalyticsSpendingDashboardInput, AnalyticsSpendingDashboardResult, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult, AnalyticsSpendingTimelineInput, AnalyticsSpendingTimelineResult, AnalyticsSpendingTopExpensesInput, AnalyticsSpendingTopExpensesResult, AnalyticsSpendingReportInput, AnalyticsSpendingReport, AnalyticsTopExpensesInput, AnalyticsTopExpensesResult } from '../../analytics/application/analytics.port';
 import type { AnalyticsOverviewInsightsInput, AnalyticsOverviewInsightsResult, AnalyticsOverviewSnapshotInput, AnalyticsOverviewSnapshotResult } from '../../analytics/application/analytics.port';
 import type {
   PreferencesSetDefaultAccountInput,
@@ -136,7 +136,7 @@ import {
 import { WebTaxonomyService } from '../../taxonomy/infrastructure/webTaxonomyService';
 import { sortNetWorthCurrencies } from '../../ledger/application/netWorthOrdering';
 import { listAccountBalances } from './accountBalancesQuery';
-import { analyticsGetAnalyticsTopExpenses, analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetFlowReport, analyticsGetOverviewInsights, analyticsGetOverviewSnapshot, analyticsGetPeriodCashFlowSummary, analyticsGetSpendingDashboard, analyticsGetSpendingOverview, analyticsGetSpendingReport, analyticsGetSpendingTimeline, analyticsGetSpendingTopExpenses, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
+import { analyticsGetAnalyticsTopExpenses, analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetFlowReport, analyticsGetOverviewInsights, analyticsGetOverviewSnapshot, analyticsGetPeriodCashFlowSummary, analyticsQueryMetrics, analyticsGetSpendingDashboard, analyticsGetSpendingOverview, analyticsGetSpendingReport, analyticsGetSpendingTimeline, analyticsGetSpendingTopExpenses, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
 import { WebAnalyticsExclusionService } from '../../analytics/infrastructure/webAnalyticsExclusionService';
 import { WebMovementReuseSuggestionsService } from '../../movements/infrastructure/webMovementReuseSuggestionsService'; import type { MovementReuseSuggestionsSearchInput, MovementReuseSuggestionsVariantsInput } from '../../movements/application/movementReuseSuggestions.port';
 import { WebPreferencesService } from './webPreferencesService';
@@ -251,6 +251,7 @@ export class CoreAdapterWeb implements CorePort {
   async analyticsGetOverviewInsights(input: AnalyticsOverviewInsightsInput): Promise<AnalyticsOverviewInsightsResult> { return analyticsGetOverviewInsights(this, input); }
   async analyticsGetCashFlowSeries(input: AnalyticsCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult> { return analyticsGetCashFlowSeries(this, input); }
   async analyticsGetPeriodCashFlowSummary(input: AnalyticsCurrencyScopeInput): Promise<AnalyticsCashFlowSummaryResult> { return analyticsGetPeriodCashFlowSummary(this, input); }
+  async analyticsQueryMetrics(input: AnalyticsQueryMetricsInput): Promise<AnalyticsQueryMetricsResult> { return analyticsQueryMetrics(this, input); }
   async analyticsGetSpendingDashboard(input: AnalyticsSpendingDashboardInput): Promise<AnalyticsSpendingDashboardResult> { return analyticsGetSpendingDashboard(this, input); }
   async analyticsGetSpendingTimeline(input: AnalyticsSpendingTimelineInput): Promise<AnalyticsSpendingTimelineResult> { return analyticsGetSpendingTimeline(this, input); }
   async analyticsGetSpendingTopExpenses(input: AnalyticsSpendingTopExpensesInput): Promise<AnalyticsSpendingTopExpensesResult> { return analyticsGetSpendingTopExpenses(this, input); }

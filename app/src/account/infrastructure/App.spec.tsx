@@ -330,6 +330,7 @@ function makeCore(transactionCount = 0): AppTestPort {
       points: [],
     })),
     analyticsListCurrencies: vi.fn(async () => ({ items: ['USD'] })),
+    analyticsQueryMetrics: vi.fn(async () => ({ items: [] })),
     analyticsGetFilterFacets: vi.fn(async () => ({ accounts: [], tags: [] })),
     analyticsGetOverviewSnapshot: vi.fn(async () => ({
       currentWindow: {

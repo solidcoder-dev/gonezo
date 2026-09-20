@@ -10,6 +10,7 @@ import type { SchedulingMovementItem } from '../../scheduling/application/schedu
 import type { SharingListMovementDetailsResult, SharingMovementDetailsResult } from '../../sharing/application/sharing.port';
 import {
   analyticsGetCashFlowSeries,
+  analyticsQueryMetrics,
   analyticsGetFilterFacets,
   analyticsGetFlowInsights,
   analyticsGetFlowProjection,
@@ -23,6 +24,7 @@ import {
   analyticsGetSpendingTimeline,
   analyticsGetSpendingTopExpenses,
 } from './analyticsQueries';
+import { MetricId, MetricKey, MetricVersion } from '../../shared/domain/analyticsMetric';
 
 function transaction(input: Partial<LedgerTransactionListItem> & Pick<LedgerTransactionListItem, 'id' | 'type' | 'amount'>): LedgerTransactionListItem {
   return {
@@ -106,6 +108,72 @@ function createPort(
 describe('analytics queries', () => {
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('loads scoped current and comparison movements before calculating requested metrics', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
+    const port = createPort([
+      transaction({ id: 'current-income', type: 'income', amount: '30.00', occurredAt: '2026-06-16T12:00:00.000Z' }),
+      transaction({ id: 'prior-income', type: 'income', amount: '20.00', occurredAt: '2026-06-13T12:00:00.000Z' }),
+      transaction({ id: 'outside-income', type: 'income', amount: '90.00', occurredAt: '2026-06-10T12:00:00.000Z' }),
+    ]);
+    const incomeId = MetricId.create(MetricKey.create('income_total'), MetricVersion.create(1));
+    const changeId = MetricId.create(MetricKey.create('net_balance_flow_change_percent'), MetricVersion.create(1));
+
+    const result = await analyticsQueryMetrics(port, {
+      currency: 'EUR',
+      filters: { period: { kind: 'custom', from: '2026-06-15', to: '2026-06-17' }, accountIds: ['acc-1'] },
+      metricIds: [incomeId, changeId],
+    });
+
+    expect(result.items.map(({ definition }) => definition.id.toString())).toEqual(['income_total:v1', 'net_balance_flow_change_percent:v1']);
+    expect(result.items[0].value).toMatchObject({ kind: 'MONEY', currency: 'EUR' });
+    if (result.items[0].value.kind === 'MONEY') expect(result.items[0].value.value.toString()).toBe('30');
+    expect(result.items[1].value.kind).toBe('RATIO');
+    if (result.items[1].value.kind === 'RATIO') expect(result.items[1].value.value.toString()).toBe('50');
+    expect(port.ledgerListTransactions).toHaveBeenCalledWith(expect.objectContaining({
+      accountId: 'acc-1',
+      filters: expect.objectContaining({ fromDate: '2026-06-15T00:00:00.000Z', toDateExclusive: '2026-06-18T00:00:00.000Z' }),
+    }));
+  });
+
+  it('respects personal and full shared expense amount modes through the analytics movement reader', async () => {
+    const port = createPort([transaction({ id: 'shared-expense', type: 'expense', amount: '20.00' })]);
+    port.sharingListMovementDetails = vi.fn(async () => ({ items: [{
+      shareId: 'share-1',
+      transactionId: 'shared-expense',
+      participants: [],
+      analytics: { personalExpenseAmount: '12.50', excludedLentAmount: '7.50', excludedReimbursementIncomeAmount: '0' },
+    }] }));
+    const expenseId = MetricId.create(MetricKey.create('expense_total'), MetricVersion.create(1));
+    const filters = { period: { kind: 'custom' as const, from: '2026-06-15', to: '2026-06-17' } };
+
+    const personal = await analyticsQueryMetrics(port, { currency: 'EUR', filters: { ...filters, sharedAmountMode: 'personal' }, metricIds: [expenseId] });
+    const full = await analyticsQueryMetrics(port, { currency: 'EUR', filters: { ...filters, sharedAmountMode: 'full' }, metricIds: [expenseId] });
+
+    if (personal.items[0].value.kind !== 'MONEY' || full.items[0].value.kind !== 'MONEY') throw new Error('Expected money results');
+    expect(personal.items[0].value.value.toString()).toBe('12.5');
+    expect(full.items[0].value.value.toString()).toBe('20');
+  });
+
+  it('supports current, shifted, and all-time period selections', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
+    const port = createPort([
+      transaction({ id: 'april', type: 'income', amount: '4', occurredAt: '2026-04-15T12:00:00.000Z' }),
+      transaction({ id: 'may', type: 'income', amount: '5', occurredAt: '2026-05-15T12:00:00.000Z' }),
+      transaction({ id: 'june', type: 'income', amount: '6', occurredAt: '2026-06-15T12:00:00.000Z' }),
+    ]);
+    const incomeId = MetricId.create(MetricKey.create('income_total'), MetricVersion.create(1));
+
+    const current = await analyticsQueryMetrics(port, { currency: 'EUR', filters: { period: { kind: 'thisMonth' } }, metricIds: [incomeId] });
+    const shifted = await analyticsQueryMetrics(port, { currency: 'EUR', periodSelection: { period: { kind: 'thisMonth' }, shift: -1 }, metricIds: [incomeId] });
+    const allTime = await analyticsQueryMetrics(port, { currency: 'EUR', filters: { period: { kind: 'allTime' } }, metricIds: [incomeId] });
+
+    expect(current.items[0].value.kind === 'MONEY' && current.items[0].value.value.toString()).toBe('6');
+    expect(shifted.items[0].value.kind === 'MONEY' && shifted.items[0].value.value.toString()).toBe('5');
+    expect(allTime.items[0].value.kind === 'MONEY' && allTime.items[0].value.value.toString()).toBe('15');
   });
 
   it('excludes ignored movements by default across overview, spending and flow analytics', async () => {

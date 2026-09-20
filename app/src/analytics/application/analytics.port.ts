@@ -8,11 +8,21 @@ import type {
 } from './spendingReport';
 import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 import type { AnalyticsFlowReport } from './analyticsFlowReport';
+import type { MetricId } from '../../shared/domain/analyticsMetric';
+import type { UserMetricResult } from '../domain/userMetricResult';
 
 export type AnalyticsCurrencyScopeInput = {
   currency: string;
   filters?: AnalyticsFiltersInput;
   periodSelection?: AnalyticsPeriodSelection;
+};
+
+export type AnalyticsQueryMetricsInput = AnalyticsCurrencyScopeInput & {
+  metricIds: readonly MetricId[];
+};
+
+export type AnalyticsQueryMetricsResult = {
+  items: readonly UserMetricResult[];
 };
 
 export type AnalyticsListMovementFactsInput = {
@@ -275,6 +285,7 @@ export type AnalyticsListIgnoredMovementsResult = {
 };
 
 export type AnalyticsPort = {
+  analyticsQueryMetrics(input: AnalyticsQueryMetricsInput): Promise<AnalyticsQueryMetricsResult>;
   analyticsListMovementFacts?: (input: AnalyticsListMovementFactsInput) => Promise<AnalyticsListMovementFactsResult>;
   analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult>;
   analyticsGetFilterFacets(input?: AnalyticsGetFilterFacetsInput): Promise<AnalyticsGetFilterFacetsResult>;

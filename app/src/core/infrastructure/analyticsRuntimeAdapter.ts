@@ -1,6 +1,8 @@
 import type {
   AnalyticsCashFlowSeriesInput,
   AnalyticsCurrencyScopeInput,
+  AnalyticsQueryMetricsInput,
+  AnalyticsQueryMetricsResult,
   AnalyticsCashFlowSummaryResult,
   AnalyticsGetFilterFacetsInput,
   AnalyticsGetFilterFacetsResult,
@@ -37,6 +39,7 @@ import {
   analyticsGetOverviewSnapshot,
   analyticsGetSpendingDashboard,
   analyticsGetPeriodCashFlowSummary,
+  analyticsQueryMetrics,
   analyticsGetSpendingOverview,
   analyticsGetSpendingTimeline,
   analyticsGetSpendingTopExpenses,
@@ -89,6 +92,10 @@ export class AnalyticsRuntimeAdapter {
     return isNativeRuntime()
       ? analyticsGetPeriodCashFlowSummary(this.queries, input)
       : this.web.analyticsGetPeriodCashFlowSummary(input);
+  }
+
+  analyticsQueryMetrics(input: AnalyticsQueryMetricsInput): Promise<AnalyticsQueryMetricsResult> {
+    return isNativeRuntime() ? analyticsQueryMetrics(this.queries, input) : this.web.analyticsQueryMetrics(input);
   }
 
   analyticsGetSpendingDashboard(input: AnalyticsSpendingDashboardInput): Promise<AnalyticsSpendingDashboardResult> {

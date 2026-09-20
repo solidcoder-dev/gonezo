@@ -261,7 +261,7 @@ function isAutomaticOpeningBalance(transaction: LedgerTransactionListItem): bool
     && transaction.items.length === 0;
 }
 
-function isAnalyticsCashFlowTransaction(transaction: LedgerTransactionListItem, currency: string): boolean {
+export function isAnalyticsCashFlowTransaction(transaction: LedgerTransactionListItem, currency: string): boolean {
   return transaction.status === 'posted'
     && (isBalanceInflow(transaction.type) || isBalanceOutflow(transaction.type))
     && transaction.currency.toUpperCase() === currency

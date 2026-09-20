@@ -41,6 +41,8 @@ import type {
   AnalyticsCashFlowSeriesInput,
   AnalyticsCashFlowSummaryResult,
   AnalyticsCurrencyScopeInput,
+  AnalyticsQueryMetricsInput,
+  AnalyticsQueryMetricsResult,
   AnalyticsFlowInsightsInput,
   AnalyticsFlowInsightsResult,
   AnalyticsFlowProjectionInput,
@@ -77,6 +79,13 @@ import {
 import { listAnalyticsMovements, type AnalyticsMovementReaderPort } from './analyticsMovementReader';
 import { analyticsGetOverviewRecurringInsight } from './overviewRecurringInsightQuery';
 import { analyticsGetOverviewSharingInsights } from './overviewSharingInsightsQuery';
+import { createAnalyticsQueryContext } from '../application/analyticsQueryContext';
+import { analyticsReferenceDateFromNow } from '../application/analyticsFilters';
+import { CalculateUserMetrics } from '../application/metrics/calculateUserMetrics';
+import { userMetricCalculators } from '../application/metrics/financialMetricCalculators';
+import { isAnalyticsCashFlowTransaction } from '../application/analyticsBuilders';
+
+const calculateUserMetrics = new CalculateUserMetrics(userMetricCalculators);
 
 export type AnalyticsQueryPort = AnalyticsMovementReaderPort & {
   ledgerGetAccountSummary(input: { accountId: string }): Promise<LedgerGetAccountSummaryResult>;
@@ -428,6 +437,50 @@ export async function analyticsGetPeriodCashFlowSummary(
     : buildAnalyticsOverviewWindows(scope.filters.period, now, undefined, scope.filters.includePlannedMovements).currentWindow;
   const { transactions } = await listScopedAnalyticsMovements(port, scope.filters, currentWindow);
   return buildAnalyticsCashFlowSummary(transactions, input.currency);
+}
+
+export async function analyticsQueryMetrics(
+  port: AnalyticsQueryPort,
+  input: AnalyticsQueryMetricsInput,
+): Promise<AnalyticsQueryMetricsResult> {
+  const scope = await resolveAnalyticsQueryScope(port, { ...input.filters, currency: input.currency });
+  const periodSelection = input.periodSelection ?? { period: scope.filters.period, shift: 0 };
+  const queryContext = createAnalyticsQueryContext({
+    filters: { ...scope.filters, period: periodSelection.period },
+    referenceDate: analyticsReferenceDateFromNow(),
+    shift: periodSelection.shift,
+  });
+  const currentWindow = queryContext.currentWindow
+    ? { start: new Date(`${queryContext.currentWindow.from}T00:00:00.000Z`), end: new Date(`${queryContext.currentWindow.to}T00:00:00.000Z`) }
+    : undefined;
+  const comparisonWindow = queryContext.comparisonWindow
+    ? { start: new Date(`${queryContext.comparisonWindow.from}T00:00:00.000Z`), end: new Date(`${queryContext.comparisonWindow.to}T00:00:00.000Z`) }
+    : undefined;
+  if (currentWindow) currentWindow.end.setUTCDate(currentWindow.end.getUTCDate() + 1);
+  if (comparisonWindow) comparisonWindow.end.setUTCDate(comparisonWindow.end.getUTCDate() + 1);
+  const movementScope = {
+    accountIds: scope.selectedAccountIds,
+    includeIgnoredMovements: scope.filters.includeIgnoredMovements,
+    sharedAmountMode: scope.filters.sharedAmountMode,
+  } as const;
+  const [current, comparison] = await Promise.all([
+    listAnalyticsMovements(port, { ...movementScope, filters: analyticsTransactionFilters(scope.filters, currentWindow, true) }),
+    comparisonWindow
+      ? listAnalyticsMovements(port, { ...movementScope, filters: analyticsTransactionFilters(scope.filters, comparisonWindow, true) })
+      : Promise.resolve(undefined),
+  ]);
+  const toFacts = (transactions: typeof current.transactions) => transactions
+    .filter((transaction): transaction is typeof transaction & { type: Exclude<typeof transaction.type, 'transfer'> } =>
+      transaction.type !== 'transfer' && isAnalyticsCashFlowTransaction(transaction, queryContext.currency))
+    .map((transaction) => ({ type: transaction.type, amount: transaction.analyticsAmount }));
+
+  return {
+    items: calculateUserMetrics.execute({
+      currency: queryContext.currency,
+      currentPeriodFacts: toFacts(current.transactions),
+      comparisonPeriodFacts: comparison ? toFacts(comparison.transactions) : undefined,
+    }, input.metricIds),
+  };
 }
 
 export async function analyticsGetOverviewSnapshot(
