@@ -1,6 +1,5 @@
 import type { AnalyticsFilters, AnalyticsPeriod } from './analyticsFilters';
 import { normalizeAnalyticsPeriodSelection, type AnalyticsPeriodSelection } from './analyticsPeriodSelection';
-import { ExactDecimal } from '../../shared/domain/exactDecimal';
 
 export type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 export { normalizeAnalyticsPeriodSelection } from './analyticsPeriodSelection';
@@ -94,11 +93,6 @@ function addMonths(value: string, months: number): string {
   return isoDate(new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, date.getUTCDate())));
 }
 
-function addYears(value: string, years: number): string {
-  const date = dateAtStart(value);
-  return isoDate(new Date(Date.UTC(date.getUTCFullYear() + years, date.getUTCMonth(), date.getUTCDate())));
-}
-
 function periodRange(period: AnalyticsPeriod, reference: string, includePlannedMovements: boolean): { from: string; to: string } | undefined {
   switch (period.kind) {
     case 'allTime': return undefined;
@@ -161,88 +155,6 @@ export function resolveAnalyticsSpendingWindow(
   const range = periodRange(period, reference, includePlannedMovements);
   if (!range) throw new Error('Unable to resolve analytics spending window');
   return rangeToWindow(range, selection);
-}
-
-function money(value: ExactDecimal, currency: string): AnalyticsMoneyDto {
-  return { value: value.toFixed(2), currency };
-}
-
-function expenseMovements(movements: AnalyticsSpendingMovement[], window: AnalyticsSpendingPeriodWindow, currency: string): AnalyticsSpendingMovement[] {
-  const start = dateAtStart(window.start).getTime();
-  const end = dateAtStart(window.endExclusive).getTime();
-  return movements.filter((movement) => movement.type === 'expense'
-    && movement.currency.toUpperCase() === currency
-    && dateAtStart(movement.occurredAt.slice(0, 10)).getTime() >= start
-    && dateAtStart(movement.occurredAt.slice(0, 10)).getTime() < end);
-}
-
-export function buildSpendingTimeline(movements: AnalyticsSpendingMovement[], window: AnalyticsSpendingPeriodWindow, currency: string): AnalyticsSpendingTimelineBucket[] {
-  const days = Math.round((dateAtStart(window.endExclusive).getTime() - dateAtStart(window.start).getTime()) / 86_400_000);
-  const unit = days <= 14 ? 'day' : days <= 93 ? 'week' : days <= 730 ? 'month' : 'year';
-  const buckets: AnalyticsSpendingTimelineBucket[] = [];
-  let start = window.start;
-  while (start < window.endExclusive) {
-    const next = unit === 'day' ? addDays(start, 1) : unit === 'week' ? addDays(start, 7) : unit === 'month' ? addMonths(start, 1) : addYears(start, 1);
-    buckets.push({ start, endExclusive: next < window.endExclusive ? next : window.endExclusive, amount: money(ExactDecimal.from('0'), currency), sequence: buckets.length });
-    start = next;
-  }
-  for (const movement of expenseMovements(movements, window, currency)) {
-    const occurred = movement.occurredAt.slice(0, 10);
-    const bucket = buckets.find((candidate) => occurred >= candidate.start && occurred < candidate.endExclusive);
-    if (bucket) bucket.amount = money(ExactDecimal.from(bucket.amount.value).add(ExactDecimal.from(movement.amount)), currency);
-  }
-  return buckets;
-}
-
-export function buildSpendingCategories(
-  movements: AnalyticsSpendingMovement[],
-  window: AnalyticsSpendingPeriodWindow,
-  currency: string,
-  references: AnalyticsCategoryReference[],
-): AnalyticsSpendingCategory[] {
-  const byId = new Map(references.map((reference) => [reference.id, reference.name]));
-  const amounts = new Map<string, ExactDecimal>();
-  for (const movement of expenseMovements(movements, window, currency)) {
-    const allocations = movement.items && movement.items.length > 0 ? movement.items : [{ amount: movement.amount, categoryId: movement.categoryId, categoryName: movement.categoryName }];
-    for (const allocation of allocations) {
-      const id = allocation.categoryId;
-      const key = id ?? 'uncategorized';
-      amounts.set(key, (amounts.get(key) ?? ExactDecimal.from('0')).add(ExactDecimal.from(allocation.amount)));
-    }
-  }
-  const total = [...amounts.values()].reduce((sum, value) => sum.add(value), ExactDecimal.from('0'));
-  return [...amounts.entries()].sort((left, right) => right[1].compare(left[1])).map(([id, value]) => ({
-    categoryId: id === 'uncategorized' ? undefined : id,
-    categoryName: id === 'uncategorized' ? 'Uncategorized' : byId.get(id) ?? 'Uncategorized',
-    amount: money(value, currency),
-    percentage: total.compare(ExactDecimal.from('0')) === 0 ? 0 : Number(value.ratioTo(total, 8).multiplyByInteger(100).toFixed(8)),
-  }));
-}
-
-export function buildSpendingMerchants(
-  movements: AnalyticsSpendingMovement[],
-  window: AnalyticsSpendingPeriodWindow,
-  currency: string,
-  categoryId?: string,
-): AnalyticsSpendingMerchant[] {
-  const totals = new Map<string, { amount: ExactDecimal; movementCount: number }>();
-  for (const movement of expenseMovements(movements, window, currency.toUpperCase())) {
-    if (categoryId && movement.categoryId !== categoryId) continue;
-    const merchant = movement.merchant?.trim();
-    if (!merchant) continue;
-    const current = totals.get(merchant) ?? { amount: ExactDecimal.from('0'), movementCount: 0 };
-    totals.set(merchant, { amount: current.amount.add(ExactDecimal.from(movement.amount)), movementCount: current.movementCount + 1 });
-  }
-  const total = [...totals.values()].reduce((sum, item) => sum.add(item.amount), ExactDecimal.from('0'));
-  return [...totals.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
-    .sort(([, left], [, right]) => right.amount.compare(left.amount))
-    .map(([merchant, item]) => ({
-      merchant,
-      amount: money(item.amount, currency.toUpperCase()),
-      percentage: total.compare(ExactDecimal.from('0')) === 0 ? 0 : Number(item.amount.ratioTo(total, 8).multiplyByInteger(100).toFixed(8)),
-      movementCount: item.movementCount,
-    }));
 }
 
 export function buildAnalyticsSpendingReport(input: {

@@ -43,10 +43,10 @@ import {
   type AnalyticsPeriodSelection,
   type AnalyticsSpendingMovement,
   type AnalyticsSpendingPeriodWindow,
-  buildSpendingTimeline as buildSpendingReportTimeline,
-  buildSpendingCategories as buildSpendingReportCategories,
-  buildSpendingMerchants as buildSpendingReportMerchants,
 } from '../application/spendingReport';
+import { buildSpendingTimeline as buildSpendingReportTimeline } from '../application/series/spendingTimeline';
+import { buildSpendingCategories as buildSpendingReportCategories } from '../application/breakdowns/categorySpending';
+import { buildSpendingMerchants as buildSpendingReportMerchants } from '../application/rankings/merchantSpending';
 import {
   EXPENSE_CHANGE_PERCENT_V1,
   EXPENSE_TOTAL_V1,

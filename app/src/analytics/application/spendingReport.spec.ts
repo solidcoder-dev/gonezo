@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildAnalyticsSpendingReport, buildSpendingCategories, buildSpendingMerchants, buildSpendingTimeline, normalizeAnalyticsPeriodSelection, resolveAnalyticsSpendingWindow } from './spendingReport';
+import { buildAnalyticsSpendingReport, normalizeAnalyticsPeriodSelection, resolveAnalyticsSpendingWindow } from './spendingReport';
+import { buildSpendingCategories } from './breakdowns/categorySpending';
+import { buildSpendingMerchants } from './rankings/merchantSpending';
+import { buildSpendingTimeline } from './series/spendingTimeline';
 
 const movement = (id: string, occurredAt: string, amount: string, categoryId?: string) => ({ id, occurredAt, amount, currency: 'EUR', type: 'expense' as const, categoryId });
 
