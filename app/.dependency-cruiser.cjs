@@ -98,6 +98,12 @@ module.exports = {
       },
     },
     {
+      name: 'operational-contexts-no-macro-analytics-imports',
+      severity: 'error',
+      from: { path: '^src/(?:account|analytics|analyticsProfile|authentication|expected|imports|ledger|movements|scheduling|sharing|taxonomy|transactions)/(?:domain|application|infrastructure)/' },
+      to: { path: '^src/macroAnalytics/' },
+    },
+    {
       name: 'application-and-ui-no-infrastructure',
       severity: 'error',
       from: {

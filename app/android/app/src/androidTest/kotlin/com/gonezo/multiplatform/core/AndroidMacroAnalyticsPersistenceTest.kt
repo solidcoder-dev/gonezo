@@ -88,12 +88,19 @@ class AndroidMacroAnalyticsPersistenceTest {
     rebuilds.enqueue("owner-a", "2026-09")
     rebuilds.markInitialBackfillComplete("owner-a", 1)
     rebuilds.requestFullRebuild("owner-a")
+    val firstRequestVersion = rebuilds.getFullRebuildRequestVersion("owner-a")
+    rebuilds.requestFullRebuild("owner-a")
 
     val reopenedDatabase = CoreDatabase(context, databaseName)
     val reopened = AndroidMacroAnalyticsRebuildRepository(reopenedDatabase)
     assertEquals(listOf("2026-09", "2026-10"), reopened.list("owner-a"))
     assertEquals(1, reopened.getInitialBackfillVersion("owner-a"))
     assertEquals(true, reopened.isFullRebuildRequested("owner-a"))
+    assertEquals(firstRequestVersion + 1, reopened.getFullRebuildRequestVersion("owner-a"))
+    reopened.clearFullRebuildRequest("owner-a", firstRequestVersion)
+    assertEquals(true, reopened.isFullRebuildRequested("owner-a"))
+    reopened.clearFullRebuildRequest("owner-a", firstRequestVersion + 1)
+    assertEquals(false, reopened.isFullRebuildRequested("owner-a"))
     reopened.remove("owner-a", "2026-09")
     assertEquals(listOf("2026-10"), reopened.list("owner-a"))
     reopenedDatabase.close()
@@ -124,6 +131,23 @@ class AndroidMacroAnalyticsPersistenceTest {
   }
 
   @Test
+  fun version39UpgradeAddsFullRebuildRequestVersionWithoutLosingPendingState() {
+    database.writableDatabase.execSQL("drop table macro_analytics_rebuild_state")
+    database.writableDatabase.execSQL("create table macro_analytics_rebuild_state (owner_id text primary key, initial_backfill_version integer not null default 0, full_rebuild_requested integer not null default 0)")
+    database.writableDatabase.execSQL("insert into macro_analytics_rebuild_state(owner_id,initial_backfill_version,full_rebuild_requested) values ('owner-a',1,1)")
+    database.writableDatabase.version = 39
+    database.close()
+
+    database = CoreDatabase(context, databaseName)
+    val repository = AndroidMacroAnalyticsRebuildRepository(database)
+
+    assertEquals(40, database.writableDatabase.version)
+    assertEquals(1, repository.getInitialBackfillVersion("owner-a"))
+    assertEquals(true, repository.isFullRebuildRequested("owner-a"))
+    assertEquals(0, repository.getFullRebuildRequestVersion("owner-a"))
+  }
+
+  @Test
   fun version37UpgradePreservesLedgerAndOtherTablesAndPassesIntegrityChecks() {
     database.writableDatabase.execSQL("insert into ledger_accounts(id,name,type,currency,status,created_at) values ('a1','Cash','cash','EUR','active','2026-01-01T00:00:00Z')")
     database.writableDatabase.execSQL("insert into ledger_transactions(id,account_id,type,amount,currency,occurred_at,status) values ('t1','a1','expense','12.50','EUR','2026-01-02T00:00:00Z','posted')")
@@ -137,7 +161,7 @@ class AndroidMacroAnalyticsPersistenceTest {
     database = CoreDatabase(context, databaseName)
     val sqlite = database.writableDatabase
 
-    assertEquals(39, sqlite.version)
+    assertEquals(40, sqlite.version)
     assertEquals(1, sqlite.rawQuery("select count(*) from ledger_accounts where id='a1'", null).use { it.moveToFirst(); it.getInt(0) })
     assertEquals(1, sqlite.rawQuery("select count(*) from ledger_transactions where id='t1'", null).use { it.moveToFirst(); it.getInt(0) })
     assertEquals(1, sqlite.rawQuery("select count(*) from notifications where id='n1'", null).use { it.moveToFirst(); it.getInt(0) })

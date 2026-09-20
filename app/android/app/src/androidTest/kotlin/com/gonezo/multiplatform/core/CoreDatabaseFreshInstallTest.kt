@@ -14,7 +14,7 @@ class CoreDatabaseFreshInstallTest {
     val database = CoreDatabase(ApplicationProvider.getApplicationContext(), "gonezo-fresh-${System.nanoTime()}.db")
     val sqlite = database.writableDatabase
 
-    assertEquals(39, sqlite.version)
+    assertEquals(40, sqlite.version)
     assertEquals(1, sqlite.scalar("select count(*) from taxonomy_categories where name = 'Services' and name_normalized = 'services' and applies_to = 'expense' and status = 'active'")!!.toInt())
     assertEquals("table", sqlite.scalar("select type from sqlite_master where name = 'workflow_tx_categorization'"))
     assertEquals("index", sqlite.scalar("select type from sqlite_master where name = 'idx_workflow_tx_categorization_status_next_attempt'"))
@@ -28,6 +28,7 @@ class CoreDatabaseFreshInstallTest {
     assertEquals("table", sqlite.scalar("select type from sqlite_master where name = 'macro_analytics_latest_publications'"))
     assertEquals("table", sqlite.scalar("select type from sqlite_master where name = 'macro_analytics_rebuild_periods'"))
     assertEquals("table", sqlite.scalar("select type from sqlite_master where name = 'macro_analytics_rebuild_state'"))
+    assertEquals(1, sqlite.scalar("select count(*) from pragma_table_info('macro_analytics_rebuild_state') where name = 'full_rebuild_request_version'")!!.toInt())
     assertEquals(1, sqlite.primaryKeyColumnCount("macro_analytics_contributors"))
     assertEquals(2, sqlite.primaryKeyColumnCount("macro_analytics_outbox"))
     assertEquals(2, sqlite.primaryKeyColumnCount("macro_analytics_latest_publications"))

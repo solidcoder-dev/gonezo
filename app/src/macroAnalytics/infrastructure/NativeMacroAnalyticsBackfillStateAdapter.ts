@@ -14,8 +14,8 @@ export class NativeMacroAnalyticsBackfillStateAdapter implements MacroAnalyticsB
     await MacroAnalyticsLocalStorageNativePlugin.requestFullRebuild({ userId });
   }
 
-  async clearFullRebuildRequest(userId: string): Promise<void> {
-    await MacroAnalyticsLocalStorageNativePlugin.clearFullRebuildRequest({ userId });
+  async clearFullRebuildRequest(userId: string, expectedRequestVersion: number): Promise<void> {
+    await MacroAnalyticsLocalStorageNativePlugin.clearFullRebuildRequest({ userId, expectedRequestVersion });
   }
 
   async clear(userId: string): Promise<void> {

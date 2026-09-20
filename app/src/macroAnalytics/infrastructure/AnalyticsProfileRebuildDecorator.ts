@@ -4,12 +4,14 @@ import type { MacroAnalyticsBackfillStatePort } from '../application/macroAnalyt
 export function withMacroAnalyticsProfileRebuild(
   profile: AnalyticsProfilePort,
   backfillState: Pick<MacroAnalyticsBackfillStatePort, 'requestFullRebuild'>,
+  runMaintenance: (userId: string) => Promise<void> = async () => {},
 ): AnalyticsProfilePort {
   return {
     get: (userId) => profile.get(userId),
     async save(draft) {
       const saved = await profile.save(draft);
       await backfillState.requestFullRebuild(draft.userId);
+      void runMaintenance(draft.userId).catch(() => {});
       return saved;
     },
   };

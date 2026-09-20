@@ -170,6 +170,7 @@ public class MacroAnalyticsLocalStoragePlugin extends Plugin {
       JSObject result = new JSObject();
       result.put("initialBackfillVersion", repository.getInitialBackfillVersion(userId));
       result.put("fullRebuildRequested", repository.isFullRebuildRequested(userId));
+      result.put("fullRebuildRequestVersion", repository.getFullRebuildRequestVersion(userId));
       call.resolve(result);
     });
   }
@@ -194,8 +195,13 @@ public class MacroAnalyticsLocalStoragePlugin extends Plugin {
   }
 
   @PluginMethod public void clearFullRebuildRequest(PluginCall call) {
+    Integer expectedRequestVersion = call.getInt("expectedRequestVersion");
+    if (expectedRequestVersion == null || expectedRequestVersion < 0) {
+      call.reject("Full rebuild request version is required", "INVALID_BACKFILL_VERSION");
+      return;
+    }
     withUser(call, (userId, database) -> {
-      new AndroidMacroAnalyticsRebuildRepository(database).clearFullRebuildRequest(userId);
+      new AndroidMacroAnalyticsRebuildRepository(database).clearFullRebuildRequest(userId, expectedRequestVersion);
       call.resolve();
     });
   }

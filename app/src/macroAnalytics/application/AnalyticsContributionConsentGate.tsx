@@ -17,10 +17,11 @@ type ConsentGateState =
   | { status: 'complete'; consent: AnalyticsContributionConsent }
   | { status: 'error'; message: string };
 
-export function AnalyticsContributionConsentGate({ port, clock, children }: {
+export function AnalyticsContributionConsentGate({ port, clock, children, onConsentGranted }: {
   port: AnalyticsContributionConsentPort;
   clock: ConsentClock;
   children: ReactNode;
+  onConsentGranted?: (userId: string) => void;
 }) {
   const { userId } = useAuthenticationSession();
   const [state, setState] = useState<ConsentGateState>({ status: 'loading' });
@@ -53,6 +54,7 @@ export function AnalyticsContributionConsentGate({ port, clock, children }: {
         : await declineContributionConsent(port, userId, clock);
       setLoadedUserId(userId);
       setState({ status: 'complete', consent });
+      if (status === 'GRANTED') onConsentGranted?.(userId);
     } catch {
       setState({ status: 'undecided', error: 'Your choice could not be saved. Your app remains private from contribution. Try again.' });
     }

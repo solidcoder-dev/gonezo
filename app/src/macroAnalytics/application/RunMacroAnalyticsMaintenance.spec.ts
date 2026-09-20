@@ -26,10 +26,14 @@ const publication = (period: string, revision = 1): MacroAnalyticsPublication =>
 function setup(options: { granted?: boolean; requested?: boolean; processorStatus?: 'ACCEPTED' | 'UPDATED' | 'ALREADY_CURRENT' | 'STALE' | 'REVISION_CONFLICT'; periods?: string[] } = {}) {
   const pending = new Map<string, MacroAnalyticsPublication>();
   const work = new Set<string>();
+  let initialBackfillVersion = 0;
+  let fullRebuildRequested = options.requested ?? false;
+  let fullRebuildRequestVersion = options.requested ? 1 : 0;
   const state: MacroAnalyticsBackfillStatePort = {
-    get: vi.fn(async () => ({ initialBackfillVersion: 0, fullRebuildRequested: options.requested ?? false })),
-    markInitialBackfillComplete: vi.fn(async () => {}), requestFullRebuild: vi.fn(async () => {}),
-    clearFullRebuildRequest: vi.fn(async () => {}), clear: vi.fn(async () => {}),
+    get: vi.fn(async () => ({ initialBackfillVersion, fullRebuildRequested, fullRebuildRequestVersion })),
+    markInitialBackfillComplete: vi.fn(async (_user, version) => { initialBackfillVersion = version; }),
+    requestFullRebuild: vi.fn(async () => { fullRebuildRequested = true; fullRebuildRequestVersion += 1; }),
+    clearFullRebuildRequest: vi.fn(async (_user, version) => { if (fullRebuildRequestVersion === version) fullRebuildRequested = false; }), clear: vi.fn(async () => {}),
   };
   const queue: ContributionRebuildQueuePort = {
     enqueue: vi.fn(async (_user, period) => { work.add(period.value); }),
@@ -76,6 +80,24 @@ describe('RunMacroAnalyticsMaintenance', () => {
     expect(state.queue.remove).not.toHaveBeenCalled();
   });
 
+  it('processes persisted eligible outbox publications that are not in the rebuild queue', async () => {
+    const state = setup({ periods: [] });
+    await state.outbox.save('u', publication('2025-12'));
+
+    await RunMacroAnalyticsMaintenance(state.ports, input);
+
+    expect(state.processor.process).toHaveBeenCalledWith(expect.objectContaining({ period: createAnalyticsPeriod('2025-12') }));
+    expect(await state.outbox.get('u', createAnalyticsPeriod('2025-12'))).toBeNull();
+  });
+
+  it('does not repeat initial historical discovery after marking it complete', async () => {
+    const state = setup({ periods: ['2025-11'] });
+    await RunMacroAnalyticsMaintenance(state.ports, input);
+    await RunMacroAnalyticsMaintenance(state.ports, input);
+    expect(state.ports.periodSource.listPeriods).toHaveBeenCalledTimes(1);
+    expect(state.prepare.mock.calls.map(([value]) => value.period)).toEqual(['2025-11', '2026-01', '2026-01']);
+  });
+
   it('does not discover or process periods without consent', async () => {
     const state = setup({ granted: false });
     const result = await RunMacroAnalyticsMaintenance(state.ports, input);
@@ -89,6 +111,18 @@ describe('RunMacroAnalyticsMaintenance', () => {
     const state = setup({ requested: true, periods: [] });
     await RunMacroAnalyticsMaintenance(state.ports, input);
     expect(state.ports.periodSource.listPeriods).toHaveBeenCalledTimes(2);
-    expect(state.state.clearFullRebuildRequest).toHaveBeenCalledWith('u');
+    expect(state.state.clearFullRebuildRequest).toHaveBeenCalledWith('u', 1);
+  });
+
+  it('preserves a newer full rebuild request arriving while historical discovery is running', async () => {
+    const state = setup({ requested: true, periods: [] });
+    vi.mocked(state.ports.periodSource.listPeriods).mockImplementationOnce(async () => {
+      await state.state.requestFullRebuild('u');
+      return [];
+    });
+
+    await RunMacroAnalyticsMaintenance(state.ports, input);
+
+    expect((await state.state.get('u')).fullRebuildRequested).toBe(true);
   });
 });

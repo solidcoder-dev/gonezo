@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import './App.css';
 import { WorkspacePage, type WorkspacePagePort } from './workspace/application/WorkspacePage';
@@ -42,6 +42,8 @@ import { NativeMacroAnalyticsBackfillStateAdapter } from './macroAnalytics/infra
 import { withMacroAnalyticsConsentLifecycle } from './macroAnalytics/application/MacroAnalyticsConsentLifecycle';
 import { withMacroAnalyticsProfileRebuild } from './macroAnalytics/infrastructure/AnalyticsProfileRebuildDecorator';
 import { NativeFinancialDataChangeObserver } from './macroAnalytics/infrastructure/NativeFinancialDataChangeObserver';
+import { MacroAnalyticsMaintenanceLifecycle } from './macroAnalytics/application/MacroAnalyticsMaintenanceLifecycle';
+import { runDefaultMacroAnalyticsMaintenance } from './macroAnalytics/infrastructure/defaultMacroAnalyticsMaintenance';
 
 const systemConsentClock = () => new Date().toISOString();
 
@@ -59,7 +61,7 @@ const defaultCore = new CoreAdapter(Capacitor.isNativePlatform()
   ? new NativeFinancialDataChangeObserver(async () => {
     const state = await defaultAuthentication.getAuthenticationState();
     return state.status === 'authenticated' ? state.userId : null;
-  })
+  }, (userId) => runDefaultMacroAnalyticsMaintenance(userId, defaultAnalyticsProfile))
   : undefined);
 const defaultContributionConsent: AnalyticsContributionConsentPort = Capacitor.isNativePlatform()
   ? new NativeAnalyticsContributionConsentAdapter()
@@ -78,7 +80,11 @@ const defaultLifecycleContributionConsent = withMacroAnalyticsConsentLifecycle(d
   rebuildQueue: defaultContributionRebuildQueue,
   outbox: defaultMacroAnalyticsOutbox,
 });
-const defaultLifecycleAnalyticsProfile = withMacroAnalyticsProfileRebuild(defaultAnalyticsProfile, defaultMacroAnalyticsBackfillState);
+const defaultLifecycleAnalyticsProfile = withMacroAnalyticsProfileRebuild(
+  defaultAnalyticsProfile,
+  defaultMacroAnalyticsBackfillState,
+  (userId) => runDefaultMacroAnalyticsMaintenance(userId, defaultAnalyticsProfile),
+);
 const workspaceRoutes = ['/', '/home', '/accounts', '/analytics', '/analytics/category/:categoryId', '/analytics/forecast', '/movements', '/movements/new', '/movements/search', '/movements/:source/:movementId/edit/:feature', '/profile'];
 
 export type AppPort = WorkspacePagePort & TaxonomyPagePort;
@@ -109,6 +115,7 @@ export function App({ required }: AppProps) {
   const resolvedAnalyticsProfile = required?.analyticsProfile ?? defaultLifecycleAnalyticsProfile;
   const resolvedContributionConsent = required?.contributionConsent ?? defaultLifecycleContributionConsent;
   const resolvedMacroAnalyticsOutbox = required?.macroAnalyticsOutbox ?? defaultMacroAnalyticsOutbox;
+  const runMaintenance = useCallback((userId: string) => runDefaultMacroAnalyticsMaintenance(userId, resolvedAnalyticsProfile), [resolvedAnalyticsProfile]);
   const amountVisibility = useAmountVisibilityModel({ port: resolvedAmountVisibility });
   const notificationIntentRouter = <NotificationIntentRouter />;
   const voiceCategorySource = useMemo(() => ({
@@ -125,8 +132,9 @@ export function App({ required }: AppProps) {
   return (
     <AuthenticationGate required={{ authentication: resolvedAuthentication }}>
     <RequiredOnboardingGate port={resolvedAnalyticsProfile}>
-    <AnalyticsContributionConsentGate port={resolvedContributionConsent} clock={required?.contributionConsentClock ?? systemConsentClock}>
+    <AnalyticsContributionConsentGate port={resolvedContributionConsent} clock={required?.contributionConsentClock ?? systemConsentClock} onConsentGranted={(userId) => { void runMaintenance(userId).catch(() => {}); }}>
     <KeyboardVisibilityProvider capability={defaultKeyboardVisibility}>
+      <MacroAnalyticsMaintenanceLifecycle runMaintenance={runMaintenance} />
       {notificationIntentRouter}
       <Routes>
       {workspaceRoutes.map((path) => (

@@ -22,7 +22,7 @@ The standalone Kotlin ingestion module validates V1 publications and retains onl
 
 ## Local-first persistence and processing
 
-The Android structured Macro Analytics state is stored in the existing `gonezo.db` database (schema version 38): contributor identity, pending publications, and latest locally processed publications have separate tables. Contributor identity is preserved during a full portable-state reset; pending and latest derived publications are cleared so they can be rebuilt from the restored financial state. Consent withdrawal continues to clear pending publications.
+The Android structured Macro Analytics state is stored in the existing `gonezo.db` database (schema version 40): contributor identity, pending publications, latest locally processed publications, queued contribution rebuild periods, and backfill state have separate tables. Full-rebuild requests carry a persisted generation so a newer request cannot be cleared by maintenance work that discovered an earlier request. Contributor identity is preserved during a full portable-state reset; pending publications, latest derived publications, queued periods, and backfill state are cleared so they can be rebuilt from the restored financial state. Consent withdrawal continues to clear pending publications and also clears queued rebuild periods.
 
 The local flow is:
 
@@ -31,6 +31,8 @@ Operational data → FinancialFact → MacroAnalyticsContribution → MacroAnaly
   → SQLite outbox → MacroAnalyticsPublicationProcessorPort
   → local processor → SQLite latest publication
 ```
+
+The Core composition boundary marks exact periods for posted facts when their effective date is available. Changes that may move or alter historical facts request a full rebuild, while schedule and recurrence changes enqueue only the current period. The Analytics movement-fact source discovers historical periods for initial backfill and full rebuilds, bounded through the current month. Startup, app resume, consent grant, profile save, and persisted financial changes trigger one serialized local maintenance runner. Failed or conflicting work remains queued for retry; unchanged contributions reuse the latest publication revision.
 
 The P-256 signing private key remains in Android Keystore. The old encrypted SharedPreferences entry is read only for a one-way, per-user migration into SQLite; it is deleted only after the migrated state is persisted and verified. Its AES key remains available for legacy entries. Local publication processing uses the same revision outcomes as ingestion: accepted, updated, already current, stale, or revision conflict. A conflict remains pending for diagnosis.
 

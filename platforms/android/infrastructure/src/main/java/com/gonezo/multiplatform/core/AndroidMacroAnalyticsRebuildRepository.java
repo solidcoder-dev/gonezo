@@ -48,6 +48,12 @@ public final class AndroidMacroAnalyticsRebuildRepository {
     }
   }
 
+  public int getFullRebuildRequestVersion(String ownerId) {
+    try (Cursor cursor = database.query("macro_analytics_rebuild_state", new String[] {"full_rebuild_request_version"}, "owner_id = ?", new String[] {ownerId}, null, null, null)) {
+      return cursor.moveToFirst() ? cursor.getInt(0) : 0;
+    }
+  }
+
   public void markInitialBackfillComplete(String ownerId, int version) {
     ensureState(ownerId);
     ContentValues values = new ContentValues();
@@ -57,16 +63,14 @@ public final class AndroidMacroAnalyticsRebuildRepository {
 
   public void requestFullRebuild(String ownerId) {
     ensureState(ownerId);
-    ContentValues values = new ContentValues();
-    values.put("full_rebuild_requested", 1);
-    database.update("macro_analytics_rebuild_state", values, "owner_id = ?", new String[] {ownerId});
+    database.execSQL("update macro_analytics_rebuild_state set full_rebuild_requested = 1, full_rebuild_request_version = full_rebuild_request_version + 1 where owner_id = ?", new Object[] {ownerId});
   }
 
-  public void clearFullRebuildRequest(String ownerId) {
+  public void clearFullRebuildRequest(String ownerId, int expectedRequestVersion) {
     ensureState(ownerId);
     ContentValues values = new ContentValues();
     values.put("full_rebuild_requested", 0);
-    database.update("macro_analytics_rebuild_state", values, "owner_id = ?", new String[] {ownerId});
+    database.update("macro_analytics_rebuild_state", values, "owner_id = ? and full_rebuild_request_version = ?", new String[] {ownerId, Integer.toString(expectedRequestVersion)});
   }
 
   public void clearState(String ownerId) {

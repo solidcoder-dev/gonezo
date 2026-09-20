@@ -1,6 +1,7 @@
 import type { AnalyticsListMovementFactsInput, AnalyticsListMovementFactsResult } from '../../analytics/application/analytics.port';
 import type { ContributionPeriodSourcePort } from '../application/contributionPeriodSource.port';
-import { analyticsPeriodForFact, createAnalyticsPeriod } from '../domain/analyticsPeriod';
+import { analyticsPeriodForFact } from '../domain/analyticsPeriod';
+import type { AnalyticsPeriod } from '../domain/analyticsPeriod';
 import { adaptAnalyticsMovementFact } from './analyticsMovementFactAdapter';
 
 type AnalyticsMovementFactReader = Readonly<{
@@ -21,7 +22,7 @@ export function createAnalyticsContributionPeriodSource(analytics: AnalyticsMove
         includePlannedMovements: true,
         includeIgnoredMovements: false,
       });
-      const periods = new Map<string, ReturnType<typeof createAnalyticsPeriod>>();
+      const periods = new Map<string, AnalyticsPeriod>();
       for (const item of result.items) {
         const fact = adaptAnalyticsMovementFact(item);
         if (!fact) continue;

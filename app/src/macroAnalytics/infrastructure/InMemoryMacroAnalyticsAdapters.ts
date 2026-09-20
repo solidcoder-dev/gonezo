@@ -72,7 +72,7 @@ export class InMemoryMacroAnalyticsBackfillStateAdapter implements MacroAnalytic
   private readonly states = new Map<string, MacroAnalyticsBackfillState>();
 
   async get(userId: string): Promise<MacroAnalyticsBackfillState> {
-    return this.states.get(userId) ?? { initialBackfillVersion: 0, fullRebuildRequested: false };
+    return this.states.get(userId) ?? { initialBackfillVersion: 0, fullRebuildRequested: false, fullRebuildRequestVersion: 0 };
   }
 
   async markInitialBackfillComplete(userId: string, version: number): Promise<void> {
@@ -82,12 +82,12 @@ export class InMemoryMacroAnalyticsBackfillStateAdapter implements MacroAnalytic
 
   async requestFullRebuild(userId: string): Promise<void> {
     const state = await this.get(userId);
-    this.states.set(userId, { ...state, fullRebuildRequested: true });
+    this.states.set(userId, { ...state, fullRebuildRequested: true, fullRebuildRequestVersion: state.fullRebuildRequestVersion + 1 });
   }
 
-  async clearFullRebuildRequest(userId: string): Promise<void> {
+  async clearFullRebuildRequest(userId: string, expectedRequestVersion: number): Promise<void> {
     const state = await this.get(userId);
-    this.states.set(userId, { ...state, fullRebuildRequested: false });
+    if (state.fullRebuildRequestVersion === expectedRequestVersion) this.states.set(userId, { ...state, fullRebuildRequested: false });
   }
 
   async clear(userId: string): Promise<void> {

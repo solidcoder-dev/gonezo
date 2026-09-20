@@ -16,10 +16,10 @@ export type MacroAnalyticsLocalStoragePlugin = {
   listRebuildPeriods(options: { userId: string }): Promise<{ periods: string[] }>;
   removeRebuildPeriod(options: { userId: string; period: string }): Promise<void>;
   clearRebuildPeriods(options: { userId: string }): Promise<void>;
-  getBackfillState(options: { userId: string }): Promise<{ initialBackfillVersion: number; fullRebuildRequested: boolean }>;
+  getBackfillState(options: { userId: string }): Promise<{ initialBackfillVersion: number; fullRebuildRequested: boolean; fullRebuildRequestVersion: number }>;
   markInitialBackfillComplete(options: { userId: string; version: number }): Promise<void>;
   requestFullRebuild(options: { userId: string }): Promise<void>;
-  clearFullRebuildRequest(options: { userId: string }): Promise<void>;
+  clearFullRebuildRequest(options: { userId: string; expectedRequestVersion: number }): Promise<void>;
   clearBackfillState(options: { userId: string }): Promise<void>;
 };
 

@@ -1,5 +1,5 @@
 import { canContribute } from '../domain/analyticsContributionConsent';
-import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
+import { analyticsPeriodForInstant } from '../domain/analyticsPeriod';
 import type { AnalyticsPeriod } from '../domain/analyticsPeriod';
 import type { ContributionRebuildQueuePort } from './contributionRebuildQueue.port';
 import type { ContributionPeriodSourcePort } from './contributionPeriodSource.port';
@@ -33,7 +33,7 @@ export async function RunMacroAnalyticsMaintenance(
     return { status: 'CONSENT_NOT_GRANTED', rebuiltPeriods: [], pendingPeriods: await periodValues(ports.rebuildQueue, input.userId) };
   }
 
-  const currentPeriod = currentAnalyticsPeriod(input.now, input.timeZone);
+  const currentPeriod = analyticsPeriodForInstant(input.now.toISOString(), input.timeZone);
   const state = await ports.backfillState.get(input.userId);
   if (state.initialBackfillVersion < INITIAL_CONTRIBUTION_BACKFILL_VERSION) {
     await enqueueDiscoveredPeriods(ports.periodSource, ports.rebuildQueue, input.userId, input.timeZone, currentPeriod);
@@ -41,13 +41,15 @@ export async function RunMacroAnalyticsMaintenance(
   }
   if (state.fullRebuildRequested) {
     await enqueueDiscoveredPeriods(ports.periodSource, ports.rebuildQueue, input.userId, input.timeZone, currentPeriod);
-    await ports.backfillState.clearFullRebuildRequest(input.userId);
+    await ports.backfillState.clearFullRebuildRequest(input.userId, state.fullRebuildRequestVersion);
   }
   await ports.rebuildQueue.enqueue(input.userId, currentPeriod);
 
   const rebuiltPeriods: string[] = [];
+  const attemptedPeriods = new Set<string>();
   for (const period of await ports.rebuildQueue.list(input.userId)) {
     if (period.value > currentPeriod.value) continue;
+    attemptedPeriods.add(period.value);
     const prepared = await ports.prepare({ userId: input.userId, period: period.value, timeZone: input.timeZone });
     if (prepared.status === 'NOT_ELIGIBLE') {
       if (prepared.reason === 'CONSENT_NOT_GRANTED') {
@@ -60,6 +62,12 @@ export async function RunMacroAnalyticsMaintenance(
     await ports.outbox.remove(input.userId, period);
     await ports.rebuildQueue.remove(input.userId, period);
     rebuiltPeriods.push(period.value);
+  }
+
+  for (const publication of await ports.outbox.listPending(input.userId)) {
+    if (publication.period.value > currentPeriod.value || attemptedPeriods.has(publication.period.value)) continue;
+    const status = await ports.processor.process(publication);
+    if (status !== 'REVISION_CONFLICT') await ports.outbox.remove(input.userId, publication.period);
   }
 
   return { status: 'COMPLETED', rebuiltPeriods, pendingPeriods: await periodValues(ports.rebuildQueue, input.userId) };
@@ -79,18 +87,4 @@ async function enqueueDiscoveredPeriods(
 
 async function periodValues(queue: ContributionRebuildQueuePort, userId: string): Promise<readonly string[]> {
   return (await queue.list(userId)).map(({ value }) => value);
-}
-
-function currentAnalyticsPeriod(now: Date, timeZone: string): AnalyticsPeriod {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    calendar: 'gregory',
-    numberingSystem: 'latn',
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-  }).formatToParts(now);
-  const year = parts.find((part) => part.type === 'year')?.value;
-  const month = parts.find((part) => part.type === 'month')?.value;
-  if (!year || !month) throw new Error('Unable to derive current analytics period');
-  return createAnalyticsPeriod(`${year.padStart(4, '0')}-${month}`);
 }

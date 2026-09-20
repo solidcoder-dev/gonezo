@@ -315,4 +315,25 @@ describe('dependency-cruiser rules', () => {
       expect.objectContaining({ from: 'source.ts', to: 'analyticsQueries.ts' }),
     ]);
   });
+
+  it('keeps operational bounded contexts independent from Macro Analytics implementation', { timeout: 10000 }, () => {
+    const root = makeTempRoot();
+
+    writeFixtureFile(root, 'src/macroAnalytics/application/port.ts', 'export const port = 1;\n');
+    writeFixtureFile(root, 'src/ledger/application/recordExpense.ts', [
+      "import { port } from '../../macroAnalytics/application/port';",
+      'export const mutation = port;',
+      '',
+    ].join('\n'));
+    writeFixtureFile(root, 'src/core/infrastructure/coreAdapter.ts', [
+      "import { port } from '../../macroAnalytics/application/port';",
+      'export const composition = port;',
+      '',
+    ].join('\n'));
+
+    const report = runDependencyCruiser(root, repoConfigPath);
+    expect(collectInvalidDependencies(report)).toEqual([
+      expect.objectContaining({ from: 'recordExpense.ts', to: 'port.ts' }),
+    ]);
+  });
 });
