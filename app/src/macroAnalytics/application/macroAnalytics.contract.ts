@@ -31,6 +31,17 @@ export type { AnalyticsContributorIdentityPort, ContributorIdGenerator } from '.
 export type { MacroAnalyticsOutboxPort } from './macroAnalyticsOutbox.port';
 export { LocalMacroAnalyticsPublicationProcessor } from './LocalMacroAnalyticsPublicationProcessor';
 export type { LatestMacroAnalyticsPublicationPort } from './latestMacroAnalyticsPublication.port';
+export { CalculateContributorMetrics } from './CalculateContributorMetrics';
+export type { ContributorMetricCalculator, ContributorMetricResult } from '../domain/contributorMetric';
+export { contributorFinancialMetricDefinitions } from './contributorFinancialMetrics';
+export { createCohort } from '../domain/cohort';
+export type { Cohort, CohortInput } from '../domain/cohort';
+export { CalculateCohortMetrics } from './CalculateCohortMetrics';
+export type { CohortMetricCalculator, CohortMetricResult } from '../domain/cohortMetric';
+export { cohortFinancialMetricDefinitions } from './cohortFinancialMetrics';
+export type { ProcessedContribution, ProcessedContributionSourcePort } from './ProcessedContributionSourcePort';
+export type { MacroOverviewReport } from '../domain/macroOverviewReport';
+export { GetMacroOverviewReport } from './GetMacroOverviewReport';
 export type { MacroAnalyticsPublicationProcessorPort, PublicationProcessingStatus } from './macroAnalyticsPublicationProcessor.port';
 export { processPendingMacroAnalyticsPublications } from './processPendingMacroAnalyticsPublications';
 export type { PendingPublicationProcessingResult } from './processPendingMacroAnalyticsPublications';
