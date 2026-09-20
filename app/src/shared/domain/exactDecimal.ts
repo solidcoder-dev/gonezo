@@ -24,6 +24,15 @@ export class ExactDecimal {
     return this.add(new ExactDecimal(-other.units, other.scale));
   }
 
+  multiplyByInteger(value: bigint | number): ExactDecimal {
+    if (typeof value === 'number' && !Number.isSafeInteger(value)) throw new Error('Multiplier must be a safe integer');
+    return new ExactDecimal(this.units * BigInt(value), this.scale);
+  }
+
+  multiply(other: ExactDecimal): ExactDecimal {
+    return new ExactDecimal(this.units * other.units, this.scale + other.scale);
+  }
+
   compare(other: ExactDecimal): number {
     const scale = Math.max(this.scale, other.scale);
     const left = this.atScale(scale);
@@ -32,6 +41,14 @@ export class ExactDecimal {
   }
 
   ratioTo(denominator: ExactDecimal, decimalPlaces = 2): ExactDecimal {
+    return this.divideToScale(denominator, decimalPlaces, true);
+  }
+
+  ratioToTruncated(denominator: ExactDecimal, decimalPlaces = 2): ExactDecimal {
+    return this.divideToScale(denominator, decimalPlaces, false);
+  }
+
+  private divideToScale(denominator: ExactDecimal, decimalPlaces: number, roundHalfUp: boolean): ExactDecimal {
     if (denominator.units === 0n) throw new Error('Cannot divide by zero');
     if (!Number.isInteger(decimalPlaces) || decimalPlaces < 0) throw new Error('Decimal places must be a non-negative integer');
     const places = BigInt(decimalPlaces);
@@ -39,7 +56,7 @@ export class ExactDecimal {
     const divisor = denominator.units * (10n ** BigInt(this.scale));
     const quotient = numerator / divisor;
     const remainder = numerator % divisor;
-    const rounded = (remainder < 0n ? -remainder : remainder) * 2n >= (divisor < 0n ? -divisor : divisor)
+    const rounded = roundHalfUp && (remainder < 0n ? -remainder : remainder) * 2n >= (divisor < 0n ? -divisor : divisor)
       ? quotient + (numerator * divisor < 0n ? -1n : 1n)
       : quotient;
     return new ExactDecimal(rounded, decimalPlaces);

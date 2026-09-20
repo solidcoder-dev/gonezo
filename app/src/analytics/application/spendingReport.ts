@@ -1,5 +1,6 @@
 import type { AnalyticsFilters, AnalyticsPeriod } from './analyticsFilters';
 import { normalizeAnalyticsPeriodSelection, type AnalyticsPeriodSelection } from './analyticsPeriodSelection';
+import { ExactDecimal } from '../../shared/domain/exactDecimal';
 
 export type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 export { normalizeAnalyticsPeriodSelection } from './analyticsPeriodSelection';
@@ -162,16 +163,8 @@ export function resolveAnalyticsSpendingWindow(
   return rangeToWindow(range, selection);
 }
 
-function cents(value: string): number {
-  const normalized = value.trim();
-  const sign = normalized.startsWith('-') ? -1 : 1;
-  const unsigned = normalized.replace(/^[+-]/, '');
-  const [whole, fraction = ''] = unsigned.split('.');
-  return sign * ((Number(whole || 0) * 100) + Number((fraction + '00').slice(0, 2)));
-}
-
-function money(value: number, currency: string): AnalyticsMoneyDto {
-  return { value: (value / 100).toFixed(2), currency };
+function money(value: ExactDecimal, currency: string): AnalyticsMoneyDto {
+  return { value: value.toFixed(2), currency };
 }
 
 function expenseMovements(movements: AnalyticsSpendingMovement[], window: AnalyticsSpendingPeriodWindow, currency: string): AnalyticsSpendingMovement[] {
@@ -184,7 +177,7 @@ function expenseMovements(movements: AnalyticsSpendingMovement[], window: Analyt
 }
 
 export function calculateSpendingTotals(movements: AnalyticsSpendingMovement[], currency: string): AnalyticsMoneyDto {
-  return money(movements.reduce((sum, movement) => sum + cents(movement.amount), 0), currency);
+  return money(movements.reduce((sum, movement) => sum.add(ExactDecimal.from(movement.amount)), ExactDecimal.from('0')), currency);
 }
 
 export function buildSpendingTimeline(movements: AnalyticsSpendingMovement[], window: AnalyticsSpendingPeriodWindow, currency: string): AnalyticsSpendingTimelineBucket[] {
@@ -194,13 +187,13 @@ export function buildSpendingTimeline(movements: AnalyticsSpendingMovement[], wi
   let start = window.start;
   while (start < window.endExclusive) {
     const next = unit === 'day' ? addDays(start, 1) : unit === 'week' ? addDays(start, 7) : unit === 'month' ? addMonths(start, 1) : addYears(start, 1);
-    buckets.push({ start, endExclusive: next < window.endExclusive ? next : window.endExclusive, amount: money(0, currency), sequence: buckets.length });
+    buckets.push({ start, endExclusive: next < window.endExclusive ? next : window.endExclusive, amount: money(ExactDecimal.from('0'), currency), sequence: buckets.length });
     start = next;
   }
   for (const movement of expenseMovements(movements, window, currency)) {
     const occurred = movement.occurredAt.slice(0, 10);
     const bucket = buckets.find((candidate) => occurred >= candidate.start && occurred < candidate.endExclusive);
-    if (bucket) bucket.amount = money(cents(bucket.amount.value) + cents(movement.amount), currency);
+    if (bucket) bucket.amount = money(ExactDecimal.from(bucket.amount.value).add(ExactDecimal.from(movement.amount)), currency);
   }
   return buckets;
 }
@@ -212,21 +205,21 @@ export function buildSpendingCategories(
   references: AnalyticsCategoryReference[],
 ): AnalyticsSpendingCategory[] {
   const byId = new Map(references.map((reference) => [reference.id, reference.name]));
-  const amounts = new Map<string, number>();
+  const amounts = new Map<string, ExactDecimal>();
   for (const movement of expenseMovements(movements, window, currency)) {
     const allocations = movement.items && movement.items.length > 0 ? movement.items : [{ amount: movement.amount, categoryId: movement.categoryId, categoryName: movement.categoryName }];
     for (const allocation of allocations) {
       const id = allocation.categoryId;
       const key = id ?? 'uncategorized';
-      amounts.set(key, (amounts.get(key) ?? 0) + cents(allocation.amount));
+      amounts.set(key, (amounts.get(key) ?? ExactDecimal.from('0')).add(ExactDecimal.from(allocation.amount)));
     }
   }
-  const total = [...amounts.values()].reduce((sum, value) => sum + value, 0);
-  return [...amounts.entries()].sort((left, right) => right[1] - left[1]).map(([id, value]) => ({
+  const total = [...amounts.values()].reduce((sum, value) => sum.add(value), ExactDecimal.from('0'));
+  return [...amounts.entries()].sort((left, right) => right[1].compare(left[1])).map(([id, value]) => ({
     categoryId: id === 'uncategorized' ? undefined : id,
     categoryName: id === 'uncategorized' ? 'Uncategorized' : byId.get(id) ?? 'Uncategorized',
     amount: money(value, currency),
-    percentage: total === 0 ? 0 : (value / total) * 100,
+    percentage: total.compare(ExactDecimal.from('0')) === 0 ? 0 : Number(value.ratioTo(total, 8).multiplyByInteger(100).toFixed(8)),
   }));
 }
 
@@ -236,29 +229,32 @@ export function buildSpendingMerchants(
   currency: string,
   categoryId?: string,
 ): AnalyticsSpendingMerchant[] {
-  const totals = new Map<string, { cents: number; movementCount: number }>();
+  const totals = new Map<string, { amount: ExactDecimal; movementCount: number }>();
   for (const movement of expenseMovements(movements, window, currency.toUpperCase())) {
     if (categoryId && movement.categoryId !== categoryId) continue;
     const merchant = movement.merchant?.trim();
     if (!merchant) continue;
-    const current = totals.get(merchant) ?? { cents: 0, movementCount: 0 };
-    totals.set(merchant, { cents: current.cents + cents(movement.amount), movementCount: current.movementCount + 1 });
+    const current = totals.get(merchant) ?? { amount: ExactDecimal.from('0'), movementCount: 0 };
+    totals.set(merchant, { amount: current.amount.add(ExactDecimal.from(movement.amount)), movementCount: current.movementCount + 1 });
   }
-  const total = [...totals.values()].reduce((sum, item) => sum + item.cents, 0);
+  const total = [...totals.values()].reduce((sum, item) => sum.add(item.amount), ExactDecimal.from('0'));
   return [...totals.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
-    .sort(([, left], [, right]) => right.cents - left.cents)
+    .sort(([, left], [, right]) => right.amount.compare(left.amount))
     .map(([merchant, item]) => ({
       merchant,
-      amount: money(item.cents, currency.toUpperCase()),
-      percentage: total === 0 ? 0 : (item.cents / total) * 100,
+      amount: money(item.amount, currency.toUpperCase()),
+      percentage: total.compare(ExactDecimal.from('0')) === 0 ? 0 : Number(item.amount.ratioTo(total, 8).multiplyByInteger(100).toFixed(8)),
       movementCount: item.movementCount,
     }));
 }
 
 export function calculateChangePercent(current: AnalyticsMoneyDto, previous?: AnalyticsMoneyDto): number | undefined {
-  if (!previous || cents(previous.value) === 0) return undefined;
-  return ((cents(current.value) - cents(previous.value)) / cents(previous.value)) * 100;
+  if (!previous) return undefined;
+  const currentValue = ExactDecimal.from(current.value);
+  const previousValue = ExactDecimal.from(previous.value);
+  if (previousValue.compare(ExactDecimal.from('0')) === 0) return undefined;
+  return Number(currentValue.subtract(previousValue).ratioTo(previousValue, 8).multiplyByInteger(100).toFixed(8));
 }
 
 export function buildAnalyticsSpendingReport(input: {

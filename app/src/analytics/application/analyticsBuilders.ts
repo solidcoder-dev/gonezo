@@ -33,6 +33,7 @@ import { resolveAnalyticsPeriodWindow } from './analyticsPeriodResolver';
 import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 import { buildOverviewInsightsResult } from './overviewInsights';
 import { addDecimalAmounts, subtractDecimalAmounts } from '../../ledger/application/decimalAmount';
+import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import { balanceImpact, isBalanceInflow, isBalanceOutflow, isEconomicExpense, isEconomicIncome } from '../../ledger/application/movementSemantics';
 
 const UNCATEGORIZED = 'Uncategorized';
@@ -387,7 +388,7 @@ function toOverviewHighlight(transaction: LedgerTransactionListItem | undefined)
 }
 
 function byAmountDescending(left: LedgerTransactionListItem, right: LedgerTransactionListItem): number {
-  return Number(analyticsTransactionAmount(right)) - Number(analyticsTransactionAmount(left));
+  return ExactDecimal.from(analyticsTransactionAmount(right)).compare(ExactDecimal.from(analyticsTransactionAmount(left)));
 }
 
 function selectBiggestMovement(
@@ -401,12 +402,11 @@ function selectBiggestMovement(
 }
 
 function percentChange(currentAmount: string, previousAmount: string): string | undefined {
-  const previous = Number(previousAmount);
-  const current = Number(currentAmount);
-  if (!Number.isFinite(previous) || !Number.isFinite(current) || previous === 0) {
+  const previous = ExactDecimal.from(previousAmount);
+  if (previous.compare(ExactDecimal.from('0')) === 0) {
     return undefined;
   }
-  return (((current - previous) / previous) * 100).toFixed(2);
+  return ExactDecimal.from(currentAmount).subtract(previous).multiplyByInteger(100).ratioTo(previous, 2).toFixed(2);
 }
 
 function toOverviewWindow(window: AnalyticsOverviewWindowRange) {
@@ -489,13 +489,13 @@ function spendingCategoryBreakdown(input: {
     if (Number.isNaN(occurredAt.getTime()) || occurredAt < input.window.start || occurredAt >= input.window.end) {
       continue;
     }
-    const attributedAmount = Number(analyticsTransactionAmount(transaction));
-    const fullAmount = Number(transaction.amount);
-    const ratio = fullAmount > 0 ? attributedAmount / fullAmount : 1;
+    const attributedAmount = ExactDecimal.from(analyticsTransactionAmount(transaction));
+    const fullAmount = ExactDecimal.from(transaction.amount);
+    const hasAttribution = fullAmount.compare(ExactDecimal.from('0')) > 0;
     const breakdown = transaction.items.length > 0
       ? transaction.items.map((item) => ({
           categoryId: item.categoryId ?? transaction.categoryId,
-          amount: (Number(item.amount) * ratio).toFixed(2),
+          amount: hasAttribution ? ExactDecimal.from(item.amount).multiply(attributedAmount).ratioTo(fullAmount, 2).toFixed(2) : ExactDecimal.from(item.amount).toFixed(2),
         }))
       : [{ categoryId: transaction.categoryId, amount: analyticsTransactionAmount(transaction) }];
 
@@ -515,13 +515,13 @@ function spendingCategoryBreakdown(input: {
 
   const totalExpenseAmount = [...amountByCategory.values()]
     .reduce((total, item) => addAmount(total, item.amount), '0.00');
-  const total = Number(totalExpenseAmount);
+  const total = ExactDecimal.from(totalExpenseAmount);
 
   return [...amountByCategory.values()]
-    .sort((left, right) => Number(right.amount) - Number(left.amount))
+    .sort((left, right) => ExactDecimal.from(right.amount).compare(ExactDecimal.from(left.amount)))
     .map((item) => ({
       ...item,
-      percentage: total > 0 ? Math.round((Number(item.amount) / total) * 100) : 0,
+      percentage: total.compare(ExactDecimal.from('0')) > 0 ? Number(ExactDecimal.from(item.amount).multiplyByInteger(100).ratioTo(total, 0).toFixed(0)) : 0,
     }));
 }
 
