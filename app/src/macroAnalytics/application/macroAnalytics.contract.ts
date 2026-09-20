@@ -1,6 +1,9 @@
 export { analyticsPeriodForFact, createAnalyticsPeriod } from '../domain/analyticsPeriod';
 export type { AnalyticsPeriod } from '../domain/analyticsPeriod';
 export { createFinancialFact } from '../domain/financialFact';
+export type { CategoryFact } from '../domain/categoryFact';
+export type { MacroCategoryCode } from '../domain/macroCategoryCode';
+export type { CategoryFactSourcePort, CategoryFactQuery } from './categoryFactSource.port';
 export type {
   DecimalAmount,
   FinancialFact,
