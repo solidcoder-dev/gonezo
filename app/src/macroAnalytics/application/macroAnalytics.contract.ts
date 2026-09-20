@@ -57,3 +57,4 @@ export type { ContributionPeriodSourcePort } from './contributionPeriodSource.po
 export type { MacroAnalyticsBackfillState, MacroAnalyticsBackfillStatePort } from './macroAnalyticsBackfillState.port';
 export { RunMacroAnalyticsMaintenance, INITIAL_CONTRIBUTION_BACKFILL_VERSION } from './RunMacroAnalyticsMaintenance';
 export type { MacroAnalyticsMaintenanceResult } from './RunMacroAnalyticsMaintenance';
+export { withMacroAnalyticsConsentLifecycle } from './MacroAnalyticsConsentLifecycle';

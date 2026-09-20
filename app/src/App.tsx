@@ -35,8 +35,12 @@ import { NativeAnalyticsContributionConsentAdapter } from './macroAnalytics/infr
 import type { AnalyticsContributionConsentPort } from './macroAnalytics/application/analyticsContributionConsent.port';
 import type { ConsentClock } from './macroAnalytics/application/analyticsContributionConsentUseCases';
 import type { MacroAnalyticsOutboxPort } from './macroAnalytics/application/macroAnalyticsOutbox.port';
-import { InMemoryMacroAnalyticsOutboxAdapter } from './macroAnalytics/infrastructure/InMemoryMacroAnalyticsAdapters';
+import { InMemoryContributionRebuildQueueAdapter, InMemoryMacroAnalyticsBackfillStateAdapter, InMemoryMacroAnalyticsOutboxAdapter } from './macroAnalytics/infrastructure/InMemoryMacroAnalyticsAdapters';
 import { NativeMacroAnalyticsOutboxAdapter } from './macroAnalytics/infrastructure/NativeMacroAnalyticsAdapters';
+import { NativeContributionRebuildQueueAdapter } from './macroAnalytics/infrastructure/NativeContributionRebuildQueueAdapter';
+import { NativeMacroAnalyticsBackfillStateAdapter } from './macroAnalytics/infrastructure/NativeMacroAnalyticsBackfillStateAdapter';
+import { withMacroAnalyticsConsentLifecycle } from './macroAnalytics/application/MacroAnalyticsConsentLifecycle';
+import { withMacroAnalyticsProfileRebuild } from './macroAnalytics/infrastructure/AnalyticsProfileRebuildDecorator';
 
 const systemConsentClock = () => new Date().toISOString();
 
@@ -57,6 +61,18 @@ const defaultContributionConsent: AnalyticsContributionConsentPort = Capacitor.i
 const defaultMacroAnalyticsOutbox: MacroAnalyticsOutboxPort = Capacitor.isNativePlatform()
   ? new NativeMacroAnalyticsOutboxAdapter()
   : new InMemoryMacroAnalyticsOutboxAdapter();
+const defaultContributionRebuildQueue = Capacitor.isNativePlatform()
+  ? new NativeContributionRebuildQueueAdapter()
+  : new InMemoryContributionRebuildQueueAdapter();
+const defaultMacroAnalyticsBackfillState = Capacitor.isNativePlatform()
+  ? new NativeMacroAnalyticsBackfillStateAdapter()
+  : new InMemoryMacroAnalyticsBackfillStateAdapter();
+const defaultLifecycleContributionConsent = withMacroAnalyticsConsentLifecycle(defaultContributionConsent, {
+  backfillState: defaultMacroAnalyticsBackfillState,
+  rebuildQueue: defaultContributionRebuildQueue,
+  outbox: defaultMacroAnalyticsOutbox,
+});
+const defaultLifecycleAnalyticsProfile = withMacroAnalyticsProfileRebuild(defaultAnalyticsProfile, defaultMacroAnalyticsBackfillState);
 const workspaceRoutes = ['/', '/home', '/accounts', '/analytics', '/analytics/category/:categoryId', '/analytics/forecast', '/movements', '/movements/new', '/movements/search', '/movements/:source/:movementId/edit/:feature', '/profile'];
 
 export type AppPort = WorkspacePagePort & TaxonomyPagePort;
@@ -84,8 +100,8 @@ export function App({ required }: AppProps) {
   const resolvedNotifications = required?.notifications ?? defaultNotifications;
   const resolvedAmountVisibility = required?.amountVisibility ?? defaultAmountVisibility;
   const resolvedAuthentication = required?.authentication ?? defaultAuthentication;
-  const resolvedAnalyticsProfile = required?.analyticsProfile ?? defaultAnalyticsProfile;
-  const resolvedContributionConsent = required?.contributionConsent ?? defaultContributionConsent;
+  const resolvedAnalyticsProfile = required?.analyticsProfile ?? defaultLifecycleAnalyticsProfile;
+  const resolvedContributionConsent = required?.contributionConsent ?? defaultLifecycleContributionConsent;
   const resolvedMacroAnalyticsOutbox = required?.macroAnalyticsOutbox ?? defaultMacroAnalyticsOutbox;
   const amountVisibility = useAmountVisibilityModel({ port: resolvedAmountVisibility });
   const notificationIntentRouter = <NotificationIntentRouter />;
