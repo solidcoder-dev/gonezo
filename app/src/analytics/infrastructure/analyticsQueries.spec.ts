@@ -1045,6 +1045,29 @@ describe('analytics queries', () => {
     });
   });
 
+  it('composes filtered spending totals, categories, merchants and timeline for one selected period', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-30T12:00:00.000Z'));
+    const port = createPort([
+      transaction({ id: 'food-1', type: 'expense', amount: '30.00', occurredAt: '2026-06-25T09:00:00.000Z', categoryId: 'cat-food', merchant: 'Market' }),
+      transaction({ id: 'food-2', type: 'expense', amount: '10.00', occurredAt: '2026-06-27T09:00:00.000Z', categoryId: 'cat-food', merchant: 'Market' }),
+      transaction({ id: 'outside', type: 'expense', amount: '99.00', occurredAt: '2026-06-01T09:00:00.000Z', categoryId: 'cat-food', merchant: 'Market' }),
+      transaction({ id: 'income', type: 'income', amount: '500.00', occurredAt: '2026-06-26T09:00:00.000Z', merchant: 'Employer' }),
+    ]);
+
+    await expect(analyticsGetSpendingReport(port, {
+      currency: 'EUR',
+      filters: { period: { kind: 'custom', from: '2026-06-24', to: '2026-06-30' } },
+      periodSelection: { period: { kind: 'custom', from: '2026-06-24', to: '2026-06-30' }, shift: 0 },
+    })).resolves.toMatchObject({
+      window: { start: '2026-06-24', endExclusive: '2026-07-01' },
+      totalExpense: { value: '40.00', currency: 'EUR' },
+      categories: [{ categoryId: 'cat-food', categoryName: 'Food', amount: { value: '40.00' }, percentage: 100 }],
+      merchants: [{ merchant: 'Market', amount: { value: '40.00' }, percentage: 100, movementCount: 2 }],
+      timeline: expect.arrayContaining([expect.objectContaining({ start: '2026-06-25', amount: expect.objectContaining({ value: '30.00' }) })]),
+    });
+  });
+
   it('includes planned movements through the last day of the current month in spending', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-27T12:00:00.000Z'));
