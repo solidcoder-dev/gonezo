@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
 import { createAnalyticsCategoryFactSource } from './analyticsCategoryFactSource';
 
@@ -27,7 +28,7 @@ describe('createAnalyticsCategoryFactSource', () => {
       ['GROCERIES', '2.50', 'posted/movement-1/category/0'],
       ['UNMAPPED_EXPENSE', '2.50', 'posted/movement-1/category/1'],
     ]);
-    expect(first.reduce((sum, item) => sum + Number(item.amount), 0)).toBe(5);
+    expect(first.reduce((sum, item) => ExactDecimal.from(sum).add(ExactDecimal.from(item.amount)).toFixed(2), '0.00')).toBe('5.00');
     expect(JSON.stringify(first)).not.toContain('personal-category');
     expect(JSON.stringify(first)).not.toContain('private-account');
   });

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { LedgerAccountItem, LedgerTransactionListItem } from '../../ledger/application/ledger.port';
 import type { SchedulingMovementItem } from '../../scheduling/application/scheduling.port';
 import type { TaxonomyCategoryItem } from '../../taxonomy/application/taxonomy.port';
+import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import {
   buildAnalyticsCashFlowSummary,
   buildFlowInsights,
@@ -249,7 +250,10 @@ describe('analytics builders', () => {
         { categoryId: 'cat-home', personalAmount: '3.00', fullAmount: '3.00' },
       ] }),
       transaction({ id: 'uncategorized', type: 'expense', amount: '3.00', currency: 'EUR' }),
-      transaction({ id: 'shared', type: 'expense', amount: '8.00', currency: 'EUR', categoryId: 'cat-food', analyticsPersonalAmount: '5.00', analyticsFullAmount: '8.00', analyticsAmount: '5.00' }),
+      transaction({ id: 'shared', type: 'expense', amount: '8.00', currency: 'EUR', analyticsPersonalAmount: '5.00', analyticsFullAmount: '8.00', analyticsAmount: '5.00', categoryAllocations: [
+        { categoryId: 'cat-food', personalAmount: '2.50', fullAmount: '4.00' },
+        { categoryId: 'cat-home', personalAmount: '2.50', fullAmount: '4.00' },
+      ] }),
       transaction({ id: 'income', type: 'income', amount: '30.00', currency: 'EUR', categoryId: 'cat-income' }),
       transaction({ id: 'transfer', type: 'transfer_out', amount: '40.00', currency: 'EUR', categoryId: 'cat-home' }),
     ];
@@ -267,13 +271,18 @@ describe('analytics builders', () => {
       currentWindow: { label: 'Jun 2026', start: new Date('2026-06-01T00:00:00Z'), end: new Date('2026-07-01T00:00:00Z') },
     });
 
-    expect(personal.categories.reduce((sum, item) => sum + Number(item.amount), 0)).toBe(Number(personal.totalExpenseAmount));
+    expect(personal.categories.reduce((sum, item) => ExactDecimal.from(sum).add(ExactDecimal.from(item.amount)).toFixed(2), '0.00')).toBe(personal.totalExpenseAmount);
     expect(personal.totalExpenseAmount).toBe('24.00');
-    expect(full.categories.reduce((sum, item) => sum + Number(item.amount), 0)).toBe(Number(full.totalExpenseAmount));
+    expect(full.categories.reduce((sum, item) => ExactDecimal.from(sum).add(ExactDecimal.from(item.amount)).toFixed(2), '0.00')).toBe(full.totalExpenseAmount);
     expect(full.totalExpenseAmount).toBe('27.00');
+    expect(full.categories.map(({ categoryId, amount }) => [categoryId, amount])).toEqual([
+      ['cat-home', '17.00'],
+      ['cat-food', '7.00'],
+      [undefined, '3.00'],
+    ]);
     expect(personal.categories.map(({ categoryId, amount }) => [categoryId, amount])).toEqual([
-      ['cat-home', '13.00'],
-      ['cat-food', '8.00'],
+      ['cat-home', '15.50'],
+      ['cat-food', '5.50'],
       [undefined, '3.00'],
     ]);
   });

@@ -363,7 +363,7 @@ function categoryName(categoriesById: ReadonlyMap<string, TaxonomyCategoryItem>,
   return categoryId ? categoriesById.get(categoryId)?.name ?? UNCATEGORIZED : UNCATEGORIZED;
 }
 
-type AnalyticsCategoryTransaction = LedgerTransactionListItem & { categoryAllocations?: readonly { categoryId?: string; personalAmount: string }[] };
+type AnalyticsCategoryTransaction = LedgerTransactionListItem & { categoryAllocations?: readonly { categoryId?: string; personalAmount: string; fullAmount: string }[] };
 
 function spendingCategoryBreakdown(input: {
   transactions: AnalyticsCategoryTransaction[];
@@ -391,7 +391,10 @@ function spendingCategoryBreakdown(input: {
     const hasAttribution = fullAmount.compare(ExactDecimal.from('0')) > 0;
     const canonicalAllocations = transaction.categoryAllocations;
     const breakdown = canonicalAllocations?.length
-      ? canonicalAllocations.map((allocation) => ({ categoryId: allocation.categoryId, amount: allocation.personalAmount }))
+      ? canonicalAllocations.map((allocation) => ({
+          categoryId: allocation.categoryId,
+          amount: analyticsTransactionAmount(transaction) === transaction.amount ? allocation.fullAmount : allocation.personalAmount,
+        }))
       : transaction.items.length > 0
       ? transaction.items.map((item) => ({
           categoryId: item.categoryId ?? transaction.categoryId,
