@@ -8,6 +8,7 @@ import type { ContributionProfileSourcePort } from './contributionProfileSource.
 import type { CategoryFactSourcePort } from './categoryFactSource.port';
 import type { FinancialFact } from '../domain/financialFact';
 import type { CategoryFact } from '../domain/categoryFact';
+import type { RecurringFactSourcePort } from './recurringFactSource.port';
 import { buildMacroAnalyticsContribution } from './buildMacroAnalyticsContribution';
 
 const profile: ContributionProfile = { birthYear: 1995, sex: 'female', countryCode: 'ES', regionCode: 'ES-CN' };
@@ -28,7 +29,8 @@ function sources(consent: AnalyticsContributionConsent | null = granted, contrib
   const profileSource: ContributionProfileSourcePort = { get: vi.fn(async () => contributionProfile) };
   const factSource: FinancialFactSourcePort = { listFinancialFacts: vi.fn(async () => facts) };
   const categoryFacts: CategoryFactSourcePort = { listCategoryFacts: vi.fn(async () => categoriesFor(facts)) };
-  return { consent: consentSource, profile: profileSource, financialFacts: factSource, categoryFacts, profileSource, factSource };
+  const recurringFacts: RecurringFactSourcePort = { listRecurringFacts: vi.fn(async () => []) };
+  return { consent: consentSource, profile: profileSource, financialFacts: factSource, categoryFacts, recurringFacts, profileSource, factSource };
 }
 
 describe('buildMacroAnalyticsContribution', () => {
@@ -59,14 +61,30 @@ describe('buildMacroAnalyticsContribution', () => {
     const ports = sources(granted, profile, []);
     const result = await buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
     expect(result).toEqual({ status: 'BUILT', contribution: {
-      schemaVersion: 2,
+      schemaVersion: 3,
       period: { kind: 'YEAR_MONTH', value: '2026-09' },
       dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE', ageBand: '25_34' },
       financial: { currencies: [] },
       categories: { currencies: [] },
+      recurring: { currencies: [] },
     } });
     expect(JSON.stringify(result)).not.toMatch(/private-user-id|private-fact-id|birthYear|occurredAt|accountId|movementId|completedAt|updatedAt/);
     expect(ports.financialFacts.listFinancialFacts).toHaveBeenCalledWith({ period: { kind: 'YEAR_MONTH', value: '2026-09' }, timeZone: 'Europe/Madrid' });
+    expect(ports.recurringFacts.listRecurringFacts).toHaveBeenCalledWith({ period: { kind: 'YEAR_MONTH', value: '2026-09' }, timeZone: 'Europe/Madrid' });
+  });
+
+  it('rejects recurring amounts above financial activity but accepts zero recurring amounts', async () => {
+    const ports = sources();
+    vi.mocked(ports.recurringFacts.listRecurringFacts).mockResolvedValue([{
+      id: 'recurring-id', occurredAt: '2026-09-04T10:00:00Z', source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0.11', seriesId: 'private-series',
+    }]);
+    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
+      .rejects.toThrow('Recurring contribution exceeds financial contribution');
+    vi.mocked(ports.recurringFacts.listRecurringFacts).mockResolvedValue([{
+      id: 'recurring-id', occurredAt: '2026-09-04T10:00:00Z', source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0', seriesId: 'private-series',
+    }]);
+    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
+      .resolves.toMatchObject({ status: 'BUILT', contribution: { recurring: { currencies: [{ buckets: [{ amount: '0' }] }] } } });
   });
 
   it('produces structurally identical contributions regardless of fact order', async () => {

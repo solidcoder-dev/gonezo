@@ -10,12 +10,15 @@ import type { AnalyticsContributionConsentPort } from './analyticsContributionCo
 import type { ContributionProfileSourcePort } from './contributionProfileSource.port';
 import type { FinancialFactSourcePort } from './financialFactSource.port';
 import type { CategoryFactSourcePort } from './categoryFactSource.port';
+import { aggregateRecurringFacts } from '../domain/recurringContribution';
+import type { RecurringFactSourcePort } from './recurringFactSource.port';
 
 export type BuildMacroAnalyticsContributionPorts = Readonly<{
   consent: Pick<AnalyticsContributionConsentPort, 'get'>;
   profile: ContributionProfileSourcePort;
   financialFacts: FinancialFactSourcePort;
   categoryFacts: CategoryFactSourcePort;
+  recurringFacts: RecurringFactSourcePort;
 }>;
 
 export type BuildMacroAnalyticsContributionInput = Readonly<{
@@ -43,17 +46,34 @@ export async function buildMacroAnalyticsContribution(
   if (!dimensions) return { status: 'NOT_ELIGIBLE', reason: 'PROFILE_UNAVAILABLE' };
   const facts = await ports.financialFacts.listFinancialFacts({ period, timeZone: input.timeZone });
   const categoryFacts = await ports.categoryFacts.listCategoryFacts({ period, timeZone: input.timeZone });
+  const recurringFacts = await ports.recurringFacts.listRecurringFacts({ period, timeZone: input.timeZone });
   const financial = aggregateFinancialFacts(facts);
   const categories = aggregateCategoryFacts(categoryFacts);
+  const recurring = aggregateRecurringFacts(recurringFacts);
   assertCategoryTotalsReconcile(financial, categories);
+  assertRecurringTotalsDoNotExceedFinancial(financial, recurring);
   const contribution: MacroAnalyticsContribution = Object.freeze({
     schemaVersion: MACRO_ANALYTICS_SCHEMA_VERSION,
     period,
     dimensions,
     financial,
     categories,
+    recurring,
   });
   return { status: 'BUILT', contribution };
+}
+
+function assertRecurringTotalsDoNotExceedFinancial(
+  financial: ReturnType<typeof aggregateFinancialFacts>,
+  recurring: ReturnType<typeof aggregateRecurringFacts>,
+): void {
+  for (const { currency, buckets } of recurring.currencies) for (const bucket of buckets) {
+    const financialAmount = financial.currencies.find((entry) => entry.currency === currency)?.buckets
+      .find((entry) => entry.source === bucket.source && entry.kind === bucket.kind)?.amount ?? '0';
+    if (ExactDecimal.from(bucket.amount).compare(ExactDecimal.from(financialAmount)) > 0) {
+      throw new Error(`Recurring contribution exceeds financial contribution for ${currency}:${bucket.source}:${bucket.kind}`);
+    }
+  }
 }
 
 function assertCategoryTotalsReconcile(
