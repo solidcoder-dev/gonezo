@@ -1,4 +1,5 @@
 import type { FinancialFact, FinancialFactKind, FinancialFactSource } from './financialFact';
+import { addExactDecimals } from '../../shared/domain/exactDecimal';
 
 export type FinancialContributionBucket = Readonly<{
   source: FinancialFactSource;
@@ -16,24 +17,6 @@ export type FinancialContribution = Readonly<{
   currencies: readonly FinancialCurrencyContribution[];
 }>;
 
-type Decimal = Readonly<{ units: bigint; scale: number }>;
-
-function parseDecimal(value: string): Decimal {
-  const [whole, fraction = ''] = value.split('.');
-  const digits = `${whole}${fraction}`.replace(/^0+(?=\d)/, '') || '0';
-  return { units: BigInt(digits), scale: fraction.length };
-}
-
-function addDecimalStrings(left: string, right: string): string {
-  const first = parseDecimal(left);
-  const second = parseDecimal(right);
-  const scale = Math.max(first.scale, second.scale);
-  const units = first.units * (10n ** BigInt(scale - first.scale))
-    + second.units * (10n ** BigInt(scale - second.scale));
-  const digits = units.toString().padStart(scale + 1, '0');
-  return scale === 0 ? digits : `${digits.slice(0, -scale)}.${digits.slice(-scale)}`;
-}
-
 const orderedSources: readonly FinancialFactSource[] = ['POSTED', 'EXPECTED', 'SCHEDULED'];
 const orderedKinds: readonly FinancialFactKind[] = ['INCOME', 'EXPENSE', 'TRANSFER_IN', 'TRANSFER_OUT'];
 
@@ -46,7 +29,7 @@ export function aggregateFinancialFacts(facts: readonly FinancialFact[]): Financ
       currency: fact.currency,
       source: fact.source,
       kind: fact.kind,
-      amount: current ? addDecimalStrings(current.amount, fact.amount) : fact.amount,
+      amount: current ? addExactDecimals(current.amount, fact.amount) : fact.amount,
       count: (current?.count ?? 0) + 1,
     });
   }
