@@ -8,6 +8,7 @@ import com.gonezo.application.query.AnalyticsMovementReadWindow
 import com.gonezo.application.query.AnalyticsMovementType
 import com.gonezo.application.query.AnalyticsSchedulingOrigin
 import com.gonezo.application.query.AnalyticsCategoryAmount
+import com.gonezo.application.query.AnalyticsSharingSummary
 import com.gonezo.application.query.AnalyticsPostedMovement
 import com.gonezo.application.query.AnalyticsScheduledMovementReader
 import com.gonezo.application.query.AnalyticsScheduledProjection
@@ -24,6 +25,13 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.UUID
+import com.gonezo.application.services.sharing.SharingAnalyticsAttribution
+import com.gonezo.application.services.sharing.SharingAnalyticsAttributionResolver
+import com.gonezo.sharing.domain.ExpectedMovementRef
+import com.gonezo.sharing.domain.RecurringMovementRef
+import com.gonezo.sharing.domain.ports.MovementShareRepository
+import com.gonezo.sharing.domain.ports.PlannedMovementShareRepository
+import com.gonezo.sharing.domain.ports.RecurringSharePlanRepository
 
 class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
   private val database = CoreDatabase(context.applicationContext)
@@ -33,6 +41,10 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
   private val occurrences = AndroidRecurringMovementOccurrenceRepository(database)
   private val projector = AnalyticsScheduledOccurrenceProjector()
   private val exclusionReader = AndroidAnalyticsExclusionReader(database)
+  private val movementShares: MovementShareRepository = AndroidMovementShareRepository(database)
+  private val plannedShares: PlannedMovementShareRepository = AndroidPlannedMovementShareRepository(database)
+  private val recurringSharePlans: RecurringSharePlanRepository = AndroidRecurringSharePlanRepository(database)
+  private val sharingAttribution = SharingAnalyticsAttributionResolver()
 
   fun query(fromInclusive: Instant, toExclusive: Instant, includePlannedMovements: Boolean, includeIgnoredMovements: Boolean, currency: String?, accountIds: Set<String> = emptySet(), categoryId: String? = null, tagIds: Set<String> = emptySet()): AnalyticsMovementReadResult {
     val window = AnalyticsMovementReadWindow(fromInclusive, toExclusive)
@@ -76,15 +88,17 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
     ).filter { it.status.equals("posted", true) }.mapNotNull { transaction ->
       val type = transaction.type.toAnalyticsType() ?: return@mapNotNull null
       val amount = Money(BigDecimal(transaction.amount), transaction.currency)
+      val attribution = if (type.isEconomicMovement()) movementShares.findBySourceTransactionId(transaction.id)?.let(sharingAttribution::posted) else null
       val occurrence = occurrenceForTransaction(transaction.id)
       AnalyticsPostedMovement(
         id = transaction.id, effectiveAt = Instant.parse(transaction.occurredAt), accountId = transaction.accountId,
         type = type, currency = com.gonezo.domain.shared.CurrencyCode.from(transaction.currency),
-        personalAmount = amount, fullAmount = amount, ignored = isIgnored("movement", transaction.id),
+        personalAmount = attribution?.let { Money(it.personalAmount(amount.amount), amount.currency) } ?: amount, fullAmount = amount, ignored = isIgnored("movement", transaction.id),
         categoryId = transaction.categoryId ?: categoryId(transaction.id), tagIds = tagIds(transaction.id),
         splitAmounts = splitAmounts(transaction.id),
         occurrenceIdentity = occurrence?.let { AnalyticsMovementIdentity.occurrence(it.id.toString()) },
         schedulingOrigin = occurrence?.let(::schedulingOrigin),
+        sharing = attribution?.toAnalyticsSummary(amount.currency),
       )
     }
   }
@@ -96,14 +110,16 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
         if (!window.contains(at)) return@mapNotNull null
         val type = movement.type.toAnalyticsType() ?: return@mapNotNull null
         val amount = Money(BigDecimal(movement.amount), movement.currency)
+        val attribution = if (type.isEconomicMovement()) plannedShares.findByExpectedMovementRef(ExpectedMovementRef(movement.id))?.let(sharingAttribution::expected) else null
         AnalyticsExpectedMovement(
           id = movement.id, effectiveAt = at, accountId = movement.accountId, type = type,
-          currency = com.gonezo.domain.shared.CurrencyCode.from(movement.currency), personalAmount = amount, fullAmount = amount,
+          currency = com.gonezo.domain.shared.CurrencyCode.from(movement.currency), personalAmount = attribution?.let { Money(it.personalAmount(amount.amount), amount.currency) } ?: amount, fullAmount = amount,
           pending = true, ignored = isIgnored("expected_movement", movement.id), categoryId = movement.categoryId,
           tagIds = expectedTagIds(movement.id),
           originOccurrenceId = movement.originOccurrenceId, originRecurringMovementId = movement.originRecurringMovementId,
           resolvedTransactionId = movement.resolvedTransactionId,
           schedulingOrigin = schedulingOrigin(movement.originOccurrenceId, movement.originRecurringMovementId),
+          sharing = attribution?.toAnalyticsSummary(amount.currency),
         )
       }
   }
@@ -116,11 +132,12 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
       }.map { occurrence ->
         val type = movement.type.value.toAnalyticsType() ?: return@map null
         val amount = Money(movement.amount, movement.currency)
+        val attribution = if (type.isEconomicMovement()) recurringSharePlans.findByRecurringMovementRef(RecurringMovementRef(movement.id.toString()))?.let { sharingAttribution.scheduled(it, amount.amount) } else null
         val persistedOccurrence = occurrences.findByRecurringMovementAndDueAt(movement.id, occurrence.effectiveAt)
         AnalyticsScheduledProjection(
           identity = occurrence.identity, effectiveAt = occurrence.effectiveAt, accountId = movement.sourceAccountId,
           type = type, currency = com.gonezo.domain.shared.CurrencyCode.from(movement.currency),
-          personalAmount = amount, fullAmount = amount, categoryId = movement.categoryId,
+          personalAmount = attribution?.let { Money(it.personalAmount(amount.amount), amount.currency) } ?: amount, fullAmount = amount, categoryId = movement.categoryId,
           originOccurrenceId = occurrence.originOccurrenceId,
           recurringMovementId = movement.id.toString(),
           schedulingOrigin = AnalyticsSchedulingOrigin(
@@ -128,6 +145,7 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
             recurringMovementId = movement.id.toString(),
             occurrenceId = persistedOccurrence?.id?.toString() ?: occurrence.originOccurrenceId,
           ),
+          sharing = attribution?.toAnalyticsSummary(amount.currency),
         )
       }.filterNotNull()
     }
@@ -188,4 +206,13 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
     "transfer_in" -> AnalyticsMovementType.TRANSFER_IN
     else -> null
   }
+
+  private fun AnalyticsMovementType.isEconomicMovement(): Boolean = this == AnalyticsMovementType.EXPENSE || this == AnalyticsMovementType.INCOME
+
+  private fun SharingAnalyticsAttribution.toAnalyticsSummary(currency: String) = AnalyticsSharingSummary(
+    participantCount,
+    settlementParticipantCount,
+    Money(participantAllocatedAmount, currency),
+    Money(settlementRequiredAmount, currency),
+  )
 }

@@ -154,11 +154,11 @@ data class AnalyticsMovementFact(val identity: AnalyticsMovementIdentity, val so
     val sourceAccountId: String get() = accountId
 }
 
-data class AnalyticsPostedMovement(val id: String, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val ignored: Boolean = false, val categoryId: String? = null, val tagIds: Set<String> = emptySet(), val occurrenceIdentity: AnalyticsMovementIdentity? = null, val destinationAccountId: String? = null, val splitAmounts: List<AnalyticsCategoryAmount> = emptyList(), val schedulingOrigin: AnalyticsSchedulingOrigin? = null)
+data class AnalyticsPostedMovement(val id: String, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val ignored: Boolean = false, val categoryId: String? = null, val tagIds: Set<String> = emptySet(), val occurrenceIdentity: AnalyticsMovementIdentity? = null, val destinationAccountId: String? = null, val splitAmounts: List<AnalyticsCategoryAmount> = emptyList(), val schedulingOrigin: AnalyticsSchedulingOrigin? = null, val sharing: AnalyticsSharingSummary? = null)
 
-data class AnalyticsExpectedMovement(val id: String, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val pending: Boolean, val ignored: Boolean = false, val categoryId: String? = null, val tagIds: Set<String> = emptySet(), val originOccurrenceId: String? = null, val originRecurringMovementId: String? = null, val resolvedTransactionId: String? = null, val destinationAccountId: String? = null, val schedulingOrigin: AnalyticsSchedulingOrigin? = null)
+data class AnalyticsExpectedMovement(val id: String, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val pending: Boolean, val ignored: Boolean = false, val categoryId: String? = null, val tagIds: Set<String> = emptySet(), val originOccurrenceId: String? = null, val originRecurringMovementId: String? = null, val resolvedTransactionId: String? = null, val destinationAccountId: String? = null, val schedulingOrigin: AnalyticsSchedulingOrigin? = null, val sharing: AnalyticsSharingSummary? = null)
 
-data class AnalyticsScheduledProjection(val identity: AnalyticsMovementIdentity, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val ignored: Boolean = false, val categoryId: String? = null, val tagIds: Set<String> = emptySet(), val originOccurrenceId: String? = null, val recurringMovementId: String? = null, val destinationAccountId: String? = null, val schedulingOrigin: AnalyticsSchedulingOrigin? = null)
+data class AnalyticsScheduledProjection(val identity: AnalyticsMovementIdentity, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val ignored: Boolean = false, val categoryId: String? = null, val tagIds: Set<String> = emptySet(), val originOccurrenceId: String? = null, val recurringMovementId: String? = null, val destinationAccountId: String? = null, val schedulingOrigin: AnalyticsSchedulingOrigin? = null, val sharing: AnalyticsSharingSummary? = null)
 
 object AnalyticsOccurrenceIdentityResolver {
     fun posted(transaction: AnalyticsPostedMovement): AnalyticsMovementIdentity = transaction.occurrenceIdentity ?: AnalyticsMovementIdentity.posted(transaction.id)
@@ -194,6 +194,7 @@ class AnalyticsMovementFactAssembler {
                     destinationAccountId = movement.destinationAccountId,
                     categoryAllocations = allocations(movement.type, movement.categoryId, movement.personalAmount, movement.fullAmount, movement.splitAmounts),
                     schedulingOrigin = movement.schedulingOrigin,
+                    sharing = movement.sharing,
                 )
             }
         if (!includePlannedMovements) {
@@ -226,6 +227,7 @@ class AnalyticsMovementFactAssembler {
                         destinationAccountId = movement.destinationAccountId,
                         categoryAllocations = allocations(movement.type, movement.categoryId, movement.personalAmount, movement.fullAmount),
                         schedulingOrigin = movement.schedulingOrigin,
+                        sharing = movement.sharing,
                     )
                 }
         val scheduledFacts =
@@ -251,6 +253,7 @@ class AnalyticsMovementFactAssembler {
                     destinationAccountId = movement.destinationAccountId,
                     categoryAllocations = allocations(movement.type, movement.categoryId, movement.personalAmount, movement.fullAmount),
                     schedulingOrigin = movement.schedulingOrigin,
+                    sharing = movement.sharing,
                 )
             }
         return resolveIgnored(postedFacts + expectedFacts.toList() + scheduledFacts, exclusionReader)

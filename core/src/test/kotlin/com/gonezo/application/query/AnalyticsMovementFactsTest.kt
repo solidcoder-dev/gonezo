@@ -127,6 +127,26 @@ class AnalyticsMovementFactsTest {
     }
 
     @Test
+    fun `assembler preserves canonical sharing attribution and reconciles categories`() {
+        val full = Money.of(BigDecimal("100.00"), "EUR")
+        val personal = Money.of(BigDecimal("70.00"), "EUR")
+        val sharing = AnalyticsSharingSummary(2, 1, Money.of(BigDecimal("50.00"), "EUR"), Money.of(BigDecimal("30.00"), "EUR"))
+        val posted = AnalyticsPostedMovement(
+            id = "transaction-1", effectiveAt = effectiveAt, accountId = "account",
+            type = AnalyticsMovementType.EXPENSE, currency = currency, personalAmount = personal, fullAmount = full,
+            splitAmounts = listOf(AnalyticsCategoryAmount("food", BigDecimal("60.00")), AnalyticsCategoryAmount("home", BigDecimal("40.00"))),
+            sharing = sharing,
+        )
+
+        val fact = AnalyticsMovementFactAssembler().assemble(listOf(posted), emptyList(), emptyList(), false).single()
+
+        assertThat(fact.personalAmount.amount).isEqualByComparingTo("70.00")
+        assertThat(fact.sharing).isEqualTo(sharing)
+        assertThat(fact.categoryAllocations.sumOf { it.fullAmount.amount }).isEqualByComparingTo("100.00")
+        assertThat(fact.categoryAllocations.sumOf { it.personalAmount.amount }).isEqualByComparingTo("70.00")
+    }
+
+    @Test
     fun `persisted occurrence identity is shared by expected and scheduled`() {
         val occurrenceId = "00000000-0000-4000-8000-000000000001"
         val expected = AnalyticsExpectedMovement(
