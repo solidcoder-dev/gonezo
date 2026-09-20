@@ -65,4 +65,58 @@ describe('CoreAdapter financial invalidation boundary', () => {
     expect(replace).toHaveBeenCalledWith(input);
     expect(observer.allPeriodsChanged).toHaveBeenCalledOnce();
   });
+
+  it('invalidates Sharing changes after apply, replace, and removal succeed', async () => {
+    vi.spyOn(CoreAdapterWeb.prototype, 'sharingApplyShareToPostedMovement').mockResolvedValue({ shareId: 'share', transactionId: 'posted', participants: [] });
+    vi.spyOn(CoreAdapterWeb.prototype, 'sharingReplaceMovementShare').mockResolvedValue({ shareId: 'share', transactionId: 'posted' });
+    vi.spyOn(CoreAdapterWeb.prototype, 'sharingRemoveMovementShare').mockResolvedValue();
+    const observer: FinancialDataChangeObserver = {
+      periodChanged: vi.fn(async () => {}),
+      currentPeriodChanged: vi.fn(async () => {}),
+      allPeriodsChanged: vi.fn(async () => {}),
+    };
+    const adapter = new CoreAdapter(observer);
+
+    await adapter.sharingApplyShareToPostedMovement({ transactionId: 'posted', payer: { currentUser: true }, participants: [] });
+    await adapter.sharingReplaceMovementShare({ transactionId: 'posted', payer: { currentUser: true }, participants: [] });
+    await adapter.sharingRemoveMovementShare({ transactionId: 'posted' });
+
+    expect(observer.allPeriodsChanged).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not invalidate Macro Analytics after person presentation data changes', async () => {
+    vi.spyOn(CoreAdapterWeb.prototype, 'sharingRenamePerson').mockResolvedValue();
+    const observer: FinancialDataChangeObserver = {
+      periodChanged: vi.fn(async () => {}),
+      currentPeriodChanged: vi.fn(async () => {}),
+      allPeriodsChanged: vi.fn(async () => {}),
+    };
+    const adapter = new CoreAdapter(observer);
+
+    await adapter.sharingRenamePerson({ personId: 'person', displayName: 'New name' });
+
+    expect(observer.allPeriodsChanged).not.toHaveBeenCalled();
+    expect(observer.periodChanged).not.toHaveBeenCalled();
+    expect(observer.currentPeriodChanged).not.toHaveBeenCalled();
+  });
+
+  it('invalidates the current period after scheduled materialization processes expected and posted occurrences', async () => {
+    vi.spyOn(CoreAdapterWeb.prototype, 'schedulingProcessDueMovements').mockResolvedValue({
+      scanned: 1,
+      posted: 1,
+      expectedCreated: 0,
+      failed: 0,
+      advancedSchedules: 1,
+    });
+    const observer: FinancialDataChangeObserver = {
+      periodChanged: vi.fn(async () => {}),
+      currentPeriodChanged: vi.fn(async () => {}),
+      allPeriodsChanged: vi.fn(async () => {}),
+    };
+    const adapter = new CoreAdapter(observer);
+
+    await adapter.schedulingProcessDueMovements();
+
+    expect(observer.currentPeriodChanged).toHaveBeenCalledOnce();
+  });
 });
