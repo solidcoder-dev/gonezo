@@ -3,7 +3,7 @@ package com.gonezo.recurrence.domain
 import java.time.Instant
 import java.util.UUID
 
-data class RecurringMovementOccurrence(val id: UUID, val recurringMovementId: RecurringMovementId, val dueAt: Instant, val status: RecurringMovementOccurrenceStatus, val ledgerTransactionId: String?, val errorCode: String?, val errorMessage: String?, val createdAt: Instant, val updatedAt: Instant, val acknowledgedAt: Instant?) {
+data class RecurringMovementOccurrence(val id: UUID, val recurringMovementId: RecurringMovementId, val dueAt: Instant, val status: RecurringMovementOccurrenceStatus, val ledgerTransactionId: String?, val errorCode: String?, val errorMessage: String?, val createdAt: Instant, val updatedAt: Instant, val acknowledgedAt: Instant?, val schedulingKind: SchedulingKind = SchedulingKind.RECURRING) {
     init {
         require(ledgerTransactionId == null || ledgerTransactionId.isNotBlank()) { "ledgerTransactionId cannot be blank" }
     }
@@ -27,7 +27,7 @@ data class RecurringMovementOccurrence(val id: UUID, val recurringMovementId: Re
     )
 
     companion object {
-        fun pending(id: UUID, recurringMovementId: RecurringMovementId, dueAt: Instant, createdAt: Instant): RecurringMovementOccurrence = RecurringMovementOccurrence(
+        fun pending(id: UUID, recurringMovementId: RecurringMovementId, dueAt: Instant, createdAt: Instant, schedulingKind: SchedulingKind = SchedulingKind.RECURRING): RecurringMovementOccurrence = RecurringMovementOccurrence(
             id = id,
             recurringMovementId = recurringMovementId,
             dueAt = dueAt,
@@ -38,6 +38,7 @@ data class RecurringMovementOccurrence(val id: UUID, val recurringMovementId: Re
             createdAt = createdAt,
             updatedAt = createdAt,
             acknowledgedAt = null,
+            schedulingKind = schedulingKind,
         )
     }
 }

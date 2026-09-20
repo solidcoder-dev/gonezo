@@ -135,6 +135,7 @@ class ProcessDueRecurringMovementsService(private val recurringMovementRepositor
                         recurringMovementId = movement.id,
                         dueAt = dueAt,
                         createdAt = command.now,
+                        schedulingKind = movement.schedulingKind,
                     )
                     occurrenceRepository.save(occurrence)
                     outboxRepository.save(

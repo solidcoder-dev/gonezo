@@ -103,6 +103,7 @@ class ProcessDueScheduledMovementsService(private val recurringMovementRepositor
             recurringMovementId = movement.id,
             dueAt = dueAt,
             createdAt = handledAt,
+            schedulingKind = movement.schedulingKind,
         ).also(occurrenceRepository::save)
 
         val handler = handlers.firstOrNull { it.supports(movement) }
@@ -149,6 +150,7 @@ class ProcessDueScheduledMovementsService(private val recurringMovementRepositor
             recurringMovementId = movement.id,
             dueAt = dueAt,
             createdAt = handledAt,
+            schedulingKind = movement.schedulingKind,
         )
         occurrenceRepository.save(
             occurrence.acknowledgeFailed(

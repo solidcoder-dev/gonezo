@@ -35,6 +35,8 @@ data class RecurringMovement(
 ) {
     data class SplitItem(val id: String, val name: String, val amount: BigDecimal, val tagNames: List<String> = emptyList())
 
+    val schedulingKind: SchedulingKind get() = resolveCurrentSchedulingKind(recurrenceEnd)
+
     init {
         require(sourceAccountId.isNotBlank()) { "sourceAccountId is required" }
         require(type == RecurringMovementType.TRANSFER || targetAccountId.isNullOrBlank()) {
