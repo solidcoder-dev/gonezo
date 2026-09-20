@@ -23,10 +23,10 @@ const publication = (period: string, revision = 1): MacroAnalyticsPublication =>
   },
 });
 
-function setup(options: { granted?: boolean; requested?: boolean; processorStatus?: 'ACCEPTED' | 'UPDATED' | 'ALREADY_CURRENT' | 'STALE' | 'REVISION_CONFLICT'; periods?: string[] } = {}) {
+function setup(options: { granted?: boolean; requested?: boolean; processorStatus?: 'ACCEPTED' | 'UPDATED' | 'ALREADY_CURRENT' | 'STALE' | 'REVISION_CONFLICT'; periods?: string[]; backfillVersion?: number } = {}) {
   const pending = new Map<string, MacroAnalyticsPublication>();
   const work = new Set<string>();
-  let initialBackfillVersion = 0;
+  let initialBackfillVersion = options.backfillVersion ?? 0;
   let fullRebuildRequested = options.requested ?? false;
   let fullRebuildRequestVersion = options.requested ? 1 : 0;
   const state: MacroAnalyticsBackfillStatePort = {
@@ -69,7 +69,7 @@ describe('RunMacroAnalyticsMaintenance', () => {
     const result = await RunMacroAnalyticsMaintenance(state.ports, input);
     expect(state.prepare.mock.calls.map(([value]) => value.period)).toEqual(['2025-11', '2025-12', '2026-01']);
     expect(result).toMatchObject({ status: 'COMPLETED', rebuiltPeriods: ['2025-11', '2025-12', '2026-01'], pendingPeriods: [] });
-    expect(state.state.markInitialBackfillComplete).toHaveBeenCalledWith('u', 1);
+    expect(state.state.markInitialBackfillComplete).toHaveBeenCalledWith('u', 2);
     expect(state.ports.periodSource.listPeriods).toHaveBeenCalledTimes(1);
   });
 
@@ -91,10 +91,11 @@ describe('RunMacroAnalyticsMaintenance', () => {
   });
 
   it('does not repeat initial historical discovery after marking it complete', async () => {
-    const state = setup({ periods: ['2025-11'] });
+    const state = setup({ periods: ['2025-11'], backfillVersion: 1 });
     await RunMacroAnalyticsMaintenance(state.ports, input);
     await RunMacroAnalyticsMaintenance(state.ports, input);
     expect(state.ports.periodSource.listPeriods).toHaveBeenCalledTimes(1);
+    expect(state.state.markInitialBackfillComplete).toHaveBeenCalledWith('u', 2);
     expect(state.prepare.mock.calls.map(([value]) => value.period)).toEqual(['2025-11', '2026-01', '2026-01']);
   });
 

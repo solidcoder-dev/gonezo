@@ -115,6 +115,29 @@ describe('prepareMacroAnalyticsPublication', () => {
     expect(changed.status === 'PREPARED' && changed.publication.revision).toBe(2);
   });
 
+  it('replaces the latest V1 publication with the next monotonic V2 revision', async () => {
+    const state = setup({ consent: 'GRANTED' });
+    const period = createAnalyticsPeriod(input.period);
+    await state.ports.latest.save({
+      protocolVersion: 1,
+      contributorId: createAnalyticsContributorId('opaque-random-id'),
+      period,
+      revision: 3,
+      contribution: {
+        schemaVersion: 1,
+        period,
+        dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE', ageBand: '25_34' },
+        financial: { currencies: [{ currency: 'EUR', buckets: [{ source: 'POSTED', kind: 'EXPENSE', amount: '12', count: 1 }] }] },
+      },
+    });
+
+    const next = await prepareMacroAnalyticsPublication(state.ports, input);
+
+    expect(next.status).toBe('PREPARED');
+    if (next.status !== 'PREPARED') throw new Error('Expected publication');
+    expect(next.publication).toMatchObject({ protocolVersion: 2, revision: 4, contribution: { schemaVersion: 2 } });
+  });
+
   it('does not create a new revision when the contribution matches the processed publication', async () => {
     const state = setup({ consent: 'GRANTED' });
     const first = await prepareMacroAnalyticsPublication(state.ports, input);
