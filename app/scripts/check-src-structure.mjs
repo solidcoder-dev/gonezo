@@ -36,7 +36,7 @@ const EXPECTED_LAYER_DIRS = ['application', 'domain', 'infrastructure', 'ui'];
 const EXPECTED_CONTEXT_DIRS = {
   account: ['application', 'infrastructure', 'ui'],
   authentication: ['application', 'domain', 'infrastructure', 'ui'],
-  analytics: ['application', 'infrastructure', 'ui'],
+  analytics: ['application', 'domain', 'infrastructure', 'ui'],
   analyticsProfile: ['application', 'domain', 'infrastructure', 'ui'],
   core: ['application', 'infrastructure'],
   expected: ['application', 'infrastructure'],
