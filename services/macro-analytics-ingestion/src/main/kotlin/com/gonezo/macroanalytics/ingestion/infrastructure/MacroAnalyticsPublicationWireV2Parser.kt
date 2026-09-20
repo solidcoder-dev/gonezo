@@ -76,7 +76,10 @@ class MacroAnalyticsPublicationWireV2Parser : MacroAnalyticsPublicationPayloadPa
         require(categoryCurrencies.map { it.currency }.distinct().size == categoryCurrencies.size)
 
         return ValidatedMacroAnalyticsPublication(
-            ProtocolVersion(2), ContributorId(contributorId), AnalyticsPeriod(period), PublicationRevision(revision),
+            ProtocolVersion(2),
+            ContributorId(contributorId),
+            AnalyticsPeriod(period),
+            PublicationRevision(revision),
             MacroAnalyticsContribution(SchemaVersion(2), ContributionDimensions(country, region, sex, ageBand), FinancialContribution(financialCurrencies), CategoryContribution(categoryCurrencies)),
         )
     }

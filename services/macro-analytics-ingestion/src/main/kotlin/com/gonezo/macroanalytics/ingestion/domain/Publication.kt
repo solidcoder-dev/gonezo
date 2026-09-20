@@ -59,13 +59,15 @@ data class ValidatedMacroAnalyticsPublication(val protocolVersion: ProtocolVersi
         append("]}")
         if (contribution.schemaVersion.value == 2) {
             append(",\"categories\":{\"currencies\":[")
-            append(contribution.categories?.currencies.orEmpty().sortedBy { it.currency }.joinToString(",") { currency ->
-                "{\"currency\":${JSONObject.quote(currency.currency)},\"buckets\":[" +
-                    currency.buckets.sortedWith(compareBy<CategoryBucket> { it.source }.thenBy { it.kind }.thenBy { it.category }).joinToString(",") { bucket ->
-                        "{\"source\":${JSONObject.quote(bucket.source)},\"kind\":${JSONObject.quote(bucket.kind)}," +
-                            "\"category\":${JSONObject.quote(bucket.category)},\"amount\":${JSONObject.quote(bucket.amount)}}"
-                    } + "]}"
-            })
+            append(
+                contribution.categories?.currencies.orEmpty().sortedBy { it.currency }.joinToString(",") { currency ->
+                    "{\"currency\":${JSONObject.quote(currency.currency)},\"buckets\":[" +
+                        currency.buckets.sortedWith(compareBy<CategoryBucket> { it.source }.thenBy { it.kind }.thenBy { it.category }).joinToString(",") { bucket ->
+                            "{\"source\":${JSONObject.quote(bucket.source)},\"kind\":${JSONObject.quote(bucket.kind)}," +
+                                "\"category\":${JSONObject.quote(bucket.category)},\"amount\":${JSONObject.quote(bucket.amount)}}"
+                        } + "]}"
+                },
+            )
             append("]}")
         }
         append("}}")

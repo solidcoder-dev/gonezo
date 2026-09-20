@@ -23,6 +23,13 @@ class MacroAnalyticsPublicationWireV2Test {
     }
 
     @Test
+    fun `protocol dispatcher continues to parse V1`() {
+        val publication = parser.parse(File("../../contracts/macro-analytics/fixtures/publication-v1-valid.json").readText())
+        assertEquals(1, publication.protocolVersion.value)
+        assertEquals(1, publication.contribution.schemaVersion.value)
+    }
+
+    @Test
     fun `rejects invalid V2 category buckets and version mismatches`() {
         val invalid = listOf(
             fixture().replace("\"protocolVersion\": 2", "\"protocolVersion\": 1"),
@@ -31,6 +38,10 @@ class MacroAnalyticsPublicationWireV2Test {
             fixture().replace("\"kind\": \"EXPENSE\", \"category\"", "\"kind\": \"TRANSFER_OUT\", \"category\""),
             fixture().replace("\"amount\": \"12\"", "\"amount\": \"0.00\""),
             fixture().replace("\"amount\": \"12\"", "\"amount\": \"12.00\""),
+            fixture().replace("\"category\": \"GROCERIES\"", "\"category\": \"GROCERIES\", \"privateCategoryId\": \"secret\""),
+            fixture().replace("\"amount\": \"12\"", "\"amount\": \"0\""),
+            fixture().replace("\"currency\": \"EUR\"", "\"currency\": \"EUR\"}, {\"currency\": \"EUR\""),
+            fixture().replace("\"amount\": \"12\"", "\"amount\": \"12\"}, {\"source\": \"POSTED\", \"kind\": \"EXPENSE\", \"category\": \"GROCERIES\", \"amount\": \"12\""),
         )
         invalid.forEach { payload -> assertFailsWith<IllegalArgumentException> { parser.parse(payload) } }
     }

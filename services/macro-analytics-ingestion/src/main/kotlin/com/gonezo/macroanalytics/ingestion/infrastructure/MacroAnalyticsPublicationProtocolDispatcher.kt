@@ -4,10 +4,7 @@ import com.gonezo.macroanalytics.ingestion.application.MacroAnalyticsPublication
 import com.gonezo.macroanalytics.ingestion.domain.ValidatedMacroAnalyticsPublication
 import org.json.JSONObject
 
-class MacroAnalyticsPublicationProtocolDispatcher(
-    private val v1: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV1Parser(),
-    private val v2: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV2Parser(),
-) : MacroAnalyticsPublicationPayloadParser {
+class MacroAnalyticsPublicationProtocolDispatcher(private val v1: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV1Parser(), private val v2: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV2Parser()) : MacroAnalyticsPublicationPayloadParser {
     override fun parse(json: String): ValidatedMacroAnalyticsPublication {
         val protocolVersion = (JSONObject(json).get("protocolVersion") as? Number)?.toInt()
             ?: error("protocolVersion must be an integer")

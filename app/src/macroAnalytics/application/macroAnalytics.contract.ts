@@ -24,10 +24,11 @@ export type { ContributionProfile, ContributionProfileSex } from '../domain/cont
 export type { MacroAnalyticsContribution, MacroAnalyticsContributionV1, MacroAnalyticsContributionV2 } from '../domain/macroAnalyticsContribution';
 export { createAnalyticsContributorId } from '../domain/analyticsContributorId';
 export type { AnalyticsContributorId } from '../domain/analyticsContributorId';
-export { MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION } from '../domain/macroAnalyticsPublicationProtocolVersion';
+export { MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V1, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V2 } from '../domain/macroAnalyticsPublicationProtocolVersion';
 export type { MacroAnalyticsPublicationProtocolVersion } from '../domain/macroAnalyticsPublicationProtocolVersion';
 export { createMacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
 export type { MacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
+export type { MacroAnalyticsPublicationV1, MacroAnalyticsPublicationV2 } from '../domain/macroAnalyticsPublication';
 export { canonicalMacroAnalyticsContribution } from '../domain/canonicalMacroAnalyticsContribution';
 export { prepareMacroAnalyticsPublication } from './prepareMacroAnalyticsPublication';
 export type { PrepareMacroAnalyticsPublicationInput, PrepareMacroAnalyticsPublicationResult } from './prepareMacroAnalyticsPublication';
