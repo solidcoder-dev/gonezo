@@ -360,16 +360,6 @@ function byAmountDescending(left: LedgerTransactionListItem, right: LedgerTransa
   return ExactDecimal.from(analyticsTransactionAmount(right)).compare(ExactDecimal.from(analyticsTransactionAmount(left)));
 }
 
-function selectBiggestMovement(
-  transactions: LedgerTransactionListItem[],
-  currency: string,
-  type: 'income' | 'expense',
-): LedgerTransactionListItem | undefined {
-  return transactions
-    .filter((transaction) => isAnalyticsCashFlowTransaction(transaction, currency) && transaction.type === type)
-    .sort(byAmountDescending)[0];
-}
-
 function percentChange(currentAmount: string, previousAmount: string): string | undefined {
   const previous = ExactDecimal.from(previousAmount);
   if (previous.compare(ExactDecimal.from('0')) === 0) {
@@ -387,17 +377,14 @@ function toOverviewWindow(window: AnalyticsOverviewWindowRange) {
 }
 
 export function buildAnalyticsOverviewSnapshot(input: {
-  currentTransactions: LedgerTransactionListItem[];
-  previousTransactions?: LedgerTransactionListItem[];
-  currency: string;
   currentWindow: AnalyticsOverviewWindowRange;
   previousWindow?: AnalyticsOverviewWindowRange;
+  currentTotals: AnalyticsOverviewSnapshotResult['currentTotals'];
+  previousTotals?: AnalyticsOverviewSnapshotResult['previousTotals'];
+  netFlowChangePercent?: string;
+  biggestExpense?: AnalyticsOverviewHighlight;
+  biggestIncome?: AnalyticsOverviewHighlight;
 }): AnalyticsOverviewSnapshotResult {
-  const currentTotals = buildAnalyticsCashFlowSummary(input.currentTransactions, input.currency);
-  const previousTotals = input.previousTransactions && input.previousWindow
-    ? buildAnalyticsCashFlowSummary(input.previousTransactions, input.currency)
-    : undefined;
-
   return {
     currentWindow: {
       label: input.currentWindow.label,
@@ -409,13 +396,11 @@ export function buildAnalyticsOverviewSnapshot(input: {
       startDate: input.previousWindow.start.toISOString(),
       endDate: endInclusive(input.previousWindow.end).toISOString(),
     } : undefined,
-    currentTotals,
-    previousTotals,
-    netFlowChangePercent: previousTotals
-      ? percentChange(currentTotals.netFlowAmount, previousTotals.netFlowAmount)
-      : undefined,
-    biggestExpense: toOverviewHighlight(selectBiggestMovement(input.currentTransactions, input.currency, 'expense')),
-    biggestIncome: toOverviewHighlight(selectBiggestMovement(input.currentTransactions, input.currency, 'income')),
+    currentTotals: input.currentTotals,
+    previousTotals: input.previousTotals,
+    netFlowChangePercent: input.netFlowChangePercent,
+    biggestExpense: input.biggestExpense,
+    biggestIncome: input.biggestIncome,
   };
 }
 

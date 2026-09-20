@@ -104,19 +104,17 @@ describe('analytics builders', () => {
     });
 
     const overview = buildAnalyticsOverviewSnapshot({
-      currentTransactions: transactions,
-      previousTransactions: [transaction({ id: 'previous-net', type: 'income', amount: '0.20', currency: 'EUR' })],
-      currency: 'EUR',
       currentWindow: { label: 'Current', start: new Date('2026-06-01T00:00:00Z'), end: new Date('2026-07-01T00:00:00Z') },
       previousWindow: { label: 'Previous', start: new Date('2026-05-01T00:00:00Z'), end: new Date('2026-06-01T00:00:00Z') },
+      currentTotals: { incomeAmount: '0.30', expenseAmount: '0.09', netFlowAmount: '0.21' },
+      previousTotals: { incomeAmount: '0.20', expenseAmount: '0.00', netFlowAmount: '0.20' },
+      netFlowChangePercent: '5.00',
     });
     expect(overview.netFlowChangePercent).toBe('5.00');
     expect(buildAnalyticsOverviewSnapshot({
-      currentTransactions: transactions,
-      previousTransactions: [],
-      currency: 'EUR',
       currentWindow: { label: 'Current', start: new Date('2026-06-01T00:00:00Z'), end: new Date('2026-07-01T00:00:00Z') },
       previousWindow: { label: 'Previous', start: new Date('2026-05-01T00:00:00Z'), end: new Date('2026-06-01T00:00:00Z') },
+      currentTotals: { incomeAmount: '0.30', expenseAmount: '0.09', netFlowAmount: '0.21' },
     }).netFlowChangePercent).toBeUndefined();
   });
 
@@ -143,39 +141,6 @@ describe('analytics builders', () => {
 
   it('builds an overview snapshot with current totals, previous comparison and biggest movements', () => {
     const result = buildAnalyticsOverviewSnapshot({
-      currentTransactions: [
-        transaction({
-          id: 'income-main',
-          type: 'income',
-          amount: '950.00',
-          currency: 'EUR',
-          merchant: 'Employer',
-          description: 'Work income',
-          occurredAt: '2026-06-01T10:00:00.000Z',
-        }),
-        transaction({
-          id: 'expense-main',
-          type: 'expense',
-          amount: '180.17',
-          currency: 'EUR',
-          merchant: 'Shop',
-          description: 'Shopping',
-          occurredAt: '2026-06-12T10:00:00.000Z',
-        }),
-        transaction({
-          id: 'expense-small',
-          type: 'expense',
-          amount: '20.00',
-          currency: 'EUR',
-          description: 'Taxi',
-          occurredAt: '2026-06-14T10:00:00.000Z',
-        }),
-      ],
-      previousTransactions: [
-        transaction({ id: 'income-prev', type: 'income', amount: '700.00', currency: 'EUR', occurredAt: '2026-05-02T10:00:00.000Z' }),
-        transaction({ id: 'expense-prev', type: 'expense', amount: '100.00', currency: 'EUR', occurredAt: '2026-05-03T10:00:00.000Z' }),
-      ],
-      currency: 'EUR',
       currentWindow: {
         label: 'Jun 1-Jun 30, 2026',
         start: new Date('2026-06-01T00:00:00.000Z'),
@@ -186,6 +151,11 @@ describe('analytics builders', () => {
         start: new Date('2026-05-01T00:00:00.000Z'),
         end: new Date('2026-06-01T00:00:00.000Z'),
       },
+      currentTotals: { incomeAmount: '950.00', expenseAmount: '200.17', netFlowAmount: '749.83' },
+      previousTotals: { incomeAmount: '700.00', expenseAmount: '100.00', netFlowAmount: '600.00' },
+      netFlowChangePercent: '24.97',
+      biggestExpense: { movementId: 'expense-main', title: 'Shopping', subtitle: 'Shop', amount: '180.17', occurredAt: '2026-06-12T10:00:00.000Z' },
+      biggestIncome: { movementId: 'income-main', title: 'Work income', subtitle: 'Employer', amount: '950.00', occurredAt: '2026-06-01T10:00:00.000Z' },
     });
 
     expect(result).toEqual({

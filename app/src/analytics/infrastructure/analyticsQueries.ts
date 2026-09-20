@@ -5,6 +5,7 @@ import type {
   LedgerTransactionFilterInput,
   LedgerGetAccountSummaryResult,
   LedgerGetCashFlowSeriesResult,
+  LedgerTransactionListItem,
 } from '../../ledger/application/ledger.port';
 import type { UserPreferencesResult } from '../../account/application/preferences.port';
 import type {
@@ -40,10 +41,18 @@ import {
   buildSpendingCategories as buildSpendingReportCategories,
   buildSpendingMerchants as buildSpendingReportMerchants,
 } from '../application/spendingReport';
-import { EXPENSE_CHANGE_PERCENT_V1, EXPENSE_TOTAL_V1 } from '../application/metrics/builtInMetricDefinitions';
+import {
+  EXPENSE_CHANGE_PERCENT_V1,
+  EXPENSE_TOTAL_V1,
+  INCOME_TOTAL_V1,
+  NET_BALANCE_FLOW_CHANGE_PERCENT_V1,
+  NET_BALANCE_FLOW_V1,
+} from '../application/metrics/builtInMetricDefinitions';
 import type { UserMetricContext } from '../application/metrics/userMetricContext';
 import type { AnalyticsMoneyDto } from '../application/spendingReport';
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
+import { buildOverviewMovementHighlights } from '../application/highlights/overviewMovementHighlights';
+import { buildOverviewTransferSummary } from '../application/summaries/overviewTransferSummary';
 import type {
   AnalyticsCashFlowSeriesInput,
   AnalyticsCashFlowSummaryResult,
@@ -174,6 +183,39 @@ function calculateSpendingReportMetrics(
     totalExpense: spendingMetricMoney(current.value.value, currency),
     previousExpense: previous?.value.kind === 'MONEY' ? spendingMetricMoney(previous.value.value, currency) : undefined,
     changePercent: change?.value.kind === 'RATIO' ? Number(change.value.value.toString()) : undefined,
+  };
+}
+
+function overviewMetricFacts(transactions: LedgerTransactionListItem[], currency: string): UserMetricContext['currentPeriodFacts'] {
+  return transactions
+    .filter((transaction) => isAnalyticsCashFlowTransaction(transaction, currency))
+    .filter((transaction): transaction is LedgerTransactionListItem & { type: 'income' | 'expense' | 'transfer_in' | 'transfer_out' } =>
+      transaction.type === 'income' || transaction.type === 'expense' || transaction.type === 'transfer_in' || transaction.type === 'transfer_out')
+    .map((transaction) => ({
+      type: transaction.type,
+      amount: 'analyticsAmount' in transaction && typeof transaction.analyticsAmount === 'string' ? transaction.analyticsAmount : transaction.amount,
+    }));
+}
+
+function overviewTotals(transactions: LedgerTransactionListItem[], currency: string) {
+  const facts = overviewMetricFacts(transactions, currency);
+  const metricResults = calculateUserMetrics.execute({ currency, currentPeriodFacts: facts }, [
+    INCOME_TOTAL_V1.id,
+    EXPENSE_TOTAL_V1.id,
+    NET_BALANCE_FLOW_V1.id,
+  ]);
+  const amounts = new Map(metricResults.map((result) => [result.definition.id.toString(), result.value]));
+  const income = amounts.get(INCOME_TOTAL_V1.id.toString());
+  const expense = amounts.get(EXPENSE_TOTAL_V1.id.toString());
+  const netFlow = amounts.get(NET_BALANCE_FLOW_V1.id.toString());
+  if (income?.kind !== 'MONEY' || expense?.kind !== 'MONEY' || netFlow?.kind !== 'MONEY') {
+    throw new Error('Overview money metrics did not return money');
+  }
+  return {
+    incomeAmount: income.value.toFixed(2),
+    expenseAmount: expense.value.toFixed(2),
+    netFlowAmount: netFlow.value.toFixed(2),
+    ...buildOverviewTransferSummary(transactions, currency),
   };
 }
 
@@ -578,12 +620,21 @@ export async function analyticsGetOverviewSnapshot(
       : Promise.resolve({ accounts: [], transactions: [] }),
   ]);
 
+  const currency = input.currency.trim().toUpperCase();
+  const currentFacts = overviewMetricFacts(currentResult.transactions, currency);
+  const previousFacts = overviewMetricFacts(previousResult.transactions, currency);
+  const netFlowChange = windows.previousWindow
+    ? calculateUserMetrics.execute({ currency, currentPeriodFacts: currentFacts, comparisonPeriodFacts: previousFacts }, [NET_BALANCE_FLOW_CHANGE_PERCENT_V1.id])[0]
+    : undefined;
+  const currentTotals = overviewTotals(currentResult.transactions, currency);
+  const previousTotals = windows.previousWindow ? overviewTotals(previousResult.transactions, currency) : undefined;
   return buildAnalyticsOverviewSnapshot({
-    currentTransactions: currentResult.transactions,
-    previousTransactions: previousResult.transactions,
-    currency: input.currency,
     currentWindow: windows.currentWindow,
     previousWindow: windows.previousWindow,
+    currentTotals,
+    previousTotals,
+    netFlowChangePercent: netFlowChange?.value.kind === 'RATIO' ? netFlowChange.value.value.toFixed(2) : undefined,
+    ...buildOverviewMovementHighlights(currentResult.transactions, currency),
   });
 }
 
