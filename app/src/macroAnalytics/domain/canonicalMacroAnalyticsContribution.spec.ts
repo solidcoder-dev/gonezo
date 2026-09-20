@@ -31,5 +31,6 @@ describe('canonicalMacroAnalyticsContribution V1 compatibility', () => {
       ...contribution,
       categories: { currencies: [{ currency: 'EUR', buckets: contribution.categories.currencies[0].buckets.map((bucket) => bucket.category === 'GROCERIES' ? { ...bucket, amount: '2.01' } : bucket) }] },
     }));
+    expect(canonicalMacroAnalyticsContribution(contribution)).toBe('{"schemaVersion":2,"period":{"kind":"YEAR_MONTH","value":"2026-09"},"dimensions":{"countryCode":"ES","regionCode":"ES-CN","sex":"FEMALE","ageBand":"25_34"},"financial":{"currencies":[{"currency":"EUR","buckets":[{"source":"POSTED","kind":"EXPENSE","amount":"3","count":2}]}]},"categories":{"currencies":[{"currency":"EUR","buckets":[{"source":"POSTED","kind":"EXPENSE","category":"DINING","amount":"1"},{"source":"POSTED","kind":"EXPENSE","category":"GROCERIES","amount":"2"}]}]}}');
   });
 });
