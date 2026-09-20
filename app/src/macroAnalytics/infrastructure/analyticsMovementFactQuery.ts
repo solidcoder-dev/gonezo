@@ -1,7 +1,13 @@
 import type { AnalyticsListMovementFactsInput } from '../../analytics/application/analytics.port';
-import type { FinancialFactQuery } from '../application/financialFactSource.port';
+import type { AnalyticsPeriod } from '../domain/analyticsPeriod';
 
-export function toAnalyticsListMovementFactsInput(query: FinancialFactQuery): AnalyticsListMovementFactsInput {
+export type AnalyticsMovementFactQuery = Readonly<{
+  period: AnalyticsPeriod;
+  timeZone: string;
+  currency?: string;
+}>;
+
+export function toAnalyticsListMovementFactsInput(query: AnalyticsMovementFactQuery): AnalyticsListMovementFactsInput {
   const [yearText, monthText] = query.period.value.split('-');
   const year = Number(yearText);
   const month = Number(monthText);
