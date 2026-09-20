@@ -69,7 +69,9 @@ export class CoreAdapter implements CorePort {
   }
   ledgerCreateExpenseDraft = this.ledger.ledgerCreateExpenseDraft.bind(this.ledger);
   ledgerAddTransactionItem = this.ledger.ledgerAddTransactionItem.bind(this.ledger);
-  ledgerReplacePostedTransactionItems = this.ledger.ledgerReplacePostedTransactionItems.bind(this.ledger);
+  ledgerReplacePostedTransactionItems(input: Parameters<LedgerRuntimeAdapter['ledgerReplacePostedTransactionItems']>[0]) {
+    return this.afterMutation(() => this.ledger.ledgerReplacePostedTransactionItems(input), () => this.financialChanges.allPeriodsChanged());
+  }
   ledgerPostDraftTransaction(input: Parameters<LedgerRuntimeAdapter['ledgerPostDraftTransaction']>[0]) {
     return this.afterMutation(() => this.ledger.ledgerPostDraftTransaction(input), () => this.financialChanges.allPeriodsChanged());
   }

@@ -49,4 +49,20 @@ describe('CoreAdapter financial invalidation boundary', () => {
     await expect(adapter.ledgerRecordExpense({ accountId: 'account', occurredAt: '2025-04-03T11:00:00Z', amount: '20', currency: 'GBP' }))
       .resolves.toEqual({ id: 'transaction' });
   });
+
+  it('invalidates all periods after posted split items or categories change', async () => {
+    const replace = vi.spyOn(CoreAdapterWeb.prototype, 'ledgerReplacePostedTransactionItems').mockResolvedValue();
+    const observer: FinancialDataChangeObserver = {
+      periodChanged: vi.fn(async () => {}),
+      currentPeriodChanged: vi.fn(async () => {}),
+      allPeriodsChanged: vi.fn(async () => {}),
+    };
+    const adapter = new CoreAdapter(observer);
+    const input = { transactionId: 'posted-1', items: [] };
+
+    await adapter.ledgerReplacePostedTransactionItems(input);
+
+    expect(replace).toHaveBeenCalledWith(input);
+    expect(observer.allPeriodsChanged).toHaveBeenCalledOnce();
+  });
 });
