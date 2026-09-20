@@ -139,6 +139,76 @@ class AnalyticsMovementFactsTest {
     }
 
     @Test
+    fun `analytics references characterize scheduled expected posted and manual lineage`() {
+        val occurrenceId = "occurrence-lineage"
+        val recurringMovementId = "recurring-lineage"
+        val expected = AnalyticsExpectedMovement(
+            id = "expected-lineage", effectiveAt = effectiveAt, accountId = "account",
+            type = AnalyticsMovementType.EXPENSE, currency = currency,
+            personalAmount = Money.of(BigDecimal("10.00"), "EUR"),
+            fullAmount = Money.of(BigDecimal("10.00"), "EUR"), pending = true,
+            originOccurrenceId = occurrenceId, originRecurringMovementId = recurringMovementId,
+        )
+        val scheduled = AnalyticsScheduledProjection(
+            identity = AnalyticsMovementIdentity.occurrence(occurrenceId), effectiveAt = effectiveAt,
+            accountId = "account", type = AnalyticsMovementType.EXPENSE, currency = currency,
+            personalAmount = expected.personalAmount, fullAmount = expected.fullAmount,
+            originOccurrenceId = occurrenceId, recurringMovementId = recurringMovementId,
+        )
+        val posted = AnalyticsPostedMovement(
+            id = "transaction-lineage", effectiveAt = effectiveAt, accountId = "account",
+            type = AnalyticsMovementType.EXPENSE, currency = currency,
+            personalAmount = expected.personalAmount, fullAmount = expected.fullAmount,
+            occurrenceIdentity = AnalyticsMovementIdentity.occurrence(occurrenceId),
+        )
+        val manualExpected = expected.copy(
+            id = "manual-expected", originOccurrenceId = null, originRecurringMovementId = null,
+        )
+        val facts = AnalyticsMovementFactAssembler().assemble(
+            listOf(posted), listOf(expected, manualExpected), listOf(scheduled), true,
+        )
+
+        assertThat(facts).hasSize(2)
+        assertThat(facts.single { it.source == AnalyticsMovementSource.POSTED }.identity)
+            .isEqualTo(AnalyticsMovementIdentity.occurrence(occurrenceId))
+        assertThat(facts.single { it.source == AnalyticsMovementSource.POSTED }.reference)
+            .isEqualTo(AnalyticsMovementReference.Posted("transaction-lineage"))
+        assertThat(facts.single { it.identity == AnalyticsMovementIdentity.occurrence(occurrenceId) }.source)
+            .isEqualTo(AnalyticsMovementSource.POSTED)
+        assertThat(facts.single { it.identity == AnalyticsMovementIdentity.expected("manual-expected", null, null) }.reference)
+            .isEqualTo(AnalyticsMovementReference.Expected("manual-expected", null, null))
+    }
+
+    @Test
+    fun `one occurrence identity replaces scheduled expected with posted`() {
+        val occurrenceId = "occurrence-transition"
+        val movement = AnalyticsExpectedMovement(
+            id = "expected-transition", effectiveAt = effectiveAt, accountId = "account",
+            type = AnalyticsMovementType.EXPENSE, currency = currency,
+            personalAmount = Money.of(BigDecimal("10.00"), "EUR"),
+            fullAmount = Money.of(BigDecimal("10.00"), "EUR"), pending = true,
+            originOccurrenceId = occurrenceId, originRecurringMovementId = "recurring-transition",
+        )
+        val scheduled = AnalyticsScheduledProjection(
+            identity = AnalyticsMovementIdentity.occurrence(occurrenceId), effectiveAt = effectiveAt,
+            accountId = "account", type = movement.type, currency = currency,
+            personalAmount = movement.personalAmount, fullAmount = movement.fullAmount,
+            originOccurrenceId = occurrenceId, recurringMovementId = "recurring-transition",
+        )
+        val posted = AnalyticsPostedMovement(
+            id = "transaction-transition", effectiveAt = effectiveAt, accountId = "account",
+            type = movement.type, currency = currency, personalAmount = movement.personalAmount,
+            fullAmount = movement.fullAmount, occurrenceIdentity = AnalyticsMovementIdentity.occurrence(occurrenceId),
+        )
+        val assembler = AnalyticsMovementFactAssembler()
+
+        assertThat(assembler.assemble(emptyList(), listOf(movement), listOf(scheduled), true))
+            .singleElement().extracting(AnalyticsMovementFact::source).isEqualTo(AnalyticsMovementSource.EXPECTED)
+        assertThat(assembler.assemble(listOf(posted), listOf(movement.copy(pending = false)), listOf(scheduled), true))
+            .singleElement().extracting(AnalyticsMovementFact::source).isEqualTo(AnalyticsMovementSource.POSTED)
+    }
+
+    @Test
     fun `query reads all three sources and planned false is posted only`() {
         val expected = AnalyticsExpectedMovement(
             id = "expected-1",
