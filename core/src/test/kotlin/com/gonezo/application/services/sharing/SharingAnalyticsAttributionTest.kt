@@ -1,6 +1,25 @@
 package com.gonezo.application.services.sharing
 
-import com.gonezo.sharing.domain.*
+import com.gonezo.sharing.domain.ExpectedMovementRef
+import com.gonezo.sharing.domain.MovementShare
+import com.gonezo.sharing.domain.MovementShareId
+import com.gonezo.sharing.domain.PlannedMovementShare
+import com.gonezo.sharing.domain.PlannedMovementShareId
+import com.gonezo.sharing.domain.PlannedMovementShareParticipant
+import com.gonezo.sharing.domain.PlannedMovementShareParticipantId
+import com.gonezo.sharing.domain.PlannedMovementShareStatus
+import com.gonezo.sharing.domain.RecurringMovementRef
+import com.gonezo.sharing.domain.RecurringShareAllocationMode
+import com.gonezo.sharing.domain.RecurringShareParticipantTemplate
+import com.gonezo.sharing.domain.RecurringShareParticipantTemplateId
+import com.gonezo.sharing.domain.RecurringSharePlan
+import com.gonezo.sharing.domain.RecurringSharePlanId
+import com.gonezo.sharing.domain.ShareAllocationMode
+import com.gonezo.sharing.domain.ShareParticipant
+import com.gonezo.sharing.domain.ShareParticipantId
+import com.gonezo.sharing.domain.ShareSettlementStatus
+import com.gonezo.sharing.domain.SharedMovementType
+import com.gonezo.sharing.domain.SharingPersonId
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
@@ -65,7 +84,12 @@ class SharingAnalyticsAttributionTest {
     )
 
     private fun participant(amount: String, status: ShareSettlementStatus, expectedId: String? = null, settlementTransactionId: String? = null) = ShareParticipant(
-        ShareParticipantId.random(), SharingPersonId.random(), BigDecimal(amount), status, expectedId, settlementTransactionId,
+        ShareParticipantId.random(),
+        SharingPersonId.random(),
+        BigDecimal(amount),
+        status,
+        expectedId,
+        settlementTransactionId,
     )
 
     private fun plan(mode: RecurringShareAllocationMode, payerParts: Int? = null, parts: Int? = null, amount: String? = null, ownerIncluded: Boolean = true) = RecurringSharePlan(

@@ -57,7 +57,9 @@ class AnalyticsMovementFactsTest {
     fun `category allocation resolver rejects split overage`() {
         org.assertj.core.api.Assertions.assertThatThrownBy {
             AnalyticsCategoryAllocationResolver.resolve(
-                null, Money.of(BigDecimal("1.00"), "EUR"), Money.of(BigDecimal("1.00"), "EUR"),
+                null,
+                Money.of(BigDecimal("1.00"), "EUR"),
+                Money.of(BigDecimal("1.00"), "EUR"),
                 listOf(AnalyticsCategoryAmount("food", BigDecimal("1.01"))),
             )
         }.hasMessage("split allocation total exceeds movement amount")
@@ -192,16 +194,25 @@ class AnalyticsMovementFactsTest {
             originOccurrenceId = occurrenceId, recurringMovementId = recurringMovementId,
         )
         val posted = AnalyticsPostedMovement(
-            id = "transaction-lineage", effectiveAt = effectiveAt, accountId = "account",
-            type = AnalyticsMovementType.EXPENSE, currency = currency,
-            personalAmount = expected.personalAmount, fullAmount = expected.fullAmount,
+            id = "transaction-lineage",
+            effectiveAt = effectiveAt,
+            accountId = "account",
+            type = AnalyticsMovementType.EXPENSE,
+            currency = currency,
+            personalAmount = expected.personalAmount,
+            fullAmount = expected.fullAmount,
             occurrenceIdentity = AnalyticsMovementIdentity.occurrence(occurrenceId),
         )
         val manualExpected = expected.copy(
-            id = "manual-expected", originOccurrenceId = null, originRecurringMovementId = null,
+            id = "manual-expected",
+            originOccurrenceId = null,
+            originRecurringMovementId = null,
         )
         val facts = AnalyticsMovementFactAssembler().assemble(
-            listOf(posted), listOf(expected, manualExpected), listOf(scheduled), true,
+            listOf(posted),
+            listOf(expected, manualExpected),
+            listOf(scheduled),
+            true,
         )
 
         assertThat(facts).hasSize(2)
@@ -232,9 +243,14 @@ class AnalyticsMovementFactsTest {
             originOccurrenceId = occurrenceId, recurringMovementId = "recurring-transition",
         )
         val posted = AnalyticsPostedMovement(
-            id = "transaction-transition", effectiveAt = effectiveAt, accountId = "account",
-            type = movement.type, currency = currency, personalAmount = movement.personalAmount,
-            fullAmount = movement.fullAmount, occurrenceIdentity = AnalyticsMovementIdentity.occurrence(occurrenceId),
+            id = "transaction-transition",
+            effectiveAt = effectiveAt,
+            accountId = "account",
+            type = movement.type,
+            currency = currency,
+            personalAmount = movement.personalAmount,
+            fullAmount = movement.fullAmount,
+            occurrenceIdentity = AnalyticsMovementIdentity.occurrence(occurrenceId),
         )
         val assembler = AnalyticsMovementFactAssembler()
 
@@ -257,13 +273,19 @@ class AnalyticsMovementFactsTest {
             schedulingOrigin = recurringOrigin,
         )
         val manualExpected = recurringExpected.copy(
-            id = "expected-manual", originOccurrenceId = null,
-            originRecurringMovementId = null, schedulingOrigin = null,
+            id = "expected-manual",
+            originOccurrenceId = null,
+            originRecurringMovementId = null,
+            schedulingOrigin = null,
         )
         val posted = AnalyticsPostedMovement(
-            id = "posted-manual", effectiveAt = effectiveAt, accountId = "account",
-            type = AnalyticsMovementType.EXPENSE, currency = currency,
-            personalAmount = recurringExpected.personalAmount, fullAmount = recurringExpected.fullAmount,
+            id = "posted-manual",
+            effectiveAt = effectiveAt,
+            accountId = "account",
+            type = AnalyticsMovementType.EXPENSE,
+            currency = currency,
+            personalAmount = recurringExpected.personalAmount,
+            fullAmount = recurringExpected.fullAmount,
         )
         val scheduled = AnalyticsScheduledProjection(
             identity = AnalyticsMovementIdentity.occurrence("occurrence-2"), effectiveAt = effectiveAt,
@@ -273,7 +295,10 @@ class AnalyticsMovementFactsTest {
         )
 
         val facts = AnalyticsMovementFactAssembler().assemble(
-            listOf(posted), listOf(recurringExpected, manualExpected), listOf(scheduled), true,
+            listOf(posted),
+            listOf(recurringExpected, manualExpected),
+            listOf(scheduled),
+            true,
         )
 
         assertThat(facts.single { it.identity == AnalyticsMovementIdentity.occurrence("occurrence-1") }.schedulingOrigin)

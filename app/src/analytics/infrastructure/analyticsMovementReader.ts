@@ -87,13 +87,15 @@ function attributedAmount(
   sharedAmountMode: AnalyticsSharedAmountMode,
 ) {
   const details = sharingDetailsByTransactionId.get(movement.id);
-  const attribution = details && resolveSharingAnalyticsAttribution(movement.amount, details.participants.map((participant) => ({
+  const attribution = details && details.participants.length > 0
+    ? resolveSharingAnalyticsAttribution(movement.amount, details.participants.map((participant) => ({
     amount: participant.amount,
     requiresSettlement: participant.settlementChoice
       ? participant.settlementChoice !== 'not_required'
       : participant.reimbursable === true,
-  })));
-  const personalAmount = attribution?.personalAmount ?? movement.amount;
+  })))
+    : undefined;
+  const personalAmount = attribution?.personalAmount ?? details?.analytics.personalExpenseAmount ?? movement.amount;
   const fullAmount = movement.amount;
   return {
     analyticsAmount: sharedAmountMode === 'full' ? fullAmount : personalAmount,
