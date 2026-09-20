@@ -3,6 +3,7 @@ import type { MacroAnalyticsContribution } from './macroAnalyticsContribution';
 import type { FinancialFactKind, FinancialFactSource } from './financialFact';
 import type { MacroCategoryCode } from './macroCategoryCode';
 import { createCategoryMoneyAmount, type CategoryMoneyAmount } from './categoryMoneyAmount';
+import { hasCategoryContribution } from './contributionCapabilities';
 
 export type ContributorCategoryBreakdown = Readonly<{
   period: AnalyticsPeriod;
@@ -17,7 +18,7 @@ export function buildContributorCategoryBreakdown(
   kind: Extract<FinancialFactKind, 'INCOME' | 'EXPENSE'>,
 ): ContributorCategoryBreakdown | null {
   const normalizedCurrency = currency.trim().toUpperCase();
-  if (contribution.schemaVersion !== 2 || !contribution.financial.currencies.some(({ currency: code }) => code === normalizedCurrency)) return null;
+  if (!hasCategoryContribution(contribution) || !contribution.financial.currencies.some(({ currency: code }) => code === normalizedCurrency)) return null;
   const currencyCategories = contribution.categories.currencies.find(({ currency: code }) => code === normalizedCurrency);
   const items = (currencyCategories?.buckets ?? [])
     .filter((bucket) => bucket.source === source && bucket.kind === kind)

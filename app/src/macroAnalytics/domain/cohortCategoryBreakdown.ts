@@ -6,6 +6,7 @@ import type { MacroCategoryCode } from './macroCategoryCode';
 import { buildContributorCategoryBreakdown } from './contributorCategoryBreakdown';
 import { createCategoryMoneyAmount, type CategoryMoneyAmount } from './categoryMoneyAmount';
 import { exactMedian } from './decimalStatistics';
+import { hasCategoryContribution } from './contributionCapabilities';
 
 export type CohortCategoryBreakdownItem = Readonly<{
   category: MacroCategoryCode;
@@ -30,7 +31,7 @@ export function buildCohortCategoryBreakdown(input: Readonly<{
   contributions: readonly MacroAnalyticsContribution[];
 }>): CohortCategoryBreakdown {
   const currency = input.currency.trim().toUpperCase();
-  const eligible = input.contributions.filter((contribution) => contribution.schemaVersion === 2
+  const eligible = input.contributions.filter((contribution) => hasCategoryContribution(contribution)
     && contribution.period.value === input.period.value
     && input.cohort.includes(contribution.dimensions)
     && contribution.financial.currencies.some(({ currency: code }) => code === currency));
