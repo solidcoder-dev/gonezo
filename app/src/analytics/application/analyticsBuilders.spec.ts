@@ -93,6 +93,33 @@ describe('analytics builders', () => {
     });
   });
 
+  it('aggregates income, expenses, net flow and percentage change to two decimals', () => {
+    const transactions = [
+      transaction({ id: 'income-1', type: 'income', amount: '0.10', currency: 'EUR' }),
+      transaction({ id: 'income-2', type: 'income', amount: '0.20', currency: 'EUR' }),
+      transaction({ id: 'expense-1', type: 'expense', amount: '0.09', currency: 'EUR' }),
+    ];
+    expect(buildAnalyticsCashFlowSummary(transactions, 'EUR')).toEqual({
+      incomeAmount: '0.30', expenseAmount: '0.09', netFlowAmount: '0.21',
+    });
+
+    const overview = buildAnalyticsOverviewSnapshot({
+      currentTransactions: transactions,
+      previousTransactions: [transaction({ id: 'previous-net', type: 'income', amount: '0.20', currency: 'EUR' })],
+      currency: 'EUR',
+      currentWindow: { label: 'Current', start: new Date('2026-06-01T00:00:00Z'), end: new Date('2026-07-01T00:00:00Z') },
+      previousWindow: { label: 'Previous', start: new Date('2026-05-01T00:00:00Z'), end: new Date('2026-06-01T00:00:00Z') },
+    });
+    expect(overview.netFlowChangePercent).toBe('5.00');
+    expect(buildAnalyticsOverviewSnapshot({
+      currentTransactions: transactions,
+      previousTransactions: [],
+      currency: 'EUR',
+      currentWindow: { label: 'Current', start: new Date('2026-06-01T00:00:00Z'), end: new Date('2026-07-01T00:00:00Z') },
+      previousWindow: { label: 'Previous', start: new Date('2026-05-01T00:00:00Z'), end: new Date('2026-06-01T00:00:00Z') },
+    }).netFlowChangePercent).toBeUndefined();
+  });
+
   it('includes transfer balance impact without classifying transfers as economic flow', () => {
     const result = buildAnalyticsCashFlowSummary([
       transaction({ id: 'usd-transfer-in', type: 'transfer_in', amount: '580.00', currency: 'USD' }),
