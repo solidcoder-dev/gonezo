@@ -238,6 +238,43 @@ describe('analytics builders', () => {
     });
   });
 
+  it('characterizes category totals for unsplit, split, uncategorized, shared, and planned-shaped movements', () => {
+    const currentTransactions = [
+      transaction({ id: 'unsplit', type: 'expense', amount: '10.00', currency: 'EUR', categoryId: 'cat-home' }),
+      transaction({ id: 'split', type: 'expense', amount: '6.00', currency: 'EUR', items: [
+        { id: 'food-item', name: 'Meal', amount: '4.00', currency: 'EUR', categoryId: 'cat-food' },
+        { id: 'home-item', name: 'Cleaning', amount: '2.00', currency: 'EUR', categoryId: 'cat-home' },
+      ] }),
+      transaction({ id: 'uncategorized', type: 'expense', amount: '3.00', currency: 'EUR' }),
+      transaction({ id: 'shared', type: 'expense', amount: '8.00', currency: 'EUR', categoryId: 'cat-food', analyticsPersonalAmount: '5.00', analyticsFullAmount: '8.00', analyticsAmount: '5.00' }),
+      transaction({ id: 'income', type: 'income', amount: '30.00', currency: 'EUR', categoryId: 'cat-income' }),
+      transaction({ id: 'transfer', type: 'transfer_out', amount: '40.00', currency: 'EUR', categoryId: 'cat-home' }),
+    ];
+
+    const personal = buildSpendingDashboard({
+      currentTransactions,
+      categories,
+      currency: 'EUR',
+      currentWindow: { label: 'Jun 2026', start: new Date('2026-06-01T00:00:00Z'), end: new Date('2026-07-01T00:00:00Z') },
+    });
+    const full = buildSpendingDashboard({
+      currentTransactions: currentTransactions.map((movement) => ({ ...movement, analyticsAmount: movement.analyticsFullAmount ?? movement.amount })),
+      categories,
+      currency: 'EUR',
+      currentWindow: { label: 'Jun 2026', start: new Date('2026-06-01T00:00:00Z'), end: new Date('2026-07-01T00:00:00Z') },
+    });
+
+    expect(personal.categories.reduce((sum, item) => sum + Number(item.amount), 0)).toBe(Number(personal.totalExpenseAmount));
+    expect(personal.totalExpenseAmount).toBe('24.00');
+    expect(full.categories.reduce((sum, item) => sum + Number(item.amount), 0)).toBe(Number(full.totalExpenseAmount));
+    expect(full.totalExpenseAmount).toBe('27.00');
+    expect(personal.categories.map(({ categoryId, amount }) => [categoryId, amount])).toEqual([
+      ['cat-home', '12.00'],
+      ['cat-food', '9.00'],
+      [undefined, '3.00'],
+    ]);
+  });
+
   it('builds a spending dashboard summary with previous-period comparison and category breakdown', () => {
     const result = buildSpendingDashboard({
       currentTransactions: [
