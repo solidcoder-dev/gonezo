@@ -36,7 +36,8 @@ describe('CalculateContributorMetrics', () => {
     expect(result.map(({ value }) => value.kind === 'MONEY' ? [value.kind, value.value.toString(), value.currency] : [value.kind, value.value])).toEqual([
       ['MONEY', '12.345', 'EUR'], ['MONEY', '4.5', 'EUR'], ['MONEY', '7', 'EUR'], ['MONEY', '9.25', 'EUR'], ['COUNT', 3],
     ]);
-    expect(calculate.execute({ contributorId, contribution, currency: 'EUR', metricIds: [metrics.postedExpenseTotal.id] })[0].value).toMatchObject({ kind: 'MONEY', currency: 'EUR' });
+    const [poundResult] = calculate.execute({ contributorId, contribution, currency: 'GBP', metricIds: [metrics.postedExpenseTotal.id] });
+    expect(poundResult.value.kind === 'MONEY' && [poundResult.value.currency, poundResult.value.value.toString()]).toEqual(['GBP', '2']);
   });
 
   it('returns null for a missing currency and zero for an absent bucket in an existing currency', () => {

@@ -38,6 +38,17 @@ describe('CalculateCohortMetrics', () => {
     expect(calculate.execute({ period, cohort: createCohort(), currency: 'EUR', metricIds: [medianPostedExpense.id] }, [])).toEqual([]);
   });
 
+  it('handles a single contributor and odd cohorts containing negative and zero values', () => {
+    const request = { period, cohort: createCohort(), currency: 'EUR', metricIds: [medianPostedExpense.id] };
+    const [single] = calculate.execute(request, [contributor('single', '-5')]);
+    expect(single.value.kind === 'MONEY' && single.value.value.toString()).toBe('-5');
+    expect(single.contributorCount).toBe(1);
+
+    const [odd] = calculate.execute(request, [contributor('negative', '-3'), contributor('zero', '0'), contributor('positive', '9')]);
+    expect(odd.value.kind === 'MONEY' && odd.value.value.toString()).toBe('0');
+    expect(odd.contributorCount).toBe(3);
+  });
+
   it('allows a cohort strategy to consume Contribution slices directly', () => {
     const directMetric = createMetricDefinition(MetricId.create(MetricKey.create('direct_contribution_count'), MetricVersion.create(1)), 'COUNT');
     const directCalculator = {
