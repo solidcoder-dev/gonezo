@@ -9,9 +9,45 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.math.BigDecimal
 
 @RunWith(AndroidJUnit4::class)
 class CoreDatabaseMigrationInstrumentedTest {
+  @Test
+  fun v42UpgradeAddsCompleteSharingAttributionColumnsAndMigratesLegacyStatuses() {
+    val name = uniqueDatabaseName()
+    val sqlite = context().openOrCreateDatabase(name, android.content.Context.MODE_PRIVATE, null)
+    sqlite.execSQL("create table expected_movements (id text primary key, status text not null, resolved_transaction_id text)")
+    sqlite.execSQL("create table sharing_expense_shares (id text primary key, source_transaction_id text not null, payer_person_id text not null, total_amount text not null, currency text not null, created_at text not null, updated_at text not null)")
+    sqlite.execSQL("create table sharing_expense_share_participants (id text primary key, share_id text not null, person_id text not null, amount text not null, reimbursable integer not null, expected_movement_id text)")
+    sqlite.execSQL("create table sharing_recurring_plans (id text primary key)")
+    sqlite.execSQL("create table sharing_planned_expense_shares (id text primary key)")
+    sqlite.execSQL("insert into sharing_recurring_plans(id) values ('plan-1')")
+    sqlite.execSQL("insert into sharing_planned_expense_shares(id) values ('planned-1')")
+    sqlite.execSQL("insert into expected_movements(id, status, resolved_transaction_id) values ('expected-settled', 'resolved', 'settlement-transaction'), ('expected-pending', 'pending', null)")
+    sqlite.execSQL("insert into sharing_expense_shares(id, source_transaction_id, payer_person_id, total_amount, currency, created_at, updated_at) values ('share-1', 'transaction-1', 'payer', '100.00', 'EUR', '2026-09-20T00:00:00Z', '2026-09-20T00:00:00Z')")
+    sqlite.execSQL("insert into sharing_expense_share_participants(id, share_id, person_id, amount, reimbursable, expected_movement_id) values ('participant-settled', 'share-1', 'person-1', '30.00', 1, 'expected-settled'), ('participant-pending', 'share-1', 'person-2', '20.00', 1, 'expected-pending'), ('participant-not-required', 'share-1', 'person-3', '10.00', 0, null)")
+    sqlite.setVersion(42)
+    sqlite.close()
+
+    val upgraded = CoreDatabase(context(), name)
+    val migrated = upgraded.readableDatabase
+
+    assertEquals(43, migrated.version)
+    assertEquals("expense", migrated.scalar("select movement_type from sharing_expense_shares where id = 'share-1'"))
+    assertEquals("amounts", migrated.scalar("select allocation_mode from sharing_expense_shares where id = 'share-1'"))
+    assertEquals(0, BigDecimal(migrated.scalar("select owner_amount from sharing_expense_shares where id = 'share-1'")).compareTo(BigDecimal("40.00")))
+    assertEquals("settled", migrated.scalar("select settlement_status from sharing_expense_share_participants where id = 'participant-settled'"))
+    assertEquals("settlement-transaction", migrated.scalar("select settlement_transaction_id from sharing_expense_share_participants where id = 'participant-settled'"))
+    assertEquals("pending", migrated.scalar("select settlement_status from sharing_expense_share_participants where id = 'participant-pending'"))
+    assertEquals("not_required", migrated.scalar("select settlement_status from sharing_expense_share_participants where id = 'participant-not-required'"))
+    assertEquals("1", migrated.scalar("select owner_included from sharing_recurring_plans where id = 'plan-1'"))
+    assertEquals("1", migrated.scalar("select owner_included from sharing_planned_expense_shares where id = 'planned-1'"))
+    assertEquals(1, migrated.scalar("select count(*) from pragma_table_info('sharing_recurring_plans') where name = 'owner_included'")!!.toInt())
+    assertEquals(1, migrated.scalar("select count(*) from pragma_table_info('sharing_planned_expense_shares') where name = 'owner_included'")!!.toInt())
+    upgraded.close()
+  }
+
   @Test
   fun v36UpgradeCreatesNotificationTablesAndPreservesFinancialRows() {
     val name = uniqueDatabaseName()
