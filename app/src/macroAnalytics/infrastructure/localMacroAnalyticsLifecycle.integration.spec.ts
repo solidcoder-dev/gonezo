@@ -3,6 +3,8 @@ import { createAnalyticsContributorId } from '../domain/analyticsContributorId';
 import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
 import { createAnalyticsContributionConsent } from '../domain/analyticsContributionConsent';
 import { createFinancialFact } from '../domain/financialFact';
+import type { FinancialFact } from '../domain/financialFact';
+import type { CategoryFact } from '../domain/categoryFact';
 import type { MacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
 import { createCohort } from '../domain/cohort';
 import { CalculateContributorMetrics } from '../application/CalculateContributorMetrics';
@@ -23,7 +25,13 @@ describe('local Macro Analytics lifecycle integration', () => {
     const consent = { get: vi.fn(async () => createAnalyticsContributionConsent({ userId, status: 'GRANTED', noticeVersion: 1, decidedAt: '2026-01-01T00:00:00Z' })), save: vi.fn(async () => {}) };
     const profile = { get: vi.fn(async () => ({ birthYear: 1995, sex: 'female' as const, countryCode: 'GB', regionCode: 'GB-ENG' })) };
     const financialFacts = { listFinancialFacts: vi.fn(async () => facts) };
-    const contributionPorts = { consent, profile, financialFacts };
+    const categoryFacts = { listCategoryFacts: vi.fn(async (): Promise<CategoryFact[]> => (facts as readonly FinancialFact[]).flatMap((fact): CategoryFact[] => {
+      const base = { id: String(fact.id), occurredAt: fact.occurredAt, source: fact.source, currency: fact.currency, amount: String(fact.amount) };
+      if (fact.kind === 'EXPENSE') return [{ ...base, kind: 'EXPENSE', category: 'GROCERIES' }];
+      if (fact.kind === 'INCOME') return [{ ...base, kind: 'INCOME', category: 'OTHER_INCOME' }];
+      return [];
+    })) };
+    const contributionPorts = { consent, profile, financialFacts, categoryFacts };
     const identity = new InMemoryAnalyticsContributorIdentityAdapter();
     const outbox = new InMemoryMacroAnalyticsOutboxAdapter();
     const latest = new Map<string, MacroAnalyticsPublication>();

@@ -8,6 +8,7 @@ import { NativeContributionRebuildQueueAdapter } from './NativeContributionRebui
 import { NativeMacroAnalyticsBackfillStateAdapter } from './NativeMacroAnalyticsBackfillStateAdapter';
 import { LocalMacroAnalyticsPublicationProcessor } from '../application/LocalMacroAnalyticsPublicationProcessor';
 import { createAnalyticsFinancialFactSource } from './analyticsFinancialFactSource';
+import { createAnalyticsCategoryFactSource } from './analyticsCategoryFactSource';
 import { createAnalyticsContributionPeriodSource } from './analyticsContributionPeriodSource';
 import { createAnalyticsProfileContributionAdapter } from './analyticsProfileContributionAdapter';
 import { generateAnalyticsContributorId } from './randomAnalyticsContributorId';
@@ -17,6 +18,7 @@ import { CorePlugin } from '../../core/infrastructure/corePlugin';
 const runner = new SerializedMacroAnalyticsMaintenanceRunner();
 const consent = new NativeAnalyticsContributionConsentAdapter();
 const financialFacts = createAnalyticsFinancialFactSource(CorePlugin);
+const categoryFacts = createAnalyticsCategoryFactSource(CorePlugin);
 const identity = new NativeAnalyticsContributorIdentityAdapter();
 const outbox = new NativeMacroAnalyticsOutboxAdapter();
 const latest = new NativeLatestMacroAnalyticsPublicationAdapter();
@@ -35,7 +37,7 @@ export function runDefaultMacroAnalyticsMaintenance(userId: string, analyticsPro
       outbox,
       processor,
       prepare: (input) => prepareMacroAnalyticsPublication({
-        contribution: { consent, profile: createAnalyticsProfileContributionAdapter(analyticsProfile), financialFacts }, identity,
+        contribution: { consent, profile: createAnalyticsProfileContributionAdapter(analyticsProfile), financialFacts, categoryFacts }, identity,
         generateContributorId: generateAnalyticsContributorId,
         outbox,
         latest,

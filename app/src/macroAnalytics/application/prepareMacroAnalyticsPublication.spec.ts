@@ -8,6 +8,9 @@ import type { ContributionProfile } from '../domain/contributionProfile';
 import type { AnalyticsContributionConsentPort } from './analyticsContributionConsent.port';
 import type { ContributionProfileSourcePort } from './contributionProfileSource.port';
 import type { FinancialFactSourcePort } from './financialFactSource.port';
+import type { CategoryFactSourcePort } from './categoryFactSource.port';
+import type { FinancialFact } from '../domain/financialFact';
+import type { CategoryFact } from '../domain/categoryFact';
 import type { AnalyticsContributorIdentityPort } from './analyticsContributorIdentity.port';
 import type { MacroAnalyticsOutboxPort } from './macroAnalyticsOutbox.port';
 import type { LatestMacroAnalyticsPublicationPort } from './latestMacroAnalyticsPublication.port';
@@ -15,6 +18,15 @@ import { prepareMacroAnalyticsPublication } from './prepareMacroAnalyticsPublica
 
 const profile: ContributionProfile = { birthYear: 1995, sex: 'female', countryCode: 'ES', regionCode: 'ES-CN' };
 const facts = [createFinancialFact({ id: 'private-fact-id', occurredAt: '2026-09-04T10:00:00Z', source: 'POSTED', kind: 'EXPENSE', amount: '12', currency: 'EUR' })];
+
+function categoriesFor(values: readonly FinancialFact[]): CategoryFact[] {
+  return values.flatMap((item): CategoryFact[] => {
+    const base = { id: String(item.id), occurredAt: item.occurredAt, source: item.source, currency: item.currency, amount: String(item.amount) };
+    if (item.kind === 'INCOME') return [{ ...base, kind: 'INCOME', category: 'GROCERIES' }];
+    if (item.kind === 'EXPENSE') return [{ ...base, kind: 'EXPENSE', category: 'GROCERIES' }];
+    return [];
+  });
+}
 
 function setup(options: { consent?: 'GRANTED' | 'DECLINED' | 'WITHDRAWN' | null; profile?: ContributionProfile | null; facts?: typeof facts } = {}) {
   const identities = new Map<string, ReturnType<typeof createAnalyticsContributorId>>();
@@ -45,14 +57,15 @@ function setup(options: { consent?: 'GRANTED' | 'DECLINED' | 'WITHDRAWN' | null;
   };
   const profileSource: ContributionProfileSourcePort = { get: vi.fn(async () => options.profile === undefined ? profile : options.profile) };
   const financialFacts: FinancialFactSourcePort = { listFinancialFacts: vi.fn(async () => options.facts ?? facts) };
+  const categoryFacts: CategoryFactSourcePort = { listCategoryFacts: vi.fn(async () => categoriesFor(options.facts ?? facts)) };
   const ports = {
-    contribution: { consent, profile: profileSource, financialFacts },
+    contribution: { consent, profile: profileSource, financialFacts, categoryFacts },
     identity,
     generateContributorId: vi.fn(() => createAnalyticsContributorId('opaque-random-id')),
     outbox,
     latest,
   };
-  return { ports, identity, outbox, financialFacts };
+  return { ports, identity, outbox, financialFacts, categoryFacts };
 }
 
 const input = { userId: 'user-A', period: '2026-09', timeZone: 'Europe/London' };
@@ -75,6 +88,8 @@ describe('prepareMacroAnalyticsPublication', () => {
     const state = setup({ consent: 'GRANTED' });
     await prepareMacroAnalyticsPublication(state.ports, input);
     vi.mocked(state.financialFacts.listFinancialFacts).mockResolvedValue([createFinancialFact({ ...facts[0], amount: '13' })]);
+    const changedFact = createFinancialFact({ ...facts[0], amount: '13' });
+    vi.mocked(state.categoryFacts.listCategoryFacts).mockResolvedValue(categoriesFor([changedFact]));
     const changed = await prepareMacroAnalyticsPublication(state.ports, input);
     expect(changed.status === 'PREPARED' && changed.publication.revision).toBe(2);
     const unchanged = await prepareMacroAnalyticsPublication(state.ports, input);
@@ -91,6 +106,8 @@ describe('prepareMacroAnalyticsPublication', () => {
     await state.ports.latest.save(first.publication);
     await state.outbox.remove(input.userId, first.publication.period);
     vi.mocked(state.financialFacts.listFinancialFacts).mockResolvedValue([createFinancialFact({ ...facts[0], amount: '13' })]);
+    const changedFact = createFinancialFact({ ...facts[0], amount: '13' });
+    vi.mocked(state.categoryFacts.listCategoryFacts).mockResolvedValue(categoriesFor([changedFact]));
 
     const changed = await prepareMacroAnalyticsPublication(state.ports, input);
 
@@ -118,6 +135,8 @@ describe('prepareMacroAnalyticsPublication', () => {
     const pendingRevisionTwo = { ...first.publication, revision: 2, contribution: { ...first.publication.contribution, financial: { currencies: [] } } };
     await state.outbox.save(input.userId, pendingRevisionTwo);
     vi.mocked(state.financialFacts.listFinancialFacts).mockResolvedValue([createFinancialFact({ ...facts[0], amount: '13' })]);
+    const changedFact = createFinancialFact({ ...facts[0], amount: '13' });
+    vi.mocked(state.categoryFacts.listCategoryFacts).mockResolvedValue(categoriesFor([changedFact]));
 
     const changed = await prepareMacroAnalyticsPublication(state.ports, input);
 
@@ -161,8 +180,10 @@ describe('prepareMacroAnalyticsPublication', () => {
     const state = setup({ consent: 'GRANTED' });
     const secondFact = createFinancialFact({ id: 'second-private-id', occurredAt: '2026-09-05T10:00:00Z', source: 'EXPECTED', kind: 'EXPENSE', amount: '20', currency: 'GBP' });
     vi.mocked(state.financialFacts.listFinancialFacts).mockResolvedValue([...facts, secondFact]);
+    vi.mocked(state.categoryFacts.listCategoryFacts).mockResolvedValue(categoriesFor([...facts, secondFact]));
     const original = await prepareMacroAnalyticsPublication(state.ports, input);
     vi.mocked(state.financialFacts.listFinancialFacts).mockResolvedValue([secondFact, ...facts]);
+    vi.mocked(state.categoryFacts.listCategoryFacts).mockResolvedValue(categoriesFor([secondFact, ...facts]));
     const reordered = await prepareMacroAnalyticsPublication(state.ports, input);
     expect(reordered).toEqual(original);
   });

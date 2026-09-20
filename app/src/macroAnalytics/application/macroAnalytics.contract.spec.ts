@@ -3,7 +3,7 @@ import { MACRO_ANALYTICS_SCHEMA_VERSION, createFinancialFact } from './macroAnal
 
 describe('Macro Analytics application contract', () => {
   it('exposes the current schema version and fact construction boundary', () => {
-    expect(MACRO_ANALYTICS_SCHEMA_VERSION).toBe(1);
+    expect(MACRO_ANALYTICS_SCHEMA_VERSION).toBe(2);
     expect(createFinancialFact({
       id: 'opaque-fact-id',
       occurredAt: '2026-09-18T10:30:00Z',

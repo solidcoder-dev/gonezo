@@ -5,17 +5,30 @@ import type { ContributionProfile } from '../domain/contributionProfile';
 import type { AnalyticsContributionConsentPort } from './analyticsContributionConsent.port';
 import type { FinancialFactSourcePort } from './financialFactSource.port';
 import type { ContributionProfileSourcePort } from './contributionProfileSource.port';
+import type { CategoryFactSourcePort } from './categoryFactSource.port';
+import type { FinancialFact } from '../domain/financialFact';
+import type { CategoryFact } from '../domain/categoryFact';
 import { buildMacroAnalyticsContribution } from './buildMacroAnalyticsContribution';
 
 const profile: ContributionProfile = { birthYear: 1995, sex: 'female', countryCode: 'ES', regionCode: 'ES-CN' };
 const granted = createAnalyticsContributionConsent({ userId: 'private-user-id', status: 'GRANTED', noticeVersion: 1, decidedAt: '2026-09-18T10:00:00Z' });
 const fact = createFinancialFact({ id: 'private-fact-id', occurredAt: '2026-09-04T10:00:00Z', source: 'POSTED', kind: 'EXPENSE', amount: '0.10', currency: 'EUR' });
 
+function categoriesFor(facts: readonly FinancialFact[]): CategoryFact[] {
+  return facts.flatMap((item): CategoryFact[] => {
+    const base = { id: String(item.id), occurredAt: item.occurredAt, source: item.source, currency: item.currency, amount: String(item.amount) };
+    if (item.kind === 'INCOME') return [{ ...base, kind: 'INCOME', category: 'OTHER_INCOME' }];
+    if (item.kind === 'EXPENSE') return [{ ...base, kind: 'EXPENSE', category: 'GROCERIES' }];
+    return [];
+  });
+}
+
 function sources(consent: AnalyticsContributionConsent | null = granted, contributionProfile: ContributionProfile | null = profile, facts = [fact]) {
   const consentSource: AnalyticsContributionConsentPort = { get: vi.fn(async () => consent), save: vi.fn(async () => {}) };
   const profileSource: ContributionProfileSourcePort = { get: vi.fn(async () => contributionProfile) };
   const factSource: FinancialFactSourcePort = { listFinancialFacts: vi.fn(async () => facts) };
-  return { consent: consentSource, profile: profileSource, financialFacts: factSource, profileSource, factSource };
+  const categoryFacts: CategoryFactSourcePort = { listCategoryFacts: vi.fn(async () => categoriesFor(facts)) };
+  return { consent: consentSource, profile: profileSource, financialFacts: factSource, categoryFacts, profileSource, factSource };
 }
 
 describe('buildMacroAnalyticsContribution', () => {
@@ -46,10 +59,11 @@ describe('buildMacroAnalyticsContribution', () => {
     const ports = sources(granted, profile, []);
     const result = await buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
     expect(result).toEqual({ status: 'BUILT', contribution: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       period: { kind: 'YEAR_MONTH', value: '2026-09' },
       dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE', ageBand: '25_34' },
       financial: { currencies: [] },
+      categories: { currencies: [] },
     } });
     expect(JSON.stringify(result)).not.toMatch(/private-user-id|private-fact-id|birthYear|occurredAt|accountId|movementId|completedAt|updatedAt/);
     expect(ports.financialFacts.listFinancialFacts).toHaveBeenCalledWith({ period: { kind: 'YEAR_MONTH', value: '2026-09' }, timeZone: 'Europe/Madrid' });
@@ -73,5 +87,12 @@ describe('buildMacroAnalyticsContribution', () => {
     vi.mocked(ports.financialFacts.listFinancialFacts).mockRejectedValue(new Error('storage unavailable'));
     await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
       .rejects.toThrow('storage unavailable');
+  });
+
+  it('rejects category totals that do not reconcile with financial totals', async () => {
+    const ports = sources();
+    vi.mocked(ports.categoryFacts.listCategoryFacts).mockResolvedValue(categoriesFor([createFinancialFact({ ...fact, amount: '0.09' })]));
+    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
+      .rejects.toThrow('Category contribution does not reconcile');
   });
 });

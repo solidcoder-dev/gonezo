@@ -1,2 +1,4 @@
-export const MACRO_ANALYTICS_SCHEMA_VERSION = 1 as const;
-export type MacroAnalyticsSchemaVersion = typeof MACRO_ANALYTICS_SCHEMA_VERSION;
+export const MACRO_ANALYTICS_SCHEMA_VERSION_V1 = 1 as const;
+export const MACRO_ANALYTICS_SCHEMA_VERSION_V2 = 2 as const;
+export const MACRO_ANALYTICS_SCHEMA_VERSION = MACRO_ANALYTICS_SCHEMA_VERSION_V2;
+export type MacroAnalyticsSchemaVersion = typeof MACRO_ANALYTICS_SCHEMA_VERSION_V1 | typeof MACRO_ANALYTICS_SCHEMA_VERSION_V2;
