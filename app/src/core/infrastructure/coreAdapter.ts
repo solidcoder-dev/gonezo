@@ -12,6 +12,7 @@ import {
 } from './coreRuntimeAdapters';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { isNativeRuntime } from './runtimeAdapterSupport';
+import type { FinancialDataChangeObserver } from '../../macroAnalytics/application/financialDataChangeObserver.port';
 
 export class CoreAdapter implements CorePort {
   private readonly web: CoreAdapterWeb = new CoreAdapterWeb();
@@ -24,13 +25,27 @@ export class CoreAdapter implements CorePort {
   private readonly scheduling: SchedulingRuntimeAdapter = new SchedulingRuntimeAdapter(this.web);
   private readonly expected: ExpectedRuntimeAdapter = new ExpectedRuntimeAdapter(this.web);
   private readonly movements: MovementsRuntimeAdapter = new MovementsRuntimeAdapter(this.web, this);
+  private readonly financialChanges: FinancialDataChangeObserver;
+
+  constructor(financialChanges?: FinancialDataChangeObserver) {
+    this.financialChanges = financialChanges ?? {
+      periodChanged: async () => {},
+      currentPeriodChanged: async () => {},
+      allPeriodsChanged: async () => {},
+    };
+  }
 
   preferencesGet = this.preferences.preferencesGet.bind(this.preferences);
   preferencesSetDefaultAccount = this.preferences.preferencesSetDefaultAccount.bind(this.preferences);
   preferencesClearDefaultAccount = this.preferences.preferencesClearDefaultAccount.bind(this.preferences);
 
   accountsListBalances = this.ledger.accountsListBalances.bind(this.ledger);
-  ledgerOpenAccount = this.ledger.ledgerOpenAccount.bind(this.ledger);
+  ledgerOpenAccount(input: Parameters<LedgerRuntimeAdapter['ledgerOpenAccount']>[0]) {
+    return this.afterMutation(
+      () => this.ledger.ledgerOpenAccount(input),
+      () => input.openingBalanceAmount ? this.financialChanges.periodChanged(input.createdAt ?? new Date().toISOString()) : Promise.resolve(),
+    );
+  }
   ledgerListSupportedCurrencies = this.ledger.ledgerListSupportedCurrencies.bind(this.ledger);
   ledgerRenameAccount = this.ledger.ledgerRenameAccount.bind(this.ledger);
   ledgerArchiveAccount = this.ledger.ledgerArchiveAccount.bind(this.ledger);
@@ -40,15 +55,27 @@ export class CoreAdapter implements CorePort {
   ledgerGetAccountSummary = this.ledger.ledgerGetAccountSummary.bind(this.ledger);
   ledgerGetNetWorthByCurrency = this.ledger.ledgerGetNetWorthByCurrency.bind(this.ledger);
   ledgerGetCashFlowSeries = this.ledger.ledgerGetCashFlowSeries.bind(this.ledger);
-  ledgerRecordExpense = this.ledger.ledgerRecordExpense.bind(this.ledger);
-  ledgerRecordIncome = this.ledger.ledgerRecordIncome.bind(this.ledger);
-  ledgerRecordTransfer = this.ledger.ledgerRecordTransfer.bind(this.ledger);
-  ledgerRecordTransferFx = this.ledger.ledgerRecordTransferFx.bind(this.ledger);
+  ledgerRecordExpense(input: Parameters<LedgerRuntimeAdapter['ledgerRecordExpense']>[0]) {
+    return this.afterMutation(() => this.ledger.ledgerRecordExpense(input), () => this.financialChanges.periodChanged(input.occurredAt));
+  }
+  ledgerRecordIncome(input: Parameters<LedgerRuntimeAdapter['ledgerRecordIncome']>[0]) {
+    return this.afterMutation(() => this.ledger.ledgerRecordIncome(input), () => this.financialChanges.periodChanged(input.occurredAt));
+  }
+  ledgerRecordTransfer(input: Parameters<LedgerRuntimeAdapter['ledgerRecordTransfer']>[0]) {
+    return this.afterMutation(() => this.ledger.ledgerRecordTransfer(input), () => this.financialChanges.periodChanged(input.occurredAt));
+  }
+  ledgerRecordTransferFx(input: Parameters<LedgerRuntimeAdapter['ledgerRecordTransferFx']>[0]) {
+    return this.afterMutation(() => this.ledger.ledgerRecordTransferFx(input), () => this.financialChanges.periodChanged(input.occurredAt));
+  }
   ledgerCreateExpenseDraft = this.ledger.ledgerCreateExpenseDraft.bind(this.ledger);
   ledgerAddTransactionItem = this.ledger.ledgerAddTransactionItem.bind(this.ledger);
   ledgerReplacePostedTransactionItems = this.ledger.ledgerReplacePostedTransactionItems.bind(this.ledger);
-  ledgerPostDraftTransaction = this.ledger.ledgerPostDraftTransaction.bind(this.ledger);
-  ledgerVoidTransaction = this.ledger.ledgerVoidTransaction.bind(this.ledger);
+  ledgerPostDraftTransaction(input: Parameters<LedgerRuntimeAdapter['ledgerPostDraftTransaction']>[0]) {
+    return this.afterMutation(() => this.ledger.ledgerPostDraftTransaction(input), () => this.financialChanges.allPeriodsChanged());
+  }
+  ledgerVoidTransaction(input: Parameters<LedgerRuntimeAdapter['ledgerVoidTransaction']>[0]) {
+    return this.afterMutation(() => this.ledger.ledgerVoidTransaction(input), () => this.financialChanges.allPeriodsChanged());
+  }
   ledgerListTransactions = this.ledger.ledgerListTransactions.bind(this.ledger);
 
   analyticsListCurrencies = this.analytics.analyticsListCurrencies.bind(this.analytics);
@@ -65,14 +92,22 @@ export class CoreAdapter implements CorePort {
   analyticsGetAnalyticsTopExpenses = this.analytics.analyticsGetAnalyticsTopExpenses.bind(this.analytics);
   analyticsGetSpendingOverview = this.analytics.analyticsGetSpendingOverview.bind(this.analytics);
   analyticsGetFlowReport = this.analytics.analyticsGetFlowReport.bind(this.analytics);
-  analyticsSetMovementIgnored = this.analytics.analyticsSetMovementIgnored.bind(this.analytics);
+  analyticsSetMovementIgnored(input: Parameters<AnalyticsRuntimeAdapter['analyticsSetMovementIgnored']>[0]) {
+    return this.afterMutation(() => this.analytics.analyticsSetMovementIgnored(input), () => this.financialChanges.allPeriodsChanged());
+  }
   analyticsListIgnoredMovements = this.analytics.analyticsListIgnoredMovements.bind(this.analytics);
   analyticsListMovementFacts = this.analytics.analyticsListMovementFacts.bind(this.analytics);
 
   sharingListPeople = this.sharing.sharingListPeople.bind(this.sharing); sharingListGroupSuggestions = this.sharing.sharingListGroupSuggestions.bind(this.sharing); sharingRenamePerson = this.sharing.sharingRenamePerson.bind(this.sharing);
-  sharingApplyShareToPostedMovement = this.sharing.sharingApplyShareToPostedMovement.bind(this.sharing);
-  sharingReplaceMovementShare = this.sharing.sharingReplaceMovementShare.bind(this.sharing);
-  sharingRemoveMovementShare = this.sharing.sharingRemoveMovementShare.bind(this.sharing);
+  sharingApplyShareToPostedMovement(input: Parameters<SharingRuntimeAdapter['sharingApplyShareToPostedMovement']>[0]) {
+    return this.afterMutation(() => this.sharing.sharingApplyShareToPostedMovement(input), () => this.financialChanges.allPeriodsChanged());
+  }
+  sharingReplaceMovementShare(input: Parameters<SharingRuntimeAdapter['sharingReplaceMovementShare']>[0]) {
+    return this.afterMutation(() => this.sharing.sharingReplaceMovementShare(input), () => this.financialChanges.allPeriodsChanged());
+  }
+  sharingRemoveMovementShare(input: Parameters<SharingRuntimeAdapter['sharingRemoveMovementShare']>[0]) {
+    return this.afterMutation(() => this.sharing.sharingRemoveMovementShare(input), () => this.financialChanges.allPeriodsChanged());
+  }
   sharingGetMovementDetails = this.sharing.sharingGetMovementDetails.bind(this.sharing);
   sharingListMovementDetails = this.sharing.sharingListMovementDetails.bind(this.sharing);
   sharingGetPlannedShare = this.sharing.sharingGetPlannedShare.bind(this.sharing);
@@ -87,37 +122,44 @@ export class CoreAdapter implements CorePort {
   orchestrationApplyTransactionItemTags = this.taxonomy.orchestrationApplyTransactionItemTags.bind(this.taxonomy);
   orchestrationListTransactionTaxonomy = this.taxonomy.orchestrationListTransactionTaxonomy.bind(this.taxonomy);
 
-  mobillsImport = this.imports.mobillsImport.bind(this.imports);
+  mobillsImport(input: Parameters<ImportsRuntimeAdapter['mobillsImport']>[0]) { return this.afterMutation(() => this.imports.mobillsImport(input), () => this.financialChanges.allPeriodsChanged()); }
   movementsExportBackup = this.imports.movementsExportBackup.bind(this.imports);
-  movementsImportBackup = this.imports.movementsImportBackup.bind(this.imports);
+  movementsImportBackup(input: Parameters<ImportsRuntimeAdapter['movementsImportBackup']>[0]) { return this.afterMutation(() => this.imports.movementsImportBackup(input), () => this.financialChanges.allPeriodsChanged()); }
   applicationExportBackup = this.imports.applicationExportBackup.bind(this.imports);
-  applicationImportBackup = this.imports.applicationImportBackup.bind(this.imports);
+  applicationImportBackup(input: Parameters<ImportsRuntimeAdapter['applicationImportBackup']>[0]) { return this.afterMutation(() => this.imports.applicationImportBackup(input), () => this.financialChanges.allPeriodsChanged()); }
 
-  recurrenceCreateRecurringMovement = this.scheduling.recurrenceCreateRecurringMovement.bind(this.scheduling);
-  recurrenceDeactivateRecurringMovement = this.scheduling.recurrenceDeactivateRecurringMovement.bind(this.scheduling);
+  recurrenceCreateRecurringMovement(input: Parameters<SchedulingRuntimeAdapter['recurrenceCreateRecurringMovement']>[0]) { return this.afterMutation(() => this.scheduling.recurrenceCreateRecurringMovement(input), () => this.financialChanges.currentPeriodChanged()); }
+  recurrenceDeactivateRecurringMovement(input: Parameters<SchedulingRuntimeAdapter['recurrenceDeactivateRecurringMovement']>[0]) { return this.afterMutation(() => this.scheduling.recurrenceDeactivateRecurringMovement(input), () => this.financialChanges.currentPeriodChanged()); }
   recurrenceListRecurringMovements = this.scheduling.recurrenceListRecurringMovements.bind(this.scheduling);
-  schedulingCreateMovement = this.scheduling.schedulingCreateMovement.bind(this.scheduling);
-  schedulingUpdateMovement = this.scheduling.schedulingUpdateMovement.bind(this.scheduling);
-  schedulingDeactivateMovement = this.scheduling.schedulingDeactivateMovement.bind(this.scheduling);
+  schedulingCreateMovement(input: Parameters<SchedulingRuntimeAdapter['schedulingCreateMovement']>[0]) { return this.afterMutation(() => this.scheduling.schedulingCreateMovement(input), () => this.financialChanges.currentPeriodChanged()); }
+  schedulingUpdateMovement(input: Parameters<SchedulingRuntimeAdapter['schedulingUpdateMovement']>[0]) { return this.afterMutation(() => this.scheduling.schedulingUpdateMovement(input), () => this.financialChanges.currentPeriodChanged()); }
+  schedulingDeactivateMovement(input: Parameters<SchedulingRuntimeAdapter['schedulingDeactivateMovement']>[0]) { return this.afterMutation(() => this.scheduling.schedulingDeactivateMovement(input), () => this.financialChanges.currentPeriodChanged()); }
   schedulingListMovements = this.scheduling.schedulingListMovements.bind(this.scheduling);
   schedulingGetMovement = this.scheduling.schedulingGetMovement.bind(this.scheduling);
   movementsGetDetail = this.movements.movementsGetDetail.bind(this.movements);
   movementReuseSearchGroups = this.movements.movementReuseSearchGroups.bind(this.movements);
   movementReuseListVariants = this.movements.movementReuseListVariants.bind(this.movements);
   movementReuseGetTemplate = this.movements.movementReuseGetTemplate.bind(this.movements);
-  schedulingProcessDueMovements = this.scheduling.schedulingProcessDueMovements.bind(this.scheduling);
+  schedulingProcessDueMovements(input?: Parameters<SchedulingRuntimeAdapter['schedulingProcessDueMovements']>[0]) { return this.afterMutation(() => this.scheduling.schedulingProcessDueMovements(input), () => this.financialChanges.currentPeriodChanged()); }
 
-  expectedCreateMovement = this.expected.expectedCreateMovement.bind(this.expected);
-  expectedUpdateMovement = this.expected.expectedUpdateMovement.bind(this.expected);
+  expectedCreateMovement(input: Parameters<ExpectedRuntimeAdapter['expectedCreateMovement']>[0]) { return this.afterMutation(() => this.expected.expectedCreateMovement(input), () => this.financialChanges.periodChanged(input.expectedAt)); }
+  expectedUpdateMovement(input: Parameters<ExpectedRuntimeAdapter['expectedUpdateMovement']>[0]) { return this.afterMutation(() => this.expected.expectedUpdateMovement(input), () => this.financialChanges.allPeriodsChanged()); }
   expectedListMovements = this.expected.expectedListMovements.bind(this.expected);
   expectedGetPendingOverview = this.expected.expectedGetPendingOverview.bind(this.expected);
-  expectedResolveMovement = this.expected.expectedResolveMovement.bind(this.expected);
-  expectedPostMovement = isNativeRuntime() ? this.expected.expectedPostMovement?.bind(this.expected) : undefined;
-  expectedDismissMovement = this.expected.expectedDismissMovement.bind(this.expected);
+  expectedResolveMovement(input: Parameters<ExpectedRuntimeAdapter['expectedResolveMovement']>[0]) { return this.afterMutation(() => this.expected.expectedResolveMovement(input), () => this.financialChanges.allPeriodsChanged()); }
+  expectedPostMovement = isNativeRuntime() ? (input: Parameters<NonNullable<ExpectedRuntimeAdapter['expectedPostMovement']>>[0]) =>
+    this.afterMutation(() => this.expected.expectedPostMovement!(input), () => this.financialChanges.allPeriodsChanged()) : undefined;
+  expectedDismissMovement(input: Parameters<ExpectedRuntimeAdapter['expectedDismissMovement']>[0]) { return this.afterMutation(() => this.expected.expectedDismissMovement(input), () => this.financialChanges.allPeriodsChanged()); }
 
   movementsGetMonthOverview = this.movements.movementsGetMonthOverview.bind(this.movements);
   movementsSearch = this.movements.movementsSearch.bind(this.movements);
   movementsGetSearchFacets = this.movements.movementsGetSearchFacets.bind(this.movements);
   movementsGetOverview = this.movements.movementsGetOverview.bind(this.movements);
   movementsListScheduled = this.movements.movementsListScheduled.bind(this.movements);
+
+  private async afterMutation<T>(operation: () => Promise<T>, invalidate: () => Promise<void>): Promise<T> {
+    const result = await operation();
+    await invalidate().catch(() => undefined);
+    return result;
+  }
 }

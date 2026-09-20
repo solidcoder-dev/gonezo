@@ -41,10 +41,10 @@ import { NativeContributionRebuildQueueAdapter } from './macroAnalytics/infrastr
 import { NativeMacroAnalyticsBackfillStateAdapter } from './macroAnalytics/infrastructure/NativeMacroAnalyticsBackfillStateAdapter';
 import { withMacroAnalyticsConsentLifecycle } from './macroAnalytics/application/MacroAnalyticsConsentLifecycle';
 import { withMacroAnalyticsProfileRebuild } from './macroAnalytics/infrastructure/AnalyticsProfileRebuildDecorator';
+import { NativeFinancialDataChangeObserver } from './macroAnalytics/infrastructure/NativeFinancialDataChangeObserver';
 
 const systemConsentClock = () => new Date().toISOString();
 
-const defaultCore = new CoreAdapter();
 const defaultImportFileReader = { readAsBase64: readImportFileAsBase64 };
 const defaultMovementVoiceEntryContext = createDefaultMovementVoiceEntryContext();
 const defaultExperimentalFeatures = new LocalExperimentalFeaturesAdapter();
@@ -55,6 +55,12 @@ const defaultAuthentication = createAuthenticationService();
 const defaultAnalyticsProfile: AnalyticsProfilePort = Capacitor.isNativePlatform()
   ? new NativeAnalyticsProfileAdapter()
   : new InMemoryAnalyticsProfileAdapter();
+const defaultCore = new CoreAdapter(Capacitor.isNativePlatform()
+  ? new NativeFinancialDataChangeObserver(async () => {
+    const state = await defaultAuthentication.getAuthenticationState();
+    return state.status === 'authenticated' ? state.userId : null;
+  })
+  : undefined);
 const defaultContributionConsent: AnalyticsContributionConsentPort = Capacitor.isNativePlatform()
   ? new NativeAnalyticsContributionConsentAdapter()
   : new InMemoryAnalyticsContributionConsentAdapter();

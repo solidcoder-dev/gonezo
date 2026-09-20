@@ -15,13 +15,18 @@ export function createAnalyticsPeriod(value: string): AnalyticsPeriod {
 }
 
 export function analyticsPeriodForFact(fact: FinancialFact, timeZone: string): AnalyticsPeriod {
+  return analyticsPeriodForInstant(fact.occurredAt, timeZone);
+}
+
+export function analyticsPeriodForInstant(instant: string, timeZone: string): AnalyticsPeriod {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(instant)) return createAnalyticsPeriod(instant.slice(0, 7));
   const parts = new Intl.DateTimeFormat('en-US', {
     calendar: 'gregory',
     numberingSystem: 'latn',
     timeZone,
     year: 'numeric',
     month: '2-digit',
-  }).formatToParts(new Date(fact.occurredAt));
+  }).formatToParts(new Date(instant));
   const year = parts.find((part) => part.type === 'year')?.value;
   const month = parts.find((part) => part.type === 'month')?.value;
 
