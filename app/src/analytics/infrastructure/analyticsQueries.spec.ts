@@ -24,7 +24,11 @@ import {
   analyticsGetSpendingTimeline,
   analyticsGetSpendingTopExpenses,
 } from './analyticsQueries';
-import { MetricId, MetricKey, MetricVersion } from '../../shared/domain/analyticsMetric';
+import {
+  EXPENSE_TOTAL_V1,
+  INCOME_TOTAL_V1,
+  NET_BALANCE_FLOW_CHANGE_PERCENT_V1,
+} from '../application/metrics/builtInMetricDefinitions';
 
 function transaction(input: Partial<LedgerTransactionListItem> & Pick<LedgerTransactionListItem, 'id' | 'type' | 'amount'>): LedgerTransactionListItem {
   return {
@@ -119,8 +123,8 @@ describe('analytics queries', () => {
       transaction({ id: 'prior-income', type: 'income', amount: '20.00', occurredAt: '2026-06-13T12:00:00.000Z' }),
       transaction({ id: 'outside-income', type: 'income', amount: '90.00', occurredAt: '2026-06-10T12:00:00.000Z' }),
     ]);
-    const incomeId = MetricId.create(MetricKey.create('income_total'), MetricVersion.create(1));
-    const changeId = MetricId.create(MetricKey.create('net_balance_flow_change_percent'), MetricVersion.create(1));
+    const incomeId = INCOME_TOTAL_V1.id;
+    const changeId = NET_BALANCE_FLOW_CHANGE_PERCENT_V1.id;
 
     const result = await analyticsQueryMetrics(port, {
       currency: 'EUR',
@@ -147,7 +151,7 @@ describe('analytics queries', () => {
       participants: [],
       analytics: { personalExpenseAmount: '12.50', excludedLentAmount: '7.50', excludedReimbursementIncomeAmount: '0' },
     }] }));
-    const expenseId = MetricId.create(MetricKey.create('expense_total'), MetricVersion.create(1));
+    const expenseId = EXPENSE_TOTAL_V1.id;
     const filters = { period: { kind: 'custom' as const, from: '2026-06-15', to: '2026-06-17' } };
 
     const personal = await analyticsQueryMetrics(port, { currency: 'EUR', filters: { ...filters, sharedAmountMode: 'personal' }, metricIds: [expenseId] });
@@ -166,7 +170,7 @@ describe('analytics queries', () => {
       transaction({ id: 'may', type: 'income', amount: '5', occurredAt: '2026-05-15T12:00:00.000Z' }),
       transaction({ id: 'june', type: 'income', amount: '6', occurredAt: '2026-06-15T12:00:00.000Z' }),
     ]);
-    const incomeId = MetricId.create(MetricKey.create('income_total'), MetricVersion.create(1));
+    const incomeId = INCOME_TOTAL_V1.id;
 
     const current = await analyticsQueryMetrics(port, { currency: 'EUR', filters: { period: { kind: 'thisMonth' } }, metricIds: [incomeId] });
     const shifted = await analyticsQueryMetrics(port, { currency: 'EUR', periodSelection: { period: { kind: 'thisMonth' }, shift: -1 }, metricIds: [incomeId] });
@@ -195,7 +199,7 @@ describe('analytics queries', () => {
       items: input.fromLocalDate <= '2026-06-05' && input.toLocalDate >= '2026-06-05' ? [fact] : [],
     }));
     const port = Object.assign(createPort([]), { analyticsListMovementFacts });
-    const expenseId = MetricId.create(MetricKey.create('expense_total'), MetricVersion.create(1));
+    const expenseId = EXPENSE_TOTAL_V1.id;
 
     const result = await analyticsQueryMetrics(port, {
       currency: 'EUR',
