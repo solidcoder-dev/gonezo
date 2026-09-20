@@ -60,6 +60,9 @@ export { buildContributorCategoryBreakdown } from '../domain/contributorCategory
 export { buildCohortCategoryBreakdown } from '../domain/cohortCategoryBreakdown';
 export { GetMacroCategoryReport } from './GetMacroCategoryReport';
 export type { GetMacroCategoryReportInput } from './GetMacroCategoryReport';
+export type { MacroRecurringReport } from '../domain/macroRecurringReport';
+export { GetMacroRecurringReport } from './GetMacroRecurringReport';
+export type { GetMacroRecurringReportInput } from './GetMacroRecurringReport';
 export type { MacroAnalyticsPublicationProcessorPort, PublicationProcessingStatus } from './macroAnalyticsPublicationProcessor.port';
 export { processPendingMacroAnalyticsPublications } from './processPendingMacroAnalyticsPublications';
 export type { PendingPublicationProcessingResult } from './processPendingMacroAnalyticsPublications';
