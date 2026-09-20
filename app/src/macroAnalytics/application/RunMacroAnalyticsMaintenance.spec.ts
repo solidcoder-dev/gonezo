@@ -1,0 +1,94 @@
+import { describe, expect, it, vi } from 'vitest';
+import { createAnalyticsContributorId } from '../domain/analyticsContributorId';
+import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
+import { createAnalyticsContributionConsent } from '../domain/analyticsContributionConsent';
+import type { MacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
+import type { ContributionRebuildQueuePort } from './contributionRebuildQueue.port';
+import type { MacroAnalyticsBackfillStatePort } from './macroAnalyticsBackfillState.port';
+import type { MacroAnalyticsOutboxPort } from './macroAnalyticsOutbox.port';
+import type { MacroAnalyticsPublicationProcessorPort } from './macroAnalyticsPublicationProcessor.port';
+import { RunMacroAnalyticsMaintenance } from './RunMacroAnalyticsMaintenance';
+
+const consent = createAnalyticsContributionConsent({ userId: 'u', status: 'GRANTED', noticeVersion: 1, decidedAt: '2026-01-01T00:00:00Z' });
+const publication = (period: string, revision = 1): MacroAnalyticsPublication => ({
+  protocolVersion: 1,
+  contributorId: createAnalyticsContributorId('contributor'),
+  period: createAnalyticsPeriod(period),
+  revision,
+  contribution: {
+    schemaVersion: 1,
+    period: createAnalyticsPeriod(period),
+    dimensions: { countryCode: 'GB', regionCode: 'GB-ENG', sex: 'FEMALE', ageBand: '25_34' },
+    financial: { currencies: [] },
+  },
+});
+
+function setup(options: { granted?: boolean; requested?: boolean; processorStatus?: 'ACCEPTED' | 'UPDATED' | 'ALREADY_CURRENT' | 'STALE' | 'REVISION_CONFLICT'; periods?: string[] } = {}) {
+  const pending = new Map<string, MacroAnalyticsPublication>();
+  const work = new Set<string>();
+  const state: MacroAnalyticsBackfillStatePort = {
+    get: vi.fn(async () => ({ initialBackfillVersion: 0, fullRebuildRequested: options.requested ?? false })),
+    markInitialBackfillComplete: vi.fn(async () => {}), requestFullRebuild: vi.fn(async () => {}),
+    clearFullRebuildRequest: vi.fn(async () => {}), clear: vi.fn(async () => {}),
+  };
+  const queue: ContributionRebuildQueuePort = {
+    enqueue: vi.fn(async (_user, period) => { work.add(period.value); }),
+    list: vi.fn(async () => [...work].sort().map(createAnalyticsPeriod)),
+    remove: vi.fn(async (_user, period) => { work.delete(period.value); }),
+    clear: vi.fn(async () => { work.clear(); }),
+  };
+  const outbox: MacroAnalyticsOutboxPort = {
+    get: vi.fn(async (_user, period) => pending.get(period.value) ?? null),
+    save: vi.fn(async (_user, value) => { pending.set(value.period.value, value); }),
+    remove: vi.fn(async (_user, period) => { pending.delete(period.value); }),
+    listPending: vi.fn(async () => [...pending.values()]), clear: vi.fn(async () => { pending.clear(); }),
+  };
+  const processor: MacroAnalyticsPublicationProcessorPort = { process: vi.fn(async () => options.processorStatus ?? 'ACCEPTED') };
+  const prepare = vi.fn(async ({ period }: { period: string }) => ({ status: 'PREPARED' as const, publication: publication(period) }));
+  const ports = {
+    consent: { get: vi.fn(async () => options.granted === false ? null : consent) },
+    backfillState: state,
+    rebuildQueue: queue,
+    periodSource: { listPeriods: vi.fn(async () => (options.periods ?? ['2025-11', '2025-12', '2027-01']).map(createAnalyticsPeriod)) },
+    outbox,
+    processor,
+    prepare,
+  };
+  return { ports, queue, state, outbox, processor, prepare };
+}
+
+const input = { userId: 'u', timeZone: 'Europe/London', now: new Date('2026-01-15T12:00:00Z') };
+
+describe('RunMacroAnalyticsMaintenance', () => {
+  it('backfills historical periods, adds current period, excludes future periods, and processes chronologically', async () => {
+    const state = setup();
+    const result = await RunMacroAnalyticsMaintenance(state.ports, input);
+    expect(state.prepare.mock.calls.map(([value]) => value.period)).toEqual(['2025-11', '2025-12', '2026-01']);
+    expect(result).toMatchObject({ status: 'COMPLETED', rebuiltPeriods: ['2025-11', '2025-12', '2026-01'], pendingPeriods: [] });
+    expect(state.state.markInitialBackfillComplete).toHaveBeenCalledWith('u', 1);
+    expect(state.ports.periodSource.listPeriods).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a conflicting publication period queued for retry', async () => {
+    const state = setup({ processorStatus: 'REVISION_CONFLICT', periods: [] });
+    const result = await RunMacroAnalyticsMaintenance(state.ports, input);
+    expect(result.pendingPeriods).toEqual(['2026-01']);
+    expect(state.queue.remove).not.toHaveBeenCalled();
+  });
+
+  it('does not discover or process periods without consent', async () => {
+    const state = setup({ granted: false });
+    const result = await RunMacroAnalyticsMaintenance(state.ports, input);
+    expect(result.status).toBe('CONSENT_NOT_GRANTED');
+    expect(state.ports.periodSource.listPeriods).not.toHaveBeenCalled();
+    expect(state.prepare).not.toHaveBeenCalled();
+    expect(state.processor.process).not.toHaveBeenCalled();
+  });
+
+  it('rediscovers a requested full rebuild and clears the request after enqueue succeeds', async () => {
+    const state = setup({ requested: true, periods: [] });
+    await RunMacroAnalyticsMaintenance(state.ports, input);
+    expect(state.ports.periodSource.listPeriods).toHaveBeenCalledTimes(2);
+    expect(state.state.clearFullRebuildRequest).toHaveBeenCalledWith('u');
+  });
+});

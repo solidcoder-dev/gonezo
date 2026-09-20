@@ -52,3 +52,8 @@ export type {
   BuildMacroAnalyticsContributionResult,
 } from './buildMacroAnalyticsContribution';
 export type { ContributionProfileSourcePort } from './contributionProfileSource.port';
+export type { ContributionRebuildQueuePort } from './contributionRebuildQueue.port';
+export type { ContributionPeriodSourcePort } from './contributionPeriodSource.port';
+export type { MacroAnalyticsBackfillState, MacroAnalyticsBackfillStatePort } from './macroAnalyticsBackfillState.port';
+export { RunMacroAnalyticsMaintenance, INITIAL_CONTRIBUTION_BACKFILL_VERSION } from './RunMacroAnalyticsMaintenance';
+export type { MacroAnalyticsMaintenanceResult } from './RunMacroAnalyticsMaintenance';
