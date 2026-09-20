@@ -1,16 +1,15 @@
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
-import { moneyMetricValue, type MetricValue } from '../../shared/domain/analyticsMetric';
 import type { AnalyticsPeriod } from './analyticsPeriod';
 import type { Cohort } from './cohort';
 import type { MacroAnalyticsContribution } from './macroAnalyticsContribution';
 import type { MacroCategoryCode } from './macroCategoryCode';
-import { buildContributorCategoryBreakdown } from './contributorCategoryBreakdown';
+import { buildContributorCategoryBreakdown, type CategoryMoneyAmount } from './contributorCategoryBreakdown';
 import { exactMedian } from './decimalStatistics';
 
 export type CohortCategoryBreakdownItem = Readonly<{
   category: MacroCategoryCode;
-  totalAmount: Extract<MetricValue, { kind: 'MONEY' }>;
-  medianAmount: Extract<MetricValue, { kind: 'MONEY' }>;
+  totalAmount: CategoryMoneyAmount;
+  medianAmount: CategoryMoneyAmount;
   activeContributorCount: number;
   sharePercent: string;
 }>;
@@ -49,8 +48,8 @@ export function buildCohortCategoryBreakdown(input: Readonly<{
       const activeContributorCount = contributorAmounts.filter((amount) => amount.compare(ExactDecimal.from('0')) > 0).length;
       return Object.freeze({
         category,
-        totalAmount: moneyMetricValue(total, currency) as Extract<MetricValue, { kind: 'MONEY' }>,
-        medianAmount: moneyMetricValue(median, currency) as Extract<MetricValue, { kind: 'MONEY' }>,
+        totalAmount: categoryMoneyAmount(total, currency),
+        medianAmount: categoryMoneyAmount(median, currency),
         activeContributorCount,
         sharePercent: total.ratioTo(representedExpenseTotal, 4).multiplyByInteger(100).toString(),
       });
@@ -61,4 +60,8 @@ export function buildCohortCategoryBreakdown(input: Readonly<{
 
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function categoryMoneyAmount(value: ExactDecimal, currency: string): CategoryMoneyAmount {
+  return Object.freeze({ kind: 'MONEY', value, currency });
 }
