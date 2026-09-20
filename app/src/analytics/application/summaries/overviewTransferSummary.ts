@@ -1,7 +1,7 @@
 import type { LedgerTransactionListItem } from '../../../ledger/application/ledger.port';
 import { addDecimalAmounts } from '../../../ledger/application/decimalAmount';
 import { isBalanceInflow, isBalanceOutflow } from '../../../ledger/application/movementSemantics';
-import { isAnalyticsCashFlowTransaction } from '../analyticsBuilders';
+import { isAnalyticsCashFlowTransaction } from '../analyticsMovementEligibility';
 
 export function buildOverviewTransferSummary(transactions: LedgerTransactionListItem[], currency: string) {
   if (!transactions.some((transaction) => transaction.type === 'transfer_in' || transaction.type === 'transfer_out')) return {};

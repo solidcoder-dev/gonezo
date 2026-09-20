@@ -105,7 +105,7 @@ import { createAnalyticsQueryContext } from '../application/analyticsQueryContex
 import { analyticsReferenceDateFromNow } from '../application/analyticsFilters';
 import { CalculateUserMetrics } from '../application/metrics/calculateUserMetrics';
 import { userMetricCalculators } from '../application/metrics/financialMetricCalculators';
-import { isAnalyticsCashFlowTransaction } from '../application/analyticsBuilders';
+import { isAnalyticsCashFlowTransaction } from '../application/analyticsMovementEligibility';
 
 const calculateUserMetrics = new CalculateUserMetrics(userMetricCalculators);
 

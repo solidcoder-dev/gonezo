@@ -1,4 +1,4 @@
-import { ExactDecimal } from '../../shared/domain/exactDecimal';
+import type { ExactDecimal } from '../../shared/domain/exactDecimal';
 import type { AnalyticsMoneyDto, AnalyticsSpendingMovement, AnalyticsSpendingPeriodWindow } from './spendingReport';
 
 export function expensesInWindow(

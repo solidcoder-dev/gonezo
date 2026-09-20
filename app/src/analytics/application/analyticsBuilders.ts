@@ -35,9 +35,10 @@ import { buildOverviewInsightsResult } from './overviewInsights';
 import { addDecimalAmounts, subtractDecimalAmounts } from '../../ledger/application/decimalAmount';
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import { balanceImpact, isBalanceInflow, isBalanceOutflow, isEconomicExpense, isEconomicIncome } from '../../ledger/application/movementSemantics';
+import { isAnalyticsCashFlowTransaction } from './analyticsMovementEligibility';
+import { compareAnalyticsAmountDescending, toAnalyticsHighlight } from './highlights/movementHighlight';
 
 const UNCATEGORIZED = 'Uncategorized';
-const OPENING_BALANCE_DESCRIPTION = 'opening balance';
 
 function addAmount(left: string, right: string): string {
   return addDecimalAmounts(left, right);
@@ -254,20 +255,6 @@ export function buildSpendingTimelineWindow(
   };
 }
 
-function isAutomaticOpeningBalance(transaction: LedgerTransactionListItem): boolean {
-  return transaction.description?.trim().toLowerCase() === OPENING_BALANCE_DESCRIPTION
-    && !transaction.merchant
-    && !transaction.categoryId
-    && transaction.items.length === 0;
-}
-
-export function isAnalyticsCashFlowTransaction(transaction: LedgerTransactionListItem, currency: string): boolean {
-  return transaction.status === 'posted'
-    && (isBalanceInflow(transaction.type) || isBalanceOutflow(transaction.type))
-    && transaction.currency.toUpperCase() === currency
-    && !isAutomaticOpeningBalance(transaction);
-}
-
 export function listAnalyticsCurrencies(accounts: LedgerAccountItem[], preferredCurrency?: string): string[] {
   const currencies = [...new Set(accounts.map((account) => account.currency.toUpperCase()))].sort();
   const normalizedPreferredCurrency = preferredCurrency?.trim().toUpperCase();
@@ -316,48 +303,6 @@ export function buildAnalyticsCashFlowSummary(
       .filter((transaction) => isAnalyticsCashFlowTransaction(transaction, currency))
       .reduce((total, transaction) => addAmount(total, balanceImpact(transaction.type, analyticsTransactionAmount(transaction))), '0.00'),
   };
-}
-
-function analyticsHighlightTitle(transaction: LedgerTransactionListItem): string {
-  const description = transaction.description?.trim();
-  if (description) {
-    return description;
-  }
-  const merchant = transaction.merchant?.trim();
-  if (merchant) {
-    return merchant;
-  }
-  const categoryName = transaction.category?.name?.trim();
-  if (categoryName) {
-    return categoryName;
-  }
-  return transaction.type === 'expense' ? 'Expense' : 'Income';
-}
-
-function analyticsHighlightSubtitle(transaction: LedgerTransactionListItem): string | undefined {
-  const description = transaction.description?.trim();
-  const merchant = transaction.merchant?.trim();
-  if (description && merchant) {
-    return merchant;
-  }
-  return undefined;
-}
-
-function toOverviewHighlight(transaction: LedgerTransactionListItem | undefined): AnalyticsOverviewHighlight | undefined {
-  if (!transaction) {
-    return undefined;
-  }
-  return {
-    movementId: transaction.id,
-    title: analyticsHighlightTitle(transaction),
-    subtitle: analyticsHighlightSubtitle(transaction),
-    amount: analyticsTransactionAmount(transaction),
-    occurredAt: transaction.occurredAt,
-  };
-}
-
-function byAmountDescending(left: LedgerTransactionListItem, right: LedgerTransactionListItem): number {
-  return ExactDecimal.from(analyticsTransactionAmount(right)).compare(ExactDecimal.from(analyticsTransactionAmount(left)));
 }
 
 function percentChange(currentAmount: string, previousAmount: string): string | undefined {
@@ -634,9 +579,9 @@ export function buildSpendingTopExpenses(input: {
           && occurredAt >= input.currentWindow.start
           && occurredAt < input.currentWindow.end;
       })
-      .sort(byAmountDescending)
+      .sort(compareAnalyticsAmountDescending)
       .slice(0, input.limit ?? 3)
-      .map((transaction) => toOverviewHighlight(transaction))
+      .map((transaction) => toAnalyticsHighlight(transaction))
       .filter((transaction): transaction is AnalyticsOverviewHighlight => Boolean(transaction)),
   };
 }

@@ -1,5 +1,4 @@
-import { isBalanceInflow, isBalanceOutflow } from '../../../ledger/application/movementSemantics';
-import { balanceImpact } from '../../../ledger/application/movementSemantics';
+import { balanceImpact, isBalanceInflow, isBalanceOutflow } from '../../../ledger/application/movementSemantics';
 import { ExactDecimal } from '../../../shared/domain/exactDecimal';
 import type { AnalyticsFlowFact, AnalyticsFlowReport, AnalyticsMoneyDto } from '../analyticsFlowReport';
 
