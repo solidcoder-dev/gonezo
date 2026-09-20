@@ -18,9 +18,9 @@ class JdbcRecurringMovementOccurrenceRepository(private val jdbcTemplate: NamedP
         val sql =
             """
             insert into recurring_movement_occurrences (
-              id, recurring_movement_id, due_at, status, ledger_transaction_id, error_code, error_message, created_at, updated_at, acknowledged_at
+              id, recurring_movement_id, due_at, status, ledger_transaction_id, error_code, error_message, created_at, updated_at, acknowledged_at, schedule_kind
             ) values (
-              :id, :recurring_movement_id, :due_at, :status, :ledger_transaction_id, :error_code, :error_message, :created_at, :updated_at, :acknowledged_at
+              :id, :recurring_movement_id, :due_at, :status, :ledger_transaction_id, :error_code, :error_message, :created_at, :updated_at, :acknowledged_at, :schedule_kind
             )
             on conflict(id) do update set
               recurring_movement_id = excluded.recurring_movement_id,
@@ -32,6 +32,7 @@ class JdbcRecurringMovementOccurrenceRepository(private val jdbcTemplate: NamedP
               created_at = excluded.created_at,
               updated_at = excluded.updated_at,
               acknowledged_at = excluded.acknowledged_at
+              , schedule_kind = excluded.schedule_kind
             """.trimIndent()
 
         val params =
@@ -46,6 +47,7 @@ class JdbcRecurringMovementOccurrenceRepository(private val jdbcTemplate: NamedP
                 .addValue("created_at", occurrence.createdAt.toString())
                 .addValue("updated_at", occurrence.updatedAt.toString())
                 .addValue("acknowledged_at", occurrence.acknowledgedAt?.toString())
+                .addValue("schedule_kind", occurrence.schedulingKind.value)
         jdbcTemplate.update(sql, params)
     }
 
@@ -107,6 +109,7 @@ class JdbcRecurringMovementOccurrenceRepository(private val jdbcTemplate: NamedP
             createdAt = Instant.parse(rs.getString("created_at")),
             updatedAt = Instant.parse(rs.getString("updated_at")),
             acknowledgedAt = rs.getString("acknowledged_at")?.let(Instant::parse),
+            schedulingKind = com.gonezo.recurrence.domain.SchedulingKind.from(rs.getString("schedule_kind")),
         )
     }
 }

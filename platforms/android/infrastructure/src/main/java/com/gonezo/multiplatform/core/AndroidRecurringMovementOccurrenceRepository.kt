@@ -25,6 +25,7 @@ internal class AndroidRecurringMovementOccurrenceRepository(
     values.put("created_at", occurrence.createdAt.toString())
     values.put("updated_at", occurrence.updatedAt.toString())
     values.putNullable("acknowledged_at", occurrence.acknowledgedAt?.toString())
+    values.put("schedule_kind", occurrence.schedulingKind.value)
 
     val result = db.writableDatabase.insertWithOnConflict(
       "recurring_movement_occurrences",
@@ -104,6 +105,7 @@ internal class AndroidRecurringMovementOccurrenceRepository(
     createdAt = Instant.parse(cursor.string("created_at")),
     updatedAt = Instant.parse(cursor.string("updated_at")),
     acknowledgedAt = cursor.stringOrNull("acknowledged_at")?.let(Instant::parse),
+    schedulingKind = com.gonezo.recurrence.domain.SchedulingKind.from(cursor.string("schedule_kind")),
   )
 
   private fun Cursor.string(column: String): String = getString(getColumnIndexOrThrow(column))
@@ -133,6 +135,7 @@ internal class AndroidRecurringMovementOccurrenceRepository(
       "created_at",
       "updated_at",
       "acknowledged_at",
+      "schedule_kind",
     )
   }
 }

@@ -53,7 +53,7 @@ class JdbcRecurrenceRepositoriesE2ETest : SqliteE2ETest() {
                     monthlyWeekOrdinal = 3,
                     monthlyWeekday = DayOfWeek.THURSDAY,
                 ),
-                recurrenceEnd = RecurrenceEnd.OnDate(LocalDate.parse("2026-12-31")),
+                recurrenceEnd = RecurrenceEnd.AfterOccurrences(1),
                 startAt = Instant.parse("2026-02-01T09:00:00Z"),
                 zoneId = "UTC",
                 createdAt = Instant.parse("2026-02-01T09:00:00Z"),
@@ -72,12 +72,14 @@ class JdbcRecurrenceRepositoriesE2ETest : SqliteE2ETest() {
                 recurringMovementId = movement.id,
                 dueAt = requireNotNull(movement.nextDueAt),
                 createdAt = Instant.parse("2026-02-19T09:00:00Z"),
+                schedulingKind = movement.schedulingKind,
             )
         occurrenceRepository.save(occurrence)
 
         val loadedOccurrence = occurrenceRepository.findByRecurringMovementAndDueAt(movement.id, requireNotNull(movement.nextDueAt))
         assertThat(loadedOccurrence).isNotNull()
         assertThat(loadedOccurrence!!.status.value).isEqualTo("pending")
+        assertThat(loadedOccurrence.schedulingKind.value).isEqualTo("one_shot")
 
         val outboxMessage =
             RecurrenceOutboxMessage(
