@@ -14,7 +14,6 @@ export type FinancialFact = Readonly<{
   kind: FinancialFactKind;
   amount: DecimalAmount;
   currency: string;
-  category?: string;
 }>;
 
 export type FinancialFactInput = Readonly<{
@@ -24,7 +23,6 @@ export type FinancialFactInput = Readonly<{
   kind: FinancialFactKind;
   amount: string;
   currency: string;
-  category?: string;
 }>;
 
 const zonedInstantPattern = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
@@ -54,7 +52,6 @@ export function createFinancialFact(input: FinancialFactInput): FinancialFact {
     throw new Error('Financial fact amount must be a positive decimal string');
   }
   if (!/^[A-Z]{3}$/.test(input.currency)) throw new Error('Financial fact currency must be an uppercase three-letter code');
-  if (input.category !== undefined && !input.category.trim()) throw new Error('Financial fact category cannot be empty');
 
   return Object.freeze({
     id: input.id as FinancialFactId,
@@ -63,6 +60,5 @@ export function createFinancialFact(input: FinancialFactInput): FinancialFact {
     kind: input.kind,
     amount: input.amount as DecimalAmount,
     currency: input.currency,
-    ...(input.category === undefined ? {} : { category: input.category }),
   });
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { macroCategoryCodeFor } from '../infrastructure/macroCategoryMapper';
+import { macroCategoryCodeFor } from './macroCategoryMapper';
 
 describe('macro category mapping', () => {
   it('classifies seeded ids independently of category names', () => {
