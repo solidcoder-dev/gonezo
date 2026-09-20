@@ -193,6 +193,8 @@ class RecurrenceOutboxAndAckServiceTest {
 
         override fun findById(id: UUID): RecurringMovementOccurrence? = storage[id]
 
+        override fun findByLedgerTransactionId(ledgerTransactionId: String): RecurringMovementOccurrence? = storage.values.firstOrNull { it.ledgerTransactionId == ledgerTransactionId }
+
         override fun findByRecurringMovementAndDueAt(recurringMovementId: RecurringMovementId, dueAt: Instant): RecurringMovementOccurrence? = storage.values.firstOrNull {
             it.recurringMovementId == recurringMovementId && it.dueAt == dueAt
         }

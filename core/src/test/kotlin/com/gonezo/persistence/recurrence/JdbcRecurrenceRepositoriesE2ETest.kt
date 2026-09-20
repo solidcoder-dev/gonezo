@@ -80,6 +80,9 @@ class JdbcRecurrenceRepositoriesE2ETest : SqliteE2ETest() {
         assertThat(loadedOccurrence).isNotNull()
         assertThat(loadedOccurrence!!.status.value).isEqualTo("pending")
         assertThat(loadedOccurrence.schedulingKind.value).isEqualTo("one_shot")
+        val postedOccurrence = loadedOccurrence.acknowledgePosted("transaction-1", Instant.parse("2026-02-19T10:00:00Z"))
+        occurrenceRepository.save(postedOccurrence)
+        assertThat(occurrenceRepository.findByLedgerTransactionId("transaction-1")).isEqualTo(postedOccurrence)
 
         val outboxMessage =
             RecurrenceOutboxMessage(

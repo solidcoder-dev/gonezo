@@ -61,6 +61,11 @@ class JdbcRecurringMovementOccurrenceRepository(private val jdbcTemplate: NamedP
         return jdbcTemplate.query(sql, MapSqlParameterSource("id", id.toString()), rowMapper()).firstOrNull()
     }
 
+    override fun findByLedgerTransactionId(ledgerTransactionId: String): RecurringMovementOccurrence? {
+        val sql = "select * from recurring_movement_occurrences where ledger_transaction_id = :ledger_transaction_id limit 1"
+        return jdbcTemplate.query(sql, MapSqlParameterSource("ledger_transaction_id", ledgerTransactionId), rowMapper()).firstOrNull()
+    }
+
     override fun findByRecurringMovementAndDueAt(recurringMovementId: RecurringMovementId, dueAt: Instant): RecurringMovementOccurrence? {
         val sql =
             """

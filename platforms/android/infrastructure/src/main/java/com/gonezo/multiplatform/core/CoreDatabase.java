@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteException;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 41;
+  private static final int DB_VERSION = 42;
   private static final String SERVICES_CATEGORY_ID = "00000000-0000-4000-8000-000000000111";
 
   public CoreDatabase(Context context) {
@@ -206,6 +206,10 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion < 41) {
       addRecurringOccurrenceSchedulingKind(db);
     }
+
+    if (oldVersion < 42) {
+      createRecurringOccurrenceLedgerTransactionIndex(db);
+    }
   }
 
   @Override
@@ -249,6 +253,10 @@ public final class CoreDatabase extends SQLiteOpenHelper {
   private static void addRecurringOccurrenceSchedulingKind(SQLiteDatabase db) {
     db.execSQL("alter table recurring_movement_occurrences add column schedule_kind text not null default 'recurring' check (schedule_kind in ('recurring', 'one_shot'));");
     db.execSQL("update recurring_movement_occurrences set schedule_kind = case when (select end_kind = 'after_occurrences' and end_after_occurrences = 1 from recurring_movements where recurring_movements.id = recurring_movement_occurrences.recurring_movement_id) then 'one_shot' else 'recurring' end;");
+  }
+
+  private static void createRecurringOccurrenceLedgerTransactionIndex(SQLiteDatabase db) {
+    db.execSQL("create index if not exists idx_recurring_occurrences_ledger_transaction on recurring_movement_occurrences(ledger_transaction_id) where ledger_transaction_id is not null;");
   }
 
   private static void createMacroAnalyticsRebuildTables(SQLiteDatabase db) {
@@ -674,6 +682,8 @@ public final class CoreDatabase extends SQLiteOpenHelper {
       "create index if not exists idx_recurring_occurrences_status " +
         "on recurring_movement_occurrences(status, due_at);"
     );
+
+    createRecurringOccurrenceLedgerTransactionIndex(db);
 
     db.execSQL(
       "create table if not exists recurrence_outbox (" +

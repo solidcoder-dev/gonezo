@@ -10,6 +10,8 @@ interface RecurringMovementOccurrenceRepository {
 
     fun findById(id: UUID): RecurringMovementOccurrence?
 
+    fun findByLedgerTransactionId(ledgerTransactionId: String): RecurringMovementOccurrence?
+
     fun findByRecurringMovementAndDueAt(recurringMovementId: RecurringMovementId, dueAt: Instant): RecurringMovementOccurrence?
 
     fun listByRecurringMovement(recurringMovementId: RecurringMovementId): List<RecurringMovementOccurrence>

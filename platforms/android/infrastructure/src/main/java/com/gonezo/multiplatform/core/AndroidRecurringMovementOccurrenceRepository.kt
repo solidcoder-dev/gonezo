@@ -51,6 +51,20 @@ internal class AndroidRecurringMovementOccurrenceRepository(
     return cursor.use { if (it.moveToFirst()) mapOccurrence(it) else null }
   }
 
+  override fun findByLedgerTransactionId(ledgerTransactionId: String): RecurringMovementOccurrence? {
+    val cursor = db.readableDatabase.query(
+      "recurring_movement_occurrences",
+      COLUMNS,
+      "ledger_transaction_id = ?",
+      arrayOf(ledgerTransactionId),
+      null,
+      null,
+      null,
+      "1",
+    )
+    return cursor.use { if (it.moveToFirst()) mapOccurrence(it) else null }
+  }
+
   override fun findByRecurringMovementAndDueAt(
     recurringMovementId: RecurringMovementId,
     dueAt: Instant,
