@@ -102,6 +102,7 @@ class ProcessDueRecurringMovementsServiceTest {
                 recurringMovementId = movement.id,
                 dueAt = dueAt,
                 createdAt = Instant.parse("2026-04-10T09:00:30Z"),
+                schedulingKind = movement.schedulingKind,
             ),
         )
 

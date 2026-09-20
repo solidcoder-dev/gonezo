@@ -34,7 +34,7 @@ class DefaultExpectedOccurrenceProjectionService(private val recurringMovementRe
         val occurrence =
             occurrenceRepository.findByRecurringMovementAndDueAt(movement.id, dueAt)
                 ?: RecurringMovementOccurrence
-                    .pending(UUID.randomUUID(), movement.id, dueAt, projectedAt)
+                    .pending(UUID.randomUUID(), movement.id, dueAt, projectedAt, movement.schedulingKind)
                     .also(occurrenceRepository::save)
         val existingExpected = expectedMovementRepository.findByOriginOccurrenceId(occurrence.id.toString())
         val expectedId =

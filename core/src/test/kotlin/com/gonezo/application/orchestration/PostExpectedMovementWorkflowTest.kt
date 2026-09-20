@@ -25,6 +25,7 @@ import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceC
 import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceUC
 import com.gonezo.recurrence.domain.RecurringMovementId
 import com.gonezo.recurrence.domain.RecurringMovementOccurrence
+import com.gonezo.recurrence.domain.SchedulingKind
 import com.gonezo.sharing.application.MaterializePlannedShareCommand
 import com.gonezo.sharing.application.MaterializePlannedShareForPostedMovementUC
 import com.gonezo.sharing.domain.ExpectedMovementRef
@@ -234,7 +235,7 @@ class PostExpectedMovementWorkflowTest {
             acknowledgeOccurrence = object : AcknowledgeRecurringMovementOccurrenceUC {
                 override fun execute(command: AcknowledgeRecurringMovementOccurrenceCommand): RecurringMovementOccurrence {
                     fixture.acknowledgedOccurrences.add(command.occurrenceId.toString())
-                    return RecurringMovementOccurrence.pending(command.occurrenceId, RecurringMovementId.random(), command.acknowledgedAt, command.acknowledgedAt)
+                    return RecurringMovementOccurrence.pending(command.occurrenceId, RecurringMovementId.random(), command.acknowledgedAt, command.acknowledgedAt, SchedulingKind.RECURRING)
                 }
             },
             projectNext = object : ExpectedOccurrenceProjectionService {

@@ -230,6 +230,7 @@ class ProcessDueScheduledMovementsServiceTest {
             recurringMovementId = movement.id,
             dueAt = checkNotNull(movement.nextDueAt),
             createdAt = Instant.parse("2026-06-10T09:30:00Z"),
+            schedulingKind = movement.schedulingKind,
         )
         occurrenceRepository.save(occurrence)
         val service = service(
@@ -290,6 +291,7 @@ class ProcessDueScheduledMovementsServiceTest {
             recurringMovementId = movement.id,
             dueAt = checkNotNull(movement.nextDueAt),
             createdAt = Instant.parse("2026-06-10T09:30:00Z"),
+            schedulingKind = movement.schedulingKind,
         )
         occurrenceRepository.save(occurrence)
         val existingExpected = ExpectedMovement.create(

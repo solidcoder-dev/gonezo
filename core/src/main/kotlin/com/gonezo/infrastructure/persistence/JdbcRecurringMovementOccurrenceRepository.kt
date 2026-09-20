@@ -31,8 +31,8 @@ class JdbcRecurringMovementOccurrenceRepository(private val jdbcTemplate: NamedP
               error_message = excluded.error_message,
               created_at = excluded.created_at,
               updated_at = excluded.updated_at,
-              acknowledged_at = excluded.acknowledged_at
-              , schedule_kind = excluded.schedule_kind
+              acknowledged_at = excluded.acknowledged_at,
+              schedule_kind = excluded.schedule_kind
             """.trimIndent()
 
         val params =

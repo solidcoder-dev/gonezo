@@ -22,10 +22,17 @@ describe('createRecurringFact', () => {
     });
   });
 
-  it('rejects an amount that is not a positive decimal', () => {
+  it('preserves a zero personal amount', () => {
+    expect(createRecurringFact({
+      id: 'fact', occurredAt: '2026-09-18T10:30:00Z', source: 'POSTED',
+      kind: 'EXPENSE', currency: 'EUR', amount: '0.00', seriesId: 'series/local',
+    }).amount).toBe('0.00');
+  });
+
+  it('rejects an amount that is not a decimal', () => {
     expect(() => createRecurringFact({
       id: 'fact', occurredAt: '2026-09-18T10:30:00Z', source: 'POSTED',
-      kind: 'EXPENSE', currency: 'EUR', amount: '0', seriesId: 'series/local',
-    })).toThrow('Recurring fact amount must be a positive decimal string');
+      kind: 'EXPENSE', currency: 'EUR', amount: '-1.00', seriesId: 'series/local',
+    })).toThrow('Recurring fact amount must be a non-negative decimal string');
   });
 });

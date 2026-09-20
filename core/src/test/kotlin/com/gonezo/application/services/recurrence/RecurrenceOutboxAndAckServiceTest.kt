@@ -10,6 +10,7 @@ import com.gonezo.recurrence.domain.RecurrenceOutboxMessage
 import com.gonezo.recurrence.domain.RecurrenceOutboxStatus
 import com.gonezo.recurrence.domain.RecurringMovementId
 import com.gonezo.recurrence.domain.RecurringMovementOccurrence
+import com.gonezo.recurrence.domain.SchedulingKind
 import com.gonezo.recurrence.domain.RecurringMovementOccurrenceStatus
 import com.gonezo.recurrence.domain.ports.RecurrenceOutboxRepository
 import com.gonezo.recurrence.domain.ports.RecurringMovementOccurrenceRepository
@@ -31,6 +32,7 @@ class RecurrenceOutboxAndAckServiceTest {
                 recurringMovementId = RecurringMovementId.random(),
                 dueAt = Instant.parse("2026-04-11T09:00:00Z"),
                 createdAt = Instant.parse("2026-04-11T09:01:00Z"),
+                schedulingKind = SchedulingKind.RECURRING,
             )
         repository.save(occurrence)
 
@@ -72,6 +74,7 @@ class RecurrenceOutboxAndAckServiceTest {
                 recurringMovementId = RecurringMovementId.random(),
                 dueAt = Instant.parse("2026-04-11T09:00:00Z"),
                 createdAt = Instant.parse("2026-04-11T09:01:00Z"),
+                schedulingKind = SchedulingKind.RECURRING,
             )
         repository.save(occurrence)
 
@@ -102,6 +105,7 @@ class RecurrenceOutboxAndAckServiceTest {
                 recurringMovementId = RecurringMovementId.random(),
                 dueAt = Instant.parse("2026-04-11T09:00:00Z"),
                 createdAt = Instant.parse("2026-04-11T09:01:00Z"),
+                schedulingKind = SchedulingKind.RECURRING,
             )
         repository.save(occurrence)
 

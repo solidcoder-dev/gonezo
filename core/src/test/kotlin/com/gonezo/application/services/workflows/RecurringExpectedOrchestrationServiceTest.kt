@@ -24,6 +24,7 @@ import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceS
 import com.gonezo.recurrence.application.RecurringMovementDueIntegrationEvent
 import com.gonezo.recurrence.domain.RecurringMovementId
 import com.gonezo.recurrence.domain.RecurringMovementOccurrence
+import com.gonezo.recurrence.domain.SchedulingKind
 import com.gonezo.recurrence.domain.RecurringMovementOccurrenceStatus
 import com.gonezo.recurrence.domain.ports.RecurringMovementOccurrenceRepository
 import org.assertj.core.api.Assertions.assertThat
@@ -155,6 +156,7 @@ class RecurringExpectedOrchestrationServiceTest {
                 recurringMovementId = RecurringMovementId.random(),
                 dueAt = Instant.parse("2026-06-10T09:00:00Z"),
                 createdAt = Instant.parse("2026-06-10T09:00:01Z"),
+                schedulingKind = SchedulingKind.RECURRING,
             )
         occurrenceRepository.save(occurrence)
 
@@ -212,6 +214,7 @@ class RecurringExpectedOrchestrationServiceTest {
                 recurringMovementId = RecurringMovementId.random(),
                 dueAt = Instant.parse("2026-06-10T09:00:00Z"),
                 createdAt = Instant.parse("2026-06-10T09:00:01Z"),
+                schedulingKind = SchedulingKind.RECURRING,
             )
         occurrenceRepository.save(occurrence)
 
@@ -268,6 +271,7 @@ class RecurringExpectedOrchestrationServiceTest {
                 recurringMovementId = RecurringMovementId.random(),
                 dueAt = Instant.parse("2026-06-10T09:00:00Z"),
                 createdAt = Instant.parse("2026-06-10T09:00:01Z"),
+                schedulingKind = SchedulingKind.RECURRING,
             )
         occurrenceRepository.save(occurrence)
 
