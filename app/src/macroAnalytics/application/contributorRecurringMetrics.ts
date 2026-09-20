@@ -20,9 +20,7 @@ function recurringExpenseTotal(metricDefinition: MetricDefinition, source: Recur
     calculate(contribution: MacroAnalyticsContribution, currency?: string): MetricValue | null {
       const normalizedCurrency = selectedFinancialCurrency(contribution, currency);
       if (!normalizedCurrency || !hasRecurringContribution(contribution)) return null;
-      const bucket = contribution.recurring.currencies.find((entry) => entry.currency === normalizedCurrency)?.buckets
-        .find((entry) => entry.source === source && entry.kind === 'EXPENSE');
-      return moneyMetricValue(ExactDecimal.from(bucket?.amount ?? '0'), normalizedCurrency);
+      return moneyMetricValue(ExactDecimal.from(recurringExpenseAmount(contribution, normalizedCurrency, source)), normalizedCurrency);
     },
   });
 }
@@ -35,11 +33,15 @@ const recurringPostedExpenseShareCalculator: ContributorMetricCalculator = Objec
     const financial = contribution.financial.currencies.find((entry) => entry.currency === normalizedCurrency);
     const postedExpense = ExactDecimal.from(financial?.buckets.find((entry) => entry.source === 'POSTED' && entry.kind === 'EXPENSE')?.amount ?? '0');
     if (postedExpense.compare(ExactDecimal.from('0')) === 0) return null;
-    const recurringAmount = contribution.recurring.currencies.find((entry) => entry.currency === normalizedCurrency)?.buckets
-      .find((entry) => entry.source === 'POSTED' && entry.kind === 'EXPENSE')?.amount ?? '0';
+    const recurringAmount = recurringExpenseAmount(contribution, normalizedCurrency, 'POSTED');
     return ratioMetricValue(ExactDecimal.from(recurringAmount).ratioTo(postedExpense, 4).multiplyByInteger(100));
   },
 });
+
+function recurringExpenseAmount(contribution: Extract<MacroAnalyticsContribution, { schemaVersion: 3 }>, currency: string, source: RecurringFactSource): string {
+  return contribution.recurring.currencies.find((entry) => entry.currency === currency)?.buckets
+    .find((entry) => entry.source === source && entry.kind === 'EXPENSE')?.amount ?? '0';
+}
 
 function selectedFinancialCurrency(contribution: MacroAnalyticsContribution, currency?: string): string | null {
   const normalizedCurrency = currency?.trim().toUpperCase();
