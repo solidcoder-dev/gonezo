@@ -115,6 +115,7 @@ describe('analytics queries', () => {
     vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
     const port = createPort([
       transaction({ id: 'current-income', type: 'income', amount: '30.00', occurredAt: '2026-06-16T12:00:00.000Z' }),
+      transaction({ id: 'ignored-income', type: 'income', amount: '500.00', occurredAt: '2026-06-16T12:00:00.000Z', ignored: true }),
       transaction({ id: 'prior-income', type: 'income', amount: '20.00', occurredAt: '2026-06-13T12:00:00.000Z' }),
       transaction({ id: 'outside-income', type: 'income', amount: '90.00', occurredAt: '2026-06-10T12:00:00.000Z' }),
     ]);
@@ -174,6 +175,49 @@ describe('analytics queries', () => {
     expect(current.items[0].value.kind === 'MONEY' && current.items[0].value.value.toString()).toBe('6');
     expect(shifted.items[0].value.kind === 'MONEY' && shifted.items[0].value.value.toString()).toBe('5');
     expect(allTime.items[0].value.kind === 'MONEY' && allTime.items[0].value.value.toString()).toBe('15');
+  });
+
+  it('passes currency, account, tag, planned, ignored, and sharing scope to movement facts', async () => {
+    const fact = {
+      analyticsFactId: 'expected/expense-1',
+      reference: { source: 'expected' as const, expectedMovementId: 'expense-1' },
+      source: 'EXPECTED' as const,
+      effectiveAt: '2026-06-05T10:00:00.000Z',
+      accountId: 'acc-1',
+      type: 'expense' as const,
+      currency: 'EUR',
+      personalAmount: '8.25',
+      fullAmount: '10.00',
+      ignored: false,
+      tagIds: ['tag-trip'],
+    };
+    const analyticsListMovementFacts = vi.fn(async (input: { fromLocalDate: string; toLocalDate: string }) => ({
+      items: input.fromLocalDate <= '2026-06-05' && input.toLocalDate >= '2026-06-05' ? [fact] : [],
+    }));
+    const port = Object.assign(createPort([]), { analyticsListMovementFacts });
+    const expenseId = MetricId.create(MetricKey.create('expense_total'), MetricVersion.create(1));
+
+    const result = await analyticsQueryMetrics(port, {
+      currency: 'EUR',
+      filters: {
+        period: { kind: 'custom', from: '2026-06-01', to: '2026-06-10' },
+        accountIds: ['acc-1'],
+        tagIds: ['tag-trip'],
+        includePlannedMovements: true,
+        includeIgnoredMovements: true,
+        sharedAmountMode: 'personal',
+      },
+      metricIds: [expenseId],
+    });
+
+    expect(analyticsListMovementFacts).toHaveBeenCalledWith(expect.objectContaining({
+      currency: 'EUR',
+      accountIds: ['acc-1'],
+      tagIds: ['tag-trip'],
+      includePlannedMovements: true,
+      includeIgnoredMovements: true,
+    }));
+    expect(result.items[0].value.kind === 'MONEY' && result.items[0].value.value.toString()).toBe('8.25');
   });
 
   it('excludes ignored movements by default across overview, spending and flow analytics', async () => {
