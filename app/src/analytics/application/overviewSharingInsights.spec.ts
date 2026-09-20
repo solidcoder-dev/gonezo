@@ -75,6 +75,17 @@ describe('overviewSharingInsights', () => {
     expect(buildOverviewSharingInsights([])).toEqual([]);
   });
 
+  it('adds sharing amounts exactly at currency precision', () => {
+    const result = buildOverviewSharingInsights(['0.10', '0.20'].map((amount, index) => ({
+      shareId: `share-${index}`,
+      transactionId: `tx-${index}`,
+      participants: [],
+      analytics: { personalExpenseAmount: amount, excludedLentAmount: '0.00', excludedReimbursementIncomeAmount: '0.00' },
+    })));
+
+    expect(result[0].amount).toBe('0.30');
+  });
+
   it('counts shared movements without requiring reimbursable participants and supports full amounts', () => {
     expect(buildOverviewSharingInsights([{
       shareId: 'share-1',

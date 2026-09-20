@@ -1,11 +1,12 @@
 import type { AnalyticsOverviewInsightItem } from './analytics.port';
 import type { SharingMovementDetailsResult } from '../../sharing/application/sharing.port';
+import { ExactDecimal } from '../../shared/domain/exactDecimal';
 
 type SharingMovementDetails = Exclude<SharingMovementDetailsResult, null>;
 type SharedAmountMode = 'personal' | 'full';
 
 function addAmount(left: string, right: string): string {
-  return (Number(left) + Number(right)).toFixed(2);
+  return ExactDecimal.from(left).add(ExactDecimal.from(right)).toFixed(2);
 }
 
 function sharedExpenseCount(details: SharingMovementDetails[]): number {
@@ -36,8 +37,8 @@ function mostSharedWithSummary(details: SharingMovementDetails[]): { personId: s
 
   return [...amountByPerson.entries()]
     .sort((left, right) => {
-      const amountDelta = Number(right[1].amount) - Number(left[1].amount);
-      return amountDelta !== 0 ? amountDelta : left[1].name.localeCompare(right[1].name);
+      const amountOrder = ExactDecimal.from(right[1].amount).compare(ExactDecimal.from(left[1].amount));
+      return amountOrder !== 0 ? amountOrder : left[1].name.localeCompare(right[1].name);
     })
     .map(([personId, person]) => ({ personId, ...person }))[0];
 }
