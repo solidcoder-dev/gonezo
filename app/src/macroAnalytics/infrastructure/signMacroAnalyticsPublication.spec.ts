@@ -6,6 +6,8 @@ import { signMacroAnalyticsPublication } from './signMacroAnalyticsPublication';
 import { InMemoryPublicationSigningIdentityAdapter } from './InMemoryPublicationSigningIdentityAdapter';
 import { createContributorCredentialRegistrationV1 } from './ContributorCredentialRegistrationV1';
 import { serializeMacroAnalyticsPublicationV3 } from './MacroAnalyticsPublicationWireV3';
+import { serializeMacroAnalyticsPublicationV1 } from './MacroAnalyticsPublicationWireV1';
+import { serializeMacroAnalyticsPublicationV2 } from './MacroAnalyticsPublicationWireV2';
 
 const contributorId = createAnalyticsContributorId('opaque-random-id');
 const publication = createMacroAnalyticsPublication({
@@ -76,6 +78,8 @@ describe('macro analytics publication signing', () => {
     const payload = '{"protocolVersion":3,"contributorId":"opaque-random-id","period":"2026-09","revision":5,"contribution":{"schemaVersion":3,"dimensions":{"countryCode":"ES","regionCode":"ES-CN","sex":"FEMALE","ageBand":"25_34"},"financial":{"currencies":[]},"categories":{"currencies":[]},"recurring":{"currencies":[{"currency":"EUR","buckets":[{"source":"SCHEDULED","kind":"EXPENSE","amount":"0","occurrenceCount":1,"seriesCount":1}]}]}}}';
     expect(v3.protocolVersion).toBe(3);
     expect(serializeMacroAnalyticsPublicationV3(v3)).toBe(payload);
+    expect(() => serializeMacroAnalyticsPublicationV1(v3)).toThrow('requires a V1 publication');
+    expect(() => serializeMacroAnalyticsPublicationV2(v3)).toThrow('requires a V2 publication');
     const signed = await signMacroAnalyticsPublication(v3, signingIdentity);
     expect(signed.payload).toBe(payload);
     expect(signingIdentity.sign).toHaveBeenCalledWith(contributorId, new TextEncoder().encode(payload));

@@ -6,9 +6,8 @@ import { createFinancialFact } from '../domain/financialFact';
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import type { FinancialFact } from '../domain/financialFact';
 import type { CategoryFact } from '../domain/categoryFact';
-import type { RecurringFact } from '../domain/recurringFact';
 import type { RecurringFactSourcePort } from '../application/recurringFactSource.port';
-import { createRecurringFact } from '../domain/recurringFact';
+import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
 import type { MacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
 import { createCohort } from '../domain/cohort';
 import { CalculateContributorMetrics } from '../application/CalculateContributorMetrics';
@@ -21,6 +20,8 @@ import { contributorFinancialMetricDefinitions, contributorFinancialMetricCalcul
 import { cohortFinancialMetricCalculators } from '../application/cohortFinancialMetrics';
 import { contributorRecurringMetricCalculators } from '../application/contributorRecurringMetrics';
 import { cohortRecurringMetricCalculators } from '../application/cohortRecurringMetrics';
+import { serializeMacroAnalyticsPublicationV3 } from './MacroAnalyticsPublicationWireV3';
+import { createAnalyticsRecurringFactSource } from './analyticsRecurringFactSource';
 import { LocalMacroAnalyticsPublicationProcessor } from '../application/LocalMacroAnalyticsPublicationProcessor';
 import { RunMacroAnalyticsMaintenance } from '../application/RunMacroAnalyticsMaintenance';
 import { prepareMacroAnalyticsPublication } from '../application/prepareMacroAnalyticsPublication';
@@ -34,7 +35,21 @@ describe('local Macro Analytics lifecycle integration', () => {
       createFinancialFact({ id: 'private-fact', occurredAt: '2026-01-12T12:00:00Z', source: 'POSTED', kind: 'EXPENSE', amount: '12', currency: 'GBP' }),
       createFinancialFact({ id: 'private-scheduled-fact', occurredAt: '2026-01-13T12:00:00Z', source: 'SCHEDULED', kind: 'EXPENSE', amount: '5', currency: 'GBP' }),
     ];
-    const recurringFacts: RecurringFact[] = [createRecurringFact({ id: 'private-occurrence', occurredAt: '2026-01-13T12:00:00Z', source: 'SCHEDULED', kind: 'EXPENSE', amount: '5', currency: 'GBP', seriesId: 'private-series' })];
+    const scheduledOccurrence: AnalyticsMovementFactItem = {
+      analyticsFactId: 'private-occurrence',
+      reference: { source: 'scheduledProjection', recurringMovementId: 'private-series', occurrenceId: 'private-occurrence-id' },
+      source: 'SCHEDULED_PROJECTION',
+      schedulingOrigin: { kind: 'recurring', recurringMovementId: 'private-series' },
+      effectiveAt: '2026-01-13T12:00:00Z',
+      accountId: 'private-account',
+      type: 'expense',
+      currency: 'GBP',
+      personalAmount: '5',
+      fullAmount: '5',
+      ignored: false,
+      categoryAllocations: [],
+      tagIds: [],
+    };
     const consent = { get: vi.fn(async () => createAnalyticsContributionConsent({ userId, status: 'GRANTED', noticeVersion: 1, decidedAt: '2026-01-01T00:00:00Z' })), save: vi.fn(async () => {}) };
     const profile = { get: vi.fn(async () => ({ birthYear: 1995, sex: 'female' as const, countryCode: 'GB', regionCode: 'GB-ENG' })) };
     const financialFacts = { listFinancialFacts: vi.fn(async () => facts) };
@@ -50,7 +65,7 @@ describe('local Macro Analytics lifecycle integration', () => {
         { ...base, id: `${fact.id}/category/1`, amount: secondHalf, category: unmapped },
       ];
     })) };
-    const recurringFactSource: RecurringFactSourcePort = { listRecurringFacts: vi.fn(async () => recurringFacts) };
+    const recurringFactSource: RecurringFactSourcePort = createAnalyticsRecurringFactSource({ analyticsListMovementFacts: vi.fn(async () => ({ items: [scheduledOccurrence] })) });
     const contributionPorts = { consent, profile, financialFacts, categoryFacts, recurringFacts: recurringFactSource };
     const identity = new InMemoryAnalyticsContributorIdentityAdapter();
     const outbox = new InMemoryMacroAnalyticsOutboxAdapter();
@@ -106,6 +121,10 @@ describe('local Macro Analytics lifecycle integration', () => {
     await maintain();
     const current = [...latest.values()][0];
     expect(current.revision).toBe(2);
+    const currentWire = serializeMacroAnalyticsPublicationV3(current);
+    expect(currentWire).toContain('"protocolVersion":3');
+    expect(currentWire).toContain('"source":"SCHEDULED","kind":"EXPENSE","amount":"5","occurrenceCount":1,"seriesCount":1');
+    expect(currentWire).not.toMatch(/private-series|private-occurrence/);
     expect(await outbox.listPending(userId)).toHaveLength(0);
     const updatedReport = await report.execute({ period, currency: 'GBP', cohort });
     expect(updatedReport.medianPostedExpense?.kind === 'MONEY' && updatedReport.medianPostedExpense.value.toString()).toBe('18');
