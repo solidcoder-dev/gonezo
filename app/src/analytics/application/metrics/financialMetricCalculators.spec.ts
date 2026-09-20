@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { ExactDecimal } from '../../../shared/domain/exactDecimal';
 import { MetricId, MetricKey, MetricVersion } from '../../../shared/domain/analyticsMetric';
 import { CalculateUserMetrics } from './calculateUserMetrics';
-import { builtInMetricId, userMetricCalculators } from './financialMetricCalculators';
+import { userMetricCalculators } from './financialMetricCalculators';
 import type { UserMetricContext } from './userMetricContext';
 
 const service = new CalculateUserMetrics(userMetricCalculators);
+const metricId = (key: string) => MetricId.create(MetricKey.create(key), MetricVersion.create(1));
 const facts = (...entries: Array<[UserMetricContext['currentPeriodFacts'][number]['type'], string]>) =>
   entries.map(([type, amount]) => ({ type, amount }));
 
@@ -14,7 +15,7 @@ function context(currentPeriodFacts: UserMetricContext['currentPeriodFacts'], co
 }
 
 function value(key: string, current: UserMetricContext['currentPeriodFacts'], previous?: UserMetricContext['comparisonPeriodFacts']) {
-  return service.execute(context(current, previous), [builtInMetricId(key)])[0]?.value;
+  return service.execute(context(current, previous), [metricId(key)])[0]?.value;
 }
 
 describe('financial user metric calculators', () => {
@@ -31,6 +32,7 @@ describe('financial user metric calculators', () => {
   it.each([
     ['expense_change_percent', facts(['expense', '120']), facts(['expense', '100']), '20'],
     ['expense_change_percent', facts(['expense', '80']), facts(['expense', '100']), '-20'],
+    ['expense_change_percent', facts(['expense', '9']), facts(['expense', '8']), '12.5'],
     ['net_balance_flow_change_percent', facts(['income', '150']), facts(['income', '100']), '50'],
     ['net_balance_flow_change_percent', facts(['income', '50']), facts(['income', '100']), '-50'],
     ['net_balance_flow_change_percent', facts(['income', '50']), facts(['income', '-100']), '-150'],
@@ -46,8 +48,8 @@ describe('financial user metric calculators', () => {
   });
 
   it('selects, deduplicates, and orders requested metrics by their IDs', () => {
-    const income = builtInMetricId('income_total');
-    const expense = builtInMetricId('expense_total');
+    const income = metricId('income_total');
+    const expense = metricId('expense_total');
     expect(service.execute(context(facts(['income', '2'], ['expense', '3'])), [expense, income, expense])
       .map((result) => result.definition.id.toString())).toEqual(['expense_total:v1', 'income_total:v1']);
   });
