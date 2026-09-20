@@ -76,6 +76,18 @@ class AndroidMacroAnalyticsPersistenceTest {
   }
 
   @Test
+  fun latestPublicationReplacementKeepsOnlyTheCurrentRevisionPerContributorAndPeriod() {
+    val repository = AndroidMacroAnalyticsLatestPublicationRepository(database)
+    repository.save(publication("2026-09", 1))
+    repository.save(publication("2026-09", 2))
+    repository.save(publication("2026-10", 1).replace("contributor-a", "contributor-b"))
+
+    assertEquals(2, JSONObject(repository.find("contributor-a", "2026-09")!!).getInt("revision"))
+    assertEquals(1, JSONObject(repository.find("contributor-b", "2026-10")!!).getInt("revision"))
+    assertNull(repository.find("contributor-a", "2026-10"))
+  }
+
+  @Test
   fun version37UpgradePreservesLedgerAndOtherTablesAndPassesIntegrityChecks() {
     database.writableDatabase.execSQL("insert into ledger_accounts(id,name,type,currency,status,created_at) values ('a1','Cash','cash','EUR','active','2026-01-01T00:00:00Z')")
     database.writableDatabase.execSQL("insert into ledger_transactions(id,account_id,type,amount,currency,occurred_at,status) values ('t1','a1','expense','12.50','EUR','2026-01-02T00:00:00Z','posted')")
