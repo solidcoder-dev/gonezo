@@ -14,7 +14,11 @@ class CoreDatabaseFreshInstallTest {
     val database = CoreDatabase(ApplicationProvider.getApplicationContext(), "gonezo-fresh-${System.nanoTime()}.db")
     val sqlite = database.writableDatabase
 
-    assertEquals(40, sqlite.version)
+    assertEquals(43, sqlite.version)
+    assertEquals(1, sqlite.scalar("select count(*) from pragma_table_info('sharing_expense_shares') where name in ('movement_type', 'allocation_mode', 'owner_amount')")!!.toInt() / 3)
+    assertEquals(1, sqlite.scalar("select count(*) from pragma_table_info('sharing_expense_share_participants') where name in ('settlement_status', 'settlement_transaction_id')")!!.toInt() / 2)
+    assertEquals(1, sqlite.scalar("select count(*) from pragma_table_info('sharing_recurring_plans') where name = 'owner_included'")!!.toInt())
+    assertEquals(1, sqlite.scalar("select count(*) from pragma_table_info('sharing_planned_expense_shares') where name = 'owner_included'")!!.toInt())
     assertEquals(1, sqlite.scalar("select count(*) from taxonomy_categories where name = 'Services' and name_normalized = 'services' and applies_to = 'expense' and status = 'active'")!!.toInt())
     assertEquals("table", sqlite.scalar("select type from sqlite_master where name = 'workflow_tx_categorization'"))
     assertEquals("index", sqlite.scalar("select type from sqlite_master where name = 'idx_workflow_tx_categorization_status_next_attempt'"))

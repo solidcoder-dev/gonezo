@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteException;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 42;
+  private static final int DB_VERSION = 43;
   private static final String SERVICES_CATEGORY_ID = "00000000-0000-4000-8000-000000000111";
 
   public CoreDatabase(Context context) {
@@ -209,6 +209,10 @@ public final class CoreDatabase extends SQLiteOpenHelper {
 
     if (oldVersion < 42) {
       createRecurringOccurrenceLedgerTransactionIndex(db);
+    }
+
+    if (oldVersion < 43) {
+      addSharingAttributionColumns(db);
     }
   }
 
@@ -428,7 +432,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
         "id text primary key," +
         "name text not null," +
         "type text not null," +
-        "currency text not null," +
+      "currency text not null," +
         "status text not null," +
         "created_at text not null," +
         "archived_at text" +
@@ -849,6 +853,9 @@ public final class CoreDatabase extends SQLiteOpenHelper {
         "payer_person_id text not null," +
         "total_amount text not null," +
         "currency text not null," +
+        "movement_type text not null default 'expense'," +
+        "allocation_mode text not null default 'amounts'," +
+        "owner_amount text not null default '0'," +
         "created_at text not null," +
         "updated_at text not null," +
         "foreign key(source_transaction_id) references ledger_transactions(id) on delete cascade," +
@@ -869,6 +876,8 @@ public final class CoreDatabase extends SQLiteOpenHelper {
         "amount text not null," +
         "reimbursable integer not null," +
         "expected_movement_id text," +
+        "settlement_status text not null default 'not_required'," +
+        "settlement_transaction_id text," +
         "foreign key(share_id) references sharing_expense_shares(id) on delete cascade," +
         "foreign key(person_id) references sharing_persons(id)," +
         "foreign key(expected_movement_id) references expected_movements(id)" +
@@ -905,7 +914,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     db.execSQL("create table if not exists sharing_recurring_plans (" +
       "id text primary key, recurring_movement_ref text not null, payer_person_id text not null, " +
       "mode text not null check (mode in ('parts', 'amounts')), currency text not null, payer_parts integer, " +
-      "created_at text not null, updated_at text not null, " +
+      "created_at text not null, updated_at text not null, owner_included integer not null default 1, " +
       "foreign key(payer_person_id) references sharing_persons(id), " +
       "check ((mode = 'parts' and payer_parts is not null and payer_parts > 0) or " +
       "(mode = 'amounts' and payer_parts is null)));");
@@ -930,7 +939,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
       "id text primary key, expected_movement_ref text not null, source_plan_id text not null, payer_person_id text not null, " +
       "mode text not null check (mode in ('parts', 'amounts')), payer_parts integer, total_amount text not null, currency text not null, " +
       "status text not null check (status in ('pending', 'materialized', 'cancelled')), " +
-      "materialized_transaction_ref text, materialized_share_ref text, created_at text not null, updated_at text not null, " +
+      "materialized_transaction_ref text, materialized_share_ref text, created_at text not null, updated_at text not null, owner_included integer not null default 1, " +
       "foreign key(source_plan_id) references sharing_recurring_plans(id), foreign key(payer_person_id) references sharing_persons(id), " +
       "check ((status = 'materialized' and materialized_transaction_ref is not null and materialized_share_ref is not null) or " +
       "(status <> 'materialized' and materialized_transaction_ref is null and materialized_share_ref is null)));");
@@ -953,6 +962,28 @@ public final class CoreDatabase extends SQLiteOpenHelper {
       "on sharing_planned_expense_share_participants(planned_share_id, participant_order);");
     db.execSQL("create index if not exists idx_sharing_planned_share_participants_share " +
       "on sharing_planned_expense_share_participants(planned_share_id, participant_order);");
+  }
+
+  private static void addSharingAttributionColumns(SQLiteDatabase db) {
+    addColumnIfMissing(db, "sharing_expense_shares", "movement_type", "text not null default 'expense'");
+    addColumnIfMissing(db, "sharing_expense_shares", "allocation_mode", "text not null default 'amounts'");
+    addColumnIfMissing(db, "sharing_expense_shares", "owner_amount", "text");
+    addColumnIfMissing(db, "sharing_expense_share_participants", "settlement_status", "text not null default 'not_required'");
+    addColumnIfMissing(db, "sharing_expense_share_participants", "settlement_transaction_id", "text");
+    addColumnIfMissing(db, "sharing_recurring_plans", "owner_included", "integer not null default 1");
+    addColumnIfMissing(db, "sharing_planned_expense_shares", "owner_included", "integer not null default 1");
+    db.execSQL("update sharing_expense_shares set owner_amount = total_amount - coalesce((select sum(amount) from sharing_expense_share_participants where share_id = sharing_expense_shares.id), 0) where owner_amount is null");
+    db.execSQL("update sharing_expense_share_participants set settlement_status = case when reimbursable = 0 then 'not_required' when expected_movement_id is not null and exists (select 1 from expected_movements where expected_movements.id = sharing_expense_share_participants.expected_movement_id and expected_movements.status = 'resolved') then 'settled' else 'pending' end where settlement_status = 'not_required' and reimbursable = 1");
+    db.execSQL("update sharing_expense_share_participants set settlement_transaction_id = (select resolved_transaction_id from expected_movements where expected_movements.id = sharing_expense_share_participants.expected_movement_id) where settlement_status = 'settled' and settlement_transaction_id is null");
+  }
+
+  private static void addColumnIfMissing(SQLiteDatabase db, String table, String column, String definition) {
+    try (android.database.Cursor cursor = db.rawQuery("pragma table_info(" + table + ")", null)) {
+      while (cursor.moveToNext()) {
+        if (column.equals(cursor.getString(cursor.getColumnIndexOrThrow("name")))) return;
+      }
+    }
+    db.execSQL("alter table " + table + " add column " + column + " " + definition);
   }
 
   private static void addPlannedSharePayerPartsColumn(SQLiteDatabase db) {
