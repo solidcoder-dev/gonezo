@@ -977,15 +977,6 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     db.execSQL("update sharing_expense_share_participants set settlement_transaction_id = (select resolved_transaction_id from expected_movements where expected_movements.id = sharing_expense_share_participants.expected_movement_id) where settlement_status = 'settled' and settlement_transaction_id is null");
   }
 
-  private static void addColumnIfMissing(SQLiteDatabase db, String table, String column, String definition) {
-    try (android.database.Cursor cursor = db.rawQuery("pragma table_info(" + table + ")", null)) {
-      while (cursor.moveToNext()) {
-        if (column.equals(cursor.getString(cursor.getColumnIndexOrThrow("name")))) return;
-      }
-    }
-    db.execSQL("alter table " + table + " add column " + column + " " + definition);
-  }
-
   private static void addPlannedSharePayerPartsColumn(SQLiteDatabase db) {
     try {
       db.execSQL("alter table sharing_planned_expense_shares add column payer_parts integer;");

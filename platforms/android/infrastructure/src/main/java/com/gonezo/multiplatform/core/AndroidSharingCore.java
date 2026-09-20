@@ -57,7 +57,7 @@ public final class AndroidSharingCore {
 
   public MovementDetailsView getMovementDetails(String transactionId) {
     String resolvedTransactionId = requireText(transactionId, "transactionId is required");
-    var details = new com.gonezo.application.services.sharing.GetMovementSharingDetailsService(
+    var details = new com.gonezo.sharing.application.GetMovementSharingDetailsService(
       new AndroidLedgerTransactionRepository(database),
       new AndroidSharingPersonRepository(database),
       new AndroidMovementShareRepository(database),
