@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteException;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 38;
+  private static final int DB_VERSION = 39;
   private static final String SERVICES_CATEGORY_ID = "00000000-0000-4000-8000-000000000111";
 
   public CoreDatabase(Context context) {
@@ -28,6 +28,8 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     db.delete("notifications", null, null);
     db.delete("macro_analytics_outbox", null, null);
     db.delete("macro_analytics_latest_publications", null, null);
+    db.delete("macro_analytics_rebuild_periods", null, null);
+    db.delete("macro_analytics_rebuild_state", null, null);
     db.delete("workflow_tx_categorization", null, null);
     db.delete("recurrence_outbox", null, null);
     db.delete("expected_posting_attempts", null, null);
@@ -192,6 +194,10 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion < 38) {
       createMacroAnalyticsTables(db);
     }
+
+    if (oldVersion < 39) {
+      createMacroAnalyticsRebuildTables(db);
+    }
   }
 
   @Override
@@ -229,6 +235,12 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     addPlannedItemTagNames(db);
     createNotificationsTables(db);
     createMacroAnalyticsTables(db);
+    createMacroAnalyticsRebuildTables(db);
+  }
+
+  private static void createMacroAnalyticsRebuildTables(SQLiteDatabase db) {
+    db.execSQL("create table if not exists macro_analytics_rebuild_periods (owner_id text not null, period text not null check (period glob '[0-9][0-9][0-9][0-9]-[0-1][0-9]' and substr(period, 1, 4) between '0001' and '9999' and substr(period, 6, 2) between '01' and '12'), primary key(owner_id, period));");
+    db.execSQL("create table if not exists macro_analytics_rebuild_state (owner_id text primary key, initial_backfill_version integer not null default 0 check (initial_backfill_version >= 0), full_rebuild_requested integer not null default 0 check (full_rebuild_requested in (0, 1)));");
   }
 
   private static void createMacroAnalyticsTables(SQLiteDatabase db) {

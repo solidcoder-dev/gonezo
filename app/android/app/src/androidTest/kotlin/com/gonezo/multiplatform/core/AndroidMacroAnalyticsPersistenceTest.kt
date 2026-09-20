@@ -67,12 +67,36 @@ class AndroidMacroAnalyticsPersistenceTest {
     AndroidMacroAnalyticsContributorRepository(database).save("owner-a", "contributor-a")
     AndroidMacroAnalyticsOutboxRepository(database).save("owner-a", publication("2026-09", 1))
     AndroidMacroAnalyticsLatestPublicationRepository(database).save(publication("2026-09", 1))
+    val rebuilds = AndroidMacroAnalyticsRebuildRepository(database)
+    rebuilds.enqueue("owner-a", "2026-09")
+    rebuilds.markInitialBackfillComplete("owner-a", 1)
 
     database.clearPortableState()
 
     assertEquals("contributor-a", AndroidMacroAnalyticsContributorRepository(database).get("owner-a"))
     assertNull(AndroidMacroAnalyticsOutboxRepository(database).get("owner-a", "2026-09"))
     assertNull(AndroidMacroAnalyticsLatestPublicationRepository(database).find("contributor-a", "2026-09"))
+    assertEquals(emptyList<String>(), AndroidMacroAnalyticsRebuildRepository(database).list("owner-a"))
+    assertEquals(0, AndroidMacroAnalyticsRebuildRepository(database).getInitialBackfillVersion("owner-a"))
+  }
+
+  @Test
+  fun rebuildPeriodsAndBackfillStateSurviveRepositoryReconstructionAndStayOrdered() {
+    val rebuilds = AndroidMacroAnalyticsRebuildRepository(database)
+    rebuilds.enqueue("owner-a", "2026-10")
+    rebuilds.enqueue("owner-a", "2026-09")
+    rebuilds.enqueue("owner-a", "2026-09")
+    rebuilds.markInitialBackfillComplete("owner-a", 1)
+    rebuilds.requestFullRebuild("owner-a")
+
+    val reopenedDatabase = CoreDatabase(context, databaseName)
+    val reopened = AndroidMacroAnalyticsRebuildRepository(reopenedDatabase)
+    assertEquals(listOf("2026-09", "2026-10"), reopened.list("owner-a"))
+    assertEquals(1, reopened.getInitialBackfillVersion("owner-a"))
+    assertEquals(true, reopened.isFullRebuildRequested("owner-a"))
+    reopened.remove("owner-a", "2026-09")
+    assertEquals(listOf("2026-10"), reopened.list("owner-a"))
+    reopenedDatabase.close()
   }
 
   @Test
@@ -113,7 +137,7 @@ class AndroidMacroAnalyticsPersistenceTest {
     database = CoreDatabase(context, databaseName)
     val sqlite = database.writableDatabase
 
-    assertEquals(38, sqlite.version)
+    assertEquals(39, sqlite.version)
     assertEquals(1, sqlite.rawQuery("select count(*) from ledger_accounts where id='a1'", null).use { it.moveToFirst(); it.getInt(0) })
     assertEquals(1, sqlite.rawQuery("select count(*) from ledger_transactions where id='t1'", null).use { it.moveToFirst(); it.getInt(0) })
     assertEquals(1, sqlite.rawQuery("select count(*) from notifications where id='n1'", null).use { it.moveToFirst(); it.getInt(0) })

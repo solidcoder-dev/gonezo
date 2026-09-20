@@ -3,6 +3,7 @@ package com.gonezo.multiplatform.plugins;
 import com.gonezo.multiplatform.core.AndroidMacroAnalyticsOutboxRepository;
 import com.gonezo.multiplatform.core.AndroidMacroAnalyticsLatestPublicationRepository;
 import com.gonezo.multiplatform.core.AndroidMacroAnalyticsContributorRepository;
+import com.gonezo.multiplatform.core.AndroidMacroAnalyticsRebuildRepository;
 import com.gonezo.multiplatform.core.CoreDatabase;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -128,6 +129,82 @@ public class MacroAnalyticsLocalStoragePlugin extends Plugin {
     } catch (Exception error) {
       call.reject("Macro analytics local storage failed", "MACRO_ANALYTICS_STORAGE_FAILURE");
     }
+  }
+
+  @PluginMethod public void enqueueRebuildPeriod(PluginCall call) {
+    String period = call.getString("period");
+    withUser(call, (userId, database) -> {
+      new AndroidMacroAnalyticsRebuildRepository(database).enqueue(userId, period);
+      call.resolve();
+    });
+  }
+
+  @PluginMethod public void listRebuildPeriods(PluginCall call) {
+    withUser(call, (userId, database) -> {
+      JSArray periods = new JSArray();
+      for (String period : new AndroidMacroAnalyticsRebuildRepository(database).list(userId)) periods.put(period);
+      JSObject result = new JSObject();
+      result.put("periods", periods);
+      call.resolve(result);
+    });
+  }
+
+  @PluginMethod public void removeRebuildPeriod(PluginCall call) {
+    String period = call.getString("period");
+    withUser(call, (userId, database) -> {
+      new AndroidMacroAnalyticsRebuildRepository(database).remove(userId, period);
+      call.resolve();
+    });
+  }
+
+  @PluginMethod public void clearRebuildPeriods(PluginCall call) {
+    withUser(call, (userId, database) -> {
+      new AndroidMacroAnalyticsRebuildRepository(database).clearPeriods(userId);
+      call.resolve();
+    });
+  }
+
+  @PluginMethod public void getBackfillState(PluginCall call) {
+    withUser(call, (userId, database) -> {
+      AndroidMacroAnalyticsRebuildRepository repository = new AndroidMacroAnalyticsRebuildRepository(database);
+      JSObject result = new JSObject();
+      result.put("initialBackfillVersion", repository.getInitialBackfillVersion(userId));
+      result.put("fullRebuildRequested", repository.isFullRebuildRequested(userId));
+      call.resolve(result);
+    });
+  }
+
+  @PluginMethod public void markInitialBackfillComplete(PluginCall call) {
+    Integer version = call.getInt("version");
+    if (version == null || version < 1) {
+      call.reject("Backfill version must be positive", "INVALID_BACKFILL_VERSION");
+      return;
+    }
+    withUser(call, (userId, database) -> {
+      new AndroidMacroAnalyticsRebuildRepository(database).markInitialBackfillComplete(userId, version);
+      call.resolve();
+    });
+  }
+
+  @PluginMethod public void requestFullRebuild(PluginCall call) {
+    withUser(call, (userId, database) -> {
+      new AndroidMacroAnalyticsRebuildRepository(database).requestFullRebuild(userId);
+      call.resolve();
+    });
+  }
+
+  @PluginMethod public void clearFullRebuildRequest(PluginCall call) {
+    withUser(call, (userId, database) -> {
+      new AndroidMacroAnalyticsRebuildRepository(database).clearFullRebuildRequest(userId);
+      call.resolve();
+    });
+  }
+
+  @PluginMethod public void clearBackfillState(PluginCall call) {
+    withUser(call, (userId, database) -> {
+      new AndroidMacroAnalyticsRebuildRepository(database).clearState(userId);
+      call.resolve();
+    });
   }
 
   private interface UserOperation { void run(String userId, CoreDatabase database) throws Exception; }
