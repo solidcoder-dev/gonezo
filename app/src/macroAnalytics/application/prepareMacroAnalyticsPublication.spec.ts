@@ -124,6 +124,19 @@ describe('prepareMacroAnalyticsPublication', () => {
     expect(changed.status === 'PREPARED' && changed.publication.revision).toBe(3);
   });
 
+  it('drops a changed pending publication when rebuilt content matches the processed latest', async () => {
+    const state = setup({ consent: 'GRANTED' });
+    const first = await prepareMacroAnalyticsPublication(state.ports, input);
+    if (first.status !== 'PREPARED') throw new Error('Expected first publication');
+    await state.ports.latest.save(first.publication);
+    await state.outbox.save(input.userId, { ...first.publication, revision: 2, contribution: { ...first.publication.contribution, financial: { currencies: [] } } });
+
+    const unchanged = await prepareMacroAnalyticsPublication(state.ports, input);
+
+    expect(unchanged).toEqual(first);
+    expect(await state.outbox.get(input.userId, first.publication.period)).toBeNull();
+  });
+
   it('scopes revisions independently by period and user', async () => {
     const state = setup({ consent: 'GRANTED' });
     await prepareMacroAnalyticsPublication(state.ports, input);

@@ -38,8 +38,9 @@ export async function prepareMacroAnalyticsPublication(
     && canonicalMacroAnalyticsContribution(existing.contribution) === canonicalMacroAnalyticsContribution(result.contribution)) {
     return { status: 'PREPARED', publication: existing };
   }
-  if (!existing && latest?.contributorId === contributorId
+  if (latest?.contributorId === contributorId
     && canonicalMacroAnalyticsContribution(latest.contribution) === canonicalMacroAnalyticsContribution(result.contribution)) {
+    if (existing) await ports.outbox.remove(input.userId, period);
     return { status: 'PREPARED', publication: latest };
   }
   const baselineRevision = Math.max(
