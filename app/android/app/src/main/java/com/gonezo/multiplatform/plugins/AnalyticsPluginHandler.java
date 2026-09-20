@@ -110,6 +110,14 @@ final class AnalyticsPluginHandler {
         item.put("currency", fact.getCurrency().getValue());
         item.put("personalAmount", fact.getPersonalAmount().getAmount().toPlainString());
         item.put("fullAmount", fact.getFullAmount().getAmount().toPlainString());
+        if (fact.getSharing() != null) {
+          JSObject sharing = new JSObject();
+          sharing.put("participantCount", fact.getSharing().getParticipantCount());
+          sharing.put("settlementParticipantCount", fact.getSharing().getSettlementParticipantCount());
+          sharing.put("participantAllocatedAmount", fact.getSharing().getParticipantAllocatedAmount().getAmount().toPlainString());
+          sharing.put("settlementRequiredAmount", fact.getSharing().getSettlementRequiredAmount().getAmount().toPlainString());
+          item.put("sharing", sharing);
+        }
         item.put("ignored", fact.getIgnored());
         if (fact.getCategoryId() != null) item.put("categoryId", fact.getCategoryId());
         JSONArray categoryAllocations = new JSONArray();

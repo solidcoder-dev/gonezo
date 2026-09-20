@@ -22,6 +22,21 @@ class AnalyticsMovementFactsTest {
     private val currency = CurrencyCode.from("EUR")
 
     @Test
+    fun `sharing summary is privacy safe and enforces settlement totals`() {
+        val summary = AnalyticsSharingSummary(
+            participantCount = 2,
+            settlementParticipantCount = 1,
+            participantAllocatedAmount = Money.of(BigDecimal("40.00"), "EUR"),
+            settlementRequiredAmount = Money.of(BigDecimal("30.00"), "EUR"),
+        )
+
+        assertThat(summary.participantAllocatedAmount.amount).isEqualByComparingTo("40.00")
+        org.assertj.core.api.Assertions.assertThatThrownBy {
+            AnalyticsSharingSummary(1, 1, Money.of(BigDecimal("10"), "EUR"), Money.of(BigDecimal("11"), "EUR"))
+        }.isInstanceOf(IllegalArgumentException::class.java)
+    }
+
+    @Test
     fun `category allocations reconcile split remainder and personal amounts exactly`() {
         val allocations = AnalyticsCategoryAllocationResolver.resolve(
             categoryId = "movement-category",

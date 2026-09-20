@@ -51,11 +51,19 @@ export type AnalyticsMovementFactItem = {
   currency: string;
   personalAmount: string;
   fullAmount: string;
+  sharing?: AnalyticsSharingSummary;
   ignored: boolean;
   categoryId?: string;
   categoryAllocations: readonly AnalyticsCategoryAllocation[];
   tagIds: string[];
 };
+
+export type AnalyticsSharingSummary = Readonly<{
+  participantCount: number;
+  settlementParticipantCount: number;
+  participantAllocatedAmount: string;
+  settlementRequiredAmount: string;
+}>;
 
 export type AnalyticsSchedulingOrigin = Readonly<{
   kind: 'recurring' | 'one_shot';

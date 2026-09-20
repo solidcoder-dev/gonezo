@@ -23,6 +23,12 @@ describe('analytics movement bridge contract', () => {
         currency: 'EUR',
         personalAmount: '12.00',
         fullAmount: '12.00',
+        sharing: {
+          participantCount: 1,
+          settlementParticipantCount: 1,
+          participantAllocatedAmount: '12.00',
+          settlementRequiredAmount: '12.00',
+        },
         ignored: false,
         categoryAllocations: [],
         tagIds: ['tag-home'],
@@ -61,6 +67,12 @@ describe('analytics movement bridge contract', () => {
       kind: 'recurring',
       recurringMovementId: '00000000-0000-4000-8000-000000000002',
       occurrenceId: '00000000-0000-4000-8000-000000000001',
+    });
+    expect(result.transactions[0].sharing).toEqual({
+      participantCount: 1,
+      settlementParticipantCount: 1,
+      participantAllocatedAmount: '12.00',
+      settlementRequiredAmount: '12.00',
     });
   });
 

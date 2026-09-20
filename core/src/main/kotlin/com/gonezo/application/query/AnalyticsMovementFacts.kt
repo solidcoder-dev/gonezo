@@ -86,6 +86,21 @@ data class AnalyticsMovementIdentity(val value: String) {
 
 data class AnalyticsCategoryAllocation(val categoryId: String?, val personalAmount: Money, val fullAmount: Money)
 
+data class AnalyticsSharingSummary(
+    val participantCount: Int,
+    val settlementParticipantCount: Int,
+    val participantAllocatedAmount: Money,
+    val settlementRequiredAmount: Money,
+) {
+    init {
+        require(participantCount >= 0 && settlementParticipantCount in 0..participantCount)
+        require(participantAllocatedAmount.currency == settlementRequiredAmount.currency)
+        require(participantAllocatedAmount.amount >= BigDecimal.ZERO)
+        require(settlementRequiredAmount.amount >= BigDecimal.ZERO)
+        require(settlementRequiredAmount.amount <= participantAllocatedAmount.amount)
+    }
+}
+
 data class AnalyticsSchedulingOrigin(val kind: SchedulingKind, val recurringMovementId: String, val occurrenceId: String? = null) {
     init {
         require(recurringMovementId.isNotBlank()) { "recurringMovementId is required" }
@@ -126,7 +141,16 @@ object AnalyticsCategoryAllocationResolver {
     }
 }
 
-data class AnalyticsMovementFact(val identity: AnalyticsMovementIdentity, val source: AnalyticsMovementSource, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val ignored: Boolean, val categoryId: String?, val tagIds: Set<String>, val destinationAccountId: String? = null, val analyticsFactId: AnalyticsFactId = AnalyticsFactId(identity.value), val reference: AnalyticsMovementReference = AnalyticsMovementReference.ScheduledProjection("legacy", identity.value), val categoryAllocations: List<AnalyticsCategoryAllocation> = emptyList(), val schedulingOrigin: AnalyticsSchedulingOrigin? = null) {
+data class AnalyticsMovementFact(val identity: AnalyticsMovementIdentity, val source: AnalyticsMovementSource, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val ignored: Boolean, val categoryId: String?, val tagIds: Set<String>, val destinationAccountId: String? = null, val analyticsFactId: AnalyticsFactId = AnalyticsFactId(identity.value), val reference: AnalyticsMovementReference = AnalyticsMovementReference.ScheduledProjection("legacy", identity.value), val categoryAllocations: List<AnalyticsCategoryAllocation> = emptyList(), val schedulingOrigin: AnalyticsSchedulingOrigin? = null, val sharing: AnalyticsSharingSummary? = null) {
+    init {
+        sharing?.let {
+            require(type == AnalyticsMovementType.EXPENSE || type == AnalyticsMovementType.INCOME)
+            require(it.participantAllocatedAmount.currency == currency.value && it.settlementRequiredAmount.currency == currency.value)
+            require(it.participantAllocatedAmount.amount <= fullAmount.amount)
+            require(personalAmount.amount == fullAmount.amount - it.settlementRequiredAmount.amount)
+        }
+    }
+
     val sourceAccountId: String get() = accountId
 }
 
