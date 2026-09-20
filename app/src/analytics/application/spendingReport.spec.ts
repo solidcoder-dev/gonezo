@@ -30,7 +30,12 @@ describe('Analytics spending read model', () => {
   it('keeps total, timeline and categories coherent to cents', () => {
     const window = { start: '2026-06-01', endExclusive: '2026-07-01', selection: { period: { kind: 'thisMonth' }, shift: 0 }, canGoPrevious: true, canGoNext: false } as const;
     const movements = [movement('a', '2026-06-01T00:00:00Z', '1.01', 'food'), movement('b', '2026-06-30T23:59:59Z', '2.09')];
-    const report = buildAnalyticsSpendingReport({ window, currency: 'EUR', currentMovements: movements, previousMovements: [], categories: [{ id: 'food', name: 'Food' }] });
+    const report = buildAnalyticsSpendingReport({
+      window, currency: 'EUR', totalExpense: { value: '3.10', currency: 'EUR' },
+      timeline: buildSpendingTimeline(movements, window, 'EUR'),
+      categories: buildSpendingCategories(movements, window, 'EUR', [{ id: 'food', name: 'Food' }]),
+      merchants: buildSpendingMerchants(movements, window, 'EUR'),
+    });
     expect(report.totalExpense.value).toBe('3.10');
     expect(report.timeline.reduce((sum, bucket) => sum + Math.round(Number(bucket.amount.value) * 100), 0)).toBe(310);
     expect(report.categories.reduce((sum, category) => sum + Math.round(Number(category.amount.value) * 100), 0)).toBe(310);
@@ -52,9 +57,10 @@ describe('Analytics spending read model', () => {
     const report = buildAnalyticsSpendingReport({
       window,
       currency: 'EUR',
-      currentMovements: movements,
-      previousMovements: [],
-      categories: [{ id: 'food', name: 'Food' }, { id: 'travel', name: 'Travel' }],
+      totalExpense: { value: '3.00', currency: 'EUR' },
+      timeline: buildSpendingTimeline(movements, window, 'EUR'),
+      categories: buildSpendingCategories(movements, window, 'EUR', [{ id: 'food', name: 'Food' }, { id: 'travel', name: 'Travel' }]),
+      merchants: buildSpendingMerchants(movements, window, 'EUR'),
     });
 
     expect(report.totalExpense.value).toBe('3.00');

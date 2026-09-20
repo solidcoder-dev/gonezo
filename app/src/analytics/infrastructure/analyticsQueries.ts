@@ -36,7 +36,14 @@ import {
   type AnalyticsPeriodSelection,
   type AnalyticsSpendingMovement,
   type AnalyticsSpendingPeriodWindow,
+  buildSpendingTimeline as buildSpendingReportTimeline,
+  buildSpendingCategories as buildSpendingReportCategories,
+  buildSpendingMerchants as buildSpendingReportMerchants,
 } from '../application/spendingReport';
+import { EXPENSE_CHANGE_PERCENT_V1, EXPENSE_TOTAL_V1 } from '../application/metrics/builtInMetricDefinitions';
+import type { UserMetricContext } from '../application/metrics/userMetricContext';
+import type { AnalyticsMoneyDto } from '../application/spendingReport';
+import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import type {
   AnalyticsCashFlowSeriesInput,
   AnalyticsCashFlowSummaryResult,
@@ -124,6 +131,50 @@ function spendingMovement(transaction: Awaited<ReturnType<typeof listAnalyticsMo
 
 function spendingSelection(input: AnalyticsSpendingReportInput | AnalyticsTopExpensesInput): AnalyticsPeriodSelection {
   return normalizeAnalyticsPeriodSelection(input.periodSelection);
+}
+
+function selectedCategoryMovements(movements: AnalyticsSpendingMovement[], categoryId?: string): AnalyticsSpendingMovement[] {
+  if (!categoryId) return movements;
+  return movements.filter((movement) => categoryId === 'uncategorized' ? !movement.categoryId : movement.categoryId === categoryId);
+}
+
+function spendingMetricFacts(movements: AnalyticsSpendingMovement[]): UserMetricContext['currentPeriodFacts'] {
+  return movements
+    .filter((movement): movement is typeof movement & { type: 'income' | 'expense' } => movement.type === 'income' || movement.type === 'expense')
+    .map((movement) => ({ type: movement.type, amount: movement.amount }));
+}
+
+function spendingMetricMoney(value: ExactDecimal, currency: string): AnalyticsMoneyDto {
+  return { value: value.toFixed(2), currency };
+}
+
+function calculateSpendingReportMetrics(
+  currentMovements: AnalyticsSpendingMovement[],
+  previousMovements: AnalyticsSpendingMovement[],
+  currency: string,
+  hasPreviousWindow: boolean,
+): { totalExpense: AnalyticsMoneyDto; previousExpense?: AnalyticsMoneyDto; changePercent?: number } {
+  const currentFacts = spendingMetricFacts(currentMovements);
+  const previousFacts = spendingMetricFacts(previousMovements);
+  const current = calculateUserMetrics.execute({ currency, currentPeriodFacts: currentFacts }, [EXPENSE_TOTAL_V1.id])[0];
+  const comparisonContext: UserMetricContext = {
+    currency,
+    currentPeriodFacts: currentFacts,
+    comparisonPeriodFacts: previousFacts,
+  };
+  const previous = hasPreviousWindow
+    ? calculateUserMetrics.execute({ currency, currentPeriodFacts: previousFacts }, [EXPENSE_TOTAL_V1.id])[0]
+    : undefined;
+  const change = hasPreviousWindow
+    ? calculateUserMetrics.execute(comparisonContext, [EXPENSE_CHANGE_PERCENT_V1.id])[0]
+    : undefined;
+  if (!current || current.value.kind !== 'MONEY') throw new Error('Expense total metric did not return money');
+  if (previous && previous.value.kind !== 'MONEY') throw new Error('Previous expense total metric did not return money');
+  return {
+    totalExpense: spendingMetricMoney(current.value.value, currency),
+    previousExpense: previous?.value.kind === 'MONEY' ? spendingMetricMoney(previous.value.value, currency) : undefined,
+    changePercent: change?.value.kind === 'RATIO' ? Number(change.value.value.toString()) : undefined,
+  };
 }
 
 async function listSpendingMovements(
@@ -324,14 +375,17 @@ export async function analyticsGetSpendingReport(
     previousWindow ? listSpendingMovements(port, scope.filters, scope.selectedAccountIds, previousWindow) : Promise.resolve([]),
     listAnalyticsCategoryReferences(port),
   ]);
+  const current = selectedCategoryMovements(currentMovements, input.categoryId);
+  const previous = selectedCategoryMovements(previousMovements, input.categoryId);
+  const reportMetrics = calculateSpendingReportMetrics(current, previous, input.currency.trim().toUpperCase(), Boolean(previousWindow));
   return buildAnalyticsSpendingReport({
     window,
     previousWindow,
     currency: input.currency,
-    currentMovements,
-    previousMovements,
-    categories,
-    categoryId: input.categoryId,
+    ...reportMetrics,
+    timeline: buildSpendingReportTimeline(current, window, input.currency.toUpperCase()),
+    categories: buildSpendingReportCategories(current, window, input.currency.toUpperCase(), categories),
+    merchants: buildSpendingReportMerchants(current, window, input.currency.toUpperCase()),
   });
 }
 

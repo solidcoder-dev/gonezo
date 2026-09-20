@@ -176,10 +176,6 @@ function expenseMovements(movements: AnalyticsSpendingMovement[], window: Analyt
     && dateAtStart(movement.occurredAt.slice(0, 10)).getTime() < end);
 }
 
-export function calculateSpendingTotals(movements: AnalyticsSpendingMovement[], currency: string): AnalyticsMoneyDto {
-  return money(movements.reduce((sum, movement) => sum.add(ExactDecimal.from(movement.amount)), ExactDecimal.from('0')), currency);
-}
-
 export function buildSpendingTimeline(movements: AnalyticsSpendingMovement[], window: AnalyticsSpendingPeriodWindow, currency: string): AnalyticsSpendingTimelineBucket[] {
   const days = Math.round((dateAtStart(window.endExclusive).getTime() - dateAtStart(window.start).getTime()) / 86_400_000);
   const unit = days <= 14 ? 'day' : days <= 93 ? 'week' : days <= 730 ? 'month' : 'year';
@@ -249,40 +245,26 @@ export function buildSpendingMerchants(
     }));
 }
 
-export function calculateChangePercent(current: AnalyticsMoneyDto, previous?: AnalyticsMoneyDto): number | undefined {
-  if (!previous) return undefined;
-  const currentValue = ExactDecimal.from(current.value);
-  const previousValue = ExactDecimal.from(previous.value);
-  if (previousValue.compare(ExactDecimal.from('0')) === 0) return undefined;
-  return Number(currentValue.subtract(previousValue).ratioTo(previousValue, 8).multiplyByInteger(100).toFixed(8));
-}
-
 export function buildAnalyticsSpendingReport(input: {
   window: AnalyticsSpendingPeriodWindow;
   previousWindow?: AnalyticsSpendingPeriodWindow;
   currency: string;
-  currentMovements: AnalyticsSpendingMovement[];
-  previousMovements: AnalyticsSpendingMovement[];
-  categories: AnalyticsCategoryReference[];
-  categoryId?: string;
+  totalExpense: AnalyticsMoneyDto;
+  previousExpense?: AnalyticsMoneyDto;
+  changePercent?: number;
+  timeline: AnalyticsSpendingTimelineBucket[];
+  categories: AnalyticsSpendingCategory[];
+  merchants?: AnalyticsSpendingMerchant[];
 }): AnalyticsSpendingReport {
-  const current = filterCategory(expenseMovements(input.currentMovements, input.window, input.currency.toUpperCase()), input.categoryId);
-  const totalExpense = calculateSpendingTotals(current, input.currency.toUpperCase());
-  const previousExpense = input.previousWindow ? calculateSpendingTotals(filterCategory(expenseMovements(input.previousMovements, input.previousWindow, input.currency.toUpperCase()), input.categoryId), input.currency.toUpperCase()) : undefined;
   return {
     window: input.window,
     previousWindow: input.previousWindow,
     currency: input.currency.toUpperCase(),
-    totalExpense,
-    previousExpense,
-    changePercent: calculateChangePercent(totalExpense, previousExpense),
-    timeline: buildSpendingTimeline(current, input.window, input.currency.toUpperCase()),
-    categories: buildSpendingCategories(current, input.window, input.currency.toUpperCase(), input.categories),
-    merchants: buildSpendingMerchants(current, input.window, input.currency.toUpperCase()),
+    totalExpense: input.totalExpense,
+    previousExpense: input.previousExpense,
+    changePercent: input.changePercent,
+    timeline: input.timeline,
+    categories: input.categories,
+    merchants: input.merchants,
   };
-}
-
-function filterCategory(movements: AnalyticsSpendingMovement[], categoryId?: string): AnalyticsSpendingMovement[] {
-  if (!categoryId) return movements;
-  return movements.filter((movement) => categoryId === 'uncategorized' ? !movement.categoryId : movement.categoryId === categoryId);
 }
