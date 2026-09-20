@@ -4,6 +4,8 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import org.json.JSONObject;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class AndroidMacroAnalyticsLatestPublicationRepository {
   private final CoreDatabase database;
@@ -18,6 +20,16 @@ public final class AndroidMacroAnalyticsLatestPublicationRepository {
         "contributor_id = ? and period = ?", new String[] {contributorId, period}, null, null, null)) {
       return cursor.moveToFirst() ? cursor.getString(0) : null;
     }
+  }
+
+  public List<String> list(String period) {
+    List<String> publications = new ArrayList<>();
+    try (Cursor cursor = database.getReadableDatabase().query(
+        "macro_analytics_latest_publications", new String[] {"publication_json"},
+        "period = ?", new String[] {period}, null, null, "contributor_id")) {
+      while (cursor.moveToNext()) publications.add(cursor.getString(0));
+    }
+    return publications;
   }
 
   public void save(String publicationJson) throws Exception {

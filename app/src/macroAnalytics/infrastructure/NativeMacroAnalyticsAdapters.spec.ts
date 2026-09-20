@@ -4,6 +4,7 @@ import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
 import { createMacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
 import { NativeAnalyticsContributorIdentityAdapter, NativeMacroAnalyticsOutboxAdapter } from './NativeMacroAnalyticsAdapters';
 import { NativeLatestMacroAnalyticsPublicationAdapter } from './NativeLatestMacroAnalyticsPublicationAdapter';
+import { NativeProcessedContributionSourceAdapter } from './NativeProcessedContributionSourceAdapter';
 
 const { identities, publications, latest } = vi.hoisted(() => ({
   identities: new Map<string, string>(),
@@ -26,6 +27,7 @@ vi.mock('./macroAnalyticsLocalStoragePlugin', () => ({
     clearPublications: vi.fn(async ({ userId }: { userId: string }) => { publications.delete(userId); }),
     getLatestPublication: vi.fn(async ({ contributorId, period }: { contributorId: string; period: string }) => ({ publication: latest.get(`${contributorId}:${period}`) })),
     saveLatestPublication: vi.fn(async ({ publication }: { publication: { contributorId: string; period: { value: string } } }) => { latest.set(`${publication.contributorId}:${publication.period.value}`, publication); }),
+    listLatestPublications: vi.fn(async ({ period }: { period: string }) => ({ publications: [...latest.values()].filter((publication) => (publication as { period: { value: string } }).period.value === period) })),
   },
 }));
 
@@ -53,5 +55,20 @@ describe('native macro analytics adapters', () => {
     await expect(new NativeAnalyticsContributorIdentityAdapter().get('user-A')).resolves.toBe(contributorId);
     await expect(new NativeMacroAnalyticsOutboxAdapter().get('user-A', period)).resolves.toEqual(publication);
     await expect(new NativeLatestMacroAnalyticsPublicationAdapter().find(contributorId, period)).resolves.toEqual(publication);
+  });
+
+  it('lists latest publications for one period and maps only contribution identity and data', async () => {
+    const period = createAnalyticsPeriod('2026-09');
+    const otherPeriod = createAnalyticsPeriod('2026-10');
+    const contributorId = createAnalyticsContributorId('opaque');
+    const contribution = { schemaVersion: 1 as const, period, dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE' as const, ageBand: '25_34' as const }, financial: { currencies: [] } };
+    const publication = createMacroAnalyticsPublication({ contributorId, period, revision: 1, contribution });
+    const latestPublication = createMacroAnalyticsPublication({ ...publication, revision: 2 });
+    const otherPublication = createMacroAnalyticsPublication({ ...publication, period: otherPeriod, contribution: { ...contribution, period: otherPeriod } });
+    await new NativeLatestMacroAnalyticsPublicationAdapter().save(publication);
+    await new NativeLatestMacroAnalyticsPublicationAdapter().save(latestPublication);
+    await new NativeLatestMacroAnalyticsPublicationAdapter().save(otherPublication);
+
+    await expect(new NativeProcessedContributionSourceAdapter().list({ period })).resolves.toEqual([{ contributorId, contribution }]);
   });
 });

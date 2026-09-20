@@ -111,6 +111,25 @@ public class MacroAnalyticsLocalStoragePlugin extends Plugin {
     }
   }
 
+  @PluginMethod public void listLatestPublications(PluginCall call) {
+    String period = call.getString("period");
+    if (period == null || period.isEmpty()) {
+      call.reject("Publication period is required", "INVALID_PERIOD");
+      return;
+    }
+    try {
+      JSArray publications = new JSArray();
+      for (String publication : new AndroidMacroAnalyticsLatestPublicationRepository(database()).list(period)) {
+        publications.put(new JSObject(publication));
+      }
+      JSObject result = new JSObject();
+      result.put("publications", publications);
+      call.resolve(result);
+    } catch (Exception error) {
+      call.reject("Macro analytics local storage failed", "MACRO_ANALYTICS_STORAGE_FAILURE");
+    }
+  }
+
   private interface UserOperation { void run(String userId, CoreDatabase database) throws Exception; }
 
   private void withUser(PluginCall call, UserOperation operation) {
