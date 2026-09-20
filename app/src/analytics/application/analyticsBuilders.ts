@@ -365,6 +365,13 @@ function categoryName(categoriesById: ReadonlyMap<string, TaxonomyCategoryItem>,
 
 type AnalyticsCategoryTransaction = LedgerTransactionListItem & { categoryAllocations?: readonly { categoryId?: string; personalAmount: string; fullAmount: string }[] };
 
+function allocatedAmountForSelectedMode(
+  transaction: AnalyticsCategoryTransaction,
+  allocation: { personalAmount: string; fullAmount: string },
+): string {
+  return analyticsTransactionAmount(transaction) === transaction.amount ? allocation.fullAmount : allocation.personalAmount;
+}
+
 function spendingCategoryBreakdown(input: {
   transactions: AnalyticsCategoryTransaction[];
   categories: TaxonomyCategoryItem[];
@@ -393,7 +400,7 @@ function spendingCategoryBreakdown(input: {
     const breakdown = canonicalAllocations?.length
       ? canonicalAllocations.map((allocation) => ({
           categoryId: allocation.categoryId,
-          amount: analyticsTransactionAmount(transaction) === transaction.amount ? allocation.fullAmount : allocation.personalAmount,
+          amount: allocatedAmountForSelectedMode(transaction, allocation),
         }))
       : transaction.items.length > 0
       ? transaction.items.map((item) => ({
