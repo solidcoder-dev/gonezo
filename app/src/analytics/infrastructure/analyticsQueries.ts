@@ -5,7 +5,6 @@ import type {
   LedgerTransactionFilterInput,
   LedgerGetAccountSummaryResult,
   LedgerGetCashFlowSeriesResult,
-  LedgerTransactionListItem,
 } from '../../ledger/application/ledger.port';
 import type { UserPreferencesResult } from '../../account/application/preferences.port';
 import type {
@@ -99,7 +98,7 @@ import {
   type AnalyticsFilters,
   type AnalyticsFiltersInput,
 } from '../application/analyticsFilters';
-import { listAnalyticsMovements, type AnalyticsMovementReaderPort } from './analyticsMovementReader';
+import { listAnalyticsMovements, type AnalyticsMovementReaderPort, type AnalyticsTransactionReadModel } from './analyticsMovementReader';
 import { analyticsGetOverviewRecurringInsight } from './overviewRecurringInsightQuery';
 import { analyticsGetOverviewSharingInsights } from './overviewSharingInsightsQuery';
 import { createAnalyticsQueryContext } from '../application/analyticsQueryContext';
@@ -154,10 +153,21 @@ function selectedCategoryMovements(movements: AnalyticsSpendingMovement[], categ
   return movements.filter((movement) => categoryId === 'uncategorized' ? !movement.categoryId : movement.categoryId === categoryId);
 }
 
-function spendingMetricFacts(movements: AnalyticsSpendingMovement[]): UserMetricContext['currentPeriodFacts'] {
-  return movements
-    .filter((movement): movement is typeof movement & { type: 'income' | 'expense' } => movement.type === 'income' || movement.type === 'expense')
-    .map((movement) => ({ type: movement.type, amount: movement.amount }));
+function userMetricContext(
+  currency: string,
+  currentTransactions: AnalyticsTransactionReadModel[],
+  comparisonTransactions?: AnalyticsTransactionReadModel[],
+): UserMetricContext {
+  const factsFrom = (transactions: AnalyticsTransactionReadModel[]) => transactions
+    .filter((transaction): transaction is typeof transaction & { type: 'income' | 'expense' | 'transfer_in' | 'transfer_out' } =>
+      isAnalyticsCashFlowTransaction(transaction, currency)
+      && (transaction.type === 'income' || transaction.type === 'expense' || transaction.type === 'transfer_in' || transaction.type === 'transfer_out'))
+    .map((transaction) => ({ type: transaction.type, amount: transaction.analyticsAmount }));
+  return {
+    currency,
+    currentPeriodFacts: factsFrom(currentTransactions),
+    comparisonPeriodFacts: comparisonTransactions ? factsFrom(comparisonTransactions) : undefined,
+  };
 }
 
 function spendingMetricMoney(value: ExactDecimal, currency: string): AnalyticsMoneyDto {
@@ -165,24 +175,16 @@ function spendingMetricMoney(value: ExactDecimal, currency: string): AnalyticsMo
 }
 
 function calculateSpendingReportMetrics(
-  currentMovements: AnalyticsSpendingMovement[],
-  previousMovements: AnalyticsSpendingMovement[],
+  context: UserMetricContext,
   currency: string,
   hasPreviousWindow: boolean,
 ): { totalExpense: AnalyticsMoneyDto; previousExpense?: AnalyticsMoneyDto; changePercent?: number } {
-  const currentFacts = spendingMetricFacts(currentMovements);
-  const previousFacts = spendingMetricFacts(previousMovements);
-  const current = calculateUserMetrics.execute({ currency, currentPeriodFacts: currentFacts }, [EXPENSE_TOTAL_V1.id])[0];
-  const comparisonContext: UserMetricContext = {
-    currency,
-    currentPeriodFacts: currentFacts,
-    comparisonPeriodFacts: previousFacts,
-  };
+  const current = calculateUserMetrics.execute(context, [EXPENSE_TOTAL_V1.id])[0];
   const previous = hasPreviousWindow
-    ? calculateUserMetrics.execute({ currency, currentPeriodFacts: previousFacts }, [EXPENSE_TOTAL_V1.id])[0]
+    ? calculateUserMetrics.execute({ currency, currentPeriodFacts: context.comparisonPeriodFacts ?? [] }, [EXPENSE_TOTAL_V1.id])[0]
     : undefined;
   const change = hasPreviousWindow
-    ? calculateUserMetrics.execute(comparisonContext, [EXPENSE_CHANGE_PERCENT_V1.id])[0]
+    ? calculateUserMetrics.execute(context, [EXPENSE_CHANGE_PERCENT_V1.id])[0]
     : undefined;
   if (!current || current.value.kind !== 'MONEY') throw new Error('Expense total metric did not return money');
   if (previous && previous.value.kind !== 'MONEY') throw new Error('Previous expense total metric did not return money');
@@ -193,20 +195,8 @@ function calculateSpendingReportMetrics(
   };
 }
 
-function overviewMetricFacts(transactions: LedgerTransactionListItem[], currency: string): UserMetricContext['currentPeriodFacts'] {
-  return transactions
-    .filter((transaction) => isAnalyticsCashFlowTransaction(transaction, currency))
-    .filter((transaction): transaction is LedgerTransactionListItem & { type: 'income' | 'expense' | 'transfer_in' | 'transfer_out' } =>
-      transaction.type === 'income' || transaction.type === 'expense' || transaction.type === 'transfer_in' || transaction.type === 'transfer_out')
-    .map((transaction) => ({
-      type: transaction.type,
-      amount: 'analyticsAmount' in transaction && typeof transaction.analyticsAmount === 'string' ? transaction.analyticsAmount : transaction.amount,
-    }));
-}
-
-function overviewTotals(transactions: LedgerTransactionListItem[], currency: string) {
-  const facts = overviewMetricFacts(transactions, currency);
-  const metricResults = calculateUserMetrics.execute({ currency, currentPeriodFacts: facts }, [
+function overviewTotals(transactions: AnalyticsTransactionReadModel[], currency: string) {
+  const metricResults = calculateUserMetrics.execute(userMetricContext(currency, transactions), [
     INCOME_TOTAL_V1.id,
     EXPENSE_TOTAL_V1.id,
     NET_BALANCE_FLOW_V1.id,
@@ -231,7 +221,7 @@ async function listSpendingMovements(
   filters: AnalyticsFilters,
   accountIds: string[],
   window: AnalyticsSpendingPeriodWindow,
-): Promise<AnalyticsSpendingMovement[]> {
+): Promise<{ movements: AnalyticsSpendingMovement[]; transactions: Awaited<ReturnType<typeof listAnalyticsMovements>>['transactions'] }> {
   const result = await listAnalyticsMovements(port, {
     accountIds,
     filters: analyticsTransactionFilters(filters, {
@@ -241,7 +231,7 @@ async function listSpendingMovements(
     includeIgnoredMovements: filters.includeIgnoredMovements,
     sharedAmountMode: filters.sharedAmountMode,
   });
-  return result.transactions.map(spendingMovement);
+  return { movements: result.transactions.map(spendingMovement), transactions: result.transactions };
 }
 
 type AnalyticsQueryScope = {
@@ -419,14 +409,21 @@ export async function analyticsGetSpendingReport(
   const previousWindow = scope.filters.period.kind !== 'allTime'
     ? resolveAnalyticsSpendingWindow({ ...selection, shift: selection.shift - 1 }, now.toISOString().slice(0, 10), earliestMovement, scope.filters.includePlannedMovements)
     : undefined;
-  const [currentMovements, previousMovements, categories] = await Promise.all([
+  const [currentResult, previousResult, categories] = await Promise.all([
     listSpendingMovements(port, scope.filters, scope.selectedAccountIds, window),
-    previousWindow ? listSpendingMovements(port, scope.filters, scope.selectedAccountIds, previousWindow) : Promise.resolve([]),
+    previousWindow ? listSpendingMovements(port, scope.filters, scope.selectedAccountIds, previousWindow) : Promise.resolve({ movements: [], transactions: [] }),
     listAnalyticsCategoryReferences(port),
   ]);
-  const current = selectedCategoryMovements(currentMovements, input.categoryId);
-  const previous = selectedCategoryMovements(previousMovements, input.categoryId);
-  const reportMetrics = calculateSpendingReportMetrics(current, previous, input.currency.trim().toUpperCase(), Boolean(previousWindow));
+  const current = selectedCategoryMovements(currentResult.movements, input.categoryId);
+  const previous = selectedCategoryMovements(previousResult.movements, input.categoryId);
+  const currentMovementIds = new Set(current.map((movement) => movement.id));
+  const previousMovementIds = new Set(previous.map((movement) => movement.id));
+  const currency = input.currency.trim().toUpperCase();
+  const reportMetrics = calculateSpendingReportMetrics(userMetricContext(
+    currency,
+    currentResult.transactions.filter((transaction) => currentMovementIds.has(transaction.id)),
+    previousWindow ? previousResult.transactions.filter((transaction) => previousMovementIds.has(transaction.id)) : undefined,
+  ), currency, Boolean(previousWindow));
   return buildAnalyticsSpendingReport({
     window,
     previousWindow,
@@ -446,12 +443,12 @@ export async function analyticsGetAnalyticsTopExpenses(
   const now = new Date();
   const selection = spendingSelection(input);
   const window = resolveAnalyticsSpendingWindow(selection, now.toISOString().slice(0, 10), undefined, scope.filters.includePlannedMovements);
-  const [movements, categories] = await Promise.all([
+  const [movementResult, categories] = await Promise.all([
     listSpendingMovements(port, scope.filters, scope.selectedAccountIds, window),
     listAnalyticsCategoryReferences(port),
   ]);
   const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
-  const items = movements
+  const items = movementResult.movements
     .filter((movement) => movement.type === 'expense')
     .sort((left, right) => Number(right.amount) - Number(left.amount) || left.id.localeCompare(right.id));
   const offset = Math.max(0, Math.trunc(input.page?.offset ?? 0));
@@ -572,17 +569,8 @@ export async function analyticsQueryMetrics(
       ? listAnalyticsMovements(port, { ...movementScope, filters: analyticsTransactionFilters(scope.filters, comparisonWindow, true) })
       : Promise.resolve(undefined),
   ]);
-  const toFacts = (transactions: typeof current.transactions) => transactions
-    .filter((transaction): transaction is typeof transaction & { type: Exclude<typeof transaction.type, 'transfer'> } =>
-      transaction.type !== 'transfer' && isAnalyticsCashFlowTransaction(transaction, queryContext.currency))
-    .map((transaction) => ({ type: transaction.type, amount: transaction.analyticsAmount }));
-
   return {
-    items: calculateUserMetrics.execute({
-      currency: queryContext.currency,
-      currentPeriodFacts: toFacts(current.transactions),
-      comparisonPeriodFacts: comparison ? toFacts(comparison.transactions) : undefined,
-    }, input.metricIds),
+    items: calculateUserMetrics.execute(userMetricContext(queryContext.currency, current.transactions, comparison?.transactions), input.metricIds),
   };
 }
 
@@ -628,10 +616,9 @@ export async function analyticsGetOverviewSnapshot(
   ]);
 
   const currency = input.currency.trim().toUpperCase();
-  const currentFacts = overviewMetricFacts(currentResult.transactions, currency);
-  const previousFacts = overviewMetricFacts(previousResult.transactions, currency);
+  const comparisonMetricContext = userMetricContext(currency, currentResult.transactions, previousResult.transactions);
   const netFlowChange = windows.previousWindow
-    ? calculateUserMetrics.execute({ currency, currentPeriodFacts: currentFacts, comparisonPeriodFacts: previousFacts }, [NET_BALANCE_FLOW_CHANGE_PERCENT_V1.id])[0]
+    ? calculateUserMetrics.execute(comparisonMetricContext, [NET_BALANCE_FLOW_CHANGE_PERCENT_V1.id])[0]
     : undefined;
   const currentTotals = overviewTotals(currentResult.transactions, currency);
   const previousTotals = windows.previousWindow ? overviewTotals(previousResult.transactions, currency) : undefined;
