@@ -69,7 +69,7 @@ describe('RunMacroAnalyticsMaintenance', () => {
     const result = await RunMacroAnalyticsMaintenance(state.ports, input);
     expect(state.prepare.mock.calls.map(([value]) => value.period)).toEqual(['2025-11', '2025-12', '2026-01']);
     expect(result).toMatchObject({ status: 'COMPLETED', rebuiltPeriods: ['2025-11', '2025-12', '2026-01'], pendingPeriods: [] });
-    expect(state.state.markInitialBackfillComplete).toHaveBeenCalledWith('u', 2);
+    expect(state.state.markInitialBackfillComplete).toHaveBeenCalledWith('u', 3);
     expect(state.ports.periodSource.listPeriods).toHaveBeenCalledTimes(1);
   });
 
@@ -95,7 +95,16 @@ describe('RunMacroAnalyticsMaintenance', () => {
     await RunMacroAnalyticsMaintenance(state.ports, input);
     await RunMacroAnalyticsMaintenance(state.ports, input);
     expect(state.ports.periodSource.listPeriods).toHaveBeenCalledTimes(1);
-    expect(state.state.markInitialBackfillComplete).toHaveBeenCalledWith('u', 2);
+    expect(state.state.markInitialBackfillComplete).toHaveBeenCalledWith('u', 3);
+    expect(state.prepare.mock.calls.map(([value]) => value.period)).toEqual(['2025-11', '2026-01', '2026-01']);
+  });
+
+  it('runs the V2 to V3 historical backfill once and advances the stored version', async () => {
+    const state = setup({ periods: ['2025-11'], backfillVersion: 2 });
+    await RunMacroAnalyticsMaintenance(state.ports, input);
+    await RunMacroAnalyticsMaintenance(state.ports, input);
+    expect(state.state.markInitialBackfillComplete).toHaveBeenCalledTimes(1);
+    expect(state.state.markInitialBackfillComplete).toHaveBeenCalledWith('u', 3);
     expect(state.prepare.mock.calls.map(([value]) => value.period)).toEqual(['2025-11', '2026-01', '2026-01']);
   });
 
