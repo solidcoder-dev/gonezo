@@ -71,6 +71,7 @@ export type SharingMovementDetailsResult = {
     personalExpenseAmount: string;
     excludedLentAmount: string;
     excludedReimbursementIncomeAmount: string;
+    personalIncomeAmount?: string;
   };
 } | null;
 

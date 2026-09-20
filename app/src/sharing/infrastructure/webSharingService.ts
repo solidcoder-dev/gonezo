@@ -19,6 +19,8 @@ import type { WebAppState, WebExpenseShare, WebLedgerTransaction, WebSharingPers
 import type { WebLedgerService } from '../../ledger/infrastructure/webLedgerService';
 import type { WebExpectedMovementsService } from '../../expected/infrastructure/webExpectedService';
 import { displayedMovementTitle } from '../../shared/utils/movementTitle';
+import { ExactDecimal } from '../../shared/domain/exactDecimal';
+import { resolveSharingAnalyticsAttribution } from '../application/sharingAnalyticsAttribution';
 
 export type WebSharingServiceOptions = {
   state: WebAppState;
@@ -347,17 +349,19 @@ export class WebSharingService {
   }
 
   private toMovementDetails(share: WebExpenseShare, transaction: WebLedgerTransaction): SharingMovementDetailsResult {
-    const excludedLentAmount = share.participants
-      .filter((participant) => (participant.settlementChoice ?? (participant.reimbursable ? 'pending' : 'not_required')) !== 'not_required')
-      .reduce((total, participant) => total + parseAmount(participant.amount), 0);
-    const excludedReimbursementIncomeAmount = share.participants
-      .filter((participant) => {
+    const attribution = resolveSharingAnalyticsAttribution(transaction.amount, share.participants.map((participant) => ({
+      amount: participant.amount,
+      requiresSettlement: (participant.settlementChoice ?? (participant.reimbursable ? 'pending' : 'not_required')) !== 'not_required',
+    })));
+    const excludedReimbursementIncomeAmount = share.participants.reduce((total, participant) => {
+      const isResolvedExpected = (() => {
         const expected = participant.expectedMovementId
           ? this.state.expectedMovements.find((movement) => movement.id === participant.expectedMovementId)
           : undefined;
         return (participant.settlementChoice ?? (participant.reimbursable ? 'pending' : 'not_required')) === 'pending' && expected?.status === 'resolved';
-      })
-      .reduce((total, participant) => total + parseAmount(participant.amount), 0);
+      })();
+      return isResolvedExpected ? total.add(ExactDecimal.from(participant.amount)) : total;
+    }, ExactDecimal.from('0'));
     return {
       shareId: share.id,
       transactionId: share.transactionId,
@@ -387,9 +391,10 @@ export class WebSharingService {
         };
       }),
       analytics: {
-        personalExpenseAmount: formatAmount(parseAmount(transaction.amount) - excludedLentAmount),
-        excludedLentAmount: formatAmount(excludedLentAmount),
-        excludedReimbursementIncomeAmount: formatAmount(excludedReimbursementIncomeAmount),
+        personalExpenseAmount: ExactDecimal.from(attribution.personalAmount).toFixed(2),
+        excludedLentAmount: ExactDecimal.from(attribution.settlementRequiredAmount).toFixed(2),
+        excludedReimbursementIncomeAmount: excludedReimbursementIncomeAmount.toFixed(2),
+        personalIncomeAmount: ExactDecimal.from(attribution.personalAmount).toFixed(2),
       },
     };
   }

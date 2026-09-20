@@ -8,6 +8,7 @@ import type {
 import type { AnalyticsSharedAmountMode } from '../application/analyticsFilters';
 import type { SharingListMovementDetailsInput, SharingListMovementDetailsResult } from '../../sharing/application/sharing.port';
 import type { AnalyticsListMovementFactsResult } from '../application/analytics.port';
+import { resolveSharingAnalyticsAttribution } from '../../sharing/application/sharingAnalyticsAttribution';
 
 export type AnalyticsMovementReaderPort = {
   ledgerListAccounts(): Promise<LedgerListAccountsResult>;
@@ -86,12 +87,26 @@ function attributedAmount(
   sharedAmountMode: AnalyticsSharedAmountMode,
 ) {
   const details = sharingDetailsByTransactionId.get(movement.id);
-  const personalAmount = details?.analytics.personalExpenseAmount ?? movement.amount;
+  const attribution = details && resolveSharingAnalyticsAttribution(movement.amount, details.participants.map((participant) => ({
+    amount: participant.amount,
+    requiresSettlement: participant.settlementChoice
+      ? participant.settlementChoice !== 'not_required'
+      : participant.reimbursable === true,
+  })));
+  const personalAmount = attribution?.personalAmount ?? movement.amount;
   const fullAmount = movement.amount;
   return {
     analyticsAmount: sharedAmountMode === 'full' ? fullAmount : personalAmount,
     analyticsPersonalAmount: personalAmount,
     analyticsFullAmount: fullAmount,
+    ...(attribution === undefined ? {} : {
+      sharing: {
+        participantCount: attribution.participantCount,
+        settlementParticipantCount: attribution.settlementParticipantCount,
+        participantAllocatedAmount: attribution.participantAllocatedAmount,
+        settlementRequiredAmount: attribution.settlementRequiredAmount,
+      },
+    }),
   };
 }
 
@@ -159,11 +174,11 @@ export async function listAnalyticsMovements(
     movement,
     scope.includeIgnoredMovements === true,
   ));
-  const sharedExpenseIds = transactions
-    .filter((movement) => movement.type === 'expense')
+  const sharedEconomicMovementIds = transactions
+    .filter((movement) => movement.type === 'expense' || movement.type === 'income')
     .map((movement) => movement.id);
-  const sharingDetails = sharedExpenseIds.length > 0
-    ? await port.sharingListMovementDetails({ transactionIds: sharedExpenseIds })
+  const sharingDetails = sharedEconomicMovementIds.length > 0
+    ? await port.sharingListMovementDetails({ transactionIds: sharedEconomicMovementIds })
     : { items: [] };
   const sharingDetailsByTransactionId = new Map(sharingDetails.items.map((item) => [item.transactionId, item]));
 

@@ -283,6 +283,7 @@ final class SharingPluginHandler {
     result.put("personalExpenseAmount", analytics.personalExpenseAmount());
     result.put("excludedLentAmount", analytics.excludedLentAmount());
     result.put("excludedReimbursementIncomeAmount", analytics.excludedReimbursementIncomeAmount());
+    result.put("personalIncomeAmount", analytics.personalIncomeAmount());
     return result;
   }
 }

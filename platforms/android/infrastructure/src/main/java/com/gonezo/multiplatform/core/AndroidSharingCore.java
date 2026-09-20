@@ -2,7 +2,6 @@ package com.gonezo.multiplatform.core;
 
 import android.content.Context;
 import android.database.Cursor;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,40 +57,29 @@ public final class AndroidSharingCore {
 
   public MovementDetailsView getMovementDetails(String transactionId) {
     String resolvedTransactionId = requireText(transactionId, "transactionId is required");
-    Cursor shareCursor = database.getReadableDatabase().query(
-      "sharing_expense_shares",
-      new String[] { "id", "source_transaction_id", "total_amount", "currency" },
-      "source_transaction_id = ?",
-      new String[] { resolvedTransactionId },
-      null,
-      null,
-      null
-    );
-
-    try (shareCursor) {
-      if (!shareCursor.moveToFirst()) {
-        return null;
-      }
-      String shareId = shareCursor.getString(0);
-      List<ParticipantView> participants = loadParticipants(shareId);
-      BigDecimal reimbursable = BigDecimal.ZERO;
-      for (ParticipantView participant : participants) {
-        if (participant.reimbursable()) {
-          reimbursable = reimbursable.add(new BigDecimal(participant.amount()));
-        }
-      }
-      ShareView share = new ShareView(
-        shareId,
-        shareCursor.getString(1),
-        participants,
-        new AnalyticsView(
-          new BigDecimal(shareCursor.getString(2)).subtract(reimbursable).toPlainString(),
-          reimbursable.toPlainString(),
-          reimbursable.toPlainString()
-        )
-      );
-      return new MovementDetailsView(share);
+    var details = new com.gonezo.application.services.sharing.GetMovementSharingDetailsService(
+      new AndroidLedgerTransactionRepository(database),
+      new AndroidSharingPersonRepository(database),
+      new AndroidMovementShareRepository(database),
+      new AndroidExpectedMovementRepository(database)
+    ).execute(new com.gonezo.sharing.application.GetMovementSharingDetailsQuery(resolvedTransactionId));
+    if (details == null) return null;
+    List<ParticipantView> participants = new ArrayList<>();
+    for (var participant : details.getParticipants()) {
+      participants.add(new ParticipantView(
+        participant.getParticipantId(), participant.getPersonId(), participant.getDisplayName(),
+        participant.getAmount().toPlainString(), participant.getReimbursable(), participant.getExpectedMovementId(),
+        participant.getRepaymentStatus()
+      ));
     }
+    var analytics = details.getAnalytics();
+    return new MovementDetailsView(new ShareView(
+      details.getShareId(), details.getTransactionId(), participants,
+      new AnalyticsView(
+        analytics.getPersonalExpenseAmount().toPlainString(), analytics.getExcludedLentAmount().toPlainString(),
+        analytics.getExcludedReimbursementIncomeAmount().toPlainString(), analytics.getPersonalIncomeAmount().toPlainString()
+      )
+    ));
   }
 
   public List<MovementDetailsView> listMovementDetails(List<String> transactionIds) {
@@ -142,49 +130,6 @@ public final class AndroidSharingCore {
     }
   }
 
-  private List<ParticipantView> loadParticipants(String shareId) {
-    Cursor cursor = database.getReadableDatabase().rawQuery(
-      "select sp.id, sp.person_id, pe.display_name, sp.amount, sp.reimbursable, sp.expected_movement_id, em.status " +
-        "from sharing_expense_share_participants sp " +
-        "join sharing_persons pe on pe.id = sp.person_id " +
-        "left join expected_movements em on em.id = sp.expected_movement_id " +
-        "where sp.share_id = ? order by pe.display_name collate nocase asc",
-      new String[] { shareId }
-    );
-    try (cursor) {
-      List<ParticipantView> participants = new ArrayList<>();
-      while (cursor.moveToNext()) {
-        String expectedMovementId = cursor.getString(5);
-        participants.add(new ParticipantView(
-          cursor.getString(0),
-          cursor.getString(1),
-          cursor.getString(2),
-          cursor.getString(3),
-          cursor.getInt(4) == 1,
-          expectedMovementId,
-          repaymentStatus(expectedMovementId, cursor.getString(6))
-        ));
-      }
-      return participants;
-    }
-  }
-
-  private String repaymentStatus(String expectedMovementId, String expectedStatus) {
-    if (expectedMovementId == null) {
-      return "not_expected";
-    }
-    if (expectedStatus == null) {
-      return "missing_expected";
-    }
-    if ("resolved".equalsIgnoreCase(expectedStatus)) {
-      return "paid";
-    }
-    if ("dismissed".equalsIgnoreCase(expectedStatus)) {
-      return "dismissed";
-    }
-    return "pending";
-  }
-
   private static String requireText(String value, String message) {
     if (value == null || value.trim().isEmpty()) {
       throw new IllegalArgumentException(message);
@@ -209,7 +154,8 @@ public final class AndroidSharingCore {
   public record AnalyticsView(
     String personalExpenseAmount,
     String excludedLentAmount,
-    String excludedReimbursementIncomeAmount
+    String excludedReimbursementIncomeAmount,
+    String personalIncomeAmount
   ) {}
 
   public record ShareView(
