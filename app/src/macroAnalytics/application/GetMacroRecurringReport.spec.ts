@@ -15,10 +15,11 @@ const dimensions = { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE' as co
 function contribution(schemaVersion: 1 | 2 | 3, amount = '0') : MacroAnalyticsContribution {
   const base = { period, dimensions, financial: { currencies: [{ currency: 'EUR', buckets: [{ source: 'POSTED' as const, kind: 'EXPENSE' as const, amount: '100', count: 1 }] }] } };
   if (schemaVersion === 1) return { ...base, schemaVersion };
-  const categorized = { ...base, schemaVersion, categories: { currencies: [] } } as const;
-  return schemaVersion === 2 ? categorized : {
-    ...categorized,
+  if (schemaVersion === 2) return { ...base, schemaVersion: 2, categories: { currencies: [] } };
+  return {
+    ...base,
     schemaVersion: 3,
+    categories: { currencies: [] },
     recurring: { currencies: amount === '0' ? [] : [{ currency: 'EUR', buckets: [{ source: 'SCHEDULED', kind: 'EXPENSE', amount, occurrenceCount: 1, seriesCount: 1 }] }] },
   };
 }

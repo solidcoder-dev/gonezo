@@ -10,11 +10,19 @@ import { cohortRecurringMetricDefinitions } from './cohortRecurringMetrics';
 export type GetMacroRecurringReportInput = Readonly<{ period: AnalyticsPeriod; currency: string; cohort: Cohort }>;
 
 export class GetMacroRecurringReport {
+  private readonly contributions: ProcessedContributionSourcePort;
+  private readonly contributorMetrics: CalculateContributorMetrics;
+  private readonly cohortMetrics: CalculateCohortMetrics;
+
   constructor(
-    private readonly contributions: ProcessedContributionSourcePort,
-    private readonly contributorMetrics: CalculateContributorMetrics,
-    private readonly cohortMetrics: CalculateCohortMetrics,
-  ) {}
+    contributions: ProcessedContributionSourcePort,
+    contributorMetrics: CalculateContributorMetrics,
+    cohortMetrics: CalculateCohortMetrics,
+  ) {
+    this.contributions = contributions;
+    this.contributorMetrics = contributorMetrics;
+    this.cohortMetrics = cohortMetrics;
+  }
 
   async execute({ period, currency, cohort }: GetMacroRecurringReportInput): Promise<MacroRecurringReport> {
     const normalizedCurrency = currency.trim().toUpperCase();
