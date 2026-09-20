@@ -4,8 +4,9 @@ import { withMacroAnalyticsConsentLifecycle } from './MacroAnalyticsConsentLifec
 
 describe('withMacroAnalyticsConsentLifecycle', () => {
   it('requests a full rebuild after consent is granted', async () => {
-    const base = { get: vi.fn(async () => null), save: vi.fn(async () => {}) };
-    const state = { requestFullRebuild: vi.fn(async () => {}) };
+    const order: string[] = [];
+    const base = { get: vi.fn(async () => null), save: vi.fn(async () => { order.push('save'); }) };
+    const state = { requestFullRebuild: vi.fn(async () => { order.push('rebuild'); }) };
     const lifecycle = withMacroAnalyticsConsentLifecycle(base, {
       backfillState: state,
       rebuildQueue: { clear: vi.fn(async () => {}) },
@@ -16,6 +17,7 @@ describe('withMacroAnalyticsConsentLifecycle', () => {
 
     expect(base.save).toHaveBeenCalledOnce();
     expect(state.requestFullRebuild).toHaveBeenCalledWith('u');
+    expect(order).toEqual(['rebuild', 'save']);
   });
 
   it('clears pending work and outbox when consent is withdrawn', async () => {

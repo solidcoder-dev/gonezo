@@ -15,10 +15,10 @@ export function withMacroAnalyticsConsentLifecycle(
     get: (userId) => consent.get(userId),
     async save(decision) {
       const previous = await consent.get(decision.userId);
-      await consent.save(decision);
       if (decision.status === 'GRANTED' && previous?.status !== 'GRANTED') {
         await ports.backfillState.requestFullRebuild(decision.userId);
       }
+      await consent.save(decision);
       if (decision.status !== 'GRANTED') {
         await ports.rebuildQueue.clear(decision.userId);
         await ports.outbox.clear(decision.userId);
