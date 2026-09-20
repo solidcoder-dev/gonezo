@@ -12,7 +12,7 @@ export type {
   FinancialFactKind,
   FinancialFactSource,
 } from '../domain/financialFact';
-export { MACRO_ANALYTICS_SCHEMA_VERSION, MACRO_ANALYTICS_SCHEMA_VERSION_V1, MACRO_ANALYTICS_SCHEMA_VERSION_V2 } from '../domain/macroAnalyticsSchemaVersion';
+export { MACRO_ANALYTICS_SCHEMA_VERSION, MACRO_ANALYTICS_SCHEMA_VERSION_V1, MACRO_ANALYTICS_SCHEMA_VERSION_V2, MACRO_ANALYTICS_SCHEMA_VERSION_V3 } from '../domain/macroAnalyticsSchemaVersion';
 export type { MacroAnalyticsSchemaVersion } from '../domain/macroAnalyticsSchemaVersion';
 export { aggregateFinancialFacts } from '../domain/financialContribution';
 export type { FinancialContribution, FinancialContributionBucket, FinancialCurrencyContribution } from '../domain/financialContribution';
@@ -21,14 +21,16 @@ export type { CategoryContribution, CategoryContributionBucket, CategoryCurrency
 export { deriveContributionDimensions } from '../domain/contributionDimensions';
 export type { ContributionAgeBand, ContributionDimensions, ContributionSex } from '../domain/contributionDimensions';
 export type { ContributionProfile, ContributionProfileSex } from '../domain/contributionProfile';
-export type { MacroAnalyticsContribution, MacroAnalyticsContributionV1, MacroAnalyticsContributionV2 } from '../domain/macroAnalyticsContribution';
+export type { MacroAnalyticsContribution, MacroAnalyticsContributionV1, MacroAnalyticsContributionV2, MacroAnalyticsContributionV3 } from '../domain/macroAnalyticsContribution';
 export { createAnalyticsContributorId } from '../domain/analyticsContributorId';
 export type { AnalyticsContributorId } from '../domain/analyticsContributorId';
-export { MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V1, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V2 } from '../domain/macroAnalyticsPublicationProtocolVersion';
+export { MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V1, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V2, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V3 } from '../domain/macroAnalyticsPublicationProtocolVersion';
 export type { MacroAnalyticsPublicationProtocolVersion } from '../domain/macroAnalyticsPublicationProtocolVersion';
 export { createMacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
 export type { MacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
-export type { MacroAnalyticsPublicationV1, MacroAnalyticsPublicationV2 } from '../domain/macroAnalyticsPublication';
+export type { MacroAnalyticsPublicationV1, MacroAnalyticsPublicationV2, MacroAnalyticsPublicationV3 } from '../domain/macroAnalyticsPublication';
+export { aggregateRecurringFacts } from '../domain/recurringContribution';
+export type { RecurringContribution, RecurringContributionBucket, RecurringCurrencyContribution } from '../domain/recurringContribution';
 export { canonicalMacroAnalyticsContribution } from '../domain/canonicalMacroAnalyticsContribution';
 export { prepareMacroAnalyticsPublication } from './prepareMacroAnalyticsPublication';
 export type { PrepareMacroAnalyticsPublicationInput, PrepareMacroAnalyticsPublicationResult } from './prepareMacroAnalyticsPublication';

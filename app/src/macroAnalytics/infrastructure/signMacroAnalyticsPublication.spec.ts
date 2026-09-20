@@ -5,6 +5,7 @@ import { createMacroAnalyticsPublication } from '../domain/macroAnalyticsPublica
 import { signMacroAnalyticsPublication } from './signMacroAnalyticsPublication';
 import { InMemoryPublicationSigningIdentityAdapter } from './InMemoryPublicationSigningIdentityAdapter';
 import { createContributorCredentialRegistrationV1 } from './ContributorCredentialRegistrationV1';
+import { serializeMacroAnalyticsPublicationV3 } from './MacroAnalyticsPublicationWireV3';
 
 const contributorId = createAnalyticsContributorId('opaque-random-id');
 const publication = createMacroAnalyticsPublication({
@@ -53,6 +54,29 @@ describe('macro analytics publication signing', () => {
 
     const signed = await signMacroAnalyticsPublication(v2, signingIdentity);
 
+    expect(signed.payload).toBe(payload);
+    expect(signingIdentity.sign).toHaveBeenCalledWith(contributorId, new TextEncoder().encode(payload));
+  });
+
+  it('serializes and signs exact V3 publication bytes without recurring identities', async () => {
+    const period = createAnalyticsPeriod('2026-09');
+    const v3 = createMacroAnalyticsPublication({
+      contributorId, period, revision: 5,
+      contribution: {
+        schemaVersion: 3, period,
+        dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE', ageBand: '25_34' },
+        financial: { currencies: [] }, categories: { currencies: [] },
+        recurring: { currencies: [{ currency: 'EUR', buckets: [{ source: 'SCHEDULED', kind: 'EXPENSE', amount: '0', occurrenceCount: 1, seriesCount: 1 }] }] },
+      },
+    });
+    const signingIdentity = {
+      getOrCreateCredential: vi.fn(async () => ({ contributorId, keyId: 'v3-key', algorithm: 'ECDSA_P256_SHA256' as const, publicKey: 'public' })),
+      sign: vi.fn(async () => 'signature'),
+    };
+    const payload = '{"protocolVersion":3,"contributorId":"opaque-random-id","period":"2026-09","revision":5,"contribution":{"schemaVersion":3,"dimensions":{"countryCode":"ES","regionCode":"ES-CN","sex":"FEMALE","ageBand":"25_34"},"financial":{"currencies":[]},"categories":{"currencies":[]},"recurring":{"currencies":[{"currency":"EUR","buckets":[{"source":"SCHEDULED","kind":"EXPENSE","amount":"0","occurrenceCount":1,"seriesCount":1}]}]}}}';
+    expect(v3.protocolVersion).toBe(3);
+    expect(serializeMacroAnalyticsPublicationV3(v3)).toBe(payload);
+    const signed = await signMacroAnalyticsPublication(v3, signingIdentity);
     expect(signed.payload).toBe(payload);
     expect(signingIdentity.sign).toHaveBeenCalledWith(contributorId, new TextEncoder().encode(payload));
   });

@@ -1,7 +1,7 @@
 import type { AnalyticsContributorId } from './analyticsContributorId';
 import type { AnalyticsPeriod } from './analyticsPeriod';
-import type { MacroAnalyticsContributionV1, MacroAnalyticsContributionV2 } from './macroAnalyticsContribution';
-import { MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V1, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V2 } from './macroAnalyticsPublicationProtocolVersion';
+import type { MacroAnalyticsContributionV1, MacroAnalyticsContributionV2, MacroAnalyticsContributionV3 } from './macroAnalyticsContribution';
+import { MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V1, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V2, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V3 } from './macroAnalyticsPublicationProtocolVersion';
 
 type PublicationBase = Readonly<{
   contributorId: AnalyticsContributorId;
@@ -11,9 +11,10 @@ type PublicationBase = Readonly<{
 
 export type MacroAnalyticsPublicationV1 = PublicationBase & Readonly<{ protocolVersion: 1; contribution: MacroAnalyticsContributionV1 }>;
 export type MacroAnalyticsPublicationV2 = PublicationBase & Readonly<{ protocolVersion: 2; contribution: MacroAnalyticsContributionV2 }>;
-export type MacroAnalyticsPublication = MacroAnalyticsPublicationV1 | MacroAnalyticsPublicationV2;
+export type MacroAnalyticsPublicationV3 = PublicationBase & Readonly<{ protocolVersion: 3; contribution: MacroAnalyticsContributionV3 }>;
+export type MacroAnalyticsPublication = MacroAnalyticsPublicationV1 | MacroAnalyticsPublicationV2 | MacroAnalyticsPublicationV3;
 
-type PublicationInput = PublicationBase & Readonly<{ contribution: MacroAnalyticsContributionV1 | MacroAnalyticsContributionV2 }>;
+type PublicationInput = PublicationBase & Readonly<{ contribution: MacroAnalyticsContributionV1 | MacroAnalyticsContributionV2 | MacroAnalyticsContributionV3 }>;
 
 export function createMacroAnalyticsPublication(input: PublicationInput): MacroAnalyticsPublication {
   if (!input.contributorId.trim()) throw new Error('Analytics contributor ID must not be empty');
@@ -21,8 +22,8 @@ export function createMacroAnalyticsPublication(input: PublicationInput): MacroA
   if (input.period.kind !== input.contribution.period.kind || input.period.value !== input.contribution.period.value) {
     throw new Error('Publication period must match contribution period');
   }
-  const protocolVersion = input.contribution.schemaVersion === 1
-    ? MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V1
-    : MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V2;
+  const protocolVersion = input.contribution.schemaVersion === 1 ? MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V1
+    : input.contribution.schemaVersion === 2 ? MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V2
+      : MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V3;
   return Object.freeze({ protocolVersion, ...input }) as MacroAnalyticsPublication;
 }
