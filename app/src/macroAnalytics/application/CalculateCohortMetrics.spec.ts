@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import { moneyMetricValue } from '../../shared/domain/analyticsMetric';
+import { countMetricValue, createMetricDefinition, MetricId, MetricKey, MetricVersion } from '../../shared/domain/analyticsMetric';
 import { createAnalyticsContributorId } from '../domain/analyticsContributorId';
 import { createCohort } from '../domain/cohort';
 import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
@@ -35,5 +36,19 @@ describe('CalculateCohortMetrics', () => {
 
   it('returns no result for an empty eligible cohort', () => {
     expect(calculate.execute({ period, cohort: createCohort(), currency: 'EUR', metricIds: [medianPostedExpense.id] }, [])).toEqual([]);
+  });
+
+  it('allows a cohort strategy to consume Contribution slices directly', () => {
+    const directMetric = createMetricDefinition(MetricId.create(MetricKey.create('direct_contribution_count'), MetricVersion.create(1)), 'COUNT');
+    const directCalculator = {
+      definition: directMetric,
+      calculate: ({ contributions }: { contributions: readonly unknown[] }) => ({ value: countMetricValue(contributions.length), contributorCount: contributions.length }),
+    };
+    const directCalculation = new CalculateCohortMetrics([directCalculator]);
+    const source = { ...contributor('one', '5'), contribution: { schemaVersion: 1 as const, period, dimensions, financial: { currencies: [] } } };
+    const [result] = directCalculation.execute({ period, cohort: createCohort(), currency: 'EUR', metricIds: [directMetric.id] }, [source]);
+
+    expect(result.value).toEqual({ kind: 'COUNT', value: 1 });
+    expect(result.contributorCount).toBe(1);
   });
 });

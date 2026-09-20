@@ -15,8 +15,9 @@ function medianCalculator(metricDefinition: MetricDefinition, contributorMetricI
   return Object.freeze({
     definition: metricDefinition,
     contributorMetricId,
-    calculate(values: readonly MetricValue[], currency?: string) {
-      const eligible = values.filter((value): value is Extract<MetricValue, { kind: 'MONEY' }> => value.kind === 'MONEY' && value.currency === currency)
+    calculate({ contributors, currency }) {
+      const eligible = contributors.map(({ result }) => result.value)
+        .filter((value): value is Extract<MetricValue, { kind: 'MONEY' }> => value.kind === 'MONEY' && value.currency === currency)
         .map((value) => value.value).sort((left, right) => left.compare(right));
       if (eligible.length === 0) return null;
       const middle = Math.floor(eligible.length / 2);
@@ -24,7 +25,7 @@ function medianCalculator(metricDefinition: MetricDefinition, contributorMetricI
         ExactDecimal.from(2),
         Math.max(decimalPlaces(eligible[middle - 1]), decimalPlaces(eligible[middle])) + 1,
       );
-      return Object.freeze({ value: moneyMetricValue(value, currency!), contributorCount: eligible.length });
+      return Object.freeze({ value: moneyMetricValue(value, currency), contributorCount: eligible.length });
     },
   });
 }

@@ -30,7 +30,7 @@ export class GetMacroOverviewReport {
     const metricIds = Object.values(contributorFinancialMetricDefinitions).map(({ id }) => id);
     const contributors = processed.flatMap(({ contributorId, contribution }) => this.contributorMetrics.execute({
       contributorId, contribution, currency: normalizedCurrency, metricIds,
-    }).map((result) => ({ result, dimensions: contribution.dimensions })));
+    }).map((result) => ({ result, dimensions: contribution.dimensions, contribution })));
     const cohortResults = this.cohortMetrics.execute({
       period,
       cohort,
