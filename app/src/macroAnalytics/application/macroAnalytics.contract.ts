@@ -31,6 +31,9 @@ export type { MacroAnalyticsPublication } from '../domain/macroAnalyticsPublicat
 export type { MacroAnalyticsPublicationV1, MacroAnalyticsPublicationV2, MacroAnalyticsPublicationV3 } from '../domain/macroAnalyticsPublication';
 export { aggregateRecurringFacts } from '../domain/recurringContribution';
 export type { RecurringContribution, RecurringContributionBucket, RecurringCurrencyContribution } from '../domain/recurringContribution';
+export { createRecurringFact } from '../domain/recurringFact';
+export type { RecurringFact, RecurringFactKind, RecurringFactSource } from '../domain/recurringFact';
+export type { RecurringFactSourcePort, RecurringFactQuery } from './recurringFactSource.port';
 export { canonicalMacroAnalyticsContribution } from '../domain/canonicalMacroAnalyticsContribution';
 export { prepareMacroAnalyticsPublication } from './prepareMacroAnalyticsPublication';
 export type { PrepareMacroAnalyticsPublicationInput, PrepareMacroAnalyticsPublicationResult } from './prepareMacroAnalyticsPublication';

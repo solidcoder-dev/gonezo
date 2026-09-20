@@ -108,6 +108,13 @@ describe('RunMacroAnalyticsMaintenance', () => {
     expect(state.prepare.mock.calls.map(([value]) => value.period)).toEqual(['2025-11', '2026-01', '2026-01']);
   });
 
+  it('does not repeat V3 historical migration after version 3 is recorded', async () => {
+    const state = setup({ periods: ['2025-11'], backfillVersion: 3 });
+    await RunMacroAnalyticsMaintenance(state.ports, input);
+    expect(state.ports.periodSource.listPeriods).not.toHaveBeenCalled();
+    expect(state.state.markInitialBackfillComplete).not.toHaveBeenCalled();
+  });
+
   it('does not discover or process periods without consent', async () => {
     const state = setup({ granted: false });
     const result = await RunMacroAnalyticsMaintenance(state.ports, input);

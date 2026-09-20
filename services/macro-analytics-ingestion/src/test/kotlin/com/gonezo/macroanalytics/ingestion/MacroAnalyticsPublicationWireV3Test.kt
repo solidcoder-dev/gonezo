@@ -28,5 +28,8 @@ class MacroAnalyticsPublicationWireV3Test {
         assertFails { parser.parse(fixture.replace("\"seriesCount\": 1", "\"seriesCount\": 2")) }
         assertFails { parser.parse(fixture.replace("\"seriesCount\": 1", "\"seriesCount\": 1, \"seriesId\": \"private\"")) }
         assertFails { parser.parse(fixture.replace("\"schemaVersion\": 3", "\"schemaVersion\": 2")) }
+        assertFails { parser.parse(fixture.replace("\"protocolVersion\": 3", "\"protocolVersion\": 2")) }
+        assertFails { parser.parse(fixture.replace("\"amount\": \"12\", \"occurrenceCount\": 1", "\"amount\": \"-1\", \"occurrenceCount\": 1")) }
+        assertFails { parser.parse(fixture.replace("\"seriesCount\": 1", "\"seriesCount\": 1}, {\"source\":\"SCHEDULED\",\"kind\":\"EXPENSE\",\"amount\":\"0\",\"occurrenceCount\":1,\"seriesCount\":1")) }
     }
 }

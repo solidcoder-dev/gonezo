@@ -11,6 +11,7 @@ import type { FinancialFactSourcePort } from './financialFactSource.port';
 import type { CategoryFactSourcePort } from './categoryFactSource.port';
 import type { FinancialFact } from '../domain/financialFact';
 import type { CategoryFact } from '../domain/categoryFact';
+import type { RecurringFactSourcePort } from './recurringFactSource.port';
 import type { AnalyticsContributorIdentityPort } from './analyticsContributorIdentity.port';
 import type { MacroAnalyticsOutboxPort } from './macroAnalyticsOutbox.port';
 import type { LatestMacroAnalyticsPublicationPort } from './latestMacroAnalyticsPublication.port';
@@ -58,8 +59,9 @@ function setup(options: { consent?: 'GRANTED' | 'DECLINED' | 'WITHDRAWN' | null;
   const profileSource: ContributionProfileSourcePort = { get: vi.fn(async () => options.profile === undefined ? profile : options.profile) };
   const financialFacts: FinancialFactSourcePort = { listFinancialFacts: vi.fn(async () => options.facts ?? facts) };
   const categoryFacts: CategoryFactSourcePort = { listCategoryFacts: vi.fn(async () => categoriesFor(options.facts ?? facts)) };
+  const recurringFacts: RecurringFactSourcePort = { listRecurringFacts: vi.fn(async () => []) };
   const ports = {
-    contribution: { consent, profile: profileSource, financialFacts, categoryFacts },
+    contribution: { consent, profile: profileSource, financialFacts, categoryFacts, recurringFacts },
     identity,
     generateContributorId: vi.fn(() => createAnalyticsContributorId('opaque-random-id')),
     outbox,
@@ -103,7 +105,7 @@ describe('prepareMacroAnalyticsPublication', () => {
     const state = setup({ consent: 'GRANTED' });
     const first = await prepareMacroAnalyticsPublication(state.ports, input);
     if (first.status !== 'PREPARED') throw new Error('Expected first publication');
-    if (first.publication.protocolVersion !== 2) throw new Error('Expected V2 publication');
+    if (first.publication.protocolVersion !== 3) throw new Error('Expected V3 publication');
     await state.ports.latest.save(first.publication);
     await state.outbox.remove(input.userId, first.publication.period);
     vi.mocked(state.financialFacts.listFinancialFacts).mockResolvedValue([createFinancialFact({ ...facts[0], amount: '13' })]);
@@ -115,7 +117,7 @@ describe('prepareMacroAnalyticsPublication', () => {
     expect(changed.status === 'PREPARED' && changed.publication.revision).toBe(2);
   });
 
-  it('replaces the latest V1 publication with the next monotonic V2 revision', async () => {
+  it('replaces the latest V1 publication with the next monotonic V3 revision', async () => {
     const state = setup({ consent: 'GRANTED' });
     const period = createAnalyticsPeriod(input.period);
     await state.ports.latest.save({
@@ -135,14 +137,38 @@ describe('prepareMacroAnalyticsPublication', () => {
 
     expect(next.status).toBe('PREPARED');
     if (next.status !== 'PREPARED') throw new Error('Expected publication');
-    expect(next.publication).toMatchObject({ protocolVersion: 2, revision: 4, contribution: { schemaVersion: 2 } });
+    expect(next.publication).toMatchObject({ protocolVersion: 3, revision: 4, contribution: { schemaVersion: 3 } });
+  });
+
+  it('rebuilds a latest V2 revision 4 as V3 revision 5', async () => {
+    const state = setup({ consent: 'GRANTED' });
+    const period = createAnalyticsPeriod(input.period);
+    await state.ports.latest.save({
+      protocolVersion: 2,
+      contributorId: createAnalyticsContributorId('opaque-random-id'),
+      period,
+      revision: 4,
+      contribution: {
+        schemaVersion: 2,
+        period,
+        dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE', ageBand: '25_34' },
+        financial: { currencies: [{ currency: 'EUR', buckets: [{ source: 'POSTED', kind: 'EXPENSE', amount: '12', count: 1 }] }] },
+        categories: { currencies: [{ currency: 'EUR', buckets: [{ source: 'POSTED', kind: 'EXPENSE', category: 'GROCERIES', amount: '12' }] }] },
+      },
+    });
+
+    const next = await prepareMacroAnalyticsPublication(state.ports, input);
+
+    expect(next.status).toBe('PREPARED');
+    if (next.status !== 'PREPARED') throw new Error('Expected V3 publication');
+    expect(next.publication).toMatchObject({ protocolVersion: 3, revision: 5, contribution: { schemaVersion: 3 } });
   });
 
   it('does not create a new revision when the contribution matches the processed publication', async () => {
     const state = setup({ consent: 'GRANTED' });
     const first = await prepareMacroAnalyticsPublication(state.ports, input);
     if (first.status !== 'PREPARED') throw new Error('Expected first publication');
-    if (first.publication.protocolVersion !== 2) throw new Error('Expected V2 publication');
+    if (first.publication.protocolVersion !== 3) throw new Error('Expected V3 publication');
     await state.ports.latest.save(first.publication);
     await state.outbox.remove(input.userId, first.publication.period);
 
@@ -156,9 +182,9 @@ describe('prepareMacroAnalyticsPublication', () => {
     const state = setup({ consent: 'GRANTED' });
     const first = await prepareMacroAnalyticsPublication(state.ports, input);
     if (first.status !== 'PREPARED') throw new Error('Expected first publication');
-    if (first.publication.protocolVersion !== 2) throw new Error('Expected V2 publication');
+    if (first.publication.protocolVersion !== 3) throw new Error('Expected V3 publication');
     const contribution = first.publication.contribution;
-    if (contribution.schemaVersion !== 2) throw new Error('Expected V2 contribution');
+    if (contribution.schemaVersion !== 3) throw new Error('Expected V3 contribution');
     await state.ports.latest.save(first.publication);
     const pendingRevisionTwo = { ...first.publication, revision: 2, contribution: { ...contribution, financial: { currencies: [] } } };
     await state.outbox.save(input.userId, pendingRevisionTwo);
@@ -175,9 +201,9 @@ describe('prepareMacroAnalyticsPublication', () => {
     const state = setup({ consent: 'GRANTED' });
     const first = await prepareMacroAnalyticsPublication(state.ports, input);
     if (first.status !== 'PREPARED') throw new Error('Expected first publication');
-    if (first.publication.protocolVersion !== 2) throw new Error('Expected V2 publication');
+    if (first.publication.protocolVersion !== 3) throw new Error('Expected V3 publication');
     const contribution = first.publication.contribution;
-    if (contribution.schemaVersion !== 2) throw new Error('Expected V2 contribution');
+    if (contribution.schemaVersion !== 3) throw new Error('Expected V3 contribution');
     await state.ports.latest.save(first.publication);
     await state.outbox.save(input.userId, { ...first.publication, revision: 2, contribution: { ...contribution, financial: { currencies: [] } } });
 
