@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 const domainFiles = [
   '../../macroAnalytics/domain/categoryContribution.ts',
+  '../../macroAnalytics/domain/categoryMoneyAmount.ts',
   '../../macroAnalytics/domain/contributorCategoryBreakdown.ts',
   '../../macroAnalytics/domain/cohortCategoryBreakdown.ts',
 ];

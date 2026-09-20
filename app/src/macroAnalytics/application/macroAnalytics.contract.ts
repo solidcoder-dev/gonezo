@@ -51,6 +51,7 @@ export { GetMacroOverviewReport } from './GetMacroOverviewReport';
 export type { MacroCategoryReport } from '../domain/macroCategoryReport';
 export type { CohortCategoryBreakdown, CohortCategoryBreakdownItem } from '../domain/cohortCategoryBreakdown';
 export type { ContributorCategoryBreakdown } from '../domain/contributorCategoryBreakdown';
+export type { CategoryMoneyAmount } from '../domain/categoryMoneyAmount';
 export { buildContributorCategoryBreakdown } from '../domain/contributorCategoryBreakdown';
 export { buildCohortCategoryBreakdown } from '../domain/cohortCategoryBreakdown';
 export { GetMacroCategoryReport } from './GetMacroCategoryReport';

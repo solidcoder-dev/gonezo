@@ -3,7 +3,8 @@ import type { AnalyticsPeriod } from './analyticsPeriod';
 import type { Cohort } from './cohort';
 import type { MacroAnalyticsContribution } from './macroAnalyticsContribution';
 import type { MacroCategoryCode } from './macroCategoryCode';
-import { buildContributorCategoryBreakdown, type CategoryMoneyAmount } from './contributorCategoryBreakdown';
+import { buildContributorCategoryBreakdown } from './contributorCategoryBreakdown';
+import { createCategoryMoneyAmount, type CategoryMoneyAmount } from './categoryMoneyAmount';
 import { exactMedian } from './decimalStatistics';
 
 export type CohortCategoryBreakdownItem = Readonly<{
@@ -48,8 +49,8 @@ export function buildCohortCategoryBreakdown(input: Readonly<{
       const activeContributorCount = contributorAmounts.filter((amount) => amount.compare(ExactDecimal.from('0')) > 0).length;
       return Object.freeze({
         category,
-        totalAmount: categoryMoneyAmount(total, currency),
-        medianAmount: categoryMoneyAmount(median, currency),
+        totalAmount: createCategoryMoneyAmount(total, currency),
+        medianAmount: createCategoryMoneyAmount(median, currency),
         activeContributorCount,
         sharePercent: total.ratioTo(representedExpenseTotal, 4).multiplyByInteger(100).toString(),
       });
@@ -60,8 +61,4 @@ export function buildCohortCategoryBreakdown(input: Readonly<{
 
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
-}
-
-function categoryMoneyAmount(value: ExactDecimal, currency: string): CategoryMoneyAmount {
-  return Object.freeze({ kind: 'MONEY', value, currency });
 }

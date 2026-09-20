@@ -28,7 +28,12 @@ export function toMacroAnalyticsPublicationWireV2(publication: MacroAnalyticsPub
     revision: publication.revision,
     contribution: {
       schemaVersion: 2,
-      dimensions: { ...publication.contribution.dimensions },
+      dimensions: {
+        countryCode: publication.contribution.dimensions.countryCode,
+        regionCode: publication.contribution.dimensions.regionCode,
+        sex: publication.contribution.dimensions.sex,
+        ageBand: publication.contribution.dimensions.ageBand,
+      },
       financial: { currencies: [...publication.contribution.financial.currencies].sort((a, b) => compareText(a.currency, b.currency)).map(({ currency, buckets }) => ({
         currency,
         buckets: [...buckets].sort((a, b) => compareText(a.source, b.source) || compareText(a.kind, b.kind)).map(({ source, kind, amount, count }) => ({ source, kind, amount, count })),

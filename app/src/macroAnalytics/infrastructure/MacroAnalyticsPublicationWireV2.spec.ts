@@ -32,4 +32,18 @@ describe('MacroAnalyticsPublicationWireV2', () => {
   it('does not let a V1 serializer silently discard categories', () => {
     expect(() => serializeMacroAnalyticsPublicationV1(publication)).toThrow('requires a V1 publication');
   });
+
+  it('keeps wire bytes stable when dimension and category input fields arrive in another order', () => {
+    if (publication.protocolVersion !== 2) throw new Error('Expected V2 publication');
+    const contribution = publication.contribution;
+    const reordered = {
+      ...publication,
+      contribution: {
+        ...contribution,
+        dimensions: { ageBand: contribution.dimensions.ageBand, sex: contribution.dimensions.sex, regionCode: contribution.dimensions.regionCode, countryCode: contribution.dimensions.countryCode },
+        categories: { currencies: [{ currency: 'EUR', buckets: [...contribution.categories.currencies[0].buckets].reverse() }] },
+      },
+    };
+    expect(serializeMacroAnalyticsPublicationV2(reordered)).toBe(serializeMacroAnalyticsPublicationV2(publication));
+  });
 });
