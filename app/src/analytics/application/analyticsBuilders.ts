@@ -29,7 +29,7 @@ import {
   type AnalyticsPeriod,
   type LegacyAnalyticsPeriodPreset,
 } from './analyticsFilters';
-import { resolveAnalyticsPeriodWindow } from './analyticsPeriodResolver';
+import { createAnalyticsQueryContext } from './analyticsQueryContext';
 import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 import { buildOverviewInsightsResult } from './overviewInsights';
 import { addDecimalAmounts, subtractDecimalAmounts } from '../../ledger/application/decimalAmount';
@@ -174,18 +174,11 @@ function periodWindowOffset(
   periodOffset: number,
   includePlannedMovements: boolean,
 ) {
-  let currentPeriod = period;
-  let currentReferenceDate = referenceDate;
-  let resolved = resolveAnalyticsPeriodWindow(currentPeriod, currentReferenceDate, includePlannedMovements);
-  for (let index = 0; index > periodOffset; index -= 1) {
-    if (!resolved.comparisonRange) {
-      break;
-    }
-    currentPeriod = { kind: 'custom', from: resolved.comparisonRange.from, to: resolved.comparisonRange.to };
-    currentReferenceDate = resolved.comparisonRange.to;
-    resolved = resolveAnalyticsPeriodWindow(currentPeriod, currentReferenceDate, includePlannedMovements);
-  }
-  return resolved;
+  return createAnalyticsQueryContext({
+    filters: { period, includePlannedMovements },
+    referenceDate,
+    shift: periodOffset,
+  });
 }
 
 export function buildAnalyticsOverviewWindows(
@@ -207,41 +200,17 @@ export function buildAnalyticsOverviewWindows(
       },
     };
   }
-  let resolved = resolveAnalyticsPeriodWindow(normalizedPeriod, analyticsReferenceDateFromNow(now), includePlannedMovements);
   const shift = Math.min(0, Math.trunc(periodSelection?.shift ?? 0));
-  for (let index = 0; index > shift; index -= 1) {
-    if (!resolved.comparisonRange) break;
-    resolved = resolveAnalyticsPeriodWindow(
-      { kind: 'custom', from: resolved.comparisonRange.from, to: resolved.comparisonRange.to },
-      resolved.comparisonRange.to,
-      includePlannedMovements,
-    );
-  }
-  if (resolved.currentRange && normalizedPeriod.kind === 'lastMonth') {
-    const currentStart = new Date(`${resolved.currentRange.from}T00:00:00.000Z`);
-    const previousStart = addUtcMonths(currentStart, -1);
-    const previousEnd = addUtcMonths(previousStart, 1);
-    resolved = {
-      ...resolved,
-      comparisonRange: {
-        from: toLocalDate(previousStart),
-        to: toLocalDate(addUtcDays(previousEnd, -1)),
-      },
-      comparisonWindowLabel: `${monthDayLabel(previousStart)}-${monthDayLabel(addUtcDays(previousEnd, -1))}, ${previousEnd.getUTCFullYear()}`,
-    };
-  } else if (resolved.currentRange && (normalizedPeriod.kind === 'thisMonth' || normalizedPeriod.kind === 'thisYear')) {
-    const comparison = resolveAnalyticsPeriodWindow(normalizedPeriod, resolved.currentRange.to, includePlannedMovements);
-    resolved = {
-      ...resolved,
-      comparisonRange: comparison.comparisonRange,
-      comparisonWindowLabel: comparison.comparisonWindowLabel,
-    };
-  }
-  const currentWindow = toWindowRange(resolved.currentRange!, resolved.currentWindowLabel);
+  const context = createAnalyticsQueryContext({
+    filters: { period: normalizedPeriod, includePlannedMovements },
+    referenceDate: analyticsReferenceDateFromNow(now),
+    shift,
+  });
+  const currentWindow = toWindowRange(context.currentWindow!, context.currentWindowLabel);
   return {
     currentWindow,
-    previousWindow: resolved.comparisonRange && resolved.comparisonWindowLabel
-      ? toWindowRange(resolved.comparisonRange, resolved.comparisonWindowLabel)
+    previousWindow: context.comparisonWindow && context.comparisonWindowLabel
+      ? toWindowRange(context.comparisonWindow, context.comparisonWindowLabel)
       : undefined,
   };
 }
@@ -276,7 +245,7 @@ export function buildSpendingTimelineWindow(
   }
 
   const resolved = periodWindowOffset(normalizedPeriod, toLocalDate(now), periodOffset, includePlannedMovements);
-  const window = toWindowRange(resolved.currentRange!, resolved.currentWindowLabel);
+  const window = toWindowRange(resolved.currentWindow!, resolved.currentWindowLabel);
   return {
     ...window,
     periodOffset,
