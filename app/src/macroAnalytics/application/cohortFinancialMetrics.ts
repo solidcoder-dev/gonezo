@@ -1,6 +1,6 @@
-import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import { createMetricDefinition, MetricId, MetricKey, MetricVersion, moneyMetricValue, type MetricDefinition, type MetricValue } from '../../shared/domain/analyticsMetric';
 import type { CohortMetricCalculator } from '../domain/cohortMetric';
+import { exactMedian } from '../domain/decimalStatistics';
 
 function definition(key: string): MetricDefinition {
   return createMetricDefinition(MetricId.create(MetricKey.create(key), MetricVersion.create(1)), 'MONEY');
@@ -18,20 +18,12 @@ function medianCalculator(metricDefinition: MetricDefinition, contributorMetricI
     calculate({ contributors, currency }) {
       const eligible = contributors.map(({ result }) => result.value)
         .filter((value): value is Extract<MetricValue, { kind: 'MONEY' }> => value.kind === 'MONEY' && value.currency === currency)
-        .map((value) => value.value).sort((left, right) => left.compare(right));
-      if (eligible.length === 0) return null;
-      const middle = Math.floor(eligible.length / 2);
-      const value = eligible.length % 2 === 1 ? eligible[middle] : eligible[middle - 1].add(eligible[middle]).ratioTo(
-        ExactDecimal.from(2),
-        Math.max(decimalPlaces(eligible[middle - 1]), decimalPlaces(eligible[middle])) + 1,
-      );
+        .map((value) => value.value);
+      const value = exactMedian(eligible);
+      if (!value) return null;
       return Object.freeze({ value: moneyMetricValue(value, currency), contributorCount: eligible.length });
     },
   });
-}
-
-function decimalPlaces(value: ExactDecimal): number {
-  return value.toString().split('.')[1]?.length ?? 0;
 }
 
 export const cohortFinancialMetricCalculators: readonly CohortMetricCalculator[] = Object.freeze([
