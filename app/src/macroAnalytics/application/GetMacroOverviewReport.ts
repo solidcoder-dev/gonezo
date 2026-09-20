@@ -2,8 +2,8 @@ import type { AnalyticsPeriod } from '../domain/analyticsPeriod';
 import type { Cohort } from '../domain/cohort';
 import type { MacroOverviewReport } from '../domain/macroOverviewReport';
 import type { ProcessedContributionSourcePort } from './ProcessedContributionSourcePort';
-import { CalculateContributorMetrics } from './CalculateContributorMetrics';
-import { CalculateCohortMetrics } from './CalculateCohortMetrics';
+import type { CalculateContributorMetrics } from './CalculateContributorMetrics';
+import type { CalculateCohortMetrics } from './CalculateCohortMetrics';
 import { contributorFinancialMetricDefinitions } from './contributorFinancialMetrics';
 import { cohortFinancialMetricDefinitions } from './cohortFinancialMetrics';
 
