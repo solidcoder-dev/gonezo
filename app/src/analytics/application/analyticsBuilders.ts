@@ -363,8 +363,10 @@ function categoryName(categoriesById: ReadonlyMap<string, TaxonomyCategoryItem>,
   return categoryId ? categoriesById.get(categoryId)?.name ?? UNCATEGORIZED : UNCATEGORIZED;
 }
 
+type AnalyticsCategoryTransaction = LedgerTransactionListItem & { categoryAllocations?: readonly { categoryId?: string; personalAmount: string }[] };
+
 function spendingCategoryBreakdown(input: {
-  transactions: LedgerTransactionListItem[];
+  transactions: AnalyticsCategoryTransaction[];
   categories: TaxonomyCategoryItem[];
   currency: string;
   window: { start: Date; end: Date };
@@ -387,7 +389,10 @@ function spendingCategoryBreakdown(input: {
     const attributedAmount = ExactDecimal.from(analyticsTransactionAmount(transaction));
     const fullAmount = ExactDecimal.from(transaction.amount);
     const hasAttribution = fullAmount.compare(ExactDecimal.from('0')) > 0;
-    const breakdown = transaction.items.length > 0
+    const canonicalAllocations = transaction.categoryAllocations;
+    const breakdown = canonicalAllocations?.length
+      ? canonicalAllocations.map((allocation) => ({ categoryId: allocation.categoryId, amount: allocation.personalAmount }))
+      : transaction.items.length > 0
       ? transaction.items.map((item) => ({
           categoryId: item.categoryId ?? transaction.categoryId,
           amount: hasAttribution ? ExactDecimal.from(item.amount).multiply(attributedAmount).ratioTo(fullAmount, 2).toFixed(2) : ExactDecimal.from(item.amount).toFixed(2),
@@ -421,7 +426,7 @@ function spendingCategoryBreakdown(input: {
 }
 
 export function buildSpendingDashboard(input: {
-  currentTransactions: LedgerTransactionListItem[];
+  currentTransactions: AnalyticsCategoryTransaction[];
   previousTransactions?: LedgerTransactionListItem[];
   categories: TaxonomyCategoryItem[];
   currency: string;
@@ -512,7 +517,7 @@ function spendingTimelinePoints(
 }
 
 export function buildSpendingTimeline(input: {
-  transactions: LedgerTransactionListItem[];
+  transactions: AnalyticsCategoryTransaction[];
   currency: string;
   currentWindow: AnalyticsNavigableWindowRange;
   period: AnalyticsPeriod | LegacyAnalyticsPeriodPreset;

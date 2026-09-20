@@ -16,7 +16,7 @@ import {
   listAnalyticsCurrencies,
 } from './analyticsBuilders';
 
-function transaction(input: Partial<LedgerTransactionListItem> & Pick<LedgerTransactionListItem, 'id' | 'type' | 'amount' | 'currency'>): LedgerTransactionListItem {
+function transaction(input: Partial<LedgerTransactionListItem> & { id: string; type: LedgerTransactionListItem['type']; amount: string; currency: string; analyticsPersonalAmount?: string; analyticsFullAmount?: string; analyticsAmount?: string; categoryAllocations?: readonly { categoryId?: string; personalAmount: string; fullAmount: string }[] }): LedgerTransactionListItem & { analyticsPersonalAmount?: string; analyticsFullAmount?: string; analyticsAmount?: string; categoryAllocations?: readonly { categoryId?: string; personalAmount: string; fullAmount: string }[] } {
   return {
     accountId: 'acc-1',
     status: 'posted',
@@ -244,6 +244,9 @@ describe('analytics builders', () => {
       transaction({ id: 'split', type: 'expense', amount: '6.00', currency: 'EUR', items: [
         { id: 'food-item', name: 'Meal', amount: '4.00', currency: 'EUR', categoryId: 'cat-food' },
         { id: 'home-item', name: 'Cleaning', amount: '2.00', currency: 'EUR', categoryId: 'cat-home' },
+      ], categoryAllocations: [
+        { categoryId: 'cat-food', personalAmount: '3.00', fullAmount: '3.00' },
+        { categoryId: 'cat-home', personalAmount: '3.00', fullAmount: '3.00' },
       ] }),
       transaction({ id: 'uncategorized', type: 'expense', amount: '3.00', currency: 'EUR' }),
       transaction({ id: 'shared', type: 'expense', amount: '8.00', currency: 'EUR', categoryId: 'cat-food', analyticsPersonalAmount: '5.00', analyticsFullAmount: '8.00', analyticsAmount: '5.00' }),
@@ -269,8 +272,8 @@ describe('analytics builders', () => {
     expect(full.categories.reduce((sum, item) => sum + Number(item.amount), 0)).toBe(Number(full.totalExpenseAmount));
     expect(full.totalExpenseAmount).toBe('27.00');
     expect(personal.categories.map(({ categoryId, amount }) => [categoryId, amount])).toEqual([
-      ['cat-home', '12.00'],
-      ['cat-food', '9.00'],
+      ['cat-home', '13.00'],
+      ['cat-food', '8.00'],
       [undefined, '3.00'],
     ]);
   });
