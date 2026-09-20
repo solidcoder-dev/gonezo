@@ -22,6 +22,8 @@ import com.gonezo.recurrence.domain.RecurringMovementOccurrenceStatus
 import com.gonezo.recurrence.domain.RecurringMovementReviewPolicy
 import com.gonezo.recurrence.domain.RecurringMovementStatus
 import com.gonezo.recurrence.domain.RecurringMovementType
+import com.gonezo.recurrence.domain.SchedulingKind
+import com.gonezo.recurrence.domain.resolveCurrentSchedulingKind
 import com.gonezo.recurrence.domain.ports.RecurringMovementOccurrenceRepository
 import com.gonezo.recurrence.domain.ports.RecurringMovementRepository
 import java.math.BigDecimal
@@ -62,18 +64,18 @@ data class BackupRecurringMovement(
 data class BackupRecurringSplitItem(val id: String, val name: String, val amount: String, val tagNames: List<String> = emptyList())
 data class BackupRecurrenceRule(val frequency: String, val interval: Int, val weeklyDays: List<String>, val monthlyPattern: String, val dayOfMonth: Int?, val monthlyWeekOrdinal: Int?, val monthlyWeekday: String?)
 data class BackupRecurrenceEnd(val kind: String, val date: String?, val count: Int?)
-data class BackupRecurringOccurrence(val id: String, val recurringMovementId: String, val dueAt: String, val status: String, val ledgerTransactionId: String?, val errorCode: String?, val errorMessage: String?, val createdAt: String, val updatedAt: String, val acknowledgedAt: String?)
+data class BackupRecurringOccurrence(val id: String, val recurringMovementId: String, val dueAt: String, val status: String, val ledgerTransactionId: String?, val errorCode: String?, val errorMessage: String?, val createdAt: String, val updatedAt: String, val acknowledgedAt: String?, val schedulingKind: String? = null)
 
 data class RecurrenceBackupSection(val movements: List<BackupRecurringMovement>, val occurrences: List<BackupRecurringOccurrence>) : BackupSection {
     override val sectionId = BackupSectionId.RECURRENCE
-    override val version = 1
+    override val version = 2
 
     override fun references() = movements.map { BackupReference.RecurringMovement(it.id) } + occurrences.map { BackupReference.RecurringOccurrence(it.id) } + movements.flatMap { movement -> movement.splitItems.map { BackupReference.RecurringSplitItem(it.id, movement.id) } }
 }
 
 class RecurrenceBackupSectionExporter(private val accountRepository: LedgerAccountRepository, private val movementRepository: RecurringMovementRepository, private val occurrenceRepository: RecurringMovementOccurrenceRepository) : BackupSectionExporter {
     override val sectionId = BackupSectionId.RECURRENCE
-    override val version = 1
+    override val version = 2
 
     override fun export(): RecurrenceBackupSection {
         val movements = accountRepository.listAll()
@@ -111,12 +113,13 @@ class RecurrenceBackupSectionExporter(private val accountRepository: LedgerAccou
         id = value.id.toString(), recurringMovementId = value.recurringMovementId.value.toString(), dueAt = value.dueAt.toString(),
         status = value.status.value, ledgerTransactionId = value.ledgerTransactionId, errorCode = value.errorCode,
         errorMessage = value.errorMessage, createdAt = value.createdAt.toString(), updatedAt = value.updatedAt.toString(), acknowledgedAt = value.acknowledgedAt?.toString(),
+        schedulingKind = value.schedulingKind.value,
     )
 }
 
 class RecurrenceBackupSectionImporter(private val movementRepository: RecurringMovementRepository, private val occurrenceRepository: RecurringMovementOccurrenceRepository) : BackupSectionImporter {
     override val sectionId = BackupSectionId.RECURRENCE
-    override val supportedVersions = setOf(1)
+    override val supportedVersions = setOf(1, 2)
     override val dependencies = setOf(BackupSectionId.TAXONOMY, BackupSectionId.LEDGER)
     override fun validate(section: BackupSection, context: BackupImportContext): BackupValidationResult = try {
         val recurrence = section as? RecurrenceBackupSection ?: return BackupValidationResult.Invalid(BackupErrorCode.INVALID_DATA, "Expected recurrence backup section")
@@ -139,6 +142,7 @@ class RecurrenceBackupSectionImporter(private val movementRepository: RecurringM
             requireReference(movementIds, occurrence.recurringMovementId, "occurrence recurring movement")
             occurrence.ledgerTransactionId?.let { requireContext(context.validationContext.containsMovement(it), "occurrence ledger transaction", it) }
             RecurringMovementOccurrenceStatus.from(occurrence.status)
+            occurrence.schedulingKind?.let(SchedulingKind::from)
             Instant.parse(occurrence.dueAt)
             Instant.parse(occurrence.createdAt)
             Instant.parse(occurrence.updatedAt)
@@ -150,13 +154,11 @@ class RecurrenceBackupSectionImporter(private val movementRepository: RecurringM
     }
     override fun import(section: BackupSection, context: BackupImportContext) {
         val recurrence = section as RecurrenceBackupSection
+        val schedulingKindsByMovementId = recurrence.movements.associate { movement ->
+            movement.id to resolveCurrentSchedulingKind(movement.recurrenceEnd.toDomain())
+        }
         recurrence.movements.forEach { value ->
-            val end = when (value.recurrenceEnd.kind) {
-                "never" -> com.gonezo.recurrence.domain.RecurrenceEnd.Never
-                "on_date" -> com.gonezo.recurrence.domain.RecurrenceEnd.OnDate(LocalDate.parse(value.recurrenceEnd.date!!))
-                "after_occurrences" -> com.gonezo.recurrence.domain.RecurrenceEnd.AfterOccurrences(value.recurrenceEnd.count!!)
-                else -> error("Unsupported recurrence end")
-            }
+            val end = value.recurrenceEnd.toDomain()
             val rule = RecurrenceRule(RecurrenceFrequency.from(value.rule.frequency), value.rule.interval, value.rule.weeklyDays.map(DayOfWeek::valueOf).toSet(), MonthlyPattern.from(value.rule.monthlyPattern), value.rule.dayOfMonth, value.rule.monthlyWeekOrdinal, value.rule.monthlyWeekday?.let(DayOfWeek::valueOf))
             movementRepository.save(
                 RecurringMovement(
@@ -168,8 +170,19 @@ class RecurrenceBackupSectionImporter(private val movementRepository: RecurringM
                 ),
             )
         }
-        recurrence.occurrences.forEach { value -> occurrenceRepository.save(RecurringMovementOccurrence(UUID.fromString(value.id), RecurringMovementId.from(value.recurringMovementId), Instant.parse(value.dueAt), RecurringMovementOccurrenceStatus.from(value.status), value.ledgerTransactionId, value.errorCode, value.errorMessage, Instant.parse(value.createdAt), Instant.parse(value.updatedAt), value.acknowledgedAt?.let(Instant::parse))) }
+        recurrence.occurrences.forEach { value ->
+            val schedulingKind = value.schedulingKind?.let(SchedulingKind::from)
+                ?: schedulingKindsByMovementId.getValue(value.recurringMovementId)
+            occurrenceRepository.save(RecurringMovementOccurrence(UUID.fromString(value.id), RecurringMovementId.from(value.recurringMovementId), Instant.parse(value.dueAt), RecurringMovementOccurrenceStatus.from(value.status), value.ledgerTransactionId, value.errorCode, value.errorMessage, Instant.parse(value.createdAt), Instant.parse(value.updatedAt), value.acknowledgedAt?.let(Instant::parse), schedulingKind))
+        }
     }
+}
+
+private fun BackupRecurrenceEnd.toDomain() = when (kind) {
+    "never" -> RecurrenceEnd.Never
+    "on_date" -> RecurrenceEnd.OnDate(LocalDate.parse(date!!))
+    "after_occurrences" -> RecurrenceEnd.AfterOccurrences(count!!)
+    else -> error("Unsupported recurrence end")
 }
 
 private fun uniqueIds(ids: List<String>, label: String): Set<String> = ids.toSet().also { if (it.size != ids.size || ids.any(String::isBlank)) throw IllegalArgumentException("Duplicate or blank $label id") }

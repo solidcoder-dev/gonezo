@@ -67,7 +67,7 @@ private fun plannedShare(v: BackupPlannedMovementShare) = JSONObject().put("id",
         },
     ),
 ).put("status", v.status).putNullable("materializedTransactionId", v.materializedTransactionId).putNullable("materializedShareId", v.materializedShareId).put("createdAt", v.createdAt).put("updatedAt", v.updatedAt)
-private fun occurrence(v: BackupRecurringOccurrence) = JSONObject().put("id", v.id).put("recurringMovementId", v.recurringMovementId).put("dueAt", v.dueAt).put("status", v.status).putNullable("ledgerTransactionId", v.ledgerTransactionId).putNullable("errorCode", v.errorCode).putNullable("errorMessage", v.errorMessage).put("createdAt", v.createdAt).put("updatedAt", v.updatedAt).putNullable("acknowledgedAt", v.acknowledgedAt)
+private fun occurrence(v: BackupRecurringOccurrence) = JSONObject().put("id", v.id).put("recurringMovementId", v.recurringMovementId).put("dueAt", v.dueAt).put("status", v.status).putNullable("ledgerTransactionId", v.ledgerTransactionId).putNullable("errorCode", v.errorCode).putNullable("errorMessage", v.errorMessage).put("createdAt", v.createdAt).put("updatedAt", v.updatedAt).putNullable("acknowledgedAt", v.acknowledgedAt).putNullable("schedulingKind", v.schedulingKind)
 private fun exclusion(v: BackupAnalyticsExclusion) = JSONObject().put("id", v.id).put("scopeType", v.scopeType).put("scopeId", v.scopeId).put("reason", v.reason).put("createdAt", v.createdAt)
 
 private fun decodeCategory(o: JSONObject) = BackupCategory(o.getString("id"), o.getString("name"), o.getString("appliesTo"), o.getString("status"), o.instantOrNull("createdAt"), o.instantOrNull("archivedAt"))
@@ -85,7 +85,7 @@ private fun decodeRecurring(o: JSONObject): BackupRecurringMovement {
         BackupRecurrenceRule(rule.getString("frequency"), rule.getInt("interval"), rule.array("weeklyDays").values(), rule.getString("monthlyPattern"), rule.intOrNull("dayOfMonth"), rule.intOrNull("monthlyWeekOrdinal"), rule.stringOrNull("monthlyWeekday")), BackupRecurrenceEnd(end.getString("kind"), end.stringOrNull("date"), end.intOrNull("count")), o.getString("startAt"), o.getString("zoneId"), o.stringOrNull("nextDueAt"), o.getString("status"), o.getInt("generatedOccurrences"), o.getString("createdAt"), o.getString("updatedAt"), o.stringOrNull("deactivatedAt"), o.stringOrNull("completedAt"), o.array("tagNames").values(),
     )
 }
-private fun decodeOccurrence(o: JSONObject) = BackupRecurringOccurrence(o.getString("id"), o.getString("recurringMovementId"), o.getString("dueAt"), o.getString("status"), o.stringOrNull("ledgerTransactionId"), o.stringOrNull("errorCode"), o.stringOrNull("errorMessage"), o.getString("createdAt"), o.getString("updatedAt"), o.stringOrNull("acknowledgedAt"))
+private fun decodeOccurrence(o: JSONObject) = BackupRecurringOccurrence(o.getString("id"), o.getString("recurringMovementId"), o.getString("dueAt"), o.getString("status"), o.stringOrNull("ledgerTransactionId"), o.stringOrNull("errorCode"), o.stringOrNull("errorMessage"), o.getString("createdAt"), o.getString("updatedAt"), o.stringOrNull("acknowledgedAt"), o.stringOrNull("schedulingKind"))
 private fun decodeExpectedMovement(o: JSONObject) = BackupExpectedMovement(
     o.getString("id"), o.getString("accountId"), o.getString("type"), o.getString("amount"), o.getString("currency"), o.getString("expectedAt"), o.stringOrNull("description"), o.stringOrNull("merchant"), o.stringOrNull("categoryId"), o.stringOrNull("originOccurrenceId"), o.stringOrNull("originRecurringMovementId"),
     o.array("splitItems").objects { item ->
@@ -128,7 +128,7 @@ class LedgerBackupSectionCodec : BackupSectionCodec<LedgerBackupSection> {
 
 class RecurrenceBackupSectionCodec : BackupSectionCodec<RecurrenceBackupSection> {
     override val sectionId = BackupSectionId.RECURRENCE
-    override val supportedVersions = setOf(1)
+    override val supportedVersions = setOf(1, 2)
     override fun encode(section: RecurrenceBackupSection) = JSONObject().put("version", section.version).put("data", JSONObject().put("movements", JSONArray(section.movements.sortedBy { it.id }.map(::recurring))).put("occurrences", JSONArray(section.occurrences.sortedBy { it.id }.map(::occurrence))))
     override fun decode(version: Int, data: JSONObject) = RecurrenceBackupSection(data.array("movements").objects(::decodeRecurring), data.array("occurrences").objects(::decodeOccurrence))
 }
