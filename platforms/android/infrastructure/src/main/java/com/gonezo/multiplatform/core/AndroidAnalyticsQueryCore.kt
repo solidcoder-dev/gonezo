@@ -6,6 +6,7 @@ import com.gonezo.application.query.AnalyticsMovementIdentity
 import com.gonezo.application.query.AnalyticsMovementReadResult
 import com.gonezo.application.query.AnalyticsMovementReadWindow
 import com.gonezo.application.query.AnalyticsMovementType
+import com.gonezo.application.query.AnalyticsCategoryAmount
 import com.gonezo.application.query.AnalyticsPostedMovement
 import com.gonezo.application.query.AnalyticsScheduledMovementReader
 import com.gonezo.application.query.AnalyticsScheduledProjection
@@ -76,6 +77,7 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
         type = type, currency = com.gonezo.domain.shared.CurrencyCode.from(transaction.currency),
         personalAmount = amount, fullAmount = amount, ignored = isIgnored("movement", transaction.id),
         categoryId = transaction.categoryId ?: categoryId(transaction.id), tagIds = tagIds(transaction.id),
+        splitAmounts = splitAmounts(transaction.id),
       )
     }
   }
@@ -125,6 +127,15 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
   private fun categoryId(transactionId: String): String? = database.readableDatabase.query(
     "taxonomy_transaction_assignments", arrayOf("category_id"), "transaction_id = ?", arrayOf(transactionId), null, null, null, "1",
   ).use { if (it.moveToFirst()) it.getString(0) else null }
+
+  private fun splitAmounts(transactionId: String): List<AnalyticsCategoryAmount> = database.readableDatabase.rawQuery(
+    "select assignments.category_id, items.amount from ledger_transaction_items items " +
+      "left join taxonomy_transaction_item_category_assignments assignments on assignments.transaction_item_id = items.id " +
+      "where items.transaction_id = ? order by items.id asc",
+    arrayOf(transactionId),
+  ).use { cursor -> buildList {
+    while (cursor.moveToNext()) add(AnalyticsCategoryAmount(cursor.getString(0), BigDecimal(cursor.getString(1))))
+  } }
 
   private fun tagIds(transactionId: String): Set<String> = database.readableDatabase.query(
     "taxonomy_transaction_tag_assignments", arrayOf("tag_id"), "transaction_id = ?", arrayOf(transactionId), null, null, "tag_id asc",

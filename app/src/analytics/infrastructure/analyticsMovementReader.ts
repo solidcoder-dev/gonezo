@@ -32,6 +32,7 @@ export type AnalyticsTransactionReadModel = LedgerTransactionListItem & {
   analyticsAmount: string;
   analyticsPersonalAmount: string;
   analyticsFullAmount: string;
+  categoryAllocations?: AnalyticsListMovementFactsResult['items'][number]['categoryAllocations'];
 };
 
 export type AnalyticsMovementReadModel = {
@@ -140,6 +141,7 @@ export async function listAnalyticsMovements(
         categoryId: movement.categoryId,
         ignored: movement.ignored,
         items: [],
+        categoryAllocations: movement.categoryAllocations,
         analyticsAmount: scope.sharedAmountMode === 'full' ? movement.fullAmount : movement.personalAmount,
         analyticsPersonalAmount: movement.personalAmount,
         analyticsFullAmount: movement.fullAmount,

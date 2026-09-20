@@ -16,6 +16,7 @@ function sourceFact(overrides: Partial<AnalyticsMovementFactItem> = {}): Analyti
     fullAmount: '100.00',
     ignored: false,
     categoryId: 'category-1',
+    categoryAllocations: [],
     tagIds: ['tag-1'],
     ...overrides,
   };

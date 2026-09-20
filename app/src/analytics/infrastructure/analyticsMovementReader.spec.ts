@@ -19,6 +19,7 @@ describe('analytics movement bridge contract', () => {
         personalAmount: '12.00',
         fullAmount: '12.00',
         ignored: false,
+        categoryAllocations: [],
         tagIds: ['tag-home'],
       }],
     }));
@@ -67,6 +68,7 @@ describe('analytics movement bridge contract', () => {
           personalAmount: '500.00',
           fullAmount: '500.00',
           ignored: false,
+          categoryAllocations: [],
           tagIds: [],
         },
         {
@@ -80,6 +82,7 @@ describe('analytics movement bridge contract', () => {
           personalAmount: '580.00',
           fullAmount: '580.00',
           ignored: false,
+          categoryAllocations: [],
           tagIds: [],
         },
       ],

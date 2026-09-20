@@ -13,6 +13,7 @@ const fact = (id: string, effectiveAt: string, ignored = false): AnalyticsMoveme
   personalAmount: '10',
   fullAmount: '10',
   ignored,
+  categoryAllocations: [],
   tagIds: [],
 });
 

@@ -193,6 +193,7 @@ describe('analytics queries', () => {
       personalAmount: '8.25',
       fullAmount: '10.00',
       ignored: false,
+      categoryAllocations: [],
       tagIds: ['tag-trip'],
     };
     const analyticsListMovementFacts = vi.fn(async (input: { fromLocalDate: string; toLocalDate: string }) => ({

@@ -103,6 +103,15 @@ final class AnalyticsPluginHandler {
         item.put("fullAmount", fact.getFullAmount().getAmount().toPlainString());
         item.put("ignored", fact.getIgnored());
         if (fact.getCategoryId() != null) item.put("categoryId", fact.getCategoryId());
+        JSONArray categoryAllocations = new JSONArray();
+        for (var allocation : fact.getCategoryAllocations()) {
+          JSObject categoryAllocation = new JSObject();
+          if (allocation.getCategoryId() != null) categoryAllocation.put("categoryId", allocation.getCategoryId());
+          categoryAllocation.put("personalAmount", allocation.getPersonalAmount().getAmount().toPlainString());
+          categoryAllocation.put("fullAmount", allocation.getFullAmount().getAmount().toPlainString());
+          categoryAllocations.put(categoryAllocation);
+        }
+        item.put("categoryAllocations", categoryAllocations);
         item.put("tagIds", new JSONArray(fact.getTagIds()));
         items.put(item);
       }
