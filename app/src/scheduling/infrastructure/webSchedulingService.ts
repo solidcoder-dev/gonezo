@@ -218,6 +218,7 @@ export class WebSchedulingService {
       id: this.nextId(),
       recurringMovementId: movement.id,
       dueAt,
+      schedulingKind: movement.scheduleKind ?? resolveSchedulingKind(movement),
     };
     this.state.recurringMovementOccurrences.push(occurrence);
     const generatedOccurrences = movement.generatedOccurrences + 1;

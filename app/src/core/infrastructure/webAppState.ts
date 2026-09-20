@@ -117,6 +117,7 @@ export type WebRecurringMovementOccurrence = {
   id: string;
   recurringMovementId: string;
   dueAt: string;
+  schedulingKind?: 'recurring' | 'one_shot';
 };
 
 export type WebAppState = {
