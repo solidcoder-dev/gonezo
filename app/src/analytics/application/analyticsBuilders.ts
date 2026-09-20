@@ -933,13 +933,15 @@ export function buildFlowInsights(input: {
 
   const bucketAmounts = buckets.map((bucket) => ({
     label: bucket.label,
-    amount: Number(netByBucket.get(bucket.periodKey) ?? '0.00'),
+    amount: ExactDecimal.from(netByBucket.get(bucket.periodKey) ?? '0.00'),
   }));
-  const best = [...bucketAmounts].sort((left, right) => right.amount - left.amount)[0];
-  const worst = [...bucketAmounts].sort((left, right) => left.amount - right.amount)[0];
-  const total = bucketAmounts.reduce((current, bucket) => current + bucket.amount, 0);
-  const positiveCount = bucketAmounts.filter((bucket) => bucket.amount > 0).length;
-  const average = bucketAmounts.length > 0 ? total / bucketAmounts.length : 0;
+  const best = [...bucketAmounts].sort((left, right) => right.amount.compare(left.amount))[0];
+  const worst = [...bucketAmounts].sort((left, right) => left.amount.compare(right.amount))[0];
+  const total = bucketAmounts.reduce((current, bucket) => current.add(bucket.amount), ExactDecimal.from('0'));
+  const positiveCount = bucketAmounts.filter((bucket) => bucket.amount.compare(ExactDecimal.from('0')) > 0).length;
+  const average = bucketAmounts.length > 0
+    ? total.ratioTo(ExactDecimal.from(String(bucketAmounts.length)), 2)
+    : ExactDecimal.from('0');
 
   return {
     items: [
@@ -947,14 +949,14 @@ export function buildFlowInsights(input: {
         key: 'bestPeriod',
         title: `Best ${flowPeriodTitle(grouping)}`,
         subtitle: best?.label ?? 'No data',
-        amount: best ? best.amount.toFixed(2) : '0.00',
+        amount: best?.amount.toFixed(2) ?? '0.00',
         tone: 'income',
       },
       {
         key: 'worstPeriod',
         title: `Worst ${flowPeriodTitle(grouping)}`,
         subtitle: worst?.label ?? 'No data',
-        amount: worst ? worst.amount.toFixed(2) : '0.00',
+        amount: worst?.amount.toFixed(2) ?? '0.00',
         tone: 'expense',
       },
       {

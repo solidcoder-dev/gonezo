@@ -5,6 +5,7 @@ export class ExactDecimal {
   private constructor(units: bigint, scale: number) {
     this.units = units;
     this.scale = scale;
+    Object.freeze(this);
   }
 
   static from(value: string | number | bigint): ExactDecimal {

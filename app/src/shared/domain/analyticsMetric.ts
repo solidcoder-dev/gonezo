@@ -1,10 +1,11 @@
-import { ExactDecimal } from './exactDecimal';
+import type { ExactDecimal } from './exactDecimal';
 
 export class MetricKey {
   readonly value: string;
 
   private constructor(value: string) {
     this.value = value;
+    Object.freeze(this);
   }
 
   static create(value: string): MetricKey {
@@ -18,6 +19,7 @@ export class MetricVersion {
 
   private constructor(value: number) {
     this.value = value;
+    Object.freeze(this);
   }
 
   static create(value: number): MetricVersion {
@@ -33,6 +35,7 @@ export class MetricId {
   private constructor(key: MetricKey, version: MetricVersion) {
     this.key = key;
     this.version = version;
+    Object.freeze(this);
   }
 
   static create(key: MetricKey, version: MetricVersion): MetricId {
