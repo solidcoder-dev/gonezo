@@ -17,7 +17,7 @@ export type CategoryCurrencyContribution = Readonly<{
 export type CategoryContribution = Readonly<{ currencies: readonly CategoryCurrencyContribution[] }>;
 
 export function aggregateCategoryFacts(facts: readonly CategoryFact[]): CategoryContribution {
-  const totals = new Map<string, { currency: string; source: string; kind: string; category: MacroCategoryCode; amount: ExactDecimal }>();
+  const totals = new Map<string, { currency: string; source: CategoryFact['source']; kind: CategoryFact['kind']; category: MacroCategoryCode; amount: ExactDecimal }>();
   for (const fact of facts) {
     const key = JSON.stringify([fact.currency, fact.source, fact.kind, fact.category]);
     const previous = totals.get(key);
@@ -34,7 +34,11 @@ export function aggregateCategoryFacts(facts: readonly CategoryFact[]): Category
     currency,
     buckets: Object.freeze([...totals.values()]
       .filter((bucket) => bucket.currency === currency && bucket.amount.compare(ExactDecimal.from('0')) !== 0)
-      .sort((left, right) => left.source.localeCompare(right.source) || left.kind.localeCompare(right.kind) || left.category.localeCompare(right.category))
+      .sort((left, right) => compareText(left.source, right.source) || compareText(left.kind, right.kind) || compareText(left.category, right.category))
       .map(({ source, kind, category, amount }) => Object.freeze({ source, kind, category, amount: amount.toString() }))),
   })))});
+}
+
+function compareText(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
 }
