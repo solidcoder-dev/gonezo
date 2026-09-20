@@ -89,16 +89,17 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
       val type = transaction.type.toAnalyticsType() ?: return@mapNotNull null
       val amount = Money(BigDecimal(transaction.amount), transaction.currency)
       val attribution = if (type.isEconomicMovement()) movementShares.findBySourceTransactionId(transaction.id)?.let(sharingAttribution::posted) else null
+      val amounts = analyticsMovementAmounts(amount, attribution)
       val occurrence = occurrenceForTransaction(transaction.id)
       AnalyticsPostedMovement(
         id = transaction.id, effectiveAt = Instant.parse(transaction.occurredAt), accountId = transaction.accountId,
         type = type, currency = com.gonezo.domain.shared.CurrencyCode.from(transaction.currency),
-        personalAmount = attribution?.let { Money(it.personalAmount(amount.amount), amount.currency) } ?: amount, fullAmount = amount, ignored = isIgnored("movement", transaction.id),
+        personalAmount = amounts.personalAmount, fullAmount = amount, ignored = isIgnored("movement", transaction.id),
         categoryId = transaction.categoryId ?: categoryId(transaction.id), tagIds = tagIds(transaction.id),
         splitAmounts = splitAmounts(transaction.id),
         occurrenceIdentity = occurrence?.let { AnalyticsMovementIdentity.occurrence(it.id.toString()) },
         schedulingOrigin = occurrence?.let(::schedulingOrigin),
-        sharing = attribution?.toAnalyticsSummary(amount.currency),
+        sharing = amounts.sharing,
       )
     }
   }
@@ -111,15 +112,16 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
         val type = movement.type.toAnalyticsType() ?: return@mapNotNull null
         val amount = Money(BigDecimal(movement.amount), movement.currency)
         val attribution = if (type.isEconomicMovement()) plannedShares.findByExpectedMovementRef(ExpectedMovementRef(movement.id))?.let(sharingAttribution::expected) else null
+        val amounts = analyticsMovementAmounts(amount, attribution)
         AnalyticsExpectedMovement(
           id = movement.id, effectiveAt = at, accountId = movement.accountId, type = type,
-          currency = com.gonezo.domain.shared.CurrencyCode.from(movement.currency), personalAmount = attribution?.let { Money(it.personalAmount(amount.amount), amount.currency) } ?: amount, fullAmount = amount,
+          currency = com.gonezo.domain.shared.CurrencyCode.from(movement.currency), personalAmount = amounts.personalAmount, fullAmount = amount,
           pending = true, ignored = isIgnored("expected_movement", movement.id), categoryId = movement.categoryId,
           tagIds = expectedTagIds(movement.id),
           originOccurrenceId = movement.originOccurrenceId, originRecurringMovementId = movement.originRecurringMovementId,
           resolvedTransactionId = movement.resolvedTransactionId,
           schedulingOrigin = schedulingOrigin(movement.originOccurrenceId, movement.originRecurringMovementId),
-          sharing = attribution?.toAnalyticsSummary(amount.currency),
+          sharing = amounts.sharing,
         )
       }
   }
@@ -133,11 +135,12 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
         val type = movement.type.value.toAnalyticsType() ?: return@map null
         val amount = Money(movement.amount, movement.currency)
         val attribution = if (type.isEconomicMovement()) recurringSharePlans.findByRecurringMovementRef(RecurringMovementRef(movement.id.toString()))?.let { sharingAttribution.scheduled(it, amount.amount) } else null
+        val amounts = analyticsMovementAmounts(amount, attribution)
         val persistedOccurrence = occurrences.findByRecurringMovementAndDueAt(movement.id, occurrence.effectiveAt)
         AnalyticsScheduledProjection(
           identity = occurrence.identity, effectiveAt = occurrence.effectiveAt, accountId = movement.sourceAccountId,
           type = type, currency = com.gonezo.domain.shared.CurrencyCode.from(movement.currency),
-          personalAmount = attribution?.let { Money(it.personalAmount(amount.amount), amount.currency) } ?: amount, fullAmount = amount, categoryId = movement.categoryId,
+          personalAmount = amounts.personalAmount, fullAmount = amount, categoryId = movement.categoryId,
           originOccurrenceId = occurrence.originOccurrenceId,
           recurringMovementId = movement.id.toString(),
           schedulingOrigin = AnalyticsSchedulingOrigin(
@@ -145,7 +148,7 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
             recurringMovementId = movement.id.toString(),
             occurrenceId = persistedOccurrence?.id?.toString() ?: occurrence.originOccurrenceId,
           ),
-          sharing = attribution?.toAnalyticsSummary(amount.currency),
+          sharing = amounts.sharing,
         )
       }.filterNotNull()
     }
@@ -209,10 +212,18 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
 
   private fun AnalyticsMovementType.isEconomicMovement(): Boolean = this == AnalyticsMovementType.EXPENSE || this == AnalyticsMovementType.INCOME
 
-  private fun SharingAnalyticsAttribution.toAnalyticsSummary(currency: String) = AnalyticsSharingSummary(
-    participantCount,
-    settlementParticipantCount,
-    Money(participantAllocatedAmount, currency),
-    Money(settlementRequiredAmount, currency),
-  )
+  private fun analyticsMovementAmounts(fullAmount: Money, attribution: SharingAnalyticsAttribution?): AnalyticsMovementAmounts =
+    attribution?.let {
+      AnalyticsMovementAmounts(
+        personalAmount = Money(it.personalAmount(fullAmount.amount), fullAmount.currency),
+        sharing = AnalyticsSharingSummary(
+          it.participantCount,
+          it.settlementParticipantCount,
+          Money(it.participantAllocatedAmount, fullAmount.currency),
+          Money(it.settlementRequiredAmount, fullAmount.currency),
+        ),
+      )
+    } ?: AnalyticsMovementAmounts(fullAmount, null)
+
+  private data class AnalyticsMovementAmounts(val personalAmount: Money, val sharing: AnalyticsSharingSummary?)
 }
