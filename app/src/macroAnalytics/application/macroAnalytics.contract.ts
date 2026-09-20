@@ -42,11 +42,13 @@ export type { LatestMacroAnalyticsPublicationPort } from './latestMacroAnalytics
 export { CalculateContributorMetrics } from './CalculateContributorMetrics';
 export type { ContributorMetricCalculator, ContributorMetricResult } from '../domain/contributorMetric';
 export { contributorFinancialMetricDefinitions } from './contributorFinancialMetrics';
+export { contributorRecurringMetricDefinitions } from './contributorRecurringMetrics';
 export { createCohort } from '../domain/cohort';
 export type { Cohort, CohortInput } from '../domain/cohort';
 export { CalculateCohortMetrics } from './CalculateCohortMetrics';
 export type { CohortMetricCalculator, CohortMetricResult } from '../domain/cohortMetric';
 export { cohortFinancialMetricDefinitions } from './cohortFinancialMetrics';
+export { cohortRecurringMetricDefinitions } from './cohortRecurringMetrics';
 export type { ProcessedContribution, ProcessedContributionSourcePort } from './ProcessedContributionSourcePort';
 export type { MacroOverviewReport } from '../domain/macroOverviewReport';
 export { GetMacroOverviewReport } from './GetMacroOverviewReport';
