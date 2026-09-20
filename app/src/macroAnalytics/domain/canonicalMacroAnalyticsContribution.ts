@@ -5,7 +5,7 @@ function compareCanonicalText(left: string, right: string): number {
 }
 
 export function canonicalMacroAnalyticsContribution(contribution: MacroAnalyticsContribution): string {
-  return JSON.stringify({
+  const canonical = {
     schemaVersion: contribution.schemaVersion,
     period: { kind: contribution.period.kind, value: contribution.period.value },
     dimensions: {
@@ -22,6 +22,22 @@ export function canonicalMacroAnalyticsContribution(contribution: MacroAnalytics
           buckets: [...buckets]
             .sort((left, right) => compareCanonicalText(left.source, right.source) || compareCanonicalText(left.kind, right.kind))
             .map(({ source, kind, amount, count }) => ({ source, kind, amount, count })),
+        })),
+    },
+  };
+  if (contribution.schemaVersion === 1) return JSON.stringify(canonical);
+  return JSON.stringify({
+    ...canonical,
+    categories: {
+      currencies: [...contribution.categories.currencies]
+        .sort((left, right) => compareCanonicalText(left.currency, right.currency))
+        .map(({ currency, buckets }) => ({
+          currency,
+          buckets: [...buckets]
+            .sort((left, right) => compareCanonicalText(left.source, right.source)
+              || compareCanonicalText(left.kind, right.kind)
+              || compareCanonicalText(left.category, right.category))
+            .map(({ source, kind, category, amount }) => ({ source, kind, category, amount })),
         })),
     },
   });
