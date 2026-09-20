@@ -31,6 +31,32 @@ describe('macro analytics publication signing', () => {
     expect('privateKey' in credential).toBe(false);
   });
 
+  it('signs exact V2 publication bytes', async () => {
+    const period = createAnalyticsPeriod('2026-09');
+    const v2 = createMacroAnalyticsPublication({
+      contributorId,
+      period,
+      revision: 2,
+      contribution: {
+        schemaVersion: 2,
+        period,
+        dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE', ageBand: '25_34' },
+        financial: { currencies: [] },
+        categories: { currencies: [] },
+      },
+    });
+    const signingIdentity = {
+      getOrCreateCredential: vi.fn(async () => ({ contributorId, keyId: 'v2-key', algorithm: 'ECDSA_P256_SHA256' as const, publicKey: 'public' })),
+      sign: vi.fn(async () => 'signature'),
+    };
+    const payload = '{"protocolVersion":2,"contributorId":"opaque-random-id","period":"2026-09","revision":2,"contribution":{"schemaVersion":2,"dimensions":{"countryCode":"ES","regionCode":"ES-CN","sex":"FEMALE","ageBand":"25_34"},"financial":{"currencies":[]},"categories":{"currencies":[]}}}';
+
+    const signed = await signMacroAnalyticsPublication(v2, signingIdentity);
+
+    expect(signed.payload).toBe(payload);
+    expect(signingIdentity.sign).toHaveBeenCalledWith(contributorId, new TextEncoder().encode(payload));
+  });
+
   it('reuses one credential per contributor and isolates contributors', async () => {
     const signingIdentity = new InMemoryPublicationSigningIdentityAdapter();
     const first = await signingIdentity.getOrCreateCredential(contributorId);

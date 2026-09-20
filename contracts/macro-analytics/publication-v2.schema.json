@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gonezo.example/contracts/macro-analytics/publication-v2.schema.json",
+  "title": "Gonezo Macro Analytics publication V2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocolVersion", "contributorId", "period", "revision", "contribution"],
+  "properties": {
+    "protocolVersion": { "const": 2 },
+    "contributorId": { "type": "string", "minLength": 1, "pattern": "\\S" },
+    "period": { "type": "string", "pattern": "^(?!0000-)(?:[0-9]{4})-(?:0[1-9]|1[0-2])$" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "contribution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "dimensions", "financial", "categories"],
+      "properties": {
+        "schemaVersion": { "const": 2 },
+        "dimensions": { "$ref": "publication-v1.schema.json#/properties/contribution/properties/dimensions" },
+        "financial": { "$ref": "publication-v1.schema.json#/properties/contribution/properties/financial" },
+        "categories": {
+          "type": "object", "additionalProperties": false, "required": ["currencies"],
+          "properties": {
+            "currencies": {
+              "type": "array", "items": {
+                "type": "object", "additionalProperties": false, "required": ["currency", "buckets"],
+                "properties": {
+                  "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+                  "buckets": {
+                    "type": "array", "items": {
+                      "type": "object", "additionalProperties": false,
+                      "required": ["source", "kind", "category", "amount"],
+                      "properties": {
+                        "source": { "enum": ["POSTED", "EXPECTED", "SCHEDULED"] },
+                        "kind": { "enum": ["INCOME", "EXPENSE"] },
+                        "category": { "enum": ["BILLS", "GROCERIES", "DINING", "TRANSPORT", "HEALTH", "SHOPPING", "ENTERTAINMENT", "TRAVEL", "OTHER_EXPENSE", "BEAUTY", "SERVICES", "WORK_INCOME", "INVESTMENTS", "REIMBURSEMENTS", "GIFTS_BENEFITS", "OTHER_INCOME", "UNMAPPED_EXPENSE", "UNMAPPED_INCOME"] },
+                        "amount": { "type": "string", "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$", "not": { "pattern": "^0(?:\\.0+)?$" } }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

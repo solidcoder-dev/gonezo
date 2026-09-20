@@ -103,6 +103,7 @@ describe('prepareMacroAnalyticsPublication', () => {
     const state = setup({ consent: 'GRANTED' });
     const first = await prepareMacroAnalyticsPublication(state.ports, input);
     if (first.status !== 'PREPARED') throw new Error('Expected first publication');
+    if (first.publication.protocolVersion !== 2) throw new Error('Expected V2 publication');
     await state.ports.latest.save(first.publication);
     await state.outbox.remove(input.userId, first.publication.period);
     vi.mocked(state.financialFacts.listFinancialFacts).mockResolvedValue([createFinancialFact({ ...facts[0], amount: '13' })]);
@@ -118,6 +119,7 @@ describe('prepareMacroAnalyticsPublication', () => {
     const state = setup({ consent: 'GRANTED' });
     const first = await prepareMacroAnalyticsPublication(state.ports, input);
     if (first.status !== 'PREPARED') throw new Error('Expected first publication');
+    if (first.publication.protocolVersion !== 2) throw new Error('Expected V2 publication');
     await state.ports.latest.save(first.publication);
     await state.outbox.remove(input.userId, first.publication.period);
 
@@ -131,8 +133,11 @@ describe('prepareMacroAnalyticsPublication', () => {
     const state = setup({ consent: 'GRANTED' });
     const first = await prepareMacroAnalyticsPublication(state.ports, input);
     if (first.status !== 'PREPARED') throw new Error('Expected first publication');
+    if (first.publication.protocolVersion !== 2) throw new Error('Expected V2 publication');
+    const contribution = first.publication.contribution;
+    if (contribution.schemaVersion !== 2) throw new Error('Expected V2 contribution');
     await state.ports.latest.save(first.publication);
-    const pendingRevisionTwo = { ...first.publication, revision: 2, contribution: { ...first.publication.contribution, financial: { currencies: [] } } };
+    const pendingRevisionTwo = { ...first.publication, revision: 2, contribution: { ...contribution, financial: { currencies: [] } } };
     await state.outbox.save(input.userId, pendingRevisionTwo);
     vi.mocked(state.financialFacts.listFinancialFacts).mockResolvedValue([createFinancialFact({ ...facts[0], amount: '13' })]);
     const changedFact = createFinancialFact({ ...facts[0], amount: '13' });
@@ -147,8 +152,11 @@ describe('prepareMacroAnalyticsPublication', () => {
     const state = setup({ consent: 'GRANTED' });
     const first = await prepareMacroAnalyticsPublication(state.ports, input);
     if (first.status !== 'PREPARED') throw new Error('Expected first publication');
+    if (first.publication.protocolVersion !== 2) throw new Error('Expected V2 publication');
+    const contribution = first.publication.contribution;
+    if (contribution.schemaVersion !== 2) throw new Error('Expected V2 contribution');
     await state.ports.latest.save(first.publication);
-    await state.outbox.save(input.userId, { ...first.publication, revision: 2, contribution: { ...first.publication.contribution, financial: { currencies: [] } } });
+    await state.outbox.save(input.userId, { ...first.publication, revision: 2, contribution: { ...contribution, financial: { currencies: [] } } });
 
     const unchanged = await prepareMacroAnalyticsPublication(state.ports, input);
 

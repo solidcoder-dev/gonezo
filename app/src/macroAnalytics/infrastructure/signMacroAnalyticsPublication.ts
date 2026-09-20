@@ -2,6 +2,7 @@ import type { AnalyticsContributorId } from '../domain/analyticsContributorId';
 import type { MacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
 import { serializeMacroAnalyticsPublicationV1 } from './MacroAnalyticsPublicationWireV1';
 import type { PublicationSigningIdentityPort } from '../application/publicationSigningIdentity.port';
+import { serializeMacroAnalyticsPublicationV2 } from './MacroAnalyticsPublicationWireV2';
 
 export type SignedMacroAnalyticsPublication = Readonly<{
   contributorId: AnalyticsContributorId;
@@ -17,7 +18,9 @@ export async function signMacroAnalyticsPublication(
 ): Promise<SignedMacroAnalyticsPublication> {
   const credential = await signingIdentity.getOrCreateCredential(publication.contributorId);
   if (credential.contributorId !== publication.contributorId) throw new Error('Signing credential contributor does not match publication');
-  const payload = serializeMacroAnalyticsPublicationV1(publication);
+  const payload = publication.protocolVersion === 1
+    ? serializeMacroAnalyticsPublicationV1(publication)
+    : serializeMacroAnalyticsPublicationV2(publication);
   const signature = await signingIdentity.sign(publication.contributorId, new TextEncoder().encode(payload));
   return { contributorId: credential.contributorId, keyId: credential.keyId, algorithm: credential.algorithm, payload, signature };
 }

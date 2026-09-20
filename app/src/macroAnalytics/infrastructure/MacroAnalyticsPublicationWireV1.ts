@@ -34,6 +34,9 @@ export type MacroAnalyticsPublicationWireV1 = Readonly<{
 }>;
 
 export function toMacroAnalyticsPublicationWireV1(publication: MacroAnalyticsPublication): MacroAnalyticsPublicationWireV1 {
+  if (publication.protocolVersion !== 1 || publication.contribution.schemaVersion !== 1) {
+    throw new Error('Publication V1 serializer requires a V1 publication');
+  }
   return {
     protocolVersion: 1,
     contributorId: publication.contributorId,

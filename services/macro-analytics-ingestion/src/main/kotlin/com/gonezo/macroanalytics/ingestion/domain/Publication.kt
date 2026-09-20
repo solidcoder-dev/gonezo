@@ -26,7 +26,13 @@ data class FinancialCurrency(val currency: String, val buckets: List<FinancialBu
 
 data class FinancialContribution(val currencies: List<FinancialCurrency>)
 
-data class MacroAnalyticsContribution(val schemaVersion: SchemaVersion, val dimensions: ContributionDimensions, val financial: FinancialContribution)
+data class CategoryBucket(val source: String, val kind: String, val category: String, val amount: String)
+
+data class CategoryCurrency(val currency: String, val buckets: List<CategoryBucket>)
+
+data class CategoryContribution(val currencies: List<CategoryCurrency>)
+
+data class MacroAnalyticsContribution(val schemaVersion: SchemaVersion, val dimensions: ContributionDimensions, val financial: FinancialContribution, val categories: CategoryContribution? = null)
 
 data class ValidatedMacroAnalyticsPublication(val protocolVersion: ProtocolVersion, val contributorId: ContributorId, val period: AnalyticsPeriod, val revision: PublicationRevision, val contribution: MacroAnalyticsContribution) {
     fun canonicalJson(): String = buildString {
@@ -50,7 +56,19 @@ data class ValidatedMacroAnalyticsPublication(val protocolVersion: ProtocolVersi
                     } + "]}"
             },
         )
-        append("]}}}")
+        append("]}")
+        if (contribution.schemaVersion.value == 2) {
+            append(",\"categories\":{\"currencies\":[")
+            append(contribution.categories?.currencies.orEmpty().sortedBy { it.currency }.joinToString(",") { currency ->
+                "{\"currency\":${JSONObject.quote(currency.currency)},\"buckets\":[" +
+                    currency.buckets.sortedWith(compareBy<CategoryBucket> { it.source }.thenBy { it.kind }.thenBy { it.category }).joinToString(",") { bucket ->
+                        "{\"source\":${JSONObject.quote(bucket.source)},\"kind\":${JSONObject.quote(bucket.kind)}," +
+                            "\"category\":${JSONObject.quote(bucket.category)},\"amount\":${JSONObject.quote(bucket.amount)}}"
+                    } + "]}"
+            })
+            append("]}")
+        }
+        append("}}")
     }
 
     fun fingerprint(): String = MessageDigest.getInstance("SHA-256")

@@ -1,0 +1,35 @@
+{
+  "protocolVersion": 2,
+  "contributorId": "opaque-random-id",
+  "period": "2026-09",
+  "revision": 4,
+  "contribution": {
+    "schemaVersion": 2,
+    "dimensions": {
+      "countryCode": "ES",
+      "regionCode": "ES-CN",
+      "sex": "FEMALE",
+      "ageBand": "25_34"
+    },
+    "financial": {
+      "currencies": [
+        {
+          "currency": "EUR",
+          "buckets": [
+            { "source": "POSTED", "kind": "EXPENSE", "amount": "12.00", "count": 1 }
+          ]
+        }
+      ]
+    },
+    "categories": {
+      "currencies": [
+        {
+          "currency": "EUR",
+          "buckets": [
+            { "source": "POSTED", "kind": "EXPENSE", "category": "GROCERIES", "amount": "12" }
+          ]
+        }
+      ]
+    }
+  }
+}
