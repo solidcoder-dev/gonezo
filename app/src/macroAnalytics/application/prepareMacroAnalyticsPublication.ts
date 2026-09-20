@@ -7,6 +7,7 @@ import { getOrCreateAnalyticsContributorId } from './analyticsContributorIdentit
 import type { BuildMacroAnalyticsContributionPorts } from './buildMacroAnalyticsContribution';
 import { buildMacroAnalyticsContribution } from './buildMacroAnalyticsContribution';
 import type { MacroAnalyticsOutboxPort } from './macroAnalyticsOutbox.port';
+import type { LatestMacroAnalyticsPublicationPort } from './latestMacroAnalyticsPublication.port';
 
 export type PrepareMacroAnalyticsPublicationInput = Readonly<{ userId: string; period: string; timeZone: string }>;
 export type PrepareMacroAnalyticsPublicationResult =
@@ -19,6 +20,7 @@ export async function prepareMacroAnalyticsPublication(
     identity: AnalyticsContributorIdentityPort;
     generateContributorId: ContributorIdGenerator;
     outbox: MacroAnalyticsOutboxPort;
+    latest: LatestMacroAnalyticsPublicationPort;
   }>,
   input: PrepareMacroAnalyticsPublicationInput,
 ): Promise<PrepareMacroAnalyticsPublicationResult> {
@@ -31,14 +33,23 @@ export async function prepareMacroAnalyticsPublication(
   const period: AnalyticsPeriod = result.contribution.period;
   const contributorId = await getOrCreateAnalyticsContributorId(ports.identity, ports.generateContributorId, input.userId);
   const existing = await ports.outbox.get(input.userId, period);
+  const latest = await ports.latest.find(contributorId, period);
   if (existing?.contributorId === contributorId
     && canonicalMacroAnalyticsContribution(existing.contribution) === canonicalMacroAnalyticsContribution(result.contribution)) {
     return { status: 'PREPARED', publication: existing };
   }
+  if (!existing && latest?.contributorId === contributorId
+    && canonicalMacroAnalyticsContribution(latest.contribution) === canonicalMacroAnalyticsContribution(result.contribution)) {
+    return { status: 'PREPARED', publication: latest };
+  }
+  const baselineRevision = Math.max(
+    existing?.contributorId === contributorId ? existing.revision : 0,
+    latest?.contributorId === contributorId ? latest.revision : 0,
+  );
   const publication = createMacroAnalyticsPublication({
     contributorId,
     period,
-    revision: existing && existing.contributorId === contributorId ? existing.revision + 1 : 1,
+    revision: baselineRevision + 1,
     contribution: result.contribution,
   });
   await ports.outbox.save(input.userId, publication);

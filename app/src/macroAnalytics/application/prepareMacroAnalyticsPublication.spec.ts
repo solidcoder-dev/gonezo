@@ -10,6 +10,7 @@ import type { ContributionProfileSourcePort } from './contributionProfileSource.
 import type { FinancialFactSourcePort } from './financialFactSource.port';
 import type { AnalyticsContributorIdentityPort } from './analyticsContributorIdentity.port';
 import type { MacroAnalyticsOutboxPort } from './macroAnalyticsOutbox.port';
+import type { LatestMacroAnalyticsPublicationPort } from './latestMacroAnalyticsPublication.port';
 import { prepareMacroAnalyticsPublication } from './prepareMacroAnalyticsPublication';
 
 const profile: ContributionProfile = { birthYear: 1995, sex: 'female', countryCode: 'ES', regionCode: 'ES-CN' };
@@ -33,6 +34,11 @@ function setup(options: { consent?: 'GRANTED' | 'DECLINED' | 'WITHDRAWN' | null;
     listPending: async (userId) => [...(publications.get(userId)?.values() ?? [])],
     clear: async (userId) => { publications.delete(userId); },
   };
+  const latestPublications = new Map<string, MacroAnalyticsPublication>();
+  const latest: LatestMacroAnalyticsPublicationPort = {
+    find: async (contributorId, period) => latestPublications.get(`${contributorId}:${period.value}`) ?? null,
+    save: async (publication) => { latestPublications.set(`${publication.contributorId}:${publication.period.value}`, publication); },
+  };
   const consent: AnalyticsContributionConsentPort = {
     get: vi.fn(async () => options.consent ? createAnalyticsContributionConsent({ userId: 'user-A', status: options.consent, noticeVersion: 1, decidedAt: '2026-09-01T00:00:00Z' }) : null),
     save: vi.fn(async () => {}),
@@ -44,6 +50,7 @@ function setup(options: { consent?: 'GRANTED' | 'DECLINED' | 'WITHDRAWN' | null;
     identity,
     generateContributorId: vi.fn(() => createAnalyticsContributorId('opaque-random-id')),
     outbox,
+    latest,
   };
   return { ports, identity, outbox, financialFacts };
 }
@@ -75,6 +82,46 @@ describe('prepareMacroAnalyticsPublication', () => {
     const pending = await state.outbox.listPending(input.userId);
     expect(pending).toHaveLength(1);
     expect(pending[0].revision).toBe(2);
+  });
+
+  it('continues the revision after the previous publication was processed and removed', async () => {
+    const state = setup({ consent: 'GRANTED' });
+    const first = await prepareMacroAnalyticsPublication(state.ports, input);
+    if (first.status !== 'PREPARED') throw new Error('Expected first publication');
+    await state.ports.latest.save(first.publication);
+    await state.outbox.remove(input.userId, first.publication.period);
+    vi.mocked(state.financialFacts.listFinancialFacts).mockResolvedValue([createFinancialFact({ ...facts[0], amount: '13' })]);
+
+    const changed = await prepareMacroAnalyticsPublication(state.ports, input);
+
+    expect(changed.status === 'PREPARED' && changed.publication.revision).toBe(2);
+  });
+
+  it('does not create a new revision when the contribution matches the processed publication', async () => {
+    const state = setup({ consent: 'GRANTED' });
+    const first = await prepareMacroAnalyticsPublication(state.ports, input);
+    if (first.status !== 'PREPARED') throw new Error('Expected first publication');
+    await state.ports.latest.save(first.publication);
+    await state.outbox.remove(input.userId, first.publication.period);
+
+    const unchanged = await prepareMacroAnalyticsPublication(state.ports, input);
+
+    expect(unchanged).toEqual(first);
+    expect(await state.outbox.get(input.userId, first.publication.period)).toBeNull();
+  });
+
+  it('uses a newer pending revision as the baseline when the latest processed revision is older', async () => {
+    const state = setup({ consent: 'GRANTED' });
+    const first = await prepareMacroAnalyticsPublication(state.ports, input);
+    if (first.status !== 'PREPARED') throw new Error('Expected first publication');
+    await state.ports.latest.save(first.publication);
+    const pendingRevisionTwo = { ...first.publication, revision: 2, contribution: { ...first.publication.contribution, financial: { currencies: [] } } };
+    await state.outbox.save(input.userId, pendingRevisionTwo);
+    vi.mocked(state.financialFacts.listFinancialFacts).mockResolvedValue([createFinancialFact({ ...facts[0], amount: '13' })]);
+
+    const changed = await prepareMacroAnalyticsPublication(state.ports, input);
+
+    expect(changed.status === 'PREPARED' && changed.publication.revision).toBe(3);
   });
 
   it('scopes revisions independently by period and user', async () => {
