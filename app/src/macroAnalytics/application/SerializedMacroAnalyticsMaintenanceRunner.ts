@@ -1,30 +1,40 @@
+type ActiveMaintenanceRun = {
+  promise: Promise<void>;
+  started: boolean;
+  runAgain: boolean;
+};
+
 export class SerializedMacroAnalyticsMaintenanceRunner {
-  private readonly activeByUser = new Map<string, Readonly<{ promise: Promise<void>; started: () => boolean; requestAnotherRun: () => void }>>();
+  private readonly activeByUser = new Map<string, ActiveMaintenanceRun>();
   private sequence: Promise<void> = Promise.resolve();
 
   run(userId: string, maintenance: () => Promise<unknown>): Promise<void> {
     const active = this.activeByUser.get(userId);
     if (active) {
-      if (active.started()) active.requestAnotherRun();
+      if (active.started) active.runAgain = true;
       return active.promise;
     }
-    let runStarted = false;
-    let runAgain = false;
+    const run: ActiveMaintenanceRun = { promise: Promise.resolve(), started: false, runAgain: false };
     const current = this.sequence.catch(() => {}).then(async () => {
+      let failure: unknown;
+      let failed = false;
       do {
-        runStarted = true;
-        runAgain = false;
-        await maintenance();
-      } while (runAgain);
+        run.started = true;
+        run.runAgain = false;
+        try {
+          await maintenance();
+        } catch (error) {
+          failure = error;
+          failed = true;
+        }
+      } while (run.runAgain);
+      if (failed) throw failure;
     });
     const tracked = current.finally(() => {
-      if (this.activeByUser.get(userId)?.promise === tracked) this.activeByUser.delete(userId);
+      if (this.activeByUser.get(userId) === run) this.activeByUser.delete(userId);
     });
-    this.activeByUser.set(userId, {
-      promise: tracked,
-      started: () => runStarted,
-      requestAnotherRun: () => { runAgain = true; },
-    });
+    run.promise = tracked;
+    this.activeByUser.set(userId, run);
     this.sequence = tracked.catch(() => {});
     return tracked;
   }
