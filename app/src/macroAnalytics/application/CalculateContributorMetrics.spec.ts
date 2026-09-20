@@ -40,6 +40,13 @@ describe('CalculateContributorMetrics', () => {
     expect(poundResult.value.kind === 'MONEY' && [poundResult.value.currency, poundResult.value.value.toString()]).toEqual(['GBP', '2']);
   });
 
+  it('calculates identical financial results from V1 and V2 contributions', () => {
+    const v2Contribution: MacroAnalyticsContribution = { ...contribution, schemaVersion: 2, categories: { currencies: [] } };
+    const metricIds = [metrics.postedIncomeTotal.id, metrics.postedExpenseTotal.id, metrics.expectedExpenseTotal.id];
+    expect(calculate.execute({ contributorId, contribution: v2Contribution, currency: 'EUR', metricIds }))
+      .toEqual(calculate.execute({ contributorId, contribution, currency: 'EUR', metricIds }));
+  });
+
   it('returns null for a missing currency and zero for an absent bucket in an existing currency', () => {
     expect(calculate.execute({ contributorId, contribution, currency: 'USD', metricIds: [metrics.postedExpenseTotal.id] })).toEqual([]);
     const emptyCurrency = { ...contribution, financial: { currencies: [{ currency: 'USD', buckets: [] }] } };
