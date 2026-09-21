@@ -1,5 +1,5 @@
 import type { MacroAnalyticsContribution } from './macroAnalyticsContribution';
-import { hasCategoryContribution, hasRecurringContribution, hasSharingContribution, hasMerchantContribution } from './contributionCapabilities';
+import { hasCategoryContribution, hasRecurringContribution, hasSharingContribution, hasMerchantContribution, hasBalanceContribution } from './contributionCapabilities';
 
 function compareCanonicalText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -74,7 +74,7 @@ export function canonicalMacroAnalyticsContribution(contribution: MacroAnalytics
     },
   };
   if (!hasMerchantContribution(contribution)) return JSON.stringify(withSharing);
-  return JSON.stringify({
+  const withMerchants = {
     ...withSharing,
     merchants: {
       catalogVersion: contribution.merchants.catalogVersion,
@@ -83,6 +83,16 @@ export function canonicalMacroAnalyticsContribution(contribution: MacroAnalytics
         buckets: [...buckets]
           .sort((left, right) => compareCanonicalText(left.source, right.source) || compareCanonicalText(left.kind, right.kind) || compareCanonicalText(left.merchant, right.merchant))
           .map(({ source, kind, merchant, amount, movementCount }) => ({ source, kind, merchant, amount, movementCount })),
+      })),
+    },
+  };
+  if (!hasBalanceContribution(contribution)) return JSON.stringify(withMerchants);
+  return JSON.stringify({
+    ...withMerchants,
+    balances: {
+      currencies: [...contribution.balances.currencies].sort((left, right) => compareCanonicalText(left.currency, right.currency)).map(({ currency, buckets }) => ({
+        currency,
+        buckets: [...buckets].sort((left, right) => compareCanonicalText(left.accountType, right.accountType)).map(({ accountType, balanceAmount, accountCount }) => ({ accountType, balanceAmount, accountCount })),
       })),
     },
   });

@@ -17,6 +17,8 @@ import type { SharingFactSourcePort } from './sharingFactSource.port';
 import { aggregateMerchantFacts } from '../domain/merchantContribution';
 import type { MerchantFactSourcePort } from './merchantFactSource.port';
 import { MACRO_MERCHANT_CATALOG_VERSION } from '../domain/macroMerchantCatalogVersion';
+import { aggregateAccountBalanceFacts } from '../domain/accountBalanceContribution';
+import type { AccountBalanceFactSourcePort } from './accountBalanceFactSource.port';
 
 export type BuildMacroAnalyticsContributionPorts = Readonly<{
   consent: Pick<AnalyticsContributionConsentPort, 'get'>;
@@ -26,6 +28,7 @@ export type BuildMacroAnalyticsContributionPorts = Readonly<{
   recurringFacts: RecurringFactSourcePort;
   sharingFacts: SharingFactSourcePort;
   merchantFacts: MerchantFactSourcePort;
+  accountBalanceFacts: AccountBalanceFactSourcePort;
 }>;
 
 export type BuildMacroAnalyticsContributionInput = Readonly<{
@@ -56,11 +59,13 @@ export async function buildMacroAnalyticsContribution(
   const recurringFacts = await ports.recurringFacts.listRecurringFacts({ period, timeZone: input.timeZone });
   const sharingFacts = await ports.sharingFacts.listSharingFacts({ period, timeZone: input.timeZone });
   const merchantFacts = await ports.merchantFacts.listMerchantFacts({ period, timeZone: input.timeZone });
+  const balanceFacts = await ports.accountBalanceFacts.listAccountBalanceFacts({ period, timeZone: input.timeZone });
   const financial = aggregateFinancialFacts(facts);
   const categories = aggregateCategoryFacts(categoryFacts);
   const recurring = aggregateRecurringFacts(recurringFacts);
   const sharing = aggregateSharingFacts(sharingFacts);
   const merchants = aggregateMerchantFacts(merchantFacts, MACRO_MERCHANT_CATALOG_VERSION);
+  const balances = aggregateAccountBalanceFacts(balanceFacts, period);
   assertCategoryTotalsReconcile(financial, categories);
   assertRecurringTotalsDoNotExceedFinancial(financial, recurring);
   assertSharingPersonalTotalsDoNotExceedFinancial(financial, sharing);
@@ -74,6 +79,7 @@ export async function buildMacroAnalyticsContribution(
     recurring,
     sharing,
     merchants,
+    balances,
   });
   return { status: 'BUILT', contribution };
 }
