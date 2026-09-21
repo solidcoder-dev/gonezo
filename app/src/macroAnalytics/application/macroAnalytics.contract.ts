@@ -3,6 +3,10 @@ export type { AnalyticsPeriod } from '../domain/analyticsPeriod';
 export { createFinancialFact } from '../domain/financialFact';
 export type { CategoryFact } from '../domain/categoryFact';
 export type { MacroCategoryCode } from '../domain/macroCategoryCode';
+export type { MacroAccountTypeCode } from '../domain/macroAccountTypeCode';
+export { createAccountBalanceFact } from '../domain/accountBalanceFact';
+export type { AccountBalanceFact } from '../domain/accountBalanceFact';
+export type { AccountBalanceFactSourcePort, AccountBalanceFactQuery } from './accountBalanceFactSource.port';
 export type { CategoryFactSourcePort, CategoryFactQuery } from './categoryFactSource.port';
 export type {
   DecimalAmount,
