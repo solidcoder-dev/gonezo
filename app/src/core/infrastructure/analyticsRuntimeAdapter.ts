@@ -2,6 +2,7 @@ import type {
   AnalyticsCashFlowSeriesInput,
   AnalyticsAccountBalanceSnapshotInput,
   AnalyticsAccountBalanceSnapshotResult,
+  AnalyticsAccountBalanceCoverageResult,
   AnalyticsCurrencyScopeInput,
   AnalyticsQueryMetricsInput,
   AnalyticsQueryMetricsResult,
@@ -72,6 +73,10 @@ export class AnalyticsRuntimeAdapter {
 
   analyticsGetAccountBalanceSnapshot(input: AnalyticsAccountBalanceSnapshotInput): Promise<AnalyticsAccountBalanceSnapshotResult> {
     return isNativeRuntime() ? CorePlugin.analyticsGetAccountBalanceSnapshot(input) : this.web.analyticsGetAccountBalanceSnapshot(input);
+  }
+
+  analyticsGetAccountBalanceCoverage(input: { zoneId: string }): Promise<AnalyticsAccountBalanceCoverageResult> {
+    return isNativeRuntime() ? CorePlugin.analyticsGetAccountBalanceCoverage(input) : this.web.analyticsGetAccountBalanceCoverage(input);
   }
 
   analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult> {

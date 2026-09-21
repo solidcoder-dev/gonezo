@@ -177,6 +177,22 @@ final class AnalyticsPluginHandler {
     }
   }
 
+  void analyticsGetAccountBalanceCoverage(PluginCall call) {
+    try {
+      String zoneId = call.getString("zoneId");
+      if (zoneId == null) {
+        call.reject("zoneId is required");
+        return;
+      }
+      var coverage = new com.gonezo.multiplatform.core.AndroidAnalyticsAccountBalanceQuery(context).coverage(zoneId);
+      JSObject result = new JSObject();
+      if (coverage.getFirstAccountLocalDate() != null) result.put("firstAccountLocalDate", coverage.getFirstAccountLocalDate());
+      call.resolve(result);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
   private static java.util.Set<String> toStringSet(JSONArray values) throws org.json.JSONException {
     java.util.Set<String> result = new HashSet<>();
     if (values == null) return result;

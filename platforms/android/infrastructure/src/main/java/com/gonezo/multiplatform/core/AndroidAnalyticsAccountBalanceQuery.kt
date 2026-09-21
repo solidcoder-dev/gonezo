@@ -3,6 +3,8 @@ package com.gonezo.multiplatform.core
 import com.gonezo.application.query.AnalyticsAccountBalanceSnapshotInput
 import com.gonezo.application.query.AnalyticsAccountBalanceSnapshotQuery
 import com.gonezo.application.query.AnalyticsAccountBalanceSnapshotResult
+import com.gonezo.application.query.AnalyticsAccountBalanceCoverageQuery
+import com.gonezo.application.query.AnalyticsAccountBalanceCoverageResult
 
 class AndroidAnalyticsAccountBalanceQuery(context: android.content.Context) {
     private val database = CoreDatabase(context.applicationContext)
@@ -11,4 +13,7 @@ class AndroidAnalyticsAccountBalanceQuery(context: android.content.Context) {
 
     fun query(input: AnalyticsAccountBalanceSnapshotInput): AnalyticsAccountBalanceSnapshotResult =
         AnalyticsAccountBalanceSnapshotQuery().execute(accounts.listAll(), transactions.listAll(), input)
+
+    fun coverage(zoneId: String): AnalyticsAccountBalanceCoverageResult =
+        AnalyticsAccountBalanceCoverageQuery().execute(accounts.listAll(), zoneId)
 }

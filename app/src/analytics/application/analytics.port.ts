@@ -31,6 +31,8 @@ export type AnalyticsAccountBalanceSnapshotResult = {
   items: readonly AnalyticsAccountBalanceSnapshotItem[];
 };
 
+export type AnalyticsAccountBalanceCoverageResult = { firstAccountLocalDate?: string };
+
 export type AnalyticsCurrencyScopeInput = {
   currency: string;
   filters?: AnalyticsFiltersInput;
@@ -332,6 +334,7 @@ export type AnalyticsListIgnoredMovementsResult = {
 export type AnalyticsPort = {
   analyticsQueryMetrics(input: AnalyticsQueryMetricsInput): Promise<AnalyticsQueryMetricsResult>;
   analyticsGetAccountBalanceSnapshot(input: AnalyticsAccountBalanceSnapshotInput): Promise<AnalyticsAccountBalanceSnapshotResult>;
+  analyticsGetAccountBalanceCoverage(input: { zoneId: string }): Promise<AnalyticsAccountBalanceCoverageResult>;
   analyticsListMovementFacts?: (input: AnalyticsListMovementFactsInput) => Promise<AnalyticsListMovementFactsResult>;
   analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult>;
   analyticsGetFilterFacets(input?: AnalyticsGetFilterFacetsInput): Promise<AnalyticsGetFilterFacetsResult>;

@@ -1,11 +1,12 @@
 import type { AnalyticsListMovementFactsInput, AnalyticsListMovementFactsResult } from '../../analytics/application/analytics.port';
 import type { ContributionPeriodSourcePort } from '../application/contributionPeriodSource.port';
-import { analyticsPeriodForFact } from '../domain/analyticsPeriod';
+import { analyticsPeriodForFact, createAnalyticsPeriod } from '../domain/analyticsPeriod';
 import type { AnalyticsPeriod } from '../domain/analyticsPeriod';
 import { adaptAnalyticsMovementFact } from './analyticsMovementFactAdapter';
 
 type AnalyticsMovementFactReader = Readonly<{
   analyticsListMovementFacts(input: AnalyticsListMovementFactsInput): Promise<AnalyticsListMovementFactsResult>;
+  analyticsGetAccountBalanceCoverage(input: { zoneId: string }): Promise<{ firstAccountLocalDate?: string }>;
 }>;
 
 export function createAnalyticsContributionPeriodSource(analytics: AnalyticsMovementFactReader): ContributionPeriodSourcePort {
@@ -22,7 +23,15 @@ export function createAnalyticsContributionPeriodSource(analytics: AnalyticsMove
         includePlannedMovements: true,
         includeIgnoredMovements: false,
       });
+      const coverage = await analytics.analyticsGetAccountBalanceCoverage({ zoneId: timeZone });
       const periods = new Map<string, AnalyticsPeriod>();
+      if (coverage.firstAccountLocalDate) {
+        const firstMonth = coverage.firstAccountLocalDate.slice(0, 7);
+        for (let current = firstMonth; current <= through.value; current = nextMonth(current)) {
+          const period = createAnalyticsPeriod(current);
+          periods.set(period.value, period);
+        }
+      }
       for (const item of result.items) {
         const fact = adaptAnalyticsMovementFact(item);
         if (!fact) continue;
@@ -32,4 +41,11 @@ export function createAnalyticsContributionPeriodSource(analytics: AnalyticsMove
       return [...periods.values()].sort((left, right) => left.value.localeCompare(right.value));
     },
   };
+}
+
+function nextMonth(period: string): string {
+  const [year, month] = period.split('-').map(Number);
+  const next = new Date(0);
+  next.setUTCFullYear(year, month, 1);
+  return next.toISOString().slice(0, 7);
 }

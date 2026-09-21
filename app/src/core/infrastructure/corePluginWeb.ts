@@ -110,6 +110,7 @@ import type {
   AnalyticsListMovementFactsResult,
   AnalyticsAccountBalanceSnapshotInput,
   AnalyticsAccountBalanceSnapshotResult,
+  AnalyticsAccountBalanceCoverageResult,
 } from '../../analytics/application/analytics.port';
 import type {
   SharingApplyShareToPostedMovementInput,
@@ -438,6 +439,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async analyticsGetAccountBalanceSnapshot(options: AnalyticsAccountBalanceSnapshotInput): Promise<AnalyticsAccountBalanceSnapshotResult> {
     return this.core.analyticsGetAccountBalanceSnapshot(options);
+  }
+
+  async analyticsGetAccountBalanceCoverage(options: { zoneId: string }): Promise<AnalyticsAccountBalanceCoverageResult> {
+    return this.core.analyticsGetAccountBalanceCoverage(options);
   }
 
   async movementsGetMonthOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> {

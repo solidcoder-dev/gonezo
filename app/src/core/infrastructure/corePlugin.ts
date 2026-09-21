@@ -113,6 +113,7 @@ import type {
   AnalyticsListMovementFactsResult,
   AnalyticsAccountBalanceSnapshotInput,
   AnalyticsAccountBalanceSnapshotResult,
+  AnalyticsAccountBalanceCoverageResult,
 } from '../../analytics/application/analytics.port';
 import type {
   SharingApplyShareToPostedMovementInput,
@@ -235,6 +236,7 @@ export interface CorePlugin {
   analyticsListIgnoredMovements(): Promise<AnalyticsListIgnoredMovementsResult>;
   analyticsListMovementFacts(options: AnalyticsListMovementFactsInput): Promise<AnalyticsListMovementFactsResult>;
   analyticsGetAccountBalanceSnapshot(options: AnalyticsAccountBalanceSnapshotInput): Promise<AnalyticsAccountBalanceSnapshotResult>;
+  analyticsGetAccountBalanceCoverage(options: { zoneId: string }): Promise<AnalyticsAccountBalanceCoverageResult>;
   movementsGetMonthOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;
   movementsSearch(options: MovementsSearchInput): Promise<MovementsSearchResult>;
   movementsGetOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult>;

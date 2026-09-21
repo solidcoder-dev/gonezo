@@ -25,7 +25,7 @@ describe('createAnalyticsContributionPeriodSource', () => {
       fact('3', '2026-02-01T00:00:00Z'),
       fact('4', '2025-11-01T00:00:00Z', true),
     ] }));
-    const source = createAnalyticsContributionPeriodSource({ analyticsListMovementFacts });
+    const source = createAnalyticsContributionPeriodSource({ analyticsListMovementFacts, analyticsGetAccountBalanceCoverage: vi.fn(async () => ({})) });
 
     await expect(source.listPeriods('Europe/London', { kind: 'YEAR_MONTH', value: '2026-01' })).resolves.toEqual([
       { kind: 'YEAR_MONTH', value: '2025-12' },
@@ -37,5 +37,17 @@ describe('createAnalyticsContributionPeriodSource', () => {
       includePlannedMovements: true,
       includeIgnoredMovements: false,
     });
+  });
+
+  it('discovers every account-history month even when the movement source is quiet', async () => {
+    const source = createAnalyticsContributionPeriodSource({
+      analyticsListMovementFacts: vi.fn(async () => ({ items: [] })),
+      analyticsGetAccountBalanceCoverage: vi.fn(async () => ({ firstAccountLocalDate: '2026-01-18' })),
+    });
+    await expect(source.listPeriods('UTC', { kind: 'YEAR_MONTH', value: '2026-03' })).resolves.toEqual([
+      { kind: 'YEAR_MONTH', value: '2026-01' },
+      { kind: 'YEAR_MONTH', value: '2026-02' },
+      { kind: 'YEAR_MONTH', value: '2026-03' },
+    ]);
   });
 });

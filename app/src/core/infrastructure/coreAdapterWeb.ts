@@ -137,7 +137,7 @@ import { WebTaxonomyService } from '../../taxonomy/infrastructure/webTaxonomySer
 import { sortNetWorthCurrencies } from '../../ledger/application/netWorthOrdering';
 import { listAccountBalances } from './accountBalancesQuery';
 import { analyticsGetAnalyticsTopExpenses, analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetFlowReport, analyticsGetOverviewInsights, analyticsGetOverviewSnapshot, analyticsGetPeriodCashFlowSummary, analyticsQueryMetrics, analyticsGetSpendingDashboard, analyticsGetSpendingOverview, analyticsGetSpendingReport, analyticsGetSpendingTimeline, analyticsGetSpendingTopExpenses, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
-import type { AnalyticsAccountBalanceSnapshotInput, AnalyticsAccountBalanceSnapshotResult } from '../../analytics/application/analytics.port';
+import type { AnalyticsAccountBalanceSnapshotInput, AnalyticsAccountBalanceSnapshotResult, AnalyticsAccountBalanceCoverageResult } from '../../analytics/application/analytics.port';
 import { getWebAccountBalanceSnapshot } from '../../analytics/infrastructure/webAccountBalanceSnapshot';
 import { WebAnalyticsExclusionService } from '../../analytics/infrastructure/webAnalyticsExclusionService';
 import { WebMovementReuseSuggestionsService } from '../../movements/infrastructure/webMovementReuseSuggestionsService'; import type { MovementReuseSuggestionsSearchInput, MovementReuseSuggestionsVariantsInput } from '../../movements/application/movementReuseSuggestions.port';
@@ -146,6 +146,12 @@ import { WebConfirmationProjectionService } from './webConfirmationProjectionSer
 import { WebApplicationBackupService } from './webApplicationBackupService';
 import { WebMovementsBackupImportService } from './webMovementsBackupImportService';
 import { WebMovementsBackupService } from './webMovementsBackupService';
+
+function localDateForInstant(instant: string, zoneId: string): string {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: zoneId, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(instant));
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
 
 export type CoreAdapterWebOptions = {
   state?: WebAppState;
@@ -234,6 +240,11 @@ export class CoreAdapterWeb implements CorePort {
   async ledgerGetAccountSummary(input: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult> { return this.ledgerService.getAccountSummary(input); }
   async analyticsGetAccountBalanceSnapshot(input: AnalyticsAccountBalanceSnapshotInput): Promise<AnalyticsAccountBalanceSnapshotResult> {
     return getWebAccountBalanceSnapshot(this.state, input);
+  }
+
+  async analyticsGetAccountBalanceCoverage(input: { zoneId: string }): Promise<AnalyticsAccountBalanceCoverageResult> {
+    const dates = this.state.ledgerAccounts.map(({ createdAt }) => localDateForInstant(createdAt, input.zoneId)).sort();
+    return dates.length === 0 ? {} : { firstAccountLocalDate: dates[0] };
   }
 
   async ledgerGetNetWorthByCurrency(): Promise<LedgerGetNetWorthByCurrencyResult> {
