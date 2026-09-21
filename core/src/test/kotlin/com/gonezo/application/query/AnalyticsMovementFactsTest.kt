@@ -46,6 +46,19 @@ class AnalyticsMovementFactsTest {
     }
 
     @Test
+    fun `analytical tag references use stored names when no persisted IDs resolve`() {
+        val tags = AnalyticsTagReferenceResolver.resolve(
+            tagIds = listOf("removed-tag"),
+            tagNames = listOf(" Home "),
+            displayNamesById = mapOf("tag-home" to "Home"),
+            idsByNormalizedName = mapOf("home" to "tag-home"),
+            normalizeName = { it.trim().lowercase(java.util.Locale.ROOT) },
+        )
+
+        assertThat(tags).containsExactly(AnalyticsTagReference("tag:tag-home", "tag-home", "Home"))
+    }
+
+    @Test
     fun `merchant reference normalization matches conservative TypeScript contract`() {
         assertThat(AnalyticsMerchantReferenceResolver.resolve(" MERCADONA ", AnalyticsMovementType.EXPENSE))
             .isEqualTo(AnalyticsMerchantReference("mercadona", "MERCADONA"))

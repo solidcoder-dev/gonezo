@@ -128,12 +128,13 @@ object AnalyticsTagReferenceResolver {
         normalizeName: (String) -> String,
     ): List<AnalyticsTagReference> {
         val persistedIds = tagIds.map(String::trim).filter(String::isNotBlank).distinct()
-        val references = if (persistedIds.isNotEmpty()) {
-            persistedIds.mapNotNull { id ->
+        val referencesById = persistedIds.mapNotNull { id ->
                 displayNamesById[id]?.trim()?.takeIf(String::isNotEmpty)?.let { name ->
                     AnalyticsTagReference("tag:$id", id, name)
                 }
             }
+        val references = if (referencesById.isNotEmpty()) {
+            referencesById
         } else {
             tagNames.mapNotNull { rawName ->
                 val displayName = rawName.trim().takeIf(String::isNotEmpty) ?: return@mapNotNull null

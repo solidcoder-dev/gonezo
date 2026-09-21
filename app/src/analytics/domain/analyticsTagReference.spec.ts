@@ -27,4 +27,13 @@ describe('resolveAnalyticsTagReferences', () => {
       { key: 'tag:tag-home', tagId: 'tag-home', displayName: 'Home' },
     ]);
   });
+
+  it('uses stored names when persisted IDs no longer resolve', () => {
+    expect(resolveAnalyticsTagReferences({
+      tagIds: ['removed-tag'],
+      tagNames: [' Home '],
+      taxonomyTags,
+      normalizeName: (name) => name.trim().toLowerCase(),
+    })).toEqual([{ key: 'tag:tag-home', tagId: 'tag-home', displayName: 'Home' }]);
+  });
 });
