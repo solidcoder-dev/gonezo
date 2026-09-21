@@ -3,9 +3,23 @@ package com.gonezo.taxonomy.domain
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
+import java.util.Locale
 import java.time.Instant
 
 class TagAggregateTest {
+    @Test
+    fun `tag name normalization is trimmed locale independent and conservative`() {
+        val previousLocale = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"))
+            assertThat(TagName.normalizeTagName("  I.DÉ!  ")).isEqualTo("i.dé!")
+            assertThat(TagName.normalizeTagName("i.dé!")).isEqualTo("i.dé!")
+            assertThat(TagName.normalizeTagName(" I.DÉ! ")).isNotEqualTo(TagName.normalizeTagName("i dé"))
+            assertThat(TagName.normalizeTagName("   ")).isEmpty()
+        } finally {
+            Locale.setDefault(previousLocale)
+        }
+    }
     @Test
     fun `creates active tag with normalized name`() {
         val tag =

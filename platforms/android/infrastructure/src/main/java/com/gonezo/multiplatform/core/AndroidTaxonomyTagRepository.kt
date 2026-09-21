@@ -6,9 +6,9 @@ import android.database.sqlite.SQLiteDatabase
 import com.gonezo.taxonomy.domain.Tag
 import com.gonezo.taxonomy.domain.TagId
 import com.gonezo.taxonomy.domain.TagStatus
+import com.gonezo.taxonomy.domain.TagName
 import com.gonezo.taxonomy.domain.ports.TagRepository
 import java.time.Instant
-import java.util.Locale
 
 class AndroidTaxonomyTagRepository(
   private val db: CoreDatabase,
@@ -19,7 +19,7 @@ class AndroidTaxonomyTagRepository(
     val values = ContentValues().apply {
       put("id", tag.id.toString())
       put("name", tag.name)
-      put("name_normalized", tag.name.trim().lowercase(Locale.ROOT))
+      put("name_normalized", TagName.normalizeTagName(tag.name))
       put("status", tag.status.value)
       put("created_at", tag.createdAt.toString())
       if (tag.archivedAt == null) {
@@ -86,7 +86,7 @@ class AndroidTaxonomyTagRepository(
       "taxonomy_tags",
       arrayOf("id", "name", "status", "created_at", "archived_at"),
       "name_normalized = ?",
-      arrayOf(name.trim().lowercase(Locale.ROOT)),
+      arrayOf(TagName.normalizeTagName(name)),
       null,
       null,
       null,

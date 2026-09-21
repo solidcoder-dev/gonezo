@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { WebRuntimeDependencies } from '../../core/infrastructure/webRuntimeDependencies';
 import { createWebAppState, type WebAppState } from '../../core/infrastructure/webAppState';
 import { WebTaxonomyService } from './webTaxonomyService';
+import { normalizeTagName } from './webTaxonomyNames';
 
 function createDependencies(): WebRuntimeDependencies {
   let next = 0;
@@ -29,6 +30,11 @@ function createSubject(state: WebAppState = createWebAppState()) {
 }
 
 describe('WebTaxonomyService', () => {
+  it('uses conservative, locale-independent tag name normalization', () => {
+    expect(normalizeTagName('  I.DÉ!  ')).toBe('i.dé!');
+    expect(normalizeTagName(' I.DÉ! ')).not.toBe(normalizeTagName('i dé'));
+    expect(normalizeTagName('   ')).toBe('');
+  });
   it('lists Services from the web infrastructure seed', async () => {
     const taxonomy = createSubject();
 

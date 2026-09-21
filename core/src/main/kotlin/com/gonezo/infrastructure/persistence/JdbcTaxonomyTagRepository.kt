@@ -3,6 +3,7 @@ package com.gonezo.taxonomy.infrastructure.persistence
 import com.gonezo.taxonomy.domain.Tag
 import com.gonezo.taxonomy.domain.TagId
 import com.gonezo.taxonomy.domain.TagStatus
+import com.gonezo.taxonomy.domain.TagName
 import com.gonezo.taxonomy.domain.ports.TagRepository
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
@@ -30,7 +31,7 @@ class JdbcTaxonomyTagRepository(private val jdbcTemplate: NamedParameterJdbcTemp
             MapSqlParameterSource()
                 .addValue("id", tag.id.toString())
                 .addValue("name", tag.name)
-                .addValue("name_normalized", tag.name.trim().lowercase())
+                .addValue("name_normalized", TagName.normalizeTagName(tag.name))
                 .addValue("status", tag.status.value)
                 .addValue("created_at", tag.createdAt.toString())
                 .addValue("archived_at", tag.archivedAt?.toString())
@@ -69,7 +70,7 @@ class JdbcTaxonomyTagRepository(private val jdbcTemplate: NamedParameterJdbcTemp
             from taxonomy_tags
             where name_normalized = :name_normalized
             """.trimIndent()
-        val params = MapSqlParameterSource("name_normalized", name.trim().lowercase())
+        val params = MapSqlParameterSource("name_normalized", TagName.normalizeTagName(name))
         return jdbcTemplate.query(sql, params, rowMapper()).firstOrNull()
     }
 

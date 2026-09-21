@@ -10,12 +10,13 @@ import com.gonezo.taxonomy.application.ReplaceTransactionItemTagsUC
 import com.gonezo.taxonomy.application.ReplaceTransactionTagsCommand
 import com.gonezo.taxonomy.application.ReplaceTransactionTagsUC
 import com.gonezo.taxonomy.domain.TagId
+import com.gonezo.taxonomy.domain.TagName
 import com.gonezo.taxonomy.domain.ports.TagRepository
 import java.time.Instant
 
 class AssignableTagNameResolver(private val tagRepository: TagRepository, private val createTagUC: CreateTagUC) {
     fun resolve(names: List<String>, requestedAt: Instant): List<TagId> {
-        val normalizedNames = names.asSequence().map(String::trim).filter(String::isNotBlank).map { it.lowercase() to it }.distinctBy { it.first }.toList()
+        val normalizedNames = names.asSequence().map(String::trim).filter(String::isNotBlank).map { TagName.normalizeTagName(it) to it }.distinctBy { it.first }.toList()
         return normalizedNames.map { (_, rawName) ->
             val existing = tagRepository.findByNormalizedName(rawName)
             if (existing != null) {

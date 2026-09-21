@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -414,7 +413,7 @@ public final class AndroidTaxonomyCore {
   }
 
   private static String normalizeTagName(String value) {
-    return value.trim().toLowerCase(Locale.ROOT);
+    return com.gonezo.taxonomy.domain.TagName.normalizeTagName(value);
   }
 
   private static String requireText(String value, String message) {
