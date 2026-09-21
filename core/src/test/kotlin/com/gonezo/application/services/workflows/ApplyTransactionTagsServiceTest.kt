@@ -14,6 +14,28 @@ import java.time.Instant
 
 class ApplyTransactionTagsServiceTest {
     @Test
+    fun `resolves persisted tag IDs before presentation names`() {
+        val persisted = Tag.create(TagId.random(), "current name", Instant.parse("2026-03-22T10:00:00Z"))
+        val repository = InMemoryTagRepository(persisted)
+        val createTagUC = RecordingCreateTagUC(TagId.random())
+        val replaceTagsUC = RecordingReplaceTransactionTagsUC()
+        val service = ApplyTransactionTagsService(repository, createTagUC, replaceTagsUC)
+
+        val result = service.execute(
+            ApplyTransactionTagsCommand(
+                transactionId = TransactionId.random(),
+                tagNames = listOf("old snapshot name"),
+                requestedAt = Instant.parse("2026-03-22T12:00:00Z"),
+                tagIds = listOf(persisted.id.toString()),
+            ),
+        )
+
+        assertThat(result.tagIds).containsExactly(persisted.id)
+        assertThat(createTagUC.calls).isEmpty()
+        assertThat(replaceTagsUC.calls.single().tagIds).containsExactly(persisted.id)
+    }
+
+    @Test
     fun `creates missing tags and applies all deduplicated tags`() {
         val existingTag = Tag.create(TagId.random(), "london", Instant.parse("2026-03-22T10:00:00Z"))
         val repository = InMemoryTagRepository(existingTag)

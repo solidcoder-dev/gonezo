@@ -4,7 +4,7 @@ import com.gonezo.ledger.domain.TransactionId
 import com.gonezo.taxonomy.domain.TagId
 import java.time.Instant
 
-data class ApplyTransactionTagsCommand(val transactionId: TransactionId, val tagNames: List<String>, val requestedAt: Instant)
+data class ApplyTransactionTagsCommand(val transactionId: TransactionId, val tagNames: List<String>, val requestedAt: Instant, val tagIds: List<String> = emptyList())
 
 data class ApplyTransactionTagsResult(val tagIds: List<TagId>)
 

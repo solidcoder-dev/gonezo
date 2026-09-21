@@ -44,7 +44,11 @@ final class ExpectedPluginHandler {
         call.getString("categoryId"),
         call.getString("originOccurrenceId"),
         call.getString("originRecurringMovementId"),
-        toJsonStringOrNull(call.getArray("splitItems"))
+        toJsonStringOrNull(call.getArray("splitItems")),
+        null,
+        null,
+        toJsonStringOrNull(call.getArray("tagIds")),
+        toJsonStringOrNull(call.getArray("tagNames"))
       );
       AndroidAnalyticsCore.getInstance(context).setExpectedMovementIgnored(
         id.toString(),
@@ -71,7 +75,9 @@ final class ExpectedPluginHandler {
         call.getString("description"),
         call.getString("merchant"),
         call.getString("categoryId"),
-        toJsonStringOrNull(call.getArray("splitItems"))
+        toJsonStringOrNull(call.getArray("splitItems")),
+        toJsonStringOrNull(call.getArray("tagIds")),
+        toJsonStringOrNull(call.getArray("tagNames"))
       );
       Boolean ignored = call.getBoolean("ignored");
       if (ignored != null) {
@@ -305,6 +311,8 @@ final class ExpectedPluginHandler {
     result.put("updatedAt", movement.getUpdatedAt());
     result.put("resolvedAt", movement.getResolvedAt());
     result.put("dismissedAt", movement.getDismissedAt());
+    result.put("tagIds", new JSONArray(movement.getTagIds()));
+    result.put("tagNames", new JSONArray(movement.getTagNames()));
     result.put("ignored", ignoredExpectedMovementIds.contains(movement.getId()));
     return result;
   }

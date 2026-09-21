@@ -19,7 +19,7 @@ import com.gonezo.ledger.domain.ports.LedgerAccountRepository
 import java.math.BigDecimal
 import java.time.Instant
 
-data class BackupExpectedMovement(val id: String, val accountId: String, val type: String, val amount: String, val currency: String, val expectedAt: String, val description: String?, val merchant: String?, val categoryId: String?, val originOccurrenceId: String?, val originRecurringMovementId: String?, val splitItems: List<BackupExpectedSplitItem>, val status: String, val resolvedTransactionId: String?, val createdAt: String, val updatedAt: String, val resolvedAt: String?, val dismissedAt: String?, val tagNames: List<String>)
+data class BackupExpectedMovement(val id: String, val accountId: String, val type: String, val amount: String, val currency: String, val expectedAt: String, val description: String?, val merchant: String?, val categoryId: String?, val originOccurrenceId: String?, val originRecurringMovementId: String?, val splitItems: List<BackupExpectedSplitItem>, val status: String, val resolvedTransactionId: String?, val createdAt: String, val updatedAt: String, val resolvedAt: String?, val dismissedAt: String?, val tagNames: List<String>, val tagIds: List<String> = emptyList())
 
 data class BackupExpectedSplitItem(val id: String, val name: String, val amount: String, val sourceTemplateItemId: String?, val tagNames: List<String> = emptyList())
 
@@ -50,7 +50,7 @@ class ExpectedBackupSectionExporter(private val accountRepository: LedgerAccount
         splitItems = value.splitItems.map { BackupExpectedSplitItem(it.id, it.name, it.amount.toPlainString(), it.sourceTemplateItemId, it.tagNames.sorted()) },
         status = value.status.name.lowercase(), resolvedTransactionId = value.resolvedTransactionId,
         createdAt = value.createdAt.toString(), updatedAt = value.updatedAt.toString(), resolvedAt = value.resolvedAt?.toString(),
-        dismissedAt = value.dismissedAt?.toString(), tagNames = value.tagNames.sorted(),
+        dismissedAt = value.dismissedAt?.toString(), tagNames = value.tagNames.sorted(), tagIds = value.tagIds.sorted(),
     )
 }
 
@@ -88,7 +88,7 @@ class ExpectedBackupSectionImporter(private val repository: ExpectedMovementRepo
     }
     override fun import(section: BackupSection, context: BackupImportContext) {
         (section as ExpectedBackupSection).movements.forEach { value ->
-            repository.save(ExpectedMovement(ExpectedMovementId.from(value.id), value.accountId, ExpectedMovementType.from(value.type), BigDecimal(value.amount), value.currency, Instant.parse(value.expectedAt), value.description, value.merchant, value.categoryId, value.originOccurrenceId, value.originRecurringMovementId, value.splitItems.map { ExpectedMovement.SplitItem(it.id, it.name, BigDecimal(it.amount), it.sourceTemplateItemId, it.tagNames) }, ExpectedMovementStatus.from(value.status), value.resolvedTransactionId, Instant.parse(value.createdAt), Instant.parse(value.updatedAt), value.resolvedAt?.let(Instant::parse), value.dismissedAt?.let(Instant::parse), value.tagNames))
+            repository.save(ExpectedMovement(ExpectedMovementId.from(value.id), value.accountId, ExpectedMovementType.from(value.type), BigDecimal(value.amount), value.currency, Instant.parse(value.expectedAt), value.description, value.merchant, value.categoryId, value.originOccurrenceId, value.originRecurringMovementId, value.splitItems.map { ExpectedMovement.SplitItem(it.id, it.name, BigDecimal(it.amount), it.sourceTemplateItemId, it.tagNames) }, ExpectedMovementStatus.from(value.status), value.resolvedTransactionId, Instant.parse(value.createdAt), Instant.parse(value.updatedAt), value.resolvedAt?.let(Instant::parse), value.dismissedAt?.let(Instant::parse), value.tagNames, value.tagIds))
         }
     }
 }

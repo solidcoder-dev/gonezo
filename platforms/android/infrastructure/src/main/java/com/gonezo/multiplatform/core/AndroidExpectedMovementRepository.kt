@@ -17,6 +17,7 @@ internal class AndroidExpectedMovementRepository(private val database: CoreDatab
       putNullable("description", movement.description); putNullable("merchant", movement.merchant); putNullable("category_id", movement.categoryId)
       putNullable("origin_occurrence_id", movement.originOccurrenceId); putNullable("origin_recurring_movement_id", movement.originRecurringMovementId)
       put("tag_names", org.json.JSONArray(movement.tagNames).toString())
+      put("tag_ids", org.json.JSONArray(movement.tagIds).toString())
       put("status", movement.status.value); putNullable("resolved_transaction_id", movement.resolvedTransactionId)
       put("created_at", movement.createdAt.toString()); put("updated_at", movement.updatedAt.toString())
       putNullable("resolved_at", movement.resolvedAt?.toString()); putNullable("dismissed_at", movement.dismissedAt?.toString())
@@ -63,6 +64,7 @@ internal class AndroidExpectedMovementRepository(private val database: CoreDatab
       text("description"), text("merchant"), text("category_id"), text("origin_occurrence_id"), text("origin_recurring_movement_id"), items,
       ExpectedMovementStatus.from(text("status")), text("resolved_transaction_id"), instant("created_at"), instant("updated_at"),
       text("resolved_at")?.let(Instant::parse), text("dismissed_at")?.let(Instant::parse), decodeTags(cursor.getString(cursor.getColumnIndexOrThrow("tag_names"))),
+      decodeTags(cursor.getString(cursor.getColumnIndexOrThrow("tag_ids"))),
     )
   }
 

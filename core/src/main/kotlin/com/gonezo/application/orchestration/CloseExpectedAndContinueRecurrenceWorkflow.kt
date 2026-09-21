@@ -55,6 +55,7 @@ class DefaultExpectedOccurrenceProjectionService(private val recurringMovementRe
                             createdAt = projectedAt,
                             items = movement.splitItems.map { RecurringOccurrenceSnapshot.Item(it.id, it.name, it.amount, it.tagNames) },
                             tagNames = movement.tagNames,
+                            tagIds = movement.tagIds,
                         ),
                     )
                 createExpectedMovementUC.execute(
@@ -72,6 +73,7 @@ class DefaultExpectedOccurrenceProjectionService(private val recurringMovementRe
                         splitItems = draft.splitItems,
                         createdAt = draft.createdAt,
                         tagNames = draft.tagNames,
+                        tagIds = draft.tagIds,
                     ),
                 )
             }

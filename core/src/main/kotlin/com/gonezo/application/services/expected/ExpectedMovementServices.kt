@@ -22,6 +22,7 @@ class CreateExpectedMovementService(private val repository: ExpectedMovementRepo
                 originRecurringMovementId = command.originRecurringMovementId,
                 splitItems = command.splitItems,
                 tagNames = command.tagNames,
+                tagIds = command.tagIds,
                 createdAt = command.createdAt,
             )
         repository.save(movement)
@@ -93,6 +94,7 @@ class ListExpectedMovementsService(private val repository: ExpectedMovementRepos
             resolvedAt = movement.resolvedAt,
             dismissedAt = movement.dismissedAt,
             tagNames = movement.tagNames,
+            tagIds = movement.tagIds,
         )
     }
 }

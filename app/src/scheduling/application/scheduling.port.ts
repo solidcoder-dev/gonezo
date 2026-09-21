@@ -99,6 +99,8 @@ export type RecurrenceMovementItem = {
   zoneId: string;
   reviewPolicy?: RecurrenceReviewPolicy;
   generatedOccurrences: number;
+  tagIds?: string[];
+  tagNames?: string[];
   splitItems: Array<{ id: string; name: string; amount: string; tagNames?: string[] }>;
   rule: RecurrenceRuleInput;
   recurrenceEnd: RecurrenceEndInput;

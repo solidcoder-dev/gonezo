@@ -27,14 +27,14 @@ class JdbcRecurringMovementRepository(private val jdbcTemplate: NamedParameterJd
             """
             insert into recurring_movements (
               id, movement_type, source_account_id, target_account_id, amount, currency,
-              destination_amount, destination_currency, exchange_rate, description, merchant, category_id, tag_names, review_policy,
+              destination_amount, destination_currency, exchange_rate, description, merchant, category_id, tag_names, tag_ids, review_policy,
               rule_frequency, rule_interval, rule_weekdays, rule_day_of_month, rule_monthly_pattern, rule_monthly_nth, rule_monthly_weekday,
               end_kind, end_on_date, end_after_occurrences,
               start_at, zone_id, next_due_at, status, generated_occurrences,
               created_at, updated_at, deactivated_at, completed_at
             ) values (
               :id, :movement_type, :source_account_id, :target_account_id, :amount, :currency,
-              :destination_amount, :destination_currency, :exchange_rate, :description, :merchant, :category_id, :tag_names, :review_policy,
+              :destination_amount, :destination_currency, :exchange_rate, :description, :merchant, :category_id, :tag_names, :tag_ids, :review_policy,
               :rule_frequency, :rule_interval, :rule_weekdays, :rule_day_of_month, :rule_monthly_pattern, :rule_monthly_nth, :rule_monthly_weekday,
               :end_kind, :end_on_date, :end_after_occurrences,
               :start_at, :zone_id, :next_due_at, :status, :generated_occurrences,
@@ -53,6 +53,7 @@ class JdbcRecurringMovementRepository(private val jdbcTemplate: NamedParameterJd
               merchant = excluded.merchant,
               category_id = excluded.category_id,
               tag_names = excluded.tag_names,
+              tag_ids = excluded.tag_ids,
               review_policy = excluded.review_policy,
               rule_frequency = excluded.rule_frequency,
               rule_interval = excluded.rule_interval,
@@ -208,6 +209,7 @@ class JdbcRecurringMovementRepository(private val jdbcTemplate: NamedParameterJd
             merchant = rs.getString("merchant"),
             categoryId = rs.getString("category_id"),
             tagNames = decodeTags(rs.getString("tag_names")),
+            tagIds = decodeTags(rs.getString("tag_ids")),
             reviewPolicy = RecurringMovementReviewPolicy.from(rs.getString("review_policy")),
             rule = rule,
             recurrenceEnd = recurrenceEnd,
@@ -245,6 +247,7 @@ class JdbcRecurringMovementRepository(private val jdbcTemplate: NamedParameterJd
             .addValue("merchant", movement.merchant)
             .addValue("category_id", movement.categoryId)
             .addValue("tag_names", encodeTags(movement.tagNames))
+            .addValue("tag_ids", encodeTags(movement.tagIds))
             .addValue("review_policy", movement.reviewPolicy.value)
             .addValue("rule_frequency", movement.rule.frequency.value)
             .addValue("rule_interval", movement.rule.interval)
@@ -323,6 +326,7 @@ class JdbcRecurringMovementRepository(private val jdbcTemplate: NamedParameterJd
         deactivatedAt = deactivatedAt,
         completedAt = completedAt,
         tagNames = tagNames,
+        tagIds = tagIds,
     )
 
     private data class RecurringMovementRow(
@@ -339,6 +343,7 @@ class JdbcRecurringMovementRepository(private val jdbcTemplate: NamedParameterJd
         val merchant: String?,
         val categoryId: String?,
         val tagNames: List<String>,
+        val tagIds: List<String>,
         val reviewPolicy: RecurringMovementReviewPolicy,
         val rule: RecurrenceRule,
         val recurrenceEnd: RecurrenceEnd,

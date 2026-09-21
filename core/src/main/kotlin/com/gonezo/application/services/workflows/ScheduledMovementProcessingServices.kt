@@ -20,6 +20,7 @@ import com.gonezo.ledger.application.RecordLedgerTransferFxCommand
 import com.gonezo.ledger.application.RecordLedgerTransferFxUC
 import com.gonezo.ledger.application.RecordLedgerTransferUC
 import com.gonezo.ledger.domain.AccountId
+import com.gonezo.ledger.domain.TransactionId
 import com.gonezo.recurrence.domain.RecurringMovement
 import com.gonezo.recurrence.domain.RecurringMovementOccurrence
 import com.gonezo.recurrence.domain.RecurringMovementOccurrenceStatus
@@ -190,7 +191,7 @@ class ProcessDueScheduledMovementsService(private val recurringMovementRepositor
     }
 }
 
-class AutomaticDueScheduledMovementHandler(private val recordLedgerIncomeUC: RecordLedgerIncomeUC, private val recordLedgerExpenseUC: RecordLedgerExpenseUC, private val recordLedgerTransferUC: RecordLedgerTransferUC, private val recordLedgerTransferFxUC: RecordLedgerTransferFxUC) : DueScheduledMovementHandler {
+class AutomaticDueScheduledMovementHandler(private val recordLedgerIncomeUC: RecordLedgerIncomeUC, private val recordLedgerExpenseUC: RecordLedgerExpenseUC, private val recordLedgerTransferUC: RecordLedgerTransferUC, private val recordLedgerTransferFxUC: RecordLedgerTransferFxUC, private val applyTags: ApplyTransactionTagsUC? = null) : DueScheduledMovementHandler {
     override fun supports(movement: RecurringMovement): Boolean = movement.reviewPolicy == RecurringMovementReviewPolicy.AUTOMATIC
 
     override fun handle(context: DueScheduledMovementContext): DueScheduledMovementHandlerResult {
@@ -217,6 +218,11 @@ class AutomaticDueScheduledMovementHandler(private val recordLedgerIncomeUC: Rec
             ).toString()
 
             RecurringMovementType.TRANSFER -> postTransfer(movement, context.occurrence.dueAt)
+        }
+
+        if (movement.type != RecurringMovementType.TRANSFER && (movement.tagIds.isNotEmpty() || movement.tagNames.isNotEmpty())) {
+            checkNotNull(applyTags) { "Taxonomy tag application is required for tagged scheduled movements" }
+                .execute(ApplyTransactionTagsCommand(TransactionId.from(transactionId), movement.tagNames, context.occurrence.dueAt, movement.tagIds))
         }
 
         return DueScheduledMovementHandlerResult.Posted(transactionId)
@@ -280,6 +286,7 @@ class ConfirmationRequiredDueScheduledMovementHandler(private val createExpected
                     RecurringOccurrenceSnapshot.Item(it.id, it.name, it.amount)
                 },
                 tagNames = movement.tagNames,
+                tagIds = movement.tagIds,
             ),
         )
 
@@ -299,6 +306,7 @@ class ConfirmationRequiredDueScheduledMovementHandler(private val createExpected
                     splitItems = draft.splitItems,
                     createdAt = draft.createdAt,
                     tagNames = draft.tagNames,
+                    tagIds = draft.tagIds,
                 ),
             )
         plannedShareInstantiator.instantiate(

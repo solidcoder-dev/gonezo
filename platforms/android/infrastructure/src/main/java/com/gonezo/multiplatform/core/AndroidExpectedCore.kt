@@ -43,6 +43,8 @@ class AndroidExpectedCore internal constructor(
     splitItemsJson: String? = null,
     expectedMovementId: String? = null,
     createdAt: String? = null,
+    tagIdsJson: String? = null,
+    tagNamesJson: String? = null,
   ): UUID {
     val resolvedAccountId = requireText(accountId, "accountId is required")
     if (!accountExists(resolvedAccountId)) {
@@ -71,6 +73,8 @@ class AndroidExpectedCore internal constructor(
     putNullable(values, "category_id", categoryId)
     putNullable(values, "origin_occurrence_id", originOccurrenceId)
     putNullable(values, "origin_recurring_movement_id", originRecurringMovementId)
+    values.put("tag_ids", encodeTags(parseTags(tagIdsJson)))
+    values.put("tag_names", encodeTags(parseTags(tagNamesJson)))
     values.put("status", "pending")
     values.putNull("resolved_transaction_id")
     val persistedCreatedAt = createdAt?.let { parseInstantOrDate(it, "createdAt") } ?: now
@@ -103,6 +107,8 @@ class AndroidExpectedCore internal constructor(
     merchant: String?,
     categoryId: String?,
     splitItemsJson: String? = null,
+    tagIdsJson: String? = null,
+    tagNamesJson: String? = null,
   ): UUID {
     val id = requireText(expectedMovementId, "expectedMovementId is required")
     val resolvedAccountId = requireText(accountId, "accountId is required")
@@ -130,6 +136,8 @@ class AndroidExpectedCore internal constructor(
     putNullable(values, "description", description)
     putNullable(values, "merchant", merchant)
     putNullable(values, "category_id", categoryId)
+    values.put("tag_ids", encodeTags(parseTags(tagIdsJson)))
+    values.put("tag_names", encodeTags(parseTags(tagNamesJson)))
     values.put("updated_at", now.toString())
 
     val updated = database.writableDatabase.update(
@@ -343,6 +351,14 @@ class AndroidExpectedCore internal constructor(
     return items
   }
 
+  private fun parseTags(raw: String?): List<String> {
+    if (raw.isNullOrBlank()) return emptyList()
+    val json = JSONArray(raw)
+    return buildList { for (index in 0 until json.length()) json.optString(index).trim().takeIf(String::isNotBlank)?.let(::add) }
+  }
+
+  private fun encodeTags(tags: List<String>): String = JSONArray(tags).toString()
+
   data class ExpectedMovementView(
     val id: String,
     val accountId: String,
@@ -362,6 +378,8 @@ class AndroidExpectedCore internal constructor(
     val resolvedAt: String?,
     val dismissedAt: String?,
     val splitItems: List<SplitItem>,
+    val tagIds: List<String> = emptyList(),
+    val tagNames: List<String> = emptyList(),
   )
 
   data class SplitItem(
@@ -397,6 +415,8 @@ class AndroidExpectedCore internal constructor(
       "updated_at",
       "resolved_at",
       "dismissed_at",
+      "tag_ids",
+      "tag_names",
     )
 
     @Volatile

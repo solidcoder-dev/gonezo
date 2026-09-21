@@ -16,12 +16,13 @@ class JdbcExpectedMovementRepositoryE2ETest : SqliteE2ETest() {
     @Test
     fun `saves and finds expected movement`() {
         val repository = JdbcExpectedMovementRepository(db.namedJdbcTemplate)
-        val movement = expectedMovement()
+        val movement = expectedMovement().copy(tagNames = listOf("home"), tagIds = listOf("tag-home"))
 
         repository.save(movement)
 
         val stored = repository.findById(movement.id)
         assertThat(stored).isEqualTo(movement)
+        assertThat(stored!!.tagIds).containsExactly("tag-home")
     }
 
     @Test

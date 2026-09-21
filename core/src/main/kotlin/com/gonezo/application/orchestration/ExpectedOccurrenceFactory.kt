@@ -6,11 +6,11 @@ import com.gonezo.expected.domain.ExpectedMovementType
 import java.math.BigDecimal
 import java.time.Instant
 
-data class RecurringOccurrenceSnapshot(val recurringMovementId: String, val occurrenceId: String, val accountId: String, val movementType: String, val amount: BigDecimal, val currency: String, val dueAt: Instant, val description: String?, val merchant: String?, val categoryId: String?, val createdAt: Instant, val items: List<Item>, val tagNames: List<String> = emptyList()) {
+data class RecurringOccurrenceSnapshot(val recurringMovementId: String, val occurrenceId: String, val accountId: String, val movementType: String, val amount: BigDecimal, val currency: String, val dueAt: Instant, val description: String?, val merchant: String?, val categoryId: String?, val createdAt: Instant, val items: List<Item>, val tagNames: List<String> = emptyList(), val tagIds: List<String> = emptyList()) {
     data class Item(val templateItemId: String, val name: String, val amount: BigDecimal, val tagNames: List<String> = emptyList())
 }
 
-data class ExpectedMovementDraft(val id: ExpectedMovementId, val accountId: String, val type: ExpectedMovementType, val amount: BigDecimal, val currency: String, val expectedAt: Instant, val description: String?, val merchant: String?, val categoryId: String?, val originOccurrenceId: String, val originRecurringMovementId: String, val splitItems: List<ExpectedMovement.SplitItem>, val createdAt: Instant, val tagNames: List<String> = emptyList())
+data class ExpectedMovementDraft(val id: ExpectedMovementId, val accountId: String, val type: ExpectedMovementType, val amount: BigDecimal, val currency: String, val expectedAt: Instant, val description: String?, val merchant: String?, val categoryId: String?, val originOccurrenceId: String, val originRecurringMovementId: String, val splitItems: List<ExpectedMovement.SplitItem>, val createdAt: Instant, val tagNames: List<String> = emptyList(), val tagIds: List<String> = emptyList())
 
 interface ExpectedOccurrenceFactory {
     fun create(source: RecurringOccurrenceSnapshot): ExpectedMovementDraft
@@ -63,5 +63,6 @@ class DefaultExpectedOccurrenceFactory(private val expectedMovementIdGenerator: 
         },
         createdAt = source.createdAt,
         tagNames = source.tagNames,
+        tagIds = source.tagIds,
     )
 }

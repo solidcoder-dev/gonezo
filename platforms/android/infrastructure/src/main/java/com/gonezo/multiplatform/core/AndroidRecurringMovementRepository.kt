@@ -45,6 +45,7 @@ internal class AndroidRecurringMovementRepository(
     values.putNullable("merchant", movement.merchant)
     values.putNullable("category_id", movement.categoryId)
     values.put(COLUMN_TAG_NAMES, org.json.JSONArray(movement.tagNames).toString())
+    values.put(COLUMN_TAG_IDS, org.json.JSONArray(movement.tagIds).toString())
     values.put("review_policy", movement.reviewPolicy.value)
     values.put("rule_frequency", movement.rule.frequency.value)
     values.put("rule_interval", movement.rule.interval)
@@ -199,6 +200,7 @@ internal class AndroidRecurringMovementRepository(
       merchant = cursor.stringOrNull("merchant"),
       categoryId = cursor.stringOrNull("category_id"),
       tagNames = cursor.stringOrNull(COLUMN_TAG_NAMES)?.let(::decodeTags) ?: emptyList(),
+      tagIds = cursor.stringOrNull(COLUMN_TAG_IDS)?.let(::decodeTags) ?: emptyList(),
       reviewPolicy = RecurringMovementReviewPolicy.from(cursor.string("review_policy")),
       splitItems = loadSplitItems(cursor.string("id")),
       rule = rule,
@@ -281,6 +283,7 @@ internal class AndroidRecurringMovementRepository(
 
   private companion object {
     const val COLUMN_TAG_NAMES = "tag_names"
+    const val COLUMN_TAG_IDS = "tag_ids"
 
     val COLUMNS = arrayOf(
       "id",
@@ -296,6 +299,7 @@ internal class AndroidRecurringMovementRepository(
       "merchant",
       "category_id",
       COLUMN_TAG_NAMES,
+      COLUMN_TAG_IDS,
       "review_policy",
       "rule_frequency",
       "rule_interval",

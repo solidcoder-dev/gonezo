@@ -96,7 +96,7 @@ class PostExpectedMovementWorkflow(
         val finalType = command.movement.type
         val categoryId = command.categoryId ?: expected.categoryId.takeIf { expected.type == finalType }
         categorize.execute(CategorizeLedgerTransactionCommand(TransactionId.from(transactionId), finalType.value, categoryId?.let(CategoryId::from), requestedAt = command.occurredAt))
-        applyTags.execute(ApplyTransactionTagsCommand(TransactionId.from(transactionId), command.tagNames, command.occurredAt))
+        applyTags.execute(ApplyTransactionTagsCommand(TransactionId.from(transactionId), command.tagNames, command.occurredAt, expected.tagIds))
         ignoredWriter.setIgnored(command.expectedMovementId, command.ignored, command.occurredAt)
         transactionIgnoredWriter.setIgnored(transactionId, command.ignored, command.occurredAt)
         val planned = plannedShares.findByExpectedMovementRef(ExpectedMovementRef(command.expectedMovementId))

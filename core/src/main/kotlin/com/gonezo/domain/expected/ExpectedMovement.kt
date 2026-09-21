@@ -3,7 +3,7 @@ package com.gonezo.expected.domain
 import java.math.BigDecimal
 import java.time.Instant
 
-data class ExpectedMovement(val id: ExpectedMovementId, val accountId: String, val type: ExpectedMovementType, val amount: BigDecimal, val currency: String, val expectedAt: Instant, val description: String?, val merchant: String?, val categoryId: String?, val originOccurrenceId: String?, val originRecurringMovementId: String?, val splitItems: List<SplitItem> = emptyList(), val status: ExpectedMovementStatus, val resolvedTransactionId: String?, val createdAt: Instant, val updatedAt: Instant, val resolvedAt: Instant?, val dismissedAt: Instant?, val tagNames: List<String> = emptyList()) {
+data class ExpectedMovement(val id: ExpectedMovementId, val accountId: String, val type: ExpectedMovementType, val amount: BigDecimal, val currency: String, val expectedAt: Instant, val description: String?, val merchant: String?, val categoryId: String?, val originOccurrenceId: String?, val originRecurringMovementId: String?, val splitItems: List<SplitItem> = emptyList(), val status: ExpectedMovementStatus, val resolvedTransactionId: String?, val createdAt: Instant, val updatedAt: Instant, val resolvedAt: Instant?, val dismissedAt: Instant?, val tagNames: List<String> = emptyList(), val tagIds: List<String> = emptyList()) {
     data class SplitItem(val id: String, val name: String, val amount: BigDecimal, val sourceTemplateItemId: String? = null, val tagNames: List<String> = emptyList())
 
     init {
@@ -46,7 +46,7 @@ data class ExpectedMovement(val id: ExpectedMovementId, val accountId: String, v
         )
     }
 
-    fun update(accountId: String, type: ExpectedMovementType, amount: BigDecimal, currency: String, expectedAt: Instant, description: String?, merchant: String?, categoryId: String?, splitItems: List<SplitItem>, tagNames: List<String> = emptyList(), updatedAt: Instant): ExpectedMovement {
+    fun update(accountId: String, type: ExpectedMovementType, amount: BigDecimal, currency: String, expectedAt: Instant, description: String?, merchant: String?, categoryId: String?, splitItems: List<SplitItem>, tagNames: List<String> = emptyList(), updatedAt: Instant, tagIds: List<String> = emptyList()): ExpectedMovement {
         check(status == ExpectedMovementStatus.PENDING) { "Only pending expected movements can be changed" }
         require(accountId.isNotBlank()) { "accountId is required" }
         require(amount > BigDecimal.ZERO) { "amount must be greater than 0" }
@@ -63,6 +63,7 @@ data class ExpectedMovement(val id: ExpectedMovementId, val accountId: String, v
             merchant = merchant?.trim()?.ifBlank { null },
             categoryId = categoryId?.trim()?.ifBlank { null },
             tagNames = tagNames.map(String::trim).filter(String::isNotBlank).distinct(),
+            tagIds = tagIds.map(String::trim).filter(String::isNotBlank).distinct(),
             splitItems =
             splitItems.map {
                 SplitItem(
@@ -100,7 +101,7 @@ data class ExpectedMovement(val id: ExpectedMovementId, val accountId: String, v
             }
         }
 
-        fun create(id: ExpectedMovementId, accountId: String, type: ExpectedMovementType, amount: BigDecimal, currency: String, expectedAt: Instant, description: String?, merchant: String?, categoryId: String?, originOccurrenceId: String? = null, originRecurringMovementId: String? = null, splitItems: List<SplitItem> = emptyList(), tagNames: List<String> = emptyList(), createdAt: Instant): ExpectedMovement = ExpectedMovement(
+        fun create(id: ExpectedMovementId, accountId: String, type: ExpectedMovementType, amount: BigDecimal, currency: String, expectedAt: Instant, description: String?, merchant: String?, categoryId: String?, originOccurrenceId: String? = null, originRecurringMovementId: String? = null, splitItems: List<SplitItem> = emptyList(), tagNames: List<String> = emptyList(), tagIds: List<String> = emptyList(), createdAt: Instant): ExpectedMovement = ExpectedMovement(
             id = id,
             accountId = accountId.trim(),
             type = type,
@@ -129,6 +130,7 @@ data class ExpectedMovement(val id: ExpectedMovementId, val accountId: String, v
             resolvedAt = null,
             dismissedAt = null,
             tagNames = tagNames.map(String::trim).filter(String::isNotBlank).distinct(),
+            tagIds = tagIds.map(String::trim).filter(String::isNotBlank).distinct(),
         )
     }
 }

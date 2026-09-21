@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteException;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 43;
+  private static final int DB_VERSION = 44;
   private static final String SERVICES_CATEGORY_ID = "00000000-0000-4000-8000-000000000111";
 
   public CoreDatabase(Context context) {
@@ -214,6 +214,10 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion < 43) {
       addSharingAttributionColumns(db);
     }
+
+    if (oldVersion < 44) {
+      addPlannedMovementTagIdColumns(db);
+    }
   }
 
   @Override
@@ -243,6 +247,7 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     addExpectedItemTemplateIdentityIndex(db);
     addNextExpectedPostingId(db);
     addRecurringAndExpectedTagColumns(db);
+    addPlannedMovementTagIdColumns(db);
     createCategorizationWorkflowTable(db);
     createAnalyticsExclusionLegacyArchiveTable(db);
     createTransactionItemTagAssignmentTable(db);
@@ -1023,6 +1028,15 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     }
     if (!hasColumn(db, "expected_movements", "tag_names")) {
       db.execSQL("alter table expected_movements add column tag_names text not null default '[]'");
+    }
+  }
+
+  private static void addPlannedMovementTagIdColumns(SQLiteDatabase db) {
+    if (!hasColumn(db, "recurring_movements", "tag_ids")) {
+      db.execSQL("alter table recurring_movements add column tag_ids text not null default '[]'");
+    }
+    if (!hasColumn(db, "expected_movements", "tag_ids")) {
+      db.execSQL("alter table expected_movements add column tag_ids text not null default '[]'");
     }
   }
 

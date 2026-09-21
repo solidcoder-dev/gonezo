@@ -32,6 +32,7 @@ data class RecurringMovement(
     val deactivatedAt: Instant?,
     val completedAt: Instant?,
     val tagNames: List<String> = emptyList(),
+    val tagIds: List<String> = emptyList(),
 ) {
     data class SplitItem(val id: String, val name: String, val amount: BigDecimal, val tagNames: List<String> = emptyList())
 
@@ -81,7 +82,7 @@ data class RecurringMovement(
         )
     }
 
-    fun update(type: RecurringMovementType, sourceAccountId: String, targetAccountId: String?, amount: BigDecimal, currency: String, destinationAmount: BigDecimal?, destinationCurrency: String?, exchangeRate: BigDecimal?, description: String?, merchant: String?, categoryId: String?, tagNames: List<String> = emptyList(), reviewPolicy: RecurringMovementReviewPolicy, splitItems: List<SplitItem> = emptyList(), rule: RecurrenceRule, recurrenceEnd: RecurrenceEnd, startAt: Instant, zoneId: String, updatedAt: Instant, scheduleCalculator: RecurrenceScheduleCalculator): RecurringMovement {
+    fun update(type: RecurringMovementType, sourceAccountId: String, targetAccountId: String?, amount: BigDecimal, currency: String, destinationAmount: BigDecimal?, destinationCurrency: String?, exchangeRate: BigDecimal?, description: String?, merchant: String?, categoryId: String?, tagNames: List<String> = emptyList(), reviewPolicy: RecurringMovementReviewPolicy, splitItems: List<SplitItem> = emptyList(), rule: RecurrenceRule, recurrenceEnd: RecurrenceEnd, startAt: Instant, zoneId: String, updatedAt: Instant, scheduleCalculator: RecurrenceScheduleCalculator, tagIds: List<String> = emptyList()): RecurringMovement {
         val updated =
             create(
                 id = id,
@@ -97,6 +98,7 @@ data class RecurringMovement(
                 merchant = merchant,
                 categoryId = categoryId,
                 tagNames = tagNames,
+                tagIds = tagIds,
                 reviewPolicy = reviewPolicy,
                 splitItems = splitItems,
                 rule = rule,
@@ -170,7 +172,7 @@ data class RecurringMovement(
             }
         }
 
-        fun create(id: RecurringMovementId, type: RecurringMovementType, sourceAccountId: String, targetAccountId: String?, amount: BigDecimal, currency: String, destinationAmount: BigDecimal?, destinationCurrency: String?, exchangeRate: BigDecimal?, description: String?, merchant: String?, categoryId: String? = null, tagNames: List<String> = emptyList(), reviewPolicy: RecurringMovementReviewPolicy = RecurringMovementReviewPolicy.AUTOMATIC, splitItems: List<SplitItem> = emptyList(), rule: RecurrenceRule, recurrenceEnd: RecurrenceEnd, startAt: Instant, zoneId: String, createdAt: Instant, scheduleCalculator: RecurrenceScheduleCalculator): RecurringMovement {
+        fun create(id: RecurringMovementId, type: RecurringMovementType, sourceAccountId: String, targetAccountId: String?, amount: BigDecimal, currency: String, destinationAmount: BigDecimal?, destinationCurrency: String?, exchangeRate: BigDecimal?, description: String?, merchant: String?, categoryId: String? = null, tagNames: List<String> = emptyList(), tagIds: List<String> = emptyList(), reviewPolicy: RecurringMovementReviewPolicy = RecurringMovementReviewPolicy.AUTOMATIC, splitItems: List<SplitItem> = emptyList(), rule: RecurrenceRule, recurrenceEnd: RecurrenceEnd, startAt: Instant, zoneId: String, createdAt: Instant, scheduleCalculator: RecurrenceScheduleCalculator): RecurringMovement {
             val firstDueAt = scheduleCalculator.firstDueAt(startAt, zoneId, rule)
             val firstDueDate = firstDueAt.atZone(ZoneId.of(zoneId)).toLocalDate()
             val completedAtCreation =
@@ -214,6 +216,7 @@ data class RecurringMovement(
                 deactivatedAt = null,
                 completedAt = if (completedAtCreation) createdAt else null,
                 tagNames = tagNames.map(String::trim).filter(String::isNotBlank).distinct(),
+                tagIds = tagIds.map(String::trim).filter(String::isNotBlank).distinct(),
             )
         }
     }

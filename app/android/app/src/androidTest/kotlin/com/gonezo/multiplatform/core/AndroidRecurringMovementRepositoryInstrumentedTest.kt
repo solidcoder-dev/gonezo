@@ -30,6 +30,7 @@ class AndroidRecurringMovementRepositoryInstrumentedTest {
     repository.save(movement)
 
     assertEquals(listOf("food", "monthly"), repository.listBySourceAccount("account-1").single().tagNames)
+    assertEquals(listOf("tag-food", "tag-monthly"), repository.listBySourceAccount("account-1").single().tagIds)
   }
 
   @Test
@@ -42,6 +43,8 @@ class AndroidRecurringMovementRepositoryInstrumentedTest {
 
     assertEquals(movement.tagNames, repository.findById(movement.id)?.tagNames)
     assertEquals(movement.tagNames, repository.listBySourceAccount(movement.sourceAccountId).single().tagNames)
+    assertEquals(movement.tagIds, repository.findById(movement.id)?.tagIds)
+    assertEquals(movement.tagIds, repository.listBySourceAccount(movement.sourceAccountId).single().tagIds)
   }
 
   @Test
@@ -67,6 +70,10 @@ class AndroidRecurringMovementRepositoryInstrumentedTest {
     assertEquals("[]", database.scalar("select tag_names from expected_movements where id = 'expected-existing'"))
     assertTrue(database.hasColumn("recurring_movements", "tag_names"))
     assertTrue(database.hasColumn("expected_movements", "tag_names"))
+    assertEquals("[]", database.scalar("select tag_ids from recurring_movements where id = 'recurring-existing'"))
+    assertEquals("[]", database.scalar("select tag_ids from expected_movements where id = 'expected-existing'"))
+    assertTrue(database.hasColumn("recurring_movements", "tag_ids"))
+    assertTrue(database.hasColumn("expected_movements", "tag_ids"))
     database.close()
   }
 
@@ -93,6 +100,7 @@ class AndroidRecurringMovementRepositoryInstrumentedTest {
     merchant = "Market",
     categoryId = "category-food",
     tagNames = tags,
+    tagIds = listOf("tag-food", "tag-monthly"),
     rule = RecurrenceRule(RecurrenceFrequency.MONTHLY, monthlyPattern = MonthlyPattern.DAY_OF_MONTH, dayOfMonth = 1),
     recurrenceEnd = RecurrenceEnd.Never,
     startAt = Instant.parse("2026-07-01T10:00:00Z"),

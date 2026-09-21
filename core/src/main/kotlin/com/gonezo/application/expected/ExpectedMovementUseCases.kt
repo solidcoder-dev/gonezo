@@ -5,13 +5,13 @@ import com.gonezo.expected.domain.ExpectedMovementId
 import java.math.BigDecimal
 import java.time.Instant
 
-data class CreateExpectedMovementCommand(val accountId: String, val type: String, val amount: BigDecimal, val currency: String, val expectedAt: Instant, val description: String?, val merchant: String?, val categoryId: String?, val originOccurrenceId: String? = null, val originRecurringMovementId: String? = null, val splitItems: List<ExpectedMovement.SplitItem> = emptyList(), val tagNames: List<String> = emptyList(), val createdAt: Instant)
+data class CreateExpectedMovementCommand(val accountId: String, val type: String, val amount: BigDecimal, val currency: String, val expectedAt: Instant, val description: String?, val merchant: String?, val categoryId: String?, val originOccurrenceId: String? = null, val originRecurringMovementId: String? = null, val splitItems: List<ExpectedMovement.SplitItem> = emptyList(), val tagNames: List<String> = emptyList(), val tagIds: List<String> = emptyList(), val createdAt: Instant)
 
 interface CreateExpectedMovementUC {
     fun execute(command: CreateExpectedMovementCommand): ExpectedMovementId
 }
 
-data class UpdateExpectedMovementCommand(val expectedMovementId: ExpectedMovementId, val accountId: String, val type: String, val amount: BigDecimal, val currency: String, val expectedAt: Instant, val description: String?, val merchant: String?, val categoryId: String?, val splitItems: List<ExpectedMovement.SplitItem> = emptyList(), val tagNames: List<String> = emptyList(), val updatedAt: Instant)
+data class UpdateExpectedMovementCommand(val expectedMovementId: ExpectedMovementId, val accountId: String, val type: String, val amount: BigDecimal, val currency: String, val expectedAt: Instant, val description: String?, val merchant: String?, val categoryId: String?, val splitItems: List<ExpectedMovement.SplitItem> = emptyList(), val tagNames: List<String> = emptyList(), val tagIds: List<String> = emptyList(), val updatedAt: Instant)
 
 interface UpdateExpectedMovementUC {
     fun execute(command: UpdateExpectedMovementCommand)
@@ -31,7 +31,7 @@ interface DismissExpectedMovementUC {
 
 data class ListExpectedMovementsQuery(val accountId: String, val includeClosed: Boolean = false)
 
-data class ExpectedMovementView(val id: String, val accountId: String, val type: String, val amount: String, val currency: String, val expectedAt: Instant, val description: String?, val merchant: String?, val categoryId: String?, val originOccurrenceId: String?, val originRecurringMovementId: String?, val splitItems: List<SplitItem>, val status: String, val resolvedTransactionId: String?, val createdAt: Instant, val updatedAt: Instant, val resolvedAt: Instant?, val dismissedAt: Instant?, val tagNames: List<String>) {
+data class ExpectedMovementView(val id: String, val accountId: String, val type: String, val amount: String, val currency: String, val expectedAt: Instant, val description: String?, val merchant: String?, val categoryId: String?, val originOccurrenceId: String?, val originRecurringMovementId: String?, val splitItems: List<SplitItem>, val status: String, val resolvedTransactionId: String?, val createdAt: Instant, val updatedAt: Instant, val resolvedAt: Instant?, val dismissedAt: Instant?, val tagNames: List<String>, val tagIds: List<String> = emptyList()) {
     data class SplitItem(val id: String, val name: String, val amount: String)
 }
 

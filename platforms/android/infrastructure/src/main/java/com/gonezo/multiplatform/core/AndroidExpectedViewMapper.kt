@@ -27,6 +27,8 @@ internal class AndroidExpectedViewMapper(private val database: CoreDatabase) {
           resolvedAt = cursor.getStringOrNull(15),
           dismissedAt = cursor.getStringOrNull(16),
           splitItems = loadSplitItems(movementId),
+          tagIds = decodeTags(cursor.getString(17)),
+          tagNames = decodeTags(cursor.getString(18)),
         ),
       )
     }
@@ -61,4 +63,10 @@ internal class AndroidExpectedViewMapper(private val database: CoreDatabase) {
 
   private fun Cursor.getStringOrNull(index: Int): String? =
     if (isNull(index)) null else getString(index)
+
+  private fun decodeTags(raw: String?): List<String> {
+    if (raw.isNullOrBlank()) return emptyList()
+    val json = org.json.JSONArray(raw)
+    return buildList { for (index in 0 until json.length()) add(json.getString(index)) }
+  }
 }

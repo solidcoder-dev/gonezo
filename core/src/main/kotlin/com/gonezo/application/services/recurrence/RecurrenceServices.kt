@@ -34,6 +34,7 @@ class CreateRecurringMovementService(private val recurringMovementRepository: Re
             reviewPolicy = command.reviewPolicy,
             splitItems = command.splitItems,
             tagNames = command.tagNames,
+            tagIds = command.tagIds,
             rule = command.rule,
             recurrenceEnd = command.recurrenceEnd,
             startAt = command.startAt,
@@ -75,6 +76,7 @@ class UpdateRecurringMovementService(private val recurringMovementRepository: Re
                 reviewPolicy = command.reviewPolicy,
                 splitItems = command.splitItems,
                 tagNames = command.tagNames,
+                tagIds = command.tagIds,
                 rule = command.rule,
                 recurrenceEnd = command.recurrenceEnd,
                 startAt = command.startAt,
@@ -113,6 +115,7 @@ private fun toRecurringMovementView(movement: RecurringMovement): RecurringMovem
     status = movement.status.value,
     generatedOccurrences = movement.generatedOccurrences,
     tagNames = movement.tagNames,
+    tagIds = movement.tagIds,
 )
 
 class ProcessDueRecurringMovementsService(private val recurringMovementRepository: RecurringMovementRepository, private val occurrenceRepository: RecurringMovementOccurrenceRepository, private val outboxRepository: RecurrenceOutboxRepository, private val scheduleCalculator: RecurrenceScheduleCalculator, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary) : ProcessDueRecurringMovementsUC {
@@ -161,6 +164,7 @@ class ProcessDueRecurringMovementsService(private val recurringMovementRepositor
                                 merchant = movement.merchant,
                                 categoryId = movement.categoryId,
                                 tagNames = movement.tagNames,
+                                tagIds = movement.tagIds,
                                 reviewPolicy = movement.reviewPolicy.value,
                                 splitItems = movement.splitItems.map {
                                     RecurringMovementDueIntegrationEvent.SplitItem(

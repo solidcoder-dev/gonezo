@@ -391,6 +391,8 @@ async function handleExpectedMovement(
     description: transactionNote(context),
     merchant: transactionNote(context),
     categoryId,
+    tagIds: context.tagIds,
+    tagNames: context.tagNames,
     ignored: context.movementIgnored,
     splitItems: context.expenseItems,
   };

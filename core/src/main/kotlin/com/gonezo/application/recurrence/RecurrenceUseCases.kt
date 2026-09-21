@@ -11,7 +11,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
 
-data class CreateRecurringMovementCommand(val type: RecurringMovementType, val sourceAccountId: String, val targetAccountId: String?, val amount: BigDecimal, val currency: String, val destinationAmount: BigDecimal?, val destinationCurrency: String?, val exchangeRate: BigDecimal?, val description: String?, val merchant: String?, val categoryId: String? = null, val reviewPolicy: RecurringMovementReviewPolicy = RecurringMovementReviewPolicy.AUTOMATIC, val splitItems: List<RecurringMovement.SplitItem> = emptyList(), val tagNames: List<String> = emptyList(), val rule: RecurrenceRule, val recurrenceEnd: RecurrenceEnd, val startAt: Instant, val zoneId: String, val createdAt: Instant)
+data class CreateRecurringMovementCommand(val type: RecurringMovementType, val sourceAccountId: String, val targetAccountId: String?, val amount: BigDecimal, val currency: String, val destinationAmount: BigDecimal?, val destinationCurrency: String?, val exchangeRate: BigDecimal?, val description: String?, val merchant: String?, val categoryId: String? = null, val reviewPolicy: RecurringMovementReviewPolicy = RecurringMovementReviewPolicy.AUTOMATIC, val splitItems: List<RecurringMovement.SplitItem> = emptyList(), val tagNames: List<String> = emptyList(), val tagIds: List<String> = emptyList(), val rule: RecurrenceRule, val recurrenceEnd: RecurrenceEnd, val startAt: Instant, val zoneId: String, val createdAt: Instant)
 
 interface CreateRecurringMovementUC {
     fun execute(command: CreateRecurringMovementCommand): RecurringMovementId
@@ -33,6 +33,7 @@ data class UpdateRecurringMovementCommand(
     val reviewPolicy: RecurringMovementReviewPolicy = RecurringMovementReviewPolicy.AUTOMATIC,
     val splitItems: List<RecurringMovement.SplitItem> = emptyList(),
     val tagNames: List<String> = emptyList(),
+    val tagIds: List<String> = emptyList(),
     val rule: RecurrenceRule,
     val recurrenceEnd: RecurrenceEnd,
     val startAt: Instant,
@@ -89,6 +90,6 @@ interface GetRecurringMovementUC {
     fun execute(query: GetRecurringMovementQuery): RecurringMovementView?
 }
 
-data class RecurringMovementView(val id: String, val type: String, val sourceAccountId: String, val targetAccountId: String?, val amount: String, val currency: String, val destinationAmount: String?, val destinationCurrency: String?, val exchangeRate: String?, val description: String?, val merchant: String?, val categoryId: String?, val reviewPolicy: String, val splitItems: List<SplitItem>, val nextDueAt: Instant?, val status: String, val generatedOccurrences: Int, val tagNames: List<String> = emptyList()) {
+data class RecurringMovementView(val id: String, val type: String, val sourceAccountId: String, val targetAccountId: String?, val amount: String, val currency: String, val destinationAmount: String?, val destinationCurrency: String?, val exchangeRate: String?, val description: String?, val merchant: String?, val categoryId: String?, val reviewPolicy: String, val splitItems: List<SplitItem>, val nextDueAt: Instant?, val status: String, val generatedOccurrences: Int, val tagNames: List<String> = emptyList(), val tagIds: List<String> = emptyList()) {
     data class SplitItem(val id: String, val name: String, val amount: String)
 }

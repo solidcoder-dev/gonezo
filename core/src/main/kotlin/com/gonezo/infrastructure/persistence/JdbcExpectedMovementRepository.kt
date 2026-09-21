@@ -20,11 +20,11 @@ class JdbcExpectedMovementRepository(private val jdbcTemplate: NamedParameterJdb
             """
             insert into expected_movements (
               id, account_id, movement_type, amount, currency, expected_at,
-              description, merchant, category_id, tag_names, origin_occurrence_id, origin_recurring_movement_id, status, resolved_transaction_id,
+              description, merchant, category_id, tag_names, tag_ids, origin_occurrence_id, origin_recurring_movement_id, status, resolved_transaction_id,
               created_at, updated_at, resolved_at, dismissed_at
             ) values (
               :id, :account_id, :movement_type, :amount, :currency, :expected_at,
-              :description, :merchant, :category_id, :tag_names, :origin_occurrence_id, :origin_recurring_movement_id, :status, :resolved_transaction_id,
+              :description, :merchant, :category_id, :tag_names, :tag_ids, :origin_occurrence_id, :origin_recurring_movement_id, :status, :resolved_transaction_id,
               :created_at, :updated_at, :resolved_at, :dismissed_at
             )
             on conflict(id) do update set
@@ -37,6 +37,7 @@ class JdbcExpectedMovementRepository(private val jdbcTemplate: NamedParameterJdb
               merchant = excluded.merchant,
               category_id = excluded.category_id,
               tag_names = excluded.tag_names,
+              tag_ids = excluded.tag_ids,
               origin_occurrence_id = excluded.origin_occurrence_id,
               origin_recurring_movement_id = excluded.origin_recurring_movement_id,
               status = excluded.status,
@@ -145,6 +146,7 @@ class JdbcExpectedMovementRepository(private val jdbcTemplate: NamedParameterJdb
             merchant = rs.getString("merchant"),
             categoryId = rs.getString("category_id"),
             tagNames = decodeTags(rs.getString("tag_names")),
+            tagIds = decodeTags(rs.getString("tag_ids")),
             originOccurrenceId = rs.getString("origin_occurrence_id"),
             originRecurringMovementId = rs.getString("origin_recurring_movement_id"),
             status = ExpectedMovementStatus.from(rs.getString("status")),
@@ -167,6 +169,7 @@ class JdbcExpectedMovementRepository(private val jdbcTemplate: NamedParameterJdb
         .addValue("merchant", movement.merchant)
         .addValue("category_id", movement.categoryId)
         .addValue("tag_names", encodeTags(movement.tagNames))
+        .addValue("tag_ids", encodeTags(movement.tagIds))
         .addValue("origin_occurrence_id", movement.originOccurrenceId)
         .addValue("origin_recurring_movement_id", movement.originRecurringMovementId)
         .addValue("status", movement.status.value)
@@ -196,6 +199,7 @@ class JdbcExpectedMovementRepository(private val jdbcTemplate: NamedParameterJdb
         resolvedAt = resolvedAt,
         dismissedAt = dismissedAt,
         tagNames = tagNames,
+        tagIds = tagIds,
     )
 
     private fun loadSplitItems(expectedMovementId: String): List<ExpectedMovement.SplitItem> {
@@ -228,5 +232,5 @@ class JdbcExpectedMovementRepository(private val jdbcTemplate: NamedParameterJdb
         buildList { for (index in 0 until json.length()) add(json.getString(index)) }
     } ?: emptyList()
 
-    private data class ExpectedMovementRow(val id: ExpectedMovementId, val accountId: String, val type: ExpectedMovementType, val amount: BigDecimal, val currency: String, val expectedAt: Instant, val description: String?, val merchant: String?, val categoryId: String?, val originOccurrenceId: String?, val originRecurringMovementId: String?, val status: ExpectedMovementStatus, val resolvedTransactionId: String?, val createdAt: Instant, val updatedAt: Instant, val resolvedAt: Instant?, val dismissedAt: Instant?, val tagNames: List<String>)
+    private data class ExpectedMovementRow(val id: ExpectedMovementId, val accountId: String, val type: ExpectedMovementType, val amount: BigDecimal, val currency: String, val expectedAt: Instant, val description: String?, val merchant: String?, val categoryId: String?, val originOccurrenceId: String?, val originRecurringMovementId: String?, val status: ExpectedMovementStatus, val resolvedTransactionId: String?, val createdAt: Instant, val updatedAt: Instant, val resolvedAt: Instant?, val dismissedAt: Instant?, val tagNames: List<String>, val tagIds: List<String>)
 }

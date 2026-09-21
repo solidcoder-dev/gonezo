@@ -24,6 +24,8 @@ class ExpectedOccurrenceFactoryTest {
         assertThat(second.splitItems.map { it.name }).containsExactly("Rent", "Utilities")
         assertThat(second.splitItems.map { it.amount })
             .containsExactly(BigDecimal("80.00"), BigDecimal("40.00"))
+        assertThat(second.tagIds).containsExactly("tag-household", "tag-rent")
+        assertThat(second.tagNames).containsExactly("Household", "Rent")
     }
 
     private fun snapshot(): RecurringOccurrenceSnapshot = RecurringOccurrenceSnapshot(
@@ -37,6 +39,8 @@ class ExpectedOccurrenceFactoryTest {
         description = "Household",
         merchant = "Landlord",
         categoryId = "rent",
+        tagIds = listOf("tag-household", "tag-rent"),
+        tagNames = listOf("Household", "Rent"),
         createdAt = Instant.parse("2026-07-01T09:00:00Z"),
         items =
         listOf(

@@ -6,6 +6,8 @@ import com.gonezo.application.orchestration.ConfirmationRequiredDueScheduledMove
 import com.gonezo.application.orchestration.ProcessDueScheduledMovementsCommand
 import com.gonezo.application.orchestration.ProcessDueScheduledMovementsResult
 import com.gonezo.application.orchestration.ProcessDueScheduledMovementsService
+import com.gonezo.application.orchestration.ApplyTransactionTagsService
+import com.gonezo.application.orchestration.AssignableTagNameResolver
 import com.gonezo.expected.application.CreateExpectedMovementService
 import com.gonezo.notifications.application.RecordScheduledMovementNotificationService
 import com.gonezo.sharing.application.DefaultPlannedShareInstantiator
@@ -13,6 +15,8 @@ import com.gonezo.ledger.application.RecordLedgerExpenseService
 import com.gonezo.ledger.application.RecordLedgerIncomeService
 import com.gonezo.ledger.application.RecordLedgerTransferFxService
 import com.gonezo.ledger.application.RecordLedgerTransferService
+import com.gonezo.taxonomy.application.CreateTagService
+import com.gonezo.taxonomy.application.ReplaceTransactionTagsService
 import com.gonezo.ledger.domain.AccountId
 import com.gonezo.recurrence.domain.services.RecurrenceScheduleCalculator
 import java.time.Clock
@@ -54,6 +58,12 @@ class AndroidScheduledProcessingRuntime private constructor(
       val database = CoreDatabase(context)
       val accountRepository = AndroidLedgerAccountRepository(database)
       val transactionRepository = AndroidLedgerTransactionRepository(database)
+      val tagRepository = AndroidTaxonomyTagRepository(database)
+      val tagAssignmentRepository = AndroidTaxonomyTransactionTagAssignmentRepository(database)
+      val applyTransactionTags = ApplyTransactionTagsService(
+        ReplaceTransactionTagsService(tagRepository, tagAssignmentRepository),
+        AssignableTagNameResolver(tagRepository, CreateTagService(tagRepository)),
+      )
       val recurringMovementRepository = AndroidRecurringMovementRepository(database)
       val occurrenceRepository = AndroidRecurringMovementOccurrenceRepository(database)
       val eventPublisher = NoopDomainEventPublisher()
@@ -91,6 +101,7 @@ class AndroidScheduledProcessingRuntime private constructor(
                 eventPublisher,
                 consistencyBoundary,
               ),
+              applyTags = applyTransactionTags,
             ),
             ConfirmationRequiredDueScheduledMovementHandler(
               createExpectedMovementUC = CreateExpectedMovementService(expectedRepository),

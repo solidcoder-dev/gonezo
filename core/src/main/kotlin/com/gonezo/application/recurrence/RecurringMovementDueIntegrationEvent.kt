@@ -3,7 +3,7 @@ package com.gonezo.recurrence.application
 import org.json.JSONObject
 import java.util.UUID
 
-data class RecurringMovementDueIntegrationEvent(val eventId: UUID, val recurringMovementId: String, val occurrenceId: String, val dueAt: String, val movementType: String, val sourceAccountId: String, val targetAccountId: String?, val amount: String, val currency: String, val destinationAmount: String?, val destinationCurrency: String?, val exchangeRate: String?, val description: String?, val merchant: String?, val categoryId: String? = null, val tagNames: List<String> = emptyList(), val reviewPolicy: String = "automatic", val splitItems: List<SplitItem> = emptyList()) {
+data class RecurringMovementDueIntegrationEvent(val eventId: UUID, val recurringMovementId: String, val occurrenceId: String, val dueAt: String, val movementType: String, val sourceAccountId: String, val targetAccountId: String?, val amount: String, val currency: String, val destinationAmount: String?, val destinationCurrency: String?, val exchangeRate: String?, val description: String?, val merchant: String?, val categoryId: String? = null, val tagNames: List<String> = emptyList(), val tagIds: List<String> = emptyList(), val reviewPolicy: String = "automatic", val splitItems: List<SplitItem> = emptyList()) {
     data class SplitItem(val id: String, val name: String, val amount: String)
 
     fun toJson(): String = JSONObject()
@@ -23,6 +23,7 @@ data class RecurringMovementDueIntegrationEvent(val eventId: UUID, val recurring
         .put("merchant", merchant)
         .put("categoryId", categoryId)
         .put("tagNames", tagNames)
+        .put("tagIds", tagIds)
         .put("reviewPolicy", reviewPolicy)
         .put(
             "splitItems",
@@ -57,6 +58,7 @@ data class RecurringMovementDueIntegrationEvent(val eventId: UUID, val recurring
                 merchant = parsed.optString("merchant", "").ifBlank { null },
                 categoryId = parsed.optString("categoryId", "").ifBlank { null },
                 tagNames = parsed.optJSONArray("tagNames")?.let { tags -> buildList { for (index in 0 until tags.length()) add(tags.getString(index)) } } ?: emptyList(),
+                tagIds = parsed.optJSONArray("tagIds")?.let { tags -> buildList { for (index in 0 until tags.length()) add(tags.getString(index)) } } ?: emptyList(),
                 reviewPolicy = parsed.optString("reviewPolicy", "automatic"),
                 splitItems = parsed.optJSONArray("splitItems")?.let { items ->
                     buildList {

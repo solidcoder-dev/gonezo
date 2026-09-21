@@ -114,6 +114,8 @@ export class WebExpectedMovementsService {
       description: input.description,
       merchant: input.merchant,
       categoryId: input.categoryId,
+      tagIds: [...(input.tagIds ?? [])],
+      tagNames: [...(input.tagNames ?? [])],
       originOccurrenceId: input.originOccurrenceId?.trim() || undefined,
       originRecurringMovementId: input.originRecurringMovementId?.trim() || undefined,
       splitItems: (input.splitItems ?? []).map((item) => ({
@@ -157,6 +159,8 @@ export class WebExpectedMovementsService {
       description: input.description,
       merchant: input.merchant,
       categoryId: input.categoryId,
+      tagIds: [...(input.tagIds ?? [])],
+      tagNames: [...(input.tagNames ?? [])],
       splitItems: (input.splitItems ?? []).map((item) => ({
         id: item.id,
         name: item.name,
@@ -180,6 +184,8 @@ export class WebExpectedMovementsService {
         includeClosed: input.includeClosed === true,
       }).map((item) => ({
         ...item,
+        tagIds: [...(item.tagIds ?? [])],
+        tagNames: [...(item.tagNames ?? [])],
         ignored: ignoredIds.has(item.id),
       })),
     };

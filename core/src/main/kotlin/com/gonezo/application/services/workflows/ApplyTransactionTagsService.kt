@@ -15,7 +15,14 @@ import com.gonezo.taxonomy.domain.ports.TagRepository
 import java.time.Instant
 
 class AssignableTagNameResolver(private val tagRepository: TagRepository, private val createTagUC: CreateTagUC) {
-    fun resolve(names: List<String>, requestedAt: Instant): List<TagId> {
+    fun resolve(names: List<String>, requestedAt: Instant, tagIds: List<String> = emptyList()): List<TagId> {
+        if (tagIds.isNotEmpty()) {
+            val ids = tagIds.map(TagId::from).distinct()
+            return tagRepository.findByIds(ids).also { tags ->
+                require(tags.size == ids.size) { "one or more tag IDs do not exist" }
+                tags.values.forEach { it.ensureCanAssign() }
+            }.keys.toList()
+        }
         val normalizedNames = names.asSequence().map(String::trim).filter(String::isNotBlank).map { TagName.normalizeTagName(it) to it }.distinctBy { it.first }.toList()
         return normalizedNames.map { (_, rawName) ->
             val existing = tagRepository.findByNormalizedName(rawName)
@@ -33,7 +40,7 @@ class ApplyTransactionTagsService(private val replaceTransactionTagsUC: ReplaceT
     constructor(tagRepository: TagRepository, createTagUC: CreateTagUC, replaceTransactionTagsUC: ReplaceTransactionTagsUC) : this(replaceTransactionTagsUC, AssignableTagNameResolver(tagRepository, createTagUC))
 
     override fun execute(command: ApplyTransactionTagsCommand): ApplyTransactionTagsResult {
-        val resolvedTagIds = resolver.resolve(command.tagNames, command.requestedAt)
+        val resolvedTagIds = resolver.resolve(command.tagNames, command.requestedAt, command.tagIds)
 
         replaceTransactionTagsUC.execute(
             ReplaceTransactionTagsCommand(

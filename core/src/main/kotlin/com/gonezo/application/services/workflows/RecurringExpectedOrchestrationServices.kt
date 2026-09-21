@@ -77,6 +77,7 @@ class HandleRecurringMovementDueForExpectedService(private val createExpectedMov
                     merchant = command.event.merchant,
                     categoryId = command.event.categoryId,
                     tagNames = command.event.tagNames,
+                    tagIds = command.event.tagIds,
                     createdAt = command.handledAt,
                     items =
                     command.event.splitItems.map {
@@ -106,6 +107,7 @@ class HandleRecurringMovementDueForExpectedService(private val createExpectedMov
                         splitItems = draft.splitItems,
                         createdAt = draft.createdAt,
                         tagNames = draft.tagNames,
+                        tagIds = draft.tagIds,
                     ),
                 )
             } catch (ex: RuntimeException) {

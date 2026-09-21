@@ -59,6 +59,7 @@ data class BackupRecurringMovement(
     val deactivatedAt: String?,
     val completedAt: String?,
     val tagNames: List<String>,
+    val tagIds: List<String> = emptyList(),
 )
 
 data class BackupRecurringSplitItem(val id: String, val name: String, val amount: String, val tagNames: List<String> = emptyList())
@@ -106,7 +107,7 @@ class RecurrenceBackupSectionExporter(private val accountRepository: LedgerAccou
         startAt = value.startAt.toString(), zoneId = value.zoneId, nextDueAt = value.nextDueAt?.toString(),
         status = value.status.value, generatedOccurrences = value.generatedOccurrences,
         createdAt = value.createdAt.toString(), updatedAt = value.updatedAt.toString(),
-        deactivatedAt = value.deactivatedAt?.toString(), completedAt = value.completedAt?.toString(), tagNames = value.tagNames.sorted(),
+        deactivatedAt = value.deactivatedAt?.toString(), completedAt = value.completedAt?.toString(), tagNames = value.tagNames.sorted(), tagIds = value.tagIds.sorted(),
     )
 
     private fun occurrence(value: com.gonezo.recurrence.domain.RecurringMovementOccurrence) = BackupRecurringOccurrence(
@@ -166,7 +167,7 @@ class RecurrenceBackupSectionImporter(private val movementRepository: RecurringM
                     value.splitItems.map {
                         RecurringMovement.SplitItem(it.id, it.name, BigDecimal(it.amount), it.tagNames)
                     },
-                    rule, end, Instant.parse(value.startAt), value.zoneId, value.nextDueAt?.let(Instant::parse), RecurringMovementStatus.from(value.status), value.generatedOccurrences, Instant.parse(value.createdAt), Instant.parse(value.updatedAt), value.deactivatedAt?.let(Instant::parse), value.completedAt?.let(Instant::parse), value.tagNames,
+                    rule, end, Instant.parse(value.startAt), value.zoneId, value.nextDueAt?.let(Instant::parse), RecurringMovementStatus.from(value.status), value.generatedOccurrences, Instant.parse(value.createdAt), Instant.parse(value.updatedAt), value.deactivatedAt?.let(Instant::parse), value.completedAt?.let(Instant::parse), value.tagNames, value.tagIds,
                 ),
             )
         }

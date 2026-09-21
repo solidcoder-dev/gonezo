@@ -46,6 +46,8 @@ class JdbcRecurrenceRepositoriesE2ETest : SqliteE2ETest() {
                 description = "Rent",
                 merchant = "Landlord",
                 categoryId = "cat-rent",
+                tagNames = listOf("home"),
+                tagIds = listOf("tag-home", "tag-life"),
                 rule =
                 RecurrenceRule(
                     frequency = com.gonezo.recurrence.domain.RecurrenceFrequency.MONTHLY,
@@ -65,6 +67,8 @@ class JdbcRecurrenceRepositoriesE2ETest : SqliteE2ETest() {
         assertThat(due).hasSize(1)
         assertThat(due.first().rule.monthlyPattern).isEqualTo(MonthlyPattern.NTH_WEEKDAY)
         assertThat(due.first().categoryId).isEqualTo("cat-rent")
+        assertThat(due.first().tagIds).containsExactly("tag-home", "tag-life")
+        assertThat(due.first().tagNames).containsExactly("home")
 
         val occurrence =
             RecurringMovementOccurrence.pending(
