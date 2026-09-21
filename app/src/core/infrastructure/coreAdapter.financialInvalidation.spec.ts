@@ -155,6 +155,28 @@ describe('CoreAdapter financial invalidation boundary', () => {
     expect(observer.currentPeriodChanged).not.toHaveBeenCalled();
   });
 
+  it('keeps tag assignment and rename out of V6 invalidation while User Analytics reads current taxonomy', async () => {
+    vi.spyOn(CoreAdapterWeb.prototype, 'orchestrationApplyTransactionTags').mockResolvedValue({ status: 'assigned', tagIds: ['tag'] });
+    vi.spyOn(CoreAdapterWeb.prototype, 'orchestrationApplyTransactionItemTags').mockResolvedValue({ status: 'assigned', tagIds: ['tag'] });
+    vi.spyOn(CoreAdapterWeb.prototype, 'taxonomyRenameTag').mockResolvedValue();
+    const observer: FinancialDataChangeObserver = {
+      periodChanged: vi.fn(async () => {}),
+      periodAndFollowingChanged: vi.fn(async () => {}),
+      currentPeriodChanged: vi.fn(async () => {}),
+      allPeriodsChanged: vi.fn(async () => {}),
+    };
+    const adapter = new CoreAdapter(observer);
+
+    await adapter.orchestrationApplyTransactionTags({ transactionId: 'posted', tagNames: ['Travel'] });
+    await adapter.orchestrationApplyTransactionItemTags({ transactionItemId: 'item', tagNames: ['Travel'] });
+    await adapter.taxonomyRenameTag({ tagId: 'tag', name: 'Trips' });
+
+    expect(observer.allPeriodsChanged).not.toHaveBeenCalled();
+    expect(observer.periodAndFollowingChanged).not.toHaveBeenCalled();
+    expect(observer.periodChanged).not.toHaveBeenCalled();
+    expect(observer.currentPeriodChanged).not.toHaveBeenCalled();
+  });
+
   it('invalidates the current period after scheduled materialization processes expected and posted occurrences', async () => {
     vi.spyOn(CoreAdapterWeb.prototype, 'schedulingProcessDueMovements').mockResolvedValue({
       scanned: 1,

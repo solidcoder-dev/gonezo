@@ -38,6 +38,10 @@ The P-256 signing private key remains in Android Keystore. The old encrypted Sha
 
 The application depends on `MacroAnalyticsPublicationProcessorPort`, so a future remote processor can serialize and sign the same domain publication, send it to a server, and translate its acknowledgement without changing contribution building or publication preparation. This task adds no remote transport or server synchronization.
 
+## Personal tags and the V6 boundary
+
+User-defined Taxonomy tags remain local User Analytics data. Macro Analytics V6 contributions, publications, and reports do not contain Tag IDs, tag names, normalized names, or analytical tag-reference keys. Tag assignments are read when User Analytics builds its ranking; assigning tags or renaming a tag therefore does not enqueue V6 work. A rename changes the local display name while the stable Tag ID remains the tag's identity. Tag lifecycle materialization that posts a financial movement continues to use the existing financial observer for that movement. No V7 invalidation or tag publication behavior exists in this stage.
+
 ## Contributor identity and publication signatures
 
 Stage 7 keeps the publication V1 schema unchanged and wraps its exact compact UTF-8 wire bytes in a signed transport model. Each contributor uses an EC P-256 key pair with SHA256withECDSA. Android creates a signing-only private key in Android Keystore; application code receives only the public SubjectPublicKeyInfo DER bytes (base64url without padding), a key ID, and signatures (base64url without padding). The key ID is base64url without padding of SHA-256 over the SPKI DER bytes.
