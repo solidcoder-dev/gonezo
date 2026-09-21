@@ -14,6 +14,13 @@ export function createAnalyticsPeriod(value: string): AnalyticsPeriod {
   return Object.freeze({ kind: 'YEAR_MONTH', value });
 }
 
+export function accountBalanceCutoffForPeriod(period: AnalyticsPeriod): string {
+  const [year, month] = period.value.split('-').map(Number);
+  const cutoff = new Date(0);
+  cutoff.setUTCFullYear(year, month, 1);
+  return cutoff.toISOString().slice(0, 10);
+}
+
 export function analyticsPeriodForFact(fact: FinancialFact, timeZone: string): AnalyticsPeriod {
   return analyticsPeriodForInstant(fact.occurredAt, timeZone);
 }

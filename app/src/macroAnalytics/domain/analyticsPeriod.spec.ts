@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createFinancialFact } from './financialFact';
-import { analyticsPeriodForFact, createAnalyticsPeriod } from './analyticsPeriod';
+import { accountBalanceCutoffForPeriod, analyticsPeriodForFact, createAnalyticsPeriod } from './analyticsPeriod';
 
 describe('AnalyticsPeriod', () => {
   it.each(['2026-01', '2026-09', '2026-12', '2027-12'])('accepts canonical year-month %s', (value) => {
@@ -9,6 +9,10 @@ describe('AnalyticsPeriod', () => {
 
   it.each(['2026-00', '2026-13', '26-09', '0000-01', '2026-1'])('rejects malformed year-month %s', (value) => {
     expect(() => createAnalyticsPeriod(value)).toThrow();
+  });
+
+  it.each([['2026-09', '2026-10-01'], ['2026-12', '2027-01-01']])('uses the period end cutoff for %s', (period, cutoff) => {
+    expect(accountBalanceCutoffForPeriod(createAnalyticsPeriod(period))).toBe(cutoff);
   });
 
   it('derives a stable month in the supplied timezone', () => {
