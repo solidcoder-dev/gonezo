@@ -101,6 +101,7 @@ export class CoreAdapter implements CorePort {
   analyticsListIgnoredMovements = this.analytics.analyticsListIgnoredMovements.bind(this.analytics);
   analyticsListMovementFacts = this.analytics.analyticsListMovementFacts.bind(this.analytics);
   analyticsGetAccountBalanceSnapshot = this.analytics.analyticsGetAccountBalanceSnapshot.bind(this.analytics);
+  analyticsGetAccountBalanceCoverage = this.analytics.analyticsGetAccountBalanceCoverage.bind(this.analytics);
 
   sharingListPeople = this.sharing.sharingListPeople.bind(this.sharing); sharingListGroupSuggestions = this.sharing.sharingListGroupSuggestions.bind(this.sharing); sharingRenamePerson = this.sharing.sharingRenamePerson.bind(this.sharing);
   sharingApplyShareToPostedMovement(input: Parameters<SharingRuntimeAdapter['sharingApplyShareToPostedMovement']>[0]) {

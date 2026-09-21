@@ -10,6 +10,7 @@ import { serializeMacroAnalyticsPublicationV1 } from './MacroAnalyticsPublicatio
 import { serializeMacroAnalyticsPublicationV2 } from './MacroAnalyticsPublicationWireV2';
 import { serializeMacroAnalyticsPublicationV4 } from './MacroAnalyticsPublicationWireV4';
 import { serializeMacroAnalyticsPublicationV5 } from './MacroAnalyticsPublicationWireV5';
+import { serializeMacroAnalyticsPublicationV6 } from './MacroAnalyticsPublicationWireV6';
 
 const contributorId = createAnalyticsContributorId('opaque-random-id');
 const publication = createMacroAnalyticsPublication({
@@ -121,6 +122,26 @@ describe('macro analytics publication signing', () => {
     expect(signed.payload).toBe(serializeMacroAnalyticsPublicationV5(v5));
     expect(signed.payload).toContain('"protocolVersion":5');
     expect(signed.payload).toContain('"catalogVersion":1');
+    expect(signingIdentity.sign).toHaveBeenCalledWith(contributorId, new TextEncoder().encode(signed.payload));
+  });
+
+  it('signs exact V6 bytes including signed balance snapshots', async () => {
+    const period = createAnalyticsPeriod('2026-09');
+    const v6 = createMacroAnalyticsPublication({ contributorId, period, revision: 3, contribution: {
+      schemaVersion: 6, period,
+      dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE', ageBand: '25_34' },
+      financial: { currencies: [] }, categories: { currencies: [] }, recurring: { currencies: [] }, sharing: { currencies: [] },
+      merchants: { catalogVersion: 1, currencies: [] },
+      balances: { currencies: [{ currency: 'EUR', buckets: [{ accountType: 'BANK', balanceAmount: '-250.50', accountCount: 1 }] }] },
+    } });
+    const signingIdentity = {
+      getOrCreateCredential: vi.fn(async () => ({ contributorId, keyId: 'v6-key', algorithm: 'ECDSA_P256_SHA256' as const, publicKey: 'public' })),
+      sign: vi.fn(async () => 'signature'),
+    };
+    const signed = await signMacroAnalyticsPublication(v6, signingIdentity);
+    expect(signed.payload).toBe(serializeMacroAnalyticsPublicationV6(v6));
+    expect(signed.payload).toContain('"protocolVersion":6');
+    expect(signed.payload).toContain('"balanceAmount":"-250.50"');
     expect(signingIdentity.sign).toHaveBeenCalledWith(contributorId, new TextEncoder().encode(signed.payload));
   });
 

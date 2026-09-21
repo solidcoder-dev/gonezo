@@ -3,7 +3,7 @@ import { createMetricDefinition, MetricId, MetricKey, MetricVersion, moneyMetric
 import type { ContributorMetricCalculator } from '../domain/contributorMetric';
 import { hasRecurringContribution } from '../domain/contributionCapabilities';
 import type { RecurringFactSource } from '../domain/recurringFact';
-import type { MacroAnalyticsContribution, MacroAnalyticsContributionV3, MacroAnalyticsContributionV4, MacroAnalyticsContributionV5 } from '../domain/macroAnalyticsContribution';
+import type { MacroAnalyticsContribution, MacroAnalyticsContributionV3, MacroAnalyticsContributionV4, MacroAnalyticsContributionV5, MacroAnalyticsContributionV6 } from '../domain/macroAnalyticsContribution';
 
 function definition(key: string, valueKind: MetricDefinition['valueKind']): MetricDefinition {
   return createMetricDefinition(MetricId.create(MetricKey.create(key), MetricVersion.create(1)), valueKind);
@@ -38,7 +38,7 @@ const recurringPostedExpenseShareCalculator: ContributorMetricCalculator = Objec
   },
 });
 
-function recurringExpenseAmount(contribution: MacroAnalyticsContributionV3 | MacroAnalyticsContributionV4 | MacroAnalyticsContributionV5, currency: string, source: RecurringFactSource): string {
+function recurringExpenseAmount(contribution: MacroAnalyticsContributionV3 | MacroAnalyticsContributionV4 | MacroAnalyticsContributionV5 | MacroAnalyticsContributionV6, currency: string, source: RecurringFactSource): string {
   return contribution.recurring.currencies.find((entry) => entry.currency === currency)?.buckets
     .find((entry) => entry.source === source && entry.kind === 'EXPENSE')?.amount ?? '0';
 }

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import { moneyMetricValue, countMetricValue } from '../../shared/domain/analyticsMetric';
 import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
-import { createCohort } from '../domain/cohort';
 import { createAnalyticsContributorId } from '../domain/analyticsContributorId';
 import { createContributorMetricResult } from '../domain/contributorMetric';
 import { cohortBalanceMetricCalculators, cohortBalanceMetricDefinitions } from './cohortBalanceMetrics';
@@ -12,7 +11,6 @@ const dimensions = { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE' as co
 describe('cohort balance metrics', () => {
   it('uses signed exact medians and sums integral account counts', () => {
     const period = createAnalyticsPeriod('2026-09');
-    const cohort = createCohort({ countryCode: 'ES', sex: 'FEMALE', ageBand: '25_34' });
     const balanceDefinition = cohortBalanceMetricDefinitions.medianPeriodEndAccountBalance;
     const countDefinition = cohortBalanceMetricDefinitions.totalAccountCount;
     const results = [-4, 1, 7].map((amount, index) => ({

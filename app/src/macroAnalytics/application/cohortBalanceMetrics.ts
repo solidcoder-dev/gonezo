@@ -13,7 +13,7 @@ export const cohortBalanceMetricCalculators: readonly CohortMetricCalculator[] =
   Object.freeze({
     definition: medianPeriodEndAccountBalance,
     contributorMetricId: 'period_end_account_balance:v1',
-    calculate({ contributors, currency }) {
+    calculate({ contributors, currency }: Parameters<CohortMetricCalculator['calculate']>[0]) {
       const values = contributors.map(({ result }) => result.value)
         .filter((value): value is Extract<MetricValue, { kind: 'MONEY' }> => value.kind === 'MONEY' && value.currency === currency)
         .map(({ value }) => value);
@@ -24,7 +24,7 @@ export const cohortBalanceMetricCalculators: readonly CohortMetricCalculator[] =
   Object.freeze({
     definition: totalAccountCount,
     contributorMetricId: 'account_count:v1',
-    calculate({ contributors }) {
+    calculate({ contributors }: Parameters<CohortMetricCalculator['calculate']>[0]) {
       const counts = contributors.map(({ result }) => result.value)
         .filter((value): value is Extract<MetricValue, { kind: 'COUNT' }> => value.kind === 'COUNT');
       return counts.length === 0 ? null : { value: countMetricValue(counts.reduce((sum, { value }) => sum + value, 0)), contributorCount: counts.length };

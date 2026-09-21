@@ -93,4 +93,23 @@ describe('canonicalMacroAnalyticsContribution V1 compatibility', () => {
     expect(canonicalMacroAnalyticsContribution({ ...contribution, merchants: { ...contribution.merchants, currencies: [{ ...contribution.merchants.currencies[0], buckets: contribution.merchants.currencies[0].buckets.map((bucket) => bucket.merchant === 'MERCADONA' ? { ...bucket, amount: '2.01' } : bucket) }, contribution.merchants.currencies[1]] } })).not.toBe(canonical);
     expect(canonicalMacroAnalyticsContribution({ ...contribution, merchants: { ...contribution.merchants, currencies: [{ ...contribution.merchants.currencies[0], buckets: contribution.merchants.currencies[0].buckets.map((bucket) => bucket.merchant === 'MERCADONA' ? { ...bucket, movementCount: 3 } : bucket) }, contribution.merchants.currencies[1]] } })).not.toBe(canonical);
   });
+
+  it('canonicalizes V6 balance currencies and account types without altering the V1-V5 prefix', () => {
+    const period = createAnalyticsPeriod('2026-09');
+    const contribution = {
+      schemaVersion: 6 as const, period,
+      dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE' as const, ageBand: '25_34' as const },
+      financial: { currencies: [] }, categories: { currencies: [] }, recurring: { currencies: [] }, sharing: { currencies: [] },
+      merchants: { catalogVersion: 1, currencies: [] },
+      balances: { currencies: [
+        { currency: 'USD', buckets: [{ accountType: 'CASH' as const, balanceAmount: '0', accountCount: 1 }, { accountType: 'BANK' as const, balanceAmount: '-250.5', accountCount: 2 }] },
+        { currency: 'EUR', buckets: [{ accountType: 'CARD' as const, balanceAmount: '100', accountCount: 1 }] },
+      ] },
+    };
+    const canonical = canonicalMacroAnalyticsContribution(contribution);
+    const reordered = { ...contribution, balances: { currencies: [...contribution.balances.currencies].reverse().map(({ currency, buckets }) => ({ currency, buckets: [...buckets].reverse() })) } };
+    expect(canonicalMacroAnalyticsContribution(reordered)).toBe(canonical);
+    expect(canonical.indexOf('"merchants"')).toBeLessThan(canonical.indexOf('"balances"'));
+    expect(canonical.indexOf('"accountType":"BANK"')).toBeLessThan(canonical.indexOf('"accountType":"CASH"'));
+  });
 });

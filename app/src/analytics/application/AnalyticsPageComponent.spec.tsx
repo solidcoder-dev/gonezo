@@ -15,6 +15,7 @@ function createCore(): AnalyticsPort {
   return {
     analyticsQueryMetrics: vi.fn(async () => ({ items: [] })),
     analyticsGetAccountBalanceSnapshot: vi.fn(async () => ({ asOfLocalDateExclusive: '2026-01-01', zoneId: 'UTC', items: [] })),
+    analyticsGetAccountBalanceCoverage: vi.fn(async () => ({})),
     analyticsListCurrencies: vi.fn(async () => ({ items: ['EUR', 'USD'] })),
     analyticsGetFilterFacets: vi.fn(async () => ({
       accounts: [

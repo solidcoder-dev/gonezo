@@ -333,6 +333,7 @@ function makeCore(transactionCount = 0): AppTestPort {
     analyticsListCurrencies: vi.fn(async () => ({ items: ['USD'] })),
     analyticsQueryMetrics: vi.fn(async () => ({ items: [] })),
     analyticsGetAccountBalanceSnapshot: vi.fn(async () => ({ asOfLocalDateExclusive: '2026-01-01', zoneId: 'UTC', items: [] })),
+    analyticsGetAccountBalanceCoverage: vi.fn(async () => ({})),
     analyticsGetFilterFacets: vi.fn(async () => ({ accounts: [], tags: [] })),
     analyticsGetOverviewSnapshot: vi.fn(async () => ({
       currentWindow: {
