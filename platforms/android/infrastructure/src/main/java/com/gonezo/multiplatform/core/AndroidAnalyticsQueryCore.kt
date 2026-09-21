@@ -9,6 +9,7 @@ import com.gonezo.application.query.AnalyticsMovementType
 import com.gonezo.application.query.AnalyticsTagReference
 import com.gonezo.application.query.AnalyticsTagReferenceResolver
 import com.gonezo.application.query.AnalyticsSchedulingOrigin
+import com.gonezo.application.query.AnalyticsRecurrenceCadence
 import com.gonezo.application.query.AnalyticsCategoryAmount
 import com.gonezo.application.query.AnalyticsSharingSummary
 import com.gonezo.application.query.AnalyticsPostedMovement
@@ -19,6 +20,7 @@ import com.gonezo.application.query.AnalyticsPostedMovementReader
 import com.gonezo.domain.shared.Money
 import com.gonezo.recurrence.domain.RecurringMovementType
 import com.gonezo.recurrence.domain.RecurringMovementId
+import com.gonezo.recurrence.domain.RecurrenceCadenceSnapshot
 import com.gonezo.recurrence.domain.SchedulingKind
 import com.gonezo.application.query.AnalyticsScheduledOccurrenceProjector
 import com.gonezo.application.query.AnalyticsMovementQueryFilters
@@ -160,7 +162,7 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
             recurringMovementId = movement.id.toString(),
             occurrenceId = persistedOccurrence?.id?.toString() ?: occurrence.originOccurrenceId,
             cadence = if (schedulingKind == com.gonezo.recurrence.domain.SchedulingKind.RECURRING) {
-              movement.rule.let { com.gonezo.application.query.AnalyticsRecurrenceCadence(it.frequency.value, it.interval) }
+              analyticsCadence(RecurrenceCadenceSnapshot.from(movement.rule))
             } else null
           ),
           sharing = amounts.sharing,
@@ -178,8 +180,8 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
   private fun schedulingOrigin(occurrence: com.gonezo.recurrence.domain.RecurringMovementOccurrence) =
     AnalyticsSchedulingOrigin(occurrence.schedulingKind, occurrence.recurringMovementId.toString(), occurrence.id.toString(), occurrence.cadence?.let(::analyticsCadence))
 
-  private fun analyticsCadence(cadence: com.gonezo.recurrence.domain.RecurrenceCadenceSnapshot) =
-    com.gonezo.application.query.AnalyticsRecurrenceCadence(cadence.frequency.value, cadence.interval)
+  private fun analyticsCadence(cadence: RecurrenceCadenceSnapshot) =
+    AnalyticsRecurrenceCadence(cadence.frequency.value, cadence.interval)
 
   private fun schedulingOrigin(originOccurrenceId: String?, recurringMovementId: String?): AnalyticsSchedulingOrigin? {
     if (originOccurrenceId != null) {
