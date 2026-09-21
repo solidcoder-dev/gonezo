@@ -39,6 +39,7 @@ export type { MacroMerchantCode } from '../domain/macroMerchantCode';
 export type { CanonicalMerchantResolverPort } from './canonicalMerchantResolver.port';
 export { createMerchantFact } from '../domain/merchantFact';
 export type { MerchantFact, MerchantFactKind, MerchantFactSource } from '../domain/merchantFact';
+export type { MerchantFactSourcePort, MerchantFactQuery } from './merchantFactSource.port';
 export { canonicalMacroAnalyticsContribution } from '../domain/canonicalMacroAnalyticsContribution';
 export { prepareMacroAnalyticsPublication } from './prepareMacroAnalyticsPublication';
 export type { PrepareMacroAnalyticsPublicationInput, PrepareMacroAnalyticsPublicationResult } from './prepareMacroAnalyticsPublication';

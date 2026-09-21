@@ -1,0 +1,36 @@
+import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
+import type { CanonicalMerchantResolverPort } from '../application/canonicalMerchantResolver.port';
+import { createMacroMerchantCode } from '../domain/macroMerchantCode';
+import { createMerchantFact, type MerchantFact, type MerchantFactKind, type MerchantFactSource } from '../domain/merchantFact';
+
+const sourceByAnalyticsSource = {
+  POSTED: 'POSTED',
+  EXPECTED: 'EXPECTED',
+  SCHEDULED_PROJECTION: 'SCHEDULED',
+} satisfies Record<AnalyticsMovementFactItem['source'], MerchantFactSource>;
+
+function merchantFactKind(type: AnalyticsMovementFactItem['type']): MerchantFactKind | undefined {
+  if (type === 'income') return 'INCOME';
+  if (type === 'expense') return 'EXPENSE';
+  return undefined;
+}
+
+export function adaptAnalyticsMerchantFact(
+  item: AnalyticsMovementFactItem,
+  resolver: CanonicalMerchantResolverPort,
+): MerchantFact | null {
+  if (item.ignored || !item.merchant) return null;
+  const kind = merchantFactKind(item.type);
+  if (kind === undefined) return null;
+
+  const merchant = resolver.resolve({ merchantKey: item.merchant.key }) ?? createMacroMerchantCode('UNMAPPED');
+  return createMerchantFact({
+    id: `${item.analyticsFactId}/merchant`,
+    occurredAt: item.effectiveAt,
+    source: sourceByAnalyticsSource[item.source],
+    kind,
+    currency: item.currency,
+    amount: item.personalAmount,
+    merchant,
+  });
+}
