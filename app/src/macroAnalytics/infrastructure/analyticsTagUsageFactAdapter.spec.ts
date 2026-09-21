@@ -55,6 +55,15 @@ describe('adaptAnalyticsTagUsageFact', () => {
     expect(adaptAnalyticsTagUsageFact(item({ tags: [{ key: 'name:legacy-secret', displayName: 'Old private name' }] }))?.tagCount).toBe(1);
   });
 
+  it('is unaffected by a tag rename or replacing identities at the same count', () => {
+    const trip = adaptAnalyticsTagUsageFact(item({ tags: [{ key: 'tag:trip-id', tagId: 'trip-id', displayName: 'Trip' }] }));
+    const renamed = adaptAnalyticsTagUsageFact(item({ tags: [{ key: 'tag:trip-id', tagId: 'trip-id', displayName: 'Holiday' }] }));
+    const replaced = adaptAnalyticsTagUsageFact(item({ tags: [{ key: 'name:unresolved-new-id', displayName: 'Family' }] }));
+
+    expect(renamed).toEqual(trip);
+    expect(replaced).toEqual(trip);
+  });
+
   it.each([
     [{ ignored: true }, 'ignored'],
     [{ type: 'transfer_in' as const }, 'transfer in'],
