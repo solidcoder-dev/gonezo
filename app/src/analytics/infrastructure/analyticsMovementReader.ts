@@ -11,6 +11,7 @@ import type { AnalyticsListMovementFactsResult } from '../application/analytics.
 import { resolveSharingAnalyticsAttribution } from '../../sharing/application/sharingAnalyticsAttribution';
 import { analyticsMerchantReference } from '../domain/analyticsMerchantReference';
 import { resolveAnalyticsTagReferences } from '../domain/analyticsTagReference';
+import { normalizeTagName } from '../../taxonomy/application/tagNameNormalization';
 
 export type AnalyticsMovementReaderPort = {
   ledgerListAccounts(): Promise<LedgerListAccountsResult>;
@@ -209,6 +210,7 @@ export async function listAnalyticsMovements(
         tagIds: (movement.tags ?? []).map((tag) => tag.id),
         tagNames: [],
         taxonomyTags: movement.tags ?? [],
+        normalizeName: normalizeTagName,
       }),
     })),
   };

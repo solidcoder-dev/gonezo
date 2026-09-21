@@ -10,6 +10,7 @@ import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 import type { AnalyticsFlowReport } from './analyticsFlowReport';
 import type { MetricId } from '../../shared/domain/analyticsMetric';
 import type { UserMetricResult } from '../domain/userMetricResult';
+import type { AnalyticsTagReference } from '../domain/analyticsTagReference';
 import type { LedgerAccountType } from '../../ledger/application/ledger.port';
 
 export type AnalyticsAccountBalanceSnapshotInput = {
@@ -81,12 +82,6 @@ export type AnalyticsMovementFactItem = {
   tags: readonly AnalyticsTagReference[];
   merchant?: AnalyticsMerchantReference;
 };
-
-export type AnalyticsTagReference = Readonly<{
-  key: string;
-  tagId?: string;
-  displayName: string;
-}>;
 
 export type AnalyticsMerchantReference = Readonly<{ key: string; displayName: string }>;
 

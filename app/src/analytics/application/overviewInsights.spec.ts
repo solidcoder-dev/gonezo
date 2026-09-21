@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import type { LedgerTransactionListItem } from '../../ledger/application/ledger.port';
 import { buildOverviewInsightsResult } from './overviewInsights';
 
+type TestTransaction = LedgerTransactionListItem & { analyticsPersonalAmount?: string };
+
 function transaction(
-  input: Partial<LedgerTransactionListItem> & Pick<LedgerTransactionListItem, 'id' | 'type' | 'amount' | 'currency'>,
-): LedgerTransactionListItem {
+  input: Partial<TestTransaction> & Pick<LedgerTransactionListItem, 'id' | 'type' | 'amount' | 'currency'>,
+): TestTransaction {
   return {
     accountId: 'acc-1',
     status: 'posted',
@@ -69,5 +71,30 @@ describe('overviewInsights', () => {
       filterIntent: 'topTags',
       tagIds: ['tag-trip'],
     });
+  });
+
+  it('ranks with the personal analytical amount and keeps tag overlap non-reconciling', () => {
+    const result = buildOverviewInsightsResult({
+      topTagsFact: {
+        transactions: [
+          transaction({ id: 'expense-shared', type: 'expense', amount: '0.30', analyticsPersonalAmount: '0.10', currency: 'EUR' }),
+          transaction({ id: 'expense-personal', type: 'expense', amount: '0.70', analyticsPersonalAmount: '0.20', currency: 'EUR' }),
+        ],
+        taxonomyAssignments: [
+          { transactionId: 'expense-shared', tagIds: ['tag-a', 'tag-b'] },
+          { transactionId: 'expense-personal', tagIds: ['tag-a', 'tag-b'] },
+        ],
+        tags: [
+          { id: 'tag-a', name: 'A', status: 'active' },
+          { id: 'tag-b', name: 'B', status: 'active' },
+        ],
+      },
+      sharingInsights: [],
+      transferTransactions: [],
+      currency: 'EUR',
+    });
+
+    expect(result.items[0]).toMatchObject({ amount: '0.60', tagIds: ['tag-a', 'tag-b'] });
+    expect(result.items[0].amount).not.toBe('0.30');
   });
 });

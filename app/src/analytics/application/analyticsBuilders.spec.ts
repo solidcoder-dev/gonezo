@@ -611,7 +611,7 @@ describe('analytics builders', () => {
           subtitle: '3 tags',
           amount: '320.00',
           filterIntent: 'topTags',
-          tagIds: ['tag-trip', 'tag-friends', 'tag-home'],
+          tagIds: ['tag-friends', 'tag-trip', 'tag-home'],
         },
         {
           key: 'sharedExpenses',

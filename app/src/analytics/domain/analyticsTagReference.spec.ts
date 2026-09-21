@@ -12,6 +12,7 @@ describe('resolveAnalyticsTagReferences', () => {
       tagIds: ['tag-archived', 'tag-archived'],
       tagNames: ['Renamed presentation snapshot'],
       taxonomyTags,
+      normalizeName: (name) => name.trim().toLowerCase(),
     })).toEqual([{ key: 'tag:tag-archived', tagId: 'tag-archived', displayName: 'Historical' }]);
   });
 
@@ -20,6 +21,7 @@ describe('resolveAnalyticsTagReferences', () => {
       tagIds: [],
       tagNames: [' HOME ', 'missing!'],
       taxonomyTags,
+      normalizeName: (name) => name.trim().toLowerCase(),
     })).toEqual([
       { key: 'name:missing!', displayName: 'missing!' },
       { key: 'tag:tag-home', tagId: 'tag-home', displayName: 'Home' },

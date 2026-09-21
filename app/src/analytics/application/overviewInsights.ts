@@ -7,13 +7,17 @@ import type {
   AnalyticsOverviewInsightItem,
   AnalyticsOverviewInsightsResult,
 } from './analytics.port';
+import { ExactDecimal } from '../../shared/domain/exactDecimal';
+import { buildTagSpendingRanking } from './rankings/tagSpendingRanking';
 
 type OverviewInsightsFacts = {
-  transactions: LedgerTransactionListItem[];
+  transactions: OverviewTagTransaction[];
   taxonomyAssignments: OrchestrationTransactionTaxonomyItem[];
   tags: TaxonomyTagItem[];
   currency: string;
 };
+
+export type OverviewTagTransaction = LedgerTransactionListItem & { analyticsPersonalAmount?: string };
 
 function addAmount(left: string, right: string): string {
   return (Number(left) + Number(right)).toFixed(2);
@@ -33,14 +37,6 @@ function isAnalyticsExpenseTransaction(transaction: LedgerTransactionListItem, c
     && !isAutomaticOpeningBalance(transaction);
 }
 
-function addAmountToMap(map: Map<string, { name: string; amount: string }>, key: string, name: string, amount: string) {
-  const current = map.get(key) ?? { name, amount: '0.00' };
-  map.set(key, {
-    name: current.name,
-    amount: addAmount(current.amount, amount),
-  });
-}
-
 function pluralize(count: number, singular: string, plural: string): string {
   return `${count} ${count === 1 ? singular : plural}`;
 }
@@ -56,35 +52,37 @@ function tagAssignmentsByTransactionId(
 }
 
 function buildTopTagsInsight(facts: OverviewInsightsFacts): AnalyticsOverviewInsightItem | undefined {
-  const amountByTag = new Map<string, { name: string; amount: string }>();
   const assignmentsByTransactionId = tagAssignmentsByTransactionId(facts.taxonomyAssignments);
   const namesById = tagNamesById(facts.tags);
+  const ranking = buildTagSpendingRanking(facts.transactions
+    .filter((transaction) => isAnalyticsExpenseTransaction(transaction, facts.currency))
+    .map((transaction) => {
+      const resolvedTagIds = assignmentsByTransactionId.get(transaction.id)
+        ?? (transaction.tags ?? []).map((tag) => tag.id);
+      return {
+        movementId: transaction.id,
+        source: 'POSTED' as const,
+        type: 'expense' as const,
+        currency: transaction.currency,
+        personalAmount: ('analyticsPersonalAmount' in transaction && typeof transaction.analyticsPersonalAmount === 'string')
+          ? transaction.analyticsPersonalAmount
+          : transaction.amount,
+        tags: [...new Set(resolvedTagIds)].map((tagId) => ({
+          key: `tag:${tagId}`,
+          tagId,
+          displayName: namesById.get(tagId) ?? transaction.tags?.find((tag) => tag.id === tagId)?.name ?? tagId,
+        })),
+      };
+    }), facts.currency).slice(0, 3);
 
-  for (const transaction of facts.transactions) {
-    if (!isAnalyticsExpenseTransaction(transaction, facts.currency)) {
-      continue;
-    }
-
-    const resolvedTagIds = assignmentsByTransactionId.get(transaction.id)
-      ?? (transaction.tags ?? []).map((tag) => tag.id);
-
-    for (const tagId of resolvedTagIds) {
-      addAmountToMap(amountByTag, tagId, namesById.get(tagId) ?? tagId, transaction.amount);
-    }
-  }
-
-  const topTags = [...amountByTag.entries()]
-    .sort((left, right) => Number(right[1].amount) - Number(left[1].amount))
-    .slice(0, 3);
-
-  if (topTags.length === 0) return undefined;
+  if (ranking.length === 0) return undefined;
   return {
     key: 'topTags',
     title: 'Top tags',
-    subtitle: pluralize(topTags.length, 'tag', 'tags'),
-    amount: topTags.reduce((current, [, tag]) => addAmount(current, tag.amount), '0.00'),
+    subtitle: pluralize(ranking.length, 'tag', 'tags'),
+    amount: ranking.reduce((sum, tag) => sum.add(ExactDecimal.from(tag.amount)), ExactDecimal.from('0')).toFixed(2),
     filterIntent: 'topTags',
-    tagIds: topTags.map(([tagId]) => tagId),
+    tagIds: ranking.flatMap((tag) => tag.tagId ? [tag.tagId] : []),
   };
 }
 
@@ -127,7 +125,7 @@ function buildTransfersInsight(facts: OverviewInsightsFacts): AnalyticsOverviewI
 
 export function buildOverviewInsightsResult(input: {
   topTagsFact: {
-    transactions: LedgerTransactionListItem[];
+    transactions: OverviewTagTransaction[];
     taxonomyAssignments?: OrchestrationTransactionTaxonomyItem[];
     tags?: TaxonomyTagItem[];
   };

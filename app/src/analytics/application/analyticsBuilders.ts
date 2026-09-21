@@ -31,7 +31,7 @@ import {
 } from './analyticsFilters';
 import { createAnalyticsQueryContext } from './analyticsQueryContext';
 import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
-import { buildOverviewInsightsResult } from './overviewInsights';
+import { buildOverviewInsightsResult, type OverviewTagTransaction } from './overviewInsights';
 import { addDecimalAmounts, subtractDecimalAmounts } from '../../ledger/application/decimalAmount';
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import { balanceImpact } from '../../ledger/application/movementSemantics';
@@ -347,7 +347,7 @@ export function buildAnalyticsOverviewSnapshot(input: {
 
 export function buildAnalyticsOverviewInsights(input: {
   topTagsFact: {
-    transactions: LedgerTransactionListItem[];
+    transactions: OverviewTagTransaction[];
     taxonomyAssignments?: OrchestrationTransactionTaxonomyItem[];
     tags?: TaxonomyTagItem[];
   };

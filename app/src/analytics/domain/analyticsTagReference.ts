@@ -1,13 +1,21 @@
-import { normalizeTagName } from '../../taxonomy/domain/tagName';
-import type { AnalyticsTagReference } from '../application/analytics.port';
+export type AnalyticsTagReference = Readonly<{
+  key: string;
+  tagId?: string;
+  displayName: string;
+}>;
+
+export function compareAnalyticsTagReferenceKeys(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
 
 export function resolveAnalyticsTagReferences(input: {
   tagIds: readonly string[];
   tagNames: readonly string[];
   taxonomyTags: readonly Readonly<{ id: string; name: string }>[];
+  normalizeName: (name: string) => string;
 }): AnalyticsTagReference[] {
   const tagsById = new Map(input.taxonomyTags.map((tag) => [tag.id, tag]));
-  const idsByNormalizedName = new Map(input.taxonomyTags.map((tag) => [normalizeTagName(tag.name), tag.id]));
+  const idsByNormalizedName = new Map(input.taxonomyTags.map((tag) => [input.normalizeName(tag.name), tag.id]));
   const persistedIds = [...new Set(input.tagIds.map((id) => id.trim()).filter(Boolean))];
   const references = persistedIds.length > 0
     ? persistedIds.flatMap((tagId) => {
@@ -17,7 +25,7 @@ export function resolveAnalyticsTagReferences(input: {
     : input.tagNames.flatMap((rawName) => {
       const displayName = rawName.trim();
       if (!displayName) return [];
-      const normalizedName = normalizeTagName(displayName);
+      const normalizedName = input.normalizeName(displayName);
       const tagId = idsByNormalizedName.get(normalizedName);
       const tag = tagId ? tagsById.get(tagId) : undefined;
       return tag
@@ -25,5 +33,5 @@ export function resolveAnalyticsTagReferences(input: {
         : [{ key: `name:${normalizedName}`, displayName }];
     });
   const unique = new Map(references.map((reference) => [reference.key, reference]));
-  return [...unique.values()].sort((left, right) => left.key.localeCompare(right.key));
+  return [...unique.values()].sort((left, right) => compareAnalyticsTagReferenceKeys(left.key, right.key));
 }
