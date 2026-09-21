@@ -65,10 +65,10 @@ describe('adaptAnalyticsTagUsageFact', () => {
   });
 
   it.each([
-    [{ ignored: true }, 'ignored'],
-    [{ type: 'transfer_in' as const }, 'transfer in'],
-    [{ type: 'transfer_out' as const }, 'transfer out'],
-  ])('omits %s movements', (overrides, _label) => {
+    { label: 'ignored', overrides: { ignored: true } },
+    { label: 'transfer in', overrides: { type: 'transfer_in' as const } },
+    { label: 'transfer out', overrides: { type: 'transfer_out' as const } },
+  ])('omits $label movements', ({ overrides }) => {
     expect(adaptAnalyticsTagUsageFact(item(overrides))).toBeNull();
   });
 
