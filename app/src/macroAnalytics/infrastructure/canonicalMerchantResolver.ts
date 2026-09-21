@@ -1,5 +1,5 @@
 import type { CanonicalMerchantResolverPort } from '../application/canonicalMerchantResolver.port';
-import { createMacroMerchantCode } from '../domain/macroMerchantCode';
+import { createMacroMerchantCode, UNMAPPED_MACRO_MERCHANT_CODE } from '../domain/macroMerchantCode';
 import type { MacroMerchantCode } from '../domain/macroMerchantCode';
 
 export type CanonicalMerchantDefinition = Readonly<{
@@ -16,7 +16,7 @@ export function createCanonicalMerchantResolver(
   for (const definition of catalog) {
     const code = createMacroMerchantCode(definition.code);
     if (codes.has(code)) throw new Error(`Duplicate canonical merchant code: ${code}`);
-    if (code === 'UNMAPPED') throw new Error('UNMAPPED is reserved for unresolved merchants');
+    if (code === UNMAPPED_MACRO_MERCHANT_CODE) throw new Error('UNMAPPED is reserved for unresolved merchants');
     codes.add(code);
 
     for (const alias of definition.aliases) {

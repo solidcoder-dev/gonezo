@@ -34,7 +34,7 @@ export type { RecurringContribution, RecurringContributionBucket, RecurringCurre
 export { createRecurringFact } from '../domain/recurringFact';
 export type { RecurringFact, RecurringFactKind, RecurringFactSource } from '../domain/recurringFact';
 export type { RecurringFactSourcePort, RecurringFactQuery } from './recurringFactSource.port';
-export { createMacroMerchantCode } from '../domain/macroMerchantCode';
+export { createMacroMerchantCode, UNMAPPED_MACRO_MERCHANT_CODE } from '../domain/macroMerchantCode';
 export type { MacroMerchantCode } from '../domain/macroMerchantCode';
 export type { CanonicalMerchantResolverPort } from './canonicalMerchantResolver.port';
 export { createMerchantFact } from '../domain/merchantFact';

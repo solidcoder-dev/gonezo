@@ -1,6 +1,6 @@
 import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
 import type { CanonicalMerchantResolverPort } from '../application/canonicalMerchantResolver.port';
-import { createMacroMerchantCode } from '../domain/macroMerchantCode';
+import { UNMAPPED_MACRO_MERCHANT_CODE } from '../domain/macroMerchantCode';
 import { createMerchantFact, type MerchantFact, type MerchantFactKind, type MerchantFactSource } from '../domain/merchantFact';
 
 const sourceByAnalyticsSource = {
@@ -23,7 +23,7 @@ export function adaptAnalyticsMerchantFact(
   const kind = merchantFactKind(item.type);
   if (kind === undefined) return null;
 
-  const merchant = resolver.resolve({ merchantKey: item.merchant.key }) ?? createMacroMerchantCode('UNMAPPED');
+  const merchant = resolver.resolve({ merchantKey: item.merchant.key }) ?? UNMAPPED_MACRO_MERCHANT_CODE;
   return createMerchantFact({
     id: `${item.analyticsFactId}/merchant`,
     occurredAt: item.effectiveAt,
