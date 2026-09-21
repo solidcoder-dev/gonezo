@@ -37,6 +37,30 @@ describe('Analytics TagUsageFact source', () => {
       { id: 'occurrence-1/tag-usage', source: 'POSTED', tagCount: 3 },
     ]);
   });
+
+  it('emits one selected fact as an occurrence progresses through scheduled, expected, and posted', async () => {
+    const occurrence = (source: AnalyticsMovementFactItem['source'], tagCount: number): AnalyticsMovementFactItem => ({
+      ...movement({ analyticsFactId: 'same-occurrence', source }),
+      tags: Array.from({ length: tagCount }, (_, index) => ({
+        key: `tag:${index}`, tagId: `tag-${index}`, displayName: `Private ${index}`,
+      })),
+    });
+    const analyticsListMovementFacts = vi.fn()
+      .mockResolvedValueOnce({ items: [occurrence('SCHEDULED_PROJECTION', 2)] })
+      .mockResolvedValueOnce({ items: [occurrence('EXPECTED', 1)] })
+      .mockResolvedValueOnce({ items: [occurrence('POSTED', 3)] });
+    const source = createAnalyticsTagUsageFactSource({ analyticsListMovementFacts });
+    const query = { period: createAnalyticsPeriod('2026-09'), timeZone: 'UTC' };
+
+    const scheduled = await source.listTagUsageFacts(query);
+    const expected = await source.listTagUsageFacts(query);
+    const posted = await source.listTagUsageFacts(query);
+
+    expect([scheduled, expected, posted].map((facts) => facts.length)).toEqual([1, 1, 1]);
+    expect([scheduled[0], expected[0], posted[0]].map(({ source: selectedSource, tagCount }) => [selectedSource, tagCount])).toEqual([
+      ['SCHEDULED', 2], ['EXPECTED', 1], ['POSTED', 3],
+    ]);
+  });
 });
 
 function movement(overrides: Partial<AnalyticsMovementFactItem> = {}): AnalyticsMovementFactItem {
