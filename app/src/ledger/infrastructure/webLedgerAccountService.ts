@@ -11,6 +11,7 @@ import type {
   LedgerRestoreAccountInput,
 } from '../application/ledger.port';
 import type { LedgerAccountType } from '../application/ledger.port';
+import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import type { WebRuntimeDependencies } from '../../core/infrastructure/webRuntimeDependencies';
 import {
   calculateWebAccountNet,
@@ -85,10 +86,7 @@ export class WebLedgerAccountService {
       throw new Error(`unsupported currency code: ${currency}`);
     }
     const openingBalanceRaw = input.openingBalanceAmount?.trim();
-    const openingBalance = openingBalanceRaw ? Number(openingBalanceRaw) : 0;
-    if (Number.isNaN(openingBalance)) {
-      throw new Error('opening balance must be a valid number');
-    }
+    const openingBalance = ExactDecimal.from(openingBalanceRaw || '0');
     const type = normalizeAccountType(input.type);
 
     this.state.ledgerAccounts.push({
@@ -99,13 +97,16 @@ export class WebLedgerAccountService {
       status: 'active',
       createdAt: input.createdAt ?? this.nowIso(),
     });
-    if (openingBalance !== 0) {
+    if (openingBalance.compare(ExactDecimal.from('0')) !== 0) {
+      const openingBalanceAmount = openingBalance.compare(ExactDecimal.from('0')) < 0
+        ? openingBalance.multiplyByInteger(-1).toString()
+        : openingBalance.toString();
       this.state.ledgerTransactions.push({
         id: this.nextId(),
         accountId: id,
-        type: openingBalance > 0 ? 'income' : 'expense',
+        type: openingBalance.compare(ExactDecimal.from('0')) > 0 ? 'income' : 'expense',
         status: 'posted',
-        amount: Math.abs(openingBalance).toFixed(2),
+        amount: openingBalanceAmount,
         currency,
         occurredAt: input.createdAt ?? this.nowIso(),
         description: 'Opening balance',
@@ -188,7 +189,7 @@ export class WebLedgerAccountService {
       name: account.name,
       type: account.type,
       currency: account.currency,
-      balanceAmount: calculateWebAccountNet(this.state, account.id).toFixed(2),
+      balanceAmount: calculateWebAccountNet(this.state, account.id),
     };
   }
 }

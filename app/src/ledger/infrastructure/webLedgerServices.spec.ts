@@ -36,6 +36,22 @@ describe('web ledger focused services', () => {
     await expect(accounts.openAccount({ name: 'Unsupported', type: 'crypto' as 'other', currency: 'EUR' })).rejects.toThrow('Unsupported account type');
   });
 
+  it('keeps opening balances and account totals exact beyond currency minor units', async () => {
+    const state = createWebAppState();
+    const dependencies = createDependencies();
+    const accounts = new WebLedgerAccountService({ state, dependencies });
+    const transactions = new WebLedgerTransactionService({ state, dependencies });
+    const positive = await accounts.openAccount({ name: 'Positive', currency: 'EUR', openingBalanceAmount: '10.005' });
+    const negative = await accounts.openAccount({ name: 'Negative', currency: 'EUR', openingBalanceAmount: '-10.005' });
+    const precise = await accounts.openAccount({ name: 'Precise', currency: 'EUR' });
+    await transactions.recordIncome({ accountId: precise.id, amount: '0.1', currency: 'EUR', occurredAt: '2026-05-01T00:00:00.000Z' });
+    await transactions.recordIncome({ accountId: precise.id, amount: '0.2', currency: 'EUR', occurredAt: '2026-05-02T00:00:00.000Z' });
+
+    await expect(accounts.getAccountSummary({ accountId: positive.id })).resolves.toMatchObject({ balanceAmount: '10.005' });
+    await expect(accounts.getAccountSummary({ accountId: negative.id })).resolves.toMatchObject({ balanceAmount: '-10.005' });
+    await expect(accounts.getAccountSummary({ accountId: precise.id })).resolves.toMatchObject({ balanceAmount: '0.30' });
+  });
+
   it('characterizes posted balance signs, opening balance transactions, and archived accounts', async () => {
     const state = createWebAppState();
     const dependencies = createDependencies();
@@ -54,7 +70,7 @@ describe('web ledger focused services', () => {
 
     await expect(accounts.getAccountSummary({ accountId: account.id })).resolves.toMatchObject({ balanceAmount: '8.00' });
     await expect(accounts.getAccountSummary({ accountId: zero.id })).resolves.toMatchObject({ balanceAmount: '0.00' });
-    expect(state.ledgerTransactions.find((transaction) => transaction.description === 'Opening balance')).toMatchObject({ type: 'income', status: 'posted', amount: '10.00' });
+    expect(state.ledgerTransactions.find((transaction) => transaction.description === 'Opening balance')).toMatchObject({ type: 'income', status: 'posted', amount: '10' });
   });
 
   it('compose through shared state without depending on WebLedgerService', async () => {
