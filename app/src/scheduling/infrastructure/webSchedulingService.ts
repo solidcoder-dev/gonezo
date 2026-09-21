@@ -219,6 +219,10 @@ export class WebSchedulingService {
       recurringMovementId: movement.id,
       dueAt,
       schedulingKind: movement.scheduleKind ?? resolveSchedulingKind(movement),
+      ...(movement.scheduleKind === 'one_shot' || resolveSchedulingKind(movement) === 'one_shot' ? {} : {
+        recurrenceFrequency: movement.rule.frequency,
+        recurrenceInterval: movement.rule.interval,
+      }),
     };
     this.state.recurringMovementOccurrences.push(occurrence);
     const generatedOccurrences = movement.generatedOccurrences + 1;

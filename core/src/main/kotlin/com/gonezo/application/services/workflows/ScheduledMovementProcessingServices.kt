@@ -3,10 +3,6 @@ package com.gonezo.application.orchestration
 import com.gonezo.application.ConsistencyBoundary
 import com.gonezo.application.ImmediateConsistencyBoundary
 import com.gonezo.domain.shared.Money
-import com.gonezo.notifications.application.NoOpScheduledMovementNotificationRecorder
-import com.gonezo.notifications.application.ScheduledExpectedNotification
-import com.gonezo.notifications.application.ScheduledFailureNotification
-import com.gonezo.notifications.application.ScheduledMovementNotificationRecorder
 import com.gonezo.expected.application.CreateExpectedMovementCommand
 import com.gonezo.expected.application.CreateExpectedMovementUC
 import com.gonezo.expected.domain.ExpectedMovement
@@ -21,6 +17,10 @@ import com.gonezo.ledger.application.RecordLedgerTransferFxUC
 import com.gonezo.ledger.application.RecordLedgerTransferUC
 import com.gonezo.ledger.domain.AccountId
 import com.gonezo.ledger.domain.TransactionId
+import com.gonezo.notifications.application.NoOpScheduledMovementNotificationRecorder
+import com.gonezo.notifications.application.ScheduledExpectedNotification
+import com.gonezo.notifications.application.ScheduledFailureNotification
+import com.gonezo.notifications.application.ScheduledMovementNotificationRecorder
 import com.gonezo.recurrence.domain.RecurringMovement
 import com.gonezo.recurrence.domain.RecurringMovementOccurrence
 import com.gonezo.recurrence.domain.RecurringMovementOccurrenceStatus
@@ -105,6 +105,7 @@ class ProcessDueScheduledMovementsService(private val recurringMovementRepositor
             dueAt = dueAt,
             createdAt = handledAt,
             schedulingKind = movement.schedulingKind,
+            cadence = if (movement.schedulingKind == com.gonezo.recurrence.domain.SchedulingKind.RECURRING) com.gonezo.recurrence.domain.RecurrenceCadenceSnapshot.from(movement.rule) else null,
         ).also(occurrenceRepository::save)
 
         val handler = handlers.firstOrNull { it.supports(movement) }
@@ -117,20 +118,20 @@ class ProcessDueScheduledMovementsService(private val recurringMovementRepositor
                 ProcessedDueMovementOutcome.POSTED
             }
 
-                is DueScheduledMovementHandlerResult.ExpectedCreated -> {
-                    notificationRecorder.recordExpected(
-                        ScheduledExpectedNotification(
-                            recurringMovementId = movement.id.toString(),
-                            expectedMovementId = result.expectedMovementId,
-                            originOccurrenceId = occurrence.id.toString(),
-                            dueAt = dueAt,
-                            subject = movement.description,
-                            occurredAt = handledAt,
-                        ),
-                    )
-                    occurrenceRepository.save(occurrence)
-                    advanceMovement(movement, dueAt, handledAt)
-                    ProcessedDueMovementOutcome.EXPECTED_CREATED
+            is DueScheduledMovementHandlerResult.ExpectedCreated -> {
+                notificationRecorder.recordExpected(
+                    ScheduledExpectedNotification(
+                        recurringMovementId = movement.id.toString(),
+                        expectedMovementId = result.expectedMovementId,
+                        originOccurrenceId = occurrence.id.toString(),
+                        dueAt = dueAt,
+                        subject = movement.description,
+                        occurredAt = handledAt,
+                    ),
+                )
+                occurrenceRepository.save(occurrence)
+                advanceMovement(movement, dueAt, handledAt)
+                ProcessedDueMovementOutcome.EXPECTED_CREATED
             }
         }
     }
@@ -152,6 +153,7 @@ class ProcessDueScheduledMovementsService(private val recurringMovementRepositor
             dueAt = dueAt,
             createdAt = handledAt,
             schedulingKind = movement.schedulingKind,
+            cadence = if (movement.schedulingKind == com.gonezo.recurrence.domain.SchedulingKind.RECURRING) com.gonezo.recurrence.domain.RecurrenceCadenceSnapshot.from(movement.rule) else null,
         )
         occurrenceRepository.save(
             occurrence.acknowledgeFailed(

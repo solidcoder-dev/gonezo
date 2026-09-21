@@ -119,6 +119,8 @@ export type WebRecurringMovementOccurrence = {
   recurringMovementId: string;
   dueAt: string;
   schedulingKind?: 'recurring' | 'one_shot';
+  recurrenceFrequency?: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  recurrenceInterval?: number;
 };
 
 export type WebAppState = {

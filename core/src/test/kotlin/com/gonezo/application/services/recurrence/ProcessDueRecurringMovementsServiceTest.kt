@@ -66,6 +66,8 @@ class ProcessDueRecurringMovementsServiceTest {
         assertThat(updated!!.generatedOccurrences).isEqualTo(1)
         assertThat(updated.nextDueAt).isEqualTo(Instant.parse("2026-04-11T09:00:00Z"))
         assertThat(occurrences).hasSize(1)
+        assertThat(occurrences.single().cadence?.frequency).isEqualTo(movement.rule.frequency)
+        assertThat(occurrences.single().cadence?.interval).isEqualTo(movement.rule.interval)
         assertThat(outbox).hasSize(1)
 
         val event = RecurringMovementDueIntegrationEvent.fromJson(outbox.first().payloadJson)

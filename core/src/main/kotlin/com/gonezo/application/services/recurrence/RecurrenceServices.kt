@@ -139,6 +139,7 @@ class ProcessDueRecurringMovementsService(private val recurringMovementRepositor
                         dueAt = dueAt,
                         createdAt = command.now,
                         schedulingKind = movement.schedulingKind,
+                        cadence = if (movement.schedulingKind == com.gonezo.recurrence.domain.SchedulingKind.RECURRING) com.gonezo.recurrence.domain.RecurrenceCadenceSnapshot.from(movement.rule) else null,
                     )
                     occurrenceRepository.save(occurrence)
                     outboxRepository.save(

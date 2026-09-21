@@ -30,4 +30,28 @@ describe('WebSchedulingService', () => {
       id: 'occurrence-1', recurringMovementId: 'schedule-1', dueAt: '2026-09-18T10:30:00Z', schedulingKind: 'one_shot',
     }]);
   });
+
+  it('snapshots recurring cadence on an occurrence before the plan is edited', () => {
+    const movement: WebRecurringMovement = {
+      id: 'schedule-2', type: 'expense', sourceAccountId: 'account-1', amount: '10.00', currency: 'EUR',
+      status: 'active', startAt: '2026-09-18T10:30:00Z', nextDueAt: '2026-09-18T10:30:00Z', zoneId: 'UTC',
+      reviewPolicy: 'require_user_confirmation', generatedOccurrences: 0, splitItems: [],
+      rule: { frequency: 'weekly', interval: 2, weeklyDays: [1] }, recurrenceEnd: { kind: 'never' },
+      scheduleKind: 'recurring', origin: 'recurring', createdAt: '2026-09-01T00:00:00Z',
+    };
+    const state = createWebAppState({ recurringMovements: [movement] });
+    const dependencies: WebRuntimeDependencies = {
+      clock: { nowIso: () => '2026-09-18T10:30:00Z' },
+      idGenerator: { nextId: () => 'occurrence-2' },
+      backupDownloader: { downloadJson: () => undefined },
+    };
+    const service = new WebSchedulingService({ state, dependencies, ledger: {} as SchedulingLedgerPort });
+
+    service.projectNextConfirmationRequiredOccurrence('schedule-2');
+    movement.rule = { frequency: 'yearly', interval: 1 };
+
+    expect(state.recurringMovementOccurrences[0]).toMatchObject({
+      schedulingKind: 'recurring', recurrenceFrequency: 'weekly', recurrenceInterval: 2,
+    });
+  });
 });

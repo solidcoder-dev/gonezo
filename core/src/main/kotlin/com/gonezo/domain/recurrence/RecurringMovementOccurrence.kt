@@ -3,9 +3,10 @@ package com.gonezo.recurrence.domain
 import java.time.Instant
 import java.util.UUID
 
-data class RecurringMovementOccurrence(val id: UUID, val recurringMovementId: RecurringMovementId, val dueAt: Instant, val status: RecurringMovementOccurrenceStatus, val ledgerTransactionId: String?, val errorCode: String?, val errorMessage: String?, val createdAt: Instant, val updatedAt: Instant, val acknowledgedAt: Instant?, val schedulingKind: SchedulingKind) {
+data class RecurringMovementOccurrence(val id: UUID, val recurringMovementId: RecurringMovementId, val dueAt: Instant, val status: RecurringMovementOccurrenceStatus, val ledgerTransactionId: String?, val errorCode: String?, val errorMessage: String?, val createdAt: Instant, val updatedAt: Instant, val acknowledgedAt: Instant?, val schedulingKind: SchedulingKind, val cadence: RecurrenceCadenceSnapshot? = null) {
     init {
         require(ledgerTransactionId == null || ledgerTransactionId.isNotBlank()) { "ledgerTransactionId cannot be blank" }
+        require(schedulingKind == SchedulingKind.RECURRING || cadence == null) { "one-shot occurrences cannot have recurrence cadence" }
     }
 
     fun acknowledgePosted(ledgerTxId: String, at: Instant): RecurringMovementOccurrence = copy(
@@ -27,7 +28,7 @@ data class RecurringMovementOccurrence(val id: UUID, val recurringMovementId: Re
     )
 
     companion object {
-        fun pending(id: UUID, recurringMovementId: RecurringMovementId, dueAt: Instant, createdAt: Instant, schedulingKind: SchedulingKind): RecurringMovementOccurrence = RecurringMovementOccurrence(
+        fun pending(id: UUID, recurringMovementId: RecurringMovementId, dueAt: Instant, createdAt: Instant, schedulingKind: SchedulingKind, cadence: RecurrenceCadenceSnapshot? = null): RecurringMovementOccurrence = RecurringMovementOccurrence(
             id = id,
             recurringMovementId = recurringMovementId,
             dueAt = dueAt,
@@ -39,6 +40,7 @@ data class RecurringMovementOccurrence(val id: UUID, val recurringMovementId: Re
             updatedAt = createdAt,
             acknowledgedAt = null,
             schedulingKind = schedulingKind,
+            cadence = cadence,
         )
     }
 }
