@@ -8,13 +8,13 @@ describe('listAccountBalances', () => {
       preferencesGet: vi.fn(async () => ({ defaultAccountId: 'acc-1' })),
       ledgerListAccounts: vi.fn(async () => ({
         items: [
-          { id: 'acc-1', name: 'Wallet', type: 'cash', currency: 'EUR', status: 'active' },
+          { id: 'acc-1', name: 'Wallet', type: 'cash' as const, currency: 'EUR', status: 'active' },
         ],
       })),
       ledgerGetAccountSummary: vi.fn(async () => ({
         accountId: 'acc-1',
         name: 'Wallet',
-        type: 'cash',
+        type: 'cash' as const,
         currency: 'EUR',
         balanceAmount: '80.00',
       })),

@@ -137,6 +137,8 @@ import { WebTaxonomyService } from '../../taxonomy/infrastructure/webTaxonomySer
 import { sortNetWorthCurrencies } from '../../ledger/application/netWorthOrdering';
 import { listAccountBalances } from './accountBalancesQuery';
 import { analyticsGetAnalyticsTopExpenses, analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetFlowReport, analyticsGetOverviewInsights, analyticsGetOverviewSnapshot, analyticsGetPeriodCashFlowSummary, analyticsQueryMetrics, analyticsGetSpendingDashboard, analyticsGetSpendingOverview, analyticsGetSpendingReport, analyticsGetSpendingTimeline, analyticsGetSpendingTopExpenses, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
+import type { AnalyticsAccountBalanceSnapshotInput, AnalyticsAccountBalanceSnapshotResult } from '../../analytics/application/analytics.port';
+import { getWebAccountBalanceSnapshot } from '../../analytics/infrastructure/webAccountBalanceSnapshot';
 import { WebAnalyticsExclusionService } from '../../analytics/infrastructure/webAnalyticsExclusionService';
 import { WebMovementReuseSuggestionsService } from '../../movements/infrastructure/webMovementReuseSuggestionsService'; import type { MovementReuseSuggestionsSearchInput, MovementReuseSuggestionsVariantsInput } from '../../movements/application/movementReuseSuggestions.port';
 import { WebPreferencesService } from './webPreferencesService';
@@ -230,6 +232,9 @@ export class CoreAdapterWeb implements CorePort {
   async ledgerDeleteAccount(input: LedgerDeleteAccountInput): Promise<void> { return this.ledgerService.deleteAccount(input); }
   async ledgerListAccounts(): Promise<LedgerListAccountsResult> { return this.ledgerService.listAccounts(); }
   async ledgerGetAccountSummary(input: LedgerGetAccountSummaryInput): Promise<LedgerGetAccountSummaryResult> { return this.ledgerService.getAccountSummary(input); }
+  async analyticsGetAccountBalanceSnapshot(input: AnalyticsAccountBalanceSnapshotInput): Promise<AnalyticsAccountBalanceSnapshotResult> {
+    return getWebAccountBalanceSnapshot(this.state, input);
+  }
 
   async ledgerGetNetWorthByCurrency(): Promise<LedgerGetNetWorthByCurrencyResult> {
     const result = await this.ledgerService.getNetWorthByCurrency();

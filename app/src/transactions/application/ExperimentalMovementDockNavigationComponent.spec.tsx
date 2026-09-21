@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ExperimentalMovementDockNavigationComponent } from './ExperimentalMovementDockNavigationComponent';
 import type { ExperimentalMovementDockNavigationComponentProps } from './ExperimentalMovementDockNavigationComponent.contract';
 import type { MovementVoiceEntryContext } from './MovementVoiceEntry/movementVoiceEntryContext';
+import type { LedgerAccountType } from '../../ledger/application/ledger.port';
 
 function createVoiceEntry() {
   const voiceEntry = {
@@ -40,7 +41,7 @@ function renderSubject(coreOverrides: Partial<ExperimentalMovementDockNavigation
   const voiceEntry = createVoiceEntry();
   const core = {
     ledgerListAccounts: vi.fn(async () => ({
-      items: [{ id: 'account-1', name: 'Main', type: 'cash', currency: 'USD', status: 'active' }],
+      items: [{ id: 'account-1', name: 'Main', type: 'cash' as const, currency: 'USD', status: 'active' }],
     })),
     preferencesGet: vi.fn(async () => ({ defaultAccountId: 'account-1' })),
     ...coreOverrides,
@@ -75,8 +76,8 @@ describe('ExperimentalMovementDockNavigationComponent', () => {
   });
 
   it('keeps the microphone disabled while the account is still loading', async () => {
-    let resolveAccounts: ((value: { items: Array<{ id: string; name: string; type: string; currency: string; status: string }> }) => void) | undefined;
-    const accounts = new Promise<{ items: Array<{ id: string; name: string; type: string; currency: string; status: string }> }>((resolve) => {
+    let resolveAccounts: ((value: { items: Array<{ id: string; name: string; type: LedgerAccountType; currency: string; status: string }> }) => void) | undefined;
+    const accounts = new Promise<{ items: Array<{ id: string; name: string; type: LedgerAccountType; currency: string; status: string }> }>((resolve) => {
       resolveAccounts = resolve;
     });
     renderSubject({ ledgerListAccounts: vi.fn(() => accounts) });
@@ -85,7 +86,7 @@ describe('ExperimentalMovementDockNavigationComponent', () => {
     expect(microphone).toBeDisabled();
 
     resolveAccounts?.({
-      items: [{ id: 'account-1', name: 'Main', type: 'cash', currency: 'USD', status: 'active' }],
+      items: [{ id: 'account-1', name: 'Main', type: 'cash' as const, currency: 'USD', status: 'active' }],
     });
 
     await waitFor(() => expect(microphone).not.toBeDisabled());
@@ -107,7 +108,7 @@ describe('ExperimentalMovementDockNavigationComponent', () => {
     });
     const core = {
       ledgerListAccounts: vi.fn(async () => ({
-        items: [{ id: 'account-1', name: 'Main', type: 'cash', currency: 'USD', status: 'active' }],
+        items: [{ id: 'account-1', name: 'Main', type: 'cash' as const, currency: 'USD', status: 'active' }],
       })),
       preferencesGet: vi.fn(async () => ({ defaultAccountId: 'account-1' })),
     };

@@ -10,6 +10,26 @@ import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 import type { AnalyticsFlowReport } from './analyticsFlowReport';
 import type { MetricId } from '../../shared/domain/analyticsMetric';
 import type { UserMetricResult } from '../domain/userMetricResult';
+import type { LedgerAccountType } from '../../ledger/application/ledger.port';
+
+export type AnalyticsAccountBalanceSnapshotInput = {
+  asOfLocalDateExclusive: string;
+  zoneId: string;
+  currency?: string;
+};
+
+export type AnalyticsAccountBalanceSnapshotItem = {
+  accountId: string;
+  accountType: LedgerAccountType;
+  currency: string;
+  balanceAmount: string;
+};
+
+export type AnalyticsAccountBalanceSnapshotResult = {
+  asOfLocalDateExclusive: string;
+  zoneId: string;
+  items: readonly AnalyticsAccountBalanceSnapshotItem[];
+};
 
 export type AnalyticsCurrencyScopeInput = {
   currency: string;
@@ -311,6 +331,7 @@ export type AnalyticsListIgnoredMovementsResult = {
 
 export type AnalyticsPort = {
   analyticsQueryMetrics(input: AnalyticsQueryMetricsInput): Promise<AnalyticsQueryMetricsResult>;
+  analyticsGetAccountBalanceSnapshot(input: AnalyticsAccountBalanceSnapshotInput): Promise<AnalyticsAccountBalanceSnapshotResult>;
   analyticsListMovementFacts?: (input: AnalyticsListMovementFactsInput) => Promise<AnalyticsListMovementFactsResult>;
   analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult>;
   analyticsGetFilterFacets(input?: AnalyticsGetFilterFacetsInput): Promise<AnalyticsGetFilterFacetsResult>;

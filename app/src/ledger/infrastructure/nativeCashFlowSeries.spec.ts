@@ -10,8 +10,8 @@ describe('getNativeCashFlowSeries', () => {
     const reader = {
       ledgerListAccounts: vi.fn(async () => ({
         items: [
-          { id: 'acc-1', name: 'Main', type: 'cash', currency: 'EUR', status: 'active' },
-          { id: 'acc-archived', name: 'Old', type: 'cash', currency: 'EUR', status: 'archived' },
+          { id: 'acc-1', name: 'Main', type: 'cash' as const, currency: 'EUR', status: 'active' },
+          { id: 'acc-archived', name: 'Old', type: 'cash' as const, currency: 'EUR', status: 'archived' },
         ],
       })),
       ledgerListTransactions: vi.fn(async (input: { accountId: string; pagination?: { page?: number; size?: number } }): Promise<LedgerListTransactionsResult> => {

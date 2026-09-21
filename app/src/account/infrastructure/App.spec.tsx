@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App, type AppPort } from '../../App';
+import type { LedgerAccountType } from '../../ledger/application/ledger.port';
 vi.mock('../../authentication/infrastructure/createAuthenticationService', () => ({
   createAuthenticationService: () => ({
     getAuthenticationState: async () => ({ status: 'authenticated', userId: 'test-user' }),
@@ -290,14 +291,14 @@ function makeCore(transactionCount = 0): AppTestPort {
         {
           id: 'acc-1',
           name: 'Main',
-          type: 'cash',
+          type: 'cash' as const,
           currency: 'USD',
           status: 'active',
         },
         {
           id: 'acc-2',
           name: 'Savings',
-          type: 'savings',
+          type: 'savings' as const,
           currency: 'USD',
           status: 'active',
         },
@@ -307,7 +308,7 @@ function makeCore(transactionCount = 0): AppTestPort {
     ledgerGetAccountSummary: vi.fn(async (input) => ({
       accountId: input.accountId,
       name: input.accountId === 'acc-2' ? 'Savings' : 'Main',
-      type: input.accountId === 'acc-2' ? 'savings' : 'cash',
+      type: input.accountId === 'acc-2' ? 'savings' as const : 'cash' as const,
       currency: 'USD',
       balanceAmount: input.accountId === 'acc-2' ? '250.00' : '100.00',
     })),
@@ -331,6 +332,7 @@ function makeCore(transactionCount = 0): AppTestPort {
     })),
     analyticsListCurrencies: vi.fn(async () => ({ items: ['USD'] })),
     analyticsQueryMetrics: vi.fn(async () => ({ items: [] })),
+    analyticsGetAccountBalanceSnapshot: vi.fn(async () => ({ asOfLocalDateExclusive: '2026-01-01', zoneId: 'UTC', items: [] })),
     analyticsGetFilterFacets: vi.fn(async () => ({ accounts: [], tags: [] })),
     analyticsGetOverviewSnapshot: vi.fn(async () => ({
       currentWindow: {
@@ -1265,14 +1267,14 @@ describe('App Accounts UX', () => {
         {
           id: 'acc-1',
           name: 'Main',
-          type: 'cash',
+          type: 'cash' as const,
           currency: 'USD',
           status: 'active',
         },
         {
           id: 'acc-archived',
           name: 'Archived wallet',
-          type: 'cash',
+          type: 'cash' as const,
           currency: 'USD',
           status: 'archived',
         },
@@ -1454,18 +1456,18 @@ describe('App Accounts UX', () => {
 
   it('refreshes the movement items action accounts after creating an account', async () => {
     const core = makeCore();
-    const accounts = [
+    const accounts: Array<{ id: string; name: string; type: LedgerAccountType; currency: string; status: string }> = [
       {
         id: 'acc-1',
         name: 'Main',
-        type: 'cash',
+        type: 'cash' as const,
         currency: 'USD',
         status: 'active',
       },
       {
         id: 'acc-2',
         name: 'Savings',
-        type: 'savings',
+        type: 'savings' as const,
         currency: 'USD',
         status: 'active',
       },
@@ -1525,14 +1527,14 @@ describe('App Accounts UX', () => {
         {
           id: 'acc-1',
           name: 'Main',
-          type: 'cash',
+          type: 'cash' as const,
           currency: 'USD',
           status: 'active',
         },
         {
           id: 'acc-old',
           name: 'Old Wallet',
-          type: 'cash',
+          type: 'cash' as const,
           currency: 'EUR',
           status: 'archived',
         },
@@ -1607,21 +1609,21 @@ describe('App Accounts UX', () => {
         {
           id: 'acc-1',
           name: 'Main',
-          type: 'cash',
+          type: 'cash' as const,
           currency: 'USD',
           status: 'active',
         },
         {
           id: 'acc-2',
           name: 'Savings',
-          type: 'savings',
+          type: 'savings' as const,
           currency: 'USD',
           status: 'active',
         },
         {
           id: 'acc-old',
           name: 'Old Wallet',
-          type: 'cash',
+          type: 'cash' as const,
           currency: 'EUR',
           status: 'archived',
         },
@@ -1644,18 +1646,18 @@ describe('App Accounts UX', () => {
 
   it('shows a restored account in the accounts rail after refresh', async () => {
     const core = makeCore();
-    const accounts = [
+    const accounts: Array<{ id: string; name: string; type: LedgerAccountType; currency: string; status: string }> = [
       {
         id: 'acc-1',
         name: 'Main',
-        type: 'cash',
+        type: 'cash' as const,
         currency: 'USD',
         status: 'active',
       },
       {
         id: 'acc-old',
         name: 'Old Wallet',
-        type: 'cash',
+        type: 'cash' as const,
         currency: 'EUR',
         status: 'archived',
       },
@@ -2275,7 +2277,7 @@ describe('App Accounts UX', () => {
     vi.mocked(core.ledgerGetAccountSummary).mockImplementation(async () => ({
       accountId: 'acc-1',
       name: 'Main',
-      type: 'cash',
+      type: 'cash' as const,
       currency: 'USD',
       balanceAmount: currentBalance,
     }));
@@ -2747,14 +2749,14 @@ describe('App Accounts UX', () => {
         {
           id: 'acc-1',
           name: 'Main USD',
-          type: 'cash',
+          type: 'cash' as const,
           currency: 'USD',
           status: 'active',
         },
         {
           id: 'acc-2',
           name: 'Savings EUR',
-          type: 'savings',
+          type: 'savings' as const,
           currency: 'EUR',
           status: 'active',
         },
@@ -2763,7 +2765,7 @@ describe('App Accounts UX', () => {
     vi.mocked(core.ledgerGetAccountSummary).mockResolvedValue({
       accountId: 'acc-1',
       name: 'Main USD',
-      type: 'cash',
+      type: 'cash' as const,
       currency: 'USD',
       balanceAmount: '100.00',
     });
@@ -2812,14 +2814,14 @@ describe('App Accounts UX', () => {
         {
           id: 'acc-1',
           name: 'Main USD',
-          type: 'cash',
+          type: 'cash' as const,
           currency: 'USD',
           status: 'active',
         },
         {
           id: 'acc-2',
           name: 'Savings EUR',
-          type: 'savings',
+          type: 'savings' as const,
           currency: 'EUR',
           status: 'active',
         },
@@ -2828,7 +2830,7 @@ describe('App Accounts UX', () => {
     vi.mocked(core.ledgerGetAccountSummary).mockResolvedValue({
       accountId: 'acc-1',
       name: 'Main USD',
-      type: 'cash',
+      type: 'cash' as const,
       currency: 'USD',
       balanceAmount: '100.00',
     });
@@ -2877,14 +2879,14 @@ describe('App Accounts UX', () => {
         {
           id: 'acc-1',
           name: 'Main USD',
-          type: 'cash',
+          type: 'cash' as const,
           currency: 'USD',
           status: 'active',
         },
         {
           id: 'acc-2',
           name: 'Savings EUR',
-          type: 'savings',
+          type: 'savings' as const,
           currency: 'EUR',
           status: 'active',
         },
@@ -2893,7 +2895,7 @@ describe('App Accounts UX', () => {
     vi.mocked(core.ledgerGetAccountSummary).mockResolvedValue({
       accountId: 'acc-1',
       name: 'Main USD',
-      type: 'cash',
+      type: 'cash' as const,
       currency: 'USD',
       balanceAmount: '100.00',
     });

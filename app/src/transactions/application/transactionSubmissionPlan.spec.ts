@@ -46,8 +46,8 @@ function baseInput() {
     },
     accountId: 'account-1',
     accounts: [
-      { id: 'account-1', name: 'Checking', type: 'cash', currency: 'USD', status: 'active' },
-      { id: 'account-2', name: 'Savings', type: 'cash', currency: 'EUR', status: 'active' },
+      { id: 'account-1', name: 'Checking', type: 'cash' as const, currency: 'USD', status: 'active' },
+      { id: 'account-2', name: 'Savings', type: 'cash' as const, currency: 'EUR', status: 'active' },
     ],
     accountCurrency: 'USD',
     composerMode: 'expense' as const,

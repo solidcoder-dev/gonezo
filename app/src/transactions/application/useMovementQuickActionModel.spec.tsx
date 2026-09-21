@@ -9,8 +9,8 @@ function makePorts(overrides: Partial<MovementQuickActionModelPorts> = {}): Move
     ledger: {
       ledgerListAccounts: vi.fn(async () => ({
         items: [
-          { id: 'acc-1', name: 'Main', type: 'cash', currency: 'USD', status: 'active' },
-          { id: 'acc-2', name: 'billetera', type: 'cash', currency: 'EUR', status: 'active' },
+          { id: 'acc-1', name: 'Main', type: 'cash' as const, currency: 'USD', status: 'active' },
+          { id: 'acc-2', name: 'billetera', type: 'cash' as const, currency: 'EUR', status: 'active' },
         ],
       })),
     },
@@ -80,8 +80,8 @@ describe('useMovementQuickActionModel', () => {
 
     resolveAccounts?.({
       items: [
-        { id: 'acc-1', name: 'Main', type: 'cash', currency: 'USD', status: 'active' },
-        { id: 'acc-2', name: 'billetera', type: 'cash', currency: 'EUR', status: 'active' },
+        { id: 'acc-1', name: 'Main', type: 'cash' as const, currency: 'USD', status: 'active' },
+        { id: 'acc-2', name: 'billetera', type: 'cash' as const, currency: 'EUR', status: 'active' },
       ],
     });
 

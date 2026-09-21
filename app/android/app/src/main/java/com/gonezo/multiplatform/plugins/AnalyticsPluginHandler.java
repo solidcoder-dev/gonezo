@@ -7,6 +7,7 @@ import com.gonezo.multiplatform.core.AndroidAnalyticsCore;
 import com.gonezo.multiplatform.core.AndroidAnalyticsQueryCore;
 import com.gonezo.application.query.AnalyticsMovementFact;
 import com.gonezo.application.query.AnalyticsMovementReference;
+import com.gonezo.application.query.AnalyticsAccountBalanceSnapshotInput;
 import java.time.Instant;
 import org.json.JSONArray;
 import java.util.HashSet;
@@ -141,6 +142,36 @@ final class AnalyticsPluginHandler {
       JSObject response = new JSObject();
       response.put("items", items);
       call.resolve(response);
+    } catch (Exception ex) {
+      call.reject(ex.getMessage());
+    }
+  }
+
+  void analyticsGetAccountBalanceSnapshot(PluginCall call) {
+    try {
+      String asOfLocalDateExclusive = call.getString("asOfLocalDateExclusive");
+      String zoneId = call.getString("zoneId");
+      if (asOfLocalDateExclusive == null || zoneId == null) {
+        call.reject("asOfLocalDateExclusive and zoneId are required");
+        return;
+      }
+      var snapshot = new com.gonezo.multiplatform.core.AndroidAnalyticsAccountBalanceQuery(context).query(
+        new AnalyticsAccountBalanceSnapshotInput(asOfLocalDateExclusive, zoneId, call.getString("currency"))
+      );
+      JSONArray items = new JSONArray();
+      for (var item : snapshot.getItems()) {
+        JSObject resultItem = new JSObject();
+        resultItem.put("accountId", item.getAccountId());
+        resultItem.put("accountType", item.getAccountType());
+        resultItem.put("currency", item.getCurrency());
+        resultItem.put("balanceAmount", item.getBalanceAmount());
+        items.put(resultItem);
+      }
+      JSObject result = new JSObject();
+      result.put("asOfLocalDateExclusive", snapshot.getAsOfLocalDateExclusive());
+      result.put("zoneId", snapshot.getZoneId());
+      result.put("items", items);
+      call.resolve(result);
     } catch (Exception ex) {
       call.reject(ex.getMessage());
     }

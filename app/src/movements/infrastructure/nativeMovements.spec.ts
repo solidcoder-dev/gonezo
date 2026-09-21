@@ -62,8 +62,8 @@ describe('nativeMovements', () => {
     const core = nativeMovementsPort({
       ledgerListAccounts: vi.fn(async () => ({
         items: [
-          { id: 'account-1', name: 'Main', type: 'cash', currency: 'USD', status: 'active' },
-          { id: 'account-2', name: 'Savings', type: 'cash', currency: 'USD', status: 'active' },
+          { id: 'account-1', name: 'Main', type: 'cash' as const, currency: 'USD', status: 'active' },
+          { id: 'account-2', name: 'Savings', type: 'cash' as const, currency: 'USD', status: 'active' },
         ],
       })),
       ledgerListTransactions: vi.fn(async (input) => ({

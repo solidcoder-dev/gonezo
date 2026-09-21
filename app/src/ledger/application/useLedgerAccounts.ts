@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { LedgerPort } from './ledger.port';
+import type { LedgerAccountType, LedgerPort } from './ledger.port';
 
 export type LedgerAccountOperationsPort = Pick<LedgerPort,
   | 'ledgerListSupportedCurrencies'
@@ -44,7 +44,7 @@ export function useLedgerAccounts(gateway: LedgerAccountOperationsPort) {
   const openAccount = useCallback(
     (input: {
       name: string;
-      type?: string;
+      type?: LedgerAccountType;
       currency: string;
       createdAt?: string;
       openingBalanceAmount?: string;

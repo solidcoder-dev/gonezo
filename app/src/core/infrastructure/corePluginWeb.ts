@@ -108,6 +108,8 @@ import type {
   AnalyticsListIgnoredMovementsResult,
   AnalyticsSetMovementIgnoredInput,
   AnalyticsListMovementFactsResult,
+  AnalyticsAccountBalanceSnapshotInput,
+  AnalyticsAccountBalanceSnapshotResult,
 } from '../../analytics/application/analytics.port';
 import type {
   SharingApplyShareToPostedMovementInput,
@@ -432,6 +434,10 @@ export class CorePluginWeb extends WebPlugin implements CorePlugin {
 
   async analyticsListMovementFacts(): Promise<AnalyticsListMovementFactsResult> {
     throw new Error('analyticsListMovementFacts is only available in the native runtime');
+  }
+
+  async analyticsGetAccountBalanceSnapshot(options: AnalyticsAccountBalanceSnapshotInput): Promise<AnalyticsAccountBalanceSnapshotResult> {
+    return this.core.analyticsGetAccountBalanceSnapshot(options);
   }
 
   async movementsGetMonthOverview(options: MovementsMonthOverviewInput): Promise<MovementsMonthOverviewResult> {

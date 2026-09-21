@@ -1,5 +1,7 @@
 import type {
   AnalyticsCashFlowSeriesInput,
+  AnalyticsAccountBalanceSnapshotInput,
+  AnalyticsAccountBalanceSnapshotResult,
   AnalyticsCurrencyScopeInput,
   AnalyticsQueryMetricsInput,
   AnalyticsQueryMetricsResult,
@@ -66,6 +68,10 @@ export class AnalyticsRuntimeAdapter {
       return Promise.reject(new Error('analyticsListMovementFacts is only available in the native runtime'));
     }
     return CorePlugin.analyticsListMovementFacts(input);
+  }
+
+  analyticsGetAccountBalanceSnapshot(input: AnalyticsAccountBalanceSnapshotInput): Promise<AnalyticsAccountBalanceSnapshotResult> {
+    return isNativeRuntime() ? CorePlugin.analyticsGetAccountBalanceSnapshot(input) : this.web.analyticsGetAccountBalanceSnapshot(input);
   }
 
   analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult> {

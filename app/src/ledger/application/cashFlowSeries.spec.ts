@@ -13,10 +13,10 @@ function transaction(input: Partial<LedgerTransactionListItem> & Pick<LedgerTran
 
 describe('buildCashFlowSeries', () => {
   const accounts = [
-    { id: 'acc-eur-1', name: 'Main', type: 'cash', currency: 'EUR', status: 'active' },
-    { id: 'acc-eur-2', name: 'Savings', type: 'cash', currency: 'EUR', status: 'active' },
-    { id: 'acc-usd', name: 'USD', type: 'cash', currency: 'USD', status: 'active' },
-    { id: 'acc-archived', name: 'Old', type: 'cash', currency: 'GBP', status: 'archived' },
+    { id: 'acc-eur-1', name: 'Main', type: 'cash' as const, currency: 'EUR', status: 'active' },
+    { id: 'acc-eur-2', name: 'Savings', type: 'cash' as const, currency: 'EUR', status: 'active' },
+    { id: 'acc-usd', name: 'USD', type: 'cash' as const, currency: 'USD', status: 'active' },
+    { id: 'acc-archived', name: 'Old', type: 'cash' as const, currency: 'GBP', status: 'archived' },
   ];
 
   it('groups posted income and expenses by selected currency without mixing other currencies', () => {

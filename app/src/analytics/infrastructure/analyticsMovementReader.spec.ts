@@ -3,7 +3,7 @@ import { listAnalyticsMovements } from './analyticsMovementReader';
 
 describe('analytics movement bridge contract', () => {
   it('derives the same merchant reference from native facts and web ledger rows', async () => {
-    const accounts = { items: [{ id: 'account', name: 'Main', type: 'cash', currency: 'EUR', status: 'active' }] };
+    const accounts = { items: [{ id: 'account', name: 'Main', type: 'cash' as const, currency: 'EUR', status: 'active' }] };
     const native = await listAnalyticsMovements({
       ledgerListAccounts: vi.fn(async () => accounts),
       ledgerListTransactions: vi.fn(),
@@ -61,7 +61,7 @@ describe('analytics movement bridge contract', () => {
       }],
     }));
     const port = {
-      ledgerListAccounts: vi.fn(async () => ({ items: [{ id: '00000000-0000-4000-8000-000000000003', name: 'Main', type: 'cash', currency: 'EUR', status: 'active' }] })),
+      ledgerListAccounts: vi.fn(async () => ({ items: [{ id: '00000000-0000-4000-8000-000000000003', name: 'Main', type: 'cash' as const, currency: 'EUR', status: 'active' }] })),
       ledgerListTransactions: vi.fn(),
       sharingListMovementDetails: vi.fn(),
       analyticsListMovementFacts,
@@ -137,8 +137,8 @@ describe('analytics movement bridge contract', () => {
     }));
     const port = {
       ledgerListAccounts: vi.fn(async () => ({ items: [
-        { id: 'account-eur', name: 'EUR', type: 'cash', currency: 'EUR', status: 'active' },
-        { id: 'account-usd', name: 'USD', type: 'cash', currency: 'USD', status: 'active' },
+        { id: 'account-eur', name: 'EUR', type: 'cash' as const, currency: 'EUR', status: 'active' },
+        { id: 'account-usd', name: 'USD', type: 'cash' as const, currency: 'USD', status: 'active' },
       ] })),
       ledgerListTransactions: vi.fn(),
       sharingListMovementDetails: vi.fn(),
