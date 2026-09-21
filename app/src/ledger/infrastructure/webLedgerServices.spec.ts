@@ -72,7 +72,7 @@ describe('web ledger focused services', () => {
 
     await expect(accounts.getAccountSummary({ accountId: account.id })).resolves.toMatchObject({ balanceAmount: '8.00' });
     await expect(accounts.getAccountSummary({ accountId: zero.id })).resolves.toMatchObject({ balanceAmount: '0.00' });
-    expect(state.ledgerTransactions.find((transaction) => transaction.description === 'Opening balance')).toMatchObject({ type: 'income', status: 'posted', amount: '10' });
+    expect(state.ledgerTransactions.find((transaction) => transaction.description === 'Opening balance')).toMatchObject({ type: 'income', status: 'posted', amount: '10.00' });
   });
 
   it('compose through shared state without depending on WebLedgerService', async () => {

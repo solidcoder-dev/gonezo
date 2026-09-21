@@ -88,6 +88,7 @@ export class WebLedgerAccountService {
     }
     const openingBalanceRaw = input.openingBalanceAmount?.trim();
     const openingBalance = ExactDecimal.from(openingBalanceRaw || '0');
+    const openingBalanceScale = openingBalanceRaw?.split('.')[1]?.length ?? 0;
     const type = normalizeAccountType(input.type);
 
     this.state.ledgerAccounts.push({
@@ -100,8 +101,8 @@ export class WebLedgerAccountService {
     });
     if (openingBalance.compare(ExactDecimal.from('0')) !== 0) {
       const openingBalanceAmount = openingBalance.compare(ExactDecimal.from('0')) < 0
-        ? openingBalance.multiplyByInteger(-1).toString()
-        : openingBalance.toString();
+        ? openingBalance.multiplyByInteger(-1).toFixed(openingBalanceScale)
+        : openingBalance.toFixed(openingBalanceScale);
       this.state.ledgerTransactions.push({
         id: this.nextId(),
         accountId: id,
