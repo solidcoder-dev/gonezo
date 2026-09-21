@@ -271,6 +271,36 @@ class AnalyticsMovementFactsTest {
     }
 
     @Test
+    fun `tag lifecycle baseline retains posted ids but planned analytics only accepts resolved ids`() {
+        val assignedTagIds = setOf("tag-manual", "tag-second")
+        val posted = AnalyticsPostedMovement(
+            id = "manual-posted", effectiveAt = effectiveAt, accountId = "account",
+            type = AnalyticsMovementType.EXPENSE, currency = currency,
+            personalAmount = Money.of(BigDecimal("10.00"), "EUR"),
+            fullAmount = Money.of(BigDecimal("10.00"), "EUR"), tagIds = assignedTagIds,
+        )
+        val expected = AnalyticsExpectedMovement(
+            id = "planned-expected", effectiveAt = effectiveAt, accountId = "account",
+            type = AnalyticsMovementType.EXPENSE, currency = currency,
+            personalAmount = Money.of(BigDecimal("10.00"), "EUR"),
+            fullAmount = Money.of(BigDecimal("10.00"), "EUR"), pending = true,
+            tagIds = emptySet(),
+        )
+        val scheduled = AnalyticsScheduledProjection(
+            identity = AnalyticsMovementIdentity.occurrence("planned-occurrence"), effectiveAt = effectiveAt,
+            accountId = "account", type = AnalyticsMovementType.EXPENSE, currency = currency,
+            personalAmount = expected.personalAmount, fullAmount = expected.fullAmount,
+            tagIds = emptySet(),
+        )
+
+        val facts = AnalyticsMovementFactAssembler().assemble(listOf(posted), listOf(expected), listOf(scheduled), true)
+
+        assertThat(facts.single { it.source == AnalyticsMovementSource.POSTED }.tagIds).containsExactlyInAnyOrderElementsOf(assignedTagIds)
+        assertThat(facts.single { it.source == AnalyticsMovementSource.EXPECTED }.tagIds).isEmpty()
+        assertThat(facts.single { it.source == AnalyticsMovementSource.SCHEDULED_PROJECTION }.tagIds).isEmpty()
+    }
+
+    @Test
     fun `one occurrence identity replaces scheduled expected with posted`() {
         val occurrenceId = "occurrence-transition"
         val movement = AnalyticsExpectedMovement(
