@@ -46,6 +46,9 @@ export type { RecurringContribution, RecurringContributionBucket, RecurringCurre
 export { createRecurringFact } from '../domain/recurringFact';
 export type { RecurringFact, RecurringFactKind, RecurringFactSource } from '../domain/recurringFact';
 export type { RecurringFactSourcePort, RecurringFactQuery } from './recurringFactSource.port';
+export type { SubscriptionCandidateUsageFactSourcePort, SubscriptionCandidateUsageFactQuery } from './subscriptionCandidateUsageFactSource.port';
+export { createSubscriptionCandidateUsageFact } from '../domain/subscriptionCandidateUsageFact';
+export type { SubscriptionCandidateUsageFact, SubscriptionCandidateUsageSource, SubscriptionCandidateUsageStatus } from '../domain/subscriptionCandidateUsageFact';
 export { createMacroMerchantCode, UNMAPPED_MACRO_MERCHANT_CODE } from '../domain/macroMerchantCode';
 export type { MacroMerchantCode } from '../domain/macroMerchantCode';
 export type { CanonicalMerchantResolverPort } from './canonicalMerchantResolver.port';
