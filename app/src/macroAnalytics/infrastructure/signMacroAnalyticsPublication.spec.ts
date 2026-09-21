@@ -11,6 +11,7 @@ import { serializeMacroAnalyticsPublicationV2 } from './MacroAnalyticsPublicatio
 import { serializeMacroAnalyticsPublicationV4 } from './MacroAnalyticsPublicationWireV4';
 import { serializeMacroAnalyticsPublicationV5 } from './MacroAnalyticsPublicationWireV5';
 import { serializeMacroAnalyticsPublicationV6 } from './MacroAnalyticsPublicationWireV6';
+import { serializeMacroAnalyticsPublicationV7 } from './MacroAnalyticsPublicationWireV7';
 
 const contributorId = createAnalyticsContributorId('opaque-random-id');
 const publication = createMacroAnalyticsPublication({
@@ -142,6 +143,25 @@ describe('macro analytics publication signing', () => {
     expect(signed.payload).toBe(serializeMacroAnalyticsPublicationV6(v6));
     expect(signed.payload).toContain('"protocolVersion":6');
     expect(signed.payload).toContain('"balanceAmount":"-250.50"');
+    expect(signingIdentity.sign).toHaveBeenCalledWith(contributorId, new TextEncoder().encode(signed.payload));
+  });
+
+  it('signs exact V7 bytes with privacy-reduced tag usage counts', async () => {
+    const period = createAnalyticsPeriod('2026-09');
+    const v7 = createMacroAnalyticsPublication({ contributorId, period, revision: 4, contribution: {
+      schemaVersion: 7, period, dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE', ageBand: '25_34' },
+      financial: { currencies: [] }, categories: { currencies: [] }, recurring: { currencies: [] }, sharing: { currencies: [] },
+      merchants: { catalogVersion: 1, currencies: [] }, balances: { currencies: [] },
+      tagUsage: { currencies: [{ currency: 'EUR', buckets: [{ source: 'POSTED', kind: 'EXPENSE', amount: '10', movementCount: 2, taggedAmount: '4', taggedMovementCount: 1 }] }] },
+    } });
+    const signingIdentity = {
+      getOrCreateCredential: vi.fn(async () => ({ contributorId, keyId: 'v7-key', algorithm: 'ECDSA_P256_SHA256' as const, publicKey: 'public' })),
+      sign: vi.fn(async () => 'signature'),
+    };
+    const signed = await signMacroAnalyticsPublication(v7, signingIdentity);
+    expect(signed.payload).toBe(serializeMacroAnalyticsPublicationV7(v7));
+    expect(signed.payload).toContain('"protocolVersion":7');
+    expect(signed.payload).not.toMatch(/tagId|tagKey|tagName|displayName|normalizedName|hash/i);
     expect(signingIdentity.sign).toHaveBeenCalledWith(contributorId, new TextEncoder().encode(signed.payload));
   });
 

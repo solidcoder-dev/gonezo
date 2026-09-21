@@ -1,5 +1,5 @@
 import { canContribute } from '../domain/analyticsContributionConsent';
-import { aggregateFinancialFacts, financialContributionAmount } from '../domain/financialContribution';
+import { aggregateFinancialFacts, financialContributionAmount, type FinancialContribution } from '../domain/financialContribution';
 import { aggregateCategoryFacts } from '../domain/categoryContribution';
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import { deriveContributionDimensions } from '../domain/contributionDimensions';
@@ -19,6 +19,9 @@ import type { MerchantFactSourcePort } from './merchantFactSource.port';
 import { MACRO_MERCHANT_CATALOG_VERSION } from '../domain/macroMerchantCatalogVersion';
 import { aggregateAccountBalanceFacts } from '../domain/accountBalanceContribution';
 import type { AccountBalanceFactSourcePort } from './accountBalanceFactSource.port';
+import { aggregateTagUsageFacts } from '../domain/tagUsageContribution';
+import type { TagUsageFactSourcePort } from './tagUsageFactSource.port';
+import type { TagUsageContribution } from '../domain/tagUsageContribution';
 
 export type BuildMacroAnalyticsContributionPorts = Readonly<{
   consent: Pick<AnalyticsContributionConsentPort, 'get'>;
@@ -29,6 +32,7 @@ export type BuildMacroAnalyticsContributionPorts = Readonly<{
   sharingFacts: SharingFactSourcePort;
   merchantFacts: MerchantFactSourcePort;
   accountBalanceFacts: AccountBalanceFactSourcePort;
+  tagUsageFacts: TagUsageFactSourcePort;
 }>;
 
 export type BuildMacroAnalyticsContributionInput = Readonly<{
@@ -60,16 +64,19 @@ export async function buildMacroAnalyticsContribution(
   const sharingFacts = await ports.sharingFacts.listSharingFacts({ period, timeZone: input.timeZone });
   const merchantFacts = await ports.merchantFacts.listMerchantFacts({ period, timeZone: input.timeZone });
   const balanceFacts = await ports.accountBalanceFacts.listAccountBalanceFacts({ period, timeZone: input.timeZone });
+  const tagUsageFacts = await ports.tagUsageFacts.listTagUsageFacts({ period, timeZone: input.timeZone });
   const financial = aggregateFinancialFacts(facts);
   const categories = aggregateCategoryFacts(categoryFacts);
   const recurring = aggregateRecurringFacts(recurringFacts);
   const sharing = aggregateSharingFacts(sharingFacts);
   const merchants = aggregateMerchantFacts(merchantFacts, MACRO_MERCHANT_CATALOG_VERSION);
   const balances = aggregateAccountBalanceFacts(balanceFacts, period);
+  const tagUsage = aggregateTagUsageFacts(tagUsageFacts);
   assertCategoryTotalsReconcile(financial, categories);
   assertRecurringTotalsDoNotExceedFinancial(financial, recurring);
   assertSharingPersonalTotalsDoNotExceedFinancial(financial, sharing);
   assertMerchantTotalsDoNotExceedFinancial(financial, merchants);
+  assertTagUsageReconcilesWithFinancial(financial, tagUsage);
   const contribution: MacroAnalyticsContribution = Object.freeze({
     schemaVersion: MACRO_ANALYTICS_SCHEMA_VERSION,
     period,
@@ -80,8 +87,28 @@ export async function buildMacroAnalyticsContribution(
     sharing,
     merchants,
     balances,
+    tagUsage,
   });
   return { status: 'BUILT', contribution };
+}
+
+function assertTagUsageReconcilesWithFinancial(financial: FinancialContribution, tagUsage: TagUsageContribution): void {
+  for (const { currency, buckets } of tagUsage.currencies) for (const bucket of buckets) {
+    const financialBucket = financial.currencies.find((entry) => entry.currency === currency)
+      ?.buckets.find((entry) => entry.source === bucket.source && entry.kind === bucket.kind);
+    if (ExactDecimal.from(bucket.amount).compare(ExactDecimal.from(financialContributionAmount(financial, currency, bucket.source, bucket.kind))) !== 0) {
+      throw new Error(`Tag usage contribution does not reconcile with financial contribution for ${currency}:${bucket.source}:${bucket.kind}`);
+    }
+    if (bucket.movementCount < (financialBucket?.count ?? 0)) {
+      throw new Error(`Tag usage movement count is below financial contribution for ${currency}:${bucket.source}:${bucket.kind}`);
+    }
+  }
+  for (const { currency, buckets } of financial.currencies) for (const bucket of buckets) {
+    if ((bucket.kind !== 'INCOME' && bucket.kind !== 'EXPENSE') || ExactDecimal.from(bucket.amount).compare(ExactDecimal.from('0')) <= 0) continue;
+    const tagUsageBucket = tagUsage.currencies.find((entry) => entry.currency === currency)
+      ?.buckets.find((entry) => entry.source === bucket.source && entry.kind === bucket.kind);
+    if (!tagUsageBucket) throw new Error(`Financial contribution is missing from tag usage for ${currency}:${bucket.source}:${bucket.kind}`);
+  }
 }
 
 function assertMerchantTotalsDoNotExceedFinancial(

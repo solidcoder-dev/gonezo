@@ -20,6 +20,7 @@ import { canonicalMerchantCatalog } from './canonicalMerchantCatalog';
 import { createCanonicalMerchantResolver } from './canonicalMerchantResolver';
 import { createAnalyticsMerchantFactSource } from './analyticsMerchantFactSource';
 import { createAnalyticsAccountBalanceFactSource } from './analyticsAccountBalanceFactSource';
+import { createAnalyticsTagUsageFactSource } from './analyticsTagUsageFactSource';
 
 const runner = new SerializedMacroAnalyticsMaintenanceRunner();
 const consent = new NativeAnalyticsContributionConsentAdapter();
@@ -30,6 +31,7 @@ const sharingFacts = createAnalyticsSharingFactSource(CorePlugin);
 const merchantResolver = createCanonicalMerchantResolver(canonicalMerchantCatalog);
 const merchantFacts = createAnalyticsMerchantFactSource(CorePlugin, merchantResolver);
 const accountBalanceFacts = createAnalyticsAccountBalanceFactSource(CorePlugin);
+const tagUsageFacts = createAnalyticsTagUsageFactSource(CorePlugin);
 const identity = new NativeAnalyticsContributorIdentityAdapter();
 const outbox = new NativeMacroAnalyticsOutboxAdapter();
 const latest = new NativeLatestMacroAnalyticsPublicationAdapter();
@@ -48,7 +50,7 @@ export function runDefaultMacroAnalyticsMaintenance(userId: string, analyticsPro
       outbox,
       processor,
       prepare: (input) => prepareMacroAnalyticsPublication({
-        contribution: { consent, profile: createAnalyticsProfileContributionAdapter(analyticsProfile), financialFacts, categoryFacts, recurringFacts, sharingFacts, merchantFacts, accountBalanceFacts }, identity,
+          contribution: { consent, profile: createAnalyticsProfileContributionAdapter(analyticsProfile), financialFacts, categoryFacts, recurringFacts, sharingFacts, merchantFacts, accountBalanceFacts, tagUsageFacts }, identity,
         generateContributorId: generateAnalyticsContributorId,
         outbox,
         latest,

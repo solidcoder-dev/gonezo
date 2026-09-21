@@ -155,7 +155,7 @@ describe('CoreAdapter financial invalidation boundary', () => {
     expect(observer.currentPeriodChanged).not.toHaveBeenCalled();
   });
 
-  it('keeps tag assignment and rename out of V6 invalidation while User Analytics reads current taxonomy', async () => {
+  it('invalidates after movement tag assignment but not rename or item tag assignment', async () => {
     vi.spyOn(CoreAdapterWeb.prototype, 'orchestrationApplyTransactionTags').mockResolvedValue({ status: 'assigned', tagIds: ['tag'] });
     vi.spyOn(CoreAdapterWeb.prototype, 'orchestrationApplyTransactionItemTags').mockResolvedValue({ status: 'assigned', tagIds: ['tag'] });
     vi.spyOn(CoreAdapterWeb.prototype, 'taxonomyRenameTag').mockResolvedValue();
@@ -171,10 +171,34 @@ describe('CoreAdapter financial invalidation boundary', () => {
     await adapter.orchestrationApplyTransactionItemTags({ transactionItemId: 'item', tagNames: ['Travel'] });
     await adapter.taxonomyRenameTag({ tagId: 'tag', name: 'Trips' });
 
-    expect(observer.allPeriodsChanged).not.toHaveBeenCalled();
+    expect(observer.allPeriodsChanged).toHaveBeenCalledTimes(1);
     expect(observer.periodAndFollowingChanged).not.toHaveBeenCalled();
     expect(observer.periodChanged).not.toHaveBeenCalled();
     expect(observer.currentPeriodChanged).not.toHaveBeenCalled();
+  });
+
+  it('does not invalidate when movement tag assignment fails', async () => {
+    vi.spyOn(CoreAdapterWeb.prototype, 'orchestrationApplyTransactionTags').mockResolvedValue({ status: 'failed', errorCode: 'ASSIGNMENT_FAILED' });
+    const observer: FinancialDataChangeObserver = {
+      periodChanged: vi.fn(async () => {}), periodAndFollowingChanged: vi.fn(async () => {}),
+      currentPeriodChanged: vi.fn(async () => {}), allPeriodsChanged: vi.fn(async () => {}),
+    };
+    const adapter = new CoreAdapter(observer);
+
+    await expect(adapter.orchestrationApplyTransactionTags({ transactionId: 'posted', tagNames: ['Travel'] })).resolves.toMatchObject({ status: 'failed' });
+    expect(observer.allPeriodsChanged).not.toHaveBeenCalled();
+  });
+
+  it('keeps successful tag assignment when the invalidation observer fails', async () => {
+    vi.spyOn(CoreAdapterWeb.prototype, 'orchestrationApplyTransactionTags').mockResolvedValue({ status: 'assigned', tagIds: ['tag'] });
+    const observer: FinancialDataChangeObserver = {
+      periodChanged: vi.fn(async () => {}), periodAndFollowingChanged: vi.fn(async () => {}),
+      currentPeriodChanged: vi.fn(async () => {}), allPeriodsChanged: vi.fn(async () => { throw new Error('observer failed'); }),
+    };
+    const adapter = new CoreAdapter(observer);
+
+    await expect(adapter.orchestrationApplyTransactionTags({ transactionId: 'posted', tagNames: ['Travel'] })).resolves.toMatchObject({ status: 'assigned' });
+    expect(observer.allPeriodsChanged).toHaveBeenCalledTimes(1);
   });
 
   it('invalidates the current period after scheduled materialization processes expected and posted occurrences', async () => {

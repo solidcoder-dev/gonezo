@@ -1,0 +1,17 @@
+{
+  "protocolVersion": 7,
+  "contributorId": "opaque-random-id",
+  "period": "2026-09",
+  "revision": 1,
+  "contribution": {
+    "schemaVersion": 7,
+    "dimensions": { "countryCode": "ES", "regionCode": "ES-CN", "sex": "FEMALE", "ageBand": "25_34" },
+    "financial": { "currencies": [{ "currency": "EUR", "buckets": [{ "source": "POSTED", "kind": "EXPENSE", "amount": "100", "count": 1 }] }] },
+    "categories": { "currencies": [] },
+    "recurring": { "currencies": [] },
+    "sharing": { "currencies": [] },
+    "merchants": { "catalogVersion": 1, "currencies": [] },
+    "balances": { "currencies": [] },
+    "tagUsage": { "currencies": [{ "currency": "EUR", "buckets": [{ "source": "POSTED", "kind": "EXPENSE", "amount": "100", "movementCount": 1, "taggedAmount": "50", "taggedMovementCount": 1 }] }] }
+  }
+}

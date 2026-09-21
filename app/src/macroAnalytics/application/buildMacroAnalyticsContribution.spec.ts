@@ -14,6 +14,8 @@ import type { SharingFactSourcePort } from './sharingFactSource.port';
 import { createSharingFact } from '../domain/sharingFact';
 import type { MerchantFactSourcePort } from './merchantFactSource.port';
 import type { AccountBalanceFactSourcePort } from './accountBalanceFactSource.port';
+import type { TagUsageFactSourcePort } from './tagUsageFactSource.port';
+import { createTagUsageFact } from '../domain/tagUsageFact';
 
 const profile: ContributionProfile = { birthYear: 1995, sex: 'female', countryCode: 'ES', regionCode: 'ES-CN' };
 const granted = createAnalyticsContributionConsent({ userId: 'private-user-id', status: 'GRANTED', noticeVersion: 1, decidedAt: '2026-09-18T10:00:00Z' });
@@ -37,7 +39,11 @@ function sources(consent: AnalyticsContributionConsent | null = granted, contrib
   const sharingFacts: SharingFactSourcePort = { listSharingFacts: vi.fn(async () => []) };
   const merchantFacts: MerchantFactSourcePort = { listMerchantFacts: vi.fn(async () => []) };
   const accountBalanceFacts: AccountBalanceFactSourcePort = { listAccountBalanceFacts: vi.fn(async () => []) };
-  return { consent: consentSource, profile: profileSource, financialFacts: factSource, categoryFacts, recurringFacts, sharingFacts, merchantFacts, accountBalanceFacts, profileSource, factSource };
+  const tagUsageFacts: TagUsageFactSourcePort = { listTagUsageFacts: vi.fn(async () => facts.flatMap((item) => item.kind === 'INCOME' || item.kind === 'EXPENSE' ? [createTagUsageFact({
+    id: `${item.id}/tag-usage`, occurredAt: item.occurredAt, source: item.source, kind: item.kind,
+    currency: item.currency, amount: String(item.amount), tagCount: 0,
+  })] : [])) };
+  return { consent: consentSource, profile: profileSource, financialFacts: factSource, categoryFacts, recurringFacts, sharingFacts, merchantFacts, accountBalanceFacts, tagUsageFacts, profileSource, factSource };
 }
 
 describe('buildMacroAnalyticsContribution', () => {
@@ -68,7 +74,7 @@ describe('buildMacroAnalyticsContribution', () => {
     const ports = sources(granted, profile, []);
     const result = await buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
     expect(result).toEqual({ status: 'BUILT', contribution: {
-      schemaVersion: 6,
+      schemaVersion: 7,
       period: { kind: 'YEAR_MONTH', value: '2026-09' },
       dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE', ageBand: '25_34' },
       financial: { currencies: [] },
@@ -77,6 +83,7 @@ describe('buildMacroAnalyticsContribution', () => {
       sharing: { currencies: [] },
       merchants: { catalogVersion: 1, currencies: [] },
       balances: { currencies: [] },
+      tagUsage: { currencies: [] },
     } });
     expect(JSON.stringify(result)).not.toMatch(/private-user-id|private-fact-id|birthYear|occurredAt|accountId|movementId|completedAt|updatedAt/);
     expect(ports.financialFacts.listFinancialFacts).toHaveBeenCalledWith({ period: { kind: 'YEAR_MONTH', value: '2026-09' }, timeZone: 'Europe/Madrid' });
@@ -124,12 +131,45 @@ describe('buildMacroAnalyticsContribution', () => {
       .rejects.toThrow('Category contribution does not reconcile');
   });
 
+  it('reconciles tag usage amounts and requires every positive financial economic bucket', async () => {
+    const ports = sources();
+    vi.mocked(ports.tagUsageFacts.listTagUsageFacts).mockResolvedValue([{
+      id: 'tag-usage', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0.09', tagCount: 1,
+    }]);
+    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
+      .rejects.toThrow('Tag usage contribution does not reconcile');
+
+    vi.mocked(ports.tagUsageFacts.listTagUsageFacts).mockResolvedValue([]);
+    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
+      .rejects.toThrow('Financial contribution is missing from tag usage');
+  });
+
+  it('allows extra zero-personal tag usage movements and empty financial buckets', async () => {
+    const ports = sources(granted, profile, []);
+    vi.mocked(ports.tagUsageFacts.listTagUsageFacts).mockResolvedValue([{
+      id: 'zero-personal-tag-usage', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0', tagCount: 1,
+    }]);
+    const result = await buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
+    expect(result).toMatchObject({ status: 'BUILT', contribution: { financial: { currencies: [] }, tagUsage: { currencies: [{ buckets: [{ amount: '0', movementCount: 1, taggedMovementCount: 1 }] }] } } });
+  });
+
+  it('allows tag usage movement counts above financial counts when amounts reconcile', async () => {
+    const ports = sources();
+    vi.mocked(ports.tagUsageFacts.listTagUsageFacts).mockResolvedValue([
+      { id: 'one', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0.04', tagCount: 0 },
+      { id: 'two', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0.06', tagCount: 0 },
+    ]);
+
+    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
+      .resolves.toMatchObject({ status: 'BUILT', contribution: { tagUsage: { currencies: [{ buckets: [{ amount: '0.1', movementCount: 2 }] }] } } });
+  });
+
   it('includes sharing contribution and rejects personal sharing above financial totals', async () => {
     const ports = sources();
     const sharingFact = createSharingFact({ id: 'sharing-private-id', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', fullAmount: '0.10', personalAmount: '0.08', participantAllocatedAmount: '0.02', settlementRequiredAmount: '0.02', participantCount: 1, settlementParticipantCount: 1 });
     vi.mocked(ports.sharingFacts.listSharingFacts).mockResolvedValue([sharingFact]);
     const result = await buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
-    expect(result.status === 'BUILT' && result.contribution.schemaVersion === 6 && result.contribution.sharing.currencies[0].buckets[0])
+    expect(result.status === 'BUILT' && result.contribution.schemaVersion === 7 && result.contribution.sharing.currencies[0].buckets[0])
       .toMatchObject({ personalAmount: '0.08', movementCount: 1, participantCount: 1 });
 
     vi.mocked(ports.sharingFacts.listSharingFacts).mockResolvedValue([createSharingFact({ ...sharingFact, personalAmount: '0.11', fullAmount: '0.12', participantAllocatedAmount: '0.01', settlementRequiredAmount: '0.01' })]);
@@ -148,7 +188,7 @@ describe('buildMacroAnalyticsContribution', () => {
       id: 'opaque-merchant-fact', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0.10', merchant: 'UNMAPPED' as never,
     }]);
     const result = await buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
-    expect(result.status === 'BUILT' && result.contribution.schemaVersion === 6 && result.contribution.merchants)
+    expect(result.status === 'BUILT' && result.contribution.schemaVersion === 7 && result.contribution.merchants)
       .toMatchObject({ catalogVersion: 1, currencies: [{ buckets: [{ merchant: 'UNMAPPED', amount: '0.1', movementCount: 1 }] }] });
     vi.mocked(ports.merchantFacts.listMerchantFacts).mockResolvedValue([{ id: 'opaque-merchant-fact', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0.11', merchant: 'UNMAPPED' as never }]);
     await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))

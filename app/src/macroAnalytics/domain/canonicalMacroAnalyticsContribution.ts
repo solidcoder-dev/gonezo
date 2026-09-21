@@ -1,5 +1,5 @@
 import type { MacroAnalyticsContribution } from './macroAnalyticsContribution';
-import { hasCategoryContribution, hasRecurringContribution, hasSharingContribution, hasMerchantContribution, hasBalanceContribution } from './contributionCapabilities';
+import { hasCategoryContribution, hasRecurringContribution, hasSharingContribution, hasMerchantContribution, hasBalanceContribution, hasTagUsageContribution } from './contributionCapabilities';
 import { MACRO_ACCOUNT_TYPE_ORDER } from './accountBalanceContribution';
 
 function compareCanonicalText(left: string, right: string): number {
@@ -88,12 +88,24 @@ export function canonicalMacroAnalyticsContribution(contribution: MacroAnalytics
     },
   };
   if (!hasBalanceContribution(contribution)) return JSON.stringify(withMerchants);
-  return JSON.stringify({
+  const withBalances = {
     ...withMerchants,
     balances: {
       currencies: [...contribution.balances.currencies].sort((left, right) => compareCanonicalText(left.currency, right.currency)).map(({ currency, buckets }) => ({
         currency,
         buckets: [...buckets].sort((left, right) => MACRO_ACCOUNT_TYPE_ORDER.indexOf(left.accountType) - MACRO_ACCOUNT_TYPE_ORDER.indexOf(right.accountType)).map(({ accountType, balanceAmount, accountCount }) => ({ accountType, balanceAmount, accountCount })),
+      })),
+    },
+  };
+  if (!hasTagUsageContribution(contribution)) return JSON.stringify(withBalances);
+  return JSON.stringify({
+    ...withBalances,
+    tagUsage: {
+      currencies: [...contribution.tagUsage.currencies].sort((left, right) => compareCanonicalText(left.currency, right.currency)).map(({ currency, buckets }) => ({
+        currency,
+        buckets: [...buckets].sort((left, right) => compareCanonicalText(left.source, right.source) || compareCanonicalText(left.kind, right.kind)).map(({ source, kind, amount, movementCount, taggedAmount, taggedMovementCount }) => ({
+          source, kind, amount, movementCount, taggedAmount, taggedMovementCount,
+        })),
       })),
     },
   });

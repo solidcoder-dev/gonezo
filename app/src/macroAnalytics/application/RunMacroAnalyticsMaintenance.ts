@@ -9,7 +9,7 @@ import type { MacroAnalyticsOutboxPort } from './macroAnalyticsOutbox.port';
 import type { MacroAnalyticsPublicationProcessorPort } from './macroAnalyticsPublicationProcessor.port';
 import type { PrepareMacroAnalyticsPublicationInput, PrepareMacroAnalyticsPublicationResult } from './prepareMacroAnalyticsPublication';
 
-export const INITIAL_CONTRIBUTION_BACKFILL_VERSION = 6;
+export const INITIAL_CONTRIBUTION_BACKFILL_VERSION = 7;
 
 export type MacroAnalyticsMaintenanceResult = Readonly<{
   status: 'COMPLETED' | 'CONSENT_NOT_GRANTED';

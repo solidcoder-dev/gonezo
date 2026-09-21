@@ -123,7 +123,12 @@ export class CoreAdapter implements CorePort {
   taxonomyListTags = this.taxonomy.taxonomyListTags.bind(this.taxonomy);
   taxonomyRenameTag = this.taxonomy.taxonomyRenameTag.bind(this.taxonomy);
   orchestrationCategorizeTransaction = this.taxonomy.orchestrationCategorizeTransaction.bind(this.taxonomy);
-  orchestrationApplyTransactionTags = this.taxonomy.orchestrationApplyTransactionTags.bind(this.taxonomy);
+  orchestrationApplyTransactionTags(input: Parameters<TaxonomyRuntimeAdapter['orchestrationApplyTransactionTags']>[0]) {
+    return this.taxonomy.orchestrationApplyTransactionTags(input).then(async (result) => {
+      if (result.status !== 'failed') await this.financialChanges.allPeriodsChanged().catch(() => undefined);
+      return result;
+    });
+  }
   orchestrationApplyTransactionItemTags = this.taxonomy.orchestrationApplyTransactionItemTags.bind(this.taxonomy);
   orchestrationListTransactionTaxonomy = this.taxonomy.orchestrationListTransactionTaxonomy.bind(this.taxonomy);
 

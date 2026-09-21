@@ -4,7 +4,7 @@ import com.gonezo.macroanalytics.ingestion.application.MacroAnalyticsPublication
 import com.gonezo.macroanalytics.ingestion.domain.ValidatedMacroAnalyticsPublication
 import org.json.JSONObject
 
-class MacroAnalyticsPublicationProtocolDispatcher(private val v1: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV1Parser(), private val v2: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV2Parser(), private val v3: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV3Parser(), private val v4: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV4Parser(), private val v5: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV5Parser(), private val v6: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV6Parser()) : MacroAnalyticsPublicationPayloadParser {
+class MacroAnalyticsPublicationProtocolDispatcher(private val v1: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV1Parser(), private val v2: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV2Parser(), private val v3: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV3Parser(), private val v4: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV4Parser(), private val v5: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV5Parser(), private val v6: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV6Parser(), private val v7: MacroAnalyticsPublicationPayloadParser = MacroAnalyticsPublicationWireV7Parser()) : MacroAnalyticsPublicationPayloadParser {
     override fun parse(json: String): ValidatedMacroAnalyticsPublication {
         val protocolVersion = (JSONObject(json).get("protocolVersion") as? Number)?.toInt()
             ?: error("protocolVersion must be an integer")
@@ -15,6 +15,7 @@ class MacroAnalyticsPublicationProtocolDispatcher(private val v1: MacroAnalytics
             4 -> v4.parse(json)
             5 -> v5.parse(json)
             6 -> v6.parse(json)
+            7 -> v7.parse(json)
             else -> throw UnsupportedProtocolVersion(protocolVersion)
         }
     }

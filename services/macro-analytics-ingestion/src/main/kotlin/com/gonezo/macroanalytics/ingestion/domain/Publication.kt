@@ -56,7 +56,13 @@ data class BalanceCurrency(val currency: String, val buckets: List<BalanceBucket
 
 data class BalanceContribution(val currencies: List<BalanceCurrency>)
 
-data class MacroAnalyticsContribution(val schemaVersion: SchemaVersion, val dimensions: ContributionDimensions, val financial: FinancialContribution, val categories: CategoryContribution? = null, val recurring: RecurringContribution? = null, val sharing: SharingContribution? = null, val merchants: MerchantContribution? = null, val balances: BalanceContribution? = null)
+data class TagUsageBucket(val source: String, val kind: String, val amount: String, val movementCount: Int, val taggedAmount: String, val taggedMovementCount: Int)
+
+data class TagUsageCurrency(val currency: String, val buckets: List<TagUsageBucket>)
+
+data class TagUsageContribution(val currencies: List<TagUsageCurrency>)
+
+data class MacroAnalyticsContribution(val schemaVersion: SchemaVersion, val dimensions: ContributionDimensions, val financial: FinancialContribution, val categories: CategoryContribution? = null, val recurring: RecurringContribution? = null, val sharing: SharingContribution? = null, val merchants: MerchantContribution? = null, val balances: BalanceContribution? = null, val tagUsage: TagUsageContribution? = null)
 
 data class ValidatedMacroAnalyticsPublication(val protocolVersion: ProtocolVersion, val contributorId: ContributorId, val period: AnalyticsPeriod, val revision: PublicationRevision, val contribution: MacroAnalyticsContribution) {
     fun canonicalJson(): String = buildString {
@@ -142,6 +148,20 @@ data class ValidatedMacroAnalyticsPublication(val protocolVersion: ProtocolVersi
                     "{\"currency\":${JSONObject.quote(currency.currency)},\"buckets\":[" +
                         currency.buckets.sortedBy { ACCOUNT_TYPES.indexOf(it.accountType) }.joinToString(",") { bucket ->
                             "{\"accountType\":${JSONObject.quote(bucket.accountType)},\"balanceAmount\":${JSONObject.quote(bucket.balanceAmount)},\"accountCount\":${bucket.accountCount}}"
+                        } + "]}"
+                },
+            )
+            append("]}")
+        }
+        if (contribution.schemaVersion.value >= 7) {
+            append(",\"tagUsage\":{\"currencies\":[")
+            append(
+                contribution.tagUsage?.currencies.orEmpty().sortedBy { it.currency }.joinToString(",") { currency ->
+                    "{\"currency\":${JSONObject.quote(currency.currency)},\"buckets\":[" +
+                        currency.buckets.sortedWith(compareBy<TagUsageBucket> { it.source }.thenBy { it.kind }).joinToString(",") { bucket ->
+                            "{\"source\":${JSONObject.quote(bucket.source)},\"kind\":${JSONObject.quote(bucket.kind)}," +
+                                "\"amount\":${JSONObject.quote(bucket.amount)},\"movementCount\":${bucket.movementCount}," +
+                                "\"taggedAmount\":${JSONObject.quote(bucket.taggedAmount)},\"taggedMovementCount\":${bucket.taggedMovementCount}}"
                         } + "]}"
                 },
             )

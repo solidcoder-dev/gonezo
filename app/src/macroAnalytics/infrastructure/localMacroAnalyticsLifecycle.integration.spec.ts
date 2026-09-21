@@ -17,16 +17,20 @@ import { GetMacroOverviewReport } from '../application/GetMacroOverviewReport';
 import { GetMacroCategoryReport } from '../application/GetMacroCategoryReport';
 import { GetMacroRecurringReport } from '../application/GetMacroRecurringReport';
 import { GetMacroMerchantReport } from '../application/GetMacroMerchantReport';
+import { GetMacroTagUsageReport } from '../application/GetMacroTagUsageReport';
 import type { ProcessedContributionSourcePort } from '../application/ProcessedContributionSourcePort';
 import { contributorFinancialMetricDefinitions, contributorFinancialMetricCalculators } from '../application/contributorFinancialMetrics';
 import { cohortFinancialMetricCalculators } from '../application/cohortFinancialMetrics';
 import { contributorRecurringMetricCalculators } from '../application/contributorRecurringMetrics';
+import { contributorTagUsageMetricCalculators } from '../application/contributorTagUsageMetrics';
+import { cohortTagUsageMetricCalculators } from '../application/cohortTagUsageMetrics';
 import { cohortRecurringMetricCalculators } from '../application/cohortRecurringMetrics';
-import { serializeMacroAnalyticsPublicationV6 } from './MacroAnalyticsPublicationWireV6';
+import { serializeMacroAnalyticsPublicationV7 } from './MacroAnalyticsPublicationWireV7';
 import { createAnalyticsRecurringFactSource } from './analyticsRecurringFactSource';
 import { createAnalyticsMerchantFactSource } from './analyticsMerchantFactSource';
 import { createCanonicalMerchantResolver } from './canonicalMerchantResolver';
 import { canonicalMerchantCatalog } from './canonicalMerchantCatalog';
+import { createAnalyticsTagUsageFactSource } from './analyticsTagUsageFactSource';
 import { LocalMacroAnalyticsPublicationProcessor } from '../application/LocalMacroAnalyticsPublicationProcessor';
 import { RunMacroAnalyticsMaintenance } from '../application/RunMacroAnalyticsMaintenance';
 import { prepareMacroAnalyticsPublication } from '../application/prepareMacroAnalyticsPublication';
@@ -54,7 +58,7 @@ describe('local Macro Analytics lifecycle integration', () => {
       ignored: false,
       categoryAllocations: [],
       tagIds: [],
-      tags: [],
+      tags: [{ key: 'tag:private-id', displayName: 'Private Tag Name' }],
       merchant: { key: 'mercadona', displayName: 'Private Merchant Name' },
     };
     const scheduledOccurrence: AnalyticsMovementFactItem = {
@@ -92,7 +96,12 @@ describe('local Macro Analytics lifecycle integration', () => {
     const sharingFacts: SharingFactSourcePort = { listSharingFacts: vi.fn(async () => []) };
     const merchantFacts = createAnalyticsMerchantFactSource({ analyticsListMovementFacts: vi.fn(async () => ({ items: [{ ...postedMerchantMovement, personalAmount: merchantAmount, fullAmount: merchantAmount }] })) }, createCanonicalMerchantResolver(canonicalMerchantCatalog));
     const accountBalanceFacts = { listAccountBalanceFacts: vi.fn(async () => []) };
-    const contributionPorts = { consent, profile, financialFacts, categoryFacts, recurringFacts: recurringFactSource, sharingFacts, merchantFacts, accountBalanceFacts };
+    const tagUsageFacts = createAnalyticsTagUsageFactSource({
+      analyticsListMovementFacts: vi.fn(async () => ({ items: [
+        { ...postedMerchantMovement, personalAmount: merchantAmount, fullAmount: merchantAmount }, scheduledOccurrence,
+      ] })),
+    });
+    const contributionPorts = { consent, profile, financialFacts, categoryFacts, recurringFacts: recurringFactSource, sharingFacts, merchantFacts, accountBalanceFacts, tagUsageFacts };
     const identity = new InMemoryAnalyticsContributorIdentityAdapter();
     const outbox = new InMemoryMacroAnalyticsOutboxAdapter();
     const latest = new Map<string, MacroAnalyticsPublication>();
@@ -113,6 +122,7 @@ describe('local Macro Analytics lifecycle integration', () => {
     const categoryReport = new GetMacroCategoryReport(processed);
     const recurringReport = new GetMacroRecurringReport(processed, new CalculateContributorMetrics(contributorRecurringMetricCalculators), new CalculateCohortMetrics(cohortRecurringMetricCalculators));
     const merchantReport = new GetMacroMerchantReport(processed);
+    const tagUsageReport = new GetMacroTagUsageReport(processed, new CalculateContributorMetrics(contributorTagUsageMetricCalculators), new CalculateCohortMetrics(cohortTagUsageMetricCalculators));
 
     const maintain = () => RunMacroAnalyticsMaintenance({
       consent,
@@ -152,8 +162,9 @@ describe('local Macro Analytics lifecycle integration', () => {
     await maintain();
     const current = [...latest.values()][0];
     expect(current.revision).toBe(2);
-    const currentWire = serializeMacroAnalyticsPublicationV6(current);
-    expect(currentWire).toContain('"protocolVersion":6');
+    const currentWire = serializeMacroAnalyticsPublicationV7(current);
+    expect(currentWire).toContain('"protocolVersion":7');
+    expect(currentWire).not.toMatch(/tagId|tagKey|tagName|displayName|normalizedName|hash|private-id|Private Tag/i);
     expect(currentWire).toContain('"source":"SCHEDULED","kind":"EXPENSE","amount":"5","occurrenceCount":1,"seriesCount":1');
     expect(currentWire).not.toMatch(/private-series|private-occurrence/);
     expect(currentWire).not.toMatch(/mercadona|Private Merchant Name|private-account|private-transaction/);
@@ -162,7 +173,10 @@ describe('local Macro Analytics lifecycle integration', () => {
     expect(updatedReport.medianPostedExpense?.kind === 'MONEY' && updatedReport.medianPostedExpense.value.toString()).toBe('18');
     const updatedCategoryReport = await categoryReport.execute({ period, currency: 'GBP', cohort });
     expect(updatedCategoryReport.postedExpenseCategories.map(({ totalAmount }) => totalAmount.value.toString())).toEqual(['9', '9']);
-    expect(current.contribution.schemaVersion).toBe(6);
+    expect(current.contribution.schemaVersion).toBe(7);
+    const currentTagUsageReport = await tagUsageReport.execute({ period, currency: 'GBP', cohort });
+    expect(currentTagUsageReport).toMatchObject({ eligibleContributorCount: 1, taggedPostedExpenseContributorPercent: { kind: 'RATIO' } });
+    expect(currentTagUsageReport.medianTaggedPostedExpense?.kind === 'MONEY' && currentTagUsageReport.medianTaggedPostedExpense.value.toString()).toBe('18');
     const updatedMerchantReport = await merchantReport.execute({ period, currency: 'GBP', cohort });
     expect(updatedMerchantReport.postedExpenseMerchants).toMatchObject([{ merchant: 'MERCADONA', totalAmount: '18', movementCount: 1, activeContributorCount: 1 }]);
     const currentRecurringReport = await recurringReport.execute({ period, currency: 'GBP', cohort });

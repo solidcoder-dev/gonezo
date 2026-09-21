@@ -69,7 +69,7 @@ describe('RunMacroAnalyticsMaintenance', () => {
     const result = await RunMacroAnalyticsMaintenance(state.ports, input);
     expect(state.prepare.mock.calls.map(([value]) => value.period)).toEqual(['2025-11', '2025-12', '2026-01']);
     expect(result).toMatchObject({ status: 'COMPLETED', rebuiltPeriods: ['2025-11', '2025-12', '2026-01'], pendingPeriods: [] });
-    expect(state.state.markInitialBackfillComplete).toHaveBeenCalledWith('u', 6);
+    expect(state.state.markInitialBackfillComplete).toHaveBeenCalledWith('u', 7);
     expect(state.ports.periodSource.listPeriods).toHaveBeenCalledTimes(1);
   });
 
@@ -95,21 +95,21 @@ describe('RunMacroAnalyticsMaintenance', () => {
     await RunMacroAnalyticsMaintenance(state.ports, input);
     await RunMacroAnalyticsMaintenance(state.ports, input);
     expect(state.ports.periodSource.listPeriods).toHaveBeenCalledTimes(1);
-    expect(state.state.markInitialBackfillComplete).toHaveBeenCalledWith('u', 6);
+    expect(state.state.markInitialBackfillComplete).toHaveBeenCalledWith('u', 7);
     expect(state.prepare.mock.calls.map(([value]) => value.period)).toEqual(['2025-11', '2026-01', '2026-01']);
   });
 
-  it('runs the V4 to V5 historical backfill once and advances the stored version', async () => {
-    const state = setup({ periods: ['2025-11'], backfillVersion: 4 });
+  it('runs the V6 to V7 historical backfill once and advances the stored version', async () => {
+    const state = setup({ periods: ['2025-11'], backfillVersion: 6 });
     await RunMacroAnalyticsMaintenance(state.ports, input);
     await RunMacroAnalyticsMaintenance(state.ports, input);
     expect(state.state.markInitialBackfillComplete).toHaveBeenCalledTimes(1);
-    expect(state.state.markInitialBackfillComplete).toHaveBeenCalledWith('u', 6);
+    expect(state.state.markInitialBackfillComplete).toHaveBeenCalledWith('u', 7);
     expect(state.prepare.mock.calls.map(([value]) => value.period)).toEqual(['2025-11', '2026-01', '2026-01']);
   });
 
-  it('does not repeat historical migration after version 6 is recorded', async () => {
-    const state = setup({ periods: ['2025-11'], backfillVersion: 6 });
+  it('does not repeat historical migration after version 7 is recorded', async () => {
+    const state = setup({ periods: ['2025-11'], backfillVersion: 7 });
     await RunMacroAnalyticsMaintenance(state.ports, input);
     expect(state.ports.periodSource.listPeriods).not.toHaveBeenCalled();
     expect(state.state.markInitialBackfillComplete).not.toHaveBeenCalled();

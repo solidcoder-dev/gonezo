@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gonezo.example/contracts/macro-analytics/publication-v7.schema.json",
+  "title": "Gonezo Macro Analytics publication V7",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocolVersion", "contributorId", "period", "revision", "contribution"],
+  "properties": {
+    "protocolVersion": { "const": 7 },
+    "contributorId": { "type": "string", "minLength": 1, "pattern": "\\S" },
+    "period": { "type": "string", "pattern": "^(?!0000-)[0-9]{4}-(0[1-9]|1[0-2])$" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "contribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "dimensions", "financial", "categories", "recurring", "sharing", "merchants", "balances", "tagUsage"],
+      "properties": {
+        "schemaVersion": { "const": 7 },
+        "dimensions": { "$ref": "publication-v1.schema.json#/properties/contribution/properties/dimensions" },
+        "financial": { "$ref": "publication-v1.schema.json#/properties/contribution/properties/financial" },
+        "categories": { "$ref": "publication-v2.schema.json#/properties/contribution/properties/categories" },
+        "recurring": { "$ref": "publication-v3.schema.json#/properties/contribution/properties/recurring" },
+        "sharing": { "$ref": "publication-v6.schema.json#/properties/contribution/properties/sharing" },
+        "merchants": { "$ref": "publication-v6.schema.json#/properties/contribution/properties/merchants" },
+        "balances": { "$ref": "publication-v6.schema.json#/properties/contribution/properties/balances" },
+        "tagUsage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["currencies"],
+          "properties": {
+            "currencies": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["currency", "buckets"],
+                "properties": {
+                  "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+                  "buckets": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["source", "kind", "amount", "movementCount", "taggedAmount", "taggedMovementCount"],
+                      "properties": {
+                        "source": { "enum": ["POSTED", "EXPECTED", "SCHEDULED"] },
+                        "kind": { "enum": ["INCOME", "EXPENSE"] },
+                        "amount": { "$ref": "publication-v1.schema.json#/properties/contribution/properties/financial/properties/currencies/items/properties/buckets/items/properties/amount" },
+                        "movementCount": { "type": "integer", "minimum": 1 },
+                        "taggedAmount": { "$ref": "publication-v1.schema.json#/properties/contribution/properties/financial/properties/currencies/items/properties/buckets/items/properties/amount" },
+                        "taggedMovementCount": { "type": "integer", "minimum": 0 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

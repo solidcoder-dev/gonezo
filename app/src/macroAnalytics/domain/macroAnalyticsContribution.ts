@@ -8,6 +8,7 @@ import type { RecurringContribution } from './recurringContribution';
 import type { SharingContribution } from './sharingContribution';
 import type { MerchantContribution } from './merchantContribution';
 import type { AccountBalanceContribution } from './accountBalanceContribution';
+import type { TagUsageContribution } from './tagUsageContribution';
 
 type ContributionBase = Readonly<{
   period: AnalyticsPeriod;
@@ -46,4 +47,13 @@ export type MacroAnalyticsContributionV6 = ContributionBase & Readonly<{
   merchants: MerchantContribution;
   balances: AccountBalanceContribution;
 }>;
-export type MacroAnalyticsContribution = MacroAnalyticsContributionV1 | MacroAnalyticsContributionV2 | MacroAnalyticsContributionV3 | MacroAnalyticsContributionV4 | MacroAnalyticsContributionV5 | MacroAnalyticsContributionV6;
+export type MacroAnalyticsContributionV7 = ContributionBase & Readonly<{
+  schemaVersion: 7;
+  categories: CategoryContribution;
+  recurring: RecurringContribution;
+  sharing: SharingContribution;
+  merchants: MerchantContribution;
+  balances: AccountBalanceContribution;
+  tagUsage: TagUsageContribution;
+}>;
+export type MacroAnalyticsContribution = MacroAnalyticsContributionV1 | MacroAnalyticsContributionV2 | MacroAnalyticsContributionV3 | MacroAnalyticsContributionV4 | MacroAnalyticsContributionV5 | MacroAnalyticsContributionV6 | MacroAnalyticsContributionV7;
