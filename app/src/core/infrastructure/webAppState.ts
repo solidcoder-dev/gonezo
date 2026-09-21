@@ -1,11 +1,12 @@
 import type { RecurrenceMovementItem } from '../../scheduling/application/scheduling.port';
 import type { ExpectedMovementItem } from '../../expected/application/expected.port';
 import type { PortablePlannedExpenseShare, PortableRecurringSharingPlan } from '../../imports/application/imports.port';
+import type { LedgerAccountType } from '../../ledger/application/ledger.port';
 
 export type WebLedgerAccount = {
   id: string;
   name: string;
-  type: string;
+  type: LedgerAccountType;
   currency: string;
   status: 'active' | 'archived';
   createdAt: string;

@@ -10,6 +10,7 @@ import type {
   LedgerRenameAccountInput,
   LedgerRestoreAccountInput,
 } from '../application/ledger.port';
+import type { LedgerAccountType } from '../application/ledger.port';
 import type { WebRuntimeDependencies } from '../../core/infrastructure/webRuntimeDependencies';
 import {
   calculateWebAccountNet,
@@ -88,11 +89,12 @@ export class WebLedgerAccountService {
     if (Number.isNaN(openingBalance)) {
       throw new Error('opening balance must be a valid number');
     }
+    const type = normalizeAccountType(input.type);
 
     this.state.ledgerAccounts.push({
       id,
       name,
-      type: (input.type ?? 'cash').toLowerCase(),
+      type,
       currency,
       status: 'active',
       createdAt: input.createdAt ?? this.nowIso(),
@@ -189,4 +191,12 @@ export class WebLedgerAccountService {
       balanceAmount: calculateWebAccountNet(this.state, account.id).toFixed(2),
     };
   }
+}
+
+function normalizeAccountType(type: string | undefined): LedgerAccountType {
+  const normalized = (type ?? 'cash').toLowerCase();
+  if (['bank', 'cash', 'card', 'wallet', 'savings', 'other'].includes(normalized)) {
+    return normalized as LedgerAccountType;
+  }
+  throw new Error(`Unsupported account type: ${type}`);
 }

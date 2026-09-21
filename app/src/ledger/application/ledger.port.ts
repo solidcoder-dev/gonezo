@@ -1,6 +1,8 @@
+export type LedgerAccountType = 'bank' | 'cash' | 'card' | 'wallet' | 'savings' | 'other';
+
 export type LedgerOpenAccountInput = {
   name: string;
-  type?: string;
+  type?: LedgerAccountType;
   currency: string;
   createdAt?: string;
   openingBalanceAmount?: string;
@@ -31,7 +33,7 @@ export type LedgerDeleteAccountInput = {
 export type LedgerAccountItem = {
   id: string;
   name: string;
-  type: string;
+  type: LedgerAccountType;
   currency: string;
   status: string;
 };
@@ -51,7 +53,7 @@ export type LedgerGetAccountSummaryInput = {
 export type LedgerGetAccountSummaryResult = {
   accountId: string;
   name: string;
-  type: string;
+  type: LedgerAccountType;
   currency: string;
   balanceAmount: string;
 };

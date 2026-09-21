@@ -24,6 +24,18 @@ function createDependencies(): WebRuntimeDependencies {
 }
 
 describe('web ledger focused services', () => {
+  it('normalizes all canonical account types and rejects unsupported values', async () => {
+    const state = createWebAppState();
+    const accounts = new WebLedgerAccountService({ state, dependencies: createDependencies() });
+    for (const type of ['bank', 'cash', 'card', 'wallet', 'savings', 'other'] as const) {
+      const account = await accounts.openAccount({ name: type, type, currency: 'EUR' });
+      expect(state.ledgerAccounts.find((item) => item.id === account.id)?.type).toBe(type);
+    }
+    const normalized = await accounts.openAccount({ name: 'Uppercase bank', type: 'BANK' as 'bank', currency: 'EUR' });
+    expect(state.ledgerAccounts.find((item) => item.id === normalized.id)?.type).toBe('bank');
+    await expect(accounts.openAccount({ name: 'Unsupported', type: 'crypto' as 'other', currency: 'EUR' })).rejects.toThrow('Unsupported account type');
+  });
+
   it('characterizes posted balance signs, opening balance transactions, and archived accounts', async () => {
     const state = createWebAppState();
     const dependencies = createDependencies();
