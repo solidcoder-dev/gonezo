@@ -24,6 +24,21 @@ export class NativeFinancialDataChangeObserver implements FinancialDataChangeObs
     this.scheduleMaintenance(userId);
   }
 
+  async periodAndFollowingChanged(effectiveAt: string): Promise<void> {
+    const userId = await this.currentUserId();
+    if (!userId) return;
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const changedPeriod = analyticsPeriodForInstant(effectiveAt, timeZone);
+    const currentPeriod = analyticsPeriodForInstant(new Date().toISOString(), timeZone);
+    await this.queue.enqueue(userId, changedPeriod);
+    if (changedPeriod.value <= currentPeriod.value) {
+      for (let period = nextPeriod(changedPeriod); period.value <= currentPeriod.value; period = nextPeriod(period)) {
+        await this.queue.enqueue(userId, period);
+      }
+    }
+    this.scheduleMaintenance(userId);
+  }
+
   async currentPeriodChanged(): Promise<void> {
     const userId = await this.currentUserId();
     if (!userId) return;
@@ -42,4 +57,11 @@ export class NativeFinancialDataChangeObserver implements FinancialDataChangeObs
   private scheduleMaintenance(userId: string): void {
     void this.runMaintenance(userId).catch(() => {});
   }
+}
+
+function nextPeriod(period: ReturnType<typeof analyticsPeriodForInstant>): ReturnType<typeof analyticsPeriodForInstant> {
+  const [year, month] = period.value.split('-').map(Number);
+  const date = new Date(0);
+  date.setUTCFullYear(year, month, 1);
+  return analyticsPeriodForInstant(date.toISOString().slice(0, 10), 'UTC');
 }

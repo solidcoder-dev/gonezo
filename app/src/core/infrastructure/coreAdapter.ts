@@ -30,6 +30,7 @@ export class CoreAdapter implements CorePort {
   constructor(financialChanges?: FinancialDataChangeObserver) {
     this.financialChanges = financialChanges ?? {
       periodChanged: async () => {},
+      periodAndFollowingChanged: async () => {},
       currentPeriodChanged: async () => {},
       allPeriodsChanged: async () => {},
     };
@@ -43,7 +44,7 @@ export class CoreAdapter implements CorePort {
   ledgerOpenAccount(input: Parameters<LedgerRuntimeAdapter['ledgerOpenAccount']>[0]) {
     return this.afterMutation(
       () => this.ledger.ledgerOpenAccount(input),
-      () => input.openingBalanceAmount ? this.financialChanges.periodChanged(input.createdAt ?? new Date().toISOString()) : Promise.resolve(),
+      () => this.financialChanges.periodAndFollowingChanged(input.createdAt ?? new Date().toISOString()),
     );
   }
   ledgerListSupportedCurrencies = this.ledger.ledgerListSupportedCurrencies.bind(this.ledger);
@@ -56,16 +57,16 @@ export class CoreAdapter implements CorePort {
   ledgerGetNetWorthByCurrency = this.ledger.ledgerGetNetWorthByCurrency.bind(this.ledger);
   ledgerGetCashFlowSeries = this.ledger.ledgerGetCashFlowSeries.bind(this.ledger);
   ledgerRecordExpense(input: Parameters<LedgerRuntimeAdapter['ledgerRecordExpense']>[0]) {
-    return this.afterMutation(() => this.ledger.ledgerRecordExpense(input), () => this.financialChanges.periodChanged(input.occurredAt));
+    return this.afterMutation(() => this.ledger.ledgerRecordExpense(input), () => this.financialChanges.periodAndFollowingChanged(input.occurredAt));
   }
   ledgerRecordIncome(input: Parameters<LedgerRuntimeAdapter['ledgerRecordIncome']>[0]) {
-    return this.afterMutation(() => this.ledger.ledgerRecordIncome(input), () => this.financialChanges.periodChanged(input.occurredAt));
+    return this.afterMutation(() => this.ledger.ledgerRecordIncome(input), () => this.financialChanges.periodAndFollowingChanged(input.occurredAt));
   }
   ledgerRecordTransfer(input: Parameters<LedgerRuntimeAdapter['ledgerRecordTransfer']>[0]) {
-    return this.afterMutation(() => this.ledger.ledgerRecordTransfer(input), () => this.financialChanges.periodChanged(input.occurredAt));
+    return this.afterMutation(() => this.ledger.ledgerRecordTransfer(input), () => this.financialChanges.periodAndFollowingChanged(input.occurredAt));
   }
   ledgerRecordTransferFx(input: Parameters<LedgerRuntimeAdapter['ledgerRecordTransferFx']>[0]) {
-    return this.afterMutation(() => this.ledger.ledgerRecordTransferFx(input), () => this.financialChanges.periodChanged(input.occurredAt));
+    return this.afterMutation(() => this.ledger.ledgerRecordTransferFx(input), () => this.financialChanges.periodAndFollowingChanged(input.occurredAt));
   }
   ledgerCreateExpenseDraft = this.ledger.ledgerCreateExpenseDraft.bind(this.ledger);
   ledgerAddTransactionItem = this.ledger.ledgerAddTransactionItem.bind(this.ledger);

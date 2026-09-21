@@ -10,6 +10,7 @@ describe('CoreAdapter financial invalidation boundary', () => {
     const record = vi.spyOn(CoreAdapterWeb.prototype, 'ledgerRecordExpense').mockResolvedValue({ id: 'transaction' });
     const observer: FinancialDataChangeObserver = {
       periodChanged: vi.fn(async () => {}),
+      periodAndFollowingChanged: vi.fn(async () => {}),
       currentPeriodChanged: vi.fn(async () => {}),
       allPeriodsChanged: vi.fn(async () => {}),
     };
@@ -19,13 +20,14 @@ describe('CoreAdapter financial invalidation boundary', () => {
     await expect(adapter.ledgerRecordExpense(input)).resolves.toEqual({ id: 'transaction' });
 
     expect(record).toHaveBeenCalledWith(input);
-    expect(observer.periodChanged).toHaveBeenCalledWith(input.occurredAt);
+    expect(observer.periodAndFollowingChanged).toHaveBeenCalledWith(input.occurredAt);
   });
 
   it('invalidates all financial periods after successful account deletion', async () => {
     const deletion = vi.spyOn(CoreAdapterWeb.prototype, 'ledgerDeleteAccount').mockResolvedValue();
     const observer: FinancialDataChangeObserver = {
       periodChanged: vi.fn(async () => {}),
+      periodAndFollowingChanged: vi.fn(async () => {}),
       currentPeriodChanged: vi.fn(async () => {}),
       allPeriodsChanged: vi.fn(async () => {}),
     };
@@ -42,6 +44,7 @@ describe('CoreAdapter financial invalidation boundary', () => {
     vi.spyOn(CoreAdapterWeb.prototype, 'ledgerDeleteAccount').mockResolvedValue();
     const observer: FinancialDataChangeObserver = {
       periodChanged: vi.fn(async () => {}),
+      periodAndFollowingChanged: vi.fn(async () => {}),
       currentPeriodChanged: vi.fn(async () => {}),
       allPeriodsChanged: vi.fn(async () => { throw new Error('storage unavailable'); }),
     };
@@ -54,6 +57,7 @@ describe('CoreAdapter financial invalidation boundary', () => {
     vi.spyOn(CoreAdapterWeb.prototype, 'ledgerRecordExpense').mockRejectedValue(new Error('mutation failed'));
     const observer: FinancialDataChangeObserver = {
       periodChanged: vi.fn(async () => {}),
+      periodAndFollowingChanged: vi.fn(async () => {}),
       currentPeriodChanged: vi.fn(async () => {}),
       allPeriodsChanged: vi.fn(async () => {}),
     };
@@ -62,13 +66,15 @@ describe('CoreAdapter financial invalidation boundary', () => {
     await expect(adapter.ledgerRecordExpense({ accountId: 'account', occurredAt: '2025-04-03T11:00:00Z', amount: '20', currency: 'GBP' }))
       .rejects.toThrow('mutation failed');
 
+    expect(observer.periodAndFollowingChanged).not.toHaveBeenCalled();
     expect(observer.periodChanged).not.toHaveBeenCalled();
   });
 
   it('keeps financial success when optional rebuild persistence fails', async () => {
     vi.spyOn(CoreAdapterWeb.prototype, 'ledgerRecordExpense').mockResolvedValue({ id: 'transaction' });
     const observer: FinancialDataChangeObserver = {
-      periodChanged: vi.fn(async () => { throw new Error('storage unavailable'); }),
+      periodChanged: vi.fn(async () => {}),
+      periodAndFollowingChanged: vi.fn(async () => { throw new Error('storage unavailable'); }),
       currentPeriodChanged: vi.fn(async () => {}),
       allPeriodsChanged: vi.fn(async () => {}),
     };
@@ -82,6 +88,7 @@ describe('CoreAdapter financial invalidation boundary', () => {
     const replace = vi.spyOn(CoreAdapterWeb.prototype, 'ledgerReplacePostedTransactionItems').mockResolvedValue();
     const observer: FinancialDataChangeObserver = {
       periodChanged: vi.fn(async () => {}),
+      periodAndFollowingChanged: vi.fn(async () => {}),
       currentPeriodChanged: vi.fn(async () => {}),
       allPeriodsChanged: vi.fn(async () => {}),
     };
@@ -100,6 +107,7 @@ describe('CoreAdapter financial invalidation boundary', () => {
     vi.spyOn(CoreAdapterWeb.prototype, 'sharingRemoveMovementShare').mockResolvedValue();
     const observer: FinancialDataChangeObserver = {
       periodChanged: vi.fn(async () => {}),
+      periodAndFollowingChanged: vi.fn(async () => {}),
       currentPeriodChanged: vi.fn(async () => {}),
       allPeriodsChanged: vi.fn(async () => {}),
     };
@@ -116,6 +124,7 @@ describe('CoreAdapter financial invalidation boundary', () => {
     vi.spyOn(CoreAdapterWeb.prototype, 'sharingRenamePerson').mockResolvedValue();
     const observer: FinancialDataChangeObserver = {
       periodChanged: vi.fn(async () => {}),
+      periodAndFollowingChanged: vi.fn(async () => {}),
       currentPeriodChanged: vi.fn(async () => {}),
       allPeriodsChanged: vi.fn(async () => {}),
     };
@@ -124,6 +133,7 @@ describe('CoreAdapter financial invalidation boundary', () => {
     await adapter.sharingRenamePerson({ personId: 'person', displayName: 'New name' });
 
     expect(observer.allPeriodsChanged).not.toHaveBeenCalled();
+    expect(observer.periodAndFollowingChanged).not.toHaveBeenCalled();
     expect(observer.periodChanged).not.toHaveBeenCalled();
     expect(observer.currentPeriodChanged).not.toHaveBeenCalled();
   });
@@ -138,6 +148,7 @@ describe('CoreAdapter financial invalidation boundary', () => {
     });
     const observer: FinancialDataChangeObserver = {
       periodChanged: vi.fn(async () => {}),
+      periodAndFollowingChanged: vi.fn(async () => {}),
       currentPeriodChanged: vi.fn(async () => {}),
       allPeriodsChanged: vi.fn(async () => {}),
     };
