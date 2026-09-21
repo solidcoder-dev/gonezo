@@ -1,4 +1,6 @@
 import type { MacroAnalyticsContribution, MacroAnalyticsContributionV2, MacroAnalyticsContributionV3, MacroAnalyticsContributionV4, MacroAnalyticsContributionV5, MacroAnalyticsContributionV6, MacroAnalyticsContributionV7 } from './macroAnalyticsContribution';
+import type { TagUsageContributionBucket } from './tagUsageContribution';
+import type { TagUsageFactKind, TagUsageFactSource } from './tagUsageFact';
 
 export function hasCategoryContribution(contribution: MacroAnalyticsContribution): contribution is MacroAnalyticsContributionV2 | MacroAnalyticsContributionV3 | MacroAnalyticsContributionV4 | MacroAnalyticsContributionV5 | MacroAnalyticsContributionV6 | MacroAnalyticsContributionV7 {
   return contribution.schemaVersion >= 2;
@@ -22,4 +24,17 @@ export function hasBalanceContribution(contribution: MacroAnalyticsContribution)
 
 export function hasTagUsageContribution(contribution: MacroAnalyticsContribution): contribution is MacroAnalyticsContributionV7 {
   return contribution.schemaVersion >= 7;
+}
+
+export function findTagUsageMovementBucket(
+  contribution: MacroAnalyticsContribution,
+  currency: string,
+  source: TagUsageFactSource,
+  kind: TagUsageFactKind,
+): TagUsageContributionBucket | null {
+  if (!hasTagUsageContribution(contribution)) return null;
+  const normalizedCurrency = currency.trim().toUpperCase();
+  const bucket = contribution.tagUsage.currencies.find((entry) => entry.currency === normalizedCurrency)
+    ?.buckets.find((entry) => entry.source === source && entry.kind === kind);
+  return bucket && bucket.movementCount > 0 ? bucket : null;
 }

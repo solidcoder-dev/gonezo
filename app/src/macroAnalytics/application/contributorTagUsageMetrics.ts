@@ -1,7 +1,7 @@
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import { createMetricDefinition, MetricId, MetricKey, MetricVersion, moneyMetricValue, ratioMetricValue, type MetricDefinition } from '../../shared/domain/analyticsMetric';
 import type { ContributorMetricCalculator } from '../domain/contributorMetric';
-import { hasTagUsageContribution } from '../domain/contributionCapabilities';
+import { findTagUsageMovementBucket } from '../domain/contributionCapabilities';
 import type { MacroAnalyticsContribution } from '../domain/macroAnalyticsContribution';
 
 function definition(key: string, kind: MetricDefinition['valueKind']): MetricDefinition {
@@ -13,10 +13,7 @@ export const taggedPostedExpenseSharePercent = definition('tagged_posted_expense
 export const taggedPostedExpenseMovementPercent = definition('tagged_posted_expense_movement_percent', 'RATIO');
 
 function postedExpenseBucket(contribution: MacroAnalyticsContribution, currency?: string) {
-  if (!hasTagUsageContribution(contribution) || !currency) return null;
-  const normalizedCurrency = currency.trim().toUpperCase();
-  return contribution.tagUsage.currencies.find(({ currency: code }) => code === normalizedCurrency)
-    ?.buckets.find(({ source, kind }) => source === 'POSTED' && kind === 'EXPENSE') ?? null;
+  return currency ? findTagUsageMovementBucket(contribution, currency, 'POSTED', 'EXPENSE') : null;
 }
 
 const totalCalculator: ContributorMetricCalculator = Object.freeze({

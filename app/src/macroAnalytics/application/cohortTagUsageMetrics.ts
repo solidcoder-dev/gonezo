@@ -2,7 +2,7 @@ import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import { createMetricDefinition, MetricId, MetricKey, MetricVersion, moneyMetricValue, ratioMetricValue, type MetricDefinition } from '../../shared/domain/analyticsMetric';
 import type { CohortMetricCalculator } from '../domain/cohortMetric';
 import { exactMedian } from '../domain/decimalStatistics';
-import { hasTagUsageContribution } from '../domain/contributionCapabilities';
+import { findTagUsageMovementBucket } from '../domain/contributionCapabilities';
 import { contributorTagUsageMetricDefinitions } from './contributorTagUsageMetrics';
 
 function definition(key: string, kind: MetricDefinition['valueKind']): MetricDefinition {
@@ -35,10 +35,8 @@ const adoptionCalculator: CohortMetricCalculator = Object.freeze({
   definition: taggedPostedExpenseContributorPercent,
   calculate({ contributions, currency }) {
     const eligible = contributions.flatMap((contribution) => {
-      if (!hasTagUsageContribution(contribution)) return [];
-      const bucket = contribution.tagUsage.currencies.find((entry) => entry.currency === currency)
-        ?.buckets.find((entry) => entry.source === 'POSTED' && entry.kind === 'EXPENSE');
-      return bucket && bucket.movementCount > 0 ? [bucket] : [];
+      const bucket = findTagUsageMovementBucket(contribution, currency, 'POSTED', 'EXPENSE');
+      return bucket ? [bucket] : [];
     });
     if (eligible.length === 0) return null;
     const activeCount = eligible.filter(({ taggedMovementCount }) => taggedMovementCount > 0).length;
