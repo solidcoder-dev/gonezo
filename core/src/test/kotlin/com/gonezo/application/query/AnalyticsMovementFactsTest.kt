@@ -198,6 +198,33 @@ class AnalyticsMovementFactsTest {
     }
 
     @Test
+    fun `selected historical occurrence keeps its cadence after the current plan changes`() {
+        val identity = AnalyticsMovementIdentity.occurrence("edited-plan-occurrence")
+        val historical = AnalyticsSchedulingOrigin(
+            SchedulingKind.RECURRING, "series", "edited-plan-occurrence", AnalyticsRecurrenceCadence("monthly", 1),
+        )
+        val currentProjection = AnalyticsScheduledProjection(
+            identity, effectiveAt, "account", AnalyticsMovementType.EXPENSE, currency,
+            Money.of(BigDecimal("10.00"), "EUR"), Money.of(BigDecimal("10.00"), "EUR"),
+            originOccurrenceId = "edited-plan-occurrence",
+            schedulingOrigin = AnalyticsSchedulingOrigin(
+                SchedulingKind.RECURRING, "series", "edited-plan-occurrence", AnalyticsRecurrenceCadence("yearly", 1),
+            ),
+        )
+        val posted = AnalyticsPostedMovement(
+            "posted", effectiveAt, "account", AnalyticsMovementType.EXPENSE, currency,
+            Money.of(BigDecimal("10.00"), "EUR"), Money.of(BigDecimal("10.00"), "EUR"),
+            occurrenceIdentity = identity, schedulingOrigin = historical,
+        )
+        val assembler = AnalyticsMovementFactAssembler()
+
+        assertThat(assembler.assemble(emptyList(), emptyList(), listOf(currentProjection), true).single().schedulingOrigin?.cadence)
+            .isEqualTo(AnalyticsRecurrenceCadence("yearly", 1))
+        assertThat(assembler.assemble(listOf(posted), emptyList(), listOf(currentProjection), true).single().schedulingOrigin?.cadence)
+            .isEqualTo(AnalyticsRecurrenceCadence("monthly", 1))
+    }
+
+    @Test
     fun `different occurrences and series are retained`() {
         val facts = listOf(
             fact(AnalyticsMovementIdentity.scheduled("series-a", 1), AnalyticsMovementSource.SCHEDULED_PROJECTION),
