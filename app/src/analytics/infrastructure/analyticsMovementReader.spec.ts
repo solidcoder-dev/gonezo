@@ -2,6 +2,32 @@ import { describe, expect, it, vi } from 'vitest';
 import { listAnalyticsMovements } from './analyticsMovementReader';
 
 describe('analytics movement bridge contract', () => {
+  it('derives the same merchant reference from native facts and web ledger rows', async () => {
+    const accounts = { items: [{ id: 'account', name: 'Main', type: 'cash', currency: 'EUR', status: 'active' }] };
+    const native = await listAnalyticsMovements({
+      ledgerListAccounts: vi.fn(async () => accounts),
+      ledgerListTransactions: vi.fn(),
+      sharingListMovementDetails: vi.fn(),
+      analyticsListMovementFacts: vi.fn(async () => ({ items: [{
+        analyticsFactId: 'posted/native', reference: { source: 'posted' as const, transactionId: 'native' },
+        source: 'POSTED' as const, effectiveAt: '2026-07-01T00:00:00Z', accountId: 'account', type: 'expense' as const,
+        currency: 'EUR', personalAmount: '10.00', fullAmount: '10.00', ignored: false,
+        categoryAllocations: [], tagIds: [], merchant: { key: 'el nino', displayName: 'El Niño' },
+      }] })),
+    }, { filters: { fromDate: '2026-07-01', toDate: '2026-07-31' } });
+    const web = await listAnalyticsMovements({
+      ledgerListAccounts: vi.fn(async () => accounts),
+      ledgerListTransactions: vi.fn(async () => ({ content: [{
+        id: 'web', accountId: 'account', type: 'expense' as const, status: 'posted' as const,
+        amount: '10.00', currency: 'EUR', occurredAt: '2026-07-01T00:00:00Z', merchant: 'El Niño', items: [],
+      }], page: 0, size: 100, totalElements: 1, totalPages: 1, hasNext: false, hasPrevious: false })),
+      sharingListMovementDetails: vi.fn(async () => ({ items: [] })),
+    }, { filters: {} });
+
+    expect(native.transactions[0].merchantReference).toEqual({ key: 'el nino', displayName: 'El Niño' });
+    expect(web.transactions[0].merchantReference).toEqual(native.transactions[0].merchantReference);
+  });
+
   it('sends dates, includeIgnoredMovements and keeps a scheduled reference out of transaction ids', async () => {
     const analyticsListMovementFacts = vi.fn(async () => ({
       items: [{

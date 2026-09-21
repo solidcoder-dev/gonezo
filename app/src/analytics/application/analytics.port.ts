@@ -56,7 +56,10 @@ export type AnalyticsMovementFactItem = {
   categoryId?: string;
   categoryAllocations: readonly AnalyticsCategoryAllocation[];
   tagIds: string[];
+  merchant?: AnalyticsMerchantReference;
 };
+
+export type AnalyticsMerchantReference = Readonly<{ key: string; displayName: string }>;
 
 export type AnalyticsSharingSummary = Readonly<{
   participantCount: number;

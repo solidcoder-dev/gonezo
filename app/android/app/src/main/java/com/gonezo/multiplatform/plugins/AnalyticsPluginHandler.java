@@ -130,6 +130,12 @@ final class AnalyticsPluginHandler {
         }
         item.put("categoryAllocations", categoryAllocations);
         item.put("tagIds", new JSONArray(fact.getTagIds()));
+        if (fact.getMerchant() != null) {
+          JSObject merchant = new JSObject();
+          merchant.put("key", fact.getMerchant().getKey());
+          merchant.put("displayName", fact.getMerchant().getDisplayName());
+          item.put("merchant", merchant);
+        }
         items.put(item);
       }
       JSObject response = new JSObject();

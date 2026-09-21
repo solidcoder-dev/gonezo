@@ -100,6 +100,7 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
         occurrenceIdentity = occurrence?.let { AnalyticsMovementIdentity.occurrence(it.id.toString()) },
         schedulingOrigin = occurrence?.let(::schedulingOrigin),
         sharing = amounts.sharing,
+        merchant = transaction.merchant,
       )
     }
   }
@@ -122,6 +123,7 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
           resolvedTransactionId = movement.resolvedTransactionId,
           schedulingOrigin = schedulingOrigin(movement.originOccurrenceId, movement.originRecurringMovementId),
           sharing = amounts.sharing,
+          merchant = movement.merchant,
         )
       }
   }
@@ -149,6 +151,7 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
             occurrenceId = persistedOccurrence?.id?.toString() ?: occurrence.originOccurrenceId,
           ),
           sharing = amounts.sharing,
+          merchant = movement.merchant,
         )
       }.filterNotNull()
     }

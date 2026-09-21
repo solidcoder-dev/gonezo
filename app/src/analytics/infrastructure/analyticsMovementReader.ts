@@ -9,6 +9,7 @@ import type { AnalyticsSharedAmountMode } from '../application/analyticsFilters'
 import type { SharingListMovementDetailsInput, SharingListMovementDetailsResult } from '../../sharing/application/sharing.port';
 import type { AnalyticsListMovementFactsResult } from '../application/analytics.port';
 import { resolveSharingAnalyticsAttribution } from '../../sharing/application/sharingAnalyticsAttribution';
+import { analyticsMerchantReference } from '../domain/analyticsMerchantReference';
 
 export type AnalyticsMovementReaderPort = {
   ledgerListAccounts(): Promise<LedgerListAccountsResult>;
@@ -36,6 +37,7 @@ export type AnalyticsTransactionReadModel = LedgerTransactionListItem & {
   analyticsFullAmount: string;
   categoryAllocations?: AnalyticsListMovementFactsResult['items'][number]['categoryAllocations'];
   sharing?: AnalyticsListMovementFactsResult['items'][number]['sharing'];
+  merchantReference?: AnalyticsListMovementFactsResult['items'][number]['merchant'];
 };
 
 export type AnalyticsMovementReadModel = {
@@ -159,6 +161,8 @@ export async function listAnalyticsMovements(
         currency: movement.currency,
         occurredAt: movement.effectiveAt,
         categoryId: movement.categoryId,
+        merchant: movement.type === 'transfer_in' || movement.type === 'transfer_out' ? undefined : movement.merchant?.displayName,
+        merchantReference: movement.type === 'transfer_in' || movement.type === 'transfer_out' ? undefined : movement.merchant,
         ignored: movement.ignored,
         items: [],
         categoryAllocations: movement.categoryAllocations,
@@ -190,6 +194,9 @@ export async function listAnalyticsMovements(
       ...movement,
       analyticsFactId: `posted/${movement.id}`,
       reference: { source: 'posted' as const, transactionId: movement.id },
+      merchantReference: movement.type === 'transfer' || movement.type === 'transfer_in' || movement.type === 'transfer_out'
+        ? undefined
+        : analyticsMerchantReference(movement.merchant),
       ...attributedAmount(
         movement,
         sharingDetailsByTransactionId,
