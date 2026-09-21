@@ -22,6 +22,48 @@ class AnalyticsMovementFactsTest {
     private val currency = CurrencyCode.from("EUR")
 
     @Test
+    fun `merchant reference normalization matches conservative TypeScript contract`() {
+        assertThat(AnalyticsMerchantReferenceResolver.resolve(" MERCADONA ", AnalyticsMovementType.EXPENSE))
+            .isEqualTo(AnalyticsMerchantReference("mercadona", "MERCADONA"))
+        assertThat(AnalyticsMerchantReferenceResolver.resolve("El Niño", AnalyticsMovementType.INCOME))
+            .isEqualTo(AnalyticsMerchantReference("el nino", "El Niño"))
+        assertThat(AnalyticsMerchantReferenceResolver.resolve("Lidl #123", AnalyticsMovementType.EXPENSE))
+            .isNotEqualTo(AnalyticsMerchantReferenceResolver.resolve("Lidl", AnalyticsMovementType.EXPENSE))
+        assertThat(AnalyticsMerchantReferenceResolver.resolve("  Lidl   #123 ", AnalyticsMovementType.EXPENSE))
+            .isEqualTo(AnalyticsMerchantReference("lidl #123", "Lidl #123"))
+        assertThat(AnalyticsMerchantReferenceResolver.resolve("  ", AnalyticsMovementType.EXPENSE)).isNull()
+        assertThat(AnalyticsMerchantReferenceResolver.resolve("Mercadona", AnalyticsMovementType.TRANSFER_OUT)).isNull()
+    }
+
+    @Test
+    fun `merchant follows explicit source value and occurrence deduplication priority`() {
+        val identity = AnalyticsMovementIdentity.occurrence("merchant-occurrence")
+        val scheduled = AnalyticsScheduledProjection(
+            identity, effectiveAt, "account", AnalyticsMovementType.EXPENSE, currency,
+            Money.of(BigDecimal("1.00"), "EUR"), Money.of(BigDecimal("1.00"), "EUR"),
+            originOccurrenceId = "merchant-occurrence", merchant = "Schedule Shop",
+        )
+        val expected = AnalyticsExpectedMovement(
+            "merchant-expected", effectiveAt, "account", AnalyticsMovementType.EXPENSE, currency,
+            Money.of(BigDecimal("1.00"), "EUR"), Money.of(BigDecimal("1.00"), "EUR"), true,
+            originOccurrenceId = "merchant-occurrence", merchant = "Expected Shop",
+        )
+        val posted = AnalyticsPostedMovement(
+            "merchant-posted", effectiveAt, "account", AnalyticsMovementType.EXPENSE, currency,
+            Money.of(BigDecimal("1.00"), "EUR"), Money.of(BigDecimal("1.00"), "EUR"),
+            occurrenceIdentity = identity, merchant = "Posted Shop",
+        )
+        val assembler = AnalyticsMovementFactAssembler()
+
+        assertThat(assembler.assemble(emptyList(), emptyList(), listOf(scheduled), true).single().merchant)
+            .isEqualTo(AnalyticsMerchantReference("schedule shop", "Schedule Shop"))
+        assertThat(assembler.assemble(emptyList(), listOf(expected), listOf(scheduled), true).single().merchant)
+            .isEqualTo(AnalyticsMerchantReference("expected shop", "Expected Shop"))
+        assertThat(assembler.assemble(listOf(posted), listOf(expected), listOf(scheduled), true).single().merchant)
+            .isEqualTo(AnalyticsMerchantReference("posted shop", "Posted Shop"))
+    }
+
+    @Test
     fun `sharing summary is privacy safe and enforces settlement totals`() {
         val summary = AnalyticsSharingSummary(
             participantCount = 2,
