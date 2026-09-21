@@ -38,7 +38,13 @@ data class RecurringCurrency(val currency: String, val buckets: List<RecurringBu
 
 data class RecurringContribution(val currencies: List<RecurringCurrency>)
 
-data class MacroAnalyticsContribution(val schemaVersion: SchemaVersion, val dimensions: ContributionDimensions, val financial: FinancialContribution, val categories: CategoryContribution? = null, val recurring: RecurringContribution? = null)
+data class SharingBucket(val source: String, val kind: String, val fullAmount: String, val personalAmount: String, val participantAllocatedAmount: String, val settlementRequiredAmount: String, val movementCount: Int, val participantCount: Int, val settlementParticipantCount: Int)
+
+data class SharingCurrency(val currency: String, val buckets: List<SharingBucket>)
+
+data class SharingContribution(val currencies: List<SharingCurrency>)
+
+data class MacroAnalyticsContribution(val schemaVersion: SchemaVersion, val dimensions: ContributionDimensions, val financial: FinancialContribution, val categories: CategoryContribution? = null, val recurring: RecurringContribution? = null, val sharing: SharingContribution? = null)
 
 data class ValidatedMacroAnalyticsPublication(val protocolVersion: ProtocolVersion, val contributorId: ContributorId, val period: AnalyticsPeriod, val revision: PublicationRevision, val contribution: MacroAnalyticsContribution) {
     fun canonicalJson(): String = buildString {
@@ -76,7 +82,7 @@ data class ValidatedMacroAnalyticsPublication(val protocolVersion: ProtocolVersi
             )
             append("]}")
         }
-        if (contribution.schemaVersion.value == 3) {
+        if (contribution.schemaVersion.value >= 3) {
             append(",\"recurring\":{\"currencies\":[")
             append(
                 contribution.recurring?.currencies.orEmpty().sortedBy { it.currency }.joinToString(",") { currency ->
@@ -84,6 +90,21 @@ data class ValidatedMacroAnalyticsPublication(val protocolVersion: ProtocolVersi
                         currency.buckets.sortedWith(compareBy<RecurringBucket> { it.source }.thenBy { it.kind }).joinToString(",") { bucket ->
                             "{\"source\":${JSONObject.quote(bucket.source)},\"kind\":${JSONObject.quote(bucket.kind)}," +
                                 "\"amount\":${JSONObject.quote(bucket.amount)},\"occurrenceCount\":${bucket.occurrenceCount},\"seriesCount\":${bucket.seriesCount}}"
+                        } + "]}"
+                },
+            )
+            append("]}")
+        }
+        if (contribution.schemaVersion.value >= 4) {
+            append(",\"sharing\":{\"currencies\":[")
+            append(
+                contribution.sharing?.currencies.orEmpty().sortedBy { it.currency }.joinToString(",") { currency ->
+                    "{\"currency\":${JSONObject.quote(currency.currency)},\"buckets\":[" +
+                        currency.buckets.sortedWith(compareBy<SharingBucket> { it.source }.thenBy { it.kind }).joinToString(",") { bucket ->
+                            "{\"source\":${JSONObject.quote(bucket.source)},\"kind\":${JSONObject.quote(bucket.kind)}," +
+                                "\"fullAmount\":${JSONObject.quote(bucket.fullAmount)},\"personalAmount\":${JSONObject.quote(bucket.personalAmount)}," +
+                                "\"participantAllocatedAmount\":${JSONObject.quote(bucket.participantAllocatedAmount)},\"settlementRequiredAmount\":${JSONObject.quote(bucket.settlementRequiredAmount)}," +
+                                "\"movementCount\":${bucket.movementCount},\"participantCount\":${bucket.participantCount},\"settlementParticipantCount\":${bucket.settlementParticipantCount}}"
                         } + "]}"
                 },
             )

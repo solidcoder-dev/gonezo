@@ -1,5 +1,5 @@
 import type { MacroAnalyticsContribution } from './macroAnalyticsContribution';
-import { hasCategoryContribution, hasRecurringContribution } from './contributionCapabilities';
+import { hasCategoryContribution, hasRecurringContribution, hasSharingContribution } from './contributionCapabilities';
 
 function compareCanonicalText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -43,7 +43,7 @@ export function canonicalMacroAnalyticsContribution(contribution: MacroAnalytics
     },
   };
   if (!hasRecurringContribution(contribution)) return JSON.stringify(withCategories);
-  return JSON.stringify({
+  const withRecurring = {
     ...withCategories,
     recurring: {
       currencies: [...contribution.recurring.currencies]
@@ -53,6 +53,23 @@ export function canonicalMacroAnalyticsContribution(contribution: MacroAnalytics
           buckets: [...buckets]
             .sort((left, right) => compareCanonicalText(left.source, right.source) || compareCanonicalText(left.kind, right.kind))
             .map(({ source, kind, amount, occurrenceCount, seriesCount }) => ({ source, kind, amount, occurrenceCount, seriesCount })),
+        })),
+    },
+  };
+  if (!hasSharingContribution(contribution)) return JSON.stringify(withRecurring);
+  return JSON.stringify({
+    ...withRecurring,
+    sharing: {
+      currencies: [...contribution.sharing.currencies]
+        .sort((left, right) => compareCanonicalText(left.currency, right.currency))
+        .map(({ currency, buckets }) => ({
+          currency,
+          buckets: [...buckets]
+            .sort((left, right) => compareCanonicalText(left.source, right.source) || compareCanonicalText(left.kind, right.kind))
+            .map(({ source, kind, fullAmount, personalAmount, participantAllocatedAmount, settlementRequiredAmount, movementCount, participantCount, settlementParticipantCount }) => ({
+              source, kind, fullAmount, personalAmount, participantAllocatedAmount, settlementRequiredAmount,
+              movementCount, participantCount, settlementParticipantCount,
+            })),
         })),
     },
   });

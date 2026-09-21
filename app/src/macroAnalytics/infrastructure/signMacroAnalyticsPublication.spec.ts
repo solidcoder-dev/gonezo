@@ -8,6 +8,7 @@ import { createContributorCredentialRegistrationV1 } from './ContributorCredenti
 import { serializeMacroAnalyticsPublicationV3 } from './MacroAnalyticsPublicationWireV3';
 import { serializeMacroAnalyticsPublicationV1 } from './MacroAnalyticsPublicationWireV1';
 import { serializeMacroAnalyticsPublicationV2 } from './MacroAnalyticsPublicationWireV2';
+import { serializeMacroAnalyticsPublicationV4 } from './MacroAnalyticsPublicationWireV4';
 
 const contributorId = createAnalyticsContributorId('opaque-random-id');
 const publication = createMacroAnalyticsPublication({
@@ -83,6 +84,24 @@ describe('macro analytics publication signing', () => {
     const signed = await signMacroAnalyticsPublication(v3, signingIdentity);
     expect(signed.payload).toBe(payload);
     expect(signingIdentity.sign).toHaveBeenCalledWith(contributorId, new TextEncoder().encode(payload));
+  });
+
+  it('signs exact V4 publication bytes including privacy-reduced sharing metrics', async () => {
+    const period = createAnalyticsPeriod('2026-09');
+    const v4 = createMacroAnalyticsPublication({ contributorId, period, revision: 1, contribution: {
+      schemaVersion: 4, period,
+      dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE', ageBand: '25_34' },
+      financial: { currencies: [] }, categories: { currencies: [] }, recurring: { currencies: [] },
+      sharing: { currencies: [{ currency: 'EUR', buckets: [{ source: 'POSTED', kind: 'EXPENSE', fullAmount: '10', personalAmount: '6', participantAllocatedAmount: '4', settlementRequiredAmount: '4', movementCount: 1, participantCount: 2, settlementParticipantCount: 1 }] }] },
+    } });
+    const signingIdentity = {
+      getOrCreateCredential: vi.fn(async () => ({ contributorId, keyId: 'v4-key', algorithm: 'ECDSA_P256_SHA256' as const, publicKey: 'public' })),
+      sign: vi.fn(async () => 'signature'),
+    };
+    const signed = await signMacroAnalyticsPublication(v4, signingIdentity);
+    expect(signed.payload).toBe(serializeMacroAnalyticsPublicationV4(v4));
+    expect(signed.payload).toContain('"protocolVersion":4');
+    expect(signingIdentity.sign).toHaveBeenCalledWith(contributorId, new TextEncoder().encode(signed.payload));
   });
 
   it('reuses one credential per contributor and isolates contributors', async () => {
