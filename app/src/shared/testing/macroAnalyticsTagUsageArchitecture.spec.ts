@@ -17,4 +17,13 @@ describe('Macro Analytics tag usage boundary', () => {
 
     expect(analyticsImports).toEqual(['../../analytics/application/analytics.port']);
   });
+
+  it('keeps V7 publication fields limited to anonymous tag usage counts', () => {
+    const wire = readFileSync(resolve('src/macroAnalytics/infrastructure/MacroAnalyticsPublicationWireV7.ts'), 'utf8');
+    const contribution = readFileSync(resolve('src/macroAnalytics/domain/tagUsageContribution.ts'), 'utf8');
+
+    expect(wire).toContain('tagUsage');
+    expect(contribution).toContain('taggedMovementCount');
+    expect(`${wire}\n${contribution}`).not.toMatch(/tagId|tagKey|tagName|displayName|normalizedName|hash/iu);
+  });
 });
