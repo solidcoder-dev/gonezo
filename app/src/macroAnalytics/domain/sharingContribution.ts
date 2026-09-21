@@ -63,15 +63,24 @@ export function aggregateSharingFacts(facts: readonly SharingFact[]): SharingCon
       buckets: Object.freeze(sources.flatMap((source) => kinds.flatMap((kind) => {
         const bucket = totals.get(JSON.stringify([currency, source, kind]));
         if (!bucket) return [];
-        assertBucketInvariants(bucket);
-        const { currency: _currency, ...contributionBucket } = bucket;
-        return [Object.freeze(contributionBucket)];
+        assertBucketInvariants(bucket, currency);
+        return [Object.freeze({
+          source: bucket.source,
+          kind: bucket.kind,
+          fullAmount: bucket.fullAmount,
+          personalAmount: bucket.personalAmount,
+          participantAllocatedAmount: bucket.participantAllocatedAmount,
+          settlementRequiredAmount: bucket.settlementRequiredAmount,
+          movementCount: bucket.movementCount,
+          participantCount: bucket.participantCount,
+          settlementParticipantCount: bucket.settlementParticipantCount,
+        })];
       }))),
     }))),
   });
 }
 
-function assertBucketInvariants(bucket: SharingContributionBucket): void {
+function assertBucketInvariants(bucket: SharingContributionBucket, currency: string): void {
   const fullAmount = ExactDecimal.from(bucket.fullAmount);
   const personalAmount = ExactDecimal.from(bucket.personalAmount);
   const allocatedAmount = ExactDecimal.from(bucket.participantAllocatedAmount);
@@ -80,6 +89,6 @@ function assertBucketInvariants(bucket: SharingContributionBucket): void {
     || settlementAmount.compare(allocatedAmount) > 0
     || allocatedAmount.compare(fullAmount) > 0
     || bucket.settlementParticipantCount > bucket.participantCount) {
-    throw new Error(`Sharing contribution invariants failed for ${bucket.currency}:${bucket.source}:${bucket.kind}`);
+    throw new Error(`Sharing contribution invariants failed for ${currency}:${bucket.source}:${bucket.kind}`);
   }
 }
