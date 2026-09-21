@@ -12,7 +12,8 @@ export type {
   FinancialFactKind,
   FinancialFactSource,
 } from '../domain/financialFact';
-export { MACRO_ANALYTICS_SCHEMA_VERSION, MACRO_ANALYTICS_SCHEMA_VERSION_V1, MACRO_ANALYTICS_SCHEMA_VERSION_V2, MACRO_ANALYTICS_SCHEMA_VERSION_V3, MACRO_ANALYTICS_SCHEMA_VERSION_V4 } from '../domain/macroAnalyticsSchemaVersion';
+export { MACRO_ANALYTICS_SCHEMA_VERSION, MACRO_ANALYTICS_SCHEMA_VERSION_V1, MACRO_ANALYTICS_SCHEMA_VERSION_V2, MACRO_ANALYTICS_SCHEMA_VERSION_V3, MACRO_ANALYTICS_SCHEMA_VERSION_V4, MACRO_ANALYTICS_SCHEMA_VERSION_V5 } from '../domain/macroAnalyticsSchemaVersion';
+export { MACRO_MERCHANT_CATALOG_VERSION } from '../domain/macroMerchantCatalogVersion';
 export type { MacroAnalyticsSchemaVersion } from '../domain/macroAnalyticsSchemaVersion';
 export { aggregateFinancialFacts } from '../domain/financialContribution';
 export type { FinancialContribution, FinancialContributionBucket, FinancialCurrencyContribution } from '../domain/financialContribution';
@@ -21,14 +22,14 @@ export type { CategoryContribution, CategoryContributionBucket, CategoryCurrency
 export { deriveContributionDimensions } from '../domain/contributionDimensions';
 export type { ContributionAgeBand, ContributionDimensions, ContributionSex } from '../domain/contributionDimensions';
 export type { ContributionProfile, ContributionProfileSex } from '../domain/contributionProfile';
-export type { MacroAnalyticsContribution, MacroAnalyticsContributionV1, MacroAnalyticsContributionV2, MacroAnalyticsContributionV3 } from '../domain/macroAnalyticsContribution';
+export type { MacroAnalyticsContribution, MacroAnalyticsContributionV1, MacroAnalyticsContributionV2, MacroAnalyticsContributionV3, MacroAnalyticsContributionV4, MacroAnalyticsContributionV5 } from '../domain/macroAnalyticsContribution';
 export { createAnalyticsContributorId } from '../domain/analyticsContributorId';
 export type { AnalyticsContributorId } from '../domain/analyticsContributorId';
-export { MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V1, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V2, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V3 } from '../domain/macroAnalyticsPublicationProtocolVersion';
+export { MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V1, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V2, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V3, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V4, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V5 } from '../domain/macroAnalyticsPublicationProtocolVersion';
 export type { MacroAnalyticsPublicationProtocolVersion } from '../domain/macroAnalyticsPublicationProtocolVersion';
 export { createMacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
 export type { MacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
-export type { MacroAnalyticsPublicationV1, MacroAnalyticsPublicationV2, MacroAnalyticsPublicationV3 } from '../domain/macroAnalyticsPublication';
+export type { MacroAnalyticsPublicationV1, MacroAnalyticsPublicationV2, MacroAnalyticsPublicationV3, MacroAnalyticsPublicationV4, MacroAnalyticsPublicationV5 } from '../domain/macroAnalyticsPublication';
 export { aggregateRecurringFacts } from '../domain/recurringContribution';
 export type { RecurringContribution, RecurringContributionBucket, RecurringCurrencyContribution } from '../domain/recurringContribution';
 export { createRecurringFact } from '../domain/recurringFact';
@@ -69,6 +70,12 @@ export type { ContributorCategoryBreakdown } from '../domain/contributorCategory
 export type { CategoryMoneyAmount } from '../domain/categoryMoneyAmount';
 export { buildContributorCategoryBreakdown } from '../domain/contributorCategoryBreakdown';
 export { buildCohortCategoryBreakdown } from '../domain/cohortCategoryBreakdown';
+export { buildContributorMerchantRanking } from '../domain/contributorMerchantRanking';
+export type { ContributorMerchantRanking } from '../domain/contributorMerchantRanking';
+export { buildCohortMerchantRanking } from '../domain/cohortMerchantRanking';
+export type { CohortMerchantRanking, CohortMerchantRankingItem } from '../domain/cohortMerchantRanking';
+export type { MacroMerchantReport } from '../domain/macroMerchantReport';
+export { GetMacroMerchantReport } from './GetMacroMerchantReport';
 export { GetMacroCategoryReport } from './GetMacroCategoryReport';
 export type { GetMacroCategoryReportInput } from './GetMacroCategoryReport';
 export type { MacroRecurringReport } from '../domain/macroRecurringReport';

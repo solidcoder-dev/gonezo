@@ -1,7 +1,7 @@
 import type { AnalyticsContributorId } from './analyticsContributorId';
 import type { AnalyticsPeriod } from './analyticsPeriod';
-import type { MacroAnalyticsContributionV1, MacroAnalyticsContributionV2, MacroAnalyticsContributionV3, MacroAnalyticsContributionV4 } from './macroAnalyticsContribution';
-import { MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V1, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V2, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V3, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V4 } from './macroAnalyticsPublicationProtocolVersion';
+import type { MacroAnalyticsContribution, MacroAnalyticsContributionV1, MacroAnalyticsContributionV2, MacroAnalyticsContributionV3, MacroAnalyticsContributionV4, MacroAnalyticsContributionV5 } from './macroAnalyticsContribution';
+import { MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V1, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V2, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V3, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V4, MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V5 } from './macroAnalyticsPublicationProtocolVersion';
 
 type PublicationBase = Readonly<{
   contributorId: AnalyticsContributorId;
@@ -13,9 +13,10 @@ export type MacroAnalyticsPublicationV1 = PublicationBase & Readonly<{ protocolV
 export type MacroAnalyticsPublicationV2 = PublicationBase & Readonly<{ protocolVersion: 2; contribution: MacroAnalyticsContributionV2 }>;
 export type MacroAnalyticsPublicationV3 = PublicationBase & Readonly<{ protocolVersion: 3; contribution: MacroAnalyticsContributionV3 }>;
 export type MacroAnalyticsPublicationV4 = PublicationBase & Readonly<{ protocolVersion: 4; contribution: MacroAnalyticsContributionV4 }>;
-export type MacroAnalyticsPublication = MacroAnalyticsPublicationV1 | MacroAnalyticsPublicationV2 | MacroAnalyticsPublicationV3 | MacroAnalyticsPublicationV4;
+export type MacroAnalyticsPublicationV5 = PublicationBase & Readonly<{ protocolVersion: 5; contribution: MacroAnalyticsContributionV5 }>;
+export type MacroAnalyticsPublication = MacroAnalyticsPublicationV1 | MacroAnalyticsPublicationV2 | MacroAnalyticsPublicationV3 | MacroAnalyticsPublicationV4 | MacroAnalyticsPublicationV5;
 
-type PublicationInput = PublicationBase & Readonly<{ contribution: MacroAnalyticsContributionV1 | MacroAnalyticsContributionV2 | MacroAnalyticsContributionV3 | MacroAnalyticsContributionV4 }>;
+type PublicationInput = PublicationBase & Readonly<{ contribution: MacroAnalyticsContribution }>;
 
 export function createMacroAnalyticsPublication(input: PublicationInput): MacroAnalyticsPublication {
   if (!input.contributorId.trim()) throw new Error('Analytics contributor ID must not be empty');
@@ -25,6 +26,7 @@ export function createMacroAnalyticsPublication(input: PublicationInput): MacroA
   }
   const protocolVersion = input.contribution.schemaVersion === 1 ? MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V1
     : input.contribution.schemaVersion === 2 ? MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V2
-      : input.contribution.schemaVersion === 3 ? MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V3 : MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V4;
+      : input.contribution.schemaVersion === 3 ? MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V3
+        : input.contribution.schemaVersion === 4 ? MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V4 : MACRO_ANALYTICS_PUBLICATION_PROTOCOL_VERSION_V5;
   return Object.freeze({ protocolVersion, ...input }) as MacroAnalyticsPublication;
 }

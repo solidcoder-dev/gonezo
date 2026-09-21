@@ -14,6 +14,9 @@ import { aggregateRecurringFacts } from '../domain/recurringContribution';
 import type { RecurringFactSourcePort } from './recurringFactSource.port';
 import { aggregateSharingFacts } from '../domain/sharingContribution';
 import type { SharingFactSourcePort } from './sharingFactSource.port';
+import { aggregateMerchantFacts } from '../domain/merchantContribution';
+import type { MerchantFactSourcePort } from './merchantFactSource.port';
+import { MACRO_MERCHANT_CATALOG_VERSION } from '../domain/macroMerchantCatalogVersion';
 
 export type BuildMacroAnalyticsContributionPorts = Readonly<{
   consent: Pick<AnalyticsContributionConsentPort, 'get'>;
@@ -22,6 +25,7 @@ export type BuildMacroAnalyticsContributionPorts = Readonly<{
   categoryFacts: CategoryFactSourcePort;
   recurringFacts: RecurringFactSourcePort;
   sharingFacts: SharingFactSourcePort;
+  merchantFacts: MerchantFactSourcePort;
 }>;
 
 export type BuildMacroAnalyticsContributionInput = Readonly<{
@@ -51,13 +55,16 @@ export async function buildMacroAnalyticsContribution(
   const categoryFacts = await ports.categoryFacts.listCategoryFacts({ period, timeZone: input.timeZone });
   const recurringFacts = await ports.recurringFacts.listRecurringFacts({ period, timeZone: input.timeZone });
   const sharingFacts = await ports.sharingFacts.listSharingFacts({ period, timeZone: input.timeZone });
+  const merchantFacts = await ports.merchantFacts.listMerchantFacts({ period, timeZone: input.timeZone });
   const financial = aggregateFinancialFacts(facts);
   const categories = aggregateCategoryFacts(categoryFacts);
   const recurring = aggregateRecurringFacts(recurringFacts);
   const sharing = aggregateSharingFacts(sharingFacts);
+  const merchants = aggregateMerchantFacts(merchantFacts, MACRO_MERCHANT_CATALOG_VERSION);
   assertCategoryTotalsReconcile(financial, categories);
   assertRecurringTotalsDoNotExceedFinancial(financial, recurring);
   assertSharingPersonalTotalsDoNotExceedFinancial(financial, sharing);
+  assertMerchantTotalsDoNotExceedFinancial(financial, merchants);
   const contribution: MacroAnalyticsContribution = Object.freeze({
     schemaVersion: MACRO_ANALYTICS_SCHEMA_VERSION,
     period,
@@ -66,8 +73,22 @@ export async function buildMacroAnalyticsContribution(
     categories,
     recurring,
     sharing,
+    merchants,
   });
   return { status: 'BUILT', contribution };
+}
+
+function assertMerchantTotalsDoNotExceedFinancial(
+  financial: ReturnType<typeof aggregateFinancialFacts>,
+  merchants: ReturnType<typeof aggregateMerchantFacts>,
+): void {
+  for (const { currency, buckets } of merchants.currencies) for (const bucket of buckets) {
+    const financialAmount = financial.currencies.find((entry) => entry.currency === currency)?.buckets
+      .find((entry) => entry.source === bucket.source && entry.kind === bucket.kind)?.amount ?? '0';
+    if (ExactDecimal.from(bucket.amount).compare(ExactDecimal.from(financialAmount)) > 0) {
+      throw new Error(`Merchant contribution exceeds financial contribution for ${currency}:${bucket.source}:${bucket.kind}`);
+    }
+  }
 }
 
 function assertSharingPersonalTotalsDoNotExceedFinancial(

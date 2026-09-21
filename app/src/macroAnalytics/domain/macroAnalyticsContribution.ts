@@ -6,6 +6,7 @@ import type { CategoryContribution } from './categoryContribution';
 import type { MACRO_ANALYTICS_SCHEMA_VERSION_V3 } from './macroAnalyticsSchemaVersion';
 import type { RecurringContribution } from './recurringContribution';
 import type { SharingContribution } from './sharingContribution';
+import type { MerchantContribution } from './merchantContribution';
 
 type ContributionBase = Readonly<{
   period: AnalyticsPeriod;
@@ -29,4 +30,11 @@ export type MacroAnalyticsContributionV4 = ContributionBase & Readonly<{
   recurring: RecurringContribution;
   sharing: SharingContribution;
 }>;
-export type MacroAnalyticsContribution = MacroAnalyticsContributionV1 | MacroAnalyticsContributionV2 | MacroAnalyticsContributionV3 | MacroAnalyticsContributionV4;
+export type MacroAnalyticsContributionV5 = ContributionBase & Readonly<{
+  schemaVersion: 5;
+  categories: CategoryContribution;
+  recurring: RecurringContribution;
+  sharing: SharingContribution;
+  merchants: MerchantContribution;
+}>;
+export type MacroAnalyticsContribution = MacroAnalyticsContributionV1 | MacroAnalyticsContributionV2 | MacroAnalyticsContributionV3 | MacroAnalyticsContributionV4 | MacroAnalyticsContributionV5;

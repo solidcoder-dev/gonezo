@@ -12,6 +12,7 @@ import type { RecurringFactSourcePort } from './recurringFactSource.port';
 import { buildMacroAnalyticsContribution } from './buildMacroAnalyticsContribution';
 import type { SharingFactSourcePort } from './sharingFactSource.port';
 import { createSharingFact } from '../domain/sharingFact';
+import type { MerchantFactSourcePort } from './merchantFactSource.port';
 
 const profile: ContributionProfile = { birthYear: 1995, sex: 'female', countryCode: 'ES', regionCode: 'ES-CN' };
 const granted = createAnalyticsContributionConsent({ userId: 'private-user-id', status: 'GRANTED', noticeVersion: 1, decidedAt: '2026-09-18T10:00:00Z' });
@@ -33,7 +34,8 @@ function sources(consent: AnalyticsContributionConsent | null = granted, contrib
   const categoryFacts: CategoryFactSourcePort = { listCategoryFacts: vi.fn(async () => categoriesFor(facts)) };
   const recurringFacts: RecurringFactSourcePort = { listRecurringFacts: vi.fn(async () => []) };
   const sharingFacts: SharingFactSourcePort = { listSharingFacts: vi.fn(async () => []) };
-  return { consent: consentSource, profile: profileSource, financialFacts: factSource, categoryFacts, recurringFacts, sharingFacts, profileSource, factSource };
+  const merchantFacts: MerchantFactSourcePort = { listMerchantFacts: vi.fn(async () => []) };
+  return { consent: consentSource, profile: profileSource, financialFacts: factSource, categoryFacts, recurringFacts, sharingFacts, merchantFacts, profileSource, factSource };
 }
 
 describe('buildMacroAnalyticsContribution', () => {
@@ -64,13 +66,14 @@ describe('buildMacroAnalyticsContribution', () => {
     const ports = sources(granted, profile, []);
     const result = await buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
     expect(result).toEqual({ status: 'BUILT', contribution: {
-      schemaVersion: 4,
+      schemaVersion: 5,
       period: { kind: 'YEAR_MONTH', value: '2026-09' },
       dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE', ageBand: '25_34' },
       financial: { currencies: [] },
       categories: { currencies: [] },
       recurring: { currencies: [] },
       sharing: { currencies: [] },
+      merchants: { catalogVersion: 1, currencies: [] },
     } });
     expect(JSON.stringify(result)).not.toMatch(/private-user-id|private-fact-id|birthYear|occurredAt|accountId|movementId|completedAt|updatedAt/);
     expect(ports.financialFacts.listFinancialFacts).toHaveBeenCalledWith({ period: { kind: 'YEAR_MONTH', value: '2026-09' }, timeZone: 'Europe/Madrid' });
@@ -123,11 +126,24 @@ describe('buildMacroAnalyticsContribution', () => {
     const sharingFact = createSharingFact({ id: 'sharing-private-id', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', fullAmount: '0.10', personalAmount: '0.08', participantAllocatedAmount: '0.02', settlementRequiredAmount: '0.02', participantCount: 1, settlementParticipantCount: 1 });
     vi.mocked(ports.sharingFacts.listSharingFacts).mockResolvedValue([sharingFact]);
     const result = await buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
-    expect(result.status === 'BUILT' && result.contribution.schemaVersion === 4 && result.contribution.sharing.currencies[0].buckets[0])
+    expect(result.status === 'BUILT' && result.contribution.schemaVersion === 5 && result.contribution.sharing.currencies[0].buckets[0])
       .toMatchObject({ personalAmount: '0.08', movementCount: 1, participantCount: 1 });
 
     vi.mocked(ports.sharingFacts.listSharingFacts).mockResolvedValue([createSharingFact({ ...sharingFact, personalAmount: '0.11', fullAmount: '0.12', participantAllocatedAmount: '0.01', settlementRequiredAmount: '0.01' })]);
     await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
       .rejects.toThrow('Sharing personal contribution exceeds financial contribution');
+  });
+
+  it('includes catalog-versioned merchant facts and enforces their financial upper bound', async () => {
+    const ports = sources();
+    vi.mocked(ports.merchantFacts.listMerchantFacts).mockResolvedValue([{
+      id: 'opaque-merchant-fact', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0.10', merchant: 'UNMAPPED' as never,
+    }]);
+    const result = await buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
+    expect(result.status === 'BUILT' && result.contribution.schemaVersion === 5 && result.contribution.merchants)
+      .toMatchObject({ catalogVersion: 1, currencies: [{ buckets: [{ merchant: 'UNMAPPED', amount: '0.1', movementCount: 1 }] }] });
+    vi.mocked(ports.merchantFacts.listMerchantFacts).mockResolvedValue([{ id: 'opaque-merchant-fact', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0.11', merchant: 'UNMAPPED' as never }]);
+    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
+      .rejects.toThrow('Merchant contribution exceeds financial contribution');
   });
 });

@@ -1,6 +1,5 @@
 import type { CanonicalMerchantDefinition } from './canonicalMerchantResolver';
-
-export const MACRO_MERCHANT_CATALOG_VERSION = 1;
+export { MACRO_MERCHANT_CATALOG_VERSION } from '../domain/macroMerchantCatalogVersion';
 
 export const canonicalMerchantCatalog: readonly CanonicalMerchantDefinition[] = Object.freeze([
   { code: 'MERCADONA', aliases: ['mercadona'] },

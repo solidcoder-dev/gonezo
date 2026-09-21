@@ -1,0 +1,1 @@
+export const MACRO_MERCHANT_CATALOG_VERSION = 1;
