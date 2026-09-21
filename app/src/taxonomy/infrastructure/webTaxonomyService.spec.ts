@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { WebRuntimeDependencies } from '../../core/infrastructure/webRuntimeDependencies';
 import { createWebAppState, type WebAppState } from '../../core/infrastructure/webAppState';
 import { WebTaxonomyService } from './webTaxonomyService';
-import { normalizeTagName } from './webTaxonomyNames';
+import { normalizeTagName } from '../domain/tagName';
 
 function createDependencies(): WebRuntimeDependencies {
   let next = 0;

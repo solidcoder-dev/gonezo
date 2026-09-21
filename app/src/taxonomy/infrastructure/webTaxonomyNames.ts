@@ -1,8 +1,6 @@
-export function normalizeWebTaxonomyCategoryName(name: string): string {
-  return name.trim().toLowerCase();
-}
+import { normalizeTagName } from '../domain/tagName';
 
-export function normalizeTagName(name: string): string {
+export function normalizeWebTaxonomyCategoryName(name: string): string {
   return name.trim().toLowerCase();
 }
 
