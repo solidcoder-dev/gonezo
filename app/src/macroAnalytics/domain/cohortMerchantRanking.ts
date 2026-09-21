@@ -62,8 +62,9 @@ export function buildCohortMerchantRanking(input: Readonly<{
   }).sort((left, right) => ExactDecimal.from(right.totalAmount).compare(ExactDecimal.from(left.totalAmount))
     || right.activeContributorCount - left.activeContributorCount || compareText(left.merchant, right.merchant));
   const representedExpense = [...totals.values()].reduce((sum, total) => sum.add(total.amount), ExactDecimal.from('0'));
+  const catalogVersions = new Set(eligible.map((contribution) => hasMerchantContribution(contribution) ? contribution.merchants.catalogVersion : 0));
   return Object.freeze({ period: input.period, currency, cohort: input.cohort, eligibleContributorCount: eligible.length,
-    catalogVersion: eligible.length ? Math.min(...eligible.map((contribution) => hasMerchantContribution(contribution) ? contribution.merchants.catalogVersion : 0)) : null,
+    catalogVersion: catalogVersions.size === 1 ? [...catalogVersions][0] : null,
     merchantCoveragePercent: percentage(representedExpense, totalExpense), items: Object.freeze(items) });
 }
 

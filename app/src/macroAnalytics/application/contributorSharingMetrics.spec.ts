@@ -3,19 +3,24 @@ import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
 import { createAnalyticsContributorId } from '../domain/analyticsContributorId';
 import { CalculateContributorMetrics } from './CalculateContributorMetrics';
 import { contributorSharingMetricCalculators, contributorSharingMetricDefinitions } from './contributorSharingMetrics';
-import type { MacroAnalyticsContribution } from '../domain/macroAnalyticsContribution';
+import type { MacroAnalyticsContribution, MacroAnalyticsContributionV4 } from '../domain/macroAnalyticsContribution';
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
 
 const period = createAnalyticsPeriod('2026-09');
 const dimensions = { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE' as const, ageBand: '25_34' as const };
 
-function v4(currency = 'EUR'): MacroAnalyticsContribution {
+function v4(currency = 'EUR'): MacroAnalyticsContributionV4 {
   return {
     schemaVersion: 4, period, dimensions,
     financial: { currencies: [{ currency, buckets: [{ source: 'POSTED', kind: 'EXPENSE', amount: '20.00', count: 1 }] }] },
     categories: { currencies: [] }, recurring: { currencies: [] },
     sharing: { currencies: [{ currency, buckets: [{ source: 'POSTED', kind: 'EXPENSE', fullAmount: '20.00', personalAmount: '15.00', participantAllocatedAmount: '5.00', settlementRequiredAmount: '5.00', movementCount: 1, participantCount: 2, settlementParticipantCount: 1 }] }] },
   };
+}
+
+function v5(): MacroAnalyticsContribution {
+  const contribution = v4();
+  return { ...contribution, schemaVersion: 5, merchants: { catalogVersion: 1, currencies: [] } };
 }
 
 function results(contribution: MacroAnalyticsContribution, currency = 'EUR') {
@@ -31,6 +36,10 @@ describe('contributor sharing metrics', () => {
     expect(values.get('shared_posted_personal_expense_total:v1')).toEqual({ kind: 'MONEY', value: ExactDecimal.from('15.00'), currency: 'EUR' });
     expect(values.get('shared_posted_settlement_required_total:v1')).toEqual({ kind: 'MONEY', value: ExactDecimal.from('5.00'), currency: 'EUR' });
     expect(values.get('shared_posted_expense_share_percent:v1')).toEqual({ kind: 'RATIO', value: ExactDecimal.from('75.0000') });
+  });
+
+  it('keeps V4 sharing metrics identical on V5 contributions', () => {
+    expect(results(v5())).toEqual(results(v4()));
   });
 
   it('returns null for legacy schemas and missing currency, and zero for selected V4 with no sharing activity', () => {

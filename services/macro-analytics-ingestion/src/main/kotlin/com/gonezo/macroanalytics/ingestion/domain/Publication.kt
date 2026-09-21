@@ -44,7 +44,13 @@ data class SharingCurrency(val currency: String, val buckets: List<SharingBucket
 
 data class SharingContribution(val currencies: List<SharingCurrency>)
 
-data class MacroAnalyticsContribution(val schemaVersion: SchemaVersion, val dimensions: ContributionDimensions, val financial: FinancialContribution, val categories: CategoryContribution? = null, val recurring: RecurringContribution? = null, val sharing: SharingContribution? = null)
+data class MerchantBucket(val source: String, val kind: String, val merchant: String, val amount: String, val movementCount: Int)
+
+data class MerchantCurrency(val currency: String, val buckets: List<MerchantBucket>)
+
+data class MerchantContribution(val catalogVersion: Int, val currencies: List<MerchantCurrency>)
+
+data class MacroAnalyticsContribution(val schemaVersion: SchemaVersion, val dimensions: ContributionDimensions, val financial: FinancialContribution, val categories: CategoryContribution? = null, val recurring: RecurringContribution? = null, val sharing: SharingContribution? = null, val merchants: MerchantContribution? = null)
 
 data class ValidatedMacroAnalyticsPublication(val protocolVersion: ProtocolVersion, val contributorId: ContributorId, val period: AnalyticsPeriod, val revision: PublicationRevision, val contribution: MacroAnalyticsContribution) {
     fun canonicalJson(): String = buildString {
@@ -105,6 +111,19 @@ data class ValidatedMacroAnalyticsPublication(val protocolVersion: ProtocolVersi
                                 "\"fullAmount\":${JSONObject.quote(bucket.fullAmount)},\"personalAmount\":${JSONObject.quote(bucket.personalAmount)}," +
                                 "\"participantAllocatedAmount\":${JSONObject.quote(bucket.participantAllocatedAmount)},\"settlementRequiredAmount\":${JSONObject.quote(bucket.settlementRequiredAmount)}," +
                                 "\"movementCount\":${bucket.movementCount},\"participantCount\":${bucket.participantCount},\"settlementParticipantCount\":${bucket.settlementParticipantCount}}"
+                        } + "]}"
+                },
+            )
+            append("]}")
+        }
+        if (contribution.schemaVersion.value >= 5) {
+            append(",\"merchants\":{\"catalogVersion\":${contribution.merchants?.catalogVersion ?: 0},\"currencies\":[")
+            append(
+                contribution.merchants?.currencies.orEmpty().sortedBy { it.currency }.joinToString(",") { currency ->
+                    "{\"currency\":${JSONObject.quote(currency.currency)},\"buckets\":[" +
+                        currency.buckets.sortedWith(compareBy<MerchantBucket> { it.source }.thenBy { it.kind }.thenBy { it.merchant }).joinToString(",") { bucket ->
+                            "{\"source\":${JSONObject.quote(bucket.source)},\"kind\":${JSONObject.quote(bucket.kind)}," +
+                                "\"merchant\":${JSONObject.quote(bucket.merchant)},\"amount\":${JSONObject.quote(bucket.amount)},\"movementCount\":${bucket.movementCount}}"
                         } + "]}"
                 },
             )

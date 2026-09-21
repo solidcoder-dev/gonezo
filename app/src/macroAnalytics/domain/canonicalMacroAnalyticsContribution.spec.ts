@@ -73,4 +73,24 @@ describe('canonicalMacroAnalyticsContribution V1 compatibility', () => {
     expect(canonical.indexOf('"currency":"EUR"')).toBeLessThan(canonical.indexOf('"currency":"USD"'));
     expect(canonical).toContain('"source":"POSTED","kind":"EXPENSE","fullAmount":"3","personalAmount":"2","participantAllocatedAmount":"1","settlementRequiredAmount":"1","movementCount":1,"participantCount":2,"settlementParticipantCount":1');
   });
+
+  it('canonicalizes V5 merchant currencies and buckets and changes with merchant facts', () => {
+    const period = createAnalyticsPeriod('2026-09');
+    const contribution = {
+      schemaVersion: 5 as const, period,
+      dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE' as const, ageBand: '25_34' as const },
+      financial: { currencies: [] }, categories: { currencies: [] }, recurring: { currencies: [] }, sharing: { currencies: [] },
+      merchants: { catalogVersion: 1, currencies: [{ currency: 'USD', buckets: [
+        { source: 'SCHEDULED' as const, kind: 'EXPENSE' as const, merchant: 'UNMAPPED' as never, amount: '0', movementCount: 1 },
+        { source: 'POSTED' as const, kind: 'EXPENSE' as const, merchant: 'MERCADONA' as never, amount: '2.00', movementCount: 2 },
+      ] }, { currency: 'EUR', buckets: [] }] },
+    };
+    const canonical = canonicalMacroAnalyticsContribution(contribution);
+    const reordered = { ...contribution, merchants: { ...contribution.merchants, currencies: [...contribution.merchants.currencies].reverse().map(({ currency, buckets }) => ({ currency, buckets: [...buckets].reverse() })) } };
+    expect(canonicalMacroAnalyticsContribution(reordered)).toBe(canonical);
+    expect(canonical.indexOf('"sharing"')).toBeLessThan(canonical.indexOf('"merchants"'));
+    expect(canonical).toContain('"catalogVersion":1');
+    expect(canonicalMacroAnalyticsContribution({ ...contribution, merchants: { ...contribution.merchants, currencies: [{ ...contribution.merchants.currencies[0], buckets: contribution.merchants.currencies[0].buckets.map((bucket) => bucket.merchant === 'MERCADONA' ? { ...bucket, amount: '2.01' } : bucket) }, contribution.merchants.currencies[1]] } })).not.toBe(canonical);
+    expect(canonicalMacroAnalyticsContribution({ ...contribution, merchants: { ...contribution.merchants, currencies: [{ ...contribution.merchants.currencies[0], buckets: contribution.merchants.currencies[0].buckets.map((bucket) => bucket.merchant === 'MERCADONA' ? { ...bucket, movementCount: 3 } : bucket) }, contribution.merchants.currencies[1]] } })).not.toBe(canonical);
+  });
 });

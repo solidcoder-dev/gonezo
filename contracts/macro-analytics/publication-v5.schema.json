@@ -1,0 +1,251 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gonezo.example/contracts/macro-analytics/publication-v5.schema.json",
+  "title": "Gonezo Macro Analytics publication V5",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocolVersion",
+    "contributorId",
+    "period",
+    "revision",
+    "contribution"
+  ],
+  "properties": {
+    "protocolVersion": {
+      "const": 5
+    },
+    "contributorId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "period": {
+      "type": "string",
+      "pattern": "^(?!0000-)(?:[0-9]{4})-(?:0[1-9]|1[0-2])$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "contribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "dimensions",
+        "financial",
+        "categories",
+        "recurring",
+        "sharing",
+        "merchants"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 5
+        },
+        "dimensions": {
+          "$ref": "publication-v1.schema.json#/properties/contribution/properties/dimensions"
+        },
+        "financial": {
+          "$ref": "publication-v1.schema.json#/properties/contribution/properties/financial"
+        },
+        "categories": {
+          "$ref": "publication-v2.schema.json#/properties/contribution/properties/categories"
+        },
+        "recurring": {
+          "$ref": "publication-v3.schema.json#/properties/contribution/properties/recurring"
+        },
+        "sharing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "currencies"
+          ],
+          "properties": {
+            "currencies": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "currency",
+                  "buckets"
+                ],
+                "properties": {
+                  "currency": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$"
+                  },
+                  "buckets": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "source",
+                        "kind",
+                        "fullAmount",
+                        "personalAmount",
+                        "participantAllocatedAmount",
+                        "settlementRequiredAmount",
+                        "movementCount",
+                        "participantCount",
+                        "settlementParticipantCount"
+                      ],
+                      "properties": {
+                        "source": {
+                          "enum": [
+                            "POSTED",
+                            "EXPECTED",
+                            "SCHEDULED"
+                          ]
+                        },
+                        "kind": {
+                          "enum": [
+                            "INCOME",
+                            "EXPENSE"
+                          ]
+                        },
+                        "fullAmount": {
+                          "$ref": "publication-v1.schema.json#/properties/contribution/properties/financial/properties/currencies/items/properties/buckets/items/properties/amount"
+                        },
+                        "personalAmount": {
+                          "$ref": "publication-v1.schema.json#/properties/contribution/properties/financial/properties/currencies/items/properties/buckets/items/properties/amount"
+                        },
+                        "participantAllocatedAmount": {
+                          "$ref": "publication-v1.schema.json#/properties/contribution/properties/financial/properties/currencies/items/properties/buckets/items/properties/amount"
+                        },
+                        "settlementRequiredAmount": {
+                          "$ref": "publication-v1.schema.json#/properties/contribution/properties/financial/properties/currencies/items/properties/buckets/items/properties/amount"
+                        },
+                        "movementCount": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "participantCount": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "settlementParticipantCount": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "merchants": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "catalogVersion",
+            "currencies"
+          ],
+          "properties": {
+            "catalogVersion": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "currencies": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "currency",
+                  "buckets"
+                ],
+                "properties": {
+                  "currency": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$"
+                  },
+                  "buckets": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "source",
+                        "kind",
+                        "merchant",
+                        "amount",
+                        "movementCount"
+                      ],
+                      "properties": {
+                        "source": {
+                          "enum": [
+                            "POSTED",
+                            "EXPECTED",
+                            "SCHEDULED"
+                          ]
+                        },
+                        "kind": {
+                          "enum": [
+                            "INCOME",
+                            "EXPENSE"
+                          ]
+                        },
+                        "merchant": {
+                          "type": "string",
+                          "pattern": "^[A-Z][A-Z0-9_]*$"
+                        },
+                        "amount": {
+                          "$ref": "publication-v1.schema.json#/properties/contribution/properties/financial/properties/currencies/items/properties/buckets/items/properties/amount"
+                        },
+                        "movementCount": {
+                          "type": "integer",
+                          "minimum": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "catalogVersion": {
+                    "const": 1
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "currencies": {
+                    "items": {
+                      "properties": {
+                        "buckets": {
+                          "items": {
+                            "properties": {
+                              "merchant": {
+                                "enum": [
+                                  "MERCADONA",
+                                  "LIDL",
+                                  "CARREFOUR",
+                                  "UNMAPPED"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

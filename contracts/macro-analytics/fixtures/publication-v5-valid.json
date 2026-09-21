@@ -1,0 +1,80 @@
+{
+  "protocolVersion": 5,
+  "contributorId": "opaque-random-id",
+  "period": "2026-09",
+  "revision": 1,
+  "contribution": {
+    "schemaVersion": 5,
+    "dimensions": {
+      "countryCode": "ES",
+      "regionCode": "ES-CN",
+      "sex": "FEMALE",
+      "ageBand": "25_34"
+    },
+    "financial": {
+      "currencies": [
+        {
+          "currency": "EUR",
+          "buckets": [
+            {
+              "source": "POSTED",
+              "kind": "EXPENSE",
+              "amount": "10.00",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    "categories": {
+      "currencies": []
+    },
+    "recurring": {
+      "currencies": []
+    },
+    "sharing": {
+      "currencies": [
+        {
+          "currency": "EUR",
+          "buckets": [
+            {
+              "source": "POSTED",
+              "kind": "EXPENSE",
+              "fullAmount": "10.00",
+              "personalAmount": "6.00",
+              "participantAllocatedAmount": "4.00",
+              "settlementRequiredAmount": "4.00",
+              "movementCount": 1,
+              "participantCount": 2,
+              "settlementParticipantCount": 1
+            }
+          ]
+        }
+      ]
+    },
+    "merchants": {
+      "catalogVersion": 1,
+      "currencies": [
+        {
+          "currency": "EUR",
+          "buckets": [
+            {
+              "source": "POSTED",
+              "kind": "EXPENSE",
+              "merchant": "MERCADONA",
+              "amount": "4",
+              "movementCount": 1
+            },
+            {
+              "source": "POSTED",
+              "kind": "EXPENSE",
+              "merchant": "UNMAPPED",
+              "amount": "2",
+              "movementCount": 1
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

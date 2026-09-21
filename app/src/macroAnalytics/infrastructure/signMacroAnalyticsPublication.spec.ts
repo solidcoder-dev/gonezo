@@ -9,6 +9,7 @@ import { serializeMacroAnalyticsPublicationV3 } from './MacroAnalyticsPublicatio
 import { serializeMacroAnalyticsPublicationV1 } from './MacroAnalyticsPublicationWireV1';
 import { serializeMacroAnalyticsPublicationV2 } from './MacroAnalyticsPublicationWireV2';
 import { serializeMacroAnalyticsPublicationV4 } from './MacroAnalyticsPublicationWireV4';
+import { serializeMacroAnalyticsPublicationV5 } from './MacroAnalyticsPublicationWireV5';
 
 const contributorId = createAnalyticsContributorId('opaque-random-id');
 const publication = createMacroAnalyticsPublication({
@@ -101,6 +102,25 @@ describe('macro analytics publication signing', () => {
     const signed = await signMacroAnalyticsPublication(v4, signingIdentity);
     expect(signed.payload).toBe(serializeMacroAnalyticsPublicationV4(v4));
     expect(signed.payload).toContain('"protocolVersion":4');
+    expect(signingIdentity.sign).toHaveBeenCalledWith(contributorId, new TextEncoder().encode(signed.payload));
+  });
+
+  it('signs exact V5 bytes including canonical merchant codes and catalog version', async () => {
+    const period = createAnalyticsPeriod('2026-09');
+    const v5 = createMacroAnalyticsPublication({ contributorId, period, revision: 2, contribution: {
+      schemaVersion: 5, period,
+      dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE', ageBand: '25_34' },
+      financial: { currencies: [] }, categories: { currencies: [] }, recurring: { currencies: [] }, sharing: { currencies: [] },
+      merchants: { catalogVersion: 1, currencies: [{ currency: 'EUR', buckets: [{ source: 'POSTED', kind: 'EXPENSE', merchant: 'UNMAPPED' as never, amount: '0', movementCount: 1 }] }] },
+    } });
+    const signingIdentity = {
+      getOrCreateCredential: vi.fn(async () => ({ contributorId, keyId: 'v5-key', algorithm: 'ECDSA_P256_SHA256' as const, publicKey: 'public' })),
+      sign: vi.fn(async () => 'signature'),
+    };
+    const signed = await signMacroAnalyticsPublication(v5, signingIdentity);
+    expect(signed.payload).toBe(serializeMacroAnalyticsPublicationV5(v5));
+    expect(signed.payload).toContain('"protocolVersion":5');
+    expect(signed.payload).toContain('"catalogVersion":1');
     expect(signingIdentity.sign).toHaveBeenCalledWith(contributorId, new TextEncoder().encode(signed.payload));
   });
 
