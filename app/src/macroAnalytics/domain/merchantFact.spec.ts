@@ -23,6 +23,7 @@ describe('MerchantFact', () => {
     } as typeof validFact);
 
     expect(fact).toEqual(validFact);
+    expect(Object.keys(fact).sort()).toEqual(['amount', 'currency', 'id', 'kind', 'merchant', 'occurredAt', 'source']);
     expect(JSON.stringify(fact)).not.toMatch(/secret merchant key|Private Merchant Name|Private description|private-account/);
   });
 
