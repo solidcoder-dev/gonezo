@@ -3,6 +3,20 @@ import { CoreAdapterWeb } from './coreAdapterWeb';
 import { createWebAppState } from './webAppState';
 
 describe('CoreAdapterWeb state and effects boundaries', () => {
+  it('exposes privacy-safe first account local date coverage', async () => {
+    const state = createWebAppState();
+    state.ledgerAccounts = [
+      { id: 'private-later', name: 'Later', type: 'cash', currency: 'EUR', status: 'active', createdAt: '2026-01-02T00:30:00Z' },
+      { id: 'private-earlier', name: 'Earlier', type: 'bank', currency: 'USD', status: 'archived', createdAt: '2025-12-31T23:30:00Z' },
+    ];
+    const core = new CoreAdapterWeb({ state });
+
+    const coverage = await core.analyticsGetAccountBalanceCoverage({ zoneId: 'Europe/Madrid' });
+
+    expect(coverage).toEqual({ firstAccountLocalDate: '2026-01-01' });
+    expect(JSON.stringify(coverage)).not.toMatch(/private-|Later|Earlier/);
+  });
+
   it('projects the first confirmation-required recurring occurrence as expected', async () => {
     let nextId = 0;
     const core = new CoreAdapterWeb({
