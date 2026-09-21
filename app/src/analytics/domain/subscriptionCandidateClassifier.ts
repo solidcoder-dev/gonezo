@@ -1,4 +1,13 @@
-import type { AnalyticsMovementFactItem } from '../application/analytics.port';
+export type SubscriptionCandidateFact = Readonly<{
+  type: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
+  schedulingOrigin?: Readonly<{
+    kind: 'recurring' | 'one_shot';
+    cadence?: Readonly<{ frequency: 'daily' | 'weekly' | 'monthly' | 'yearly'; interval: number }>;
+  }>;
+  merchant?: Readonly<{ key: string; displayName: string }>;
+  categoryId?: string;
+  tagIds?: readonly string[];
+}>;
 
 export type SubscriptionCandidateClassification =
   | { status: 'CANDIDATE'; frequency: 'weekly' | 'monthly' | 'yearly'; interval: number }
@@ -6,7 +15,7 @@ export type SubscriptionCandidateClassification =
   | { status: 'UNKNOWN'; reason: 'CADENCE_UNAVAILABLE' };
 
 export function classifySubscriptionCandidate(
-  fact: AnalyticsMovementFactItem,
+  fact: SubscriptionCandidateFact,
 ): SubscriptionCandidateClassification | undefined {
   if (fact.schedulingOrigin?.kind !== 'recurring' || fact.type !== 'expense') return undefined;
 
