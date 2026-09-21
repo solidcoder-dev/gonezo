@@ -1,4 +1,5 @@
 import type { MacroAnalyticsPublication, MacroAnalyticsPublicationV6 } from '../domain/macroAnalyticsPublication';
+import { MACRO_ACCOUNT_TYPE_ORDER } from '../domain/accountBalanceContribution';
 
 export type MacroAnalyticsPublicationWireV6 = Readonly<{
   protocolVersion: 6;
@@ -26,7 +27,7 @@ export function toMacroAnalyticsPublicationWireV6(publication: MacroAnalyticsPub
       recurring: { currencies: [...contribution.recurring.currencies].sort((a, b) => compareText(a.currency, b.currency)).map(({ currency, buckets }) => ({ currency, buckets: [...buckets].sort((a, b) => compareText(a.source, b.source) || compareText(a.kind, b.kind)).map((bucket) => ({ ...bucket })) })) },
       sharing: { currencies: [...contribution.sharing.currencies].sort((a, b) => compareText(a.currency, b.currency)).map(({ currency, buckets }) => ({ currency, buckets: [...buckets].sort((a, b) => compareText(a.source, b.source) || compareText(a.kind, b.kind)).map((bucket) => ({ ...bucket })) })) },
       merchants: { catalogVersion: contribution.merchants.catalogVersion, currencies: [...contribution.merchants.currencies].sort((a, b) => compareText(a.currency, b.currency)).map(({ currency, buckets }) => ({ currency, buckets: [...buckets].sort((a, b) => compareText(a.source, b.source) || compareText(a.kind, b.kind) || compareText(a.merchant, b.merchant)).map((bucket) => ({ ...bucket })) })) },
-      balances: { currencies: [...contribution.balances.currencies].sort((a, b) => compareText(a.currency, b.currency)).map(({ currency, buckets }) => ({ currency, buckets: [...buckets].sort((a, b) => compareText(a.accountType, b.accountType)).map((bucket) => ({ ...bucket })) })) },
+      balances: { currencies: [...contribution.balances.currencies].sort((a, b) => compareText(a.currency, b.currency)).map(({ currency, buckets }) => ({ currency, buckets: [...buckets].sort((a, b) => MACRO_ACCOUNT_TYPE_ORDER.indexOf(a.accountType) - MACRO_ACCOUNT_TYPE_ORDER.indexOf(b.accountType)).map((bucket) => ({ ...bucket })) })) },
     },
   };
 }

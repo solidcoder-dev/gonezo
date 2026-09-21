@@ -1,5 +1,6 @@
 import type { MacroAnalyticsContribution } from './macroAnalyticsContribution';
 import { hasCategoryContribution, hasRecurringContribution, hasSharingContribution, hasMerchantContribution, hasBalanceContribution } from './contributionCapabilities';
+import { MACRO_ACCOUNT_TYPE_ORDER } from './accountBalanceContribution';
 
 function compareCanonicalText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -92,7 +93,7 @@ export function canonicalMacroAnalyticsContribution(contribution: MacroAnalytics
     balances: {
       currencies: [...contribution.balances.currencies].sort((left, right) => compareCanonicalText(left.currency, right.currency)).map(({ currency, buckets }) => ({
         currency,
-        buckets: [...buckets].sort((left, right) => compareCanonicalText(left.accountType, right.accountType)).map(({ accountType, balanceAmount, accountCount }) => ({ accountType, balanceAmount, accountCount })),
+        buckets: [...buckets].sort((left, right) => MACRO_ACCOUNT_TYPE_ORDER.indexOf(left.accountType) - MACRO_ACCOUNT_TYPE_ORDER.indexOf(right.accountType)).map(({ accountType, balanceAmount, accountCount }) => ({ accountType, balanceAmount, accountCount })),
       })),
     },
   });
