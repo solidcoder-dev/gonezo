@@ -23,6 +23,23 @@ describe('CoreAdapter financial invalidation boundary', () => {
     expect(observer.periodAndFollowingChanged).toHaveBeenCalledWith(input.occurredAt);
   });
 
+  it('invalidates balance snapshots after creating a zero-balance account', async () => {
+    const open = vi.spyOn(CoreAdapterWeb.prototype, 'ledgerOpenAccount').mockResolvedValue({ id: 'account' });
+    const observer: FinancialDataChangeObserver = {
+      periodChanged: vi.fn(async () => {}),
+      periodAndFollowingChanged: vi.fn(async () => {}),
+      currentPeriodChanged: vi.fn(async () => {}),
+      allPeriodsChanged: vi.fn(async () => {}),
+    };
+    const adapter = new CoreAdapter(observer);
+    const input = { name: 'Cash', type: 'cash' as const, currency: 'EUR', createdAt: '2026-01-01T00:00:00Z' };
+
+    await expect(adapter.ledgerOpenAccount(input)).resolves.toEqual({ id: 'account' });
+
+    expect(open).toHaveBeenCalledWith(input);
+    expect(observer.periodAndFollowingChanged).toHaveBeenCalledWith(input.createdAt);
+  });
+
   it('invalidates all financial periods after successful account deletion', async () => {
     const deletion = vi.spyOn(CoreAdapterWeb.prototype, 'ledgerDeleteAccount').mockResolvedValue();
     const observer: FinancialDataChangeObserver = {

@@ -28,13 +28,8 @@ export class NativeFinancialDataChangeObserver implements FinancialDataChangeObs
     const userId = await this.currentUserId();
     if (!userId) return;
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const changedPeriod = analyticsPeriodForInstant(effectiveAt, timeZone);
-    const currentPeriod = analyticsPeriodForInstant(new Date().toISOString(), timeZone);
-    await this.queue.enqueue(userId, changedPeriod);
-    if (changedPeriod.value <= currentPeriod.value) {
-      for (let period = nextPeriod(changedPeriod); period.value <= currentPeriod.value; period = nextPeriod(period)) {
-        await this.queue.enqueue(userId, period);
-      }
+    for (const period of periodsAffectedByBalanceChange(effectiveAt, new Date().toISOString(), timeZone)) {
+      await this.queue.enqueue(userId, period);
     }
     this.scheduleMaintenance(userId);
   }
@@ -57,6 +52,19 @@ export class NativeFinancialDataChangeObserver implements FinancialDataChangeObs
   private scheduleMaintenance(userId: string): void {
     void this.runMaintenance(userId).catch(() => {});
   }
+}
+
+export function periodsAffectedByBalanceChange(
+  effectiveAt: string,
+  currentInstant: string,
+  timeZone: string,
+): readonly ReturnType<typeof analyticsPeriodForInstant>[] {
+  const changedPeriod = analyticsPeriodForInstant(effectiveAt, timeZone);
+  const currentPeriod = analyticsPeriodForInstant(currentInstant, timeZone);
+  if (changedPeriod.value > currentPeriod.value) return [changedPeriod];
+  const periods = [changedPeriod];
+  for (let period = nextPeriod(changedPeriod); period.value <= currentPeriod.value; period = nextPeriod(period)) periods.push(period);
+  return periods;
 }
 
 function nextPeriod(period: ReturnType<typeof analyticsPeriodForInstant>): ReturnType<typeof analyticsPeriodForInstant> {
