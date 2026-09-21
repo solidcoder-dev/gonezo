@@ -50,9 +50,7 @@ export class CoreAdapter implements CorePort {
   ledgerRenameAccount = this.ledger.ledgerRenameAccount.bind(this.ledger);
   ledgerArchiveAccount = this.ledger.ledgerArchiveAccount.bind(this.ledger);
   ledgerRestoreAccount = this.ledger.ledgerRestoreAccount.bind(this.ledger);
-  ledgerDeleteAccount(input: Parameters<LedgerRuntimeAdapter['ledgerDeleteAccount']>[0]) {
-    return this.afterMutation(() => this.ledger.ledgerDeleteAccount(input), () => this.financialChanges.allPeriodsChanged());
-  }
+  ledgerDeleteAccount(input: Parameters<LedgerRuntimeAdapter['ledgerDeleteAccount']>[0]) { return this.afterMutation(() => this.ledger.ledgerDeleteAccount(input), () => this.financialChanges.allPeriodsChanged()); }
   ledgerListAccounts = this.ledger.ledgerListAccounts.bind(this.ledger);
   ledgerGetAccountSummary = this.ledger.ledgerGetAccountSummary.bind(this.ledger);
   ledgerGetNetWorthByCurrency = this.ledger.ledgerGetNetWorthByCurrency.bind(this.ledger);

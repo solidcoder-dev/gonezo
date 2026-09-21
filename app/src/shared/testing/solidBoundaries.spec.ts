@@ -33,6 +33,14 @@ function normalizePath(path: string): string {
 }
 
 describe('SOLID frontend boundaries', () => {
+  it('keeps Macro account balance facts independent from Ledger and Analytics contracts', () => {
+    const fact = readSourceFileFromDisk(resolve(srcDir, 'macroAnalytics/domain/accountBalanceFact.ts'), 'utf8');
+    const typeCode = readSourceFileFromDisk(resolve(srcDir, 'macroAnalytics/domain/macroAccountTypeCode.ts'), 'utf8');
+    expect(fact).not.toMatch(/from\s+['"].*\/(?:ledger|analytics)\//);
+    expect(typeCode).not.toMatch(/from\s+['"].*\/(?:ledger|analytics)\//);
+    expect(fact).not.toMatch(/accountId|accountName|isDefault|transactionId|description|merchant/);
+  });
+
   it('classifies DOM-dependent tests separately from Node tests', () => {
     const violations: string[] = [];
     const domImportPattern = /from\s+['"]@testing-library\/(?:react|jest-dom)(?:\/[^'"]*)?['"]/;
