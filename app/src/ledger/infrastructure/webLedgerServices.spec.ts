@@ -24,6 +24,27 @@ function createDependencies(): WebRuntimeDependencies {
 }
 
 describe('web ledger focused services', () => {
+  it('characterizes posted balance signs, opening balance transactions, and archived accounts', async () => {
+    const state = createWebAppState();
+    const dependencies = createDependencies();
+    const accounts = new WebLedgerAccountService({ state, dependencies });
+    const transactions = new WebLedgerTransactionService({ state, dependencies });
+    const account = await accounts.openAccount({ name: 'Archived wallet', type: 'cash', currency: 'EUR', openingBalanceAmount: '10.00' });
+    const zero = await accounts.openAccount({ name: 'Zero wallet', type: 'cash', currency: 'EUR' });
+    await transactions.recordExpense({ accountId: account.id, amount: '3.00', currency: 'EUR', occurredAt: '2026-05-01T00:00:00.000Z' });
+    state.ledgerTransactions.push(
+      { id: 'transfer-in', accountId: account.id, type: 'transfer_in', status: 'posted', amount: '2.00', currency: 'EUR', occurredAt: '2026-05-02T00:00:00.000Z', items: [] },
+      { id: 'transfer-out', accountId: account.id, type: 'transfer_out', status: 'posted', amount: '1.00', currency: 'EUR', occurredAt: '2026-05-03T00:00:00.000Z', items: [] },
+      { id: 'draft', accountId: account.id, type: 'income', status: 'draft', amount: '500.00', currency: 'EUR', occurredAt: '2026-05-04T00:00:00.000Z', items: [] },
+      { id: 'voided', accountId: account.id, type: 'income', status: 'voided', amount: '500.00', currency: 'EUR', occurredAt: '2026-05-05T00:00:00.000Z', items: [] },
+    );
+    await accounts.archiveAccount({ accountId: account.id });
+
+    await expect(accounts.getAccountSummary({ accountId: account.id })).resolves.toMatchObject({ balanceAmount: '8.00' });
+    await expect(accounts.getAccountSummary({ accountId: zero.id })).resolves.toMatchObject({ balanceAmount: '0.00' });
+    expect(state.ledgerTransactions.find((transaction) => transaction.description === 'Opening balance')).toMatchObject({ type: 'income', status: 'posted', amount: '10.00' });
+  });
+
   it('compose through shared state without depending on WebLedgerService', async () => {
     const state = createWebAppState();
     const dependencies = createDependencies();
