@@ -1,7 +1,6 @@
 import { ExactDecimal } from '../../../shared/domain/exactDecimal';
 import type { AnalyticsSpendingMerchant, AnalyticsSpendingMovement, AnalyticsSpendingPeriodWindow } from '../spendingReport';
 import { expensesInWindow, spendingMoney } from '../spendingWindowFacts';
-import { analyticsMerchantReference } from '../../domain/analyticsMerchantReference';
 
 type MerchantTotal = {
   amount: ExactDecimal;
@@ -9,15 +8,15 @@ type MerchantTotal = {
   labels: Map<string, { count: number; mostRecentlyUsedAt: string }>;
 };
 
-function compareDisplayLabels(left: string, right: string): number {
+function compareStrings(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function displayLabel(total: MerchantTotal): string {
   return [...total.labels.entries()].sort(([leftLabel, left], [rightLabel, right]) =>
     right.count - left.count
-    || right.mostRecentlyUsedAt.localeCompare(left.mostRecentlyUsedAt)
-    || compareDisplayLabels(leftLabel, rightLabel),
+    || compareStrings(right.mostRecentlyUsedAt, left.mostRecentlyUsedAt)
+    || compareStrings(leftLabel, rightLabel),
   )[0][0];
 }
 
@@ -30,7 +29,7 @@ export function buildSpendingMerchants(
   const totals = new Map<string, MerchantTotal>();
   for (const movement of expensesInWindow(movements, window, currency)) {
     if (categoryId && movement.categoryId !== categoryId) continue;
-    const reference = movement.merchantReference ?? analyticsMerchantReference(movement.merchant);
+    const reference = movement.merchantReference;
     if (!reference) continue;
     const existing = totals.get(reference.key) ?? { amount: ExactDecimal.from('0'), movementCount: 0, labels: new Map() };
     const label = existing.labels.get(reference.displayName) ?? { count: 0, mostRecentlyUsedAt: movement.occurredAt };
@@ -46,7 +45,7 @@ export function buildSpendingMerchants(
   }
   const total = [...totals.values()].reduce((sum, item) => sum.add(item.amount), ExactDecimal.from('0'));
   return [...totals.entries()]
-    .sort(([left], [right]) => compareDisplayLabels(left, right))
+    .sort(([left], [right]) => compareStrings(left, right))
     .sort(([, left], [, right]) => right.amount.compare(left.amount))
     .map(([, item]) => ({
       merchant: displayLabel(item),

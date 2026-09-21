@@ -107,12 +107,19 @@ data class AnalyticsSchedulingOrigin(val kind: SchedulingKind, val recurringMove
 
 data class AnalyticsCategoryAmount(val categoryId: String?, val amount: BigDecimal)
 
-data class AnalyticsMerchantReference(val key: String, val displayName: String)
+data class AnalyticsMerchantReference(val key: String, val displayName: String) {
+    init {
+        require(key.isNotBlank() && displayName.isNotBlank()) { "merchant reference values are required" }
+    }
+}
 
 object AnalyticsMerchantReferenceResolver {
     fun resolve(merchant: String?, type: AnalyticsMovementType): AnalyticsMerchantReference? {
         if (type == AnalyticsMovementType.TRANSFER_IN || type == AnalyticsMovementType.TRANSFER_OUT) return null
-        val displayName = merchant?.trim()?.replace(Regex("\\s+"), " ")?.takeIf(String::isNotEmpty) ?: return null
+        val displayName = merchant
+            ?.trim { it.isWhitespace() || Character.isSpaceChar(it) || it == '\uFEFF' }
+            ?.replace(Regex("[\\s\\p{Z}\\uFEFF]+"), " ")
+            ?.takeIf(String::isNotEmpty) ?: return null
         val key = Normalizer.normalize(displayName, Normalizer.Form.NFD)
             .replace(Regex("\\p{M}+"), "")
             .lowercase(Locale.ROOT)

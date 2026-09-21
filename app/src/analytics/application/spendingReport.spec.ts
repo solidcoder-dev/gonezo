@@ -3,8 +3,14 @@ import { buildAnalyticsSpendingReport, normalizeAnalyticsPeriodSelection, resolv
 import { buildSpendingCategories } from './breakdowns/categorySpending';
 import { buildSpendingMerchants } from './rankings/merchantSpending';
 import { buildSpendingTimeline } from './series/spendingTimeline';
+import { analyticsMerchantReference } from '../domain/analyticsMerchantReference';
 
 const movement = (id: string, occurredAt: string, amount: string, categoryId?: string) => ({ id, occurredAt, amount, currency: 'EUR', type: 'expense' as const, categoryId });
+const withMerchant = (item: ReturnType<typeof movement>, merchant: string) => ({
+  ...item,
+  merchant,
+  merchantReference: analyticsMerchantReference(merchant),
+});
 
 describe('Analytics spending read model', () => {
   it('normalizes selection shifts and prevents future windows', () => {
@@ -73,10 +79,10 @@ describe('Analytics spending read model', () => {
   it('aggregates normalized merchants deterministically and supports category scope', () => {
     const window = { start: '2026-06-01', endExclusive: '2026-07-01', selection: { period: { kind: 'thisMonth' as const }, shift: 0 }, canGoPrevious: true, canGoNext: false };
     const movements = [
-      { ...movement('a', '2026-06-01T00:00:00Z', '2.00', 'food'), merchant: ' Cafe ' },
-      { ...movement('b', '2026-06-02T00:00:00Z', '3.00', 'food'), merchant: 'Cafe' },
-      { ...movement('c', '2026-06-03T00:00:00Z', '5.00', 'travel'), merchant: 'Zed' },
-      { ...movement('d', '2026-06-04T00:00:00Z', '9.00', 'food'), merchant: '   ' },
+      withMerchant({ ...movement('a', '2026-06-01T00:00:00Z', '2.00', 'food') }, ' Cafe '),
+      withMerchant({ ...movement('b', '2026-06-02T00:00:00Z', '3.00', 'food') }, 'Cafe'),
+      withMerchant(movement('c', '2026-06-03T00:00:00Z', '5.00', 'travel'), 'Zed'),
+      withMerchant(movement('d', '2026-06-04T00:00:00Z', '9.00', 'food'), '   '),
     ];
 
     expect(buildSpendingMerchants(movements, window, 'EUR')).toEqual([
@@ -89,9 +95,9 @@ describe('Analytics spending read model', () => {
   it('merges normalized merchant identity while preserving deterministic user labels', () => {
     const window = { start: '2026-06-01', endExclusive: '2026-07-01', selection: { period: { kind: 'thisMonth' as const }, shift: 0 }, canGoPrevious: true, canGoNext: false };
     const movements = [
-      { ...movement('a', '2026-06-01T00:00:00Z', '20.00'), merchant: 'Mercadona' },
-      { ...movement('b', '2026-06-02T00:00:00Z', '10.00'), merchant: 'MERCADONA' },
-      { ...movement('c', '2026-06-03T00:00:00Z', '15.00'), merchant: '  Mercadona  ' },
+      withMerchant(movement('a', '2026-06-01T00:00:00Z', '20.00'), 'Mercadona'),
+      withMerchant(movement('b', '2026-06-02T00:00:00Z', '10.00'), 'MERCADONA'),
+      withMerchant(movement('c', '2026-06-03T00:00:00Z', '15.00'), '  Mercadona  '),
     ];
 
     expect(buildSpendingMerchants(movements, window, 'EUR')).toEqual([
@@ -102,10 +108,10 @@ describe('Analytics spending read model', () => {
   it('uses exact totals, preserves punctuation distinctions, and chooses labels by count then recency', () => {
     const window = { start: '2026-06-01', endExclusive: '2026-07-01', selection: { period: { kind: 'thisMonth' as const }, shift: 0 }, canGoPrevious: true, canGoNext: false };
     const movements = [
-      { ...movement('a', '2026-06-01T00:00:00Z', '0.10'), merchant: 'EL NIÑO' },
-      { ...movement('b', '2026-06-02T00:00:00Z', '0.20'), merchant: 'El Nino' },
-      { ...movement('c', '2026-06-03T00:00:00Z', '1.00'), merchant: 'Lidl #123' },
-      { ...movement('d', '2026-06-04T00:00:00Z', '2.00'), merchant: 'Lidl' },
+      withMerchant(movement('a', '2026-06-01T00:00:00Z', '0.10'), 'EL NIÑO'),
+      withMerchant(movement('b', '2026-06-02T00:00:00Z', '0.20'), 'El Nino'),
+      withMerchant(movement('c', '2026-06-03T00:00:00Z', '1.00'), 'Lidl #123'),
+      withMerchant(movement('d', '2026-06-04T00:00:00Z', '2.00'), 'Lidl'),
     ];
 
     expect(buildSpendingMerchants(movements, window, 'EUR')).toEqual([

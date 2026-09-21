@@ -31,6 +31,8 @@ class AnalyticsMovementFactsTest {
             .isNotEqualTo(AnalyticsMerchantReferenceResolver.resolve("Lidl", AnalyticsMovementType.EXPENSE))
         assertThat(AnalyticsMerchantReferenceResolver.resolve("  Lidl   #123 ", AnalyticsMovementType.EXPENSE))
             .isEqualTo(AnalyticsMerchantReference("lidl #123", "Lidl #123"))
+        assertThat(AnalyticsMerchantReferenceResolver.resolve("\u00a0Lidl\u2003#123\u00a0", AnalyticsMovementType.EXPENSE))
+            .isEqualTo(AnalyticsMerchantReference("lidl #123", "Lidl #123"))
         assertThat(AnalyticsMerchantReferenceResolver.resolve("  ", AnalyticsMovementType.EXPENSE)).isNull()
         assertThat(AnalyticsMerchantReferenceResolver.resolve("Mercadona", AnalyticsMovementType.TRANSFER_OUT)).isNull()
     }

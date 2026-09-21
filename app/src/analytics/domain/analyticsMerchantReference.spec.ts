@@ -8,6 +8,7 @@ describe('analytics merchant reference', () => {
     ['MERCADONA', { key: 'mercadona', displayName: 'MERCADONA' }],
     ['El Niño', { key: 'el nino', displayName: 'El Niño' }],
     ['  Lidl   #123  ', { key: 'lidl #123', displayName: 'Lidl #123' }],
+    ['\u00a0Lidl\u2003#123\u00a0', { key: 'lidl #123', displayName: 'Lidl #123' }],
   ])('normalizes %s conservatively', (input, expected) => {
     expect(analyticsMerchantReference(input)).toEqual(expected);
   });
