@@ -3,6 +3,7 @@ import { createMetricDefinition, MetricId, MetricKey, MetricVersion, moneyMetric
 import type { CohortMetricCalculator } from '../domain/cohortMetric';
 import { exactMedian } from '../domain/decimalStatistics';
 import { hasSharingContribution } from '../domain/contributionCapabilities';
+import { findSharingContributionBucket } from '../domain/sharingContribution';
 
 function definition(key: string, kind: MetricDefinition['valueKind']): MetricDefinition {
   return createMetricDefinition(MetricId.create(MetricKey.create(key), MetricVersion.create(1)), kind);
@@ -38,8 +39,7 @@ const sharingAdoptionCalculator: CohortMetricCalculator = Object.freeze({
       && contribution.financial.currencies.some(({ currency: entry }) => entry === currency));
     if (eligible.length === 0) return null;
     const active = eligible.filter((contribution) => hasSharingContribution(contribution)
-      && (contribution.sharing.currencies.find(({ currency: entry }) => entry === currency)?.buckets
-        .some(({ source, kind, movementCount }) => source === 'POSTED' && kind === 'EXPENSE' && movementCount > 0) ?? false)).length;
+      && (findSharingContributionBucket(contribution.sharing, currency, 'POSTED', 'EXPENSE')?.movementCount ?? 0) > 0).length;
     return Object.freeze({
       value: ratioMetricValue(ExactDecimal.from(String(active)).ratioTo(ExactDecimal.from(String(eligible.length)), 4).multiplyByInteger(100)),
       contributorCount: eligible.length,

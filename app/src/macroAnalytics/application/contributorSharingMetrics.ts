@@ -3,6 +3,7 @@ import { createMetricDefinition, MetricId, MetricKey, MetricVersion, moneyMetric
 import type { ContributorMetricCalculator } from '../domain/contributorMetric';
 import { hasSharingContribution } from '../domain/contributionCapabilities';
 import type { MacroAnalyticsContribution } from '../domain/macroAnalyticsContribution';
+import { findSharingContributionBucket } from '../domain/sharingContribution';
 
 function definition(key: string, valueKind: MetricDefinition['valueKind']): MetricDefinition {
   return createMetricDefinition(MetricId.create(MetricKey.create(key), MetricVersion.create(1)), valueKind);
@@ -19,8 +20,7 @@ function selectedCurrency(contribution: MacroAnalyticsContribution, currency?: s
 
 function sharingAmount(contribution: MacroAnalyticsContribution, currency: string, field: 'personalAmount' | 'settlementRequiredAmount'): string {
   if (!hasSharingContribution(contribution)) return '0';
-  return contribution.sharing.currencies.find(({ currency: entry }) => entry === currency)?.buckets
-    .find(({ source, kind }) => source === 'POSTED' && kind === 'EXPENSE')?.[field] ?? '0';
+  return findSharingContributionBucket(contribution.sharing, currency, 'POSTED', 'EXPENSE')?.[field] ?? '0';
 }
 
 const amountCalculator = (definition: MetricDefinition, field: 'personalAmount' | 'settlementRequiredAmount'): ContributorMetricCalculator => Object.freeze({

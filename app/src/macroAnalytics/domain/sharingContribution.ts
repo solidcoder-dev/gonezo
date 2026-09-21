@@ -22,6 +22,16 @@ export type SharingContribution = Readonly<{
   currencies: readonly SharingCurrencyContribution[];
 }>;
 
+export function findSharingContributionBucket(
+  contribution: SharingContribution,
+  currency: string,
+  source: SharingFact['source'],
+  kind: SharingFact['kind'],
+): SharingContributionBucket | undefined {
+  return contribution.currencies.find((entry) => entry.currency === currency)?.buckets
+    .find((bucket) => bucket.source === source && bucket.kind === kind);
+}
+
 const sources: readonly SharingFact['source'][] = ['POSTED', 'EXPECTED', 'SCHEDULED'];
 const kinds: readonly SharingFact['kind'][] = ['INCOME', 'EXPENSE'];
 
