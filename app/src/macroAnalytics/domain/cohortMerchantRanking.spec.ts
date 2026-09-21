@@ -29,4 +29,16 @@ describe('buildCohortMerchantRanking', () => {
     expect(result.merchantCoveragePercent).toBe('0');
     expect(result.items).toEqual([]);
   });
+
+  it('counts zero personal amounts with movement facts as active contributors', () => {
+    const result = buildCohortMerchantRanking({ period, currency: 'EUR', cohort: createCohort(), contributions: [v5('10', '0')] });
+    expect(result.items).toEqual([{ merchant: 'UNMAPPED', totalAmount: '0', medianAmount: '0', movementCount: 1, activeContributorCount: 1, shareOfPostedExpensePercent: '0' }]);
+    expect(result.merchantCoveragePercent).toBe('0');
+  });
+
+  it('excludes legacy and missing-currency contributions from the denominator', () => {
+    const legacy: MacroAnalyticsContribution = { schemaVersion: 4, period, dimensions, financial: { currencies: [{ currency: 'EUR', buckets: [] }] }, categories: { currencies: [] }, recurring: { currencies: [] }, sharing: { currencies: [] } };
+    const missingCurrency = { ...v5('99'), financial: { currencies: [{ currency: 'USD', buckets: [{ source: 'POSTED' as const, kind: 'EXPENSE' as const, amount: '99', count: 1 }] }] } };
+    expect(buildCohortMerchantRanking({ period, currency: 'EUR', cohort: createCohort(), contributions: [legacy, missingCurrency, v5('12')] }).eligibleContributorCount).toBe(1);
+  });
 });

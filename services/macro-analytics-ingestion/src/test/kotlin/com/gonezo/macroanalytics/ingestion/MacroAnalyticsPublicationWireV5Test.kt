@@ -27,7 +27,15 @@ class MacroAnalyticsPublicationWireV5Test {
         assertFails { parser.parse(fixture.replace("\"schemaVersion\": 5", "\"schemaVersion\": 4")) }
         assertFails { parser.parse(fixture.replace("\"merchant\": \"MERCADONA\"", "\"merchant\": \"PRIVATE_STORE_482\"")) }
         assertFails { parser.parse(fixture.replace("\"catalogVersion\": 1", "\"catalogVersion\": 2")) }
-        assertFails { parser.parse(fixture.replace("\"movementCount\": 1", "\"movementCount\": 0")) }
+        assertFails {
+            parser.parse(
+                fixture.replace(
+                    "\"merchant\": \"MERCADONA\",\n              \"amount\": \"4\",\n              \"movementCount\": 1",
+                    "\"merchant\": \"MERCADONA\",\n              \"amount\": \"4\",\n              \"movementCount\": 0",
+                ),
+            )
+        }
         assertFails { parser.parse(fixture.replace("\"merchant\": \"UNMAPPED\"", "\"merchant\": \"MERCADONA\"")) }
+        assertFails { parser.parse(fixture.replace("\"amount\": \"4\"", "\"amount\": \"11\"")) }
     }
 }

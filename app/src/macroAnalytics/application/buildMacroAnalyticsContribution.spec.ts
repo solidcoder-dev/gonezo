@@ -137,6 +137,11 @@ describe('buildMacroAnalyticsContribution', () => {
   it('includes catalog-versioned merchant facts and enforces their financial upper bound', async () => {
     const ports = sources();
     vi.mocked(ports.merchantFacts.listMerchantFacts).mockResolvedValue([{
+      id: 'opaque-zero-merchant-fact', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0', merchant: 'UNMAPPED' as never,
+    }]);
+    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
+      .resolves.toMatchObject({ status: 'BUILT', contribution: { merchants: { currencies: [{ buckets: [{ amount: '0', movementCount: 1 }] }] } } });
+    vi.mocked(ports.merchantFacts.listMerchantFacts).mockResolvedValue([{
       id: 'opaque-merchant-fact', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0.10', merchant: 'UNMAPPED' as never,
     }]);
     const result = await buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
