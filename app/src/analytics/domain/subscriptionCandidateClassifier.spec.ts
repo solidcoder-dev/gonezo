@@ -42,4 +42,16 @@ describe('classifySubscriptionCandidate', () => {
     const baseline = classifySubscriptionCandidate(fact());
     expect(classifySubscriptionCandidate(fact({ categoryId: 'category', tagIds: ['tag'] }))).toEqual(baseline);
   });
+
+  it('classifies historical facts from their captured cadence after the plan changes', () => {
+    const historical = fact({
+      schedulingOrigin: { kind: 'recurring', recurringMovementId: 'series', cadence: { frequency: 'monthly', interval: 1 } },
+    });
+    const future = fact({
+      schedulingOrigin: { kind: 'recurring', recurringMovementId: 'series', cadence: { frequency: 'daily', interval: 1 } },
+    });
+
+    expect(classifySubscriptionCandidate(historical)?.status).toBe('CANDIDATE');
+    expect(classifySubscriptionCandidate(future)?.status).toBe('NOT_CANDIDATE');
+  });
 });
