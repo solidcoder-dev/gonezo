@@ -23,6 +23,11 @@ export { aggregateFinancialFacts, financialContributionAmount } from '../domain/
 export type { FinancialContribution, FinancialContributionBucket, FinancialCurrencyContribution } from '../domain/financialContribution';
 export { aggregateCategoryFacts } from '../domain/categoryContribution';
 export type { CategoryContribution, CategoryContributionBucket, CategoryCurrencyContribution } from '../domain/categoryContribution';
+export { aggregateTagUsageFacts } from '../domain/tagUsageContribution';
+export type { TagUsageContribution, TagUsageContributionBucket, TagUsageCurrencyContribution } from '../domain/tagUsageContribution';
+export { createTagUsageFact } from '../domain/tagUsageFact';
+export type { TagUsageFact, TagUsageFactKind, TagUsageFactSource } from '../domain/tagUsageFact';
+export type { TagUsageFactSourcePort, TagUsageFactQuery } from './tagUsageFactSource.port';
 export { deriveContributionDimensions } from '../domain/contributionDimensions';
 export type { ContributionAgeBand, ContributionDimensions, ContributionSex } from '../domain/contributionDimensions';
 export type { ContributionProfile, ContributionProfileSex } from '../domain/contributionProfile';
