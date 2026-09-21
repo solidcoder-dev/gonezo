@@ -41,6 +41,12 @@ describe('SOLID frontend boundaries', () => {
     expect(fact).not.toMatch(/accountId|accountName|isDefault|transactionId|description|merchant/);
   });
 
+  it('keeps subscription candidate classification in User Analytics', () => {
+    const classifier = readSourceFileFromDisk(resolve(srcDir, 'analytics/domain/subscriptionCandidateClassifier.ts'), 'utf8');
+    expect(classifier).not.toMatch(/macroAnalytics|MacroAnalytics|SubscriptionFact|ContributionV8|PublicationWireV8/);
+    expect(classifier).not.toMatch(/Repository|repository|reviewPolicy|recurrenceEnd/);
+  });
+
   it('classifies DOM-dependent tests separately from Node tests', () => {
     const violations: string[] = [];
     const domImportPattern = /from\s+['"]@testing-library\/(?:react|jest-dom)(?:\/[^'"]*)?['"]/;
