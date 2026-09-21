@@ -1,11 +1,6 @@
 import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
-import { createFinancialFact, type FinancialFact, type FinancialFactKind, type FinancialFactSource } from '../domain/financialFact';
-
-const financialFactSourceByAnalyticsSource = {
-  POSTED: 'POSTED',
-  EXPECTED: 'EXPECTED',
-  SCHEDULED_PROJECTION: 'SCHEDULED',
-} satisfies Record<AnalyticsMovementFactItem['source'], FinancialFactSource>;
+import { createFinancialFact, type FinancialFact, type FinancialFactKind } from '../domain/financialFact';
+import { mapAnalyticsMovementSource } from './analyticsMovementSource';
 
 const financialFactKindByAnalyticsType = {
   income: 'INCOME',
@@ -20,7 +15,7 @@ export function adaptAnalyticsMovementFact(item: AnalyticsMovementFactItem): Fin
   return createFinancialFact({
     id: item.analyticsFactId,
     occurredAt: item.effectiveAt,
-    source: financialFactSourceByAnalyticsSource[item.source],
+    source: mapAnalyticsMovementSource(item.source),
     kind: financialFactKindByAnalyticsType[item.type],
     amount: item.personalAmount,
     currency: item.currency,

@@ -1,11 +1,6 @@
 import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
-import { createRecurringFact, type RecurringFact, type RecurringFactKind, type RecurringFactSource } from '../domain/recurringFact';
-
-const recurringFactSourceByAnalyticsSource = {
-  POSTED: 'POSTED',
-  EXPECTED: 'EXPECTED',
-  SCHEDULED_PROJECTION: 'SCHEDULED',
-} satisfies Record<AnalyticsMovementFactItem['source'], RecurringFactSource>;
+import { createRecurringFact, type RecurringFact, type RecurringFactKind } from '../domain/recurringFact';
+import { mapAnalyticsMovementSource } from './analyticsMovementSource';
 
 function recurringFactKind(type: AnalyticsMovementFactItem['type']): RecurringFactKind | undefined {
   if (type === 'income') return 'INCOME';
@@ -21,7 +16,7 @@ export function adaptAnalyticsRecurringFact(item: AnalyticsMovementFactItem): Re
   return createRecurringFact({
     id: `${item.analyticsFactId}/recurring`,
     occurredAt: item.effectiveAt,
-    source: recurringFactSourceByAnalyticsSource[item.source],
+    source: mapAnalyticsMovementSource(item.source),
     kind,
     currency: item.currency,
     amount: item.personalAmount,

@@ -1,11 +1,6 @@
 import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
-import { createTagUsageFact, type TagUsageFact, type TagUsageFactKind, type TagUsageFactSource } from '../domain/tagUsageFact';
-
-const tagUsageSourceByAnalyticsSource = {
-  POSTED: 'POSTED',
-  EXPECTED: 'EXPECTED',
-  SCHEDULED_PROJECTION: 'SCHEDULED',
-} satisfies Record<AnalyticsMovementFactItem['source'], TagUsageFactSource>;
+import { createTagUsageFact, type TagUsageFact, type TagUsageFactKind } from '../domain/tagUsageFact';
+import { mapAnalyticsMovementSource } from './analyticsMovementSource';
 
 function tagUsageKindFor(type: AnalyticsMovementFactItem['type']): TagUsageFactKind | undefined {
   if (type === 'income') return 'INCOME';
@@ -21,7 +16,7 @@ export function adaptAnalyticsTagUsageFact(item: AnalyticsMovementFactItem): Tag
   return createTagUsageFact({
     id: `${item.analyticsFactId}/tag-usage`,
     occurredAt: item.effectiveAt,
-    source: tagUsageSourceByAnalyticsSource[item.source],
+    source: mapAnalyticsMovementSource(item.source),
     kind,
     currency: item.currency,
     amount: item.personalAmount,

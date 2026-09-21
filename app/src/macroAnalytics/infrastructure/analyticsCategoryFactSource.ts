@@ -3,12 +3,11 @@ import type { CategoryFactQuery, CategoryFactSourcePort } from '../application/c
 import type { CategoryFact } from '../domain/categoryFact';
 import { toAnalyticsListMovementFactsInput } from './analyticsMovementFactQuery';
 import { macroCategoryCodeFor } from './macroCategoryMapper';
+import { mapAnalyticsMovementSource } from './analyticsMovementSource';
 
 type AnalyticsMovementFactReader = Readonly<{
   analyticsListMovementFacts(input: AnalyticsListMovementFactsInput): Promise<AnalyticsListMovementFactsResult>;
 }>;
-
-const sourceByAnalyticsSource = { POSTED: 'POSTED', EXPECTED: 'EXPECTED', SCHEDULED_PROJECTION: 'SCHEDULED' } as const;
 
 export function createAnalyticsCategoryFactSource(analytics: AnalyticsMovementFactReader): CategoryFactSourcePort {
   return {
@@ -19,7 +18,7 @@ export function createAnalyticsCategoryFactSource(analytics: AnalyticsMovementFa
         return fact.categoryAllocations.map((allocation, index) => ({
           id: `${fact.analyticsFactId}/category/${index}`,
           occurredAt: fact.effectiveAt,
-          source: sourceByAnalyticsSource[fact.source],
+          source: mapAnalyticsMovementSource(fact.source),
           kind: fact.type === 'income' ? 'INCOME' : 'EXPENSE',
           currency: fact.currency,
           amount: allocation.personalAmount,
