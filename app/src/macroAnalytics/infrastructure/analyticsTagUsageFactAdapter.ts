@@ -7,7 +7,7 @@ const tagUsageSourceByAnalyticsSource = {
   SCHEDULED_PROJECTION: 'SCHEDULED',
 } satisfies Record<AnalyticsMovementFactItem['source'], TagUsageFactSource>;
 
-function economicKind(type: AnalyticsMovementFactItem['type']): TagUsageFactKind | undefined {
+function tagUsageKindFor(type: AnalyticsMovementFactItem['type']): TagUsageFactKind | undefined {
   if (type === 'income') return 'INCOME';
   if (type === 'expense') return 'EXPENSE';
   return undefined;
@@ -15,7 +15,7 @@ function economicKind(type: AnalyticsMovementFactItem['type']): TagUsageFactKind
 
 export function adaptAnalyticsTagUsageFact(item: AnalyticsMovementFactItem): TagUsageFact | null {
   if (item.ignored) return null;
-  const kind = economicKind(item.type);
+  const kind = tagUsageKindFor(item.type);
   if (kind === undefined) return null;
 
   return createTagUsageFact({
