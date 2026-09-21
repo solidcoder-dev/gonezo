@@ -4,7 +4,9 @@ export function normalizeWebTaxonomyCategoryName(name: string): string {
   return name.trim().toLowerCase();
 }
 
-export const normalizeWebTaxonomyTagName = normalizeTagName;
+export function normalizeWebTaxonomyTagName(name: string): string {
+  return normalizeTagName(name);
+}
 
 export function uniqueWebTaxonomyTagNames(rawNames: string[]): Map<string, string> {
   const uniqueByNormalizedName = new Map<string, string>();
