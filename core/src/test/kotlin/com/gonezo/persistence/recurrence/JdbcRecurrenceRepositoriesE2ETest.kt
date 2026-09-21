@@ -2,7 +2,9 @@ package com.gonezo.persistence.recurrence
 
 import com.gonezo.recurrence.application.RecurringMovementDueIntegrationEvent
 import com.gonezo.recurrence.domain.MonthlyPattern
+import com.gonezo.recurrence.domain.RecurrenceCadenceSnapshot
 import com.gonezo.recurrence.domain.RecurrenceEnd
+import com.gonezo.recurrence.domain.RecurrenceFrequency
 import com.gonezo.recurrence.domain.RecurrenceOutboxMessage
 import com.gonezo.recurrence.domain.RecurrenceOutboxStatus
 import com.gonezo.recurrence.domain.RecurrenceRule
@@ -10,6 +12,7 @@ import com.gonezo.recurrence.domain.RecurringMovement
 import com.gonezo.recurrence.domain.RecurringMovementId
 import com.gonezo.recurrence.domain.RecurringMovementOccurrence
 import com.gonezo.recurrence.domain.RecurringMovementType
+import com.gonezo.recurrence.domain.SchedulingKind
 import com.gonezo.recurrence.domain.services.RecurrenceScheduleCalculator
 import com.gonezo.recurrence.infrastructure.persistence.JdbcRecurrenceOutboxRepository
 import com.gonezo.recurrence.infrastructure.persistence.JdbcRecurringMovementOccurrenceRepository
@@ -87,6 +90,18 @@ class JdbcRecurrenceRepositoriesE2ETest : SqliteE2ETest() {
         val postedOccurrence = loadedOccurrence.acknowledgePosted("transaction-1", Instant.parse("2026-02-19T10:00:00Z"))
         occurrenceRepository.save(postedOccurrence)
         assertThat(occurrenceRepository.findByLedgerTransactionId("transaction-1")).isEqualTo(postedOccurrence)
+
+        val cadenceOccurrence = RecurringMovementOccurrence.pending(
+            id = UUID.randomUUID(),
+            recurringMovementId = movement.id,
+            dueAt = requireNotNull(movement.nextDueAt).plusSeconds(1),
+            createdAt = Instant.parse("2026-02-19T09:00:00Z"),
+            schedulingKind = SchedulingKind.RECURRING,
+            cadence = RecurrenceCadenceSnapshot(RecurrenceFrequency.MONTHLY, 3),
+        )
+        occurrenceRepository.save(cadenceOccurrence)
+        assertThat(occurrenceRepository.findById(cadenceOccurrence.id)?.cadence)
+            .isEqualTo(RecurrenceCadenceSnapshot(RecurrenceFrequency.MONTHLY, 3))
 
         val outboxMessage =
             RecurrenceOutboxMessage(

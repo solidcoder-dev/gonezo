@@ -18,9 +18,9 @@ class JdbcRecurringMovementOccurrenceRepository(private val jdbcTemplate: NamedP
         val sql =
             """
             insert into recurring_movement_occurrences (
-              id, recurring_movement_id, due_at, status, ledger_transaction_id, error_code, error_message, created_at, updated_at, acknowledged_at, schedule_kind
+              id, recurring_movement_id, due_at, status, ledger_transaction_id, error_code, error_message, created_at, updated_at, acknowledged_at, schedule_kind, recurrence_frequency, recurrence_interval
             ) values (
-              :id, :recurring_movement_id, :due_at, :status, :ledger_transaction_id, :error_code, :error_message, :created_at, :updated_at, :acknowledged_at, :schedule_kind
+              :id, :recurring_movement_id, :due_at, :status, :ledger_transaction_id, :error_code, :error_message, :created_at, :updated_at, :acknowledged_at, :schedule_kind, :recurrence_frequency, :recurrence_interval
             )
             on conflict(id) do update set
               recurring_movement_id = excluded.recurring_movement_id,
@@ -32,7 +32,9 @@ class JdbcRecurringMovementOccurrenceRepository(private val jdbcTemplate: NamedP
               created_at = excluded.created_at,
               updated_at = excluded.updated_at,
               acknowledged_at = excluded.acknowledged_at,
-              schedule_kind = excluded.schedule_kind
+              schedule_kind = excluded.schedule_kind,
+              recurrence_frequency = excluded.recurrence_frequency,
+              recurrence_interval = excluded.recurrence_interval
             """.trimIndent()
 
         val params =
@@ -48,6 +50,8 @@ class JdbcRecurringMovementOccurrenceRepository(private val jdbcTemplate: NamedP
                 .addValue("updated_at", occurrence.updatedAt.toString())
                 .addValue("acknowledged_at", occurrence.acknowledgedAt?.toString())
                 .addValue("schedule_kind", occurrence.schedulingKind.value)
+                .addValue("recurrence_frequency", occurrence.cadence?.frequency?.value)
+                .addValue("recurrence_interval", occurrence.cadence?.interval)
         jdbcTemplate.update(sql, params)
     }
 
@@ -115,6 +119,12 @@ class JdbcRecurringMovementOccurrenceRepository(private val jdbcTemplate: NamedP
             updatedAt = Instant.parse(rs.getString("updated_at")),
             acknowledgedAt = rs.getString("acknowledged_at")?.let(Instant::parse),
             schedulingKind = com.gonezo.recurrence.domain.SchedulingKind.from(rs.getString("schedule_kind")),
+            cadence = rs.getString("recurrence_frequency")?.let { frequency ->
+                com.gonezo.recurrence.domain.RecurrenceCadenceSnapshot(
+                    com.gonezo.recurrence.domain.RecurrenceFrequency.from(frequency),
+                    rs.getInt("recurrence_interval"),
+                )
+            },
         )
     }
 }

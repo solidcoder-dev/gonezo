@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteException;
 public final class CoreDatabase extends SQLiteOpenHelper {
   private static final String DB_NAME = "gonezo.db";
   // Must never go backwards for existing installs. 7 existed before the ledger-only reset.
-  private static final int DB_VERSION = 44;
+  private static final int DB_VERSION = 45;
   private static final String SERVICES_CATEGORY_ID = "00000000-0000-4000-8000-000000000111";
 
   public CoreDatabase(Context context) {
@@ -218,6 +218,10 @@ public final class CoreDatabase extends SQLiteOpenHelper {
     if (oldVersion < 44) {
       addPlannedMovementTagIdColumns(db);
     }
+
+    if (oldVersion < 45) {
+      addRecurringOccurrenceCadence(db);
+    }
   }
 
   @Override
@@ -262,6 +266,11 @@ public final class CoreDatabase extends SQLiteOpenHelper {
   private static void addRecurringOccurrenceSchedulingKind(SQLiteDatabase db) {
     db.execSQL("alter table recurring_movement_occurrences add column schedule_kind text not null default 'recurring' check (schedule_kind in ('recurring', 'one_shot'));");
     db.execSQL("update recurring_movement_occurrences set schedule_kind = case when (select end_kind = 'after_occurrences' and end_after_occurrences = 1 from recurring_movements where recurring_movements.id = recurring_movement_occurrences.recurring_movement_id) then 'one_shot' else 'recurring' end;");
+  }
+
+  private static void addRecurringOccurrenceCadence(SQLiteDatabase db) {
+    db.execSQL("alter table recurring_movement_occurrences add column recurrence_frequency text null check (recurrence_frequency is null or recurrence_frequency in ('daily', 'weekly', 'monthly', 'yearly'));");
+    db.execSQL("alter table recurring_movement_occurrences add column recurrence_interval integer null check (recurrence_interval is null or recurrence_interval >= 1);");
   }
 
   private static void createRecurringOccurrenceLedgerTransactionIndex(SQLiteDatabase db) {
@@ -678,6 +687,8 @@ public final class CoreDatabase extends SQLiteOpenHelper {
         "updated_at text not null," +
         "acknowledged_at text," +
         "schedule_kind text not null default 'recurring' check (schedule_kind in ('recurring', 'one_shot'))," +
+        "recurrence_frequency text null check (recurrence_frequency is null or recurrence_frequency in ('daily', 'weekly', 'monthly', 'yearly'))," +
+        "recurrence_interval integer null check (recurrence_interval is null or recurrence_interval >= 1)," +
         "foreign key(recurring_movement_id) references recurring_movements(id)" +
       ");"
     );

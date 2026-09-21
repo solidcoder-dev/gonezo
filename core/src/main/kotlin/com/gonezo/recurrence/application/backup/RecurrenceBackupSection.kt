@@ -12,6 +12,7 @@ import com.gonezo.application.backup.contract.BackupSectionImporter
 import com.gonezo.application.backup.contract.BackupValidationResult
 import com.gonezo.ledger.domain.ports.LedgerAccountRepository
 import com.gonezo.recurrence.domain.MonthlyPattern
+import com.gonezo.recurrence.domain.RecurrenceCadenceSnapshot
 import com.gonezo.recurrence.domain.RecurrenceEnd
 import com.gonezo.recurrence.domain.RecurrenceFrequency
 import com.gonezo.recurrence.domain.RecurrenceRule
@@ -23,9 +24,9 @@ import com.gonezo.recurrence.domain.RecurringMovementReviewPolicy
 import com.gonezo.recurrence.domain.RecurringMovementStatus
 import com.gonezo.recurrence.domain.RecurringMovementType
 import com.gonezo.recurrence.domain.SchedulingKind
-import com.gonezo.recurrence.domain.resolveCurrentSchedulingKind
 import com.gonezo.recurrence.domain.ports.RecurringMovementOccurrenceRepository
 import com.gonezo.recurrence.domain.ports.RecurringMovementRepository
+import com.gonezo.recurrence.domain.resolveCurrentSchedulingKind
 import java.math.BigDecimal
 import java.time.DayOfWeek
 import java.time.Instant
@@ -65,7 +66,7 @@ data class BackupRecurringMovement(
 data class BackupRecurringSplitItem(val id: String, val name: String, val amount: String, val tagNames: List<String> = emptyList())
 data class BackupRecurrenceRule(val frequency: String, val interval: Int, val weeklyDays: List<String>, val monthlyPattern: String, val dayOfMonth: Int?, val monthlyWeekOrdinal: Int?, val monthlyWeekday: String?)
 data class BackupRecurrenceEnd(val kind: String, val date: String?, val count: Int?)
-data class BackupRecurringOccurrence(val id: String, val recurringMovementId: String, val dueAt: String, val status: String, val ledgerTransactionId: String?, val errorCode: String?, val errorMessage: String?, val createdAt: String, val updatedAt: String, val acknowledgedAt: String?, val schedulingKind: String? = null)
+data class BackupRecurringOccurrence(val id: String, val recurringMovementId: String, val dueAt: String, val status: String, val ledgerTransactionId: String?, val errorCode: String?, val errorMessage: String?, val createdAt: String, val updatedAt: String, val acknowledgedAt: String?, val schedulingKind: String? = null, val recurrenceFrequency: String? = null, val recurrenceInterval: Int? = null)
 
 data class RecurrenceBackupSection(val movements: List<BackupRecurringMovement>, val occurrences: List<BackupRecurringOccurrence>) : BackupSection {
     override val sectionId = BackupSectionId.RECURRENCE
@@ -115,6 +116,8 @@ class RecurrenceBackupSectionExporter(private val accountRepository: LedgerAccou
         status = value.status.value, ledgerTransactionId = value.ledgerTransactionId, errorCode = value.errorCode,
         errorMessage = value.errorMessage, createdAt = value.createdAt.toString(), updatedAt = value.updatedAt.toString(), acknowledgedAt = value.acknowledgedAt?.toString(),
         schedulingKind = value.schedulingKind.value,
+        recurrenceFrequency = value.cadence?.frequency?.value,
+        recurrenceInterval = value.cadence?.interval,
     )
 }
 
@@ -144,6 +147,8 @@ class RecurrenceBackupSectionImporter(private val movementRepository: RecurringM
             occurrence.ledgerTransactionId?.let { requireContext(context.validationContext.containsMovement(it), "occurrence ledger transaction", it) }
             RecurringMovementOccurrenceStatus.from(occurrence.status)
             occurrence.schedulingKind?.let(SchedulingKind::from)
+            require((occurrence.recurrenceFrequency == null) == (occurrence.recurrenceInterval == null))
+            occurrence.recurrenceFrequency?.let { RecurrenceCadenceSnapshot(RecurrenceFrequency.from(it), occurrence.recurrenceInterval!!) }
             Instant.parse(occurrence.dueAt)
             Instant.parse(occurrence.createdAt)
             Instant.parse(occurrence.updatedAt)
@@ -174,7 +179,8 @@ class RecurrenceBackupSectionImporter(private val movementRepository: RecurringM
         recurrence.occurrences.forEach { value ->
             val schedulingKind = value.schedulingKind?.let(SchedulingKind::from)
                 ?: schedulingKindsByMovementId.getValue(value.recurringMovementId)
-            occurrenceRepository.save(RecurringMovementOccurrence(UUID.fromString(value.id), RecurringMovementId.from(value.recurringMovementId), Instant.parse(value.dueAt), RecurringMovementOccurrenceStatus.from(value.status), value.ledgerTransactionId, value.errorCode, value.errorMessage, Instant.parse(value.createdAt), Instant.parse(value.updatedAt), value.acknowledgedAt?.let(Instant::parse), schedulingKind))
+            val cadence = value.recurrenceFrequency?.let { RecurrenceCadenceSnapshot(RecurrenceFrequency.from(it), value.recurrenceInterval!!) }
+            occurrenceRepository.save(RecurringMovementOccurrence(UUID.fromString(value.id), RecurringMovementId.from(value.recurringMovementId), Instant.parse(value.dueAt), RecurringMovementOccurrenceStatus.from(value.status), value.ledgerTransactionId, value.errorCode, value.errorMessage, Instant.parse(value.createdAt), Instant.parse(value.updatedAt), value.acknowledgedAt?.let(Instant::parse), schedulingKind, cadence))
         }
     }
 }

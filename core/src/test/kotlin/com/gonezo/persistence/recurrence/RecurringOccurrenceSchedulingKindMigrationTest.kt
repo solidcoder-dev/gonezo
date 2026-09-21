@@ -17,13 +17,22 @@ class RecurringOccurrenceSchedulingKindMigrationTest {
 
             database.migratePending()
 
-            assertThat(database.jdbcTemplate.queryForList(
-                "select id, schedule_kind from recurring_movement_occurrences order by id",
-            ).associate { it["id"] to it["schedule_kind"] })
-                .containsExactlyInAnyOrderEntriesOf(mapOf(
-                    "one-shot-occurrence" to "one_shot",
-                    "recurring-occurrence" to "recurring",
-                ))
+            assertThat(
+                database.jdbcTemplate.queryForList(
+                    "select id, schedule_kind from recurring_movement_occurrences order by id",
+                ).associate { it["id"] to it["schedule_kind"] },
+            )
+                .containsExactlyInAnyOrderEntriesOf(
+                    mapOf(
+                        "one-shot-occurrence" to "one_shot",
+                        "recurring-occurrence" to "recurring",
+                    ),
+                )
+            assertThat(
+                database.jdbcTemplate.queryForList(
+                    "select id, recurrence_frequency, recurrence_interval from recurring_movement_occurrences",
+                ).all { it["recurrence_frequency"] == null && it["recurrence_interval"] == null },
+            ).isTrue()
         } finally {
             database.close()
         }
@@ -36,8 +45,11 @@ class RecurringOccurrenceSchedulingKindMigrationTest {
                 rule_interval, rule_monthly_pattern, end_kind, end_after_occurrences,
                 start_at, zone_id, status, generated_occurrences, created_at, updated_at
             ) values (?, 'expense', 'account', '1.00', 'EUR', 'daily', 1, 'day_of_month', ?, ?,
-                     '2026-01-01T00:00:00Z', 'UTC', 'active', 0, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')""".trimIndent(),
-            id, endKind, count,
+                     '2026-01-01T00:00:00Z', 'UTC', 'active', 0, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')
+            """.trimIndent(),
+            id,
+            endKind,
+            count,
         )
     }
 
@@ -45,8 +57,10 @@ class RecurringOccurrenceSchedulingKindMigrationTest {
         database.jdbcTemplate.update(
             """insert into recurring_movement_occurrences (
                 id, recurring_movement_id, due_at, status, created_at, updated_at
-            ) values (?, ?, '2026-01-01T00:00:00Z', 'pending', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')""".trimIndent(),
-            id, recurringMovementId,
+            ) values (?, ?, '2026-01-01T00:00:00Z', 'pending', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')
+            """.trimIndent(),
+            id,
+            recurringMovementId,
         )
     }
 }
