@@ -2,7 +2,7 @@ import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import type { AnalyticsPeriod } from './analyticsPeriod';
 import type { Cohort } from './cohort';
 import type { MacroAnalyticsContribution } from './macroAnalyticsContribution';
-import { hasBalanceContribution } from './contributionCapabilities';
+import { balanceCurrencyForContribution, eligibleBalanceContributions } from './accountBalanceEligibility';
 import { exactMedian } from './decimalStatistics';
 import { MACRO_ACCOUNT_TYPE_ORDER } from './accountBalanceContribution';
 import type { MacroAccountTypeCode } from './macroAccountTypeCode';
@@ -31,11 +31,8 @@ export function buildCohortAccountTypeBreakdown(input: Readonly<{
   contributions: readonly MacroAnalyticsContribution[];
 }>): CohortAccountTypeBreakdown {
   const currency = input.currency.trim().toUpperCase();
-  const eligible = input.contributions.flatMap((contribution) => {
-    if (contribution.period.value !== input.period.value || !hasBalanceContribution(contribution) || !input.cohort.includes(contribution.dimensions)) return [];
-    const balanceCurrency = contribution.balances.currencies.find((item) => item.currency === currency);
-    return balanceCurrency ? [balanceCurrency.buckets] : [];
-  });
+  const eligibleContributions = eligibleBalanceContributions(input);
+  const eligible = eligibleContributions.map((contribution) => balanceCurrencyForContribution(contribution, currency)!.buckets);
   const items = MACRO_ACCOUNT_TYPE_ORDER.flatMap((accountType) => {
     const buckets = eligible.map((contributorBuckets) => contributorBuckets.find((bucket) => bucket.accountType === accountType));
     const totalAccountCount = buckets.reduce((sum, bucket) => sum + (bucket?.accountCount ?? 0), 0);

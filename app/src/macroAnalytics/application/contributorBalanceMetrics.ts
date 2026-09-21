@@ -1,6 +1,6 @@
 import { countMetricValue, createMetricDefinition, MetricId, MetricKey, MetricVersion, moneyMetricValue, type MetricDefinition, type MetricValue } from '../../shared/domain/analyticsMetric';
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
-import { hasBalanceContribution } from '../domain/contributionCapabilities';
+import { balanceCurrencyForContribution } from '../domain/accountBalanceEligibility';
 import type { ContributorMetricCalculator } from '../domain/contributorMetric';
 
 function definition(key: string, kind: MetricDefinition['valueKind']): MetricDefinition {
@@ -14,9 +14,9 @@ function balanceMetric(metricDefinition: MetricDefinition, amount: (buckets: rea
   return Object.freeze({
     definition: metricDefinition,
     calculate(contribution, currency) {
-      if (!hasBalanceContribution(contribution) || !currency) return null;
-      const normalizedCurrency = currency.toUpperCase();
-      const balances = contribution.balances.currencies.find((item) => item.currency === normalizedCurrency);
+      if (!currency) return null;
+      const normalizedCurrency = currency.trim().toUpperCase();
+      const balances = balanceCurrencyForContribution(contribution, normalizedCurrency);
       if (!balances) return null;
       return amount(balances.buckets, normalizedCurrency);
     },

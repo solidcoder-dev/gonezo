@@ -1,5 +1,5 @@
 import type { AnalyticsPeriod } from '../domain/analyticsPeriod';
-import { hasBalanceContribution } from '../domain/contributionCapabilities';
+import { eligibleBalanceContributions } from '../domain/accountBalanceEligibility';
 import { buildCohortAccountTypeBreakdown } from '../domain/cohortAccountTypeBreakdown';
 import type { Cohort } from '../domain/cohort';
 import type { MacroBalanceReport } from '../domain/macroBalanceReport';
@@ -21,9 +21,8 @@ export class GetMacroBalanceReport {
   async execute({ period, currency, cohort }: GetMacroBalanceReportInput): Promise<MacroBalanceReport> {
     const processed = await this.contributions.list({ period, cohort });
     const normalizedCurrency = currency.trim().toUpperCase();
-    const eligible = processed.filter(({ contribution }) => hasBalanceContribution(contribution)
-      && contribution.period.value === period.value
-      && contribution.balances.currencies.some((item) => item.currency === normalizedCurrency));
+    const eligibleContributions = new Set(eligibleBalanceContributions({ contributions: processed.map(({ contribution }) => contribution), period, currency: normalizedCurrency, cohort }));
+    const eligible = processed.filter(({ contribution }) => eligibleContributions.has(contribution));
     const metricIds = [contributorBalanceMetricDefinitions.periodEndAccountBalance, contributorBalanceMetricDefinitions.accountCount].map(({ id }) => id);
     const results = eligible.flatMap(({ contributorId, contribution }) => this.contributorMetrics.execute({ contributorId, contribution, currency: normalizedCurrency, metricIds })
       .map((result) => ({ result, dimensions: contribution.dimensions, contribution })));
