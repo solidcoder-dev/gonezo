@@ -59,6 +59,7 @@ describe('adaptAnalyticsMovementFact', () => {
     ]) {
       expect(fact).not.toHaveProperty(key);
     }
+    expect(JSON.stringify(fact)).not.toMatch(/secret merchant text key|Private Merchant Name/);
   });
 
   it('excludes ignored source facts', () => {
