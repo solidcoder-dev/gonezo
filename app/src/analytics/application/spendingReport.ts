@@ -49,6 +49,7 @@ export type AnalyticsSpendingMovement = {
   categoryId?: string;
   description?: string;
   merchant?: string;
+  merchantReference?: { key: string; displayName: string };
   categoryName?: string;
   items?: Array<{ amount: string; categoryId?: string; categoryName?: string }>;
 };

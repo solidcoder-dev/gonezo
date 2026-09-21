@@ -86,7 +86,7 @@ describe('Analytics spending read model', () => {
     expect(buildSpendingMerchants(movements, window, 'EUR', 'food').map((item) => item.merchant)).toEqual(['Cafe']);
   });
 
-  it('characterizes current ranking as trimming labels while keeping case variants separate', () => {
+  it('merges normalized merchant identity while preserving deterministic user labels', () => {
     const window = { start: '2026-06-01', endExclusive: '2026-07-01', selection: { period: { kind: 'thisMonth' as const }, shift: 0 }, canGoPrevious: true, canGoNext: false };
     const movements = [
       { ...movement('a', '2026-06-01T00:00:00Z', '20.00'), merchant: 'Mercadona' },
@@ -95,8 +95,23 @@ describe('Analytics spending read model', () => {
     ];
 
     expect(buildSpendingMerchants(movements, window, 'EUR')).toEqual([
-      { merchant: 'Mercadona', amount: { value: '35.00', currency: 'EUR' }, percentage: 77.777778, movementCount: 2 },
-      { merchant: 'MERCADONA', amount: { value: '10.00', currency: 'EUR' }, percentage: 22.222222, movementCount: 1 },
+      { merchant: 'Mercadona', amount: { value: '45.00', currency: 'EUR' }, percentage: 100, movementCount: 3 },
+    ]);
+  });
+
+  it('uses exact totals, preserves punctuation distinctions, and chooses labels by count then recency', () => {
+    const window = { start: '2026-06-01', endExclusive: '2026-07-01', selection: { period: { kind: 'thisMonth' as const }, shift: 0 }, canGoPrevious: true, canGoNext: false };
+    const movements = [
+      { ...movement('a', '2026-06-01T00:00:00Z', '0.10'), merchant: 'EL NIÑO' },
+      { ...movement('b', '2026-06-02T00:00:00Z', '0.20'), merchant: 'El Nino' },
+      { ...movement('c', '2026-06-03T00:00:00Z', '1.00'), merchant: 'Lidl #123' },
+      { ...movement('d', '2026-06-04T00:00:00Z', '2.00'), merchant: 'Lidl' },
+    ];
+
+    expect(buildSpendingMerchants(movements, window, 'EUR')).toEqual([
+      { merchant: 'Lidl', amount: { value: '2.00', currency: 'EUR' }, percentage: 60.606061, movementCount: 1 },
+      { merchant: 'Lidl #123', amount: { value: '1.00', currency: 'EUR' }, percentage: 30.30303, movementCount: 1 },
+      { merchant: 'El Nino', amount: { value: '0.30', currency: 'EUR' }, percentage: 9.090909, movementCount: 2 },
     ]);
   });
 });

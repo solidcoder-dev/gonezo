@@ -140,6 +140,7 @@ function spendingMovement(transaction: Awaited<ReturnType<typeof listAnalyticsMo
     categoryName: transaction.category?.name,
     description: transaction.description,
     merchant: transaction.merchant,
+    merchantReference: transaction.merchantReference,
     items: transaction.items.map((item) => ({ amount: item.amount, categoryId: item.categoryId, categoryName: item.note })),
   };
 }
