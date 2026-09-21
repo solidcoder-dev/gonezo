@@ -217,6 +217,31 @@ describe('prepareMacroAnalyticsPublication', () => {
     expect(next.publication).toMatchObject({ revision: 5, contribution: { schemaVersion: 6, merchants: { catalogVersion: 1, currencies: [] } } });
   });
 
+  it('upgrades a latest V5 revision monotonically to V6', async () => {
+    const state = setup({ consent: 'GRANTED' });
+    const period = createAnalyticsPeriod(input.period);
+    await state.ports.latest.save({
+      protocolVersion: 5,
+      contributorId: createAnalyticsContributorId('opaque-random-id'),
+      period,
+      revision: 11,
+      contribution: {
+        schemaVersion: 5,
+        period,
+        dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE', ageBand: '25_34' },
+        financial: { currencies: [{ currency: 'EUR', buckets: [{ source: 'POSTED', kind: 'EXPENSE', amount: '12', count: 1 }] }] },
+        categories: { currencies: [] }, recurring: { currencies: [] }, sharing: { currencies: [] },
+        merchants: { catalogVersion: 1, currencies: [] },
+      },
+    });
+
+    const next = await prepareMacroAnalyticsPublication(state.ports, input);
+
+    expect(next.status).toBe('PREPARED');
+    if (next.status !== 'PREPARED') throw new Error('Expected V6 publication');
+    expect(next.publication).toMatchObject({ protocolVersion: 6, revision: 12, contribution: { schemaVersion: 6, balances: { currencies: [] } } });
+  });
+
   it('does not create a new revision when the contribution matches the processed publication', async () => {
     const state = setup({ consent: 'GRANTED' });
     const first = await prepareMacroAnalyticsPublication(state.ports, input);
