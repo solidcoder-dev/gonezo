@@ -12,7 +12,7 @@ export type {
   FinancialFactKind,
   FinancialFactSource,
 } from '../domain/financialFact';
-export { MACRO_ANALYTICS_SCHEMA_VERSION, MACRO_ANALYTICS_SCHEMA_VERSION_V1, MACRO_ANALYTICS_SCHEMA_VERSION_V2, MACRO_ANALYTICS_SCHEMA_VERSION_V3 } from '../domain/macroAnalyticsSchemaVersion';
+export { MACRO_ANALYTICS_SCHEMA_VERSION, MACRO_ANALYTICS_SCHEMA_VERSION_V1, MACRO_ANALYTICS_SCHEMA_VERSION_V2, MACRO_ANALYTICS_SCHEMA_VERSION_V3, MACRO_ANALYTICS_SCHEMA_VERSION_V4 } from '../domain/macroAnalyticsSchemaVersion';
 export type { MacroAnalyticsSchemaVersion } from '../domain/macroAnalyticsSchemaVersion';
 export { aggregateFinancialFacts } from '../domain/financialContribution';
 export type { FinancialContribution, FinancialContributionBucket, FinancialCurrencyContribution } from '../domain/financialContribution';

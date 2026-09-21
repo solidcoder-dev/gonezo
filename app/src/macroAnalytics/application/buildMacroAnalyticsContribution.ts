@@ -12,6 +12,8 @@ import type { FinancialFactSourcePort } from './financialFactSource.port';
 import type { CategoryFactSourcePort } from './categoryFactSource.port';
 import { aggregateRecurringFacts } from '../domain/recurringContribution';
 import type { RecurringFactSourcePort } from './recurringFactSource.port';
+import { aggregateSharingFacts } from '../domain/sharingContribution';
+import type { SharingFactSourcePort } from './sharingFactSource.port';
 
 export type BuildMacroAnalyticsContributionPorts = Readonly<{
   consent: Pick<AnalyticsContributionConsentPort, 'get'>;
@@ -19,6 +21,7 @@ export type BuildMacroAnalyticsContributionPorts = Readonly<{
   financialFacts: FinancialFactSourcePort;
   categoryFacts: CategoryFactSourcePort;
   recurringFacts: RecurringFactSourcePort;
+  sharingFacts: SharingFactSourcePort;
 }>;
 
 export type BuildMacroAnalyticsContributionInput = Readonly<{
@@ -47,11 +50,14 @@ export async function buildMacroAnalyticsContribution(
   const facts = await ports.financialFacts.listFinancialFacts({ period, timeZone: input.timeZone });
   const categoryFacts = await ports.categoryFacts.listCategoryFacts({ period, timeZone: input.timeZone });
   const recurringFacts = await ports.recurringFacts.listRecurringFacts({ period, timeZone: input.timeZone });
+  const sharingFacts = await ports.sharingFacts.listSharingFacts({ period, timeZone: input.timeZone });
   const financial = aggregateFinancialFacts(facts);
   const categories = aggregateCategoryFacts(categoryFacts);
   const recurring = aggregateRecurringFacts(recurringFacts);
+  const sharing = aggregateSharingFacts(sharingFacts);
   assertCategoryTotalsReconcile(financial, categories);
   assertRecurringTotalsDoNotExceedFinancial(financial, recurring);
+  assertSharingPersonalTotalsDoNotExceedFinancial(financial, sharing);
   const contribution: MacroAnalyticsContribution = Object.freeze({
     schemaVersion: MACRO_ANALYTICS_SCHEMA_VERSION,
     period,
@@ -59,8 +65,22 @@ export async function buildMacroAnalyticsContribution(
     financial,
     categories,
     recurring,
+    sharing,
   });
   return { status: 'BUILT', contribution };
+}
+
+function assertSharingPersonalTotalsDoNotExceedFinancial(
+  financial: ReturnType<typeof aggregateFinancialFacts>,
+  sharing: ReturnType<typeof aggregateSharingFacts>,
+): void {
+  for (const { currency, buckets } of sharing.currencies) for (const bucket of buckets) {
+    const financialAmount = financial.currencies.find((entry) => entry.currency === currency)?.buckets
+      .find((entry) => entry.source === bucket.source && entry.kind === bucket.kind)?.amount ?? '0';
+    if (ExactDecimal.from(bucket.personalAmount).compare(ExactDecimal.from(financialAmount)) > 0) {
+      throw new Error(`Sharing personal contribution exceeds financial contribution for ${currency}:${bucket.source}:${bucket.kind}`);
+    }
+  }
 }
 
 function assertRecurringTotalsDoNotExceedFinancial(

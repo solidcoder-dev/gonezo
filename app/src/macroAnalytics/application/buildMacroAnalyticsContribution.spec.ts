@@ -10,6 +10,8 @@ import type { FinancialFact } from '../domain/financialFact';
 import type { CategoryFact } from '../domain/categoryFact';
 import type { RecurringFactSourcePort } from './recurringFactSource.port';
 import { buildMacroAnalyticsContribution } from './buildMacroAnalyticsContribution';
+import type { SharingFactSourcePort } from './sharingFactSource.port';
+import { createSharingFact } from '../domain/sharingFact';
 
 const profile: ContributionProfile = { birthYear: 1995, sex: 'female', countryCode: 'ES', regionCode: 'ES-CN' };
 const granted = createAnalyticsContributionConsent({ userId: 'private-user-id', status: 'GRANTED', noticeVersion: 1, decidedAt: '2026-09-18T10:00:00Z' });
@@ -30,7 +32,8 @@ function sources(consent: AnalyticsContributionConsent | null = granted, contrib
   const factSource: FinancialFactSourcePort = { listFinancialFacts: vi.fn(async () => facts) };
   const categoryFacts: CategoryFactSourcePort = { listCategoryFacts: vi.fn(async () => categoriesFor(facts)) };
   const recurringFacts: RecurringFactSourcePort = { listRecurringFacts: vi.fn(async () => []) };
-  return { consent: consentSource, profile: profileSource, financialFacts: factSource, categoryFacts, recurringFacts, profileSource, factSource };
+  const sharingFacts: SharingFactSourcePort = { listSharingFacts: vi.fn(async () => []) };
+  return { consent: consentSource, profile: profileSource, financialFacts: factSource, categoryFacts, recurringFacts, sharingFacts, profileSource, factSource };
 }
 
 describe('buildMacroAnalyticsContribution', () => {
@@ -61,12 +64,13 @@ describe('buildMacroAnalyticsContribution', () => {
     const ports = sources(granted, profile, []);
     const result = await buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
     expect(result).toEqual({ status: 'BUILT', contribution: {
-      schemaVersion: 3,
+      schemaVersion: 4,
       period: { kind: 'YEAR_MONTH', value: '2026-09' },
       dimensions: { countryCode: 'ES', regionCode: 'ES-CN', sex: 'FEMALE', ageBand: '25_34' },
       financial: { currencies: [] },
       categories: { currencies: [] },
       recurring: { currencies: [] },
+      sharing: { currencies: [] },
     } });
     expect(JSON.stringify(result)).not.toMatch(/private-user-id|private-fact-id|birthYear|occurredAt|accountId|movementId|completedAt|updatedAt/);
     expect(ports.financialFacts.listFinancialFacts).toHaveBeenCalledWith({ period: { kind: 'YEAR_MONTH', value: '2026-09' }, timeZone: 'Europe/Madrid' });
@@ -112,5 +116,18 @@ describe('buildMacroAnalyticsContribution', () => {
     vi.mocked(ports.categoryFacts.listCategoryFacts).mockResolvedValue(categoriesFor([createFinancialFact({ ...fact, amount: '0.09' })]));
     await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
       .rejects.toThrow('Category contribution does not reconcile');
+  });
+
+  it('includes sharing contribution and rejects personal sharing above financial totals', async () => {
+    const ports = sources();
+    const sharingFact = createSharingFact({ id: 'sharing-private-id', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', fullAmount: '0.10', personalAmount: '0.08', participantAllocatedAmount: '0.02', settlementRequiredAmount: '0.02', participantCount: 1, settlementParticipantCount: 1 });
+    vi.mocked(ports.sharingFacts.listSharingFacts).mockResolvedValue([sharingFact]);
+    const result = await buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
+    expect(result.status === 'BUILT' && result.contribution.schemaVersion === 4 && result.contribution.sharing.currencies[0].buckets[0])
+      .toMatchObject({ personalAmount: '0.08', movementCount: 1, participantCount: 1 });
+
+    vi.mocked(ports.sharingFacts.listSharingFacts).mockResolvedValue([createSharingFact({ ...sharingFact, personalAmount: '0.11', fullAmount: '0.12', participantAllocatedAmount: '0.01', settlementRequiredAmount: '0.01' })]);
+    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
+      .rejects.toThrow('Sharing personal contribution exceeds financial contribution');
   });
 });

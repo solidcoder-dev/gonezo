@@ -7,6 +7,7 @@ import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import type { FinancialFact } from '../domain/financialFact';
 import type { CategoryFact } from '../domain/categoryFact';
 import type { RecurringFactSourcePort } from '../application/recurringFactSource.port';
+import type { SharingFactSourcePort } from '../application/sharingFactSource.port';
 import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
 import type { MacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
 import { createCohort } from '../domain/cohort';
@@ -20,7 +21,7 @@ import { contributorFinancialMetricDefinitions, contributorFinancialMetricCalcul
 import { cohortFinancialMetricCalculators } from '../application/cohortFinancialMetrics';
 import { contributorRecurringMetricCalculators } from '../application/contributorRecurringMetrics';
 import { cohortRecurringMetricCalculators } from '../application/cohortRecurringMetrics';
-import { serializeMacroAnalyticsPublicationV3 } from './MacroAnalyticsPublicationWireV3';
+import { serializeMacroAnalyticsPublicationV4 } from './MacroAnalyticsPublicationWireV4';
 import { createAnalyticsRecurringFactSource } from './analyticsRecurringFactSource';
 import { LocalMacroAnalyticsPublicationProcessor } from '../application/LocalMacroAnalyticsPublicationProcessor';
 import { RunMacroAnalyticsMaintenance } from '../application/RunMacroAnalyticsMaintenance';
@@ -66,7 +67,8 @@ describe('local Macro Analytics lifecycle integration', () => {
       ];
     })) };
     const recurringFactSource: RecurringFactSourcePort = createAnalyticsRecurringFactSource({ analyticsListMovementFacts: vi.fn(async () => ({ items: [scheduledOccurrence] })) });
-    const contributionPorts = { consent, profile, financialFacts, categoryFacts, recurringFacts: recurringFactSource };
+    const sharingFacts: SharingFactSourcePort = { listSharingFacts: vi.fn(async () => []) };
+    const contributionPorts = { consent, profile, financialFacts, categoryFacts, recurringFacts: recurringFactSource, sharingFacts };
     const identity = new InMemoryAnalyticsContributorIdentityAdapter();
     const outbox = new InMemoryMacroAnalyticsOutboxAdapter();
     const latest = new Map<string, MacroAnalyticsPublication>();
@@ -121,8 +123,8 @@ describe('local Macro Analytics lifecycle integration', () => {
     await maintain();
     const current = [...latest.values()][0];
     expect(current.revision).toBe(2);
-    const currentWire = serializeMacroAnalyticsPublicationV3(current);
-    expect(currentWire).toContain('"protocolVersion":3');
+    const currentWire = serializeMacroAnalyticsPublicationV4(current);
+    expect(currentWire).toContain('"protocolVersion":4');
     expect(currentWire).toContain('"source":"SCHEDULED","kind":"EXPENSE","amount":"5","occurrenceCount":1,"seriesCount":1');
     expect(currentWire).not.toMatch(/private-series|private-occurrence/);
     expect(await outbox.listPending(userId)).toHaveLength(0);
@@ -130,7 +132,7 @@ describe('local Macro Analytics lifecycle integration', () => {
     expect(updatedReport.medianPostedExpense?.kind === 'MONEY' && updatedReport.medianPostedExpense.value.toString()).toBe('18');
     const updatedCategoryReport = await categoryReport.execute({ period, currency: 'GBP', cohort });
     expect(updatedCategoryReport.postedExpenseCategories.map(({ totalAmount }) => totalAmount.value.toString())).toEqual(['9', '9']);
-    expect(current.contribution.schemaVersion).toBe(3);
+    expect(current.contribution.schemaVersion).toBe(4);
     const currentRecurringReport = await recurringReport.execute({ period, currency: 'GBP', cohort });
     expect(currentRecurringReport.medianScheduledRecurringExpense?.kind === 'MONEY' && currentRecurringReport.medianScheduledRecurringExpense.value.toString()).toBe('5');
     expect(JSON.stringify(currentRecurringReport, (_key, value: unknown) => typeof value === 'bigint' ? value.toString() : value)).not.toMatch(/private-series|private-occurrence/);
