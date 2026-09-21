@@ -50,7 +50,9 @@ export class CoreAdapter implements CorePort {
   ledgerRenameAccount = this.ledger.ledgerRenameAccount.bind(this.ledger);
   ledgerArchiveAccount = this.ledger.ledgerArchiveAccount.bind(this.ledger);
   ledgerRestoreAccount = this.ledger.ledgerRestoreAccount.bind(this.ledger);
-  ledgerDeleteAccount = this.ledger.ledgerDeleteAccount.bind(this.ledger);
+  ledgerDeleteAccount(input: Parameters<LedgerRuntimeAdapter['ledgerDeleteAccount']>[0]) {
+    return this.afterMutation(() => this.ledger.ledgerDeleteAccount(input), () => this.financialChanges.allPeriodsChanged());
+  }
   ledgerListAccounts = this.ledger.ledgerListAccounts.bind(this.ledger);
   ledgerGetAccountSummary = this.ledger.ledgerGetAccountSummary.bind(this.ledger);
   ledgerGetNetWorthByCurrency = this.ledger.ledgerGetNetWorthByCurrency.bind(this.ledger);
@@ -99,6 +101,7 @@ export class CoreAdapter implements CorePort {
   }
   analyticsListIgnoredMovements = this.analytics.analyticsListIgnoredMovements.bind(this.analytics);
   analyticsListMovementFacts = this.analytics.analyticsListMovementFacts.bind(this.analytics);
+  analyticsGetAccountBalanceSnapshot = this.analytics.analyticsGetAccountBalanceSnapshot.bind(this.analytics);
 
   sharingListPeople = this.sharing.sharingListPeople.bind(this.sharing); sharingListGroupSuggestions = this.sharing.sharingListGroupSuggestions.bind(this.sharing); sharingRenamePerson = this.sharing.sharingRenamePerson.bind(this.sharing);
   sharingApplyShareToPostedMovement(input: Parameters<SharingRuntimeAdapter['sharingApplyShareToPostedMovement']>[0]) {

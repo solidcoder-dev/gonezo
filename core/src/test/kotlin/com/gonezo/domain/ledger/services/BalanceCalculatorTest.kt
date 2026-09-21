@@ -43,8 +43,16 @@ class BalanceCalculatorTest {
                     description = "Void me",
                     merchant = null,
                 ).void()
+        val draftExpense = Transaction.createExpenseDraft(
+            id = TransactionId.random(),
+            accountId = accountId,
+            amount = Money(BigDecimal("500.00"), "USD"),
+            occurredAt = Instant.parse("2026-03-20T10:00:00Z"),
+            description = "Draft",
+            merchant = null,
+        )
 
-        val balance = calculator.calculate(currency = "USD", transactions = listOf(income, expense, voidedExpense))
+        val balance = calculator.calculate(currency = "USD", transactions = listOf(income, expense, voidedExpense, draftExpense))
         assertThat(balance.amount).isEqualByComparingTo(BigDecimal("1120.00"))
         assertThat(balance.currency).isEqualTo("USD")
     }

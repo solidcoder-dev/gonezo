@@ -22,6 +22,34 @@ describe('CoreAdapter financial invalidation boundary', () => {
     expect(observer.periodChanged).toHaveBeenCalledWith(input.occurredAt);
   });
 
+  it('invalidates all financial periods after successful account deletion', async () => {
+    const deletion = vi.spyOn(CoreAdapterWeb.prototype, 'ledgerDeleteAccount').mockResolvedValue();
+    const observer: FinancialDataChangeObserver = {
+      periodChanged: vi.fn(async () => {}),
+      currentPeriodChanged: vi.fn(async () => {}),
+      allPeriodsChanged: vi.fn(async () => {}),
+    };
+    const adapter = new CoreAdapter(observer);
+    const input = { accountId: 'account' };
+
+    await adapter.ledgerDeleteAccount(input);
+
+    expect(deletion).toHaveBeenCalledWith(input);
+    expect(observer.allPeriodsChanged).toHaveBeenCalledOnce();
+  });
+
+  it('preserves account deletion success when invalidation fails', async () => {
+    vi.spyOn(CoreAdapterWeb.prototype, 'ledgerDeleteAccount').mockResolvedValue();
+    const observer: FinancialDataChangeObserver = {
+      periodChanged: vi.fn(async () => {}),
+      currentPeriodChanged: vi.fn(async () => {}),
+      allPeriodsChanged: vi.fn(async () => { throw new Error('storage unavailable'); }),
+    };
+    const adapter = new CoreAdapter(observer);
+
+    await expect(adapter.ledgerDeleteAccount({ accountId: 'account' })).resolves.toBeUndefined();
+  });
+
   it('does not enqueue rebuild work after the financial mutation fails', async () => {
     vi.spyOn(CoreAdapterWeb.prototype, 'ledgerRecordExpense').mockRejectedValue(new Error('mutation failed'));
     const observer: FinancialDataChangeObserver = {
