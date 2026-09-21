@@ -24,6 +24,7 @@ describe('MacroAnalyticsPublicationWireV6', () => {
     expect(toMacroAnalyticsPublicationWireV6(publication)).toEqual(fixture);
     expect(serializeMacroAnalyticsPublicationV6(publication)).toBe(JSON.stringify(fixture));
     expect(serializeMacroAnalyticsPublicationV6(publication)).not.toMatch(/accountId|accountName|default|status|transactionId/i);
+    expect(serializeMacroAnalyticsPublicationV6(publication)).not.toMatch(/tagId|tagName|displayName|normalizedTag|name:|tag:/i);
     expect(() => serializeMacroAnalyticsPublicationV1(publication)).toThrow('requires a V1 publication');
     expect(() => serializeMacroAnalyticsPublicationV5(publication)).toThrow('requires a V5 publication');
   });

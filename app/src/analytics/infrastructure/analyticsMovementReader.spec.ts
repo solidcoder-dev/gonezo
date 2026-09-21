@@ -101,6 +101,9 @@ describe('analytics movement bridge contract', () => {
       participantAllocatedAmount: '12.00',
       settlementRequiredAmount: '12.00',
     });
+    expect(result.transactions[0].analyticsTags).toEqual([
+      { key: 'tag:tag-home', tagId: 'tag-home', displayName: 'Home' },
+    ]);
   });
 
   it('preserves transfer directions and native amounts in the analytics read model', async () => {
