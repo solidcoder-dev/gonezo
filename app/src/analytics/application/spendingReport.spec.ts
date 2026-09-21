@@ -85,4 +85,18 @@ describe('Analytics spending read model', () => {
     ]);
     expect(buildSpendingMerchants(movements, window, 'EUR', 'food').map((item) => item.merchant)).toEqual(['Cafe']);
   });
+
+  it('characterizes current ranking as trimming labels while keeping case variants separate', () => {
+    const window = { start: '2026-06-01', endExclusive: '2026-07-01', selection: { period: { kind: 'thisMonth' as const }, shift: 0 }, canGoPrevious: true, canGoNext: false };
+    const movements = [
+      { ...movement('a', '2026-06-01T00:00:00Z', '20.00'), merchant: 'Mercadona' },
+      { ...movement('b', '2026-06-02T00:00:00Z', '10.00'), merchant: 'MERCADONA' },
+      { ...movement('c', '2026-06-03T00:00:00Z', '15.00'), merchant: '  Mercadona  ' },
+    ];
+
+    expect(buildSpendingMerchants(movements, window, 'EUR')).toEqual([
+      { merchant: 'Mercadona', amount: { value: '35.00', currency: 'EUR' }, percentage: 77.777778, movementCount: 2 },
+      { merchant: 'MERCADONA', amount: { value: '10.00', currency: 'EUR' }, percentage: 22.222222, movementCount: 1 },
+    ]);
+  });
 });
