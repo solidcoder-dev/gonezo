@@ -40,6 +40,8 @@ export type { CanonicalMerchantResolverPort } from './canonicalMerchantResolver.
 export { createMerchantFact } from '../domain/merchantFact';
 export type { MerchantFact, MerchantFactKind, MerchantFactSource } from '../domain/merchantFact';
 export type { MerchantFactSourcePort, MerchantFactQuery } from './merchantFactSource.port';
+export { aggregateMerchantFacts } from '../domain/merchantContribution';
+export type { MerchantContribution, MerchantContributionBucket, MerchantCurrencyContribution } from '../domain/merchantContribution';
 export { canonicalMacroAnalyticsContribution } from '../domain/canonicalMacroAnalyticsContribution';
 export { prepareMacroAnalyticsPublication } from './prepareMacroAnalyticsPublication';
 export type { PrepareMacroAnalyticsPublicationInput, PrepareMacroAnalyticsPublicationResult } from './prepareMacroAnalyticsPublication';
