@@ -1,5 +1,5 @@
 import { canContribute } from '../domain/analyticsContributionConsent';
-import { aggregateFinancialFacts } from '../domain/financialContribution';
+import { aggregateFinancialFacts, financialContributionAmount } from '../domain/financialContribution';
 import { aggregateCategoryFacts } from '../domain/categoryContribution';
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import { deriveContributionDimensions } from '../domain/contributionDimensions';
@@ -83,8 +83,7 @@ function assertMerchantTotalsDoNotExceedFinancial(
   merchants: ReturnType<typeof aggregateMerchantFacts>,
 ): void {
   for (const { currency, buckets } of merchants.currencies) for (const bucket of buckets) {
-    const financialAmount = financial.currencies.find((entry) => entry.currency === currency)?.buckets
-      .find((entry) => entry.source === bucket.source && entry.kind === bucket.kind)?.amount ?? '0';
+    const financialAmount = financialContributionAmount(financial, currency, bucket.source, bucket.kind);
     if (ExactDecimal.from(bucket.amount).compare(ExactDecimal.from(financialAmount)) > 0) {
       throw new Error(`Merchant contribution exceeds financial contribution for ${currency}:${bucket.source}:${bucket.kind}`);
     }
@@ -96,8 +95,7 @@ function assertSharingPersonalTotalsDoNotExceedFinancial(
   sharing: ReturnType<typeof aggregateSharingFacts>,
 ): void {
   for (const { currency, buckets } of sharing.currencies) for (const bucket of buckets) {
-    const financialAmount = financial.currencies.find((entry) => entry.currency === currency)?.buckets
-      .find((entry) => entry.source === bucket.source && entry.kind === bucket.kind)?.amount ?? '0';
+    const financialAmount = financialContributionAmount(financial, currency, bucket.source, bucket.kind);
     if (ExactDecimal.from(bucket.personalAmount).compare(ExactDecimal.from(financialAmount)) > 0) {
       throw new Error(`Sharing personal contribution exceeds financial contribution for ${currency}:${bucket.source}:${bucket.kind}`);
     }
@@ -109,8 +107,7 @@ function assertRecurringTotalsDoNotExceedFinancial(
   recurring: ReturnType<typeof aggregateRecurringFacts>,
 ): void {
   for (const { currency, buckets } of recurring.currencies) for (const bucket of buckets) {
-    const financialAmount = financial.currencies.find((entry) => entry.currency === currency)?.buckets
-      .find((entry) => entry.source === bucket.source && entry.kind === bucket.kind)?.amount ?? '0';
+    const financialAmount = financialContributionAmount(financial, currency, bucket.source, bucket.kind);
     if (ExactDecimal.from(bucket.amount).compare(ExactDecimal.from(financialAmount)) > 0) {
       throw new Error(`Recurring contribution exceeds financial contribution for ${currency}:${bucket.source}:${bucket.kind}`);
     }

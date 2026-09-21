@@ -15,7 +15,7 @@ export type {
 export { MACRO_ANALYTICS_SCHEMA_VERSION, MACRO_ANALYTICS_SCHEMA_VERSION_V1, MACRO_ANALYTICS_SCHEMA_VERSION_V2, MACRO_ANALYTICS_SCHEMA_VERSION_V3, MACRO_ANALYTICS_SCHEMA_VERSION_V4, MACRO_ANALYTICS_SCHEMA_VERSION_V5 } from '../domain/macroAnalyticsSchemaVersion';
 export { MACRO_MERCHANT_CATALOG_VERSION } from '../domain/macroMerchantCatalogVersion';
 export type { MacroAnalyticsSchemaVersion } from '../domain/macroAnalyticsSchemaVersion';
-export { aggregateFinancialFacts } from '../domain/financialContribution';
+export { aggregateFinancialFacts, financialContributionAmount } from '../domain/financialContribution';
 export type { FinancialContribution, FinancialContributionBucket, FinancialCurrencyContribution } from '../domain/financialContribution';
 export { aggregateCategoryFacts } from '../domain/categoryContribution';
 export type { CategoryContribution, CategoryContributionBucket, CategoryCurrencyContribution } from '../domain/categoryContribution';

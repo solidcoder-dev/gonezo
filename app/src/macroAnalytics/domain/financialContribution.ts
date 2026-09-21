@@ -17,6 +17,16 @@ export type FinancialContribution = Readonly<{
   currencies: readonly FinancialCurrencyContribution[];
 }>;
 
+export function financialContributionAmount(
+  contribution: FinancialContribution,
+  currency: string,
+  source: FinancialFactSource,
+  kind: FinancialFactKind,
+): string {
+  return contribution.currencies.find((entry) => entry.currency === currency)?.buckets
+    .find((bucket) => bucket.source === source && bucket.kind === kind)?.amount ?? '0';
+}
+
 const orderedSources: readonly FinancialFactSource[] = ['POSTED', 'EXPECTED', 'SCHEDULED'];
 const orderedKinds: readonly FinancialFactKind[] = ['INCOME', 'EXPENSE', 'TRANSFER_IN', 'TRANSFER_OUT'];
 

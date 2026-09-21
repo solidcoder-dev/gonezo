@@ -6,6 +6,7 @@ import type { MacroMerchantCode } from './macroMerchantCode';
 import { buildContributorMerchantRanking } from './contributorMerchantRanking';
 import { exactMedian } from './decimalStatistics';
 import { hasMerchantContribution } from './contributionCapabilities';
+import { financialContributionAmount } from './financialContribution';
 
 export type CohortMerchantRankingItem = Readonly<{
   merchant: MacroMerchantCode;
@@ -38,8 +39,7 @@ export function buildCohortMerchantRanking(input: Readonly<{
     && input.cohort.includes(contribution.dimensions)
     && contribution.financial.currencies.some(({ currency: code }) => code === currency));
   const rankings = eligible.map((contribution) => buildContributorMerchantRanking(contribution, currency, 'POSTED', 'EXPENSE')!);
-  const denominators = eligible.map((contribution) => ExactDecimal.from(contribution.financial.currencies.find(({ currency: code }) => code === currency)?.buckets
-    .find(({ source, kind }) => source === 'POSTED' && kind === 'EXPENSE')?.amount ?? '0'));
+  const denominators = eligible.map((contribution) => ExactDecimal.from(financialContributionAmount(contribution.financial, currency, 'POSTED', 'EXPENSE')));
   const totalExpense = denominators.reduce((total, amount) => total.add(amount), ExactDecimal.from('0'));
   const totals = new Map<MacroMerchantCode, { amount: ExactDecimal; movementCount: number }>();
   for (const ranking of rankings) for (const item of ranking.items) {
