@@ -60,6 +60,12 @@ enum class AnalyticsMovementType {
     TRANSFER_OUT,
 }
 
+enum class AnalyticsSubscriptionCandidateStatus {
+    CANDIDATE,
+    NOT_CANDIDATE,
+    UNKNOWN,
+}
+
 data class AnalyticsMovementIdentity(val value: String) {
     init {
         require(value.isNotBlank()) { "analytics movement identity is required" }
@@ -219,6 +225,9 @@ data class AnalyticsMovementFact(
     val merchant: AnalyticsMerchantReference? = null,
     val tags: List<AnalyticsTagReference> = emptyList(),
 ) {
+    val subscriptionCandidateStatus: AnalyticsSubscriptionCandidateStatus?
+        get() = AnalyticsSubscriptionCandidateClassifier.classify(this)
+
     init {
         sharing?.let {
             require(type == AnalyticsMovementType.EXPENSE || type == AnalyticsMovementType.INCOME)
@@ -229,6 +238,17 @@ data class AnalyticsMovementFact(
     }
 
     val sourceAccountId: String get() = accountId
+}
+
+object AnalyticsSubscriptionCandidateClassifier {
+    fun classify(fact: AnalyticsMovementFact): AnalyticsSubscriptionCandidateStatus? {
+        if (fact.schedulingOrigin?.kind != SchedulingKind.RECURRING) return null
+        if (fact.type != AnalyticsMovementType.EXPENSE) return null
+        val cadence = fact.schedulingOrigin.cadence ?: return AnalyticsSubscriptionCandidateStatus.UNKNOWN
+        if (fact.merchant == null) return AnalyticsSubscriptionCandidateStatus.NOT_CANDIDATE
+        if (cadence.frequency == "daily") return AnalyticsSubscriptionCandidateStatus.NOT_CANDIDATE
+        return AnalyticsSubscriptionCandidateStatus.CANDIDATE
+    }
 }
 
 data class AnalyticsPostedMovement(val id: String, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val ignored: Boolean = false, val categoryId: String? = null, val tagIds: Set<String> = emptySet(), val occurrenceIdentity: AnalyticsMovementIdentity? = null, val destinationAccountId: String? = null, val splitAmounts: List<AnalyticsCategoryAmount> = emptyList(), val schedulingOrigin: AnalyticsSchedulingOrigin? = null, val sharing: AnalyticsSharingSummary? = null, val merchant: String? = null, val tags: List<AnalyticsTagReference> = emptyList())

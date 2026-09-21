@@ -126,6 +126,9 @@ final class AnalyticsPluginHandler {
           item.put("sharing", sharing);
         }
         item.put("ignored", fact.getIgnored());
+        if (fact.getSubscriptionCandidateStatus() != null) {
+          item.put("subscriptionCandidateStatus", fact.getSubscriptionCandidateStatus().name());
+        }
         if (fact.getCategoryId() != null) item.put("categoryId", fact.getCategoryId());
         JSONArray categoryAllocations = new JSONArray();
         for (var allocation : fact.getCategoryAllocations()) {

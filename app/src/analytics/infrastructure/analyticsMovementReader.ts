@@ -8,7 +8,9 @@ import type {
 import type { AnalyticsSharedAmountMode } from '../application/analyticsFilters';
 import type { SharingListMovementDetailsInput, SharingListMovementDetailsResult } from '../../sharing/application/sharing.port';
 import type { AnalyticsListMovementFactsResult } from '../application/analytics.port';
+import type { AnalyticsSubscriptionCandidateStatus } from '../application/analytics.port';
 import { resolveSharingAnalyticsAttribution } from '../../sharing/application/sharingAnalyticsAttribution';
+import { classifySubscriptionCandidate } from '../domain/subscriptionCandidateClassifier';
 import { analyticsMerchantReference } from '../domain/analyticsMerchantReference';
 import { resolveAnalyticsTagReferences } from '../domain/analyticsTagReference';
 import { normalizeTagName } from '../../taxonomy/application/tagNameNormalization';
@@ -41,6 +43,7 @@ export type AnalyticsTransactionReadModel = LedgerTransactionListItem & {
   sharing?: AnalyticsListMovementFactsResult['items'][number]['sharing'];
   merchantReference?: AnalyticsListMovementFactsResult['items'][number]['merchant'];
   analyticsTags?: AnalyticsListMovementFactsResult['items'][number]['tags'];
+  subscriptionCandidateStatus?: AnalyticsSubscriptionCandidateStatus;
 };
 
 export type AnalyticsMovementReadModel = {
@@ -152,29 +155,33 @@ export async function listAnalyticsMovements(
     const selected = result.items;
     return {
       accounts: scopedAccounts,
-      transactions: selected.map((movement) => ({
-        id: movement.reference.source === 'posted' ? movement.reference.transactionId : movement.analyticsFactId,
-        analyticsFactId: movement.analyticsFactId,
-        reference: movement.reference,
-        schedulingOrigin: movement.schedulingOrigin,
-        accountId: movement.accountId,
-        type: movement.type,
-        status: 'posted',
-        amount: movement.fullAmount,
-        currency: movement.currency,
-        occurredAt: movement.effectiveAt,
-        categoryId: movement.categoryId,
-        merchant: movement.type === 'transfer_in' || movement.type === 'transfer_out' ? undefined : movement.merchant?.displayName,
-        merchantReference: movement.type === 'transfer_in' || movement.type === 'transfer_out' ? undefined : movement.merchant,
-        ignored: movement.ignored,
-        items: [],
-        categoryAllocations: movement.categoryAllocations,
-        analyticsTags: movement.tags,
-        sharing: movement.sharing,
-        analyticsAmount: scope.sharedAmountMode === 'full' ? movement.fullAmount : movement.personalAmount,
-        analyticsPersonalAmount: movement.personalAmount,
-        analyticsFullAmount: movement.fullAmount,
-      })),
+      transactions: selected.map((movement) => {
+        const subscriptionCandidateStatus = classifySubscriptionCandidate(movement)?.status;
+        return {
+          id: movement.reference.source === 'posted' ? movement.reference.transactionId : movement.analyticsFactId,
+          analyticsFactId: movement.analyticsFactId,
+          reference: movement.reference,
+          schedulingOrigin: movement.schedulingOrigin,
+          accountId: movement.accountId,
+          type: movement.type,
+          status: 'posted',
+          amount: movement.fullAmount,
+          currency: movement.currency,
+          occurredAt: movement.effectiveAt,
+          categoryId: movement.categoryId,
+          merchant: movement.type === 'transfer_in' || movement.type === 'transfer_out' ? undefined : movement.merchant?.displayName,
+          merchantReference: movement.type === 'transfer_in' || movement.type === 'transfer_out' ? undefined : movement.merchant,
+          ignored: movement.ignored,
+          items: [],
+          categoryAllocations: movement.categoryAllocations,
+          analyticsTags: movement.tags,
+          sharing: movement.sharing,
+          analyticsAmount: scope.sharedAmountMode === 'full' ? movement.fullAmount : movement.personalAmount,
+          analyticsPersonalAmount: movement.personalAmount,
+          analyticsFullAmount: movement.fullAmount,
+          ...(subscriptionCandidateStatus === undefined ? {} : { subscriptionCandidateStatus }),
+        };
+      }),
     };
   }
   const pages = await Promise.all(

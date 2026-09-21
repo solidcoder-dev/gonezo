@@ -10,7 +10,9 @@ describe('analytics movement bridge contract', () => {
       sharingListMovementDetails: vi.fn(),
       analyticsListMovementFacts: vi.fn(async () => ({ items: [{
         analyticsFactId: 'posted/native', reference: { source: 'posted' as const, transactionId: 'native' },
-        source: 'POSTED' as const, effectiveAt: '2026-07-01T00:00:00Z', accountId: 'account', type: 'expense' as const,
+        source: 'POSTED' as const,
+        schedulingOrigin: { kind: 'recurring' as const, recurringMovementId: 'private-series', cadence: { frequency: 'monthly' as const, interval: 1 } },
+        effectiveAt: '2026-07-01T00:00:00Z', accountId: 'account', type: 'expense' as const,
         currency: 'EUR', personalAmount: '10.00', fullAmount: '10.00', ignored: false,
         categoryAllocations: [], tagIds: [], tags: [], merchant: { key: 'el nino', displayName: 'El Niño' },
       }] })),
@@ -25,6 +27,7 @@ describe('analytics movement bridge contract', () => {
     }, { filters: {} });
 
     expect(native.transactions[0].merchantReference).toEqual({ key: 'el nino', displayName: 'El Niño' });
+    expect(native.transactions[0].subscriptionCandidateStatus).toBe('CANDIDATE');
     expect(web.transactions[0].merchantReference).toEqual(native.transactions[0].merchantReference);
   });
 
