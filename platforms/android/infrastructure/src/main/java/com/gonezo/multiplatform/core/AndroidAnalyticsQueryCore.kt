@@ -93,17 +93,18 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
       val attribution = if (type.isEconomicMovement()) movementShares.findBySourceTransactionId(transaction.id)?.let(sharingAttribution::posted) else null
       val amounts = analyticsMovementAmounts(amount, attribution)
       val occurrence = occurrenceForTransaction(transaction.id)
+      val assignedTagIds = tagIds(transaction.id)
       AnalyticsPostedMovement(
         id = transaction.id, effectiveAt = Instant.parse(transaction.occurredAt), accountId = transaction.accountId,
         type = type, currency = com.gonezo.domain.shared.CurrencyCode.from(transaction.currency),
         personalAmount = amounts.personalAmount, fullAmount = amount, ignored = isIgnored("movement", transaction.id),
-        categoryId = transaction.categoryId ?: categoryId(transaction.id), tagIds = tagIds(transaction.id),
+        categoryId = transaction.categoryId ?: categoryId(transaction.id), tagIds = assignedTagIds,
         splitAmounts = splitAmounts(transaction.id),
         occurrenceIdentity = occurrence?.let { AnalyticsMovementIdentity.occurrence(it.id.toString()) },
         schedulingOrigin = occurrence?.let(::schedulingOrigin),
         sharing = amounts.sharing,
         merchant = transaction.merchant,
-        tags = analyticsTags(tagIds(transaction.id), emptyList()),
+        tags = analyticsTags(assignedTagIds, emptyList()),
       )
     }
   }
