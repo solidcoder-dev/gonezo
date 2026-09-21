@@ -12,6 +12,7 @@ export function listWebLedgerTransactions(
   input: LedgerListTransactionsInput,
   transactions: readonly WebLedgerTransaction[],
   transactionTags: ReadonlyMap<string, readonly string[]>,
+  tagNamesById: ReadonlyMap<string, string> = new Map(),
 ): LedgerListTransactionsResult {
   const filters = input.filters ?? {};
   const requestedPage = input.pagination?.page ?? 0;
@@ -149,6 +150,10 @@ export function listWebLedgerTransactions(
     destinationCurrency: tx.destinationCurrency,
     exchangeRate: tx.exchangeRate,
     categoryId: tx.categoryId,
+    tags: (transactionTags.get(tx.id) ?? []).flatMap((id) => {
+      const name = tagNamesById.get(id);
+      return name ? [{ id, name }] : [];
+    }),
     items: tx.items.map((item) => ({ ...item })),
   }));
 

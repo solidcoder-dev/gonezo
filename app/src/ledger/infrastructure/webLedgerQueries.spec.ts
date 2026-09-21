@@ -82,10 +82,15 @@ describe('listWebLedgerTransactions', () => {
         ['tx-1', ['tag-food']],
         ['tx-2', ['tag-income']],
       ]),
+      new Map([['tag-food', 'Food']]),
     );
 
     expect(result.content).toHaveLength(1);
-    expect(result.content[0]).toMatchObject({ id: 'tx-1', description: 'Team lunch' });
+    expect(result.content[0]).toMatchObject({
+      id: 'tx-1',
+      description: 'Team lunch',
+      tags: [{ id: 'tag-food', name: 'Food' }],
+    });
   });
 
   it('sorts and clamps pagination without mutating source transactions', () => {

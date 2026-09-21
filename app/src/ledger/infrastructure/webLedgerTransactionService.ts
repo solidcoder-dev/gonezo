@@ -182,6 +182,7 @@ export class WebLedgerTransactionService {
       input,
       this.state.ledgerTransactions,
       this.state.taxonomyTransactionTags,
+      new Map(this.state.taxonomyTags.map((tag) => [tag.id, tag.name])),
     );
   }
 }
