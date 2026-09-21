@@ -18,6 +18,7 @@ describe('Analytics MerchantFact source', () => {
       ignored: false,
       categoryAllocations: [],
       tagIds: [],
+      tags: [],
       merchant: { key: 'mercadona', displayName: 'Mercadona' },
     }] }));
     const source = createAnalyticsMerchantFactSource({ analyticsListMovementFacts }, {

@@ -195,6 +195,7 @@ describe('analytics queries', () => {
       ignored: false,
       categoryAllocations: [],
       tagIds: ['tag-trip'],
+      tags: [],
     };
     const analyticsListMovementFacts = vi.fn(async (input: { fromLocalDate: string; toLocalDate: string }) => ({
       items: input.fromLocalDate <= '2026-06-05' && input.toLocalDate >= '2026-06-05' ? [fact] : [],
@@ -1309,7 +1310,7 @@ describe('analytics queries', () => {
           key: 'topTags',
           title: 'Top tags',
           subtitle: '1 tag',
-          amount: '180.00',
+          amount: '120.00',
           filterIntent: 'topTags',
           tagIds: ['tag-trip'],
         },

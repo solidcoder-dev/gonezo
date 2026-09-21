@@ -113,6 +113,44 @@ data class AnalyticsMerchantReference(val key: String, val displayName: String) 
     }
 }
 
+data class AnalyticsTagReference(val key: String, val tagId: String?, val displayName: String) {
+    init {
+        require(key.isNotBlank() && displayName.isNotBlank()) { "tag reference values are required" }
+    }
+}
+
+object AnalyticsTagReferenceResolver {
+    fun resolve(
+        tagIds: Collection<String>,
+        tagNames: List<String>,
+        displayNamesById: Map<String, String>,
+        idsByNormalizedName: Map<String, String>,
+        normalizeName: (String) -> String,
+    ): List<AnalyticsTagReference> {
+        val persistedIds = tagIds.map(String::trim).filter(String::isNotBlank).distinct()
+        val references = if (persistedIds.isNotEmpty()) {
+            persistedIds.mapNotNull { id ->
+                displayNamesById[id]?.trim()?.takeIf(String::isNotEmpty)?.let { name ->
+                    AnalyticsTagReference("tag:$id", id, name)
+                }
+            }
+        } else {
+            tagNames.mapNotNull { rawName ->
+                val displayName = rawName.trim().takeIf(String::isNotEmpty) ?: return@mapNotNull null
+                val normalizedName = normalizeName(displayName)
+                val tagId = idsByNormalizedName[normalizedName]
+                if (tagId == null) {
+                    AnalyticsTagReference("name:$normalizedName", null, displayName)
+                } else {
+                    val currentName = displayNamesById[tagId]?.trim()?.takeIf(String::isNotEmpty) ?: displayName
+                    AnalyticsTagReference("tag:$tagId", tagId, currentName)
+                }
+            }
+        }
+        return references.distinctBy(AnalyticsTagReference::key).sortedBy(AnalyticsTagReference::key)
+    }
+}
+
 object AnalyticsMerchantReferenceResolver {
     fun resolve(merchant: String?, type: AnalyticsMovementType): AnalyticsMerchantReference? {
         if (type == AnalyticsMovementType.TRANSFER_IN || type == AnalyticsMovementType.TRANSFER_OUT) return null
@@ -177,6 +215,7 @@ data class AnalyticsMovementFact(
     val schedulingOrigin: AnalyticsSchedulingOrigin? = null,
     val sharing: AnalyticsSharingSummary? = null,
     val merchant: AnalyticsMerchantReference? = null,
+    val tags: List<AnalyticsTagReference> = emptyList(),
 ) {
     init {
         sharing?.let {
@@ -190,11 +229,11 @@ data class AnalyticsMovementFact(
     val sourceAccountId: String get() = accountId
 }
 
-data class AnalyticsPostedMovement(val id: String, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val ignored: Boolean = false, val categoryId: String? = null, val tagIds: Set<String> = emptySet(), val occurrenceIdentity: AnalyticsMovementIdentity? = null, val destinationAccountId: String? = null, val splitAmounts: List<AnalyticsCategoryAmount> = emptyList(), val schedulingOrigin: AnalyticsSchedulingOrigin? = null, val sharing: AnalyticsSharingSummary? = null, val merchant: String? = null)
+data class AnalyticsPostedMovement(val id: String, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val ignored: Boolean = false, val categoryId: String? = null, val tagIds: Set<String> = emptySet(), val occurrenceIdentity: AnalyticsMovementIdentity? = null, val destinationAccountId: String? = null, val splitAmounts: List<AnalyticsCategoryAmount> = emptyList(), val schedulingOrigin: AnalyticsSchedulingOrigin? = null, val sharing: AnalyticsSharingSummary? = null, val merchant: String? = null, val tags: List<AnalyticsTagReference> = emptyList())
 
-data class AnalyticsExpectedMovement(val id: String, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val pending: Boolean, val ignored: Boolean = false, val categoryId: String? = null, val tagIds: Set<String> = emptySet(), val originOccurrenceId: String? = null, val originRecurringMovementId: String? = null, val resolvedTransactionId: String? = null, val destinationAccountId: String? = null, val schedulingOrigin: AnalyticsSchedulingOrigin? = null, val sharing: AnalyticsSharingSummary? = null, val merchant: String? = null)
+data class AnalyticsExpectedMovement(val id: String, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val pending: Boolean, val ignored: Boolean = false, val categoryId: String? = null, val tagIds: Set<String> = emptySet(), val originOccurrenceId: String? = null, val originRecurringMovementId: String? = null, val resolvedTransactionId: String? = null, val destinationAccountId: String? = null, val schedulingOrigin: AnalyticsSchedulingOrigin? = null, val sharing: AnalyticsSharingSummary? = null, val merchant: String? = null, val tagNames: List<String> = emptyList(), val tags: List<AnalyticsTagReference> = emptyList())
 
-data class AnalyticsScheduledProjection(val identity: AnalyticsMovementIdentity, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val ignored: Boolean = false, val categoryId: String? = null, val tagIds: Set<String> = emptySet(), val originOccurrenceId: String? = null, val recurringMovementId: String? = null, val destinationAccountId: String? = null, val schedulingOrigin: AnalyticsSchedulingOrigin? = null, val sharing: AnalyticsSharingSummary? = null, val merchant: String? = null)
+data class AnalyticsScheduledProjection(val identity: AnalyticsMovementIdentity, val effectiveAt: Instant, val accountId: String, val type: AnalyticsMovementType, val currency: CurrencyCode, val personalAmount: Money, val fullAmount: Money, val ignored: Boolean = false, val categoryId: String? = null, val tagIds: Set<String> = emptySet(), val originOccurrenceId: String? = null, val recurringMovementId: String? = null, val destinationAccountId: String? = null, val schedulingOrigin: AnalyticsSchedulingOrigin? = null, val sharing: AnalyticsSharingSummary? = null, val merchant: String? = null, val tagNames: List<String> = emptyList(), val tags: List<AnalyticsTagReference> = emptyList())
 
 object AnalyticsOccurrenceIdentityResolver {
     fun posted(transaction: AnalyticsPostedMovement): AnalyticsMovementIdentity = transaction.occurrenceIdentity ?: AnalyticsMovementIdentity.posted(transaction.id)
@@ -226,12 +265,13 @@ class AnalyticsMovementFactAssembler {
                     fullAmount = movement.fullAmount,
                     ignored = movement.ignored,
                     categoryId = movement.categoryId,
-                    tagIds = movement.tagIds,
+                    tagIds = movement.tagIds + movement.tags.mapNotNull { it.tagId },
                     destinationAccountId = movement.destinationAccountId,
                     categoryAllocations = allocations(movement.type, movement.categoryId, movement.personalAmount, movement.fullAmount, movement.splitAmounts),
                     schedulingOrigin = movement.schedulingOrigin,
                     sharing = movement.sharing,
                     merchant = AnalyticsMerchantReferenceResolver.resolve(movement.merchant, movement.type),
+                    tags = movement.tags,
                 )
             }
         if (!includePlannedMovements) {
@@ -260,12 +300,13 @@ class AnalyticsMovementFactAssembler {
                         fullAmount = movement.fullAmount,
                         ignored = movement.ignored,
                         categoryId = movement.categoryId,
-                        tagIds = movement.tagIds,
+                        tagIds = movement.tagIds + movement.tags.mapNotNull { it.tagId },
                         destinationAccountId = movement.destinationAccountId,
                         categoryAllocations = allocations(movement.type, movement.categoryId, movement.personalAmount, movement.fullAmount),
                         schedulingOrigin = movement.schedulingOrigin,
                         sharing = movement.sharing,
                         merchant = AnalyticsMerchantReferenceResolver.resolve(movement.merchant, movement.type),
+                        tags = movement.tags,
                     )
                 }
         val scheduledFacts =
@@ -287,12 +328,13 @@ class AnalyticsMovementFactAssembler {
                     fullAmount = movement.fullAmount,
                     ignored = movement.ignored,
                     categoryId = movement.categoryId,
-                    tagIds = movement.tagIds,
+                    tagIds = movement.tagIds + movement.tags.mapNotNull { it.tagId },
                     destinationAccountId = movement.destinationAccountId,
                     categoryAllocations = allocations(movement.type, movement.categoryId, movement.personalAmount, movement.fullAmount),
                     schedulingOrigin = movement.schedulingOrigin,
                     sharing = movement.sharing,
                     merchant = AnalyticsMerchantReferenceResolver.resolve(movement.merchant, movement.type),
+                    tags = movement.tags,
                 )
             }
         return resolveIgnored(postedFacts + expectedFacts.toList() + scheduledFacts, exclusionReader)

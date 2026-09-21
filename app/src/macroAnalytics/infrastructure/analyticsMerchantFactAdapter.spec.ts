@@ -18,6 +18,7 @@ function item(overrides: Partial<AnalyticsMovementFactItem> = {}): AnalyticsMove
     ignored: false,
     categoryAllocations: [],
     tagIds: [],
+    tags: [],
     merchant: { key: 'mercadona', displayName: 'Private Merchant Name' },
     ...overrides,
   };

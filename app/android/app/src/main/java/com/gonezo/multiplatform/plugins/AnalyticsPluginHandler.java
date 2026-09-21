@@ -131,6 +131,15 @@ final class AnalyticsPluginHandler {
         }
         item.put("categoryAllocations", categoryAllocations);
         item.put("tagIds", new JSONArray(fact.getTagIds()));
+        JSONArray tags = new JSONArray();
+        for (var tag : fact.getTags()) {
+          JSObject tagReference = new JSObject();
+          tagReference.put("key", tag.getKey());
+          if (tag.getTagId() != null) tagReference.put("tagId", tag.getTagId());
+          tagReference.put("displayName", tag.getDisplayName());
+          tags.put(tagReference);
+        }
+        item.put("tags", tags);
         if (fact.getMerchant() != null) {
           JSObject merchant = new JSObject();
           merchant.put("key", fact.getMerchant().getKey());

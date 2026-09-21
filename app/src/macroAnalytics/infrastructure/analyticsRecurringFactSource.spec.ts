@@ -19,6 +19,7 @@ function sourceFact(overrides: Partial<AnalyticsMovementFactItem> = {}): Analyti
     categoryId: 'category-private',
     categoryAllocations: [],
     tagIds: ['tag-private'],
+    tags: [],
     ...overrides,
   };
 }

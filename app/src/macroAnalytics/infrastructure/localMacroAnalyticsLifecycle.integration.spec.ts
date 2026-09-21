@@ -54,6 +54,7 @@ describe('local Macro Analytics lifecycle integration', () => {
       ignored: false,
       categoryAllocations: [],
       tagIds: [],
+      tags: [],
       merchant: { key: 'mercadona', displayName: 'Private Merchant Name' },
     };
     const scheduledOccurrence: AnalyticsMovementFactItem = {
@@ -70,6 +71,7 @@ describe('local Macro Analytics lifecycle integration', () => {
       ignored: false,
       categoryAllocations: [],
       tagIds: [],
+      tags: [],
     };
     const consent = { get: vi.fn(async () => createAnalyticsContributionConsent({ userId, status: 'GRANTED', noticeVersion: 1, decidedAt: '2026-01-01T00:00:00Z' })), save: vi.fn(async () => {}) };
     const profile = { get: vi.fn(async () => ({ birthYear: 1995, sex: 'female' as const, countryCode: 'GB', regionCode: 'GB-ENG' })) };

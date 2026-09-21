@@ -78,8 +78,15 @@ export type AnalyticsMovementFactItem = {
   categoryId?: string;
   categoryAllocations: readonly AnalyticsCategoryAllocation[];
   tagIds: string[];
+  tags: readonly AnalyticsTagReference[];
   merchant?: AnalyticsMerchantReference;
 };
+
+export type AnalyticsTagReference = Readonly<{
+  key: string;
+  tagId?: string;
+  displayName: string;
+}>;
 
 export type AnalyticsMerchantReference = Readonly<{ key: string; displayName: string }>;
 

@@ -7,7 +7,7 @@ const fact = (overrides: Partial<AnalyticsMovementFactItem> = {}): AnalyticsMove
   analyticsFactId: 'posted/movement-1', reference: { source: 'posted', transactionId: 'movement-1' },
   source: 'POSTED', effectiveAt: '2026-09-18T10:30:00Z', accountId: 'private-account',
   type: 'expense', currency: 'EUR', personalAmount: '5.00', fullAmount: '8.00', ignored: false,
-  categoryId: 'personal-category', tagIds: [],
+  categoryId: 'personal-category', tagIds: [], tags: [],
   categoryAllocations: [
     { categoryId: '00000000-0000-4000-8000-000000000102', personalAmount: '2.50', fullAmount: '4.00' },
     { personalAmount: '2.50', fullAmount: '4.00' },

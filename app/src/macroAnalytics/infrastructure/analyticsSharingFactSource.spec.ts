@@ -16,6 +16,7 @@ const fact = (overrides: Partial<AnalyticsMovementFactItem> = {}): AnalyticsMove
   ignored: false,
   categoryAllocations: [],
   tagIds: [],
+  tags: [],
   sharing: {
     participantCount: 1,
     settlementParticipantCount: 1,

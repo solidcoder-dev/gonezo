@@ -22,6 +22,30 @@ class AnalyticsMovementFactsTest {
     private val currency = CurrencyCode.from("EUR")
 
     @Test
+    fun `analytical tag references prefer IDs resolve legacy names and order by local key`() {
+        val byId = AnalyticsTagReferenceResolver.resolve(
+            tagIds = listOf("tag-z", "tag-z"),
+            tagNames = listOf("Home", " HOME ", "Unmapped!"),
+            displayNamesById = mapOf("tag-z" to "Renamed"),
+            idsByNormalizedName = mapOf("home" to "tag-home"),
+            normalizeName = String::trim,
+        )
+        val legacy = AnalyticsTagReferenceResolver.resolve(
+            tagIds = emptyList(),
+            tagNames = listOf("Home", " HOME ", "Unmapped!"),
+            displayNamesById = mapOf("tag-home" to "Home"),
+            idsByNormalizedName = mapOf("home" to "tag-home"),
+            normalizeName = { it.trim().lowercase() },
+        )
+
+        assertThat(byId).containsExactly(AnalyticsTagReference("tag:tag-z", "tag-z", "Renamed"))
+        assertThat(legacy).containsExactly(
+            AnalyticsTagReference("name:unmapped!", null, "Unmapped!"),
+            AnalyticsTagReference("tag:tag-home", "tag-home", "Home"),
+        )
+    }
+
+    @Test
     fun `merchant reference normalization matches conservative TypeScript contract`() {
         assertThat(AnalyticsMerchantReferenceResolver.resolve(" MERCADONA ", AnalyticsMovementType.EXPENSE))
             .isEqualTo(AnalyticsMerchantReference("mercadona", "MERCADONA"))

@@ -17,6 +17,7 @@ function sourceFact(overrides: Partial<AnalyticsMovementFactItem> = {}): Analyti
     categoryId: 'user-category-1',
     categoryAllocations: [],
     tagIds: ['tag-1'],
+    tags: [],
     merchant: { key: 'secret merchant text key', displayName: 'Private Merchant Name' },
     ...overrides,
   };
@@ -60,6 +61,15 @@ describe('adaptAnalyticsMovementFact', () => {
       expect(fact).not.toHaveProperty(key);
     }
     expect(JSON.stringify(fact)).not.toMatch(/secret merchant text key|Private Merchant Name/);
+  });
+
+  it('keeps user tag IDs, names, and reference keys out of Macro facts', () => {
+    const fact = adaptAnalyticsMovementFact(sourceFact({
+      tagIds: ['private-tag-id'],
+      tags: [{ key: 'name:private-normalized', tagId: 'private-tag-id', displayName: 'Private Tag Name' }],
+    }));
+
+    expect(JSON.stringify(fact)).not.toMatch(/private-tag-id|private-normalized|Private Tag Name/);
   });
 
   it('excludes ignored source facts', () => {

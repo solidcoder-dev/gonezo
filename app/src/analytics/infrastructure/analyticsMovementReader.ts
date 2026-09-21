@@ -10,6 +10,7 @@ import type { SharingListMovementDetailsInput, SharingListMovementDetailsResult 
 import type { AnalyticsListMovementFactsResult } from '../application/analytics.port';
 import { resolveSharingAnalyticsAttribution } from '../../sharing/application/sharingAnalyticsAttribution';
 import { analyticsMerchantReference } from '../domain/analyticsMerchantReference';
+import { resolveAnalyticsTagReferences } from '../domain/analyticsTagReference';
 
 export type AnalyticsMovementReaderPort = {
   ledgerListAccounts(): Promise<LedgerListAccountsResult>;
@@ -38,6 +39,7 @@ export type AnalyticsTransactionReadModel = LedgerTransactionListItem & {
   categoryAllocations?: AnalyticsListMovementFactsResult['items'][number]['categoryAllocations'];
   sharing?: AnalyticsListMovementFactsResult['items'][number]['sharing'];
   merchantReference?: AnalyticsListMovementFactsResult['items'][number]['merchant'];
+  analyticsTags?: AnalyticsListMovementFactsResult['items'][number]['tags'];
 };
 
 export type AnalyticsMovementReadModel = {
@@ -166,6 +168,7 @@ export async function listAnalyticsMovements(
         ignored: movement.ignored,
         items: [],
         categoryAllocations: movement.categoryAllocations,
+        analyticsTags: movement.tags,
         sharing: movement.sharing,
         analyticsAmount: scope.sharedAmountMode === 'full' ? movement.fullAmount : movement.personalAmount,
         analyticsPersonalAmount: movement.personalAmount,
@@ -202,6 +205,11 @@ export async function listAnalyticsMovements(
         sharingDetailsByTransactionId,
         scope.sharedAmountMode ?? 'personal',
       ),
+      analyticsTags: resolveAnalyticsTagReferences({
+        tagIds: (movement.tags ?? []).map((tag) => tag.id),
+        tagNames: [],
+        taxonomyTags: movement.tags ?? [],
+      }),
     })),
   };
 }

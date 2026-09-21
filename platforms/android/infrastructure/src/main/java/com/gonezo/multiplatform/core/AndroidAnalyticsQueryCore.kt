@@ -6,6 +6,8 @@ import com.gonezo.application.query.AnalyticsMovementIdentity
 import com.gonezo.application.query.AnalyticsMovementReadResult
 import com.gonezo.application.query.AnalyticsMovementReadWindow
 import com.gonezo.application.query.AnalyticsMovementType
+import com.gonezo.application.query.AnalyticsTagReference
+import com.gonezo.application.query.AnalyticsTagReferenceResolver
 import com.gonezo.application.query.AnalyticsSchedulingOrigin
 import com.gonezo.application.query.AnalyticsCategoryAmount
 import com.gonezo.application.query.AnalyticsSharingSummary
@@ -101,6 +103,7 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
         schedulingOrigin = occurrence?.let(::schedulingOrigin),
         sharing = amounts.sharing,
         merchant = transaction.merchant,
+        tags = analyticsTags(tagIds(transaction.id), emptyList()),
       )
     }
   }
@@ -114,16 +117,20 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
         val amount = Money(BigDecimal(movement.amount), movement.currency)
         val attribution = if (type.isEconomicMovement()) plannedShares.findByExpectedMovementRef(ExpectedMovementRef(movement.id))?.let(sharingAttribution::expected) else null
         val amounts = analyticsMovementAmounts(amount, attribution)
+        val storedTags = expectedTagSnapshot(movement.id)
+        val tags = analyticsTags(storedTags.tagIds, storedTags.tagNames)
         AnalyticsExpectedMovement(
           id = movement.id, effectiveAt = at, accountId = movement.accountId, type = type,
           currency = com.gonezo.domain.shared.CurrencyCode.from(movement.currency), personalAmount = amounts.personalAmount, fullAmount = amount,
           pending = true, ignored = isIgnored("expected_movement", movement.id), categoryId = movement.categoryId,
-          tagIds = expectedTagIds(movement.id),
+          tagIds = tags.mapNotNullTo(linkedSetOf(), AnalyticsTagReference::tagId),
           originOccurrenceId = movement.originOccurrenceId, originRecurringMovementId = movement.originRecurringMovementId,
           resolvedTransactionId = movement.resolvedTransactionId,
           schedulingOrigin = schedulingOrigin(movement.originOccurrenceId, movement.originRecurringMovementId),
           sharing = amounts.sharing,
           merchant = movement.merchant,
+          tagNames = storedTags.tagNames,
+          tags = tags,
         )
       }
   }
@@ -139,6 +146,7 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
         val attribution = if (type.isEconomicMovement()) recurringSharePlans.findByRecurringMovementRef(RecurringMovementRef(movement.id.toString()))?.let { sharingAttribution.scheduled(it, amount.amount) } else null
         val amounts = analyticsMovementAmounts(amount, attribution)
         val persistedOccurrence = occurrences.findByRecurringMovementAndDueAt(movement.id, occurrence.effectiveAt)
+        val tags = analyticsTags(movement.tagIds.toSet(), movement.tagNames)
         AnalyticsScheduledProjection(
           identity = occurrence.identity, effectiveAt = occurrence.effectiveAt, accountId = movement.sourceAccountId,
           type = type, currency = com.gonezo.domain.shared.CurrencyCode.from(movement.currency),
@@ -152,6 +160,9 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
           ),
           sharing = amounts.sharing,
           merchant = movement.merchant,
+          tagIds = tags.mapNotNullTo(linkedSetOf(), AnalyticsTagReference::tagId),
+          tagNames = movement.tagNames,
+          tags = tags,
         )
       }.filterNotNull()
     }
@@ -194,16 +205,31 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
     "taxonomy_transaction_tag_assignments", arrayOf("tag_id"), "transaction_id = ?", arrayOf(transactionId), null, null, "tag_id asc",
   ).use { cursor -> buildSet { while (cursor.moveToNext()) add(cursor.getString(0)) } }
 
-  private fun expectedTagIds(expectedId: String): Set<String> {
-    val names = database.readableDatabase.query("expected_movements", arrayOf("tag_names"), "id = ?", arrayOf(expectedId), null, null, null, "1").use {
-      if (!it.moveToFirst() || it.isNull(0)) emptyList() else org.json.JSONArray(it.getString(0)).let { json -> (0 until json.length()).map { index -> json.getString(index) } }
-    }
-    if (names.isEmpty()) return emptySet()
-    val placeholders = names.joinToString(",") { "?" }
-    return database.readableDatabase.query(
-      "taxonomy_tags", arrayOf("id"), "lower(name) in ($placeholders)", names.map { it.lowercase() }.toTypedArray(), null, null, "id asc",
-    ).use { cursor -> buildSet { while (cursor.moveToNext()) add(cursor.getString(0)) } }
+  private fun expectedTagSnapshot(expectedId: String): StoredTagSnapshot = database.readableDatabase.query(
+    "expected_movements", arrayOf("tag_ids", "tag_names"), "id = ?", arrayOf(expectedId), null, null, null, "1",
+  ).use { cursor ->
+    if (!cursor.moveToFirst()) return StoredTagSnapshot(emptySet(), emptyList())
+    StoredTagSnapshot(decodeTags(cursor.getString(0)).toSet(), decodeTags(cursor.getString(1)))
   }
+
+  private fun analyticsTags(tagIds: Collection<String>, tagNames: List<String>): List<AnalyticsTagReference> {
+    val tags = AndroidTaxonomyTagRepository(database).listAll()
+    return AnalyticsTagReferenceResolver.resolve(
+      tagIds = tagIds,
+      tagNames = tagNames,
+      displayNamesById = tags.associate { it.id.toString() to it.name },
+      idsByNormalizedName = tags.associate { com.gonezo.taxonomy.domain.TagName.normalizeTagName(it.name) to it.id.toString() },
+      normalizeName = com.gonezo.taxonomy.domain.TagName::normalizeTagName,
+    )
+  }
+
+  private fun decodeTags(raw: String?): List<String> {
+    if (raw.isNullOrBlank()) return emptyList()
+    val json = org.json.JSONArray(raw)
+    return buildList { for (index in 0 until json.length()) add(json.getString(index)) }
+  }
+
+  private data class StoredTagSnapshot(val tagIds: Set<String>, val tagNames: List<String>)
 
   private fun String.toAnalyticsType(): AnalyticsMovementType? = when (lowercase()) {
     "income" -> AnalyticsMovementType.INCOME

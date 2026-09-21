@@ -15,6 +15,7 @@ const fact = (id: string, effectiveAt: string, ignored = false): AnalyticsMoveme
   ignored,
   categoryAllocations: [],
   tagIds: [],
+  tags: [],
 });
 
 describe('createAnalyticsContributionPeriodSource', () => {
