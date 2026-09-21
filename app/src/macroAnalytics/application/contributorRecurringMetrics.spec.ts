@@ -18,6 +18,11 @@ const contributionV3: MacroAnalyticsContribution = {
     { source: 'SCHEDULED', kind: 'EXPENSE', amount: '0.1', occurrenceCount: 1, seriesCount: 1 },
   ] }] },
 };
+const contributionV4: MacroAnalyticsContribution = {
+  ...contributionV3,
+  schemaVersion: 4,
+  sharing: { currencies: [] },
+};
 
 function values(contribution: MacroAnalyticsContribution, currency = 'EUR') {
   return new Map(contributorRecurringMetricCalculators.map((calculator) => [calculator.definition.id.toString(), calculator.calculate(contribution, currency)]));
@@ -50,5 +55,10 @@ describe('contributor recurring metrics', () => {
     expect(values({ ...base, schemaVersion: 1 }).get('recurring_posted_expense_total:v1')).toBeNull();
     expect(values({ ...base, schemaVersion: 2, categories: { currencies: [] } }).get('recurring_posted_expense_total:v1')).toBeNull();
     expect(values(contributionV3, 'USD').get('recurring_posted_expense_total:v1')).toBeNull();
+  });
+
+  it('keeps recurring metrics available on V4 contributions', () => {
+    expect(values(contributionV4).get('recurring_posted_expense_total:v1')).toMatchObject({ kind: 'MONEY' });
+    expect((values(contributionV4).get('recurring_posted_expense_total:v1') as { value: { toString(): string } }).value.toString()).toBe('0.123');
   });
 });
