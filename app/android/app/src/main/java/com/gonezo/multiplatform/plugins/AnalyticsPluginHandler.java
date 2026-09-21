@@ -103,6 +103,12 @@ final class AnalyticsPluginHandler {
           if (fact.getSchedulingOrigin().getOccurrenceId() != null) {
             schedulingOrigin.put("occurrenceId", fact.getSchedulingOrigin().getOccurrenceId());
           }
+          if (fact.getSchedulingOrigin().getCadence() != null) {
+            JSObject cadence = new JSObject();
+            cadence.put("frequency", fact.getSchedulingOrigin().getCadence().getFrequency());
+            cadence.put("interval", fact.getSchedulingOrigin().getCadence().getInterval());
+            schedulingOrigin.put("cadence", cadence);
+          }
           item.put("schedulingOrigin", schedulingOrigin);
         }
         item.put("effectiveAt", fact.getEffectiveAt().toString());

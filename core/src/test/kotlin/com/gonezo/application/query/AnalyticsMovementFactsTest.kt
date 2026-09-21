@@ -163,6 +163,41 @@ class AnalyticsMovementFactsTest {
     }
 
     @Test
+    fun `recurrence provenance follows selected lifecycle fact and preserves scheduling kind`() {
+        val identity = AnalyticsMovementIdentity.occurrence("cadence-occurrence")
+        val recurring = AnalyticsSchedulingOrigin(
+            SchedulingKind.RECURRING,
+            "series",
+            "cadence-occurrence",
+            AnalyticsRecurrenceCadence("monthly", 1),
+        )
+        val oneShot = AnalyticsSchedulingOrigin(SchedulingKind.ONE_SHOT, "one-shot-series", "one-shot-occurrence")
+        val assembler = AnalyticsMovementFactAssembler()
+        val scheduled = AnalyticsScheduledProjection(
+            identity, effectiveAt, "account", AnalyticsMovementType.EXPENSE, currency,
+            Money.of(BigDecimal("5.00"), "EUR"), Money.of(BigDecimal("5.00"), "EUR"),
+            originOccurrenceId = "cadence-occurrence", schedulingOrigin = recurring,
+        )
+        val expected = AnalyticsExpectedMovement(
+            "expected", effectiveAt, "account", AnalyticsMovementType.EXPENSE, currency,
+            Money.of(BigDecimal("5.00"), "EUR"), Money.of(BigDecimal("5.00"), "EUR"), true,
+            originOccurrenceId = "cadence-occurrence", schedulingOrigin = recurring,
+        )
+        val posted = AnalyticsPostedMovement(
+            "posted", effectiveAt, "account", AnalyticsMovementType.EXPENSE, currency,
+            Money.of(BigDecimal("5.00"), "EUR"), Money.of(BigDecimal("5.00"), "EUR"),
+            occurrenceIdentity = identity, schedulingOrigin = oneShot,
+        )
+
+        assertThat(assembler.assemble(emptyList(), emptyList(), listOf(scheduled), true).single().schedulingOrigin)
+            .isEqualTo(recurring)
+        assertThat(assembler.assemble(emptyList(), listOf(expected), listOf(scheduled), true).single().schedulingOrigin)
+            .isEqualTo(recurring)
+        assertThat(assembler.assemble(listOf(posted), listOf(expected), listOf(scheduled), true).single().schedulingOrigin)
+            .isEqualTo(oneShot)
+    }
+
+    @Test
     fun `different occurrences and series are retained`() {
         val facts = listOf(
             fact(AnalyticsMovementIdentity.scheduled("series-a", 1), AnalyticsMovementSource.SCHEDULED_PROJECTION),
@@ -311,10 +346,14 @@ class AnalyticsMovementFactsTest {
     fun `tag lifecycle baseline retains posted ids but planned analytics only accepts resolved ids`() {
         val assignedTagIds = setOf("tag-manual", "tag-second")
         val posted = AnalyticsPostedMovement(
-            id = "manual-posted", effectiveAt = effectiveAt, accountId = "account",
-            type = AnalyticsMovementType.EXPENSE, currency = currency,
+            id = "manual-posted",
+            effectiveAt = effectiveAt,
+            accountId = "account",
+            type = AnalyticsMovementType.EXPENSE,
+            currency = currency,
             personalAmount = Money.of(BigDecimal("10.00"), "EUR"),
-            fullAmount = Money.of(BigDecimal("10.00"), "EUR"), tagIds = assignedTagIds,
+            fullAmount = Money.of(BigDecimal("10.00"), "EUR"),
+            tagIds = assignedTagIds,
         )
         val expected = AnalyticsExpectedMovement(
             id = "planned-expected", effectiveAt = effectiveAt, accountId = "account",
@@ -324,9 +363,13 @@ class AnalyticsMovementFactsTest {
             tagIds = emptySet(),
         )
         val scheduled = AnalyticsScheduledProjection(
-            identity = AnalyticsMovementIdentity.occurrence("planned-occurrence"), effectiveAt = effectiveAt,
-            accountId = "account", type = AnalyticsMovementType.EXPENSE, currency = currency,
-            personalAmount = expected.personalAmount, fullAmount = expected.fullAmount,
+            identity = AnalyticsMovementIdentity.occurrence("planned-occurrence"),
+            effectiveAt = effectiveAt,
+            accountId = "account",
+            type = AnalyticsMovementType.EXPENSE,
+            currency = currency,
+            personalAmount = expected.personalAmount,
+            fullAmount = expected.fullAmount,
             tagIds = emptySet(),
         )
 

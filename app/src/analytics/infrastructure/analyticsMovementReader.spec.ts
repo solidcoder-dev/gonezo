@@ -42,6 +42,7 @@ describe('analytics movement bridge contract', () => {
           kind: 'recurring' as const,
           recurringMovementId: '00000000-0000-4000-8000-000000000002',
           occurrenceId: '00000000-0000-4000-8000-000000000001',
+          cadence: { frequency: 'weekly' as const, interval: 2 },
         },
         effectiveAt: '2026-07-01T00:00:00Z',
         accountId: '00000000-0000-4000-8000-000000000003',
@@ -94,6 +95,7 @@ describe('analytics movement bridge contract', () => {
       kind: 'recurring',
       recurringMovementId: '00000000-0000-4000-8000-000000000002',
       occurrenceId: '00000000-0000-4000-8000-000000000001',
+      cadence: { frequency: 'weekly', interval: 2 },
     });
     expect(result.transactions[0].sharing).toEqual({
       participantCount: 1,

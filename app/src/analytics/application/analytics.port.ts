@@ -96,6 +96,12 @@ export type AnalyticsSchedulingOrigin = Readonly<{
   kind: 'recurring' | 'one_shot';
   recurringMovementId: string;
   occurrenceId?: string;
+  cadence?: AnalyticsRecurrenceCadence;
+}>;
+
+export type AnalyticsRecurrenceCadence = Readonly<{
+  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  interval: number;
 }>;
 
 export type AnalyticsCategoryAllocation = Readonly<{
