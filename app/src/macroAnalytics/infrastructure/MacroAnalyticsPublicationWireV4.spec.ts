@@ -24,7 +24,9 @@ describe('MacroAnalyticsPublicationWireV4', () => {
     const fixtureText = (await readFile(new URL('../../../../contracts/macro-analytics/fixtures/publication-v4-valid.json', import.meta.url), 'utf8')).trim();
     const fixture = JSON.parse(fixtureText);
     expect(toMacroAnalyticsPublicationWireV4(publication)).toEqual(fixture);
-    expect(serializeMacroAnalyticsPublicationV4(publication)).toBe(JSON.stringify(fixture));
+    const serialized = serializeMacroAnalyticsPublicationV4(publication);
+    expect(serialized).toBe(JSON.stringify(fixture));
+    expect(serialized).not.toMatch(/merchant|merchantKey|merchantName|displayName|normalizedName/i);
     expect(() => serializeMacroAnalyticsPublicationV1(publication)).toThrow('requires a V1 publication');
     expect(() => serializeMacroAnalyticsPublicationV2(publication)).toThrow('requires a V2 publication');
     expect(() => serializeMacroAnalyticsPublicationV3(publication)).toThrow('requires a V3 publication');

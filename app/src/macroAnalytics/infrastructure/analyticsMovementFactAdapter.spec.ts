@@ -17,6 +17,7 @@ function sourceFact(overrides: Partial<AnalyticsMovementFactItem> = {}): Analyti
     categoryId: 'user-category-1',
     categoryAllocations: [],
     tagIds: ['tag-1'],
+    merchant: { key: 'secret merchant text key', displayName: 'Private Merchant Name' },
     ...overrides,
   };
 }
@@ -54,6 +55,7 @@ describe('adaptAnalyticsMovementFact', () => {
     for (const key of [
       'reference', 'transactionId', 'expectedMovementId', 'recurringMovementId', 'occurrenceId',
       'accountId', 'tagIds', 'fullAmount', 'ignored', 'categoryId',
+      'merchant', 'merchantKey', 'merchantName', 'displayName', 'normalizedName',
     ]) {
       expect(fact).not.toHaveProperty(key);
     }
