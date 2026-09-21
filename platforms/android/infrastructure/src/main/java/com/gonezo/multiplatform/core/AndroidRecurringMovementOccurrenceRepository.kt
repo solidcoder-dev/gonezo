@@ -26,8 +26,13 @@ internal class AndroidRecurringMovementOccurrenceRepository(
     values.put("updated_at", occurrence.updatedAt.toString())
     values.putNullable("acknowledged_at", occurrence.acknowledgedAt?.toString())
     values.put("schedule_kind", occurrence.schedulingKind.value)
-    values.putNullable("recurrence_frequency", occurrence.cadence?.frequency?.value)
-    if (occurrence.cadence == null) values.putNull("recurrence_interval") else values.put("recurrence_interval", occurrence.cadence.interval)
+    occurrence.cadence?.let { cadence ->
+      values.put("recurrence_frequency", cadence.frequency.value)
+      values.put("recurrence_interval", cadence.interval)
+    } ?: run {
+      values.putNull("recurrence_frequency")
+      values.putNull("recurrence_interval")
+    }
 
     val result = db.writableDatabase.insertWithOnConflict(
       "recurring_movement_occurrences",
