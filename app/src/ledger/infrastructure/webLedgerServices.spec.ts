@@ -4,6 +4,7 @@ import { WebLedgerAccountService } from './webLedgerAccountService';
 import { WebLedgerTransactionService } from './webLedgerTransactionService';
 import { WebLedgerTransferService } from './webLedgerTransferService';
 import { createWebAppState } from '../../core/infrastructure/webAppState';
+import { calculateWebAccountNet } from './webLedgerGuards';
 
 function createDependencies(): WebRuntimeDependencies {
   let next = 0;
@@ -49,6 +50,7 @@ describe('web ledger focused services', () => {
 
     await expect(accounts.getAccountSummary({ accountId: positive.id })).resolves.toMatchObject({ balanceAmount: '10.005' });
     await expect(accounts.getAccountSummary({ accountId: negative.id })).resolves.toMatchObject({ balanceAmount: '-10.005' });
+    expect(calculateWebAccountNet(state, precise.id)).toBe('0.3');
     await expect(accounts.getAccountSummary({ accountId: precise.id })).resolves.toMatchObject({ balanceAmount: '0.30' });
   });
 

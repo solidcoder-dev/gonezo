@@ -15,6 +15,7 @@ import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import type { WebRuntimeDependencies } from '../../core/infrastructure/webRuntimeDependencies';
 import {
   calculateWebAccountNet,
+  formatWebAccountBalance,
   getWebLedgerAccountOrThrow,
 } from './webLedgerGuards';
 import type {
@@ -189,7 +190,7 @@ export class WebLedgerAccountService {
       name: account.name,
       type: account.type,
       currency: account.currency,
-      balanceAmount: calculateWebAccountNet(this.state, account.id),
+      balanceAmount: formatWebAccountBalance(calculateWebAccountNet(this.state, account.id)),
     };
   }
 }

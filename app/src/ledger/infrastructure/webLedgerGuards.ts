@@ -4,7 +4,7 @@ import type {
   WebLedgerTransaction,
 } from '../../core/infrastructure/webAppState';
 import { balanceImpact } from '../application/movementSemantics';
-import { ExactDecimal, addExactDecimals } from '../../shared/domain/exactDecimal';
+import { ExactDecimal } from '../../shared/domain/exactDecimal';
 
 export function getWebLedgerAccountOrThrow(
   state: WebAppState,
@@ -38,13 +38,17 @@ export function ensureWebAccountCanPost(account: WebLedgerAccount, currency: str
 }
 
 export function calculateWebAccountNet(state: WebAppState, accountId: string): string {
-  let net = '0';
+  let net = ExactDecimal.from('0');
   for (const tx of state.ledgerTransactions) {
     if (tx.accountId !== accountId || tx.status !== 'posted') {
       continue;
     }
-    net = addExactDecimals(net, balanceImpact(tx.type, tx.amount));
+    net = net.add(ExactDecimal.from(balanceImpact(tx.type, tx.amount)));
   }
-  const scale = Math.max(2, net.split('.')[1]?.length ?? 0);
-  return ExactDecimal.from(net).toFixed(scale);
+  return net.toString();
+}
+
+export function formatWebAccountBalance(balanceAmount: string): string {
+  const scale = Math.max(2, balanceAmount.split('.')[1]?.length ?? 0);
+  return ExactDecimal.from(balanceAmount).toFixed(scale);
 }
