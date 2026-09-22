@@ -108,12 +108,52 @@ internal class AndroidRecurringMovementOccurrenceRepository(
     }
   }
 
-  override fun listAll(): List<RecurringMovementOccurrence> {
-    val cursor = db.readableDatabase.query("recurring_movement_occurrences", COLUMNS, null, null, null, null, "due_at asc, id asc")
-    return cursor.use {
-      buildList { while (it.moveToNext()) add(mapOccurrence(it)) }
+  override fun listAll(): List<RecurringMovementOccurrence> = db.readableDatabase.query("recurring_movement_occurrences", COLUMNS, null, null, null, null, "due_at asc, id asc").use { cursor -> buildList { while (cursor.moveToNext()) add(mapOccurrence(cursor)) } }
+
+  internal fun findByLedgerTransactionIds(ids: Collection<String>): List<RecurringMovementOccurrence> =
+    queryInChunks(ids) { chunk ->
+      db.readableDatabase.query(
+        "recurring_movement_occurrences",
+        COLUMNS,
+        "ledger_transaction_id in (${chunk.joinToString(",") { "?" }})",
+        chunk.toTypedArray(),
+        null,
+        null,
+        "due_at asc, id asc",
+      ).use { cursor -> buildList { while (cursor.moveToNext()) add(mapOccurrence(cursor)) } }
     }
+
+  internal fun findByIds(ids: Collection<UUID>): List<RecurringMovementOccurrence> =
+    queryInChunks(ids.map(UUID::toString)) { chunk ->
+      db.readableDatabase.query(
+        "recurring_movement_occurrences",
+        COLUMNS,
+        "id in (${chunk.joinToString(",") { "?" }})",
+        chunk.toTypedArray(),
+        null,
+        null,
+        "due_at asc, id asc",
+      ).use { cursor -> buildList { while (cursor.moveToNext()) add(mapOccurrence(cursor)) } }
+    }
+
+  internal fun findByRecurringMovementIdsAndWindow(
+    recurringMovementIds: Collection<RecurringMovementId>,
+    fromInclusive: Instant,
+    toExclusive: Instant,
+  ): List<RecurringMovementOccurrence> = queryInChunks(recurringMovementIds.map(RecurringMovementId::toString)) { chunk ->
+    db.readableDatabase.query(
+      "recurring_movement_occurrences",
+      COLUMNS,
+      "recurring_movement_id in (${chunk.joinToString(",") { "?" }}) and due_at >= ? and due_at < ?",
+      (chunk + fromInclusive.toString() + toExclusive.toString()).toTypedArray(),
+      null,
+      null,
+      "due_at asc, id asc",
+    ).use { cursor -> buildList { while (cursor.moveToNext()) add(mapOccurrence(cursor)) } }
   }
+
+  private fun <T> queryInChunks(values: Collection<String>, query: (List<String>) -> List<T>): List<T> =
+    values.distinct().chunked(SQLITE_BATCH_SIZE).flatMap(query)
 
   private fun mapOccurrence(cursor: Cursor): RecurringMovementOccurrence = RecurringMovementOccurrence(
     id = UUID.fromString(cursor.string("id")),
@@ -151,6 +191,7 @@ internal class AndroidRecurringMovementOccurrenceRepository(
   }
 
   private companion object {
+    const val SQLITE_BATCH_SIZE = 900
     val COLUMNS = arrayOf(
       "id",
       "recurring_movement_id",
