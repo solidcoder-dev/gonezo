@@ -1,0 +1,22 @@
+import type { LedgerCashFlowGranularity } from '../../ledger/application/ledger.port';
+import type { AnalyticsCurrencyScopeInput, AnalyticsOverviewHighlight, AnalyticsOverviewWindow, AnalyticsPeriodWindow } from './analyticsCommon.contract';
+import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
+import type { AnalyticsCategoryReference, AnalyticsSpendingMovement, AnalyticsSpendingPeriodWindow, AnalyticsSpendingReport } from './spendingReport';
+
+export type AnalyticsCashFlowSeriesInput = AnalyticsCurrencyScopeInput & { granularity: LedgerCashFlowGranularity; periodOffset?: number };
+export type AnalyticsSpendingOverviewInput = AnalyticsCurrencyScopeInput & { granularity: LedgerCashFlowGranularity; periodOffset?: number };
+export type AnalyticsSpendingOverviewCategory = { categoryId?: string; categoryName: string; amount: string; percentage: number };
+export type AnalyticsSpendingDashboardInput = AnalyticsCurrencyScopeInput;
+export type AnalyticsSpendingDashboardResult = { currentWindow: AnalyticsOverviewWindow; previousWindow?: AnalyticsOverviewWindow; totalExpenseAmount: string; previousExpenseChangePercent?: string; categories: AnalyticsSpendingOverviewCategory[] };
+export type AnalyticsSpendingOverviewResult = { granularity: LedgerCashFlowGranularity; window: AnalyticsPeriodWindow; totalExpenseAmount: string; categories: AnalyticsSpendingOverviewCategory[] };
+export type AnalyticsSpendingTimelineInput = AnalyticsCurrencyScopeInput & { periodOffset?: number };
+export type AnalyticsSpendingTimelinePoint = { periodKey: string; label: string; amount: string };
+export type AnalyticsSpendingTimelineResult = { currentWindow: AnalyticsOverviewWindow; window: AnalyticsPeriodWindow; points: AnalyticsSpendingTimelinePoint[] };
+export type AnalyticsSpendingTopExpensesInput = AnalyticsCurrencyScopeInput;
+export type AnalyticsSpendingTopExpenseItem = AnalyticsOverviewHighlight;
+export type AnalyticsSpendingTopExpensesResult = { currentWindow: AnalyticsOverviewWindow; items: AnalyticsSpendingTopExpenseItem[] };
+export type AnalyticsSpendingReportInput = AnalyticsCurrencyScopeInput & { periodSelection: AnalyticsPeriodSelection; categoryId?: string };
+export type AnalyticsTopExpenseDto = { movementId: string; description?: string; merchant?: string; categoryId?: string; categoryName?: string; amount: { value: string; currency: string }; occurredAt: string };
+export type AnalyticsTopExpensesInput = AnalyticsSpendingReportInput & { page?: { limit?: number; offset?: number } };
+export type AnalyticsTopExpensesResult = { window: AnalyticsSpendingPeriodWindow; items: AnalyticsTopExpenseDto[]; totalCount: number };
+export type { AnalyticsCategoryReference, AnalyticsSpendingMovement, AnalyticsSpendingReport, AnalyticsSpendingPeriodWindow };

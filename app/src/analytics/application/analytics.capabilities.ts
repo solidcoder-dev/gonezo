@@ -6,41 +6,12 @@ import type {
 import type {
   AnalyticsMovementFactsPort as MovementFactsContract,
 } from './analyticsMovementFacts.contract';
-import type {
-  AnalyticsCashFlowSeriesInput,
-  AnalyticsCashFlowSummaryResult,
-  AnalyticsCurrencyScopeInput,
-  AnalyticsFlowInsightsResult,
-  AnalyticsFlowProjectionInput,
-  AnalyticsFlowProjectionResult,
-  AnalyticsFlowReport,
-  AnalyticsFlowReportInput,
-  AnalyticsFlowUpcomingInput,
-  AnalyticsFlowUpcomingResult,
-  AnalyticsGetFilterFacetsInput,
-  AnalyticsListCurrenciesResult,
-  AnalyticsListIgnoredMovementsResult,
-  AnalyticsOverviewInsightsResult,
-  AnalyticsOverviewInsightsInput,
-  AnalyticsOverviewSnapshotInput,
-  AnalyticsOverviewSnapshotResult,
-  AnalyticsQueryMetricsInput,
-  AnalyticsQueryMetricsResult,
-  AnalyticsSetMovementIgnoredInput,
-  AnalyticsSpendingDashboardInput,
-  AnalyticsSpendingDashboardResult,
-  AnalyticsSpendingOverviewInput,
-  AnalyticsSpendingOverviewResult,
-  AnalyticsSpendingReport,
-  AnalyticsSpendingReportInput,
-  AnalyticsSpendingTimelineInput,
-  AnalyticsSpendingTimelineResult,
-  AnalyticsSpendingTopExpensesInput,
-  AnalyticsSpendingTopExpensesResult,
-  AnalyticsTopExpensesInput,
-  AnalyticsTopExpensesResult,
-} from './analytics.port';
-import type { AnalyticsGetFilterFacetsResult, AnalyticsFlowInsightsInput } from './analytics.port';
+import type { AnalyticsCurrencyScopeInput } from './analyticsCommon.contract';
+import type { AnalyticsQueryMetricsInput, AnalyticsQueryMetricsResult } from './analyticsMetrics.contract';
+import type { AnalyticsCashFlowSeriesInput, AnalyticsSpendingDashboardInput, AnalyticsSpendingDashboardResult, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult, AnalyticsSpendingReport, AnalyticsSpendingReportInput, AnalyticsSpendingTimelineInput, AnalyticsSpendingTimelineResult, AnalyticsSpendingTopExpensesInput, AnalyticsSpendingTopExpensesResult, AnalyticsTopExpensesInput, AnalyticsTopExpensesResult } from './analyticsSpending.contract';
+import type { AnalyticsCashFlowSummaryResult, AnalyticsFlowInsightsInput, AnalyticsFlowInsightsResult, AnalyticsFlowProjectionInput, AnalyticsFlowProjectionResult, AnalyticsFlowReport, AnalyticsFlowReportInput, AnalyticsFlowUpcomingInput, AnalyticsFlowUpcomingResult } from './analyticsFlow.contract';
+import type { AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsOverviewInsightsInput, AnalyticsOverviewInsightsResult, AnalyticsOverviewSnapshotInput, AnalyticsOverviewSnapshotResult } from './analyticsOverview.contract';
+import type { AnalyticsListIgnoredMovementsResult, AnalyticsSetMovementIgnoredInput } from './analyticsExclusions.contract';
 import type { LedgerGetCashFlowSeriesResult } from '../../ledger/application/ledger.port';
 
 export type AnalyticsMovementFactsPort = MovementFactsContract;
