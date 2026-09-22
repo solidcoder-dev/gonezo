@@ -7,10 +7,6 @@ import { NativeLatestMacroAnalyticsPublicationAdapter } from './NativeLatestMacr
 import { NativeContributionRebuildQueueAdapter } from './NativeContributionRebuildQueueAdapter';
 import { NativeMacroAnalyticsBackfillStateAdapter } from './NativeMacroAnalyticsBackfillStateAdapter';
 import { LocalMacroAnalyticsPublicationProcessor } from '../application/LocalMacroAnalyticsPublicationProcessor';
-import { createAnalyticsFinancialFactSource } from './analyticsFinancialFactSource';
-import { createAnalyticsCategoryFactSource } from './analyticsCategoryFactSource';
-import { createAnalyticsRecurringFactSource } from './analyticsRecurringFactSource';
-import { createAnalyticsSharingFactSource } from './analyticsSharingFactSource';
 import { createAnalyticsContributionPeriodSource } from './analyticsContributionPeriodSource';
 import { createAnalyticsProfileContributionAdapter } from './analyticsProfileContributionAdapter';
 import { generateAnalyticsContributorId } from './randomAnalyticsContributorId';
@@ -18,20 +14,14 @@ import type { AnalyticsProfilePort } from '../../analyticsProfile/application/an
 import { CorePlugin } from '../../core/infrastructure/corePlugin';
 import { canonicalMerchantCatalog } from './canonicalMerchantCatalog';
 import { createCanonicalMerchantResolver } from './canonicalMerchantResolver';
-import { createAnalyticsMerchantFactSource } from './analyticsMerchantFactSource';
 import { createAnalyticsAccountBalanceFactSource } from './analyticsAccountBalanceFactSource';
-import { createAnalyticsTagUsageFactSource } from './analyticsTagUsageFactSource';
+import { createAnalyticsPeriodSnapshotSource } from './analyticsPeriodSnapshotSource';
 
 const runner = new SerializedMacroAnalyticsMaintenanceRunner();
 const consent = new NativeAnalyticsContributionConsentAdapter();
-const financialFacts = createAnalyticsFinancialFactSource(CorePlugin);
-const categoryFacts = createAnalyticsCategoryFactSource(CorePlugin);
-const recurringFacts = createAnalyticsRecurringFactSource(CorePlugin);
-const sharingFacts = createAnalyticsSharingFactSource(CorePlugin);
 const merchantResolver = createCanonicalMerchantResolver(canonicalMerchantCatalog);
-const merchantFacts = createAnalyticsMerchantFactSource(CorePlugin, merchantResolver);
 const accountBalanceFacts = createAnalyticsAccountBalanceFactSource(CorePlugin);
-const tagUsageFacts = createAnalyticsTagUsageFactSource(CorePlugin);
+const snapshot = createAnalyticsPeriodSnapshotSource(CorePlugin);
 const identity = new NativeAnalyticsContributorIdentityAdapter();
 const outbox = new NativeMacroAnalyticsOutboxAdapter();
 const latest = new NativeLatestMacroAnalyticsPublicationAdapter();
@@ -50,7 +40,7 @@ export function runDefaultMacroAnalyticsMaintenance(userId: string, analyticsPro
       outbox,
       processor,
       prepare: (input) => prepareMacroAnalyticsPublication({
-          contribution: { consent, profile: createAnalyticsProfileContributionAdapter(analyticsProfile), financialFacts, categoryFacts, recurringFacts, sharingFacts, merchantFacts, accountBalanceFacts, tagUsageFacts }, identity,
+          contribution: { consent, profile: createAnalyticsProfileContributionAdapter(analyticsProfile), accountBalanceFacts, snapshot, merchantResolver }, identity,
         generateContributorId: generateAnalyticsContributorId,
         outbox,
         latest,

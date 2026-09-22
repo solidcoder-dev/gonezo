@@ -16,14 +16,6 @@ import type { MerchantFactSourcePort } from './merchantFactSource.port';
 import type { AccountBalanceFactSourcePort } from './accountBalanceFactSource.port';
 import type { TagUsageFactSourcePort } from './tagUsageFactSource.port';
 import { createTagUsageFact } from '../domain/tagUsageFact';
-import { createAnalyticsFinancialFactSource } from '../infrastructure/analyticsFinancialFactSource';
-import { createAnalyticsCategoryFactSource } from '../infrastructure/analyticsCategoryFactSource';
-import { createAnalyticsRecurringFactSource } from '../infrastructure/analyticsRecurringFactSource';
-import { createAnalyticsSharingFactSource } from '../infrastructure/analyticsSharingFactSource';
-import { createAnalyticsMerchantFactSource } from '../infrastructure/analyticsMerchantFactSource';
-import { createAnalyticsTagUsageFactSource } from '../infrastructure/analyticsTagUsageFactSource';
-import { createCanonicalMerchantResolver } from '../infrastructure/canonicalMerchantResolver';
-import { canonicalMerchantCatalog } from '../infrastructure/canonicalMerchantCatalog';
 
 const profile: ContributionProfile = { birthYear: 1995, sex: 'female', countryCode: 'ES', regionCode: 'ES-CN' };
 const granted = createAnalyticsContributionConsent({ userId: 'private-user-id', status: 'GRANTED', noticeVersion: 1, decidedAt: '2026-09-18T10:00:00Z' });
@@ -55,22 +47,19 @@ function sources(consent: AnalyticsContributionConsent | null = granted, contrib
 }
 
 describe('buildMacroAnalyticsContribution', () => {
-  it('characterizes the current V7 movement-fact read count', async () => {
+  it('builds a V7 contribution from one movement snapshot read', async () => {
     const analyticsListMovementFacts = vi.fn(async () => ({ items: [] }));
-    const reader = { analyticsListMovementFacts };
-    const sharedSources = {
-      ...sources(),
-      financialFacts: createAnalyticsFinancialFactSource(reader),
-      categoryFacts: createAnalyticsCategoryFactSource(reader),
-      recurringFacts: createAnalyticsRecurringFactSource(reader),
-      sharingFacts: createAnalyticsSharingFactSource(reader),
-      merchantFacts: createAnalyticsMerchantFactSource(reader, createCanonicalMerchantResolver(canonicalMerchantCatalog)),
-      tagUsageFacts: createAnalyticsTagUsageFactSource(reader),
-    };
+    const legacy = sources(granted, profile, []);
+    const result = await buildMacroAnalyticsContribution({
+      consent: legacy.consent,
+      profile: legacy.profile,
+      accountBalanceFacts: legacy.accountBalanceFacts,
+      snapshot: { readPeriodSnapshot: vi.fn(async ({ period }) => { await analyticsListMovementFacts(); return { period, movements: [] }; }) },
+      merchantResolver: { resolve: () => null },
+    }, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
 
-    await buildMacroAnalyticsContribution(sharedSources, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
-
-    expect(analyticsListMovementFacts).toHaveBeenCalledTimes(6);
+    expect(result.status).toBe('BUILT');
+    expect(analyticsListMovementFacts).toHaveBeenCalledTimes(1);
   });
 
   it.each([null, 'DECLINED', 'WITHDRAWN'] as const)('does not load facts without granted consent (%s)', async (status) => {

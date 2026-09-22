@@ -5,3 +5,30 @@ export const macroCategoryCodes = [
 ] as const;
 
 export type MacroCategoryCode = (typeof macroCategoryCodes)[number];
+
+const expenseCategories: Readonly<Record<string, MacroCategoryCode>> = {
+  '00000000-0000-4000-8000-000000000101': 'BILLS',
+  '00000000-0000-4000-8000-000000000102': 'GROCERIES',
+  '00000000-0000-4000-8000-000000000103': 'DINING',
+  '00000000-0000-4000-8000-000000000104': 'TRANSPORT',
+  '00000000-0000-4000-8000-000000000105': 'HEALTH',
+  '00000000-0000-4000-8000-000000000106': 'SHOPPING',
+  '00000000-0000-4000-8000-000000000107': 'ENTERTAINMENT',
+  '00000000-0000-4000-8000-000000000108': 'TRAVEL',
+  '00000000-0000-4000-8000-000000000109': 'OTHER_EXPENSE',
+  '00000000-0000-4000-8000-000000000110': 'BEAUTY',
+  '00000000-0000-4000-8000-000000000111': 'SERVICES',
+};
+
+const incomeCategories: Readonly<Record<string, MacroCategoryCode>> = {
+  '00000000-0000-4000-8000-000000000201': 'WORK_INCOME',
+  '00000000-0000-4000-8000-000000000202': 'INVESTMENTS',
+  '00000000-0000-4000-8000-000000000203': 'REIMBURSEMENTS',
+  '00000000-0000-4000-8000-000000000204': 'GIFTS_BENEFITS',
+  '00000000-0000-4000-8000-000000000205': 'OTHER_INCOME',
+};
+
+export function macroCategoryCodeFor(categoryId: string | undefined, kind: 'INCOME' | 'EXPENSE'): MacroCategoryCode {
+  const mapped = (kind === 'EXPENSE' ? expenseCategories : incomeCategories)[categoryId ?? ''];
+  return mapped ?? (kind === 'EXPENSE' ? 'UNMAPPED_EXPENSE' : 'UNMAPPED_INCOME');
+}

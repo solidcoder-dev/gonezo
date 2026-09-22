@@ -22,17 +22,22 @@ import type { AccountBalanceFactSourcePort } from './accountBalanceFactSource.po
 import { aggregateTagUsageFacts } from '../domain/tagUsageContribution';
 import type { TagUsageFactSourcePort } from './tagUsageFactSource.port';
 import type { TagUsageContribution } from '../domain/tagUsageContribution';
+import type { AnalyticsPeriodSnapshotPort } from './analyticsPeriodSnapshot.port';
+import { projectCategoryFacts, projectFinancialFacts, projectMerchantFacts, projectRecurringFacts, projectSharingFacts, projectTagUsageFacts } from './analyticsFactProjectors';
+import type { CanonicalMerchantResolverPort } from './canonicalMerchantResolver.port';
 
 export type BuildMacroAnalyticsContributionPorts = Readonly<{
   consent: Pick<AnalyticsContributionConsentPort, 'get'>;
   profile: ContributionProfileSourcePort;
-  financialFacts: FinancialFactSourcePort;
-  categoryFacts: CategoryFactSourcePort;
-  recurringFacts: RecurringFactSourcePort;
-  sharingFacts: SharingFactSourcePort;
-  merchantFacts: MerchantFactSourcePort;
+  financialFacts?: FinancialFactSourcePort;
+  categoryFacts?: CategoryFactSourcePort;
+  recurringFacts?: RecurringFactSourcePort;
+  sharingFacts?: SharingFactSourcePort;
+  merchantFacts?: MerchantFactSourcePort;
   accountBalanceFacts: AccountBalanceFactSourcePort;
-  tagUsageFacts: TagUsageFactSourcePort;
+  tagUsageFacts?: TagUsageFactSourcePort;
+  snapshot?: AnalyticsPeriodSnapshotPort;
+  merchantResolver?: CanonicalMerchantResolverPort;
 }>;
 
 export type BuildMacroAnalyticsContributionInput = Readonly<{
@@ -58,13 +63,14 @@ export async function buildMacroAnalyticsContribution(
   const period = createAnalyticsPeriod(input.period);
   const dimensions = deriveContributionDimensions(profile, period);
   if (!dimensions) return { status: 'NOT_ELIGIBLE', reason: 'PROFILE_UNAVAILABLE' };
-  const facts = await ports.financialFacts.listFinancialFacts({ period, timeZone: input.timeZone });
-  const categoryFacts = await ports.categoryFacts.listCategoryFacts({ period, timeZone: input.timeZone });
-  const recurringFacts = await ports.recurringFacts.listRecurringFacts({ period, timeZone: input.timeZone });
-  const sharingFacts = await ports.sharingFacts.listSharingFacts({ period, timeZone: input.timeZone });
-  const merchantFacts = await ports.merchantFacts.listMerchantFacts({ period, timeZone: input.timeZone });
+  const snapshot = ports.snapshot ? await ports.snapshot.readPeriodSnapshot({ period, timeZone: input.timeZone }) : undefined;
+  const facts = snapshot ? projectFinancialFacts(snapshot) : await ports.financialFacts!.listFinancialFacts({ period, timeZone: input.timeZone });
+  const categoryFacts = snapshot ? projectCategoryFacts(snapshot) : await ports.categoryFacts!.listCategoryFacts({ period, timeZone: input.timeZone });
+  const recurringFacts = snapshot ? projectRecurringFacts(snapshot) : await ports.recurringFacts!.listRecurringFacts({ period, timeZone: input.timeZone });
+  const sharingFacts = snapshot ? projectSharingFacts(snapshot) : await ports.sharingFacts!.listSharingFacts({ period, timeZone: input.timeZone });
+  const merchantFacts = snapshot && ports.merchantResolver ? projectMerchantFacts(snapshot, ports.merchantResolver) : await ports.merchantFacts!.listMerchantFacts({ period, timeZone: input.timeZone });
   const balanceFacts = await ports.accountBalanceFacts.listAccountBalanceFacts({ period, timeZone: input.timeZone });
-  const tagUsageFacts = await ports.tagUsageFacts.listTagUsageFacts({ period, timeZone: input.timeZone });
+  const tagUsageFacts = snapshot ? projectTagUsageFacts(snapshot) : await ports.tagUsageFacts!.listTagUsageFacts({ period, timeZone: input.timeZone });
   const financial = aggregateFinancialFacts(facts);
   const categories = aggregateCategoryFacts(categoryFacts);
   const recurring = aggregateRecurringFacts(recurringFacts);
