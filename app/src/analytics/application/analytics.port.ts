@@ -1,4 +1,4 @@
-import type { LedgerCashFlowGranularity, LedgerGetCashFlowSeriesResult } from '../../ledger/application/ledger.port';
+import type { LedgerCashFlowGranularity } from '../../ledger/application/ledger.port';
 import type { AnalyticsFiltersInput } from './analyticsFilters';
 import type {
   AnalyticsCategoryReference,
@@ -342,30 +342,17 @@ export type AnalyticsListIgnoredMovementsResult = {
   movementIds: string[];
 };
 
-export type AnalyticsPort = {
-  analyticsQueryMetrics(input: AnalyticsQueryMetricsInput): Promise<AnalyticsQueryMetricsResult>;
-  analyticsGetAccountBalanceSnapshot(input: AnalyticsAccountBalanceSnapshotInput): Promise<AnalyticsAccountBalanceSnapshotResult>;
-  analyticsGetAccountBalanceCoverage(input: { zoneId: string }): Promise<AnalyticsAccountBalanceCoverageResult>;
-  analyticsListMovementFacts?: (input: AnalyticsListMovementFactsInput) => Promise<AnalyticsListMovementFactsResult>;
-  analyticsListCurrencies(): Promise<AnalyticsListCurrenciesResult>;
-  analyticsGetFilterFacets(input?: AnalyticsGetFilterFacetsInput): Promise<AnalyticsGetFilterFacetsResult>;
-  analyticsGetOverviewSnapshot(input: AnalyticsOverviewSnapshotInput): Promise<AnalyticsOverviewSnapshotResult>;
-  analyticsGetOverviewInsights(input: AnalyticsOverviewInsightsInput): Promise<AnalyticsOverviewInsightsResult>;
-  analyticsGetCashFlowSeries(input: AnalyticsCashFlowSeriesInput): Promise<LedgerGetCashFlowSeriesResult>;
-  analyticsGetPeriodCashFlowSummary(input: AnalyticsCurrencyScopeInput): Promise<AnalyticsCashFlowSummaryResult>;
-  analyticsGetSpendingDashboard(input: AnalyticsSpendingDashboardInput): Promise<AnalyticsSpendingDashboardResult>;
-  analyticsGetSpendingTimeline(input: AnalyticsSpendingTimelineInput): Promise<AnalyticsSpendingTimelineResult>;
-  analyticsGetSpendingTopExpenses(input: AnalyticsSpendingTopExpensesInput): Promise<AnalyticsSpendingTopExpensesResult>;
-  analyticsGetSpendingOverview(input: AnalyticsSpendingOverviewInput): Promise<AnalyticsSpendingOverviewResult>;
-  analyticsGetSpendingReport?: (input: AnalyticsSpendingReportInput) => Promise<AnalyticsSpendingReport>;
-  analyticsGetAnalyticsTopExpenses?: (input: AnalyticsTopExpensesInput) => Promise<AnalyticsTopExpensesResult>;
-  analyticsGetFlowReport?: (input: AnalyticsFlowReportInput) => Promise<AnalyticsFlowReport>;
-  analyticsGetFlowProjection?: (input: AnalyticsFlowProjectionInput) => Promise<AnalyticsFlowProjectionResult>;
-  analyticsGetFlowUpcoming?: (input: AnalyticsFlowUpcomingInput) => Promise<AnalyticsFlowUpcomingResult>;
-  analyticsGetFlowInsights?: (input: AnalyticsFlowInsightsInput) => Promise<AnalyticsFlowInsightsResult>;
-  analyticsSetMovementIgnored(input: AnalyticsSetMovementIgnoredInput): Promise<void>;
-  analyticsListIgnoredMovements(): Promise<AnalyticsListIgnoredMovementsResult>;
-};
+import type {
+  AnalyticsBalancePort,
+  AnalyticsExclusionsPort,
+  AnalyticsFlowPort,
+  AnalyticsMetricsPort,
+  AnalyticsMovementFactsPort,
+  AnalyticsOverviewPort,
+  AnalyticsSpendingPort,
+} from './analytics.capabilities';
+
+export type AnalyticsPort = AnalyticsMovementFactsPort & AnalyticsBalancePort & AnalyticsMetricsPort & AnalyticsSpendingPort & AnalyticsFlowPort & AnalyticsOverviewPort & AnalyticsExclusionsPort;
 
 export type AnalyticsSpendingReportInput = AnalyticsCurrencyScopeInput & {
   periodSelection: AnalyticsPeriodSelection;
