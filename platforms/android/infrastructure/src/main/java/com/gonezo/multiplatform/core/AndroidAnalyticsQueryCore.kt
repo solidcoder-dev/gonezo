@@ -48,21 +48,32 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
   private val recurringSharePlans: RecurringSharePlanRepository = AndroidRecurringSharePlanRepository(database)
   private val sharingAttribution = SharingAnalyticsAttributionResolver()
 
+  private data class NativeAnalyticsReadContext(
+    val accounts: List<AndroidLedgerCore.LedgerAccountView>,
+    val recurringMovements: List<com.gonezo.recurrence.domain.RecurringMovement>,
+    val occurrences: List<com.gonezo.recurrence.domain.RecurringMovementOccurrence>,
+    val occurrencesByTransactionId: Map<String, com.gonezo.recurrence.domain.RecurringMovementOccurrence>,
+    val occurrencesBySeriesAndDueAt: Map<Pair<com.gonezo.recurrence.domain.RecurringMovementId, Instant>, com.gonezo.recurrence.domain.RecurringMovementOccurrence>,
+    val taxonomyTags: List<com.gonezo.taxonomy.domain.Tag>,
+    val tagDisplayNamesById: Map<String, String>,
+    val tagIdsByNormalizedName: Map<String, String>,
+    val sharesByTransaction: Map<String, com.gonezo.sharing.domain.MovementShare>,
+    val plannedSharesByExpected: Map<String, com.gonezo.sharing.domain.PlannedMovementShare>,
+    val sharingPlansByRecurring: Map<String, com.gonezo.sharing.domain.RecurringSharePlan>,
+  )
+
   fun query(fromInclusive: Instant, toExclusive: Instant, includePlannedMovements: Boolean, includeIgnoredMovements: Boolean, currency: String?, accountIds: Set<String> = emptySet(), categoryId: String? = null, tagIds: Set<String> = emptySet()): AnalyticsMovementReadResult {
     val window = AnalyticsMovementReadWindow(fromInclusive, toExclusive)
-    val taxonomyTags = AndroidTaxonomyTagRepository(database).listAll()
-    val sharesByTransaction = movementShares.listAll().associateBy { it.sourceTransactionId }
-    val plannedSharesByExpected = plannedShares.listAll().associateBy { it.expectedMovementRef.value }
-    val sharingPlansByRecurring = recurringSharePlans.listAll().associateBy { it.recurringMovementRef.value }
+    val readContext = readContext()
     val result = AnalyticsMovementFactQuery(
       postedReader = object : AnalyticsPostedMovementReader {
-        override fun read(window: AnalyticsMovementReadWindow): Iterable<AnalyticsPostedMovement> = posted(window, taxonomyTags, sharesByTransaction)
+        override fun read(window: AnalyticsMovementReadWindow): Iterable<AnalyticsPostedMovement> = posted(window, readContext)
       },
       expectedReader = object : AnalyticsExpectedMovementReader {
-        override fun readPending(window: AnalyticsMovementReadWindow): Iterable<AnalyticsExpectedMovement> = pendingExpected(window, taxonomyTags, plannedSharesByExpected)
+        override fun readPending(window: AnalyticsMovementReadWindow): Iterable<AnalyticsExpectedMovement> = pendingExpected(window, readContext)
       },
       scheduledReader = object : AnalyticsScheduledMovementReader {
-        override fun read(window: AnalyticsMovementReadWindow): Iterable<AnalyticsScheduledProjection> = scheduled(window, taxonomyTags, sharingPlansByRecurring)
+        override fun read(window: AnalyticsMovementReadWindow): Iterable<AnalyticsScheduledProjection> = scheduled(window, readContext)
       },
       factQuery = com.gonezo.application.query.AnalyticsMovementFactQueryService(
         exclusionReader = exclusionReader,
@@ -81,6 +92,25 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
     return result
   }
 
+  private fun readContext(): NativeAnalyticsReadContext {
+    val accounts = ledger.listAccounts()
+    val occurrences = occurrences.listAll()
+    val taxonomyTags = AndroidTaxonomyTagRepository(database).listAll()
+    return NativeAnalyticsReadContext(
+      accounts = accounts,
+      recurringMovements = recurring.listAll(),
+      occurrences = occurrences,
+      occurrencesByTransactionId = occurrences.mapNotNull { occurrence -> occurrence.ledgerTransactionId?.let { it to occurrence } }.toMap(),
+      occurrencesBySeriesAndDueAt = occurrences.associateBy { it.recurringMovementId.toString() to it.dueAt },
+      taxonomyTags = taxonomyTags,
+      tagDisplayNamesById = taxonomyTags.associate { it.id.toString() to it.name },
+      tagIdsByNormalizedName = taxonomyTags.associate { com.gonezo.taxonomy.domain.TagName.normalizeTagName(it.name) to it.id.toString() },
+      sharesByTransaction = movementShares.listAll().associateBy { it.sourceTransactionId },
+      plannedSharesByExpected = plannedShares.listAll().associateBy { it.expectedMovementRef.value },
+      sharingPlansByRecurring = recurringSharePlans.listAll().associateBy { it.recurringMovementRef.value },
+    )
+  }
+
   fun query(fromLocalDate: String, toLocalDate: String, zoneId: String, includePlannedMovements: Boolean, includeIgnoredMovements: Boolean, currency: String?, accountIds: Set<String> = emptySet(), categoryId: String? = null, tagIds: Set<String> = emptySet()): AnalyticsMovementReadResult {
     val zone = ZoneId.of(zoneId)
     val fromInclusive = LocalDate.parse(fromLocalDate).atStartOfDay(zone).toInstant()
@@ -88,8 +118,8 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
     return query(fromInclusive, toExclusive, includePlannedMovements, includeIgnoredMovements, currency, accountIds, categoryId, tagIds)
   }
 
-  private fun posted(window: AnalyticsMovementReadWindow, taxonomyTags: List<com.gonezo.taxonomy.domain.Tag>, sharesByTransaction: Map<String, com.gonezo.sharing.domain.MovementShare>): List<AnalyticsPostedMovement> {
-    val transactions = ledger.listAccounts().flatMap { account ->
+  private fun posted(window: AnalyticsMovementReadWindow, readContext: NativeAnalyticsReadContext): List<AnalyticsPostedMovement> {
+    val transactions = readContext.accounts.flatMap { account ->
       ledger.listTransactionsHalfOpen(
         account.id, 100, window.fromInclusive.toString(), window.toExclusive.toString(), null, null, true,
       ).filter { it.status.equals("posted", true) }
@@ -98,13 +128,12 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
     val tagIdsByTransaction = tagIdsByTransaction(transactionIds)
     val categoryIdsByTransaction = categoryIdsByTransaction(transactionIds)
     val splitAmountsByTransaction = splitAmountsByTransaction(transactionIds)
-    val occurrencesByTransaction = occurrences.listAll().mapNotNull { occurrence -> occurrence.ledgerTransactionId?.let { it to occurrence } }.toMap()
     return transactions.mapNotNull { transaction ->
       val type = transaction.type.toAnalyticsType() ?: return@mapNotNull null
       val amount = Money(BigDecimal(transaction.amount), transaction.currency)
-      val attribution = if (type.isEconomicMovement()) sharesByTransaction[transaction.id]?.let(sharingAttribution::posted) else null
+      val attribution = if (type.isEconomicMovement()) readContext.sharesByTransaction[transaction.id]?.let(sharingAttribution::posted) else null
       val amounts = analyticsMovementAmounts(amount, attribution)
-      val occurrence = occurrencesByTransaction[transaction.id]
+      val occurrence = readContext.occurrencesByTransactionId[transaction.id]
       val assignedTagIds = tagIdsByTransaction[transaction.id].orEmpty()
       AnalyticsPostedMovement(
         id = transaction.id, effectiveAt = Instant.parse(transaction.occurredAt), accountId = transaction.accountId,
@@ -116,21 +145,21 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
         schedulingOrigin = occurrence?.let(::schedulingOrigin),
         sharing = amounts.sharing,
         merchant = transaction.merchant,
-        tags = analyticsTags(assignedTagIds, emptyList(), taxonomyTags),
+        tags = analyticsTags(assignedTagIds, emptyList(), readContext),
       )
     }
   }
 
-  private fun pendingExpected(window: AnalyticsMovementReadWindow, taxonomyTags: List<com.gonezo.taxonomy.domain.Tag>, plannedSharesByExpected: Map<String, com.gonezo.sharing.domain.PlannedMovementShare>): List<AnalyticsExpectedMovement> = ledger.listAccounts().flatMap { account ->
+  private fun pendingExpected(window: AnalyticsMovementReadWindow, readContext: NativeAnalyticsReadContext): List<AnalyticsExpectedMovement> = readContext.accounts.flatMap { account ->
     expected.listMovements(account.id, false).filter { it.status.equals("pending", true) }
       .mapNotNull { movement ->
         val at = Instant.parse(movement.expectedAt)
         if (!window.contains(at)) return@mapNotNull null
         val type = movement.type.toAnalyticsType() ?: return@mapNotNull null
         val amount = Money(BigDecimal(movement.amount), movement.currency)
-        val attribution = if (type.isEconomicMovement()) plannedSharesByExpected[movement.id]?.let(sharingAttribution::expected) else null
+        val attribution = if (type.isEconomicMovement()) readContext.plannedSharesByExpected[movement.id]?.let(sharingAttribution::expected) else null
         val amounts = analyticsMovementAmounts(amount, attribution)
-        val tags = analyticsTags(movement.tagIds, movement.tagNames, taxonomyTags)
+        val tags = analyticsTags(movement.tagIds, movement.tagNames, readContext)
         AnalyticsExpectedMovement(
           id = movement.id, effectiveAt = at, accountId = movement.accountId, type = type,
           currency = com.gonezo.domain.shared.CurrencyCode.from(movement.currency), personalAmount = amounts.personalAmount, fullAmount = amount,
@@ -138,7 +167,7 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
           tagIds = tags.mapNotNullTo(linkedSetOf(), AnalyticsTagReference::tagId),
           originOccurrenceId = movement.originOccurrenceId, originRecurringMovementId = movement.originRecurringMovementId,
           resolvedTransactionId = movement.resolvedTransactionId,
-          schedulingOrigin = schedulingOrigin(movement.originOccurrenceId, movement.originRecurringMovementId),
+          schedulingOrigin = schedulingOrigin(movement.originOccurrenceId, movement.originRecurringMovementId, readContext),
           sharing = amounts.sharing,
           merchant = movement.merchant,
           tagNames = movement.tagNames,
@@ -147,20 +176,19 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
       }
   }
 
-  private fun scheduled(window: AnalyticsMovementReadWindow, taxonomyTags: List<com.gonezo.taxonomy.domain.Tag>, sharingPlansByRecurring: Map<String, com.gonezo.sharing.domain.RecurringSharePlan>): List<AnalyticsScheduledProjection> {
-    val movements = ledger.listAccounts().flatMap { recurring.listBySourceAccount(it.id) }.distinctBy { it.id }
-    val persistedOccurrences = occurrences.listAll().associateBy { it.recurringMovementId to it.dueAt }
-    return movements.flatMap { movement ->
+  private fun scheduled(window: AnalyticsMovementReadWindow, readContext: NativeAnalyticsReadContext): List<AnalyticsScheduledProjection> {
+    val persistedOccurrences = readContext.occurrencesBySeriesAndDueAt
+    return readContext.recurringMovements.flatMap { movement ->
       projector.project(movement, window.fromInclusive, window.toExclusive) { dueAt, _ ->
         persistedOccurrences[movement.id to dueAt]?.id?.toString()
       }.map { occurrence ->
         val type = movement.type.value.toAnalyticsType() ?: return@map null
         val amount = Money(movement.amount, movement.currency)
-        val attribution = if (type.isEconomicMovement()) sharingPlansByRecurring[movement.id.toString()]?.let { sharingAttribution.scheduled(it, amount.amount) } else null
+        val attribution = if (type.isEconomicMovement()) readContext.sharingPlansByRecurring[movement.id.toString()]?.let { sharingAttribution.scheduled(it, amount.amount) } else null
         val amounts = analyticsMovementAmounts(amount, attribution)
         val persistedOccurrence = persistedOccurrences[movement.id to occurrence.effectiveAt]
         val schedulingKind = persistedOccurrence?.schedulingKind ?: movement.schedulingKind
-        val tags = analyticsTags(movement.tagIds.toSet(), movement.tagNames, taxonomyTags)
+        val tags = analyticsTags(movement.tagIds.toSet(), movement.tagNames, readContext)
         AnalyticsScheduledProjection(
           identity = occurrence.identity, effectiveAt = occurrence.effectiveAt, accountId = movement.sourceAccountId,
           type = type, currency = com.gonezo.domain.shared.CurrencyCode.from(movement.currency),
@@ -191,29 +219,30 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
   private fun analyticsCadence(cadence: RecurrenceCadenceSnapshot) =
     AnalyticsRecurrenceCadence(cadence.frequency.value, cadence.interval)
 
-  private fun schedulingOrigin(originOccurrenceId: String?, recurringMovementId: String?): AnalyticsSchedulingOrigin? {
+  private fun schedulingOrigin(originOccurrenceId: String?, recurringMovementId: String?, readContext: NativeAnalyticsReadContext): AnalyticsSchedulingOrigin? {
     if (originOccurrenceId != null) {
-      val occurrence = occurrences.findById(UUID.fromString(originOccurrenceId)) ?: return null
+      val occurrence = readContext.occurrences.firstOrNull { it.id.toString() == originOccurrenceId } ?: return null
       return schedulingOrigin(occurrence)
     }
     val recurringId = recurringMovementId ?: return null
-    val movement = recurring.findById(RecurringMovementId.from(recurringId)) ?: return null
+    val movement = readContext.recurringMovements.firstOrNull { it.id.toString() == recurringId } ?: return null
     return AnalyticsSchedulingOrigin(movement.schedulingKind, recurringId)
   }
 
   private fun tagIdsByTransaction(transactionIds: Collection<String>): Map<String, Set<String>> {
     if (transactionIds.isEmpty()) return emptyMap()
     val placeholders = transactionIds.joinToString(",") { "?" }
-    return database.readableDatabase.query(
+    val assignments = database.readableDatabase.query(
       "taxonomy_transaction_tag_assignments", arrayOf("transaction_id", "tag_id"), "transaction_id in ($placeholders)", transactionIds.toTypedArray(), null, null, "transaction_id asc, tag_id asc",
     ).use { cursor ->
-      buildMap {
+      buildMap<String, MutableSet<String>> {
         while (cursor.moveToNext()) {
           val transactionId = cursor.getString(0)
-          put(transactionId, (get(transactionId).orEmpty() + cursor.getString(1)).toSet())
+          getOrPut(transactionId) { linkedSetOf() }.add(cursor.getString(1))
         }
       }
     }
+    return assignments.mapValues { (_, tagIds) -> tagIds.toSet() }
   }
 
   private fun categoryIdsByTransaction(transactionIds: Collection<String>): Map<String, String> {
@@ -229,28 +258,29 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
   private fun splitAmountsByTransaction(transactionIds: Collection<String>): Map<String, List<AnalyticsCategoryAmount>> {
     if (transactionIds.isEmpty()) return emptyMap()
     val placeholders = transactionIds.joinToString(",") { "?" }
-    return database.readableDatabase.rawQuery(
+    val assignments = database.readableDatabase.rawQuery(
       "select items.transaction_id, assignments.category_id, items.amount from ledger_transaction_items items " +
         "left join taxonomy_transaction_item_category_assignments assignments on assignments.transaction_item_id = items.id " +
         "where items.transaction_id in ($placeholders) order by items.transaction_id asc, items.id asc",
       transactionIds.toTypedArray(),
     ).use { cursor ->
-      buildMap {
+      buildMap<String, MutableList<AnalyticsCategoryAmount>> {
         while (cursor.moveToNext()) {
           val transactionId = cursor.getString(0)
           val allocation = AnalyticsCategoryAmount(cursor.getString(1), BigDecimal(cursor.getString(2)))
-          put(transactionId, get(transactionId).orEmpty() + allocation)
+          getOrPut(transactionId) { mutableListOf() }.add(allocation)
         }
       }
     }
+    return assignments.mapValues { (_, amounts) -> amounts.toList() }
   }
 
-  private fun analyticsTags(tagIds: Collection<String>, tagNames: List<String>, tags: List<com.gonezo.taxonomy.domain.Tag>): List<AnalyticsTagReference> {
+  private fun analyticsTags(tagIds: Collection<String>, tagNames: List<String>, readContext: NativeAnalyticsReadContext): List<AnalyticsTagReference> {
     return AnalyticsTagReferenceResolver.resolve(
       tagIds = tagIds,
       tagNames = tagNames,
-      displayNamesById = tags.associate { it.id.toString() to it.name },
-      idsByNormalizedName = tags.associate { com.gonezo.taxonomy.domain.TagName.normalizeTagName(it.name) to it.id.toString() },
+      displayNamesById = readContext.tagDisplayNamesById,
+      idsByNormalizedName = readContext.tagIdsByNormalizedName,
       normalizeName = com.gonezo.taxonomy.domain.TagName::normalizeTagName,
     )
   }
