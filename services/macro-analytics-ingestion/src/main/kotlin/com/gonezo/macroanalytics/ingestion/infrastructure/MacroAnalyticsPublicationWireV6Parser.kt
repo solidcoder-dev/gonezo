@@ -194,20 +194,6 @@ class MacroAnalyticsPublicationWireV6Parser : MacroAnalyticsPublicationPayloadPa
         )
     }
 
-    private fun JSONObject.requireKeys(vararg keys: String) {
-        require(keySet() == keys.toSet()) { "Unexpected or missing fields" }
-    }
-
-    private fun JSONObject.requiredObject(key: String) = get(key) as? JSONObject ?: error("$key must be an object")
-    private fun JSONObject.requiredArray(key: String) = get(key) as? JSONArray ?: error("$key must be an array")
-    private fun JSONObject.requiredString(key: String) = get(key) as? String ?: error("$key must be a string")
-    private fun JSONObject.requiredInt(key: String): Int {
-        val number = get(key) as? Number ?: error("$key must be an integer")
-        val value = number.toLong()
-        require(value in Int.MIN_VALUE..Int.MAX_VALUE && number.toDouble() == value.toDouble())
-        return value.toInt()
-    }
-
     private fun merchantCodes(catalogVersion: Int): Set<String> = when (catalogVersion) {
         1 -> setOf("MERCADONA", "LIDL", "CARREFOUR", "UNMAPPED")
         else -> error("Unsupported merchant catalog version")

@@ -140,20 +140,6 @@ class MacroAnalyticsPublicationWireV4Parser : MacroAnalyticsPublicationPayloadPa
         )
     }
 
-    private fun JSONObject.requireKeys(vararg keys: String) {
-        require(keySet() == keys.toSet()) { "Unexpected or missing fields" }
-    }
-
-    private fun JSONObject.requiredObject(key: String) = get(key) as? JSONObject ?: error("$key must be an object")
-    private fun JSONObject.requiredArray(key: String) = get(key) as? JSONArray ?: error("$key must be an array")
-    private fun JSONObject.requiredString(key: String) = get(key) as? String ?: error("$key must be a string")
-    private fun JSONObject.requiredInt(key: String): Int {
-        val number = get(key) as? Number ?: error("$key must be an integer")
-        val value = number.toLong()
-        require(value in Int.MIN_VALUE..Int.MAX_VALUE && number.toDouble() == value.toDouble())
-        return value.toInt()
-    }
-
     private companion object {
         val PERIOD = Regex("^(?!0000-)[0-9]{4}-(0[1-9]|1[0-2])$")
         val COUNTRY = Regex("^[A-Z]{2}$")
